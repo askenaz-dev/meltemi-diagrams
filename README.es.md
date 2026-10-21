@@ -187,8 +187,8 @@ pnpm release:check
 `pnpm test` ejecuta las pruebas de todos los paquetes. `pnpm acceptance` ejecuta todos los criterios
 de aceptación en unos doce minutos y registra los resultados en
 [docs/quality/results.md](docs/quality/results.md). `pnpm release:check` compila y empaqueta todos
-los paquetes, instala el comando desde los archivos empaquetados en una carpeta vacía y sin red, y
-lo ejecuta allí: lo más parecido a una versión publicada
+los paquetes, instala el comando desde los archivos empaquetados en una carpeta vacía, nunca desde el
+registro, y lo ejecuta allí: lo más parecido a una versión publicada
 ([publicación de versiones](RELEASING.md)).
 
 ## Galería

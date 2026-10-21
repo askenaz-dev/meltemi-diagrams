@@ -55,7 +55,7 @@ pnpm release:check
 - `pnpm acceptance` runs every acceptance criterion and rewrites `docs/quality/results.md`,
   `docs/performance.md` and `docs/verification/browsers.md`; all must pass.
 - `pnpm release:check` builds every package from clean, packs the npm packages into `release/`,
-  checks each tarball, installs the CLI from the tarballs into an empty folder without network,
+  checks each tarball, installs the CLI from the tarballs into an empty folder (third-party packages from the store when it has them),
   runs it through `init`, `validate`, the exports, `build catalog` and `import`, packages the
   extension as `release/meltemi-diagrams-<version>.vsix`, and writes `release/manifest.json` with
   every file's size and SHA-256. The release workflow runs it again on Linux before publishing.

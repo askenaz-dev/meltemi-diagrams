@@ -1,6 +1,6 @@
 // The release check: every package built from clean, packed, its tarball checked, the CLI installed
-// from the tarballs into an empty folder without network and run through the main journey, and
-// the VS Code extension packaged. Nothing is published. Usage: pnpm release:check
+// from the tarballs into an empty folder (never from the registry) and run through the main
+// journey, and the VS Code extension packaged. Nothing is published. Usage: pnpm release:check
 import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
@@ -245,7 +245,11 @@ export function runReleaseCheck(): StepResult[] {
   rmSync(scratch, { recursive: true, force: true });
   mkdirSync(scratch, { recursive: true });
   try {
-    const installed = step("Install the CLI from the tarballs without network", () => {
+    // Every Meltemi package comes from its tarball (the overrides), never from the registry.
+    // Third-party packages come from the store when it has the version resolved, else from the
+    // registry: an offline install resolves ranges from cached registry metadata, which a fresh
+    // machine or a CI runner does not have.
+    const installed = step("Install the CLI from the tarballs", () => {
       const overrides = Object.fromEntries(
         tarballs.map((t) => [t.name, `file:${t.file.replaceAll("\\", "/")}`]),
       );
@@ -262,12 +266,8 @@ export function runReleaseCheck(): StepResult[] {
           2,
         ),
       );
-      const run = pnpm(["install", "--offline"], scratch);
-      if (run.status !== 0) {
-        throw new Error(
-          `pnpm install --offline failed; a third-party package may be missing from the store (run pnpm install once with network):\n${output(run)}`,
-        );
-      }
+      const run = pnpm(["install", "--prefer-offline"], scratch);
+      if (run.status !== 0) throw new Error(`pnpm install failed:\n${output(run)}`);
       const bins = ["meltemi-diagrams", "mdg"].filter((bin) =>
         readdirSync(join(scratch, "node_modules", ".bin")).some(
           (f) => f === bin || f.startsWith(`${bin}.`),

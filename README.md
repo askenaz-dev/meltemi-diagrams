@@ -181,7 +181,7 @@ pnpm release:check
 `pnpm test` runs every package's tests. `pnpm acceptance` runs every acceptance criterion in about
 twelve minutes and records the results in [docs/quality/results.md](docs/quality/results.md).
 `pnpm release:check` builds and packs every package, installs the command from the packed files
-into an empty folder without network, and runs it there: the closest thing to a published release
+into an empty folder, never from the registry, and runs it there: the closest thing to a published release
 ([releasing](RELEASING.md)).
 
 ## Gallery

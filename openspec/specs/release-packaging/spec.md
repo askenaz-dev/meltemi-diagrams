@@ -32,8 +32,9 @@ install it, a minimal use and the documentation. Packed tarballs SHALL contain t
 `pnpm release:check` SHALL build every package from clean, pack every public package into
 `release/`, check every tarball (version, ranges, README, licence, every exported, `bin` and
 `types` path present, no sources or tests), install the CLI from the tarballs into an empty folder
-without network (internal packages mapped to their tarballs, third-party packages from the local
-store), run the installed command through `--version`, `init --template purchase`, `validate`,
+(internal packages mapped to their tarballs, never the registry's; third-party packages from the
+local store when it has them, else from the registry, so that a fresh machine, a CI runner
+included, can run it), run the installed command through `--version`, `init --template purchase`, `validate`,
 `export` to SVG, PNG, PDF and (with FFmpeg) MP4, `build catalog` and `import` of a Mermaid file,
 package the VS Code extension, and write `release/manifest.json` with each file's name, version,
 size and SHA-256. It SHALL exit 1 naming each failed step.
