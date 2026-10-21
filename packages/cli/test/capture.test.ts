@@ -99,7 +99,7 @@ describe("export usage", () => {
 describe.skipIf(!findBrowser())("PNG and PDF with the installed browser", () => {
   it("writes PNG at a scale, a size and a transparent background", () => {
     const plain = mdg("export", "sheet.meltemi", "--format", "png", "--fonts", "system");
-    expect(plain.code).toBe(0);
+    expect(plain.code, plain.stderr).toBe(0);
     expect(plain.stdout).toMatch(
       /^Wrote sheet\.png \((Edg|Chrome|HeadlessChrome|Chromium)\/[\d.]+\)\n$/,
     );
@@ -118,7 +118,7 @@ describe.skipIf(!findBrowser())("PNG and PDF with the installed browser", () => 
       "--out",
       "sized.png",
     );
-    expect(sized.code).toBe(0);
+    expect(sized.code, sized.stderr).toBe(0);
     expect(pngInfo(readFileSync(join(scratch, "sized.png")))).toEqual({
       width: 800,
       height: 600,
