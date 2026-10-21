@@ -4,8 +4,8 @@
 
 | Version | Supported                                 |
 | ------- | ----------------------------------------- |
-| 1.8.x   | yes: fixes are released as patch versions |
-| < 1.8   | no: upgrade to the current minor version  |
+| 1.9.x   | yes: fixes are released as patch versions |
+| < 1.9   | no: upgrade to the current minor version  |
 | < 1.0   | no: these were never published            |
 
 ## Reporting a vulnerability

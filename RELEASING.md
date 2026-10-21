@@ -19,7 +19,7 @@ to `main` deploys it (`.github/workflows/deploy.yml`).
 3. Set the version everywhere it is written:
 
    ```bash
-   pnpm release:version 1.8.0
+   pnpm release:version 1.9.0
    ```
 
    It rewrites every `package.json` (the extension included) and the CLI's version constant. The
@@ -72,11 +72,11 @@ pnpm release:check
 ## 3. Tag and watch
 
 ```bash
-git tag -a v1.8.0 -m "Meltemi Diagrams 1.8.0"
+git tag -a v1.9.0 -m "Meltemi Diagrams 1.9.0"
 ```
 
 ```bash
-git push origin v1.8.0
+git push origin v1.9.0
 ```
 
 The tag starts the release workflow. Its jobs run one after the other, each only if the one before
@@ -101,7 +101,9 @@ the values of its `infrastructure` environment, and replaces them when those cha
 
 - `NPM_TOKEN`: a granular token of the npm organisation `meltemi` that publishes its packages, with
   the bypass of two-factor authentication for automation and an expiry.
-- `VSCE_PAT`: an Azure DevOps token with the Marketplace (manage) scope of the `meltemi` publisher.
+- `VSCE_PAT`: an Azure DevOps token with the Marketplace (manage) scope of the `meltemi` publisher,
+  for "All accessible organizations". Azure DevOps retires global tokens on 2026-12-01; publishing
+  then moves to Microsoft Entra ID (`vsce publish --azure-credential` with a workload identity).
 - `OVSX_PAT`: the Open VSX token of the `meltemi` namespace.
 
 Once every package exists on npm, trusted publishing replaces the npm token: on each package's
@@ -111,7 +113,7 @@ family's infrastructure. Provenance keeps working: it comes from the workflow, n
 
 ## Patch releases
 
-A fix release follows the same steps with the next patch version (`pnpm release:version 1.8.1`).
+A fix release follows the same steps with the next patch version (`pnpm release:version 1.9.1`).
 A fix that changes what a valid file means is not a patch: it follows the
 [language policy](docs/language/policy.md).
 

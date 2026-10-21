@@ -6,10 +6,10 @@ served from 127.0.0.1 with no other address reachable. PDF is read from the file
 fonts, text and links are the same whatever opens it. The office applications are checked by
 hand: see [office-apps.md](office-apps.md).
 
-Run on 2026-10-15: 11th Gen Intel(R) Core(TM) i9-11980HK @ 2.60GHz, 16 threads, 64 GB, win32 10.0.26300, Node v24.15.0. Captures by Edg/155.0.4283.45; ffmpeg version 6.1.1-full_build-www.gyan.dev
+Run on 2026-10-21: 11th Gen Intel(R) Core(TM) i9-11980HK @ 2.60GHz, 16 threads, 64 GB, win32 10.0.26300, Node v24.15.0. Captures by Edg/155.0.4283.62; ffmpeg version 6.1.1-full_build-www.gyan.dev
 .
 
-| Format       | Check                                                                  | Edge 155.0.4283.45 | Chrome 154.0.8037.98 | Firefox 157.0.1 |
+| Format       | Check                                                                  | Edge 155.0.4283.62 | Chrome 155.0.8059.80 | Firefox 157.0.1 |
 | ------------ | ---------------------------------------------------------------------- | :----------------: | :------------------: | :-------------: |
 | SVG          | loads as an image and draws                                            |         ✓          |          ✓           |        ✓        |
 | SVG          | inline in a page, with its fonts                                       |         ✓          |          ✓           |        ✓        |

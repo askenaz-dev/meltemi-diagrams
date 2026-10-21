@@ -1,6 +1,6 @@
 {
   "name": "@meltemi/diagrams-language",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Lexer, lossless parser, CST and diagnostics for the .meltemi language.",
   "license": "MIT",
   "repository": {

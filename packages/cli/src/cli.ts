@@ -58,7 +58,7 @@ export const CLI_NAME = "meltemi-diagrams";
 export const CLI_ALIAS = "mdg";
 /** Extension of `.meltemi` sources (decision 0002). */
 export const MELTEMI_EXTENSION = ".meltemi";
-export const CLI_VERSION = "1.8.0";
+export const CLI_VERSION = "1.9.0";
 
 export const EXIT_OK = 0;
 export const EXIT_FINDINGS = 1;

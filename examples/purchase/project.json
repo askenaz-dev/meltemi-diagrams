@@ -2,7 +2,7 @@
   "name": "purchase",
   "language": "0.2",
   "tools": {
-    "meltemi-diagrams": "^1.8.0"
+    "meltemi-diagrams": "^1.9.0"
   },
   "catalog": {
     "title": "Purchase",

@@ -1,6 +1,6 @@
 {
   "name": "@meltemi/diagrams-assets",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Icon packs, project assets, licence metadata and the asset lock of Meltemi Diagrams.",
   "license": "MIT",
   "repository": {

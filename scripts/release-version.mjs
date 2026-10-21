@@ -1,5 +1,6 @@
 // Sets the product version everywhere it is written: the version of every package of the
-// workspace (the extension included) and the CLI's version constant, which the bundles inline.
+// workspace (the extension included), the CLI's version constant, which the bundles inline, and the
+// files that quote it (`VERSION_MENTIONS`).
 // The language version and the model and renderer API versions are separate contracts and do not
 // move with it (docs/language/policy.md).
 // Usage: pnpm release:version <x.y.z>
@@ -10,6 +11,22 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CLI_SOURCE = join(root, "packages", "cli", "src", "cli.ts");
 const CONSTANT = /export const CLI_VERSION = "[^"]*";/;
+
+/**
+ * Files that quote the product version besides the manifests: the purchase example is the project
+ * template, which requires the version that wrote it, and the corpus' expected message for a
+ * project that requires a later version names the running one.
+ */
+export const VERSION_MENTIONS = [
+  {
+    path: join(root, "examples", "purchase", "project.json"),
+    pattern: /("meltemi-diagrams":\s*"\^)\d+\.\d+\.\d+(")/,
+  },
+  {
+    path: join(root, "corpus", "projects", "invalid", "project.tool-version", "expected.json"),
+    pattern: /(but this is version )\d+\.\d+\.\d+(\.)/,
+  },
+];
 
 /** The manifests whose version is the product's. */
 export function versionedManifests() {
@@ -27,6 +44,15 @@ export function setVersion(version) {
   for (const path of versionedManifests()) {
     const text = readFileSync(path, "utf8");
     const next = text.replace(/^(\s*"version":\s*)"[^"]*"/m, `$1"${version}"`);
+    if (next !== text) {
+      writeFileSync(path, next);
+      changed.push(path);
+    }
+  }
+  for (const { path, pattern } of VERSION_MENTIONS) {
+    const text = readFileSync(path, "utf8");
+    if (!pattern.test(text)) throw new Error(`${path} no longer quotes the version.`);
+    const next = text.replace(pattern, `$1${version}$2`);
     if (next !== text) {
       writeFileSync(path, next);
       changed.push(path);

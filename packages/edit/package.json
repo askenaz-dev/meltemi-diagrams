@@ -1,6 +1,6 @@
 {
   "name": "@meltemi/diagrams-edit",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Structured source edits that become minimal, comment-preserving text changes.",
   "license": "MIT",
   "repository": {

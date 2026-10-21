@@ -45,7 +45,7 @@ repository, and everything runs as GitHub pipelines.
 
 ## Publishing
 
-- [ ] Tag `v1.8.0` and watch the release workflow: the npm packages with provenance, the extension
+- [ ] Tag `v1.9.0` and watch the release workflow: the npm packages with provenance, the extension
       on both marketplaces, the GitHub release ([releasing](../../RELEASING.md)).
 - [x] **Host the playground.** It is `https://diagrams.meltemi.dev`, deployed from `main`
       ([playground](../playground.md)); the README and the announcement name it.

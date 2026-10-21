@@ -50,6 +50,18 @@ describe("one product version", () => {
     expect(() => script.setVersion("1.0")).toThrow(/x\.y\.z/);
     expect(() => script.setVersion("v1.0.0")).toThrow(/x\.y\.z/);
   });
+
+  it("is what the files quoting it say, which the version script rewrites too", async () => {
+    const script = (await import(
+      /* @vite-ignore */ pathToFileURL(join(REPO_ROOT, "scripts", "release-version.mjs")).href
+    )) as { VERSION_MENTIONS: { path: string; pattern: RegExp }[] };
+    expect(script.VERSION_MENTIONS.length).toBeGreaterThan(0);
+    for (const { path, pattern } of script.VERSION_MENTIONS) {
+      const quoted = readFileSync(path, "utf8").match(pattern);
+      expect(quoted, path).not.toBeNull();
+      expect(quoted![0], path).toContain(CLI_VERSION);
+    }
+  });
 });
 
 describe("publishable manifests", () => {

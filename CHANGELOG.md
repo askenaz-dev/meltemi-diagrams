@@ -4,7 +4,11 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
-## 1.9.0
+## 1.9.0 (2026-10-21)
+
+The first version published: on npm (`@meltemi/diagrams-*`), the Visual Studio Marketplace and
+Open VSX, with the hosted service at `https://diagrams.meltemi.dev`. It carries 1.8.0 and every
+version below, which were not published on their own.
 
 HTML diagrams that explain themselves: every drawing of the player, the catalog and the published
 page zooms and pans, shows a card when the pointer rests on a box or a line, opens a panel of

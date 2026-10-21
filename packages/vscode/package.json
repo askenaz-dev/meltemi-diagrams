@@ -2,7 +2,7 @@
   "name": "meltemi-diagrams",
   "displayName": "Meltemi Diagrams",
   "description": "%description%",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "publisher": "meltemi",
   "private": true,
   "license": "MIT",

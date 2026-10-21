@@ -1,6 +1,6 @@
 {
   "name": "@meltemi/diagrams-motion",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Motion effects of .meltemi diagrams on a deterministic clock: frames at any time and the animated SVG profile.",
   "license": "MIT",
   "repository": {

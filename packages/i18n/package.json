@@ -1,6 +1,6 @@
 {
   "name": "@meltemi/diagrams-i18n",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "Languages of Meltemi Diagrams: locales, typed catalogs in English and Spanish, and formatting by language.",
   "license": "MIT",
   "repository": {
