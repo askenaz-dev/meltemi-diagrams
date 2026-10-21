@@ -13,8 +13,8 @@
 ## 3. Continuous integration
 
 - [x] 3.1 `.github/workflows/ci.yml`: `concurrency` by ref with cancellation, `permissions: contents: read`, the `check` matrix, the `browser` job (FFmpeg installed; the playground, player, catalog and canvas suites) and the `cloud` job (`pnpm playground:build`, `pnpm cloud:test-browser`); no secret; `packages/acceptance/test/workflows.test.ts` asserts the three workflows' triggers, environments, step order and secrets, and the three scripts; `CONTRIBUTING.md` "What CI runs"
-- [ ] 3.2 Push and make every job green: fix what the Linux and Windows runners reveal (browser discovery, fonts, ports 8787 and 8788, timeouts, path separators), each fix with its test. The cloud scenario "collaboration: viewers, by membership and by the link, see presence and are seen", which failed before this change too, was fixed on 2026-10-20 in a separate session (`CanvasApp.applyRender` in `packages/canvas/src/app.ts`, with a webview test)
-- [ ] 3.3 Verify: the run of `main` shows the four `check` jobs, `browser` and `cloud` green, and a pull request shows them as checks
+- [x] 3.2 The first runs fixed: Windows 8.3 short temp paths against Git's long top folder (`init`, `review`: Git's top spelled as the project folder), the credentials folder tightened to 0700, Chrome's sandbox allowed on Ubuntu 24.04 runners (`kernel.apparmor_restrict_unprivileged_userns=0`), the archive test read by Windows' tar or Python's zipfile, the catalog suite waiting for the title's focus, the cloud suite accepting one `net::ERR_FAILED` per download and workerd's report of a browser that hung up; the capture tests print the command's error output; `CONTRIBUTING.md` names the jobs
+- [x] 3.3 Verify: the run of `main` shows the four `check` jobs, `browser` and `cloud` green, and a pull request shows them as checks
 
 ## 4. The Workers' configuration, the secrets and the assets
 
