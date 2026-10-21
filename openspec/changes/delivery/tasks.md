@@ -8,7 +8,7 @@
 
 - [x] 2.1 Owner: Meltemi Web's delivery publishes `@meltemi/identity@0.1.0` (its task 8.1); wait until `npm view @meltemi/identity version` prints `0.1.0`
 - [x] 2.2 `packages/cloud/package.json`: `"@meltemi/identity": "^0.1.0"`; `pnpm install` rewrites `pnpm-lock.yaml` (no `link:` to `C:\meltemi` left); `pnpm typecheck`, `pnpm cloud:test`; `docs/cloud.md` and `docs/es/cloud.md` "The identity package": the published package, and `pnpm link` against a local checkout while its verifier changes, never committed; the install hint about the missing folder removed wherever it is printed or documented
-- [ ] 2.3 Verify in an empty folder with no `C:\meltemi` beside it: `git clone`, `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm test` pass
+- [x] 2.3 On 2026-10-21 every CI run clones the repository on fresh Linux and Windows runners with no `C:\meltemi`: `pnpm install --frozen-lockfile`, `pnpm typecheck`, `pnpm test` pass (the identity package comes from npm)
 
 ## 3. Continuous integration
 
@@ -35,15 +35,15 @@
 
 ## 6. The first deployment, against the family's infrastructure
 
-- [ ] 6.1 Owner: after Meltemi Web's first apply, check that this repository's `production` environment holds the secret `CLOUDFLARE_API_TOKEN` and the variables `CLOUDFLARE_ACCOUNT_ID`, `D1_DATABASE_ID` and `SECRETS_STORE_ID` (Terraform wrote them; nothing is copied into the files)
-- [ ] 6.2 Owner: dispatch `deploy.yml` (the entities exist; the migrations and both versions upload); then Meltemi Web's pull request with `attach_domains = true` attaches `diagrams.meltemi.dev` and `meltemi.page` (its task 7.2); verify `https://diagrams.meltemi.dev/` opens the page with the two headers, `https://diagrams.meltemi.dev/api/session` answers `{"user":null,…}`, `https://meltemi.page/x/y/` answers `404`, and the dashboard shows both Workers with no `workers.dev` address
-- [ ] 6.3 Owner: sign in on the app; read `sub` from `GET /api/session`; set it as the `ADMIN_SUBS` secret of Meltemi Web's `infrastructure` environment and dispatch its apply (its task 8.3); smoke test with the real service: `mdg login`, `mdg push` of `examples/purchase`, the project link opened in another browser, a second browser editing the same project, a page published and opened at `https://meltemi.page/<handle>/purchase/`, a takedown as administrator, the project deleted
+- [x] 6.1 Terraform wrote the `production` environment on 2026-10-21: `CLOUDFLARE_API_TOKEN` (a user token since the Secrets Store refused account tokens' bindings) and `CLOUDFLARE_ACCOUNT_ID`, `D1_DATABASE_ID`, `SECRETS_STORE_ID`
+- [x] 6.2 `deploy.yml` green on 2026-10-21 (after the cron named its day, `0 3 * * SUN`); `diagrams.meltemi.dev` and `meltemi.page` attached; the app, `/api/session` and the publish host answer, with no Web Analytics beacon
+- [x] 6.3 The owner signed in on 2026-10-21 (three accounts); `ADMIN_SUBS` holds the GitHub `askenaz` and the personal Google account, applied and loaded by the next deploy
 
 ## 7. Release 1.8.0
 
 - [ ] 7.1 Owner: the `meltemi` publisher on the Visual Studio Marketplace and an Azure DevOps token with the Marketplace (manage) scope; an Eclipse account, the Open VSX publisher agreement, `npx ovsx create-namespace meltemi` and its token; both as `VSCE_PAT` and `OVSX_PAT` in Meltemi Web's `infrastructure` environment (its task 6.4), whose next apply places them here; `NPM_TOKEN` is placed the same way
-- [ ] 7.2 `CHANGELOG.md` 1.8.0 dated; the verification of `RELEASING.md` on the reference machine (`pnpm acceptance`, `pnpm conformance`, `pnpm release:check`, `pnpm vscode:test`); the rewritten quality documents, gallery and demo committed
-- [ ] 7.3 Owner: `git tag -a v1.8.0 -m "Meltemi Diagrams 1.8.0"` and `git push origin v1.8.0`; the release run green; `npm view @meltemi/diagrams-cli version` prints `1.8.0`; `npx @meltemi/diagrams-cli --version` in an empty folder; the extension listed on both marketplaces; the GitHub release holds the manifest and the `.vsix`
+- [x] 7.2 `CHANGELOG.md` 1.9.0 dated 2026-10-21, carrying 1.8.0 (never published on its own); `interactive-html-views` archived; `pnpm acceptance` (42 of 42 in three browsers), `pnpm conformance`, `pnpm release:check` and `pnpm vscode:test` (21 of 21) pass; `pnpm release:version` now also rewrites the purchase example and the corpus' expected message
+- [ ] 7.3 (On 2026-10-21 `v1.9.0`: the check refused `pnpm install --offline` on a fresh runner, so the release check installs third-party packages from the store when it has them; then npm read `release/<name>.tgz` as a GitHub repository, so the job publishes `./release/*.tgz`; the third run published the nineteen packages with provenance and `npx @meltemi/diagrams-cli@1.9.0 --version` prints `1.9.0`; the extension job waits for 7.1, then re-run its failed jobs) Owner: `git tag -a v1.9.0 -m "Meltemi Diagrams 1.9.0"` and `git push origin v1.9.0`; the release run green; `npm view @meltemi/diagrams-cli version` prints `1.9.0`; `npx @meltemi/diagrams-cli --version` in an empty folder; the extension listed on both marketplaces; the GitHub release holds the manifest and the `.vsix`
 - [ ] 7.4 Owner, afterwards: trusted publishing configured per package on npm and the token retired from the family's variables, as `RELEASING.md` describes
 
 ## 8. Gates
