@@ -1638,7 +1638,7 @@ blob a hundred versions share counts once.
 
 ## The collection of blobs
 
-A blob goes when nothing has referenced it for seven days. A weekly cron trigger (`0 3 * * 0`:
+A blob goes when nothing has referenced it for seven days. A weekly cron trigger (`0 3 * * SUN`:
 Sundays at 03:00 UTC, in `wrangler.jsonc`) runs `scheduled` in `src/worker-handler.ts`, which calls
 `collectBlobs` (`src/collect.ts`). It has two steps, in this order:
 
@@ -1696,7 +1696,7 @@ The bindings are:
 | `BLOBS`  | The R2 bucket `meltemi-diagrams-blobs`: `blobs/<sha-256>`, `thumbs/<project id>.svg` and `published/<handle>/<slug>/index.html`                          |
 | `ROOMS`  | The Durable Object namespace of the class `ProjectRoom`, which the Worker's entry exports; the migration `v1` of `wrangler.jsonc` makes it SQLite-backed |
 
-`wrangler.jsonc` also holds the cron trigger of the weekly collection, `0 3 * * 0`, and an `alias`
+`wrangler.jsonc` also holds the cron trigger of the weekly collection, `0 3 * * SUN`, and an `alias`
 that makes the Worker bundle the workspace packages it imports from their sources. The ids in the
 file are placeholders (all zeros): the family's Terraform creates the database, the bucket and the
 Secrets Store and writes their ids as variables of this repository's `production` environment, and

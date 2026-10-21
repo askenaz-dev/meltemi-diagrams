@@ -50,7 +50,7 @@
       "secret_name": "ADMIN_SUBS",
     },
   ],
-  "triggers": { "crons": ["0 3 * * 0"] },
+  "triggers": { "crons": ["0 3 * * SUN"] },
   "alias": {
     "@meltemi/diagrams-project": "../project/src/index.ts",
     "@meltemi/diagrams-assets": "../assets/src/index.ts",

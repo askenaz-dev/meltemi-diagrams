@@ -550,7 +550,7 @@ describe("the scheduled handler of the Worker", () => {
       const log = vi.spyOn(console, "log").mockImplementation(() => {});
       const env: Env = testEnv({ DB: db, BLOBS: blobs });
 
-      await worker.scheduled({ scheduledTime: Date.now(), cron: "0 3 * * 0" }, env);
+      await worker.scheduled({ scheduledTime: Date.now(), cron: "0 3 * * SUN" }, env);
 
       expect(await store.blob(old)).toBeUndefined();
       expect(blobs.objects.has(blobKey(old))).toBe(false);
@@ -574,7 +574,7 @@ describe("the scheduled handler of the Worker", () => {
       vi.spyOn(console, "log").mockImplementation(() => {});
 
       await worker.scheduled(
-        { scheduledTime: Date.now(), cron: "0 3 * * 0" },
+        { scheduledTime: Date.now(), cron: "0 3 * * SUN" },
         testEnv({ DB: db, BLOBS: fakeR2(() => new Date()) }),
       );
 
@@ -623,7 +623,8 @@ describe("the scheduled handler of the Worker", () => {
       triggers?: { crons?: string[] };
     };
 
-    expect(config.triggers).toEqual({ crons: ["0 3 * * 0"] });
+    // Cloudflare counts the days of the week 1-7 from Sunday and refuses 0, so the day is named.
+    expect(config.triggers).toEqual({ crons: ["0 3 * * SUN"] });
     expect(text).not.toMatch(/"(DEV|IDENTITY_JWKS)"\s*:/);
   });
 });

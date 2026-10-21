@@ -1713,7 +1713,7 @@ comparten blobs, y un blob que comparten cien versiones cuenta una sola vez.
 
 ## La recolección de blobs
 
-Un blob se va cuando nada lo ha referenciado durante siete días. Un cron semanal (`0 3 * * 0`: los
+Un blob se va cuando nada lo ha referenciado durante siete días. Un cron semanal (`0 3 * * SUN`: los
 domingos a las 03:00 UTC, en `wrangler.jsonc`) ejecuta `scheduled` en `src/worker-handler.ts`, que
 llama a `collectBlobs` (`src/collect.ts`). Tiene dos pasos, por este orden:
 
@@ -1773,7 +1773,7 @@ Los bindings son:
 | `BLOBS`  | El bucket de R2 `meltemi-diagrams-blobs`: `blobs/<sha-256>`, `thumbs/<project id>.svg` y `published/<handle>/<slug>/index.html`                                     |
 | `ROOMS`  | El namespace de Durable Objects de la clase `ProjectRoom`, que exporta el punto de entrada del Worker; la migración `v1` de `wrangler.jsonc` la respalda con SQLite |
 
-`wrangler.jsonc` contiene además el disparador cron de la recolección semanal, `0 3 * * 0`, y un
+`wrangler.jsonc` contiene además el disparador cron de la recolección semanal, `0 3 * * SUN`, y un
 `alias` que hace que el Worker incluya en su paquete, desde sus fuentes, los paquetes del workspace
 que importa. Los ids del archivo son marcadores de posición (todo ceros): el Terraform de la familia
 crea la base de datos, el bucket y el Secrets Store y escribe sus ids como variables del entorno

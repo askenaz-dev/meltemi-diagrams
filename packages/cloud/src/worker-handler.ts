@@ -52,7 +52,7 @@ export default {
   },
 
   /**
-   * The weekly cron of `wrangler.jsonc` (`0 3 * * 0`, Sundays at 03:00 UTC): sweeps what has
+   * The weekly cron of `wrangler.jsonc` (`0 3 * * SUN`, Sundays at 03:00 UTC): sweeps what has
    * expired (the records of handled deletion events after 31 days, approval codes and failed
    * exchanges, publish requests), which the routes sweep too but only when somebody uses them, and
    * collects the blobs no project, upload or version references and that are older than seven
