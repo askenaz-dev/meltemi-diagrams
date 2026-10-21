@@ -1,7 +1,8 @@
 /**
  * The scenarios of live collaboration, two browsers in one room, about what people see and do together:
  * who is here and where (the header, the pane, the canvas), a name that looks like markup, typing in
- * the same line, a drag and a keystroke, and a change the room refuses. Each scenario has persons of
+ * the same line, a drag and a keystroke, a change the room refuses, and the explorer of one person
+ * while the other adds a diagram. Each scenario has persons of
  * its own; Ana is the owner and the first browser, Ben (an editor) the second. The connection, the
  * room's rules, viewers and what presence is never are in `scenarios-collaboration-room.ts`; what they
  * share is in `collaboration.ts`.
@@ -43,6 +44,7 @@ import {
   readRoom,
   roomHolds,
   statusLine,
+  studioState,
   textOf,
   typeAtEnd,
   undo,
@@ -52,7 +54,7 @@ import type { Scenario } from "./scenario.js";
 import { TEXT_LIMIT, fillerText } from "./scenarios-limits.js";
 import { KIND } from "./room-socket.js";
 import { addMember } from "./sharing.js";
-import { analysed, until } from "./support.js";
+import { analysed, expectOpen, openFile, until } from "./support.js";
 
 export const collaborationScenarios: Scenario[] = [
   {
@@ -205,22 +207,15 @@ export const collaborationScenarios: Scenario[] = [
       // click on him in Ana's header opens that file for her.
       await clickElement(bens, "api");
       await outlines(ana, ["api"], "Ben selected api again");
-      await bens.locator("#file-select").selectOption(MANIFEST);
+      await openFile(bens, MANIFEST);
       await outlines(ana, [], "Ben is in another file");
       await listsLabels(ana, [`Ben, in ${MANIFEST}`], "Ben opened the manifest");
       assert.equal((await listed(ana))[0]?.file, MANIFEST);
       assert.deepEqual(await drawn(ana), [], "his caret is in another file, not in Ana's pane");
       await ana.locator(".presence-person").first().click();
-      await until(
-        ana,
-        "Ana's page to open the file Ben has open",
-        (path) => {
-          return (document.querySelector("#file-select") as HTMLSelectElement).value === path;
-        },
-        MANIFEST,
-      );
+      await expectOpen(ana, MANIFEST);
       assert.match(await code(ana), /"name": "flow"/);
-      await bens.locator("#file-select").selectOption(OVERVIEW);
+      await openFile(bens, OVERVIEW);
       await listsLabels(ana, [`Ben, in ${OVERVIEW}`], "Ben came back");
 
       listener.close();
@@ -551,7 +546,7 @@ export const collaborationScenarios: Scenario[] = [
       const [ana, bens] = [t.page, device.page];
       await openByLink(ana, t.origin, project.id);
       await openByLink(bens, t.origin, project.id);
-      await ana.locator("#file-select").selectOption("notes.txt");
+      await openFile(ana, "notes.txt");
       await codeIs(ana, big, "the big text in Ana's pane");
       const revision = (await readRoom(t.me, project.id)).revision;
       const sockets = t.seen.sockets.length;
@@ -614,6 +609,76 @@ export const collaborationScenarios: Scenario[] = [
           ).meltemiPlayground.studio.text("diagrams/a.meltemi") ?? ""
         ).endsWith("// Ben after the refusal"),
       );
+    },
+  },
+
+  {
+    name: "collaboration: a diagram another person adds appears in the explorer in its place by name, while the row that has the focus keeps it and the open folders stay open",
+    signedIn: "u-ana-tree",
+    allowedErrors: [THUMBNAIL_RATE_LOGGED],
+    async run(t) {
+      const { ana, bens, project } = await pairIn(t, "purchase", "u-ben-tree");
+      const added = "diagrams/cart.meltemi";
+      const payment = "f:diagrams/payment.meltemi";
+      const anasFile = (await studioState(ana)).open;
+      assert.match(anasFile, /^diagrams\//, "the file the project opens at is in diagrams");
+
+      // Ana opens the folders of the model and the story, then puts the focus on the payment
+      // sequence's row, below the place the new diagram takes.
+      for (const folder of ["models", "stories"]) {
+        const row = ana.locator(`.tree li[data-key="d:${folder}"]`);
+        if ((await row.getAttribute("aria-expanded")) === "false") {
+          await row.locator(":scope > .tree-row").click();
+        }
+      }
+      await ana.locator(`.tree li[data-key="${payment}"]`).focus();
+      const focused = () =>
+        ana.evaluate(() => document.activeElement?.getAttribute("data-key") ?? null);
+      const expanded = () =>
+        ana
+          .locator('.tree li[aria-expanded="true"]')
+          .evaluateAll((rows) => rows.map((row) => row.getAttribute("data-key") ?? "").sort());
+      assert.equal(await focused(), payment);
+      const open = await expanded();
+      for (const key of ["d:diagrams", "d:models", "d:stories"]) {
+        assert.ok(open.includes(key), `${key} is open: ${open.join(", ")}`);
+      }
+
+      // Ben makes a diagram in that folder from his explorer: New diagram, in the open file's folder.
+      await bens.locator(".explorer-bar").getByRole("button", { name: "New diagram…" }).click();
+      const dialog = bens.locator("dialog[open]");
+      assert.equal(await dialog.locator(".dialog-where").innerText(), "In diagrams");
+      await dialog.getByLabel("Name", { exact: true }).fill("cart");
+      await dialog.getByRole("button", { name: "Create", exact: true }).click();
+      await expectOpen(bens, added);
+      const room = await roomHolds(
+        t.me,
+        project.id,
+        "Ben's new diagram in the room",
+        (read) => added in read.files,
+      );
+
+      // It appears in Ana's tree, in its place by name among the folder's diagrams.
+      await ana.locator(`.tree li[data-key="f:${added}"]`).waitFor({ state: "attached" });
+      const byName = (a: string, b: string) =>
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+      const inFolder = Object.keys(room.files)
+        .filter((path) => /^diagrams\/[^/]+\.meltemi$/.test(path))
+        .sort(byName)
+        .map((path) => `f:${path}`);
+      assert.ok(inFolder.includes(`f:${added}`));
+      assert.deepEqual(
+        await ana
+          .locator(
+            '.tree li[data-key="d:diagrams"] > .tree-group-wrap > .tree-group > li[data-key]',
+          )
+          .evaluateAll((rows) => rows.map((row) => row.getAttribute("data-key"))),
+        inFolder,
+      );
+      // The focus stayed on the row it was on, the open folders are open, and Ana's file is hers.
+      assert.equal(await focused(), payment);
+      assert.deepEqual(await expanded(), open);
+      assert.equal((await studioState(ana)).open, anasFile);
     },
   },
 ];

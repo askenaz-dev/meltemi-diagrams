@@ -288,6 +288,16 @@ export class CloudController implements ProjectsHost {
     this.hooks.undoChanged?.();
   }
 
+  /**
+   * A project was renamed from this page: when it is the one open, the page's words about it (the
+   * explorer's header) follow. Nothing else of the project changes.
+   */
+  renamed(id: string, name: string): void {
+    if (this.project?.id !== id || this.name === name) return;
+    this.name = name;
+    this.hooks.changed({ id, name });
+  }
+
   /** The person has another file open in the project: remember it for the next time (not for a viewer, who keeps nothing). */
   rememberOpen(path: string): void {
     if (this.project && this.role_ !== "viewer") {
@@ -493,7 +503,21 @@ export class CloudController implements ProjectsHost {
     name: string,
     progress: (path: string, done: number, total: number) => void,
   ): Promise<Outcome<ProjectRow>> {
-    const split = splitForCloud(this.hooks.localFiles());
+    return this.uploadProject(name, this.hooks.localFiles(), progress);
+  }
+
+  /**
+   * Makes a cloud project from files (the anonymous project's, or an archive's): its texts first,
+   * then each image and font. The limits of a cloud project are checked before the first call; a
+   * project that cannot be completed is deleted again, so that nothing half-made stays in the
+   * account. Nothing is opened.
+   */
+  async uploadProject(
+    name: string,
+    files: ReadonlyMap<string, string | Uint8Array>,
+    progress: (path: string, done: number, total: number) => void,
+  ): Promise<Outcome<ProjectRow>> {
+    const split = splitForCloud(files);
     if (!split.ok) {
       return {
         ok: false,

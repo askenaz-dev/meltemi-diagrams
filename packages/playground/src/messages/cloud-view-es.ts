@@ -33,7 +33,7 @@ export const viewing: typeof en = {
 
   copyConfirmTitle: "¿Reemplazar el proyecto de este navegador?",
   copyConfirmMessage:
-    "La copia reemplaza el proyecto que guarda este navegador. Ese proyecto queda disponible como el anterior, desde el menú Plantillas.",
+    "La copia reemplaza el proyecto que guarda este navegador. Ese proyecto queda disponible como el anterior, en el panel Proyectos.",
   copyConfirm: "Hacer la copia",
   copied: (name) => `Se hizo una copia de ${name} en este navegador. Ya puedes editarla.`,
   copyLoading: "El proyecto aún se está abriendo. Haz la copia cuando lleguen sus archivos.",

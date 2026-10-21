@@ -995,6 +995,36 @@ describe("undo of one's own edits", () => {
     expect(a.studio.text("b.meltemi")).toBe("xdiagram a: flow {\n}\n");
   });
 
+  it("moves a file with the imports that follow it as one step, and undoes them together", () => {
+    const views = 'language "0.2"\n\nimport "../models/system.meltemi" as sys\n';
+    const a = device("a", {
+      state: seeded({
+        "project.json": '{ "name": "p" }\n',
+        "models/system.meltemi": 'language "0.2"\n',
+        "diagrams/views.meltemi": views,
+      }),
+      open: "diagrams/views.meltemi",
+    });
+    const b = device("b", { state: Y.encodeStateAsUpdate(a.doc) });
+    const before = a.sent.length;
+    a.studio.moveFiles([["models/system.meltemi", "models/core/system.meltemi"]]);
+    advance(SEND_INTERVAL);
+    // The path and the import leave together, in one message to the room.
+    expect(a.sent.length - before).toBe(1);
+    expect(docTexts(a)["diagrams/views.meltemi"]).toContain('"../models/core/system.meltemi"');
+    sync(a, b);
+    expect(texts(b)).toMatchObject({
+      "models/core/system.meltemi": 'language "0.2"\n',
+      "diagrams/views.meltemi": views.replace("../models/", "../models/core/"),
+    });
+    expect(a.studio.undo()).toBe(true);
+    expect(docTexts(a)).toMatchObject({
+      "models/system.meltemi": 'language "0.2"\n',
+      "diagrams/views.meltemi": views,
+    });
+    expect(a.studio.canUndo()).toBe(false);
+  });
+
   it("makes two renames two steps", () => {
     const a = device("a", { state: seeded({ "a.md": "a" }) });
     a.studio.renameFile("a.md", "b.md");

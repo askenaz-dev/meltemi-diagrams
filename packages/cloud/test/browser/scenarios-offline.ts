@@ -19,20 +19,20 @@ import {
   connection,
   connectionLeaves,
   cutRoom,
-  drawerRow,
   gateRooms,
   makeProject,
-  noDialog,
   openByLink,
-  openDrawer,
+  openSwitcher,
   readRoom,
   roomHolds,
   statusLine,
   studioState,
+  switcherLocal,
+  switcherRow,
   textOf,
   typeAtEnd,
 } from "./cloud.js";
-import { until } from "./support.js";
+import { expectOpen, openFile, showAllFiles, until } from "./support.js";
 
 const ONE = [
   "diagrams/one.meltemi",
@@ -77,8 +77,8 @@ export const offlineScenarios: Scenario[] = [
       const doors = [await gateRooms(t.context), await gateRooms(second.context)];
       const pages = [t.page, second.page] as const;
       for (const page of pages) await openByLink(page, t.origin, project.id);
-      await t.page.locator("#file-select").selectOption(ONE[0]);
-      await second.page.locator("#file-select").selectOption(TWO[0]);
+      await openFile(t.page, ONE[0]);
+      await openFile(second.page, TWO[0]);
 
       // The connection drops: the room closes both sockets, and nothing reaches it again for now.
       for (const door of doors) door.shut();
@@ -210,10 +210,16 @@ export const offlineScenarios: Scenario[] = [
       await roomHolds(t.me, project.id, "the edit in the room", (read) =>
         (read.files[ONE[0]] ?? "").endsWith("// kept for offline"),
       );
-      // Back to the anonymous project, which keeps the browser's copy of the cloud one.
-      await openDrawer(page);
-      await page.getByRole("button", { name: "Open the local project" }).click();
-      await noDialog(page);
+      // Back to the anonymous project, from the switcher's panel; it keeps the browser's copy of
+      // the cloud one.
+      await openSwitcher(page);
+      await switcherLocal(page).click();
+      await until(
+        page,
+        "the panel to close",
+        () => document.querySelector(".switcher-panel") === null,
+      );
+      assert.equal(await page.locator("dialog[open]").count(), 0);
       assert.equal((await studioState(page)).bound, false);
 
       // With no connection the cloud project opens from that copy (the page itself would not load
@@ -261,19 +267,15 @@ export const offlineScenarios: Scenario[] = [
       assert.equal(await cutRoom(t.me, project.id), 2);
       for (const page of pages) await connectionLeaves(page, "connected", "saving");
 
-      // Each device adds diagrams/new.meltemi, with a line of its own in it.
+      // Each device adds diagrams/new.meltemi with New diagram in its explorer, in the folder of
+      // the open file, with a line of its own in it.
       for (const [number, page] of pages.entries()) {
-        await page.getByRole("button", { name: "New file" }).click();
+        await page.locator(".explorer-bar").getByRole("button", { name: "New diagram…" }).click();
         const dialog = page.locator("dialog[open]");
-        assert.equal(await dialog.locator("input").inputValue(), "diagrams/new.meltemi");
-        await dialog.getByRole("button", { name: "OK", exact: true }).click();
-        await until(
-          page,
-          "the new file open",
-          () =>
-            (document.querySelector("#file-select") as HTMLSelectElement).value ===
-            "diagrams/new.meltemi",
-        );
+        assert.equal(await dialog.locator(".dialog-where").innerText(), "In diagrams");
+        await dialog.getByLabel("Name", { exact: true }).fill("new");
+        await dialog.getByRole("button", { name: "Create", exact: true }).click();
+        await expectOpen(page, "diagrams/new.meltemi");
         await typeAtEnd(page, `\n// written on device ${number}`);
       }
       assert.deepEqual(Object.keys((await readRoom(t.me, project.id)).files), [ONE[0]]);
@@ -299,18 +301,18 @@ export const offlineScenarios: Scenario[] = [
         "each device's file is kept, one under each name",
       );
 
-      // Both pages show the same three files, and say that two had the same name.
+      // Both pages show the same three files in the explorer (the one that lost the name ends in
+      // its id, so only Show all files lists it), and say that two had the same name.
       for (const page of pages) {
         await connected(page, "the connection to return");
+        await showAllFiles(page);
         await until(
           page,
-          "the page to show both files",
-          (wanted) => {
-            const options = [...document.querySelectorAll("#file-select option")].map(
-              (option) => (option as HTMLOptionElement).value,
-            );
-            return wanted.every((name) => options.includes(name));
-          },
+          "the explorer to show both files",
+          (wanted) =>
+            wanted.every(
+              (name) => document.querySelector(`.tree li[data-key="f:${name}"]`) !== null,
+            ),
           names,
         );
         assert.deepEqual((await studioState(page)).paths, names);
@@ -396,11 +398,11 @@ export const offlineScenarios: Scenario[] = [
       assert.equal(t.seen.sockets.length, 1);
       const typed = "\n// typed while the project is deleted elsewhere";
 
-      // The other device deletes it from its drawer, as a person does.
+      // The other device deletes it from its switcher's panel, as a person does.
       await second.page.goto(`${t.origin}/?project=${keeper.id}`);
       await connected(second.page);
-      await openDrawer(second.page);
-      await drawerRow(second.page, "Doomed").locator('button[data-action="delete"]').click();
+      await openSwitcher(second.page);
+      await switcherRow(second.page, "Doomed").locator('button[data-action="delete"]').click();
       await second.page
         .locator("dialog[open]")
         .last()
@@ -410,7 +412,7 @@ export const offlineScenarios: Scenario[] = [
         second.page,
         "the project to leave the second device's list",
         () =>
-          ![...document.querySelectorAll("dialog.drawer .project-name")].some(
+          ![...document.querySelectorAll(".switcher-panel .panel-project-name")].some(
             (n) => n.textContent === "Doomed",
           ),
       );

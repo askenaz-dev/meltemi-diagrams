@@ -385,21 +385,131 @@ export async function analysed(page: Page): Promise<void> {
   });
 }
 
-/** Opens a template from the Templates menu, confirming when asked. */
+/**
+ * Makes the project of this browser a template's, from its card in New project (the switcher's
+ * panel): "In this browser" when the person is signed in and may choose, the card's title as the
+ * name, and a confirmation when the work differs from every template.
+ */
 export async function openTemplate(page: Page, name: string): Promise<void> {
-  await page.getByRole("button", { name: "Templates" }).click();
-  await page.getByRole("menuitem", { name: new RegExp(`^${name}`) }).click();
+  await page.evaluate(() => {
+    document.querySelector(".status-text")!.textContent = "";
+  });
+  const panel = page.locator(".switcher-panel:not(.leaving)");
+  if ((await panel.count()) === 0) await page.locator(".switcher-button").click();
+  await panel.getByRole("button", { name: "New project…" }).click();
+  const dialog = page.locator("dialog.new-project");
+  await dialog.locator(`[data-template="${name}"]`).click();
+  const title = await dialog.getByLabel("Name", { exact: true }).inputValue();
+  const here = dialog.getByRole("radio", { name: /^In this browser/ });
+  if ((await here.count()) > 0) await here.check();
+  await dialog.getByRole("button", { name: "Create the project" }).click();
+  await until(
+    page,
+    `the ${name} template opened or asked about`,
+    () =>
+      (document.querySelector(".status-text")?.textContent ?? "").startsWith("Created ") ||
+      [...document.querySelectorAll("dialog[open] button")].some(
+        (button) => button.textContent === "Open the template",
+      ),
+  );
   const confirm = page.locator("dialog[open]").getByRole("button", { name: "Open the template" });
-  if (await confirm.isVisible().catch(() => false)) await confirm.click();
+  if ((await confirm.count()) > 0) await confirm.click();
   await until(
     page,
     `the ${name} template opened`,
-    (template) =>
-      document.querySelector(".status-text")?.textContent?.includes(`the ${template} template`) ??
-      false,
-    name,
+    (wanted) => document.querySelector(".status-text")?.textContent === `Created ${wanted}.`,
+    title,
   );
   await analysed(page);
+}
+
+// ---------------------------------------------------------------------------------------------
+// The explorer
+
+/** Whether the explorer lists a file without Show all files: diagrams and images. */
+export const listedByDefault = (path: string): boolean =>
+  /\.(meltemi|png|jpe?g|gif|webp|svg)$/i.test(path);
+
+/** Turns Show all files on in the explorer's footer, for the files the tree hides otherwise. */
+export async function showAllFiles(page: Page): Promise<void> {
+  if (!(await page.locator(".explorer-foot .switch-input").isChecked())) {
+    await page.locator(".explorer-foot .switch").click();
+  }
+  await until(
+    page,
+    "Show all files on",
+    () =>
+      (document.querySelector(".explorer-foot .switch-input") as HTMLInputElement | null)
+        ?.checked === true,
+  );
+}
+
+/**
+ * Waits until a file is the open one: the Studio has it open and, when the tree lists it, the
+ * explorer marks its row.
+ */
+export async function expectOpen(page: Page, path: string): Promise<void> {
+  await until(
+    page,
+    `${path} open, and marked in the explorer`,
+    (wanted) => {
+      const studio = (window as unknown as { meltemiPlayground: { studio: { open: string } } })
+        .meltemiPlayground.studio;
+      if (studio.open !== wanted) return false;
+      const all =
+        (document.querySelector(".explorer-foot .switch-input") as HTMLInputElement | null)
+          ?.checked === true;
+      if (!all && !/\.(meltemi|png|jpe?g|gif|webp|svg)$/i.test(wanted)) return true;
+      return (
+        document
+          .querySelector(`.tree li[data-key="f:${wanted}"]`)
+          ?.classList.contains("current") === true
+      );
+    },
+    path,
+  );
+}
+
+/**
+ * Shows a file's row in the explorer: Show all files on for a file the tree hides, and the folders
+ * that hold it opened, outermost first.
+ */
+export async function revealFile(page: Page, path: string): Promise<void> {
+  if (!listedByDefault(path)) await showAllFiles(page);
+  const parts = path.split("/");
+  for (let at = 1; at < parts.length; at++) {
+    const folder = page.locator(`.tree li[data-key="d:${parts.slice(0, at).join("/")}"]`);
+    if ((await folder.getAttribute("aria-expanded")) === "false") {
+      await folder.locator(":scope > .tree-row").click();
+    }
+  }
+  await page.locator(`.tree li[data-key="f:${path}"]`).waitFor();
+}
+
+/**
+ * Opens a file from the explorer as a person does: its row shown, then a click on its name. A
+ * diagram's analysis is waited for too.
+ */
+export async function openFile(page: Page, path: string): Promise<void> {
+  await revealFile(page, path);
+  await page.locator(`.tree li[data-key="f:${path}"] > .tree-row .tree-name`).click();
+  await expectOpen(page, path);
+  if (path.endsWith(".meltemi")) await analysed(page);
+}
+
+/**
+ * Renames a file in its folder from the explorer: F2 on its row puts a box in it (a diagram's name
+ * without `.meltemi`), the new name is typed and Enter keeps it.
+ */
+export async function renameFile(page: Page, path: string, name: string): Promise<void> {
+  await revealFile(page, path);
+  const row = page.locator(`.tree li[data-key="f:${path}"]`);
+  await row.focus();
+  await page.keyboard.press("F2");
+  const box = row.locator("input.tree-rename");
+  await box.waitFor();
+  await box.fill(name);
+  await box.press("Enter");
 }
 
 /** Whether a text is anywhere in the page: in its markup or in the value of a field. */

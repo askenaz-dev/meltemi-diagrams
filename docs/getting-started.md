@@ -7,9 +7,11 @@ account is needed, and nothing you write leaves your machine.
 
 ## Try it without installing
 
-The [playground](playground.md) runs the whole product in a browser tab: pick a template, change
-the code or drag on the canvas, and export. When you want to keep going locally, **Download** the
-project as an archive; the command line and the editor open it as it is.
+The [playground](playground.md) runs the whole product in a browser tab: start a project from a
+template's card, change the code or drag on the canvas, and export. The explorer on the left lists
+the project's folders and diagrams. When you want to keep going locally, **Export project** from the
+Projects panel (the project's name at the top of the explorer) downloads it as an archive; the
+command line and the editor open it as it is.
 
 ## Install
 

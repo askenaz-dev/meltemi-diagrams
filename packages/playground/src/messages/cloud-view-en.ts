@@ -41,7 +41,7 @@ export const viewing = {
   /** Make a copy: replaces the project this browser keeps, after asking when that is work. */
   copyConfirmTitle: "Replace the project in this browser?",
   copyConfirmMessage:
-    "The copy replaces the project this browser keeps. That project stays available as the previous one, from the Templates menu.",
+    "The copy replaces the project this browser keeps. That project stays available as the previous one, in the Projects panel.",
   copyConfirm: "Make the copy",
   copied: (name: string) => `Made a copy of ${name} in this browser. You can edit it now.`,
   /** The button was pressed while the project's files were still on their way. */

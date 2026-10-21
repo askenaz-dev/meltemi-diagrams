@@ -42,22 +42,22 @@ compila el sitio, lo sirve en `127.0.0.1` y lo maneja en el Edge o el Chrome ins
 
 ## Lo que hace
 
-| Área      | En el playground                                                                                                                                                                                                                                                                                                                                           |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Proyectos | Las plantillas de `init` (flow, c4, sequence, free, purchase) se abren con su `project.json`; los archivos se listan, se agregan, cambian de nombre y se eliminan; los archivos `.meltemi` locales, las imágenes, un `project.json` o el `.zip` de un proyecto se abren con **Abrir**. El compilador de proyectos es el mismo que usan la CLI y el editor. |
-| Código    | Resaltado, números de línea, diagnósticos subrayados y listados con sus líneas y correcciones rápidas, autocompletado, información al pasar el puntero, formato, cambio de nombre e ir a la definición entre archivos.                                                                                                                                     |
-| Lienzo    | El lienzo de VS Code: paleta y herramienta de relación, selección, movimientos, rutas, etiquetas, la barra de estilo y el inspector, el panel del tema, minimapa, cuadrícula y ajuste a la cuadrícula, acciones de disposición, herramientas de secuencia y C4, efectos e historias con su línea de tiempo. Cada gesto es una edición del texto.           |
-| Deshacer  | Un historial por archivo para lo que escribes, las ediciones del lienzo, las correcciones, el formato y los cambios de nombre; Ctrl+Z, Ctrl+Mayús+Z y Ctrl+Y en cualquier parte de la página. En un proyecto en la nube cubre solo tus propias ediciones.                                                                                                  |
-| Importar  | Mermaid, PlantUML y Markdown, pegados o desde un archivo, a un nuevo archivo `.meltemi`, con los hallazgos del importador y su informe.                                                                                                                                                                                                                    |
-| Exportar  | SVG, SVG animado, PNG, PDF, el reproductor HTML, GIF, WebM y MP4, y los perfiles de exportación del archivo; el archivo fuente, el `.zip` del proyecto, el JSON del modelo y el catálogo HTML.                                                                                                                                                             |
-| Compartir | Un enlace con el proyecto en la dirección; para un proyecto en la nube, su propio enlace corto y quién puede abrirlo ([compartir un proyecto](#compartir-un-proyecto)).                                                                                                                                                                                    |
-| Conservar | El proyecto se queda en el navegador entre visitas.                                                                                                                                                                                                                                                                                                        |
-| Cuenta    | Opcional, solo cuando el servicio en la nube sirve la página: iniciar sesión con GitHub o Google mediante el servicio de identidad de Meltemi, y crear tokens de API ([la cuenta](#la-cuenta)).                                                                                                                                                            |
-| Nube      | Con la sesión iniciada: proyectos en tu cuenta que se abren en todos los dispositivos, combinan lo que editas sin conexión, guardan versiones y muestran una vista previa ([proyectos en la nube](#proyectos-en-la-nube)).                                                                                                                                 |
-| Juntos    | Un proyecto en la nube abierto en varios sitios muestra quién está, dónde están sus cursores y selecciones y qué han seleccionado en el lienzo; todos escriben a la vez ([trabajar juntos](#trabajar-juntos)).                                                                                                                                             |
-| Ver       | El enlace de un proyecto compartido lo abre para mirarlo, reproducirlo y exportarlo, con la sesión iniciada o sin ella, y para copiarlo ([ver un proyecto compartido](#ver-un-proyecto-compartido)).                                                                                                                                                       |
-| Publicar  | El catálogo de un proyecto en la nube como página web en una dirección propia ([publicar un proyecto](#publicar-un-proyecto)).                                                                                                                                                                                                                             |
-| Idioma    | Inglés y español: la página sigue el idioma del navegador hasta que se elige uno en el menú del globo de la cabecera.                                                                                                                                                                                                                                      |
+| Área      | En el playground                                                                                                                                                                                                                                                                                                                                                                                                         |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Proyectos | El explorador lista las carpetas y los diagramas del proyecto y los crea, les cambia el nombre, los mueve y los elimina, con las importaciones que siguen a un movimiento ([el explorador](#el-explorador)); **Nuevo proyecto** parte de las plantillas de `init`, mostradas como tarjetas; el `.zip` de un proyecto se importa y se exporta entero. El compilador de proyectos es el mismo que usan la CLI y el editor. |
+| Código    | Resaltado, números de línea, diagnósticos subrayados y listados con sus líneas y correcciones rápidas, autocompletado, información al pasar el puntero, formato, cambio de nombre e ir a la definición entre archivos.                                                                                                                                                                                                   |
+| Lienzo    | El lienzo de VS Code: paleta y herramienta de relación, selección, movimientos, rutas, etiquetas, la barra de estilo y el inspector, el panel del tema, minimapa, cuadrícula y ajuste a la cuadrícula, acciones de disposición, herramientas de secuencia y C4, efectos e historias con su línea de tiempo. Cada gesto es una edición del texto.                                                                         |
+| Deshacer  | Un historial por archivo para lo que escribes, las ediciones del lienzo, las correcciones, el formato y los cambios de nombre, y los movimientos de archivos con las importaciones que los siguen; Ctrl+Z, Ctrl+Mayús+Z y Ctrl+Y en cualquier parte de la página. En un proyecto en la nube cubre solo tus propias ediciones.                                                                                            |
+| Importar  | Mermaid, PlantUML y Markdown, pegados o desde un archivo, a un nuevo archivo `.meltemi`, con los hallazgos del importador y su informe.                                                                                                                                                                                                                                                                                  |
+| Exportar  | SVG, SVG animado, PNG, PDF, el reproductor HTML, GIF, WebM y MP4, y los perfiles de exportación del archivo; el archivo fuente, el `.zip` del proyecto, el JSON del modelo y el catálogo HTML.                                                                                                                                                                                                                           |
+| Compartir | Un enlace con el proyecto en la dirección; para un proyecto en la nube, su propio enlace corto y quién puede abrirlo ([compartir un proyecto](#compartir-un-proyecto)).                                                                                                                                                                                                                                                  |
+| Conservar | El proyecto se queda en el navegador entre visitas.                                                                                                                                                                                                                                                                                                                                                                      |
+| Cuenta    | Opcional, solo cuando el servicio en la nube sirve la página: iniciar sesión con GitHub o Google mediante el servicio de identidad de Meltemi, y crear tokens de API ([la cuenta](#la-cuenta)).                                                                                                                                                                                                                          |
+| Nube      | Con la sesión iniciada: proyectos en tu cuenta que se abren en todos los dispositivos, combinan lo que editas sin conexión, guardan versiones y muestran una vista previa ([proyectos en la nube](#proyectos-en-la-nube)).                                                                                                                                                                                               |
+| Juntos    | Un proyecto en la nube abierto en varios sitios muestra quién está, dónde están sus cursores y selecciones y qué han seleccionado en el lienzo; todos escriben a la vez ([trabajar juntos](#trabajar-juntos)).                                                                                                                                                                                                           |
+| Ver       | El enlace de un proyecto compartido lo abre para mirarlo, reproducirlo y exportarlo, con la sesión iniciada o sin ella, y para copiarlo ([ver un proyecto compartido](#ver-un-proyecto-compartido)).                                                                                                                                                                                                                     |
+| Publicar  | El catálogo de un proyecto en la nube como página web en una dirección propia ([publicar un proyecto](#publicar-un-proyecto)).                                                                                                                                                                                                                                                                                           |
+| Idioma    | Inglés y español: la página sigue el idioma del navegador hasta que se elige uno en el menú del globo de la cabecera.                                                                                                                                                                                                                                                                                                    |
 
 ### Teclas del código
 
@@ -73,7 +73,117 @@ compila el sitio, lo sirve en `127.0.0.1` y lo maneja en el Edge o el Chrome ins
 | Ctrl+S                       | Guardar ahora el proyecto en el navegador; en un proyecto en la nube, enviar lo que espera |
 
 En los sistemas de Apple, Cmd sustituye a Ctrl. El lienzo conserva sus propias teclas
-(`docs/editor.md`).
+(`docs/editor.md`), y el explorador las suyas ([el explorador](#el-explorador)).
+
+## El explorador
+
+La columna de la izquierda es el proyecto: su nombre y dónde vive arriba, y debajo sus carpetas y
+diagramas, como los lista el explorador de un editor.
+
+- **El árbol.** Primero van las carpetas y luego los archivos, cada grupo ordenado por nombre. Un
+  archivo `.meltemi` aparece por su nombre sin la extensión, con el dibujo del tipo de su primer
+  diagrama (flujo, composición libre, secuencia, vista C4), o de un modelo, una historia o un tema.
+  Un archivo que declara más de un diagrama o historia se abre para listarlos; un clic en uno abre
+  el archivo y muestra ese diagrama, o reproduce esa historia, en el lienzo. El archivo abierto va
+  en negrita, y el diagrama que muestra el lienzo aparece seleccionado. Las imágenes se listan con un
+  icono de imagen y se ven en el panel de código. Un archivo con errores o advertencias dice
+  cuántos; una carpeta cerrada muestra la suma de lo que contiene.
+- **Crear y cambiar archivos.** **Nuevo diagrama…**, en la barra sobre el árbol o en el menú de una
+  carpeta, pide un nombre y un tipo (flujo, composición libre o secuencia) y escribe
+  `<carpeta>/<nombre>.meltemi` con un diagrama vacío de ese tipo, titulado con el nombre. **Nueva
+  carpeta…** crea una carpeta que se queda en cuanto tiene un diagrama. El menú de una fila (un clic
+  derecho, Mayús+F10 o su botón **…**) cambia el nombre, mueve, duplica, descarga y elimina; una
+  carpeta se descarga como un `.zip`. Cambiar el nombre de un archivo `.meltemi` o moverlo reescribe
+  las importaciones que lo nombran, y las suyas, para que apunten a los mismos archivos; el
+  movimiento y esas ediciones son un solo paso, que Ctrl+Z deshace desde cualquier archivo. Un
+  archivo que no se puede analizar conserva sus importaciones, y la línea de estado lo nombra.
+  Eliminar pregunta antes y no se puede deshacer.
+- **Arrastrar y soltar.** Las filas se arrastran a una carpeta, o al espacio vacío debajo de ellas
+  para la raíz del proyecto, de una en una o como una selección hecha con Ctrl o Mayús. Si al soltar
+  algo cayera sobre un archivo con el mismo nombre, no se mueve nada y se dice cuál. Los archivos
+  arrastrados desde tu equipo quedan en la carpeta donde se sueltan, y un `.zip` abre **Importar
+  proyecto**.
+- **Mostrar todos los archivos.** El árbol lista carpetas, diagramas e imágenes. **Mostrar todos los
+  archivos**, al pie, lista también `project.json`, `assets.lock.json`, las fuentes y cualquier otro
+  archivo, y añade **Nuevo archivo…** a los menús; la página recuerda la elección. Un archivo oculto
+  con algún problema lo dice al pie, con **Mostrar**. **Configuración del proyecto**, en el panel
+  Proyectos, abre `project.json` diga lo que diga el interruptor, y lo crea como lo escribe `init`
+  cuando el proyecto no lo tiene.
+- **Su lugar.** El borde entre el explorador y el código lo cambia de ancho, de 180 a 480 píxeles
+  (las flechas sobre el borde enfocado, un doble clic para restablecerlo), y Ctrl+B lo oculta en un
+  riel y lo vuelve a mostrar; la página recuerda ambas cosas. Una primera visita en una pantalla de
+  menos de 1100 píxeles empieza con el riel. En una pantalla estrecha el explorador es la primera de
+  tres pestañas, **Archivos**, **Código** y **Lienzo**, y abrir un archivo muestra el código.
+
+| Tecla (en el árbol)        | Hace                                                                    |
+| -------------------------- | ----------------------------------------------------------------------- |
+| Arriba, Abajo, Inicio, Fin | Moverse entre filas; con Mayús, ampliar la selección                    |
+| Derecha, Izquierda         | Abrir una carpeta o entrar en ella; cerrarla o ir a la carpeta padre    |
+| Intro, Espacio             | Abrir el archivo, el diagrama o la historia; abrir o cerrar una carpeta |
+| Una letra                  | Ir a la siguiente fila cuyo nombre empieza por ella                     |
+| F2                         | Cambiar el nombre en la fila: Intro lo guarda, Escape deja el anterior  |
+| Ctrl+D                     | Duplicar el archivo a su lado                                           |
+| Supr                       | Eliminar, después de una pregunta                                       |
+| Mayús+F10                  | El menú de la fila                                                      |
+| Ctrl+B                     | Ocultar o mostrar el explorador, desde cualquier parte de la página     |
+| Ctrl+Mayús+E               | Ir al explorador, desde cualquier parte de la página                    |
+
+### El selector de proyectos
+
+Arriba del explorador aparecen el nombre del proyecto abierto y dónde vive: **Este navegador**, la
+conexión de un proyecto en la nube ("Guardado en la nube", "Guardando…", "Sin conexión") o **Solo
+lectura**. El lápiz le cambia el nombre: el `name` de `project.json` en el proyecto de este
+navegador, el propio proyecto en la nube. Un clic abre el panel **Proyectos**:
+
+- **Nuevo proyecto…**, **Importar proyecto…**, **Exportar proyecto (.zip)**, **Guardar este
+  proyecto en la nube** (con la sesión iniciada, para el proyecto de este navegador),
+  **Configuración del proyecto** y **Mostrar todos los archivos**;
+- **Este navegador**: el proyecto que guarda el navegador, que se abre con un clic (dejando un
+  proyecto en la nube), y **Proyecto anterior** con **Restaurar** cuando una plantilla, un archivo
+  comprimido o un enlace reemplazaron trabajo;
+- **En la nube**, con la sesión iniciada, tus proyectos en la nube
+  ([los proyectos en la nube del panel](#los-proyectos-en-la-nube-del-panel)); sin sesión, una línea
+  y el enlace **Iniciar sesión**.
+
+Escape o un clic fuera lo cierran.
+
+### Nuevo proyecto
+
+**Nuevo proyecto…** pide un nombre y muestra una tarjeta por plantilla: un dibujo de su primer
+diagrama, su título, para qué sirve y lo que contiene, como "1 modelo · 2 vistas". Las flechas se
+mueven entre las tarjetas e Intro crea el proyecto. El nombre sigue a la tarjeta elegida hasta que
+escribes uno. Sin sesión, el proyecto reemplaza al de este navegador, después de una pregunta cuando
+ese tiene trabajo que no es una plantilla; el trabajo queda como el proyecto anterior. Con la sesión
+iniciada, el proyecto se crea en tu cuenta y se abre; **En este navegador** lo crea en el navegador.
+
+| Tarjeta                            | Lo que contiene                                                                                                                                      |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Diagrama de flujo (`flow`)         | Un diagrama de flujo para empezar                                                                                                                    |
+| Modelo C4 (`c4`)                   | Un modelo de arquitectura con una vista de contexto y una vista de contenedores                                                                      |
+| Diagrama de secuencia (`sequence`) | Un diagrama de secuencia con un escenario para cada resultado                                                                                        |
+| Diapositiva (`free`)               | Una diapositiva compuesta libremente: texto, cajas, un icono y un grupo                                                                              |
+| Ejemplo de compra (`purchase`)     | El ejemplo de referencia: un modelo, sus vistas C4, una secuencia de pago, una diapositiva ejecutiva, una historia animada y perfiles de exportación |
+
+Los dibujos se hacen una vez, al compilar el sitio, en el tema de la plantilla y en su versión
+oscura, y la página muestra el de su propio tema.
+
+### Importar y exportar un proyecto
+
+**Exportar proyecto (.zip)** descarga el proyecto como lo hace **Descargar → Proyecto (.zip)**
+([continuar localmente](#continuar-localmente)). **Importar proyecto…**, **Abrir** con un `.zip` o un
+`.zip` soltado en el explorador leen el archivo comprimido (una única carpeta superior que lo
+contiene todo se quita de las rutas) y preguntan adónde va su proyecto:
+
+- **Un proyecto nuevo en tu cuenta**, con la sesión iniciada: se crean sus textos, se suben sus
+  imágenes y fuentes mostrando el progreso, y se abre; antes se comprueban los límites de un proyecto
+  en la nube, y un proyecto que no se puede completar se elimina de nuevo.
+- **Este navegador**: pasa a ser el proyecto de este navegador, y el trabajo que reemplaza queda
+  como el proyecto anterior.
+- **Reemplazar los archivos de** el proyecto en la nube abierto: cada uno de sus archivos pasa a ser
+  el del archivo comprimido.
+
+No se reemplaza nada sin esa elección. Un archivo comprimido sin ningún archivo de un proyecto lo
+dice y no cambia nada.
 
 ## Exportaciones en el navegador
 
@@ -108,8 +218,7 @@ final de la cabecera, se elige **Automático**, **English** o **Español**; la e
 los ajustes de la página, y elegir vuelve a cargar la página conservando el proyecto y el archivo
 abierto. Cuando el navegador no puede guardar datos, la página lo indica y no se vuelve a cargar;
 antes se listan las imágenes demasiado grandes para guardarse. Las palabras que el lienzo escribe
-en los archivos, como el texto de una nota nueva ("Nota"), y el texto de un archivo nuevo siguen
-el idioma de la página, como si las hubieras escrito tú; las exportaciones siguen en cambio el
+en los archivos, como el texto de una nota nueva ("Nota"), siguen el idioma de la página, como si las hubieras escrito tú; las exportaciones siguen en cambio el
 campo **Idioma** del diálogo.
 
 ## Compartir y conservar el trabajo
@@ -119,7 +228,8 @@ de `#p=`. La parte de una dirección que sigue a `#` nunca llega a un servidor. 
 viajan en los enlaces; descarga el proyecto para compartirlas. Un enlace se comprueba al abrirse:
 como máximo 4 MiB una vez descomprimido, el límite de archivos del proyecto y rutas dentro del
 proyecto. Abrir un enlace, un archivo comprimido o una plantilla guarda el trabajo que reemplaza
-como el proyecto anterior, que **Plantillas → Restaurar el proyecto anterior** recupera. En un
+como el proyecto anterior, que **Restaurar**, bajo **Proyecto anterior** en el panel Proyectos,
+recupera. En un
 proyecto en la nube, y en uno que se está viendo por su enlace, **Compartir** abre en cambio el
 diálogo propio de ese proyecto ([compartir un proyecto](#compartir-un-proyecto)).
 
@@ -139,6 +249,7 @@ cualquier proyecto:
 meltemi-diagrams validate my-project
 ```
 
+**Exportar proyecto (.zip)**, en el panel Proyectos, descarga el mismo archivo comprimido, y
 **Descargar → Continuar localmente** lista los comandos.
 
 ## La cuenta
@@ -175,8 +286,8 @@ servicio solo conserva un hash. Una cuenta tiene como máximo 20. Un token auten
 servicio como `Authorization: Bearer`, que es como lo usan los comandos de la nube de la línea de
 comandos ([los tokens de API](cloud.md#tokens-de-api), [la línea de comandos](cli.md#los-comandos-de-la-nube)).
 
-Iniciar sesión añade **Proyectos** a la cabecera ([proyectos en la nube](#proyectos-en-la-nube)) y
-no cambia nada más: el proyecto de tu navegador se queda donde está, no se sube nada hasta que
+Iniciar sesión añade tus proyectos en la nube al panel Proyectos del explorador
+([proyectos en la nube](#proyectos-en-la-nube)) y no cambia nada más: el proyecto de tu navegador se queda donde está, no se sube nada hasta que
 creas un proyecto en la nube o guardas en la nube el que tienes abierto, y cerrar sesión no te
 quita nada; tus proyectos en la nube esperan en tu cuenta.
 
@@ -188,12 +299,14 @@ conexión y guardan versiones; los mantiene el [servicio en la nube](cloud.md). 
 sin sesión, y un servidor estático no tiene nada de ello. No se sube nada hasta que creas un
 proyecto en la nube o guardas en la nube el que tienes abierto.
 
-### El panel de proyectos
+### Los proyectos en la nube del panel
 
-El botón **Proyectos** de la cabecera abre un panel con tus proyectos: nombre, una vista previa
-pequeña del diagrama, cuándo cambió por última vez y cuántos de los 100 que admite una cuenta tienes.
-El proyecto abierto aparece marcado. Un formulario crea un proyecto nuevo a partir de una de las
-plantillas, con un nombre de 1 a 100 caracteres. Cada proyecto tiene botones para abrirlo,
+El panel Proyectos del selector del explorador lista tus proyectos en la nube: nombre, una vista
+previa pequeña del diagrama, cuándo cambió por última vez y cuántos de los 100 que admite una cuenta
+tienes; por encima de ocho proyectos aparece un campo para filtrarlos. El proyecto abierto aparece
+marcado. **Nuevo proyecto** crea un proyecto a partir de las tarjetas de las plantillas, con un
+nombre de 1 a 100 caracteres, e **Importar proyecto** uno a partir de un archivo comprimido. El lápiz
+del selector cambia el nombre del proyecto abierto. Cada proyecto tiene botones para abrirlo,
 renombrarlo, duplicarlo, copiar su enlace (`<origin>/p/<id>`) y eliminarlo, lo que pide antes una
 confirmación: el proyecto desaparece con sus versiones, y no se puede deshacer. Cuando la cuenta
 llega a su límite de proyectos, la línea de estado lo dice y la lista no cambia. También aparece un
@@ -212,8 +325,8 @@ nada: como máximo 2000 archivos, 10 MiB por imagen o fuente, 2 Mi caracteres po
 y `_ . ( ) + @ -`, y rechaza `..`, un nombre que empiece por punto, una barra invertida y los dos
 puntos. Un proyecto que no se puede completar se elimina de nuevo, así que volver a intentarlo no
 deja ninguna copia. El
-proyecto del navegador no cambia: descansa mientras el proyecto en la nube está abierto, y **Abrir
-el proyecto local**, en el panel, lo recupera. El nombre empieza siendo el `name` de `project.json`.
+proyecto del navegador no cambia: descansa mientras el proyecto en la nube está abierto, y un clic
+en el proyecto de este navegador, en el panel, lo recupera. El nombre empieza siendo el `name` de `project.json`.
 
 ### Abrir un proyecto y su dirección
 
@@ -229,8 +342,8 @@ dirección, así que al recargar se vuelve a abrir.
 | Sin sesión, con un enlace `view` o `edit`                   | En modo de solo lectura, sobre una instantánea leída al abrir la página          |
 | Sin admisión (un proyecto privado que no es tuyo)           | La línea de estado dice que no se encontró el proyecto; se abre el del navegador |
 
-Abrir otro proyecto desde el panel cambia `project` en la dirección, y **Abrir el proyecto local**
-lo quita. Cuando el proyecto no se encuentra, o el enlace no te admite, la línea de estado dice "No
+Abrir otro proyecto desde el panel cambia `project` en la dirección, y abrir el proyecto de este
+navegador lo quita. Cuando el proyecto no se encuentra, o el enlace no te admite, la línea de estado dice "No
 se encontró el proyecto."; sin sesión, añade que si lo compartieron contigo, inicies sesión y abras
 el enlace otra vez, y el enlace **Iniciar sesión** te devuelve a la misma dirección. La página nunca
 dice si un proyecto existe pero es privado: un proyecto privado que no es tuyo se ve igual que uno
@@ -445,9 +558,10 @@ guardan una copia, y desactiva todo lo que edita:
 - **El código** es de solo lectura. Puedes seleccionar y copiar, y usar la información al pasar el
   puntero y la lista de problemas; escribir, Intro, Tab, aceptar una sugerencia, una corrección
   rápida, el cambio de nombre (F2) y el formato (Mayús+Alt+F) no cambian nada.
-- **Los archivos** no se pueden abrir desde tu equipo, importar, añadir, renombrar ni eliminar, y
-  **Plantillas** está oculto. La lista de archivos, **Exportar** (todos los formatos) y
-  **Descargar** funcionan como siempre.
+- **Los archivos** no se pueden abrir desde tu equipo, importar, crear, renombrar, mover ni
+  eliminar: el explorador los lista sin ninguna de sus acciones, y el panel no ofrece **Nuevo
+  proyecto** ni **Importar proyecto**. El árbol, **Exportar** (todos los formatos) y **Descargar**
+  funcionan como siempre.
 - **El lienzo** dice "solo lectura". La paleta y los demás controles que escriben el diagrama están
   ocultos; un arrastre, una conexión, un borrado o una edición con el teclado no cambian nada, y la
   línea de estado lo dice; el inspector muestra los valores y no puede cambiarlos, y el panel del
@@ -477,7 +591,7 @@ Dos botones guardan una copia. **Hacer una copia** pone los archivos que estás 
 navegador como el proyecto propio del navegador y sale del modo de solo lectura, así que puedes
 editarlo, y se conserva como cualquier otro proyecto del navegador; si el navegador tiene trabajo
 que no es una plantilla, la página pregunta antes, y lo que reemplaza queda como el proyecto
-anterior (**Plantillas → Restaurar el proyecto anterior**). **Guardar una copia en mis proyectos**,
+anterior (**Restaurar** en el panel Proyectos). **Guardar una copia en mis proyectos**,
 que aparece cuando has iniciado sesión, pide al servicio que copie el proyecto a tu cuenta y abre la
 copia como su propietario: cuenta para tus 100 proyectos y 200 MiB como cualquier proyecto, y las
 versiones no se copian. Ninguna copia cambia el proyecto compartido.
@@ -660,6 +774,14 @@ clave de un proveedor en una página web y solicitudes al proveedor; la CLI y el
 - El lienzo es `@meltemi/diagrams-canvas`, compartido con la webview de la extensión; la página
   hace el papel de la extensión (aplica los planes, lleva las revisiones, responde a las solicitudes
   del lienzo).
+- El explorador es `src/explorer/`: `tree-model.ts` (el árbol, las filas que recorren las teclas y
+  las reglas de los nombres, los movimientos y las copias, sin DOM), `tree.ts` (el árbol WAI-ARIA,
+  redibujado por clave para que el foco, el desplazamiento y una carpeta que se abre sobrevivan a los
+  cambios del proyecto), `explorer.ts` (el panel y sus acciones), `switcher.ts` (la cabecera y el
+  panel Proyectos), `new-project.ts`, `import.ts` y `dialogs.ts`. Un movimiento pasa por
+  `Studio.moveFiles`, que reescribe las importaciones con `moveFileEdits` de
+  `@meltemi/diagrams-editor` y anota el movimiento en la pila propia del historial; los dibujos de las
+  tarjetas de plantillas se hacen al compilar el sitio (`thumbnails.mjs`).
 - Los proyectos viven en memoria (`MemoryHost`, un `ProjectHost` bajo `/playground`) y se compilan
   con `ProjectSessions` de `@meltemi/diagrams-editor`, con los lectores de fuentes y de Tabler de la
   página y el worker de ELK incluido.
@@ -673,7 +795,8 @@ clave de un proveedor en una página web y solicitudes al proveedor; la CLI y el
   API (`tokens-dialog.ts`, sobre `tokens-model.ts` y `tokens.ts`, que no necesitan DOM). La página
   funciona igual diga lo que diga el servicio; nunca falla por su respuesta.
 - Los proyectos en la nube también están en `src/cloud/`. `client.ts` hace las llamadas al servicio y
-  ninguna lanza un error. `projects.ts` dibuja el panel sobre `projects-model.ts`, y `versions.ts` el
+  ninguna lanza un error. `projects-model.ts` es la lista en la nube del panel del explorador, y
+  `versions.ts` el
   panel de versiones sobre `versions-model.ts`; ninguno de los dos modelos necesita DOM.
   `project.ts` es un proyecto abierto: su documento Yjs (`doc.ts`), el binding que ata el documento
   al `Studio` (`binding.ts`), el socket a la sala (`room.ts`), su copia en IndexedDB

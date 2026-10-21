@@ -57,22 +57,31 @@ tab. The first visit shows it expanded where the code and the canvas sit side by
 *Alternative:* the explorer inside the code pane above the code (rejected: it would move with the
 split and leave no room for the tree on the canvas side).
 
+### Undo of moves in the browser project
+
+The browser project's `History` had no undo for renames. A move is now a step of a project-level
+stack beside the per-file stacks (`recordMoves`), holding the moves and sharing its group with the
+import edits: an undo from any file takes it when it is the latest step, as the cloud binding's
+`walk` takes the structure manager's item; undoing moves the files back (last first), rekeys their
+stacks and restores the texts; a move that can no longer be made back (the file went, or another
+took its old path) is dropped. Deleting a file stays not undoable.
+
 ### The explorer is a model and a view
 
-`packages/playground/src/explorer/model.ts` holds `ExplorerModel`, with no DOM: it builds the
-tree from the Studio's paths, problems and outlines, keeps what is expanded, selected and focused,
-the **Show all files** flag and the rename in progress, and exposes every action as a method that
-asks an `ExplorerHost` (the shell) to do what only the page can: open a file, pick a diagram, add,
-rename, move, duplicate, delete and download files, confirm, prompt, report. `tree.ts` draws it and
-redraws only the rows whose data changed, keeping scroll and focus (the drawer's `remember` and
-`restore` pattern, by path). A test drives the model with a fake host, as `projects-model.test.ts`
-does today. *Alternative:* rebuild the DOM from scratch on each change (rejected: remote changes in
+`packages/playground/src/explorer/tree-model.ts` has no DOM: it builds the tree from the
+Studio's paths, outlines and problems, gives the rows the keys walk, and holds the rules of names,
+moves and copies; `explorer-model.test.ts` drives it. `tree.ts` (`TreeView`) draws it, keeps what is
+expanded, selected and focused and the rename in progress, and redraws only the rows whose data
+changed, keeping scroll and focus by key. `explorer.ts` (`Explorer`) is the pane: it turns the
+tree's gestures into the Studio's file operations and asks an `ExplorerHost` (the shell) for what
+only the page can do: open a file, add files from outside, import an archive, confirm, report, keep
+the settings. The browser suite drives the DOM. *Alternative:* rebuild the DOM from scratch on each change (rejected: remote changes in
 a cloud project arrive every 250 ms and would steal focus and scroll).
 
 ### Nodes: folders, diagrams, images; files expand to their diagrams
 
-- A folder node per path segment; the root's files first, then folders, each sorted by name,
-  folders before files inside a folder.
+- A folder node per path segment; folders before files at every level, each sorted by name, as
+  VS Code lists them.
 - A `.meltemi` file is shown by its name without the extension, with the icon of its first
   diagram's kind (flow, free, sequence, C4 view, model, story). A file whose compilation holds more
   than one of diagrams and stories expands to one child per diagram (its title, or its id) and
@@ -122,9 +131,10 @@ header (420 px wide at most, 70 vh tall, scrolling), a full-width sheet under `.
    Signed out, the section is one line: sign in to keep projects in the cloud, with the page's
    sign-in link.
 
-`projects-model.ts` becomes `explorer/switcher-model.ts`: the same `ProjectsModel` and
-`ProjectsHost`, plus `importArchive`, the local project's name and whether it has files, the
-previous project, and `renameLocal`. The header's **Projects** button, the drawer
+`cloud/projects-model.ts` stays the model of the cloud list (it is about cloud projects) and
+grows: its host gives `uploadProject` (shared with Save to the cloud) and hears `renamed`, and
+`ProjectsModel.createFromFiles` makes a project from an archive with its progress. The project of
+this browser, the previous one and the local rename are the shell's, through the `SwitcherHost`. The header's **Projects** button, the drawer
 (`cloud/projects.ts`) and the **Templates** menu are removed; **Open** keeps opening files and
 hands a `.zip` to the import dialog. Versions, Share and Publish stay in the header's cloud slot.
 *Alternative:* keep the drawer and add the explorer (rejected by the owner: two views of one
@@ -142,7 +152,8 @@ template, keeping the previous project; signed in, it calls `createFrom(name, te
 the project, as the drawer did. The name defaults to the template's title.
 
 `TEMPLATES` in `@meltemi/diagrams-project` becomes `{ title, description, contents }` per name,
-`contents` being counts of diagrams, models, views and stories; `init --list` prints
+`contents` being counts of models, of C4 views (`views`), of the other diagrams (`diagrams`) and of
+stories, listed in that order (`TEMPLATE_CONTENT_KINDS`); `init --list` prints
 `<name>  <title> — <description> (<contents>)`. The build writes `templates.json` v2: each entry
 with `title`, `description`, `contents`, `files` and `thumbnails: { light, dark }`, the paths of
 two SVGs the build renders with the editor's node API (`ProjectSessions`, `produceExport`) from
@@ -176,10 +187,12 @@ without a choice. Files that are not archives, dropped on a folder row, are adde
 
 ### Moving a file keeps imports working
 
-`@meltemi/diagrams-editor` gains `moveFileEdits(sessions, from, to)`: for every file of the
-project whose imports resolve to `from`, the text edit that rewrites the import's path string to
-the relative path from that file to `to`; for the moved file, the edits that rewrite each of its
-own imports relative to `to`. Paths are written as the language wants them (`./` or `../`, `/`,
+`@meltemi/diagrams-editor` gains `moveFileEdits(sessions, moves)`, every move of one step at once:
+for every file whose imports resolve to a file that moves, the edit that rewrites the import's path
+string relative to where each of the two files is after the moves; for a file that moves, the
+edits of its own imports relative to where it goes. One pass over one program, so a folder that
+moves with files importing each other needs no recompilation between moves; the edits are keyed
+by the path each file has after the moves. Paths are written as the language wants them (`./` or `../`, `/`,
 `.meltemi`, the shortest relative form). Import strings come from the parsed statements and their
 ranges, so comments and formatting stay; a file that does not parse is left alone and named in the
 status. `Studio.renameFile` applies the rename and these edits in one `inStep`, so they are one
@@ -195,7 +208,7 @@ Rows are `draggable`; a drag carries the paths (the selection, several files wit
 a folder row under the pointer is the target and highlights; the root is the target on the tree's
 empty space; a drop moves each file to `<folder>/<name>`, refused when a name exists there (the
 whole drop is refused, nothing moves, the status says which name). Escape cancels. Touch and the
-keyboard use **Move to…** (context menu, or M): a dialog listing the folders and a field for a new
+keyboard use **Move to…** (the context menu; no letter, which the tree's type-ahead takes): a dialog listing the folders and a field for a new
 one. External files use the same targets (previous section). *Alternative:* pointer events for
 drags (rejected: the browser's drag gives the drag image, auto-scroll and external files for free).
 
@@ -206,8 +219,8 @@ The tree follows the WAI-ARIA tree pattern: `role="tree"`, `treeitem` rows with 
 Down move, Right expands or enters, Left collapses or goes to the parent, Home and End, typing a
 letter jumps to the next row starting with it, Enter and Space open, F2 renames in place (an
 `input` in the row, Enter confirms, Escape cancels, the same checks as the dialog), Delete deletes
-after the confirmation, Shift+F10 and the context-menu key open the menu, Ctrl+D duplicates, M
-moves. Every action is also in the context menu and, on hover and focus, as a "…" button at the
+after the confirmation, Shift+F10 and the context-menu key open the menu, Ctrl+D duplicates; moving
+has no letter, which type-ahead takes. Every action is also in the context menu and, on hover and focus, as a "…" button at the
 row's end. The context menu is the page's `menuButton` menu anchored at the pointer. Live
 announcements go through the status line as today.
 
@@ -233,7 +246,7 @@ the transforms.
 
 ### Removals
 
-`cloud/projects.ts` goes; `cloud/projects-model.ts` moves; `templateMenu`, `restorePrevious`'s
+`cloud/projects.ts` goes; `cloud/projects-model.ts` stays and grows; `templateMenu`, `restorePrevious`'s
 menu entry, the file bar and `starterText` go; `openLocal`'s archive branch becomes the import
 dialog. The cloud browser suite's `openDrawer`, `drawerNames` and `drawerRow` become
 `openSwitcher`, `switcherNames` and `switcherRow` over the panel, and the scenarios that used the
@@ -255,15 +268,17 @@ drawer's form use the cards.
 - `@meltemi/diagrams-project`: `TEMPLATES` entries `{ title, description, contents: { diagrams,
   models, views, stories } }`; `TemplateName` unchanged; `templateManifest` unchanged.
 - `@meltemi/diagrams-cli`: `init --list` prints title, description and contents.
-- `@meltemi/diagrams-editor`: `moveFileEdits(sessions: ProjectSessions, from: string, to:
-  string): { edits: ReadonlyMap<string, readonly TextEdit[]>; skipped: readonly string[] }`,
-  exported from the package and its node entry.
-- Playground: `explorer/` (`model.ts`, `tree.ts`, `switcher.ts`, `panel.ts`, `switcher-model.ts`,
-  `new-project.ts`, `import.ts`, `dnd.ts`, `icons.ts`), `Studio.outline(path)`,
-  `Studio.renameFile` with import edits, `Studio.moveFiles(pairs)`, `CloudController.uploadProject`,
-  `Settings.explorer`, `templates.json` v2 (`Template` gains `title`, `contents`, `thumbnails`),
-  words en/es (`messages/en.ts`, `es.ts`: `explorer`, `switcher`, `newProject`, `importProject`;
-  the `cloud.projects` words move with the model), `playground.css`.
+- `@meltemi/diagrams-editor`: `moveFileEdits(sessions: ProjectSessions, moves: readonly FileMove[]):
+  MoveEdits` (`{ edits, skipped }`, keyed by the paths after the moves) and `importSpec`, exported
+  from the package (the browser-safe entry, which the playground uses).
+- Playground: `explorer/` (`tree-model.ts`, `tree.ts`, `explorer.ts`, `switcher.ts` with the
+  panel, `new-project.ts`, `import.ts`, `dialogs.ts`, `icons.ts`), `menu.ts` `contextMenu`,
+  `Studio.outlines()`, `Studio.moveFiles(pairs)` and `renameFile` through it,
+  `History.recordMoves`, `CloudController.uploadProject` and `renamed`,
+  `ProjectsModel.createFromFiles`, `Settings.explorer`, `templates.json` v2 (`Template` gains
+  `title`, `contents`, `thumbnails`), `thumbnails.mjs` at build, words en/es in
+  `messages/explorer-en.ts` and `explorer-es.ts` (`pane`, `menu`, `actions`, `switcher`, `panel`,
+  `newProject`, `importProject`), `playground.css`.
 
 ## Risks / Trade-offs
 

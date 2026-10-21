@@ -80,6 +80,10 @@
   --hl-id: #1d4ed8;
   --hl-group: #0e7490;
   --hl-relation: #7c2d12;
+  --pg-motion-fast: 120ms;
+  --pg-motion: 180ms;
+  --pg-motion-panel: 150ms;
+  --pg-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
   --pg-ui-font: "Inter", "Segoe UI", system-ui, sans-serif;
   --pg-code-font: "Cascadia Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
 
@@ -358,10 +362,25 @@ body {
 }
 
 .panes {
-  --split: 42%;
+  --explorer: 260px;
+  --split: 0.42;
   display: grid;
-  grid-template-columns: var(--split) 6px minmax(0, 1fr);
+  grid-template-columns:
+    var(--explorer) 1px calc((100% - var(--explorer) - 7px) * var(--split))
+    6px minmax(0, 1fr);
   min-height: 0;
+  transition: grid-template-columns var(--pg-motion) var(--pg-ease);
+}
+
+/* While an edge is dragged the columns follow the pointer, with no transition. */
+html.resizing,
+html.resizing * {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+html.resizing .panes {
+  transition: none;
 }
 
 .pane {
@@ -506,6 +525,46 @@ body {
 
 .pg-menu[hidden] {
   display: none;
+}
+
+.pg-menu {
+  animation: pg-rise var(--pg-motion-fast) var(--pg-ease);
+}
+
+.pg-menu.context {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  min-width: 220px;
+}
+
+.pg-menu.context.leaving {
+  pointer-events: none;
+  animation: pg-sink 100ms var(--pg-ease) forwards;
+}
+
+.pg-menu.context .pg-menu-item {
+  padding: 5px 10px;
+}
+
+.pg-menu.context .pg-menu-label {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  font-weight: 400;
+}
+
+.pg-menu-item.danger {
+  color: var(--pg-error);
+}
+
+.pg-menu-keys {
+  margin-left: auto;
+  padding-left: 18px;
+  color: var(--pg-muted);
+  font: inherit;
+  font-size: 11px;
 }
 
 /* A menu that would leave the page on the right opens from its button's end instead. */
@@ -695,25 +754,1246 @@ a.pg-menu-item {
   background: var(--pg-code-bg);
 }
 
-.filebar {
+/* The open file's place in the project, above the code. */
+.code-path {
   display: flex;
   align-items: center;
-  gap: 2px;
-  padding: 4px 6px;
+  gap: 4px;
+  min-height: 30px;
+  padding: 0 12px;
+  overflow: hidden;
   border-bottom: 1px solid var(--pg-border);
+  background: var(--pg-surface);
+  color: var(--pg-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.code-path-sep {
+  opacity: 0.6;
+}
+
+.code-path-file {
+  overflow: hidden;
+  color: var(--pg-fg);
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+/* Explorer ------------------------------------------------------------------------------------ */
+
+.explorer {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
   background: var(--pg-surface);
 }
 
-.file-select {
+.explorer-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 180px;
+  min-height: 0;
+  opacity: 1;
+  transition: opacity var(--pg-motion-fast) var(--pg-ease);
+}
+
+.explorer[data-collapsed="true"] .explorer-body {
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity var(--pg-motion-fast) var(--pg-ease),
+    visibility 0s linear var(--pg-motion-fast);
+}
+
+/* The rail a hidden explorer leaves: one button that shows it again. */
+.explorer-rail {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 8px;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity var(--pg-motion-fast) var(--pg-ease);
+}
+
+.explorer[data-collapsed="true"] .explorer-rail {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity var(--pg-motion) var(--pg-ease) var(--pg-motion-fast);
+}
+
+.explorer-edge {
+  position: relative;
+  background: var(--pg-border);
+  cursor: col-resize;
+  touch-action: none;
+  transition: background-color var(--pg-motion-fast) var(--pg-ease);
+}
+
+/* A grip wider than the line it draws. */
+.explorer-edge::before {
+  content: "";
+  position: absolute;
+  inset: 0 -3px;
+}
+
+.explorer-edge:hover,
+.explorer-edge:focus-visible {
+  background: var(--pg-accent);
+}
+
+.explorer-edge[data-collapsed="true"] {
+  visibility: hidden;
+}
+
+.explorer-head {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 6px 6px 8px;
+  border-bottom: 1px solid var(--pg-border);
+}
+
+.explorer-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 6px 2px 14px;
+}
+
+.explorer-bar-title {
+  flex: 1;
+  color: var(--pg-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.explorer-bar .button,
+.explorer-head > .button {
+  min-width: 26px;
+  min-height: 26px;
+  padding: 3px;
+  color: var(--pg-muted);
+}
+
+.explorer-bar .button:hover:not(:disabled),
+.explorer-head > .button:hover:not(:disabled) {
+  color: var(--pg-fg);
+}
+
+.explorer-scroll {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.explorer-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 8px 14px;
+  color: var(--pg-muted);
+}
+
+.explorer-empty[hidden] {
+  display: none;
+}
+
+.explorer-empty p {
+  margin: 0;
+}
+
+.explorer-empty .button {
+  border-color: var(--pg-border);
+  color: var(--pg-fg);
+}
+
+.explorer-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--pg-border);
+  font-size: 12px;
+}
+
+.explorer-hidden {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--pg-warning);
+}
+
+.explorer-hidden[hidden] {
+  display: none;
+}
+
+.explorer-hidden svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+}
+
+.explorer-hidden-text {
   flex: 1;
   min-width: 0;
+}
+
+.link-button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--pg-accent);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+/* A switch: the checkbox stays for the keyboard and assistive technology, the track shows it. */
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pg-muted);
+  cursor: pointer;
+}
+
+.switch-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.switch-track {
+  position: relative;
+  flex: none;
+  width: 28px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--pg-border);
+  transition: background-color var(--pg-motion) var(--pg-ease);
+}
+
+.switch-track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--pg-bg);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.3);
+  transition: transform var(--pg-motion) var(--pg-ease);
+}
+
+.switch-input:checked + .switch-track {
+  background: var(--pg-accent);
+}
+
+.switch-input:checked + .switch-track::after {
+  transform: translateX(12px);
+}
+
+.switch-input:focus-visible + .switch-track {
+  outline: 2px solid var(--pg-focus);
+  outline-offset: 2px;
+}
+
+.switch:hover {
+  color: var(--pg-fg);
+}
+
+/* The switcher: the open project and where it lives. */
+.switcher {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
+
+.switcher-button {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 40px;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--pg-motion-fast) var(--pg-ease),
+    border-color var(--pg-motion-fast) var(--pg-ease);
+}
+
+.switcher-button:hover,
+.switcher-button[aria-expanded="true"] {
+  border-color: var(--pg-border);
+  background: var(--pg-bg);
+}
+
+.switcher-button > svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--pg-muted);
+  transition: transform var(--pg-motion) var(--pg-ease);
+}
+
+.switcher-button[aria-expanded="true"] > svg {
+  transform: rotate(180deg);
+}
+
+.switcher-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: var(--pg-accent-soft);
+  color: var(--pg-accent);
+}
+
+.switcher-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.switcher-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.switcher-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.switcher-where {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  overflow: hidden;
+  color: var(--pg-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A dot that says how the project is kept: here, saved, saving, or not reachable. */
+.switcher-where::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pg-muted);
+}
+
+.switcher-where[data-state="connected"]::before {
+  background: #1f9d55;
+}
+
+.switcher-where[data-state="saving"]::before,
+.switcher-where[data-state="connecting"]::before {
+  background: var(--pg-accent);
+  animation: pg-pulse 1.2s ease-in-out infinite;
+}
+
+.switcher-where[data-state="offline"]::before,
+.switcher-where[data-state="reconnecting"]::before,
+.switcher-where[data-state="full"]::before {
+  background: var(--pg-warning);
+}
+
+.switcher-where[data-state="gone"]::before {
+  background: var(--pg-error);
+}
+
+@keyframes pg-pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.switcher-rename {
+  flex: none;
+  min-width: 26px;
+  min-height: 26px;
+  padding: 3px;
+  color: var(--pg-muted);
+}
+
+/* The tree ----------------------------------------------------------------------------------- */
+
+.tree,
+.tree-group {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tree {
+  flex: 1;
+  padding: 2px 0 12px;
+  outline: none;
+}
+
+.tree.drop-target {
+  outline: 1px dashed var(--pg-accent);
+  outline-offset: -3px;
+  background: color-mix(in srgb, var(--pg-accent-soft) 45%, transparent);
+}
+
+.tree-item {
+  outline: none;
+}
+
+.tree-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 6px 0 calc(8px + var(--level, 0) * 14px);
+  border-radius: 0;
+  color: var(--pg-fg);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--pg-motion-fast) var(--pg-ease);
+}
+
+.tree-row:hover {
+  background: var(--pg-surface-2);
+}
+
+.tree-item[aria-selected="true"] > .tree-row {
+  background: var(--pg-accent-soft);
+}
+
+.tree-item:focus-visible > .tree-row {
+  box-shadow: inset 0 0 0 1px var(--pg-focus);
+}
+
+.tree-item.current > .tree-row .tree-name {
+  font-weight: 600;
+}
+
+/* The diagram the canvas shows, and the open file, carry the accent on their picture. */
+.tree-item.shown > .tree-row .tree-icon,
+.tree-item.current > .tree-row .tree-icon {
+  color: var(--pg-accent);
+}
+
+.tree-twist {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  color: var(--pg-muted);
+}
+
+.tree-twist svg {
+  width: 12px;
+  height: 12px;
+  transition: transform var(--pg-motion) var(--pg-ease);
+}
+
+.tree-item.open > .tree-row .tree-twist svg {
+  transform: rotate(90deg);
+}
+
+.tree-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--pg-muted);
+}
+
+.tree-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.tree-icon[data-icon="folder"] {
+  color: #c08a2c;
+}
+
+.tree-icon[data-icon="settings"] {
+  color: var(--pg-muted);
+}
+
+.tree-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-badge {
+  flex: none;
+  min-width: 16px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+}
+
+.tree-badge[hidden] {
+  display: none;
+}
+
+.tree-badge.is-error {
+  background: color-mix(in srgb, var(--pg-error) 16%, transparent);
+  color: var(--pg-error);
+}
+
+.tree-badge.is-warning {
+  background: color-mix(in srgb, var(--pg-warning) 18%, transparent);
+  color: var(--pg-warning);
+}
+
+.tree-more {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--pg-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--pg-motion-fast) var(--pg-ease),
+    background-color var(--pg-motion-fast) var(--pg-ease);
+}
+
+.tree-more svg {
+  width: 14px;
+  height: 14px;
+}
+
+.tree-row:hover > .tree-more,
+.tree-item:focus-visible > .tree-row > .tree-more,
+.tree-item[aria-selected="true"] > .tree-row > .tree-more {
+  opacity: 1;
+}
+
+.tree-more:hover {
+  background: var(--pg-border);
+  color: var(--pg-fg);
+}
+
+.explorer[data-readonly="true"] .tree-more {
+  display: none;
+}
+
+/* A folder opens by its height, from nothing to its rows. */
+.tree-group-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--pg-motion) var(--pg-ease);
+}
+
+.tree-item.open > .tree-group-wrap {
+  grid-template-rows: 1fr;
+}
+
+.tree-group {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.tree-item.leaving {
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    height 150ms var(--pg-ease),
+    opacity 150ms var(--pg-ease);
+}
+
+/* A row just made, renamed or moved draws the eye once. */
+.tree-item.flash > .tree-row::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--pg-accent);
+  opacity: 0;
+  pointer-events: none;
+  animation: tree-flash 600ms var(--pg-ease);
+}
+
+@keyframes tree-flash {
+  20% {
+    opacity: 0.22;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.tree-item.drop-target > .tree-row {
+  background: var(--pg-accent-soft);
+  box-shadow: inset 0 0 0 1px var(--pg-accent);
+}
+
+.tree-item.dragging > .tree-row {
+  opacity: 0.45;
+}
+
+/* What the pointer carries while a row is dragged; drawn out of sight for the browser to copy. */
+.tree-drag-chip {
+  position: fixed;
+  top: -200px;
+  left: -200px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--pg-border);
+  border-radius: 999px;
+  background: var(--pg-bg);
+  color: var(--pg-fg);
+  box-shadow: var(--pg-shadow);
+  font: 12px var(--pg-ui-font);
+}
+
+.tree-drag-chip svg {
+  width: 14px;
+  height: 14px;
+}
+
+.tree-drag-chip .count {
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--pg-accent);
+  color: var(--pg-accent-fg);
+  font-size: 11px;
+}
+
+.tree-rename {
+  width: 100%;
+  min-width: 0;
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid var(--pg-focus);
+  border-radius: 4px;
+  background: var(--pg-bg);
+  color: var(--pg-fg);
+  font: inherit;
+  outline: none;
+}
+
+.tree-rename[aria-invalid="true"] {
+  border-color: var(--pg-error);
+}
+
+.tree-rename-problem {
+  position: absolute;
+  top: calc(100% - 1px);
+  right: 6px;
+  left: calc(8px + var(--level, 0) * 14px + 36px);
+  z-index: 2;
+  padding: 4px 8px;
+  border: 1px solid var(--pg-error);
+  border-radius: 0 0 6px 6px;
+  background: var(--pg-bg);
+  color: var(--pg-error);
+  font-size: 12px;
+  white-space: normal;
+  cursor: default;
+}
+
+.tree-rename-problem[hidden] {
+  display: none;
+}
+
+/* Narrow screens: the explorer is the Files tab, never a rail. */
+.shell.narrow .explorer-edge {
+  display: none;
+}
+
+.shell.narrow[data-view="code"] .explorer,
+.shell.narrow[data-view="canvas"] .explorer,
+.shell.narrow[data-view="files"] .code-pane,
+.shell.narrow[data-view="files"] .canvas-pane {
+  display: none;
+}
+
+.shell.narrow .explorer .explorer-body {
+  visibility: visible;
+  opacity: 1;
+}
+
+.shell.narrow .explorer .explorer-rail,
+.shell.narrow .explorer-head > .button {
+  display: none;
+}
+
+/* The switcher's panel ------------------------------------------------------------------------ */
+
+.switcher-panel {
+  position: fixed;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--pg-border);
+  border-radius: 12px;
+  background: var(--pg-bg);
+  box-shadow: var(--pg-shadow);
+  animation: pg-rise var(--pg-motion-panel) var(--pg-ease);
+}
+
+.switcher-panel.leaving {
+  pointer-events: none;
+  animation: pg-sink 100ms var(--pg-ease) forwards;
+}
+
+@keyframes pg-rise {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.99);
+  }
+}
+
+@keyframes pg-sink {
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.switcher-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 10px 4px 16px;
+}
+
+.switcher-title {
+  margin: 0;
+  font-size: 14px;
+}
+
+.switcher-close {
+  min-width: 26px;
+  min-height: 26px;
+  padding: 3px;
+}
+
+.switcher-panel-body {
+  overflow: auto;
+  padding: 0 8px 10px;
+}
+
+.panel-actions {
+  display: grid;
+  gap: 1px;
+  padding: 4px 0 8px;
+  border-bottom: 1px solid var(--pg-border);
+}
+
+.panel-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--pg-motion-fast) var(--pg-ease);
+}
+
+.panel-action:hover,
+.panel-action:focus-visible {
+  background: var(--pg-surface-2);
+}
+
+.panel-action svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  color: var(--pg-muted);
+}
+
+.panel-action-label {
+  flex: 1;
+}
+
+/* Show all files, as the same switch as the explorer's footer. */
+.panel-action.toggle[aria-pressed="true"] .switch-track {
+  background: var(--pg-accent);
+}
+
+.panel-action.toggle[aria-pressed="true"] .switch-track::after {
+  transform: translateX(12px);
+}
+
+.panel-section {
+  padding-top: 8px;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 4px 8px 6px;
+  color: var(--pg-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.panel-count {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.panel-note {
+  margin: 0 8px 8px;
+  color: var(--pg-muted);
+  line-height: 1.45;
+}
+
+.panel-section > .sign-in {
+  margin: 0 8px 4px;
+  border-color: var(--pg-border);
+}
+
+.panel-filter {
+  box-sizing: border-box;
+  width: calc(100% - 16px);
+  margin: 0 8px 6px;
   min-height: 30px;
-  padding: 2px 6px;
+  padding: 2px 8px;
   border: 1px solid var(--pg-border);
   border-radius: 6px;
   background: var(--pg-bg);
   color: var(--pg-fg);
   font: inherit;
+}
+
+.panel-filter[hidden] {
+  display: none;
+}
+
+.panel-section .projects-status,
+.panel-section .field-problem,
+.panel-section > .field-hint {
+  margin: 4px 8px;
+}
+
+.panel-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  border-radius: 8px;
+  transition: background-color var(--pg-motion-fast) var(--pg-ease);
+}
+
+.panel-row:hover,
+.panel-row:focus-within {
+  background: var(--pg-surface-2);
+}
+
+.panel-row.previous {
+  gap: 10px;
+  padding: 4px 6px 4px 8px;
+}
+
+.panel-row.previous .button {
+  border-color: var(--pg-border);
+}
+
+.panel-project {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.panel-project:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.panel-project[aria-current="true"] .panel-project-name {
+  color: var(--pg-accent);
+}
+
+.panel-thumb {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 44px;
+  box-sizing: border-box;
+  border: 1px solid var(--pg-border);
+  border-radius: 6px;
+  background: var(--pg-surface);
+  object-fit: contain;
+}
+
+.panel-thumb.outline {
+  color: var(--pg-muted);
+}
+
+.panel-thumb.outline svg {
+  width: 20px;
+  height: 20px;
+}
+
+.panel-thumb.small {
+  width: 32px;
+  height: 32px;
+}
+
+.panel-project-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.panel-project-name {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-project-meta {
+  overflow: hidden;
+  color: var(--pg-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-row .project-actions {
+  flex: none;
+  padding-right: 4px;
+  opacity: 0;
+  transition: opacity var(--pg-motion-fast) var(--pg-ease);
+}
+
+.panel-row:hover .project-actions,
+.panel-row:focus-within .project-actions {
+  opacity: 1;
+}
+
+.panel-row .project-action {
+  min-width: 26px;
+  min-height: 26px;
+  padding: 3px;
+  border-color: transparent;
+}
+
+.panel-row .project-action:hover:not(:disabled) {
+  border-color: var(--pg-border);
+}
+
+@media (hover: none) {
+  .panel-row .project-actions,
+  .tree-more {
+    opacity: 1;
+  }
+}
+
+/* New project: a card per template ------------------------------------------------------------ */
+
+.template-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(196px, 1fr));
+  gap: 12px;
+  margin: 6px 0 4px;
+}
+
+.template-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--pg-border);
+  border-radius: 10px;
+  background: var(--pg-bg);
+  cursor: pointer;
+  outline: none;
+  transition:
+    transform var(--pg-motion) var(--pg-ease),
+    box-shadow var(--pg-motion) var(--pg-ease),
+    border-color var(--pg-motion) var(--pg-ease);
+}
+
+.template-card:hover {
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.12);
+  transform: translateY(-2px);
+}
+
+.template-card[aria-checked="true"] {
+  border-color: var(--pg-accent);
+  box-shadow: 0 0 0 2px var(--pg-accent);
+}
+
+.template-card:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--pg-bg),
+    0 0 0 4px var(--pg-focus);
+}
+
+/* The picture keeps the card's proportions whatever the diagram's shape. */
+.template-picture {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border-bottom: 1px solid var(--pg-border);
+  background: var(--pg-surface);
+}
+
+.template-thumb {
+  position: absolute;
+  inset: 10px;
+  width: calc(100% - 20px);
+  height: calc(100% - 20px);
+  object-fit: contain;
+  transition: transform var(--pg-motion) var(--pg-ease);
+}
+
+.template-card:hover .template-thumb {
+  transform: scale(1.03);
+}
+
+.template-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px 12px;
+}
+
+.template-title {
+  font-weight: 600;
+}
+
+.template-description {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--pg-muted);
+  font-size: 12px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.template-contents {
+  align-self: flex-start;
+  margin-top: 2px;
+  padding: 1px 8px;
+  border-radius: 6px;
+  background: var(--pg-accent-soft);
+  font-size: 11px;
+}
+
+/* Choices of a dialog: options with a sentence each, and segments with a picture each. */
+.choices {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+  padding: 0;
+  border: 0;
+}
+
+.choices legend {
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--pg-border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    border-color var(--pg-motion-fast) var(--pg-ease),
+    background-color var(--pg-motion-fast) var(--pg-ease);
+}
+
+.choice input {
+  margin: 2px 0 0;
+  accent-color: var(--pg-accent);
+}
+
+.choice:has(input:checked) {
+  border-color: var(--pg-accent);
+  background: color-mix(in srgb, var(--pg-accent-soft) 60%, transparent);
+}
+
+.choice.danger:has(input:checked) {
+  border-color: var(--pg-error);
+  background: color-mix(in srgb, var(--pg-error) 8%, transparent);
+}
+
+.choice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.choice-label {
+  font-weight: 600;
+}
+
+.segments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+  padding: 0;
+  border: 0;
+}
+
+.segments legend {
+  width: 100%;
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.segment {
+  position: relative;
+  display: flex;
+  flex: 1 1 120px;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border: 1px solid var(--pg-border);
+  border-radius: 8px;
+  color: var(--pg-muted);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color var(--pg-motion-fast) var(--pg-ease),
+    background-color var(--pg-motion-fast) var(--pg-ease),
+    color var(--pg-motion-fast) var(--pg-ease);
+}
+
+.segment input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segment svg {
+  width: 22px;
+  height: 22px;
+}
+
+.segment:hover {
+  color: var(--pg-fg);
+}
+
+.segment:has(input:checked) {
+  border-color: var(--pg-accent);
+  background: color-mix(in srgb, var(--pg-accent-soft) 60%, transparent);
+  color: var(--pg-fg);
+}
+
+.segment:has(input:checked) svg {
+  color: var(--pg-accent);
+}
+
+.segment:has(input:focus-visible) {
+  outline: 2px solid var(--pg-focus);
+  outline-offset: 2px;
+}
+
+.dialog-where {
+  color: var(--pg-muted);
+  font-size: 12px;
+}
+
+.move-folders {
+  min-height: 120px;
+}
+
+.import-progress {
+  width: 100%;
+  height: 6px;
+  accent-color: var(--pg-accent);
+}
+
+.import-progress[hidden] {
+  display: none;
 }
 
 .code-host {
@@ -1168,6 +2448,7 @@ a.pg-menu-item {
 .pg-dialog[open] {
   display: flex;
   flex-direction: column;
+  animation: pg-rise 160ms var(--pg-ease);
 }
 
 .pg-dialog > header {
@@ -1572,7 +2853,7 @@ a.pg-menu-item {
   white-space: nowrap;
 }
 
-/* The projects drawer: a dialog that comes in from the right edge and fills the screen's height. */
+/* A drawer: a dialog that comes in from the right edge and fills the screen's height. */
 .pg-dialog.drawer {
   width: min(480px, 100vw);
   max-width: 100vw;
@@ -1589,31 +2870,6 @@ a.pg-menu-item {
   min-height: 0;
 }
 
-.project-form h3 {
-  margin-top: 8px;
-}
-
-.project-form .button {
-  margin-top: 2px;
-}
-
-.project-aside {
-  margin: 10px 0;
-}
-
-.project-aside[hidden],
-.dialog-body .project-aside[hidden] {
-  display: none;
-}
-
-.project-aside .field-hint {
-  margin: 4px 0 0;
-}
-
-.project-aside .button {
-  border-color: var(--pg-border);
-}
-
 .projects-status {
   margin: 6px 0;
   color: var(--pg-muted);
@@ -1621,83 +2877,6 @@ a.pg-menu-item {
 
 .projects-status:empty {
   margin: 0;
-}
-
-.projects-count {
-  margin: 12px 0 4px;
-}
-
-.project-list {
-  margin: 4px 0;
-  padding: 0;
-  list-style: none;
-}
-
-.project-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--pg-border);
-}
-
-.project-thumb {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  width: 96px;
-  height: 64px;
-  box-sizing: border-box;
-  border: 1px solid var(--pg-border);
-  border-radius: 6px;
-  background: var(--pg-surface);
-  object-fit: contain;
-}
-
-.project-thumb.outline {
-  color: var(--pg-muted);
-}
-
-.project-thumb.outline svg {
-  width: 28px;
-  height: 28px;
-}
-
-.project-info {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 140px;
-}
-
-.project-open {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 28px;
-  max-width: 100%;
-  padding: 2px 4px;
-  margin-left: -4px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-weight: 600;
-  text-align: left;
-  cursor: pointer;
-}
-
-.project-open:hover:not(:disabled) {
-  background: var(--pg-surface-2);
-}
-
-.project-open:disabled {
-  opacity: 0.6;
-  cursor: default;
 }
 
 .project-name {
@@ -1711,11 +2890,6 @@ a.pg-menu-item {
   background: var(--pg-accent-soft);
   font-size: 11px;
   font-weight: 400;
-}
-
-.project-meta {
-  color: var(--pg-muted);
-  font-size: 12px;
 }
 
 .project-actions {

@@ -45,6 +45,6 @@ of a cloud project (paths, files, sizes) SHALL be checked before the first call,
 - **WHEN** the image's upload answers `413 quota.storage`
 - **THEN** the project is deleted again, the list does not show it, and the dialog says the storage limit is reached
 
-#### Scenario: A path the cloud refuses
-- **WHEN** the archive holds `.hidden/a.meltemi`
-- **THEN** nothing is created and the dialog says which path a cloud project refuses
+#### Scenario: An image over the limit
+- **WHEN** the archive holds an image of 10 MiB and one byte
+- **THEN** nothing is created and the dialog says an image or a font takes at most 10 MiB

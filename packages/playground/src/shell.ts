@@ -1,16 +1,22 @@
 import type { CanvasApp } from "@meltemi/diagrams-canvas";
-import { definition, formatDocument, rename } from "@meltemi/diagrams-editor";
+import { definition, formatDocument, rename, setJsonField } from "@meltemi/diagrams-editor";
 import { LOCALES, getLocale, resolveLocale } from "@meltemi/diagrams-i18n";
-import type { Diagnostic, Range, TextEdit } from "@meltemi/diagrams-language";
-import { MANIFEST_NAME } from "@meltemi/diagrams-project";
+import {
+  LANGUAGE_VERSION,
+  applyTextEdits,
+  type Diagnostic,
+  type Range,
+  type TextEdit,
+} from "@meltemi/diagrams-language";
+import { MANIFEST_NAME, templateManifest } from "@meltemi/diagrams-project";
 import { mountCanvas } from "./canvas-host.js";
 import { accountControl } from "./cloud/account.js";
 import { planOpen } from "./cloud/address.js";
-import { CloudController, type CloudEnvironment } from "./cloud/controller.js";
+import { CloudController, manifestName, type CloudEnvironment } from "./cloud/controller.js";
+import { explainFailure } from "./cloud/explain.js";
 import { CLOUD_ICON } from "./cloud/icons.js";
 import { mountCloudExtras } from "./cloud/mount.js";
 import { openShareDialog } from "./cloud/share.js";
-import { openProjectsDrawer, projectsButton } from "./cloud/projects.js";
 import type { Session } from "./cloud/session.js";
 import { announcement, statusText, type ConnectionStatus } from "./cloud/status.js";
 import { viewBar, type ViewBar } from "./cloud/view-bar.js";
@@ -23,7 +29,6 @@ import {
   confirmDialog,
   continueDialog,
   importDialog,
-  promptName,
   shareDialog,
 } from "./dialogs.js";
 import { openExportDialog, writePlayer } from "./exports/dialog.js";
@@ -33,7 +38,16 @@ import {
   downloadProject,
   downloadSource,
 } from "./exports/files.js";
-import { cleanPath, isImagePath, isTextPath, starterText } from "./files.js";
+import {
+  Explorer,
+  EXPLORER_WIDTH,
+  type ExplorerHost,
+  type ExplorerSettings,
+} from "./explorer/explorer.js";
+import { EXPLORER_ICONS } from "./explorer/icons.js";
+import { importProject } from "./explorer/import.js";
+import { openNewProject } from "./explorer/new-project.js";
+import { cleanPath, isImagePath, isTextPath } from "./files.js";
 import { LANGUAGE_NAMES, languageChoice, type LanguageChoice } from "./language.js";
 import type { LazyFiles } from "./lazy.js";
 import { menuButton, type MenuEntry } from "./menu.js";
@@ -53,13 +67,12 @@ import {
 import type { OpenAnalysis, Studio } from "./studio.js";
 import {
   isTemplate,
-  templateDescription,
   templateEntry,
+  templateTitle,
   type Template,
   type TemplateSet,
 } from "./templates.js";
 import { ICONS, announce, chooseFiles, command, h, icon, iconButton, liveRegion } from "./ui.js";
-import { ZipError, readZip } from "./zip.js";
 
 export interface PlaygroundOptions {
   readonly version: string;
@@ -99,7 +112,10 @@ export class Playground {
   readonly code: CodePane;
   canvas!: CanvasApp;
   readonly settings: Settings;
-  private readonly fileSelect = h("select", { id: "file-select", class: "file-select" });
+  /** The explorer: the project switcher and the tree of folders and diagrams. */
+  explorer!: Explorer;
+  /** The open file's place in the project, above the code. */
+  private readonly codePath = h("div", { class: "code-path", "aria-live": "off" });
   private readonly codeHost = h("div", { class: "code-host" });
   private readonly preview = h("figure", { class: "image-preview", hidden: true });
   private readonly problemsTitle = h("h2", { id: "problems-title" }, messages().problems.title);
@@ -137,7 +153,7 @@ export class Playground {
   private problemsTimer: ReturnType<typeof setTimeout> | undefined;
   private keepWarned = false;
   private previewUrl: string | undefined;
-  private view: "code" | "canvas" = "code";
+  private view: "files" | "code" | "canvas" = "code";
   /** The problems last announced, so that screen readers hear changes only. */
   private announced = "";
   /** Viewing a project by its link: the mode, the snapshot, opening an address and the copies. */
@@ -286,17 +302,10 @@ export class Playground {
     const actions = h(
       "nav",
       { class: "actions", "aria-label": m.header.actions },
-      // Signed in: the person's cloud projects.
+      // Signed in: what only an open cloud project has (its versions, its people).
       ...(this.cloud
-        ? [
-            projectsButton(() => this.openProjects()),
-            this.cloudSlot,
-            h("span", { class: "separator", role: "presentation" }),
-          ]
+        ? [this.cloudSlot, h("span", { class: "separator cloud-separator", role: "presentation" })]
         : []),
-      menuButton({ id: "templates", label: m.header.templates, icon: "template" }, () =>
-        this.templateMenu(),
-      ),
       open,
       importButton,
       h("span", { class: "separator", role: "presentation" }),
@@ -334,6 +343,7 @@ export class Playground {
 
     // View tabs for narrow screens.
     for (const [view, label] of [
+      ["files", m.explorer.pane.files],
       ["code", m.header.code],
       ["canvas", m.header.canvas],
     ] as const) {
@@ -343,43 +353,29 @@ export class Playground {
           type: "button",
           role: "tab",
           id: `tab-${view}`,
-          "aria-controls": `${view}-pane`,
+          "aria-controls": view === "files" ? "explorer" : `${view}-pane`,
           "aria-selected": view === this.view ? "true" : "false",
           class: "view-tab",
         },
-        icon(ICONS[view === "code" ? "code" : "canvas"]),
+        icon(view === "files" ? EXPLORER_ICONS.folder : ICONS[view === "code" ? "code" : "canvas"]),
         label,
       );
       tab.addEventListener("click", () => this.show(view));
       tab.addEventListener("keydown", (e) => {
         if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
           e.preventDefault();
-          this.show(this.view === "code" ? "canvas" : "code");
+          const order = ["files", "code", "canvas"] as const;
+          const step = e.key === "ArrowLeft" ? order.length - 1 : 1;
+          this.show(order[(order.indexOf(this.view) + step) % order.length]!);
           (this.tabs.querySelector(`#tab-${this.view}`) as HTMLElement | null)?.focus();
         }
       });
       this.tabs.append(tab);
     }
 
-    // Code pane: the file bar, the code and the problems.
-    this.fileSelect.addEventListener("change", () => this.studio.select(this.fileSelect.value));
-    const newFile = iconButton("newFile", m.files.newFile);
-    newFile.addEventListener("click", () => void this.newFile());
-    const renameFile = iconButton("rename", m.files.rename);
-    renameFile.addEventListener("click", () => void this.renameFile());
-    const deleteFile = iconButton("trash", m.files.delete);
-    deleteFile.addEventListener("click", () => void this.deleteFile());
+    // Code pane: where the open file is, the code and the problems. The files are the explorer's.
     // What edits the project: off while the page only shows it (view mode).
-    this.editControls.push(open, importButton, format, newFile, renameFile, deleteFile);
-    const fileBar = h(
-      "div",
-      { class: "filebar" },
-      h("label", { for: "file-select", class: "sr-only" }, m.files.file),
-      this.fileSelect,
-      newFile,
-      renameFile,
-      deleteFile,
-    );
+    this.editControls.push(open, importButton, format);
     this.codeHost.append(this.code.element, this.preview);
     const help = h("p", { id: "code-help", class: "sr-only" }, m.code.help);
     const problems = h(
@@ -392,7 +388,7 @@ export class Playground {
     const codePane = h(
       "section",
       { id: "code-pane", class: "pane code-pane", role: "tabpanel", "aria-labelledby": "tab-code" },
-      fileBar,
+      this.codePath,
       this.codeHost,
       help,
       problems,
@@ -419,7 +415,8 @@ export class Playground {
       },
       canvasRoot,
     );
-    this.panes.append(codePane, divider, canvasPane);
+    this.explorer = new Explorer(this.explorerHost());
+    this.panes.append(this.explorer.element, this.explorer.edge, codePane, divider, canvasPane);
     this.split(this.settings.split ?? 0.42);
 
     this.privacy = h("span", { class: "privacy" }, m.status.privacy);
@@ -473,7 +470,8 @@ export class Playground {
   }
 
   /** Shows the code or the canvas on narrow screens. */
-  show(view: "code" | "canvas"): void {
+  /** Shows the files, the code or the canvas on narrow screens. */
+  show(view: "files" | "code" | "canvas"): void {
     this.view = view;
     this.root.dataset.view = view;
     for (const tab of this.tabs.querySelectorAll("[role=tab]")) {
@@ -482,9 +480,10 @@ export class Playground {
     }
   }
 
+  /** The code's share of the width the explorer leaves, from 0.2 to 0.8. */
   private split(fraction: number): void {
     const value = Math.min(0.8, Math.max(0.2, fraction));
-    this.panes.style.setProperty("--split", `${value * 100}%`);
+    this.panes.style.setProperty("--split", String(value));
     this.panes
       .querySelector(".divider")
       ?.setAttribute("aria-valuenow", String(Math.round(value * 100)));
@@ -494,11 +493,16 @@ export class Playground {
   private dividerBehaviour(divider: HTMLElement): void {
     divider.addEventListener("pointerdown", (e) => {
       divider.setPointerCapture(e.pointerId);
-      const box = this.panes.getBoundingClientRect();
-      const move = (event: PointerEvent) => this.split((event.clientX - box.left) / box.width);
+      // The code starts after the explorer; the divider shares what is left with the canvas.
+      const code = this.panes.querySelector(".code-pane")!.getBoundingClientRect();
+      const right = this.panes.getBoundingClientRect().right;
+      document.documentElement.classList.add("resizing");
+      const move = (event: PointerEvent) =>
+        this.split((event.clientX - code.left) / Math.max(1, right - code.left - 6));
       const up = () => {
         divider.removeEventListener("pointermove", move);
         divider.removeEventListener("pointerup", up);
+        document.documentElement.classList.remove("resizing");
         saveSettings(this.settings);
       };
       divider.addEventListener("pointermove", move);
@@ -526,24 +530,6 @@ export class Playground {
   }
 
   // Menus -------------------------------------------------------------------------------------
-
-  private templateMenu(): (MenuEntry | "-")[] {
-    const m = messages().templates;
-    const entries: (MenuEntry | "-")[] = this.templates.map((t) => ({
-      label: t.name,
-      detail: templateDescription(t),
-      run: () => void this.openTemplate(t.name),
-    }));
-    const previous = this.inCloud() ? undefined : keptProject(STORE_KEYS.previous);
-    if (previous) {
-      entries.push("-", {
-        label: m.restore,
-        detail: m.restoreDetail,
-        run: () => void this.restorePrevious(),
-      });
-    }
-    return entries;
-  }
 
   private downloadMenu(): (MenuEntry | "-")[] {
     const m = messages().download;
@@ -662,11 +648,6 @@ export class Playground {
 
   // Cloud projects ------------------------------------------------------------------------------
 
-  /** Opens the projects drawer. */
-  openProjects(): void {
-    if (this.cloud) openProjectsDrawer(this.cloud, this.templates);
-  }
-
   /** A cloud project was opened or closed: what the page says about where the work is changes. */
   private cloudChanged(active: boolean): void {
     this.cloudActive = active;
@@ -675,6 +656,8 @@ export class Playground {
     this.cloudSlot.hidden = !active;
     this.root.dataset.cloud = active ? "open" : "none";
     if (!active) this.showConnection(undefined);
+    // The explorer's header names the project that is open now, and where it lives.
+    this.explorer?.switcher.update();
   }
 
   /** Draws the connection of the open cloud project in the status line. */
@@ -705,6 +688,7 @@ export class Playground {
     const note = announcement(this.shownConnection, status, words);
     if (note !== undefined) announce(note);
     this.shownConnection = status;
+    this.explorer?.switcher.update();
   }
 
   /** The project as it is, for keeping and sharing. */
@@ -737,6 +721,150 @@ export class Playground {
     return this.cloudActive || this.studio.isBound() || this.viewing.mode.active;
   }
 
+  // The explorer --------------------------------------------------------------------------------
+
+  /** The name of the project that is open: the viewed one's, the cloud project's, or this browser's. */
+  projectName(): string {
+    const viewed = this.viewing.mode.state;
+    if (viewed) return viewed.name;
+    const cloud = this.cloud?.openProject;
+    if (cloud) return cloud.name;
+    return this.localName();
+  }
+
+  /** The name the project of this browser goes by: its `project.json`'s, wherever it rests now. */
+  private localName(): string {
+    const files = this.inCloud()
+      ? (keptProject(STORE_KEYS.project)?.files ?? new Map<string, string | Uint8Array>())
+      : this.files();
+    return manifestName(files) ?? messages().explorer.switcher.untitled;
+  }
+
+  /** A `project.json` for a project that has none, as `init` writes it. */
+  private manifestFor(name: string): string {
+    return templateManifest(name, "flow", {
+      toolVersion: this.options.version,
+      languageVersion: LANGUAGE_VERSION,
+    });
+  }
+
+  /** Renames the open project: the cloud project, or the `name` of this browser's `project.json`. */
+  private async renameProject(name: string): Promise<boolean> {
+    if (this.viewOnly()) return false;
+    const words = messages().explorer.switcher;
+    const cloud = this.cloud;
+    const open = cloud?.openProject;
+    if (cloud && open) {
+      const done = await cloud.api.update(open.id, { name });
+      if (!done.ok) {
+        this.status(explainFailure(done.failure, messages().cloud.errors));
+        return false;
+      }
+      cloud.renamed(open.id, done.value.name);
+      this.status(words.renamed(done.value.name));
+      return true;
+    }
+    const text = this.studio.host.text(MANIFEST_NAME);
+    if (text === undefined) {
+      this.studio.addFiles([[MANIFEST_NAME, this.manifestFor(name)]]);
+    } else {
+      try {
+        this.applyEdits(new Map([[MANIFEST_NAME, setJsonField(text, "name", name)]]));
+      } catch {
+        // A project.json that is not an object: opened, so that its problem shows.
+        this.studio.select(MANIFEST_NAME);
+        this.show("code");
+        return false;
+      }
+    }
+    this.keepNow();
+    this.status(words.renamed(name));
+    return true;
+  }
+
+  /** Opens `project.json`, made first as `init` writes it when the project has none. */
+  private projectSettings(): void {
+    if (this.viewOnly()) return;
+    if (!this.studio.host.has(MANIFEST_NAME)) {
+      this.studio.addFiles([[MANIFEST_NAME, this.manifestFor(this.projectName())]], MANIFEST_NAME);
+      this.keepNow();
+      this.status(messages().explorer.switcher.settingsMissing);
+    } else this.studio.select(MANIFEST_NAME);
+    this.show("code");
+    this.code.focus();
+  }
+
+  /** Opens a file of the project in the code pane; on a narrow screen the code tab shows it. */
+  openFile(path: string): void {
+    if (path !== this.studio.open) this.studio.select(path);
+    this.show("code");
+  }
+
+  /** The explorer's settings as kept, within their bounds; a first visit on a small screen gets a rail. */
+  private explorerSettings(): ExplorerSettings {
+    const kept = this.settings.explorer;
+    const width = Number(kept?.width);
+    return {
+      width: Number.isFinite(width)
+        ? Math.min(EXPLORER_WIDTH.max, Math.max(EXPLORER_WIDTH.min, width))
+        : EXPLORER_WIDTH.initial,
+      collapsed: typeof kept?.collapsed === "boolean" ? kept.collapsed : window.innerWidth < 1100,
+      showAll: kept?.showAll === true,
+    };
+  }
+
+  /** What the explorer asks of the page. */
+  private explorerHost(): ExplorerHost {
+    const session = this.options.session;
+    return {
+      studio: this.studio,
+      switcher: {
+        project: () => {
+          const viewed = this.viewing.mode.state;
+          const status = this.cloud?.status;
+          if (viewed) return { name: viewed.name, where: "view", ...(status ? { status } : {}) };
+          const open = this.cloud?.openProject;
+          if (open) return { name: open.name, where: "cloud", ...(status ? { status } : {}) };
+          return { name: this.localName(), where: "browser" };
+        },
+        rename: (name) => this.renameProject(name),
+        cloud: this.cloud,
+        signIn: session.kind === "cookie" ? undefined : session.signIn,
+        local: () => ({ name: this.localName(), open: !this.inCloud() }),
+        hasPrevious: () => keptProject(STORE_KEYS.previous) !== undefined,
+        openLocal: () => this.viewing.leave(),
+        restorePrevious: () => void this.restorePrevious(),
+        newProject: () =>
+          openNewProject({
+            templates: this.templates,
+            cloud: this.cloud,
+            dark: () => this.dark(),
+            createLocal: (template, name) => this.createLocal(template, name),
+          }),
+        importProject: () =>
+          void chooseFiles(".zip", false).then(([file]) => file && this.importArchive(file)),
+        exportProject: () => void downloadProject(this),
+        settings: () => this.projectSettings(),
+        readOnly: () => this.studio.readOnly,
+      },
+      settings: () => this.explorerSettings(),
+      saveSettings: (next) => {
+        this.settings.explorer = { ...next };
+        saveSettings(this.settings);
+      },
+      layout: (width, collapsed) => {
+        this.panes.style.setProperty("--explorer", collapsed ? "36px" : `${width}px`);
+        this.root.dataset.explorer = collapsed ? "rail" : "open";
+      },
+      openFile: (path) => this.openFile(path),
+      status: (message) => this.status(message),
+      confirm: confirmDialog,
+      keep: () => void this.keepNow(),
+      addFiles: (files, folder) => this.addLocalFiles(files, folder),
+      importArchive: (file) => this.importArchive(file),
+    };
+  }
+
   // View mode -----------------------------------------------------------------------------------
 
   /**
@@ -753,9 +881,6 @@ export class Playground {
   private showReadOnly(on: boolean): void {
     this.code.setReadOnly(on);
     for (const control of this.editControls) (control as HTMLButtonElement).disabled = on;
-    // Templates replace the project; the Studio would refuse, so the menu is not offered at all.
-    const templates = this.root.querySelector("#menu-templates")?.closest(".pg-menu-wrapper");
-    if (templates instanceof HTMLElement) templates.hidden = on;
     this.updateUndo();
   }
 
@@ -771,6 +896,7 @@ export class Playground {
       this.root.querySelector(".statusbar")?.insertBefore(this.viewControls.hint, this.statusText);
     }
     this.viewControls?.update(state, this.viewing.canSave);
+    this.explorer?.switcher.update();
     if (state) this.root.dataset.viewing = state.live ? "live" : "snapshot";
     else delete this.root.dataset.viewing;
     // Nothing of a viewed project is kept in this browser, which the status line's note would say.
@@ -785,29 +911,41 @@ export class Playground {
     this.keepNow();
   }
 
-  async openTemplate(name: string): Promise<void> {
-    if (this.viewOnly()) return;
-    const template = this.templates.find((t) => t.name === name);
-    if (!template) return;
+  /**
+   * Makes the project of this browser a template's, named `name` in its `project.json`: a cloud
+   * project or a viewed one that is open is left first (it stays where it is), and work that
+   * differs from every template is asked about, then kept as the previous project. True when done.
+   */
+  async createLocal(template: Template, name: string): Promise<boolean> {
+    // A project shown to view is left from This browser, never by making a project over it.
+    if (this.viewOnly()) return false;
+    if (this.inCloud()) this.viewing.leave();
     const m = messages().templates;
     const current = this.files();
     if (current.size > 0 && !isTemplate(current, this.templates)) {
-      const c = messages().cloud.project;
-      const yes = await confirmDialog(
-        m.confirmTitle,
-        this.inCloud() ? c.replaceConfirm(c.templateSubject(name)) : m.confirmMessage(name),
-        m.confirm,
-      );
-      if (!yes) return;
+      const title = templateTitle(template);
+      const yes = await confirmDialog(m.confirmTitle, m.confirmMessage(title), m.confirm);
+      if (!yes) return false;
     }
-    this.replaceProject(Object.entries(template.files), templateEntry(template));
-    this.status(m.opened(name));
+    const files = Object.entries(template.files).map(([path, text]): [string, string] => {
+      if (path !== MANIFEST_NAME) return [path, text];
+      try {
+        return [path, applyTextEdits(text, setJsonField(text, "name", name))];
+      } catch {
+        return [path, text];
+      }
+    });
+    this.replaceProject(files, templateEntry(template));
+    this.status(messages().explorer.newProject.created(name));
+    return true;
   }
 
-  private async restorePrevious(): Promise<void> {
+  /** Brings back the project a template, an archive or a link replaced in this browser. */
+  async restorePrevious(): Promise<void> {
     if (this.viewOnly()) return;
+    if (this.inCloud()) this.viewing.leave();
     const previous = keptProject(STORE_KEYS.previous);
-    if (!previous || this.inCloud()) return;
+    if (!previous) return;
     const current = this.files();
     forget(STORE_KEYS.previous);
     if (current.size > 0 && !isTemplate(current, this.templates)) {
@@ -884,37 +1022,21 @@ export class Playground {
 
   // Files -------------------------------------------------------------------------------------
 
+  /** The open file in the code pane, and its place in the project above it. */
   private showFile(): void {
     const m = messages().files;
-    const paths = this.studio.host.paths();
     const open = this.studio.open;
-    const groups = new Map<string, string[]>();
-    for (const path of paths) {
-      const folder = path.includes("/") ? path.slice(0, path.lastIndexOf("/")) : "";
-      groups.set(folder, [...(groups.get(folder) ?? []), path]);
-    }
-    const options: HTMLElement[] = [];
-    for (const [folder, list] of [...groups].sort(([a], [b]) =>
-      a === "" ? -1 : b === "" ? 1 : a < b ? -1 : 1,
-    )) {
-      const items = list.map((path) =>
-        h(
-          "option",
-          { value: path },
-          m.option(
-            path.slice(folder ? folder.length + 1 : 0),
-            isImagePath(path) && !path.endsWith(".svg"),
-          ),
-        ),
-      );
-      options.push(
-        folder
-          ? h("optgroup", { label: `${folder}/` }, ...items)
-          : h("optgroup", { label: m.project }, ...items),
-      );
-    }
-    this.fileSelect.replaceChildren(...options);
-    this.fileSelect.value = open;
+    const segments = open === "" ? [] : open.split("/");
+    this.codePath.replaceChildren(
+      ...segments.flatMap((segment, index) => {
+        const last = index === segments.length - 1;
+        const part = h("span", { class: last ? "code-path-file" : "code-path-folder" }, segment);
+        return index === 0
+          ? [part]
+          : [h("span", { class: "code-path-sep", "aria-hidden": "true" }, "/"), part];
+      }),
+    );
+    this.codePath.title = open || m.noFile;
     if (this.previewUrl) URL.revokeObjectURL(this.previewUrl);
     this.previewUrl = undefined;
     const content = this.studio.host.get(open);
@@ -954,114 +1076,66 @@ export class Playground {
     this.updateUndo();
   }
 
-  private async newFile(): Promise<void> {
-    if (this.viewOnly()) return;
-    const m = messages().files;
-    const folder = this.studio.open.includes("/")
-      ? this.studio.open.slice(0, this.studio.open.lastIndexOf("/") + 1)
-      : "diagrams/";
-    const name = await promptName(m.newTitle, m.newPath, `${folder}new.meltemi`, (value) => {
-      const clean = cleanPath(value);
-      if (!clean) return m.relative;
-      if (!isTextPath(clean)) return m.editable;
-      if (this.studio.host.has(clean)) return m.exists(clean);
-      return undefined;
-    });
-    // The dialog was open for a while: the page may have turned read-only meanwhile.
-    if (!name || this.viewOnly()) return;
-    const path = cleanPath(name)!;
-    this.studio.addFiles([[path, starterText(path, m.starter)]], path);
-    this.keepNow();
-    this.code.focus();
-  }
-
-  private async renameFile(): Promise<void> {
-    if (this.viewOnly()) return;
-    const m = messages().files;
-    const from = this.studio.open;
-    if (!from) return;
-    const to = await promptName(m.renameTitle, m.renamePath, from, (value) => {
-      const clean = cleanPath(value);
-      if (!clean) return m.relative;
-      if (clean !== from && this.studio.host.has(clean)) return m.exists(clean);
-      if (isTextPath(from) !== isTextPath(clean)) return m.keepExtension;
-      return undefined;
-    });
-    const clean = to && cleanPath(to);
-    if (!clean || clean === from || this.viewOnly()) return;
-    this.studio.renameFile(from, clean);
-    this.keepNow();
-    this.status(m.renamed(from, clean));
-  }
-
-  private async deleteFile(): Promise<void> {
-    if (this.viewOnly()) return;
-    const m = messages().files;
-    const path = this.studio.open;
-    if (!path) return;
-    const yes = await confirmDialog(m.deleteTitle, m.deleteMessage(path), m.deleteConfirm);
-    if (!yes || this.viewOnly()) return;
-    this.studio.deleteFile(path);
-    this.keepNow();
-    this.status(m.deleted(path));
-  }
-
-  /** Opens files the person chooses: `.meltemi` and other text files, images, or a project `.zip`. */
+  /**
+   * Opens files the person chooses with Open: a project `.zip` goes to the import dialog, which asks
+   * where its project goes; `.meltemi`, text and image files are added beside the open file.
+   */
   async openLocal(files?: File[]): Promise<void> {
     if (this.viewOnly()) return;
     const chosen =
       files ?? (await chooseFiles(".meltemi,.json,.md,.zip,.png,.jpg,.jpeg,.gif,.webp,.svg"));
     if (chosen.length === 0) return;
-    const m = messages().project;
     const archive = chosen.find((f) => f.name.toLowerCase().endsWith(".zip"));
     if (archive) {
-      try {
-        const entries = await readZip(new Uint8Array(await archive.arrayBuffer()));
-        const project: [string, string | Uint8Array][] = [];
-        for (const entry of entries) {
-          const path = cleanPath(entry.path);
-          if (!path) continue;
-          project.push([
-            path,
-            isTextPath(path) && !path.endsWith(".svg")
-              ? new TextDecoder().decode(entry.data)
-              : entry.data,
-          ]);
-        }
-        if (project.length === 0) throw new ZipError(m.archiveEmpty);
-        const current = this.files();
-        if (current.size > 0 && !isTemplate(current, this.templates)) {
-          const yes = await confirmDialog(
-            m.archiveTitle,
-            this.inCloud()
-              ? messages().cloud.project.replaceConfirm(archive.name)
-              : m.archiveMessage(archive.name),
-            m.archiveConfirm,
-          );
-          if (!yes) return;
-        }
-        // The file was read and the question answered while the page may have turned read-only.
-        if (this.viewOnly()) return;
-        this.replaceProject(project);
-        this.status(m.archiveOpened(archive.name, project.length));
-      } catch (error) {
-        this.status(error instanceof ZipError ? error.message : m.archiveUnreadable(archive.name));
-      }
+      this.importArchive(archive);
       return;
     }
+    const open = this.studio.open;
+    await this.addLocalFiles(
+      chosen,
+      open.includes("/") ? open.slice(0, open.lastIndexOf("/")) : "",
+      true,
+    );
+  }
+
+  /** Reads a project archive and asks where its project goes (`explorer/import.ts`). */
+  importArchive(archive: File): void {
+    if (this.viewOnly()) return;
+    void importProject(archive, {
+      cloud: this.cloud,
+      openName: () => this.projectName(),
+      localOpen: () => !this.inCloud(),
+      readOnly: () => this.studio.readOnly,
+      intoBrowser: (files) => {
+        if (this.inCloud()) this.viewing.leave();
+        this.replaceProject(files);
+      },
+      replaceOpen: (files) => this.replaceProject(files),
+      status: (message) => this.status(message),
+    });
+  }
+
+  /**
+   * Adds files from outside the page into a folder (`""`: the root), asking before one replaces a
+   * file of the project. With `beside` (Open), a `.meltemi` file chosen while a root file is open
+   * goes to `diagrams/`, and a `project.json` to the root.
+   */
+  async addLocalFiles(chosen: readonly File[], folder: string, beside = false): Promise<void> {
+    if (this.viewOnly()) return;
+    const m = messages().project;
+    const prefix = folder === "" ? "" : `${folder}/`;
     const added: [string, string | Uint8Array][] = [];
-    const folder = this.studio.open.includes("/")
-      ? this.studio.open.slice(0, this.studio.open.lastIndexOf("/") + 1)
-      : "";
     for (const file of chosen) {
       const name = cleanPath(file.name);
       if (!name) continue;
       const bytes = new Uint8Array(await file.arrayBuffer());
-      if (name === MANIFEST_NAME) added.push([name, new TextDecoder().decode(bytes)]);
-      else if (name.endsWith(".meltemi"))
-        added.push([`${folder || "diagrams/"}${name}`, new TextDecoder().decode(bytes)]);
-      else if (isImagePath(name)) added.push([`${folder}${name}`, bytes]);
-      else if (isTextPath(name)) added.push([`${folder}${name}`, new TextDecoder().decode(bytes)]);
+      if (name === MANIFEST_NAME && (beside || folder === "")) {
+        added.push([name, new TextDecoder().decode(bytes)]);
+      } else if (name.endsWith(".meltemi")) {
+        const into = beside && prefix === "" ? "diagrams/" : prefix;
+        added.push([`${into}${name}`, new TextDecoder().decode(bytes)]);
+      } else if (isImagePath(name)) added.push([`${prefix}${name}`, bytes]);
+      else if (isTextPath(name)) added.push([`${prefix}${name}`, new TextDecoder().decode(bytes)]);
     }
     if (added.length === 0) {
       this.status(m.noneOpenable);
@@ -1077,6 +1151,7 @@ export class Playground {
     this.studio.addFiles(added, first);
     this.keepNow();
     this.status(m.added(added.map(([p]) => p)));
+    if (first) this.explorer.reveal(first);
   }
 
   /** Asks for an image file, adds it beside the open file and returns its relative path. */
@@ -1329,6 +1404,19 @@ export class Playground {
       (target instanceof HTMLTextAreaElement && target !== this.code.input);
     if (!command(e) || native) return;
     const key = e.key.toLowerCase();
+    // The explorer's keys, as VS Code has them: Ctrl+B shows or hides it, Ctrl+Shift+E goes to it.
+    if (key === "b" && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      this.explorer.setCollapsed(!this.explorer.collapsed);
+      if (this.view === "files" && this.explorer.collapsed) this.show("code");
+      return;
+    }
+    if (key === "e" && e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      if (this.root.classList.contains("narrow")) this.show("files");
+      this.explorer.focusTree();
+      return;
+    }
     if (key === "z" && !e.shiftKey && !e.altKey) {
       e.preventDefault();
       this.undo();

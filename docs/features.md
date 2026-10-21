@@ -88,8 +88,10 @@ walks through the common path, and the [documentation index](README.md) lists ev
   approximated or dropped, the source is never changed, and re-importing keeps the placement,
   styles and other adjustments made since (`meltemi-diagrams import`, and three commands in VS
   Code).
-- The playground ([playground](playground.md)): a static web page with the templates, the code with its
-  language services beside the same canvas, one undo history, Mermaid and PlantUML import, every
+- The playground ([playground](playground.md)): a static web page with an explorer of the project's
+  folders and diagrams (renames and moves keep imports working), New project from the templates'
+  cards, import and export of a project as a `.zip`, the code with its language services beside the
+  same canvas, one undo history, Mermaid and PlantUML import, every
   export (SVG, PNG, PDF by printing, the HTML player, GIF, WebM and MP4, profiles, the project
   archive, the model JSON and the catalog), share links and work kept in the browser; no account,
   and nothing leaves the page.

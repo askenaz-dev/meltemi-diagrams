@@ -321,9 +321,11 @@ export async function clickElement(page: Page, id: string): Promise<void> {
 
 /** Clicks the canvas where nothing is, which selects nothing. */
 export async function clickNothing(page: Page): Promise<void> {
-  const area = await page.locator("#app .content").first().boundingBox();
-  if (!area) throw new Error("the canvas is not drawn");
-  await page.mouse.click(area.x + 6, area.y + 6);
+  // The stage's corner, away from the drawing, which fits in the middle whatever the canvas's width:
+  // a point inside the drawing's own corner can be an element when the canvas is narrow.
+  const stage = await page.locator("#app .stage").first().boundingBox();
+  if (!stage) throw new Error("the canvas is not drawn");
+  await page.mouse.click(stage.x + 12, stage.y + 12);
 }
 
 // ---------------------------------------------------------------------------------------------

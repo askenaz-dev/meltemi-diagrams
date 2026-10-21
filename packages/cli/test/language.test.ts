@@ -58,8 +58,22 @@ describe("the command line's catalog", () => {
   });
 
   it("describes the templates as the project defines them", () => {
-    expect(en.init.templates).toEqual(TEMPLATES);
+    expect(en.init.templates).toEqual(
+      Object.fromEntries(
+        Object.entries(TEMPLATES).map(([name, t]) => [
+          name,
+          { title: t.title, description: t.description },
+        ]),
+      ),
+    );
     expect(Object.keys(es.init.templates)).toEqual(Object.keys(TEMPLATES));
+    expect(
+      es.init.contents([
+        ["models", 1],
+        ["views", 2],
+      ]),
+    ).toBe("1 modelo, 2 vistas");
+    expect(en.init.contents([["stories", 2]])).toBe("2 stories");
   });
 
   it("accepts yes in both languages", () => {
@@ -207,7 +221,9 @@ describe("the language of messages", () => {
 
   it("lists templates in Spanish", async () => {
     const { stdout } = await mdg(["init", "--list", "--lang", "es"]);
-    expect(stdout).toContain(`flow      ${es.init.templates.flow}\n`);
+    expect(stdout).toContain(
+      `flow      ${es.init.templates.flow.title} — ${es.init.templates.flow.description} (1 diagrama)\n`,
+    );
   });
 });
 

@@ -34,7 +34,7 @@ import {
 } from "./cloud.js";
 import { Cli, describe, tokensIn, type Finished } from "./mdg.js";
 import { PAGE_HEADERS } from "./scenarios-publishing.js";
-import { TOKEN_SHAPE, assertError, bearer, expectedCheck, until } from "./support.js";
+import { TOKEN_SHAPE, assertError, bearer, expectedCheck, openFile, until } from "./support.js";
 
 const PAYMENT = "diagrams/payment.meltemi";
 const PROJECT_ID = /[a-z0-9]{20}/;
@@ -198,7 +198,7 @@ async function signIn(t: Run, cli: Cli, person: Person, name: string): Promise<E
 async function editInThePage(t: Run, device: Device, person: Person, id: string): Promise<string> {
   const { page } = device;
   await openByLink(page, t.origin, id);
-  await page.locator("#file-select").selectOption(PAYMENT);
+  await openFile(page, PAYMENT);
   await until(page, "the payment sequence in the code pane", () =>
     (document.querySelector(".code-input") as HTMLTextAreaElement).value.includes(
       "diagram payment",

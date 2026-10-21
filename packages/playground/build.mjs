@@ -25,6 +25,7 @@ import {
   contentSecurityPolicy,
   identityOrigin,
 } from "./policy.mjs";
+import { templateThumbnails } from "./thumbnails.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repo = join(here, "..", "..");
@@ -172,10 +173,11 @@ const filesOf = (folder) => {
   walk(folder);
   return found.sort();
 };
-const templates = Object.entries(TEMPLATES).map(([name, description]) => ({
-  name,
-  description,
-  files: {
+// Each template carries its title, description and contents (`TEMPLATES`), and the two pictures of
+// its card in New project, drawn now from its first diagram (`thumbnails.mjs`).
+mkdirSync(join(dist, "templates"), { recursive: true });
+const templates = Object.entries(TEMPLATES).map(([name, { title, description, contents }]) => {
+  const files = {
     "project.json": templateManifest(name, name, {
       toolVersion: version,
       languageVersion: LANGUAGE_VERSION,
@@ -186,8 +188,13 @@ const templates = Object.entries(TEMPLATES).map(([name, description]) => ({
         readFileSync(join(templateRoot, name, ...file.split("/")), "utf8"),
       ]),
     ),
-  },
-}));
+  };
+  const pictures = templateThumbnails(name, files, version);
+  const thumbnails = { light: `templates/${name}.light.svg`, dark: `templates/${name}.dark.svg` };
+  writeFileSync(join(dist, thumbnails.light), pictures.light);
+  writeFileSync(join(dist, thumbnails.dark), pictures.dark);
+  return { name, title, description, contents, files, thumbnails };
+});
 writeFileSync(join(dist, "templates.json"), `${JSON.stringify({ version, templates })}\n`);
 
 // Notices: every package whose code is in a bundle, and every package whose files are copied.

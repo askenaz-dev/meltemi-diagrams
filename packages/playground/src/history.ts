@@ -27,20 +27,40 @@ interface Entry {
 /** Typing within this pause, and without a line break, is one step. */
 export const TYPING_PAUSE = 700;
 
-/** What an undo or redo writes: the texts of the files and the caret of the file asked about. */
+/** A file that moved in a step, from one path to another. */
+export interface Move {
+  readonly from: string;
+  readonly to: string;
+}
+
+/**
+ * What an undo or redo writes: the files to move first, in order, then the texts of the files (by
+ * the path each has after the moves) and the caret of the file asked about.
+ */
 export interface Restored {
+  readonly moves?: readonly Move[];
   readonly texts: ReadonlyMap<string, string>;
   readonly selection?: Selection;
+}
+
+/** The files a step moved, in the order they moved; the project's own stack holds it. */
+interface Structure {
+  readonly moves: readonly Move[];
+  readonly group: number;
 }
 
 /**
  * The undo history of a project: a stack of steps per file, where a step that changed several
  * files (a rename across the project) is undone and redone with all of them. Typing coalesces into
- * one step until a pause or a line break, so that code and canvas edits undo in order.
+ * one step until a pause or a line break, so that code and canvas edits undo in order. Files that
+ * move (and the imports that follow them) are a step of the project's own stack: an undo asked from
+ * any file takes it when it is the latest step, as a cloud project's document does.
  */
 export class History {
   private readonly undoStacks = new Map<string, Entry[]>();
   private readonly redoStacks = new Map<string, Entry[]>();
+  private readonly structureUndo: Structure[] = [];
+  private readonly structureRedo: Structure[] = [];
   private groups = 0;
 
   constructor(private readonly now: () => number = () => Date.now()) {}
@@ -49,6 +69,8 @@ export class History {
   clear(): void {
     this.undoStacks.clear();
     this.redoStacks.clear();
+    this.structureUndo.length = 0;
+    this.structureRedo.length = 0;
   }
 
   /** Forgets a file, after it was deleted; follows a rename. */
@@ -63,10 +85,28 @@ export class History {
     }
   }
 
+  /**
+   * Records files that moved, with the texts the step changed (by the path each file has after the
+   * moves), as one step. The stacks of the files that moved must already follow them
+   * (`forget(from, to)`).
+   */
+  recordMoves(moves: readonly Move[], changes: readonly FileChange[] = []): void {
+    if (moves.length === 0) return;
+    const group = this.push(
+      changes.filter((c) => c.before !== c.after),
+      false,
+    );
+    this.structureUndo.push({ moves: [...moves], group });
+    if (this.structureUndo.length > 500) this.structureUndo.shift();
+    this.structureRedo.length = 0;
+  }
+
   /** Records a step; `typing` steps may join the previous typing step of the same file. */
   record(changes: readonly FileChange[], typing = false): void {
     const real = changes.filter((c) => c.before !== c.after);
     if (real.length === 0) return;
+    // A new edit forgets the moves that were undone.
+    this.structureRedo.length = 0;
     const time = this.now();
     if (typing && real.length === 1) {
       const change = real[0]!;
@@ -88,8 +128,14 @@ export class History {
         return;
       }
     }
+    this.push(real, typing && real.length === 1);
+  }
+
+  /** Puts changes on their files' stacks as one new group; answers the group. */
+  private push(changes: readonly FileChange[], typing: boolean): number {
     const group = ++this.groups;
-    for (const change of real) {
+    const time = this.now();
+    for (const change of changes) {
       const stack = this.undoStacks.get(change.path) ?? [];
       stack.push({
         before: change.before,
@@ -97,63 +143,107 @@ export class History {
         ...(change.selectionBefore ? { selectionBefore: change.selectionBefore } : {}),
         ...(change.selectionAfter ? { selectionAfter: change.selectionAfter } : {}),
         group,
-        typing: typing && real.length === 1,
+        typing,
         time,
       });
       if (stack.length > 500) stack.shift();
       this.undoStacks.set(change.path, stack);
       this.redoStacks.delete(change.path);
     }
+    return group;
   }
 
   canUndo(path: string): boolean {
-    return (this.undoStacks.get(path)?.length ?? 0) > 0;
+    return (this.undoStacks.get(path)?.length ?? 0) > 0 || this.structureUndo.length > 0;
   }
 
   canRedo(path: string): boolean {
-    return (this.redoStacks.get(path)?.length ?? 0) > 0;
+    return (this.redoStacks.get(path)?.length ?? 0) > 0 || this.structureRedo.length > 0;
   }
 
   /**
-   * Undoes the last step of a file, with the other files of its step whose last step it is;
-   * `current` gives each file's text, and a file whose text is no longer the step's result is
-   * left as it is.
+   * Undoes the last step of a file, or the last move of files when it came later, with the other
+   * files of its step whose last step it is; `current` gives each file's text (undefined when there
+   * is no such file), and a file whose text is no longer the step's result is left as it is. A move
+   * that can no longer be made back (a file went, or another took its old path) is dropped.
    */
   undo(path: string, current: (path: string) => string | undefined): Restored | undefined {
-    return this.move(path, current, this.undoStacks, this.redoStacks, "undo");
+    return this.move(path, current, "undo");
   }
 
   redo(path: string, current: (path: string) => string | undefined): Restored | undefined {
-    return this.move(path, current, this.redoStacks, this.undoStacks, "redo");
+    return this.move(path, current, "redo");
   }
 
   private move(
     path: string,
     current: (path: string) => string | undefined,
-    from: Map<string, Entry[]>,
-    to: Map<string, Entry[]>,
     direction: "undo" | "redo",
   ): Restored | undefined {
+    const undo = direction === "undo";
+    const from = undo ? this.undoStacks : this.redoStacks;
+    const to = undo ? this.redoStacks : this.undoStacks;
+    const structureFrom = undo ? this.structureUndo : this.structureRedo;
+    const structureTo = undo ? this.structureRedo : this.structureUndo;
     const top = from.get(path)?.at(-1);
-    if (!top) return undefined;
+    const structure = structureFrom.at(-1);
+    // Undo takes the later of the two steps; redo the earlier, which was undone last.
+    const group =
+      top && structure
+        ? undo
+          ? Math.max(top.group, structure.group)
+          : Math.min(top.group, structure.group)
+        : (top?.group ?? structure?.group);
+    if (group === undefined) return undefined;
     const texts = new Map<string, string>();
     let selection: Selection | undefined;
     for (const [file, stack] of from) {
       const entry = stack.at(-1);
-      if (!entry || entry.group !== top.group) continue;
-      const expected = direction === "undo" ? entry.after : entry.before;
+      if (!entry || entry.group !== group) continue;
+      const expected = undo ? entry.after : entry.before;
       if (file !== path && current(file) !== expected) continue;
       stack.pop();
       const target = to.get(file) ?? [];
       target.push(entry);
       to.set(file, target);
-      texts.set(file, direction === "undo" ? entry.before : entry.after);
-      if (file === path) {
-        selection = direction === "undo" ? entry.selectionBefore : entry.selectionAfter;
+      texts.set(file, undo ? entry.before : entry.after);
+      if (file === path) selection = undo ? entry.selectionBefore : entry.selectionAfter;
+    }
+    let moves: Move[] = [];
+    if (structure?.group === group) {
+      structureFrom.pop();
+      // Undo moves the files back, the last that moved first.
+      const wanted = undo
+        ? [...structure.moves].reverse().map((m) => ({ from: m.to, to: m.from }))
+        : [...structure.moves];
+      if (canMove(wanted, current)) {
+        structureTo.push(structure);
+        moves = wanted;
+        for (const m of moves) {
+          this.forget(m.from, m.to);
+          const text = texts.get(m.from);
+          if (text !== undefined) {
+            texts.delete(m.from);
+            texts.set(m.to, text);
+          }
+        }
       }
     }
-    return { texts, ...(selection ? { selection } : {}) };
+    if (texts.size === 0 && moves.length === 0) return undefined;
+    return { ...(moves.length > 0 ? { moves } : {}), texts, ...(selection ? { selection } : {}) };
   }
+}
+
+/** Whether the files can make these moves in order: each source there and each target free. */
+function canMove(moves: readonly Move[], current: (path: string) => string | undefined): boolean {
+  const exists = new Map<string, boolean>();
+  const has = (path: string) => exists.get(path) ?? current(path) !== undefined;
+  for (const m of moves) {
+    if (!has(m.from) || has(m.to)) return false;
+    exists.set(m.from, false);
+    exists.set(m.to, true);
+  }
+  return true;
 }
 
 /** The text inserted between two versions, around their common start and end. */

@@ -585,13 +585,38 @@ iniciada o el token fue rechazado.
   },
   init: {
     templates: {
-      flow: "Un diagrama de flujo para empezar",
-      c4: "Un modelo de arquitectura con una vista de contexto y una vista de contenedores",
-      sequence: "Un diagrama de secuencia con un escenario para cada resultado",
-      free: "Una diapositiva compuesta libremente: texto, cajas, un icono y un grupo",
-      purchase:
-        "El ejemplo de referencia: un modelo, sus vistas C4, una secuencia de pago, una diapositiva ejecutiva, una historia animada y perfiles de exportación",
+      flow: { title: "Diagrama de flujo", description: "Un diagrama de flujo para empezar" },
+      c4: {
+        title: "Modelo C4",
+        description:
+          "Un modelo de arquitectura con una vista de contexto y una vista de contenedores",
+      },
+      sequence: {
+        title: "Diagrama de secuencia",
+        description: "Un diagrama de secuencia con un escenario para cada resultado",
+      },
+      free: {
+        title: "Diapositiva",
+        description: "Una diapositiva compuesta libremente: texto, cajas, un icono y un grupo",
+      },
+      purchase: {
+        title: "Ejemplo de compra",
+        description:
+          "El ejemplo de referencia: un modelo, sus vistas C4, una secuencia de pago, una diapositiva ejecutiva, una historia animada y perfiles de exportación",
+      },
     },
+    contents: (counts) =>
+      counts
+        .map(([kind, n]) =>
+          count(
+            n,
+            { models: "modelo", views: "vista", diagrams: "diagrama", stories: "historia" }[kind],
+            { models: "modelos", views: "vistas", diagrams: "diagramas", stories: "historias" }[
+              kind
+            ],
+          ),
+        )
+        .join(", "),
     exists: (path) => `${path} ya existe; no se reemplaza.`,
     gitlab: `.gitlab-ci.yml ya existe; agrega el trabajo con:\n  include:\n    - local: .gitlab/meltemi-diagrams.yml\n`,
     oneFolder: "indica una carpeta.",

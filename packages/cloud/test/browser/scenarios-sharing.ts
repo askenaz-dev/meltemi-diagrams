@@ -15,9 +15,11 @@ import {
   makeProject,
   noDialog,
   openByLink,
+  openSwitcher,
   roomHolds,
   statusLine,
   studioState,
+  switcherNames,
   textHas,
   typeAtEnd,
 } from "./cloud.js";
@@ -392,7 +394,7 @@ export const sharingScenarios: Scenario[] = [
         (await membersOf(t.me, first.id)).map((member) => [member.sub, member.email, member.role]),
         [["u-carla-session", email, "editor"]],
       );
-      // Her projects list shows them, and the drawer says what she is to each.
+      // Her projects list shows them, and the switcher's panel says what she is to each.
       const listed = await listProjects(carla);
       assert.deepEqual(listed.map((row) => [row.name, row.role]).sort(), [
         ["First", "editor"],
@@ -401,19 +403,13 @@ export const sharingScenarios: Scenario[] = [
       const device = await t.device({ as: carla });
       await device.page.goto(`${origin}/`);
       await ready(device.page);
-      await device.page.locator(".projects-button").click();
-      await device.page.locator("dialog.drawer .project-row").first().waitFor();
-      const drawer = await device.page.locator("dialog.drawer").innerText();
-      assert.match(drawer, /Shared with you: you can edit/);
-      assert.match(drawer, /Shared with you: view only/);
-      assert.equal(
-        await device.page.locator('dialog.drawer button[data-action="delete"]').count(),
-        0,
-      );
-      assert.equal(
-        await device.page.locator('dialog.drawer button[data-action="rename"]').count(),
-        0,
-      );
+      const panel = await openSwitcher(device.page);
+      assert.deepEqual((await switcherNames(device.page)).sort(), ["First", "Second"]);
+      const rows = (await panel.locator(".project-row").allInnerTexts()).join("\n");
+      assert.match(rows, /Shared with you: you can edit/);
+      assert.match(rows, /Shared with you: view only/);
+      assert.equal(await panel.locator('button[data-action="delete"]').count(), 0);
+      assert.equal(await panel.locator('button[data-action="rename"]').count(), 0);
     },
   },
 

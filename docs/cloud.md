@@ -1198,8 +1198,8 @@ thumbnail leaves the one there is, and a write that fails gives the 30 seconds b
 `GET /api/projects/<id>/thumbnail` answers the SVG as `image/svg+xml` with
 `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff`,
 `Content-Disposition: attachment; filename="thumbnail.svg"` and `Cache-Control: private, max-age=60`,
-so that the drawer opening again within a minute costs no request; it is `404 not-found` while the
-project has none. The list and the drawer show it in an `<img>`. The Worker never renders anything:
+so that the panel opening again within a minute costs no request; it is `404 not-found` while the
+project has none. The panel's list shows it in an `<img>`. The Worker never renders anything:
 the page renders its diagram and sends the picture. The `PUT` needs the role `write` and the `GET`
 the role `read`.
 
@@ -2004,7 +2004,7 @@ and the code's differ. What cloud projects, sharing, publishing and awareness ad
 
 No test of this suite opens a socket: the rooms are driven over fake socket pairs. The page's side
 of cloud projects is tested in Node too, with fakes (`packages/playground/test`: the document, the
-binding of two documents to a Studio, undo, the room's client, IndexedDB, the models of the drawer
+binding of two documents to a Studio, undo, the room's client, IndexedDB, the models of the panel
 and the versions panel, thumbnails; and for sharing, view mode and each guard of it, opening by
 link, the snapshot, the copies, the share dialog's model for each role and the publish dialog's),
 and so is the path rule (`packages/project/test/files.test.ts`). For collaboration, the same
@@ -2030,7 +2030,7 @@ its own origin. The Worker must print nothing but its request lines.
 For cloud projects the suite goes through the real room, D1 and R2 that `wrangler dev` runs, with a
 second device of the same person (another browser context) where a scenario needs one:
 
-- the Projects drawer, in English and in Spanish (the list with a thumbnail, a project made from a
+- the Projects panel, in English and in Spanish (the list with a thumbnail, a project made from a
   template, rename, duplicate and delete after a confirmation); saving the edited local project to
   the cloud; opening a project by its link and by an address that names one that cannot be opened;
   and the status line when the 101st project is refused;

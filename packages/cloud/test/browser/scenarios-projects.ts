@@ -1,7 +1,8 @@
 /**
- * The scenarios of the projects themselves: the drawer, saving the anonymous project, opening by
- * address, and the quota. The page is the real playground served by the real Worker; what the
- * person did is checked where it lands: in the Worker's rooms, read through its API.
+ * The scenarios of the projects themselves: the explorer's switcher and its panel (the cloud
+ * projects, New project, renaming the open project from the header), saving the anonymous project,
+ * opening by address, and the quota. The page is the real playground served by the real Worker; what
+ * the person did is checked where it lands: in the Worker's rooms, read through its API.
  */
 import assert from "node:assert/strict";
 import type { Scenario } from "./scenario.js";
@@ -9,23 +10,27 @@ import {
   NOTES,
   PICTURE,
   PNG,
+  closeSwitcher,
   code,
   connected,
-  drawerNames,
-  drawerRow,
   listProjects,
   makeProject,
   noDialog,
-  openDrawer,
+  openByLink,
+  openSwitcher,
   readRoom,
   sha256,
   statusLine,
   studioState,
+  switcherLocal,
+  switcherNames,
+  switcherPanel,
+  switcherRow,
   typeAtEnd,
   roomHolds,
   connection,
 } from "./cloud.js";
-import { analysed, ready, until } from "./support.js";
+import { analysed, expectOpen, openFile, ready, until } from "./support.js";
 
 /** The 404 the browser itself logs for a request the page made to a project that is not there. */
 const NOT_FOUND_LOGGED = /status of 404/;
@@ -38,7 +43,6 @@ export const projectScenarios: Scenario[] = [
       const { page, seen } = t;
       const id = "01h2x5z8kq3m7n9p2r4t";
       await t.open(`/?project=${id}`);
-      assert.equal(await page.locator(".projects-button").count(), 0);
       assert.equal(await page.locator(".versions-button").count(), 0);
       assert.equal(await page.locator(".cloud-status").isHidden(), true);
       assert.equal(await page.locator(".privacy").isVisible(), true);
@@ -55,6 +59,25 @@ export const projectScenarios: Scenario[] = [
       assert.match(await statusLine(page), notFound);
       assert.equal(page.url(), `${t.origin}/?project=${id}`);
       assert.equal(await page.locator(".view-badge").count(), 0);
+
+      // The switcher names this browser's project, and its panel has no list of cloud projects: it
+      // says to sign in instead.
+      assert.equal(await page.locator(".switcher-where").innerText(), "This browser");
+      await page.locator(".switcher-button").click();
+      const panel = switcherPanel(page);
+      await panel.waitFor();
+      assert.match(
+        await panel.locator(".panel-note").innerText(),
+        /^Sign in to keep projects in your account/,
+      );
+      assert.equal(await panel.getByRole("link", { name: "Sign in" }).count(), 1);
+      assert.equal(await panel.locator(".project-row").count(), 0);
+      assert.equal(await panel.locator(".panel-count").count(), 0);
+      assert.equal(
+        await panel.getByRole("button", { name: "Save this project to the cloud" }).count(),
+        0,
+      );
+      await closeSwitcher(page);
 
       // The page works as before: an edit is kept in this browser and comes back after a reload.
       await typeAtEnd(page, "\n// anonymous edit");
@@ -82,8 +105,8 @@ export const projectScenarios: Scenario[] = [
   },
 
   {
-    name: "projects drawer: list with a thumbnail, new from a template, rename, duplicate and delete after a confirmation",
-    signedIn: "u-ana-drawer",
+    name: "projects switcher: the panel lists with a thumbnail, New project makes one in the account from a template, rename, duplicate and delete after a confirmation",
+    signedIn: "u-ana-switcher",
     async run(t) {
       const { page } = t;
       // A project made before the page opens, with a picture an <img> can show.
@@ -100,13 +123,14 @@ export const projectScenarios: Scenario[] = [
       assert.equal(await page.locator(".cloud-status").isHidden(), true);
       assert.equal(await page.locator(".privacy").isVisible(), true);
       assert.equal(await page.locator("dialog[open]").count(), 0);
+      assert.equal(await page.locator(".switcher-where").innerText(), "This browser");
 
-      await openDrawer(page);
-      assert.equal(await page.locator("dialog.drawer h2").innerText(), "Projects");
-      assert.deepEqual(await drawerNames(page), ["Notes"]);
-      assert.equal(await page.locator(".projects-count").innerText(), "1 of 100 projects");
+      let panel = await openSwitcher(page);
+      assert.equal(await panel.locator("h2").innerText(), "Projects");
+      assert.deepEqual(await switcherNames(page), ["Notes"]);
+      assert.equal(await panel.locator(".panel-count").innerText(), "1 of 100 projects");
       // The list's thumbnail is an <img> on the Worker's own origin, and it draws.
-      const thumb = drawerRow(page, "Notes").locator("img.project-thumb");
+      const thumb = switcherRow(page, "Notes").locator("img.panel-thumb");
       assert.equal(
         await thumb.getAttribute("src"),
         `${t.origin}/api/projects/${notes.id}/thumbnail`,
@@ -116,22 +140,26 @@ export const projectScenarios: Scenario[] = [
         return image.naturalWidth > 0;
       });
       assert.equal(drawn, true, "the thumbnail draws");
-      // The anonymous project can be saved; no cloud project is open to go back from.
+      // The anonymous project can be saved; it is the open one, and no cloud project is.
       assert.equal(
-        await page.getByRole("button", { name: "Save this project to the cloud" }).isVisible(),
+        await panel.getByRole("button", { name: "Save this project to the cloud" }).isVisible(),
         true,
       );
-      assert.equal(
-        await page.getByRole("button", { name: "Open the local project" }).isVisible(),
-        false,
-      );
+      assert.equal(await switcherLocal(page).getAttribute("aria-current"), "true");
+      assert.equal(await panel.locator('.project-row [aria-current="true"]').count(), 0);
 
-      // New project from a template: it opens, bound, with the template's files in the room.
-      const form = page.locator("dialog.drawer .project-form");
-      await form.locator("input[type=text]").fill("Purchase flow");
-      await form.locator("select").selectOption("purchase");
-      await form.locator("button[type=submit]").click();
-      await noDialog(page, "the drawer to close after creating the project");
+      // New project in the account from a template: it opens, bound, with the template's files in
+      // the room.
+      await panel.getByRole("button", { name: "New project…" }).click();
+      const dialog = page.locator("dialog.new-project");
+      await dialog.locator('[data-template="purchase"]').click();
+      const name = dialog.getByLabel("Name", { exact: true });
+      assert.equal(await name.inputValue(), "Purchase example", "the card's title");
+      assert.equal(await dialog.getByRole("radio", { name: /^In your account/ }).isChecked(), true);
+      await name.fill("Purchase flow");
+      await dialog.getByRole("button", { name: "Create the project" }).click();
+      await noDialog(page, "New project to close after creating the project");
+      assert.equal(await switcherPanel(page).count(), 0, "the panel closed");
       const created = (await listProjects(t.me)).find((row) => row.name === "Purchase flow");
       assert.ok(created, "the Worker lists the new project");
       assert.equal(new URL(page.url()).searchParams.get("project"), created.id);
@@ -147,27 +175,42 @@ export const projectScenarios: Scenario[] = [
       assert.deepEqual(state.paths, Object.keys(room.files).sort());
       assert.equal(await page.locator(".privacy").isHidden(), true, "the work is in the cloud");
       assert.match(await statusLine(page), /Opened Purchase flow\./);
+      // The explorer's header names it, saved to the cloud.
+      await until(
+        page,
+        "the header to name the cloud project",
+        () =>
+          document.querySelector(".switcher-name")?.textContent === "Purchase flow" &&
+          document.querySelector(".switcher-where")?.textContent === "Saved to the cloud",
+      );
 
-      // The drawer again: the open project is marked, and the way back to the local one is offered.
-      await openDrawer(page);
-      assert.deepEqual((await drawerNames(page)).sort(), ["Notes", "Purchase flow"]);
+      // The panel again: the open project is marked, and the way back to the local one is offered.
+      panel = await openSwitcher(page);
+      assert.deepEqual((await switcherNames(page)).sort(), ["Notes", "Purchase flow"]);
       assert.equal(
-        await drawerRow(page, "Purchase flow").locator(".project-badge").innerText(),
+        await switcherRow(page, "Purchase flow").locator(".project-badge").innerText(),
         "Open now",
       );
       assert.equal(
-        await page.getByRole("button", { name: "Save this project to the cloud" }).isVisible(),
-        false,
+        await switcherRow(page, "Purchase flow")
+          .locator("button.panel-project")
+          .getAttribute("aria-current"),
+        "true",
+      );
+      assert.equal(await switcherLocal(page).getAttribute("aria-current"), null);
+      assert.equal(
+        await panel.getByRole("button", { name: "Save this project to the cloud" }).count(),
+        0,
       );
 
       // Rename.
-      await drawerRow(page, "Purchase flow").locator('button[data-action="rename"]').click();
+      await switcherRow(page, "Purchase flow").locator('button[data-action="rename"]').click();
       const rename = page.locator("dialog[open]").last();
       assert.equal(await rename.locator("h2").innerText(), "Rename the project");
       await rename.locator("input").fill("Purchase renamed");
       await rename.getByRole("button", { name: "OK", exact: true }).click();
       await until(page, "the new name in the list", () =>
-        [...document.querySelectorAll("dialog.drawer .project-name")].some(
+        [...document.querySelectorAll(".switcher-panel .panel-project-name")].some(
           (name) => name.textContent === "Purchase renamed",
         ),
       );
@@ -178,9 +221,11 @@ export const projectScenarios: Scenario[] = [
       );
 
       // Duplicate: a copy with the same files appears, and the Worker has it.
-      await drawerRow(page, "Purchase renamed").locator('button[data-action="duplicate"]').click();
+      await switcherRow(page, "Purchase renamed")
+        .locator('button[data-action="duplicate"]')
+        .click();
       await until(page, "the copy in the list", () =>
-        [...document.querySelectorAll("dialog.drawer .project-name")].some(
+        [...document.querySelectorAll(".switcher-panel .panel-project-name")].some(
           (name) => name.textContent === "Purchase renamed (copy)",
         ),
       );
@@ -192,7 +237,7 @@ export const projectScenarios: Scenario[] = [
       );
 
       // Delete asks first: cancelled, nothing goes; confirmed, the project and its room are gone.
-      await drawerRow(page, "Purchase renamed (copy)")
+      await switcherRow(page, "Purchase renamed (copy)")
         .locator('button[data-action="delete"]')
         .click();
       const sure = page.locator("dialog[open]").last();
@@ -202,9 +247,9 @@ export const projectScenarios: Scenario[] = [
         /Purchase renamed \(copy\) is removed from your account/,
       );
       await sure.getByRole("button", { name: "Cancel", exact: true }).click();
-      assert.equal((await drawerNames(page)).length, 3);
+      assert.equal((await switcherNames(page)).length, 3);
       assert.equal((await t.me.api("GET", `/api/projects/${copy.id}`)).status, 200);
-      await drawerRow(page, "Purchase renamed (copy)")
+      await switcherRow(page, "Purchase renamed (copy)")
         .locator('button[data-action="delete"]')
         .click();
       await page
@@ -216,26 +261,31 @@ export const projectScenarios: Scenario[] = [
         page,
         "the copy to leave the list",
         () =>
-          ![...document.querySelectorAll("dialog.drawer .project-name")].some(
+          ![...document.querySelectorAll(".switcher-panel .panel-project-name")].some(
             (name) => name.textContent === "Purchase renamed (copy)",
           ),
       );
       assert.equal((await t.me.api("GET", `/api/projects/${copy.id}`)).status, 404);
       assert.equal((await t.me.api("GET", `/api/projects/${copy.id}/files`)).status, 404);
-      assert.deepEqual((await drawerNames(page)).sort(), ["Notes", "Purchase renamed"]);
+      assert.deepEqual((await switcherNames(page)).sort(), ["Notes", "Purchase renamed"]);
       assert.deepEqual((await listProjects(t.me)).map((row) => row.name).sort(), [
         "Notes",
         "Purchase renamed",
       ]);
 
-      // Escape closes the drawer; the open project is still bound.
-      await page.keyboard.press("Escape");
-      await noDialog(page);
+      // Escape closes the panel; the open project is still bound, and the header has its new name.
+      await closeSwitcher(page);
+      assert.equal(await page.locator("dialog[open]").count(), 0);
       assert.equal((await studioState(page)).bound, true);
+      await until(
+        page,
+        "the header to follow the rename",
+        () => document.querySelector(".switcher-name")?.textContent === "Purchase renamed",
+      );
 
       // The file open in a project is remembered in this browser: a reload opens it at that file.
       assert.equal((await studioState(page)).open, "diagrams/architecture.meltemi");
-      await page.locator("#file-select").selectOption("models/commerce.meltemi");
+      await openFile(page, "models/commerce.meltemi");
       await page.reload();
       // A file that holds only a model draws nothing, so the page is ready without a drawing.
       await page.waitForFunction(() => "meltemiPlayground" in window);
@@ -247,35 +297,50 @@ export const projectScenarios: Scenario[] = [
   },
 
   {
-    name: "projects drawer in Spanish: the words, a project from a template, the confirmation to delete",
-    signedIn: "u-ana-drawer-es",
+    name: "projects switcher in Spanish: the words, a project from a template, the confirmation to delete",
+    signedIn: "u-ana-switcher-es",
     locale: "es-ES",
     async run(t) {
       const { page } = t;
       const old = await makeProject(t.me, "Notas", { files: { "diagrams/notas.meltemi": NOTES } });
       await t.open("/");
       assert.equal(await page.evaluate(() => document.documentElement.lang), "es");
-      assert.equal(await page.locator(".projects-button").innerText(), "Proyectos");
-      await openDrawer(page);
-      assert.equal(await page.locator("dialog.drawer h2").innerText(), "Proyectos");
-      assert.equal(await page.locator(".projects-count").innerText(), "1 de 100 proyectos");
-      assert.equal(await page.locator(".project-form h3").innerText(), "Proyecto nuevo");
+      assert.match(
+        (await page.locator(".switcher-button").getAttribute("aria-label")) ?? "",
+        /^Proyectos: .+ está abierto$/,
+      );
+      assert.equal(await page.locator(".switcher-where").innerText(), "Este navegador");
+      const panel = await openSwitcher(page);
+      assert.equal(await panel.locator("h2").innerText(), "Proyectos");
+      assert.equal(await panel.locator(".panel-count").innerText(), "1 de 100 proyectos");
 
-      const form = page.locator("dialog.drawer .project-form");
-      assert.equal(await form.locator("input[type=text]").inputValue(), "Sin título");
-      await form.locator("input[type=text]").fill("Mi flujo");
-      await form.locator("select").selectOption("flow");
-      await form.getByRole("button", { name: "Crear el proyecto" }).click();
+      await panel.getByRole("button", { name: "Nuevo proyecto…" }).click();
+      const dialog = page.locator("dialog.new-project");
+      assert.equal(await dialog.locator("h2").innerText(), "Nuevo proyecto");
+      const name = dialog.getByLabel("Nombre", { exact: true });
+      assert.equal(await name.inputValue(), "Diagrama de flujo", "the chosen card's title");
+      assert.equal(
+        await dialog.locator('[data-template="flow"]').getAttribute("aria-checked"),
+        "true",
+      );
+      assert.equal(await dialog.getByRole("radio", { name: /^En tu cuenta/ }).isChecked(), true);
+      assert.equal(
+        await dialog.getByRole("radio", { name: /^En este navegador/ }).isChecked(),
+        false,
+      );
+      await name.fill("Mi flujo");
+      await dialog.getByRole("button", { name: "Crear el proyecto" }).click();
       await noDialog(page);
       await connected(page);
       assert.equal(await page.locator(".cloud-status").innerText(), "Guardado en la nube");
+      assert.equal(await page.locator(".switcher-where").innerText(), "Guardado en la nube");
       assert.match(await statusLine(page), /Se abrió Mi flujo\./);
       const made = (await listProjects(t.me)).find((row) => row.name === "Mi flujo");
       assert.ok(made);
       assert.match(await code(page), /diagram overview: flow/);
 
-      await openDrawer(page);
-      await drawerRow(page, "Notas").locator('button[data-action="delete"]').click();
+      await openSwitcher(page);
+      await switcherRow(page, "Notas").locator('button[data-action="delete"]').click();
       const sure = page.locator("dialog[open]").last();
       assert.equal(await sure.locator("h2").innerText(), "¿Eliminar el proyecto?");
       await sure.getByRole("button", { name: "Eliminar el proyecto", exact: true }).click();
@@ -283,7 +348,7 @@ export const projectScenarios: Scenario[] = [
         page,
         "the old project to leave the list",
         () =>
-          ![...document.querySelectorAll("dialog.drawer .project-name")].some(
+          ![...document.querySelectorAll(".switcher-panel .panel-project-name")].some(
             (name) => name.textContent === "Notas",
           ),
       );
@@ -298,7 +363,7 @@ export const projectScenarios: Scenario[] = [
     async run(t) {
       const { page } = t;
       await t.open("/");
-      assert.equal(await page.locator("#file-select").inputValue(), "diagrams/overview.meltemi");
+      await expectOpen(page, "diagrams/overview.meltemi");
       // Edited first: a line of text, and an image added from a file.
       await typeAtEnd(page, "\n// edited before saving");
       await analysed(page);
@@ -307,25 +372,26 @@ export const projectScenarios: Scenario[] = [
       const chooser = page.waitForEvent("filechooser");
       await page.getByRole("button", { name: "Open", exact: true }).click();
       await (await chooser).setFiles({ name: "dot.png", mimeType: "image/png", buffer: PNG });
-      await until(page, "the image added to the project", () =>
-        [...document.querySelectorAll("#file-select option")].some((o) =>
-          o.textContent?.startsWith("dot.png"),
-        ),
-      );
-      await page.locator("#file-select").selectOption("diagrams/overview.meltemi");
+      await page.locator('.tree li[data-key="f:diagrams/dot.png"]').waitFor();
+      await openFile(page, "diagrams/overview.meltemi");
       assert.equal(await code(page), edited);
       // The work waits in this browser, as the anonymous project always does.
       await page.waitForTimeout(700);
 
-      await openDrawer(page);
-      assert.deepEqual(await drawerNames(page), [], "nothing in the cloud yet");
-      await page.getByRole("button", { name: "Save this project to the cloud" }).click();
+      const panel = await openSwitcher(page);
+      assert.deepEqual(await switcherNames(page), [], "nothing in the cloud yet");
+      await panel.getByRole("button", { name: "Save this project to the cloud" }).click();
       const naming = page.locator("dialog[open]").last();
       assert.equal(await naming.locator("h2").innerText(), "Save to the cloud");
       assert.equal(await naming.locator("input").inputValue(), "flow", "project.json's name");
       await naming.locator("input").fill("Edited flow");
       await naming.getByRole("button", { name: "OK", exact: true }).click();
-      await noDialog(page, "the drawer to close after saving");
+      await noDialog(page, "the naming dialog to close");
+      await until(
+        page,
+        "the panel to close after saving",
+        () => document.querySelector(".switcher-panel") === null,
+      );
       await connected(page);
 
       const saved = (await listProjects(t.me)).find((row) => row.name === "Edited flow");
@@ -355,9 +421,18 @@ export const projectScenarios: Scenario[] = [
       await roomHolds(t.me, saved.id, "the edit after saving", (read) =>
         (read.files["diagrams/overview.meltemi"] ?? "").endsWith("// after saving"),
       );
-      await openDrawer(page);
-      await page.getByRole("button", { name: "Open the local project" }).click();
-      await noDialog(page);
+      // The project of this browser, in the panel's "This browser", is the way back to it.
+      await openSwitcher(page);
+      assert.equal(await switcherLocal(page).getAttribute("aria-current"), null);
+      await switcherLocal(page).click();
+      await until(
+        page,
+        "the panel to close and the anonymous project to open",
+        () =>
+          document.querySelector(".switcher-panel") === null &&
+          document.querySelector(".switcher-where")?.textContent === "This browser",
+      );
+      assert.equal(await page.locator("dialog[open]").count(), 0);
       assert.equal(
         new URL(page.url()).searchParams.get("project"),
         null,
@@ -374,7 +449,7 @@ export const projectScenarios: Scenario[] = [
   },
 
   {
-    name: "a project opens by its link /p/<id>: it lands on /?project=<id>, bound, and the address stays after a reload; the drawer copies that link",
+    name: "a project opens by its link /p/<id>: it lands on /?project=<id>, bound, and the address stays after a reload; the switcher's panel copies that link",
     signedIn: "u-ana-address",
     async run(t) {
       const { page, origin, context } = t;
@@ -402,14 +477,14 @@ export const projectScenarios: Scenario[] = [
       assert.equal((await studioState(page)).bound, true);
       assert.match(await code(page), /diagram overview: flow/);
 
-      // The link the drawer copies is that one.
-      await openDrawer(page);
-      await drawerRow(page, "Flow by link").locator('button[data-action="link"]').click();
+      // The link the panel copies is that one.
+      await openSwitcher(page);
+      await switcherRow(page, "Flow by link").locator('button[data-action="link"]').click();
       await until(
         page,
         "the link copied",
         () =>
-          document.querySelector(".projects-status")?.textContent ===
+          document.querySelector(".switcher-panel .projects-status")?.textContent ===
           "The link to the project was copied.",
       );
       assert.equal(
@@ -456,7 +531,55 @@ export const projectScenarios: Scenario[] = [
   },
 
   {
-    name: "the 101st project, made from the page, shows the quota in the status line and leaves the drawer as it was",
+    name: "the open cloud project is renamed from the explorer's header: the header, the Worker and the switcher's panel have the new name",
+    signedIn: "u-ana-header-rename",
+    async run(t) {
+      const { page } = t;
+      const flow = await makeProject(t.me, "Header name", { template: "flow" });
+      await openByLink(page, t.origin, flow.id);
+      assert.equal(await page.locator(".switcher-name").innerText(), "Header name");
+      await until(
+        page,
+        "the header to say where the project lives",
+        () => document.querySelector(".switcher-where")?.textContent === "Saved to the cloud",
+      );
+
+      // The pencil beside the name asks for the new one, the open project's name filled in.
+      await page.locator(".switcher-rename").click();
+      const naming = page.locator("dialog[open]").last();
+      assert.equal(await naming.locator("h2").innerText(), "Rename the project");
+      assert.equal(await naming.locator("input").inputValue(), "Header name");
+      await naming.locator("input").fill("Renamed in the header");
+      await naming.getByRole("button", { name: "OK", exact: true }).click();
+      await noDialog(page, "the naming dialog to close");
+      await until(
+        page,
+        "the new name in the header",
+        () => document.querySelector(".switcher-name")?.textContent === "Renamed in the header",
+      );
+      assert.match(await statusLine(page), /Renamed the project to Renamed in the header\./);
+
+      // The Worker has it, under the same id, and the page is still bound to that project.
+      assert.deepEqual(
+        (await listProjects(t.me)).map((row) => [row.id, row.name]),
+        [[flow.id, "Renamed in the header"]],
+      );
+      assert.equal((await studioState(page)).bound, true);
+      assert.equal(new URL(page.url()).searchParams.get("project"), flow.id);
+
+      // The panel's row has it too, marked as the open project.
+      await openSwitcher(page);
+      assert.deepEqual(await switcherNames(page), ["Renamed in the header"]);
+      assert.equal(
+        await switcherRow(page, "Renamed in the header").locator(".project-badge").innerText(),
+        "Open now",
+      );
+      await closeSwitcher(page);
+    },
+  },
+
+  {
+    name: "the 101st project, made from New project, shows the quota in the status line and in the dialog, which stays open, and leaves the switcher's list as it was",
     signedIn: "u-ana-quota",
     allowedErrors: [/status of 413/],
     async run(t) {
@@ -475,13 +598,14 @@ export const projectScenarios: Scenario[] = [
       assert.equal(refused.json()["code"], "quota.projects");
 
       await t.open("/");
-      await openDrawer(page);
-      assert.equal(await page.locator(".projects-count").innerText(), "100 of 100 projects");
-      const before = await drawerNames(page);
+      const panel = await openSwitcher(page);
+      assert.equal(await panel.locator(".panel-count").innerText(), "100 of 100 projects");
+      const before = await switcherNames(page);
       assert.equal(before.length, 100);
-      const form = page.locator("dialog.drawer .project-form");
-      await form.locator("input[type=text]").fill("One too many");
-      await form.locator("button[type=submit]").click();
+      await panel.getByRole("button", { name: "New project…" }).click();
+      const dialog = page.locator("dialog.new-project");
+      await dialog.getByLabel("Name", { exact: true }).fill("One too many");
+      await dialog.getByRole("button", { name: "Create the project" }).click();
       const quota = /Your account holds at most 100 projects/;
       await until(
         page,
@@ -491,13 +615,17 @@ export const projectScenarios: Scenario[] = [
           false,
       );
       assert.match(await statusLine(page), quota);
-      assert.match(await page.locator("dialog.drawer .field-problem").first().innerText(), quota);
-      // The drawer is unchanged, nothing was created, and no project was opened.
-      assert.deepEqual(await drawerNames(page), before);
+      assert.match(await dialog.locator(".field-problem").first().innerText(), quota);
+      // The dialog stays open, nothing was created, and no project was opened.
+      assert.equal(await page.locator("dialog.new-project[open]").count(), 1);
       assert.equal((await listProjects(t.me)).length, 100);
-      assert.equal(await page.locator("dialog.drawer[open]").count(), 1);
       assert.equal((await studioState(page)).bound, false);
       assert.equal(await connection(page), null);
+      // Given up, the panel lists the same projects as before.
+      await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+      await noDialog(page);
+      await openSwitcher(page);
+      assert.deepEqual(await switcherNames(page), before);
     },
   },
 ];

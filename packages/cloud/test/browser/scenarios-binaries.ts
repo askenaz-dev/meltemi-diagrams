@@ -10,15 +10,15 @@ import {
   PNG,
   blobOf,
   connected,
-  drawerRow,
   makeProject,
   openByLink,
-  openDrawer,
+  openSwitcher,
   readRoom,
   roomHolds,
   sha256,
+  switcherRow,
 } from "./cloud.js";
-import { until } from "./support.js";
+import { openFile, until } from "./support.js";
 import { SITE } from "./worker.js";
 
 /** A real WOFF2 font: the page's own, served by the Worker. */
@@ -100,7 +100,7 @@ export const binaryScenarios: Scenario[] = [
         },
         FONT.length,
       );
-      await second.page.locator("#file-select").selectOption("diagrams/logo.png");
+      await openFile(second.page, "diagrams/logo.png");
       const preview = second.page.locator(".image-preview img");
       await preview.waitFor();
       const size = await preview.evaluate(async (image: HTMLImageElement) => {
@@ -160,12 +160,8 @@ export const binaryScenarios: Scenario[] = [
 
       // The project open in the page: the SVG is fetched as bytes and read as text, not run.
       await openByLink(page, t.origin, flow.id);
-      await until(page, "the svg in the project", () =>
-        [...document.querySelectorAll("#file-select option")].some(
-          (option) => (option as HTMLOptionElement).value === "assets/evil.svg",
-        ),
-      );
-      await page.locator("#file-select").selectOption("assets/evil.svg");
+      await page.locator('.tree li[data-key="f:assets/evil.svg"]').waitFor({ state: "attached" });
+      await openFile(page, "assets/evil.svg");
       await until(page, "the svg's source in the code pane", () =>
         (document.querySelector(".code-input") as HTMLTextAreaElement).value.includes("<script>"),
       );
@@ -197,9 +193,9 @@ export const binaryScenarios: Scenario[] = [
         return [image.naturalWidth, image.naturalHeight];
       }, `/api/projects/${flow.id}/blobs/${hash}`);
       assert.deepEqual(shown, [40, 40]);
-      // So does the drawer's thumbnail <img>, from the SVG that was uploaded as the picture.
-      await openDrawer(page);
-      const thumb = drawerRow(page, "Flow").locator("img.project-thumb");
+      // So does the thumbnail <img> of the switcher's panel, from the SVG uploaded as the picture.
+      await openSwitcher(page);
+      const thumb = switcherRow(page, "Flow").locator("img.panel-thumb");
       await thumb.waitFor();
       const drawn = await thumb.evaluate(async (image: HTMLImageElement) => {
         await image.decode();

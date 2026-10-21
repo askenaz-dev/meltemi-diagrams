@@ -28,8 +28,8 @@ interface language.
 
 ### Requirement: The tree of folders and diagrams
 The tree SHALL show the project's folders and, inside them, each `.meltemi` file by its name without
-the extension with the icon of its first diagram's kind, and each image with a picture icon; the
-root's files come first, then folders, sorted by name, folders before files inside a folder. A file
+the extension with the icon of its first diagram's kind, and each image with a picture icon;
+folders come before files at every level, each sorted by name. A file
 whose compilation holds more than one diagram or story SHALL expand to one child per diagram (its
 title, or its id) and story. Files with problems SHALL show a count of errors or, failing that, of
 warnings; a collapsed folder SHALL show the sum of its files'. Clicking a file SHALL open it;
@@ -48,7 +48,7 @@ without losing the focused row, the expanded folders or the scroll position.
 - **THEN** `diagrams/architecture.meltemi` is open in the code pane and the canvas shows the containers view
 
 #### Scenario: A problem mark
-- **WHEN** `client -> nowhere` is typed into `diagrams/overview.meltemi` of the flow template
+- **WHEN** `style missing { fill "#fff" }` is typed into `diagrams/overview.meltemi` of the flow template
 - **THEN** after the analysis pause the row `overview` shows 1 error and the mark goes when the line is removed
 
 #### Scenario: A file that does not parse
@@ -91,7 +91,7 @@ The explorer SHALL offer, on the root, a folder or a file, from a context menu (
 Shift+F10, the context-menu key, or the "…" button a row shows on hover and focus): **New
 diagram…** (a name and a kind, flow, free or sequence; the file `<folder>/<name>.meltemi` written
 through `createDiagram` with the name as the title), **New folder…**, **Rename** (F2: a box in the
-row; Enter confirms, Escape cancels), **Move to…** (M: a dialog listing the folders and a field for
+row; Enter confirms, Escape cancels), **Move to…** (a dialog listing the folders and a field for
 a new one), **Duplicate** (Ctrl+D: `<name>-copy`, then `-copy-2`…), **Download** and **Delete**
 (Delete, after a confirmation naming the file, or the folder and how many files it holds). Renaming
 or moving a folder SHALL move every file under it. Every name SHALL pass the path rule, SHALL keep
@@ -182,7 +182,7 @@ the template with that name and open it.
 
 #### Scenario: The cards
 - **WHEN** New project… opens in Spanish
-- **THEN** five cards show, `c4` titled "Modelo C4" with "1 modelo · 2 vistas", `purchase` with "4 diagramas · 1 historia", each with its thumbnail
+- **THEN** five cards show, `c4` titled "Modelo C4" with "1 modelo · 2 vistas", `purchase` with "1 modelo · 2 vistas · 2 diagramas · 1 historia", each with its thumbnail
 
 #### Scenario: Anonymous creation
 - **WHEN** the anonymous flow project has been edited and the sequence card is created
@@ -224,7 +224,7 @@ replaced without the choice.
 - **THEN** the option's text named the replacement, and after the choice the room holds the archive's files
 
 #### Scenario: An empty archive
-- **WHEN** a `.zip` holding only `../x.meltemi` is imported
+- **WHEN** a `.zip` holding only `.git/config` and `.hidden/x.meltemi` is imported
 - **THEN** no dialog opens, nothing changes and the status says the archive holds no project file
 
 ### Requirement: Motion of the explorer

@@ -1,6 +1,6 @@
 /**
  * The scenarios of a project's history and picture: naming a version, restoring it, and the
- * thumbnail the page sends and the drawer shows.
+ * thumbnail the page sends and the switcher's panel shows.
  */
 import assert from "node:assert/strict";
 import type { Scenario } from "./scenario.js";
@@ -8,13 +8,13 @@ import {
   code,
   codeIs,
   connected,
-  drawerRow,
   makeProject,
   openByLink,
-  openDrawer,
+  openSwitcher,
   readRoom,
   roomHolds,
   statusLine,
+  switcherRow,
   typeAtEnd,
   undo,
   undoIs,
@@ -177,7 +177,7 @@ export const versionScenarios: Scenario[] = [
   },
 
   {
-    name: "thumbnail: a changed label is sent about five seconds after the analysis settles, the drawer draws it, and a file with only a model sends none",
+    name: "thumbnail: a changed label is sent about five seconds after the analysis settles, the switcher's panel draws it, and a file with only a model sends none",
     signedIn: "u-ana-thumbnail",
     async run(t) {
       const { page } = t;
@@ -224,9 +224,9 @@ export const versionScenarios: Scenario[] = [
       assert.ok(picture.text.includes("Brand new label"), "the picture shows the new label");
       assert.equal(picture.text.includes("Overview"), false);
 
-      // The drawer draws it from an <img>.
-      await openDrawer(page);
-      const thumb = drawerRow(page, "Flow").locator("img.project-thumb");
+      // The switcher's panel draws it from an <img>.
+      await openSwitcher(page);
+      const thumb = switcherRow(page, "Flow").locator("img.panel-thumb");
       await thumb.waitFor();
       const drawn = await thumb.evaluate(async (image: HTMLImageElement) => {
         await image.decode();
@@ -244,9 +244,14 @@ export const versionScenarios: Scenario[] = [
       );
       assert.equal((await t.me.api("GET", `/api/projects/${model.id}/thumbnail`)).status, 404);
       assert.equal(
-        await drawerRow(page, "Model only").locator("img.project-thumb").count(),
+        await switcherRow(page, "Model only").locator("img.panel-thumb").count(),
         0,
-        "the outline of a folder, no picture",
+        "no picture",
+      );
+      assert.equal(
+        await switcherRow(page, "Model only").locator("span.panel-thumb.outline").count(),
+        1,
+        "the outline of a folder",
       );
     },
   },

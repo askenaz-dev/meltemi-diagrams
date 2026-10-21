@@ -5,11 +5,6 @@ import { publishing, sharing } from "./cloud-share-es.js";
 /** Las palabras de los proyectos en la nube, entrada por entrada como en `cloud-en.ts`. */
 export const cloud: typeof en = {
   projects: {
-    button: "Proyectos",
-    buttonTitle: "Tus proyectos en la nube",
-    title: "Proyectos",
-    intro:
-      "Tus proyectos en la nube pertenecen a tu cuenta: se abren en todos tus dispositivos y lo que editas sin conexión se combina cuando vuelves.",
     loading: "Cargando tus proyectos…",
     listLabel: "Tus proyectos",
     none: "Aún no tienes proyectos en la nube. Crea uno, o guarda el proyecto que tienes abierto.",
@@ -18,36 +13,18 @@ export const cloud: typeof en = {
     neverChanged: "Sin cambios todavía",
     open: (name) => `Abrir ${name}`,
     openNow: "Abierto ahora",
-    tryAgain: "Reintentar",
-    close: "Cerrar",
-
-    newTitle: "Proyecto nuevo",
-    newName: "Nombre",
-    newNameHint: "De 1 a 100 caracteres.",
-    newTemplate: "Empezar desde",
-    newCreate: "Crear el proyecto",
-    defaultName: "Sin título",
     nameEmpty: "Ponle un nombre al proyecto.",
     nameLong: (most) => `El nombre admite como máximo ${most} caracteres.`,
     nameControl: "El nombre no puede tener caracteres de control.",
     creating: (name) => `Creando ${name}…`,
     created: (name) => `Se creó ${name}.`,
 
-    saveButton: "Guardar este proyecto en la nube",
-    saveHint:
-      "Copia el proyecto que tienes abierto a tu cuenta y abre la copia. El proyecto de este navegador queda como está.",
     saveTitle: "Guardar en la nube",
     saveLabel: "Nombre del proyecto en la nube",
     saveName: "Proyecto local",
     saving: (name) => `Guardando ${name} en la nube…`,
     uploading: (path, done, total) => `Subiendo ${path} (${done} de ${total})…`,
     saved: (name) => `Se guardó ${name} en la nube.`,
-    notSaved: (name) =>
-      `${name} no se pudo guardar completo, así que no se conservó en la nube. El proyecto de este navegador queda como estaba.`,
-
-    localButton: "Abrir el proyecto local",
-    localHint:
-      "Vuelve al proyecto que guarda este navegador. El proyecto en la nube sigue en tu cuenta.",
     openedLocal: "Se abrió el proyecto que guarda este navegador.",
 
     rename: (name) => `Renombrar ${name}`,
@@ -68,7 +45,6 @@ export const cloud: typeof en = {
     linkHint: "Por ahora solo tú puedes abrirlo. Abre el proyecto en esta página.",
     linkCopied: "Se copió el enlace al proyecto.",
     linkSelect: "Selecciona el enlace y cópialo.",
-    thumbnailOf: (name) => `Vista previa de ${name}`,
   },
 
   usage: {
@@ -212,8 +188,5 @@ export const cloud: typeof en = {
     internal:
       "Algo falló al mantener tus cambios al día. Vuelve a cargar la página si el proyecto se ve mal.",
     savedShortcut: "Guardado en la nube. Descarga el proyecto para tener una copia en otro lugar.",
-    templateSubject: (name) => `La plantilla ${name}`,
-    replaceConfirm: (what) =>
-      `${what} reemplaza los archivos de este proyecto en la nube. Descarga el proyecto antes si quieres una copia.`,
   },
 };

@@ -109,7 +109,13 @@ export function openDialog(
   title: string,
   body: (Node | string)[],
   actions: readonly DialogAction[] = [{ label: messages().dialog.close, primary: true }],
-  options: { wide?: boolean; drawer?: boolean; label?: string } = {},
+  options: {
+    wide?: boolean;
+    drawer?: boolean;
+    label?: string;
+    /** Where focus goes when the dialog closes, when its action says (a row it made, say). */
+    returnTo?: () => HTMLElement | undefined;
+  } = {},
 ): HTMLDialogElement {
   const returnFocus = document.activeElement as HTMLElement | null;
   const heading = h("h2", { id: `dialog-${Math.random().toString(36).slice(2)}` }, title);
@@ -148,7 +154,9 @@ export function openDialog(
   if (actions.length > 0) dialog.append(footer);
   dialog.addEventListener("close", () => {
     dialog.remove();
-    returnFocus?.focus();
+    const target = options.returnTo?.() ?? returnFocus;
+    // An element that went (the item of a menu that closed) cannot take focus back.
+    if (target?.isConnected) target.focus();
   });
   document.body.append(dialog);
   dialog.showModal();

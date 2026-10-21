@@ -419,3 +419,89 @@ describe("undo", () => {
     expect(studio.text("notes.md")).toBe("Abc");
   });
 });
+
+describe("moving files", () => {
+  const MODEL = 'language "0.2"\n\ndiagram base: flow {\n}\n';
+  const VIEWS =
+    'language "0.2"\n\nimport "../models/system.meltemi" as sys\n\ndiagram overview: flow {\n  a["A"]\n}\n';
+  const project = (): [string, string][] => [
+    ["project.json", '{ "name": "moves", "language": "0.2" }\n'],
+    ["models/system.meltemi", MODEL],
+    ["diagrams/views.meltemi", VIEWS],
+  ];
+
+  it("moves a file and the imports that name it in one step", () => {
+    const { studio, changes } = setup(project(), "diagrams/views.meltemi");
+    const outcome = studio.moveFiles([["models/system.meltemi", "models/core/system.meltemi"]]);
+    expect(outcome).toEqual({ edited: ["diagrams/views.meltemi"], skipped: [] });
+    expect(studio.host.has("models/core/system.meltemi")).toBe(true);
+    expect(studio.text("diagrams/views.meltemi")).toContain('"../models/core/system.meltemi"');
+    expect(changes.map((c) => [c.kind, c.path])).toEqual([
+      ["rename", "models/core/system.meltemi"],
+      ["text", "diagrams/views.meltemi"],
+    ]);
+    expect(new Set(changes.map((c) => c.step)).size).toBe(1);
+    expect(studio.document()?.diagnostics.map((d) => d.code)).not.toContain("module.not-found");
+  });
+
+  it("follows the open file it moves, and renames through the same path", () => {
+    const { studio } = setup(project(), "diagrams/views.meltemi");
+    expect(studio.renameFile("diagrams/views.meltemi", "diagrams/c4/views.meltemi")).toBe(true);
+    expect(studio.open).toBe("diagrams/c4/views.meltemi");
+    expect(studio.text()).toContain('"../../models/system.meltemi"');
+  });
+
+  it("refuses a move onto a file, or of a file that is not there, and moves nothing", () => {
+    const { studio, changes } = setup(project());
+    expect(studio.moveFiles([["models/system.meltemi", "diagrams/views.meltemi"]])).toBeUndefined();
+    expect(studio.moveFiles([["models/none.meltemi", "models/x.meltemi"]])).toBeUndefined();
+    expect(
+      studio.moveFiles([
+        ["models/system.meltemi", "a.meltemi"],
+        ["diagrams/views.meltemi", "a.meltemi"],
+      ]),
+    ).toBeUndefined();
+    expect(changes).toEqual([]);
+    expect(studio.host.has("models/system.meltemi")).toBe(true);
+  });
+
+  it("undoes and redoes a move with its imports, from any file", () => {
+    const { studio } = setup([...project(), ["notes.md", "n"]], "notes.md");
+    studio.moveFiles([["models/system.meltemi", "models/core/system.meltemi"]]);
+    expect(studio.canUndo()).toBe(true);
+    expect(studio.undo()).toBe(true);
+    expect(studio.host.has("models/system.meltemi")).toBe(true);
+    expect(studio.host.has("models/core/system.meltemi")).toBe(false);
+    expect(studio.text("diagrams/views.meltemi")).toBe(VIEWS);
+    expect(studio.redo()).toBe(true);
+    expect(studio.host.has("models/core/system.meltemi")).toBe(true);
+    expect(studio.text("diagrams/views.meltemi")).toContain('"../models/core/system.meltemi"');
+  });
+
+  it("undoes the moved file's own edits with it, where the file is now", () => {
+    const { studio } = setup(project(), "diagrams/views.meltemi");
+    studio.moveFiles([["diagrams/views.meltemi", "diagrams/c4/views.meltemi"]]);
+    studio.setText("diagrams/c4/views.meltemi", `${studio.text()}// note\n`);
+    expect(studio.undo()).toBe(true);
+    expect(studio.text("diagrams/c4/views.meltemi")).not.toContain("// note");
+    expect(studio.undo()).toBe(true);
+    expect(studio.open).toBe("diagrams/views.meltemi");
+    expect(studio.text("diagrams/views.meltemi")).toBe(VIEWS);
+  });
+
+  it("drops a move that can no longer be made back", () => {
+    const { studio } = setup(project(), "diagrams/views.meltemi");
+    studio.moveFiles([["models/system.meltemi", "models/core/system.meltemi"]]);
+    studio.addFiles([["models/system.meltemi", MODEL]], "diagrams/views.meltemi");
+    // The old path is taken: the move stays, and so do the imports that follow it.
+    studio.undo();
+    expect(studio.host.has("models/core/system.meltemi")).toBe(true);
+  });
+
+  it("is refused in view mode", () => {
+    const { studio } = setup(project());
+    studio.setReadOnly(true);
+    expect(studio.moveFiles([["models/system.meltemi", "m.meltemi"]])).toBeUndefined();
+    expect(studio.renameFile("models/system.meltemi", "m.meltemi")).toBe(false);
+  });
+});

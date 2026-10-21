@@ -1,10 +1,13 @@
 ## ADDED Requirements
 
 ### Requirement: Moving files rewrites imports
-`moveFileEdits(sessions, from, to)` of the editor package SHALL return, for every file of the
-project whose imports resolve to `from`, the text edits that rewrite each such import's path to
-the relative path from that file to `to`, and, for the moved file, the edits that rewrite each of
-its own imports relative to `to`; paths SHALL be written as the language takes them (`./` or `../`,
+`moveFileEdits(sessions, moves)` of the editor package SHALL return, for a list of moves `{ from,
+to }` made together, the text edits of every file of the project whose imports resolve to a file
+that moves, rewriting each such import's path to the relative path from where the importing file
+is after the moves to where the imported file is, and, for each file that moves, the edits that
+rewrite its own imports relative to where it goes; files that move together and import each other
+keep their imports when the relative path does not change. The edits SHALL be keyed by the path
+each file has after the moves; paths SHALL be written as the language takes them (`./` or `../`,
 `/` separators, `.meltemi`, the shortest form). The edits SHALL change the path strings only,
 keeping comments and formatting. A file that does not parse SHALL be left as it is and named among
 the skipped. Hosts SHALL apply the move and the edits as one undoable step.

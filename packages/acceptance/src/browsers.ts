@@ -445,16 +445,37 @@ async function playgroundOn(page: Page, expected: Expected, file: string): Promi
       timeout: 60_000,
     },
   );
-  await page.getByRole("button", { name: "Templates" }).click();
-  await page.getByRole("menuitem", { name: /^purchase/ }).click();
+  // New project, from the purchase template's card; work that is not a template is asked about.
+  await page.locator(".switcher-button").click();
+  await page.locator(".switcher-panel").getByRole("button", { name: "New project…" }).click();
+  const cards = page.locator("dialog.new-project");
+  await cards.locator('[data-template="purchase"]').click();
+  await cards.getByRole("button", { name: "Create the project" }).click();
   const confirm = page.locator("dialog[open]").getByRole("button", { name: "Open the template" });
-  if (await confirm.isVisible().catch(() => false)) await confirm.click();
   await page.waitForFunction(
-    () => document.querySelector(".status-text")?.textContent?.includes("the purchase template"),
+    () =>
+      document.querySelector(".status-text")?.textContent === "Created Purchase example." ||
+      [...document.querySelectorAll("dialog[open] button")].some(
+        (b) => b.textContent === "Open the template",
+      ),
     undefined,
     { timeout: 30_000 },
   );
-  await page.locator("#file-select").selectOption(file);
+  if ((await confirm.count()) > 0) await confirm.click();
+  await page.waitForFunction(
+    () => document.querySelector(".status-text")?.textContent === "Created Purchase example.",
+    undefined,
+    { timeout: 30_000 },
+  );
+  // The file, from the explorer: its folders open first.
+  const parts = file.split("/");
+  for (let i = 1; i < parts.length; i++) {
+    const folder = page.locator(`.tree li[data-key="d:${parts.slice(0, i).join("/")}"]`);
+    if ((await folder.getAttribute("aria-expanded")) === "false") {
+      await folder.locator(":scope > .tree-row").click();
+    }
+  }
+  await page.locator(`.tree li[data-key="f:${file}"] > .tree-row .tree-name`).click();
   // The analysis of the code on screen.
   await page.waitForFunction(() => {
     const playground = (

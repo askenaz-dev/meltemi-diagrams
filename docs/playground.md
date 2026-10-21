@@ -39,22 +39,22 @@ builds the site, serves it on `127.0.0.1` and drives it in the installed Edge or
 
 ## What it does
 
-| Area     | In the playground                                                                                                                                                                                                                                                                     |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Projects | The `init` templates (flow, c4, sequence, free, purchase) open with their `project.json`; files are listed, added, renamed and deleted; local `.meltemi` files, images, a `project.json` or a project `.zip` open with **Open**. The project compiler is the CLI's and the editor's.  |
-| Code     | Highlighting, line numbers, diagnostics underlined and listed with their lines and quick fixes, completion, hover, formatting, rename and go to definition across files.                                                                                                              |
-| Canvas   | The canvas of VS Code: palette and relation tool, selection, moves, routes, labels, the style strip and inspector, the theme panel, minimap, grid and snapping, layout actions, sequence and C4 tools, effects and stories with their timeline. Every gesture is an edit of the text. |
-| Undo     | One history per file for typing, canvas edits, fixes, formatting and renames; Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y anywhere in the page. In a cloud project it covers your own edits only.                                                                                                 |
-| Import   | Mermaid, PlantUML and Markdown, pasted or from a file, into a new `.meltemi` file, with the importer's findings and its report.                                                                                                                                                       |
-| Export   | SVG, animated SVG, PNG, PDF, the HTML player, GIF, WebM and MP4, and the file's export profiles; the source file, the project `.zip`, the model JSON and the HTML catalog.                                                                                                            |
-| Share    | A link with the project in the address; for a cloud project, its own short link and who may open it ([sharing a project](#sharing-a-project)).                                                                                                                                        |
-| Keep     | The project stays in the browser between visits.                                                                                                                                                                                                                                      |
-| Account  | Optional, only when the cloud service serves the page: sign in with GitHub or Google through the Meltemi identity service, and make API tokens ([the account](#the-account)).                                                                                                         |
-| Cloud    | Signed in: projects in your account that open on every device, merge what you edit offline, keep versions and show a preview ([projects in the cloud](#projects-in-the-cloud)).                                                                                                       |
-| Together | A cloud project open in several places shows who is here, where their carets and selections are, and what they have selected on the canvas; everyone types at once ([working together](#working-together)).                                                                           |
-| View     | The link of a shared project opens it to look at, play and export, signed in or not, and to copy ([viewing a shared project](#viewing-a-shared-project)).                                                                                                                             |
-| Publish  | A cloud project's catalog as a web page at an address of its own ([publishing a project](#publishing-a-project)).                                                                                                                                                                     |
-| Language | English and Spanish: the page follows the browser's language until the globe menu in the header chooses one.                                                                                                                                                                          |
+| Area     | In the playground                                                                                                                                                                                                                                                                                                                                  |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Projects | The explorer lists the project's folders and diagrams and makes, renames, moves and deletes them, with the imports that follow a move ([the explorer](#the-explorer)); **New project** starts from the `init` templates, shown as cards; a project `.zip` is imported and exported as a whole. The project compiler is the CLI's and the editor's. |
+| Code     | Highlighting, line numbers, diagnostics underlined and listed with their lines and quick fixes, completion, hover, formatting, rename and go to definition across files.                                                                                                                                                                           |
+| Canvas   | The canvas of VS Code: palette and relation tool, selection, moves, routes, labels, the style strip and inspector, the theme panel, minimap, grid and snapping, layout actions, sequence and C4 tools, effects and stories with their timeline. Every gesture is an edit of the text.                                                              |
+| Undo     | One history per file for typing, canvas edits, fixes, formatting and renames, and moves of files with the imports that follow them; Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y anywhere in the page. In a cloud project it covers your own edits only.                                                                                                        |
+| Import   | Mermaid, PlantUML and Markdown, pasted or from a file, into a new `.meltemi` file, with the importer's findings and its report.                                                                                                                                                                                                                    |
+| Export   | SVG, animated SVG, PNG, PDF, the HTML player, GIF, WebM and MP4, and the file's export profiles; the source file, the project `.zip`, the model JSON and the HTML catalog.                                                                                                                                                                         |
+| Share    | A link with the project in the address; for a cloud project, its own short link and who may open it ([sharing a project](#sharing-a-project)).                                                                                                                                                                                                     |
+| Keep     | The project stays in the browser between visits.                                                                                                                                                                                                                                                                                                   |
+| Account  | Optional, only when the cloud service serves the page: sign in with GitHub or Google through the Meltemi identity service, and make API tokens ([the account](#the-account)).                                                                                                                                                                      |
+| Cloud    | Signed in: projects in your account that open on every device, merge what you edit offline, keep versions and show a preview ([projects in the cloud](#projects-in-the-cloud)).                                                                                                                                                                    |
+| Together | A cloud project open in several places shows who is here, where their carets and selections are, and what they have selected on the canvas; everyone types at once ([working together](#working-together)).                                                                                                                                        |
+| View     | The link of a shared project opens it to look at, play and export, signed in or not, and to copy ([viewing a shared project](#viewing-a-shared-project)).                                                                                                                                                                                          |
+| Publish  | A cloud project's catalog as a web page at an address of its own ([publishing a project](#publishing-a-project)).                                                                                                                                                                                                                                  |
+| Language | English and Spanish: the page follows the browser's language until the globe menu in the header chooses one.                                                                                                                                                                                                                                       |
 
 ### Keys of the code
 
@@ -69,7 +69,111 @@ builds the site, serves it on `127.0.0.1` and drives it in the installed Edge or
 | Ctrl+Z, Ctrl+Shift+Z, Ctrl+Y | Undo and redo, in the code and on the canvas                             |
 | Ctrl+S                       | Keep the project in the browser now; in a cloud project, send what waits |
 
-On Apple systems, Cmd takes the place of Ctrl. The canvas keeps its own keys (`docs/editor.md`).
+On Apple systems, Cmd takes the place of Ctrl. The canvas keeps its own keys (`docs/editor.md`),
+and the explorer its own ([the explorer](#the-explorer)).
+
+## The explorer
+
+The column on the left is the project: its name and where it lives at the top, then its folders and
+diagrams, as an editor's explorer lists them.
+
+- **The tree.** Folders come first, then files, each sorted by name. A `.meltemi` file is listed by
+  its name without the extension, with the picture of its first diagram's kind (flow, free
+  composition, sequence, C4 view), or of a model, a story or a theme. A file that declares more than
+  one diagram or story opens to list them; a click on one opens the file and shows that diagram, or
+  plays that story, on the canvas. The open file is in bold, and the diagram the canvas shows is
+  selected. Images are listed with a picture icon and show in the code pane. A file with errors or
+  warnings shows how many; a closed folder shows the sum of what it holds.
+- **Making and changing files.** **New diagram…**, in the bar above the tree or in a folder's menu,
+  asks a name and a kind (flow, free composition or sequence) and writes `<folder>/<name>.meltemi`
+  with an empty diagram of that kind, titled with the name. **New folder…** makes a folder that stays
+  once a diagram is in it. A row's menu (a right click, Shift+F10, or its **…** button) renames,
+  moves, duplicates, downloads and deletes; a folder downloads as a `.zip`. Renaming or moving a
+  `.meltemi` file rewrites the imports that name it, and its own, so that they point at the same
+  files; the move and those edits are one step, which Ctrl+Z undoes from any file. A file that does
+  not parse keeps its imports, and the status line names it. Deleting asks first and cannot be
+  undone.
+- **Drag and drop.** Rows drag into a folder, or onto the empty space below them for the project's
+  root, one at a time or as a selection made with Ctrl or Shift. A drop that would land on a file of
+  the same name moves nothing and says which. Files dragged from your computer land in the folder
+  they are dropped on, and a `.zip` opens **Import project**.
+- **Show all files.** The tree lists folders, diagrams and images. **Show all files**, at its foot,
+  also lists `project.json`, `assets.lock.json`, fonts and any other file, and adds **New file…** to
+  the menus; the page remembers the choice. A hidden file with a problem says so at the foot, with
+  **Show**. **Project settings**, in the Projects panel, opens `project.json` whatever the toggle
+  says, and makes it as `init` writes it when the project has none.
+- **Its place.** The edge between the explorer and the code resizes it, from 180 to 480 pixels (the
+  arrows on the focused edge, a double click to reset it), and Ctrl+B hides it to a rail and shows it
+  again; the page remembers both. A first visit on a screen narrower than 1100 pixels starts with the
+  rail. On a narrow screen the explorer is the first of three tabs, **Files**, **Code** and
+  **Canvas**, and opening a file shows the code.
+
+| Key (in the tree)   | Does                                                            |
+| ------------------- | --------------------------------------------------------------- |
+| Up, Down, Home, End | Move between rows; with Shift, extend the selection             |
+| Right, Left         | Open a folder or go into it; close it or go to its parent       |
+| Enter, Space        | Open the file, the diagram or the story; open or close a folder |
+| A letter            | Go to the next row whose name starts with it                    |
+| F2                  | Rename in the row: Enter keeps the name, Escape the old one     |
+| Ctrl+D              | Duplicate the file beside it                                    |
+| Delete              | Delete, after a question                                        |
+| Shift+F10           | The row's menu                                                  |
+| Ctrl+B              | Hide or show the explorer, from anywhere in the page            |
+| Ctrl+Shift+E        | Go to the explorer, from anywhere in the page                   |
+
+### The project switcher
+
+The top of the explorer names the open project and where it lives: **This browser**, for a cloud
+project its connection ("Saved to the cloud", "Saving…", "Offline"), or **View only**. The pencil
+renames it: the `name` of `project.json` for the project of this browser, the project itself in the
+cloud. A click opens the **Projects** panel:
+
+- **New project…**, **Import project…**, **Export project (.zip)**, **Save this project to the
+  cloud** (signed in, for the project of this browser), **Project settings** and **Show all files**;
+- **This browser**: the project the browser keeps, which opens on a click (leaving a cloud project),
+  and **Previous project** with **Restore** when a template, an archive or a link replaced work;
+- **In the cloud**, signed in, your cloud projects
+  ([cloud projects in the panel](#cloud-projects-in-the-panel)); signed out, a line and the
+  **Sign in** link.
+
+Escape or a click outside closes it.
+
+### New project
+
+**New project…** asks a name and shows a card per template: a picture of its first diagram, its
+title, what it is for and what it holds, such as "1 model · 2 views". The arrows move between the
+cards and Enter creates the project. The name follows the card chosen until you type one. Signed
+out, the project replaces the one of this browser, after a question when that one holds work that is
+not a template; the work is kept as the previous project. Signed in, the project is made in your
+account and opens; **In this browser** makes it in the browser instead.
+
+| Card                          | What it holds                                                                                                               |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Flow diagram (`flow`)         | A flow diagram to start from                                                                                                |
+| C4 model (`c4`)               | An architecture model with a context view and a container view                                                              |
+| Sequence diagram (`sequence`) | A sequence diagram with a scenario for each outcome                                                                         |
+| Slide (`free`)                | A slide composed freely: text, boxes, an icon and a group                                                                   |
+| Purchase example (`purchase`) | The reference example: a model, its C4 views, a payment sequence, an executive slide, an animated story and export profiles |
+
+The pictures are drawn once, when the site is built, in the template's theme and in its dark
+counterpart, and the page shows the one of its own theme.
+
+### Importing and exporting a project
+
+**Export project (.zip)** downloads the project as **Download → Project (.zip)** does
+([continuing locally](#continuing-locally)). **Import project…**, **Open** with a `.zip`, or a `.zip`
+dropped on the explorer reads the archive (a single top folder that holds everything is left out of
+the paths) and asks where its project goes:
+
+- **A new project in your account**, signed in: its texts are created, its images and fonts
+  uploaded with the progress shown, and it opens; the limits of a cloud project are checked first,
+  and a project that cannot be completed is deleted again.
+- **This browser**: it becomes the project of this browser, and the work it replaces is kept as the
+  previous project.
+- **Replace the files of** the open cloud project: every file of it becomes the archive's.
+
+Nothing is replaced without that choice. An archive with no file of a project says so and changes
+nothing.
 
 ## Exports in the browser
 
@@ -102,9 +206,8 @@ The page speaks English and Spanish. It follows the browser's language until the
 end of the header chooses **Automatic**, **English** or **Español**; the choice is kept with the
 page's settings, and choosing reloads the page with the project and the open file kept. When the
 browser cannot keep data, the page says so and does not reload; images too large to keep are listed
-first. The words the canvas writes into files, such as the text of a new note ("Nota"), and the
-text of a new file follow the page's language, as if you had typed them; exports follow the
-dialog's **Language** instead.
+first. The words the canvas writes into files, such as the text of a new note ("Nota"), follow
+the page's language, as if you had typed them; exports follow the dialog's **Language** instead.
 
 ## Sharing and keeping work
 
@@ -112,7 +215,8 @@ dialog's **Language** instead.
 an address after `#` never reaches a server. Images do not travel in links; download the project
 to share them. A link is checked when it opens: at most 4 MiB once decompressed, the project's file
 limit, and paths inside the project. Opening a link, an archive or a template keeps the work it
-replaces as the previous project, which **Templates → Restore the previous project** brings back.
+replaces as the previous project, which **Restore**, under **Previous project** in the Projects
+panel, brings back.
 In a cloud project, and in one being viewed by its link, **Share** opens
 that project's own dialog instead ([sharing a project](#sharing-a-project)).
 
@@ -130,6 +234,7 @@ path. Extract it, and the command line and the VS Code extension work on it as o
 meltemi-diagrams validate my-project
 ```
 
+**Export project (.zip)** in the Projects panel downloads the same archive, and
 **Download → Continue locally** lists the commands.
 
 ## The account
@@ -164,8 +269,8 @@ gone when the dialog closes; the service keeps only a hash of it. An account hol
 token authenticates the service's API as `Authorization: Bearer`, which is how the command line's
 cloud commands use it ([the API tokens](cloud.md#api-tokens), [the command line](cli.md#the-cloud-commands)).
 
-Signing in adds **Projects** to the header ([projects in the cloud](#projects-in-the-cloud)) and
-changes nothing else: the project in your browser stays where it is, nothing is uploaded until you
+Signing in adds your cloud projects to the explorer's Projects panel
+([projects in the cloud](#projects-in-the-cloud)) and changes nothing else: the project in your browser stays where it is, nothing is uploaded until you
 make a cloud project or save the one you have open to the cloud, and signing out takes nothing
 away; your cloud projects wait in your account.
 
@@ -176,13 +281,14 @@ device, survive a reinstalled browser, merge what you edit offline and keep vers
 [cloud service](cloud.md) holds them. None of it appears signed out, and a static server has none of
 it. Nothing is uploaded until you make a cloud project or save the one you have open to the cloud.
 
-### The Projects drawer
+### Cloud projects in the panel
 
-The header's **Projects** button opens a drawer with your projects: name, a small preview of the
-diagram, when it last changed, and how many of the 100 an account may hold. The project that is open
-is marked. A form makes a new project from one of the templates, with a name of 1 to 100 characters.
-Each project has buttons to open it, rename it, duplicate it, copy its link (`<origin>/p/<id>`) and
-delete it, which asks first: the project goes with its versions, and it cannot be undone. When the
+The Projects panel of the explorer's switcher lists your cloud projects: name, a small preview of the
+diagram, when it last changed, and how many of the 100 an account may hold; above eight projects a
+field filters them. The project that is open is marked. **New project** makes a project from one of
+the templates' cards, with a name of 1 to 100 characters, and **Import project** one from an
+archive. The pencil of the switcher renames the project that is open. Each project has buttons to
+open it, rename it, duplicate it, copy its link (`<origin>/p/<id>`) and delete it, which asks first: the project goes with its versions, and it cannot be undone. When the
 account is at its limit of projects, the status line says so and the list does not change. A project
 somebody else owns and shared with you by name is listed too, marked "Shared with you: view only" or
 "Shared with you: you can edit", and has only the buttons to open it, duplicate it and copy its link:
@@ -198,12 +304,12 @@ in all, and every file name must pass [the path rule](cloud.md#the-path-rule), w
 letters, digits, spaces and `_ . ( ) + @ -`, and refuses `..`, a name that starts with a dot, a
 backslash and a colon. A project that cannot be completed is deleted again, so trying again leaves
 no copy behind. The project in the browser is not changed: it rests while the cloud project is open,
-and **Open the local project** in the drawer brings it back. The name starts as the `name` of
+and a click on the project of this browser, in the panel, brings it back. The name starts as the `name` of
 `project.json`.
 
 ### Opening a project and its address
 
-A project opens from the drawer or from an address. The link you copy, `<origin>/p/<id>`, redirects
+A project opens from the panel or from an address. The link you copy, `<origin>/p/<id>`, redirects
 to `/?project=<id>`: on load the page reads `project` (and `invite`) from the address, asks the
 service what you are to that project, opens it in the mode that role gives and keeps the address, so
 reloading reopens it.
@@ -215,8 +321,8 @@ reloading reopens it.
 | Not signed in, on a `view` or `edit` link            | In view mode, on a snapshot read when the page opened                       |
 | Not admitted (a private project that is not yours)   | The status line says the project was not found; the browser's project opens |
 
-Opening another project from the drawer changes `project` in the address, and **Open the local
-project** removes it. When the project is not found, or the link does not admit you, the status line
+Opening another project from the panel changes `project` in the address, and opening the project
+of this browser removes it. When the project is not found, or the link does not admit you, the status line
 says "The project was not found."; signed out, it adds that if the project was shared with you, you
 should sign in and open the link again, and the **Sign in** link brings you back to the same
 address. The page never says whether a project exists but is private: a private project that is not
@@ -232,7 +338,7 @@ made you a member: the link is then spent and the project yours, so it opens as 
 accepted. Signed out, the page shows what the link admits, if anything, says "Sign in to accept the
 invitation to this project." and keeps `invite` in the address: the **Sign in** link returns to the
 same address, and the invitation is accepted then. A share link (`#p=`) opens as the project of the
-browser: a cloud project that was open is left first, and the drawer then offers to save what the
+browser: a cloud project that was open is left first, and the panel then offers to save what the
 link brought.
 
 ### Working in a cloud project
@@ -353,7 +459,7 @@ or a restore; six a minute is the most. [Versions](cloud.md#versions) has the po
 
 ### Thumbnails
 
-The preview in the drawer is made by the page, which already draws diagrams. Five seconds after the
+The preview in the panel is made by the page, which already draws diagrams. Five seconds after the
 analysis of the open `.meltemi` file settles, and at most once a minute for each project, the page
 renders the diagram on the canvas as a static SVG (the picture the SVG export makes, with the file's
 theme and embedded fonts) and sends it when it changed since the last one it sent. It sends nothing
@@ -417,8 +523,9 @@ signed in is a viewer on an `edit` link too, because editing needs an account. T
 - **The code** is read-only. You can select and copy, and use hover and the problems list; typing,
   Enter, Tab, accepting a completion, a quick fix, rename (F2) and format (Shift+Alt+F) change
   nothing.
-- **The files** cannot be opened from your computer, imported, added, renamed or deleted, and
-  **Templates** is hidden. The file list, **Export** (every format) and **Download** work as always.
+- **The files** cannot be opened from your computer, imported, made, renamed, moved or deleted:
+  the explorer lists them with none of its actions, and the panel offers neither **New project**
+  nor **Import project**. The tree, **Export** (every format) and **Download** work as always.
 - **The canvas** says "view only". The palette and the other controls that write the diagram are
   hidden; a drag, a connection, a deletion or a keyboard edit changes nothing, and the status line
   says so; the inspector shows the values and cannot change them, and the theme panel does not open.
@@ -446,7 +553,7 @@ What a viewer sees is not the same for everyone:
 Two buttons keep a copy. **Make a copy** puts the files you are looking at in this browser as the
 browser's own project and leaves view mode, so you can edit it, and it is kept like any other
 project of the browser; if the browser holds work that is not a template, the page asks first, and
-what it replaces stays as the previous project (**Templates → Restore the previous project**).
+what it replaces stays as the previous project (**Restore** in the Projects panel).
 **Save a copy to my projects**, shown when you are signed in, asks the service to copy the project
 into your account and opens the copy as its owner: it counts against your 100 projects and 200 MiB
 like any project, and the versions are not copied. Neither copy changes the shared project.
@@ -617,6 +724,13 @@ page and requests to the provider; the CLI and the editor have it (`docs/assist.
 
 - The canvas is `@meltemi/diagrams-canvas`, shared with the extension's webview; the page plays
   the extension's role (applies plans, keeps revisions, answers the canvas's requests).
+- The explorer is `src/explorer/`: `tree-model.ts` (the tree, the rows the keys walk and the rules
+  of names, moves and copies, with no DOM), `tree.ts` (the WAI-ARIA tree, redrawn by key so that
+  focus, scroll and an opening folder survive the project's changes), `explorer.ts` (the pane and
+  its actions), `switcher.ts` (the header and the Projects panel), `new-project.ts`, `import.ts`
+  and `dialogs.ts`. A move goes through `Studio.moveFiles`, which rewrites the imports with
+  `moveFileEdits` of `@meltemi/diagrams-editor` and records the move in the history's own stack;
+  the pictures of the template cards are drawn when the site is built (`thumbnails.mjs`).
 - Projects live in memory (`MemoryHost`, a `ProjectHost` under `/playground`) and compile with
   `ProjectSessions` of `@meltemi/diagrams-editor`, with the page's font and Tabler readers and the
   bundled ELK worker.
@@ -629,13 +743,13 @@ page and requests to the provider; the CLI and the editor have it (`docs/assist.
   `tokens-model.ts` and `tokens.ts`, which need no DOM). The page works the same whatever the
   service answers; it never throws on it.
 - Cloud projects are in `src/cloud/` too. `client.ts` makes the calls to the service and none of
-  them throws. `projects.ts` draws the drawer over `projects-model.ts`, and `versions.ts` the
+  them throws. `projects-model.ts` is the cloud list of the explorer's panel, and `versions.ts` the
   versions panel over `versions-model.ts`; neither model needs a DOM. `project.ts` is one open
   project: its Yjs document (`doc.ts`), the binding that ties the document to the `Studio`
   (`binding.ts`), the socket to the room (`room.ts`), its copy in IndexedDB (`persistence.ts`) and
   the connection's state (`status.ts`). `thumbnails.ts` and `thumbnail-render.ts` make and send the
   preview, `address.ts` reads and writes `?project=`, and `controller.ts` holds it all together for
-  the drawer and the shell. The `Studio` gains a `change` listener, `replaceText` for changes that
+  the panel and the shell. The `Studio` gains a `change` listener, `replaceText` for changes that
   arrive from elsewhere and `canUndo` and `canRedo`, and delegates undo to the binding while a cloud
   project is open. The one runtime dependency cloud projects add is `yjs` (MIT, listed in
   `NOTICES.md`); the page keeps the browser, the socket, IndexedDB and the clock behind small

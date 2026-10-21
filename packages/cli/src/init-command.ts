@@ -11,7 +11,12 @@ import {
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
-import { TEMPLATES, templateManifest, type TemplateName } from "@meltemi/diagrams-project";
+import {
+  TEMPLATES,
+  TEMPLATE_CONTENT_KINDS,
+  templateManifest,
+  type TemplateName,
+} from "@meltemi/diagrams-project";
 import { argumentsError, messages } from "./messages/index.js";
 
 export { TEMPLATES, type TemplateName };
@@ -166,7 +171,13 @@ export function initCommand(args: readonly string[], context: InitContext): numb
   }
   if (options.list) {
     const width = Math.max(...names.map((n) => n.length));
-    for (const name of names) context.stdout(`${name.padEnd(width)}  ${t.templates[name]}\n`);
+    for (const name of names) {
+      const { title, description } = t.templates[name];
+      const held = TEMPLATE_CONTENT_KINDS.map(
+        (kind) => [kind, TEMPLATES[name].contents[kind]] as const,
+      ).filter(([, n]) => n > 0);
+      context.stdout(`${name.padEnd(width)}  ${title} — ${description} (${t.contents(held)})\n`);
+    }
     return EXIT_OK;
   }
   if (paths.length > 1) return fail(t.oneFolder);

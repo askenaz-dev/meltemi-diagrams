@@ -79,8 +79,12 @@ if one exists, nothing is written.
 | `free`     | `diagrams/slide.meltemi`: a 16:9 slide of text, boxes, an icon and a group                                                                                               |
 | `purchase` | The reference example: model, context and container views, payment sequence with scenarios, executive slide, animated story, PDF, PNG and MP4 profiles, catalog settings |
 
-`--list` prints them. `--ci github` or `--ci gitlab` also writes a CI workflow (below); in an
-existing project, `init --ci <service>` writes only the workflow.
+`--list` prints each with its title, what it is for and what it holds, as the playground's New
+project shows them, such as `C4 model — An architecture model with a context view and a container
+view (1 model, 2 views)`.
+
+`--ci github` or `--ci gitlab` also writes a CI workflow (below); in an existing project,
+`init --ci <service>` writes only the workflow.
 
 ## Previewing: `preview`
 

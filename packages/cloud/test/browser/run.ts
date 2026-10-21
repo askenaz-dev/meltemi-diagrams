@@ -13,9 +13,11 @@
  * - what Node alone asks of the real D1: a signed deletion event, the limit of failed exchanges;
  * - the cloud projects, through the real Worker, D1, R2 and Durable Object room, each scenario a
  *   person of its own and a browser that edits and a Worker that is asked what landed in its rooms:
- *   the drawer, saving the anonymous project, opening by address, the quota (`scenarios-projects`);
- *   a canvas edit in the room, two devices converging, the caret, the undo rules, a file renamed
- *   while another device types in it, a push through the API (`scenarios-editing`); the connection
+ *   the switcher's panel, renaming from the explorer's header, saving the anonymous project,
+ *   opening by address, the quota (`scenarios-projects`); a project archive exported from the panel
+ *   and imported into the account, refused, or over the open project (`scenarios-import`); a canvas edit in the room, two devices
+ *   converging, the caret, the undo rules, a file renamed from the explorer while another device
+ *   types in it, a push through the API (`scenarios-editing`); the connection
  *   cut and kept out of reach, offline merge, IndexedDB, name collisions, a deleted project
  *   (`scenarios-offline`); versions and thumbnails (`scenarios-versions`); images, fonts and an SVG
  *   with a script (`scenarios-binaries`); the door of the socket route and the Worker's refusals as
@@ -23,8 +25,8 @@
  *   handle, a page stored in R2 and read back at `/_published/` with its exact headers, the limits,
  *   the rate and the administrators' takedown: `scenarios-publishing`); a project looked at through
  *   its link by nobody signed in, by a signed-in viewer and by an editor, the copies, the `private`
- *   link that says only "not found", and an access that changes while a page is open
- *   (`scenarios-viewing`); the share dialog as the owner and as somebody who may only look,
+ *   link that says only "not found", an access that changes while a page is open, and a viewer's
+ *   explorer that offers nothing that changes the files (`scenarios-viewing`); the share dialog as the owner and as somebody who may only look,
  *   invitations made in the page and accepted in other browsers or at sign-in, the limit of members
  *   and what each kind of person is observed to be able to do at each link level
  *   (`scenarios-sharing`); publishing from the page, its address read back, unpublishing and a
@@ -32,7 +34,8 @@
  *   through the room's own counters (`scenarios-limits`); live collaboration, two or three browsers
  *   in one room: who is here and where (the header, the carets and the canvas outlines), a name that
  *   looks like markup, typing in the same line with each person's undo, a drag and a keystroke, a
- *   refused change, a socket the Worker cuts (and one the browser is closing while the caret moves),
+ *   refused change, a diagram another person adds appearing in the explorer while its focus and
+ *   open folders stay, a socket the Worker cuts (and one the browser is closing while the caret moves),
  *   a page or a browser closed, a person silent for thirty seconds (a client of the room and a page
  *   that stops reaching it), a full room, viewers, what presence is never (saved, exported) and what it
  *   costs, and the room's rules for awareness from Node (`scenarios-collaboration`,
@@ -73,6 +76,7 @@ import {
   assertBase32IsTheRfcs,
   assertError,
   bearer,
+  expectOpen,
   expectedCheck,
   listen,
   makePerson,
@@ -97,6 +101,7 @@ import { cliScenarios } from "./scenarios-cli.js";
 import { collaborationRoomScenarios } from "./scenarios-collaboration-room.js";
 import { collaborationScenarios } from "./scenarios-collaboration.js";
 import { editingScenarios } from "./scenarios-editing.js";
+import { importScenarios } from "./scenarios-import.js";
 import { limitScenarios } from "./scenarios-limits.js";
 import { offlineScenarios } from "./scenarios-offline.js";
 import { projectScenarios } from "./scenarios-projects.js";
@@ -165,7 +170,7 @@ const scenarios: Scenario[] = [
       assert.equal(await topbar.locator(".account-button").count(), 0, "no account menu");
 
       // The playground as it was: the flow template, its code, no problem, every button named.
-      assert.equal(await page.locator("#file-select").inputValue(), "diagrams/overview.meltemi");
+      await expectOpen(page, "diagrams/overview.meltemi");
       assert.match(await page.locator(".code-input").inputValue(), /diagram overview: flow/);
       assert.equal(await page.locator("#problems-title").textContent(), "No problems");
       assert.ok((await page.locator('#app .content g[data-role="element"]').count()) >= 3);
@@ -216,7 +221,7 @@ const scenarios: Scenario[] = [
       const session = await t.open(`/p/${PROJECT}?invite=t`);
       const landed = `${origin}/?project=${PROJECT}&invite=t`;
       assert.equal(page.url(), landed);
-      assert.equal(await page.locator("#file-select").inputValue(), "diagrams/overview.meltemi");
+      await expectOpen(page, "diagrams/overview.meltemi");
       assert.ok((await page.locator('#app .content g[data-role="element"]').count()) >= 3);
       // The link carries an invitation and nobody is signed in: the page says to sign in to accept
       // it, keeps the address, and opens the anonymous project as it was.
@@ -854,6 +859,7 @@ const scenarios: Scenario[] = [
 const stopsIdentity = scenarios.pop();
 scenarios.push(
   ...projectScenarios,
+  ...importScenarios,
   ...editingScenarios,
   ...offlineScenarios,
   ...versionScenarios,

@@ -1,11 +1,11 @@
 /**
  * What the scenarios of the cloud projects share: making projects and reading rooms through the
- * Worker, and driving the playground as a person does (typing, dragging, the drawer, waiting for
- * the connection). Selectors and words come from the page's own code.
+ * Worker, and driving the playground as a person does (typing, dragging, the switcher's panel,
+ * waiting for the connection). Selectors and words come from the page's own code.
  */
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import type { BrowserContext, Page } from "playwright-core";
+import type { BrowserContext, Locator, Page } from "playwright-core";
 import type { Person } from "./scenario.js";
 import { analysed, until } from "./support.js";
 
@@ -483,28 +483,54 @@ export async function connectionLeaves(page: Page, ...states: string[]): Promise
 }
 
 // ---------------------------------------------------------------------------------------------
-// The drawer and the dialogs
+// The switcher and the dialogs
 
-/** Opens the projects drawer and waits until it has read the list. */
-export async function openDrawer(page: Page): Promise<void> {
-  await page.locator(".projects-button").click();
-  await page.locator("dialog.drawer[open]").waitFor();
+/** The panel the explorer's switcher opens, while it is open (not the one fading out). */
+export const switcherPanel = (page: Page): Locator => page.locator(".switcher-panel:not(.leaving)");
+
+/** Opens the switcher's panel and waits until it has read the person's cloud projects. */
+export async function openSwitcher(page: Page): Promise<Locator> {
+  const panel = switcherPanel(page);
+  if ((await panel.count()) === 0) await page.locator(".switcher-button").click();
+  await panel.waitFor();
   await until(
     page,
-    "the drawer's list",
-    () => (document.querySelector(".projects-count")?.textContent ?? "") !== "",
+    "the panel's list",
+    () =>
+      (document.querySelector(".switcher-panel:not(.leaving) .panel-count")?.textContent ?? "") !==
+      "",
   );
+  return panel;
 }
 
-/** The names the drawer lists, in order. */
-export const drawerNames = (page: Page): Promise<string[]> =>
-  page.locator("dialog.drawer .project-name").allInnerTexts();
+/** Closes the switcher's panel with Escape, as a person does, and waits until it is gone. */
+export async function closeSwitcher(page: Page): Promise<void> {
+  const panel = switcherPanel(page);
+  if ((await panel.count()) > 0) {
+    // The panel hears its own keys: Escape reaches it with the focus inside.
+    if (!(await panel.evaluate((element) => element.contains(document.activeElement)))) {
+      await panel.locator(".switcher-close").focus();
+    }
+    await page.keyboard.press("Escape");
+  }
+  await until(page, "the panel to close", () => document.querySelector(".switcher-panel") === null);
+}
 
-/** The row of a project in the drawer. */
-export const drawerRow = (page: Page, name: string) =>
-  page
-    .locator("dialog.drawer .project-row")
-    .filter({ has: page.locator(".project-name", { hasText: new RegExp(`^${escape(name)}$`) }) });
+/** The names of the cloud projects the panel lists, in order. */
+export const switcherNames = (page: Page): Promise<string[]> =>
+  switcherPanel(page).locator(".project-row .panel-project-name").allInnerTexts();
+
+/** The row of a cloud project in the panel. */
+export const switcherRow = (page: Page, name: string): Locator =>
+  switcherPanel(page)
+    .locator(".project-row")
+    .filter({
+      has: page.locator(".panel-project-name", { hasText: new RegExp(`^${escape(name)}$`) }),
+    });
+
+/** The project of this browser in the panel: the button that opens it, marked when it is open. */
+export const switcherLocal = (page: Page): Locator =>
+  switcherPanel(page).locator('button.panel-project[aria-label$=", the project of this browser"]');
 
 function escape(text: string): string {
   return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

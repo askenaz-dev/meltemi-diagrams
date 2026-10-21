@@ -9,7 +9,8 @@ with approved and declined scenarios; an executive free composition linked to th
 animated story from the context to the containers; and export profiles (PDF sheet, PNG slide, MP4
 video), with catalog settings. Its container view SHALL be laid out top to bottom so that it is no
 wider than twice its height, and its executive slide SHALL fit the shop group to its boxes. Their
-names, titles in words, descriptions, contents (the counts of diagrams, models, views and stories)
+names, titles in words, descriptions, contents (the counts of models, of C4 views, of the other
+diagrams and of stories)
 and `project.json` SHALL come from `@meltemi/diagrams-project` (`TEMPLATES`, `templateManifest`),
 so that `init` and the playground offer the same templates with the same manifests, which pin the
 released tool version; `init --list` SHALL print each template's name, title, description and
@@ -31,7 +32,7 @@ theme and in the dark counterpart, each at most 200 KiB.
 
 #### Scenario: Listing the templates
 - **WHEN** `mdg init --list` runs
-- **THEN** it prints five lines, `c4` with its title, its description and "1 model, 2 views", and `purchase` with "4 diagrams, 1 story"
+- **THEN** it prints five lines, `c4` with its title, its description and "1 model, 2 views", and `purchase` with "1 model, 2 views, 2 diagrams, 1 story"
 
 #### Scenario: Thumbnails in the build
 - **WHEN** `pnpm playground:build` runs

@@ -19,22 +19,6 @@ export function isTextContent(path: string, content: string | Uint8Array): boole
 }
 
 /**
- * The text of a new file: for a `.meltemi` file, a small flow named after the file whose two
- * labels are `words` (in the interface's language, as the person would have typed them); the code
- * around them stays as written. Other files start empty.
- */
-export function starterText(path: string, words: { start: string; done: string }): string {
-  if (!path.endsWith(".meltemi")) return "";
-  const id =
-    path
-      .slice(path.lastIndexOf("/") + 1)
-      .replace(/\.[^.]*$/, "")
-      .replace(/[^A-Za-z0-9_]/g, "_")
-      .replace(/^(?=\d)/, "d") || "sheet";
-  return `diagram ${id}: flow {\n  title "${id}"\n\n  start[${JSON.stringify(words.start)}]\n  done[${JSON.stringify(words.done)}]\n\n  start -> done\n}\n`;
-}
-
-/**
  * The files of the page's project, kept in memory: text files as strings and other files as
  * bytes, by path relative to the project folder. It serves them to the project compiler as a
  * `ProjectHost` rooted at `/playground`.

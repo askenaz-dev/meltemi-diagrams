@@ -19,7 +19,7 @@ import {
   typeAtEnd,
   waitFor,
 } from "./cloud.js";
-import { until } from "./support.js";
+import { openFile, until } from "./support.js";
 
 /** The most characters a text file holds (`CLOUD_LIMITS.textCharacters`). */
 export const TEXT_LIMIT = 2 * 1024 * 1024;
@@ -54,7 +54,7 @@ export const limitScenarios: Scenario[] = [
         files: { "diagrams/a.meltemi": NOTES, "notes.txt": big },
       });
       await openByLink(page, t.origin, project.id);
-      await page.locator("#file-select").selectOption("notes.txt");
+      await openFile(page, "notes.txt");
       await codeIs(page, big, "the big text open");
       const revision = (await readRoom(t.me, project.id)).revision;
       const sockets = t.seen.sockets.length;

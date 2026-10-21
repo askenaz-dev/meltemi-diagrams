@@ -32,7 +32,7 @@ export interface TemplateEntry {
 
 /** The templates as the build writes them: `project.json` first, then the template's own files. */
 export function builtTemplates(): TemplateEntry[] {
-  return Object.entries(TEMPLATES).map(([name, description]) => ({
+  return Object.entries(TEMPLATES).map(([name, { description }]) => ({
     name,
     description,
     files: {

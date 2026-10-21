@@ -5,7 +5,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
 import { CLI_VERSION, run } from "../src/index.js";
-import { templateManifest } from "@meltemi/diagrams-project";
+import { compile } from "@meltemi/diagrams-model";
+import { TEMPLATE_CONTENT_KINDS, templateManifest } from "@meltemi/diagrams-project";
 import { TEMPLATES, templateFiles, withCloudJob, type TemplateName } from "../src/init-command.js";
 
 const TEMPLATE_FOLDER = fileURLToPath(new URL("../templates/", import.meta.url));
@@ -36,6 +37,41 @@ describe("init", () => {
         .map((l) => l.split(" ")[0]),
     ).toEqual(Object.keys(TEMPLATES));
   });
+
+  it("lists each template's title, description and contents", () => {
+    const { stdout } = mdg(scratch, "init", "--list");
+    const lines = stdout.split("\n").filter(Boolean);
+    expect(lines).toHaveLength(Object.keys(TEMPLATES).length);
+    expect(lines.find((l) => l.startsWith("c4 "))).toMatch(
+      /^c4 +C4 model — An architecture model with a context view and a container view \(1 model, 2 views\)$/,
+    );
+    expect(lines.find((l) => l.startsWith("purchase "))).toMatch(
+      /\(1 model, 2 views, 2 diagrams, 1 story\)$/,
+    );
+  });
+
+  it.each(Object.keys(TEMPLATES) as TemplateName[])(
+    "declares what the %s template holds",
+    (template) => {
+      const counted = { diagrams: 0, models: 0, views: 0, stories: 0 };
+      for (const file of templateFiles(template).filter((f) => f.endsWith(".meltemi"))) {
+        const document = compile(
+          readFileSync(join(TEMPLATE_FOLDER, template, file), "utf8"),
+        ).document;
+        counted.views += document.diagrams.filter((d) => d.type === "c4").length;
+        counted.diagrams += document.diagrams.filter((d) => d.type !== "c4").length;
+        counted.models += document.models.length;
+        counted.stories += document.stories.length;
+      }
+      const declared = TEMPLATES[template].contents;
+      for (const kind of TEMPLATE_CONTENT_KINDS) {
+        expect(
+          declared[kind],
+          `${template}: ${kind} declared ${declared[kind]}, files hold ${counted[kind]}`,
+        ).toBe(counted[kind]);
+      }
+    },
+  );
 
   it.each(Object.keys(TEMPLATES) as TemplateName[])(
     "creates a %s project that validates and builds its catalog",

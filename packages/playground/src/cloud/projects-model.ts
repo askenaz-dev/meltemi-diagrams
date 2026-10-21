@@ -53,6 +53,17 @@ export interface ProjectsHost {
     name: string,
     progress: (path: string, done: number, total: number) => void,
   ): Promise<Outcome<CloudProject>>;
+  /**
+   * Makes a project from files of the person's (an archive's) and uploads its images and fonts;
+   * nothing is opened.
+   */
+  uploadProject(
+    name: string,
+    files: ReadonlyMap<string, string | Uint8Array>,
+    progress: (path: string, done: number, total: number) => void,
+  ): Promise<Outcome<CloudProject>>;
+  /** A project was renamed: the page's words about the open one follow. */
+  renamed(id: string, name: string): void;
   /** Goes back to the anonymous project. */
   leaveToLocal(): void;
   /** A project was deleted: its copy in this browser goes, and so does the page's hold on it. */
@@ -236,6 +247,41 @@ export class ProjectsModel {
     return opened === "opened";
   }
 
+  /**
+   * Makes a project from files (an archive's) and opens it, saying how the upload goes. True when
+   * it is open.
+   */
+  async createFromFiles(
+    rawName: string,
+    files: ReadonlyMap<string, string | Uint8Array>,
+    progress?: (done: number, total: number) => void,
+  ): Promise<boolean> {
+    if (this.current_.busy) return false;
+    const checked = checkProjectName(rawName);
+    if (!checked.ok) {
+      this.update({ status: "", problem: nameProblem(checked.reason, this.words()) });
+      return false;
+    }
+    const m = this.words().projects;
+    this.update({ busy: true, status: m.creating(checked.name), problem: "" });
+    const made = await this.host.uploadProject(checked.name, files, (path, done, total) => {
+      progress?.(done, total);
+      this.update({ status: m.uploading(path, done, total) });
+    });
+    if (!made.ok) {
+      this.refuse(made);
+      return false;
+    }
+    this.update({ projects: [made.value, ...this.current_.projects] });
+    const opened = await this.opening(made.value.id);
+    this.update({
+      busy: false,
+      status: opened === "opened" ? m.created(made.value.name) : "",
+      problem: this.problemOf(opened),
+    });
+    return opened === "opened";
+  }
+
   /** Renames a project. True when it is renamed. */
   async rename(project: CloudProject, rawName: string): Promise<boolean> {
     if (this.current_.busy) return false;
@@ -251,6 +297,7 @@ export class ProjectsModel {
       this.refuse(done);
       return false;
     }
+    this.host.renamed(project.id, done.value.name);
     const status = this.words().projects.renamed(done.value.name);
     this.update({
       busy: false,

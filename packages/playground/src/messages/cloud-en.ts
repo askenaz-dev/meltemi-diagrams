@@ -7,13 +7,8 @@ import { publishing, sharing } from "./cloud-share-en.js";
  * The page's `en` catalog holds it as `cloud`; `cloud-es.ts` has the same entries in Spanish.
  */
 export const cloud = {
-  /** The header's "Projects" entry and the drawer it opens. */
+  /** The cloud projects of the switcher's panel: the list, its actions and what they say. */
   projects: {
-    button: "Projects",
-    buttonTitle: "Your projects in the cloud",
-    title: "Projects",
-    intro:
-      "Your cloud projects belong to your account: they open on every device, and what you edit offline merges when you are back.",
     loading: "Loading your projects…",
     listLabel: "Your projects",
     none: "You have no cloud projects yet. Create one, or save the project you have open.",
@@ -22,24 +17,12 @@ export const cloud = {
     neverChanged: "Not changed yet",
     open: (name: string) => `Open ${name}`,
     openNow: "Open now",
-    tryAgain: "Try again",
-    close: "Close",
-
-    newTitle: "New project",
-    newName: "Name",
-    newNameHint: "From 1 to 100 characters.",
-    newTemplate: "Start from",
-    newCreate: "Create the project",
-    defaultName: "Untitled",
     nameEmpty: "Give the project a name.",
     nameLong: (most: number) => `The name takes at most ${most} characters.`,
     nameControl: "The name cannot hold control characters.",
     creating: (name: string) => `Creating ${name}…`,
     created: (name: string) => `Created ${name}.`,
 
-    saveButton: "Save this project to the cloud",
-    saveHint:
-      "Copies the project you have open into your account and opens the copy. The project in this browser stays as it is.",
     saveTitle: "Save to the cloud",
     saveLabel: "Name of the cloud project",
     saveName: "Local project",
@@ -47,12 +30,6 @@ export const cloud = {
     uploading: (path: string, done: number, total: number) =>
       `Uploading ${path} (${done} of ${total})…`,
     saved: (name: string) => `Saved ${name} to the cloud.`,
-    notSaved: (name: string) =>
-      `${name} could not be saved completely, so it was not kept in the cloud. The project in this browser is as it was.`,
-
-    localButton: "Open the local project",
-    localHint:
-      "Goes back to the project this browser keeps. The cloud project stays in your account.",
     openedLocal: "Opened the project this browser keeps.",
 
     rename: (name: string) => `Rename ${name}`,
@@ -73,7 +50,6 @@ export const cloud = {
     linkHint: "Only you can open it for now. It opens the project in this page.",
     linkCopied: "The link to the project was copied.",
     linkSelect: "Select the link and copy it.",
-    thumbnailOf: (name: string) => `Preview of ${name}`,
   },
 
   /**
@@ -198,7 +174,7 @@ export const cloud = {
       `${reason} Your last change was not kept: the project is back as the room has it.`,
   },
 
-  /** Opening a project, from the drawer or from the address. */
+  /** Opening a project, from the switcher's panel or from the address. */
   open: {
     opening: "Opening the project…",
     opened: (name: string) => `Opened ${name}.`,
@@ -227,8 +203,5 @@ export const cloud = {
     internal:
       "Something went wrong while keeping your changes in step. Reload the page if the project looks wrong.",
     savedShortcut: "Saved to the cloud. Download the project to keep a copy elsewhere.",
-    templateSubject: (name: string) => `The ${name} template`,
-    replaceConfirm: (what: string) =>
-      `${what} replaces the files of this project in the cloud. Download the project first if you want a copy.`,
   },
 };

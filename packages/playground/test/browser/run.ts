@@ -30,7 +30,7 @@ import { browserPath } from "../../../vscode/scripts/browser.mjs";
 import { en } from "../../src/messages/en.js";
 import { es } from "../../src/messages/es.js";
 import { encodeShare, SHARE_LIMITS } from "../../src/share.js";
-import { readZip } from "../../src/zip.js";
+import { readZip, writeZip } from "../../src/zip.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dist = join(here, "..", "..", "dist");
@@ -76,7 +76,12 @@ function serve(): Promise<{ server: Server; origin: string }> {
 }
 
 interface Templates {
-  readonly templates: readonly { name: string; files: Record<string, string> }[];
+  readonly templates: readonly {
+    name: string;
+    title: string;
+    files: Record<string, string>;
+    thumbnails: { light: string; dark: string };
+  }[];
 }
 const templates = (JSON.parse(readFileSync(join(dist, "templates.json"), "utf8")) as Templates)
   .templates;
@@ -169,23 +174,71 @@ async function caretAfter(page: Page, text: string, before = false): Promise<voi
   );
 }
 
-/** Opens a template from the Templates menu, confirming when asked. */
+/** Opens the panel of the explorer's switcher: the projects and what is done with them. */
+async function projectsPanel(page: Page) {
+  if ((await page.locator(".switcher-panel").count()) === 0) {
+    await page.locator(".switcher-button").click();
+  }
+  const panel = page.locator(".switcher-panel:not(.leaving)");
+  await panel.waitFor();
+  return panel;
+}
+
+/** Makes the project of this browser a template's, from its card in New project. */
 async function openTemplate(page: Page, name: string): Promise<void> {
-  await page.getByRole("button", { name: "Templates" }).click();
-  await page.getByRole("menuitem", { name: new RegExp(`^${name}`) }).click();
+  const title = templates.find((t) => t.name === name)!.title;
+  await page.evaluate(() => {
+    document.querySelector(".status-text")!.textContent = "";
+  });
+  await (await projectsPanel(page)).getByRole("button", { name: "New project…" }).click();
+  const dialog = page.locator("dialog.new-project");
+  await dialog.locator(`[data-template="${name}"]`).click();
+  await dialog.getByRole("button", { name: "Create the project" }).click();
+  // Work that differs from every template is asked about first.
+  await until(
+    page,
+    `the ${name} template opened or asked about`,
+    () =>
+      (document.querySelector(".status-text")?.textContent ?? "").startsWith("Created ") ||
+      [...document.querySelectorAll("dialog[open] button")].some(
+        (b) => b.textContent === "Open the template",
+      ),
+  );
   const confirm = page.locator("dialog[open]").getByRole("button", { name: "Open the template" });
-  if (await confirm.isVisible().catch(() => false)) await confirm.click();
+  if ((await confirm.count()) > 0) await confirm.click();
   await until(
     page,
     `the ${name} template opened`,
-    (template) =>
-      document.querySelector(".status-text")?.textContent?.includes(`the ${template} template`) ??
-      false,
-    name,
+    (t) => document.querySelector(".status-text")?.textContent === `Created ${t}.`,
+    title,
   );
   await analysed(page);
   // The canvas fits the new drawing.
   await page.waitForTimeout(300);
+}
+
+/** Waits until the explorer marks a file as the open one. */
+async function expectOpen(page: Page, path: string): Promise<void> {
+  await until(
+    page,
+    `the explorer marks ${path} open`,
+    (p) => document.querySelector(".tree li.current")?.getAttribute("data-key") === `f:${p}`,
+    path,
+  );
+}
+
+/** Opens a file from the explorer, opening the folders that hold it first. */
+async function openFile(page: Page, path: string): Promise<void> {
+  const parts = path.split("/");
+  for (let i = 1; i < parts.length; i++) {
+    const folder = page.locator(`.tree li[data-key="d:${parts.slice(0, i).join("/")}"]`);
+    if ((await folder.getAttribute("aria-expanded")) === "false") {
+      await folder.locator(":scope > .tree-row").click();
+    }
+  }
+  await page.locator(`.tree li[data-key="f:${path}"] > .tree-row .tree-name`).click();
+  await expectOpen(page, path);
+  await analysed(page);
 }
 
 /** Saves the file a click downloads. */
@@ -823,7 +876,7 @@ const tests: Test[] = [
   {
     name: "opens the flow template with its code, the canvas and no problem",
     async run({ page }) {
-      assert.equal(await page.locator("#file-select").inputValue(), "diagrams/overview.meltemi");
+      await expectOpen(page, "diagrams/overview.meltemi");
       assert.match(await code(page), /diagram overview: flow/);
       assert.equal(await page.locator("#problems-title").textContent(), "No problems");
       assert.ok((await page.locator('#app .content g[data-role="element"]').count()) >= 3);
@@ -1133,12 +1186,20 @@ const tests: Test[] = [
             return Math.round(r.height);
           }),
         );
+      // The canvas may draw again once the project's assets arrive: wait for a box that stays.
+      let api: { x: number; y: number; width: number; height: number } | null = null;
+      for (let tries = 0; tries < 40; tries++) {
+        const box = await app
+          .locator('.content g[data-id="api"][data-role="element"]')
+          .first()
+          .boundingBox();
+        if (box && api && box.x === api.x && box.y === api.y) break;
+        api = box;
+        await page.waitForTimeout(100);
+      }
+      assert.ok(api, "the api box is drawn");
       const before = await lines();
       const text = await code(page);
-      const api = (await app
-        .locator('.content g[data-id="api"][data-role="element"]')
-        .first()
-        .boundingBox())!;
       const start = { x: api.x + api.width / 2, y: api.y + api.height / 2 };
       await page.mouse.move(start.x, start.y);
       await page.mouse.down();
@@ -1175,8 +1236,17 @@ const tests: Test[] = [
     async run({ page }) {
       for (const template of templates) {
         await openTemplate(page, template.name);
-        const files = await page.locator("#file-select option").allTextContents();
-        assert.equal(files.length, Object.keys(template.files).length, template.name);
+        // The explorer lists the diagrams; project.json waits for Show all files.
+        const listed = await page
+          .locator('.tree li[data-key^="f:"]')
+          .evaluateAll((rows) => rows.map((row) => row.getAttribute("data-key")!.slice(2)));
+        assert.deepEqual(
+          listed.sort(),
+          Object.keys(template.files)
+            .filter((path) => path.endsWith(".meltemi"))
+            .sort(),
+          template.name,
+        );
         assert.equal(
           await page.locator("#problems-title").textContent(),
           "No problems",
@@ -1189,8 +1259,7 @@ const tests: Test[] = [
         );
       }
       // The purchase story plays on the canvas.
-      await page.locator("#file-select").selectOption("stories/purchase.meltemi");
-      await analysed(page);
+      await openFile(page, "stories/purchase.meltemi");
       const story = page.locator("#app").getByRole("combobox", { name: "Story" });
       await until(page, "the story offered", () => {
         const select = document.querySelector(
@@ -1209,34 +1278,41 @@ const tests: Test[] = [
     },
   },
   {
-    name: "adds, renames and deletes files, and opens a project archive",
+    name: "makes, renames and deletes a diagram in the explorer, and imports a project archive",
     async run({ page }) {
-      await page.getByRole("button", { name: "New file" }).click();
-      const dialog = page.locator("dialog[open]");
-      await dialog.locator("input").fill("diagrams/second.meltemi");
-      await dialog.getByRole("button", { name: "OK" }).click();
+      const bar = page.locator(".explorer-bar");
+      await bar.getByRole("button", { name: "New diagram…" }).click();
+      let dialog = page.locator("dialog[open]");
+      assert.equal(await dialog.locator(".dialog-where").textContent(), "In diagrams");
+      await dialog.getByLabel("Name").fill("second");
+      await dialog.getByRole("button", { name: "Create" }).click();
+      await expectOpen(page, "diagrams/second.meltemi");
       await analysed(page);
-      assert.equal(await page.locator("#file-select").inputValue(), "diagrams/second.meltemi");
-      assert.match(await code(page), /diagram second: flow/);
-      await page.getByRole("button", { name: "Rename the file" }).click();
-      await page.locator("dialog[open] input").fill("diagrams/third.meltemi");
-      await page.locator("dialog[open]").getByRole("button", { name: "OK" }).click();
+      assert.match(await code(page), /diagram second: flow \{\n {2}title "second"/);
+      // The row it made has the focus: F2 renames it in place.
       await until(
         page,
-        "the file renamed",
-        () =>
-          (document.querySelector("#file-select") as HTMLSelectElement).value ===
-          "diagrams/third.meltemi",
+        "the new row focused",
+        () => document.activeElement?.getAttribute("data-key") === "f:diagrams/second.meltemi",
       );
-      await page.getByRole("button", { name: "Delete the file" }).click();
-      await page.locator("dialog[open]").getByRole("button", { name: "Delete" }).click();
-      await until(
-        page,
-        "the file deleted",
-        () =>
-          (document.querySelector("#file-select") as HTMLSelectElement).value ===
-          "diagrams/overview.meltemi",
+      await page.keyboard.press("F2");
+      await page.locator(".tree-rename").fill("third");
+      await page.keyboard.press("Enter");
+      await expectOpen(page, "diagrams/third.meltemi");
+      // A name that is taken keeps the box open and says why.
+      await page.keyboard.press("F2");
+      await page.locator(".tree-rename").fill("overview");
+      await page.keyboard.press("Enter");
+      assert.equal(
+        await page.locator(".tree-rename-problem").textContent(),
+        "diagrams/overview.meltemi exists.",
       );
+      await page.keyboard.press("Escape");
+      await page.keyboard.press("Delete");
+      dialog = page.locator("dialog[open]");
+      assert.match((await dialog.textContent()) ?? "", /diagrams\/third\.meltemi is removed/);
+      await dialog.getByRole("button", { name: "Delete" }).click();
+      await expectOpen(page, "diagrams/overview.meltemi");
 
       // A project archive: downloaded, then opened again.
       const zip = await download(page, async () => {
@@ -1249,7 +1325,15 @@ const tests: Test[] = [
       const chooser = page.waitForEvent("filechooser");
       await page.getByRole("button", { name: "Open", exact: true }).click();
       await (await chooser).setFiles(zip);
-      await page.locator("dialog[open]").getByRole("button", { name: "Open the archive" }).click();
+      // An archive asks where it goes; nobody signed in, this browser is the choice.
+      const where = page.locator("dialog[open]");
+      assert.match((await where.textContent()) ?? "", /flow\.zip: the project flow, 2 files\./);
+      assert.equal(await where.getByRole("radio", { name: /This browser/ }).isChecked(), true);
+      assert.equal(
+        await where.getByRole("radio", { name: /new project in your account/ }).count(),
+        0,
+      );
+      await where.getByRole("button", { name: "Import" }).click();
       await page.waitForFunction(
         () =>
           !(document.querySelector(".code-input") as HTMLTextAreaElement).value.includes("changed"),
@@ -1267,7 +1351,7 @@ const tests: Test[] = [
       await dialog.getByLabel("Name of the new file").fill("shop");
       await dialog.getByRole("button", { name: "Import", exact: true }).click();
       await analysed(page);
-      assert.equal(await page.locator("#file-select").inputValue(), "diagrams/shop.meltemi");
+      await expectOpen(page, "diagrams/shop.meltemi");
       assert.match(await code(page), /diagram shop: flow/);
       assert.match(
         (await page.locator(".status-text").textContent()) ?? "",
@@ -1320,11 +1404,524 @@ const tests: Test[] = [
       assert.match(await code(page), /\/\/ kept/);
       await openTemplate(page, "c4");
       assert.doesNotMatch(await code(page), /\/\/ kept/);
-      await page.getByRole("button", { name: "Templates" }).click();
-      await page.getByRole("menuitem", { name: /Restore the previous project/ }).click();
+      const panel = await projectsPanel(page);
+      assert.match(
+        (await panel.locator(".panel-row.previous").textContent()) ?? "",
+        /Previous project/,
+      );
+      await panel.getByRole("button", { name: "Restore" }).click();
       await page.waitForFunction(() =>
         (document.querySelector(".code-input") as HTMLTextAreaElement).value.includes("// kept"),
       );
+    },
+  },
+  {
+    name: "explorer: lists folders and diagrams, picks a view, marks problems and keeps project.json for Show all files",
+    async run({ page }) {
+      await openTemplate(page, "purchase");
+      assert.equal(await page.locator('.tree li[data-key="f:project.json"]').count(), 0);
+      // The open file's folder and the file open, so that its views can be seen.
+      await until(
+        page,
+        "the views of architecture listed",
+        () =>
+          document
+            .querySelector('.tree li[data-key="f:diagrams/architecture.meltemi"]')
+            ?.getAttribute("aria-expanded") === "true",
+      );
+      const views = await page
+        .locator('.tree li[data-key^="g:diagrams/architecture.meltemi#"] .tree-name')
+        .allTextContents();
+      assert.deepEqual(views, ["The shop in context", "Inside the shop"]);
+      await page
+        .locator('.tree li[data-key="g:diagrams/architecture.meltemi#containers"] .tree-name')
+        .click();
+      await until(page, "the containers view on the canvas", () => {
+        const p = (
+          window as unknown as { meltemiPlayground: { studio: { session: { current?: string } } } }
+        ).meltemiPlayground;
+        return p.studio.session.current === "containers";
+      });
+      assert.equal(
+        await page
+          .locator('.tree li[data-key="g:diagrams/architecture.meltemi#containers"]')
+          .getAttribute("aria-selected"),
+        "true",
+      );
+
+      // A problem in a file shows on its row, and on its folder when the folder is closed.
+      await openTemplate(page, "flow");
+      await caretAfter(page, "direction LR");
+      await page.keyboard.press("End");
+      await page.keyboard.press("Enter");
+      await page.keyboard.type('style missing { fill "#fff" }');
+      const badge = page.locator('.tree li[data-key="f:diagrams/overview.meltemi"] .tree-badge');
+      await until(
+        page,
+        "an error on the row of overview",
+        () =>
+          document
+            .querySelector('.tree li[data-key="f:diagrams/overview.meltemi"] .tree-badge')
+            ?.classList.contains("is-error") === true &&
+          !(
+            document.querySelector(
+              '.tree li[data-key="f:diagrams/overview.meltemi"] .tree-badge',
+            ) as HTMLElement
+          ).hidden,
+      );
+      assert.equal(await badge.textContent(), "1");
+      await page.keyboard.press("Control+z");
+      await until(
+        page,
+        "the mark gone",
+        () =>
+          (
+            document.querySelector(
+              '.tree li[data-key="f:diagrams/overview.meltemi"] .tree-badge',
+            ) as HTMLElement
+          ).hidden === true,
+      );
+
+      // Show all files lists the manifest, with the settings picture, and is kept.
+      await page.locator(".explorer-foot .switch").click();
+      const manifest = page.locator('.tree li[data-key="f:project.json"]');
+      await manifest.waitFor();
+      assert.equal(await manifest.locator(".tree-icon").getAttribute("data-icon"), "settings");
+      await page.waitForTimeout(100);
+      await page.reload();
+      await ready(page);
+      await page.locator('.tree li[data-key="f:project.json"]').waitFor();
+
+      // A hidden file with a problem says so in the footer, and Show reveals it.
+      await openFile(page, "project.json");
+      await page.locator(".code-input").focus();
+      await page.keyboard.press("Control+a");
+      await page.keyboard.type('{ "name": 3 }');
+      await analysed(page);
+      await page.locator(".explorer-foot .switch").click();
+      await until(
+        page,
+        "the footer's hidden problem",
+        () => !(document.querySelector(".explorer-hidden") as HTMLElement).hidden,
+      );
+      assert.equal(
+        await page.locator(".explorer-hidden-text").textContent(),
+        "1 hidden file has problems",
+      );
+      await page.locator(".explorer-hidden").getByRole("button", { name: "Show" }).click();
+      await page.locator('.tree li[data-key="f:project.json"]').waitFor();
+      assert.equal(await page.locator(".explorer-foot .switch-input").isChecked(), true);
+
+      // Without a project.json, Project settings makes one as init writes it, and opens it.
+      await page
+        .locator('.tree li[data-key="f:project.json"] > .tree-row')
+        .click({ button: "right" });
+      await page.locator(".pg-menu.context").getByRole("menuitem", { name: "Delete" }).click();
+      await page.locator("dialog[open]").getByRole("button", { name: "Delete" }).click();
+      await until(
+        page,
+        "the manifest gone",
+        () => document.querySelector('.tree li[data-key="f:project.json"]') === null,
+      );
+      assert.equal(await page.locator(".switcher-name").textContent(), "Untitled project");
+      await (await projectsPanel(page)).getByRole("button", { name: "Project settings" }).click();
+      await expectOpen(page, "project.json");
+      const made = JSON.parse(await code(page)) as { name: string; language: string };
+      assert.deepEqual([made.name, made.language], ["Untitled project", "0.2"]);
+      assert.equal(
+        await page.locator(".status-text").textContent(),
+        "The project had no project.json; it has one now.",
+      );
+    },
+  },
+  {
+    name: "explorer: makes a sequence diagram in a folder, moves a file into a new folder with its imports, and deletes a folder",
+    async run({ page }) {
+      await openTemplate(page, "c4");
+      // New diagram in the folder of the row it is asked from.
+      await page.locator('.tree li[data-key="d:diagrams"] > .tree-row').click({ button: "right" });
+      await page
+        .locator(".pg-menu.context")
+        .getByRole("menuitem", { name: "New diagram…" })
+        .click();
+      let dialog = page.locator("dialog[open]");
+      await dialog.getByLabel("Name").fill("checkout");
+      await dialog.locator("label.segment", { hasText: "Sequence diagram" }).click();
+      await dialog.getByRole("button", { name: "Create" }).click();
+      await expectOpen(page, "diagrams/checkout.meltemi");
+      await analysed(page);
+      assert.equal(
+        await code(page),
+        'language "0.2"\n\ndiagram checkout: sequence {\n  title "checkout"\n}\n',
+      );
+      assert.equal(
+        await page
+          .locator('.tree li[data-key="f:diagrams/checkout.meltemi"] .tree-icon')
+          .getAttribute("data-icon"),
+        "sequence",
+      );
+
+      // The model moves into a folder made in the dialog; the views' import follows it.
+      await openFile(page, "models/system.meltemi");
+      await page
+        .locator('.tree li[data-key="f:models/system.meltemi"] > .tree-row')
+        .click({ button: "right" });
+      await page.locator(".pg-menu.context").getByRole("menuitem", { name: "Move to…" }).click();
+      dialog = page.locator("dialog[open]");
+      await dialog.getByLabel("To the folder").selectOption("models");
+      await dialog.getByLabel("Or a new folder in it").fill("core");
+      await dialog.getByRole("button", { name: "Move" }).click();
+      await until(
+        page,
+        "the model in models/core",
+        () => document.querySelector('.tree li[data-key="f:models/core/system.meltemi"]') !== null,
+      );
+      assert.match(
+        (await page.locator(".status-text").textContent()) ?? "",
+        /Moved 1 file to models\/core\. Updated the imports in diagrams\/views\.meltemi\./,
+      );
+      await openFile(page, "diagrams/views.meltemi");
+      assert.match(await code(page), /"\.\.\/models\/core\/system\.meltemi"/);
+      assert.equal(await page.locator("#problems-title").textContent(), "No problems");
+
+      // A folder goes with every file it holds, after a question that counts them.
+      await page.locator('.tree li[data-key="d:diagrams"] > .tree-row').click({ button: "right" });
+      await page.locator(".pg-menu.context").getByRole("menuitem", { name: "Delete" }).click();
+      dialog = page.locator("dialog[open]");
+      assert.match((await dialog.textContent()) ?? "", /diagrams and its 2 files are removed/);
+      await dialog.getByRole("button", { name: "Delete" }).click();
+      await until(
+        page,
+        "the folder gone",
+        () => document.querySelector('.tree li[role=treeitem][data-key="d:diagrams"]') === null,
+      );
+      assert.deepEqual(
+        await page.evaluate(() =>
+          (
+            window as unknown as { meltemiPlayground: { studio: { host: { paths(): string[] } } } }
+          ).meltemiPlayground.studio.host.paths(),
+        ),
+        ["models/core/system.meltemi", "project.json"],
+      );
+    },
+  },
+  {
+    name: "explorer: drags a file into a folder, refuses a drop onto a taken name, and adds an image dropped from outside",
+    async run({ page }) {
+      await openTemplate(page, "purchase");
+      await page
+        .locator('.tree li[data-key="f:diagrams/executive.meltemi"] > .tree-row')
+        .dragTo(page.locator('.tree li[data-key="d:stories"] > .tree-row'));
+      await until(
+        page,
+        "executive in stories",
+        () => document.querySelector('.tree li[data-key="f:stories/executive.meltemi"]') !== null,
+      );
+      // A file of the same name in the target: nothing moves, and the status says which.
+      await page.evaluate(() => {
+        const p = (
+          window as unknown as {
+            meltemiPlayground: { studio: { addFiles(f: [string, string][]): void } };
+          }
+        ).meltemiPlayground;
+        p.studio.addFiles([["stories/payment.meltemi", 'language "0.2"\n']]);
+      });
+      await page.locator('.tree li[data-key="f:stories/payment.meltemi"]').waitFor();
+      await page
+        .locator('.tree li[data-key="f:diagrams/payment.meltemi"] > .tree-row')
+        .dragTo(page.locator('.tree li[data-key="d:stories"] > .tree-row'));
+      await until(
+        page,
+        "the refusal",
+        () =>
+          document.querySelector(".status-text")?.textContent ===
+          "stories/payment.meltemi exists; nothing was moved.",
+      );
+      assert.equal(
+        await page.locator('.tree li[data-key="f:diagrams/payment.meltemi"]').count(),
+        1,
+      );
+
+      // A file from outside the page goes into the folder it is dropped on.
+      await page.locator('.tree li[data-key="d:diagrams"] > .tree-row').evaluate((row) => {
+        const transfer = new DataTransfer();
+        transfer.items.add(
+          new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], "logo.png", {
+            type: "image/png",
+          }),
+        );
+        for (const type of ["dragenter", "dragover", "drop"]) {
+          row.dispatchEvent(
+            new DragEvent(type, { dataTransfer: transfer, bubbles: true, cancelable: true }),
+          );
+        }
+      });
+      await until(
+        page,
+        "the image in diagrams",
+        () => document.querySelector('.tree li[data-key="f:diagrams/logo.png"]') !== null,
+      );
+      assert.equal(
+        await page
+          .locator('.tree li[data-key="f:diagrams/logo.png"] .tree-icon')
+          .getAttribute("data-icon"),
+        "image",
+      );
+    },
+  },
+  {
+    name: "explorer: the switcher renames this browser's project, refuses an empty name and lists what the panel offers",
+    async run({ page }) {
+      assert.equal(await page.locator(".switcher-name").textContent(), "flow");
+      assert.equal(await page.locator(".switcher-where").textContent(), "This browser");
+      await page.locator(".switcher-rename").click();
+      let dialog = page.locator("dialog[open]");
+      await dialog.locator("input").fill("Tienda");
+      await dialog.getByRole("button", { name: "OK" }).click();
+      await until(
+        page,
+        "the new name in the header",
+        () => document.querySelector(".switcher-name")?.textContent === "Tienda",
+      );
+      const manifest = await page.evaluate(() =>
+        (
+          window as unknown as { meltemiPlayground: { studio: { text(p: string): string } } }
+        ).meltemiPlayground.studio.text("project.json"),
+      );
+      assert.equal(JSON.parse(manifest).name, "Tienda");
+      // An empty name is refused, with the reason, and the dialog stays.
+      await page.locator(".switcher-rename").click();
+      dialog = page.locator("dialog[open]");
+      await dialog.locator("input").fill("  ");
+      await dialog.getByRole("button", { name: "OK" }).click();
+      assert.equal(
+        await dialog.locator(".field-problem").textContent(),
+        "Give the project a name.",
+      );
+      await page.keyboard.press("Escape");
+      assert.equal(await page.locator(".switcher-name").textContent(), "Tienda");
+
+      const panel = await projectsPanel(page);
+      assert.deepEqual(await panel.locator(".panel-action-label").allTextContents(), [
+        "New project…",
+        "Import project…",
+        "Export project (.zip)",
+        "Project settings",
+        "Show all files",
+      ]);
+      assert.equal(
+        await panel
+          .locator('.panel-project[aria-current="true"] .panel-project-name')
+          .textContent(),
+        "Tienda",
+      );
+      assert.match(
+        (await panel.locator(".panel-note").textContent()) ?? "",
+        /Sign in to keep projects in your account/,
+      );
+      assert.equal(await panel.getByRole("link", { name: "Sign in" }).count(), 1);
+      await page.keyboard.press("Escape");
+      await until(
+        page,
+        "the panel closed",
+        () => document.querySelector(".switcher-panel") === null,
+      );
+      assert.equal(
+        await page.evaluate(() => document.activeElement?.classList.contains("switcher-button")),
+        true,
+      );
+    },
+  },
+  {
+    name: "explorer: New project's cards show their pictures, move with the arrows and refuse an empty name",
+    async run({ page, url }) {
+      await caretAfter(page, "direction LR");
+      await page.keyboard.type(" // mine");
+      await analysed(page);
+      await (await projectsPanel(page)).getByRole("button", { name: "New project…" }).click();
+      const dialog = page.locator("dialog.new-project");
+      const cards = dialog.locator(".template-card");
+      assert.equal(await cards.count(), templates.length);
+      const pictures = await dialog.locator("img.template-thumb").evaluateAll((images) =>
+        images.map((image) => ({
+          src: (image as HTMLImageElement).src,
+          loaded:
+            (image as HTMLImageElement).complete && (image as HTMLImageElement).naturalWidth > 0,
+        })),
+      );
+      for (const picture of pictures) {
+        assert.ok(picture.src.startsWith(new URL("templates/", url).href), picture.src);
+      }
+      await until(page, "every picture loaded", () =>
+        [...document.querySelectorAll<HTMLImageElement>("img.template-thumb")].every(
+          (image) => image.complete && image.naturalWidth > 0,
+        ),
+      );
+      // The flow card is chosen; the arrows choose the next one, and the name follows.
+      assert.equal(
+        await dialog.locator('[data-template="flow"]').getAttribute("aria-checked"),
+        "true",
+      );
+      await dialog.locator('[data-template="flow"]').focus();
+      await page.keyboard.press("ArrowRight");
+      assert.equal(
+        await dialog.locator('[data-template="c4"]').getAttribute("aria-checked"),
+        "true",
+      );
+      assert.equal(await dialog.getByLabel("Name").inputValue(), "C4 model");
+      // An empty name is refused before anything is replaced.
+      await dialog.getByLabel("Name").fill("");
+      await dialog.getByRole("button", { name: "Create the project" }).click();
+      assert.equal(
+        await dialog.locator(".field-problem").textContent(),
+        "Give the project a name.",
+      );
+      await dialog.getByLabel("Name").fill("Pagos");
+      await dialog.locator('[data-template="sequence"]').click();
+      assert.equal(await dialog.getByLabel("Name").inputValue(), "Pagos", "a typed name stays");
+      await dialog.getByRole("button", { name: "Create the project" }).click();
+      // The work differs from every template: the page asks, and keeps it as the previous project.
+      await page.locator("dialog[open]").getByRole("button", { name: "Open the template" }).click();
+      await expectOpen(page, "diagrams/sign-in.meltemi");
+      assert.equal(await page.locator(".switcher-name").textContent(), "Pagos");
+      const panel = await projectsPanel(page);
+      assert.equal(await panel.locator(".panel-row.previous").count(), 1);
+    },
+  },
+  {
+    name: "explorer: exports the project from the panel as Download does, and says an archive holds no project",
+    async run({ page }) {
+      await openTemplate(page, "c4");
+      const exported = await download(page, async () =>
+        (await projectsPanel(page)).getByRole("button", { name: "Export project (.zip)" }).click(),
+      );
+      const entries = (await readZip(new Uint8Array(readFileSync(exported)))).map((e) => e.path);
+      assert.deepEqual(
+        entries.sort(),
+        Object.keys(templates.find((t) => t.name === "c4")!.files).sort(),
+      );
+      // An archive whose only file is outside any project adds nothing.
+      const empty = join(output, "empty.zip");
+      writeFileSync(
+        empty,
+        await writeZip([
+          { path: ".git/config", data: new Uint8Array([120]) },
+          { path: ".hidden/x.meltemi", data: new Uint8Array([120]) },
+        ]),
+      );
+      const chooser = page.waitForEvent("filechooser");
+      await page.getByRole("button", { name: "Open", exact: true }).click();
+      await (await chooser).setFiles(empty);
+      await until(
+        page,
+        "the archive refused",
+        () =>
+          document.querySelector(".status-text")?.textContent ===
+          "empty.zip holds no file of a project.",
+      );
+      assert.equal(await page.locator("dialog[open]").count(), 0);
+    },
+  },
+  {
+    name: "explorer: hides to a rail with Ctrl+B and keeps it, takes the focus with Ctrl+Shift+E and walks with the arrows",
+    async run({ page }) {
+      await page.locator(".code-input").focus();
+      await page.keyboard.press("Control+b");
+      await until(
+        page,
+        "the rail",
+        () => document.querySelector("#explorer")?.getAttribute("data-collapsed") === "true",
+      );
+      await page.waitForTimeout(250);
+      assert.equal(
+        Math.round((await page.locator("#explorer").boundingBox())!.width),
+        36,
+        "a rail",
+      );
+      await page.reload();
+      await ready(page);
+      assert.equal(await page.locator("#explorer").getAttribute("data-collapsed"), "true");
+      // Ctrl+Shift+E opens it again and puts the focus on the open file.
+      await page.keyboard.press("Control+Shift+E");
+      await until(
+        page,
+        "the tree focused",
+        () => document.activeElement?.getAttribute("data-key") === "f:diagrams/overview.meltemi",
+      );
+      await page.keyboard.press("ArrowUp");
+      assert.equal(
+        await page.evaluate(() => document.activeElement?.getAttribute("data-key")),
+        "d:diagrams",
+      );
+      await page.keyboard.press("ArrowLeft");
+      assert.equal(
+        await page.locator('.tree li[data-key="d:diagrams"]').getAttribute("aria-expanded"),
+        "false",
+      );
+      await page.keyboard.press("ArrowRight");
+      await page.keyboard.press("ArrowRight");
+      assert.equal(
+        await page.evaluate(() => document.activeElement?.getAttribute("data-key")),
+        "f:diagrams/overview.meltemi",
+      );
+      // The edge resizes by the keyboard, and the width is kept.
+      await page.locator(".explorer-edge").focus();
+      for (let i = 0; i < 3; i++) await page.keyboard.press("ArrowRight");
+      await page.waitForTimeout(250);
+      const width = Math.round((await page.locator("#explorer").boundingBox())!.width);
+      assert.equal(width, 260 + 48);
+      await page.reload();
+      await ready(page);
+      assert.equal(Math.round((await page.locator("#explorer").boundingBox())!.width), width);
+    },
+  },
+  {
+    name: "explorer: on a narrow screen it is the Files tab, and opening a diagram shows the code",
+    viewport: { width: 375, height: 812 },
+    async run({ page }) {
+      await page.getByRole("tab", { name: "Files" }).click();
+      assert.equal(await page.locator("#explorer").isVisible(), true);
+      assert.equal(await page.locator("#code-pane").isVisible(), false);
+      await page.locator('.tree li[data-key="f:diagrams/overview.meltemi"] .tree-name').click();
+      await until(
+        page,
+        "the code tab",
+        () => document.querySelector("#tab-code")?.getAttribute("aria-selected") === "true",
+      );
+      assert.equal(await page.locator("#code-pane").isVisible(), true);
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+        true,
+      );
+    },
+  },
+  {
+    name: "explorer: opens a folder over 180 ms, at once with reduced motion, and draws its panels in light and dark",
+    async run({ page }) {
+      const duration = () =>
+        page
+          .locator(".tree-group-wrap")
+          .first()
+          .evaluate((wrap) => getComputedStyle(wrap).transitionDuration);
+      assert.equal(await duration(), "0.18s");
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      assert.equal(await duration(), "0s");
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+      await openTemplate(page, "purchase");
+      for (const scheme of ["light", "dark"] as const) {
+        await page.emulateMedia({ colorScheme: scheme });
+        await page
+          .locator("#explorer")
+          .screenshot({ path: join(output, `explorer-${scheme}.png`) });
+        const panel = await projectsPanel(page);
+        await panel.screenshot({ path: join(output, `switcher-panel-${scheme}.png`) });
+        await panel.getByRole("button", { name: "New project…" }).click();
+        await page.waitForTimeout(250);
+        await page
+          .locator("dialog.new-project")
+          .screenshot({ path: join(output, `new-project-${scheme}.png`) });
+        await page.keyboard.press("Escape");
+      }
     },
   },
   {
@@ -1366,8 +1963,7 @@ const tests: Test[] = [
     name: "records GIF, WebM and MP4 from a story, frame by frame",
     async run({ page }) {
       await openTemplate(page, "purchase");
-      await page.locator("#file-select").selectOption("stories/purchase.meltemi");
-      await analysed(page);
+      await openFile(page, "stories/purchase.meltemi");
       const gif = await exportWith(page, { format: "gif", fields: { Duration: "2s" } });
       assert.equal(readFileSync(gif).toString("latin1", 0, 6), "GIF89a");
       if (ffprobe) {
@@ -1394,8 +1990,7 @@ const tests: Test[] = [
     name: "runs the file's export profiles and downloads the model JSON and the catalog",
     async run({ page }) {
       await openTemplate(page, "purchase");
-      await page.locator("#file-select").selectOption("diagrams/executive.meltemi");
-      await analysed(page);
+      await openFile(page, "diagrams/executive.meltemi");
       await page.locator(".topbar").getByRole("button", { name: "Export" }).click();
       const profiles = page.locator("dialog[open] .profiles li");
       assert.ok((await profiles.count()) >= 1, "the file has profiles");
@@ -1563,10 +2158,10 @@ const tests: Test[] = [
       await dialog.getByRole("textbox", { name: "Id" }).fill("brand");
       assert.equal(await dialog.getByLabel(/The project/).isChecked(), true);
       await dialog.getByRole("button", { name: "Create" }).click();
-      await until(page, "the theme's file in the project", () =>
-        [...(document.querySelector("#file-select") as HTMLSelectElement).options].some(
-          (o) => o.value === "themes/brand.meltemi",
-        ),
+      await until(
+        page,
+        "the theme's file in the explorer",
+        () => document.querySelector('.tree li[data-key="f:themes/brand.meltemi"]') !== null,
       );
       assert.equal(
         await fileText("themes/brand.meltemi"),
@@ -1715,12 +2310,12 @@ const tests: Test[] = [
     name: "switches the interface to Spanish from the header, keeping the project and the open file",
     async run({ page }) {
       // A file of the person's own is open when the language changes.
-      await page.getByRole("button", { name: "New file" }).click();
+      await page.locator(".explorer-bar").getByRole("button", { name: "New diagram…" }).click();
       const created = page.locator("dialog[open]");
-      await created.locator("input").fill("diagrams/second.meltemi");
-      await created.getByRole("button", { name: "OK" }).click();
+      await created.getByLabel("Name").fill("second");
+      await created.getByRole("button", { name: "Create" }).click();
+      await expectOpen(page, "diagrams/second.meltemi");
       await analysed(page);
-      assert.match(await code(page), /start\["Start"\]/);
       await caretAfter(page, 'title "second"');
       await page.keyboard.type(" // kept");
       await analysed(page);
@@ -1760,20 +2355,13 @@ const tests: Test[] = [
 
       assert.equal(await page.evaluate(() => document.documentElement.lang), "es");
       assert.equal(await page.title(), "Playground de Meltemi Diagrams");
-      assert.equal(await page.locator("#file-select").inputValue(), "diagrams/second.meltemi");
+      await expectOpen(page, "diagrams/second.meltemi");
       assert.match(await code(page), /title "second" \/\/ kept/);
       assert.equal(
         await page.locator(".status-text").textContent(),
         "No se guardaron las imágenes grandes: diagrams/large.png.",
       );
-      for (const name of [
-        "Plantillas",
-        "Abrir",
-        "Importar",
-        "Compartir",
-        "Exportar",
-        "Descargar",
-      ]) {
+      for (const name of ["Abrir", "Importar", "Compartir", "Exportar", "Descargar"]) {
         assert.equal(await topbar.getByRole("button", { name, exact: true }).count(), 1, name);
       }
       assert.equal(await page.locator("#problems-title").textContent(), "Sin problemas");
@@ -1781,22 +2369,34 @@ const tests: Test[] = [
         (await page.locator(".privacy").textContent()) ?? "",
         /^Se ejecuta en tu navegador/,
       );
-      await topbar.getByRole("button", { name: "Plantillas" }).click();
-      await page
-        .getByRole("menuitem", { name: /^flow ?Un diagrama de flujo para empezar$/ })
-        .waitFor();
+      // The explorer speaks Spanish: its switcher, its panel and the cards of New project.
+      assert.equal(await page.locator(".switcher-where").textContent(), "Este navegador");
+      await page.locator(".switcher-button").click();
+      const panel = page.locator(".switcher-panel");
+      await panel.getByRole("button", { name: "Nuevo proyecto…" }).click();
+      const cards = page.locator("dialog.new-project");
+      assert.equal(
+        await cards.locator('[data-template="c4"] .template-contents').textContent(),
+        "1 modelo · 2 vistas",
+      );
+      assert.equal(
+        await cards.locator('[data-template="flow"] .template-description').textContent(),
+        "Un diagrama de flujo para empezar",
+      );
       await page.keyboard.press("Escape");
 
-      // A new file's labels are what the person would type, in Spanish; its code stays as written.
-      await page.getByRole("button", { name: "Nuevo archivo", exact: true }).click();
+      // A new diagram is named and titled as the person typed it.
+      await page.locator(".explorer-bar").getByRole("button", { name: "Nuevo diagrama…" }).click();
       const dialog = page.locator("dialog[open]");
-      assert.equal(await dialog.locator("h2").textContent(), "Nuevo archivo");
-      await dialog.getByLabel("Ruta del nuevo archivo").fill("diagrams/tercero.meltemi");
-      await dialog.getByRole("button", { name: "Aceptar" }).click();
+      assert.equal(await dialog.locator("h2").textContent(), "Nuevo diagrama");
+      await dialog.getByLabel("Nombre").fill("tercero");
+      await dialog.getByRole("button", { name: "Crear" }).click();
+      await expectOpen(page, "diagrams/tercero.meltemi");
       await analysed(page);
+      assert.match(await code(page), /diagram tercero: flow \{\n {2}title "tercero"/);
       assert.match(
-        await code(page),
-        /^diagram tercero: flow \{[\s\S]*start\["Inicio"\][\s\S]*done\["Fin"\]/,
+        (await page.locator(".status-text").textContent()) ?? "",
+        /^Se creó diagrams\/tercero\.meltemi\.$/,
       );
       // The canvas and the editor run in the page and speak its language: a note from the
       // palette is written as the person would have typed it; a node is placed empty.
@@ -1842,12 +2442,18 @@ const tests: Test[] = [
         "true",
       );
       await page.keyboard.press("Escape");
-      await topbar.getByRole("button", { name: "Plantillas" }).click();
-      await page.getByRole("menuitem", { name: /^c4/ }).click();
+      await page.locator(".switcher-button").click();
+      await page
+        .locator(".switcher-panel")
+        .getByRole("button", { name: "Nuevo proyecto…" })
+        .click();
+      const cards = page.locator("dialog.new-project");
+      await cards.locator('[data-template="c4"]').click();
+      await cards.getByRole("button", { name: "Crear el proyecto" }).click();
       await until(
         page,
         "the c4 template opened",
-        () => document.querySelector(".status-text")?.textContent === "Se abrió la plantilla c4.",
+        () => document.querySelector(".status-text")?.textContent === "Se creó Modelo C4.",
       );
       await analysed(page);
 
@@ -1908,14 +2514,19 @@ const tests: Test[] = [
       await page.keyboard.press("Escape");
 
       // `locale` in project.json presets the dialog's language.
-      await page.locator("#file-select").selectOption("project.json");
+      // Project settings opens project.json, which the explorer does not list.
+      await page.locator(".switcher-button").click();
+      await page
+        .locator(".switcher-panel")
+        .getByRole("button", { name: "Configuración del proyecto" })
+        .click();
       await analysed(page);
-      await caretAfter(page, '"name": "c4",');
+      assert.equal(await page.locator('.tree li[data-key="f:project.json"]').count(), 0);
+      await caretAfter(page, '"name": "Modelo C4",');
       await page.keyboard.type('\n"locale": "es",');
       await analysed(page);
       assert.equal(JSON.parse(await code(page)).locale, "es");
-      await page.locator("#file-select").selectOption("diagrams/views.meltemi");
-      await analysed(page);
+      await openFile(page, "diagrams/views.meltemi");
       await topbar.getByRole("button", { name: "Exportar", exact: true }).click();
       assert.equal(
         await page.locator("dialog[open]").getByLabel("Idioma", { exact: true }).inputValue(),
@@ -2391,12 +3002,12 @@ const tests: Test[] = [
           ["applyEdits", [edits]],
           ["format", []],
           ["rename", [0, "renamed"]],
-          ["newFile", []],
-          ["renameFile", []],
-          ["deleteFile", []],
           ["openLocal", [[new File(["x"], "extra.meltemi")]]],
+          ["addLocalFiles", [[new File(["x"], "extra.meltemi")], "diagrams"]],
+          ["importArchive", [new File(["x"], "project.zip")]],
           ["pickImage", []],
-          ["openTemplate", ["flow"]],
+          ["createLocal", [p.templates[0], "flow"]],
+          ["restorePrevious", []],
           ["undo", []],
           ["redo", []],
         ];
@@ -2417,22 +3028,29 @@ const tests: Test[] = [
       assert.equal(calls.same, true, "no method changed the project");
       assert.equal(calls.dialogs, 0, "no dialog opened");
       assert.deepEqual(calls.late, [], "each refused at once");
-      for (const name of ["Open", "Import", "New file", "Rename the file", "Delete the file"]) {
+      for (const name of ["Open", "Import"]) {
         assert.equal(
           await page.getByRole("button", { name, exact: true }).first().isDisabled(),
           true,
           name,
         );
       }
+      // The explorer lists the project and offers nothing that changes it.
+      assert.equal(await page.locator(".explorer-bar button:not([hidden])").count(), 0);
+      assert.equal(await page.locator(".tree-more:visible").count(), 0);
+      assert.equal(await page.locator(".switcher-rename").isHidden(), true);
+      await page.locator('.tree li[data-key="d:diagrams"] > .tree-row').click({ button: "right" });
+      assert.equal(await page.locator(".pg-menu.context").count(), 0, "no menu of actions");
+      const viewedPanel = await projectsPanel(page);
+      assert.equal(await viewedPanel.getByRole("button", { name: "New project…" }).count(), 0);
+      assert.equal(await viewedPanel.getByRole("button", { name: "Import project…" }).count(), 0);
       assert.equal(
-        await page
-          .locator("#menu-templates")
-          .evaluate((e) => (e.closest(".pg-menu-wrapper") as HTMLElement).hidden),
-        true,
+        await viewedPanel.getByRole("button", { name: "Export project (.zip)" }).count(),
+        1,
       );
+      await page.keyboard.press("Escape");
       // The story plays on the canvas, as it does for the person who wrote it.
-      await page.locator("#file-select").selectOption("stories/purchase.meltemi");
-      await analysed(page);
+      await openFile(page, "stories/purchase.meltemi");
       await until(page, "the story offered", () => {
         const select = document.querySelector(
           '#app select[aria-label="Story"]',
@@ -2549,7 +3167,7 @@ const tests: Test[] = [
     },
   },
   signedIn({
-    name: "opens a #p= link as the anonymous project for a person signed in, and the drawer offers to save it to the cloud",
+    name: "opens a #p= link as the anonymous project for a person signed in, and the switcher offers to save it to the cloud",
     async run({ page, context, url }) {
       await context.route(/\/api\/projects(\?.*)?$/, (route) =>
         route.fulfill({
@@ -2580,8 +3198,10 @@ const tests: Test[] = [
       assert.notEqual(await page.locator("#playground").getAttribute("data-cloud"), "open");
       assert.equal(await page.locator(".view-actions").count(), 0);
       assert.equal(await page.locator(".privacy").isVisible(), true);
-      await page.locator(".projects-button").click();
-      const save = page.getByRole("button", { name: "Save this project to the cloud" });
+      await page.locator(".switcher-button").click();
+      const save = page
+        .locator(".switcher-panel")
+        .getByRole("button", { name: "Save this project to the cloud" });
       await save.waitFor();
       assert.equal(await save.isVisible(), true);
     },

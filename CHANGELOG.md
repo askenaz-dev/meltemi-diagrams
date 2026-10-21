@@ -4,6 +4,47 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
+## 1.10.0
+
+The playground's project in one place: an explorer of folders and diagrams in the first column,
+with the project's switcher at its top, as VS Code lists a workspace
+([decision 0048](docs/decisions/0048-project-explorer.md)).
+
+### Playground
+
+- The explorer: a tree of the project's folders, diagrams and images; a file with several diagrams
+  or stories lists them, and a click shows one on the canvas. Errors and warnings are counted on each
+  file, and summed on a closed folder. The keys of a tree (arrows, Home, End, Enter, a letter, F2,
+  Delete, Ctrl+D, Shift+F10), drag and drop of rows and of files from your computer, a menu on
+  every row. Ctrl+B hides it to a rail, Ctrl+Shift+E goes to it; its width is dragged or set from
+  the keyboard and kept. On a phone it is the Files tab.
+- New diagram asks a name and a kind (flow, free composition, sequence) and writes an empty diagram
+  titled with the name; New folder, New file (for other files), rename, move, duplicate, download
+  (a folder as a `.zip`) and delete.
+- Renaming or moving a `.meltemi` file rewrites the imports that name it and its own, in one step
+  that Ctrl+Z undoes from any file, in the browser's project as in a cloud project.
+- `project.json` and the other files that describe the project are hidden until **Show all files**;
+  a hidden file with a problem says so; **Project settings** opens `project.json`, made when the
+  project has none. The project's name is edited in the explorer's header.
+- The Projects panel replaces the drawer, the header's Projects button and the Templates menu: New
+  project, Import project, Export project (.zip), Save this project to the cloud, Project settings,
+  this browser's project and the previous one, and the cloud projects with a filter above eight.
+- New project shows a card per template with a picture of its first diagram, its title, what it is
+  for and what it holds; signed in, a project is made in the account or, when chosen, in this
+  browser.
+- A project archive, opened, imported or dropped, asks where it goes: a new project in the account,
+  this browser, or the files of the open cloud project.
+- The path of the open file above the code; menus and dialogs fade in, folders open by their height,
+  rows made or moved flash once, and none of it moves with reduced motion.
+
+### Command line
+
+- `init --list` prints each template's title, description and contents ("1 model, 2 views").
+
+### Fixed
+
+- An empty sequence diagram drew with an unknown width (`NaN`) on the canvas.
+
 ## 1.9.0 (2026-10-21)
 
 The first version published: on npm (`@meltemi/diagrams-*`), the Visual Studio Marketplace and

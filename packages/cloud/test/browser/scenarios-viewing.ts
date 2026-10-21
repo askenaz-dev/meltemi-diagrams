@@ -42,7 +42,7 @@ import {
   viewing,
   viewingIs,
 } from "./sharing.js";
-import { analysed, assertError, ready, until } from "./support.js";
+import { analysed, assertError, expectOpen, ready, until } from "./support.js";
 
 /** The browser's note that a request answered 404: what an anonymous page logs for a project it may not see. */
 const NOT_FOUND_LOGGED = /status of 404/;
@@ -102,7 +102,10 @@ export const viewingScenarios: Scenario[] = [
       assert.equal(await page.locator(".view-badge").innerText(), "View only");
       assert.equal(await page.locator(".view-copy").isVisible(), true, "Make a copy");
       assert.equal(await page.locator(".view-save").isVisible(), false, "nobody has an account");
-      assert.equal(await page.locator(".projects-button").count(), 0);
+      // The explorer's header names the viewed project, says it is view only and offers no rename.
+      assert.equal(await page.locator(".switcher-name").innerText(), "Viewed");
+      assert.equal(await page.locator(".switcher-where").innerText(), "View only");
+      assert.equal(await page.locator(".switcher-rename").isHidden(), true);
       assert.equal(await page.locator(".cloud-status").isHidden(), true);
       assert.equal(
         await page.locator(".privacy").isHidden(),
@@ -309,7 +312,7 @@ export const viewingScenarios: Scenario[] = [
           "the owner added this later",
         ),
       );
-      assert.equal(await page.locator("#file-select").inputValue(), SLIDE);
+      await expectOpen(page, SLIDE);
       assert.equal(await page.locator(".view-hint").isHidden(), true);
       await statusHas(page, "Reloaded the project.");
       assert.equal(await readOnly(page), true, "still view only");
@@ -768,6 +771,80 @@ export const viewingScenarios: Scenario[] = [
           ),
       );
       assert.deepEqual(await observe(origin, project.id, bea), NOTHING);
+    },
+  },
+
+  {
+    name: "viewing: a viewer's explorer lists the project and opens its files, but offers nothing that changes them: no row menus, no buttons in its bar, no rename of the project, no context menu, and its header says view only or how the page follows the room",
+    signedIn: "u-ana-explorer-view",
+    async run(t) {
+      const { origin } = t;
+      const bea = await t.person("u-bea-explorer-view", { name: "Bea" });
+      const project = await makeProject(t.me, "Looked at", { template: "purchase" });
+      await setLinkLevel(t.me, project.id, "view");
+      await addMember(t.me, project.id, bea, "viewer");
+      const before = await readRoom(t.me, project.id);
+      const diagrams = Object.keys(before.files).filter((path) => path.endsWith(".meltemi"));
+      const model = "models/commerce.meltemi";
+      assert.ok(diagrams.includes(model), "the purchase template has its model");
+
+      // Nobody signed in looks at a snapshot through the link; Bea, a viewer by name, follows the
+      // room live.
+      const anon = await t.device({ as: null });
+      await anon.page.goto(`${origin}/p/${project.id}`);
+      await ready(anon.page);
+      await viewingIs(anon.page, "snapshot");
+      const member = await t.device({ as: bea });
+      await member.page.goto(`${origin}/p/${project.id}`);
+      await ready(member.page);
+      await connected(member.page);
+      await viewingIs(member.page, "live");
+
+      for (const [who, page, where] of [
+        ["nobody signed in", anon.page, "View only"],
+        ["Bea", member.page, "Following live"],
+      ] as const) {
+        assert.equal(await readOnly(page), true, who);
+        // The tree lists every diagram of the project, and a file opens from it.
+        for (const path of diagrams) {
+          await page.locator(`.tree li[data-key="f:${path}"]`).waitFor({ state: "attached" });
+        }
+        await showFile(page, model);
+
+        // The header names the project and says how it is seen; nothing renames it.
+        assert.equal(await page.locator(".switcher-name").innerText(), "Looked at", who);
+        await until(
+          page,
+          `${who}: the header to say how the project is seen`,
+          (words) =>
+            (document.querySelector(".switcher-where")?.textContent ?? "").startsWith(words),
+          where,
+        );
+        assert.equal(await page.locator(".switcher-rename").isHidden(), true, who);
+
+        // No control that changes the files shows: no row's menu button, no button in the bar.
+        const shown = (selector: string) =>
+          page
+            .locator(selector)
+            .evaluateAll(
+              (all) => all.filter((element) => element.getClientRects().length > 0).length,
+            );
+        assert.equal(await shown(".tree .tree-more"), 0, `${who}: no row's menu button`);
+        assert.equal(await shown(".explorer-bar button"), 0, `${who}: no button in the bar`);
+
+        // A right click on a row opens no menu, and F2 on it puts no rename box in it.
+        await page
+          .locator(`.tree li[data-key="f:${model}"] > .tree-row`)
+          .click({ button: "right" });
+        await page.waitForTimeout(200);
+        assert.equal(await page.locator(".pg-menu.context").count(), 0, `${who}: no context menu`);
+        await page.keyboard.press("F2");
+        assert.equal(await page.locator("input.tree-rename").count(), 0, `${who}: no rename box`);
+        assert.deepEqual((await studioState(page)).paths.sort(), Object.keys(before.files).sort());
+      }
+
+      // Nothing of it reached the room.
+      assert.deepEqual(await readRoom(t.me, project.id), before);
     },
   },
 ];

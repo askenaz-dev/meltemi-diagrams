@@ -23,7 +23,7 @@ import {
   undo,
   undoIs,
 } from "./cloud.js";
-import { until } from "./support.js";
+import { expectOpen, openFile, renameFile, showAllFiles, until } from "./support.js";
 
 const OVERVIEW = "diagrams/overview.meltemi";
 const SLIDE = "diagrams/slide.meltemi";
@@ -243,16 +243,12 @@ export const editingScenarios: Scenario[] = [
         (read) => read.files[SLIDE] === original,
       );
 
-      // A file rename is one step of its own: undone, the file is back with its text.
-      await page.getByRole("button", { name: "Rename the file" }).click();
-      await page.locator("dialog[open] input").fill("diagrams/renamed.meltemi");
-      await page.locator("dialog[open]").getByRole("button", { name: "OK", exact: true }).click();
-      await until(
-        page,
-        "the file renamed",
-        () =>
-          (document.querySelector("#file-select") as HTMLSelectElement).value ===
-          "diagrams/renamed.meltemi",
+      // A file rename from the explorer is one step of its own: undone, the file is back with its text.
+      await renameFile(page, SLIDE, "renamed");
+      await expectOpen(page, "diagrams/renamed.meltemi");
+      assert.equal(
+        await statusLine(page),
+        "Renamed diagrams/slide.meltemi to diagrams/renamed.meltemi.",
       );
       await roomHolds(
         t.me,
@@ -261,12 +257,7 @@ export const editingScenarios: Scenario[] = [
         (read) => "diagrams/renamed.meltemi" in read.files && !(SLIDE in read.files),
       );
       await undo(page);
-      await until(
-        page,
-        "the file named as before",
-        (path) => (document.querySelector("#file-select") as HTMLSelectElement).value === path,
-        SLIDE,
-      );
+      await expectOpen(page, SLIDE);
       assert.equal(await code(page), original);
       const room = await roomHolds(
         t.me,
@@ -290,7 +281,7 @@ export const editingScenarios: Scenario[] = [
       assert.equal(sources.length, 5);
 
       // Rename the customer in the model; the diagrams, the sequence and the story refer to it.
-      await page.locator("#file-select").selectOption("models/commerce.meltemi");
+      await openFile(page, "models/commerce.meltemi");
       await until(page, "the model open", () =>
         (document.querySelector(".code-input") as HTMLTextAreaElement).value.includes(
           "person customer",
@@ -434,6 +425,9 @@ export const editingScenarios: Scenario[] = [
       assert.deepEqual((await studioState(page)).paths, [OVERVIEW, "notes.md", "project.json"]);
       assert.equal(await textOf(page, "notes.md"), "# pushed notes\n");
       await undoIs(page, false, "a push is not the person's edit");
+      // The explorer lists the new file once it shows every file.
+      await showAllFiles(page);
+      await page.locator('.tree li[data-key="f:notes.md"]').waitFor();
 
       // Deleted by a push: the file leaves the page.
       const gone = await t.me.api("PUT", `/api/projects/${flow.id}/files`, {
@@ -442,11 +436,8 @@ export const editingScenarios: Scenario[] = [
       assert.equal(gone.status, 200, gone.text);
       await until(
         page,
-        "the file to leave the page",
-        () =>
-          ![...document.querySelectorAll("#file-select option")].some(
-            (option) => (option as HTMLOptionElement).value === "notes.md",
-          ),
+        "the file to leave the explorer",
+        () => document.querySelector('.tree li[data-key="f:notes.md"]') === null,
       );
       assert.deepEqual((await studioState(page)).paths, [OVERVIEW, "project.json"]);
       assert.equal(
@@ -468,20 +459,14 @@ export const editingScenarios: Scenario[] = [
       const renamed = "diagrams/renamed.meltemi";
       const typed = "// typed on the second device while the first renames the file";
 
-      // The second device types for three seconds; one second in, the first renames the file.
+      // The second device types for three seconds; one second in, the first renames the file from
+      // its explorer.
       await second.page.locator(".code-input").click();
       await second.page.keyboard.press("Control+End");
       const typing = second.page.keyboard.type(typed, { delay: 80 });
       await second.page.waitForTimeout(1000);
-      await t.page.getByRole("button", { name: "Rename the file" }).click();
-      await t.page.locator("dialog[open] input").fill(renamed);
-      await t.page.locator("dialog[open]").getByRole("button", { name: "OK", exact: true }).click();
-      await until(
-        t.page,
-        "the file renamed on the first device",
-        (path) => (document.querySelector("#file-select") as HTMLSelectElement).value === path,
-        renamed,
-      );
+      await renameFile(t.page, OVERVIEW, "renamed");
+      await expectOpen(t.page, renamed);
       await typing;
 
       const room = await roomHolds(

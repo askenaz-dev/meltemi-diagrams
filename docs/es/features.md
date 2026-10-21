@@ -102,8 +102,10 @@ referencias.
   archivos Markdown. Cada construcción se informa como convertida, aproximada o descartada, el
   origen nunca se modifica, y al reimportar se conservan la colocación, los estilos y los demás
   ajustes hechos desde entonces (`meltemi-diagrams import`, y tres comandos en VS Code).
-- El playground ([playground](playground.md)): una página web estática con las plantillas, el código
-  con sus servicios de lenguaje junto al mismo lienzo, un único historial para deshacer, importación
+- El playground ([playground](playground.md)): una página web estática con un explorador de las
+  carpetas y los diagramas del proyecto (cambiar el nombre y mover conservan las importaciones),
+  Nuevo proyecto a partir de las tarjetas de las plantillas, importación y exportación de un
+  proyecto como `.zip`, el código con sus servicios de lenguaje junto al mismo lienzo, un único historial para deshacer, importación
   de Mermaid y PlantUML, todas las exportaciones (SVG, PNG, PDF mediante la impresión, el
   reproductor HTML, GIF, WebM y MP4, perfiles, el archivo comprimido del proyecto, el JSON del modelo
   y el catálogo), enlaces para compartir y el trabajo guardado en el navegador; sin cuenta, y nada

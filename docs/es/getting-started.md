@@ -7,10 +7,11 @@ hace falta ninguna cuenta, y nada de lo que escribes sale de tu máquina.
 
 ## Probarlo sin instalar nada
 
-El [playground](playground.md) ejecuta todo el producto en una pestaña del navegador: elige una
-plantilla, cambia el código o arrastra en el lienzo, y exporta. Cuando quieras seguir en local,
-descarga el proyecto como archivo comprimido con **Descargar**; la línea de comandos y el editor lo
-abren tal cual.
+El [playground](playground.md) ejecuta todo el producto en una pestaña del navegador: empieza un
+proyecto desde la tarjeta de una plantilla, cambia el código o arrastra en el lienzo, y exporta. El
+explorador de la izquierda lista las carpetas y los diagramas del proyecto. Cuando quieras seguir en
+local, **Exportar proyecto**, en el panel Proyectos (el nombre del proyecto arriba del explorador),
+lo descarga como archivo comprimido; la línea de comandos y el editor lo abren tal cual.
 
 ## Instalación
 

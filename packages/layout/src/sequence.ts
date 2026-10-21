@@ -497,9 +497,13 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
   }
 
   // ---------------------------------------------------------------- canvas
-  const left = Math.min(xs[0]! - widths[0]! / 2 - leftExtra, ...frames.map((fr) => fr.box.x));
+  // A diagram with no participant yet (a new one) has an empty width, not an unknown one.
+  const leftmost = xs.length > 0 ? xs[0]! - widths[0]! / 2 - leftExtra : 0;
+  const rightmost =
+    xs.length > 0 ? xs[xs.length - 1]! + widths[widths.length - 1]! / 2 + rightExtra : 0;
+  const left = Math.min(leftmost, ...frames.map((fr) => fr.box.x));
   const right = Math.max(
-    xs[xs.length - 1]! + widths[widths.length - 1]! / 2 + rightExtra,
+    rightmost,
     ...frames.map((fr) => fr.box.x + fr.box.width),
     ...notes.map((n) => n.box.x + n.box.width),
     ...messages.flatMap((m) => (m.label ? [m.label.box.x + m.label.box.width] : [])),

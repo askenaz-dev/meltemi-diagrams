@@ -1,5 +1,6 @@
 import { plural, type Locale } from "@meltemi/diagrams-i18n";
 import { cloud } from "./cloud-en.js";
+import { explorer } from "./explorer-en.js";
 import { presence } from "./cloud-presence-en.js";
 import { viewing } from "./cloud-view-en.js";
 
@@ -22,7 +23,6 @@ export const en = {
   header: {
     tag: "Playground",
     actions: "Playground",
-    templates: "Templates",
     open: "Open",
     openTitle: "Open files or a project .zip",
     import: "Import",
@@ -117,8 +117,31 @@ export const en = {
     privacy: "Runs in your browser; nothing you write is sent anywhere.",
   },
 
-  /** The Templates menu. Templates are listed by name, which `init --template` takes. */
+  /** The templates of New project, by the name `init --template` takes. */
   templates: {
+    /** Each template's title, by name, as its card shows it. */
+    titles: {
+      flow: "Flow diagram",
+      c4: "C4 model",
+      sequence: "Sequence diagram",
+      free: "Slide",
+      purchase: "Purchase example",
+    },
+    /** What a template holds, the kinds it has in order: "1 model · 2 views". */
+    contents: (
+      counts: readonly (readonly ["models" | "views" | "diagrams" | "stories", number])[],
+    ) =>
+      counts
+        .map(([kind, n]) => {
+          const [one, other] = {
+            models: ["model", "models"],
+            views: ["view", "views"],
+            diagrams: ["diagram", "diagrams"],
+            stories: ["story", "stories"],
+          }[kind];
+          return `${n} ${plural("en", n, { one: one!, other: other! })}`;
+        })
+        .join(" · "),
     /** What each template of `init` holds, by name. */
     descriptions: {
       flow: "A flow diagram to start from",
@@ -128,13 +151,10 @@ export const en = {
       purchase:
         "The reference example: a model, its C4 views, a payment sequence, an executive slide, an animated story and export profiles",
     },
-    restore: "Restore the previous project",
-    restoreDetail: "The work a template, an archive or a link replaced",
     confirmTitle: "Open the template?",
     confirmMessage: (name: string) =>
-      `The ${name} template replaces the project. Your work is kept as the previous project, which the Templates menu restores.`,
+      `The ${name} template replaces the project. Your work is kept as the previous project, which the Projects panel restores.`,
     confirm: "Open the template",
-    opened: (name: string) => `Opened the ${name} template.`,
     restored: "Restored the previous project.",
   },
 
@@ -161,19 +181,14 @@ export const en = {
   /** Opening and keeping projects: archives, local files, links and the browser's storage. */
   project: {
     largeImages: (paths: readonly string[]) => `Large images were not kept: ${paths.join(", ")}.`,
-    openedShared: "Opened the shared project. Your previous work can be restored from Templates.",
+    openedShared:
+      "Opened the shared project. Your previous work can be restored from the Projects panel.",
     linkUnreadable: "The link could not be read.",
     workUnchanged: (reason: string) => `${reason} Your work is as it was.`,
     noRoom: "The browser has no room to keep this project; download it to keep it.",
     noStorage: "This browser does not keep pages' data; download the project to keep it.",
     kept: "Kept in this browser.",
     keptHere: "Kept in this browser. Download the project to keep it elsewhere.",
-    archiveEmpty: "The archive holds no file the playground opens.",
-    archiveTitle: "Open the archive?",
-    archiveMessage: (name: string) =>
-      `${name} replaces the project. Your work is kept as the previous project, which the Templates menu restores.`,
-    archiveConfirm: "Open the archive",
-    archiveOpened: (name: string, files: number) => `Opened ${name}: ${files} files.`,
     archiveUnreadable: (name: string) => `${name} could not be read.`,
     noneOpenable: "None of the files can be opened in the playground.",
     replaceTitle: "Replace files?",
@@ -182,34 +197,11 @@ export const en = {
     added: (paths: readonly string[]) => `Added ${paths.join(", ")}.`,
   },
 
-  /** The file bar, the dialogs on files and the text of a new file. */
+  /** The open file's place above the code, and an image shown in the code pane. */
   files: {
-    file: "File",
-    newFile: "New file",
-    rename: "Rename the file",
-    delete: "Delete the file",
-    project: "Project",
-    option: (name: string, image: boolean) => (image ? `${name} (image)` : name),
     preview: (path: string, kilobytes: number, name: string) =>
       `${path} · ${kilobytes} KB · images are used by diagrams beside them, such as image "${name}".`,
     noFile: "no file",
-    newTitle: "New file",
-    newPath: "Path of the new file",
-    relative: "Use a relative path such as diagrams/overview.meltemi.",
-    editable: "The playground edits .meltemi, .json and .md files.",
-    exists: (path: string) => `${path} exists.`,
-    renameTitle: "Rename the file",
-    renamePath: "New path",
-    keepExtension: "Keep the file's extension.",
-    renamed: (from: string, to: string) =>
-      `Renamed ${from} to ${to}. Imports that name it are not changed.`,
-    deleteTitle: "Delete the file?",
-    deleteMessage: (path: string) =>
-      `${path} is removed from the project. Undo does not bring it back.`,
-    deleteConfirm: "Delete",
-    deleted: (path: string) => `Deleted ${path}.`,
-    /** The labels of the starter diagram of a new `.meltemi` file; its code stays as written. */
-    starter: { start: "Start", done: "Done" },
   },
 
   /** The code pane: its keyboard help, lists, rename box and what its commands say. */
@@ -463,6 +455,8 @@ export const en = {
     themeChanged: (file: string) => `Changed the theme in ${file}.`,
   },
 
+  /** The explorer, the project switcher, New project and Import project (`explorer-en.ts`). */
+  explorer,
   /** The cloud projects: the drawer, the connection, what the service refuses (`cloud-en.ts`). */
   cloud,
   /** Viewing a project by its link: the badge, the copies, the reload hint (`cloud-view-en.ts`). */

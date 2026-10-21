@@ -27,6 +27,8 @@ export interface Settings {
   /** The share of the width the code takes, from 0.2 to 0.8. */
   split?: number;
   canvas?: unknown;
+  /** The explorer: its width in pixels, whether it is a rail, and whether every file is listed. */
+  explorer?: { width?: number; collapsed?: boolean; showAll?: boolean };
 }
 
 function storage(): Storage | undefined {

@@ -2,6 +2,7 @@ import type { EditPlan } from "@meltemi/diagrams-edit";
 import {
   CanvasSession,
   ProjectSessions,
+  moveFileEdits,
   type DocumentAnalysis,
   type HostMessage,
   type SessionResult,
@@ -118,6 +119,18 @@ export interface OpenAnalysis {
 
 /** Problems of every file of the project, by path. */
 export type ProjectProblems = ReadonlyMap<string, { errors: number; warnings: number }>;
+
+/** What a `.meltemi` file declares, as the explorer lists it (`Studio.outlines`). */
+export interface FileOutline {
+  readonly diagrams: readonly {
+    readonly id: string;
+    readonly title: string | null;
+    readonly type: "flow" | "free" | "sequence" | "c4";
+  }[];
+  readonly stories: readonly { readonly id: string; readonly title: string | null }[];
+  readonly models: number;
+  readonly themes: number;
+}
 
 const absolute = (path: string) => `${ROOT}/${path}`;
 
@@ -496,23 +509,88 @@ export class Studio {
     });
   }
 
+  /**
+   * Renames a file. The person's rename is a move (`moveFiles`): the imports that name the file
+   * follow it. A rename a bound document brings (`remote`) only moves the file: the other device's
+   * edits of the imports arrive as their own changes.
+   */
   renameFile(from: string, to: string, options: { remote?: boolean } = {}): boolean {
-    if (this.viewOnly && !options.remote) return false;
-    if (!this.host.rename(from, to)) return false;
+    if (!options.remote) return this.moveFiles([[from, to]]) !== undefined;
+    if (!this.host.has(from) || this.host.has(to)) return false;
     this.inStep(() => {
-      this.emitChange({ kind: "rename", path: to, from }, { remote: options.remote ?? false });
-      this.history.forget(from, to);
-      const canvas = this.canvases.get(from);
-      this.canvases.delete(from);
-      if (canvas) this.canvases.set(to, canvas);
-      this.revisions.set(to, this.revision(from) + 1);
-      this.revisions.delete(from);
+      this.relocate(from, to, true);
       this.renew();
-      if (from === this.openPath) this.openPath = to;
       this.current = undefined;
       this.filesChanged();
     });
     return true;
+  }
+
+  /**
+   * Moves files as one step of the person's: each `[from, to]` in order, and the imports of the
+   * project rewritten so that they still name the same files (decision 0048). Refused (undefined)
+   * in view mode, or when a file is missing or a target is taken, counting the moves before it;
+   * nothing is moved then. Answers the files whose imports changed and those left as they were
+   * because they do not parse, by their paths after the moves.
+   */
+  moveFiles(
+    moves: readonly (readonly [string, string])[],
+  ): { readonly edited: readonly string[]; readonly skipped: readonly string[] } | undefined {
+    if (this.viewOnly || moves.length === 0) return undefined;
+    const taken = new Set(this.host.paths());
+    for (const [from, to] of moves) {
+      if (!taken.has(from) || taken.has(to) || from === to) return undefined;
+      taken.delete(from);
+      taken.add(to);
+    }
+    const planned = moveFileEdits(
+      this.sessions,
+      moves.map(([from, to]) => ({ from: absolute(from), to: absolute(to) })),
+    );
+    const edits = new Map<string, readonly TextEdit[]>();
+    for (const [file, list] of planned.edits) {
+      const relative = this.relative(file);
+      if (relative !== undefined) edits.set(relative, list);
+    }
+    const skipped = planned.skipped.flatMap((file) => this.relative(file) ?? []);
+    this.inStep(() => {
+      for (const [from, to] of moves) this.relocate(from, to, false);
+      const changes = [...edits].map(([path, list]) => {
+        const before = this.text(path);
+        return { path, before, after: applyTextEdits(before, list) };
+      });
+      for (const change of changes) {
+        this.write(change.path, change.after);
+        this.emit("text", change.path, change.after);
+      }
+      if (!this.bound) {
+        this.history.recordMoves(
+          moves.map(([from, to]) => ({ from, to })),
+          changes,
+        );
+      }
+      this.renew();
+      this.current = undefined;
+      this.filesChanged();
+    });
+    return { edited: [...edits.keys()], skipped };
+  }
+
+  /**
+   * Moves one file and what the studio keeps of it: its canvas, its revision and, unless an undo
+   * already moved them, its stacks of the history.
+   */
+  private relocate(from: string, to: string, remote: boolean, history = true): void {
+    this.host.rename(from, to);
+    this.emitChange({ kind: "rename", path: to, from }, { remote });
+    if (history) this.history.forget(from, to);
+    const canvas = this.canvases.get(from);
+    this.canvases.delete(from);
+    if (canvas) this.canvases.set(to, canvas);
+    this.revisions.set(to, this.revision(from) + 1);
+    this.revisions.delete(from);
+    this.workspaceOf(from).invalidate(absolute(from));
+    if (from === this.openPath) this.openPath = to;
   }
 
   /**
@@ -632,13 +710,21 @@ export class Studio {
   }
 
   private restore(restored: ReturnType<History["undo"]>): boolean {
-    if (!restored || restored.texts.size === 0) return false;
+    if (!restored) return false;
+    const moves = restored.moves ?? [];
+    if (restored.texts.size === 0 && moves.length === 0) return false;
     this.inStep(() => {
+      // The history already moved its stacks with the files; the files follow.
+      for (const move of moves) this.relocate(move.from, move.to, false, false);
       for (const [path, text] of restored.texts) {
         this.write(path, text);
         this.emit("text", path, text, path === this.openPath ? restored.selection : undefined);
       }
-      this.analyzeNow();
+      if (moves.length > 0) {
+        this.renew();
+        this.current = undefined;
+        this.filesChanged();
+      } else this.analyzeNow();
     });
     return true;
   }
@@ -731,6 +817,31 @@ export class Studio {
       add(this.relative(file), compilation.diagnostics);
     }
     return counts;
+  }
+
+  /**
+   * What each `.meltemi` file of the project declares, by path: its diagrams and stories in source
+   * order, and how many models and themes it holds. A file that does not compile declares what its
+   * parse kept. From the project's compilation, which reuses each file's by its text.
+   */
+  outlines(): Map<string, FileOutline> {
+    const outlines = new Map<string, FileOutline>();
+    for (const [file, compiled] of this.workspace.compileProject().files) {
+      const path = this.relative(file);
+      if (path === undefined) continue;
+      const document = compiled.compilation.document;
+      outlines.set(path, {
+        diagrams: document.diagrams.map((d) => ({
+          id: d.id,
+          title: d.properties.title,
+          type: d.type,
+        })),
+        stories: document.stories.map((s) => ({ id: s.id, title: s.title })),
+        models: document.models.length,
+        themes: document.themes.length,
+      });
+    }
+    return outlines;
   }
 
   /** Runs work that reads fonts and icons until every file it reads has arrived. */

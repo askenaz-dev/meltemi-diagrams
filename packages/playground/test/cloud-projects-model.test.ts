@@ -108,6 +108,12 @@ function rig(listed: CloudProject[] = [project("a", "Alpha"), project("b", "Beta
       for (const [path, done, total] of host.progress) progress(path, done, total);
       return host.save(name);
     },
+    uploadProject: (name, files, progress) => {
+      calls.push(`upload ${name} with ${[...files.keys()].join(", ")}`);
+      for (const [path, done, total] of host.progress) progress(path, done, total);
+      return host.save(name);
+    },
+    renamed: (id, name) => calls.push(`renamed ${id} ${name}`),
     leaveToLocal: () => {
       calls.push("leave");
       host.current = undefined;
@@ -309,6 +315,44 @@ describe("making a project from a template", () => {
   });
 });
 
+describe("a project from an archive's files", () => {
+  it("uploads the files, tells how it goes, and opens the project", async () => {
+    const r = rig();
+    await r.model.load();
+    r.host.progress = [["assets/logo.png", 1, 1]];
+    const statuses: string[] = [];
+    const watch = new ProjectsModel(
+      r.projectsHost,
+      () => en.cloud,
+      (state) => statuses.push(state.status),
+    );
+    const files = new Map<string, string | Uint8Array>([
+      ["project.json", "{}"],
+      ["assets/logo.png", new Uint8Array([1])],
+    ]);
+    expect(await watch.createFromFiles(" Shop ", files)).toBe(true);
+    expect(statuses).toContain(en.cloud.projects.creating("Shop"));
+    expect(statuses).toContain(en.cloud.projects.uploading("assets/logo.png", 1, 1));
+    expect(statuses.at(-1)).toBe(en.cloud.projects.created("Shop"));
+    expect(r.calls).toEqual([
+      "list",
+      "upload Shop with project.json, assets/logo.png",
+      "open saved",
+    ]);
+  });
+
+  it("says why it could not, and refuses a bad name first", async () => {
+    const r = rig();
+    await r.model.load();
+    expect(await r.model.createFromFiles("", new Map())).toBe(false);
+    expect(r.model.state.problem).toBe(en.cloud.projects.nameEmpty);
+    r.host.save = async () => refused(413, "quota.storage");
+    expect(await r.model.createFromFiles("x", new Map([["a.meltemi", ""]]))).toBe(false);
+    expect(r.model.state.problem).toBe(en.cloud.errors.quotaStorage(200));
+    expect(r.model.state.projects.map((p) => p.id)).toEqual(["a", "b"]);
+  });
+});
+
 describe("saving the local project", () => {
   it("creates the cloud project, tells how the uploads go, and opens it", async () => {
     const r = rig();
@@ -356,6 +400,8 @@ describe("renaming, duplicating and deleting", () => {
     await r.model.load();
     expect(await r.model.rename(r.model.state.projects[0]!, "  Alpha 2 ")).toBe(true);
     expect(r.calls).toContain("update a Alpha 2");
+    // The page hears it, so that the explorer's header follows when the project is open.
+    expect(r.calls).toContain("renamed a Alpha 2");
     expect(r.model.state.projects.map((p) => p.name)).toEqual(["Alpha 2", "Beta"]);
     expect(r.reports).toEqual([en.cloud.projects.renamed("Alpha 2")]);
   });

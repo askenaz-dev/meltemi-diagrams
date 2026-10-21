@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import type { Locator, Page } from "playwright-core";
 import { PNG, makeProject, readRoom } from "./cloud.js";
 import type { Person } from "./scenario.js";
-import { ask, until, type Answer } from "./support.js";
+import { ask, expectOpen, revealFile, until, type Answer } from "./support.js";
 
 export type LinkLevel = "private" | "view" | "edit";
 export type MemberRole = "viewer" | "editor";
@@ -228,15 +228,14 @@ export async function viewingIs(page: Page, state: string | null): Promise<void>
   );
 }
 
-/** The text of a file of the project as the page shows it, once the code pane holds it. */
+/**
+ * Opens a file of the project from the explorer's tree (Show all files on for a file it hides), and
+ * waits until it is the open one.
+ */
 export async function showFile(page: Page, path: string): Promise<void> {
-  await page.locator("#file-select").selectOption(path);
-  await until(
-    page,
-    `${path} in the code pane`,
-    (wanted) => (document.querySelector("#file-select") as HTMLSelectElement).value === wanted,
-    path,
-  );
+  await revealFile(page, path);
+  await page.locator(`.tree li[data-key="f:${path}"] > .tree-row .tree-name`).click();
+  await expectOpen(page, path);
 }
 
 // ---------------------------------------------------------------------------------------------

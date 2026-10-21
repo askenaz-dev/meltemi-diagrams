@@ -1,5 +1,6 @@
 import { list, plural } from "@meltemi/diagrams-i18n";
 import { cloud } from "./cloud-es.js";
+import { explorer } from "./explorer-es.js";
 import { presence } from "./cloud-presence-es.js";
 import { viewing } from "./cloud-view-es.js";
 import type { en } from "./en.js";
@@ -21,7 +22,6 @@ export const es: typeof en = {
   header: {
     tag: "Playground",
     actions: "Playground",
-    templates: "Plantillas",
     open: "Abrir",
     openTitle: "Abrir archivos o el .zip de un proyecto",
     import: "Importar",
@@ -112,6 +112,25 @@ export const es: typeof en = {
   },
 
   templates: {
+    titles: {
+      flow: "Diagrama de flujo",
+      c4: "Modelo C4",
+      sequence: "Diagrama de secuencia",
+      free: "Diapositiva",
+      purchase: "Ejemplo de compra",
+    },
+    contents: (counts) =>
+      counts
+        .map(([kind, n]) => {
+          const [one, other] = {
+            models: ["modelo", "modelos"],
+            views: ["vista", "vistas"],
+            diagrams: ["diagrama", "diagramas"],
+            stories: ["historia", "historias"],
+          }[kind];
+          return `${n} ${plural("es", n, { one: one!, other: other! })}`;
+        })
+        .join(" · "),
     descriptions: {
       flow: "Un diagrama de flujo para empezar",
       c4: "Un modelo de arquitectura con una vista de contexto y una vista de contenedores",
@@ -120,13 +139,10 @@ export const es: typeof en = {
       purchase:
         "El ejemplo de referencia: un modelo, sus vistas C4, una secuencia de pago, una diapositiva ejecutiva, una historia animada y perfiles de exportación",
     },
-    restore: "Restaurar el proyecto anterior",
-    restoreDetail: "El trabajo que reemplazó una plantilla, un archivo comprimido o un enlace",
     confirmTitle: "¿Abrir la plantilla?",
     confirmMessage: (name) =>
-      `La plantilla ${name} reemplaza el proyecto. Tu trabajo se guarda como el proyecto anterior, que el menú Plantillas restaura.`,
+      `La plantilla ${name} reemplaza el proyecto. Tu trabajo se guarda como el proyecto anterior, que el panel Proyectos restaura.`,
     confirm: "Abrir la plantilla",
-    opened: (name) => `Se abrió la plantilla ${name}.`,
     restored: "Se restauró el proyecto anterior.",
   },
 
@@ -152,7 +168,7 @@ export const es: typeof en = {
   project: {
     largeImages: (paths) => `No se guardaron las imágenes grandes: ${list("es", paths)}.`,
     openedShared:
-      "Se abrió el proyecto compartido. Puedes restaurar tu trabajo anterior desde Plantillas.",
+      "Se abrió el proyecto compartido. Puedes restaurar tu trabajo anterior desde el panel Proyectos.",
     linkUnreadable: "No se pudo leer el enlace.",
     workUnchanged: (reason) => `${reason} Tu trabajo sigue como estaba.`,
     noRoom:
@@ -161,13 +177,6 @@ export const es: typeof en = {
       "Este navegador no guarda los datos de las páginas; descarga el proyecto para conservarlo.",
     kept: "Guardado en este navegador.",
     keptHere: "Guardado en este navegador. Descarga el proyecto para conservarlo en otro lugar.",
-    archiveEmpty: "El archivo comprimido no contiene ningún archivo que el playground abra.",
-    archiveTitle: "¿Abrir el archivo comprimido?",
-    archiveMessage: (name) =>
-      `${name} reemplaza el proyecto. Tu trabajo se guarda como el proyecto anterior, que el menú Plantillas restaura.`,
-    archiveConfirm: "Abrir el archivo comprimido",
-    archiveOpened: (name, files) =>
-      `Se abrió ${name}: ${files} ${plural("es", files, { one: "archivo", other: "archivos" })}.`,
     archiveUnreadable: (name) => `No se pudo leer ${name}.`,
     noneOpenable: "Ninguno de los archivos se puede abrir en el playground.",
     replaceTitle: "¿Reemplazar archivos?",
@@ -179,30 +188,9 @@ export const es: typeof en = {
   },
 
   files: {
-    file: "Archivo",
-    newFile: "Nuevo archivo",
-    rename: "Cambiar el nombre del archivo",
-    delete: "Eliminar el archivo",
-    project: "Proyecto",
-    option: (name, image) => (image ? `${name} (imagen)` : name),
     preview: (path, kilobytes, name) =>
       `${path} · ${kilobytes} KB · las imágenes las usan los diagramas que están junto a ellas, por ejemplo, image "${name}".`,
     noFile: "ningún archivo",
-    newTitle: "Nuevo archivo",
-    newPath: "Ruta del nuevo archivo",
-    relative: "Usa una ruta relativa, como diagrams/overview.meltemi.",
-    editable: "El playground edita archivos .meltemi, .json y .md.",
-    exists: (path) => `${path} ya existe.`,
-    renameTitle: "Cambiar el nombre del archivo",
-    renamePath: "Nueva ruta",
-    keepExtension: "Mantén la extensión del archivo.",
-    renamed: (from, to) =>
-      `Se cambió el nombre de ${from} a ${to}. Las importaciones que lo nombran no cambian.`,
-    deleteTitle: "¿Eliminar el archivo?",
-    deleteMessage: (path) => `${path} se quita del proyecto. Deshacer no lo recupera.`,
-    deleteConfirm: "Eliminar",
-    deleted: (path) => `Se eliminó ${path}.`,
-    starter: { start: "Inicio", done: "Fin" },
   },
 
   code: {
@@ -438,6 +426,7 @@ export const es: typeof en = {
     themeChanged: (file) => `Se cambió el tema en ${file}.`,
   },
 
+  explorer,
   cloud,
   viewing,
   presence,

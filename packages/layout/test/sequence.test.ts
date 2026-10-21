@@ -34,6 +34,21 @@ function texts(items: readonly SceneItem[]): string[] {
   );
 }
 
+describe("an empty diagram", () => {
+  it("lays out with a finite size, as a new diagram has no participant yet", () => {
+    const result = run("");
+    expect(Number.isFinite(result.scene!.width)).toBe(true);
+    expect(Number.isFinite(result.scene!.height)).toBe(true);
+    expect(JSON.stringify(result.scene)).not.toContain("NaN");
+    // With the frame, the title still sets the width.
+    const framed = layoutDiagram(
+      compile('diagram s: sequence {\n  title "checkout"\n}\n'),
+      compile('diagram s: sequence {\n  title "checkout"\n}\n').document.diagrams[0]!,
+    );
+    expect(JSON.stringify(framed.scene)).not.toContain("NaN");
+  });
+});
+
 describe("columns", () => {
   it("orders participants as declared and keeps labels between them", () => {
     const result = run(

@@ -561,15 +561,45 @@ token was refused.
       `${check ? "Would import" : "Imported"} ${count(files, "file")} from ${folder}: ${parts.join(", ")}`,
   },
   init: {
-    /** What each template holds, as `init --list` prints it. */
+    /** Each template's title and what it holds, as `init --list` prints them. */
     templates: {
-      flow: "A flow diagram to start from",
-      c4: "An architecture model with a context view and a container view",
-      sequence: "A sequence diagram with a scenario for each outcome",
-      free: "A slide composed freely: text, boxes, an icon and a group",
-      purchase:
-        "The reference example: a model, its C4 views, a payment sequence, an executive slide, an animated story and export profiles",
+      flow: { title: "Flow diagram", description: "A flow diagram to start from" },
+      c4: {
+        title: "C4 model",
+        description: "An architecture model with a context view and a container view",
+      },
+      sequence: {
+        title: "Sequence diagram",
+        description: "A sequence diagram with a scenario for each outcome",
+      },
+      free: {
+        title: "Slide",
+        description: "A slide composed freely: text, boxes, an icon and a group",
+      },
+      purchase: {
+        title: "Purchase example",
+        description:
+          "The reference example: a model, its C4 views, a payment sequence, an executive slide, an animated story and export profiles",
+      },
     },
+    /** A template's contents, the kinds it has in the order given: "1 model, 2 views". */
+    contents: (
+      counts: readonly (readonly ["models" | "views" | "diagrams" | "stories", number])[],
+    ) =>
+      counts
+        .map(([kind, n]) =>
+          count(
+            n,
+            { models: "model", views: "view", diagrams: "diagram", stories: "story" }[kind],
+            {
+              models: "models",
+              views: "views",
+              diagrams: "diagrams",
+              stories: "stories",
+            }[kind],
+          ),
+        )
+        .join(", "),
     exists: (path: string) => `${path} exists; it is not replaced.`,
     gitlab: `.gitlab-ci.yml exists; add the job with:\n  include:\n    - local: .gitlab/meltemi-diagrams.yml\n`,
     oneFolder: "give one folder.",
