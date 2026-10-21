@@ -327,7 +327,7 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   } else {
     console.log(
       `\nRelease ${TOOL_VERSION} is ready in release/. Publish it as RELEASING.md says:\n` +
-        '  for tarball in release/*.tgz; do npm publish "$tarball" --access public; done\n' +
+        '  for tarball in ./release/*.tgz; do npm publish "$tarball" --access public; done\n' +
         `  vsce publish --packagePath release/meltemi-diagrams-${TOOL_VERSION}.vsix\n` +
         `  ovsx publish release/meltemi-diagrams-${TOOL_VERSION}.vsix`,
     );

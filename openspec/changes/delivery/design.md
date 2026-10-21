@@ -170,7 +170,7 @@ migrations); deploying on tags only (the service and the packages have different
 `check` (the tag's version equals every manifest's and `CLI_VERSION`, else the run fails before
 publishing anything; `pnpm release:check` on `ubuntu-latest`, where Chrome and FFmpeg are
 installed; `release/` uploaded as the run's artifact), `npm` (`permissions: id-token: write`;
-for every `release/*.tgz`: skip when `npm view <name>@<version> version` answers, else
+for every `./release/*.tgz` (with `./`: npm reads `release/<name>.tgz` as a GitHub repository): skip when `npm view <name>@<version> version` answers, else
 `npm publish --access public --provenance` with the `NPM_TOKEN` Terraform placed), `extension`
 (`vsce publish --packagePath` with `VSCE_PAT`, `ovsx publish` with `OVSX_PAT`), `github`
 (`gh release create v<version>` with `release/manifest.json`, the `.vsix` and the changelog

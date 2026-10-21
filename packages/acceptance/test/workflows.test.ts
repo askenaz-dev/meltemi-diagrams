@@ -136,6 +136,8 @@ describe("release.yml", () => {
 
   it("publishes every tarball with provenance, skipping what npm already has", () => {
     expect(text).toMatch(/id-token: write/);
+    // Without "./" npm takes release/<name>.tgz for a GitHub repository.
+    at(text, "for tarball in ./release/*.tgz; do");
     expect(at(text, 'npm view "${name}@${version}" version')).toBeLessThan(
       at(text, 'npm publish "$tarball" --access public --provenance'),
     );

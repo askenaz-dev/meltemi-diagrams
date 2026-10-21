@@ -62,7 +62,7 @@ instead.
 `.github/workflows/release.yml` SHALL run on a tag `v<x.y.z>` and SHALL, in jobs that each need
 the previous: fail before publishing anything when the tag's version differs from the manifests'
 version; run `pnpm release:check` and keep `release/` as the run's artifact; publish every
-tarball of `release/*.tgz` to npm with `--access public --provenance`, skipping a tarball whose
+tarball of `./release/*.tgz` to npm with `--access public --provenance`, skipping a tarball whose
 name and version the registry already has; publish the `.vsix` to the Visual Studio Marketplace
 and to Open VSX; and create the GitHub release `v<x.y.z>` with `release/manifest.json`, the
 `.vsix` and the changelog entry of the version as its notes. The npm token, the Marketplace token

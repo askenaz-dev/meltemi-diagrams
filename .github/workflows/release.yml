@@ -62,7 +62,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          for tarball in release/*.tgz; do
+          # "./": npm reads release/<name>.tgz as a GitHub repository (user/repo), not a file.
+          for tarball in ./release/*.tgz; do
             manifest="$(tar -xOzf "$tarball" package/package.json)"
             name="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.name)' "$manifest")"
             version="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.version)' "$manifest")"
