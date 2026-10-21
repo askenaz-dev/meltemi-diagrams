@@ -1,0 +1,36 @@
+language "0.2"
+
+// Sign-in, with a scenario for each outcome: export one with
+// `meltemi-diagrams export diagrams/sign-in.meltemi --scenario success`.
+diagram signin: sequence {
+  title "Sign in"
+
+  actor user "User"
+  participant web "Web app"
+  participant api "API"
+  database db "Users"
+
+  user -> web: "Email and password" as submit
+  web -> api: "POST /sessions" as login
+  activate api
+  api -> db: "Find the user" as find
+  db --> api: "User" as found
+
+  alt check "Password matches" {
+    api --> web: "Session" as session
+    web --> user: "Welcome" as welcome
+  } else "Wrong password" {
+    api --> web: "401" as rejected
+    web --> user: "Try again" as retry
+  }
+
+  deactivate api
+
+  scenario success "Signed in" {
+    choose check "Password matches"
+  }
+
+  scenario failure "Wrong password" {
+    choose check "Wrong password"
+  }
+}

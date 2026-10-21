@@ -1,0 +1,577 @@
+# diagram-canvas Specification
+
+## Purpose
+The canvas session and its pure helpers: renders and stale states, viewport, minimap, grid, snapping and guides, selection, gestures, creation and connection, clipboard, grouping, alignment, route editing, the inspector and keyboard operation, each action becoming one edit of the text.
+## Requirements
+### Requirement: Canvas session and protocol
+`CanvasSession` SHALL hold the current analysis, the chosen diagram and the selection. `update(analysis)` SHALL produce host messages:
+
+- **`render`**: revision, diagrams, chosen diagram, mode, SVG, geometry and selection;
+- **`stale`**: problem count and first problem, while the last render stays shown;
+- **`empty`**: the file has no flow diagram.
+
+`receive(message)` SHALL answer each canvas message with an edit plan, a rejection or new state, and SHALL reject messages whose revision is not current with `edit.stale-revision`. Every incoming message SHALL pass `isCanvasMessage`, which checks shape, finite numbers and known kinds.
+
+#### Scenario: Stale gesture
+- **WHEN** a move gesture arrives with revision 4 while the document is at revision 5
+- **THEN** it is rejected with `edit.stale-revision` and the current render is sent again
+
+#### Scenario: Errors keep the last render
+- **WHEN** a rendered diagram gets a syntax error
+- **THEN** the session sends `stale` with the problem count, the webview keeps the last picture dimmed, and gestures are refused until the error is fixed
+
+### Requirement: Viewport, zoom, pan and minimap
+The canvas helpers SHALL map screen points to diagram points through `pan + zoom × (point + offset)`:
+
+- `zoomAt` SHALL keep the point under the pointer fixed and clamp the zoom between 10 % and 800 %;
+- `zoomStep` SHALL walk the presets 10, 25, 50, 75, 100, 125, 150, 200, 300, 400 and 800 %;
+- `fitViewport` and `fitSelection` SHALL fit with a 24 px margin and at most 100 %;
+- `keepOrigin` SHALL compensate a change of offset between renders;
+- `minimapViewport` SHALL give the scale of the content in a 200 × 140 box and the rectangle of the visible area, and SHALL map a point of the minimap back to a pan.
+
+#### Scenario: Zoom around the pointer
+- **WHEN** the zoom goes from 100 % to 200 % with the pointer over the diagram point (300, 200)
+- **THEN** that point is under the pointer before and after
+
+#### Scenario: Minimap pan
+- **WHEN** the user clicks the centre of the minimap
+- **THEN** the viewport is centred on the centre of the content
+
+### Requirement: Grid, snapping and guides
+The grid SHALL default to 14 px (`meltemi.canvas.grid`) and SHALL be drawn over the whole workspace, with every fourth line stronger. When lines would be closer than 6 screen pixels, only the strong lines SHALL be drawn. `resolveMove` SHALL snap the primary box first to guides, then to the grid:
+
+- **guides**: an edge or centre of another box within 6 screen pixels;
+- **grid**: the centre of the primary box to the nearest grid line.
+
+The guides used SHALL be returned for drawing. Alt SHALL disable snapping and guides and round to whole pixels.
+
+#### Scenario: Centre on the grid
+- **WHEN** a 160 × 56 box centred on (100, 100) is dragged by (30, 9) with a 14 px grid and no other box near
+- **THEN** its new centre is (126, 112)
+
+#### Scenario: Guide wins over grid
+- **WHEN** another box's top edge is 3 screen pixels from the dragged box's top edge
+- **THEN** the dragged box's top edge aligns with it and the guide is returned
+
+### Requirement: Selection
+The canvas SHALL support:
+
+- click, plus Shift- or Ctrl-click to add and remove; the topmost painted shape under the pointer is the one clicked, and a shape drawn as a path (diamond, ellipse, polygon…) is hit only inside its outline;
+- Alt+click to select the shape below the one under the pointer, cycling through the stack in paint order, and "Select the shape below" in the context menu;
+- a selection rectangle that selects the boxes fully inside it and the relations whose drawn line is fully inside it;
+- select all (Ctrl+A) and clear (Escape);
+- Tab and Shift+Tab through elements in source order;
+- Ctrl with the arrows to the nearest element in that direction, preferring the nested (smaller) shape when two are concentric.
+
+The selection SHALL be kept across renders, and ids that disappear SHALL be dropped.
+
+#### Scenario: Keyboard traversal
+- **WHEN** `client`, `api` and `db` are declared in that order, `api` is selected and Tab is pressed
+- **THEN** `db` is selected and scrolled into view
+
+#### Scenario: A rectangle over an arrow
+- **WHEN** a selection rectangle is dragged around the whole connector of `save` and no box
+- **THEN** `save` is selected
+
+#### Scenario: Select below
+- **WHEN** `outer`, `middle` and `inner` are stacked at one centre and the centre is Alt+clicked twice
+- **THEN** the first Alt+click selects `middle` and the second `outer`
+
+#### Scenario: Empty corner of a diamond
+- **WHEN** the top-left corner of the bounding rectangle of a `shape diamond` box is clicked
+- **THEN** nothing is selected
+
+### Requirement: Moving, nudging and resizing
+A move SHALL be one batch of `setPosition` for every selected element, every placed descendant of a selected group, and every selected group that has a `place`, by the delta of `resolveMove`. While a selection is dragged, the canvas SHALL show the innermost group whose box contains the centre of the dragged selection's box (the dragged elements and their descendants excluded, hidden layers skipped) as the drop target, highlighted like a connection target; on release, every dragged element whose parent differs from the target SHALL first be moved into it with `moveElement` (`parent` `null` when the centre lands outside every group) and its `setPosition` SHALL be written in the target's interior coordinates, all in the same batch; holding Alt SHALL keep the current parents. The same batch SHALL keep the drawing where it was: when every child of a group without `place` is dragged, they keep their parent and the group moves with them; a group left with no children and without `place` or `size` gets its drawn place and size written; a placed free group without `size` that gains or loses a child gets its drawn size written, so its interior does not move. An element whose parent is on a hidden layer keeps it while the centre stays inside that parent's box; hidden groups are never new targets. Arrow keys SHALL nudge by 1 px, or by one grid step with Shift, and SHALL never change the parent. A resize SHALL keep the opposite edges, snap width and height to the grid with a minimum of 24 px, and write `setSize` and `setPosition` in one batch; Alt+Shift with the arrows SHALL resize from the keyboard by one grid step. Groups without `place` and `size` SHALL have no resize handles.
+
+#### Scenario: Move two boxes
+- **WHEN** `api` and `db` are selected and dragged by one grid step
+- **THEN** one edit changes both `place` statements and one undo restores them
+
+#### Scenario: Drag a box into a group
+- **WHEN** top-level `box c` is dragged so that its centre lands inside the placed group `g` (interior origin at (116, 120)) at drawn centre (200, 180)
+- **THEN** the text declares `c` inside `group g { … }` with `place c at (84, 60)`, in one undo step
+
+#### Scenario: Drag a box out of its group
+- **WHEN** `api`, a child of `backend`, is dragged so that its centre lands outside every group
+- **THEN** `api` is declared at the top level with its `place` in diagram coordinates
+
+#### Scenario: Alt keeps the parent
+- **WHEN** top-level `box c` is dragged over `g` with Alt held
+- **THEN** only `place c` changes and `c` stays at the top level
+
+#### Scenario: Nudge inside a group
+- **WHEN** `api`, a child of `backend`, is nudged with the arrow keys
+- **THEN** only `place api` changes and `backend`'s block is unchanged
+
+### Requirement: Dragging in automatic mode materialises the layout
+A gesture that changes geometry in a `layout auto` diagram SHALL be preceded, in the same batch, by `arrange` with scope `all` and the current positions. The diagram then becomes `layout assisted` with every box placed, and only the boxes the gesture moved change position on screen.
+
+#### Scenario: First drag in auto
+- **WHEN** `api` is dragged by (28, 0) in a `layout auto` diagram of four boxes without `place` statements
+- **THEN** the text gains `layout assisted` and four `place` statements, `api`'s is 28 px right of its arranged position, the other three boxes keep their positions, and one undo restores the original text
+
+### Requirement: Creating and connecting
+The palette SHALL create a node, decision, data store, note, tag or group, by drag and drop or by keyboard (N, D, S, O, T, G) at the centre of the viewport, snapped to a free grid cell, and an icon (I) through the icon picker:
+
+- the new element SHALL go inside the group under the drop point, groups included, so groups nest;
+- it SHALL get a generated id (`node1`, `decision1`, …) and a `place`, with a `size` for groups;
+- nodes, decisions, data stores and boxes SHALL be written with an empty label and selected without opening the label editor; notes, tags and free texts SHALL get their default text and open the label editor; groups SHALL get their default title.
+
+The box button (free) and the node button (flow) SHALL be split buttons: the main part SHALL arm the tool with the canvas's current shape (`rounded` until one is chosen) and show its picture; the arrow part SHALL open a grid of the twenty-four shapes with a picture and a name each, and choosing one SHALL make it current and arm the tool. Choosing `icon`, by a click or with Enter, SHALL instead open the icon picker with the **Icon** placement to place a new element, since an icon shape needs its icon, and SHALL leave the current shape and the tools as they were. The ghost SHALL take the shape's default size and outline, and the drop or click SHALL create the element with `style <id> { shape <value> }` in the same edit (no style for `rounded`). B and N SHALL create the current shape near the centre. F SHALL open the grid from the keyboard on free and flow diagrams: the arrows move through it, typing filters the shapes by their name in the interface language or in English, Enter creates the highlighted shape near the centre and makes it current, and Escape closes it. The arrow parts SHALL be hidden and F SHALL do nothing when the canvas is read-only.
+
+Dragging from a connection handle to another box SHALL create a relation (`->`; `-->` with Shift). Dropping on a point of the target's border SHALL also fix both ends, the handle's side at 50 % and the dropped point, in a `route`; dropping further inside the target SHALL create the relation alone. Hovering within 8 screen pixels outside any box's border SHALL show the point a connection would start from; dragging from there to another box SHALL create the relation with its start pinned to that point and its end pinned when dropped on the target's border. For a box drawn with a non-rectangular shape, the border, the magnets (the shape's vertices and side midpoints; no corners on ellipses) and the previewed point SHALL follow the shape's outline, while the written `route` keeps the side and percentage form; an element drawn with `shape icon` SHALL use its icon's square, not its label. "Connect to…" (C) SHALL offer the other elements in a filtered list. The palette's arrow button SHALL be a split button whose menu lists the four arrow kinds `->`, `-->`, `<->` and `<-->` with pictures; choosing one SHALL make it current and arm the relation tool. The relation tool (R) SHALL create a relation of the current kind from the first clicked element to the second, Escape cancelling and Shift on the second click flipping solid and dashed; while the tool is armed, R again SHALL cycle to the next kind, named in the status line. Connection handles keep creating `->` (`-->` with Shift).
+
+#### Scenario: Create a data store
+- **WHEN** the data store tool is dropped at (420, 260) with a 14 px grid in a `manual` diagram
+- **THEN** the text gains `data1[("")]` and `place data1 at (420, 266)`, `data1` is selected and no label editor is open
+
+#### Scenario: Create a hexagon from the box button
+- **WHEN** the arrow of the box button is pressed on a free diagram, `hexagon` is chosen and the stage is clicked at (420, 260), then B is pressed
+- **THEN** the text gains `box box1 ""`, `style box1 { shape hexagon }` and `place box1 at (420, 266)` in one undo step, then `box box2 ""` with `style box2 { shape hexagon }` near the centre, and the box button shows the hexagon
+
+#### Scenario: Shape from the keyboard
+- **WHEN** F is pressed on a flow diagram, `sta` is typed and Enter is pressed
+- **THEN** the text gains `node1[""]`, `style node1 { shape star }` and a `place` near the centre, and the grid closes
+
+#### Scenario: An agent from the grid
+- **WHEN** F is pressed on a flow diagram, `agen` is typed and Enter is pressed
+- **THEN** the text gains `node1[""]` and `style node1 { shape agent }`, and the node button shows the agent's picture
+
+#### Scenario: The icon shape from the grid
+- **WHEN** F is pressed on a flow diagram whose current shape is `rounded`, `icon` is typed and Enter is pressed
+- **THEN** the shapes grid closes, the icon picker opens with the placement **Icon** chosen, the text is unchanged and the node button still shows the rounded shape
+
+#### Scenario: A note opens its editor
+- **WHEN** O is pressed on a flow diagram
+- **THEN** the text gains a note with its default text and the label editor is open on it
+
+#### Scenario: Arrow kind cycled
+- **WHEN** R is pressed twice, then `api` and `db` are clicked
+- **THEN** the text gains `api --> db`, and the status line named the dashed kind after the second R
+
+#### Scenario: Shapes grid when read-only
+- **WHEN** the canvas is read-only and F is pressed
+- **THEN** nothing opens and the box button has no arrow part
+
+#### Scenario: Nested group from the palette
+- **WHEN** the group tool is dropped inside the placed group `g`
+- **THEN** the new `group group1 "Group" { }` is declared inside `g` with a `place` in `g`'s interior coordinates
+
+#### Scenario: Connect with the keyboard
+- **WHEN** `api` is selected, C is pressed and `db` is chosen
+- **THEN** the text gains `api -> db`
+
+#### Scenario: Connect with the tool
+- **WHEN** the relation tool is chosen, `api` is clicked and then `db` with Shift held
+- **THEN** the text gains `api --> db`
+
+#### Scenario: Connect to a point
+- **WHEN** a line is dragged from `api`'s east handle and dropped on the middle of `db`'s north side
+- **THEN** the text gains `api -> db as api_db` and `route api_db from api.east 50% to db.north 50%`
+
+#### Scenario: Connect from any point of the border
+- **WHEN** a line is dragged from just outside `cache`'s north border, 30 % from its left, and dropped inside `db`
+- **THEN** the text gains `cache -> db as cache_db` and `route cache_db from cache.north 30% to db.auto`
+
+#### Scenario: Magnets of a diamond
+- **WHEN** a connector's end is dragged over a `shape diamond` box
+- **THEN** the outline shown is the diamond and its magnets are the four vertices and the four side midpoints on the outline, none at the rectangle's corners
+
+#### Scenario: Connect to an icon shape
+- **WHEN** a line is dragged from `api`'s east handle onto the label under `fn`, which has `shape icon`
+- **THEN** the relation `api -> fn` is created and its connector ends on the icon's square, not on the label
+
+### Requirement: Editing text in place
+Enter or F2 on an element or relation, or a double-click, SHALL open an inline editor over the text it edits: an element's text area (its label box, a shape's inscribed area, the body of `person` and `agent`), a relation's label or, without one, its midpoint. The editor SHALL use the font, size at the current zoom, weight, colour and alignment of the drawn text, SHALL have no background, no border and no browser autocomplete, spelling or correction, SHALL hide the drawn text while open, and SHALL grow with its lines. Enter, Tab or a click outside SHALL commit with `setElementLabel` or `setRelationLabel`; Shift+Enter SHALL insert a line break, written `\n`; Escape SHALL cancel. Shift+F2 SHALL rename the id with `renameElement` or `renameRelation` in the same editor, on one line.
+
+#### Scenario: Edit a label
+- **WHEN** the label of `api` is edited to `Orders API` and committed
+- **THEN** only the label string of `api`'s declaration changes
+
+#### Scenario: Text added to an empty shape
+- **WHEN** an empty `box box1 ""` with `shape hexagon` is double-clicked, `Payments` is typed and Enter is pressed
+- **THEN** the declaration reads `box box1 "Payments"`, and while typing the editor lay inside the hexagon in the drawing's font size at the current zoom
+
+#### Scenario: Two lines
+- **WHEN** `Planner`, Shift+Enter and `agent` are typed in the editor of `node1` and Enter is pressed
+- **THEN** the declaration's label is `"Planner\nagent"` and the node draws two lines
+
+#### Scenario: Cancel
+- **WHEN** the editor of `api` is open, `x` is typed and Escape is pressed
+- **THEN** the text is unchanged and `api`'s drawn label is shown again
+
+#### Scenario: No autocomplete
+- **WHEN** the editor is open
+- **THEN** it is a text area with autocomplete, autocorrect and spellcheck off
+
+### Requirement: Deleting with dependency detection
+Delete SHALL plan `removeElement` without cascade for the selected elements and `removeRelation` for the selected relations. When removal is refused with dependents, the canvas SHALL list them in a dialog that the keyboard can operate, and SHALL cascade only after confirmation.
+
+#### Scenario: Confirm a cascade
+- **WHEN** `db` is used by one relation and one `place` and Delete is pressed
+- **THEN** the dialog lists the two statements, and confirming deletes the declaration, the relation and the `place` in one undo step
+
+### Requirement: Clipboard
+Copy SHALL put a complete `.meltemi` fragment on the clipboard. It SHALL hold:
+
+- the selected declarations, with groups and their children;
+- the relations among them;
+- their placement statements;
+- their styles, rebuilt for the copied targets.
+
+Paste SHALL compile the fragment, rename clashing ids with a suffix `_2`, `_3`, …, offset the places by two grid steps (or to the pointer for a context-menu paste), and insert it with `insertFragment`. Duplicate SHALL copy and paste. Cut SHALL copy, then remove with cascade. Text that is not a fragment SHALL paste nothing and show a status message.
+
+#### Scenario: Duplicate a pair
+- **WHEN** `api` and `db` with `api -> db as save` are selected and Ctrl+D is pressed
+- **THEN** the text gains `api_2`, `db_2` and `api_2 -> db_2 as save_2`, placed 28 px right and below, and the copies are selected
+
+### Requirement: Grouping, aligning and distributing
+Alt+G SHALL group the selected sibling elements with `groupElements`, and Alt+Shift+G SHALL ungroup the selected group with `ungroup`. The toolbar, the context menu and the keyboard SHALL do the following, writing the positions in one batch:
+
+- align the selection's left, centre, right, top, middle or bottom edges to the extreme box, or to the centre of the selection for centres;
+- distribute three or more boxes with equal gaps horizontally or vertically.
+
+#### Scenario: Distribute
+- **WHEN** three boxes 160 px wide are centred at x 100, 200 and 500 and are distributed horizontally
+- **THEN** the middle one moves to x 300 and the others stay
+
+### Requirement: Route editing
+A selected relation SHALL show its outline along the connector as drawn (a Bézier route's curve, rounded corners, detours), its bends, its two ends and, for each stretch between two of them, a handle at the middle by length of that stretch of the drawn connector:
+
+- dragging a bend SHALL move it, snapped to the grid;
+- dragging a midpoint SHALL insert a bend;
+- double-clicking a bend SHALL remove it; a route left without bends, ports or points SHALL be removed;
+- dragging an end over a box SHALL show the box's outline, its magnets (the middle of each side, the corners and its named ports) and the point the end will take: within 12 screen pixels of the border, the point of the nearest side under the pointer, to 1 %, or a magnet within 6 px of it; with Alt, no magnet;
+- dropping an end on a point of the same box's border SHALL write that port and position in the route; dropping it further inside the box SHALL write `auto` for that end;
+- dropping an end on another box SHALL reconnect the relation with `reconnectRelation`, with the dropped point;
+- double-clicking an end SHALL write `auto` for that end.
+
+Anonymous relations SHALL first be named with `materializeRelationId`. The route kind SHALL be chosen in the inspector or the context menu and written as the relation's `routing` style.
+
+#### Scenario: Add a bend
+- **WHEN** the midpoint of the straight route of `create` is dragged 56 px down
+- **THEN** the text gains `route create from api.east to orders.west via [(x, y)]` with the bend at the snapped point
+
+#### Scenario: Drop an end on the middle of a side
+- **WHEN** the end of `save` at `db` is dragged near the middle of `db`'s west side and dropped
+- **THEN** the text gains `route save from api to db.west 50%` and the connector ends at that point
+
+#### Scenario: Drop an end on any point of the border
+- **WHEN** the end of `save` at `db` is dropped on `db`'s north border, 37 % from its left, away from every magnet
+- **THEN** the route's end becomes `db.north 37%`
+
+#### Scenario: Let the layout choose again
+- **WHEN** that end is double-clicked
+- **THEN** the route's end becomes `db`, without a port, and the route is removed when it holds nothing else
+
+#### Scenario: The midpoint handle sits on the connector
+- **WHEN** a relation pinned to `api.north 31%` and `client.east 50%` is drawn up, across and back into `client`'s east side, and is selected
+- **THEN** its one midpoint handle lies on the drawn connector, halfway along it
+
+#### Scenario: A curved connector
+- **WHEN** a relation with `routing bezier` is selected
+- **THEN** its outline follows the curve and its midpoint handle lies on the curve, not on the line between its ends
+
+### Requirement: Property inspector
+The inspector SHALL begin with the style strip (swatches, picker, inherit, line, width, corner radius, rotation, shape, icon position, route, corners, start and end heads, effects and speed, and the theme row for the diagram) and SHALL then show the fields of the diagram when nothing is selected, of one element, of one relation, or the style fields shared by several selected items:
+
+- **diagram**: title, description, direction, layout, routing, theme, preset;
+- **element**: id, kind, label, description, classes, ports, inside (the parent group, or none), position, size and every style property that applies to its kind: Shape, shown with a picture per value, for free boxes and flow nodes; Corner radius, a number from 0 to 64 with a slider, wherever the radius is drawn: `rounded`, `rectangle`, `square` and `framed` boxes and nodes, the polygon shapes and decisions, persons and agents, notes, the frames of free texts, icons and images, and groups, with the radius drawn (a rule's or a class's, else the theme's `radius` for `rounded` boxes, notes and frames, `groupRadius` for a group, the body radius for persons and agents, 0 for the others) greyed as the default; an ellipse, a circle, a pill, a cylinder, a cloud or a document has no Corner radius field; Rotation, a number from 0 to 359 with a slider, for the elements of flow diagrams and free compositions other than groups, with 0 greyed; Icon (thumbnail, name, Choose… opening the icon picker, and Remove) for the elements and relations that draw an icon; Icon position (five pictures) and Icon size (a number from 8 to 128 with a slider, the drawn size greyed as the default, an **auto** choice and Clear) for nodes, decisions, data stores and boxes; Icon position for C4 entities too, without `center`, which they draw as `top`; and Label position (four pictures) when the icon is the centre piece (`iconPosition center` or `shape icon`);
+- **relation**: id, label, ends and ports, line (solid, dashed or dotted), routing, corners, start and end heads, classes, style properties and label position.
+
+Each change SHALL be one edit plan: `setDiagramProperty`, `setStyleProperty`, `setElementLabel`, `setDescription`, `setElementKind`, `setRelationLine`, `setClasses`, `addPort`, `removePort`, `setPosition`, `setSize`, `setRoute` or `moveElement`; a change to several selected items SHALL be one batch plan. Fields SHALL show the written value or, greyed, the default.
+
+#### Scenario: Change a colour shared by a style
+- **WHEN** `style api, db { fill "#eef" }` exists and the inspector sets the fill of `api` to `accent`
+- **THEN** the statement becomes `style db { fill "#eef" }` and `style api { fill accent }` is added
+
+#### Scenario: Width for a selection
+- **WHEN** `api` and `db` are selected and the strip sets the width to 2
+- **THEN** one undo step gives both `width 2`
+
+#### Scenario: Shape by its picture
+- **WHEN** box `a` is selected and the `ellipse` picture of the Shape field is chosen
+- **THEN** the text gains `style a { shape ellipse }`
+
+#### Scenario: Icon position by its picture
+- **WHEN** node `api` with an icon is selected and the `right` picture of the Icon position field is chosen
+- **THEN** the text gains `style api { iconPosition right }`
+
+#### Scenario: Icon position of a C4 entity
+- **WHEN** container `shop.web` with an icon is selected on a C4 container view
+- **THEN** the Icon position field offers the `left`, `right`, `top` and `bottom` pictures and no `center`
+
+#### Scenario: Label position appears with a centred icon
+- **WHEN** node `db` with `style db { icon "tabler:database"; iconPosition center }` is selected
+- **THEN** the inspector shows Label position with `bottom` greyed, and choosing `top` writes `labelPosition top`
+
+#### Scenario: Icon size auto
+- **WHEN** the Icon size slider of `db` is set to 48 and then **auto** is chosen
+- **THEN** the text gains `iconSize 48`, then `iconSize auto`
+
+#### Scenario: Corner radius of a group
+- **WHEN** group `g` is selected and the Corner radius slider is set to 0
+- **THEN** the text gains `style g { radius 0 }`, and the field showed 14 greyed before the change under `technical.light`
+
+#### Scenario: No corner radius where none is drawn
+- **WHEN** a free box with `style b { shape ellipse }`, or a flow node with `style h { shape circle }`, is selected
+- **THEN** neither the strip nor the inspector shows a Corner radius field, while a `rounded` box or node shows it with the theme's `radius` greyed, and a `rectangle` box or a `hexagon` node shows it with 0 greyed
+
+#### Scenario: Inside field
+- **WHEN** top-level `box c` is selected and `g` is chosen in the Inside field
+- **THEN** `c` is declared inside `group g` and keeps its drawn position
+
+#### Scenario: Radius typed out of range
+- **WHEN** 90 is typed in the Corner radius field
+- **THEN** the field refuses it and the text is unchanged
+
+#### Scenario: Rotation field
+- **WHEN** node `api` is selected and 30 is typed in the Rotation field, then group `g` is selected
+- **THEN** the text gains `style api { rotation 30 }`, and the inspector of `g` shows no Rotation field
+
+### Requirement: Keyboard operation and focus
+Every pointer action SHALL have a keyboard alternative, as listed in decision 0017 and the editor guide. Focus SHALL be visible on every control and on the focused element. Elements SHALL expose their kind and label to assistive technology. A live region SHALL announce the selection and the result of each action. The canvas SHALL not use keys that VS Code binds globally (Ctrl+G, Ctrl+Shift+G, Ctrl+K chords, Ctrl+Alt with the arrows, Alt with Left or Right), and SHALL leave undo and redo to VS Code.
+
+#### Scenario: Keyboard only
+- **WHEN** a user tabs into the canvas, selects `api` with Tab, nudges it with Shift+Right and presses Delete then confirms
+- **THEN** each step has a visible focus indicator and an announcement, and the text changes as with the pointer
+
+### Requirement: Two-way selection
+Selecting on the canvas SHALL reveal the first selected id in the text without taking focus. Moving the text cursor SHALL highlight the element or relation of the statement under it on the canvas.
+
+#### Scenario: Cursor in a placement statement
+- **WHEN** the text cursor is inside `place db at (700, 180)`
+- **THEN** the canvas highlights `db`
+
+### Requirement: Canvas colours from the theme
+Each render SHALL carry the canvas colours of the diagram's resolved theme: `selection`, else
+`accent`, and `guide`, else `accent`. Selection outlines, handles, wires, the rubber band, the point a dragged end will take
+and the point a connection would start from SHALL use the selection colour; alignment guides, the
+outline of the box under a dragged end or near the pointer and its magnets SHALL use the guide
+colour. Keyboard focus rings and the panels SHALL keep the editor's colours.
+
+#### Scenario: Blue theme, blue outlines
+- **WHEN** a diagram uses `technical.light`, whose `accent` is blue, and no theme sets `selection` or `guide`
+- **THEN** the outline drawn around `db` while an end is dragged over it is the theme's `accent`
+
+#### Scenario: Colours set in the theme
+- **WHEN** the diagram's theme sets `selection "#0B6BCB"` and `guide "#16A34A"`
+- **THEN** selection handles are `#0B6BCB` and alignment guides are `#16A34A`
+
+### Requirement: Element libraries panel
+The canvas SHALL offer a Libraries panel for flow and free diagrams (a toolbar toggle with the tooltip "Libraries (U)" and the key U) with a search box, the placement control of the icon picker (**Icon**, **In a box**, free diagrams **Only the icon**; the same choice as the picker's) and the libraries the document knows, each with its categories; a category SHALL list its elements with a 24 px thumbnail and the label. Clicking an element SHALL create it at the centre of the view and dragging it onto the canvas SHALL create it where it is dropped, labelled as the element, with `style <id> { icon "<pack>:<name>" }` and, for the **Icon** placement, `shape icon`, then selected; dragging it onto a node, decision, data store or box SHALL highlight the target and write only its icon. Search SHALL match labels, names and keywords across the libraries and show up to 60 elements. Thumbnails of a pack still loading SHALL be asked for again when a later render arrives.
+
+#### Scenario: Create from a library
+- **WHEN** "AWS Lambda" of the AWS library's Compute category is clicked in a flow diagram with the placement **Icon**
+- **THEN** the text gains `lambda1["AWS Lambda"]` followed by `style lambda1 { icon "aws:lambda"; shape icon }`, and `lambda1` is selected
+
+#### Scenario: Create in a box
+- **WHEN** the placement **In a box** is chosen and the same element is clicked
+- **THEN** the text gains `lambda1["AWS Lambda"]` followed by `style lambda1 { icon "aws:lambda" }`
+
+#### Scenario: Drop onto a node
+- **WHEN** "AWS Lambda" is dragged from the panel onto `api` and released
+- **THEN** the text gains `style api { icon "aws:lambda" }` and no element is created
+
+#### Scenario: Search across libraries
+- **WHEN** `postgres` is typed in the panel's search box
+- **THEN** the Technology library's PostgreSQL element is listed
+
+### Requirement: Other people's selections
+The canvas SHALL accept a `presence` host message with people (name, colour, selected element
+ids) and draw, on a layer above the scene, a coloured outline with a name tag around each
+element another person has selected, the name set as a text node; the layer SHALL be neither
+selectable nor exported, SHALL clear when the message carries nobody or the canvas shows
+another file, and SHALL ignore ids the scene does not hold.
+
+#### Scenario: Outline with a name
+- **WHEN** the host sends `presence` with Ben selecting `api`
+- **THEN** `api` shows an outline in Ben's colour with the tag `Ben`, and clicking it selects `api` for the person, not Ben's outline
+
+#### Scenario: Unknown element
+- **WHEN** the message names an id the scene lacks
+- **THEN** nothing is drawn for it and no error is raised
+
+#### Scenario: A name holding markup
+- **WHEN** the message carries the name `<img src=x>` selecting `api`
+- **THEN** the tag shows those characters and the layer holds no element made from them
+
+### Requirement: Containers on the canvas
+The group button SHALL be a split button: its main part SHALL arm the tool with the canvas's current kind of group (**Group** until one is chosen) and show its picture; its arrow part SHALL open a menu of two kinds with a picture and a name each, **Group** (a band with a title) and **Container** (an untitled group, a plain container), and choosing one SHALL make it current and arm the tool. G SHALL create the current kind near the centre; Alt+G SHALL keep grouping the selection with a title. A container SHALL be created with `createElement` as a group with the label `""`, its `place` and its `size`, inside the group under the drop point, with no style written, and SHALL then be selected without opening the label editor.
+
+The context menu of a flow node or a free box, and a **Convert to container** button under **Inside** in the inspector, SHALL run `convertToContainer` with the boxes stacked on the element (whole inside its box, declared after it, on its layer) as children, their free places in the new interior, and the element's drawn size; the status line SHALL name the container and its children. When a drop leaves a moved element stacked on a node or box of its layer that is not a group, the status line SHALL say so and name the conversion, writing nothing.
+
+When an arrange cannot be made because the diagram has layout errors, the status line SHALL say that the problems must be fixed first and give the first message, instead of doing nothing.
+
+#### Scenario: Create a container
+- **WHEN** the arrow of the group button is pressed on a flow diagram, **Container** is chosen and the stage is clicked at (420, 260) with a 14 px grid, then G is pressed
+- **THEN** the text gains `group group1 "" { }`, `place group1 at (420, 266)` and a `size group1` in one undo step, then `group group2 "" { }` with a place and a size near the centre, no label editor opens, and the group button shows the container
+
+#### Scenario: Convert a square with a database on it
+- **WHEN** `node3` is a flow node with `shape square`, a fill and `size node3 (238, 196)`, `db` is declared after it and drawn whole inside it, and **Convert to container** is chosen on `node3`
+- **THEN** the text declares `group node3 "" { db[("Database")] }`, `style node3 { … }` keeps the fill and gains `radius 0` without `shape`, `place node3` and `size node3` are unchanged, `api -> db` still resolves, the status line says `node3` is now a container holding `db`, and dragging `node3` moves `db` with it
+
+#### Scenario: Refused conversion
+- **WHEN** **Convert to container** is chosen on a node that declares `port in west`
+- **THEN** the text is unchanged and the status line says the ports must be removed first
+
+#### Scenario: A drop that stacks
+- **WHEN** `db` is dropped whole inside the box of `node3`, a node with `shape square` that is not a group
+- **THEN** `db` keeps its parent, its `place` is written where it was dropped, and the status line says `db` is stacked on `node3` and that converting `node3` to a container moves them together
+
+#### Scenario: Refused arrange
+- **WHEN** **Recompute Layout** is chosen on an `assisted` diagram holding a placed and sized group without children inside another group, which `auto` cannot draw (`layout.missing-placement`)
+- **THEN** nothing is written and the status line says the problems of the diagram must be fixed before arranging it, with that message
+
+### Requirement: Rotating on the canvas
+On a canvas that edits, one selected element of a flow diagram or a free composition that takes `rotation` SHALL show a rotation handle: a disc beyond its top-right corner, in the element's own frame, joined to the corner by a short line and clear of the resize and connection handles, appearing with the selection. Dragging it SHALL turn the element about the centre of its box: the angle is the pointer's bearing from the centre, snapped to 15° steps unless Alt is held, shown in the status line and beside the pointer; the element, its selection and its connectors SHALL follow live. Releasing SHALL write `style <id> { rotation <n> }` (0 to 359), or remove it at 0, in one undo step; Escape SHALL cancel and restore the drawing.
+
+A turned element SHALL be selected, hit, marquee-selected and dropped onto by its turned outline; its selection frame, resize handles and connection handles SHALL be drawn turned with it; resizing it SHALL work in its own frame, keeping the opposite edge where it was in the diagram, without grid snapping; its magnets and the points pinned by dragging a connector end onto it SHALL lie on its turned outline and be written as `side n%` in its own frame; the inline text editor SHALL be turned with its text. The context menu SHALL offer **Rotate 90°**, which adds 90 to the angle modulo 360, and **Reset rotation**, which removes it, each disabled where it changes nothing or the element takes no rotation.
+
+The handle SHALL fade in with the selection, the live rotation SHALL follow the pointer on every frame, and on release the element SHALL ease into the written angle, with the transitions dropped under `prefers-reduced-motion`.
+
+#### Scenario: Rotate with the handle
+- **WHEN** node `api` placed at (200, 120) is selected and its rotation handle is dragged a quarter turn clockwise about its centre
+- **THEN** the status line names 90° and the angle shows beside the pointer, the element is drawn turned while dragging, and the release gives `style api { rotation 90 }` in one undo step, after which the status line says `api` turned to 90°
+
+#### Scenario: Free angle with Alt
+- **WHEN** the handle is dragged with Alt held to a bearing of 37° and released
+- **THEN** the text gains `rotation 37`
+
+#### Scenario: Escape restores
+- **WHEN** the handle is being dragged and Escape is pressed
+- **THEN** nothing is written and the element is drawn as before
+
+#### Scenario: Select a turned element by its outline
+- **WHEN** square `s` of 120 × 120 has `rotation 45` and the pointer clicks a corner of its unturned box that lies outside the turned square
+- **THEN** `s` is not selected
+
+#### Scenario: Resize a turned element
+- **WHEN** node `api` with `rotation 90` is resized by dragging its turned east handle outward by 40 px in its own frame
+- **THEN** `size api` grows 40 px wide, `place api` moves 20 px along the turned east direction, and the turned west edge stays where it was
+
+#### Scenario: Pin an end on a turned element
+- **WHEN** a connector's end is dragged onto the middle of the turned north side of node `api` with `rotation 90`
+- **THEN** the route is written as `api.north 50%`
+
+#### Scenario: Rotate 90° from the context menu
+- **WHEN** node `api` with `rotation 300` is selected and **Rotate 90°** is chosen
+- **THEN** the text gains `rotation 30` in place of 300
+
+#### Scenario: No handle on a group or in read-only canvases
+- **WHEN** a group, or an element of a read-only canvas, is selected
+- **THEN** no rotation handle is drawn
+
+### Requirement: Empty file and new diagrams
+When the document has no diagram and no story is playing, the canvas SHALL show the reason and one button per kind it can create — flow diagram, free composition, sequence diagram — and SHALL clear the diagram selector, the inspector, the minimap and the layout and stale badges of the last render. A button SHALL write `diagram <id>: <type> { }` through `createDiagram` and show the new diagram. A **New diagram** button beside the diagram selector SHALL offer the same kinds for any file. Read-only canvases SHALL show neither the buttons nor the New diagram button.
+
+#### Scenario: Start from an empty file
+- **WHEN** the text is emptied and the Flow diagram button is pressed
+- **THEN** the text becomes `language "0.2"`, a blank line and `diagram diagram1: flow {` … `}`, the canvas shows the empty diagram with its palette, and the selector names `diagram1`
+
+#### Scenario: Nothing stale is left
+- **WHEN** a file showing `overview` is emptied
+- **THEN** the selector, the inspector, the minimap and the layout badge no longer show `overview`
+
+#### Scenario: Another diagram in the file
+- **WHEN** New diagram › Free composition is chosen in a file declaring `overview`
+- **THEN** `diagram diagram1: free {` … `}` is appended after `overview` and shown
+
+#### Scenario: Read-only
+- **WHEN** the canvas is read-only and the file has no diagram
+- **THEN** the reason is shown without buttons
+
+### Requirement: Canvas size in the inspector
+The diagram inspector SHALL show a **Canvas** field with fit to content, document, slide and custom, and, for custom, a width and a height from 100 to 10000. Choosing SHALL write `preset document`, `preset slide` or `canvas (w, h)` and remove the other statement in the same plan, or remove both for fit to content. Custom SHALL start from the drawn size of the content.
+
+#### Scenario: A slide
+- **WHEN** Canvas › Slide is chosen for a diagram with `canvas (800, 600)`
+- **THEN** the text has `preset slide` and no `canvas` statement, in one undo step
+
+#### Scenario: A custom size
+- **WHEN** Canvas › Custom is chosen and the width is set to 1600 and the height to 900
+- **THEN** the text has `canvas (1600, 900)` and no `preset`
+
+#### Scenario: Out of range
+- **WHEN** 50 is typed as the width
+- **THEN** the field refuses it with the range and the text is unchanged
+
+### Requirement: Visible split buttons
+The arrow part of the box/node button and of the relation button SHALL be a visible dropdown control: a chevron in the foreground colour, at least 16 px wide and as tall as the button, inside one outline shared with the main part, with hover and keyboard focus states and a tooltip naming its menu and key ("More shapes (F)", "Kinds of arrow (R cycles)", in the interface language). A right-click or a press longer than 450 ms on the main part SHALL open the same menu; a short click SHALL still arm the tool.
+
+#### Scenario: Long press
+- **WHEN** the box button is pressed for half a second and released
+- **THEN** the shapes grid is open and no tool is armed
+
+#### Scenario: Short click
+- **WHEN** the box button is clicked
+- **THEN** the box tool is armed with the current shape and no menu opens
+
+### Requirement: Live preview of moves and resizes
+While boxes of a flow diagram, a free composition or a C4 view are dragged or resized, the canvas SHALL send `preview` messages carrying the move or resize the drop would send, at most one awaiting an answer, the latest gesture first. The session SHALL plan it as the drop would, apply it to a copy of the text without writing, recording history or changing the revision, lay out the shown diagram and answer with its drawing, or with none when the action would be refused or the copy has errors. The canvas SHALL show the answered drawing, keeping the dragged boxes under the pointer, so connectors, labels and groups follow during the gesture; Escape or a refused drop SHALL bring back the last drawing.
+
+#### Scenario: A connector follows a dragged box
+- **WHEN** `api` with `client -> api` is dragged 200 px right and the pointer is still pressed
+- **THEN** the stage draws the connector of `client -> api` ending at `api`'s new position, and the text is unchanged
+
+#### Scenario: Escape restores
+- **WHEN** the same drag is cancelled with Escape
+- **THEN** the stage shows the drawing from before the drag and nothing is written
+
+#### Scenario: A group grows with its child
+- **WHEN** a child of an unsized free group is resized larger
+- **THEN** the group's drawing grows during the gesture as it will after the drop
+
+#### Scenario: Refused preview
+- **WHEN** a preview carries a move of a group into a group it holds, which the session refuses
+- **THEN** the answer has no drawing and the canvas keeps moving the boxes alone
+
+### Requirement: Icon picker
+The canvas SHALL offer one icon picker, a popover anchored to what opened it: the I tool on flow and free diagrams, the inspector's Icon field, and the context menu's **Icon…**. It SHALL hold a search field focused on open, results as the query is typed (`searchIcons`), grouped by pack or library with a 24 px thumbnail and a name each, the typed `pack:name` first when it names an icon, and keyboard navigation (arrows, Enter chooses, Escape closes and returns focus). I SHALL open the picker from the canvas, and close it while the canvas has the focus; in the search field I SHALL be typed like any other letter, and the icon button SHALL open and close the picker. An empty query SHALL show the icons chosen earlier in this canvas session, then the Technology library's first category. On C4 views only the Icon field SHALL open it, with the packs' icons (the first Tabler icons for an empty query) and no placement control.
+
+With elements selected that take icons, choosing SHALL write `style <id> { icon "<reference>" }` on each in one batch and close. Without a selection the picker SHALL show a placement control with pictures — **Icon** (`shape icon`, label below), **In a box** (the current shape with the icon beside the text) and, on free diagrams, **Only the icon** (an `icon` object) — kept in memory while the canvas is open, and choosing SHALL arm a tool whose ghost shows the icon: a click on empty canvas or a drop creates the element with an empty label, a click on a node, decision, data store or box gives that shape the icon and creates nothing, and Enter in the picker creates the element at the centre. Results SHALL be draggable onto the stage: over a node, decision, data store or box the target is highlighted like a move's drop target and the drop writes only its icon; over empty space the drop creates as the tool does. The context menu of an element with an icon SHALL offer **Remove icon** (`setStyleProperty icon null`). Read-only canvases SHALL not open the picker.
+
+#### Scenario: Icon for the selection
+- **WHEN** `api` and `db` are selected, I is pressed, `server` is typed and the Tabler server icon is chosen
+- **THEN** one undo step gives both `style … { icon "tabler:server" }`, and the picker is closed
+
+#### Scenario: Icon as the shape from the tool
+- **WHEN** nothing is selected on a flow diagram, I is pressed, `lambda` is typed, "AWS Lambda" is chosen with the placement **Icon** and the stage is clicked at (420, 260)
+- **THEN** the text gains `node1[""]`, `style node1 { icon "aws:lambda"; shape icon }` and `place node1 at (420, 266)`, in one undo step
+
+#### Scenario: Icon in a box from the tool
+- **WHEN** the placement **In a box** is chosen and the same icon is dropped at (420, 260)
+- **THEN** the text gains `node1[""]` and `style node1 { icon "aws:lambda" }` without a `shape`
+
+#### Scenario: Drop onto an existing box
+- **WHEN** a result of the picker is dragged over `db` and released
+- **THEN** `db` was highlighted while the pointer was over it, the text gains `style db { icon "…" }` and nothing else changes
+
+#### Scenario: Remove an icon
+- **WHEN** **Remove icon** is chosen in the context menu of `db`, which has `style db { icon "tabler:database"; fill "#eef" }`
+- **THEN** the statement becomes `style db { fill "#eef" }`
+
+#### Scenario: The armed tool on a shape
+- **WHEN** nothing is selected, I is pressed, the Tabler server icon is clicked in the results and `db` is clicked on the stage
+- **THEN** the text gains `style db { icon "tabler:server" }`, no element is created and the tool is no longer armed
+
+#### Scenario: I in the search field
+- **WHEN** I is pressed on a flow diagram and then I again
+- **THEN** the picker stays open with `i` in its search field, and a press on the icon button closes it
+
+#### Scenario: Read-only
+- **WHEN** the canvas is read-only and I is pressed
+- **THEN** nothing opens
+
+### Requirement: Motion and finish
+Every popover, menu, panel, tooltip and transient outline of the canvas SHALL open, close and move with transitions on shared motion tokens (`--mdg-motion-fast` 120 ms, `--mdg-motion` 160 ms, `--mdg-motion-slow` 220 ms, `--mdg-ease`): popovers and menus (the icon picker, the shapes grid, the arrow and New diagram menus, the context menu, the head grids) fade and rise from their anchor on opening and fade on closing; side panels slide in; tooltips fade after a short hover delay; drop and connect target outlines and the inline editor's outline fade in; buttons and chips transition their colours. Under `prefers-reduced-motion: reduce` every duration SHALL be zero and no transform SHALL animate.
+
+#### Scenario: A menu opens with a transition
+- **WHEN** the arrow of the box button is pressed
+- **THEN** the shapes grid is rendered with a transition of 160 ms on its opacity and transform, and is interactive at once
+
+#### Scenario: Reduced motion
+- **WHEN** the system asks for reduced motion and the same arrow is pressed
+- **THEN** the grid appears without a transition
+

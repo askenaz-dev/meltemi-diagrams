@@ -1,0 +1,833 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "checkout",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 208,
+          "line": 6,
+          "column": 1
+        },
+        "end": {
+          "offset": 770,
+          "line": 35,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "assisted",
+        "theme": null,
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "client",
+          "kind": "node",
+          "label": "Cliente",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 269,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 286,
+              "line": 10,
+              "column": 20
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 269,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 275,
+              "line": 10,
+              "column": 9
+            }
+          }
+        },
+        {
+          "id": "api",
+          "kind": "node",
+          "label": "API Gateway",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 289,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 307,
+              "line": 11,
+              "column": 21
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 289,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 292,
+              "line": 11,
+              "column": 6
+            }
+          }
+        },
+        {
+          "id": "orders",
+          "kind": "node",
+          "label": "Pedidos",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 310,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 327,
+              "line": 12,
+              "column": 20
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 310,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 316,
+              "line": 12,
+              "column": 9
+            }
+          }
+        },
+        {
+          "id": "db",
+          "kind": "data",
+          "label": "PostgreSQL",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": "cylinder",
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 330,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 348,
+              "line": 13,
+              "column": 21
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 330,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 332,
+              "line": 13,
+              "column": 5
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "request",
+          "id": "request",
+          "from": "client",
+          "to": "api",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "HTTPS",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 352,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 385,
+              "line": 15,
+              "column": 36
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 378,
+              "line": 15,
+              "column": 29
+            },
+            "end": {
+              "offset": 385,
+              "line": 15,
+              "column": 36
+            }
+          }
+        },
+        {
+          "key": "create",
+          "id": "create",
+          "from": "api",
+          "to": "orders",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Crear pedido",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 388,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 427,
+              "line": 16,
+              "column": 42
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 421,
+              "line": 16,
+              "column": 36
+            },
+            "end": {
+              "offset": 427,
+              "line": 16,
+              "column": 42
+            }
+          }
+        },
+        {
+          "key": "save",
+          "id": "save",
+          "from": "orders",
+          "to": "db",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Persistir",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 430,
+              "line": 17,
+              "column": 3
+            },
+            "end": {
+              "offset": 463,
+              "line": 17,
+              "column": 36
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 459,
+              "line": 17,
+              "column": 32
+            },
+            "end": {
+              "offset": 463,
+              "line": 17,
+              "column": 36
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "api",
+          "x": 360,
+          "y": 180,
+          "range": {
+            "start": {
+              "offset": 483,
+              "line": 20,
+              "column": 5
+            },
+            "end": {
+              "offset": 506,
+              "line": 20,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 489,
+              "line": 20,
+              "column": 11
+            },
+            "end": {
+              "offset": 492,
+              "line": 20,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "orders",
+          "x": 700,
+          "y": 180,
+          "range": {
+            "start": {
+              "offset": 511,
+              "line": 21,
+              "column": 5
+            },
+            "end": {
+              "offset": 537,
+              "line": 21,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 517,
+              "line": 21,
+              "column": 11
+            },
+            "end": {
+              "offset": 523,
+              "line": 21,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "route",
+          "target": "create",
+          "from": {
+            "element": "api",
+            "port": "east"
+          },
+          "to": {
+            "element": "orders",
+            "port": "west"
+          },
+          "via": [
+            {
+              "x": 520,
+              "y": 180
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 542,
+              "line": 22,
+              "column": 5
+            },
+            "end": {
+              "offset": 600,
+              "line": 22,
+              "column": 63
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 548,
+              "line": 22,
+              "column": 11
+            },
+            "end": {
+              "offset": 554,
+              "line": 22,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "label",
+          "target": "create",
+          "at": 50,
+          "offset": {
+            "x": 0,
+            "y": -16
+          },
+          "range": {
+            "start": {
+              "offset": 605,
+              "line": 23,
+              "column": 5
+            },
+            "end": {
+              "offset": 640,
+              "line": 23,
+              "column": 40
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 611,
+              "line": 23,
+              "column": 11
+            },
+            "end": {
+              "offset": 617,
+              "line": 23,
+              "column": 17
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [
+        {
+          "target": "api",
+          "targetKind": "element",
+          "properties": {
+            "icon": "tabler:server"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 648,
+              "line": 26,
+              "column": 3
+            },
+            "end": {
+              "offset": 688,
+              "line": 28,
+              "column": 4
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 654,
+              "line": 26,
+              "column": 9
+            },
+            "end": {
+              "offset": 657,
+              "line": 26,
+              "column": 12
+            }
+          }
+        }
+      ],
+      "animations": [
+        {
+          "target": "request",
+          "targetKind": "relation",
+          "effect": "flow",
+          "durationMs": 1200,
+          "repeat": "forever",
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 692,
+              "line": 30,
+              "column": 3
+            },
+            "end": {
+              "offset": 768,
+              "line": 34,
+              "column": 4
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 700,
+              "line": 30,
+              "column": 11
+            },
+            "end": {
+              "offset": 707,
+              "line": 30,
+              "column": 18
+            }
+          }
+        }
+      ],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [
+    {
+      "id": "purchase",
+      "target": "checkout",
+      "title": "A purchase",
+      "description": null,
+      "durationMs": 7400,
+      "scenes": [
+        {
+          "id": "overview",
+          "title": null,
+          "view": "checkout",
+          "transition": null,
+          "startMs": 0,
+          "durationMs": 1800,
+          "actions": [
+            {
+              "kind": "reveal",
+              "targets": [
+                "client",
+                "api",
+                "orders",
+                "db"
+              ],
+              "all": false,
+              "startMs": 0,
+              "durationMs": 800,
+              "children": [],
+              "range": {
+                "start": {
+                  "offset": 847,
+                  "line": 41,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 888,
+                  "line": 41,
+                  "column": 46
+                }
+              }
+            },
+            {
+              "kind": "hold",
+              "targets": [],
+              "all": false,
+              "startMs": 800,
+              "durationMs": 1000,
+              "children": [],
+              "range": {
+                "start": {
+                  "offset": 893,
+                  "line": 42,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 900,
+                  "line": 42,
+                  "column": 12
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 826,
+              "line": 40,
+              "column": 3
+            },
+            "end": {
+              "offset": 904,
+              "line": 43,
+              "column": 4
+            }
+          }
+        },
+        {
+          "id": "processing",
+          "title": null,
+          "view": "checkout",
+          "transition": null,
+          "startMs": 1800,
+          "durationMs": 5600,
+          "actions": [
+            {
+              "kind": "trace",
+              "targets": [
+                "request"
+              ],
+              "all": false,
+              "startMs": 1800,
+              "durationMs": 1200,
+              "children": [],
+              "range": {
+                "start": {
+                  "offset": 931,
+                  "line": 46,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 956,
+                  "line": 46,
+                  "column": 30
+                }
+              }
+            },
+            {
+              "kind": "trace",
+              "targets": [
+                "create"
+              ],
+              "all": false,
+              "startMs": 3000,
+              "durationMs": 1200,
+              "children": [],
+              "range": {
+                "start": {
+                  "offset": 961,
+                  "line": 47,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 985,
+                  "line": 47,
+                  "column": 29
+                }
+              }
+            },
+            {
+              "kind": "parallel",
+              "targets": [],
+              "all": false,
+              "startMs": 4200,
+              "durationMs": 1200,
+              "children": [
+                {
+                  "kind": "trace",
+                  "targets": [
+                    "save"
+                  ],
+                  "all": false,
+                  "startMs": 4200,
+                  "durationMs": 1200,
+                  "children": [],
+                  "range": {
+                    "start": {
+                      "offset": 1007,
+                      "line": 49,
+                      "column": 7
+                    },
+                    "end": {
+                      "offset": 1029,
+                      "line": 49,
+                      "column": 29
+                    }
+                  }
+                },
+                {
+                  "kind": "highlight",
+                  "targets": [
+                    "db"
+                  ],
+                  "all": false,
+                  "startMs": 4200,
+                  "durationMs": 1200,
+                  "children": [],
+                  "range": {
+                    "start": {
+                      "offset": 1036,
+                      "line": 50,
+                      "column": 7
+                    },
+                    "end": {
+                      "offset": 1060,
+                      "line": 50,
+                      "column": 31
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 990,
+                  "line": 48,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 1066,
+                  "line": 51,
+                  "column": 6
+                }
+              }
+            },
+            {
+              "kind": "hold",
+              "targets": [],
+              "all": false,
+              "startMs": 5400,
+              "durationMs": 2000,
+              "children": [],
+              "range": {
+                "start": {
+                  "offset": 1071,
+                  "line": 52,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 1078,
+                  "line": 52,
+                  "column": 12
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 908,
+              "line": 45,
+              "column": 3
+            },
+            "end": {
+              "offset": 1082,
+              "line": 53,
+              "column": 4
+            }
+          }
+        }
+      ],
+      "range": {
+        "start": {
+          "offset": 772,
+          "line": 37,
+          "column": 1
+        },
+        "end": {
+          "offset": 1084,
+          "line": 54,
+          "column": 2
+        }
+      }
+    }
+  ],
+  "exports": [
+    {
+      "id": "presentation",
+      "target": "purchase",
+      "targetKind": "story",
+      "format": "mp4",
+      "size": {
+        "width": 1920,
+        "height": 1080
+      },
+      "scale": null,
+      "background": null,
+      "atMs": null,
+      "motion": null,
+      "theme": null,
+      "fonts": null,
+      "scenario": null,
+      "link": null,
+      "fps": 30,
+      "durationMs": null,
+      "file": null,
+      "autoplay": false,
+      "loop": false,
+      "embed": false,
+      "range": {
+        "start": {
+          "offset": 1174,
+          "line": 57,
+          "column": 1
+        },
+        "end": {
+          "offset": 1252,
+          "line": 61,
+          "column": 2
+        }
+      }
+    }
+  ],
+  "diagnostics": []
+}

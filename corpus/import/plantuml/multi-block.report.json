@@ -1,0 +1,44 @@
+{
+  "status": "partial",
+  "format": "plantuml",
+  "diagrams": [
+    {
+      "id": "checkout",
+      "type": "flow",
+      "model": null,
+      "kind": "description",
+      "lines": [
+        1,
+        3
+      ]
+    },
+    {
+      "id": "payment",
+      "type": "sequence",
+      "model": null,
+      "kind": "sequence",
+      "lines": [
+        5,
+        8
+      ]
+    }
+  ],
+  "findings": [
+    "1:1 warning import.partial [import] 1 essential construct was not imported; the sheet is incomplete.",
+    "10:1 error import.unsupported-diagram [plantuml.gantt dropped essential] PlantUML `@startgantt` diagrams are not imported."
+  ],
+  "coverage": [
+    {
+      "diagram": "checkout",
+      "mapped": 3,
+      "approximated": 0,
+      "dropped": 0
+    },
+    {
+      "diagram": "payment",
+      "mapped": 2,
+      "approximated": 0,
+      "dropped": 0
+    }
+  ]
+}

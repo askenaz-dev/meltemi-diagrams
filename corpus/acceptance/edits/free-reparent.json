@@ -1,0 +1,86 @@
+{
+  "description": "A box moved into a nested group and back out is drawn where it was put, and a group cannot go into its own descendant.",
+  "sheet": "free/nested.meltemi",
+  "steps": [
+    {
+      "name": "move into the region",
+      "operation": {
+        "kind": "moveElement",
+        "diagram": "nested",
+        "element": "users",
+        "parent": "region",
+        "at": {
+          "x": 140,
+          "y": 50
+        }
+      },
+      "changed": [
+        "box users \"Users\"",
+        "place users at \\(140, 50\\)",
+        "place users at \\(300, 560\\)"
+      ],
+      "present": [
+        "box db \"Database\"\\n      box users \"Users\"\\n    }"
+      ],
+      "at": {
+        "nested": {
+          "users": [832, 470]
+        }
+      },
+      "unmoved": {
+        "nested": [
+          "api",
+          "worker",
+          "db",
+          "heading",
+          "badge"
+        ]
+      }
+    },
+    {
+      "name": "move back to the diagram",
+      "operation": {
+        "kind": "moveElement",
+        "diagram": "nested",
+        "element": "users",
+        "parent": null,
+        "at": {
+          "x": 300,
+          "y": 560
+        }
+      },
+      "changed": [
+        "box users \"Users\"",
+        "place users at \\(140, 50\\)",
+        "place users at \\(300, 560\\)"
+      ],
+      "absent": [
+        "      box users"
+      ],
+      "at": {
+        "nested": {
+          "users": [300, 560]
+        }
+      },
+      "unmoved": {
+        "nested": [
+          "api",
+          "worker",
+          "db",
+          "heading",
+          "badge"
+        ]
+      }
+    },
+    {
+      "name": "a group does not go into its own descendant",
+      "operation": {
+        "kind": "moveElement",
+        "diagram": "nested",
+        "element": "region",
+        "parent": "cluster"
+      },
+      "rejected": "edit.unsafe-target"
+    }
+  ]
+}

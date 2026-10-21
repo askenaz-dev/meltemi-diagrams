@@ -1,0 +1,7 @@
+language "0.2"
+
+story walkthrough for checkout {
+  scene intro {
+    hold 1s
+  }
+}

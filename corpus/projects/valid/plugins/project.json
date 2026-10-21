@@ -1,0 +1,14 @@
+{
+  "name": "plugins",
+  "language": "0.2",
+  "plugins": {
+    "erd": {
+      "path": "plugins/erd",
+      "version": "1.0.0",
+      "permissions": [
+        "diagram-types",
+        "icons"
+      ]
+    }
+  }
+}

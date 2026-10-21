@@ -1,0 +1,54 @@
+sequenceDiagram
+  title Card payment
+  autonumber
+  actor Customer as Shopper
+  participant Web as Checkout page
+  participant Api@{ "type": "control" }
+  box Aqua Bank side
+    participant Bank@{ "type": "boundary" }
+    participant Ledger@{ "type": "database" }
+  end
+  %% The customer starts
+  Customer->>Web: Pay
+  Web->>+Api: Create payment
+  Api->>Bank: Authorize
+  alt approved
+    Bank-->>Api: OK
+    Api-)Ledger: Record
+  else declined
+    Bank-->>Api: Declined
+    loop until a card works
+      Api-->>Web: Ask again
+      Web->>Api: New card
+    end
+  end
+  Api-->>-Web: Receipt
+  Note over Web,Api: The page never sees the card number
+  Note right of Bank: Timeout 3 s
+  par notify
+    Api--)Customer: Mail
+  and audit
+    Api->>Ledger: Audit
+  end
+  critical settle
+    Api->>Bank: Settle
+  option bank down
+    Api->>Api: Retry later
+  end
+  opt coupon
+    Web->>Api: Coupon
+  end
+  break fraud
+    Api-xWeb: Blocked
+  end
+  rect rgb(240, 240, 255)
+    Web->Api: Poll
+    Api-->Web: Status
+  end
+  create participant Courier
+  Api->>Courier: Ship
+  destroy Courier
+  Courier--xApi: Delivered
+  Web<<->>Api: Sync
+  links Api: {"Docs": "https://example.com"}
+  autonumber off

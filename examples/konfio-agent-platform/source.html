@@ -1,0 +1,298 @@
+<title>Konfío Agent Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one technical sheet — header, full-width diagram, then reference sections in a single readable column */
+:root{
+  --bg:#f5f6f4; --surface:#ffffff; --ink:#1b1f23; --muted:#5b6570; --line:#c7cdd2; --line-soft:#e2e6e9;
+  --id-band:#f6f3fe; --id-fill:#ebe5fd; --id-stroke:#6a4fd0; --id-ink:#33247a;
+  --gw-fill:#e2f3e5; --gw-stroke:#3d8c50; --gw-ink:#1d5a2d;
+  --aws-band:#eef6f9; --aws-stroke:#2f7f9c; --aws-ink:#144a5e;
+  --new-fill:#fde9e0; --new-stroke:#c4552c; --new-ink:#7a2e12;
+  --ctx-band:#fdf5e6; --ctx-stroke:#b9800f; --ctx-ink:#6b4500;
+  --obs-band:#fcf1f4; --obs-fill:#f9e3ea; --obs-stroke:#b4466a; --obs-ink:#6d2141;
+  --ok:#2f7d46; --warn:#a96a00; --open:#b4466a;
+  --f-display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#13161a; --surface:#1b1f24; --ink:#e5e8eb; --muted:#9aa4ad; --line:#3b434b; --line-soft:#2a3037;
+  --id-band:#1d1a2c; --id-fill:#2a2347; --id-stroke:#a594f0; --id-ink:#ddd5ff;
+  --gw-fill:#1c3123; --gw-stroke:#7cc68e; --gw-ink:#cdeed5;
+  --aws-band:#152429; --aws-stroke:#7cc3db; --aws-ink:#cfe9f2;
+  --new-fill:#3a2219; --new-stroke:#f09a74; --new-ink:#ffd9c8;
+  --ctx-band:#2a2312; --ctx-stroke:#e2b04a; --ctx-ink:#f7e2b5;
+  --obs-band:#251a1f; --obs-fill:#3a1f29; --obs-stroke:#e98fae; --obs-ink:#ffd6e3;
+  --ok:#7cc68e; --warn:#e2b04a; --open:#e98fae; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#13161a; --surface:#1b1f24; --ink:#e5e8eb; --muted:#9aa4ad; --line:#3b434b; --line-soft:#2a3037;
+  --id-band:#1d1a2c; --id-fill:#2a2347; --id-stroke:#a594f0; --id-ink:#ddd5ff;
+  --gw-fill:#1c3123; --gw-stroke:#7cc68e; --gw-ink:#cdeed5;
+  --aws-band:#152429; --aws-stroke:#7cc3db; --aws-ink:#cfe9f2;
+  --new-fill:#3a2219; --new-stroke:#f09a74; --new-ink:#ffd9c8;
+  --ctx-band:#2a2312; --ctx-stroke:#e2b04a; --ctx-ink:#f7e2b5;
+  --obs-band:#251a1f; --obs-fill:#3a1f29; --obs-stroke:#e98fae; --obs-ink:#ffd6e3;
+  --ok:#7cc68e; --warn:#e2b04a; --open:#e98fae; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;margin:0}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:20px;padding-block:28px 64px}
+header{display:grid;gap:8px;margin-bottom:22px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--f-display);font-weight:600;font-size:clamp(28px,4vw,40px);line-height:1.1;margin:0;text-wrap:balance}
+h2{font-family:var(--f-display);font-weight:600;font-size:22px;margin:0 0 10px;text-wrap:balance}
+.lede{max-width:72ch;color:var(--muted);margin:0}
+.diagram{background:var(--surface);border:1px solid var(--line-soft);border-radius:12px;padding:12px;overflow-x:auto}
+.diagram svg{display:block;min-width:980px;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:12px 2px 0;font-size:13px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:14px;height:14px;border-radius:3px;border:1.5px solid}
+.sw.dash{border-style:dashed;background:transparent!important;border-color:var(--muted)}
+section{margin-top:40px;max-width:900px}
+ol.flow{margin:0;padding-left:0;list-style:none;counter-reset:s;display:grid;gap:10px}
+ol.flow li{counter-increment:s;display:grid;grid-template-columns:30px 1fr;gap:10px;align-items:start}
+ol.flow li::before{content:counter(s);font-family:var(--f-mono);font-size:12px;font-weight:500;width:24px;height:24px;border-radius:50%;background:var(--ink);color:var(--bg);display:grid;place-items:center;margin-top:1px}
+ol.flow li.nodraw::before{background:transparent;color:var(--ink);border:1.5px dashed var(--muted)}
+.tbl{overflow-x:auto;border:1px solid var(--line-soft);border-radius:10px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{text-align:left;vertical-align:top;padding:10px 12px;border-bottom:1px solid var(--line-soft)}
+th{font-family:var(--f-mono);font-weight:500;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+tr:last-child td{border-bottom:0}
+code{font-family:var(--f-mono);font-size:.88em;background:var(--line-soft);padding:1px 5px;border-radius:4px}
+.pill{display:inline-block;font-family:var(--f-mono);font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid;white-space:nowrap}
+.p-ok{color:var(--ok);border-color:var(--ok)}
+.p-prop{color:var(--warn);border-color:var(--warn)}
+.p-open{color:var(--open);border-color:var(--open)}
+ul.plain{margin:0;padding-left:18px;display:grid;gap:8px}
+.note{font-size:13px;color:var(--muted)}
+.src{font-size:13px;color:var(--muted)}
+.src a{color:inherit}
+svg text{font-family:var(--f-body)}
+svg .t{font-size:13px;font-weight:600}
+svg .s{font-size:11px}
+svg .h{font-size:13px;font-weight:600;letter-spacing:.02em}
+svg .n{font-size:11px}
+svg .box{fill:var(--surface);stroke:var(--line);stroke-width:1}
+svg .box~.t,svg .neu .t{fill:var(--ink)} svg .neu .s{fill:var(--muted)}
+svg .id .band{fill:var(--id-band);stroke:var(--id-stroke);stroke-width:1}
+svg .id .chip{fill:var(--id-fill);stroke:var(--id-stroke);stroke-width:1}
+svg .id text{fill:var(--id-ink)}
+svg .gw rect{fill:var(--gw-fill);stroke:var(--gw-stroke);stroke-width:1} svg .gw text{fill:var(--gw-ink)}
+svg .aws .band{fill:var(--aws-band);stroke:var(--aws-stroke);stroke-width:1} svg .aws .h{fill:var(--aws-ink)}
+svg .new rect{fill:var(--new-fill);stroke:var(--new-stroke);stroke-width:1.5} svg .new text{fill:var(--new-ink)}
+svg .ctx .band{fill:var(--ctx-band);stroke:var(--ctx-stroke);stroke-width:1} svg .ctx .h{fill:var(--ctx-ink)}
+svg .obs .band{fill:var(--obs-band);stroke:var(--obs-stroke);stroke-width:1}
+svg .obs .chip{fill:var(--obs-fill);stroke:var(--obs-stroke);stroke-width:1} svg .obs text{fill:var(--obs-ink)}
+svg .prop{stroke-dasharray:5 4}
+svg .arr{stroke:var(--muted);stroke-width:1.3;fill:none}
+svg .tag rect{fill:var(--id-stroke);stroke:none} svg .tag text{fill:var(--surface);font-family:var(--f-mono);font-size:10.5px;font-weight:500}
+svg .step circle{fill:var(--ink)} svg .step text{fill:var(--surface);font-family:var(--f-mono);font-size:10.5px;font-weight:500}
+svg .muted{fill:var(--muted)}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Propuesta para validar · 9 oct 2026 · AI Platform</div>
+  <h1>Konfío Agent Platform</h1>
+  <p class="lede">Tu diagrama con las piezas que faltaban: tres gateways KrakenD, Context Layer con OpenFGA, memoria de AgentCore, Temporal como orquestador, PydanticAI como framework, observabilidad en dos capas y las capacidades de Auth0 colocadas en el punto donde actúan. El <code>identity-proxy</code> es la pieza nueva para hacer OBO sin acoplar el código del agente.</p>
+</header>
+
+<div class="diagram" role="img" aria-label="Arquitectura objetivo de la plataforma de agentes de Konfío">
+<svg viewBox="0 0 1280 910" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+
+<g class="id">
+  <rect class="band" x="20" y="20" width="190" height="870" rx="14"/>
+  <text class="h" x="115" y="46" text-anchor="middle">Auth0 · identidad</text>
+  <rect class="chip" x="35" y="70" width="160" height="56" rx="8"/><text class="t" x="115" y="90" text-anchor="middle" dominant-baseline="central">Login + PKCE</text><text class="s" x="115" y="108" text-anchor="middle" dominant-baseline="central">usuarios de la app</text>
+  <rect class="chip prop" x="35" y="140" width="160" height="56" rx="8"/><text class="t" x="115" y="160" text-anchor="middle" dominant-baseline="central">OBO</text><text class="s" x="115" y="178" text-anchor="middle" dominant-baseline="central">token exchange · act</text>
+  <rect class="chip prop" x="35" y="210" width="160" height="56" rx="8"/><text class="t" x="115" y="230" text-anchor="middle" dominant-baseline="central">CIBA + RAR</text><text class="s" x="115" y="248" text-anchor="middle" dominant-baseline="central">push a Guardian</text>
+  <rect class="chip prop" x="35" y="280" width="160" height="56" rx="8"/><text class="t" x="115" y="300" text-anchor="middle" dominant-baseline="central">CIMD</text><text class="s" x="115" y="318" text-anchor="middle" dominant-baseline="central">clientes externos</text>
+  <rect class="chip prop" x="35" y="350" width="160" height="56" rx="8"/><text class="t" x="115" y="370" text-anchor="middle" dominant-baseline="central">PRM</text><text class="s" x="115" y="388" text-anchor="middle" dominant-baseline="central">RFC 9728 en MCP</text>
+  <rect class="chip prop" x="35" y="420" width="160" height="56" rx="8"/><text class="t" x="115" y="440" text-anchor="middle" dominant-baseline="central">FGA</text><text class="s" x="115" y="458" text-anchor="middle" dominant-baseline="central">Auth0 FGA u OpenFGA</text>
+  <text class="n" x="38" y="512">Límites a validar</text>
+  <text class="n" x="38" y="532">OBO: 30 RPS sin add-on</text>
+  <text class="n" x="38" y="550">act: planear 4 niveles</text>
+  <text class="n" x="38" y="568">CIBA: plan Enterprise</text>
+</g>
+
+<g class="obs">
+  <rect class="band" x="1060" y="20" width="200" height="870" rx="14"/>
+  <text class="h" x="1160" y="46" text-anchor="middle">Observabilidad</text>
+  <rect class="chip prop" x="1072" y="70" width="176" height="56" rx="8"/><text class="t" x="1160" y="90" text-anchor="middle" dominant-baseline="central">AI observability</text><text class="s" x="1160" y="108" text-anchor="middle" dominant-baseline="central">Braintrust o Langfuse</text>
+  <rect class="chip" x="1072" y="140" width="176" height="56" rx="8"/><text class="t" x="1160" y="160" text-anchor="middle" dominant-baseline="central">APM</text><text class="s" x="1160" y="178" text-anchor="middle" dominant-baseline="central">New Relic · OTLP</text>
+  <rect class="chip" x="1072" y="210" width="176" height="56" rx="8"/><text class="t" x="1160" y="230" text-anchor="middle" dominant-baseline="central">AgentCore Obs.</text><text class="s" x="1160" y="248" text-anchor="middle" dominant-baseline="central">ADOT · trazas runtime</text>
+  <rect class="chip prop" x="1072" y="280" width="176" height="56" rx="8"/><text class="t" x="1160" y="300" text-anchor="middle" dominant-baseline="central">Trace ID</text><text class="s" x="1160" y="318" text-anchor="middle" dominant-baseline="central">end-to-end + act</text>
+  <text class="n" x="1076" y="372">Todo emite OpenTelemetry</text>
+  <text class="n" x="1076" y="390">Mínimo por agente,</text>
+  <text class="n" x="1076" y="408">por costo (5-oct)</text>
+</g>
+
+<g class="neu"><rect class="box" x="260" y="20" width="200" height="56" rx="8"/><text class="t" x="360" y="40" text-anchor="middle" dominant-baseline="central">NextJS App</text><text class="s" x="360" y="58" text-anchor="middle" dominant-baseline="central">usuario autenticado</text></g>
+<g class="neu"><rect class="box prop" x="800" y="20" width="220" height="56" rx="8"/><text class="t" x="910" y="40" text-anchor="middle" dominant-baseline="central">Clientes MCP externos</text><text class="s" x="910" y="58" text-anchor="middle" dominant-baseline="central">Claude, partners, IDEs</text></g>
+
+<g class="gw"><rect x="240" y="110" width="460" height="50" rx="8"/><text class="t" x="470" y="127" text-anchor="middle" dominant-baseline="central">KrakenD API Gateway</text><text class="s" x="470" y="145" text-anchor="middle" dominant-baseline="central">valida JWT Auth0 · enruta</text></g>
+
+<g class="neu"><rect class="box" x="260" y="195" width="160" height="56" rx="8"/><text class="t" x="340" y="215" text-anchor="middle" dominant-baseline="central">BFF</text><text class="s" x="340" y="233" text-anchor="middle" dominant-baseline="central">Home &amp; Experience</text></g>
+<g class="neu"><rect class="box" x="470" y="195" width="230" height="56" rx="8"/><text class="t" x="585" y="215" text-anchor="middle" dominant-baseline="central">Orquestación Temporal</text><text class="s" x="585" y="233" text-anchor="middle" dominant-baseline="central">workflows durables · ECS</text></g>
+
+<g class="aws">
+  <rect class="band" x="240" y="290" width="540" height="200" rx="14"/>
+  <text class="h" x="260" y="313">AgentCore Runtime · zip en S3</text>
+</g>
+<g class="neu"><rect class="box" x="260" y="330" width="155" height="56" rx="8"/><text class="t" x="337" y="350" text-anchor="middle" dominant-baseline="central">Finance Research</text><text class="s" x="337" y="368" text-anchor="middle" dominant-baseline="central">PydanticAI + SDK</text></g>
+<g class="neu"><rect class="box" x="432" y="330" width="155" height="56" rx="8"/><text class="t" x="509" y="350" text-anchor="middle" dominant-baseline="central">Tech News</text><text class="s" x="509" y="368" text-anchor="middle" dominant-baseline="central">PydanticAI + SDK</text></g>
+<g class="neu"><rect class="box" x="604" y="330" width="155" height="56" rx="8"/><text class="t" x="681" y="350" text-anchor="middle" dominant-baseline="central">Asesor Financiero</text><text class="s" x="681" y="368" text-anchor="middle" dominant-baseline="central">PydanticAI + SDK</text></g>
+<g class="neu"><rect class="box" x="260" y="405" width="240" height="56" rx="8"/><text class="t" x="380" y="425" text-anchor="middle" dominant-baseline="central">AgentCore Memory</text><text class="s" x="380" y="443" text-anchor="middle" dominant-baseline="central">corto y largo plazo · key = sub</text></g>
+<g class="neu"><rect class="box" x="519" y="405" width="240" height="56" rx="8"/><text class="t" x="639" y="425" text-anchor="middle" dominant-baseline="central">Bedrock Guardrails</text><text class="s" x="639" y="443" text-anchor="middle" dominant-baseline="central">opcional por agente</text></g>
+
+<g class="new"><rect class="prop" x="820" y="350" width="200" height="80" rx="8"/><text class="t" x="920" y="372" text-anchor="middle" dominant-baseline="central">identity-proxy</text><text class="s" x="920" y="392" text-anchor="middle" dominant-baseline="central">SigV4 → rol → client</text><text class="s" x="920" y="410" text-anchor="middle" dominant-baseline="central">OBO · route policy</text></g>
+
+<g class="gw"><rect x="240" y="530" width="300" height="56" rx="8"/><text class="t" x="390" y="550" text-anchor="middle" dominant-baseline="central">KrakenD LLM Gateway</text><text class="s" x="390" y="568" text-anchor="middle" dominant-baseline="central">virtual keys · DLP · tiers</text></g>
+<g class="gw"><rect x="580" y="530" width="460" height="56" rx="8"/><text class="t" x="810" y="550" text-anchor="middle" dominant-baseline="central">KrakenD MCP Gateway</text><text class="s" x="810" y="568" text-anchor="middle" dominant-baseline="central">APIs como tools · /mcp/{server}</text></g>
+
+<g class="neu"><rect class="box" x="240" y="625" width="90" height="44" rx="8"/><text class="t" x="285" y="647" text-anchor="middle" dominant-baseline="central">OpenAI</text></g>
+<g class="neu"><rect class="box" x="345" y="625" width="90" height="44" rx="8"/><text class="t" x="390" y="647" text-anchor="middle" dominant-baseline="central">Bedrock</text></g>
+<g class="neu"><rect class="box" x="450" y="625" width="90" height="44" rx="8"/><text class="t" x="495" y="647" text-anchor="middle" dominant-baseline="central">Anthropic</text></g>
+<g class="neu"><rect class="box prop" x="240" y="720" width="145" height="56" rx="8"/><text class="t" x="312" y="740" text-anchor="middle" dominant-baseline="central">Postgres</text><text class="s" x="312" y="758" text-anchor="middle" dominant-baseline="central">checkpoints · estado</text></g>
+<g class="neu"><rect class="box prop" x="395" y="720" width="145" height="56" rx="8"/><text class="t" x="467" y="740" text-anchor="middle" dominant-baseline="central">Redis</text><text class="s" x="467" y="758" text-anchor="middle" dominant-baseline="central">cache · TTL</text></g>
+
+<g class="ctx">
+  <rect class="band prop" x="580" y="625" width="300" height="265" rx="14"/>
+  <text class="h" x="600" y="648">Enterprise Context Layer</text>
+</g>
+<g class="neu"><rect class="box" x="600" y="665" width="125" height="56" rx="8"/><text class="t" x="662" y="685" text-anchor="middle" dominant-baseline="central">mcp-rag</text><text class="s" x="662" y="703" text-anchor="middle" dominant-baseline="central">MCP · Streamable</text></g>
+<g class="neu"><rect class="box" x="740" y="665" width="125" height="56" rx="8"/><text class="t" x="802" y="685" text-anchor="middle" dominant-baseline="central">context-api</text><text class="s" x="802" y="703" text-anchor="middle" dominant-baseline="central">check FGA</text></g>
+<g class="neu"><rect class="box" x="600" y="740" width="125" height="56" rx="8"/><text class="t" x="662" y="760" text-anchor="middle" dominant-baseline="central">Reranker</text><text class="s" x="662" y="778" text-anchor="middle" dominant-baseline="central">después de FGA</text></g>
+<g class="neu"><rect class="box" x="740" y="740" width="125" height="56" rx="8"/><text class="t" x="802" y="760" text-anchor="middle" dominant-baseline="central">Milvus</text><text class="s" x="802" y="778" text-anchor="middle" dominant-baseline="central">vectores + doc_id</text></g>
+<g class="neu"><rect class="box" x="600" y="815" width="125" height="56" rx="8"/><text class="t" x="662" y="835" text-anchor="middle" dominant-baseline="central">Ingesta</text><text class="s" x="662" y="853" text-anchor="middle" dominant-baseline="central">chunk · embed · ACL</text></g>
+<g class="neu"><rect class="box" x="740" y="815" width="125" height="56" rx="8"/><text class="t" x="802" y="835" text-anchor="middle" dominant-baseline="central">Fuentes S3</text><text class="s" x="802" y="853" text-anchor="middle" dominant-baseline="central">documentos</text></g>
+
+<g class="neu"><rect class="box" x="900" y="625" width="140" height="56" rx="8"/><text class="t" x="970" y="645" text-anchor="middle" dominant-baseline="central">APIs internas</text><text class="s" x="970" y="663" text-anchor="middle" dominant-baseline="central">FastAPI · Core</text></g>
+
+<line class="arr" x1="360" y1="78" x2="360" y2="107" marker-end="url(#ah)"/>
+<line class="arr" x1="340" y1="162" x2="340" y2="192" marker-end="url(#ah)"/>
+<line class="arr" x1="422" y1="223" x2="467" y2="223" marker-end="url(#ah)"/>
+<line class="arr" x1="585" y1="253" x2="585" y2="287" marker-end="url(#ah)"/>
+<line class="arr" x1="390" y1="492" x2="390" y2="527" marker-end="url(#ah)"/>
+<line class="arr" x1="782" y1="390" x2="817" y2="390" marker-end="url(#ah)"/>
+<line class="arr" x1="920" y1="432" x2="920" y2="527" marker-end="url(#ah)"/>
+<line class="arr" x1="730" y1="588" x2="730" y2="622" marker-end="url(#ah)"/>
+<line class="arr" x1="970" y1="588" x2="970" y2="622" marker-end="url(#ah)"/>
+<line class="arr" x1="285" y1="588" x2="285" y2="622" marker-end="url(#ah)"/>
+<line class="arr" x1="390" y1="588" x2="390" y2="622" marker-end="url(#ah)"/>
+<line class="arr" x1="495" y1="588" x2="495" y2="622" marker-end="url(#ah)"/>
+<path class="arr" d="M1022 48 H1035 V527" marker-end="url(#ah)"/>
+
+<g class="step"><circle cx="376" cy="93" r="9"/><text x="376" y="93" text-anchor="middle" dominant-baseline="central">1</text></g>
+<g class="step"><circle cx="356" cy="177" r="9"/><text x="356" y="177" text-anchor="middle" dominant-baseline="central">2</text></g>
+<g class="step"><circle cx="444" cy="207" r="9"/><text x="444" y="207" text-anchor="middle" dominant-baseline="central">3</text></g>
+<g class="step"><circle cx="601" cy="270" r="9"/><text x="601" y="270" text-anchor="middle" dominant-baseline="central">4</text></g>
+<g class="step"><circle cx="406" cy="510" r="9"/><text x="406" y="510" text-anchor="middle" dominant-baseline="central">5</text></g>
+<g class="step"><circle cx="800" cy="374" r="9"/><text x="800" y="374" text-anchor="middle" dominant-baseline="central">6</text></g>
+<g class="step"><circle cx="936" cy="480" r="9"/><text x="936" y="480" text-anchor="middle" dominant-baseline="central">7</text></g>
+<g class="step"><circle cx="746" cy="605" r="9"/><text x="746" y="605" text-anchor="middle" dominant-baseline="central">8</text></g>
+
+<g class="tag"><rect x="412" y="11" width="44" height="18" rx="9"/><text x="434" y="20" text-anchor="middle" dominant-baseline="central">PKCE</text></g>
+<g class="tag"><rect x="972" y="11" width="44" height="18" rx="9"/><text x="994" y="20" text-anchor="middle" dominant-baseline="central">CIMD</text></g>
+<g class="tag"><rect x="652" y="186" width="44" height="18" rx="9"/><text x="674" y="195" text-anchor="middle" dominant-baseline="central">CIBA</text></g>
+<g class="tag"><rect x="726" y="281" width="44" height="18" rx="9"/><text x="748" y="290" text-anchor="middle" dominant-baseline="central">JWT</text></g>
+<g class="tag"><rect x="972" y="341" width="44" height="18" rx="9"/><text x="994" y="350" text-anchor="middle" dominant-baseline="central">OBO</text></g>
+<g class="tag"><rect x="988" y="521" width="44" height="18" rx="9"/><text x="1010" y="530" text-anchor="middle" dominant-baseline="central">PRM</text></g>
+<g class="tag"><rect x="817" y="656" width="44" height="18" rx="9"/><text x="839" y="665" text-anchor="middle" dominant-baseline="central">FGA</text></g>
+</svg>
+</div>
+<div class="legend">
+  <span><i class="sw" style="background:var(--id-fill);border-color:var(--id-stroke)"></i>Auth0 e identidad</span>
+  <span><i class="sw" style="background:var(--gw-fill);border-color:var(--gw-stroke)"></i>KrakenD</span>
+  <span><i class="sw" style="background:var(--aws-band);border-color:var(--aws-stroke)"></i>AgentCore</span>
+  <span><i class="sw" style="background:var(--new-fill);border-color:var(--new-stroke)"></i>Pieza nueva</span>
+  <span><i class="sw" style="background:var(--ctx-band);border-color:var(--ctx-stroke)"></i>Context Layer</span>
+  <span><i class="sw" style="background:var(--obs-fill);border-color:var(--obs-stroke)"></i>Observabilidad</span>
+  <span><i class="sw dash"></i>Línea punteada: propuesto o por validar</span>
+  <span><i class="sw" style="background:var(--id-stroke);border-color:var(--id-stroke);border-radius:9px"></i>Etiqueta: capacidad de Auth0 que actúa ahí</span>
+</div>
+
+<section>
+  <h2>Cómo viaja una petición</h2>
+  <ol class="flow">
+    <li><div>El usuario entra con <b>Auth0 Login + PKCE</b>. NextJS llama a KrakenD con el JWT del usuario.</div></li>
+    <li><div><b>KrakenD API Gateway</b> valida firma, issuer y audiencia contra el JWKS de Auth0 y enruta al BFF.</div></li>
+    <li><div>El BFF inicia un <b>workflow de Temporal</b> si la tarea es larga o necesita aprobación. Si es una consulta corta, puede invocar al agente directo. Temporal es dueño del proceso; AgentCore, de cada corrida del agente.</div></li>
+    <li><div>Una Activity invoca al agente en <b>AgentCore Runtime</b>. El authorizer JWT del runtime valida el token antes de llegar al código. El agente es <b>PydanticAI sobre el Konfío Agent SDK</b> (<code>serve()</code>), con memoria en <b>AgentCore Memory</b> cuya key se arma solo con el <code>sub</code>.</div></li>
+    <li><div>Para razonar, el agente llama al modelo por el <b>LLM Gateway</b> (virtual key, DLP, tiers y presupuesto), nunca directo al proveedor.</div></li>
+    <li><div>Para usar una tool, el agente llama a un alias del <b>identity-proxy</b> con el JWT del usuario y la firma SigV4 de su rol de ejecución. El agente no tiene código ni secretos de Auth0.</div></li>
+    <li><div>El proxy confirma que el rol es el del agente, hace <b>OBO</b> con el client de ese agente (así <code>act</code> = agente) y llama al <b>MCP Gateway</b> con un token cuya audiencia es la de la tool.</div></li>
+    <li><div>El MCP Gateway enruta a una API interna expuesta como tool o al <b>Context Layer</b>. Ahí <code>context-api</code> hace un check en FGA por cada documento candidato antes del reranker y antes de que un chunk llegue al modelo, y falla cerrado.</div></li>
+    <li class="nodraw"><div>Si la acción es sensible (un cambio, leer un documento restringido), el workflow pide <b>CIBA + RAR</b>. Auth0 manda un push a <b>Guardian</b>, el usuario aprueba y Temporal reanuda. El workflow guarda el checkpoint de la acción, no el token.</div></li>
+    <li class="nodraw"><div>Cada salto emite OpenTelemetry: trazas de LLM y evaluaciones a la herramienta de AI observability, APM a New Relic, y un trace ID que se puede cruzar con la cadena <code>act</code>.</div></li>
+  </ol>
+  <p class="note">Ruta alterna: un cliente MCP externo descubre el servidor, lee su <b>PRM</b> (que apunta a Auth0 como authorization server), se identifica con su <b>CIMD</b>, el usuario consiente, y llega al MCP Gateway con un token para esa audiencia.</p>
+</section>
+
+<section>
+  <h2>Piezas y estado</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Capa</th><th>Pieza</th><th>Estado</th><th>Nota</th></tr></thead>
+    <tbody>
+      <tr><td>Framework</td><td>PydanticAI + Konfío Agent SDK</td><td><span class="pill p-ok">decidido</span></td><td>ADR AgentSDK-001, aceptado el 9-jul-2026. MCP solo de salida con <code>mcp_toolset</code>.</td></tr>
+      <tr><td>Runtime</td><td>AgentCore Runtime (zip en S3)</td><td><span class="pill p-ok">en uso</span></td><td>Golden path. AWS lo documenta como apto para prod.</td></tr>
+      <tr><td>Memoria</td><td>AgentCore Memory</td><td><span class="pill p-ok">disponible</span></td><td>Corto y largo plazo administrados, DynamoDB solo para metadata (LSD del SDK). Opt-in con <code>enable_memory</code>. Kamila mantiene Redis detrás de un adapter.</td></tr>
+      <tr><td>Orquestación</td><td>Temporal Cloud</td><td><span class="pill p-prop">propuesto</span></td><td>Temporal está en Adopt; el ítem de catálogo para agentes sigue "coming soon" y LangGraph sigue en evaluación.</td></tr>
+      <tr><td>Gateways</td><td>KrakenD API Gateway</td><td><span class="pill p-ok">en uso</span></td><td>Punto de validación de tokens de Auth 2.0.</td></tr>
+      <tr><td></td><td>KrakenD LLM Gateway</td><td><span class="pill p-ok">en uso</span></td><td><code>ai.konfio.mx</code> / <code>ai.internal.konfio.mx</code>, virtual keys, DLP y tiers.</td></tr>
+      <tr><td></td><td>KrakenD MCP Gateway</td><td><span class="pill p-prop">beta</span></td><td>Hoy vive en la instancia <code>ai-internal</code> (<code>/mcp/{server}/v1</code>), con una tool real. Usa la key compartida y no cuenta contra tiers.</td></tr>
+      <tr><td>Identidad</td><td>identity-proxy</td><td><span class="pill p-prop">propuesto</span></td><td>Remoto para agentes en AgentCore y sidecar para servicios en ECS. Misma imagen.</td></tr>
+      <tr><td>Contexto</td><td>Context Layer (mcp-rag, context-api, Milvus, reranker, ingesta)</td><td><span class="pill p-prop">propuesto</span></td><td>Diseño del PoC <code>agentic-auth-poc</code>; el reranker no está elegido.</td></tr>
+      <tr><td>Autorización</td><td>Auth0 FGA u OpenFGA</td><td><span class="pill p-open">por decidir</span></td><td>KrakenD no trae OpenFGA nativo. Self-hosted o administrado sigue abierto.</td></tr>
+      <tr><td>Observabilidad</td><td>Braintrust o Langfuse</td><td><span class="pill p-open">por decidir</span></td><td>Braintrust ya corre en Kamila Sales; Langfuse es la elección del PoC. El 30-sep no había evaluación formal y el 5-oct se dijo que el contrato estaba firmado.</td></tr>
+      <tr><td></td><td>New Relic + ADOT</td><td><span class="pill p-ok">en uso</span></td><td>New Relic como destino OTLP adicional. La correlación con ADOT sigue sin confirmarse.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Auth0: qué va en qué punto</h2>
+  <div class="tbl"><table>
+    <thead><tr><th>Capacidad</th><th>Dónde actúa</th><th>Para qué</th><th>A validar</th></tr></thead>
+    <tbody>
+      <tr><td>Login + PKCE</td><td>NextJS</td><td>Sesión del usuario y JWT para la API.</td><td>—</td></tr>
+      <tr><td>OBO (RFC 8693)</td><td>identity-proxy, y KrakenD en el borde para externos</td><td>Cambiar el token a la audiencia de cada recurso conservando <code>sub</code> y la cadena <code>act</code>.</td><td>Custom API client por agente; 30 RPS sin el add-on de AI Agents; profundidad de <code>act</code>, planear con 4.</td></tr>
+      <tr><td>PRM (RFC 9728)</td><td>MCP Gateway y servidores MCP</td><td>Que un cliente MCP descubra qué authorization server y qué scopes usar.</td><td>Cómo lo publica KrakenD por servidor MCP.</td></tr>
+      <tr><td>CIMD</td><td>Clientes MCP externos</td><td>Que un cliente se identifique con una URL de metadata en vez de registro previo.</td><td>Es un cliente interactivo (el usuario consiente), no M2M ni OBO. Habilitarlo en el tenant.</td></tr>
+      <tr><td>CIBA + RAR</td><td>Workflow de Temporal</td><td>Aprobación asíncrona de una acción concreta (monto, documento) con push a Guardian.</td><td>Plan Enterprise o add-on; canal de notificación; el aprobador no entra solo a <code>act</code>.</td></tr>
+      <tr><td>FGA</td><td>context-api y tools sensibles</td><td>Permiso fino por documento o recurso, separado de la autenticación.</td><td>Modelo y tuplas versionados; quién sincroniza los ACL desde la ingesta.</td></tr>
+    </tbody>
+  </table></div>
+  <p class="note">Lo de Guardian como canal de push para CIBA y los detalles de PRM vienen de documentación general de Auth0 y de la spec de MCP, no del brain.</p>
+</section>
+
+<section>
+  <h2>Decisiones abiertas</h2>
+  <ul class="plain">
+    <li><b>Entrada al runtime: JWT o SigV4.</b> Este diseño asume JWT porque necesita al usuario. El "north star" del SDK usa SigV4 desde KrakenD, que pierde el principal. Solo puede haber uno por runtime.</li>
+    <li><b>Perímetro de tools: KrakenD MCP Gateway o AgentCore Gateway.</b> La propuesta del Asesor Financiero pone su Lambda detrás de un AgentCore Gateway público. Aquí se dibuja KrakenD como perímetro único; falta decidir si esa Lambda pasa detrás de KrakenD.</li>
+    <li><b>Presupuesto de delegación.</b> api → agente → MCP → context-api llega a 4 niveles de <code>act</code>. Un exchange extra en el borde puede ser rechazado. Medirlo en el tenant real.</li>
+    <li><b>Tokens en workflows largos.</b> Temporal no debe guardar bearer tokens. Al reanudar se necesita un token nuevo ligado a la acción aprobada o re-autenticar.</li>
+    <li><b>identity-proxy en AWS.</b> Probar que AgentCore pasa el header <code>Authorization</code> al código, cómo exponer el proxy con auth IAM (VPC Lattice o API Gateway privado) y que el streaming pasa intacto.</li>
+    <li><b>MCP Gateway en producción.</b> Sacarlo de la key compartida y meterlo a tiers; preguntar al vendor por estado de sesión MCP y soporte A2A.</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Qué cambia contra tu diagrama</h2>
+  <ul class="plain">
+    <li>KrakenD aparece como tres gateways lógicos: API, LLM y MCP. LLM y MCP comparten hoy la instancia <code>ai-internal</code>.</li>
+    <li>Entre los agentes y las tools entra el <code>identity-proxy</code>, que hace el OBO con el client de cada agente.</li>
+    <li>El reranker queda después del check de FGA, no antes, para que ningún chunk sin permiso llegue al modelo.</li>
+    <li>Postgres y Redis quedan con un rol explícito: checkpoints y estado durable; cache con TTL. La memoria conversacional es AgentCore Memory.</li>
+    <li>Se agrega la ruta de clientes MCP externos con PRM y CIMD, y la de aprobación humana con CIBA desde Temporal.</li>
+  </ul>
+</section>
+
+<section class="src">
+  <h2>Fuentes</h2>
+  <p>Brain: <code>wiki/systems/agentcore.md</code>, <code>wiki/systems/konfio-agent-sdk.md</code>, <code>wiki/systems/krakend.md</code>, <code>wiki/systems/ai-gateway.md</code>, <code>wiki/systems/temporal.md</code>, <code>wiki/systems/ai-platform-poc.md</code>, <code>wiki/systems/agent-gateway.md</code>, <code>wiki/decisions/obo-token-exchange-placement.md</code>, <code>wiki/decisions/agentcore-zip-in-s3-vs-ecr-image.md</code>, <code>wiki/architecture/rag-document-authorization-with-fga.md</code>, <code>journal/meetings/2026-10-05-ai-innovation-weekly-braintrust-and-code-agents.md</code>.</p>
+  <p>Notion: <a href="https://app.notion.com/p/388bc719d0c0810d841dc5aca0ee2844">[Light Solution Design] Konfío Agent SDK</a> · <a href="https://app.notion.com/p/389bc719d0c081cea350cba9f0b0d94d">[ADR] AgentSDK-001 — PydanticAI</a> · <a href="https://app.notion.com/p/395bc719d0c081419414ffff1ac17c29">Agents — Golden Path Guide</a> · <a href="https://app.notion.com/p/3acbc719d0c081558989fd2d709b5089">Kamila 2.0 — migration to the Agent SDK</a> · <a href="https://app.notion.com/p/3f2bc719d0c081b4a251faaa81b2dbee">Asesor Financiero — servicio de tools MCP</a></p>
+</section>
+</div>

@@ -1,0 +1,151 @@
+{
+  "assets.lock.json": [
+    {
+      "code": "asset.lock-mismatch",
+      "severity": "warning",
+      "message": "The assets differ from assets.lock.json: icon pack `aws` is not in the lock.",
+      "range": {
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        }
+      },
+      "hints": [
+        "Run `meltemi-diagrams assets lock` after reviewing the change."
+      ],
+      "related": []
+    },
+    {
+      "code": "asset.lock-mismatch",
+      "severity": "warning",
+      "message": "The assets differ from assets.lock.json: icon pack `azure` is not in the lock.",
+      "range": {
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        }
+      },
+      "hints": [
+        "Run `meltemi-diagrams assets lock` after reviewing the change."
+      ],
+      "related": []
+    },
+    {
+      "code": "asset.lock-mismatch",
+      "severity": "warning",
+      "message": "The assets differ from assets.lock.json: icon pack `gcp` is not in the lock.",
+      "range": {
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        }
+      },
+      "hints": [
+        "Run `meltemi-diagrams assets lock` after reviewing the change."
+      ],
+      "related": []
+    },
+    {
+      "code": "asset.lock-mismatch",
+      "severity": "warning",
+      "message": "The assets differ from assets.lock.json: icon pack `kubernetes` is not in the lock.",
+      "range": {
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        }
+      },
+      "hints": [
+        "Run `meltemi-diagrams assets lock` after reviewing the change."
+      ],
+      "related": []
+    },
+    {
+      "code": "asset.lock-mismatch",
+      "severity": "warning",
+      "message": "The assets differ from assets.lock.json: icon pack `local` changed content.",
+      "range": {
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        }
+      },
+      "hints": [
+        "Run `meltemi-diagrams assets lock` after reviewing the change."
+      ],
+      "related": []
+    },
+    {
+      "code": "asset.lock-mismatch",
+      "severity": "warning",
+      "message": "The assets differ from assets.lock.json: icon pack `logos` is not in the lock.",
+      "range": {
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        }
+      },
+      "hints": [
+        "Run `meltemi-diagrams assets lock` after reviewing the change."
+      ],
+      "related": []
+    },
+    {
+      "code": "asset.lock-mismatch",
+      "severity": "warning",
+      "message": "The assets differ from assets.lock.json: icon pack `tabler` changed version from 3.0.0 to 3.48.0.",
+      "range": {
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        }
+      },
+      "hints": [
+        "Run `meltemi-diagrams assets lock` after reviewing the change."
+      ],
+      "related": []
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "operation": {
+    "kind": "setThemeToken",
+    "theme": "technical.light",
+    "token": "accent",
+    "value": "#FF0000"
+  }
+}

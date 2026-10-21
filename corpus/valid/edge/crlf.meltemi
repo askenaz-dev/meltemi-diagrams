@@ -1,0 +1,13 @@
+language "0.2"
+
+// CRLF line endings.
+diagram crlf: flow {
+  layout assisted
+  web["Web"]
+  api["API"]
+  web -> api: "REST" as call
+
+  placement {
+    place web at (100, 100)
+  }
+}

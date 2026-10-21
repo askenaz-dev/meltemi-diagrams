@@ -1,0 +1,3 @@
+diagram d: flow {
+  a -> b { description "x" }
+}

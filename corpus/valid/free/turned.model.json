@@ -1,0 +1,956 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "turned",
+      "type": "free",
+      "range": {
+        "start": {
+          "offset": 250,
+          "line": 6,
+          "column": 1
+        },
+        "end": {
+          "offset": 1099,
+          "line": 41,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": null,
+        "title": "Turned objects",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "ingest",
+          "kind": "box",
+          "label": "Ingest",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 317,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 336,
+              "line": 10,
+              "column": 22
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 321,
+              "line": 10,
+              "column": 7
+            },
+            "end": {
+              "offset": 327,
+              "line": 10,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "publish",
+          "kind": "box",
+          "label": "Publish",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 339,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 360,
+              "line": 11,
+              "column": 24
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 343,
+              "line": 11,
+              "column": 7
+            },
+            "end": {
+              "offset": 350,
+              "line": 11,
+              "column": 14
+            }
+          }
+        },
+        {
+          "id": "side",
+          "kind": "text",
+          "label": "Pipeline",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 363,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 383,
+              "line": 12,
+              "column": 23
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 368,
+              "line": 12,
+              "column": 8
+            },
+            "end": {
+              "offset": 372,
+              "line": 12,
+              "column": 12
+            }
+          }
+        },
+        {
+          "id": "gear",
+          "kind": "icon",
+          "label": "gear",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": "tabler:settings",
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 386,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 413,
+              "line": 13,
+              "column": 30
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 391,
+              "line": 13,
+              "column": 8
+            },
+            "end": {
+              "offset": 395,
+              "line": 13,
+              "column": 12
+            }
+          }
+        },
+        {
+          "id": "gate",
+          "kind": "box",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 416,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 427,
+              "line": 14,
+              "column": 14
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 420,
+              "line": 14,
+              "column": 7
+            },
+            "end": {
+              "offset": 424,
+              "line": 14,
+              "column": 11
+            }
+          }
+        },
+        {
+          "id": "lane",
+          "kind": "group",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 430,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 473,
+              "line": 17,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 436,
+              "line": 15,
+              "column": 9
+            },
+            "end": {
+              "offset": 440,
+              "line": 15,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "worker",
+          "kind": "box",
+          "label": "Worker",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "lane"
+          ],
+          "range": {
+            "start": {
+              "offset": 450,
+              "line": 16,
+              "column": 5
+            },
+            "end": {
+              "offset": 469,
+              "line": 16,
+              "column": 24
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 454,
+              "line": 16,
+              "column": 9
+            },
+            "end": {
+              "offset": 460,
+              "line": 16,
+              "column": 15
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "enter",
+          "id": "enter",
+          "from": "ingest",
+          "to": "gate",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 477,
+              "line": 19,
+              "column": 3
+            },
+            "end": {
+              "offset": 500,
+              "line": 19,
+              "column": 26
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 495,
+              "line": 19,
+              "column": 21
+            },
+            "end": {
+              "offset": 500,
+              "line": 19,
+              "column": 26
+            }
+          }
+        },
+        {
+          "key": "leave",
+          "id": "leave",
+          "from": "gate",
+          "to": "publish",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 503,
+              "line": 20,
+              "column": 3
+            },
+            "end": {
+              "offset": 527,
+              "line": 20,
+              "column": 27
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 522,
+              "line": 20,
+              "column": 22
+            },
+            "end": {
+              "offset": 527,
+              "line": 20,
+              "column": 27
+            }
+          }
+        },
+        {
+          "key": "spawn",
+          "id": "spawn",
+          "from": "ingest",
+          "to": "worker",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 530,
+              "line": 21,
+              "column": 3
+            },
+            "end": {
+              "offset": 555,
+              "line": 21,
+              "column": 28
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 550,
+              "line": 21,
+              "column": 23
+            },
+            "end": {
+              "offset": 555,
+              "line": 21,
+              "column": 28
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "ingest",
+          "x": 140,
+          "y": 120,
+          "range": {
+            "start": {
+              "offset": 575,
+              "line": 24,
+              "column": 5
+            },
+            "end": {
+              "offset": 601,
+              "line": 24,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 581,
+              "line": 24,
+              "column": 11
+            },
+            "end": {
+              "offset": 587,
+              "line": 24,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "gate",
+          "x": 420,
+          "y": 120,
+          "range": {
+            "start": {
+              "offset": 606,
+              "line": 25,
+              "column": 5
+            },
+            "end": {
+              "offset": 630,
+              "line": 25,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 612,
+              "line": 25,
+              "column": 11
+            },
+            "end": {
+              "offset": 616,
+              "line": 25,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "size",
+          "target": "gate",
+          "width": 96,
+          "height": 96,
+          "range": {
+            "start": {
+              "offset": 635,
+              "line": 26,
+              "column": 5
+            },
+            "end": {
+              "offset": 653,
+              "line": 26,
+              "column": 23
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 640,
+              "line": 26,
+              "column": 10
+            },
+            "end": {
+              "offset": 644,
+              "line": 26,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "publish",
+          "x": 700,
+          "y": 120,
+          "range": {
+            "start": {
+              "offset": 658,
+              "line": 27,
+              "column": 5
+            },
+            "end": {
+              "offset": 685,
+              "line": 27,
+              "column": 32
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 664,
+              "line": 27,
+              "column": 11
+            },
+            "end": {
+              "offset": 671,
+              "line": 27,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "side",
+          "x": 40,
+          "y": 300,
+          "range": {
+            "start": {
+              "offset": 690,
+              "line": 28,
+              "column": 5
+            },
+            "end": {
+              "offset": 713,
+              "line": 28,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 696,
+              "line": 28,
+              "column": 11
+            },
+            "end": {
+              "offset": 700,
+              "line": 28,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "gear",
+          "x": 700,
+          "y": 300,
+          "range": {
+            "start": {
+              "offset": 718,
+              "line": 29,
+              "column": 5
+            },
+            "end": {
+              "offset": 742,
+              "line": 29,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 724,
+              "line": 29,
+              "column": 11
+            },
+            "end": {
+              "offset": 728,
+              "line": 29,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "lane",
+          "x": 420,
+          "y": 340,
+          "range": {
+            "start": {
+              "offset": 747,
+              "line": 30,
+              "column": 5
+            },
+            "end": {
+              "offset": 771,
+              "line": 30,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 753,
+              "line": 30,
+              "column": 11
+            },
+            "end": {
+              "offset": 757,
+              "line": 30,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "worker",
+          "x": 40,
+          "y": 96,
+          "range": {
+            "start": {
+              "offset": 776,
+              "line": 31,
+              "column": 5
+            },
+            "end": {
+              "offset": 800,
+              "line": 31,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 782,
+              "line": 31,
+              "column": 11
+            },
+            "end": {
+              "offset": 788,
+              "line": 31,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "route",
+          "target": "leave",
+          "from": {
+            "element": "gate",
+            "port": "east",
+            "position": 50
+          },
+          "to": {
+            "element": "publish",
+            "port": "auto"
+          },
+          "via": [],
+          "range": {
+            "start": {
+              "offset": 805,
+              "line": 32,
+              "column": 5
+            },
+            "end": {
+              "offset": 846,
+              "line": 32,
+              "column": 46
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 811,
+              "line": 32,
+              "column": 11
+            },
+            "end": {
+              "offset": 816,
+              "line": 32,
+              "column": 16
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [
+        {
+          "target": "ingest",
+          "targetKind": "element",
+          "properties": {
+            "rotation": 30
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 854,
+              "line": 35,
+              "column": 3
+            },
+            "end": {
+              "offset": 882,
+              "line": 35,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 860,
+              "line": 35,
+              "column": 9
+            },
+            "end": {
+              "offset": 866,
+              "line": 35,
+              "column": 15
+            }
+          }
+        },
+        {
+          "target": "gate",
+          "targetKind": "element",
+          "properties": {
+            "fill": "#eef4ff",
+            "radius": 12,
+            "rotation": 45,
+            "shape": "square"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 885,
+              "line": 36,
+              "column": 3
+            },
+            "end": {
+              "offset": 952,
+              "line": 36,
+              "column": 70
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 891,
+              "line": 36,
+              "column": 9
+            },
+            "end": {
+              "offset": 895,
+              "line": 36,
+              "column": 13
+            }
+          }
+        },
+        {
+          "target": "side",
+          "targetKind": "element",
+          "properties": {
+            "fontSize": 18,
+            "rotation": 270
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 955,
+              "line": 37,
+              "column": 3
+            },
+            "end": {
+              "offset": 995,
+              "line": 37,
+              "column": 43
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 961,
+              "line": 37,
+              "column": 9
+            },
+            "end": {
+              "offset": 965,
+              "line": 37,
+              "column": 13
+            }
+          }
+        },
+        {
+          "target": "gear",
+          "targetKind": "element",
+          "properties": {
+            "rotation": 45
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 998,
+              "line": 38,
+              "column": 3
+            },
+            "end": {
+              "offset": 1024,
+              "line": 38,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1004,
+              "line": 38,
+              "column": 9
+            },
+            "end": {
+              "offset": 1008,
+              "line": 38,
+              "column": 13
+            }
+          }
+        },
+        {
+          "target": "lane",
+          "targetKind": "element",
+          "properties": {
+            "fill": "#f4f6f8",
+            "radius": 0
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1027,
+              "line": 39,
+              "column": 3
+            },
+            "end": {
+              "offset": 1066,
+              "line": 39,
+              "column": 42
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1033,
+              "line": 39,
+              "column": 9
+            },
+            "end": {
+              "offset": 1037,
+              "line": 39,
+              "column": 13
+            }
+          }
+        },
+        {
+          "target": "worker",
+          "targetKind": "element",
+          "properties": {
+            "rotation": 90
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1069,
+              "line": 40,
+              "column": 3
+            },
+            "end": {
+              "offset": 1097,
+              "line": 40,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1075,
+              "line": 40,
+              "column": 9
+            },
+            "end": {
+              "offset": 1081,
+              "line": 40,
+              "column": 15
+            }
+          }
+        }
+      ],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

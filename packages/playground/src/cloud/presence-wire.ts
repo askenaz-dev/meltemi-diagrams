@@ -1,0 +1,231 @@
+// The wire format of presence (`live-collaboration`, "Awareness state"): what a kind 2 message of
+// the room holds, and how the page reads it. One small module, so that the day the room's format
+// changes this is the only place that has to follow.
+//
+// A kind 2 payload is UTF-8 JSON: an object keyed by client id, as Yjs's awareness protocol does,
+// whose value is that client's state, or `null` when the client is gone.
+//
+//   page to room   { "<my client id>": { file?, caret?: { anchor, head }, canvas?: { selection } } }
+//   room to page   { "<client id>": { file?, caret?, canvas?, user: { sub, name, picture, colour } } }
+//                  { "<client id>": null }                     (that client left or fell silent)
+//
+// `file` is a file id of the document, `anchor` and `head` are base64 of Yjs relative positions
+// in that file's text, `selection` the ids selected on the canvas. The identity is the room's: it
+// replaces `user` on everything it relays, so the page never sends one and never reads a person's
+// identity from anywhere else. Everything read here comes from a peer through the room and is
+// untrusted: it is checked, capped, and a payload that does not fit is ignored, never thrown at.
+
+import * as Y from "yjs";
+import { FILE_ID } from "./doc.js";
+import { avatarUrl } from "./session.js";
+
+/** The most canvas ids one state carries; more are not published. */
+export const MAX_SELECTED = 200;
+/** The longest canvas id read from a peer. */
+export const MAX_ID_LENGTH = 200;
+/** The longest name read from a peer, in characters. */
+export const MAX_NAME_LENGTH = 100;
+/** The most clients one message may speak of. */
+const MAX_ENTRIES = 64;
+/** The longest client id or `sub` read from a message. */
+const MAX_KEY_LENGTH = 200;
+/** The longest encoded relative position read from a peer. */
+const MAX_POSITION_LENGTH = 200;
+
+/** A caret or selection, as encoded relative positions in a file's text. */
+export interface EncodedCaret {
+  readonly anchor: string;
+  readonly head: string;
+}
+
+/** What the page publishes about the person: where they are, never who they are. */
+export interface LocalState {
+  /** The id of the file the person has open (ids never change, so a rename keeps presence). */
+  readonly file?: string;
+  readonly caret?: EncodedCaret;
+  readonly canvas?: { readonly selection: readonly string[] };
+}
+
+/** Who a person is, as the room says: never taken from the peer's own payload. */
+export interface RemoteUser {
+  readonly sub: string;
+  /** May be empty. */
+  readonly name: string;
+  /** An address the avatar may be drawn from (`avatarUrl`), or undefined. */
+  readonly picture: string | undefined;
+}
+
+/** A peer's state as the page reads it. */
+export interface RemoteState {
+  readonly user: RemoteUser;
+  readonly file: string | undefined;
+  readonly caret: EncodedCaret | undefined;
+  /** The canvas ids the person has selected. */
+  readonly selection: readonly string[];
+}
+
+/** One client of a message: its id, and its state (`null`: it is gone). */
+export interface AwarenessEntry {
+  readonly id: string;
+  readonly state: unknown;
+}
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+// Messages ---------------------------------------------------------------------------------------
+
+/** The payload of the page's own state, as the room takes it. */
+export function encodeLocal(clientId: string, state: LocalState): Uint8Array {
+  return encoder.encode(JSON.stringify({ [clientId]: state }));
+}
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+
+/** The clients a payload speaks of; nothing when it is not a message of the format. Never throws. */
+export function decodeAwareness(payload: Uint8Array): AwarenessEntry[] {
+  let value: unknown;
+  try {
+    value = JSON.parse(decoder.decode(payload));
+  } catch {
+    return [];
+  }
+  if (!isObject(value)) return [];
+  const entries: AwarenessEntry[] = [];
+  for (const [id, state] of Object.entries(value)) {
+    if (entries.length >= MAX_ENTRIES) break;
+    if (id === "" || id.length > MAX_KEY_LENGTH) continue;
+    if (state === null || isObject(state)) entries.push({ id, state });
+  }
+  return entries;
+}
+
+// A peer's state ---------------------------------------------------------------------------------
+
+const BASE64 = /^[A-Za-z0-9+/]+={0,2}$/;
+
+/** Control characters and the line and paragraph separators, which a name has no use for. */
+const isUnseen = (code: number): boolean =>
+  code < 0x20 || (code >= 0x7f && code <= 0x9f) || code === 0x2028 || code === 0x2029;
+
+/** A name as one line of characters: the ones that cannot be seen become spaces. */
+function oneLine(name: string): string {
+  let line = "";
+  for (const character of name) line += isUnseen(character.codePointAt(0) ?? 0) ? " " : character;
+  return line.trim();
+}
+
+function readUser(value: unknown, page: string): RemoteUser | undefined {
+  if (!isObject(value)) return undefined;
+  const sub = value["sub"];
+  if (typeof sub !== "string" || sub === "" || sub.length > MAX_KEY_LENGTH) return undefined;
+  const name = value["name"];
+  return {
+    sub,
+    // Kept as the characters it is: the page sets it as a text node and never as markup.
+    name:
+      typeof name === "string" ? Array.from(oneLine(name)).slice(0, MAX_NAME_LENGTH).join("") : "",
+    picture: avatarUrl(value["picture"], page),
+  };
+}
+
+function readCaret(value: unknown): EncodedCaret | undefined {
+  if (!isObject(value)) return undefined;
+  const { anchor, head } = value;
+  const fits = (position: unknown): position is string =>
+    typeof position === "string" &&
+    position.length > 0 &&
+    position.length <= MAX_POSITION_LENGTH &&
+    BASE64.test(position);
+  return fits(anchor) && fits(head) ? { anchor, head } : undefined;
+}
+
+function readSelection(value: unknown): string[] {
+  if (!isObject(value) || !Array.isArray(value["selection"])) return [];
+  const ids: string[] = [];
+  for (const id of value["selection"] as unknown[]) {
+    if (ids.length >= MAX_SELECTED) break;
+    if (typeof id === "string" && id !== "" && id.length <= MAX_ID_LENGTH) ids.push(id);
+  }
+  return ids;
+}
+
+/**
+ * A peer's state as the room relayed it, or undefined when it names nobody. The person is the
+ * room's `user` and nothing else: a `name`, `sub` or `picture` beside it, or inside the caret or
+ * the canvas selection, is a peer's claim and never read. Where the state says it is, the caret and
+ * the canvas selection are whatever of them fits the format.
+ */
+export function readState(value: unknown, page: string): RemoteState | undefined {
+  if (!isObject(value)) return undefined;
+  const user = readUser(value["user"], page);
+  if (!user) return undefined;
+  const file = value["file"];
+  return {
+    user,
+    file: typeof file === "string" && FILE_ID.test(file) ? file : undefined,
+    caret: readCaret(value["caret"]),
+    selection: readSelection(value["canvas"]),
+  };
+}
+
+// Relative positions -----------------------------------------------------------------------------
+
+/** Base64 of some bytes. */
+export function toBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary);
+}
+
+/** The bytes of a base64 text, or undefined when it is not one. */
+export function fromBase64(text: string): Uint8Array | undefined {
+  if (!BASE64.test(text)) return undefined;
+  try {
+    const binary = atob(text);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * A caret or selection of a text as relative positions, so that it stays on the same characters
+ * while others edit. The ends of a forward selection hold to the characters inside it (the start
+ * to the first, the end to the last), so text typed at its edges falls outside; a backward one the
+ * other way round.
+ */
+export function encodeCaret(text: Y.Text, anchor: number, head: number): EncodedCaret {
+  const at = (offset: number) => Math.max(0, Math.min(Math.trunc(offset), text.length));
+  const forward = anchor <= head;
+  const collapsed = anchor === head;
+  const position = (offset: number, assoc: 0 | -1) =>
+    toBase64(
+      Y.encodeRelativePosition(Y.createRelativePositionFromTypeIndex(text, at(offset), assoc)),
+    );
+  return {
+    anchor: position(anchor, collapsed || forward ? 0 : -1),
+    head: position(head, collapsed || !forward ? 0 : -1),
+  };
+}
+
+/**
+ * Where an encoded position is in a text now, or undefined when it names another text, a text that
+ * is gone, or is not a position.
+ */
+export function positionIn(encoded: string, doc: Y.Doc, text: Y.Text): number | undefined {
+  const bytes = fromBase64(encoded);
+  if (!bytes) return undefined;
+  try {
+    const absolute = Y.createAbsolutePositionFromRelativePosition(
+      Y.decodeRelativePosition(bytes),
+      doc,
+    );
+    return absolute && absolute.type === text ? absolute.index : undefined;
+  } catch {
+    return undefined;
+  }
+}

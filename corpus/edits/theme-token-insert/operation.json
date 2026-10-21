@@ -1,0 +1,9 @@
+{
+  "operation": {
+    "kind": "setThemeToken",
+    "theme": "brand",
+    "token": "accent",
+    "value": "#6A4FD0"
+  },
+  "diagram": "d"
+}

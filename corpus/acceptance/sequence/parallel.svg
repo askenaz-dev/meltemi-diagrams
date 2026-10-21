@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="312" height="590" viewBox="0 0 312 590" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Inventory sync</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="312" height="590" fill="#F7FBFF"/>
+  <g data-id="par#1" data-role="event">
+    <rect x="44" y="276" width="224" height="184" rx="2" fill="none" stroke="#526579" stroke-width="1"/>
+    <polyline points="44,342 268,342" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="44,400 268,400" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="store" data-role="lifeline">
+    <polyline points="68,60 68,518" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="inventory" data-role="lifeline">
+    <polyline points="244,60 244,518" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="par#1" data-role="label">
+    <path d="M44 276 L79.65 276 L79.65 292 L73.65 298 L44 298 Z" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <text x="52" y="291" text-anchor="start" font-size="11" font-weight="600" fill="#0B1830">par</text>
+    <rect x="49" y="345" width="43.49" height="14" rx="2" fill="#F7FBFF" stroke="none" stroke-width="0"/>
+    <text x="52" y="356" text-anchor="start" font-size="11" font-weight="400" fill="#526579">[Stock]</text>
+    <rect x="49" y="403" width="38.19" height="14" rx="2" fill="#F7FBFF" stroke="none" stroke-width="0"/>
+    <text x="52" y="414" text-anchor="start" font-size="11" font-weight="400" fill="#526579">[Hold]</text>
+  </g>
+  <g data-id="reserve1" data-role="relation">
+    <polyline points="68,106 236,106" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M244 106 L236 109.5 L236 102.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="reserve1" data-role="label">
+      <text x="156" y="100" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Reserve item 1</text>
+    </g>
+  </g>
+  <g data-id="reserve2" data-role="relation">
+    <polyline points="68,150 236,150" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M244 150 L236 153.5 L236 146.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="reserve2" data-role="label">
+      <text x="156" y="144" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Reserve item 2</text>
+    </g>
+  </g>
+  <g data-id="reserve3" data-role="relation">
+    <polyline points="68,186 236,186" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M244 186 L236 189.5 L236 182.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="reserve3" data-role="label">
+      <text x="156" y="180" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Reserve item 3</text>
+    </g>
+  </g>
+  <g data-id="reserved1" data-role="relation">
+    <polyline points="244,222 68,222" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="76,218.5 68,222 76,225.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="reserved1" data-role="label">
+      <text x="156" y="216" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Reserved 1</text>
+    </g>
+  </g>
+  <g data-id="reserved2" data-role="relation">
+    <polyline points="244,258 68,258" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="76,254.5 68,258 76,261.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="reserved2" data-role="label">
+      <text x="156" y="252" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Reserved 2</text>
+    </g>
+  </g>
+  <g data-id="price" data-role="relation">
+    <polyline points="68,326 244,326" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="236,329.5 244,326 236,322.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="price" data-role="label">
+      <text x="156" y="320" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Price check</text>
+    </g>
+  </g>
+  <g data-id="stock" data-role="relation">
+    <polyline points="68,384 244,384" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="236,387.5 244,384 236,380.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="stock" data-role="label">
+      <text x="156" y="378" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Stock check</text>
+    </g>
+  </g>
+  <g data-id="hold" data-role="relation">
+    <polyline points="244,442 68,442" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="76,438.5 68,442 76,445.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="hold" data-role="label">
+      <text x="156" y="436" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Hold notice</text>
+    </g>
+  </g>
+  <g data-id="reserved3" data-role="relation">
+    <polyline points="244,496 68,496" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="76,492.5 68,496 76,499.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="reserved3" data-role="label">
+      <text x="156" y="490" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Reserved 3</text>
+    </g>
+  </g>
+  <g data-id="store" data-role="element">
+    <rect x="20" y="20" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="68" y="44.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Store</text>
+  </g>
+  <g data-id="inventory" data-role="element">
+    <rect x="196" y="20" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="244" y="44.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Inventory</text>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,546.5 292,546.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 556) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="572.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="292" y="572" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Inventory sync</text>
+  </g>
+</svg>

@@ -1,0 +1,47 @@
+language "0.2"
+
+// Based on free/nested.meltemi, with a size that has one number.
+// Nested groups three levels deep, placed by their interiors, with connectors inside a group,
+// across groups and out of the outermost one, and a front layer.
+diagram nested: free {
+  title "Deployment"
+  preset slide
+  layout manual
+  routing orthogonal
+  layers main, front
+
+  text heading "Deployment"
+  box users "Users"
+
+  group cloud "Cloud" {
+    description "One account"
+    group region "Region" {
+      group cluster "Cluster" {
+        box api "API"
+        box worker "Worker"
+        api -> worker: "jobs" as jobs
+      }
+      box db "Database"
+    }
+  }
+
+  text badge "Highly available" { layer front }
+
+  users -> api: "HTTPS" as visit
+  worker -> db: "writes" as write
+
+  placement {
+    place heading at (960, 100)
+    place users at (300, 560)
+    place cloud at (1160, 580)
+    size cloud (1100, 680)
+    place region at (540, 360)
+    size region (980, 520)
+    place cluster at (330, 270)
+    size cluster (560)
+    place api at (140, 150)
+    place worker at (420, 150)
+    place db at (800, 270)
+    place badge at (1560, 220)
+  }
+}

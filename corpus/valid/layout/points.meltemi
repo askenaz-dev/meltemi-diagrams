@@ -1,0 +1,26 @@
+language "0.2"
+
+// Route ends pinned to points of their sides, with and without bends, on an assisted sheet.
+diagram checkout: flow {
+  layout assisted
+  theme "technical.light"
+
+  web["Web shop"]
+  api["Orders API"]
+  db[("Orders")]
+  audit["Audit log"]
+
+  web -> api as order
+  api -> db as save
+  api -> audit as record
+
+  placement {
+    place web at (140, 120)
+    place api at (420, 160)
+    place db at (700, 120)
+    place audit at (420, 340)
+    route order from web.east 50% to api.west 50%
+    route save from api.east 25% to db.west 75%
+    route record from api.south 75% to audit.north 75% via [(460, 260)]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "status": "complete",
+  "format": "plantuml",
+  "diagrams": [
+    {
+      "id": "services",
+      "type": "flow",
+      "model": null,
+      "kind": "description",
+      "lines": [
+        1,
+        42
+      ]
+    }
+  ],
+  "findings": [],
+  "coverage": [
+    {
+      "diagram": "services",
+      "mapped": 10,
+      "approximated": 0,
+      "dropped": 0
+    }
+  ]
+}

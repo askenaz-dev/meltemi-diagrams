@@ -1,0 +1,25 @@
+{
+  "project.json": [
+    {
+      "code": "project.unknown-field",
+      "severity": "warning",
+      "message": "Unknown field `colour` in project.json.",
+      "range": {
+        "start": {
+          "offset": 46,
+          "line": 4,
+          "column": 3
+        },
+        "end": {
+          "offset": 54,
+          "line": 4,
+          "column": 11
+        }
+      },
+      "hints": [
+        "Fields: $schema, name, language, tools, sources, exclude, format, theme, locale, icons, catalog, plugins, cloud."
+      ],
+      "related": []
+    }
+  ]
+}

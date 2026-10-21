@@ -1,0 +1,7 @@
+language "0.2"
+
+diagram session: sequence {
+  api -> session: "Open" as open
+  destroy session
+  api -> session: "Ping" as ping
+}

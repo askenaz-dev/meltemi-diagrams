@@ -1,0 +1,6 @@
+import dark from "./themes.meltemi"
+
+diagram d: flow {
+  theme "dark"
+  a -> b
+}

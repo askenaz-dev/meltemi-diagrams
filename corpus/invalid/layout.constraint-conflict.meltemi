@@ -1,0 +1,14 @@
+language "0.2"
+
+// Both boxes are placed, so `row` cannot move either of them.
+diagram checkout: flow {
+  layout manual
+  api["API"]
+  db["Orders DB"]
+  api -> db
+  placement {
+    place api at (120, 100)
+    place db at (420, 180)
+    row api, db
+  }
+}

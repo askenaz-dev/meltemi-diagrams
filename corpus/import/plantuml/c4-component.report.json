@@ -1,0 +1,30 @@
+{
+  "status": "complete",
+  "format": "plantuml",
+  "diagrams": [
+    {
+      "id": "c4_component",
+      "type": "c4",
+      "model": "c4_component_model",
+      "kind": "C4_Component",
+      "lines": [
+        1,
+        16
+      ]
+    }
+  ],
+  "findings": [
+    "4:1 info import.approximated [plantuml.c4.Container approximated] A container outside a system boundary is placed in a system named after the diagram.",
+    "5:1 info import.approximated [plantuml.c4.ContainerDb approximated] A container outside a system boundary is placed in a system named after the diagram.",
+    "7:1 info import.approximated [plantuml.c4.Container_Boundary approximated] A container boundary outside a system is placed in a system named after the diagram.",
+    "10:5 info import.approximated [plantuml.c4.ComponentDb approximated] A database component is drawn as a component."
+  ],
+  "coverage": [
+    {
+      "diagram": "c4_component",
+      "mapped": 12,
+      "approximated": 4,
+      "dropped": 0
+    }
+  ]
+}

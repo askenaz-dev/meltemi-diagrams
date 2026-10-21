@@ -1,0 +1,23 @@
+[
+  {
+    "code": "sequence.scenario",
+    "severity": "error",
+    "message": "`check` has no branch \"Pending\".",
+    "range": {
+      "start": {
+        "offset": 248,
+        "line": 12,
+        "column": 18
+      },
+      "end": {
+        "offset": 257,
+        "line": 12,
+        "column": 27
+      }
+    },
+    "hints": [
+      "Branches: \"Approved\", \"Declined\"."
+    ],
+    "related": []
+  }
+]

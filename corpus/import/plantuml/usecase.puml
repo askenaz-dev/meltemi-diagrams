@@ -1,0 +1,19 @@
+@startuml
+left to right direction
+actor User
+actor :Administrator: as Admin
+actor/ "Business" as biz
+rectangle "Shop" {
+  usecase (Browse catalogue) as UC1
+  usecase "Check out" as UC2
+  (Manage stock)
+}
+User --> UC1
+User --> UC2
+Admin --> (Manage stock)
+Admin --|> User
+note bottom of UC2
+  Needs a signed-in
+  customer
+end note
+@enduml

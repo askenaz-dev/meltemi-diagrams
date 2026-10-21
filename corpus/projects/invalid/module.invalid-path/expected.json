@@ -1,0 +1,25 @@
+{
+  "a.meltemi": [
+    {
+      "code": "module.invalid-path",
+      "severity": "error",
+      "message": "`https://example.com/themes.meltemi` is not a valid import path. URLs and drive paths are not allowed; network references are disabled.",
+      "range": {
+        "start": {
+          "offset": 22,
+          "line": 1,
+          "column": 23
+        },
+        "end": {
+          "offset": 58,
+          "line": 1,
+          "column": 59
+        }
+      },
+      "hints": [
+        "Write a relative path such as `\"../themes/company.meltemi\"`."
+      ],
+      "related": []
+    }
+  ]
+}

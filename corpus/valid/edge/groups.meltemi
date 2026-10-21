@@ -1,0 +1,21 @@
+language "0.2"
+
+// Groups with nested elements, typed declarations and element blocks.
+diagram grouped: flow {
+  group backend "Backend" {
+    api["API"]
+    group data "Data" {
+      db[("Orders DB")]
+      cache[("Cache")]
+    }
+    api -> db as read
+    api --> cache as warm
+  }
+  web["Web"]
+  web -> api: "HTTPS" as call
+  decision approved "Approved?"
+  node notify "Notify" {
+    description "Sends emails"
+  }
+  approved -> notify: "yes"
+}

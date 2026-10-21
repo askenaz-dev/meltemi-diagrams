@@ -1,0 +1,20 @@
+language "0.2"
+
+import commerce from "../models/commerce.meltemi"
+
+// A container view of the imported model, with its own composition.
+diagram containers: c4 using commerce {
+  level container
+  scope shop
+  layout assisted
+  direction TB
+  label shop.api "API de pedidos"
+
+  placement {
+    place customer at (141, 64)
+    place shop.web at (141, 360)
+    place shop.api at (141, 605)
+    place shop.db at (113, 843)
+    place bank at (218, 1107)
+  }
+}

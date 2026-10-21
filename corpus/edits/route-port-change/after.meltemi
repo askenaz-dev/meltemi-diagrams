@@ -1,0 +1,6 @@
+diagram d: flow {
+  api -> orders as create
+  placement {
+    route create from api.east to orders.north via [(10.5, 20)]
+  }
+}

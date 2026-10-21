@@ -1,0 +1,23 @@
+language "0.2"
+
+// Shared palette of the commerce team.
+theme base {
+  extends "technical.dark"
+  tag "#22D3EE"
+}
+
+// The project's default theme (project.json): partner systems are drawn dashed in the accent.
+theme corporate {
+  extends "base"
+  accent "#6A4FD0"
+  brand "Commerce · Meltemi Diagrams"
+
+  class partner {
+    line dashed
+    stroke accent
+  }
+
+  rule data {
+    pattern dots
+  }
+}

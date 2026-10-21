@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1243" height="104" viewBox="0 0 1243 104" font-family="&quot;IBM Plex Sans&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1243" height="104" fill="#ffffff"/>
+  <g data-id="client" data-role="element">
+    <rect x="20" y="24" width="160" height="56" rx="6" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>
+    <text x="100" y="56.54" text-anchor="middle" font-size="13" font-weight="600" fill="#1b1f23">Cliente</text>
+  </g>
+  <g data-id="api" data-role="element">
+    <rect x="368" y="24" width="160" height="56" rx="6" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>
+    <text x="448" y="56.54" text-anchor="middle" font-size="13" font-weight="600" fill="#1b1f23">API Gateway</text>
+  </g>
+  <g data-id="orders" data-role="element">
+    <rect x="708" y="24" width="160" height="56" rx="6" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>
+    <text x="788" y="56.54" text-anchor="middle" font-size="13" font-weight="600" fill="#1b1f23">Pedidos</text>
+  </g>
+  <g data-id="db" data-role="element">
+    <path d="M1063 28 L1063 76 A80 8 0 0 0 1223 76 L1223 28 A80 8 0 0 1 1063 28 Z" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>
+    <path d="M1063 28 A80 8 0 0 1 1223 28 A80 8 0 0 1 1063 28 Z" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>
+    <text x="1143" y="60.54" text-anchor="middle" font-size="13" font-weight="600" fill="#1b1f23">PostgreSQL</text>
+  </g>
+  <g data-id="request" data-role="relation">
+    <polyline points="180,52 368,52" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="361,55.06 368,52 361,48.94" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="request" data-role="label">
+      <rect x="250.9" y="43" width="46.2" height="18" rx="9" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>
+      <text x="274" y="55.84" text-anchor="middle" font-size="11" font-weight="500" fill="#1b1f23">HTTPS</text>
+    </g>
+  </g>
+  <g data-id="create" data-role="relation">
+    <polyline points="528,52 608,52 708,52" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="701,55.06 708,52 701,48.94" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="create" data-role="label">
+      <rect x="579.57" y="27" width="76.87" height="18" rx="9" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>
+      <text x="618" y="39.84" text-anchor="middle" font-size="11" font-weight="500" fill="#1b1f23">Crear pedido</text>
+    </g>
+  </g>
+  <g data-id="save" data-role="relation">
+    <polyline points="868,52 1063,52" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="1056,55.06 1063,52 1056,48.94" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="save" data-role="label">
+      <rect x="938.57" y="43" width="53.86" height="18" rx="9" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>
+      <text x="965.5" y="55.84" text-anchor="middle" font-size="11" font-weight="500" fill="#1b1f23">Persistir</text>
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,8 @@
+language "0.2"
+
+diagram broken: flow {
+  api["API"]
+  placement {
+    place gateway at (10, 20)
+  }
+}

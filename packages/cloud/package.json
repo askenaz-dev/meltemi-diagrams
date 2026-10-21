@@ -1,0 +1,23 @@
+{
+  "name": "@meltemi/diagrams-cloud",
+  "version": "1.8.0",
+  "private": true,
+  "description": "The online service of Meltemi Diagrams: one Cloudflare Worker that serves the playground and its API from one origin.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json",
+    "dev": "wrangler dev",
+    "migrate": "wrangler d1 migrations apply DB"
+  },
+  "dependencies": {
+    "@meltemi/diagrams-project": "workspace:*",
+    "@meltemi/identity": "link:../../../../meltemi/packages/identity",
+    "yjs": "13.6.33"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20260930.1",
+    "playwright-core": "1.63.0",
+    "wrangler": "4.144.0"
+  }
+}

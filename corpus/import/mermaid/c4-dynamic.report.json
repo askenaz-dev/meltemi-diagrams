@@ -1,0 +1,31 @@
+{
+  "status": "complete",
+  "format": "mermaid",
+  "diagrams": [
+    {
+      "id": "dynamic_diagram_for_internet_banking",
+      "type": "c4",
+      "model": "dynamic_diagram_for_internet_banking_model",
+      "kind": "C4Dynamic",
+      "lines": [
+        1,
+        14
+      ]
+    }
+  ],
+  "findings": [
+    "1:1 info import.approximated [mermaid.c4.dynamic approximated] A dynamic diagram is drawn as a container view without step numbers.",
+    "4:1 info import.approximated [mermaid.c4.ContainerDb approximated] A container outside a system boundary is placed in a system named after the diagram.",
+    "5:1 info import.approximated [mermaid.c4.Container approximated] A container outside a system boundary is placed in a system named after the diagram.",
+    "6:1 info import.approximated [mermaid.c4.Container_Boundary approximated] A container boundary outside a system is placed in a system named after the diagram.",
+    "13:1 info import.approximated [mermaid.c4.RelIndex approximated] Relation numbers are not drawn."
+  ],
+  "coverage": [
+    {
+      "diagram": "dynamic_diagram_for_internet_banking",
+      "mapped": 10,
+      "approximated": 5,
+      "dropped": 0
+    }
+  ]
+}

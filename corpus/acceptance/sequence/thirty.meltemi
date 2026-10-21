@@ -1,0 +1,45 @@
+language "0.2"
+
+// Thirty messages between six participants: the size the performance targets name.
+diagram thirty: sequence {
+  title "A purchase, end to end"
+  autonumber
+
+  actor customer "Customer"
+  participant web "Web"
+  participant api "API"
+  participant orders "Orders"
+  participant payments "Payments"
+  database db "Orders DB"
+
+  customer -> web: "Open the shop" as m1
+  web -> api: "Load catalogue" as m2
+  api -> db: "Query products" as m3
+  db --> api: "Products" as m4
+  api --> web: "Catalogue" as m5
+  customer -> web: "Add to cart" as m6
+  web -> api: "Save cart" as m7
+  api -> orders: "Create draft" as m8
+  orders -> db: "Insert draft" as m9
+  db --> orders: "Draft id" as m10
+  orders --> api: "Draft" as m11
+  api --> web: "Cart saved" as m12
+  customer -> web: "Checkout" as m13
+  web -> api: "Place order" as m14
+  api -> orders: "Confirm draft" as m15
+  orders -> payments: "Charge" as m16
+  payments -> payments: "Score risk" as m17
+  payments --> orders: "Charged" as m18
+  orders -> db: "Mark paid" as m19
+  db --> orders: "Updated" as m20
+  orders --> api: "Order placed" as m21
+  api --> web: "Confirmation" as m22
+  web --> customer: "Thank you" as m23
+  customer -> web: "Track order" as m24
+  web -> api: "Get status" as m25
+  api -> orders: "Read status" as m26
+  orders -> db: "Select order" as m27
+  db --> orders: "Row" as m28
+  orders --> api: "Shipped" as m29
+  api --> web: "Status" as m30
+}

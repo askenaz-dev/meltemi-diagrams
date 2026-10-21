@@ -1,0 +1,128 @@
+name: Release
+
+# A tag v<x.y.z> releases Meltemi Diagrams at that version (RELEASING.md): the release check builds,
+# packs, installs and runs the release; the nineteen npm tarballs are published with provenance;
+# the extension reaches the Visual Studio Marketplace and Open VSX; the GitHub release holds the
+# manifest and the .vsix. The first job refuses a tag that does not name the manifests' version,
+# before anything is published, and every publishing job skips what is already published, so a run
+# re-run after a failure finishes the rest.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: The tag names the manifests' version
+        run: node scripts/release-tag.mjs "$GITHUB_REF_NAME" packages/cli/package.json
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: FFmpeg, for the installed command line's MP4 export
+        run: sudo apt-get update && sudo apt-get install --yes ffmpeg
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm release:check
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: release/
+          if-no-files-found: error
+
+  npm:
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Publish the tarballs
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          for tarball in release/*.tgz; do
+            manifest="$(tar -xOzf "$tarball" package/package.json)"
+            name="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.name)' "$manifest")"
+            version="$(node -e 'const m = JSON.parse(process.argv[1]); console.log(m.version)' "$manifest")"
+            if npm view "${name}@${version}" version >/dev/null 2>&1; then
+              echo "${name}@${version} is already on npm"
+            else
+              npm publish "$tarball" --access public --provenance
+            fi
+          done
+
+  extension:
+    needs: npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: The Visual Studio Marketplace
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: |
+          vsix="release/meltemi-diagrams-${GITHUB_REF_NAME#v}.vsix"
+          if ! output="$(npx --yes @vscode/vsce@3.9.2 publish --packagePath "$vsix" 2>&1)"; then
+            echo "$output"
+            echo "$output" | grep -q "already exists" || exit 1
+          else
+            echo "$output"
+          fi
+      - name: Open VSX
+        env:
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          vsix="release/meltemi-diagrams-${GITHUB_REF_NAME#v}.vsix"
+          if ! output="$(npx --yes ovsx@1.3.0 publish "$vsix" 2>&1)"; then
+            echo "$output"
+            echo "$output" | grep -qi "already published" || exit 1
+          else
+            echo "$output"
+          fi
+
+  github:
+    needs: extension
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+          path: release
+      - name: The release, with the changelog's section as its notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "The release $GITHUB_REF_NAME exists"
+          else
+            node scripts/changelog-section.mjs "${GITHUB_REF_NAME#v}" > notes.md
+            gh release create "$GITHUB_REF_NAME" --verify-tag --title "Meltemi Diagrams ${GITHUB_REF_NAME#v}" \
+              --notes-file notes.md release/manifest.json "release/meltemi-diagrams-${GITHUB_REF_NAME#v}.vsix"
+          fi

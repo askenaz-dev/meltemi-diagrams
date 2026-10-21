@@ -1,0 +1,11 @@
+language "0.2"
+
+diagram checkout: flow {
+  client -> api as request
+  animate request { effect flow }
+}
+
+// The flow repeats forever, so a video of it needs a duration.
+export clip for checkout {
+  format mp4
+}

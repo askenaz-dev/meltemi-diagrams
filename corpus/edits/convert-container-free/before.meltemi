@@ -1,0 +1,20 @@
+language "0.2"
+
+diagram slide: free {
+  layout manual
+  box frame "" { link overview.node3 }
+  box db "Database"
+  box api "API"
+  api -> db: "reads"
+  style frame { shape hexagon; fill "#eef4ff" }
+
+  placement {
+    place frame at (400, 300)
+    place db at (420, 300)
+    place api at (120, 300)
+  }
+}
+
+diagram overview: flow {
+  node3[""]
+}

@@ -1,0 +1,9 @@
+{
+  "status": "failed",
+  "format": "plantuml",
+  "diagrams": [],
+  "findings": [
+    "1:1 error import.unsupported-diagram [plantuml.activity dropped essential] PlantUML activity diagrams are not imported."
+  ],
+  "coverage": []
+}

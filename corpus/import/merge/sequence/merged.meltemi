@@ -1,0 +1,35 @@
+language "0.2"
+
+// Imported from sequence.mmd (mermaid) by meltemi-diagrams.
+
+diagram sequence: sequence {
+  participant Web
+  participant Api
+  participant Bank
+
+  Web -> Api: "Pay"
+  Api -> Bank: "Authorize"
+  alt result "ok" {
+    Api --> Web: "Receipt"
+  } else "declined" {
+    Api --> Web: "Declined"
+  }
+  loop retries "retries" {
+    Web -> Api: "Retry"
+  }
+
+  placement {
+    space result 28
+    gap Api 40
+  }
+
+  style result { stroke accent }
+
+  scenario approved "Approved" {
+    choose result "ok"
+  }
+  scenario stubborn "Retried twice" {
+    choose result "declined"
+    repeat retries 2
+  }
+}

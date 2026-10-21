@@ -1,0 +1,41 @@
+language "0.2"
+
+// Turned objects: a box at 30°, a text up the side, an icon on its corner, a square turned into a
+// diamond with a connector meeting its vertex, a pinned end that turns with its box, and a group
+// that grows around a turned child.
+diagram turned: free {
+  title "Turned objects"
+  layout manual
+
+  box ingest "Ingest"
+  box publish "Publish"
+  text side "Pipeline"
+  icon gear "tabler:settings"
+  box gate ""
+  group lane "" {
+    box worker "Worker"
+  }
+
+  ingest -> gate as enter
+  gate -> publish as leave
+  ingest -> worker as spawn
+
+  placement {
+    place ingest at (140, 120)
+    place gate at (420, 120)
+    size gate (96, 96)
+    place publish at (700, 120)
+    place side at (40, 300)
+    place gear at (700, 300)
+    place lane at (420, 340)
+    place worker at (40, 96)
+    route leave from gate.east 50% to publish
+  }
+
+  style ingest { rotation 30 }
+  style gate { shape square; radius 12; rotation 45; fill "#eef4ff" }
+  style side { rotation 270; fontSize 18 }
+  style gear { rotation 45 }
+  style lane { fill "#f4f6f8"; radius 0 }
+  style worker { rotation 90 }
+}

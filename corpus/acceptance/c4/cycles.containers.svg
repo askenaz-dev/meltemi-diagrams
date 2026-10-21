@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1467" height="369" viewBox="0 0 1467 369" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1467" height="369" fill="#F7FBFF"/>
+  <g data-id="platform" data-role="element">
+    <rect x="409" y="49" width="1010" height="256" rx="14" fill="#EAF1F8" stroke="#526579" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="429" y="71.73" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">Logistics platform [Software System]</text>
+  </g>
+  <g data-id="planner" data-role="element">
+    <rect x="40" y="100.27" width="160" height="78.4" rx="24" fill="#0891B2" stroke="#0891B2" stroke-width="1"/>
+    <path d="M104 90.67 A16 16 0 1 0 136 90.67 A16 16 0 1 0 104 90.67 Z" fill="#0891B2" stroke="#0891B2" stroke-width="1"/>
+    <text x="120" y="141" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Planner</text>
+    <text x="120" y="158.27" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[Person]</text>
+  </g>
+  <g data-id="platform.orders" data-role="element">
+    <rect x="425" y="118.33" width="170" height="76" rx="8" fill="#0369A1" stroke="#0369A1" stroke-width="1"/>
+    <text x="510" y="153.06" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Orders</text>
+    <text x="510" y="170.33" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[Container: Go]</text>
+  </g>
+  <g data-id="platform.routing" data-role="element">
+    <rect x="833" y="105.67" width="170" height="76" rx="8" fill="#0369A1" stroke="#0369A1" stroke-width="1"/>
+    <text x="918" y="140.4" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Routing</text>
+    <text x="918" y="157.67" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[Container: Rust]</text>
+  </g>
+  <g data-id="platform.fleet" data-role="element">
+    <rect x="1233" y="213" width="170" height="76" rx="8" fill="#0369A1" stroke="#0369A1" stroke-width="1"/>
+    <text x="1318" y="247.73" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Fleet</text>
+    <text x="1318" y="265" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[Container: Go]</text>
+  </g>
+  <g data-id="platform.state" data-role="element">
+    <path d="M1233 97 L1233 165 A85 8 0 0 0 1403 165 L1403 97 A85 8 0 0 1 1233 97 Z" fill="#0369A1" stroke="#0369A1" stroke-width="1"/>
+    <path d="M1233 97 A85 8 0 0 1 1403 97 A85 8 0 0 1 1233 97 Z" fill="#0369A1" stroke="#0369A1" stroke-width="1"/>
+    <text x="1318" y="131.73" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">State</text>
+    <text x="1318" y="149" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[Container: Redis]</text>
+  </g>
+  <g data-id="carrier" data-role="element">
+    <rect x="20" y="218.67" width="180" height="80" rx="8" fill="#526579" stroke="#526579" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="110" y="255.4" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Carrier</text>
+    <text x="110" y="272.67" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[External Software System]</text>
+  </g>
+  <g data-id="plan" data-role="relation">
+    <polyline points="200,126.67 351,126.67 351,156.33 417,156.33" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M425 156.33 L417 159.83 L417 152.83 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="plan" data-role="label">
+      <rect x="307.02" y="117.67" width="40.62" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="327.33" y="130.67" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Plans</text>
+    </g>
+  </g>
+  <g data-id="route" data-role="relation">
+    <polyline points="595,143.67 825,143.67" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M833 143.67 L825 147.17 L825 140.17 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="route" data-role="label">
+      <rect x="665.46" y="134.67" width="97.07" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="714" y="147.67" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Requests routes</text>
+    </g>
+  </g>
+  <g data-id="assign" data-role="relation">
+    <polyline points="1003,156.33 1023,156.33 1023,169 1183,169 1183,232 1225,232" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1233 232 L1225 235.5 L1225 228.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="assign" data-role="label">
+      <rect x="1098.31" y="160" width="89.7" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="1143.17" y="173" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Assigns trucks</text>
+    </g>
+  </g>
+  <g data-id="capacity" data-role="relation">
+    <polyline points="1233,251 615,251 615,169 603,169" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M595 169 L603 165.5 L603 172.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="capacity" data-role="label">
+      <rect x="822.45" y="242" width="101.1" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="873" y="255" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Reports capacity</text>
+    </g>
+  </g>
+  <g data-id="cache" data-role="relation">
+    <polyline points="1003,131 1225,131" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1233 131 L1225 134.5 L1225 127.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="cache" data-role="label">
+      <rect x="1092.17" y="122" width="51.67" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="1118" y="135" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Caches</text>
+    </g>
+  </g>
+  <g data-id="book" data-role="relation">
+    <polyline points="1403,251 1447,251 1447,29 220,29 220,245.33 208,245.33" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M200 245.33 L208 241.83 L208 248.83 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="book" data-role="label">
+      <rect x="826.04" y="20" width="44.59" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="848.34" y="33" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Books</text>
+    </g>
+  </g>
+  <g data-id="confirm" data-role="relation">
+    <polyline points="200,272 1183,272 1183,270 1225,270" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1233 270 L1225 273.5 L1225 266.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="confirm" data-role="label">
+      <rect x="687.3" y="263" width="60.39" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="717.5" y="276" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Confirms</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,325.5 1447,325.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 335) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="351.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+  </g>
+</svg>

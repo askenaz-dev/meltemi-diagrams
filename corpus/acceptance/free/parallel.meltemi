@@ -1,0 +1,30 @@
+language "0.2"
+
+// Parallel connectors on a slide: three relations each way between two boxes, kept apart in
+// lanes, with labels and an effect on one of them.
+diagram parallel: free {
+  title "Request and replies"
+  preset slide
+  layout manual
+
+  text heading "Request and replies"
+  box client "Client"
+  box server "Server"
+
+  client -> server: "request" as request
+  client -> server: "retry" as retry
+  client -> server: "cancel" as cancel
+  server -> client: "response" as response
+  server -> client: "progress" as progress
+  server --> client: "heartbeat" as heartbeat
+
+  placement {
+    place heading at (960, 120)
+    place client at (520, 560)
+    size client (240, 240)
+    place server at (1400, 560)
+    size server (240, 240)
+  }
+
+  animate request { effect flow; duration 1500ms; repeat forever }
+}

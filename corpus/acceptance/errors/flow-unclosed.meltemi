@@ -1,0 +1,26 @@
+language "0.2"
+
+// Based on flow/cycles.meltemi, with the closing brace of the diagram missing.
+// Cycles: a three-step loop, a request that comes back, and a retry that returns to its start,
+// arranged by the engine from top to bottom.
+diagram cycles: flow {
+  title "Order lifecycle"
+  direction TB
+
+  created["Order created"]
+  reserved["Stock reserved"]
+  charged["Payment charged"]
+  shipped["Shipped"]
+  failed["Payment failed"]
+  support["Support desk"]
+  customer["Customer"]
+
+  created -> reserved: "reserve" as reserve
+  reserved -> charged: "charge" as charge
+  charged -> shipped: "ship" as ship
+  charged -> failed: "declined" as decline
+  failed -> reserved: "retry" as retry
+  shipped -> customer: "deliver" as deliver
+  customer -> support: "complain" as complain
+  support -> created: "reorder" as reorder
+  customer -> created: "orders again" as again

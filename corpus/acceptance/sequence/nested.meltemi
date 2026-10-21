@@ -1,0 +1,40 @@
+language "0.2"
+
+// Nested fragments: an alternative inside a loop inside a parallel block, and an option inside a
+// critical region, with participants grouped.
+diagram nested: sequence {
+  title "Batch settlement"
+
+  participant scheduler "Scheduler"
+  group core "Core" {
+    participant settle "Settlement"
+    database ledger "Ledger"
+  }
+  participant bank "Bank"
+
+  scheduler -> settle: "Run batch" as run
+  activate settle
+
+  par {
+    loop entries "Each entry" {
+      settle -> ledger: "Read entry" as readEntry
+      alt kind "Card" {
+        settle -> bank: "Capture" as capture
+      } else "Transfer" {
+        settle -> bank: "Send" as send
+      }
+    }
+  } and "Report" {
+    settle -> scheduler: "Progress" as progress { kind async }
+  }
+
+  critical "Close the day" {
+    settle -> ledger: "Close" as close
+    opt late "Late entries" {
+      settle -> ledger: "Carry over" as carry
+    }
+  }
+
+  deactivate settle
+  settle --> scheduler: "Done" as done
+}

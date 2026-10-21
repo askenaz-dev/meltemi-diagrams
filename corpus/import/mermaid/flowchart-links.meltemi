@@ -1,0 +1,74 @@
+language "0.2"
+
+// Imported from flowchart-links.mmd (mermaid) by meltemi-diagrams.
+
+diagram flowchart_links: flow {
+  direction LR
+  layout auto
+
+  rule relation { stroke "#888" }
+
+  node a
+  node b
+  node c
+  node d
+  node e
+  node f
+  node g
+  node h
+  node i
+  node j
+  node k
+  node l
+  node m
+  node n
+  node o
+  node p
+  node q
+  node r
+  node s
+  node t
+  node u
+  node v
+  node w
+  node x
+  node y
+  node z
+  node aa
+
+  a -> b
+  a -> c as e3
+  a --> d as e4
+  a --> e as e5
+  a -> f as e6
+  a -> g as e7
+  a -> h as e8
+  a -> i as e9
+  a <-> j
+  a -> l: "pipe label"
+  a -> m: "text label"
+  a --> n: "dotted label"
+  a -> o: "thick label" as e10
+  p -> q
+  q -> r
+  s -> u
+  s -> v
+  t -> u
+  t -> v
+  w -> x as e1
+  y -> z as e2
+  aa -> a
+
+  style e3 { arrowhead none; stroke "#0a0"; width 2 }
+  style e5 { arrowhead none }
+  style e6 { width 3 }
+  style e7 { width 3; arrowhead none }
+  style e8 { arrowhead circle }
+  style e9 { arrowhead cross }
+  style e10 { width 3 }
+  style e2 { routing polyline }
+  style e4 { stroke "#0a0"; width 2 }
+
+  animate e1 { effect flow; duration 1s; repeat forever }
+  animate e2 { effect flow; duration 2s; repeat forever }
+}

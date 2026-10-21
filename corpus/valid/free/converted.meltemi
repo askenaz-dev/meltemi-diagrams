@@ -1,0 +1,64 @@
+language "0.2"
+
+// A flow diagram and its free copy, written by `meltemi-diagrams convert --to free`.
+diagram grouped: flow {
+  group backend "Backend" {
+    api["API"]
+    group data "Data" {
+      db[("Orders DB")]
+      cache[("Cache")]
+    }
+    api -> db as read
+    api --> cache as warm
+  }
+  web["Web"]
+  web -> api: "HTTPS" as call
+  decision approved "Approved?"
+  node notify "Notify" {
+    description "Sends emails"
+  }
+  approved -> notify: "yes"
+}
+
+diagram grouped_free: free {
+  layout manual
+
+  group backend "Backend" {
+    link grouped.backend
+    box api "API" { link grouped.api }
+    group data "Data" {
+      link grouped.data
+      box db "Orders DB" { class from_data; link grouped.db }
+      box cache "Cache" { class from_data; link grouped.cache }
+    }
+    api -> db as read
+    api --> cache as warm
+  }
+  box web "Web" { link grouped.web }
+  box approved "Approved?" { class from_decision; link grouped.approved }
+  box notify "Notify" { description "Sends emails"; link grouped.notify }
+  web -> api: "HTTPS" as call
+  approved -> notify: "yes"
+
+  placement {
+    place backend at (452, 142)
+    size backend (409, 260)
+    place api at (80, 81)
+    size api (160, 56)
+    place data at (281, 102)
+    size data (192, 204)
+    place db at (80, 32)
+    size db (160, 64)
+    place cache at (80, 116)
+    size cache (160, 64)
+    place web at (92, 133)
+    size web (160, 56)
+    place approved at (92, 340)
+    size approved (160, 80)
+    place notify at (327, 340)
+    size notify (160, 56)
+  }
+
+  class from_decision { shape diamond }
+  class from_data { shape cylinder }
+}

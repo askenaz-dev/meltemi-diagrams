@@ -1,0 +1,13 @@
+language "0.2"
+
+diagram commented: flow {
+  api["API"]
+  db[("DB")]
+
+  placement {
+    /* the gateway sits left */
+    place api at (100, 100) // keep left
+
+    place db at (400, 100)
+  }
+}

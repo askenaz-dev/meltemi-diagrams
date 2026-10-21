@@ -1,0 +1,3 @@
+diagram d: flow {
+  api -> orders as create
+}

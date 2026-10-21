@@ -1,0 +1,23 @@
+[
+  {
+    "code": "model.invalid-nesting",
+    "severity": "error",
+    "message": "A component cannot be declared in the system `shop`; components belong in a container.",
+    "range": {
+      "start": {
+        "offset": 64,
+        "line": 5,
+        "column": 5
+      },
+      "end": {
+        "offset": 73,
+        "line": 5,
+        "column": 14
+      }
+    },
+    "hints": [
+      "Here you can declare `container` and `datastore`."
+    ],
+    "related": []
+  }
+]

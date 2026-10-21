@@ -1,0 +1,37 @@
+language "0.2"
+
+// Motion effects on a flow diagram and a sequence diagram.
+diagram checkout: flow {
+  title "Checkout"
+  direction LR
+
+  client["Client"]
+  api["API Gateway"]
+  orders["Orders"]
+  db[("Orders DB")]
+  events["Events"]
+
+  client -> api: "HTTPS" as request
+  api -> orders as create
+  orders -> db as save
+  orders --> events: "OrderCreated" as publish
+
+  animate request { effect flow; particles 2 }
+  animate create, save { effect flow; duration 800ms; color accent }
+  animate save { effect dash; direction reverse }
+  animate publish { effect dash; delay 300ms; repeat 4 }
+  animate db { effect pulse; duration 1500ms }
+  animate api { effect dash; duration 2s }
+}
+
+diagram payment: sequence {
+  participant web "Web"
+  participant api "API"
+  web -> api: "Pay" as pay
+  note wait over web, api "Authorising"
+  api --> web: "Receipt" as receipt
+
+  animate pay, receipt { effect flow }
+  animate wait { effect pulse; color warning }
+  animate api { effect pulse; repeat 2 }
+}

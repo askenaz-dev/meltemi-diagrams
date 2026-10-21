@@ -1,0 +1,139 @@
+language "0.2"
+
+// A complete sheet using every construct of the flow profile: bands, nodes with descriptions,
+// data stores, a decision, notes, tags, named relations with numbered steps, waypoints, shared
+// styles for a palette and for "proposed" pieces, a legend and a file theme with the brand frame.
+
+theme acme {
+  extends "technical.light"
+  accent "#1D4ED8"
+  accentEnd "#0891B2"
+  brand "Acme · Meltemi Diagrams"
+}
+
+diagram paymentsPlatform: flow {
+  title "Payments platform"
+  description "Target architecture of the payments platform: edge, services, approval and data."
+  layout manual
+  theme "acme"
+
+  // ---- Bands --------------------------------------------------------------------------------
+  group identity "Identity" {
+    node login "Login + PKCE" { description "customers" }
+    node obo "Token exchange" { description "on behalf of" }
+    note identityLimits "To validate\n30 RPS without add-on\nact depth: 4"
+  }
+
+  group services "Services" {
+    node orders "Orders" { description "Go · gRPC" }
+    node payments "Payments" { description "Go · gRPC" }
+    decision risky "Manual approval?"
+    node approvals "Approvals" { description "Temporal workflow" }
+  }
+
+  group data "Data" {
+    data documents "Documents" { description "S3" }
+    data ledger "Ledger" { description "PostgreSQL" }
+    data cache "Cache" { description "Redis · TTL" }
+  }
+
+  // ---- Edge and partners --------------------------------------------------------------------
+  node app "Mobile app" { description "signed-in user" }
+  node gateway "API Gateway" { description "validates JWT · routes" }
+  node partner "Partner API" { description "banks and PSPs" }
+
+  // ---- Tags: capability that acts at that point ---------------------------------------------
+  tag tPkce "PKCE"
+  tag tJwt "JWT"
+  tag tObo "OBO"
+
+  // ---- Main path (the numbers are the steps) ------------------------------------------------
+  // 1. The user signs in and the app calls the gateway with the user's JWT.
+  app -> gateway: "1" as r1
+  // 2. The gateway validates the token and routes to Orders.
+  gateway -> orders: "2" as r2
+  // 3. Orders asks Payments to charge.
+  orders -> payments: "3" as r3
+  // 4. Payments decides whether a human must approve.
+  payments -> risky: "4" as r4
+  // 5. Risky payments wait for approval in a durable workflow; the rest settle at once.
+  risky -> approvals: "yes" as r5
+  risky -> ledger: "no" as r6
+  approvals -> ledger as r7
+  approvals -> documents as r10
+  // Partners are called with a token exchanged on behalf of the user.
+  payments -> partner as r8
+  payments -> cache as r9
+
+  // ---- Legend --------------------------------------------------------------------------------
+  tag lgIdentity "Identity"
+  tag lgServices "Services"
+  tag lgData "Data"
+  tag lgDashed "Dashed: proposed"
+
+  placement {
+    // Bands
+    place identity at (120, 250); size identity (200, 460)
+    place services at (560, 340); size services (520, 280)
+    place data at (640, 620); size data (600, 160)
+
+    // Identity
+    place login at (120, 98); size login (160, 56)
+    place obo at (120, 178); size obo (160, 56)
+    place identityLimits at (118, 290); size identityLimits (150, 54)
+
+    // Edge and partners
+    place app at (380, 60); size app (180, 56)
+    place gateway at (560, 160); size gateway (420, 50)
+    place partner at (980, 160); size partner (160, 56)
+
+    // Services
+    place orders at (440, 300); size orders (160, 56)
+    place payments at (660, 300); size payments (160, 56)
+    place risky at (660, 410); size risky (180, 80)
+    place approvals at (440, 410); size approvals (160, 56)
+
+    // Data
+    place documents at (440, 640)
+    place ledger at (620, 640)
+    place cache at (840, 640)
+
+    // Tags on box corners
+    place tPkce at (470, 32)
+    place tJwt at (770, 135)
+    place tObo at (740, 272)
+
+    // Steps beside the arrows
+    label r1 at 50% offset (16, 0)
+    label r2 at 50% offset (16, 0)
+    label r3 at 50% offset (0, -16)
+    label r4 at 50% offset (16, 0)
+    label r5 at 50% offset (0, -16)
+    label r6 at 50% offset (16, 0)
+
+    // Bends: one waypoint per corner
+    route r7 from approvals.south to ledger.north via [(480, 520), (600, 520)]
+    route r8 from payments.east to partner.south via [(980, 300)]
+    route r9 from payments.south to cache.north via [(720, 345), (840, 345)]
+
+    // Legend
+    place lgIdentity at (80, 760)
+    place lgServices at (180, 760)
+    place lgData at (266, 760)
+    place lgDashed at (402, 760)
+  }
+
+  // ---- Palette -------------------------------------------------------------------------------
+  style identity, lgIdentity { fill "#f6f3fe"; stroke "#6a4fd0"; color "#33247a" }
+  style login, obo { fill "#ebe5fd"; stroke "#6a4fd0"; color "#33247a" }
+  style identityLimits { color "#33247a" }
+  style services, lgServices { fill "#eef6f9"; stroke "#2f7f9c"; color "#144a5e" }
+  style data, lgData { fill "#fdf5e6"; stroke "#b9800f"; color "#6b4500" }
+  style gateway { fill "#e2f3e5"; stroke "#3d8c50"; color "#1d5a2d" }
+  style tPkce, tJwt, tObo { fill "#6a4fd0"; color "#ffffff" }
+  style lgDashed { fill "#ffffff"; stroke "#526579"; color "#526579" }
+  style r1, r2, r3, r4 { fill "#0B1830"; color "#FFFFFF" }
+
+  // ---- Proposed or to validate ---------------------------------------------------------------
+  style obo, approvals, documents, partner, lgDashed { line dashed }
+}

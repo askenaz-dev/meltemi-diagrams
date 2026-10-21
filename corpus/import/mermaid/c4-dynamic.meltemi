@@ -1,0 +1,38 @@
+language "0.2"
+
+// Imported from c4-dynamic.mmd (mermaid) by meltemi-diagrams.
+
+model dynamic_diagram_for_internet_banking_model {
+  system dynamic_diagram_for_internet_banking "Dynamic diagram for Internet Banking System - API Application" {
+    container b "API Application" {
+      component c3 "Security Component" {
+        description "Provides functionality Related to signing in, changing passwords, etc."
+        technology "Spring Bean"
+      }
+      component c2 "Sign In Controller" {
+        description "Allows users to sign in to the Internet Banking System."
+        technology "Spring MVC Rest Controller"
+      }
+    }
+    datastore c4 "Database" {
+      description "Stores user registration information, hashed authentication credentials, access logs, etc."
+      technology "Relational Database Schema"
+    }
+    container c1 "Single-Page Application" {
+      description "Provides all of the Internet banking functionality to customers via their web browser."
+      technology "JavaScript and Angular"
+    }
+  }
+
+  dynamic_diagram_for_internet_banking.c1 -> dynamic_diagram_for_internet_banking.b.c2: "Submits credentials to" { technology "JSON/HTTPS" }
+  dynamic_diagram_for_internet_banking.b.c2 -> dynamic_diagram_for_internet_banking.b.c3: "Calls isAuthenticated() on"
+  dynamic_diagram_for_internet_banking.b.c3 -> dynamic_diagram_for_internet_banking.c4: "select * from users where username = ?" { technology "JDBC" }
+  dynamic_diagram_for_internet_banking.b.c3 -> dynamic_diagram_for_internet_banking.c4: "Returns the user"
+}
+
+diagram dynamic_diagram_for_internet_banking: c4 using dynamic_diagram_for_internet_banking_model {
+  title "Dynamic diagram for Internet Banking System - API Application"
+  level container
+  scope dynamic_diagram_for_internet_banking
+  include dynamic_diagram_for_internet_banking.c4, dynamic_diagram_for_internet_banking.c1, dynamic_diagram_for_internet_banking.b
+}

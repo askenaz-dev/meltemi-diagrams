@@ -1,0 +1,37 @@
+language "0.2"
+
+// Shapes and corner radii on flow nodes: a hexagon and a pill among rounded nodes, a rule that
+// sets the radius of every node, one node with square corners, and a decision and a data store
+// that keep the shapes of their kinds.
+diagram nodeShapes: flow {
+  title "Node shapes"
+  direction LR
+  layout manual
+
+  client["Client"]
+  api["API"]
+  decision valid "Valid?"
+  queue["Queue"]
+  data db "Orders DB"
+  audit["Audit"]
+
+  client -> api: "order" as order
+  api -> valid as check
+  valid -> queue: "yes" as accept
+  queue -> db as store
+  valid -> audit: "no" as reject
+
+  placement {
+    place client at (120, 120)
+    place api at (360, 120)
+    place valid at (600, 120)
+    place queue at (840, 120)
+    place db at (1080, 120)
+    place audit at (600, 300)
+  }
+
+  rule node { radius 4 }
+  style api { shape hexagon }
+  style queue { shape pill }
+  style audit { radius 0 }
+}

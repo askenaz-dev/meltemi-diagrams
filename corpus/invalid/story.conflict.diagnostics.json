@@ -1,0 +1,39 @@
+[
+  {
+    "code": "story.conflict",
+    "severity": "error",
+    "message": "`hide` overlaps an earlier action on the same visibility of `db`.",
+    "range": {
+      "start": {
+        "offset": 219,
+        "line": 14,
+        "column": 7
+      },
+      "end": {
+        "offset": 226,
+        "line": 14,
+        "column": 14
+      }
+    },
+    "hints": [
+      "Two actions on one property of a target must not run at the same time; move one out of the `parallel` block."
+    ],
+    "related": [
+      {
+        "message": "The earlier action.",
+        "range": {
+          "start": {
+            "offset": 203,
+            "line": 13,
+            "column": 7
+          },
+          "end": {
+            "offset": 212,
+            "line": 13,
+            "column": 16
+          }
+        }
+      }
+    ]
+  }
+]

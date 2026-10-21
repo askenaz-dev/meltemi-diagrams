@@ -1,0 +1,1 @@
+{ "operation": { "kind": "renameElement", "diagram": "checkout", "element": "api", "newId": "gateway" }, "expect": { "edits": 6, "notes": ["line 4"] } }

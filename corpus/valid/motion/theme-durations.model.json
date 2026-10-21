@@ -1,0 +1,488 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "pipeline",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 215,
+          "line": 11,
+          "column": 1
+        },
+        "end": {
+          "offset": 590,
+          "line": 30,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": "quick",
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "build",
+          "kind": "node",
+          "label": "Build",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 275,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 289,
+              "line": 15,
+              "column": 17
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 275,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 280,
+              "line": 15,
+              "column": 8
+            }
+          }
+        },
+        {
+          "id": "test",
+          "kind": "node",
+          "label": "Test",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 292,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 304,
+              "line": 16,
+              "column": 15
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 292,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 296,
+              "line": 16,
+              "column": 7
+            }
+          }
+        },
+        {
+          "id": "ship",
+          "kind": "node",
+          "label": "Ship",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 307,
+              "line": 17,
+              "column": 3
+            },
+            "end": {
+              "offset": 319,
+              "line": 17,
+              "column": 15
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 307,
+              "line": 17,
+              "column": 3
+            },
+            "end": {
+              "offset": 311,
+              "line": 17,
+              "column": 7
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "checks",
+          "id": "checks",
+          "from": "build",
+          "to": "test",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 322,
+              "line": 18,
+              "column": 3
+            },
+            "end": {
+              "offset": 345,
+              "line": 18,
+              "column": 26
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 339,
+              "line": 18,
+              "column": 20
+            },
+            "end": {
+              "offset": 345,
+              "line": 18,
+              "column": 26
+            }
+          }
+        },
+        {
+          "key": "release",
+          "id": "release",
+          "from": "test",
+          "to": "ship",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 348,
+              "line": 19,
+              "column": 3
+            },
+            "end": {
+              "offset": 371,
+              "line": 19,
+              "column": 26
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 364,
+              "line": 19,
+              "column": 19
+            },
+            "end": {
+              "offset": 371,
+              "line": 19,
+              "column": 26
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "build",
+          "x": 100,
+          "y": 80,
+          "range": {
+            "start": {
+              "offset": 391,
+              "line": 22,
+              "column": 5
+            },
+            "end": {
+              "offset": 415,
+              "line": 22,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 397,
+              "line": 22,
+              "column": 11
+            },
+            "end": {
+              "offset": 402,
+              "line": 22,
+              "column": 16
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "test",
+          "x": 340,
+          "y": 80,
+          "range": {
+            "start": {
+              "offset": 420,
+              "line": 23,
+              "column": 5
+            },
+            "end": {
+              "offset": 443,
+              "line": 23,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 426,
+              "line": 23,
+              "column": 11
+            },
+            "end": {
+              "offset": 430,
+              "line": 23,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "ship",
+          "x": 580,
+          "y": 80,
+          "range": {
+            "start": {
+              "offset": 448,
+              "line": 24,
+              "column": 5
+            },
+            "end": {
+              "offset": 471,
+              "line": 24,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 454,
+              "line": 24,
+              "column": 11
+            },
+            "end": {
+              "offset": 458,
+              "line": 24,
+              "column": 15
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [],
+      "animations": [
+        {
+          "target": "checks",
+          "targetKind": "relation",
+          "effect": "flow",
+          "durationMs": null,
+          "repeat": null,
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 479,
+              "line": 27,
+              "column": 3
+            },
+            "end": {
+              "offset": 509,
+              "line": 27,
+              "column": 33
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 487,
+              "line": 27,
+              "column": 11
+            },
+            "end": {
+              "offset": 493,
+              "line": 27,
+              "column": 17
+            }
+          }
+        },
+        {
+          "target": "release",
+          "targetKind": "relation",
+          "effect": "dash",
+          "durationMs": 3000,
+          "repeat": null,
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 512,
+              "line": 28,
+              "column": 3
+            },
+            "end": {
+              "offset": 556,
+              "line": 28,
+              "column": 47
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 520,
+              "line": 28,
+              "column": 11
+            },
+            "end": {
+              "offset": 527,
+              "line": 28,
+              "column": 18
+            }
+          }
+        },
+        {
+          "target": "ship",
+          "targetKind": "element",
+          "effect": "pulse",
+          "durationMs": null,
+          "repeat": null,
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 559,
+              "line": 29,
+              "column": 3
+            },
+            "end": {
+              "offset": 588,
+              "line": 29,
+              "column": 32
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 567,
+              "line": 29,
+              "column": 11
+            },
+            "end": {
+              "offset": 571,
+              "line": 29,
+              "column": 15
+            }
+          }
+        }
+      ],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [
+    {
+      "id": "quick",
+      "extends": "technical.light",
+      "tokens": {
+        "dashDuration": 1500,
+        "flowDuration": 800,
+        "pulseDuration": 600
+      },
+      "classes": [],
+      "rules": [],
+      "range": {
+        "start": {
+          "offset": 107,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 213,
+          "line": 9,
+          "column": 2
+        }
+      }
+    }
+  ],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

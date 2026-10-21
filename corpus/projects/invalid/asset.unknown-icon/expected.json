@@ -1,0 +1,25 @@
+{
+  "a.meltemi": [
+    {
+      "code": "asset.unknown-icon",
+      "severity": "error",
+      "message": "The pack `tabler` has no icon `servr`.",
+      "range": {
+        "start": {
+          "offset": 109,
+          "line": 9,
+          "column": 10
+        },
+        "end": {
+          "offset": 123,
+          "line": 9,
+          "column": 24
+        }
+      },
+      "hints": [
+        "Did you mean `tabler:server`?"
+      ],
+      "related": []
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+language "0.2"
+
+diagram checkout: flow {
+  api["API Gateway"]
+  orders["Orders"]
+  db[("PostgreSQL")]
+  api -> orders
+  orders -> db
+
+  placement {
+    place api at (360, 180)
+    place orders at (700, 180) // aligned with api
+  }
+}

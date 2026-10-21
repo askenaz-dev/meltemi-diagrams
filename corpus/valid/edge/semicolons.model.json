@@ -1,0 +1,394 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "compact",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 72,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 295,
+          "line": 10,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": null,
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "a",
+          "kind": "node",
+          "label": "A",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 114,
+              "line": 6,
+              "column": 3
+            },
+            "end": {
+              "offset": 120,
+              "line": 6,
+              "column": 9
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 114,
+              "line": 6,
+              "column": 3
+            },
+            "end": {
+              "offset": 115,
+              "line": 6,
+              "column": 4
+            }
+          }
+        },
+        {
+          "id": "b",
+          "kind": "node",
+          "label": "B",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 122,
+              "line": 6,
+              "column": 11
+            },
+            "end": {
+              "offset": 128,
+              "line": 6,
+              "column": 17
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 122,
+              "line": 6,
+              "column": 11
+            },
+            "end": {
+              "offset": 123,
+              "line": 6,
+              "column": 12
+            }
+          }
+        },
+        {
+          "id": "c",
+          "kind": "node",
+          "label": "C",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 130,
+              "line": 6,
+              "column": 19
+            },
+            "end": {
+              "offset": 136,
+              "line": 6,
+              "column": 25
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 130,
+              "line": 6,
+              "column": 19
+            },
+            "end": {
+              "offset": 131,
+              "line": 6,
+              "column": 20
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "ab",
+          "id": "ab",
+          "from": "a",
+          "to": "b",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 139,
+              "line": 7,
+              "column": 3
+            },
+            "end": {
+              "offset": 151,
+              "line": 7,
+              "column": 15
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 149,
+              "line": 7,
+              "column": 13
+            },
+            "end": {
+              "offset": 151,
+              "line": 7,
+              "column": 15
+            }
+          }
+        },
+        {
+          "key": "bc",
+          "id": "bc",
+          "from": "b",
+          "to": "c",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 153,
+              "line": 7,
+              "column": 17
+            },
+            "end": {
+              "offset": 165,
+              "line": 7,
+              "column": 29
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 163,
+              "line": 7,
+              "column": 27
+            },
+            "end": {
+              "offset": 165,
+              "line": 7,
+              "column": 29
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "a",
+          "x": 0,
+          "y": 0,
+          "range": {
+            "start": {
+              "offset": 180,
+              "line": 8,
+              "column": 15
+            },
+            "end": {
+              "offset": 197,
+              "line": 8,
+              "column": 32
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 186,
+              "line": 8,
+              "column": 21
+            },
+            "end": {
+              "offset": 187,
+              "line": 8,
+              "column": 22
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "b",
+          "x": 200,
+          "y": 0,
+          "range": {
+            "start": {
+              "offset": 199,
+              "line": 8,
+              "column": 34
+            },
+            "end": {
+              "offset": 218,
+              "line": 8,
+              "column": 53
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 205,
+              "line": 8,
+              "column": 40
+            },
+            "end": {
+              "offset": 206,
+              "line": 8,
+              "column": 41
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "c",
+          "x": 400,
+          "y": 0,
+          "range": {
+            "start": {
+              "offset": 220,
+              "line": 8,
+              "column": 55
+            },
+            "end": {
+              "offset": 239,
+              "line": 8,
+              "column": 74
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 226,
+              "line": 8,
+              "column": 61
+            },
+            "end": {
+              "offset": 227,
+              "line": 8,
+              "column": 62
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [],
+      "animations": [
+        {
+          "target": "ab",
+          "targetKind": "relation",
+          "effect": "dash",
+          "durationMs": 2000,
+          "repeat": 3,
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 244,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 293,
+              "line": 9,
+              "column": 52
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 252,
+              "line": 9,
+              "column": 11
+            },
+            "end": {
+              "offset": 254,
+              "line": 9,
+              "column": 13
+            }
+          }
+        }
+      ],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

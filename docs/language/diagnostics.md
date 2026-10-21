@@ -1,0 +1,263 @@
+# Diagnostics and rejection codes
+
+[Español](../es/language/diagnostics.md)
+
+Every problem in a source file is a diagnostic with a stable code, a severity, a one-sentence
+message, a range and optional hints and related ranges. Parsing and compiling never throw on user
+input. Codes do not change once published; a new kind of problem gets a new code.
+
+Each code has an example in `corpus/invalid/<code>.meltemi`, with its expected output in
+`corpus/invalid/<code>.diagnostics.json`.
+
+Messages, hints and related notes are in the interface language: English, or Spanish when the
+editor, the playground or the command line speaks Spanish. The templates below are the English
+ones; codes, severities and ranges are the same in both languages. Tools read a diagnostic's
+`data` (the ids it names, the alternatives a fix may write, the size that fits a text), never its
+words.
+
+## Syntax
+
+Reported by `parse()` in `@meltemi/diagrams-language`. The parser reports one diagnostic per failing statement.
+
+| Code                          | Severity | Message template                                                        |
+| ----------------------------- | -------- | ----------------------------------------------------------------------- |
+| `syntax.unexpected-character` | error    | Unexpected character `<c>`. (hints for `=>`, `>` and non-ASCII text)    |
+| `syntax.unterminated-string`  | error    | String is not closed with `"` before the end of the line.               |
+| `syntax.invalid-escape`       | error    | Unknown escape sequence `\<c>` in string.                               |
+| `syntax.unterminated-comment` | error    | Block comment is not closed with `*/` before the end of the file.       |
+| `syntax.bom`                  | info     | The file starts with a byte order mark; it is kept as is.               |
+| `syntax.mixed-line-endings`   | warning  | This line ends with `<LF/CRLF>` but the file started with `<CRLF/LF>`.  |
+| `syntax.header-not-first`     | error    | The `language` header must be the first statement of the file.          |
+| `syntax.unexpected-top-level` | error    | Unexpected `<token>` at the top level of the file.                      |
+| `syntax.expected-token`       | error    | Expected `<what>` but found `<token>`.                                  |
+| `syntax.unexpected-token`     | error    | Unexpected `<token>`; expected the end of the statement. (and variants) |
+| `syntax.nesting-too-deep`     | error    | Blocks, tuples and lists are nested more than 100 levels deep.          |
+
+A missing `}` is a `syntax.expected-token` reported once, at the end of the file, with a related
+range on the `{` that opened the block.
+
+## Language and profiles
+
+Reported by `compile()` in `@meltemi/diagrams-model`.
+
+| Code                           | Severity | Message template                                                                                   |
+| ------------------------------ | -------- | -------------------------------------------------------------------------------------------------- |
+| `language.unsupported-version` | error    | Language version "`<v>`" is not supported; this compiler implements 0.2.                           |
+| `profile.unknown`              | error    | Unknown diagram type `<type>`; expected one of flow, sequence, c4, free.                           |
+| `theme.unknown-base`           | error    | Theme `<id>` extends \"<name>\", which is neither built in nor defined in this file (or imported). |
+| `theme.cycle`                  | error    | Theme `<id>` inherits from itself through `extends`.                                               |
+
+## References, properties and placement
+
+Reported by `compile()` for `flow`, `free`, `sequence` and `c4` diagrams, `model` blocks and
+stories. A diagram with any error is left out of the JSON; other diagrams in the file still
+compile.
+
+| Code                       | Severity | Message template                                                                                                                                                                               |
+| -------------------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ref.duplicate-id`         | error    | `<id>` is already declared in this diagram. (related: the first declaration)                                                                                                                   |
+| `ref.unknown-element`      | error    | Unknown element `<id>`. (also: qualified endpoints, relations used as elements)                                                                                                                |
+| `ref.unknown-relation`     | error    | Unknown relation `<id>`. (hint: anonymous relations need `as <id>`)                                                                                                                            |
+| `ref.unknown-layer`        | error    | Unknown layer `<name>`. (hint: the declared layers, and the `layers` statement to write)                                                                                                       |
+| `ref.unknown-link`         | error    | `<diagram>` has no element `<id>`. (also: an unknown diagram, model, entity or import, or a link to its own diagram)                                                                           |
+| `ref.unknown-model`        | error    | Unknown model `<name>`. (hint: the models of the file and the imports)                                                                                                                         |
+| `ref.unknown-entity`       | error    | Unknown entity `<path>` in the model `<id>`. (hint: close paths)                                                                                                                               |
+| `animate.missing-effect`   | error    | An `animate` block needs an `effect`: `flow`, `pulse`, `dash` or `trace`.                                                                                                                      |
+| `animate.invalid-target`   | error    | The effect does not run on this target: flow or a trace on a box, a dash on an element without an outline, or anything but a pulse on an event.                                                |
+| `animate.conflict`         | error    | `<target>` already has a `<effect>` effect. (related: the first effect)                                                                                                                        |
+| `story.unknown-diagram`    | error    | There is no diagram `<name>` to tell a story about. (hint: the diagrams of the file and the imports)                                                                                           |
+| `story.invalid-target`     | error    | `trace` follows a relation; `<id>` is an element (or a note or fragment).                                                                                                                      |
+| `story.missing-transition` | error    | The scene changes to `<view>`; say how with `transition cut`, `fade` or `morph`.                                                                                                               |
+| `story.conflict`           | error    | `<action>` overlaps an earlier action on the same `<channel>` of `<target>`. (related: the earlier action)                                                                                     |
+| `story.empty-scene`        | warning  | The scene `<id>` has no actions and takes no time.                                                                                                                                             |
+| `export.unknown-target`    | error    | There is no diagram or story `<name>` to export. (hint: the diagrams and stories of the file)                                                                                                  |
+| `export.missing-format`    | error    | The profile `<id>` needs a `format`: svg, png, pdf, html, mp4, webm, gif.                                                                                                                      |
+| `export.invalid-option`    | error    | `<option>` does not apply to `<format>` exports (also: transparency in MP4, `motion` or `scenario` on stories, `at` past a story's end).                                                       |
+| `export.missing-duration`  | error    | The effects of `<diagram>` repeat forever (or there are none); a video export needs a `duration`.                                                                                              |
+| `model.invalid-nesting`    | error    | A `<kind>` cannot be declared here; persons and systems sit at the root, containers and datastores in systems, components in containers.                                                       |
+| `model.invalid-relation`   | error    | A relation from an entity to itself, or between an entity and its ancestor.                                                                                                                    |
+| `c4.invalid-level`         | error    | A view needs `level context`, `level container` or `level component`.                                                                                                                          |
+| `c4.scope-required`        | error    | A container or component view needs its scope: a system or a container.                                                                                                                        |
+| `c4.invalid-scope`         | error    | The scope of a `<level>` view is a `<kind>`; `<path>` is a `<kind>`. (also: datastores have no components)                                                                                     |
+| `c4.out-of-level`          | error    | A `<level>` view does not draw the `<kind>` `<path>`. (also: the scope in `include`)                                                                                                           |
+| `c4.unsupported-relation`  | error    | No relation of the model goes from `<a>` to `<b>`; a view draws no arrow for convenience.                                                                                                      |
+| `prop.unknown`             | error    | Unknown statement or property `<word>` in a `<context>`. (hint: accepted words)                                                                                                                |
+| `prop.invalid-value`       | error    | Invalid value for `<property>`, or a statement that does not match its form. (also: `shape` on a kind other than `node` and `box`, a value out of range such as `radius 99` or `iconSize 200`) |
+| `prop.duplicate`           | error    | `<property>` is set more than once. (related: the first one)                                                                                                                                   |
+| `sequence.activation`      | error    | `<participant>` is not active here. (a `deactivate` without a matching `activate`)                                                                                                             |
+| `sequence.lifecycle`       | error    | An event after `destroy`, `create` after the participant appeared or twice, or `destroy` twice.                                                                                                |
+| `sequence.scenario`        | error    | A scenario names an unknown fragment or branch, an operator that does not take the choice, or iterations outside 1 to 100.                                                                     |
+| `placement.route-mismatch` | error    | The route of `<relation>` must start at `<from>` (or end at `<to>`).                                                                                                                           |
+| `placement.duplicate`      | error    | `<target>` already has a `<statement>` statement. (related: the first one)                                                                                                                     |
+| `placement.unknown-port`   | error    | `<element>` has no port `<name>`. (hint: the element's named ports and the compass ports)                                                                                                      |
+
+## Layout and export
+
+Reported by `layoutDiagram()` in `@meltemi/diagrams-layout` and by `meltemi-diagrams export`, not by `compile()`. The
+examples in `corpus/invalid/layout.*.meltemi` are checked by the layout package and
+`corpus/invalid/export.no-diagram.meltemi` by the CLI tests. `layout.engine-failed` has no corpus
+example, since ELK does not fail on valid diagrams; a unit test with a failing engine covers it.
+Layout modes, constraints and the composition checks are described in [layout.md](layout.md).
+
+| Code                            | Severity | Message template                                                                                                                                                                                                                                                                                                                                                                        |
+| ------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `layout.missing-placement`      | error    | `<id>` has no `place` statement; `layout manual` needs a position for every element. (also: a group with `place` but no `size`, or without placed children)                                                                                                                                                                                                                             |
+| `layout.mode-unsupported`       | error    | `layout <mode>` needs a layout engine to position `<ids>`. (hint: hosts pass `LayoutOptions.engine`; the command line uses ELK)                                                                                                                                                                                                                                                         |
+| `layout.engine-failed`          | error    | The `<engine>` layout engine failed: `<message>`.                                                                                                                                                                                                                                                                                                                                       |
+| `layout.placement-ignored`      | warning  | `layout auto` arranges every element, so `place` statements and route waypoints are ignored. (on the first one; hint: `layout assisted`)                                                                                                                                                                                                                                                |
+| `layout.constraint-conflict`    | error    | `<constraint>` cannot hold for `<ids>`: `<what is off, in px>`. The scene is still drawn.                                                                                                                                                                                                                                                                                               |
+| `layout.overlap`                | warning  | `<a>` and `<b>` overlap. (also: a box crossing the edge of its group, or over a group that does not declare it; a box strictly inside one declared before it is a stack, not reported; a stack declared inner first gets a hint to declare the outer box first)                                                                                                                         |
+| `layout.label-under-connector`  | warning  | The label of `<relation>` lies on the connector of `<other>`.                                                                                                                                                                                                                                                                                                                           |
+| `layout.container-margin`       | warning  | `<id>` is too close to the edge or title band of its group `<group>`.                                                                                                                                                                                                                                                                                                                   |
+| `layout.connector-overlap`      | warning  | The connectors of `<a>` and `<b>` run along each other for `<n>` px.                                                                                                                                                                                                                                                                                                                    |
+| `layout.text-overflow`          | warning  | `<id>` is `<w>` px wide but its text "`<text>`" needs `<n>` px. (hint: a `size` that fits); for an icon shape: `<id>` is `<w>` × `<h>` px, too small to draw its icon: it needs `<w>` × `<h>` px.                                                                                                                                                                                       |
+| `layout.connector-crossing`     | warning  | The connector of `<relation>` runs through `<id>`. (a box of its layer that it does not join and that holds none of its ends)                                                                                                                                                                                                                                                           |
+| `layout.label-cut`              | warning  | The text "`<text>`" of `<id>` goes `<n>` px beyond its shape. (also: beyond its label or the picture; a shape is measured by its text area)                                                                                                                                                                                                                                             |
+| `layout.label-overlap`          | warning  | The text "`<text>`" of `<id>` overlaps the text "`<other>`" of `<id>`. (also: the box of `<id>`, the connector of `<relation>`)                                                                                                                                                                                                                                                         |
+| `layout.unmeasured-font`        | info     | Some text is measured with estimates: a theme font is not bundled, or characters are not covered by the bundled fonts.                                                                                                                                                                                                                                                                  |
+| `layout.image-unavailable`      | warning  | The image `<path>` of `<id>` cannot be drawn; a placeholder is drawn instead. (no image resolver, or the file cannot be read)                                                                                                                                                                                                                                                           |
+| `layout.icon-missing`           | warning  | `<id>` is drawn as its icon, but it has no `icon`; a placeholder is drawn instead. (on the `shape` property, once per statement; hint: the `icon` style to write, or another shape)                                                                                                                                                                                                     |
+| `layout.label-position-ignored` | warning  | The `labelPosition` of `<id>` has no effect: its icon is not the centre piece. (on the property, once per statement; from a rule or a class, only when no element it styles has a centred icon or `shape icon`; from a theme, once, on the diagram's `theme`; hint: `iconPosition center` or `shape icon`, or, on groups, tags, notes, texts, icons, images and C4 entities, remove it) |
+| `layout.unknown-theme`          | warning  | Unknown theme "`<name>`"; rendering with technical.light.                                                                                                                                                                                                                                                                                                                               |
+| `layout.too-large`              | warning  | The content is `<w>` × `<h>` px; a slide is 1920 × 1080 px. (also: wider than 1200 px for `preset document`, larger than a `canvas`; hint: split into views)                                                                                                                                                                                                                            |
+| `export.no-diagram`             | error    | No diagram to export. (hint: a story with `--story`, the file's profiles with `--profiles`, or the diagram types that render)                                                                                                                                                                                                                                                           |
+
+## Formatting
+
+Reported by `formatSource()` in `@meltemi/diagrams-language` and by `meltemi-diagrams format`
+(`docs/language/formatting.md`).
+
+| Code                    | Severity | Message template                                           |
+| ----------------------- | -------- | ---------------------------------------------------------- |
+| `format.syntax-errors`  | error    | The file has syntax errors and was not formatted.          |
+| `format.invalid-option` | error    | Indentation must be 1 to 8 spaces or "tab", not `<value>`. |
+
+## Projects and modules
+
+Reported by project compilation in `@meltemi/diagrams-project` (`Workspace`), used by
+`meltemi-diagrams validate` and `export`, not by `compile()`. Each code has an example project in
+`corpus/projects/invalid/<code>/` with its expected output in `expected.json`.
+
+| Code                        | Severity | Message template                                                                                                                                                                                                                           |
+| --------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `module.invalid-path`       | error    | `<path>` is not a valid import path. (reason: URL, absolute, separator, extension, `//`)                                                                                                                                                   |
+| `module.outside-project`    | error    | `<path>` resolves outside the project.                                                                                                                                                                                                     |
+| `module.not-found`          | error    | No file at `<path>`. (hint: a file with a different letter case)                                                                                                                                                                           |
+| `module.unknown-member`     | error    | `<file>` does not define `<id>`. (hint: the ids it defines)                                                                                                                                                                                |
+| `module.reserved-name`      | error    | `<name>` is reserved for built-in themes such as `<name>.light`.                                                                                                                                                                           |
+| `module.cycle`              | error    | Import cycle: `a.meltemi → b.meltemi → a.meltemi`.                                                                                                                                                                                         |
+| `module.duplicate-import`   | warning  | `<file>` is already imported in this file.                                                                                                                                                                                                 |
+| `module.import-position`    | warning  | Imports go before the first block of the file.                                                                                                                                                                                             |
+| `module.unused-import`      | info     | `<name>` is imported but never used.                                                                                                                                                                                                       |
+| `project.invalid-json`      | error    | project.json is not valid JSON: `<reason>`.                                                                                                                                                                                                |
+| `project.missing-field`     | error    | project.json has no `<field>` field.                                                                                                                                                                                                       |
+| `project.unknown-field`     | warning  | Unknown field `<field>` in project.json. (also: unknown tools, unknown `cloud` settings)                                                                                                                                                   |
+| `project.invalid-value`     | error    | A field has the wrong type, an unsupported language, an unreadable version range, or a `theme` that is malformed, missing or not declared in its file, or a `cloud` that is not an object with an origin as `host` and an id as `project`. |
+| `project.tool-version`      | error    | The project requires meltemi-diagrams `<range>`, but this is version `<version>`.                                                                                                                                                          |
+| `project.language-mismatch` | error    | This file declares language "`<v>`" but the project uses "`<w>`".                                                                                                                                                                          |
+
+The failures of the cloud commands (`login`, `push`, `pull`, `publish` and the others) are not
+diagnostics of a file: they have stable codes of their own, such as `cloud.host-mismatch` and
+`pull.unsafe-path`, listed in [the command line](../cli.md#failures-and-exit-codes).
+
+Project compilation also reports, in the file that wrote the name, `theme.unknown-base` for an
+`extends` and `layout.unknown-theme` for a diagram `theme` whose name starts with an import binding
+but resolves to nothing. Names of an import that did not resolve are not reported again.
+
+It also checks applied classes, since only the project knows a diagram's whole theme chain:
+
+| Code                  | Severity | Message template                                                                                           |
+| --------------------- | -------- | ---------------------------------------------------------------------------------------------------------- |
+| `theme.unknown-class` | warning  | Class `<name>` is not declared in the diagram, its theme or the built-in classes. (hint: classes in scope) |
+
+### Assets
+
+Reported by project compilation on the asset files, project.json, or the icon value in a
+diagram, theme class or rule ([assets.md](assets.md)).
+
+| Code                      | Severity | Message template                                                                                            |
+| ------------------------- | -------- | ----------------------------------------------------------------------------------------------------------- |
+| `asset.unknown-pack`      | error    | There is no icon pack or alias `<prefix>`. (hint: the packs)                                                |
+| `asset.unknown-icon`      | error    | The pack `<prefix>` has no icon `<name>`. (hint: close names, or `assets icons`)                            |
+| `asset.missing-license`   | error    | The icon pack or font `<name>` has no licence. (hint: the `assets/licenses.json` entry to add)              |
+| `asset.invalid-file`      | error    | A pack, font, licence file or lock cannot be read, or a field has the wrong type (warning: unknown keys)    |
+| `asset.unsafe-svg`        | error    | Icon `<ref>` cannot be used: `<element or attribute>` is not allowed in icons.                              |
+| `asset.too-large`         | error    | A file or icon exceeds a size or complexity limit.                                                          |
+| `asset.duplicate-pack`    | error    | The pack `<prefix>` is already defined by `<file>` or the built-in packs.                                   |
+| `asset.font-restricted`   | warning  | The licence of `<family>` forbids embedding; it is used to measure text only.                               |
+| `asset.lock-mismatch`     | warning  | The assets differ from assets.lock.json: `<change>`. (hint: `assets lock`)                                  |
+| `asset.outside-project`   | error    | An image path is a URL, absolute, uses backslashes, or leaves the project root. (the model checks the form) |
+| `asset.unknown-image`     | error    | There is no image file `<path>`.                                                                            |
+| `asset.unsupported-image` | error    | `<path>` is not a PNG, JPEG, GIF, WebP or SVG image, is broken, or is larger than 8 MB.                     |
+
+An alias in project.json that names no pack, or that is a pack's own name, is
+`project.invalid-value`.
+
+## Plugins and declared types
+
+Plugins are installed in project.json and described by their meltemi-plugin.json
+([plugins.md](../plugins.md)).
+
+| Code                        | Severity | Message template                                                                                                         |
+| --------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `plugin.not-found`          | error    | The plugin `<name>` has no meltemi-plugin.json in `<path>`.                                                              |
+| `plugin.invalid-manifest`   | error    | The manifest is not JSON, or a field or diagram type is wrong (the message says which).                                  |
+| `plugin.name-mismatch`      | error    | The manifest names the plugin `<name>`; project.json installs `<name>`.                                                  |
+| `plugin.version-mismatch`   | error    | project.json installs `<name>` `<version>`, but its folder holds `<version>`.                                            |
+| `plugin.incompatible`       | error    | The manifest declares no compatibility, or it does not accept this model or renderer version.                            |
+| `plugin.code-ignored`       | warning  | `main`, `module`, `exports`, `scripts` or `bin` is ignored: plugins are data, and their code never runs.                 |
+| `plugin.permission-denied`  | error    | A permission is unknown or `network`, which is never granted (warning: asked and not granted, or granted and not asked). |
+| `plugin.duplicate-type`     | error    | The diagram type `<type>` is already declared by `<plugin>`.                                                             |
+| `type.missing-property`     | error    | `<Kind>` `<id>` needs `<property>`, which the type requires.                                                             |
+| `type.relation-not-allowed` | error    | `<Type>` diagrams do not allow relations from `<kind>` to `<kind>`. (hint: the allowed pairs)                            |
+
+## Limits
+
+Bounds that keep untrusted repositories from exhausting an editor or a job (`docs/security.md`).
+
+| Code                   | Severity | Message template                                                                         |
+| ---------------------- | -------- | ---------------------------------------------------------------------------------------- |
+| `limit.too-large`      | error    | The file (a source, project.json or a plugin manifest) has more characters than allowed. |
+| `limit.too-complex`    | error    | `<diagram>` has more elements, relations or events than a diagram may have.              |
+| `limit.too-many-files` | error    | The project has more `.meltemi` files than are compiled.                                 |
+
+## Import
+
+Reported by `importText()` and `mergeImport()` in `@meltemi/diagrams-import`, by
+`meltemi-diagrams import` and by the VS Code import commands. Ranges are in the source being
+imported (the Markdown file for fenced blocks); `import.merge` ranges are in the existing sheet.
+Each finding also names its construct and whether it is essential; the constructs are listed in
+[docs/import/mermaid.md](../import/mermaid.md) and [docs/import/plantuml.md](../import/plantuml.md).
+
+| Code                           | Severity | Message template                                                                                 |
+| ------------------------------ | -------- | ------------------------------------------------------------------------------------------------ |
+| `import.unknown-format`        | error    | The source is not recognisably Mermaid, PlantUML or Markdown. (hint: `--from`)                   |
+| `import.unsupported-diagram`   | error    | `<type>` diagrams are not imported. (hint: the supported types)                                  |
+| `import.syntax`                | warning  | Cannot read `<line>`. Essential; the line is kept as a comment in the sheet.                     |
+| `import.unsupported-construct` | warning  | `<construct>` is not imported. Essential when it names an element, relation or message.          |
+| `import.approximated`          | info     | The construct keeps its meaning with another drawing, such as a double circle drawn as a circle. |
+| `import.renamed-id`            | info     | `<id>` is not a valid id; it is written as `<new id>`.                                           |
+| `import.partial`               | warning  | `<n>` essential constructs were not imported; the sheet is incomplete.                           |
+| `import.include`               | warning  | A PlantUML include is remote, absolute, outside the folder or missing; never fetched.            |
+| `import.preprocessor`          | error    | The PlantUML preprocessor stopped: unknown directive or function, recursion, limits.             |
+| `import.merge`                 | info     | A statement of the existing sheet was dropped or reduced, or a block is kept.                    |
+
+## Edit rejections
+
+Returned by `planEdit()` and `applyEdits()` in `@meltemi/diagrams-edit` as `{ ok: false, rejection }`. They are
+not source diagnostics: the document is left unchanged and the reason explains what to do.
+
+| Code                      | Meaning                                                                                                                                                                                                                                                                                                   |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `edit.unsafe-target`      | The diagram has a syntax error, is not a flow diagram, or the target does not exist (also: a story, scene or story action, or an id of a scene's view; moving an element into itself, into a group it holds or into something that is not a group, or between groups of a sequence diagram or a C4 view). |
+| `edit.anonymous-relation` | The relation has no id; run `materializeRelationId` first.                                                                                                                                                                                                                                                |
+| `edit.invalid-value`      | A coordinate, size, port, percentage, style or property value cannot be written, or the edit would add a compile error, which the message names (also: an unknown shape, a shape for a kind other than `box` and `node`, a two-way arrow in a C4 view).                                                   |
+| `edit.invalid-id`         | The new id is not a valid identifier.                                                                                                                                                                                                                                                                     |
+| `edit.id-conflict`        | The new id is already used by an element or relation of the diagram, or a pasted fragment declares one that exists.                                                                                                                                                                                       |
+| `edit.already-named`      | `materializeRelationId` on a relation that already has an id.                                                                                                                                                                                                                                             |
+| `edit.has-dependents`     | Removal without cascade while statements reference the element, a port that routes use, or ungrouping a group that is a relation end; `dependents` lists them.                                                                                                                                            |
+| `edit.stale-revision`     | The plan was computed for another revision of the document.                                                                                                                                                                                                                                               |
+| `edit.unsafe-result`      | Safety net: the planned text would parse with more errors than before.                                                                                                                                                                                                                                    |
+
+A batch (`planEdit` with `{ kind: "batch", operations }`) is refused as a whole with the
+code of the first refused operation and its `operationIndex`.

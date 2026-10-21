@@ -1,0 +1,25 @@
+{
+  "prefix": "brand",
+  "info": {
+    "name": "Corpus brand icons",
+    "version": "1.0.0",
+    "author": { "name": "Meltemi Diagrams" },
+    "license": { "title": "CC0 1.0 Universal", "spdx": "CC0-1.0" }
+  },
+  "width": 24,
+  "height": 24,
+  "icons": {
+    "logo": {
+      "body": "<path fill=\"currentColor\" d=\"M4 18V6l4 6 4-6 4 6 4-6v12h-3v-6l-5 7-5-7v6z\"/>"
+    },
+    "mark": {
+      "body": "<g fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M8 15c2-4 6-4 8 0\"/></g>"
+    }
+  },
+  "aliases": {
+    "symbol": { "parent": "mark" }
+  },
+  "categories": {
+    "Brand": ["logo", "mark"]
+  }
+}

@@ -1,0 +1,21 @@
+[
+  {
+    "code": "model.invalid-relation",
+    "severity": "error",
+    "message": "`shop` and `shop.api` are nested in each other; a relation connects separate entities.",
+    "range": {
+      "start": {
+        "offset": 90,
+        "line": 7,
+        "column": 3
+      },
+      "end": {
+        "offset": 118,
+        "line": 7,
+        "column": 31
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

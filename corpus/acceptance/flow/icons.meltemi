@@ -1,0 +1,88 @@
+language "0.2"
+
+// Icons in every place: beside, above and below the text, at sizes from 16 px to the box's room,
+// centred as the picture of a box with the label at each edge, and as the shape itself with its
+// label outside on each side, connected from every side.
+diagram icons: flow {
+  title "Icons"
+  layout manual
+  routing orthogonal
+
+  left["Left"]
+  right["Right"]
+  top["Top"]
+  bottom["Bottom"]
+  small["16 px"]
+  medium["32 px"]
+  large["64 px"]
+  fitted["Auto"]
+  orders["Orders"]
+  events["Events"]
+  cache["Cache"]
+  users["Users"]
+  decision paid "Paid?"
+  data ledger "Ledger"
+  api["API"]
+  cdn["CDN"]
+  fn["Function"]
+  queue["Queue"]
+  table["Table"]
+
+  left -> right
+  right -> top
+  top -> bottom
+  small -> medium
+  medium -> large
+  large -> fitted
+  orders -> events
+  events -> cache
+  cache -> users
+  paid -> ledger
+  api -> fn
+  cdn -> fn
+  fn -> queue
+  fn -> table
+
+  placement {
+    place left at (120, 80)
+    place right at (360, 80)
+    place top at (600, 80)
+    place bottom at (840, 80)
+    place small at (120, 220)
+    place medium at (360, 220)
+    place large at (600, 220)
+    place fitted at (840, 220)
+    size fitted (160, 90)
+    place orders at (120, 400)
+    place events at (360, 400)
+    place cache at (610, 400)
+    place users at (870, 400)
+    place paid at (140, 700)
+    place ledger at (380, 700)
+    place api at (720, 580)
+    place cdn at (560, 740)
+    place fn at (720, 740)
+    place queue at (900, 740)
+    place table at (720, 900)
+  }
+
+  style left { icon "tabler:server"; iconPosition left }
+  style right { icon "tabler:server"; iconPosition right }
+  style top { icon "tabler:server"; iconPosition top }
+  style bottom { icon "tabler:server"; iconPosition bottom }
+  style small { icon "tabler:cloud"; iconSize 16 }
+  style medium { icon "tabler:cloud"; iconSize 32 }
+  style large { icon "tabler:cloud"; iconSize 64 }
+  style fitted { icon "tabler:cloud"; iconSize auto }
+  style orders { icon "tabler:shopping-cart"; iconPosition center }
+  style events { icon "aws:simple-queue-service"; iconPosition center; labelPosition top }
+  style cache { icon "tabler:bolt"; iconPosition center; labelPosition left }
+  style users { icon "tabler:users"; iconPosition center; labelPosition right }
+  style paid { icon "tabler:credit-card"; iconPosition center }
+  style ledger { icon "tabler:database"; iconPosition center }
+  style api { icon "aws:api-gateway"; shape icon; labelPosition top }
+  style cdn { icon "aws:cloudfront"; shape icon; labelPosition left }
+  style fn { icon "aws:lambda"; shape icon; labelPosition right }
+  style queue { icon "aws:simple-queue-service"; shape icon; labelPosition right }
+  style table { icon "aws:dynamodb"; shape icon }
+}

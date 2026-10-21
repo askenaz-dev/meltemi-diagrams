@@ -1,0 +1,214 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "crlf",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 41,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 192,
+          "line": 13,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "assisted",
+        "theme": null,
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "web",
+          "kind": "node",
+          "label": "Web",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 84,
+              "line": 6,
+              "column": 3
+            },
+            "end": {
+              "offset": 94,
+              "line": 6,
+              "column": 13
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 84,
+              "line": 6,
+              "column": 3
+            },
+            "end": {
+              "offset": 87,
+              "line": 6,
+              "column": 6
+            }
+          }
+        },
+        {
+          "id": "api",
+          "kind": "node",
+          "label": "API",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 98,
+              "line": 7,
+              "column": 3
+            },
+            "end": {
+              "offset": 108,
+              "line": 7,
+              "column": 13
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 98,
+              "line": 7,
+              "column": 3
+            },
+            "end": {
+              "offset": 101,
+              "line": 7,
+              "column": 6
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "call",
+          "id": "call",
+          "from": "web",
+          "to": "api",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "REST",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 112,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 138,
+              "line": 8,
+              "column": 29
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 134,
+              "line": 8,
+              "column": 25
+            },
+            "end": {
+              "offset": 138,
+              "line": 8,
+              "column": 29
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "web",
+          "x": 100,
+          "y": 100,
+          "range": {
+            "start": {
+              "offset": 161,
+              "line": 11,
+              "column": 5
+            },
+            "end": {
+              "offset": 184,
+              "line": 11,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 167,
+              "line": 11,
+              "column": 11
+            },
+            "end": {
+              "offset": 170,
+              "line": 11,
+              "column": 14
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

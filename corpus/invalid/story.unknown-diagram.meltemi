@@ -1,0 +1,14 @@
+language "0.2"
+
+// A story names a diagram of the file or an imported one.
+diagram checkout: flow {
+  node api
+  node db
+  api -> db as save
+}
+
+story tour for missing {
+  scene one {
+    reveal api
+  }
+}

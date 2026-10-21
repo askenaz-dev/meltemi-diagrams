@@ -1,0 +1,60 @@
+language "0.2"
+
+// Every annotation construct of language 0.2 on one sheet: notes, tags, shared styles,
+// dashed outlines, data and decision shapes, nested groups, step labels and waypoints.
+diagram annotations: flow {
+  title "Annotations"
+  description "Order service with its data stores, a review step and operator notes."
+  layout manual
+  theme "editorial.light"
+
+  group platform "Platform" {
+    description "Everything the team operates"
+    node api "Order API" { description "REST · validates input" }
+    decision review "Needs review?"
+    group storage "Storage" {
+      data orders "Orders DB" { description "PostgreSQL" }
+      data cache "Cache" { description "Redis · TTL" }
+    }
+    note limits "Limits to confirm\n500 rps per tenant\nRetention: 90 days"
+  }
+  client["Client app"] { description "web & mobile <beta>" }
+  node audit "Audit log" { description "append only\nproposed" }
+  tag tJwt "JWT"
+  tag tBeta "BETA"
+
+  client -> api: "1" as request
+  api -> review: "2" as check
+  review -> orders: "3" as persist
+  review --> audit: "no" as skip
+  api -> cache as warm
+  cache -> api as hit
+
+  placement {
+    place client at (100, 60)
+    size client (160, 56)
+    place api at (420, 60)
+    size api (200, 56)
+    place review at (380, 200)
+    size review (160, 80)
+    place orders at (300, 360)
+    place cache at (560, 360)
+    place limits at (420, 470)
+    place audit at (760, 200)
+    size audit (150, 64)
+    place tJwt at (500, 32)
+    place tBeta at (820, 170)
+    route skip from review.east to audit.west via [(600, 200)]
+    route warm from api.east to cache.north via [(560, 60)]
+    label check at 50% offset (16, 0)
+    label persist at 40% offset (-16, 0)
+  }
+
+  style platform { fill "#eef6f9"; stroke "#2f7f9c"; color "#144a5e" }
+  style storage { fill "none"; stroke "#2f7f9c"; line dashed }
+  style audit, skip { line dashed }
+  style audit { stroke "#c4552c"; fill "#fde9e0"; color "#7a2e12" }
+  style tJwt, tBeta { fill "#6a4fd0"; color "#ffffff" }
+  style request, check, persist { fill "#1b1f23"; color "#ffffff" }
+  style warm { stroke "#2f7f9c" }
+}

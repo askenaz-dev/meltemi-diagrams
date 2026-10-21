@@ -1,0 +1,18 @@
+language "0.2"
+
+diagram broken: flow {
+  direction UP
+  api -> orders as create
+  placement {
+    route create from api.east to orders.west via []
+    label create at 120% offset (0, 0)
+  }
+  animate create {
+    effect flow
+    duration 1200
+  }
+  decision ok "OK?"
+  style api { radius 99 }
+  style ok { shape ellipse }
+  style orders { iconSize 200 }
+}

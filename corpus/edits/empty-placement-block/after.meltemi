@@ -1,0 +1,7 @@
+diagram d: flow {
+  layout assisted
+  a -> b
+  placement {
+    place a at (1.25, -2)
+  }
+}

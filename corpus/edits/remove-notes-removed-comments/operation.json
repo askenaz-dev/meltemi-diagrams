@@ -1,0 +1,1 @@
+{ "operation": { "kind": "removeElement", "diagram": "d", "element": "a", "cascade": true }, "expect": { "edits": 2, "notes": ["Removed the comment on line 5: // brand color"] } }

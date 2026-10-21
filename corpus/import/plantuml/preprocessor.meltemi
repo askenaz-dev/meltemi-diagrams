@@ -1,0 +1,20 @@
+language "0.2"
+
+// Imported from preprocessor.puml (plantuml) by meltemi-diagrams.
+
+diagram services: flow {
+  layout auto
+
+  node orders "orders (Kotlin)"
+  node billing "billing (Kotlin)"
+  node mail "mail (Kotlin)"
+  node worker0 "Worker 0"
+  node worker1 "Worker 1"
+  node gw "Gateway x4"
+  group edge {
+    node router "Router"
+  }
+
+  orders -> billing: "charges"
+  router -> orders: "2"
+}

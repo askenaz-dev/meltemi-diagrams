@@ -1,0 +1,52 @@
+language "0.2"
+
+import commerce from "../models/commerce.meltemi"
+
+// The executive view: a slide composed freely, whose boxes are entities of the model.
+diagram executive: free {
+  title "From click to confirmed order"
+  canvas (1280, 720)
+  layout manual
+
+  text heading "From click to confirmed order"
+  text subtitle "One order, one payment, one event: under two seconds"
+
+  icon buyer "tabler:shopping-cart"
+  box customer "Customer" { link commerce.customer }
+
+  group shop "Online shop" {
+    box orders "Orders" { link commerce.shop.orders }
+    box payments "Payments" { link commerce.shop.payments }
+    orders -> payments: "Charge" as charge
+  }
+
+  box provider "Payment provider" { link commerce.provider }
+
+  customer -> orders: "Places an order" as order
+  payments -> provider: "Authorises" as authorise
+
+  placement {
+    place heading at (640, 90)
+    place subtitle at (640, 145)
+    place buyer at (170, 300)
+    place customer at (170, 390)
+    place shop at (640, 390)
+    size shop (520, 150)
+    place orders at (114, 35)
+    place payments at (374, 35)
+    place provider at (1110, 390)
+    label order at 40%
+    label authorise at 55%
+  }
+
+  style heading { fontSize 40; fontWeight 700 }
+  style subtitle { color muted }
+  style provider { shape pill }
+  animate order { effect flow; duration 1200ms; repeat forever }
+}
+
+// A slide picture at twice the pixels.
+export slide for executive {
+  format png
+  scale 2
+}

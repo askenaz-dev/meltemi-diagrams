@@ -1,0 +1,44 @@
+{
+  "assets/icons/brand.json": [
+    {
+      "code": "asset.invalid-file",
+      "severity": "error",
+      "message": "The icon set's `prefix` must be `brand`, the name of the file.",
+      "range": {
+        "start": {
+          "offset": 14,
+          "line": 2,
+          "column": 13
+        },
+        "end": {
+          "offset": 23,
+          "line": 2,
+          "column": 22
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ],
+  "assets/licenses.json": [
+    {
+      "code": "asset.invalid-file",
+      "severity": "warning",
+      "message": "There is no icon pack `brand` in assets/icons.",
+      "range": {
+        "start": {
+          "offset": 19,
+          "line": 3,
+          "column": 5
+        },
+        "end": {
+          "offset": 26,
+          "line": 3,
+          "column": 12
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ]
+}

@@ -1,0 +1,21 @@
+[
+  {
+    "code": "layout.connector-crossing",
+    "severity": "warning",
+    "message": "The connector of `query` runs through `api`.",
+    "range": {
+      "start": {
+        "offset": 212,
+        "line": 10,
+        "column": 3
+      },
+      "end": {
+        "offset": 230,
+        "line": 10,
+        "column": 21
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

@@ -1,0 +1,6 @@
+diagram d: flow {
+  api -> orders as create
+  placement {
+    label create at 30% offset (0, -16)
+  }
+}

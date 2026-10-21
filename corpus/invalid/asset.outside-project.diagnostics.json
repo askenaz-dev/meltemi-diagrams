@@ -1,0 +1,23 @@
+[
+  {
+    "code": "asset.outside-project",
+    "severity": "error",
+    "message": "Image paths are files of the project; `https://example.com/logo.png` is a URL.",
+    "range": {
+      "start": {
+        "offset": 51,
+        "line": 4,
+        "column": 14
+      },
+      "end": {
+        "offset": 81,
+        "line": 4,
+        "column": 44
+      }
+    },
+    "hints": [
+      "Write a path relative to this file inside the project, such as \"logo.png\"."
+    ],
+    "related": []
+  }
+]

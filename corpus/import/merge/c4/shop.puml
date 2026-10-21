@@ -1,0 +1,12 @@
+@startuml shop
+!include <C4/C4_Container>
+Person(user, "User")
+System_Boundary(shop, "Shop") {
+  Container(api, "API", "Kotlin")
+  ContainerDb(db, "DB", "PostgreSQL")
+  Container(cache, "Cache", "Redis")
+}
+Rel(user, api, "Uses", "HTTPS")
+Rel(api, db, "Reads")
+Rel(api, cache, "Caches")
+@enduml

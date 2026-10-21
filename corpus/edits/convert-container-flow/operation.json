@@ -1,0 +1,9 @@
+{
+  "operation": {
+    "kind": "convertToContainer",
+    "diagram": "overview",
+    "element": "node3",
+    "children": [{ "id": "db" }],
+    "size": { "width": 238, "height": 196 }
+  }
+}

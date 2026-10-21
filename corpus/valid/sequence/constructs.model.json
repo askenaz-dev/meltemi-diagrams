@@ -1,0 +1,1994 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "order",
+      "type": "sequence",
+      "range": {
+        "start": {
+          "offset": 208,
+          "line": 5,
+          "column": 1
+        },
+        "end": {
+          "offset": 1928,
+          "line": 87,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "auto",
+        "theme": null,
+        "title": "Order lifecycle",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": 1
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "customer",
+          "kind": "actor",
+          "label": "Customer",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 276,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 301,
+              "line": 9,
+              "column": 28
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 282,
+              "line": 9,
+              "column": 9
+            },
+            "end": {
+              "offset": 290,
+              "line": 9,
+              "column": 17
+            }
+          }
+        },
+        {
+          "id": "web",
+          "kind": "boundary",
+          "label": "Web app",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 304,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 326,
+              "line": 10,
+              "column": 25
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 313,
+              "line": 10,
+              "column": 12
+            },
+            "end": {
+              "offset": 316,
+              "line": 10,
+              "column": 15
+            }
+          }
+        },
+        {
+          "id": "backend",
+          "kind": "group",
+          "label": "Backend",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 329,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 439,
+              "line": 15,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 335,
+              "line": 11,
+              "column": 9
+            },
+            "end": {
+              "offset": 342,
+              "line": 11,
+              "column": 16
+            }
+          }
+        },
+        {
+          "id": "orders",
+          "kind": "control",
+          "label": "Orders",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "backend"
+          ],
+          "range": {
+            "start": {
+              "offset": 359,
+              "line": 12,
+              "column": 5
+            },
+            "end": {
+              "offset": 382,
+              "line": 12,
+              "column": 28
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 367,
+              "line": 12,
+              "column": 13
+            },
+            "end": {
+              "offset": 373,
+              "line": 12,
+              "column": 19
+            }
+          }
+        },
+        {
+          "id": "order",
+          "kind": "entity",
+          "label": "Order",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "backend"
+          ],
+          "range": {
+            "start": {
+              "offset": 387,
+              "line": 13,
+              "column": 5
+            },
+            "end": {
+              "offset": 407,
+              "line": 13,
+              "column": 25
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 394,
+              "line": 13,
+              "column": 12
+            },
+            "end": {
+              "offset": 399,
+              "line": 13,
+              "column": 17
+            }
+          }
+        },
+        {
+          "id": "db",
+          "kind": "database",
+          "label": "Orders DB",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "backend"
+          ],
+          "range": {
+            "start": {
+              "offset": 412,
+              "line": 14,
+              "column": 5
+            },
+            "end": {
+              "offset": 435,
+              "line": 14,
+              "column": 28
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 421,
+              "line": 14,
+              "column": 14
+            },
+            "end": {
+              "offset": 423,
+              "line": 14,
+              "column": 16
+            }
+          }
+        },
+        {
+          "id": "events",
+          "kind": "queue",
+          "label": "Events",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 442,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 463,
+              "line": 16,
+              "column": 24
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 448,
+              "line": 16,
+              "column": 9
+            },
+            "end": {
+              "offset": 454,
+              "line": 16,
+              "column": 15
+            }
+          }
+        },
+        {
+          "id": "workers",
+          "kind": "collections",
+          "label": "Workers",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 466,
+              "line": 17,
+              "column": 3
+            },
+            "end": {
+              "offset": 495,
+              "line": 17,
+              "column": 32
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 478,
+              "line": 17,
+              "column": 15
+            },
+            "end": {
+              "offset": 485,
+              "line": 17,
+              "column": 22
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "checkout",
+          "id": "checkout",
+          "from": "customer",
+          "to": "web",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Checkout",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 499,
+              "line": 19,
+              "column": 3
+            },
+            "end": {
+              "offset": 538,
+              "line": 19,
+              "column": 42
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 530,
+              "line": 19,
+              "column": 34
+            },
+            "end": {
+              "offset": 538,
+              "line": 19,
+              "column": 42
+            }
+          }
+        },
+        {
+          "key": "place",
+          "id": "place",
+          "from": "web",
+          "to": "orders",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Place order",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 541,
+              "line": 20,
+              "column": 3
+            },
+            "end": {
+              "offset": 578,
+              "line": 20,
+              "column": 40
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 573,
+              "line": 20,
+              "column": 35
+            },
+            "end": {
+              "offset": 578,
+              "line": 20,
+              "column": 40
+            }
+          }
+        },
+        {
+          "key": "validate",
+          "id": "validate",
+          "from": "orders",
+          "to": "orders",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Validate",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 599,
+              "line": 22,
+              "column": 3
+            },
+            "end": {
+              "offset": 639,
+              "line": 22,
+              "column": 43
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 631,
+              "line": 22,
+              "column": 35
+            },
+            "end": {
+              "offset": 639,
+              "line": 22,
+              "column": 43
+            }
+          }
+        },
+        {
+          "key": "build",
+          "id": "build",
+          "from": "orders",
+          "to": "order",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "new",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 657,
+              "line": 24,
+              "column": 3
+            },
+            "end": {
+              "offset": 688,
+              "line": 24,
+              "column": 34
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 683,
+              "line": 24,
+              "column": 29
+            },
+            "end": {
+              "offset": 688,
+              "line": 24,
+              "column": 34
+            }
+          }
+        },
+        {
+          "key": "save",
+          "id": "save",
+          "from": "orders",
+          "to": "db",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Save",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 758,
+              "line": 28,
+              "column": 5
+            },
+            "end": {
+              "offset": 786,
+              "line": 28,
+              "column": 33
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 782,
+              "line": 28,
+              "column": 29
+            },
+            "end": {
+              "offset": 786,
+              "line": 28,
+              "column": 33
+            }
+          }
+        },
+        {
+          "key": "saved",
+          "id": "saved",
+          "from": "db",
+          "to": "orders",
+          "line": "dashed",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Saved",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 791,
+              "line": 29,
+              "column": 5
+            },
+            "end": {
+              "offset": 822,
+              "line": 29,
+              "column": 36
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 817,
+              "line": 29,
+              "column": 31
+            },
+            "end": {
+              "offset": 822,
+              "line": 29,
+              "column": 36
+            }
+          }
+        },
+        {
+          "key": "declined",
+          "id": "declined",
+          "from": "orders",
+          "to": "web",
+          "line": "dashed",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Declined",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 849,
+              "line": 31,
+              "column": 5
+            },
+            "end": {
+              "offset": 887,
+              "line": 31,
+              "column": 43
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 879,
+              "line": 31,
+              "column": 35
+            },
+            "end": {
+              "offset": 887,
+              "line": 31,
+              "column": 43
+            }
+          }
+        },
+        {
+          "key": "publish",
+          "id": "publish",
+          "from": "orders",
+          "to": "events",
+          "line": "solid",
+          "twoWay": false,
+          "async": true,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "OrderPlaced",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 929,
+              "line": 37,
+              "column": 5
+            },
+            "end": {
+              "offset": 986,
+              "line": 37,
+              "column": 62
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 964,
+              "line": 37,
+              "column": 40
+            },
+            "end": {
+              "offset": 971,
+              "line": 37,
+              "column": 47
+            }
+          }
+        },
+        {
+          "key": "confirm",
+          "id": "confirm",
+          "from": "orders",
+          "to": "web",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Confirmation",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1010,
+              "line": 39,
+              "column": 5
+            },
+            "end": {
+              "offset": 1050,
+              "line": 39,
+              "column": 45
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1043,
+              "line": 39,
+              "column": 38
+            },
+            "end": {
+              "offset": 1050,
+              "line": 39,
+              "column": 45
+            }
+          }
+        },
+        {
+          "key": "status",
+          "id": "status",
+          "from": "web",
+          "to": "orders",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Status?",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1093,
+              "line": 43,
+              "column": 5
+            },
+            "end": {
+              "offset": 1127,
+              "line": 43,
+              "column": 39
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1121,
+              "line": 43,
+              "column": 33
+            },
+            "end": {
+              "offset": 1127,
+              "line": 43,
+              "column": 39
+            }
+          }
+        },
+        {
+          "key": "pending",
+          "id": "pending",
+          "from": "orders",
+          "to": "web",
+          "line": "dashed",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Pending",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1132,
+              "line": 44,
+              "column": 5
+            },
+            "end": {
+              "offset": 1168,
+              "line": 44,
+              "column": 41
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1161,
+              "line": 44,
+              "column": 34
+            },
+            "end": {
+              "offset": 1168,
+              "line": 44,
+              "column": 41
+            }
+          }
+        },
+        {
+          "key": "discount",
+          "id": "discount",
+          "from": "orders",
+          "to": "orders",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Discount",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1210,
+              "line": 48,
+              "column": 5
+            },
+            "end": {
+              "offset": 1250,
+              "line": 48,
+              "column": 45
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1242,
+              "line": 48,
+              "column": 37
+            },
+            "end": {
+              "offset": 1250,
+              "line": 48,
+              "column": 45
+            }
+          }
+        },
+        {
+          "key": "ship",
+          "id": "ship",
+          "from": "events",
+          "to": "workers",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Ship",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1284,
+              "line": 52,
+              "column": 5
+            },
+            "end": {
+              "offset": 1317,
+              "line": 52,
+              "column": 38
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1313,
+              "line": 52,
+              "column": 34
+            },
+            "end": {
+              "offset": 1317,
+              "line": 52,
+              "column": 38
+            }
+          }
+        },
+        {
+          "key": "later",
+          "id": "later",
+          "from": "workers",
+          "to": "events",
+          "line": "dashed",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Retry later",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1350,
+              "line": 54,
+              "column": 5
+            },
+            "end": {
+              "offset": 1392,
+              "line": 54,
+              "column": 47
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1387,
+              "line": 54,
+              "column": 42
+            },
+            "end": {
+              "offset": 1392,
+              "line": 54,
+              "column": 47
+            }
+          }
+        },
+        {
+          "key": "cancelled",
+          "id": "cancelled",
+          "from": "orders",
+          "to": "customer",
+          "line": "dashed",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Cancelled",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1429,
+              "line": 58,
+              "column": 5
+            },
+            "end": {
+              "offset": 1474,
+              "line": 58,
+              "column": 50
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1465,
+              "line": 58,
+              "column": 41
+            },
+            "end": {
+              "offset": 1474,
+              "line": 58,
+              "column": 50
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "space",
+          "target": "save",
+          "amount": 12,
+          "range": {
+            "start": {
+              "offset": 1634,
+              "line": 70,
+              "column": 5
+            },
+            "end": {
+              "offset": 1647,
+              "line": 70,
+              "column": 18
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1640,
+              "line": 70,
+              "column": 11
+            },
+            "end": {
+              "offset": 1644,
+              "line": 70,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "gap",
+          "target": "events",
+          "amount": 20,
+          "range": {
+            "start": {
+              "offset": 1652,
+              "line": 71,
+              "column": 5
+            },
+            "end": {
+              "offset": 1665,
+              "line": 71,
+              "column": 18
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1656,
+              "line": 71,
+              "column": 9
+            },
+            "end": {
+              "offset": 1662,
+              "line": 71,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "label",
+          "target": "checkout",
+          "at": 50,
+          "offset": {
+            "x": 0,
+            "y": -4
+          },
+          "range": {
+            "start": {
+              "offset": 1670,
+              "line": 72,
+              "column": 5
+            },
+            "end": {
+              "offset": 1706,
+              "line": 72,
+              "column": 41
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1676,
+              "line": 72,
+              "column": 11
+            },
+            "end": {
+              "offset": 1684,
+              "line": 72,
+              "column": 19
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [
+        {
+          "target": "events",
+          "targetKind": "element",
+          "properties": {
+            "fill": "#fff4e5"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1714,
+              "line": 75,
+              "column": 3
+            },
+            "end": {
+              "offset": 1745,
+              "line": 75,
+              "column": 34
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1720,
+              "line": 75,
+              "column": 9
+            },
+            "end": {
+              "offset": 1726,
+              "line": 75,
+              "column": 15
+            }
+          }
+        }
+      ],
+      "animations": [],
+      "events": [
+        {
+          "kind": "message",
+          "key": "checkout",
+          "relation": "checkout",
+          "range": {
+            "start": {
+              "offset": 499,
+              "line": 19,
+              "column": 3
+            },
+            "end": {
+              "offset": 538,
+              "line": 19,
+              "column": 42
+            }
+          }
+        },
+        {
+          "kind": "message",
+          "key": "place",
+          "relation": "place",
+          "range": {
+            "start": {
+              "offset": 541,
+              "line": 20,
+              "column": 3
+            },
+            "end": {
+              "offset": 578,
+              "line": 20,
+              "column": 40
+            }
+          }
+        },
+        {
+          "kind": "activate",
+          "key": "activate#1",
+          "participant": "orders",
+          "range": {
+            "start": {
+              "offset": 581,
+              "line": 21,
+              "column": 3
+            },
+            "end": {
+              "offset": 596,
+              "line": 21,
+              "column": 18
+            }
+          }
+        },
+        {
+          "kind": "message",
+          "key": "validate",
+          "relation": "validate",
+          "range": {
+            "start": {
+              "offset": 599,
+              "line": 22,
+              "column": 3
+            },
+            "end": {
+              "offset": 639,
+              "line": 22,
+              "column": 43
+            }
+          }
+        },
+        {
+          "kind": "create",
+          "key": "create#1",
+          "participant": "order",
+          "range": {
+            "start": {
+              "offset": 642,
+              "line": 23,
+              "column": 3
+            },
+            "end": {
+              "offset": 654,
+              "line": 23,
+              "column": 15
+            }
+          }
+        },
+        {
+          "kind": "message",
+          "key": "build",
+          "relation": "build",
+          "range": {
+            "start": {
+              "offset": 657,
+              "line": 24,
+              "column": 3
+            },
+            "end": {
+              "offset": 688,
+              "line": 24,
+              "column": 34
+            }
+          }
+        },
+        {
+          "kind": "note",
+          "key": "note#1",
+          "id": null,
+          "position": "right",
+          "participants": [
+            "order"
+          ],
+          "text": "Draft until paid",
+          "range": {
+            "start": {
+              "offset": 691,
+              "line": 25,
+              "column": 3
+            },
+            "end": {
+              "offset": 729,
+              "line": 25,
+              "column": 41
+            }
+          }
+        },
+        {
+          "kind": "fragment",
+          "key": "payment",
+          "id": "payment",
+          "operator": "alt",
+          "branches": [
+            {
+              "condition": "Paid",
+              "events": [
+                {
+                  "kind": "message",
+                  "key": "save",
+                  "relation": "save",
+                  "range": {
+                    "start": {
+                      "offset": 758,
+                      "line": 28,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 786,
+                      "line": 28,
+                      "column": 33
+                    }
+                  }
+                },
+                {
+                  "kind": "message",
+                  "key": "saved",
+                  "relation": "saved",
+                  "range": {
+                    "start": {
+                      "offset": 791,
+                      "line": 29,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 822,
+                      "line": 29,
+                      "column": 36
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 733,
+                  "line": 27,
+                  "column": 3
+                },
+                "end": {
+                  "offset": 826,
+                  "line": 30,
+                  "column": 4
+                }
+              }
+            },
+            {
+              "condition": "Declined",
+              "events": [
+                {
+                  "kind": "message",
+                  "key": "declined",
+                  "relation": "declined",
+                  "range": {
+                    "start": {
+                      "offset": 849,
+                      "line": 31,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 887,
+                      "line": 31,
+                      "column": 43
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 827,
+                  "line": 30,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 891,
+                  "line": 32,
+                  "column": 4
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 733,
+              "line": 27,
+              "column": 3
+            },
+            "end": {
+              "offset": 891,
+              "line": 32,
+              "column": 4
+            }
+          }
+        },
+        {
+          "kind": "divider",
+          "key": "divider#1",
+          "label": "Fulfilment",
+          "range": {
+            "start": {
+              "offset": 895,
+              "line": 34,
+              "column": 3
+            },
+            "end": {
+              "offset": 915,
+              "line": 34,
+              "column": 23
+            }
+          }
+        },
+        {
+          "kind": "fragment",
+          "key": "par#1",
+          "id": null,
+          "operator": "par",
+          "branches": [
+            {
+              "condition": null,
+              "events": [
+                {
+                  "kind": "message",
+                  "key": "publish",
+                  "relation": "publish",
+                  "range": {
+                    "start": {
+                      "offset": 929,
+                      "line": 37,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 986,
+                      "line": 37,
+                      "column": 62
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 919,
+                  "line": 36,
+                  "column": 3
+                },
+                "end": {
+                  "offset": 990,
+                  "line": 38,
+                  "column": 4
+                }
+              }
+            },
+            {
+              "condition": "Notify",
+              "events": [
+                {
+                  "kind": "message",
+                  "key": "confirm",
+                  "relation": "confirm",
+                  "range": {
+                    "start": {
+                      "offset": 1010,
+                      "line": 39,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 1050,
+                      "line": 39,
+                      "column": 45
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 991,
+                  "line": 38,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 1054,
+                  "line": 40,
+                  "column": 4
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 919,
+              "line": 36,
+              "column": 3
+            },
+            "end": {
+              "offset": 1054,
+              "line": 40,
+              "column": 4
+            }
+          }
+        },
+        {
+          "kind": "fragment",
+          "key": "polling",
+          "id": "polling",
+          "operator": "loop",
+          "branches": [
+            {
+              "condition": "Until shipped",
+              "events": [
+                {
+                  "kind": "message",
+                  "key": "status",
+                  "relation": "status",
+                  "range": {
+                    "start": {
+                      "offset": 1093,
+                      "line": 43,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 1127,
+                      "line": 43,
+                      "column": 39
+                    }
+                  }
+                },
+                {
+                  "kind": "message",
+                  "key": "pending",
+                  "relation": "pending",
+                  "range": {
+                    "start": {
+                      "offset": 1132,
+                      "line": 44,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 1168,
+                      "line": 44,
+                      "column": 41
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 1058,
+                  "line": 42,
+                  "column": 3
+                },
+                "end": {
+                  "offset": 1172,
+                  "line": 45,
+                  "column": 4
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 1058,
+              "line": 42,
+              "column": 3
+            },
+            "end": {
+              "offset": 1172,
+              "line": 45,
+              "column": 4
+            }
+          }
+        },
+        {
+          "kind": "fragment",
+          "key": "coupon",
+          "id": "coupon",
+          "operator": "opt",
+          "branches": [
+            {
+              "condition": "Coupon applied",
+              "events": [
+                {
+                  "kind": "message",
+                  "key": "discount",
+                  "relation": "discount",
+                  "range": {
+                    "start": {
+                      "offset": 1210,
+                      "line": 48,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 1250,
+                      "line": 48,
+                      "column": 45
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 1176,
+                  "line": 47,
+                  "column": 3
+                },
+                "end": {
+                  "offset": 1254,
+                  "line": 49,
+                  "column": 4
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 1176,
+              "line": 47,
+              "column": 3
+            },
+            "end": {
+              "offset": 1254,
+              "line": 49,
+              "column": 4
+            }
+          }
+        },
+        {
+          "kind": "fragment",
+          "key": "critical#1",
+          "id": null,
+          "operator": "critical",
+          "branches": [
+            {
+              "condition": "Shipment",
+              "events": [
+                {
+                  "kind": "message",
+                  "key": "ship",
+                  "relation": "ship",
+                  "range": {
+                    "start": {
+                      "offset": 1284,
+                      "line": 52,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 1317,
+                      "line": 52,
+                      "column": 38
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 1258,
+                  "line": 51,
+                  "column": 3
+                },
+                "end": {
+                  "offset": 1321,
+                  "line": 53,
+                  "column": 4
+                }
+              }
+            },
+            {
+              "condition": "Carrier down",
+              "events": [
+                {
+                  "kind": "message",
+                  "key": "later",
+                  "relation": "later",
+                  "range": {
+                    "start": {
+                      "offset": 1350,
+                      "line": 54,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 1392,
+                      "line": 54,
+                      "column": 47
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 1322,
+                  "line": 53,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 1396,
+                  "line": 55,
+                  "column": 4
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 1258,
+              "line": 51,
+              "column": 3
+            },
+            "end": {
+              "offset": 1396,
+              "line": 55,
+              "column": 4
+            }
+          }
+        },
+        {
+          "kind": "fragment",
+          "key": "break#1",
+          "id": null,
+          "operator": "break",
+          "branches": [
+            {
+              "condition": "Fraud detected",
+              "events": [
+                {
+                  "kind": "message",
+                  "key": "cancelled",
+                  "relation": "cancelled",
+                  "range": {
+                    "start": {
+                      "offset": 1429,
+                      "line": 58,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 1474,
+                      "line": 58,
+                      "column": 50
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 1400,
+                  "line": 57,
+                  "column": 3
+                },
+                "end": {
+                  "offset": 1478,
+                  "line": 59,
+                  "column": 4
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 1400,
+              "line": 57,
+              "column": 3
+            },
+            "end": {
+              "offset": 1478,
+              "line": 59,
+              "column": 4
+            }
+          }
+        },
+        {
+          "kind": "fragment",
+          "key": "region#1",
+          "id": null,
+          "operator": "region",
+          "branches": [
+            {
+              "condition": "Audit",
+              "events": [
+                {
+                  "kind": "note",
+                  "key": "note#2",
+                  "id": null,
+                  "position": "over",
+                  "participants": [
+                    "orders",
+                    "db"
+                  ],
+                  "text": "Every change is logged",
+                  "range": {
+                    "start": {
+                      "offset": 1503,
+                      "line": 62,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 1548,
+                      "line": 62,
+                      "column": 50
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 1482,
+                  "line": 61,
+                  "column": 3
+                },
+                "end": {
+                  "offset": 1552,
+                  "line": 63,
+                  "column": 4
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 1482,
+              "line": 61,
+              "column": 3
+            },
+            "end": {
+              "offset": 1552,
+              "line": 63,
+              "column": 4
+            }
+          }
+        },
+        {
+          "kind": "delay",
+          "key": "delay#1",
+          "label": "Two days later",
+          "range": {
+            "start": {
+              "offset": 1556,
+              "line": 65,
+              "column": 3
+            },
+            "end": {
+              "offset": 1578,
+              "line": 65,
+              "column": 25
+            }
+          }
+        },
+        {
+          "kind": "deactivate",
+          "key": "deactivate#1",
+          "participant": "orders",
+          "range": {
+            "start": {
+              "offset": 1581,
+              "line": 66,
+              "column": 3
+            },
+            "end": {
+              "offset": 1598,
+              "line": 66,
+              "column": 20
+            }
+          }
+        },
+        {
+          "kind": "destroy",
+          "key": "destroy#1",
+          "participant": "order",
+          "range": {
+            "start": {
+              "offset": 1601,
+              "line": 67,
+              "column": 3
+            },
+            "end": {
+              "offset": 1614,
+              "line": 67,
+              "column": 16
+            }
+          }
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "happy",
+          "label": "Paid and shipped",
+          "choices": [
+            {
+              "kind": "choose",
+              "fragment": "payment",
+              "branch": 0,
+              "iterations": null,
+              "range": {
+                "start": {
+                  "offset": 1789,
+                  "line": 78,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 1810,
+                  "line": 78,
+                  "column": 26
+                }
+              }
+            },
+            {
+              "kind": "repeat",
+              "fragment": "polling",
+              "branch": null,
+              "iterations": 2,
+              "range": {
+                "start": {
+                  "offset": 1815,
+                  "line": 79,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 1831,
+                  "line": 79,
+                  "column": 21
+                }
+              }
+            },
+            {
+              "kind": "take",
+              "fragment": "coupon",
+              "branch": null,
+              "iterations": null,
+              "range": {
+                "start": {
+                  "offset": 1836,
+                  "line": 80,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 1847,
+                  "line": 80,
+                  "column": 16
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 1749,
+              "line": 77,
+              "column": 3
+            },
+            "end": {
+              "offset": 1851,
+              "line": 81,
+              "column": 4
+            }
+          }
+        },
+        {
+          "id": "declined",
+          "label": "Declined",
+          "choices": [
+            {
+              "kind": "choose",
+              "fragment": "payment",
+              "branch": 1,
+              "iterations": null,
+              "range": {
+                "start": {
+                  "offset": 1890,
+                  "line": 84,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 1906,
+                  "line": 84,
+                  "column": 21
+                }
+              }
+            },
+            {
+              "kind": "skip",
+              "fragment": "coupon",
+              "branch": null,
+              "iterations": null,
+              "range": {
+                "start": {
+                  "offset": 1911,
+                  "line": 85,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 1922,
+                  "line": 85,
+                  "column": 16
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 1855,
+              "line": 83,
+              "column": 3
+            },
+            "end": {
+              "offset": 1926,
+              "line": 86,
+              "column": 4
+            }
+          }
+        }
+      ],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

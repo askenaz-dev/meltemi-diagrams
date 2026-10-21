@@ -1,0 +1,23 @@
+[
+  {
+    "code": "export.unknown-target",
+    "severity": "error",
+    "message": "There is no diagram or story `checkot` to export.",
+    "range": {
+      "start": {
+        "offset": 114,
+        "line": 4,
+        "column": 18
+      },
+      "end": {
+        "offset": 121,
+        "line": 4,
+        "column": 25
+      }
+    },
+    "hints": [
+      "Declare a diagram or a story."
+    ],
+    "related": []
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "project.json": [
+    {
+      "code": "project.tool-version",
+      "severity": "error",
+      "message": "The project requires meltemi-diagrams ^9.0.0, but this is version 1.8.0.",
+      "range": {
+        "start": {
+          "offset": 81,
+          "line": 5,
+          "column": 25
+        },
+        "end": {
+          "offset": 89,
+          "line": 5,
+          "column": 33
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ]
+}

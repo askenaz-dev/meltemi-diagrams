@@ -1,0 +1,61 @@
+language "0.2"
+
+// The proposal's checkout flow and its purchase story ("Animación y narrativa").
+// The story lasts 7.4 s: sequential actions add up, a parallel block lasts as long as its
+// longest action.
+diagram checkout: flow {
+  direction LR
+  layout assisted
+
+  client["Cliente"]
+  api["API Gateway"]
+  orders["Pedidos"]
+  db[("PostgreSQL")]
+
+  client -> api: "HTTPS" as request
+  api -> orders: "Crear pedido" as create
+  orders -> db: "Persistir" as save
+
+  placement {
+    place api at (360, 180)
+    place orders at (700, 180)
+    route create from api.east to orders.west via [(520, 180)]
+    label create at 50% offset (0, -16)
+  }
+
+  style api {
+    icon "tabler:server"
+  }
+
+  animate request {
+    effect flow
+    duration 1200ms
+    repeat forever
+  }
+}
+
+story purchase for checkout {
+  title "A purchase"
+
+  scene overview {
+    reveal client, api, orders, db over 800ms
+    hold 1s
+  }
+
+  scene processing {
+    trace request over 1200ms
+    trace create over 1200ms
+    parallel {
+      trace save over 1200ms
+      highlight db over 1200ms
+    }
+    hold 2s
+  }
+}
+
+// The proposal's delivery profile of the story: a 1080p video at 30 frames per second.
+export presentation for purchase {
+  format mp4
+  size (1920, 1080)
+  fps 30
+}

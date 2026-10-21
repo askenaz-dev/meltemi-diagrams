@@ -1,0 +1,21 @@
+[
+  {
+    "code": "animate.invalid-target",
+    "severity": "error",
+    "message": "Flow particles run along relations; name the relation (`a -> b as r`) and animate it.",
+    "range": {
+      "start": {
+        "offset": 142,
+        "line": 8,
+        "column": 11
+      },
+      "end": {
+        "offset": 145,
+        "line": 8,
+        "column": 14
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

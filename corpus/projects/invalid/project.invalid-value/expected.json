@@ -1,0 +1,23 @@
+{
+  "project.json": [
+    {
+      "code": "project.invalid-value",
+      "severity": "error",
+      "message": "`../elsewhere` is not a path inside the project; use a path relative to project.json.",
+      "range": {
+        "start": {
+          "offset": 63,
+          "line": 5,
+          "column": 5
+        },
+        "end": {
+          "offset": 77,
+          "line": 5,
+          "column": 19
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ]
+}

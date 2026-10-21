@@ -1,0 +1,33 @@
+language "0.2"
+
+// Imported from c4-context.mmd (mermaid) by meltemi-diagrams.
+
+model system_context_diagram_for_internet_model {
+  person customerA "Banking Customer A" { description "A customer of the bank, with personal bank accounts." }
+  person customerC "Banking Customer C" {
+    description "desc"
+    external
+  }
+  system SystemAA "Internet Banking System" { description "Allows customers to view information about their bank accounts, and make payments." }
+  system SystemE "Mainframe Banking System" {
+    description "Stores all of the core banking information about customers, accounts, transactions, etc."
+    external
+  }
+  system SystemC "E-mail system" {
+    description "The internal Microsoft Exchange e-mail system."
+    external
+  }
+  system SystemF "Bank queue" { description "Messages" }
+
+  customerA -> SystemAA: "Uses"
+  SystemAA -> customerA: "Uses"
+  SystemAA -> SystemE: "Uses" { technology "XML/HTTPS" }
+  SystemAA -> SystemC: "Sends e-mails" { technology "SMTP" }
+  SystemC -> customerC: "Sends e-mails to"
+}
+
+diagram system_context_diagram_for_internet: c4 using system_context_diagram_for_internet_model {
+  title "System Context diagram for Internet Banking System"
+  level context
+  include customerA, customerC, SystemAA, SystemE, SystemC, SystemF
+}

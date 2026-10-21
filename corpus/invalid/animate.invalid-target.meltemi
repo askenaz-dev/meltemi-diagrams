@@ -1,0 +1,9 @@
+language "0.2"
+
+// Flow particles run along relations, not boxes.
+diagram checkout: flow {
+  node api
+  node db
+  api -> db as save
+  animate api { effect flow }
+}

@@ -1,0 +1,762 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "styles",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 292,
+          "line": 19,
+          "column": 1
+        },
+        "end": {
+          "offset": 1102,
+          "line": 60,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": "talk",
+        "title": "Styles",
+        "description": null,
+        "preset": "slide",
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [
+        {
+          "id": "hot",
+          "properties": {
+            "stroke": "@danger",
+            "width": 2
+          },
+          "range": {
+            "start": {
+              "offset": 381,
+              "line": 25,
+              "column": 3
+            },
+            "end": {
+              "offset": 426,
+              "line": 28,
+              "column": 4
+            }
+          }
+        }
+      ],
+      "rules": [
+        {
+          "kind": "data",
+          "properties": {
+            "pattern": "dots"
+          },
+          "range": {
+            "start": {
+              "offset": 430,
+              "line": 30,
+              "column": 3
+            },
+            "end": {
+              "offset": 462,
+              "line": 32,
+              "column": 4
+            }
+          }
+        }
+      ],
+      "elements": [
+        {
+          "id": "gateway",
+          "kind": "node",
+          "label": "Gateway",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [
+            "hot"
+          ],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 466,
+              "line": 34,
+              "column": 3
+            },
+            "end": {
+              "offset": 498,
+              "line": 34,
+              "column": 35
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 466,
+              "line": 34,
+              "column": 3
+            },
+            "end": {
+              "offset": 473,
+              "line": 34,
+              "column": 10
+            }
+          }
+        },
+        {
+          "id": "orders",
+          "kind": "node",
+          "label": "Orders",
+          "implicit": false,
+          "description": "owns the order lifecycle",
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 501,
+              "line": 35,
+              "column": 3
+            },
+            "end": {
+              "offset": 560,
+              "line": 35,
+              "column": 62
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 501,
+              "line": 35,
+              "column": 3
+            },
+            "end": {
+              "offset": 507,
+              "line": 35,
+              "column": 9
+            }
+          }
+        },
+        {
+          "id": "billing",
+          "kind": "node",
+          "label": "Billing",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [
+            "legacy",
+            "deprecated"
+          ],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 563,
+              "line": 36,
+              "column": 3
+            },
+            "end": {
+              "offset": 610,
+              "line": 36,
+              "column": 50
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 563,
+              "line": 36,
+              "column": 3
+            },
+            "end": {
+              "offset": 570,
+              "line": 36,
+              "column": 10
+            }
+          }
+        },
+        {
+          "id": "partner",
+          "kind": "node",
+          "label": "Partner",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [
+            "external"
+          ],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 613,
+              "line": 37,
+              "column": 3
+            },
+            "end": {
+              "offset": 650,
+              "line": 37,
+              "column": 40
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 613,
+              "line": 37,
+              "column": 3
+            },
+            "end": {
+              "offset": 620,
+              "line": 37,
+              "column": 10
+            }
+          }
+        },
+        {
+          "id": "db",
+          "kind": "data",
+          "label": "Orders DB",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 653,
+              "line": 38,
+              "column": 3
+            },
+            "end": {
+              "offset": 672,
+              "line": 38,
+              "column": 22
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 658,
+              "line": 38,
+              "column": 8
+            },
+            "end": {
+              "offset": 660,
+              "line": 38,
+              "column": 10
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "create",
+          "id": "create",
+          "from": "gateway",
+          "to": "orders",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "create",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 676,
+              "line": 40,
+              "column": 3
+            },
+            "end": {
+              "offset": 713,
+              "line": 40,
+              "column": 40
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 707,
+              "line": 40,
+              "column": 34
+            },
+            "end": {
+              "offset": 713,
+              "line": 40,
+              "column": 40
+            }
+          }
+        },
+        {
+          "key": "persist",
+          "id": "persist",
+          "from": "orders",
+          "to": "db",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [
+            "highlight"
+          ],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 716,
+              "line": 41,
+              "column": 3
+            },
+            "end": {
+              "offset": 759,
+              "line": 41,
+              "column": 46
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 732,
+              "line": 41,
+              "column": 19
+            },
+            "end": {
+              "offset": 739,
+              "line": 41,
+              "column": 26
+            }
+          }
+        },
+        {
+          "key": "invoice",
+          "id": "invoice",
+          "from": "orders",
+          "to": "billing",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "invoice",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 762,
+              "line": 42,
+              "column": 3
+            },
+            "end": {
+              "offset": 801,
+              "line": 42,
+              "column": 42
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 794,
+              "line": 42,
+              "column": 35
+            },
+            "end": {
+              "offset": 801,
+              "line": 42,
+              "column": 42
+            }
+          }
+        },
+        {
+          "key": "notify",
+          "id": "notify",
+          "from": "gateway",
+          "to": "partner",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 804,
+              "line": 43,
+              "column": 3
+            },
+            "end": {
+              "offset": 832,
+              "line": 43,
+              "column": 31
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 826,
+              "line": 43,
+              "column": 25
+            },
+            "end": {
+              "offset": 832,
+              "line": 43,
+              "column": 31
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "gateway",
+          "x": 140,
+          "y": 80,
+          "range": {
+            "start": {
+              "offset": 950,
+              "line": 54,
+              "column": 5
+            },
+            "end": {
+              "offset": 976,
+              "line": 54,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 956,
+              "line": 54,
+              "column": 11
+            },
+            "end": {
+              "offset": 963,
+              "line": 54,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "orders",
+          "x": 420,
+          "y": 80,
+          "range": {
+            "start": {
+              "offset": 981,
+              "line": 55,
+              "column": 5
+            },
+            "end": {
+              "offset": 1006,
+              "line": 55,
+              "column": 30
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 987,
+              "line": 55,
+              "column": 11
+            },
+            "end": {
+              "offset": 993,
+              "line": 55,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "db",
+          "x": 420,
+          "y": 260,
+          "range": {
+            "start": {
+              "offset": 1011,
+              "line": 56,
+              "column": 5
+            },
+            "end": {
+              "offset": 1033,
+              "line": 56,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1017,
+              "line": 56,
+              "column": 11
+            },
+            "end": {
+              "offset": 1019,
+              "line": 56,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "billing",
+          "x": 700,
+          "y": 80,
+          "range": {
+            "start": {
+              "offset": 1038,
+              "line": 57,
+              "column": 5
+            },
+            "end": {
+              "offset": 1064,
+              "line": 57,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1044,
+              "line": 57,
+              "column": 11
+            },
+            "end": {
+              "offset": 1051,
+              "line": 57,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "partner",
+          "x": 140,
+          "y": 260,
+          "range": {
+            "start": {
+              "offset": 1069,
+              "line": 58,
+              "column": 5
+            },
+            "end": {
+              "offset": 1096,
+              "line": 58,
+              "column": 32
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1075,
+              "line": 58,
+              "column": 11
+            },
+            "end": {
+              "offset": 1082,
+              "line": 58,
+              "column": 18
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [
+        {
+          "target": "notify",
+          "targetKind": "relation",
+          "properties": {
+            "arrowhead": "none",
+            "line": "dashed"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 836,
+              "line": 45,
+              "column": 3
+            },
+            "end": {
+              "offset": 889,
+              "line": 48,
+              "column": 4
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 842,
+              "line": 45,
+              "column": 9
+            },
+            "end": {
+              "offset": 848,
+              "line": 45,
+              "column": 15
+            }
+          }
+        },
+        {
+          "target": "billing",
+          "targetKind": "element",
+          "properties": {
+            "fill": "#FFF7ED"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 892,
+              "line": 49,
+              "column": 3
+            },
+            "end": {
+              "offset": 930,
+              "line": 51,
+              "column": 4
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 898,
+              "line": 49,
+              "column": 9
+            },
+            "end": {
+              "offset": 905,
+              "line": 49,
+              "column": 16
+            }
+          }
+        }
+      ],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [
+    {
+      "id": "talk",
+      "extends": "stage.light",
+      "tokens": {
+        "brand": "Platform review"
+      },
+      "classes": [
+        {
+          "id": "legacy",
+          "properties": {
+            "color": "@muted",
+            "pattern": "hatch",
+            "stroke": "@muted"
+          },
+          "range": {
+            "start": {
+              "offset": 177,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 246,
+              "line": 12,
+              "column": 4
+            }
+          }
+        }
+      ],
+      "rules": [
+        {
+          "kind": "relation",
+          "properties": {
+            "arrowhead": "open"
+          },
+          "range": {
+            "start": {
+              "offset": 250,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 288,
+              "line": 16,
+              "column": 4
+            }
+          }
+        }
+      ],
+      "range": {
+        "start": {
+          "offset": 111,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 290,
+          "line": 17,
+          "column": 2
+        }
+      }
+    }
+  ],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

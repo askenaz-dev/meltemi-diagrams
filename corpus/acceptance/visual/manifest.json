@@ -1,0 +1,41 @@
+{
+  "browser": "Edg/155.0.4283.62",
+  "recorded": "2026-10-19",
+  "tolerance": {
+    "channel": 16,
+    "ratio": 0.001,
+    "run": 2
+  },
+  "drawings": [
+    "flow/cycles",
+    "flow/icons",
+    "flow/long-labels",
+    "flow/nested",
+    "flow/parallel",
+    "flow/shapes",
+    "flow/stacked",
+    "flow/thirty",
+    "sequence/cycles",
+    "sequence/long-labels",
+    "sequence/nested",
+    "sequence/parallel",
+    "sequence/thirty",
+    "c4/cycles.context",
+    "c4/cycles.containers",
+    "c4/long-labels.context",
+    "c4/long-labels.containers",
+    "c4/nested.context",
+    "c4/nested.containers",
+    "c4/nested.components",
+    "c4/parallel",
+    "c4/thirty",
+    "free/cycles",
+    "free/icons",
+    "free/long-labels",
+    "free/nested",
+    "free/parallel",
+    "free/shapes",
+    "free/stacked",
+    "free/thirty"
+  ]
+}

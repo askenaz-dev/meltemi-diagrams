@@ -1,0 +1,12 @@
+language "0.2"
+
+// Two boxes placed on top of each other.
+diagram checkout: flow {
+  layout manual
+  api["API"]
+  db["Orders DB"]
+  placement {
+    place api at (120, 100)
+    place db at (180, 110)
+  }
+}

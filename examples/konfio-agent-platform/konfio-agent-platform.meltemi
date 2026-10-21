@@ -1,0 +1,220 @@
+language "0.2"
+
+// Konfío Agent Platform · Propuesta para validar · 9 oct 2026 · AI Platform
+//
+// Convertido desde sources/designs/2026-10-09-konfio-agent-platform.html (hoja SVG de 1280 × 910).
+// Las coordenadas son las de la hoja original: `place` es el centro de cada caja y `size` su tamaño.
+// Las flechas no llevan `route`: el exportador une los lados que se miran por el centro de su solape,
+// lo que reproduce la hoja; solo la ruta de los clientes MCP externos necesita un punto de paso.
+
+diagram konfioAgentPlatform: flow {
+  title "Konfío Agent Platform"
+  description "Arquitectura objetivo de la plataforma de agentes de Konfío: tres gateways KrakenD, Context Layer con OpenFGA, memoria de AgentCore, Temporal como orquestador, PydanticAI como framework, observabilidad en dos capas y las capacidades de Auth0 colocadas en el punto donde actúan. El identity-proxy es la pieza nueva para hacer OBO sin acoplar el código del agente."
+  layout manual
+  theme "technical.light"
+
+  // ---- Bandas laterales ---------------------------------------------------------------------
+  group auth0 "Auth0 · identidad" {
+    node login "Login + PKCE" { description "usuarios de la app" }
+    node obo "OBO" { description "token exchange · act" }
+    node ciba "CIBA + RAR" { description "push a Guardian" }
+    node cimd "CIMD" { description "clientes externos" }
+    node prm "PRM" { description "RFC 9728 en MCP" }
+    node fga "FGA" { description "Auth0 FGA u OpenFGA" }
+    note auth0Limits "Límites a validar\nOBO: 30 RPS sin add-on\nact: planear 4 niveles\nCIBA: plan Enterprise"
+  }
+
+  group observability "Observabilidad" {
+    node aiObs "AI observability" { description "Braintrust o Langfuse" }
+    node apm "APM" { description "New Relic · OTLP" }
+    node agentcoreObs "AgentCore Obs." { description "ADOT · trazas runtime" }
+    node traceId "Trace ID" { description "end-to-end + act" }
+    note obsNotes "Todo emite OpenTelemetry\nMínimo por agente,\npor costo (5-oct)"
+  }
+
+  // ---- Entrada ------------------------------------------------------------------------------
+  node nextjs "NextJS App" { description "usuario autenticado" }
+  node mcpClients "Clientes MCP externos" { description "Claude, partners, IDEs" }
+  node apiGw "KrakenD API Gateway" { description "valida JWT Auth0 · enruta" }
+  node bff "BFF" { description "Home & Experience" }
+  node temporal "Orquestación Temporal" { description "workflows durables · ECS" }
+
+  // ---- Agentes ------------------------------------------------------------------------------
+  group runtime "AgentCore Runtime · zip en S3" {
+    node financeResearch "Finance Research" { description "PydanticAI + SDK" }
+    node techNews "Tech News" { description "PydanticAI + SDK" }
+    node asesor "Asesor Financiero" { description "PydanticAI + SDK" }
+    node memory "AgentCore Memory" { description "corto y largo plazo · key = sub" }
+    node guardrails "Bedrock Guardrails" { description "opcional por agente" }
+  }
+  node identityProxy "identity-proxy" { description "SigV4 → rol → client\nOBO · route policy" }
+
+  // ---- Gateways y proveedores ---------------------------------------------------------------
+  node llmGw "KrakenD LLM Gateway" { description "virtual keys · DLP · tiers" }
+  node mcpGw "KrakenD MCP Gateway" { description "APIs como tools · /mcp/{server}" }
+  node openai "OpenAI"
+  node bedrock "Bedrock"
+  node anthropic "Anthropic"
+  data postgres "Postgres" { description "checkpoints · estado" }
+  data redis "Redis" { description "cache · TTL" }
+
+  // ---- Contexto y APIs ----------------------------------------------------------------------
+  group contextLayer "Enterprise Context Layer" {
+    node mcpRag "mcp-rag" { description "MCP · Streamable" }
+    node contextApi "context-api" { description "check FGA" }
+    node reranker "Reranker" { description "después de FGA" }
+    data milvus "Milvus" { description "vectores + doc_id" }
+    node ingesta "Ingesta" { description "chunk · embed · ACL" }
+    data sources "Fuentes S3" { description "documentos" }
+  }
+  node internalApis "APIs internas" { description "FastAPI · Core" }
+
+  // ---- Etiquetas: capacidad de Auth0 que actúa en ese punto ---------------------------------
+  tag tPkce "PKCE"
+  tag tCimd "CIMD"
+  tag tCiba "CIBA"
+  tag tJwt "JWT"
+  tag tObo "OBO"
+  tag tPrm "PRM"
+  tag tFga "FGA"
+
+  // ---- Cómo viaja una petición (los números son los pasos de la hoja) ------------------------
+  // 1. El usuario entra con Auth0 Login + PKCE. NextJS llama a KrakenD con el JWT del usuario.
+  nextjs -> apiGw: "1" as r1
+  // 2. KrakenD API Gateway valida firma, issuer y audiencia contra el JWKS de Auth0 y enruta al BFF.
+  apiGw -> bff: "2" as r2
+  // 3. El BFF inicia un workflow de Temporal si la tarea es larga o necesita aprobación.
+  bff -> temporal: "3" as r3
+  // 4. Una Activity invoca al agente en AgentCore Runtime; el authorizer JWT valida el token antes del código.
+  temporal -> runtime: "4" as r4
+  // 5. Para razonar, el agente llama al modelo por el LLM Gateway, nunca directo al proveedor.
+  runtime -> llmGw: "5" as r5
+  // 6. Para usar una tool, el agente llama al identity-proxy con el JWT del usuario y la firma SigV4 de su rol.
+  runtime -> identityProxy: "6" as r6
+  // 7. El proxy hace OBO con el client de ese agente (act = agente) y llama al MCP Gateway.
+  identityProxy -> mcpGw: "7" as r7
+  // 8. El MCP Gateway enruta a una API interna expuesta como tool o al Context Layer (check FGA antes del reranker).
+  mcpGw -> contextLayer: "8" as r8
+  mcpGw -> internalApis as r9
+  llmGw -> openai as r10
+  llmGw -> bedrock as r11
+  llmGw -> anthropic as r12
+  // Ruta alterna: un cliente MCP externo descubre el servidor (PRM), se identifica con su CIMD y llega al MCP Gateway.
+  mcpClients -> mcpGw as rExt
+  // No dibujados: CIBA + RAR desde el workflow de Temporal (push a Guardian) y la telemetría OpenTelemetry de cada salto.
+
+  // ---- Leyenda --------------------------------------------------------------------------------
+  tag lgAuth "Auth0 e identidad"
+  tag lgGw "KrakenD"
+  tag lgAws "AgentCore"
+  tag lgNew "Pieza nueva"
+  tag lgCtx "Context Layer"
+  tag lgObs "Observabilidad"
+  tag lgDash "Punteado: propuesto o por validar"
+  tag lgTag "Etiqueta: capacidad de Auth0 que actúa ahí"
+
+  placement {
+    // Bandas
+    place auth0 at (115, 455); size auth0 (190, 870)
+    place observability at (1160, 455); size observability (200, 870)
+    place runtime at (510, 390); size runtime (540, 200)
+    place contextLayer at (730, 757.5); size contextLayer (300, 265)
+
+    // Auth0
+    place login at (115, 98); size login (160, 56)
+    place obo at (115, 168); size obo (160, 56)
+    place ciba at (115, 238); size ciba (160, 56)
+    place cimd at (115, 308); size cimd (160, 56)
+    place prm at (115, 378); size prm (160, 56)
+    place fga at (115, 448); size fga (160, 56)
+    place auth0Limits at (113, 534); size auth0Limits (150, 72)
+
+    // Observabilidad
+    place aiObs at (1160, 98); size aiObs (176, 56)
+    place apm at (1160, 168); size apm (176, 56)
+    place agentcoreObs at (1160, 238); size agentcoreObs (176, 56)
+    place traceId at (1160, 308); size traceId (176, 56)
+    place obsNotes at (1161, 385); size obsNotes (170, 54)
+
+    // Entrada
+    place nextjs at (360, 48); size nextjs (200, 56)
+    place mcpClients at (910, 48); size mcpClients (220, 56)
+    place apiGw at (470, 135); size apiGw (460, 50)
+    place bff at (340, 223); size bff (160, 56)
+    place temporal at (585, 223); size temporal (230, 56)
+
+    // Agentes
+    place financeResearch at (337.5, 358); size financeResearch (155, 56)
+    place techNews at (509.5, 358); size techNews (155, 56)
+    place asesor at (681.5, 358); size asesor (155, 56)
+    place memory at (380, 433); size memory (240, 56)
+    place guardrails at (639, 433); size guardrails (240, 56)
+    place identityProxy at (920, 390); size identityProxy (200, 80)
+
+    // Gateways y proveedores
+    place llmGw at (390, 558); size llmGw (300, 56)
+    place mcpGw at (810, 558); size mcpGw (460, 56)
+    place openai at (285, 647); size openai (90, 44)
+    place bedrock at (390, 647); size bedrock (90, 44)
+    place anthropic at (495, 647); size anthropic (90, 44)
+    place postgres at (312.5, 748); size postgres (145, 56)
+    place redis at (467.5, 748); size redis (145, 56)
+
+    // Contexto y APIs
+    place mcpRag at (662.5, 693); size mcpRag (125, 56)
+    place contextApi at (802.5, 693); size contextApi (125, 56)
+    place reranker at (662.5, 768); size reranker (125, 56)
+    place milvus at (802.5, 768); size milvus (125, 56)
+    place ingesta at (662.5, 843); size ingesta (125, 56)
+    place sources at (802.5, 843); size sources (125, 56)
+    place internalApis at (970, 653); size internalApis (140, 56)
+
+    // Etiquetas de Auth0, sobre la esquina de la caja donde actúan
+    place tPkce at (434, 20); size tPkce (44, 18)
+    place tCimd at (994, 20); size tCimd (44, 18)
+    place tCiba at (674, 195); size tCiba (44, 18)
+    place tJwt at (748, 290); size tJwt (44, 18)
+    place tObo at (994, 350); size tObo (44, 18)
+    place tPrm at (1010, 530); size tPrm (44, 18)
+    place tFga at (839, 665); size tFga (44, 18)
+
+    // Pasos: la etiqueta de cada flecha va junto a su punto medio, como en la hoja
+    label r1 at 50% offset (16, 0)
+    label r2 at 50% offset (16, 0)
+    label r3 at 50% offset (0, -16)
+    label r4 at 50% offset (16, 0)
+    label r5 at 50% offset (16, 0)
+    label r6 at 50% offset (0, -16)
+    label r7 at 50% offset (16, 0)
+    label r8 at 50% offset (16, 0)
+    route rExt from mcpClients.east to mcpGw.north via [(1035, 48)]
+
+    // Leyenda, en una fila bajo la hoja
+    place lgAuth at (82.5, 924)
+    place lgGw at (188, 924)
+    place lgAws at (268.5, 924)
+    place lgNew at (361.5, 924)
+    place lgCtx at (467, 924)
+    place lgObs at (582, 924)
+    place lgDash at (760, 924)
+    place lgTag at (1026.5, 924)
+  }
+
+  // ---- Paleta clara de la hoja original -----------------------------------------------------
+  style auth0 { fill "#f6f3fe"; stroke "#6a4fd0"; color "#33247a" }
+  style login, obo, ciba, cimd, prm, fga, lgAuth { fill "#ebe5fd"; stroke "#6a4fd0"; color "#33247a" }
+  style auth0Limits { color "#33247a" }
+  style observability { fill "#fcf1f4"; stroke "#b4466a"; color "#6d2141" }
+  style aiObs, apm, agentcoreObs, traceId, lgObs { fill "#f9e3ea"; stroke "#b4466a"; color "#6d2141" }
+  style obsNotes { color "#6d2141" }
+  style apiGw, llmGw, mcpGw, lgGw { fill "#e2f3e5"; stroke "#3d8c50"; color "#1d5a2d" }
+  style runtime, lgAws { fill "#eef6f9"; stroke "#2f7f9c"; color "#144a5e" }
+  style identityProxy, lgNew { fill "#fde9e0"; stroke "#c4552c"; color "#7a2e12"; width 1.5 }
+  style contextLayer, lgCtx { fill "#fdf5e6"; stroke "#b9800f"; color "#6b4500" }
+  style tPkce, tCimd, tCiba, tJwt, tObo, tPrm, tFga, lgTag { fill "#6a4fd0"; color "#ffffff" }
+  style lgDash { fill "#ffffff"; stroke "#5b6570"; color "#5b6570" }
+  style r1, r2, r3, r4, r5, r6, r7, r8 { fill "#1b1f23"; color "#f5f6f4" }
+
+  // ---- Propuesto o por validar: línea punteada ----------------------------------------------
+  style obo, ciba, cimd, prm, fga, aiObs, traceId, mcpClients, identityProxy, postgres, redis, contextLayer, lgDash { line dashed }
+}

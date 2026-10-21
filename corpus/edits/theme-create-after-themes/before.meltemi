@@ -1,0 +1,10 @@
+language "0.2"
+
+theme base {
+  accent "#123456"
+}
+
+// The checkout.
+diagram d: flow {
+  a -> b
+}

@@ -1,0 +1,29 @@
+{
+  "status": "partial",
+  "format": "plantuml",
+  "diagrams": [
+    {
+      "id": "include_missing",
+      "type": "flow",
+      "model": null,
+      "kind": "description",
+      "lines": [
+        1,
+        5
+      ]
+    }
+  ],
+  "findings": [
+    "1:1 warning import.partial [import] 2 essential constructs were not imported; the sheet is incomplete.",
+    "2:1 warning import.include [plantuml.include.error dropped essential] `common/missing.iuml` was not found.",
+    "3:1 warning import.include [plantuml.include.error dropped essential] `../outside.iuml` is outside the folder being imported."
+  ],
+  "coverage": [
+    {
+      "diagram": "include_missing",
+      "mapped": 3,
+      "approximated": 0,
+      "dropped": 0
+    }
+  ]
+}

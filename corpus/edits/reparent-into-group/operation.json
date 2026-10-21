@@ -1,0 +1,9 @@
+{
+  "operation": {
+    "kind": "moveElement",
+    "diagram": "shop",
+    "element": "cache",
+    "parent": "services",
+    "at": { "x": 84, "y": 60 }
+  }
+}

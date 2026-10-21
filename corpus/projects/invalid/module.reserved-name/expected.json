@@ -1,0 +1,25 @@
+{
+  "a.meltemi": [
+    {
+      "code": "module.reserved-name",
+      "severity": "error",
+      "message": "`technical` is reserved for built-in themes such as `technical.light`.",
+      "range": {
+        "start": {
+          "offset": 29,
+          "line": 1,
+          "column": 30
+        },
+        "end": {
+          "offset": 38,
+          "line": 1,
+          "column": 39
+        }
+      },
+      "hints": [
+        "Choose another name for this import."
+      ],
+      "related": []
+    }
+  ]
+}

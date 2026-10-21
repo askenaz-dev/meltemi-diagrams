@@ -1,0 +1,23 @@
+[
+  {
+    "code": "placement.unknown-port",
+    "severity": "error",
+    "message": "`bus` has no port `input`.",
+    "range": {
+      "start": {
+        "offset": 319,
+        "line": 15,
+        "column": 40
+      },
+      "end": {
+        "offset": 324,
+        "line": 15,
+        "column": 45
+      }
+    },
+    "hints": [
+      "Ports of `bus`: in, out, north, south, east, west, auto."
+    ],
+    "related": []
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build Meltemi Diagrams extension",
+      "type": "shell",
+      "command": "pnpm vscode:build",
+      "problemMatcher": []
+    }
+  ]
+}

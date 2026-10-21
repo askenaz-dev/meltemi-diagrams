@@ -1,0 +1,486 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "checkout",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 252,
+          "line": 10,
+          "column": 1
+        },
+        "end": {
+          "offset": 693,
+          "line": 29,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": "calm",
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "client",
+          "kind": "node",
+          "label": "Client",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 311,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 327,
+              "line": 14,
+              "column": 19
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 311,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 317,
+              "line": 14,
+              "column": 9
+            }
+          }
+        },
+        {
+          "id": "api",
+          "kind": "node",
+          "label": "API",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 330,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 340,
+              "line": 15,
+              "column": 13
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 330,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 333,
+              "line": 15,
+              "column": 6
+            }
+          }
+        },
+        {
+          "id": "db",
+          "kind": "data",
+          "label": "Database",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": "cylinder",
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 343,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 359,
+              "line": 16,
+              "column": 19
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 343,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 345,
+              "line": 16,
+              "column": 5
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "request",
+          "id": "request",
+          "from": "client",
+          "to": "api",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "HTTPS",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 362,
+              "line": 17,
+              "column": 3
+            },
+            "end": {
+              "offset": 395,
+              "line": 17,
+              "column": 36
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 388,
+              "line": 17,
+              "column": 29
+            },
+            "end": {
+              "offset": 395,
+              "line": 17,
+              "column": 36
+            }
+          }
+        },
+        {
+          "key": "store",
+          "id": "store",
+          "from": "api",
+          "to": "db",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Reads and writes",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 398,
+              "line": 18,
+              "column": 3
+            },
+            "end": {
+              "offset": 436,
+              "line": 18,
+              "column": 41
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 431,
+              "line": 18,
+              "column": 36
+            },
+            "end": {
+              "offset": 436,
+              "line": 18,
+              "column": 41
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "client",
+          "x": 100,
+          "y": 80,
+          "range": {
+            "start": {
+              "offset": 456,
+              "line": 21,
+              "column": 5
+            },
+            "end": {
+              "offset": 481,
+              "line": 21,
+              "column": 30
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 462,
+              "line": 21,
+              "column": 11
+            },
+            "end": {
+              "offset": 468,
+              "line": 21,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "api",
+          "x": 380,
+          "y": 80,
+          "range": {
+            "start": {
+              "offset": 486,
+              "line": 22,
+              "column": 5
+            },
+            "end": {
+              "offset": 508,
+              "line": 22,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 492,
+              "line": 22,
+              "column": 11
+            },
+            "end": {
+              "offset": 495,
+              "line": 22,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "db",
+          "x": 660,
+          "y": 80,
+          "range": {
+            "start": {
+              "offset": 513,
+              "line": 23,
+              "column": 5
+            },
+            "end": {
+              "offset": 534,
+              "line": 23,
+              "column": 26
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 519,
+              "line": 23,
+              "column": 11
+            },
+            "end": {
+              "offset": 521,
+              "line": 23,
+              "column": 13
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [],
+      "animations": [
+        {
+          "target": "request",
+          "targetKind": "relation",
+          "effect": "trace",
+          "durationMs": null,
+          "repeat": null,
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 542,
+              "line": 26,
+              "column": 3
+            },
+            "end": {
+              "offset": 574,
+              "line": 26,
+              "column": 35
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 550,
+              "line": 26,
+              "column": 11
+            },
+            "end": {
+              "offset": 557,
+              "line": 26,
+              "column": 18
+            }
+          }
+        },
+        {
+          "target": "store",
+          "targetKind": "relation",
+          "effect": "trace",
+          "durationMs": 1200,
+          "repeat": null,
+          "delayMs": null,
+          "direction": "reverse",
+          "particles": null,
+          "color": "@warning",
+          "range": {
+            "start": {
+              "offset": 577,
+              "line": 27,
+              "column": 3
+            },
+            "end": {
+              "offset": 658,
+              "line": 27,
+              "column": 84
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 585,
+              "line": 27,
+              "column": 11
+            },
+            "end": {
+              "offset": 590,
+              "line": 27,
+              "column": 16
+            }
+          }
+        },
+        {
+          "target": "store",
+          "targetKind": "relation",
+          "effect": "pulse",
+          "durationMs": null,
+          "repeat": null,
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 661,
+              "line": 28,
+              "column": 3
+            },
+            "end": {
+              "offset": 691,
+              "line": 28,
+              "column": 33
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 669,
+              "line": 28,
+              "column": 11
+            },
+            "end": {
+              "offset": 674,
+              "line": 28,
+              "column": 16
+            }
+          }
+        }
+      ],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [
+    {
+      "id": "calm",
+      "extends": "technical.light",
+      "tokens": {
+        "traceDuration": 2000
+      },
+      "classes": [],
+      "rules": [],
+      "range": {
+        "start": {
+          "offset": 189,
+          "line": 5,
+          "column": 1
+        },
+        "end": {
+          "offset": 250,
+          "line": 8,
+          "column": 2
+        }
+      }
+    }
+  ],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

@@ -1,0 +1,7 @@
+language "0.2"
+
+diagram broken: flow {
+  direction LR
+  direction TB
+  a -> b
+}

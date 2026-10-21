@@ -1,0 +1,23 @@
+[
+  {
+    "code": "theme.unknown-base",
+    "severity": "error",
+    "message": "Theme `corporate` extends \"acme.light\", which is neither built in nor defined in this file.",
+    "range": {
+      "start": {
+        "offset": 44,
+        "line": 4,
+        "column": 11
+      },
+      "end": {
+        "offset": 56,
+        "line": 4,
+        "column": 23
+      }
+    },
+    "hints": [
+      "Built-in themes: technical.light, technical.dark, editorial.light, editorial.dark, stage.light, stage.dark."
+    ],
+    "related": []
+  }
+]

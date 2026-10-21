@@ -1,0 +1,39 @@
+language "0.2" // Stage 1 gate input
+
+/*
+ * Checkout flow with comments in every position the editor must preserve:
+ * file header, before statements, trailing, inside blocks and between blocks.
+ */
+diagram checkout: flow {
+  direction LR // left to right
+  layout assisted
+
+  // --- Elements ---
+  client["Cliente"] // the browser
+  api["API Gateway"] /* auth happens here */
+  orders["Pedidos"]
+  db[("PostgreSQL")]
+
+  // --- Relations ---
+  client -> api: "HTTPS" as request
+  api -> orders: "Crear pedido" as create // main path
+  orders -> db: "Persistir"; orders -> db: "Leer" /* read path */
+
+  placement {
+    // api handles auth; keep it near the client
+    place api at (360, 180) // fixed by hand
+    place orders at (700, 180)
+
+    /* waypoint chosen to avoid the legend */
+    route create from api.east to orders.west via [(520, 180)]
+    label create at 50% offset (0, -16) // above the line
+  }
+
+  style api {
+    icon "tabler:server" // from the base pack
+  }
+
+  // Flow effect on the entry request
+  animate request { effect flow; duration 1200ms; repeat forever }
+}
+// end of file

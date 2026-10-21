@@ -1,0 +1,388 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "themed",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 295,
+          "line": 15,
+          "column": 1
+        },
+        "end": {
+          "offset": 624,
+          "line": 33,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": "konfio",
+        "title": "Themed sheet",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "edge",
+          "kind": "group",
+          "label": "Edge",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 377,
+              "line": 20,
+              "column": 3
+            },
+            "end": {
+              "offset": 455,
+              "line": 22,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 383,
+              "line": 20,
+              "column": 9
+            },
+            "end": {
+              "offset": 387,
+              "line": 20,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "api",
+          "kind": "node",
+          "label": "API Gateway",
+          "implicit": false,
+          "description": "validates JWT",
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "edge"
+          ],
+          "range": {
+            "start": {
+              "offset": 401,
+              "line": 21,
+              "column": 5
+            },
+            "end": {
+              "offset": 451,
+              "line": 21,
+              "column": 55
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 401,
+              "line": 21,
+              "column": 5
+            },
+            "end": {
+              "offset": 404,
+              "line": 21,
+              "column": 8
+            }
+          }
+        },
+        {
+          "id": "client",
+          "kind": "node",
+          "label": "Client",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 458,
+              "line": 23,
+              "column": 3
+            },
+            "end": {
+              "offset": 474,
+              "line": 23,
+              "column": 19
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 458,
+              "line": 23,
+              "column": 3
+            },
+            "end": {
+              "offset": 464,
+              "line": 23,
+              "column": 9
+            }
+          }
+        },
+        {
+          "id": "t",
+          "kind": "tag",
+          "label": "JWT",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 477,
+              "line": 24,
+              "column": 3
+            },
+            "end": {
+              "offset": 488,
+              "line": 24,
+              "column": 14
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 481,
+              "line": 24,
+              "column": 7
+            },
+            "end": {
+              "offset": 482,
+              "line": 24,
+              "column": 8
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "request",
+          "id": "request",
+          "from": "client",
+          "to": "api",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "1",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 492,
+              "line": 26,
+              "column": 3
+            },
+            "end": {
+              "offset": 521,
+              "line": 26,
+              "column": 32
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 514,
+              "line": 26,
+              "column": 25
+            },
+            "end": {
+              "offset": 521,
+              "line": 26,
+              "column": 32
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "client",
+          "x": 100,
+          "y": 60,
+          "range": {
+            "start": {
+              "offset": 541,
+              "line": 29,
+              "column": 5
+            },
+            "end": {
+              "offset": 566,
+              "line": 29,
+              "column": 30
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 547,
+              "line": 29,
+              "column": 11
+            },
+            "end": {
+              "offset": 553,
+              "line": 29,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "api",
+          "x": 400,
+          "y": 60,
+          "range": {
+            "start": {
+              "offset": 571,
+              "line": 30,
+              "column": 5
+            },
+            "end": {
+              "offset": 593,
+              "line": 30,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 577,
+              "line": 30,
+              "column": 11
+            },
+            "end": {
+              "offset": 580,
+              "line": 30,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "t",
+          "x": 480,
+          "y": 32,
+          "range": {
+            "start": {
+              "offset": 598,
+              "line": 31,
+              "column": 5
+            },
+            "end": {
+              "offset": 618,
+              "line": 31,
+              "column": 25
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 604,
+              "line": 31,
+              "column": 11
+            },
+            "end": {
+              "offset": 605,
+              "line": 31,
+              "column": 12
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [
+    {
+      "id": "konfio",
+      "extends": "technical.light",
+      "tokens": {
+        "accent": "#6a4fd0",
+        "accentEnd": "#a594f0",
+        "band": "#f6f3fe",
+        "bandLine": "#6a4fd0",
+        "brand": "Konfío · Meltemi Diagrams",
+        "frame": "footer",
+        "tag": "#6a4fd0"
+      },
+      "classes": [],
+      "rules": [],
+      "range": {
+        "start": {
+          "offset": 103,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 293,
+          "line": 13,
+          "column": 2
+        }
+      }
+    }
+  ],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

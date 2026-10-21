@@ -1,0 +1,33 @@
+language "0.2"
+
+// Imported from usecase.puml (plantuml) by meltemi-diagrams.
+
+diagram usecase: flow {
+  direction LR
+  layout auto
+
+  node User
+  node Admin "Administrator"
+  node biz "Business"
+  group Shop {
+    node UC1 "Browse catalogue"
+    node UC2 "Check out"
+    node Manage_stock "Manage stock"
+  }
+  note note1 "Needs a signed-in\ncustomer"
+
+  User -> UC1
+  User -> UC2
+  Admin -> Manage_stock
+  Admin -> User as e1
+  note1 --> UC2 as e2
+
+  style User { shape person }
+  style Admin { shape person }
+  style biz { shape person }
+  style UC1 { shape ellipse }
+  style UC2 { shape ellipse }
+  style Manage_stock { shape ellipse }
+  style e1 { arrowhead triangleOutline }
+  style e2 { arrowhead none }
+}

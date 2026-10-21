@@ -1,0 +1,25 @@
+{
+  "a.meltemi": [
+    {
+      "code": "asset.unknown-image",
+      "severity": "error",
+      "message": "There is no image file `missing.png`.",
+      "range": {
+        "start": {
+          "offset": 51,
+          "line": 4,
+          "column": 14
+        },
+        "end": {
+          "offset": 64,
+          "line": 4,
+          "column": 27
+        }
+      },
+      "hints": [
+        "Looked for `missing.png` in the project."
+      ],
+      "related": []
+    }
+  ]
+}

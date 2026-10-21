@@ -1,0 +1,28 @@
+{
+  "status": "complete",
+  "format": "plantuml",
+  "diagrams": [
+    {
+      "id": "system_context",
+      "type": "c4",
+      "model": "system_context_model",
+      "kind": "C4_Context",
+      "lines": [
+        1,
+        12
+      ]
+    }
+  ],
+  "findings": [
+    "7:1 info import.approximated [plantuml.c4.SystemDb_Ext approximated] A database system is drawn as a system.",
+    "10:1 info import.approximated [plantuml.c4.Rel_direction approximated] Relation directions are left to the layout."
+  ],
+  "coverage": [
+    {
+      "diagram": "system_context",
+      "mapped": 9,
+      "approximated": 2,
+      "dropped": 0
+    }
+  ]
+}

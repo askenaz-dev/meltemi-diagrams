@@ -1,0 +1,28 @@
+{
+  "status": "complete",
+  "format": "mermaid",
+  "diagrams": [
+    {
+      "id": "flowchart_links",
+      "type": "flow",
+      "model": null,
+      "kind": "graph",
+      "lines": [
+        1,
+        26
+      ]
+    }
+  ],
+  "findings": [
+    "11:3 warning import.unsupported-construct [flowchart.link.invisible dropped] Invisible links only steer Mermaid's layout; they are not imported.",
+    "25:3 warning import.unsupported-construct [flowchart.linkStyle dropped] There is no link number 99."
+  ],
+  "coverage": [
+    {
+      "diagram": "flowchart_links",
+      "mapped": 65,
+      "approximated": 0,
+      "dropped": 2
+    }
+  ]
+}

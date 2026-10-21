@@ -1,0 +1,14 @@
+language "0.2"
+
+// A slide holds 1920 × 1080 px; this sheet is wider, so it should be split into views.
+diagram wide: flow {
+  layout manual
+  preset slide
+  first["First step"]
+  last["Last step"]
+  first -> last
+  placement {
+    place first at (100, 100)
+    place last at (2200, 100)
+  }
+}

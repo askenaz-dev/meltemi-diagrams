@@ -1,0 +1,14 @@
+language "0.2"
+
+diagram payment: sequence {
+  customer -> api: "Pay" as pay
+  alt check "Approved" {
+    api --> customer: "OK" as ok
+  } else "Declined" {
+    api --> customer: "Retry" as retry
+  }
+
+  scenario pending "Pending" {
+    choose check "Pending"
+  }
+}

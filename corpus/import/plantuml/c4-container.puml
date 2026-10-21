@@ -1,0 +1,19 @@
+@startuml
+!include <C4/C4_Container>
+!define TECH "Kotlin"
+LAYOUT_LEFT_RIGHT()
+title Shop containers
+Person(user, "User", "Buys things")
+System_Boundary(shop, "Shop") {
+  Container(api, "API", TECH, "Orders", $tags="core")
+  ContainerDb(db, "DB", "PostgreSQL")
+  ContainerQueue(events, "Events", "Kafka")
+}
+System_Ext(bank, "Bank")
+Rel(user, api, "Uses", "HTTPS")
+Rel_Back(db, api, "Reads")
+Rel_R(api, events, "Publishes")
+BiRel(api, bank, "Pays")
+Lay_R(api, db)
+SHOW_LEGEND()
+@enduml

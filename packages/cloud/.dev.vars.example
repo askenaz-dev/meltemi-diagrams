@@ -1,0 +1,34 @@
+# Copy to .dev.vars (ignored by Git) and fill in. `wrangler dev` reads .dev.vars from this folder.
+# Every value here is for development only. In production the variables are in wrangler.jsonc and
+# the secrets (IDENTITY_EVENTS_SECRET, FORMS_SECRET, ADMIN_SUBS) are the family's Secrets Store,
+# bound as <NAME>_STORE; a string here always wins over a binding.
+
+# Development mode: the Worker's own origin is the request's (http://localhost:8788), the inline
+# IDENTITY_JWKS below is honoured, and a session check that cannot reach the identity service
+# passes. Never set DEV or IDENTITY_JWKS in wrangler.jsonc.
+DEV=true
+
+# The identity service of Meltemi Web running locally (`pnpm identity:dev` in C:\meltemi, port 8787).
+IDENTITY_ISSUER=http://localhost:8787
+IDENTITY_JWKS_URL=http://localhost:8787/.well-known/jwks.json
+
+# The key that signs the deletion events: the same value as EVENTS_SECRET_DIAGRAMS in the identity
+# service's .dev.vars. Any long random text.
+IDENTITY_EVENTS_SECRET=
+
+# Signs the approval page's csrf token and keys the hash of an IP in the rate limit.
+FORMS_SECRET=
+
+# Optional: an inline key set (JSON) to develop with a minted session cookie and no identity
+# service running. Honoured only with DEV=true.
+# IDENTITY_JWKS={"keys":[...]}
+
+# Optional: who may take a publication down (DELETE /api/admin/publications/<handle>/<slug>), as the
+# `sub`s of their sessions, comma separated. Unset, or empty, nobody can: the route answers 404.
+ADMIN_SUBS=
+
+# Not needed in development: with DEV=true publications are served under /_published/<handle>/<slug>/
+# on the Worker's own origin, and their addresses say so. In production it is meltemi.page
+# (wrangler.jsonc), the publish Worker's host: a registrable domain of its own, never one under
+# meltemi.dev.
+# PUBLISH_HOST=meltemi.page

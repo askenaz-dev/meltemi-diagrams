@@ -1,0 +1,11 @@
+{
+  "name": "purchase",
+  "language": "0.2",
+  "tools": {
+    "meltemi-diagrams": "^1.8.0"
+  },
+  "catalog": {
+    "title": "Purchase",
+    "description": "The reference purchase: architecture, payment sequence, executive slide and an animated walkthrough."
+  }
+}

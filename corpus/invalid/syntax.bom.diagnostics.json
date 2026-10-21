@@ -1,0 +1,23 @@
+[
+  {
+    "code": "syntax.bom",
+    "severity": "info",
+    "message": "The file starts with a byte order mark; it is kept as is.",
+    "range": {
+      "start": {
+        "offset": 0,
+        "line": 1,
+        "column": 1
+      },
+      "end": {
+        "offset": 1,
+        "line": 1,
+        "column": 2
+      }
+    },
+    "hints": [
+      "UTF-8 without a byte order mark is the canonical encoding."
+    ],
+    "related": []
+  }
+]

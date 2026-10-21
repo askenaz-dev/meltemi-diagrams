@@ -1,0 +1,23 @@
+[
+  {
+    "code": "story.unknown-diagram",
+    "severity": "error",
+    "message": "There is no diagram `missing` to tell a story about.",
+    "range": {
+      "start": {
+        "offset": 159,
+        "line": 10,
+        "column": 16
+      },
+      "end": {
+        "offset": 166,
+        "line": 10,
+        "column": 23
+      }
+    },
+    "hints": [
+      "Diagrams: checkout."
+    ],
+    "related": []
+  }
+]

@@ -1,0 +1,368 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1006" viewBox="0 0 1280 1006" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Konfío Agent Platform</title>
+  <desc>Arquitectura objetivo de la plataforma de agentes de Konfío: tres gateways KrakenD, Context Layer con OpenFGA, memoria de AgentCore, Temporal como orquestador, PydanticAI como framework, observabilidad en dos capas y las capacidades de Auth0 colocadas en el punto donde actúan. El identity-proxy es la pieza nueva para hacer OBO sin acoplar el código del agente.</desc>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1280" height="1006" fill="#F7FBFF"/>
+  <g data-id="auth0" data-role="element">
+    <rect x="20" y="29" width="190" height="870" rx="14" fill="#f6f3fe" stroke="#6a4fd0" stroke-width="1"/>
+    <text x="40" y="51.73" text-anchor="start" font-size="13" font-weight="600" fill="#33247a">Auth0 · identidad</text>
+  </g>
+  <g data-id="observability" data-role="element">
+    <rect x="1060" y="29" width="200" height="870" rx="14" fill="#fcf1f4" stroke="#b4466a" stroke-width="1"/>
+    <text x="1080" y="51.73" text-anchor="start" font-size="13" font-weight="600" fill="#6d2141">Observabilidad</text>
+  </g>
+  <g data-id="runtime" data-role="element">
+    <rect x="240" y="299" width="540" height="200" rx="14" fill="#eef6f9" stroke="#2f7f9c" stroke-width="1"/>
+    <text x="260" y="321.73" text-anchor="start" font-size="13" font-weight="600" fill="#144a5e">AgentCore Runtime · zip en S3</text>
+  </g>
+  <g data-id="contextLayer" data-role="element">
+    <rect x="580" y="634" width="300" height="265" rx="14" fill="#fdf5e6" stroke="#b9800f" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="600" y="656.73" text-anchor="start" font-size="13" font-weight="600" fill="#6b4500">Enterprise Context Layer</text>
+  </g>
+  <g data-id="login" data-role="element">
+    <rect x="35" y="79" width="160" height="56" rx="8" fill="#ebe5fd" stroke="#6a4fd0" stroke-width="1"/>
+    <text x="115" y="103.73" text-anchor="middle" font-size="13" font-weight="600" fill="#33247a">Login + PKCE</text>
+    <text x="115" y="121" text-anchor="middle" font-size="11" font-weight="400" fill="#33247a">usuarios de la app</text>
+  </g>
+  <g data-id="obo" data-role="element">
+    <rect x="35" y="149" width="160" height="56" rx="8" fill="#ebe5fd" stroke="#6a4fd0" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="115" y="173.73" text-anchor="middle" font-size="13" font-weight="600" fill="#33247a">OBO</text>
+    <text x="115" y="191" text-anchor="middle" font-size="11" font-weight="400" fill="#33247a">token exchange · act</text>
+  </g>
+  <g data-id="ciba" data-role="element">
+    <rect x="35" y="219" width="160" height="56" rx="8" fill="#ebe5fd" stroke="#6a4fd0" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="115" y="243.73" text-anchor="middle" font-size="13" font-weight="600" fill="#33247a">CIBA + RAR</text>
+    <text x="115" y="261" text-anchor="middle" font-size="11" font-weight="400" fill="#33247a">push a Guardian</text>
+  </g>
+  <g data-id="cimd" data-role="element">
+    <rect x="35" y="289" width="160" height="56" rx="8" fill="#ebe5fd" stroke="#6a4fd0" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="115" y="313.73" text-anchor="middle" font-size="13" font-weight="600" fill="#33247a">CIMD</text>
+    <text x="115" y="331" text-anchor="middle" font-size="11" font-weight="400" fill="#33247a">clientes externos</text>
+  </g>
+  <g data-id="prm" data-role="element">
+    <rect x="35" y="359" width="160" height="56" rx="8" fill="#ebe5fd" stroke="#6a4fd0" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="115" y="383.73" text-anchor="middle" font-size="13" font-weight="600" fill="#33247a">PRM</text>
+    <text x="115" y="401" text-anchor="middle" font-size="11" font-weight="400" fill="#33247a">RFC 9728 en MCP</text>
+  </g>
+  <g data-id="fga" data-role="element">
+    <rect x="35" y="429" width="160" height="56" rx="8" fill="#ebe5fd" stroke="#6a4fd0" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="115" y="453.73" text-anchor="middle" font-size="13" font-weight="600" fill="#33247a">FGA</text>
+    <text x="115" y="471" text-anchor="middle" font-size="11" font-weight="400" fill="#33247a">Auth0 FGA u OpenFGA</text>
+  </g>
+  <g data-id="auth0Limits" data-role="element">
+    <text x="38" y="520" text-anchor="start" font-size="11" font-weight="400" fill="#33247a">Límites a validar</text>
+    <text x="38" y="538" text-anchor="start" font-size="11" font-weight="400" fill="#33247a">OBO: 30 RPS sin add-on</text>
+    <text x="38" y="556" text-anchor="start" font-size="11" font-weight="400" fill="#33247a">act: planear 4 niveles</text>
+    <text x="38" y="574" text-anchor="start" font-size="11" font-weight="400" fill="#33247a">CIBA: plan Enterprise</text>
+  </g>
+  <g data-id="aiObs" data-role="element">
+    <rect x="1072" y="79" width="176" height="56" rx="8" fill="#f9e3ea" stroke="#b4466a" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="1160" y="103.73" text-anchor="middle" font-size="13" font-weight="600" fill="#6d2141">AI observability</text>
+    <text x="1160" y="121" text-anchor="middle" font-size="11" font-weight="400" fill="#6d2141">Braintrust o Langfuse</text>
+  </g>
+  <g data-id="apm" data-role="element">
+    <rect x="1072" y="149" width="176" height="56" rx="8" fill="#f9e3ea" stroke="#b4466a" stroke-width="1"/>
+    <text x="1160" y="173.73" text-anchor="middle" font-size="13" font-weight="600" fill="#6d2141">APM</text>
+    <text x="1160" y="191" text-anchor="middle" font-size="11" font-weight="400" fill="#6d2141">New Relic · OTLP</text>
+  </g>
+  <g data-id="agentcoreObs" data-role="element">
+    <rect x="1072" y="219" width="176" height="56" rx="8" fill="#f9e3ea" stroke="#b4466a" stroke-width="1"/>
+    <text x="1160" y="243.73" text-anchor="middle" font-size="13" font-weight="600" fill="#6d2141">AgentCore Obs.</text>
+    <text x="1160" y="261" text-anchor="middle" font-size="11" font-weight="400" fill="#6d2141">ADOT · trazas runtime</text>
+  </g>
+  <g data-id="traceId" data-role="element">
+    <rect x="1072" y="289" width="176" height="56" rx="8" fill="#f9e3ea" stroke="#b4466a" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="1160" y="313.73" text-anchor="middle" font-size="13" font-weight="600" fill="#6d2141">Trace ID</text>
+    <text x="1160" y="331" text-anchor="middle" font-size="11" font-weight="400" fill="#6d2141">end-to-end + act</text>
+  </g>
+  <g data-id="obsNotes" data-role="element">
+    <text x="1076" y="380" text-anchor="start" font-size="11" font-weight="400" fill="#6d2141">Todo emite OpenTelemetry</text>
+    <text x="1076" y="398" text-anchor="start" font-size="11" font-weight="400" fill="#6d2141">Mínimo por agente,</text>
+    <text x="1076" y="416" text-anchor="start" font-size="11" font-weight="400" fill="#6d2141">por costo (5-oct)</text>
+  </g>
+  <g data-id="nextjs" data-role="element">
+    <rect x="260" y="29" width="200" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="360" y="53.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">NextJS App</text>
+    <text x="360" y="71" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">usuario autenticado</text>
+  </g>
+  <g data-id="mcpClients" data-role="element">
+    <rect x="800" y="29" width="220" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="910" y="53.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Clientes MCP externos</text>
+    <text x="910" y="71" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">Claude, partners, IDEs</text>
+  </g>
+  <g data-id="apiGw" data-role="element">
+    <rect x="240" y="119" width="460" height="50" rx="8" fill="#e2f3e5" stroke="#3d8c50" stroke-width="1"/>
+    <text x="470" y="140.73" text-anchor="middle" font-size="13" font-weight="600" fill="#1d5a2d">KrakenD API Gateway</text>
+    <text x="470" y="158" text-anchor="middle" font-size="11" font-weight="400" fill="#1d5a2d">valida JWT Auth0 · enruta</text>
+  </g>
+  <g data-id="bff" data-role="element">
+    <rect x="260" y="204" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="340" y="228.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">BFF</text>
+    <text x="340" y="246" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">Home &amp; Experience</text>
+  </g>
+  <g data-id="temporal" data-role="element">
+    <rect x="470" y="204" width="230" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="585" y="228.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Orquestación Temporal</text>
+    <text x="585" y="246" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">workflows durables · ECS</text>
+  </g>
+  <g data-id="financeResearch" data-role="element">
+    <rect x="260" y="339" width="155" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="337.5" y="363.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Finance Research</text>
+    <text x="337.5" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">PydanticAI + SDK</text>
+  </g>
+  <g data-id="techNews" data-role="element">
+    <rect x="432" y="339" width="155" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="509.5" y="363.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Tech News</text>
+    <text x="509.5" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">PydanticAI + SDK</text>
+  </g>
+  <g data-id="asesor" data-role="element">
+    <rect x="604" y="339" width="155" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="681.5" y="363.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Asesor Financiero</text>
+    <text x="681.5" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">PydanticAI + SDK</text>
+  </g>
+  <g data-id="memory" data-role="element">
+    <rect x="260" y="414" width="240" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="380" y="438.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">AgentCore Memory</text>
+    <text x="380" y="456" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">corto y largo plazo · key = sub</text>
+  </g>
+  <g data-id="guardrails" data-role="element">
+    <rect x="519" y="414" width="240" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="639" y="438.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Bedrock Guardrails</text>
+    <text x="639" y="456" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">opcional por agente</text>
+  </g>
+  <g data-id="identityProxy" data-role="element">
+    <rect x="820" y="359" width="200" height="80" rx="8" fill="#fde9e0" stroke="#c4552c" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="920" y="387.73" text-anchor="middle" font-size="13" font-weight="600" fill="#7a2e12">identity-proxy</text>
+    <text x="920" y="405" text-anchor="middle" font-size="11" font-weight="400" fill="#7a2e12">SigV4 → rol → client</text>
+    <text x="920" y="421" text-anchor="middle" font-size="11" font-weight="400" fill="#7a2e12">OBO · route policy</text>
+  </g>
+  <g data-id="llmGw" data-role="element">
+    <rect x="240" y="539" width="300" height="56" rx="8" fill="#e2f3e5" stroke="#3d8c50" stroke-width="1"/>
+    <text x="390" y="563.73" text-anchor="middle" font-size="13" font-weight="600" fill="#1d5a2d">KrakenD LLM Gateway</text>
+    <text x="390" y="581" text-anchor="middle" font-size="11" font-weight="400" fill="#1d5a2d">virtual keys · DLP · tiers</text>
+  </g>
+  <g data-id="mcpGw" data-role="element">
+    <rect x="580" y="539" width="460" height="56" rx="8" fill="#e2f3e5" stroke="#3d8c50" stroke-width="1"/>
+    <text x="810" y="563.73" text-anchor="middle" font-size="13" font-weight="600" fill="#1d5a2d">KrakenD MCP Gateway</text>
+    <text x="810" y="581" text-anchor="middle" font-size="11" font-weight="400" fill="#1d5a2d">APIs como tools · /mcp/{server}</text>
+  </g>
+  <g data-id="openai" data-role="element">
+    <rect x="240" y="634" width="90" height="44" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="285" y="660.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">OpenAI</text>
+  </g>
+  <g data-id="bedrock" data-role="element">
+    <rect x="345" y="634" width="90" height="44" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="390" y="660.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Bedrock</text>
+  </g>
+  <g data-id="anthropic" data-role="element">
+    <rect x="450" y="634" width="90" height="44" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="495" y="660.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Anthropic</text>
+  </g>
+  <g data-id="postgres" data-role="element">
+    <path d="M240 737 L240 777 A72.5 8 0 0 0 385 777 L385 737 A72.5 8 0 0 1 240 737 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1" stroke-dasharray="5 4"/>
+    <path d="M240 737 A72.5 8 0 0 1 385 737 A72.5 8 0 0 1 240 737 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="312.5" y="757.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Postgres</text>
+    <text x="312.5" y="775" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">checkpoints · estado</text>
+  </g>
+  <g data-id="redis" data-role="element">
+    <path d="M395 737 L395 777 A72.5 8 0 0 0 540 777 L540 737 A72.5 8 0 0 1 395 737 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1" stroke-dasharray="5 4"/>
+    <path d="M395 737 A72.5 8 0 0 1 540 737 A72.5 8 0 0 1 395 737 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="467.5" y="757.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Redis</text>
+    <text x="467.5" y="775" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">cache · TTL</text>
+  </g>
+  <g data-id="mcpRag" data-role="element">
+    <rect x="600" y="674" width="125" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="662.5" y="698.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">mcp-rag</text>
+    <text x="662.5" y="716" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">MCP · Streamable</text>
+  </g>
+  <g data-id="contextApi" data-role="element">
+    <rect x="740" y="674" width="125" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="802.5" y="698.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">context-api</text>
+    <text x="802.5" y="716" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">check FGA</text>
+  </g>
+  <g data-id="reranker" data-role="element">
+    <rect x="600" y="749" width="125" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="662.5" y="773.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Reranker</text>
+    <text x="662.5" y="791" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">después de FGA</text>
+  </g>
+  <g data-id="milvus" data-role="element">
+    <path d="M740 757 L740 797 A62.5 8 0 0 0 865 797 L865 757 A62.5 8 0 0 1 740 757 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M740 757 A62.5 8 0 0 1 865 757 A62.5 8 0 0 1 740 757 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="802.5" y="777.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Milvus</text>
+    <text x="802.5" y="795" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">vectores + doc_id</text>
+  </g>
+  <g data-id="ingesta" data-role="element">
+    <rect x="600" y="824" width="125" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="662.5" y="848.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Ingesta</text>
+    <text x="662.5" y="866" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">chunk · embed · ACL</text>
+  </g>
+  <g data-id="sources" data-role="element">
+    <path d="M740 832 L740 872 A62.5 8 0 0 0 865 872 L865 832 A62.5 8 0 0 1 740 832 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M740 832 A62.5 8 0 0 1 865 832 A62.5 8 0 0 1 740 832 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="802.5" y="852.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Fuentes S3</text>
+    <text x="802.5" y="870" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">documentos</text>
+  </g>
+  <g data-id="internalApis" data-role="element">
+    <rect x="900" y="634" width="140" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="970" y="658.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">APIs internas</text>
+    <text x="970" y="676" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">FastAPI · Core</text>
+  </g>
+  <g data-id="r1" data-role="relation">
+    <polyline points="360,85 360,111" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M360 119 L356.5 111 L363.5 111 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="r1" data-role="label">
+      <rect x="367" y="93" width="18" height="18" rx="9" fill="#1b1f23" stroke="#1b1f23" stroke-width="1"/>
+      <text x="376" y="106" text-anchor="middle" font-size="11" font-weight="500" fill="#f5f6f4">1</text>
+    </g>
+  </g>
+  <g data-id="r2" data-role="relation">
+    <polyline points="340,169 340,196" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M340 204 L336.5 196 L343.5 196 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="r2" data-role="label">
+      <rect x="346.61" y="177.5" width="18.78" height="18" rx="9" fill="#1b1f23" stroke="#1b1f23" stroke-width="1"/>
+      <text x="356" y="190.5" text-anchor="middle" font-size="11" font-weight="500" fill="#f5f6f4">2</text>
+    </g>
+  </g>
+  <g data-id="r3" data-role="relation">
+    <polyline points="420,232 462,232" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M470 232 L462 235.5 L462 228.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="r3" data-role="label">
+      <rect x="435.55" y="207" width="18.9" height="18" rx="9" fill="#1b1f23" stroke="#1b1f23" stroke-width="1"/>
+      <text x="445" y="220" text-anchor="middle" font-size="11" font-weight="500" fill="#f5f6f4">3</text>
+    </g>
+  </g>
+  <g data-id="r4" data-role="relation">
+    <polyline points="585,260 585,291" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M585 299 L581.5 291 L588.5 291 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="r4" data-role="label">
+      <rect x="591.39" y="270.5" width="19.22" height="18" rx="9" fill="#1b1f23" stroke="#1b1f23" stroke-width="1"/>
+      <text x="601" y="283.5" text-anchor="middle" font-size="11" font-weight="500" fill="#f5f6f4">4</text>
+    </g>
+  </g>
+  <g data-id="r5" data-role="relation">
+    <polyline points="390,499 390,531" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M390 539 L386.5 531 L393.5 531 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="r5" data-role="label">
+      <rect x="396.68" y="510" width="18.63" height="18" rx="9" fill="#1b1f23" stroke="#1b1f23" stroke-width="1"/>
+      <text x="406" y="523" text-anchor="middle" font-size="11" font-weight="500" fill="#f5f6f4">5</text>
+    </g>
+  </g>
+  <g data-id="r6" data-role="relation">
+    <polyline points="780,399 812,399" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M820 399 L812 402.5 L812 395.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="r6" data-role="label">
+      <rect x="790.54" y="374" width="18.93" height="18" rx="9" fill="#1b1f23" stroke="#1b1f23" stroke-width="1"/>
+      <text x="800" y="387" text-anchor="middle" font-size="11" font-weight="500" fill="#f5f6f4">6</text>
+    </g>
+  </g>
+  <g data-id="r7" data-role="relation">
+    <polyline points="920,439 920,531" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M920 539 L916.5 531 L923.5 531 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="r7" data-role="label">
+      <rect x="926.86" y="480" width="18.28" height="18" rx="9" fill="#1b1f23" stroke="#1b1f23" stroke-width="1"/>
+      <text x="936" y="493" text-anchor="middle" font-size="11" font-weight="500" fill="#f5f6f4">7</text>
+    </g>
+  </g>
+  <g data-id="r8" data-role="relation">
+    <polyline points="730,595 730,626" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M730 634 L726.5 626 L733.5 626 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="r8" data-role="label">
+      <rect x="736.54" y="605.5" width="18.92" height="18" rx="9" fill="#1b1f23" stroke="#1b1f23" stroke-width="1"/>
+      <text x="746" y="618.5" text-anchor="middle" font-size="11" font-weight="500" fill="#f5f6f4">8</text>
+    </g>
+  </g>
+  <g data-id="r9" data-role="relation">
+    <polyline points="970,595 970,626" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M970 634 L966.5 626 L973.5 626 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="r10" data-role="relation">
+    <polyline points="285,595 285,626" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M285 634 L281.5 626 L288.5 626 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="r11" data-role="relation">
+    <polyline points="390,595 390,626" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M390 634 L386.5 626 L393.5 626 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="r12" data-role="relation">
+    <polyline points="495,595 495,626" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M495 634 L491.5 626 L498.5 626 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="rExt" data-role="relation">
+    <polyline points="1020,57 1035,57 1035,531" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1035 539 L1031.5 531 L1038.5 531 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="tPkce" data-role="element">
+    <rect x="412" y="20" width="44" height="18" rx="9" fill="#6a4fd0" stroke="#6a4fd0" stroke-width="1"/>
+    <text x="434" y="32.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#ffffff">PKCE</text>
+  </g>
+  <g data-id="tCimd" data-role="element">
+    <rect x="972" y="20" width="44" height="18" rx="9" fill="#6a4fd0" stroke="#6a4fd0" stroke-width="1"/>
+    <text x="994" y="32.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#ffffff">CIMD</text>
+  </g>
+  <g data-id="tCiba" data-role="element">
+    <rect x="652" y="195" width="44" height="18" rx="9" fill="#6a4fd0" stroke="#6a4fd0" stroke-width="1"/>
+    <text x="674" y="207.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#ffffff">CIBA</text>
+  </g>
+  <g data-id="tJwt" data-role="element">
+    <rect x="726" y="290" width="44" height="18" rx="9" fill="#6a4fd0" stroke="#6a4fd0" stroke-width="1"/>
+    <text x="748" y="302.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#ffffff">JWT</text>
+  </g>
+  <g data-id="tObo" data-role="element">
+    <rect x="972" y="350" width="44" height="18" rx="9" fill="#6a4fd0" stroke="#6a4fd0" stroke-width="1"/>
+    <text x="994" y="362.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#ffffff">OBO</text>
+  </g>
+  <g data-id="tPrm" data-role="element">
+    <rect x="988" y="530" width="44" height="18" rx="9" fill="#6a4fd0" stroke="#6a4fd0" stroke-width="1"/>
+    <text x="1010" y="542.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#ffffff">PRM</text>
+  </g>
+  <g data-id="tFga" data-role="element">
+    <rect x="817" y="665" width="44" height="18" rx="9" fill="#6a4fd0" stroke="#6a4fd0" stroke-width="1"/>
+    <text x="839" y="677.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#ffffff">FGA</text>
+  </g>
+  <g data-id="lgAuth" data-role="element">
+    <rect x="21" y="924" width="123" height="18" rx="9" fill="#ebe5fd" stroke="#6a4fd0" stroke-width="1"/>
+    <text x="82.5" y="936.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#33247a">Auth0 e identidad</text>
+  </g>
+  <g data-id="lgGw" data-role="element">
+    <rect x="157" y="924" width="62" height="18" rx="9" fill="#e2f3e5" stroke="#3d8c50" stroke-width="1"/>
+    <text x="188" y="936.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#1d5a2d">KrakenD</text>
+  </g>
+  <g data-id="lgAws" data-role="element">
+    <rect x="231.5" y="924" width="74" height="18" rx="9" fill="#eef6f9" stroke="#2f7f9c" stroke-width="1"/>
+    <text x="268.5" y="936.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#144a5e">AgentCore</text>
+  </g>
+  <g data-id="lgNew" data-role="element">
+    <rect x="318.5" y="924" width="86" height="18" rx="9" fill="#fde9e0" stroke="#c4552c" stroke-width="1.5"/>
+    <text x="361.5" y="936.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#7a2e12">Pieza nueva</text>
+  </g>
+  <g data-id="lgCtx" data-role="element">
+    <rect x="418" y="924" width="98" height="18" rx="9" fill="#fdf5e6" stroke="#b9800f" stroke-width="1"/>
+    <text x="467" y="936.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#6b4500">Context Layer</text>
+  </g>
+  <g data-id="lgObs" data-role="element">
+    <rect x="529.5" y="924" width="105" height="18" rx="9" fill="#f9e3ea" stroke="#b4466a" stroke-width="1"/>
+    <text x="582" y="936.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#6d2141">Observabilidad</text>
+  </g>
+  <g data-id="lgDash" data-role="element">
+    <rect x="649" y="924" width="222" height="18" rx="9" fill="#ffffff" stroke="#5b6570" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="760" y="936.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#5b6570">Punteado: propuesto o por validar</text>
+  </g>
+  <g data-id="lgTag" data-role="element">
+    <rect x="888" y="924" width="277" height="18" rx="9" fill="#6a4fd0" stroke="#6a4fd0" stroke-width="1"/>
+    <text x="1026.5" y="936.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#ffffff">Etiqueta: capacidad de Auth0 que actúa ahí</text>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,962.5 1260,962.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 972) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="988.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="1260" y="988" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Konfío Agent Platform</text>
+  </g>
+</svg>

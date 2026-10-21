@@ -1,0 +1,11 @@
+language "0.2"
+
+// `fn` is drawn as its icon but names none: a placeholder is drawn instead.
+diagram functions: flow {
+  layout manual
+  fn["Function"]
+  style fn { shape icon }
+  placement {
+    place fn at (100, 80)
+  }
+}

@@ -1,0 +1,17 @@
+language "0.2"
+
+// An organisation chart: the plugin lays it out as a tree, parents over their children.
+diagram team: org {
+  title "Platform team"
+
+  role lead "Engineering lead"
+  team platform "Platform"
+  team data "Data"
+  role sre "SRE"
+  role dba "DBA"
+
+  lead -> platform
+  lead -> data
+  platform -> sre
+  data -> dba
+}

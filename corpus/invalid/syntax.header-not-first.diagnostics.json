@@ -1,0 +1,23 @@
+[
+  {
+    "code": "syntax.header-not-first",
+    "severity": "error",
+    "message": "The `language` header must be the first statement of the file.",
+    "range": {
+      "start": {
+        "offset": 34,
+        "line": 5,
+        "column": 1
+      },
+      "end": {
+        "offset": 48,
+        "line": 5,
+        "column": 15
+      }
+    },
+    "hints": [
+      "Move it above every `import` and every block."
+    ],
+    "related": []
+  }
+]

@@ -1,0 +1,49 @@
+language "0.2"
+
+// Imported from architecture.mmd (mermaid) by meltemi-diagrams.
+
+diagram storage_service: flow {
+  title "Storage service"
+  layout auto
+
+  group api "API" {
+    group inner "Inner" {
+      node disk2 "Storage"
+    }
+    node db "Database"
+    node disk1 "Storage"
+    node server "Server"
+  }
+  node gateway "Gateway"
+  node fn "Function"
+  node junctionCenter ""
+
+  db -> server as e1
+  disk1 -> server as e2
+  disk2 -> db as e3
+  server -> gateway as e4
+  fn -> gateway as e5
+  fn <-> junctionCenter as e6
+  api -> fn: "calls" as e7
+
+  placement {
+    route e1 from db.west to server.east
+    route e2 from disk1.north to server.south
+    route e3 from disk2.north to db.south
+    route e4 from server.north to gateway.south
+    route e5 from fn.west to gateway.east
+    route e6 from fn.south to junctionCenter.north
+    route e7 from api.east to fn.west
+  }
+
+  style api { icon "tabler:cloud" }
+  style inner { icon "tabler:server" }
+  style db { icon "tabler:database" }
+  style disk1 { icon "tabler:device-floppy" }
+  style disk2 { icon "tabler:device-floppy" }
+  style server { icon "tabler:server" }
+  style gateway { icon "tabler:world" }
+  style e1 { arrowhead none }
+  style e2 { arrowhead none }
+  style e7 { arrowhead none }
+}

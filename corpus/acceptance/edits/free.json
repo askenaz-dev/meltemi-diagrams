@@ -1,0 +1,26 @@
+{
+  "description": "A box moved inside nested groups changes its own place only.",
+  "sheet": "free/nested.meltemi",
+  "steps": [
+    {
+      "name": "move inside the cluster",
+      "operation": {
+        "kind": "setPosition",
+        "diagram": "nested",
+        "element": "api",
+        "x": 140,
+        "y": 120
+      },
+      "changed": [
+        "place api at"
+      ],
+      "unmoved": {
+        "nested": [
+          "worker",
+          "db",
+          "users"
+        ]
+      }
+    }
+  ]
+}

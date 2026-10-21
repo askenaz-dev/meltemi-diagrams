@@ -1,0 +1,15 @@
+**
+!package.json
+!package.nls.json
+!package.nls.*.json
+!README.md
+!LICENSE
+!THIRD_PARTY_NOTICES.md
+!language-configuration.json
+!syntaxes/**
+!snippets/**
+!media/**
+!dist/extension.cjs
+!dist/webview.js
+!dist/canvas.css
+!dist/assets/**

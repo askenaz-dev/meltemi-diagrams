@@ -1,0 +1,21 @@
+[
+  {
+    "code": "syntax.expected-token",
+    "severity": "error",
+    "message": "Expected a relation target after `->` but found `:`.",
+    "range": {
+      "start": {
+        "offset": 64,
+        "line": 5,
+        "column": 10
+      },
+      "end": {
+        "offset": 65,
+        "line": 5,
+        "column": 11
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

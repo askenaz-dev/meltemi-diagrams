@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="722" height="216" viewBox="0 0 722 216" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="722" height="216" fill="#F7FBFF"/>
+  <g data-id="chat" data-role="element">
+    <rect x="20" y="20" width="682" height="132" rx="14" fill="#EAF1F8" stroke="#526579" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="40" y="42.73" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">Chat [Software System]</text>
+  </g>
+  <g data-id="chat.client" data-role="element">
+    <rect x="36" y="60" width="170" height="76" rx="8" fill="#0369A1" stroke="#0369A1" stroke-width="1"/>
+    <text x="121" y="94.73" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Client</text>
+    <text x="121" y="112" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[Container: Swift]</text>
+  </g>
+  <g data-id="chat.server" data-role="element">
+    <rect x="516" y="60" width="170" height="76" rx="8" fill="#0369A1" stroke="#0369A1" stroke-width="1"/>
+    <text x="601" y="94.73" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Server</text>
+    <text x="601" y="112" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[Container: Elixir]</text>
+  </g>
+  <g data-id="send" data-role="relation">
+    <polyline points="206,60 508,60" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M516 60 L508 63.5 L508 56.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="send" data-role="label">
+      <rect x="310.32" y="45.5" width="101.37" height="29" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="361" y="58.5" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Sends messages</text>
+      <text x="361" y="68.77" text-anchor="middle" font-size="9" font-weight="400" fill="#526579">[WebSocket]</text>
+    </g>
+  </g>
+  <g data-id="upload" data-role="relation">
+    <polyline points="206,81.5 508,81.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M516 81.5 L508 85 L508 78 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="upload" data-role="label">
+      <rect x="221.55" y="67" width="80.5" height="29" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="261.8" y="80" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Uploads files</text>
+      <text x="261.8" y="90.27" text-anchor="middle" font-size="9" font-weight="400" fill="#526579">[HTTPS]</text>
+    </g>
+  </g>
+  <g data-id="push" data-role="relation">
+    <polyline points="516,114.5 214,114.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M206 114.5 L214 111 L214 118 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="push" data-role="label">
+      <rect x="307.47" y="100" width="107.06" height="29" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="361" y="113" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Pushes messages</text>
+      <text x="361" y="123.27" text-anchor="middle" font-size="9" font-weight="400" fill="#526579">[WebSocket]</text>
+    </g>
+  </g>
+  <g data-id="notify" data-role="relation">
+    <polyline points="516,136 214,136" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M206 136 L214 132.5 L214 139.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="notify" data-role="label">
+      <rect x="433.78" y="121.5" width="52.84" height="29" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="460.2" y="134.5" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Notifies</text>
+      <text x="460.2" y="144.77" text-anchor="middle" font-size="9" font-weight="400" fill="#526579">[APNs]</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,172.5 702,172.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 182) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="198.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+  </g>
+</svg>

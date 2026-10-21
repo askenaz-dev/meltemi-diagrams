@@ -1,0 +1,23 @@
+[
+  {
+    "code": "c4.scope-required",
+    "severity": "error",
+    "message": "A container view needs a scope: the system it opens.",
+    "range": {
+      "start": {
+        "offset": 133,
+        "line": 10,
+        "column": 3
+      },
+      "end": {
+        "offset": 148,
+        "line": 10,
+        "column": 18
+      }
+    },
+    "hints": [
+      "Add `scope <system>`, such as `scope shop`."
+    ],
+    "related": []
+  }
+]

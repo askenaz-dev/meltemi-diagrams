@@ -1,0 +1,23 @@
+[
+  {
+    "code": "story.missing-transition",
+    "severity": "error",
+    "message": "The scene changes to `later`; say how with `transition cut`, `fade` or `morph`.",
+    "range": {
+      "start": {
+        "offset": 280,
+        "line": 20,
+        "column": 5
+      },
+      "end": {
+        "offset": 290,
+        "line": 20,
+        "column": 15
+      }
+    },
+    "hints": [
+      "A change of composition between scenes needs an explicit transition, matched by id."
+    ],
+    "related": []
+  }
+]

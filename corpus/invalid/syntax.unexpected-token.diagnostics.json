@@ -1,0 +1,21 @@
+[
+  {
+    "code": "syntax.unexpected-token",
+    "severity": "error",
+    "message": "Chained relations are not supported; write one relation per statement.",
+    "range": {
+      "start": {
+        "offset": 55,
+        "line": 4,
+        "column": 17
+      },
+      "end": {
+        "offset": 57,
+        "line": 4,
+        "column": 19
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

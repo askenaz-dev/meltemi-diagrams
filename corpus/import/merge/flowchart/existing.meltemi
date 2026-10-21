@@ -1,0 +1,48 @@
+language "0.2"
+
+// Imported from flowchart.mmd (mermaid) by meltemi-diagrams.
+
+diagram flowchart: flow {
+  direction LR
+  layout assisted
+  routing orthogonal
+
+  class hot { fill "#f96" }
+
+  node cart "Cart" { class hot, warm }
+  decision pay "Paid?"
+  data orders "Orders" { port in west 30% }
+  node retry "Retry"
+  node legacy "Legacy"
+
+  cart -> pay
+  pay -> orders: "yes" as approve
+  pay -> retry: "no"
+  retry -> cart
+  legacy -> orders as old
+
+  // The palette agreed with the team.
+  class warm { stroke "#c60" }
+
+  placement {
+    place cart at (100, 140)
+    place pay at (320, 140)
+    place legacy at (100, 320)
+    size orders (180, 72)
+    row cart, pay, legacy
+    route approve from pay.east to orders.in
+    route old from legacy.east to orders.south
+    label approve at 40% offset (0, -12)
+  }
+
+  style orders, legacy { fill "#eef" }
+  style approve { stroke success }
+  animate approve, old { effect flow; duration 1200ms; repeat forever }
+}
+
+diagram flowchart_free: free {
+  box cart "Cart"
+  placement {
+    place cart at (100, 100)
+  }
+}

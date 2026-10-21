@@ -1,0 +1,11 @@
+language "0.2"
+
+// A box sized by hand lower than its two lines of text: the shape cuts the description.
+diagram checkout: flow {
+  layout manual
+  api["Order API"] { description "Validates and stores orders" }
+  placement {
+    place api at (200, 100)
+    size api (240, 24)
+  }
+}

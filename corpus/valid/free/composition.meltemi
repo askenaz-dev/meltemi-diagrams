@@ -1,0 +1,74 @@
+language "0.2"
+
+// A slide: nested groups placed by their interiors, three layers, six box shapes, text styles,
+// icons drawn from the packs and a routed connector.
+diagram composition: free {
+  title "Event platform"
+  preset slide
+  theme "technical.light"
+  routing orthogonal
+  layers back, main, front
+
+  text heading "Event platform"
+  text subtitle "Producers publish once; consumers read at their own pace" { class lead }
+
+  group platform "Platform" {
+    layer back
+    description "Managed by the core team"
+    box gateway "Gateway" { description "REST and gRPC" }
+    group bus "Event bus" {
+      box topics "Topics"
+      box archive "Archive"
+    }
+    gateway -> topics: "publish" as publish
+  }
+
+  box web "Web app"
+  box mobile "Mobile app"
+  box rules "Valid?"
+  box warehouse "Warehouse"
+  icon cloud "tabler:cloud" { layer front }
+  text note "Retention: 7 days" { layer front }
+
+  web -> gateway as fromWeb
+  mobile -> gateway as fromMobile
+  topics --> archive: "nightly" as nightly
+  archive -> warehouse as load
+  mobile -> rules as check
+
+  placement {
+    place heading at (960, 90)
+    place subtitle at (960, 150)
+    place platform at (980, 560)
+    size platform (900, 520)
+    place gateway at (160, 90)
+    place bus at (520, 300)
+    size bus (480, 220)
+    place topics at (120, 110)
+    place archive at (360, 110)
+    place web at (240, 420)
+    place mobile at (240, 700)
+    place rules at (240, 900)
+    place warehouse at (1640, 940)
+    place cloud at (1640, 380)
+    place note at (1640, 460)
+    route load from archive.south to warehouse.west via [(1220, 940)]
+    route fromMobile from mobile.east to gateway.west
+    route publish from gateway.east to topics.north
+    label publish at 30% offset (40, 0)
+  }
+
+  class lead { color muted; fontSize 24; fontWeight 400 }
+  style heading { fontSize 48; fontWeight 700; textAlign center }
+  style subtitle { textAlign center }
+  style gateway { shape rectangle }
+  style topics { shape pill; fill accent; color "#ffffff" }
+  style archive { shape cylinder }
+  style web { shape ellipse }
+  style rules { shape diamond }
+  style mobile { shape ellipse }
+  style warehouse { shape cylinder }
+  style note { fill "#fff7d6"; stroke warning }
+  style cloud { iconColor accent }
+  animate publish { effect flow; duration 1600ms; repeat forever }
+}

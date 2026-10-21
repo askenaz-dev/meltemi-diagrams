@@ -1,0 +1,69 @@
+{
+  "name": "@meltemi/diagrams-layout",
+  "version": "1.8.0",
+  "description": "Layout of flow, free, sequence and C4 diagrams into a vector scene: boxes, ports, routes, labels, composition checks and the label audit.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/askenaz-dev/meltemi-diagrams.git",
+    "directory": "packages/layout"
+  },
+  "homepage": "https://github.com/askenaz-dev/meltemi-diagrams/tree/main/packages/layout#readme",
+  "bugs": {
+    "url": "https://github.com/askenaz-dev/meltemi-diagrams/issues"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "@meltemi/diagrams-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./shapes": {
+      "@meltemi/diagrams-source": "./src/shapes.ts",
+      "types": "./dist/shapes.d.ts",
+      "default": "./dist/shapes.js"
+    },
+    "./viewport": {
+      "@meltemi/diagrams-source": "./src/viewport.ts",
+      "types": "./dist/viewport.d.ts",
+      "default": "./dist/viewport.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@meltemi/diagrams-assets": "workspace:*",
+    "@meltemi/diagrams-i18n": "workspace:*",
+    "@meltemi/diagrams-language": "workspace:*",
+    "@meltemi/diagrams-model": "workspace:*"
+  },
+  "devDependencies": {
+    "@meltemi/diagrams-fonts": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./shapes": {
+        "types": "./dist/shapes.d.ts",
+        "default": "./dist/shapes.js"
+      },
+      "./viewport": {
+        "types": "./dist/viewport.d.ts",
+        "default": "./dist/viewport.js"
+      }
+    }
+  }
+}

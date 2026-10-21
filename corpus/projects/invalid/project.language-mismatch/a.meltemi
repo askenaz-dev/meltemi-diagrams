@@ -1,0 +1,5 @@
+language "0.1"
+
+diagram d: flow {
+  a -> b
+}

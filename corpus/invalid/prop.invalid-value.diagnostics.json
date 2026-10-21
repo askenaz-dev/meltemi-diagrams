@@ -1,0 +1,118 @@
+[
+  {
+    "code": "prop.invalid-value",
+    "severity": "error",
+    "message": "Invalid value `UP` for `direction`; expected one of LR, RL, TB, BT.",
+    "range": {
+      "start": {
+        "offset": 51,
+        "line": 4,
+        "column": 13
+      },
+      "end": {
+        "offset": 53,
+        "line": 4,
+        "column": 15
+      }
+    },
+    "hints": [],
+    "related": []
+  },
+  {
+    "code": "prop.invalid-value",
+    "severity": "error",
+    "message": "Label position `120%` is outside 0% to 100%.",
+    "range": {
+      "start": {
+        "offset": 167,
+        "line": 8,
+        "column": 21
+      },
+      "end": {
+        "offset": 171,
+        "line": 8,
+        "column": 25
+      }
+    },
+    "hints": [],
+    "related": []
+  },
+  {
+    "code": "prop.invalid-value",
+    "severity": "error",
+    "message": "`duration` needs a time unit.",
+    "range": {
+      "start": {
+        "offset": 238,
+        "line": 12,
+        "column": 14
+      },
+      "end": {
+        "offset": 242,
+        "line": 12,
+        "column": 18
+      }
+    },
+    "hints": [
+      "Add `ms` or `s`, for example `1200ms` or `1.2s`."
+    ],
+    "related": []
+  },
+  {
+    "code": "prop.invalid-value",
+    "severity": "error",
+    "message": "`radius` expects a number from 0 to 64.",
+    "range": {
+      "start": {
+        "offset": 288,
+        "line": 15,
+        "column": 22
+      },
+      "end": {
+        "offset": 290,
+        "line": 15,
+        "column": 24
+      }
+    },
+    "hints": [],
+    "related": []
+  },
+  {
+    "code": "prop.invalid-value",
+    "severity": "error",
+    "message": "`shape` does not apply to `decision` elements such as `ok`; it applies to `node` and `box` elements.",
+    "range": {
+      "start": {
+        "offset": 306,
+        "line": 16,
+        "column": 14
+      },
+      "end": {
+        "offset": 311,
+        "line": 16,
+        "column": 19
+      }
+    },
+    "hints": [],
+    "related": []
+  },
+  {
+    "code": "prop.invalid-value",
+    "severity": "error",
+    "message": "`iconSize` expects `auto` or a number from 8 to 128.",
+    "range": {
+      "start": {
+        "offset": 348,
+        "line": 17,
+        "column": 27
+      },
+      "end": {
+        "offset": 351,
+        "line": 17,
+        "column": 30
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

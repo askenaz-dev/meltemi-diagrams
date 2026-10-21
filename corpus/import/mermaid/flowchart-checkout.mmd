@@ -1,0 +1,24 @@
+---
+title: Checkout
+---
+%%{init: {"theme": "forest"}}%%
+flowchart LR
+  %% Entry point of the shop
+  cart[Cart] --> pay{Paid?}
+  pay -->|yes| orders[(Orders)]
+  pay -- no --> retry{{Retry}}
+  retry -.-> cart
+  order-api[Order API] ==> orders
+  subgraph backend [Back end]
+    order-api
+    orders
+    subgraph workers [Workers]
+      mailer([Mailer])
+    end
+  end
+  orders --- mailer
+  classDef hot fill:#f96,stroke:#333,stroke-width:4px,font-size:14px
+  cart:::hot
+  style retry fill:#eee
+  linkStyle 0 stroke:#d33
+  click cart "https://example.com/cart"

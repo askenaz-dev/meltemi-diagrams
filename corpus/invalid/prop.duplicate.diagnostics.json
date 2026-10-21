@@ -1,0 +1,37 @@
+[
+  {
+    "code": "prop.duplicate",
+    "severity": "error",
+    "message": "`direction` is set more than once in this diagram.",
+    "range": {
+      "start": {
+        "offset": 56,
+        "line": 5,
+        "column": 3
+      },
+      "end": {
+        "offset": 65,
+        "line": 5,
+        "column": 12
+      }
+    },
+    "hints": [],
+    "related": [
+      {
+        "message": "First set here.",
+        "range": {
+          "start": {
+            "offset": 41,
+            "line": 4,
+            "column": 3
+          },
+          "end": {
+            "offset": 50,
+            "line": 4,
+            "column": 12
+          }
+        }
+      }
+    ]
+  }
+]

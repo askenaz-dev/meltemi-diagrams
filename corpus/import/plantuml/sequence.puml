@@ -1,0 +1,64 @@
+@startuml payment
+title Card payment
+autonumber
+actor Customer as C
+participant "Payments API" as api
+control Router
+entity Order
+database Ledger
+collections Logs
+queue Events
+box "Bank" #lightblue
+  boundary Bank
+end box
+hide footbox
+' Pay
+C -> api ++ : Pay
+api -> Bank : Authorize
+alt approved
+  Bank --> api : OK
+  api -> Ledger : record
+else declined
+  Bank --> api : No
+  loop 3 times
+    api -> Bank : retry
+  end
+end
+return Receipt
+== Fulfilment ==
+...2 days later...
+api ->> C : Shipped
+api -> Order ** : create
+api -> Order !! : close
+api ->x Events : lost
+note over api, Bank : Timeouts 3 s
+note left of C
+  multi
+  line
+end note
+hnote over Router : idle
+ref over api, Ledger : Settlement
+|||
+||45||
+[-> api : webhook
+api ->] : forward
+& api -> Logs : log
+group retries [3]
+  api -> Router : route
+end
+par
+  api -> Logs : a
+else
+  api -> Events : b
+end
+autonumber stop
+opt coupon
+  C -> api : coupon
+end
+break fraud
+  api -> C : blocked
+end
+critical audit
+  api -> Ledger : audit
+end
+@enduml

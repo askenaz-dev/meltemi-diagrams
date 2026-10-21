@@ -1,0 +1,25 @@
+{
+  "project.json": [
+    {
+      "code": "plugin.version-mismatch",
+      "severity": "error",
+      "message": "project.json installs `erd` 1.0.0, but its folder holds 1.1.0.",
+      "range": {
+        "start": {
+          "offset": 63,
+          "line": 5,
+          "column": 5
+        },
+        "end": {
+          "offset": 68,
+          "line": 5,
+          "column": 10
+        }
+      },
+      "hints": [
+        "Install the version project.json names, or update project.json after reviewing the plugin."
+      ],
+      "related": []
+    }
+  ]
+}

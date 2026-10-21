@@ -1,0 +1,217 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000" role="img" aria-labelledby="meltemi-diagrams-board-title">
+  <title id="meltemi-diagrams-board-title">Meltemi Diagrams identity board</title>
+  <desc>Presentation board: name, lockups, glyph, file icon, Aegean palette, typography and the export frame. Live text, not a production asset.</desc>
+  <defs>
+    <linearGradient id="board-wind" x1="38" y1="222" x2="219" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="1000" fill="#F7FBFF"/>
+  <text x="60" y="64" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="13" letter-spacing="2" fill="#526579">MELTEMI / PRODUCTO 01 · DIAGRAMAS COMO CÓDIGO</text>
+  <text x="60" y="112" font-family="Inter, 'Segoe UI', sans-serif" font-size="44" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+  <text x="60" y="142" font-family="Inter, 'Segoe UI', sans-serif" font-size="18" fill="#526579">The wind that draws · submarca del IDE agéntico Meltemi, derivada de la identidad V2</text>
+  <rect x="1240" y="88" width="300" height="48" rx="24" fill="#FFFFFF" stroke="#DCE5ED"/>
+  <text x="1390" y="118" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="13" fill="#526579" text-anchor="middle">texto · lienzo · animación</text>
+
+  
+  <g>
+    <rect x="60" y="180" width="760" height="190" rx="16" fill="#FFFFFF" stroke="#DCE5ED"/>
+    <text x="84" y="214" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="12" letter-spacing="1.5" fill="#526579">LOCKUP / CLARO</text>
+    
+    <svg x="88" y="226" width="582" height="80" viewBox="0 18 727.5 100"><defs>
+    <linearGradient id="meltemi-diagrams-light-gradient" x1="38" y1="222" x2="219" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <g transform="scale(.49)">
+    <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-diagrams-light-gradient)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-diagrams-light-gradient)"/>
+  </g>
+  <g fill="#0B1830" transform="translate(150 100) scale(.046875 -.046875)">
+    <path d="M138 0H398V685C398 834 492 914 606 914C716 914 795 840 795 726V0H1049V702C1049 827 1126 914 1252 914C1359 914 1446 852 1446 714V0H1706V754C1706 1002 1552 1136 1351 1136C1194 1136 1054 1054 994 893C946 1052 851 1136 707 1136C574 1136 448 1064 390 905L382 1118H138Z"/>
+    <path d="M632 -23C881 -23 1055 96 1109 277L870 326C835 231 749 181 635 181C468 181 355 287 348 486H1126V568C1126 960 888 1132 615 1132C295 1132 89 896 89 552C89 202 295 -23 632 -23ZM349 663C361 812 457 928 616 928C771 928 858 823 873 663Z" transform="translate(1788)"/>
+    <path d="M398 1490H138V0H398Z" transform="translate(2943)"/>
+    <path d="M655 1118H439V1384H179V1118H20V914H179V293C179 95 298 -15 512 -15C567 -15 629 -8 686 9L645 210C620 204 574 197 550 197C471 197 439 234 439 315V914H655Z" transform="translate(3423)"/>
+    <path d="M632 -23C881 -23 1055 96 1109 277L870 326C835 231 749 181 635 181C468 181 355 287 348 486H1126V568C1126 960 888 1132 615 1132C295 1132 89 896 89 552C89 202 295 -23 632 -23ZM349 663C361 812 457 928 616 928C771 928 858 823 873 663Z" transform="translate(4090)"/>
+    <path d="M138 0H398V685C398 834 492 914 606 914C716 914 795 840 795 726V0H1049V702C1049 827 1126 914 1252 914C1359 914 1446 852 1446 714V0H1706V754C1706 1002 1552 1136 1351 1136C1194 1136 1054 1054 994 893C946 1052 851 1136 707 1136C574 1136 448 1064 390 905L382 1118H138Z" transform="translate(5245)"/>
+    <path d="M138 0H398V1118H138ZM268 1276C351 1276 420 1340 420 1419C420 1498 351 1561 268 1561C185 1561 117 1498 117 1419C117 1340 185 1276 268 1276Z" transform="translate(7033)"/>
+  </g>
+  <rect x="521.4" y="54" width="186" height="40" rx="20" fill="#2563EB"/>
+  <g transform="translate(539.4 85.1) scale(0.8)" fill="#FFFFFF">
+    <path d="M6.37 0V-3.71H9.45Q13.73-3.71 15.89-6.15Q18.05-8.59 18.05-13.48Q18.05-18.77 15.89-21.40Q13.73-24.02 9.45-24.02H6.45L5.98-27.73H9.45Q22.15-27.73 22.15-13.48Q22.15 0 9.45 0ZM2.73 0V-27.73H6.64V0ZM33.18 0V-27.73H37.09V0ZM26.72 0V-3.71H43.59V0ZM26.72-24.02V-27.73H43.59V-24.02ZM47.75 0 55.76-27.73H61.43L69.43 0H65.33L58.77-24.38H58.42L51.86 0ZM51.46-6.76V-10.47H65.53V-6.76ZM84.02 0.39Q77.81 0.39 74.71-3.18Q71.60-6.76 71.60-13.91Q71.60-20.68 74.82-24.40Q78.05-28.12 83.87-28.12Q86.78-28.12 88.96-27.22Q91.15-26.31 92.19-24.65L89.28-21.76Q88.38-23.09 87.02-23.81Q85.66-24.53 84.10-24.53Q80.16-24.53 77.97-21.81Q75.78-19.08 75.78-14.10Q75.78-8.65 77.97-5.93Q80.16-3.20 84.49-3.20Q86.35-3.20 87.76-3.56Q89.18-3.93 90.08-4.18L91.60-0.78Q90.78-0.53 88.72-0.07Q86.66 0.39 84.02 0.39ZM87.89-0.78V-13.87H91.60V-0.78ZM82.23-10.16V-13.87H91.48V-10.16ZM100.12-10.55V-14.26H106.02Q108.34-14.26 109.64-15.49Q110.94-16.72 110.94-18.95Q110.94-21.39 109.64-22.71Q108.34-24.02 106.02-24.02H100.20L99.73-27.73H106.02Q110.33-27.73 112.69-25.55Q115.04-23.36 115.04-19.34Q115.04-15.16 112.69-12.85Q110.33-10.55 106.02-10.55ZM96.48 0V-27.73H100.39V0ZM111.37 0 105.16-13.05H109.45L116.05 0ZM118.07 0 126.07-27.73H131.74L139.75 0H135.64L129.08-24.38H128.73L122.17 0ZM121.78-6.76V-10.47H135.84V-6.76ZM151.68-11.33 152.27-15.82H152.50L155.66-27.73H158.44V-22.81H157.30L154.14-11.33ZM143.12 0V-27.73H146.88V0ZM150.55-11.33 147.38-22.81H146.25V-27.73H149.02L152.19-15.82H152.34L152.73-11.33ZM157.81 0V-27.73H161.56V0ZM174.82 0.39Q172.46 0.39 170.40 0.01Q168.34-0.37 166.58-1.13L167.09-5.08Q169.24-4.16 171.24-3.68Q173.24-3.20 175.14-3.20Q177.87-3.20 179.20-4.16Q180.53-5.12 180.53-7.07Q180.53-9.55 177.99-10.70L173.18-12.89Q170.35-14.18 168.84-16Q167.32-17.81 167.32-20.51Q167.32-24.14 169.51-26.13Q171.70-28.12 175.70-28.12Q178.50-28.12 180.64-27.30Q182.79-26.48 184.79-24.63L182.05-21.86Q180.33-23.26 178.84-23.90Q177.34-24.53 175.72-24.53Q173.71-24.53 172.61-23.56Q171.50-22.60 171.50-20.70Q171.50-19.36 172.23-18.51Q172.95-17.66 174.36-16.99L178.42-15.08Q181.50-13.63 183.11-11.82Q184.71-10 184.71-7.15Q184.71-3.38 182.26-1.49Q179.80 0.39 174.82 0.39Z"/>
+  </g>
+</svg>
+    <text x="84" y="346" font-family="Inter, 'Segoe UI', sans-serif" font-size="13" fill="#526579">Símbolo y wordmark de Meltemi sin cambios; la píldora DIAGRAMS es la misma etiqueta que dibuja la herramienta.</text>
+  </g>
+
+  
+  <g>
+    <rect x="844" y="180" width="696" height="190" rx="16" fill="#07111F" stroke="#DCE5ED"/>
+    <text x="868" y="214" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="12" letter-spacing="1.5" fill="#88A0B9">LOCKUP / OSCURO</text>
+    
+    <svg x="872" y="226" width="582" height="80" viewBox="0 18 727.5 100"><defs>
+    <linearGradient id="meltemi-diagrams-dark-gradient" x1="38" y1="222" x2="219" y2="54" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <g transform="scale(.49)">
+    <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-diagrams-dark-gradient)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-diagrams-dark-gradient)"/>
+  </g>
+  <g fill="#F7FBFF" transform="translate(150 100) scale(.046875 -.046875)">
+    <path d="M138 0H398V685C398 834 492 914 606 914C716 914 795 840 795 726V0H1049V702C1049 827 1126 914 1252 914C1359 914 1446 852 1446 714V0H1706V754C1706 1002 1552 1136 1351 1136C1194 1136 1054 1054 994 893C946 1052 851 1136 707 1136C574 1136 448 1064 390 905L382 1118H138Z"/>
+    <path d="M632 -23C881 -23 1055 96 1109 277L870 326C835 231 749 181 635 181C468 181 355 287 348 486H1126V568C1126 960 888 1132 615 1132C295 1132 89 896 89 552C89 202 295 -23 632 -23ZM349 663C361 812 457 928 616 928C771 928 858 823 873 663Z" transform="translate(1788)"/>
+    <path d="M398 1490H138V0H398Z" transform="translate(2943)"/>
+    <path d="M655 1118H439V1384H179V1118H20V914H179V293C179 95 298 -15 512 -15C567 -15 629 -8 686 9L645 210C620 204 574 197 550 197C471 197 439 234 439 315V914H655Z" transform="translate(3423)"/>
+    <path d="M632 -23C881 -23 1055 96 1109 277L870 326C835 231 749 181 635 181C468 181 355 287 348 486H1126V568C1126 960 888 1132 615 1132C295 1132 89 896 89 552C89 202 295 -23 632 -23ZM349 663C361 812 457 928 616 928C771 928 858 823 873 663Z" transform="translate(4090)"/>
+    <path d="M138 0H398V685C398 834 492 914 606 914C716 914 795 840 795 726V0H1049V702C1049 827 1126 914 1252 914C1359 914 1446 852 1446 714V0H1706V754C1706 1002 1552 1136 1351 1136C1194 1136 1054 1054 994 893C946 1052 851 1136 707 1136C574 1136 448 1064 390 905L382 1118H138Z" transform="translate(5245)"/>
+    <path d="M138 0H398V1118H138ZM268 1276C351 1276 420 1340 420 1419C420 1498 351 1561 268 1561C185 1561 117 1498 117 1419C117 1340 185 1276 268 1276Z" transform="translate(7033)"/>
+  </g>
+  <rect x="521.4" y="54" width="186" height="40" rx="20" fill="#22D3EE"/>
+  <g transform="translate(539.4 85.1) scale(0.8)" fill="#07111F">
+    <path d="M6.37 0V-3.71H9.45Q13.73-3.71 15.89-6.15Q18.05-8.59 18.05-13.48Q18.05-18.77 15.89-21.40Q13.73-24.02 9.45-24.02H6.45L5.98-27.73H9.45Q22.15-27.73 22.15-13.48Q22.15 0 9.45 0ZM2.73 0V-27.73H6.64V0ZM33.18 0V-27.73H37.09V0ZM26.72 0V-3.71H43.59V0ZM26.72-24.02V-27.73H43.59V-24.02ZM47.75 0 55.76-27.73H61.43L69.43 0H65.33L58.77-24.38H58.42L51.86 0ZM51.46-6.76V-10.47H65.53V-6.76ZM84.02 0.39Q77.81 0.39 74.71-3.18Q71.60-6.76 71.60-13.91Q71.60-20.68 74.82-24.40Q78.05-28.12 83.87-28.12Q86.78-28.12 88.96-27.22Q91.15-26.31 92.19-24.65L89.28-21.76Q88.38-23.09 87.02-23.81Q85.66-24.53 84.10-24.53Q80.16-24.53 77.97-21.81Q75.78-19.08 75.78-14.10Q75.78-8.65 77.97-5.93Q80.16-3.20 84.49-3.20Q86.35-3.20 87.76-3.56Q89.18-3.93 90.08-4.18L91.60-0.78Q90.78-0.53 88.72-0.07Q86.66 0.39 84.02 0.39ZM87.89-0.78V-13.87H91.60V-0.78ZM82.23-10.16V-13.87H91.48V-10.16ZM100.12-10.55V-14.26H106.02Q108.34-14.26 109.64-15.49Q110.94-16.72 110.94-18.95Q110.94-21.39 109.64-22.71Q108.34-24.02 106.02-24.02H100.20L99.73-27.73H106.02Q110.33-27.73 112.69-25.55Q115.04-23.36 115.04-19.34Q115.04-15.16 112.69-12.85Q110.33-10.55 106.02-10.55ZM96.48 0V-27.73H100.39V0ZM111.37 0 105.16-13.05H109.45L116.05 0ZM118.07 0 126.07-27.73H131.74L139.75 0H135.64L129.08-24.38H128.73L122.17 0ZM121.78-6.76V-10.47H135.84V-6.76ZM151.68-11.33 152.27-15.82H152.50L155.66-27.73H158.44V-22.81H157.30L154.14-11.33ZM143.12 0V-27.73H146.88V0ZM150.55-11.33 147.38-22.81H146.25V-27.73H149.02L152.19-15.82H152.34L152.73-11.33ZM157.81 0V-27.73H161.56V0ZM174.82 0.39Q172.46 0.39 170.40 0.01Q168.34-0.37 166.58-1.13L167.09-5.08Q169.24-4.16 171.24-3.68Q173.24-3.20 175.14-3.20Q177.87-3.20 179.20-4.16Q180.53-5.12 180.53-7.07Q180.53-9.55 177.99-10.70L173.18-12.89Q170.35-14.18 168.84-16Q167.32-17.81 167.32-20.51Q167.32-24.14 169.51-26.13Q171.70-28.12 175.70-28.12Q178.50-28.12 180.64-27.30Q182.79-26.48 184.79-24.63L182.05-21.86Q180.33-23.26 178.84-23.90Q177.34-24.53 175.72-24.53Q173.71-24.53 172.61-23.56Q171.50-22.60 171.50-20.70Q171.50-19.36 172.23-18.51Q172.95-17.66 174.36-16.99L178.42-15.08Q181.50-13.63 183.11-11.82Q184.71-10 184.71-7.15Q184.71-3.38 182.26-1.49Q179.80 0.39 174.82 0.39Z"/>
+  </g>
+</svg>
+    <text x="868" y="346" font-family="Inter, 'Segoe UI', sans-serif" font-size="13" fill="#88A0B9">Wordmark Sea Mist, píldora Wind Cyan con texto Night, degradado brillante.</text>
+  </g>
+
+  
+  <g>
+    <rect x="60" y="398" width="320" height="262" rx="16" fill="#FFFFFF" stroke="#DCE5ED"/>
+    <text x="84" y="432" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="12" letter-spacing="1.5" fill="#526579">GLIFO</text>
+    
+    <svg x="92" y="440" width="140" height="140" viewBox="0 0 256 256"><defs>
+    <linearGradient id="meltemi-diagrams-glyph-gradient" x1="36" y1="220" x2="220" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#meltemi-diagrams-glyph-gradient)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="36" y="148" width="72" height="72" rx="18"/>
+    <rect x="148" y="36" width="72" height="72" rx="18"/>
+    <path d="M108 184C154 184 184 154 184 108"/>
+  </g>
+</svg>
+    <text x="252" y="486" font-family="Inter, 'Segoe UI', sans-serif" font-size="15" font-weight="600" fill="#0B1830">Dos cajas,</text>
+    <text x="252" y="508" font-family="Inter, 'Segoe UI', sans-serif" font-size="15" font-weight="600" fill="#0B1830">una ráfaga.</text>
+    <text x="252" y="534" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" fill="#526579">Conector que sube al</text>
+    <text x="252" y="552" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" fill="#526579">noreste, trazo redondo,</text>
+    <text x="252" y="570" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" fill="#526579">sin punta de flecha.</text>
+    <text x="84" y="634" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" fill="#526579">Para UI y tipos de archivo. Nunca sustituye al símbolo.</text>
+  </g>
+
+  
+  <g>
+    <rect x="404" y="398" width="320" height="262" rx="16" fill="#FFFFFF" stroke="#DCE5ED"/>
+    <text x="428" y="432" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="12" letter-spacing="1.5" fill="#526579">ICONO DE ARCHIVO · .MELTEMI</text>
+    
+    <svg x="436" y="440" width="140" height="140" viewBox="0 0 256 256"><defs>
+    <linearGradient id="meltemi-diagrams-file-gradient" x1="36" y1="220" x2="220" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="#07111F"/>
+  <g transform="translate(38 38) scale(0.703125)">
+    <g fill="none" stroke="url(#meltemi-diagrams-file-gradient)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="36" y="148" width="72" height="72" rx="18"/>
+      <rect x="148" y="36" width="72" height="72" rx="18"/>
+      <path d="M108 184C154 184 184 154 184 108"/>
+    </g>
+  </g>
+</svg>
+    <text x="596" y="486" font-family="Inter, 'Segoe UI', sans-serif" font-size="15" font-weight="600" fill="#0B1830">Meltemi Night</text>
+    <text x="596" y="510" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" fill="#526579">Esquinas rx 56,</text>
+    <text x="596" y="528" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" fill="#526579">como el icono de</text>
+    <text x="596" y="546" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" fill="#526579">la aplicación.</text>
+    <text x="428" y="634" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" fill="#526579">El IDE muestra este icono para cada hoja de diagramas.</text>
+  </g>
+
+  
+  <g>
+    <rect x="748" y="398" width="792" height="262" rx="16" fill="#FFFFFF" stroke="#DCE5ED"/>
+    <text x="772" y="432" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="12" letter-spacing="1.5" fill="#526579">PALETA EGEA</text>
+    
+    
+    <rect x="780" y="446" width="96" height="64" rx="12" fill="#07111F" stroke="#DCE5ED"/>
+    <text x="780" y="530" font-family="Inter, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#0B1830">Night</text>
+    <text x="780" y="548" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="12" fill="#526579">#07111F</text>
+    
+    <rect x="900" y="446" width="96" height="64" rx="12" fill="#0B1830" stroke="#DCE5ED"/>
+    <text x="900" y="530" font-family="Inter, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#0B1830">Ink</text>
+    <text x="900" y="548" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="12" fill="#526579">#0B1830</text>
+    
+    <rect x="1020" y="446" width="96" height="64" rx="12" fill="#2563EB" stroke="#DCE5ED"/>
+    <text x="1020" y="530" font-family="Inter, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#0B1830">Aegean</text>
+    <text x="1020" y="548" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="12" fill="#526579">#2563EB</text>
+    
+    <rect x="1140" y="446" width="96" height="64" rx="12" fill="#22D3EE" stroke="#DCE5ED"/>
+    <text x="1140" y="530" font-family="Inter, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#0B1830">Wind Cyan</text>
+    <text x="1140" y="548" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="12" fill="#526579">#22D3EE</text>
+    
+    <rect x="1260" y="446" width="96" height="64" rx="12" fill="#F7FBFF" stroke="#DCE5ED"/>
+    <text x="1260" y="530" font-family="Inter, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#0B1830">Sea Mist</text>
+    <text x="1260" y="548" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="12" fill="#526579">#F7FBFF</text>
+    
+    <rect x="1380" y="446" width="96" height="64" rx="12" fill="#EAF1F8" stroke="#DCE5ED"/>
+    <text x="1380" y="530" font-family="Inter, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#0B1830">Band</text>
+    <text x="1380" y="548" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="12" fill="#526579">#EAF1F8</text>
+    <text x="780" y="600" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" fill="#526579">Muted #526579 · Line #DCE5ED · Band line #C9D6E3 · degradado claro #1D4ED8 → #0891B2 sobre fondo claro, #3B82F6 → #22D3EE sobre oscuro.</text>
+    <text x="780" y="622" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" fill="#526579">Los colores explícitos de cada diagrama (Auth0, KrakenD, Context Layer) se respetan en todos los temas.</text>
+  </g>
+
+  
+  <g>
+    <rect x="60" y="688" width="664" height="262" rx="16" fill="#FFFFFF" stroke="#DCE5ED"/>
+    <text x="84" y="722" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="12" letter-spacing="1.5" fill="#526579">TIPOGRAFÍA</text>
+    
+    <text x="84" y="762" font-family="Inter, 'Segoe UI', sans-serif" font-size="40" font-weight="600" fill="#0B1830">Aa Meltemi Diagrams</text>
+    <text x="84" y="790" font-family="Inter, 'Segoe UI', sans-serif" font-size="14" fill="#526579">Inter · títulos 13 px semibold, descripciones 11 px</text>
+    <text x="84" y="846" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="26" fill="#0B1830">PKCE  CIBA  JWT  0.2</text>
+    <text x="84" y="874" font-family="Inter, 'Segoe UI', sans-serif" font-size="14" fill="#526579">ui-monospace · Cascadia Mono · etiquetas y píldoras 10.5 px</text>
+    <text x="84" y="922" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" fill="#526579">Las fuentes no se incrustan; el SVG declara la pila y el lector usa la primera instalada.</text>
+  </g>
+
+  
+  <g>
+    <rect x="748" y="688" width="792" height="262" rx="16" fill="#FFFFFF" stroke="#DCE5ED"/>
+    <text x="772" y="722" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="12" letter-spacing="1.5" fill="#526579">MARCO DE EXPORTACIÓN · theme technical.light</text>
+    
+    <g transform="translate(780 724)">
+      <rect width="520" height="250" rx="12" fill="#F7FBFF" stroke="#DCE5ED"/>
+      <rect x="24" y="30" width="472" height="150" rx="14" fill="#EAF1F8" stroke="#C9D6E3"/>
+      <text x="44" y="56" font-family="Inter, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#0B1830">AgentCore Runtime</text>
+      <rect x="48" y="80" width="170" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED"/>
+      <text x="133" y="105" font-family="Inter, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#0B1830" text-anchor="middle">Finance Research</text>
+      <text x="133" y="123" font-family="Inter, 'Segoe UI', sans-serif" font-size="11" fill="#526579" text-anchor="middle">PydanticAI + SDK</text>
+      <rect x="302" y="80" width="170" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED"/>
+      <text x="387" y="105" font-family="Inter, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#0B1830" text-anchor="middle">identity-proxy</text>
+      <text x="387" y="123" font-family="Inter, 'Segoe UI', sans-serif" font-size="11" fill="#526579" text-anchor="middle">OBO · route policy</text>
+      <polyline points="218,108 294,108" fill="none" stroke="#526579" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M302 108 L294 104.5 L294 111.5 Z" fill="#526579"/>
+      <rect x="247" y="83" width="18" height="18" rx="9" fill="#0B1830"/>
+      <text x="256" y="96" font-family="Inter, 'Segoe UI', sans-serif" font-size="11" font-weight="500" fill="#FFFFFF" text-anchor="middle">6</text>
+      <rect x="430" y="68" width="44" height="18" rx="9" fill="#2563EB"/>
+      <text x="452" y="81" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="10.5" font-weight="500" fill="#FFFFFF" text-anchor="middle">OBO</text>
+      <polyline points="20,206.5 500,206.5" fill="none" stroke="#DCE5ED" stroke-width="1"/>
+      <g transform="translate(20 216) scale(0.09375)">
+        <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#board-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#board-wind)"/>
+      </g>
+      <text x="52" y="232" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+      <text x="500" y="232" font-family="Inter, 'Segoe UI', sans-serif" font-size="11" fill="#526579" text-anchor="end">Konfío Agent Platform</text>
+    </g>
+    <text x="1328" y="760" font-family="Inter, 'Segoe UI', sans-serif" font-size="13" font-weight="600" fill="#0B1830">Tema del lenguaje</text>
+    <text x="1328" y="784" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#526579">theme konfio {</text>
+    <text x="1328" y="802" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#526579">  extends "technical.light"</text>
+    <text x="1328" y="820" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#526579">  accent "#6a4fd0"</text>
+    <text x="1328" y="838" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#526579">  brand "Konfío · Meltemi"</text>
+    <text x="1328" y="856" font-family="ui-monospace, 'Cascadia Mono', Consolas, monospace" font-size="11" fill="#526579">}</text>
+    <text x="1328" y="890" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" fill="#526579">Marco de 44 px: símbolo,</text>
+    <text x="1328" y="908" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" fill="#526579">wordmark y título.</text>
+    <text x="1328" y="926" font-family="Inter, 'Segoe UI', sans-serif" font-size="12" fill="#526579">frame none lo quita.</text>
+  </g>
+</svg>

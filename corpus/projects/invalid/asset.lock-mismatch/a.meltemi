@@ -1,0 +1,15 @@
+language "0.2"
+
+diagram d: flow {
+  layout manual
+  api["API"]
+  db["DB"]
+  api -> db
+  style api {
+    icon "local:box"
+  }
+  placement {
+    place api at (100, 100)
+    place db at (100, 300)
+  }
+}

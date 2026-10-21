@@ -1,0 +1,1886 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "composition",
+      "type": "free",
+      "range": {
+        "start": {
+          "offset": 166,
+          "line": 5,
+          "column": 1
+        },
+        "end": {
+          "offset": 2335,
+          "line": 74,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": "technical.light",
+        "title": "Event platform",
+        "description": null,
+        "preset": "slide",
+        "canvas": null,
+        "routing": "orthogonal",
+        "layers": [
+          "back",
+          "main",
+          "front"
+        ],
+        "autonumber": null
+      },
+      "classes": [
+        {
+          "id": "lead",
+          "properties": {
+            "color": "@muted",
+            "fontSize": 24,
+            "fontWeight": 400
+          },
+          "range": {
+            "start": {
+              "offset": 1761,
+              "line": 61,
+              "column": 3
+            },
+            "end": {
+              "offset": 1816,
+              "line": 61,
+              "column": 58
+            }
+          }
+        }
+      ],
+      "rules": [],
+      "elements": [
+        {
+          "id": "heading",
+          "kind": "text",
+          "label": "Event platform",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 311,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 340,
+              "line": 12,
+              "column": 32
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 316,
+              "line": 12,
+              "column": 8
+            },
+            "end": {
+              "offset": 323,
+              "line": 12,
+              "column": 15
+            }
+          }
+        },
+        {
+          "id": "subtitle",
+          "kind": "text",
+          "label": "Producers publish once; consumers read at their own pace",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [
+            "lead"
+          ],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 343,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 430,
+              "line": 13,
+              "column": 90
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 348,
+              "line": 13,
+              "column": 8
+            },
+            "end": {
+              "offset": 356,
+              "line": 13,
+              "column": 16
+            }
+          }
+        },
+        {
+          "id": "platform",
+          "kind": "group",
+          "label": "Platform",
+          "implicit": false,
+          "description": "Managed by the core team",
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": "back",
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 434,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 713,
+              "line": 24,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 440,
+              "line": 15,
+              "column": 9
+            },
+            "end": {
+              "offset": 448,
+              "line": 15,
+              "column": 17
+            }
+          }
+        },
+        {
+          "id": "gateway",
+          "kind": "box",
+          "label": "Gateway",
+          "implicit": false,
+          "description": "REST and gRPC",
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "platform"
+          ],
+          "range": {
+            "start": {
+              "offset": 524,
+              "line": 18,
+              "column": 5
+            },
+            "end": {
+              "offset": 577,
+              "line": 18,
+              "column": 58
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 528,
+              "line": 18,
+              "column": 9
+            },
+            "end": {
+              "offset": 535,
+              "line": 18,
+              "column": 16
+            }
+          }
+        },
+        {
+          "id": "bus",
+          "kind": "group",
+          "label": "Event bus",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "platform"
+          ],
+          "range": {
+            "start": {
+              "offset": 582,
+              "line": 19,
+              "column": 5
+            },
+            "end": {
+              "offset": 665,
+              "line": 22,
+              "column": 6
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 588,
+              "line": 19,
+              "column": 11
+            },
+            "end": {
+              "offset": 591,
+              "line": 19,
+              "column": 14
+            }
+          }
+        },
+        {
+          "id": "topics",
+          "kind": "box",
+          "label": "Topics",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "platform",
+            "bus"
+          ],
+          "range": {
+            "start": {
+              "offset": 612,
+              "line": 20,
+              "column": 7
+            },
+            "end": {
+              "offset": 631,
+              "line": 20,
+              "column": 26
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 616,
+              "line": 20,
+              "column": 11
+            },
+            "end": {
+              "offset": 622,
+              "line": 20,
+              "column": 17
+            }
+          }
+        },
+        {
+          "id": "archive",
+          "kind": "box",
+          "label": "Archive",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "platform",
+            "bus"
+          ],
+          "range": {
+            "start": {
+              "offset": 638,
+              "line": 21,
+              "column": 7
+            },
+            "end": {
+              "offset": 659,
+              "line": 21,
+              "column": 28
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 642,
+              "line": 21,
+              "column": 11
+            },
+            "end": {
+              "offset": 649,
+              "line": 21,
+              "column": 18
+            }
+          }
+        },
+        {
+          "id": "web",
+          "kind": "box",
+          "label": "Web app",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 717,
+              "line": 26,
+              "column": 3
+            },
+            "end": {
+              "offset": 734,
+              "line": 26,
+              "column": 20
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 721,
+              "line": 26,
+              "column": 7
+            },
+            "end": {
+              "offset": 724,
+              "line": 26,
+              "column": 10
+            }
+          }
+        },
+        {
+          "id": "mobile",
+          "kind": "box",
+          "label": "Mobile app",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 737,
+              "line": 27,
+              "column": 3
+            },
+            "end": {
+              "offset": 760,
+              "line": 27,
+              "column": 26
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 741,
+              "line": 27,
+              "column": 7
+            },
+            "end": {
+              "offset": 747,
+              "line": 27,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "rules",
+          "kind": "box",
+          "label": "Valid?",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 763,
+              "line": 28,
+              "column": 3
+            },
+            "end": {
+              "offset": 781,
+              "line": 28,
+              "column": 21
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 767,
+              "line": 28,
+              "column": 7
+            },
+            "end": {
+              "offset": 772,
+              "line": 28,
+              "column": 12
+            }
+          }
+        },
+        {
+          "id": "warehouse",
+          "kind": "box",
+          "label": "Warehouse",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 784,
+              "line": 29,
+              "column": 3
+            },
+            "end": {
+              "offset": 809,
+              "line": 29,
+              "column": 28
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 788,
+              "line": 29,
+              "column": 7
+            },
+            "end": {
+              "offset": 797,
+              "line": 29,
+              "column": 16
+            }
+          }
+        },
+        {
+          "id": "cloud",
+          "kind": "icon",
+          "label": "cloud",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": "front",
+          "link": null,
+          "source": "tabler:cloud",
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 812,
+              "line": 30,
+              "column": 3
+            },
+            "end": {
+              "offset": 853,
+              "line": 30,
+              "column": 44
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 817,
+              "line": 30,
+              "column": 8
+            },
+            "end": {
+              "offset": 822,
+              "line": 30,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "note",
+          "kind": "text",
+          "label": "Retention: 7 days",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": "front",
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 856,
+              "line": 31,
+              "column": 3
+            },
+            "end": {
+              "offset": 901,
+              "line": 31,
+              "column": 48
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 861,
+              "line": 31,
+              "column": 8
+            },
+            "end": {
+              "offset": 865,
+              "line": 31,
+              "column": 12
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "publish",
+          "id": "publish",
+          "from": "gateway",
+          "to": "topics",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "publish",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [
+            "platform"
+          ],
+          "range": {
+            "start": {
+              "offset": 670,
+              "line": 23,
+              "column": 5
+            },
+            "end": {
+              "offset": 709,
+              "line": 23,
+              "column": 44
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 702,
+              "line": 23,
+              "column": 37
+            },
+            "end": {
+              "offset": 709,
+              "line": 23,
+              "column": 44
+            }
+          }
+        },
+        {
+          "key": "fromWeb",
+          "id": "fromWeb",
+          "from": "web",
+          "to": "gateway",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 905,
+              "line": 33,
+              "column": 3
+            },
+            "end": {
+              "offset": 930,
+              "line": 33,
+              "column": 28
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 923,
+              "line": 33,
+              "column": 21
+            },
+            "end": {
+              "offset": 930,
+              "line": 33,
+              "column": 28
+            }
+          }
+        },
+        {
+          "key": "fromMobile",
+          "id": "fromMobile",
+          "from": "mobile",
+          "to": "gateway",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 933,
+              "line": 34,
+              "column": 3
+            },
+            "end": {
+              "offset": 964,
+              "line": 34,
+              "column": 34
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 954,
+              "line": 34,
+              "column": 24
+            },
+            "end": {
+              "offset": 964,
+              "line": 34,
+              "column": 34
+            }
+          }
+        },
+        {
+          "key": "nightly",
+          "id": "nightly",
+          "from": "topics",
+          "to": "archive",
+          "line": "dashed",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "nightly",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 967,
+              "line": 35,
+              "column": 3
+            },
+            "end": {
+              "offset": 1007,
+              "line": 35,
+              "column": 43
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1000,
+              "line": 35,
+              "column": 36
+            },
+            "end": {
+              "offset": 1007,
+              "line": 35,
+              "column": 43
+            }
+          }
+        },
+        {
+          "key": "load",
+          "id": "load",
+          "from": "archive",
+          "to": "warehouse",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1010,
+              "line": 36,
+              "column": 3
+            },
+            "end": {
+              "offset": 1038,
+              "line": 36,
+              "column": 31
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1034,
+              "line": 36,
+              "column": 27
+            },
+            "end": {
+              "offset": 1038,
+              "line": 36,
+              "column": 31
+            }
+          }
+        },
+        {
+          "key": "check",
+          "id": "check",
+          "from": "mobile",
+          "to": "rules",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1041,
+              "line": 37,
+              "column": 3
+            },
+            "end": {
+              "offset": 1065,
+              "line": 37,
+              "column": 27
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1060,
+              "line": 37,
+              "column": 22
+            },
+            "end": {
+              "offset": 1065,
+              "line": 37,
+              "column": 27
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "heading",
+          "x": 960,
+          "y": 90,
+          "range": {
+            "start": {
+              "offset": 1085,
+              "line": 40,
+              "column": 5
+            },
+            "end": {
+              "offset": 1111,
+              "line": 40,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1091,
+              "line": 40,
+              "column": 11
+            },
+            "end": {
+              "offset": 1098,
+              "line": 40,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "subtitle",
+          "x": 960,
+          "y": 150,
+          "range": {
+            "start": {
+              "offset": 1116,
+              "line": 41,
+              "column": 5
+            },
+            "end": {
+              "offset": 1144,
+              "line": 41,
+              "column": 33
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1122,
+              "line": 41,
+              "column": 11
+            },
+            "end": {
+              "offset": 1130,
+              "line": 41,
+              "column": 19
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "platform",
+          "x": 980,
+          "y": 560,
+          "range": {
+            "start": {
+              "offset": 1149,
+              "line": 42,
+              "column": 5
+            },
+            "end": {
+              "offset": 1177,
+              "line": 42,
+              "column": 33
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1155,
+              "line": 42,
+              "column": 11
+            },
+            "end": {
+              "offset": 1163,
+              "line": 42,
+              "column": 19
+            }
+          }
+        },
+        {
+          "statement": "size",
+          "target": "platform",
+          "width": 900,
+          "height": 520,
+          "range": {
+            "start": {
+              "offset": 1182,
+              "line": 43,
+              "column": 5
+            },
+            "end": {
+              "offset": 1206,
+              "line": 43,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1187,
+              "line": 43,
+              "column": 10
+            },
+            "end": {
+              "offset": 1195,
+              "line": 43,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "gateway",
+          "x": 160,
+          "y": 90,
+          "range": {
+            "start": {
+              "offset": 1211,
+              "line": 44,
+              "column": 5
+            },
+            "end": {
+              "offset": 1237,
+              "line": 44,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1217,
+              "line": 44,
+              "column": 11
+            },
+            "end": {
+              "offset": 1224,
+              "line": 44,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "bus",
+          "x": 520,
+          "y": 300,
+          "range": {
+            "start": {
+              "offset": 1242,
+              "line": 45,
+              "column": 5
+            },
+            "end": {
+              "offset": 1265,
+              "line": 45,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1248,
+              "line": 45,
+              "column": 11
+            },
+            "end": {
+              "offset": 1251,
+              "line": 45,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "size",
+          "target": "bus",
+          "width": 480,
+          "height": 220,
+          "range": {
+            "start": {
+              "offset": 1270,
+              "line": 46,
+              "column": 5
+            },
+            "end": {
+              "offset": 1289,
+              "line": 46,
+              "column": 24
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1275,
+              "line": 46,
+              "column": 10
+            },
+            "end": {
+              "offset": 1278,
+              "line": 46,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "topics",
+          "x": 120,
+          "y": 110,
+          "range": {
+            "start": {
+              "offset": 1294,
+              "line": 47,
+              "column": 5
+            },
+            "end": {
+              "offset": 1320,
+              "line": 47,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1300,
+              "line": 47,
+              "column": 11
+            },
+            "end": {
+              "offset": 1306,
+              "line": 47,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "archive",
+          "x": 360,
+          "y": 110,
+          "range": {
+            "start": {
+              "offset": 1325,
+              "line": 48,
+              "column": 5
+            },
+            "end": {
+              "offset": 1352,
+              "line": 48,
+              "column": 32
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1331,
+              "line": 48,
+              "column": 11
+            },
+            "end": {
+              "offset": 1338,
+              "line": 48,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "web",
+          "x": 240,
+          "y": 420,
+          "range": {
+            "start": {
+              "offset": 1357,
+              "line": 49,
+              "column": 5
+            },
+            "end": {
+              "offset": 1380,
+              "line": 49,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1363,
+              "line": 49,
+              "column": 11
+            },
+            "end": {
+              "offset": 1366,
+              "line": 49,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "mobile",
+          "x": 240,
+          "y": 700,
+          "range": {
+            "start": {
+              "offset": 1385,
+              "line": 50,
+              "column": 5
+            },
+            "end": {
+              "offset": 1411,
+              "line": 50,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1391,
+              "line": 50,
+              "column": 11
+            },
+            "end": {
+              "offset": 1397,
+              "line": 50,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "rules",
+          "x": 240,
+          "y": 900,
+          "range": {
+            "start": {
+              "offset": 1416,
+              "line": 51,
+              "column": 5
+            },
+            "end": {
+              "offset": 1441,
+              "line": 51,
+              "column": 30
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1422,
+              "line": 51,
+              "column": 11
+            },
+            "end": {
+              "offset": 1427,
+              "line": 51,
+              "column": 16
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "warehouse",
+          "x": 1640,
+          "y": 940,
+          "range": {
+            "start": {
+              "offset": 1446,
+              "line": 52,
+              "column": 5
+            },
+            "end": {
+              "offset": 1476,
+              "line": 52,
+              "column": 35
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1452,
+              "line": 52,
+              "column": 11
+            },
+            "end": {
+              "offset": 1461,
+              "line": 52,
+              "column": 20
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "cloud",
+          "x": 1640,
+          "y": 380,
+          "range": {
+            "start": {
+              "offset": 1481,
+              "line": 53,
+              "column": 5
+            },
+            "end": {
+              "offset": 1507,
+              "line": 53,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1487,
+              "line": 53,
+              "column": 11
+            },
+            "end": {
+              "offset": 1492,
+              "line": 53,
+              "column": 16
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "note",
+          "x": 1640,
+          "y": 460,
+          "range": {
+            "start": {
+              "offset": 1512,
+              "line": 54,
+              "column": 5
+            },
+            "end": {
+              "offset": 1537,
+              "line": 54,
+              "column": 30
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1518,
+              "line": 54,
+              "column": 11
+            },
+            "end": {
+              "offset": 1522,
+              "line": 54,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "route",
+          "target": "load",
+          "from": {
+            "element": "archive",
+            "port": "south"
+          },
+          "to": {
+            "element": "warehouse",
+            "port": "west"
+          },
+          "via": [
+            {
+              "x": 1220,
+              "y": 940
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 1542,
+              "line": 55,
+              "column": 5
+            },
+            "end": {
+              "offset": 1607,
+              "line": 55,
+              "column": 70
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1548,
+              "line": 55,
+              "column": 11
+            },
+            "end": {
+              "offset": 1552,
+              "line": 55,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "route",
+          "target": "fromMobile",
+          "from": {
+            "element": "mobile",
+            "port": "east"
+          },
+          "to": {
+            "element": "gateway",
+            "port": "west"
+          },
+          "via": [],
+          "range": {
+            "start": {
+              "offset": 1612,
+              "line": 56,
+              "column": 5
+            },
+            "end": {
+              "offset": 1661,
+              "line": 56,
+              "column": 54
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1618,
+              "line": 56,
+              "column": 11
+            },
+            "end": {
+              "offset": 1628,
+              "line": 56,
+              "column": 21
+            }
+          }
+        },
+        {
+          "statement": "route",
+          "target": "publish",
+          "from": {
+            "element": "gateway",
+            "port": "east"
+          },
+          "to": {
+            "element": "topics",
+            "port": "north"
+          },
+          "via": [],
+          "range": {
+            "start": {
+              "offset": 1666,
+              "line": 57,
+              "column": 5
+            },
+            "end": {
+              "offset": 1713,
+              "line": 57,
+              "column": 52
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1672,
+              "line": 57,
+              "column": 11
+            },
+            "end": {
+              "offset": 1679,
+              "line": 57,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "label",
+          "target": "publish",
+          "at": 30,
+          "offset": {
+            "x": 40,
+            "y": 0
+          },
+          "range": {
+            "start": {
+              "offset": 1718,
+              "line": 58,
+              "column": 5
+            },
+            "end": {
+              "offset": 1753,
+              "line": 58,
+              "column": 40
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1724,
+              "line": 58,
+              "column": 11
+            },
+            "end": {
+              "offset": 1731,
+              "line": 58,
+              "column": 18
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [
+        {
+          "target": "heading",
+          "targetKind": "element",
+          "properties": {
+            "fontSize": 48,
+            "fontWeight": 700,
+            "textAlign": "center"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1819,
+              "line": 62,
+              "column": 3
+            },
+            "end": {
+              "offset": 1882,
+              "line": 62,
+              "column": 66
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1825,
+              "line": 62,
+              "column": 9
+            },
+            "end": {
+              "offset": 1832,
+              "line": 62,
+              "column": 16
+            }
+          }
+        },
+        {
+          "target": "subtitle",
+          "targetKind": "element",
+          "properties": {
+            "textAlign": "center"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1885,
+              "line": 63,
+              "column": 3
+            },
+            "end": {
+              "offset": 1920,
+              "line": 63,
+              "column": 38
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1891,
+              "line": 63,
+              "column": 9
+            },
+            "end": {
+              "offset": 1899,
+              "line": 63,
+              "column": 17
+            }
+          }
+        },
+        {
+          "target": "gateway",
+          "targetKind": "element",
+          "properties": {
+            "shape": "rectangle"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1923,
+              "line": 64,
+              "column": 3
+            },
+            "end": {
+              "offset": 1956,
+              "line": 64,
+              "column": 36
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1929,
+              "line": 64,
+              "column": 9
+            },
+            "end": {
+              "offset": 1936,
+              "line": 64,
+              "column": 16
+            }
+          }
+        },
+        {
+          "target": "topics",
+          "targetKind": "element",
+          "properties": {
+            "color": "#ffffff",
+            "fill": "@accent",
+            "shape": "pill"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1959,
+              "line": 65,
+              "column": 3
+            },
+            "end": {
+              "offset": 2016,
+              "line": 65,
+              "column": 60
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1965,
+              "line": 65,
+              "column": 9
+            },
+            "end": {
+              "offset": 1971,
+              "line": 65,
+              "column": 15
+            }
+          }
+        },
+        {
+          "target": "archive",
+          "targetKind": "element",
+          "properties": {
+            "shape": "cylinder"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2019,
+              "line": 66,
+              "column": 3
+            },
+            "end": {
+              "offset": 2051,
+              "line": 66,
+              "column": 35
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2025,
+              "line": 66,
+              "column": 9
+            },
+            "end": {
+              "offset": 2032,
+              "line": 66,
+              "column": 16
+            }
+          }
+        },
+        {
+          "target": "web",
+          "targetKind": "element",
+          "properties": {
+            "shape": "ellipse"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2054,
+              "line": 67,
+              "column": 3
+            },
+            "end": {
+              "offset": 2081,
+              "line": 67,
+              "column": 30
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2060,
+              "line": 67,
+              "column": 9
+            },
+            "end": {
+              "offset": 2063,
+              "line": 67,
+              "column": 12
+            }
+          }
+        },
+        {
+          "target": "rules",
+          "targetKind": "element",
+          "properties": {
+            "shape": "diamond"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2084,
+              "line": 68,
+              "column": 3
+            },
+            "end": {
+              "offset": 2113,
+              "line": 68,
+              "column": 32
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2090,
+              "line": 68,
+              "column": 9
+            },
+            "end": {
+              "offset": 2095,
+              "line": 68,
+              "column": 14
+            }
+          }
+        },
+        {
+          "target": "mobile",
+          "targetKind": "element",
+          "properties": {
+            "shape": "ellipse"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2116,
+              "line": 69,
+              "column": 3
+            },
+            "end": {
+              "offset": 2146,
+              "line": 69,
+              "column": 33
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2122,
+              "line": 69,
+              "column": 9
+            },
+            "end": {
+              "offset": 2128,
+              "line": 69,
+              "column": 15
+            }
+          }
+        },
+        {
+          "target": "warehouse",
+          "targetKind": "element",
+          "properties": {
+            "shape": "cylinder"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2149,
+              "line": 70,
+              "column": 3
+            },
+            "end": {
+              "offset": 2183,
+              "line": 70,
+              "column": 37
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2155,
+              "line": 70,
+              "column": 9
+            },
+            "end": {
+              "offset": 2164,
+              "line": 70,
+              "column": 18
+            }
+          }
+        },
+        {
+          "target": "note",
+          "targetKind": "element",
+          "properties": {
+            "fill": "#fff7d6",
+            "stroke": "@warning"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2186,
+              "line": 71,
+              "column": 3
+            },
+            "end": {
+              "offset": 2231,
+              "line": 71,
+              "column": 48
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2192,
+              "line": 71,
+              "column": 9
+            },
+            "end": {
+              "offset": 2196,
+              "line": 71,
+              "column": 13
+            }
+          }
+        },
+        {
+          "target": "cloud",
+          "targetKind": "element",
+          "properties": {
+            "iconColor": "@accent"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2234,
+              "line": 72,
+              "column": 3
+            },
+            "end": {
+              "offset": 2266,
+              "line": 72,
+              "column": 35
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2240,
+              "line": 72,
+              "column": 9
+            },
+            "end": {
+              "offset": 2245,
+              "line": 72,
+              "column": 14
+            }
+          }
+        }
+      ],
+      "animations": [
+        {
+          "target": "publish",
+          "targetKind": "relation",
+          "effect": "flow",
+          "durationMs": 1600,
+          "repeat": "forever",
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 2269,
+              "line": 73,
+              "column": 3
+            },
+            "end": {
+              "offset": 2333,
+              "line": 73,
+              "column": 67
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2277,
+              "line": 73,
+              "column": 11
+            },
+            "end": {
+              "offset": 2284,
+              "line": 73,
+              "column": 18
+            }
+          }
+        }
+      ],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

@@ -1,0 +1,30 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.vitest-cache/
+.vitest/
+.DS_Store
+Thumbs.db
+
+# The cloud service's local secrets and Wrangler's local state.
+.dev.vars*
+!.dev.vars.example
+.wrangler/
+
+# The Worker configurations the deploy workflow writes from wrangler*.jsonc and the ids Terraform
+# gave (scripts/deploy-config.mjs).
+wrangler.deploy.json
+wrangler.publish.deploy.json
+
+# VS Code downloaded for the extension's tests, what the suites write, and built extensions.
+.vscode-test/
+.test-output/
+*.vsix
+
+# What `pnpm release:check` packs: the release workflow publishes it, the GitHub release keeps it.
+release/
+
+# The owner's scratch project, and the proposal documents, which stay the owner's.
+mi-prueba/
+propuesta-detallada-diagramas-como-codigo.*

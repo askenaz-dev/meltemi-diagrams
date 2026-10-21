@@ -1,0 +1,52 @@
+{
+  "name": "@meltemi/diagrams-render",
+  "version": "1.8.0",
+  "description": "Renders a vector scene to portable SVG.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/askenaz-dev/meltemi-diagrams.git",
+    "directory": "packages/render"
+  },
+  "homepage": "https://github.com/askenaz-dev/meltemi-diagrams/tree/main/packages/render#readme",
+  "bugs": {
+    "url": "https://github.com/askenaz-dev/meltemi-diagrams/issues"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "@meltemi/diagrams-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@meltemi/diagrams-language": "workspace:*",
+    "@meltemi/diagrams-layout": "workspace:*",
+    "@meltemi/diagrams-model": "workspace:*"
+  },
+  "devDependencies": {
+    "@meltemi/diagrams-assets": "workspace:*",
+    "@meltemi/diagrams-fonts": "workspace:*",
+    "@meltemi/diagrams-layout-elk": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  }
+}

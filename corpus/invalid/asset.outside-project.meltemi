@@ -1,0 +1,9 @@
+language "0.2"
+
+diagram brand: free {
+  image logo "https://example.com/logo.png"
+
+  placement {
+    place logo at (200, 120)
+  }
+}

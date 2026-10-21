@@ -1,0 +1,77 @@
+{
+  "name": "@meltemi/diagrams-editor",
+  "version": "1.8.0",
+  "description": "Host-neutral editor services of Meltemi Diagrams: language features, rendering and the canvas session.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/askenaz-dev/meltemi-diagrams.git",
+    "directory": "packages/editor"
+  },
+  "homepage": "https://github.com/askenaz-dev/meltemi-diagrams/tree/main/packages/editor#readme",
+  "bugs": {
+    "url": "https://github.com/askenaz-dev/meltemi-diagrams/issues"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "@meltemi/diagrams-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./canvas": {
+      "@meltemi/diagrams-source": "./src/canvas/index.ts",
+      "types": "./dist/canvas/index.d.ts",
+      "default": "./dist/canvas/index.js"
+    },
+    "./node": {
+      "@meltemi/diagrams-source": "./src/node.ts",
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@meltemi/diagrams-assets": "workspace:*",
+    "@meltemi/diagrams-assist": "workspace:*",
+    "@meltemi/diagrams-capture": "workspace:*",
+    "@meltemi/diagrams-catalog": "workspace:*",
+    "@meltemi/diagrams-edit": "workspace:*",
+    "@meltemi/diagrams-fonts": "workspace:*",
+    "@meltemi/diagrams-i18n": "workspace:*",
+    "@meltemi/diagrams-language": "workspace:*",
+    "@meltemi/diagrams-layout": "workspace:*",
+    "@meltemi/diagrams-layout-elk": "workspace:*",
+    "@meltemi/diagrams-model": "workspace:*",
+    "@meltemi/diagrams-motion": "workspace:*",
+    "@meltemi/diagrams-player": "workspace:*",
+    "@meltemi/diagrams-project": "workspace:*",
+    "@meltemi/diagrams-render": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./canvas": {
+        "types": "./dist/canvas/index.d.ts",
+        "default": "./dist/canvas/index.js"
+      },
+      "./node": {
+        "types": "./dist/node.d.ts",
+        "default": "./dist/node.js"
+      }
+    }
+  }
+}

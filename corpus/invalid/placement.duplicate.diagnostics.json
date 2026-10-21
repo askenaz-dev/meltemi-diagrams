@@ -1,0 +1,37 @@
+[
+  {
+    "code": "placement.duplicate",
+    "severity": "error",
+    "message": "`api` already has a `place` statement.",
+    "range": {
+      "start": {
+        "offset": 114,
+        "line": 9,
+        "column": 5
+      },
+      "end": {
+        "offset": 135,
+        "line": 9,
+        "column": 26
+      }
+    },
+    "hints": [],
+    "related": [
+      {
+        "message": "First one here.",
+        "range": {
+          "start": {
+            "offset": 70,
+            "line": 6,
+            "column": 5
+          },
+          "end": {
+            "offset": 91,
+            "line": 6,
+            "column": 26
+          }
+        }
+      }
+    ]
+  }
+]

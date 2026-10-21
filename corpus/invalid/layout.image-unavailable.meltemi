@@ -1,0 +1,9 @@
+language "0.2"
+
+diagram brand: free {
+  image logo "logo.png" { description "Company logo" }
+
+  placement {
+    place logo at (200, 120)
+  }
+}

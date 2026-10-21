@@ -1,0 +1,42 @@
+language "0.2"
+
+import commerce from "../models/commerce.meltemi"
+
+// The payment sequence. Its participants are entities of the model, so they take its names.
+diagram payment: sequence {
+  title "Payment"
+
+  actor customer { link commerce.customer }
+  participant web { link commerce.shop.web }
+  participant orders { link commerce.shop.orders }
+  participant payments { link commerce.shop.payments }
+  participant provider { link commerce.provider }
+  queue events { link commerce.shop.events }
+
+  customer -> web: "Pay" as checkout
+  web -> orders: "Confirm the order" as confirm
+  orders -> payments: "Charge" as charge
+  activate payments
+  payments -> provider: "Authorise the card" as authorise
+
+  alt result "Approved" {
+    provider --> payments: "Approved" as approved
+    payments -> events: "PaymentApproved" as publish
+    payments --> orders: "Paid" as paid
+    orders --> web: "Order confirmed" as confirmed
+  } else "Declined" {
+    provider --> payments: "Declined" as declined
+    payments --> orders: "Payment failed" as failed
+    orders --> web: "Try another card" as retry
+  }
+
+  deactivate payments
+
+  scenario approved "Payment approved" {
+    choose result "Approved"
+  }
+
+  scenario declined "Payment declined" {
+    choose result "Declined"
+  }
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "code": "animate.missing-effect",
+    "severity": "error",
+    "message": "An `animate` block needs an `effect`: `flow`, `pulse`, `dash` or `trace`.",
+    "range": {
+      "start": {
+        "offset": 135,
+        "line": 8,
+        "column": 3
+      },
+      "end": {
+        "offset": 142,
+        "line": 8,
+        "column": 10
+      }
+    },
+    "hints": [
+      "Example: `animate r1 { effect flow; duration 1200ms }`."
+    ],
+    "related": []
+  }
+]

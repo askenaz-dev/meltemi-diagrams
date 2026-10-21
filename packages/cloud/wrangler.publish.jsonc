@@ -1,0 +1,38 @@
+{
+  // The publish host: the second, minimal Worker that serves what people published, at
+  // https://meltemi.page/<handle>/<slug>/ (decision 0042). It is not the main Worker (wrangler.jsonc):
+  // that one holds the session cookie, the API and the page, and one missed branch there would serve
+  // HTML a person wrote from a host that receives the cookie. This one holds two bindings and nothing
+  // else: no assets, no Durable Object, no variable, no secret.
+  //
+  //   pnpm --filter @meltemi/diagrams-cloud exec wrangler dev -c wrangler.publish.jsonc
+  //
+  // serves it on port 8789 over the same persisted state as `pnpm cloud:dev` (give both the same
+  // --persist-to folder).
+  //
+  // Its address is the Custom Domain meltemi.page, a registrable domain of its own, never one under
+  // meltemi.dev, which receives the session cookie. The family's Terraform (packages/infra in the
+  // Meltemi Web repository) declares this Worker, the domain and the zone; this file holds no route
+  // and keeps the workers.dev address and preview addresses off, so a deploy never adds another
+  // address (decision 0046).
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "meltemi-diagrams-publish",
+  "main": "src/publish-worker.ts",
+  "compatibility_date": "2026-09-15",
+  "dev": { "port": 8789 },
+  "workers_dev": false,
+  "preview_urls": false,
+
+  // The same database and the same bucket as the main Worker: the `publications` rows say what
+  // exists and the objects under `published/` are the pages. This Worker only reads them. It does not
+  // apply migrations (the main Worker's configuration does). The database's id is a placeholder that
+  // the deploy workflow replaces with the one Terraform gave (scripts/deploy-config.mjs).
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "meltemi-diagrams",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+    },
+  ],
+  "r2_buckets": [{ "binding": "BLOBS", "bucket_name": "meltemi-diagrams-blobs" }],
+}

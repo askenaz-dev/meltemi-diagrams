@@ -1,0 +1,20 @@
+language "0.2"
+
+// Imported from multi-block.puml (plantuml) by meltemi-diagrams.
+
+diagram checkout: flow {
+  layout auto
+
+  node Cart
+  node Payment
+
+  Cart -> Payment
+}
+
+diagram payment: sequence {
+  participant Alice
+  participant Bob
+
+  Alice -> Bob: "pay"
+  Bob --> Alice: "receipt"
+}

@@ -1,0 +1,15 @@
+language "0.2"
+
+import "../models/commerce.meltemi" as models
+
+diagram context: c4 using models.commerce {
+  level context
+  layout assisted
+  customer -> shop: "Compra" as buys
+
+  placement {
+    place customer at (92, 64)
+    place shop at (456, 64)
+    place bank at (833, 64)
+  }
+}

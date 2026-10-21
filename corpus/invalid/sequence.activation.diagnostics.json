@@ -1,0 +1,23 @@
+[
+  {
+    "code": "sequence.activation",
+    "severity": "error",
+    "message": "`api` is not active here.",
+    "range": {
+      "start": {
+        "offset": 78,
+        "line": 5,
+        "column": 3
+      },
+      "end": {
+        "offset": 92,
+        "line": 5,
+        "column": 17
+      }
+    },
+    "hints": [
+      "Add `activate api` before it, or remove this `deactivate`."
+    ],
+    "related": []
+  }
+]

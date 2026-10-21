@@ -1,0 +1,87 @@
+language "0.2"
+
+// Every sequence construct: participant kinds and groups, async calls, self-calls, activations,
+// creation and destruction, notes, every fragment, dividers, delays, numbering and scenarios.
+diagram order: sequence {
+  title "Order lifecycle"
+  autonumber
+
+  actor customer "Customer"
+  boundary web "Web app"
+  group backend "Backend" {
+    control orders "Orders"
+    entity order "Order"
+    database db "Orders DB"
+  }
+  queue events "Events"
+  collections workers "Workers"
+
+  customer -> web: "Checkout" as checkout
+  web -> orders: "Place order" as place
+  activate orders
+  orders -> orders: "Validate" as validate
+  create order
+  orders -> order: "new" as build
+  note right of order "Draft until paid"
+
+  alt payment "Paid" {
+    orders -> db: "Save" as save
+    db --> orders: "Saved" as saved
+  } else "Declined" {
+    orders --> web: "Declined" as declined
+  }
+
+  divider "Fulfilment"
+
+  par {
+    orders -> events: "OrderPlaced" as publish { kind async }
+  } and "Notify" {
+    orders -> web: "Confirmation" as confirm
+  }
+
+  loop polling "Until shipped" {
+    web -> orders: "Status?" as status
+    orders --> web: "Pending" as pending
+  }
+
+  opt coupon "Coupon applied" {
+    orders -> orders: "Discount" as discount
+  }
+
+  critical "Shipment" {
+    events -> workers: "Ship" as ship
+  } option "Carrier down" {
+    workers --> events: "Retry later" as later
+  }
+
+  break "Fraud detected" {
+    orders --> customer: "Cancelled" as cancelled
+  }
+
+  region "Audit" {
+    note over orders, db "Every change is logged"
+  }
+
+  delay "Two days later"
+  deactivate orders
+  destroy order
+
+  placement {
+    space save 12
+    gap events 20
+    label checkout at 50% offset (0, -4)
+  }
+
+  style events { fill "#fff4e5" }
+
+  scenario happy "Paid and shipped" {
+    choose payment "Paid"
+    repeat polling 2
+    take coupon
+  }
+
+  scenario declined "Declined" {
+    choose payment 2
+    skip coupon
+  }
+}

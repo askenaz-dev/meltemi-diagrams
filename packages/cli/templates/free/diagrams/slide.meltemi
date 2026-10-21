@@ -1,0 +1,39 @@
+language "0.2"
+
+// A slide composed freely: every object is placed by hand on a 16:9 canvas. Drag them on the
+// canvas in VS Code, or change the places below.
+diagram slide: free {
+  title "How a request flows"
+  canvas (1280, 720)
+  layout manual
+
+  text heading "How a request flows"
+  text subtitle "From the browser to the database in two steps"
+
+  box browser "Browser"
+  icon person "tabler:user"
+
+  group backend "Backend" {
+    box api "API"
+    box db "Database"
+    api -> db: "SQL" as query
+  }
+
+  browser -> api: "HTTPS" as request
+
+  placement {
+    place heading at (640, 90)
+    place subtitle at (640, 145)
+    place person at (220, 300)
+    place browser at (220, 400)
+    place backend at (800, 400)
+    size backend (600, 220)
+    place api at (150, 110)
+    place db at (450, 110)
+  }
+
+  style heading { fontSize 40; fontWeight 700 }
+  style subtitle { color muted }
+  style db { shape cylinder }
+  animate request { effect flow; duration 1200ms; repeat forever }
+}

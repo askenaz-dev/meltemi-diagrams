@@ -1,0 +1,23 @@
+[
+  {
+    "code": "layout.mode-unsupported",
+    "severity": "error",
+    "message": "`layout assisted` needs a layout engine to position `cache`.",
+    "range": {
+      "start": {
+        "offset": 41,
+        "line": 4,
+        "column": 3
+      },
+      "end": {
+        "offset": 56,
+        "line": 4,
+        "column": 18
+      }
+    },
+    "hints": [
+      "Hosts pass an engine in `LayoutOptions.engine`; the command line uses ELK. Or place every element."
+    ],
+    "related": []
+  }
+]

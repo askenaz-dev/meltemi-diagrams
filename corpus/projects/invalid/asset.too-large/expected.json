@@ -1,0 +1,44 @@
+{
+  "assets/icons/local/deep.svg": [
+    {
+      "code": "asset.too-large",
+      "severity": "error",
+      "message": "Icon `local:deep` cannot be used: Elements nested more than 32 levels deep.",
+      "range": {
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ],
+  "a.meltemi": [
+    {
+      "code": "asset.too-large",
+      "severity": "error",
+      "message": "Icon `local:deep` cannot be used: Elements nested more than 32 levels deep.",
+      "range": {
+        "start": {
+          "offset": 109,
+          "line": 9,
+          "column": 10
+        },
+        "end": {
+          "offset": 121,
+          "line": 9,
+          "column": 22
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ]
+}

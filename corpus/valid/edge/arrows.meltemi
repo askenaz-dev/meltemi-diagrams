@@ -1,0 +1,60 @@
+language "0.2"
+
+// Every head at both ends, two-way arrows, dotted lines and rounded corners.
+diagram arrows: flow {
+  title "Arrow ends"
+  layout manual
+
+  a1["A"]
+  b1["B"]
+  a2["A"]
+  b2["B"]
+  a3["A"]
+  b3["B"]
+  a4["A"]
+  b4["B"]
+  a5["A"]
+  b5["B"]
+  c1["Customer"]
+  o1["Order"]
+  c2["Order"]
+  l2["Line"]
+  s1["Start"]
+  e1["End"]
+
+  a1 <-> b1: "two-way" as both
+  a2 <--> b2: "two-way, dashed" as dashedBoth
+  a3 -> b3: "outlined" as outlined
+  a4 -> b4: "diamonds" as diamonds
+  a5 -> b5: "circles" as circles
+  c1 -> o1: "places" as places
+  c2 -> l2: "contains" as contains
+  s1 -> e1: "rounded, dotted" as rounded
+
+  placement {
+    place a1 at (100, 60)
+    place b1 at (420, 60)
+    place a2 at (100, 150)
+    place b2 at (420, 150)
+    place a3 at (100, 240)
+    place b3 at (420, 240)
+    place a4 at (100, 330)
+    place b4 at (420, 330)
+    place a5 at (100, 420)
+    place b5 at (420, 420)
+    place c1 at (640, 60)
+    place o1 at (960, 60)
+    place c2 at (640, 150)
+    place l2 at (960, 150)
+    place s1 at (640, 330)
+    place e1 at (960, 420)
+    route rounded from s1.south to e1.west via [(640, 420)]
+  }
+
+  style outlined { arrowtail triangleOutline; arrowhead triangleOutline }
+  style diamonds { arrowtail diamond; arrowhead diamondOutline }
+  style circles { arrowtail circleOutline; arrowhead circle; line dotted }
+  style places { arrowtail onlyOne; arrowhead zeroOrMany }
+  style contains { arrowtail bar; arrowhead oneOrMany }
+  style rounded { routing orthogonal; corners rounded; line dotted; arrowhead cross; arrowtail many }
+}

@@ -1,0 +1,45 @@
+{
+  "name": "@meltemi/diagrams-language",
+  "version": "1.8.0",
+  "description": "Lexer, lossless parser, CST and diagnostics for the .meltemi language.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/askenaz-dev/meltemi-diagrams.git",
+    "directory": "packages/language"
+  },
+  "homepage": "https://github.com/askenaz-dev/meltemi-diagrams/tree/main/packages/language#readme",
+  "bugs": {
+    "url": "https://github.com/askenaz-dev/meltemi-diagrams/issues"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "@meltemi/diagrams-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@meltemi/diagrams-i18n": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      }
+    }
+  }
+}

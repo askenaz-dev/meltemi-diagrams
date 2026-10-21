@@ -1,0 +1,51 @@
+{
+  "name": "@meltemi/diagrams-canvas",
+  "version": "1.8.0",
+  "description": "The canvas of Meltemi Diagrams: the browser application that draws and edits diagrams beside their code, hosted by the VS Code extension and the playground.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/askenaz-dev/meltemi-diagrams.git",
+    "directory": "packages/canvas"
+  },
+  "homepage": "https://github.com/askenaz-dev/meltemi-diagrams/tree/main/packages/canvas#readme",
+  "bugs": {
+    "url": "https://github.com/askenaz-dev/meltemi-diagrams/issues"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "@meltemi/diagrams-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./canvas.css": "./canvas.css"
+  },
+  "files": [
+    "dist",
+    "canvas.css"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@meltemi/diagrams-editor": "workspace:*",
+    "@meltemi/diagrams-i18n": "workspace:*",
+    "@meltemi/diagrams-motion": "workspace:*",
+    "@meltemi/diagrams-render": "workspace:*"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./canvas.css": "./canvas.css"
+    }
+  }
+}

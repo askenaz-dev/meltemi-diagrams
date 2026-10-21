@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="573" height="778" viewBox="0 0 573 778" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Batch settlement</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="573" height="778" fill="#F7FBFF"/>
+  <g data-id="core" data-role="element">
+    <rect x="144" y="20" width="261" height="694" rx="14" fill="#EAF1F8" stroke="#C9D6E3" stroke-width="1"/>
+    <text x="156" y="38.73" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">Core</text>
+  </g>
+  <g data-id="kind" data-role="event">
+    <rect x="187.5" y="256" width="317.5" height="126" rx="2" fill="none" stroke="#526579" stroke-width="1"/>
+    <polyline points="187.5,322 505,322" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="entries" data-role="event">
+    <rect x="163.5" y="188" width="365.5" height="212" rx="2" fill="none" stroke="#526579" stroke-width="1"/>
+  </g>
+  <g data-id="par#1" data-role="event">
+    <rect x="44" y="156" width="509" height="320" rx="2" fill="none" stroke="#526579" stroke-width="1"/>
+    <polyline points="44,416 553,416" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="late" data-role="event">
+    <rect x="187.5" y="562" width="181.5" height="68" rx="2" fill="none" stroke="#526579" stroke-width="1"/>
+  </g>
+  <g data-id="critical#1" data-role="event">
+    <rect x="163.5" y="494" width="229.5" height="154" rx="2" fill="none" stroke="#526579" stroke-width="1"/>
+  </g>
+  <g data-id="scheduler" data-role="lifeline">
+    <polyline points="68,92 68,706" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="settle" data-role="lifeline">
+    <polyline points="206.5,92 206.5,706" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <rect x="201.5" y="138" width="10" height="524" rx="0" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+  </g>
+  <g data-id="ledger" data-role="lifeline">
+    <polyline points="345,92 345,706" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="bank" data-role="lifeline">
+    <polyline points="481,92 481,706" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="kind" data-role="label">
+    <path d="M187.5 256 L218.74 256 L218.74 272 L212.74 278 L187.5 278 Z" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <text x="195.5" y="271" text-anchor="start" font-size="11" font-weight="600" fill="#0B1830">alt</text>
+    <rect x="223.74" y="260" width="38.93" height="14" rx="2" fill="#F7FBFF" stroke="none" stroke-width="0"/>
+    <text x="226.74" y="271" text-anchor="start" font-size="11" font-weight="400" fill="#526579">[Card]</text>
+    <rect x="192.5" y="325" width="57.43" height="14" rx="2" fill="#F7FBFF" stroke="none" stroke-width="0"/>
+    <text x="195.5" y="336" text-anchor="start" font-size="11" font-weight="400" fill="#526579">[Transfer]</text>
+  </g>
+  <g data-id="entries" data-role="label">
+    <path d="M163.5 188 L204.64 188 L204.64 204 L198.64 210 L163.5 210 Z" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <text x="171.5" y="203" text-anchor="start" font-size="11" font-weight="600" fill="#0B1830">loop</text>
+    <rect x="209.64" y="192" width="69.7" height="14" rx="2" fill="#F7FBFF" stroke="none" stroke-width="0"/>
+    <text x="212.64" y="203" text-anchor="start" font-size="11" font-weight="400" fill="#526579">[Each entry]</text>
+  </g>
+  <g data-id="par#1" data-role="label">
+    <path d="M44 156 L79.65 156 L79.65 172 L73.65 178 L44 178 Z" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <text x="52" y="171" text-anchor="start" font-size="11" font-weight="600" fill="#0B1830">par</text>
+    <rect x="49" y="419" width="48.6" height="14" rx="2" fill="#F7FBFF" stroke="none" stroke-width="0"/>
+    <text x="52" y="430" text-anchor="start" font-size="11" font-weight="400" fill="#526579">[Report]</text>
+  </g>
+  <g data-id="late" data-role="label">
+    <path d="M187.5 562 L222.95 562 L222.95 578 L216.95 584 L187.5 584 Z" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <text x="195.5" y="577" text-anchor="start" font-size="11" font-weight="600" fill="#0B1830">opt</text>
+    <rect x="227.95" y="566" width="75.06" height="14" rx="2" fill="#F7FBFF" stroke="none" stroke-width="0"/>
+    <text x="230.95" y="577" text-anchor="start" font-size="11" font-weight="400" fill="#526579">[Late entries]</text>
+  </g>
+  <g data-id="critical#1" data-role="label">
+    <path d="M163.5 494 L217.7 494 L217.7 510 L211.7 516 L163.5 516 Z" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <text x="171.5" y="509" text-anchor="start" font-size="11" font-weight="600" fill="#0B1830">critical</text>
+    <rect x="222.7" y="498" width="85.18" height="14" rx="2" fill="#F7FBFF" stroke="none" stroke-width="0"/>
+    <text x="225.7" y="509" text-anchor="start" font-size="11" font-weight="400" fill="#526579">[Close the day]</text>
+  </g>
+  <g data-id="run" data-role="relation">
+    <polyline points="68,138 198.5,138" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M206.5 138 L198.5 141.5 L198.5 134.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="run" data-role="label">
+      <text x="137.25" y="132" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Run batch</text>
+    </g>
+  </g>
+  <g data-id="readEntry" data-role="relation">
+    <polyline points="211.5,238 337,238" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M345 238 L337 241.5 L337 234.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="readEntry" data-role="label">
+      <text x="278.25" y="232" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Read entry</text>
+    </g>
+  </g>
+  <g data-id="capture" data-role="relation">
+    <polyline points="211.5,306 473,306" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M481 306 L473 309.5 L473 302.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="capture" data-role="label">
+      <text x="346.25" y="300" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Capture</text>
+    </g>
+  </g>
+  <g data-id="send" data-role="relation">
+    <polyline points="211.5,364 473,364" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M481 364 L473 367.5 L473 360.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="send" data-role="label">
+      <text x="346.25" y="358" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Send</text>
+    </g>
+  </g>
+  <g data-id="progress" data-role="relation">
+    <polyline points="201.5,458 68,458" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="76,454.5 68,458 76,461.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="progress" data-role="label">
+      <text x="134.75" y="452" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Progress</text>
+    </g>
+  </g>
+  <g data-id="close" data-role="relation">
+    <polyline points="211.5,544 337,544" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M345 544 L337 547.5 L337 540.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="close" data-role="label">
+      <text x="278.25" y="538" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Close</text>
+    </g>
+  </g>
+  <g data-id="carry" data-role="relation">
+    <polyline points="211.5,612 337,612" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M345 612 L337 615.5 L337 608.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="carry" data-role="label">
+      <text x="278.25" y="606" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Carry over</text>
+    </g>
+  </g>
+  <g data-id="done" data-role="relation">
+    <polyline points="206.5,684 68,684" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="76,680.5 68,684 76,687.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="done" data-role="label">
+      <text x="137.25" y="678" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Done</text>
+    </g>
+  </g>
+  <g data-id="scheduler" data-role="element">
+    <rect x="20" y="52" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="68" y="76.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Scheduler</text>
+  </g>
+  <g data-id="settle" data-role="element">
+    <rect x="156" y="52" width="101" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="206.5" y="76.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Settlement</text>
+  </g>
+  <g data-id="ledger" data-role="element">
+    <path d="M297 58 L297 86 A48 6 0 0 0 393 86 L393 58 A48 6 0 0 1 297 58 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M297 58 A48 6 0 0 1 393 58 A48 6 0 0 1 297 58 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="345" y="76.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Ledger</text>
+  </g>
+  <g data-id="bank" data-role="element">
+    <rect x="433" y="52" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="481" y="76.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Bank</text>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,734.5 553,734.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 744) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="760.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="553" y="760" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Batch settlement</text>
+  </g>
+</svg>

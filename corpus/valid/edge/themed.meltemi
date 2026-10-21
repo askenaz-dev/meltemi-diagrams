@@ -1,0 +1,33 @@
+language "0.2"
+
+// A file theme that extends a built-in one: the brand frame with the tenant's accent.
+theme konfio {
+  extends "technical.light"
+  accent "#6a4fd0"
+  accentEnd "#a594f0"
+  tag "#6a4fd0"
+  band "#f6f3fe"
+  bandLine "#6a4fd0"
+  brand "Konfío · Meltemi Diagrams"
+  frame footer
+}
+
+diagram themed: flow {
+  title "Themed sheet"
+  layout manual
+  theme "konfio"
+
+  group edge "Edge" {
+    api["API Gateway"] { description "validates JWT" }
+  }
+  client["Client"]
+  tag t "JWT"
+
+  client -> api: "1" as request
+
+  placement {
+    place client at (100, 60)
+    place api at (400, 60)
+    place t at (480, 32)
+  }
+}

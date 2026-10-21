@@ -1,0 +1,6 @@
+' Shared definitions for the deployment sample.
+!define SERVICE(n, l) component l as n
+!$tech = "Kotlin"
+!startsub STORES
+database "Orders DB" as ordersdb
+!endsub

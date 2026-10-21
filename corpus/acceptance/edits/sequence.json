@@ -1,0 +1,52 @@
+{
+  "description": "Spacing, gaps and label offsets never change the order of the messages.",
+  "sheet": "sequence/parallel.meltemi",
+  "steps": [
+    {
+      "name": "space a message",
+      "operation": {
+        "kind": "setSpacing",
+        "diagram": "parallel",
+        "target": "reserved2",
+        "targetKind": "event",
+        "amount": 24
+      },
+      "changed": [
+        "^\\s*space reserved2 24$",
+        "^\\s*placement \\{$|^\\s*\\}$|space"
+      ],
+      "order": "parallel"
+    },
+    {
+      "name": "widen a gap",
+      "operation": {
+        "kind": "setSpacing",
+        "diagram": "parallel",
+        "target": "inventory",
+        "targetKind": "participant",
+        "amount": 80
+      },
+      "changed": [
+        "gap inventory"
+      ],
+      "order": "parallel"
+    },
+    {
+      "name": "lift a label",
+      "operation": {
+        "kind": "setLabelAnchor",
+        "diagram": "parallel",
+        "relation": "reserved1",
+        "at": 50,
+        "offset": {
+          "x": 0,
+          "y": -6
+        }
+      },
+      "changed": [
+        "label reserved1"
+      ],
+      "order": "parallel"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+language "0.2"
+
+// Two effects of the same kind on one relation.
+diagram checkout: flow {
+  node api
+  node db
+  api -> db as save
+  animate save { effect flow }
+  animate save { effect flow; duration 2s }
+}

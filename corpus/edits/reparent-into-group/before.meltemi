@@ -1,0 +1,18 @@
+language "0.2"
+
+diagram shop: free {
+  group services "Services" {
+    box api "API"
+  }
+  // Shared by every service
+  box cache "Cache" { description "In memory" } // evicts after an hour
+  api -> cache: "reads"
+  style cache { fill "#eef4ff" }
+
+  placement {
+    place services at (240, 180)
+    size services (360, 220)
+    place api at (240, 60)
+    place cache at (400, 300)
+  }
+}

@@ -1,0 +1,1718 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "context",
+      "type": "c4",
+      "range": {
+        "start": {
+          "offset": 974,
+          "line": 31,
+          "column": 1
+        },
+        "end": {
+          "offset": 1059,
+          "line": 34,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "auto",
+        "theme": null,
+        "title": "Commerce en contexto",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "customer",
+          "kind": "person",
+          "label": "Cliente",
+          "implicit": false,
+          "description": "Compra en línea",
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": {
+            "model": "commerce",
+            "path": "customer",
+            "file": null
+          },
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 198,
+              "line": 6,
+              "column": 3
+            },
+            "end": {
+              "offset": 257,
+              "line": 6,
+              "column": 62
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 205,
+              "line": 6,
+              "column": 10
+            },
+            "end": {
+              "offset": 213,
+              "line": 6,
+              "column": 18
+            }
+          }
+        },
+        {
+          "id": "shop",
+          "kind": "system",
+          "label": "Commerce",
+          "implicit": false,
+          "description": "Tienda en línea",
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": {
+            "model": "commerce",
+            "path": "shop",
+            "file": null
+          },
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 261,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 635,
+              "line": 18,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 268,
+              "line": 8,
+              "column": 10
+            },
+            "end": {
+              "offset": 272,
+              "line": 8,
+              "column": 14
+            }
+          }
+        },
+        {
+          "id": "bank",
+          "kind": "system",
+          "label": "Banco",
+          "implicit": false,
+          "description": "Autoriza tarjetas",
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": {
+            "model": "commerce",
+            "path": "bank",
+            "file": null
+          },
+          "technology": null,
+          "external": true,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 638,
+              "line": 19,
+              "column": 3
+            },
+            "end": {
+              "offset": 712,
+              "line": 22,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 645,
+              "line": 19,
+              "column": 10
+            },
+            "end": {
+              "offset": 649,
+              "line": 19,
+              "column": 14
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "visit",
+          "id": "visit",
+          "from": "customer",
+          "to": "shop",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [
+            "visit"
+          ],
+          "derived": true,
+          "label": "Compra",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 716,
+              "line": 24,
+              "column": 3
+            },
+            "end": {
+              "offset": 755,
+              "line": 24,
+              "column": 42
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 750,
+              "line": 24,
+              "column": 37
+            },
+            "end": {
+              "offset": 755,
+              "line": 24,
+              "column": 42
+            }
+          }
+        },
+        {
+          "key": "authorize",
+          "id": "authorize",
+          "from": "shop",
+          "to": "bank",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [
+            "authorize"
+          ],
+          "derived": true,
+          "label": "Autoriza",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 869,
+              "line": 27,
+              "column": 3
+            },
+            "end": {
+              "offset": 919,
+              "line": 27,
+              "column": 53
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 910,
+              "line": 27,
+              "column": 44
+            },
+            "end": {
+              "offset": 919,
+              "line": 27,
+              "column": 53
+            }
+          }
+        }
+      ],
+      "placement": [],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": {
+        "model": "commerce",
+        "level": "context",
+        "scope": null,
+        "includes": null,
+        "excludes": [],
+        "labels": [],
+        "combined": []
+      }
+    },
+    {
+      "id": "containers",
+      "type": "c4",
+      "range": {
+        "start": {
+          "offset": 1061,
+          "line": 36,
+          "column": 1
+        },
+        "end": {
+          "offset": 1274,
+          "line": 44,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "assisted",
+        "theme": "editorial.light",
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "shop",
+          "kind": "group",
+          "label": "Commerce",
+          "implicit": false,
+          "description": "Tienda en línea",
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": {
+            "model": "commerce",
+            "path": "shop",
+            "file": null
+          },
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 261,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 635,
+              "line": 18,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 268,
+              "line": 8,
+              "column": 10
+            },
+            "end": {
+              "offset": 272,
+              "line": 8,
+              "column": 14
+            }
+          }
+        },
+        {
+          "id": "customer",
+          "kind": "person",
+          "label": "Cliente",
+          "implicit": false,
+          "description": "Compra en línea",
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": {
+            "model": "commerce",
+            "path": "customer",
+            "file": null
+          },
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1142,
+              "line": 39,
+              "column": 11
+            },
+            "end": {
+              "offset": 1150,
+              "line": 39,
+              "column": 19
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1142,
+              "line": 39,
+              "column": 11
+            },
+            "end": {
+              "offset": 1150,
+              "line": 39,
+              "column": 19
+            }
+          }
+        },
+        {
+          "id": "shop.web",
+          "kind": "container",
+          "label": "Web",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": {
+            "model": "commerce",
+            "path": "shop.web",
+            "file": null
+          },
+          "technology": "React",
+          "external": false,
+          "groupPath": [
+            "shop"
+          ],
+          "range": {
+            "start": {
+              "offset": 1152,
+              "line": 39,
+              "column": 21
+            },
+            "end": {
+              "offset": 1160,
+              "line": 39,
+              "column": 29
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1152,
+              "line": 39,
+              "column": 21
+            },
+            "end": {
+              "offset": 1160,
+              "line": 39,
+              "column": 29
+            }
+          }
+        },
+        {
+          "id": "shop.api",
+          "kind": "container",
+          "label": "API de pedidos",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": {
+            "model": "commerce",
+            "path": "shop.api",
+            "file": null
+          },
+          "technology": "HTTP",
+          "external": false,
+          "groupPath": [
+            "shop"
+          ],
+          "range": {
+            "start": {
+              "offset": 1162,
+              "line": 39,
+              "column": 31
+            },
+            "end": {
+              "offset": 1170,
+              "line": 39,
+              "column": 39
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1162,
+              "line": 39,
+              "column": 31
+            },
+            "end": {
+              "offset": 1170,
+              "line": 39,
+              "column": 39
+            }
+          }
+        },
+        {
+          "id": "shop.db",
+          "kind": "datastore",
+          "label": "Pedidos",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": {
+            "model": "commerce",
+            "path": "shop.db",
+            "file": null
+          },
+          "technology": "PostgreSQL",
+          "external": false,
+          "groupPath": [
+            "shop"
+          ],
+          "range": {
+            "start": {
+              "offset": 1172,
+              "line": 39,
+              "column": 41
+            },
+            "end": {
+              "offset": 1179,
+              "line": 39,
+              "column": 48
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1172,
+              "line": 39,
+              "column": 41
+            },
+            "end": {
+              "offset": 1179,
+              "line": 39,
+              "column": 48
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "store",
+          "id": "store",
+          "from": "shop.api",
+          "to": "shop.db",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [
+            "store"
+          ],
+          "derived": true,
+          "label": "Guarda",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 596,
+              "line": 17,
+              "column": 5
+            },
+            "end": {
+              "offset": 631,
+              "line": 17,
+              "column": 40
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 626,
+              "line": 17,
+              "column": 35
+            },
+            "end": {
+              "offset": 631,
+              "line": 17,
+              "column": 40
+            }
+          }
+        },
+        {
+          "key": "visit",
+          "id": "visit",
+          "from": "customer",
+          "to": "shop.web",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [
+            "visit"
+          ],
+          "derived": false,
+          "label": "Compra",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 716,
+              "line": 24,
+              "column": 3
+            },
+            "end": {
+              "offset": 755,
+              "line": 24,
+              "column": 42
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 750,
+              "line": 24,
+              "column": 37
+            },
+            "end": {
+              "offset": 755,
+              "line": 24,
+              "column": 42
+            }
+          }
+        },
+        {
+          "key": "request",
+          "id": "request",
+          "from": "shop.web",
+          "to": "shop.api",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": "JSON/HTTPS",
+          "sources": [
+            "request"
+          ],
+          "derived": false,
+          "label": "HTTPS",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 758,
+              "line": 25,
+              "column": 3
+            },
+            "end": {
+              "offset": 826,
+              "line": 25,
+              "column": 71
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 791,
+              "line": 25,
+              "column": 36
+            },
+            "end": {
+              "offset": 798,
+              "line": 25,
+              "column": 43
+            }
+          }
+        },
+        {
+          "key": "persist",
+          "id": "persist",
+          "from": "shop.api",
+          "to": "shop.db",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [
+            "persist"
+          ],
+          "derived": false,
+          "label": "SQL",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 829,
+              "line": 26,
+              "column": 3
+            },
+            "end": {
+              "offset": 866,
+              "line": 26,
+              "column": 40
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 859,
+              "line": 26,
+              "column": 33
+            },
+            "end": {
+              "offset": 866,
+              "line": 26,
+              "column": 40
+            }
+          }
+        },
+        {
+          "key": "orders",
+          "id": "orders",
+          "from": "shop.web",
+          "to": "shop.api",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [
+            "orders"
+          ],
+          "derived": true,
+          "label": "Pedidos",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 922,
+              "line": 28,
+              "column": 3
+            },
+            "end": {
+              "offset": 970,
+              "line": 28,
+              "column": 51
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 964,
+              "line": 28,
+              "column": 45
+            },
+            "end": {
+              "offset": 970,
+              "line": 28,
+              "column": 51
+            }
+          }
+        }
+      ],
+      "placement": [],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": {
+        "model": "commerce",
+        "level": "container",
+        "scope": "shop",
+        "includes": [
+          "customer",
+          "shop.web",
+          "shop.api",
+          "shop.db"
+        ],
+        "excludes": [],
+        "labels": [
+          {
+            "target": "shop.api",
+            "targetKind": "element",
+            "text": "API de pedidos",
+            "range": {
+              "start": {
+                "offset": 1241,
+                "line": 43,
+                "column": 3
+              },
+              "end": {
+                "offset": 1272,
+                "line": 43,
+                "column": 34
+              }
+            }
+          }
+        ],
+        "combined": []
+      }
+    },
+    {
+      "id": "components",
+      "type": "c4",
+      "range": {
+        "start": {
+          "offset": 1276,
+          "line": 46,
+          "column": 1
+        },
+        "end": {
+          "offset": 1397,
+          "line": 50,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "auto",
+        "theme": null,
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "shop.api",
+          "kind": "group",
+          "label": "API",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": {
+            "model": "commerce",
+            "path": "shop.api",
+            "file": null
+          },
+          "technology": "HTTP",
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 371,
+              "line": 11,
+              "column": 5
+            },
+            "end": {
+              "offset": 536,
+              "line": 15,
+              "column": 6
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 381,
+              "line": 11,
+              "column": 15
+            },
+            "end": {
+              "offset": 384,
+              "line": 11,
+              "column": 18
+            }
+          }
+        },
+        {
+          "id": "shop.web",
+          "kind": "container",
+          "label": "Web",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": {
+            "model": "commerce",
+            "path": "shop.web",
+            "file": null
+          },
+          "technology": "React",
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 324,
+              "line": 10,
+              "column": 5
+            },
+            "end": {
+              "offset": 366,
+              "line": 10,
+              "column": 47
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 334,
+              "line": 10,
+              "column": 15
+            },
+            "end": {
+              "offset": 337,
+              "line": 10,
+              "column": 18
+            }
+          }
+        },
+        {
+          "id": "shop.api.orders",
+          "kind": "component",
+          "label": "Pedidos",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": {
+            "model": "commerce",
+            "path": "shop.api.orders",
+            "file": null
+          },
+          "technology": "Kotlin",
+          "external": false,
+          "groupPath": [
+            "shop.api"
+          ],
+          "range": {
+            "start": {
+              "offset": 423,
+              "line": 13,
+              "column": 7
+            },
+            "end": {
+              "offset": 473,
+              "line": 13,
+              "column": 57
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 433,
+              "line": 13,
+              "column": 17
+            },
+            "end": {
+              "offset": 439,
+              "line": 13,
+              "column": 23
+            }
+          }
+        },
+        {
+          "id": "shop.api.payments",
+          "kind": "component",
+          "label": "Pagos",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": {
+            "model": "commerce",
+            "path": "shop.api.payments",
+            "file": null
+          },
+          "technology": "Kotlin",
+          "external": false,
+          "groupPath": [
+            "shop.api"
+          ],
+          "range": {
+            "start": {
+              "offset": 480,
+              "line": 14,
+              "column": 7
+            },
+            "end": {
+              "offset": 530,
+              "line": 14,
+              "column": 57
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 490,
+              "line": 14,
+              "column": 17
+            },
+            "end": {
+              "offset": 498,
+              "line": 14,
+              "column": 25
+            }
+          }
+        },
+        {
+          "id": "shop.db",
+          "kind": "datastore",
+          "label": "Pedidos",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": {
+            "model": "commerce",
+            "path": "shop.db",
+            "file": null
+          },
+          "technology": "PostgreSQL",
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 541,
+              "line": 16,
+              "column": 5
+            },
+            "end": {
+              "offset": 591,
+              "line": 16,
+              "column": 55
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 551,
+              "line": 16,
+              "column": 15
+            },
+            "end": {
+              "offset": 553,
+              "line": 16,
+              "column": 17
+            }
+          }
+        },
+        {
+          "id": "bank",
+          "kind": "system",
+          "label": "Banco",
+          "implicit": false,
+          "description": "Autoriza tarjetas",
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": {
+            "model": "commerce",
+            "path": "bank",
+            "file": null
+          },
+          "technology": null,
+          "external": true,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 638,
+              "line": 19,
+              "column": 3
+            },
+            "end": {
+              "offset": 712,
+              "line": 22,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 645,
+              "line": 19,
+              "column": 10
+            },
+            "end": {
+              "offset": 649,
+              "line": 19,
+              "column": 14
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "store",
+          "id": "store",
+          "from": "shop.api.orders",
+          "to": "shop.db",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [
+            "store"
+          ],
+          "derived": false,
+          "label": "Guarda",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 596,
+              "line": 17,
+              "column": 5
+            },
+            "end": {
+              "offset": 631,
+              "line": 17,
+              "column": 40
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 626,
+              "line": 17,
+              "column": 35
+            },
+            "end": {
+              "offset": 631,
+              "line": 17,
+              "column": 40
+            }
+          }
+        },
+        {
+          "key": "authorize",
+          "id": "authorize",
+          "from": "shop.api.payments",
+          "to": "bank",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [
+            "authorize"
+          ],
+          "derived": false,
+          "label": "Autoriza",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 869,
+              "line": 27,
+              "column": 3
+            },
+            "end": {
+              "offset": 919,
+              "line": 27,
+              "column": 53
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 910,
+              "line": 27,
+              "column": 44
+            },
+            "end": {
+              "offset": 919,
+              "line": 27,
+              "column": 53
+            }
+          }
+        },
+        {
+          "key": "uses",
+          "id": "uses",
+          "from": "shop.web",
+          "to": "shop.api.orders",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [
+            "orders"
+          ],
+          "derived": true,
+          "label": "Usa",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1353,
+              "line": 49,
+              "column": 3
+            },
+            "end": {
+              "offset": 1395,
+              "line": 49,
+              "column": 45
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1391,
+              "line": 49,
+              "column": 41
+            },
+            "end": {
+              "offset": 1395,
+              "line": 49,
+              "column": 45
+            }
+          }
+        }
+      ],
+      "placement": [],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": {
+        "model": "commerce",
+        "level": "component",
+        "scope": "shop.api",
+        "includes": null,
+        "excludes": [],
+        "labels": [],
+        "combined": [
+          "uses"
+        ]
+      }
+    }
+  ],
+  "themes": [],
+  "models": [
+    {
+      "id": "commerce",
+      "range": {
+        "start": {
+          "offset": 179,
+          "line": 5,
+          "column": 1
+        },
+        "end": {
+          "offset": 972,
+          "line": 29,
+          "column": 2
+        }
+      },
+      "entities": [
+        {
+          "path": "customer",
+          "id": "customer",
+          "kind": "person",
+          "label": "Cliente",
+          "description": "Compra en línea",
+          "technology": null,
+          "external": false,
+          "url": null,
+          "parent": null,
+          "range": {
+            "start": {
+              "offset": 198,
+              "line": 6,
+              "column": 3
+            },
+            "end": {
+              "offset": 257,
+              "line": 6,
+              "column": 62
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 205,
+              "line": 6,
+              "column": 10
+            },
+            "end": {
+              "offset": 213,
+              "line": 6,
+              "column": 18
+            }
+          }
+        },
+        {
+          "path": "shop",
+          "id": "shop",
+          "kind": "system",
+          "label": "Commerce",
+          "description": "Tienda en línea",
+          "technology": null,
+          "external": false,
+          "url": null,
+          "parent": null,
+          "range": {
+            "start": {
+              "offset": 261,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 635,
+              "line": 18,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 268,
+              "line": 8,
+              "column": 10
+            },
+            "end": {
+              "offset": 272,
+              "line": 8,
+              "column": 14
+            }
+          }
+        },
+        {
+          "path": "shop.web",
+          "id": "web",
+          "kind": "container",
+          "label": "Web",
+          "description": null,
+          "technology": "React",
+          "external": false,
+          "url": null,
+          "parent": "shop",
+          "range": {
+            "start": {
+              "offset": 324,
+              "line": 10,
+              "column": 5
+            },
+            "end": {
+              "offset": 366,
+              "line": 10,
+              "column": 47
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 334,
+              "line": 10,
+              "column": 15
+            },
+            "end": {
+              "offset": 337,
+              "line": 10,
+              "column": 18
+            }
+          }
+        },
+        {
+          "path": "shop.api",
+          "id": "api",
+          "kind": "container",
+          "label": "API",
+          "description": null,
+          "technology": "HTTP",
+          "external": false,
+          "url": null,
+          "parent": "shop",
+          "range": {
+            "start": {
+              "offset": 371,
+              "line": 11,
+              "column": 5
+            },
+            "end": {
+              "offset": 536,
+              "line": 15,
+              "column": 6
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 381,
+              "line": 11,
+              "column": 15
+            },
+            "end": {
+              "offset": 384,
+              "line": 11,
+              "column": 18
+            }
+          }
+        },
+        {
+          "path": "shop.api.orders",
+          "id": "orders",
+          "kind": "component",
+          "label": "Pedidos",
+          "description": null,
+          "technology": "Kotlin",
+          "external": false,
+          "url": null,
+          "parent": "shop.api",
+          "range": {
+            "start": {
+              "offset": 423,
+              "line": 13,
+              "column": 7
+            },
+            "end": {
+              "offset": 473,
+              "line": 13,
+              "column": 57
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 433,
+              "line": 13,
+              "column": 17
+            },
+            "end": {
+              "offset": 439,
+              "line": 13,
+              "column": 23
+            }
+          }
+        },
+        {
+          "path": "shop.api.payments",
+          "id": "payments",
+          "kind": "component",
+          "label": "Pagos",
+          "description": null,
+          "technology": "Kotlin",
+          "external": false,
+          "url": null,
+          "parent": "shop.api",
+          "range": {
+            "start": {
+              "offset": 480,
+              "line": 14,
+              "column": 7
+            },
+            "end": {
+              "offset": 530,
+              "line": 14,
+              "column": 57
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 490,
+              "line": 14,
+              "column": 17
+            },
+            "end": {
+              "offset": 498,
+              "line": 14,
+              "column": 25
+            }
+          }
+        },
+        {
+          "path": "shop.db",
+          "id": "db",
+          "kind": "datastore",
+          "label": "Pedidos",
+          "description": null,
+          "technology": "PostgreSQL",
+          "external": false,
+          "url": null,
+          "parent": "shop",
+          "range": {
+            "start": {
+              "offset": 541,
+              "line": 16,
+              "column": 5
+            },
+            "end": {
+              "offset": 591,
+              "line": 16,
+              "column": 55
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 551,
+              "line": 16,
+              "column": 15
+            },
+            "end": {
+              "offset": 553,
+              "line": 16,
+              "column": 17
+            }
+          }
+        },
+        {
+          "path": "bank",
+          "id": "bank",
+          "kind": "system",
+          "label": "Banco",
+          "description": "Autoriza tarjetas",
+          "technology": null,
+          "external": true,
+          "url": null,
+          "parent": null,
+          "range": {
+            "start": {
+              "offset": 638,
+              "line": 19,
+              "column": 3
+            },
+            "end": {
+              "offset": 712,
+              "line": 22,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 645,
+              "line": 19,
+              "column": 10
+            },
+            "end": {
+              "offset": 649,
+              "line": 19,
+              "column": 14
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "store",
+          "id": "store",
+          "from": "shop.api.orders",
+          "to": "shop.db",
+          "label": "Guarda",
+          "technology": null,
+          "description": null,
+          "assumption": null,
+          "range": {
+            "start": {
+              "offset": 596,
+              "line": 17,
+              "column": 5
+            },
+            "end": {
+              "offset": 631,
+              "line": 17,
+              "column": 40
+            }
+          }
+        },
+        {
+          "key": "visit",
+          "id": "visit",
+          "from": "customer",
+          "to": "shop.web",
+          "label": "Compra",
+          "technology": null,
+          "description": null,
+          "assumption": null,
+          "range": {
+            "start": {
+              "offset": 716,
+              "line": 24,
+              "column": 3
+            },
+            "end": {
+              "offset": 755,
+              "line": 24,
+              "column": 42
+            }
+          }
+        },
+        {
+          "key": "request",
+          "id": "request",
+          "from": "shop.web",
+          "to": "shop.api",
+          "label": "HTTPS",
+          "technology": "JSON/HTTPS",
+          "description": null,
+          "assumption": null,
+          "range": {
+            "start": {
+              "offset": 758,
+              "line": 25,
+              "column": 3
+            },
+            "end": {
+              "offset": 826,
+              "line": 25,
+              "column": 71
+            }
+          }
+        },
+        {
+          "key": "persist",
+          "id": "persist",
+          "from": "shop.api",
+          "to": "shop.db",
+          "label": "SQL",
+          "technology": null,
+          "description": null,
+          "assumption": null,
+          "range": {
+            "start": {
+              "offset": 829,
+              "line": 26,
+              "column": 3
+            },
+            "end": {
+              "offset": 866,
+              "line": 26,
+              "column": 40
+            }
+          }
+        },
+        {
+          "key": "authorize",
+          "id": "authorize",
+          "from": "shop.api.payments",
+          "to": "bank",
+          "label": "Autoriza",
+          "technology": null,
+          "description": null,
+          "assumption": null,
+          "range": {
+            "start": {
+              "offset": 869,
+              "line": 27,
+              "column": 3
+            },
+            "end": {
+              "offset": 919,
+              "line": 27,
+              "column": 53
+            }
+          }
+        },
+        {
+          "key": "orders",
+          "id": "orders",
+          "from": "shop.web",
+          "to": "shop.api.orders",
+          "label": "Pedidos",
+          "technology": null,
+          "description": null,
+          "assumption": null,
+          "range": {
+            "start": {
+              "offset": 922,
+              "line": 28,
+              "column": 3
+            },
+            "end": {
+              "offset": 970,
+              "line": 28,
+              "column": 51
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

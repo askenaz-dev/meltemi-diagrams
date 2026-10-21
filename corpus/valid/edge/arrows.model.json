@@ -1,0 +1,1791 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "arrows",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 94,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 1567,
+          "line": 60,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": null,
+        "title": "Arrow ends",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "a1",
+          "kind": "node",
+          "label": "A",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 157,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 164,
+              "line": 8,
+              "column": 10
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 157,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 159,
+              "line": 8,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "b1",
+          "kind": "node",
+          "label": "B",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 167,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 174,
+              "line": 9,
+              "column": 10
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 167,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 169,
+              "line": 9,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "a2",
+          "kind": "node",
+          "label": "A",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 177,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 184,
+              "line": 10,
+              "column": 10
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 177,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 179,
+              "line": 10,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "b2",
+          "kind": "node",
+          "label": "B",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 187,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 194,
+              "line": 11,
+              "column": 10
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 187,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 189,
+              "line": 11,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "a3",
+          "kind": "node",
+          "label": "A",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 197,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 204,
+              "line": 12,
+              "column": 10
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 197,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 199,
+              "line": 12,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "b3",
+          "kind": "node",
+          "label": "B",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 207,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 214,
+              "line": 13,
+              "column": 10
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 207,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 209,
+              "line": 13,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "a4",
+          "kind": "node",
+          "label": "A",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 217,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 224,
+              "line": 14,
+              "column": 10
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 217,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 219,
+              "line": 14,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "b4",
+          "kind": "node",
+          "label": "B",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 227,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 234,
+              "line": 15,
+              "column": 10
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 227,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 229,
+              "line": 15,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "a5",
+          "kind": "node",
+          "label": "A",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 237,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 244,
+              "line": 16,
+              "column": 10
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 237,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 239,
+              "line": 16,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "b5",
+          "kind": "node",
+          "label": "B",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 247,
+              "line": 17,
+              "column": 3
+            },
+            "end": {
+              "offset": 254,
+              "line": 17,
+              "column": 10
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 247,
+              "line": 17,
+              "column": 3
+            },
+            "end": {
+              "offset": 249,
+              "line": 17,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "c1",
+          "kind": "node",
+          "label": "Customer",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 257,
+              "line": 18,
+              "column": 3
+            },
+            "end": {
+              "offset": 271,
+              "line": 18,
+              "column": 17
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 257,
+              "line": 18,
+              "column": 3
+            },
+            "end": {
+              "offset": 259,
+              "line": 18,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "o1",
+          "kind": "node",
+          "label": "Order",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 274,
+              "line": 19,
+              "column": 3
+            },
+            "end": {
+              "offset": 285,
+              "line": 19,
+              "column": 14
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 274,
+              "line": 19,
+              "column": 3
+            },
+            "end": {
+              "offset": 276,
+              "line": 19,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "c2",
+          "kind": "node",
+          "label": "Order",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 288,
+              "line": 20,
+              "column": 3
+            },
+            "end": {
+              "offset": 299,
+              "line": 20,
+              "column": 14
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 288,
+              "line": 20,
+              "column": 3
+            },
+            "end": {
+              "offset": 290,
+              "line": 20,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "l2",
+          "kind": "node",
+          "label": "Line",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 302,
+              "line": 21,
+              "column": 3
+            },
+            "end": {
+              "offset": 312,
+              "line": 21,
+              "column": 13
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 302,
+              "line": 21,
+              "column": 3
+            },
+            "end": {
+              "offset": 304,
+              "line": 21,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "s1",
+          "kind": "node",
+          "label": "Start",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 315,
+              "line": 22,
+              "column": 3
+            },
+            "end": {
+              "offset": 326,
+              "line": 22,
+              "column": 14
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 315,
+              "line": 22,
+              "column": 3
+            },
+            "end": {
+              "offset": 317,
+              "line": 22,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "e1",
+          "kind": "node",
+          "label": "End",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 329,
+              "line": 23,
+              "column": 3
+            },
+            "end": {
+              "offset": 338,
+              "line": 23,
+              "column": 12
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 329,
+              "line": 23,
+              "column": 3
+            },
+            "end": {
+              "offset": 331,
+              "line": 23,
+              "column": 5
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "both",
+          "id": "both",
+          "from": "a1",
+          "to": "b1",
+          "line": "solid",
+          "twoWay": true,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "two-way",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 342,
+              "line": 25,
+              "column": 3
+            },
+            "end": {
+              "offset": 370,
+              "line": 25,
+              "column": 31
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 366,
+              "line": 25,
+              "column": 27
+            },
+            "end": {
+              "offset": 370,
+              "line": 25,
+              "column": 31
+            }
+          }
+        },
+        {
+          "key": "dashedBoth",
+          "id": "dashedBoth",
+          "from": "a2",
+          "to": "b2",
+          "line": "dashed",
+          "twoWay": true,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "two-way, dashed",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 373,
+              "line": 26,
+              "column": 3
+            },
+            "end": {
+              "offset": 416,
+              "line": 26,
+              "column": 46
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 406,
+              "line": 26,
+              "column": 36
+            },
+            "end": {
+              "offset": 416,
+              "line": 26,
+              "column": 46
+            }
+          }
+        },
+        {
+          "key": "outlined",
+          "id": "outlined",
+          "from": "a3",
+          "to": "b3",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "outlined",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 419,
+              "line": 27,
+              "column": 3
+            },
+            "end": {
+              "offset": 451,
+              "line": 27,
+              "column": 35
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 443,
+              "line": 27,
+              "column": 27
+            },
+            "end": {
+              "offset": 451,
+              "line": 27,
+              "column": 35
+            }
+          }
+        },
+        {
+          "key": "diamonds",
+          "id": "diamonds",
+          "from": "a4",
+          "to": "b4",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "diamonds",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 454,
+              "line": 28,
+              "column": 3
+            },
+            "end": {
+              "offset": 486,
+              "line": 28,
+              "column": 35
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 478,
+              "line": 28,
+              "column": 27
+            },
+            "end": {
+              "offset": 486,
+              "line": 28,
+              "column": 35
+            }
+          }
+        },
+        {
+          "key": "circles",
+          "id": "circles",
+          "from": "a5",
+          "to": "b5",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "circles",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 489,
+              "line": 29,
+              "column": 3
+            },
+            "end": {
+              "offset": 519,
+              "line": 29,
+              "column": 33
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 512,
+              "line": 29,
+              "column": 26
+            },
+            "end": {
+              "offset": 519,
+              "line": 29,
+              "column": 33
+            }
+          }
+        },
+        {
+          "key": "places",
+          "id": "places",
+          "from": "c1",
+          "to": "o1",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "places",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 522,
+              "line": 30,
+              "column": 3
+            },
+            "end": {
+              "offset": 550,
+              "line": 30,
+              "column": 31
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 544,
+              "line": 30,
+              "column": 25
+            },
+            "end": {
+              "offset": 550,
+              "line": 30,
+              "column": 31
+            }
+          }
+        },
+        {
+          "key": "contains",
+          "id": "contains",
+          "from": "c2",
+          "to": "l2",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "contains",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 553,
+              "line": 31,
+              "column": 3
+            },
+            "end": {
+              "offset": 585,
+              "line": 31,
+              "column": 35
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 577,
+              "line": 31,
+              "column": 27
+            },
+            "end": {
+              "offset": 585,
+              "line": 31,
+              "column": 35
+            }
+          }
+        },
+        {
+          "key": "rounded",
+          "id": "rounded",
+          "from": "s1",
+          "to": "e1",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "rounded, dotted",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 588,
+              "line": 32,
+              "column": 3
+            },
+            "end": {
+              "offset": 626,
+              "line": 32,
+              "column": 41
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 619,
+              "line": 32,
+              "column": 34
+            },
+            "end": {
+              "offset": 626,
+              "line": 32,
+              "column": 41
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "a1",
+          "x": 100,
+          "y": 60,
+          "range": {
+            "start": {
+              "offset": 646,
+              "line": 35,
+              "column": 5
+            },
+            "end": {
+              "offset": 667,
+              "line": 35,
+              "column": 26
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 652,
+              "line": 35,
+              "column": 11
+            },
+            "end": {
+              "offset": 654,
+              "line": 35,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "b1",
+          "x": 420,
+          "y": 60,
+          "range": {
+            "start": {
+              "offset": 672,
+              "line": 36,
+              "column": 5
+            },
+            "end": {
+              "offset": 693,
+              "line": 36,
+              "column": 26
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 678,
+              "line": 36,
+              "column": 11
+            },
+            "end": {
+              "offset": 680,
+              "line": 36,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "a2",
+          "x": 100,
+          "y": 150,
+          "range": {
+            "start": {
+              "offset": 698,
+              "line": 37,
+              "column": 5
+            },
+            "end": {
+              "offset": 720,
+              "line": 37,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 704,
+              "line": 37,
+              "column": 11
+            },
+            "end": {
+              "offset": 706,
+              "line": 37,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "b2",
+          "x": 420,
+          "y": 150,
+          "range": {
+            "start": {
+              "offset": 725,
+              "line": 38,
+              "column": 5
+            },
+            "end": {
+              "offset": 747,
+              "line": 38,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 731,
+              "line": 38,
+              "column": 11
+            },
+            "end": {
+              "offset": 733,
+              "line": 38,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "a3",
+          "x": 100,
+          "y": 240,
+          "range": {
+            "start": {
+              "offset": 752,
+              "line": 39,
+              "column": 5
+            },
+            "end": {
+              "offset": 774,
+              "line": 39,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 758,
+              "line": 39,
+              "column": 11
+            },
+            "end": {
+              "offset": 760,
+              "line": 39,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "b3",
+          "x": 420,
+          "y": 240,
+          "range": {
+            "start": {
+              "offset": 779,
+              "line": 40,
+              "column": 5
+            },
+            "end": {
+              "offset": 801,
+              "line": 40,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 785,
+              "line": 40,
+              "column": 11
+            },
+            "end": {
+              "offset": 787,
+              "line": 40,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "a4",
+          "x": 100,
+          "y": 330,
+          "range": {
+            "start": {
+              "offset": 806,
+              "line": 41,
+              "column": 5
+            },
+            "end": {
+              "offset": 828,
+              "line": 41,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 812,
+              "line": 41,
+              "column": 11
+            },
+            "end": {
+              "offset": 814,
+              "line": 41,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "b4",
+          "x": 420,
+          "y": 330,
+          "range": {
+            "start": {
+              "offset": 833,
+              "line": 42,
+              "column": 5
+            },
+            "end": {
+              "offset": 855,
+              "line": 42,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 839,
+              "line": 42,
+              "column": 11
+            },
+            "end": {
+              "offset": 841,
+              "line": 42,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "a5",
+          "x": 100,
+          "y": 420,
+          "range": {
+            "start": {
+              "offset": 860,
+              "line": 43,
+              "column": 5
+            },
+            "end": {
+              "offset": 882,
+              "line": 43,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 866,
+              "line": 43,
+              "column": 11
+            },
+            "end": {
+              "offset": 868,
+              "line": 43,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "b5",
+          "x": 420,
+          "y": 420,
+          "range": {
+            "start": {
+              "offset": 887,
+              "line": 44,
+              "column": 5
+            },
+            "end": {
+              "offset": 909,
+              "line": 44,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 893,
+              "line": 44,
+              "column": 11
+            },
+            "end": {
+              "offset": 895,
+              "line": 44,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "c1",
+          "x": 640,
+          "y": 60,
+          "range": {
+            "start": {
+              "offset": 914,
+              "line": 45,
+              "column": 5
+            },
+            "end": {
+              "offset": 935,
+              "line": 45,
+              "column": 26
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 920,
+              "line": 45,
+              "column": 11
+            },
+            "end": {
+              "offset": 922,
+              "line": 45,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "o1",
+          "x": 960,
+          "y": 60,
+          "range": {
+            "start": {
+              "offset": 940,
+              "line": 46,
+              "column": 5
+            },
+            "end": {
+              "offset": 961,
+              "line": 46,
+              "column": 26
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 946,
+              "line": 46,
+              "column": 11
+            },
+            "end": {
+              "offset": 948,
+              "line": 46,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "c2",
+          "x": 640,
+          "y": 150,
+          "range": {
+            "start": {
+              "offset": 966,
+              "line": 47,
+              "column": 5
+            },
+            "end": {
+              "offset": 988,
+              "line": 47,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 972,
+              "line": 47,
+              "column": 11
+            },
+            "end": {
+              "offset": 974,
+              "line": 47,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "l2",
+          "x": 960,
+          "y": 150,
+          "range": {
+            "start": {
+              "offset": 993,
+              "line": 48,
+              "column": 5
+            },
+            "end": {
+              "offset": 1015,
+              "line": 48,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 999,
+              "line": 48,
+              "column": 11
+            },
+            "end": {
+              "offset": 1001,
+              "line": 48,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "s1",
+          "x": 640,
+          "y": 330,
+          "range": {
+            "start": {
+              "offset": 1020,
+              "line": 49,
+              "column": 5
+            },
+            "end": {
+              "offset": 1042,
+              "line": 49,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1026,
+              "line": 49,
+              "column": 11
+            },
+            "end": {
+              "offset": 1028,
+              "line": 49,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "e1",
+          "x": 960,
+          "y": 420,
+          "range": {
+            "start": {
+              "offset": 1047,
+              "line": 50,
+              "column": 5
+            },
+            "end": {
+              "offset": 1069,
+              "line": 50,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1053,
+              "line": 50,
+              "column": 11
+            },
+            "end": {
+              "offset": 1055,
+              "line": 50,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "route",
+          "target": "rounded",
+          "from": {
+            "element": "s1",
+            "port": "south"
+          },
+          "to": {
+            "element": "e1",
+            "port": "west"
+          },
+          "via": [
+            {
+              "x": 640,
+              "y": 420
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 1074,
+              "line": 51,
+              "column": 5
+            },
+            "end": {
+              "offset": 1129,
+              "line": 51,
+              "column": 60
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1080,
+              "line": 51,
+              "column": 11
+            },
+            "end": {
+              "offset": 1087,
+              "line": 51,
+              "column": 18
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [
+        {
+          "target": "outlined",
+          "targetKind": "relation",
+          "properties": {
+            "arrowhead": "triangleOutline",
+            "arrowtail": "triangleOutline"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1137,
+              "line": 54,
+              "column": 3
+            },
+            "end": {
+              "offset": 1208,
+              "line": 54,
+              "column": 74
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1143,
+              "line": 54,
+              "column": 9
+            },
+            "end": {
+              "offset": 1151,
+              "line": 54,
+              "column": 17
+            }
+          }
+        },
+        {
+          "target": "diamonds",
+          "targetKind": "relation",
+          "properties": {
+            "arrowhead": "diamondOutline",
+            "arrowtail": "diamond"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1211,
+              "line": 55,
+              "column": 3
+            },
+            "end": {
+              "offset": 1273,
+              "line": 55,
+              "column": 65
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1217,
+              "line": 55,
+              "column": 9
+            },
+            "end": {
+              "offset": 1225,
+              "line": 55,
+              "column": 17
+            }
+          }
+        },
+        {
+          "target": "circles",
+          "targetKind": "relation",
+          "properties": {
+            "arrowhead": "circle",
+            "arrowtail": "circleOutline",
+            "line": "dotted"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1276,
+              "line": 56,
+              "column": 3
+            },
+            "end": {
+              "offset": 1348,
+              "line": 56,
+              "column": 75
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1282,
+              "line": 56,
+              "column": 9
+            },
+            "end": {
+              "offset": 1289,
+              "line": 56,
+              "column": 16
+            }
+          }
+        },
+        {
+          "target": "places",
+          "targetKind": "relation",
+          "properties": {
+            "arrowhead": "zeroOrMany",
+            "arrowtail": "onlyOne"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1351,
+              "line": 57,
+              "column": 3
+            },
+            "end": {
+              "offset": 1407,
+              "line": 57,
+              "column": 59
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1357,
+              "line": 57,
+              "column": 9
+            },
+            "end": {
+              "offset": 1363,
+              "line": 57,
+              "column": 15
+            }
+          }
+        },
+        {
+          "target": "contains",
+          "targetKind": "relation",
+          "properties": {
+            "arrowhead": "oneOrMany",
+            "arrowtail": "bar"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1410,
+              "line": 58,
+              "column": 3
+            },
+            "end": {
+              "offset": 1463,
+              "line": 58,
+              "column": 56
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1416,
+              "line": 58,
+              "column": 9
+            },
+            "end": {
+              "offset": 1424,
+              "line": 58,
+              "column": 17
+            }
+          }
+        },
+        {
+          "target": "rounded",
+          "targetKind": "relation",
+          "properties": {
+            "arrowhead": "cross",
+            "arrowtail": "many",
+            "corners": "rounded",
+            "line": "dotted",
+            "routing": "orthogonal"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1466,
+              "line": 59,
+              "column": 3
+            },
+            "end": {
+              "offset": 1565,
+              "line": 59,
+              "column": 102
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1472,
+              "line": 59,
+              "column": 9
+            },
+            "end": {
+              "offset": 1479,
+              "line": 59,
+              "column": 16
+            }
+          }
+        }
+      ],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

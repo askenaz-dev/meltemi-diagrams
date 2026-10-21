@@ -1,0 +1,37 @@
+language "0.2"
+
+// Nested containers three levels deep, with relations inside a group, across groups and out of
+// the outermost one.
+diagram nested: flow {
+  title "Platform in its regions"
+  direction LR
+
+  client["Client apps"]
+
+  group cloud "Cloud account" {
+    description "Production"
+    group region "Region eu-west" {
+      group cluster "Kubernetes cluster" {
+        api["Order API"]
+        worker["Worker"]
+      }
+      queue[("Queue")]
+      db[("Orders DB")]
+    }
+    group edge "Edge" {
+      cdn["CDN"]
+      waf["Firewall"]
+    }
+  }
+
+  partner["Payment partner"]
+
+  client -> cdn: "HTTPS" as fetch
+  cdn -> waf as filter
+  waf -> api: "routes" as route
+  api -> queue: "enqueue" as enqueue
+  queue -> worker: "consume" as consume
+  worker -> db: "writes" as write
+  api -> db: "reads" as read
+  worker -> partner: "charges" as charge
+}

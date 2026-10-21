@@ -1,0 +1,14 @@
+diagram d: flow {
+  group backend "Backend" {
+    api["API"]
+    db[("DB")]
+    api -> db as read
+  }
+  web["Web"]
+  web -> api as call
+  placement {
+    place web at (0, 0)
+    place api at (200, 0)
+    route call from web.east to api.west
+  }
+}

@@ -1,0 +1,4 @@
+@startuml
+!includeurl https://example.com/styles.puml
+[Web] --> [API]
+@enduml

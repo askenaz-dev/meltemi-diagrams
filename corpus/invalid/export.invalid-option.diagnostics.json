@@ -1,0 +1,21 @@
+[
+  {
+    "code": "export.invalid-option",
+    "severity": "error",
+    "message": "`scale` does not apply to pdf exports; it applies to png.",
+    "range": {
+      "start": {
+        "offset": 162,
+        "line": 10,
+        "column": 3
+      },
+      "end": {
+        "offset": 169,
+        "line": 10,
+        "column": 10
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

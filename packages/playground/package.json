@@ -1,0 +1,37 @@
+{
+  "name": "@meltemi/diagrams-playground",
+  "version": "1.8.0",
+  "private": true,
+  "description": "The Meltemi Diagrams playground: templates, visible code, the canvas and every export in a browser, with no account.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "tsx --conditions=@meltemi/diagrams-source build.mjs",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
+  },
+  "dependencies": {
+    "@meltemi/diagrams-assets": "workspace:*",
+    "@meltemi/diagrams-canvas": "workspace:*",
+    "@meltemi/diagrams-capture": "workspace:*",
+    "@meltemi/diagrams-catalog": "workspace:*",
+    "@meltemi/diagrams-edit": "workspace:*",
+    "@meltemi/diagrams-editor": "workspace:*",
+    "@meltemi/diagrams-fonts": "workspace:*",
+    "@meltemi/diagrams-i18n": "workspace:*",
+    "@meltemi/diagrams-import": "workspace:*",
+    "@meltemi/diagrams-language": "workspace:*",
+    "@meltemi/diagrams-layout": "workspace:*",
+    "@meltemi/diagrams-layout-elk": "workspace:*",
+    "@meltemi/diagrams-model": "workspace:*",
+    "@meltemi/diagrams-motion": "workspace:*",
+    "@meltemi/diagrams-player": "workspace:*",
+    "@meltemi/diagrams-project": "workspace:*",
+    "@meltemi/diagrams-render": "workspace:*",
+    "elkjs": "0.12.0",
+    "yjs": "13.6.33"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2",
+    "playwright-core": "1.63.0"
+  }
+}

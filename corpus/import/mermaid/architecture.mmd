@@ -1,0 +1,20 @@
+architecture-beta
+    title Storage service
+    group api(cloud)[API]
+    group inner(server)[Inner] in api
+
+    service db(database)[Database] in api
+    service disk1(disk)[Storage] in api
+    service disk2(disk)[Storage] in inner
+    service server(server)[Server] in api
+    service gateway(internet)[Gateway]
+    service fn(logos:aws-lambda)[Function]
+    junction junctionCenter
+
+    db:L -- R:server
+    disk1:T -- B:server
+    disk2:T --> B:db
+    server:T --> B:gateway
+    gateway:R <-- L:fn
+    fn:B <--> T:junctionCenter
+    server{group}:R -[calls]- L:fn

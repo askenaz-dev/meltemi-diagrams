@@ -1,0 +1,53 @@
+language "0.2"
+
+// Plain containers and stacks: untitled groups nested in each other, filled and square; boxes
+// stacked outer first, with a connector between two of them; a box on the back layer under a
+// connector; and corner radii written per element.
+diagram stack: free {
+  title "Containers and stacks"
+  layout manual
+  layers back, main
+
+  group outer "" {
+    group inner "" {
+      box core "Core"
+    }
+  }
+
+  box tray ""
+  box left "In" { description "queue" }
+  box right "Out" { description "store" }
+  left -> right as pass
+
+  box band "" { layer back }
+  box source "Source"
+  box sink "Sink"
+  source -> sink as across
+
+  core -> tray as feed
+
+  placement {
+    place outer at (200, 180)
+    size outer (320, 240)
+    place inner at (144, 104)
+    size inner (240, 160)
+    place core at (104, 64)
+    place tray at (620, 180)
+    size tray (360, 200)
+    place left at (530, 180)
+    size left (120, 72)
+    place right at (710, 180)
+    size right (120, 72)
+    place band at (420, 420)
+    size band (720, 120)
+    place source at (200, 420)
+    place sink at (640, 420)
+  }
+
+  style outer { fill "#dae8fc"; stroke "#6c8ebf"; radius 0 }
+  style inner { fill "#fff2cc"; stroke "#d6b656"; radius 0 }
+  style tray { fill "#d5e8d4"; stroke "#82b366"; radius 16 }
+  style left { radius 0 }
+  style right { radius 24 }
+  style band { shape rectangle; fill "#f5f5f5"; stroke "#d0d0d0" }
+}

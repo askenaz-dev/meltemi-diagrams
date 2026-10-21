@@ -1,0 +1,44 @@
+[
+  {
+    "code": "layout.label-overlap",
+    "severity": "warning",
+    "message": "The text \"Cache\" of `cache` overlaps the text \"save order\" of `save`.",
+    "range": {
+      "start": {
+        "offset": 158,
+        "line": 8,
+        "column": 3
+      },
+      "end": {
+        "offset": 172,
+        "line": 8,
+        "column": 17
+      }
+    },
+    "hints": [
+      "Move one of them apart, or place the label with `label <relation> at <n>%`."
+    ],
+    "related": []
+  },
+  {
+    "code": "layout.label-overlap",
+    "severity": "warning",
+    "message": "The text \"save order\" of `save` overlaps the box of `cache`.",
+    "range": {
+      "start": {
+        "offset": 175,
+        "line": 9,
+        "column": 3
+      },
+      "end": {
+        "offset": 206,
+        "line": 9,
+        "column": 34
+      }
+    },
+    "hints": [
+      "Move one of them apart, or place the label with `label <relation> at <n>%`."
+    ],
+    "related": []
+  }
+]

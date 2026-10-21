@@ -1,0 +1,594 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "checkout",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 109,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 626,
+          "line": 26,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "assisted",
+        "theme": "technical.light",
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "web",
+          "kind": "node",
+          "label": "Web shop",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 181,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 196,
+              "line": 8,
+              "column": 18
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 181,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 184,
+              "line": 8,
+              "column": 6
+            }
+          }
+        },
+        {
+          "id": "api",
+          "kind": "node",
+          "label": "Orders API",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 199,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 216,
+              "line": 9,
+              "column": 20
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 199,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 202,
+              "line": 9,
+              "column": 6
+            }
+          }
+        },
+        {
+          "id": "db",
+          "kind": "data",
+          "label": "Orders",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": "cylinder",
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 219,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 233,
+              "line": 10,
+              "column": 17
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 219,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 221,
+              "line": 10,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "audit",
+          "kind": "node",
+          "label": "Audit log",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 236,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 254,
+              "line": 11,
+              "column": 21
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 236,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 241,
+              "line": 11,
+              "column": 8
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "order",
+          "id": "order",
+          "from": "web",
+          "to": "api",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 258,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 277,
+              "line": 13,
+              "column": 22
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 272,
+              "line": 13,
+              "column": 17
+            },
+            "end": {
+              "offset": 277,
+              "line": 13,
+              "column": 22
+            }
+          }
+        },
+        {
+          "key": "save",
+          "id": "save",
+          "from": "api",
+          "to": "db",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 280,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 297,
+              "line": 14,
+              "column": 20
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 293,
+              "line": 14,
+              "column": 16
+            },
+            "end": {
+              "offset": 297,
+              "line": 14,
+              "column": 20
+            }
+          }
+        },
+        {
+          "key": "record",
+          "id": "record",
+          "from": "api",
+          "to": "audit",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 300,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 322,
+              "line": 15,
+              "column": 25
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 316,
+              "line": 15,
+              "column": 19
+            },
+            "end": {
+              "offset": 322,
+              "line": 15,
+              "column": 25
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "web",
+          "x": 140,
+          "y": 120,
+          "range": {
+            "start": {
+              "offset": 342,
+              "line": 18,
+              "column": 5
+            },
+            "end": {
+              "offset": 365,
+              "line": 18,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 348,
+              "line": 18,
+              "column": 11
+            },
+            "end": {
+              "offset": 351,
+              "line": 18,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "api",
+          "x": 420,
+          "y": 160,
+          "range": {
+            "start": {
+              "offset": 370,
+              "line": 19,
+              "column": 5
+            },
+            "end": {
+              "offset": 393,
+              "line": 19,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 376,
+              "line": 19,
+              "column": 11
+            },
+            "end": {
+              "offset": 379,
+              "line": 19,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "db",
+          "x": 700,
+          "y": 120,
+          "range": {
+            "start": {
+              "offset": 398,
+              "line": 20,
+              "column": 5
+            },
+            "end": {
+              "offset": 420,
+              "line": 20,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 404,
+              "line": 20,
+              "column": 11
+            },
+            "end": {
+              "offset": 406,
+              "line": 20,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "audit",
+          "x": 420,
+          "y": 340,
+          "range": {
+            "start": {
+              "offset": 425,
+              "line": 21,
+              "column": 5
+            },
+            "end": {
+              "offset": 450,
+              "line": 21,
+              "column": 30
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 431,
+              "line": 21,
+              "column": 11
+            },
+            "end": {
+              "offset": 436,
+              "line": 21,
+              "column": 16
+            }
+          }
+        },
+        {
+          "statement": "route",
+          "target": "order",
+          "from": {
+            "element": "web",
+            "port": "east",
+            "position": 50
+          },
+          "to": {
+            "element": "api",
+            "port": "west",
+            "position": 50
+          },
+          "via": [],
+          "range": {
+            "start": {
+              "offset": 455,
+              "line": 22,
+              "column": 5
+            },
+            "end": {
+              "offset": 500,
+              "line": 22,
+              "column": 50
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 461,
+              "line": 22,
+              "column": 11
+            },
+            "end": {
+              "offset": 466,
+              "line": 22,
+              "column": 16
+            }
+          }
+        },
+        {
+          "statement": "route",
+          "target": "save",
+          "from": {
+            "element": "api",
+            "port": "east",
+            "position": 25
+          },
+          "to": {
+            "element": "db",
+            "port": "west",
+            "position": 75
+          },
+          "via": [],
+          "range": {
+            "start": {
+              "offset": 505,
+              "line": 23,
+              "column": 5
+            },
+            "end": {
+              "offset": 548,
+              "line": 23,
+              "column": 48
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 511,
+              "line": 23,
+              "column": 11
+            },
+            "end": {
+              "offset": 515,
+              "line": 23,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "route",
+          "target": "record",
+          "from": {
+            "element": "api",
+            "port": "south",
+            "position": 75
+          },
+          "to": {
+            "element": "audit",
+            "port": "north",
+            "position": 75
+          },
+          "via": [
+            {
+              "x": 460,
+              "y": 260
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 553,
+              "line": 24,
+              "column": 5
+            },
+            "end": {
+              "offset": 620,
+              "line": 24,
+              "column": 72
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 559,
+              "line": 24,
+              "column": 11
+            },
+            "end": {
+              "offset": 565,
+              "line": 24,
+              "column": 17
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

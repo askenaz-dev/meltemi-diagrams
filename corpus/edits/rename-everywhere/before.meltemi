@@ -1,0 +1,18 @@
+language "0.2"
+
+diagram checkout: flow {
+  // api handles auth
+  api["API Gateway"]
+  orders["Orders"]
+  client -> api: "HTTPS" as request
+  api -> orders: "Create" as create
+
+  placement {
+    place api at (360, 180)
+    route create from api.east to orders.west via [(520, 180)]
+  }
+
+  style api {
+    icon "tabler:server"
+  }
+}

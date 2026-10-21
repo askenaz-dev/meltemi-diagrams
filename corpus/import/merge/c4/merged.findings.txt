@@ -1,0 +1,2 @@
+28:5 info import.merge `place bank at (1100, 200)` was dropped: `bank` is no longer in the source.
+32:3 info import.merge `bank` was removed from `style`: no longer in the source.

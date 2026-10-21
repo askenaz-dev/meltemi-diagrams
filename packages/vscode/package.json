@@ -1,0 +1,473 @@
+{
+  "name": "meltemi-diagrams",
+  "displayName": "Meltemi Diagrams",
+  "description": "%description%",
+  "version": "1.8.0",
+  "publisher": "meltemi",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/askenaz-dev/meltemi-diagrams"
+  },
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Visualization",
+    "Formatters"
+  ],
+  "keywords": [
+    "diagrams",
+    "diagrams as code",
+    "architecture",
+    "meltemi",
+    "svg"
+  ],
+  "icon": "media/icon.png",
+  "main": "./dist/extension.cjs",
+  "activationEvents": [],
+  "contributes": {
+    "languages": [
+      {
+        "id": "meltemi",
+        "aliases": [
+          "Meltemi Diagrams",
+          "meltemi"
+        ],
+        "extensions": [
+          ".meltemi"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./media/file-icon.svg",
+          "dark": "./media/file-icon.svg"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "meltemi",
+        "scopeName": "source.meltemi",
+        "path": "./syntaxes/meltemi.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "meltemi",
+        "path": "./snippets/meltemi.json"
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "meltemi.canvas",
+        "displayName": "%customEditor.canvas.displayName%",
+        "selector": [
+          {
+            "filenamePattern": "*.meltemi"
+          }
+        ],
+        "priority": "option"
+      }
+    ],
+    "commands": [
+      {
+        "command": "meltemi.openCanvasToSide",
+        "title": "%command.openCanvasToSide.title%",
+        "category": "%category%",
+        "icon": "$(open-preview)"
+      },
+      {
+        "command": "meltemi.openCanvas",
+        "title": "%command.openCanvas.title%",
+        "category": "%category%",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "meltemi.showSource",
+        "title": "%command.showSource.title%",
+        "category": "%category%",
+        "icon": "$(go-to-file)"
+      },
+      {
+        "command": "meltemi.exportSvg",
+        "title": "%command.exportSvg.title%",
+        "category": "%category%",
+        "icon": "$(export)"
+      },
+      {
+        "command": "meltemi.exportPng",
+        "title": "%command.exportPng.title%",
+        "category": "%category%",
+        "icon": "$(file-media)"
+      },
+      {
+        "command": "meltemi.exportPdf",
+        "title": "%command.exportPdf.title%",
+        "category": "%category%",
+        "icon": "$(file-pdf)"
+      },
+      {
+        "command": "meltemi.exportVideo",
+        "title": "%command.exportVideo.title%",
+        "category": "%category%",
+        "icon": "$(device-camera-video)"
+      },
+      {
+        "command": "meltemi.buildCatalog",
+        "title": "%command.buildCatalog.title%",
+        "category": "%category%",
+        "icon": "$(library)"
+      },
+      {
+        "command": "meltemi.runExportProfile",
+        "title": "%command.runExportProfile.title%",
+        "category": "%category%",
+        "icon": "$(run)"
+      },
+      {
+        "command": "meltemi.exportPlayer",
+        "title": "%command.exportPlayer.title%",
+        "category": "%category%",
+        "icon": "$(play-circle)"
+      },
+      {
+        "command": "meltemi.arrangeUnplaced",
+        "title": "%command.arrangeUnplaced.title%",
+        "category": "%category%"
+      },
+      {
+        "command": "meltemi.recomputeLayout",
+        "title": "%command.recomputeLayout.title%",
+        "category": "%category%"
+      },
+      {
+        "command": "meltemi.convertToFree",
+        "title": "%command.convertToFree.title%",
+        "category": "%category%"
+      },
+      {
+        "command": "meltemi.openModel",
+        "title": "%command.openModel.title%",
+        "category": "%category%"
+      },
+      {
+        "command": "meltemi.formatDocument",
+        "title": "%command.formatDocument.title%",
+        "category": "%category%"
+      },
+      {
+        "command": "meltemi.importDiagram",
+        "title": "%command.importDiagram.title%",
+        "category": "%category%"
+      },
+      {
+        "command": "meltemi.convertToMeltemi",
+        "title": "%command.convertToMeltemi.title%",
+        "category": "%category%"
+      },
+      {
+        "command": "meltemi.importSelection",
+        "title": "%command.importSelection.title%",
+        "category": "%category%"
+      },
+      {
+        "command": "meltemi.assistGenerate",
+        "title": "%command.assistGenerate.title%",
+        "category": "%category%",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "meltemi.assistModify",
+        "title": "%command.assistModify.title%",
+        "category": "%category%",
+        "icon": "$(sparkle)"
+      },
+      {
+        "command": "meltemi.assistRelations",
+        "title": "%command.assistRelations.title%",
+        "category": "%category%"
+      },
+      {
+        "command": "meltemi.assistExplain",
+        "title": "%command.assistExplain.title%",
+        "category": "%category%"
+      },
+      {
+        "command": "meltemi.setAssistKey",
+        "title": "%command.setAssistKey.title%",
+        "category": "%category%"
+      },
+      {
+        "command": "meltemi.clearAssistKey",
+        "title": "%command.clearAssistKey.title%",
+        "category": "%category%"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "meltemi.openCanvasToSide",
+          "when": "editorLangId == meltemi && activeEditor == workbench.editors.files.textFileEditor",
+          "group": "navigation"
+        },
+        {
+          "command": "meltemi.showSource",
+          "when": "activeCustomEditorId == meltemi.canvas",
+          "group": "navigation"
+        },
+        {
+          "command": "meltemi.exportSvg",
+          "when": "activeCustomEditorId == meltemi.canvas",
+          "group": "navigation"
+        },
+        {
+          "command": "meltemi.convertToMeltemi",
+          "when": "resourceExtname =~ /^\\.(mmd|mermaid|puml|plantuml|pu|iuml|wsd|md|markdown)$/i",
+          "group": "1_meltemi"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "meltemi.openCanvasToSide",
+          "when": "editorLangId == meltemi || activeCustomEditorId == meltemi.canvas"
+        },
+        {
+          "command": "meltemi.openCanvas",
+          "when": "editorLangId == meltemi || activeCustomEditorId == meltemi.canvas"
+        },
+        {
+          "command": "meltemi.showSource",
+          "when": "activeCustomEditorId == meltemi.canvas"
+        },
+        {
+          "command": "meltemi.exportSvg",
+          "when": "editorLangId == meltemi || activeCustomEditorId == meltemi.canvas"
+        },
+        {
+          "command": "meltemi.exportPng",
+          "when": "editorLangId == meltemi || activeCustomEditorId == meltemi.canvas"
+        },
+        {
+          "command": "meltemi.exportPdf",
+          "when": "editorLangId == meltemi || activeCustomEditorId == meltemi.canvas"
+        },
+        {
+          "command": "meltemi.exportVideo",
+          "when": "editorLangId == meltemi || activeCustomEditorId == meltemi.canvas"
+        },
+        {
+          "command": "meltemi.buildCatalog",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "meltemi.runExportProfile",
+          "when": "editorLangId == meltemi || activeCustomEditorId == meltemi.canvas"
+        },
+        {
+          "command": "meltemi.exportPlayer",
+          "when": "editorLangId == meltemi || activeCustomEditorId == meltemi.canvas"
+        },
+        {
+          "command": "meltemi.arrangeUnplaced",
+          "when": "editorLangId == meltemi || activeCustomEditorId == meltemi.canvas"
+        },
+        {
+          "command": "meltemi.recomputeLayout",
+          "when": "editorLangId == meltemi || activeCustomEditorId == meltemi.canvas"
+        },
+        {
+          "command": "meltemi.convertToFree",
+          "when": "editorLangId == meltemi || activeCustomEditorId == meltemi.canvas"
+        },
+        {
+          "command": "meltemi.openModel",
+          "when": "editorLangId == meltemi || activeCustomEditorId == meltemi.canvas"
+        },
+        {
+          "command": "meltemi.formatDocument",
+          "when": "editorLangId == meltemi || activeCustomEditorId == meltemi.canvas"
+        },
+        {
+          "command": "meltemi.importDiagram"
+        },
+        {
+          "command": "meltemi.convertToMeltemi",
+          "when": "resourceExtname =~ /^\\.(mmd|mermaid|puml|plantuml|pu|iuml|wsd|md|markdown)$/i"
+        },
+        {
+          "command": "meltemi.importSelection",
+          "when": "editorHasSelection"
+        },
+        {
+          "command": "meltemi.assistGenerate",
+          "when": "workspaceFolderCount > 0"
+        },
+        {
+          "command": "meltemi.assistModify",
+          "when": "editorLangId == meltemi"
+        },
+        {
+          "command": "meltemi.assistRelations",
+          "when": "editorLangId == meltemi"
+        },
+        {
+          "command": "meltemi.assistExplain",
+          "when": "workspaceFolderCount > 0"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "meltemi.convertToMeltemi",
+          "when": "resourceExtname =~ /^\\.(mmd|mermaid|puml|plantuml|pu|iuml|wsd|md|markdown)$/i",
+          "group": "7_modification"
+        },
+        {
+          "command": "meltemi.buildCatalog",
+          "when": "explorerResourceIsFolder || resourceExtname == .meltemi || resourceFilename == project.json",
+          "group": "7_modification"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "meltemi.importSelection",
+          "when": "editorHasSelection",
+          "group": "1_modification"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "%configuration.title%",
+      "properties": {
+        "meltemi.language": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "en",
+            "es"
+          ],
+          "enumDescriptions": [
+            "%config.language.enum.auto%",
+            "%config.language.enum.en%",
+            "%config.language.enum.es%"
+          ],
+          "default": "auto",
+          "description": "%config.language.description%"
+        },
+        "meltemi.canvas.openWithText": {
+          "type": "string",
+          "enum": [
+            "remember",
+            "always",
+            "never"
+          ],
+          "enumDescriptions": [
+            "%config.canvas.openWithText.enum.remember%",
+            "%config.canvas.openWithText.enum.always%",
+            "%config.canvas.openWithText.enum.never%"
+          ],
+          "default": "remember",
+          "description": "%config.canvas.openWithText.description%"
+        },
+        "meltemi.canvas.grid": {
+          "type": "number",
+          "default": 14,
+          "minimum": 1,
+          "description": "%config.canvas.grid.description%"
+        },
+        "meltemi.canvas.showGrid": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.canvas.showGrid.description%"
+        },
+        "meltemi.canvas.snap": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.canvas.snap.description%"
+        },
+        "meltemi.canvas.guides": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.canvas.guides.description%"
+        },
+        "meltemi.canvas.minimap": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.canvas.minimap.description%"
+        },
+        "meltemi.canvas.inspector": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.canvas.inspector.description%"
+        },
+        "meltemi.export.browser": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "%config.export.browser.markdownDescription%"
+        },
+        "meltemi.export.ffmpeg": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "%config.export.ffmpeg.markdownDescription%"
+        },
+        "meltemi.assist.provider": {
+          "type": "string",
+          "enum": [
+            "",
+            "anthropic",
+            "openai-compatible"
+          ],
+          "enumDescriptions": [
+            "%config.assist.provider.enum.none%",
+            "%config.assist.provider.enum.anthropic%",
+            "%config.assist.provider.enum.openaiCompatible%"
+          ],
+          "default": "",
+          "markdownDescription": "%config.assist.provider.markdownDescription%"
+        },
+        "meltemi.assist.model": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "%config.assist.model.markdownDescription%"
+        },
+        "meltemi.assist.baseUrl": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "%config.assist.baseUrl.markdownDescription%"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsx --conditions=@meltemi/diagrams-source build.mjs",
+    "package": "tsx --conditions=@meltemi/diagrams-source build.mjs && vsce package --no-dependencies --out meltemi-diagrams.vsix && tsx --conditions=@meltemi/diagrams-source test/package/check.mjs",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.webview.json && tsc -p tsconfig.harness.json"
+  },
+  "devDependencies": {
+    "@meltemi/diagrams-assets": "workspace:*",
+    "@meltemi/diagrams-assist": "workspace:*",
+    "@meltemi/diagrams-canvas": "workspace:*",
+    "@meltemi/diagrams-capture": "workspace:*",
+    "@meltemi/diagrams-catalog": "workspace:*",
+    "@meltemi/diagrams-edit": "workspace:*",
+    "@meltemi/diagrams-editor": "workspace:*",
+    "@meltemi/diagrams-fonts": "workspace:*",
+    "@meltemi/diagrams-i18n": "workspace:*",
+    "@meltemi/diagrams-import": "workspace:*",
+    "@meltemi/diagrams-language": "workspace:*",
+    "@meltemi/diagrams-layout": "workspace:*",
+    "@meltemi/diagrams-layout-elk": "workspace:*",
+    "@meltemi/diagrams-model": "workspace:*",
+    "@meltemi/diagrams-motion": "workspace:*",
+    "@meltemi/diagrams-player": "workspace:*",
+    "@meltemi/diagrams-project": "workspace:*",
+    "@meltemi/diagrams-render": "workspace:*",
+    "@types/vscode": "1.95.0",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "3.9.2",
+    "esbuild": "0.28.2",
+    "playwright-core": "1.63.0"
+  }
+}

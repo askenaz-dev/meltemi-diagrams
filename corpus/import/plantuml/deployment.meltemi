@@ -1,0 +1,39 @@
+language "0.2"
+
+// Imported from deployment.puml (plantuml) by meltemi-diagrams.
+
+diagram deployment: flow {
+  title "Order platform"
+  direction LR
+  layout auto
+
+  // Shared definitions for the deployment sample.
+  data ordersdb "Orders DB"
+  // The public edge
+  group srv "Server" {
+    node api "API" { description "«Kotlin»" }
+    data db "DB"
+    node auth "Auth Service"
+    node cache "Service"
+    group workers "Workers" {
+      node mailer "mailer.jar"
+    }
+  }
+  node Internet
+  note note1 "Rate limited"
+  note N1 "Shared\nstore"
+
+  Internet -> api: "HTTPS 4"
+  api --> db: "SQL"
+  api -> auth as e1
+  api -> mailer
+  Internet -> srv
+  note1 --> api as e2
+  N1 --> db as e3
+
+  style db { fill "lightblue"; stroke "navy"; color "black" }
+  style Internet { shape cloud }
+  style e1 { stroke "red"; width 2 }
+  style e2 { arrowhead none }
+  style e3 { arrowhead none }
+}

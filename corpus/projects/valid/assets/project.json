@@ -1,0 +1,8 @@
+{
+  "$schema": "../../../../schemas/project.schema.json",
+  "name": "assets",
+  "language": "0.2",
+  "tools": { "meltemi-diagrams": "^1.0.0" },
+  "sources": ["diagrams"],
+  "icons": { "cloud": "aws" }
+}

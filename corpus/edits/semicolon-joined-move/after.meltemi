@@ -1,0 +1,9 @@
+language "0.2"
+
+diagram compact: flow {
+  layout assisted
+  api["API"]; db[("DB")]
+  placement {
+    place api at (1, 1); place db at (20, 30)
+  }
+}

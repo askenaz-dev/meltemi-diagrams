@@ -1,0 +1,258 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "shipping",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 191,
+          "line": 11,
+          "column": 1
+        },
+        "end": {
+          "offset": 425,
+          "line": 24,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": "plain",
+        "title": "Shipping",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "orders",
+          "kind": "node",
+          "label": "Orders",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 270,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 286,
+              "line": 16,
+              "column": 19
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 270,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 276,
+              "line": 16,
+              "column": 9
+            }
+          }
+        },
+        {
+          "id": "warehouse",
+          "kind": "node",
+          "label": "Warehouse",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 289,
+              "line": 17,
+              "column": 3
+            },
+            "end": {
+              "offset": 311,
+              "line": 17,
+              "column": 25
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 289,
+              "line": 17,
+              "column": 3
+            },
+            "end": {
+              "offset": 298,
+              "line": 17,
+              "column": 12
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "orders->warehouse#1",
+          "id": null,
+          "from": "orders",
+          "to": "warehouse",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "pick",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 314,
+              "line": 18,
+              "column": 3
+            },
+            "end": {
+              "offset": 341,
+              "line": 18,
+              "column": 30
+            }
+          },
+          "idRange": null
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "orders",
+          "x": 100,
+          "y": 60,
+          "range": {
+            "start": {
+              "offset": 361,
+              "line": 21,
+              "column": 5
+            },
+            "end": {
+              "offset": 386,
+              "line": 21,
+              "column": 30
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 367,
+              "line": 21,
+              "column": 11
+            },
+            "end": {
+              "offset": 373,
+              "line": 21,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "warehouse",
+          "x": 360,
+          "y": 60,
+          "range": {
+            "start": {
+              "offset": 391,
+              "line": 22,
+              "column": 5
+            },
+            "end": {
+              "offset": 419,
+              "line": 22,
+              "column": 33
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 397,
+              "line": 22,
+              "column": 11
+            },
+            "end": {
+              "offset": 406,
+              "line": 22,
+              "column": 20
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [
+    {
+      "id": "plain",
+      "extends": null,
+      "tokens": {
+        "brand": "Acme Architecture",
+        "font": "Georgia, serif",
+        "frame": "header",
+        "mark": "none"
+      },
+      "classes": [],
+      "rules": [],
+      "range": {
+        "start": {
+          "offset": 95,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 189,
+          "line": 9,
+          "column": 2
+        }
+      }
+    }
+  ],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

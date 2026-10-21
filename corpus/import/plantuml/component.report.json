@@ -1,0 +1,29 @@
+{
+  "status": "complete",
+  "format": "plantuml",
+  "diagrams": [
+    {
+      "id": "components",
+      "type": "flow",
+      "model": null,
+      "kind": "description",
+      "lines": [
+        1,
+        29
+      ]
+    }
+  ],
+  "findings": [
+    "3:1 info import.renamed-id [id] `Front end` is not a valid id; it is written as `Front_end`.",
+    "9:3 info import.approximated [description.stereotype approximated] Stereotypes become the element's description.",
+    "25:1 warning import.unsupported-construct [description.together dropped] `together` only steers PlantUML's layout; its elements are kept."
+  ],
+  "coverage": [
+    {
+      "diagram": "components",
+      "mapped": 23,
+      "approximated": 1,
+      "dropped": 1
+    }
+  ]
+}

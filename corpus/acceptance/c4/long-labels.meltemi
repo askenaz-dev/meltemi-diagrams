@@ -1,0 +1,45 @@
+language "0.2"
+
+// Long labels: names, technologies and relation descriptions much longer than a default box, in a
+// shared model drawn by a context view and a container view.
+model payments {
+  person merchant "Comercio con varias sucursales" {
+    description "Cobra a sus clientes en tienda y en línea"
+  }
+
+  system platform "Plataforma de pagos y conciliación" {
+    description "Procesa cargos, devoluciones y la conciliación diaria"
+    container portal "Portal de administración del comercio" {
+      technology "TypeScript y React con renderizado en el servidor"
+    }
+    container processor "Procesador de cargos y devoluciones" {
+      technology "Kotlin sobre la máquina virtual de Java"
+    }
+    datastore ledger "Libro mayor de movimientos conciliados" {
+      technology "PostgreSQL con réplicas de lectura"
+    }
+  }
+
+  system acquirer "Banco adquirente y red de tarjetas" {
+    description "Autoriza y liquida los cargos con tarjeta"
+    external
+  }
+
+  merchant -> platform.portal: "Consulta ventas, devoluciones y conciliaciones" as consult
+  platform.portal -> platform.processor: "Solicita devoluciones parciales y totales" as refunds {
+    technology "HTTPS y JSON con firma"
+  }
+  platform.processor -> platform.ledger: "Registra cada movimiento" as record
+  platform.processor -> acquirer: "Envía autorizaciones y liquidaciones" as settle
+}
+
+diagram context: c4 using payments {
+  level context
+  title "Plataforma de pagos en su contexto"
+}
+
+diagram containers: c4 using payments {
+  level container
+  scope platform
+  title "Contenedores de la plataforma de pagos"
+}

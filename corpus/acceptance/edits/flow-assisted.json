@@ -1,0 +1,45 @@
+{
+  "description": "Adding boxes to an assisted diagram keeps the boxes placed by hand where they are.",
+  "sheet": "edits/flow-assisted.meltemi",
+  "steps": [
+    {
+      "name": "add a box",
+      "operation": {
+        "kind": "createElement",
+        "diagram": "shop",
+        "elementKind": "node",
+        "id": "audit",
+        "label": "Audit log"
+      },
+      "changed": [
+        "audit"
+      ],
+      "unmoved": {
+        "shop": [
+          "web",
+          "api"
+        ]
+      }
+    },
+    {
+      "name": "connect it",
+      "operation": {
+        "kind": "createRelation",
+        "diagram": "shop",
+        "from": "api",
+        "to": "audit",
+        "line": "solid",
+        "label": "records"
+      },
+      "changed": [
+        "api -> audit"
+      ],
+      "unmoved": {
+        "shop": [
+          "web",
+          "api"
+        ]
+      }
+    }
+  ]
+}

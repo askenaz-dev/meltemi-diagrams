@@ -1,0 +1,105 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1771" height="996" viewBox="0 0 1771 996" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Event platform</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1771" height="996" fill="#F7FBFF"/>
+  <g data-id="platform" data-role="element" data-layer="back">
+    <rect x="467" y="260" width="900" height="520" rx="14" fill="#EAF1F8" stroke="#C9D6E3" stroke-width="1"/>
+    <text x="487" y="282.73" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">Platform</text>
+    <text x="487" y="298" text-anchor="start" font-size="11" font-weight="400" fill="#526579">Managed by the core team</text>
+  </g>
+  <g data-id="bus" data-role="element">
+    <rect x="763" y="490" width="480" height="220" rx="14" fill="#EAF1F8" stroke="#C9D6E3" stroke-width="1"/>
+    <text x="783" y="512.73" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">Event bus</text>
+  </g>
+  <g data-id="heading" data-role="element">
+    <text x="897" y="67.46" text-anchor="middle" font-size="48" font-weight="700" fill="#0B1830">Event platform</text>
+  </g>
+  <g data-id="subtitle" data-role="element">
+    <text x="897" y="118.73" text-anchor="middle" font-size="24" font-weight="400" fill="#526579">Producers publish once; consumers read at their own pace</text>
+  </g>
+  <g data-id="gateway" data-role="element">
+    <rect x="563" y="362" width="160" height="56" rx="0" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="643" y="386.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Gateway</text>
+    <text x="643" y="404" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">REST and gRPC</text>
+  </g>
+  <g data-id="topics" data-role="element">
+    <rect x="819" y="612" width="160" height="56" rx="28" fill="#1D4ED8" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="899" y="644.73" text-anchor="middle" font-size="13" font-weight="600" fill="#ffffff">Topics</text>
+  </g>
+  <g data-id="archive" data-role="element">
+    <path d="M1059 616 L1059 664 A80 8 0 0 0 1219 664 L1219 616 A80 8 0 0 1 1059 616 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M1059 616 A80 8 0 0 1 1219 616 A80 8 0 0 1 1059 616 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1139" y="648.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Archive</text>
+  </g>
+  <g data-id="web" data-role="element">
+    <path d="M97 380 A80 36 0 1 0 257 380 A80 36 0 1 0 97 380 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="177" y="384.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Web app</text>
+  </g>
+  <g data-id="mobile" data-role="element">
+    <path d="M97 660 A80 36 0 1 0 257 660 A80 36 0 1 0 97 660 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="177" y="664.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Mobile app</text>
+  </g>
+  <g data-id="rules" data-role="element">
+    <path d="M177 820 L257 860 L177 900 L97 860 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="177" y="864.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Valid?</text>
+  </g>
+  <g data-id="warehouse" data-role="element">
+    <path d="M1497 876 L1497 924 A80 8 0 0 0 1657 924 L1657 876 A80 8 0 0 1 1497 876 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M1497 876 A80 8 0 0 1 1657 876 A80 8 0 0 1 1497 876 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1577" y="908.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Warehouse</text>
+  </g>
+  <g data-id="publish" data-role="relation">
+    <polyline points="723,390 899,390 899,604" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M899 612 L895.5 604 L902.5 604 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="publish" data-role="label">
+      <rect x="857.25" y="381" width="50.3" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="882.4" y="394" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">publish</text>
+    </g>
+  </g>
+  <g data-id="fromWeb" data-role="relation">
+    <polyline points="256.93,381.5 555,381.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M563 381.5 L555 385 L555 378 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="fromMobile" data-role="relation">
+    <polyline points="257,660 410,660 410,397.5 555,397.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M563 397.5 L555 401 L555 394 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="nightly" data-role="relation">
+    <polyline points="979,640 1051,640" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <path d="M1059 640 L1051 643.5 L1051 636.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="nightly" data-role="label">
+      <rect x="995.13" y="631" width="47.75" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="1019" y="644" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">nightly</text>
+    </g>
+  </g>
+  <g data-id="load" data-role="relation">
+    <polyline points="1157,671.78 1157,900 1489,900" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1497 900 L1489 903.5 L1489 896.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="check" data-role="relation">
+    <polyline points="177,696 177,812" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M177 820 L173.5 812 L180.5 812 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="cloud" data-role="element" data-layer="front">
+    <rect x="1553" y="316" width="48" height="48" rx="8" fill="none" stroke="#526579" stroke-width="1" stroke-dasharray="5 4"/>
+    <path d="M1565 328L1589 352M1589 328L1565 352" fill="none" stroke="#526579" stroke-width="1"/>
+  </g>
+  <g data-id="note" data-role="element" data-layer="front">
+    <rect x="1481.5" y="399" width="191" height="42" rx="8" fill="#fff7d6" stroke="#B45309" stroke-width="1"/>
+    <text x="1489.5" y="427.64" text-anchor="start" font-size="21" font-weight="600" fill="#0B1830">Retention: 7 days</text>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,952.5 1751,952.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 962) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="978.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="1751" y="978" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Event platform</text>
+  </g>
+</svg>

@@ -1,0 +1,23 @@
+[
+  {
+    "code": "layout.unknown-theme",
+    "severity": "warning",
+    "message": "Unknown theme \"corporate\"; rendering with technical.light.",
+    "range": {
+      "start": {
+        "offset": 57,
+        "line": 5,
+        "column": 3
+      },
+      "end": {
+        "offset": 74,
+        "line": 5,
+        "column": 20
+      }
+    },
+    "hints": [
+      "Built-in themes: technical.light, technical.dark, editorial.light, editorial.dark, stage.light, stage.dark."
+    ],
+    "related": []
+  }
+]

@@ -1,0 +1,6 @@
+diagram d: flow {
+  a -> b
+  placement {
+    place a (1, 2)
+  }
+}

@@ -1,0 +1,332 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="828" height="1282" viewBox="0 0 828 1282" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>A purchase, end to end</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="828" height="1282" fill="#F7FBFF"/>
+  <g data-id="customer" data-role="lifeline">
+    <polyline points="55,80 55,1210" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="web" data-role="lifeline">
+    <polyline points="178,80 178,1210" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="api" data-role="lifeline">
+    <polyline points="314,80 314,1210" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="orders" data-role="lifeline">
+    <polyline points="450,80 450,1210" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="payments" data-role="lifeline">
+    <polyline points="586,80 586,1210" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="db" data-role="lifeline">
+    <polyline points="758.66,80 758.66,1210" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="m1" data-role="relation">
+    <polyline points="55,126 170,126" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M178 126 L170 129.5 L170 122.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="47" y="118" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="55" y="129.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">1</text>
+    <g data-id="m1" data-role="label">
+      <text x="116.5" y="120" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Open the shop</text>
+    </g>
+  </g>
+  <g data-id="m2" data-role="relation">
+    <polyline points="178,162 306,162" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M314 162 L306 165.5 L306 158.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="170" y="154" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="178" y="165.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">2</text>
+    <g data-id="m2" data-role="label">
+      <text x="246" y="156" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Load catalogue</text>
+    </g>
+  </g>
+  <g data-id="m3" data-role="relation">
+    <polyline points="314,198 750.66,198" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M758.66 198 L750.66 201.5 L750.66 194.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="306" y="190" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="314" y="201.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">3</text>
+    <g data-id="m3" data-role="label">
+      <text x="536.33" y="192" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Query products</text>
+    </g>
+  </g>
+  <g data-id="m4" data-role="relation">
+    <polyline points="758.66,234 314,234" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="322,230.5 314,234 322,237.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="750.66" y="226" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="758.66" y="237.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">4</text>
+    <g data-id="m4" data-role="label">
+      <text x="536.33" y="228" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Products</text>
+    </g>
+  </g>
+  <g data-id="m5" data-role="relation">
+    <polyline points="314,270 178,270" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="186,266.5 178,270 186,273.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="306" y="262" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="314" y="273.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">5</text>
+    <g data-id="m5" data-role="label">
+      <text x="246" y="264" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Catalogue</text>
+    </g>
+  </g>
+  <g data-id="m6" data-role="relation">
+    <polyline points="55,306 170,306" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M178 306 L170 309.5 L170 302.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="47" y="298" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="55" y="309.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">6</text>
+    <g data-id="m6" data-role="label">
+      <text x="116.5" y="300" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Add to cart</text>
+    </g>
+  </g>
+  <g data-id="m7" data-role="relation">
+    <polyline points="178,342 306,342" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M314 342 L306 345.5 L306 338.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="170" y="334" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="178" y="345.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">7</text>
+    <g data-id="m7" data-role="label">
+      <text x="246" y="336" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Save cart</text>
+    </g>
+  </g>
+  <g data-id="m8" data-role="relation">
+    <polyline points="314,378 442,378" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M450 378 L442 381.5 L442 374.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="306" y="370" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="314" y="381.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">8</text>
+    <g data-id="m8" data-role="label">
+      <text x="382" y="372" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Create draft</text>
+    </g>
+  </g>
+  <g data-id="m9" data-role="relation">
+    <polyline points="450,414 750.66,414" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M758.66 414 L750.66 417.5 L750.66 410.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="442" y="406" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="450" y="417.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">9</text>
+    <g data-id="m9" data-role="label">
+      <text x="604.33" y="408" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Insert draft</text>
+    </g>
+  </g>
+  <g data-id="m10" data-role="relation">
+    <polyline points="758.66,450 450,450" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="458,446.5 450,450 458,453.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="750.66" y="442" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="758.66" y="453.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">10</text>
+    <g data-id="m10" data-role="label">
+      <text x="604.33" y="444" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Draft id</text>
+    </g>
+  </g>
+  <g data-id="m11" data-role="relation">
+    <polyline points="450,486 314,486" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="322,482.5 314,486 322,489.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="442" y="478" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="450" y="489.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">11</text>
+    <g data-id="m11" data-role="label">
+      <text x="382" y="480" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Draft</text>
+    </g>
+  </g>
+  <g data-id="m12" data-role="relation">
+    <polyline points="314,522 178,522" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="186,518.5 178,522 186,525.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="306" y="514" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="314" y="525.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">12</text>
+    <g data-id="m12" data-role="label">
+      <text x="246" y="516" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Cart saved</text>
+    </g>
+  </g>
+  <g data-id="m13" data-role="relation">
+    <polyline points="55,558 170,558" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M178 558 L170 561.5 L170 554.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="47" y="550" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="55" y="561.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">13</text>
+    <g data-id="m13" data-role="label">
+      <text x="116.5" y="552" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Checkout</text>
+    </g>
+  </g>
+  <g data-id="m14" data-role="relation">
+    <polyline points="178,594 306,594" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M314 594 L306 597.5 L306 590.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="170" y="586" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="178" y="597.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">14</text>
+    <g data-id="m14" data-role="label">
+      <text x="246" y="588" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Place order</text>
+    </g>
+  </g>
+  <g data-id="m15" data-role="relation">
+    <polyline points="314,630 442,630" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M450 630 L442 633.5 L442 626.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="306" y="622" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="314" y="633.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">15</text>
+    <g data-id="m15" data-role="label">
+      <text x="382" y="624" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Confirm draft</text>
+    </g>
+  </g>
+  <g data-id="m16" data-role="relation">
+    <polyline points="450,666 578,666" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M586 666 L578 669.5 L578 662.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="442" y="658" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="450" y="669.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">16</text>
+    <g data-id="m16" data-role="label">
+      <text x="518" y="660" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Charge</text>
+    </g>
+  </g>
+  <g data-id="m17" data-role="relation">
+    <polyline points="586,698 620,698 620,720 594,720" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M586 720 L594 716.5 L594 723.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="578" y="690" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="586" y="701.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">17</text>
+    <g data-id="m17" data-role="label">
+      <text x="658.08" y="713" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Score risk</text>
+    </g>
+  </g>
+  <g data-id="m18" data-role="relation">
+    <polyline points="586,756 450,756" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="458,752.5 450,756 458,759.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="578" y="748" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="586" y="759.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">18</text>
+    <g data-id="m18" data-role="label">
+      <text x="518" y="750" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Charged</text>
+    </g>
+  </g>
+  <g data-id="m19" data-role="relation">
+    <polyline points="450,792 750.66,792" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M758.66 792 L750.66 795.5 L750.66 788.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="442" y="784" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="450" y="795.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">19</text>
+    <g data-id="m19" data-role="label">
+      <text x="604.33" y="786" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Mark paid</text>
+    </g>
+  </g>
+  <g data-id="m20" data-role="relation">
+    <polyline points="758.66,828 450,828" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="458,824.5 450,828 458,831.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="750.66" y="820" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="758.66" y="831.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">20</text>
+    <g data-id="m20" data-role="label">
+      <text x="604.33" y="822" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Updated</text>
+    </g>
+  </g>
+  <g data-id="m21" data-role="relation">
+    <polyline points="450,864 314,864" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="322,860.5 314,864 322,867.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="442" y="856" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="450" y="867.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">21</text>
+    <g data-id="m21" data-role="label">
+      <text x="382" y="858" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Order placed</text>
+    </g>
+  </g>
+  <g data-id="m22" data-role="relation">
+    <polyline points="314,900 178,900" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="186,896.5 178,900 186,903.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="306" y="892" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="314" y="903.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">22</text>
+    <g data-id="m22" data-role="label">
+      <text x="246" y="894" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Confirmation</text>
+    </g>
+  </g>
+  <g data-id="m23" data-role="relation">
+    <polyline points="178,936 55,936" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="63,932.5 55,936 63,939.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="170" y="928" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="178" y="939.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">23</text>
+    <g data-id="m23" data-role="label">
+      <text x="116.5" y="930" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Thank you</text>
+    </g>
+  </g>
+  <g data-id="m24" data-role="relation">
+    <polyline points="55,972 170,972" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M178 972 L170 975.5 L170 968.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="47" y="964" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="55" y="975.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">24</text>
+    <g data-id="m24" data-role="label">
+      <text x="116.5" y="966" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Track order</text>
+    </g>
+  </g>
+  <g data-id="m25" data-role="relation">
+    <polyline points="178,1008 306,1008" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M314 1008 L306 1011.5 L306 1004.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="170" y="1000" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="178" y="1011.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">25</text>
+    <g data-id="m25" data-role="label">
+      <text x="246" y="1002" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Get status</text>
+    </g>
+  </g>
+  <g data-id="m26" data-role="relation">
+    <polyline points="314,1044 442,1044" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M450 1044 L442 1047.5 L442 1040.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="306" y="1036" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="314" y="1047.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">26</text>
+    <g data-id="m26" data-role="label">
+      <text x="382" y="1038" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Read status</text>
+    </g>
+  </g>
+  <g data-id="m27" data-role="relation">
+    <polyline points="450,1080 750.66,1080" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M758.66 1080 L750.66 1083.5 L750.66 1076.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="442" y="1072" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="450" y="1083.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">27</text>
+    <g data-id="m27" data-role="label">
+      <text x="604.33" y="1074" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Select order</text>
+    </g>
+  </g>
+  <g data-id="m28" data-role="relation">
+    <polyline points="758.66,1116 450,1116" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="458,1112.5 450,1116 458,1119.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="750.66" y="1108" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="758.66" y="1119.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">28</text>
+    <g data-id="m28" data-role="label">
+      <text x="604.33" y="1110" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Row</text>
+    </g>
+  </g>
+  <g data-id="m29" data-role="relation">
+    <polyline points="450,1152 314,1152" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="322,1148.5 314,1152 322,1155.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="442" y="1144" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="450" y="1155.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">29</text>
+    <g data-id="m29" data-role="label">
+      <text x="382" y="1146" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Shipped</text>
+    </g>
+  </g>
+  <g data-id="m30" data-role="relation">
+    <polyline points="314,1188 178,1188" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="186,1184.5 178,1188 186,1191.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="306" y="1180" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="314" y="1191.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">30</text>
+    <g data-id="m30" data-role="label">
+      <text x="246" y="1182" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Status</text>
+    </g>
+  </g>
+  <g data-id="customer" data-role="element">
+    <path d="M55 34 m-6 0 a6 6 0 1 0 12 0 a6 6 0 1 0 -12 0 M55 40 L55 46 M45 41 L65 41 M55 46 L47 54 M55 46 L63 54" fill="none" stroke="#0B1830" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="55" y="74.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Customer</text>
+  </g>
+  <g data-id="web" data-role="element">
+    <rect x="130" y="40" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="178" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Web</text>
+  </g>
+  <g data-id="api" data-role="element">
+    <rect x="266" y="40" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="314" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">API</text>
+  </g>
+  <g data-id="orders" data-role="element">
+    <rect x="402" y="40" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="450" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Orders</text>
+  </g>
+  <g data-id="payments" data-role="element">
+    <rect x="538" y="40" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="586" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Payments</text>
+  </g>
+  <g data-id="db" data-role="element">
+    <path d="M710.16 46 L710.16 74 A48.5 6 0 0 0 807.16 74 L807.16 46 A48.5 6 0 0 1 710.16 46 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M710.16 46 A48.5 6 0 0 1 807.16 46 A48.5 6 0 0 1 710.16 46 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="758.66" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Orders DB</text>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,1238.5 808,1238.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 1248) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="1264.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="808" y="1264" text-anchor="end" font-size="11" font-weight="400" fill="#526579">A purchase, end to end</text>
+  </g>
+</svg>

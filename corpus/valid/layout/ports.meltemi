@@ -1,0 +1,46 @@
+language "0.2"
+
+// Named ports, route kinds and parallel lanes on a manual sheet.
+diagram events: flow {
+  layout manual
+  theme "technical.light"
+
+  api["Orders API"]
+  ops["Ops console"]
+  bus["Event bus"] {
+    port in west 30%
+    port replay west 70%
+    port out east
+  }
+  billing["Billing"]
+  search["Search"]
+
+  api -> bus as publish
+  ops -> bus as replay
+  bus -> billing as billed
+  bus -> search as indexed
+  billing -> search: "sync" as sync
+  billing -> search: "repair" as repair
+
+  placement {
+    place api at (120, 100)
+    place ops at (120, 260)
+    place bus at (420, 180)
+    size bus (160, 120)
+    place billing at (720, 100)
+    place search at (720, 300)
+    route publish from api.east to bus.in
+    route replay from ops.east to bus.replay
+    route billed from bus.out to billing.west
+    route indexed from bus.out to search.west
+    label sync at 50% offset (-44, 0)
+    label repair at 50% offset (48, 0)
+  }
+
+  style replay {
+    routing bezier
+  }
+  style indexed {
+    routing polyline
+  }
+}

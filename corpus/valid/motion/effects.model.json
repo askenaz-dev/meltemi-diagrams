@@ -1,0 +1,1091 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "checkout",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 76,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 682,
+          "line": 25,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "auto",
+        "theme": null,
+        "title": "Checkout",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "client",
+          "kind": "node",
+          "label": "Client",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 138,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 154,
+              "line": 8,
+              "column": 19
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 138,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 144,
+              "line": 8,
+              "column": 9
+            }
+          }
+        },
+        {
+          "id": "api",
+          "kind": "node",
+          "label": "API Gateway",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 157,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 175,
+              "line": 9,
+              "column": 21
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 157,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 160,
+              "line": 9,
+              "column": 6
+            }
+          }
+        },
+        {
+          "id": "orders",
+          "kind": "node",
+          "label": "Orders",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 178,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 194,
+              "line": 10,
+              "column": 19
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 178,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 184,
+              "line": 10,
+              "column": 9
+            }
+          }
+        },
+        {
+          "id": "db",
+          "kind": "data",
+          "label": "Orders DB",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": "cylinder",
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 197,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 214,
+              "line": 11,
+              "column": 20
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 197,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 199,
+              "line": 11,
+              "column": 5
+            }
+          }
+        },
+        {
+          "id": "events",
+          "kind": "node",
+          "label": "Events",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 217,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 233,
+              "line": 12,
+              "column": 19
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 217,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 223,
+              "line": 12,
+              "column": 9
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "request",
+          "id": "request",
+          "from": "client",
+          "to": "api",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "HTTPS",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 237,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 270,
+              "line": 14,
+              "column": 36
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 263,
+              "line": 14,
+              "column": 29
+            },
+            "end": {
+              "offset": 270,
+              "line": 14,
+              "column": 36
+            }
+          }
+        },
+        {
+          "key": "create",
+          "id": "create",
+          "from": "api",
+          "to": "orders",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 273,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 296,
+              "line": 15,
+              "column": 26
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 290,
+              "line": 15,
+              "column": 20
+            },
+            "end": {
+              "offset": 296,
+              "line": 15,
+              "column": 26
+            }
+          }
+        },
+        {
+          "key": "save",
+          "id": "save",
+          "from": "orders",
+          "to": "db",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 299,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 319,
+              "line": 16,
+              "column": 23
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 315,
+              "line": 16,
+              "column": 19
+            },
+            "end": {
+              "offset": 319,
+              "line": 16,
+              "column": 23
+            }
+          }
+        },
+        {
+          "key": "publish",
+          "id": "publish",
+          "from": "orders",
+          "to": "events",
+          "line": "dashed",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "OrderCreated",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 322,
+              "line": 17,
+              "column": 3
+            },
+            "end": {
+              "offset": 366,
+              "line": 17,
+              "column": 47
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 359,
+              "line": 17,
+              "column": 40
+            },
+            "end": {
+              "offset": 366,
+              "line": 17,
+              "column": 47
+            }
+          }
+        }
+      ],
+      "placement": [],
+      "constraints": [],
+      "styles": [],
+      "animations": [
+        {
+          "target": "request",
+          "targetKind": "relation",
+          "effect": "flow",
+          "durationMs": null,
+          "repeat": null,
+          "delayMs": null,
+          "direction": null,
+          "particles": 2,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 370,
+              "line": 19,
+              "column": 3
+            },
+            "end": {
+              "offset": 414,
+              "line": 19,
+              "column": 47
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 378,
+              "line": 19,
+              "column": 11
+            },
+            "end": {
+              "offset": 385,
+              "line": 19,
+              "column": 18
+            }
+          }
+        },
+        {
+          "target": "create",
+          "targetKind": "relation",
+          "effect": "flow",
+          "durationMs": 800,
+          "repeat": null,
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": "@accent",
+          "range": {
+            "start": {
+              "offset": 417,
+              "line": 20,
+              "column": 3
+            },
+            "end": {
+              "offset": 483,
+              "line": 20,
+              "column": 69
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 425,
+              "line": 20,
+              "column": 11
+            },
+            "end": {
+              "offset": 431,
+              "line": 20,
+              "column": 17
+            }
+          }
+        },
+        {
+          "target": "save",
+          "targetKind": "relation",
+          "effect": "flow",
+          "durationMs": 800,
+          "repeat": null,
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": "@accent",
+          "range": {
+            "start": {
+              "offset": 417,
+              "line": 20,
+              "column": 3
+            },
+            "end": {
+              "offset": 483,
+              "line": 20,
+              "column": 69
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 433,
+              "line": 20,
+              "column": 19
+            },
+            "end": {
+              "offset": 437,
+              "line": 20,
+              "column": 23
+            }
+          }
+        },
+        {
+          "target": "save",
+          "targetKind": "relation",
+          "effect": "dash",
+          "durationMs": null,
+          "repeat": null,
+          "delayMs": null,
+          "direction": "reverse",
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 486,
+              "line": 21,
+              "column": 3
+            },
+            "end": {
+              "offset": 533,
+              "line": 21,
+              "column": 50
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 494,
+              "line": 21,
+              "column": 11
+            },
+            "end": {
+              "offset": 498,
+              "line": 21,
+              "column": 15
+            }
+          }
+        },
+        {
+          "target": "publish",
+          "targetKind": "relation",
+          "effect": "dash",
+          "durationMs": null,
+          "repeat": 4,
+          "delayMs": 300,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 536,
+              "line": 22,
+              "column": 3
+            },
+            "end": {
+              "offset": 590,
+              "line": 22,
+              "column": 57
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 544,
+              "line": 22,
+              "column": 11
+            },
+            "end": {
+              "offset": 551,
+              "line": 22,
+              "column": 18
+            }
+          }
+        },
+        {
+          "target": "db",
+          "targetKind": "element",
+          "effect": "pulse",
+          "durationMs": 1500,
+          "repeat": null,
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 593,
+              "line": 23,
+              "column": 3
+            },
+            "end": {
+              "offset": 637,
+              "line": 23,
+              "column": 47
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 601,
+              "line": 23,
+              "column": 11
+            },
+            "end": {
+              "offset": 603,
+              "line": 23,
+              "column": 13
+            }
+          }
+        },
+        {
+          "target": "api",
+          "targetKind": "element",
+          "effect": "dash",
+          "durationMs": 2000,
+          "repeat": null,
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 640,
+              "line": 24,
+              "column": 3
+            },
+            "end": {
+              "offset": 680,
+              "line": 24,
+              "column": 43
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 648,
+              "line": 24,
+              "column": 11
+            },
+            "end": {
+              "offset": 651,
+              "line": 24,
+              "column": 14
+            }
+          }
+        }
+      ],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    },
+    {
+      "id": "payment",
+      "type": "sequence",
+      "range": {
+        "start": {
+          "offset": 684,
+          "line": 27,
+          "column": 1
+        },
+        "end": {
+          "offset": 992,
+          "line": 37,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "auto",
+        "theme": null,
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "web",
+          "kind": "participant",
+          "label": "Web",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 714,
+              "line": 28,
+              "column": 3
+            },
+            "end": {
+              "offset": 735,
+              "line": 28,
+              "column": 24
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 726,
+              "line": 28,
+              "column": 15
+            },
+            "end": {
+              "offset": 729,
+              "line": 28,
+              "column": 18
+            }
+          }
+        },
+        {
+          "id": "api",
+          "kind": "participant",
+          "label": "API",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 738,
+              "line": 29,
+              "column": 3
+            },
+            "end": {
+              "offset": 759,
+              "line": 29,
+              "column": 24
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 750,
+              "line": 29,
+              "column": 15
+            },
+            "end": {
+              "offset": 753,
+              "line": 29,
+              "column": 18
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "pay",
+          "id": "pay",
+          "from": "web",
+          "to": "api",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Pay",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 762,
+              "line": 30,
+              "column": 3
+            },
+            "end": {
+              "offset": 786,
+              "line": 30,
+              "column": 27
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 783,
+              "line": 30,
+              "column": 24
+            },
+            "end": {
+              "offset": 786,
+              "line": 30,
+              "column": 27
+            }
+          }
+        },
+        {
+          "key": "receipt",
+          "id": "receipt",
+          "from": "api",
+          "to": "web",
+          "line": "dashed",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Receipt",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 829,
+              "line": 32,
+              "column": 3
+            },
+            "end": {
+              "offset": 862,
+              "line": 32,
+              "column": 36
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 855,
+              "line": 32,
+              "column": 29
+            },
+            "end": {
+              "offset": 862,
+              "line": 32,
+              "column": 36
+            }
+          }
+        }
+      ],
+      "placement": [],
+      "constraints": [],
+      "styles": [],
+      "animations": [
+        {
+          "target": "pay",
+          "targetKind": "relation",
+          "effect": "flow",
+          "durationMs": null,
+          "repeat": null,
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 866,
+              "line": 34,
+              "column": 3
+            },
+            "end": {
+              "offset": 902,
+              "line": 34,
+              "column": 39
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 874,
+              "line": 34,
+              "column": 11
+            },
+            "end": {
+              "offset": 877,
+              "line": 34,
+              "column": 14
+            }
+          }
+        },
+        {
+          "target": "receipt",
+          "targetKind": "relation",
+          "effect": "flow",
+          "durationMs": null,
+          "repeat": null,
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 866,
+              "line": 34,
+              "column": 3
+            },
+            "end": {
+              "offset": 902,
+              "line": 34,
+              "column": 39
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 879,
+              "line": 34,
+              "column": 16
+            },
+            "end": {
+              "offset": 886,
+              "line": 34,
+              "column": 23
+            }
+          }
+        },
+        {
+          "target": "wait",
+          "targetKind": "event",
+          "effect": "pulse",
+          "durationMs": null,
+          "repeat": null,
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": "@warning",
+          "range": {
+            "start": {
+              "offset": 905,
+              "line": 35,
+              "column": 3
+            },
+            "end": {
+              "offset": 949,
+              "line": 35,
+              "column": 47
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 913,
+              "line": 35,
+              "column": 11
+            },
+            "end": {
+              "offset": 917,
+              "line": 35,
+              "column": 15
+            }
+          }
+        },
+        {
+          "target": "api",
+          "targetKind": "element",
+          "effect": "pulse",
+          "durationMs": null,
+          "repeat": 2,
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 952,
+              "line": 36,
+              "column": 3
+            },
+            "end": {
+              "offset": 990,
+              "line": 36,
+              "column": 41
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 960,
+              "line": 36,
+              "column": 11
+            },
+            "end": {
+              "offset": 963,
+              "line": 36,
+              "column": 14
+            }
+          }
+        }
+      ],
+      "events": [
+        {
+          "kind": "message",
+          "key": "pay",
+          "relation": "pay",
+          "range": {
+            "start": {
+              "offset": 762,
+              "line": 30,
+              "column": 3
+            },
+            "end": {
+              "offset": 786,
+              "line": 30,
+              "column": 27
+            }
+          }
+        },
+        {
+          "kind": "note",
+          "key": "wait",
+          "id": "wait",
+          "position": "over",
+          "participants": [
+            "web",
+            "api"
+          ],
+          "text": "Authorising",
+          "range": {
+            "start": {
+              "offset": 789,
+              "line": 31,
+              "column": 3
+            },
+            "end": {
+              "offset": 826,
+              "line": 31,
+              "column": 40
+            }
+          }
+        },
+        {
+          "kind": "message",
+          "key": "receipt",
+          "relation": "receipt",
+          "range": {
+            "start": {
+              "offset": 829,
+              "line": 32,
+              "column": 3
+            },
+            "end": {
+              "offset": 862,
+              "line": 32,
+              "column": 36
+            }
+          }
+        }
+      ],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

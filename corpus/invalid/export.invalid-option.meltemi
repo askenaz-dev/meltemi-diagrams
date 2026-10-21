@@ -1,0 +1,11 @@
+language "0.2"
+
+diagram checkout: flow {
+  client -> api
+}
+
+// `scale` sets the pixels of PNG images; a PDF is vector.
+export sheet for checkout {
+  format pdf
+  scale 2
+}

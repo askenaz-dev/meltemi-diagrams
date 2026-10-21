@@ -1,0 +1,23 @@
+{
+  "a.meltemi": [
+    {
+      "code": "module.unused-import",
+      "severity": "info",
+      "message": "`corporate` is imported but never used.",
+      "range": {
+        "start": {
+          "offset": 7,
+          "line": 1,
+          "column": 8
+        },
+        "end": {
+          "offset": 16,
+          "line": 1,
+          "column": 17
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ]
+}

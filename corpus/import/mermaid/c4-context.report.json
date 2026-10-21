@@ -1,0 +1,35 @@
+{
+  "status": "partial",
+  "format": "mermaid",
+  "diagrams": [
+    {
+      "id": "system_context_diagram_for_internet",
+      "type": "c4",
+      "model": "system_context_diagram_for_internet_model",
+      "kind": "C4Context",
+      "lines": [
+        1,
+        22
+      ]
+    }
+  ],
+  "findings": [
+    "1:1 warning import.partial [import] 1 essential construct was not imported; the sheet is incomplete.",
+    "3:3 info import.approximated [mermaid.c4.Enterprise_Boundary approximated] `Enterprise_Boundary` is not drawn; what it holds is kept.",
+    "8:5 info import.approximated [mermaid.c4.Enterprise_Boundary approximated] `Enterprise_Boundary` is not drawn; what it holds is kept.",
+    "9:7 info import.approximated [mermaid.c4.SystemDb_Ext approximated] A database system is drawn as a system.",
+    "11:7 info import.approximated [mermaid.c4.SystemQueue approximated] A queue system is drawn as a system.",
+    "15:3 info import.approximated [mermaid.c4.BiRel approximated] A bidirectional relation becomes two relations.",
+    "19:3 warning import.unsupported-construct [mermaid.c4.Rel dropped essential] `b1` is not an element of the diagram (boundaries that are not drawn cannot be related); the relation is not imported.",
+    "20:3 warning import.unsupported-construct [mermaid.c4.UpdateElementStyle dropped] `UpdateElementStyle` only changes the drawing; it is not imported.",
+    "21:3 warning import.unsupported-construct [mermaid.c4.UpdateRelStyle dropped] `UpdateRelStyle` only changes the drawing; it is not imported."
+  ],
+  "coverage": [
+    {
+      "diagram": "system_context_diagram_for_internet",
+      "mapped": 9,
+      "approximated": 5,
+      "dropped": 3
+    }
+  ]
+}

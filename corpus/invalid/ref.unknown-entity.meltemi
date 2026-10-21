@@ -1,0 +1,9 @@
+language "0.2"
+
+model commerce {
+  system shop "Commerce" {
+    container api "API"
+  }
+  person customer "Cliente"
+  customer -> shop.apu: "Compra"
+}

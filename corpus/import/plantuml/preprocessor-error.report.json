@@ -1,0 +1,28 @@
+{
+  "status": "partial",
+  "format": "plantuml",
+  "diagrams": [
+    {
+      "id": "preprocessor_error",
+      "type": "flow",
+      "model": null,
+      "kind": "description",
+      "lines": [
+        1,
+        8
+      ]
+    }
+  ],
+  "findings": [
+    "1:1 warning import.partial [import] 1 essential construct was not imported; the sheet is incomplete.",
+    "6:1 error import.preprocessor [plantuml.preprocessor dropped essential] `$loop` expands more than 100 levels deep; it may call itself without end."
+  ],
+  "coverage": [
+    {
+      "diagram": "preprocessor_error",
+      "mapped": 3,
+      "approximated": 0,
+      "dropped": 0
+    }
+  ]
+}

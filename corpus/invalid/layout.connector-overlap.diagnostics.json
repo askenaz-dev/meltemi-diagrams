@@ -1,0 +1,21 @@
+[
+  {
+    "code": "layout.connector-overlap",
+    "severity": "warning",
+    "message": "The connectors of `save` and `audit` run along each other for 120 px.",
+    "range": {
+      "start": {
+        "offset": 179,
+        "line": 10,
+        "column": 3
+      },
+      "end": {
+        "offset": 198,
+        "line": 10,
+        "column": 22
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

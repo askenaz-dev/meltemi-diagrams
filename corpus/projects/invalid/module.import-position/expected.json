@@ -1,0 +1,25 @@
+{
+  "a.meltemi": [
+    {
+      "code": "module.import-position",
+      "severity": "warning",
+      "message": "Imports go before the first block of the file.",
+      "range": {
+        "start": {
+          "offset": 50,
+          "line": 6,
+          "column": 1
+        },
+        "end": {
+          "offset": 90,
+          "line": 6,
+          "column": 41
+        }
+      },
+      "hints": [
+        "Move this import below the `language` header and above the blocks."
+      ],
+      "related": []
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "code": "layout.icon-missing",
+    "severity": "warning",
+    "message": "`fn` is drawn as its icon, but it has no `icon`; a placeholder is drawn instead.",
+    "range": {
+      "start": {
+        "offset": 165,
+        "line": 7,
+        "column": 14
+      },
+      "end": {
+        "offset": 175,
+        "line": 7,
+        "column": 24
+      }
+    },
+    "hints": [
+      "Give `fn` an icon with `style fn { icon \"<pack>:<name>\" }`, or another shape."
+    ],
+    "related": []
+  }
+]

@@ -1,0 +1,23 @@
+[
+  {
+    "code": "language.unsupported-version",
+    "severity": "error",
+    "message": "Language version \"0.3\" is not supported; this compiler implements 0.2.",
+    "range": {
+      "start": {
+        "offset": 9,
+        "line": 1,
+        "column": 10
+      },
+      "end": {
+        "offset": 14,
+        "line": 1,
+        "column": 15
+      }
+    },
+    "hints": [
+      "Change the header to `language \"0.2\"`."
+    ],
+    "related": []
+  }
+]

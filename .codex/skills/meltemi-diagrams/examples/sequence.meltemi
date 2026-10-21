@@ -1,0 +1,49 @@
+language "0.2"
+
+// A payment with an approval branch, a retry loop and two scenarios to export.
+diagram payment: sequence {
+  title "Card payment"
+  autonumber
+
+  actor customer "Customer"
+  boundary web "Checkout page"
+  group backend "Backend" {
+    participant api "Payments API"
+    database ledger "Ledger"
+  }
+  participant bank "Card network"
+
+  customer -> web: "Pay" as pay
+  web -> api: "Create payment" as create
+  activate api
+  api -> bank: "Authorize" as authorize
+
+  alt result "Approved" {
+    bank --> api: "Approved" as approved
+    api -> ledger: "Record" as record
+    api --> web: "Receipt" as receipt
+  } else "Declined" {
+    bank --> api: "Declined" as declined
+    loop retries "Until the card works" {
+      api --> web: "Ask for another card" as again
+      web -> api: "New card" as card
+    }
+  }
+
+  note over web, api "The page never sees the card number"
+  deactivate api
+  api -> web: "Payment settled" as settled { kind async }
+
+  placement {
+    space authorize 14
+  }
+
+  scenario approved "Payment approved" {
+    choose result "Approved"
+  }
+
+  scenario declined "Declined twice" {
+    choose result "Declined"
+    repeat retries 2
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "plugins/erd/meltemi-plugin.json": [
+    {
+      "code": "plugin.permission-denied",
+      "severity": "error",
+      "message": "`network` is never granted: nothing a project installs fetches anything.",
+      "range": {
+        "start": {
+          "offset": 274,
+          "line": 11,
+          "column": 18
+        },
+        "end": {
+          "offset": 314,
+          "line": 14,
+          "column": 4
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ]
+}

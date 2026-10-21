@@ -1,0 +1,19 @@
+language "0.2"
+
+// The label of `save` lies on the connector of `notify`.
+diagram checkout: flow {
+  layout manual
+  api["API"]
+  db["Orders DB"]
+  queue["Queue"]
+  mailer["Mailer"]
+  api -> db: "save order" as save
+  queue -> mailer as notify
+  placement {
+    place api at (100, 200)
+    place db at (500, 200)
+    place queue at (300, 60)
+    place mailer at (300, 340)
+    label save at 50%
+  }
+}

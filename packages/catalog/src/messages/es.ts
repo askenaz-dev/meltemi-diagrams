@@ -1,0 +1,103 @@
+import { plural } from "@meltemi/diagrams-i18n";
+import type { en } from "./en.js";
+
+/** The catalog's words in Spanish. */
+export const es: typeof en = {
+  page: {
+    skip: "Saltar al contenido",
+    searchLabel: "Buscar en el catálogo",
+    searchPlaceholder: "Buscar (tecla /)",
+    searchHint: "Títulos, elementos, tecnología, descripciones y entidades.",
+    navigation: "Catálogo",
+    noScript:
+      "Los dibujos, el reproductor y la búsqueda necesitan JavaScript; las listas funcionan sin él.",
+    builtWith: (generator: string) => `Hecho con ${generator}.`,
+    unreadable: "Este catálogo no puede leer sus datos.",
+  },
+  nav: {
+    overview: "Vista general",
+    entities: "Entidades",
+    folders: "Carpetas",
+    breadcrumb: "Ruta de navegación",
+    root: "Raíz del proyecto",
+  },
+  kinds: {
+    flow: "Flujo",
+    free: "Libre",
+    sequence: "Secuencia",
+    c4: "C4",
+    story: "Historia",
+    entity: "Entidad",
+  },
+  counts: {
+    diagrams: (n: number) => `${n} ${plural("es", n, { one: "diagrama", other: "diagramas" })}`,
+    stories: (n: number) => `${n} ${plural("es", n, { one: "historia", other: "historias" })}`,
+    entities: (n: number) => `${n} ${plural("es", n, { one: "entidad", other: "entidades" })}`,
+    scenes: (n: number) => `${n} ${plural("es", n, { one: "escena", other: "escenas" })}`,
+  },
+  entry: {
+    place: (what: string, where: string) => `${what} en ${where}`,
+    downloadSvg: "Descargar SVG",
+    downloadSource: "Descargar el código fuente",
+    source: "Código fuente",
+    scenario: "Escenario",
+    asWritten: "Tal como está escrito",
+    elements: "Elementos",
+    relations: "Relaciones",
+    external: "externo",
+    entity: (link: string) => `Entidad ${link}`,
+    opens: (link: string) => `Abre ${link}`,
+    openLink: "Abrir el enlace",
+    assumption: "Supuesto",
+    related: "Relacionado",
+    storiesShowing: "Historias que lo muestran",
+    linksTo: "Enlaza con",
+    linkedFrom: "Enlazado desde",
+    scenes: "Escenas",
+    startsAt: (time: string) => `desde ${time}`,
+    shows: "Diagramas que muestra",
+  },
+  columns: {
+    element: "Elemento",
+    entity: "Entidad",
+    kind: "Tipo",
+    technology: "Tecnología",
+    description: "Descripción",
+    leadsTo: "Lleva a",
+    from: "Origen",
+    to: "Destino",
+    label: "Etiqueta",
+    shownIn: "Aparece en",
+  },
+  entities: {
+    lead: "Las entidades de los modelos de arquitectura que dibujan las vistas del catálogo.",
+    external: "externa",
+    partOf: "Parte de",
+    link: "Enlace",
+    model: "Modelo",
+    views: "Vistas con este alcance",
+    contains: "Contiene",
+    shownIn: "Aparece en",
+  },
+  search: {
+    title: "Búsqueda",
+    prompt: "Escribe para buscar títulos, elementos, tecnología y descripciones.",
+    results: (n: number, query: string) =>
+      n === 0
+        ? `Ningún resultado para “${query}”.`
+        : `${n} ${plural("es", n, { one: "resultado", other: "resultados" })} para “${query}”.`,
+    file: (file: string) => `archivo ${file}`,
+    description: "descripción",
+    scene: (title: string) => `escena “${title}”`,
+    element: (label: string) => `elemento “${label}”`,
+    technologyOf: (label: string, text: string) => `tecnología de “${label}”: “${text}”`,
+    descriptionOf: (label: string, text: string) => `descripción de “${label}”: “${text}”`,
+    relation: (label: string) => `relación “${label}”`,
+    technology: (text: string) => `tecnología “${text}”`,
+  },
+  missing: {
+    title: "No encontrado",
+    text: "No hay nada en este catálogo con esta dirección.",
+    home: "Ir a la vista general",
+  },
+};

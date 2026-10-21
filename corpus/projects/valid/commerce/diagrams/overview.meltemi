@@ -1,0 +1,29 @@
+language "0.2"
+
+// No `theme` and no import: the diagram uses the project's default theme and its classes.
+diagram overview: flow {
+  title "Commerce overview"
+  layout manual
+  preset document
+
+  class hot {
+    stroke danger
+    width 2
+  }
+
+  shop["Shop"]
+  payments["Payments"] { class hot }
+  bank["Bank"] { class partner }
+  data ledger "Ledger"
+
+  shop -> payments: "pay" as pay
+  payments -> bank: "settle" as settle { class partner }
+  payments -> ledger as record
+
+  placement {
+    place shop at (120, 60)
+    place payments at (360, 60)
+    place bank at (600, 60)
+    place ledger at (360, 200)
+  }
+}

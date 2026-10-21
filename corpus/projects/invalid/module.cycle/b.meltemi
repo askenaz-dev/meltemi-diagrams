@@ -1,0 +1,5 @@
+import "./a.meltemi" as a
+
+theme y {
+  extends "a.x"
+}

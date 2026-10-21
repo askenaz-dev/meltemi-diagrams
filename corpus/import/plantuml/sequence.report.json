@@ -1,0 +1,37 @@
+{
+  "status": "complete",
+  "format": "plantuml",
+  "diagrams": [
+    {
+      "id": "payment",
+      "type": "sequence",
+      "model": null,
+      "kind": "sequence",
+      "lines": [
+        1,
+        64
+      ]
+    }
+  ],
+  "findings": [
+    "11:1 warning import.unsupported-construct [sequence.box.colour dropped] Box colours are not imported.",
+    "14:1 warning import.unsupported-construct [plantuml.hide dropped] `hide` and `show` commands are not imported.",
+    "33:1 info import.approximated [sequence.message.head approximated] Half, lost and circle arrowheads are drawn as plain ones.",
+    "39:1 info import.approximated [sequence.note.shape approximated] Hexagonal and boxed notes are drawn as notes.",
+    "40:1 info import.approximated [sequence.ref approximated] A reference frame is drawn as a note over its participants.",
+    "41:1 warning import.unsupported-construct [sequence.space dropped] Extra space between messages is left to the layout.",
+    "42:1 warning import.unsupported-construct [sequence.space dropped] Extra space between messages is left to the layout.",
+    "43:1 info import.approximated [sequence.gate approximated] Messages from or to outside the diagram go through a participant `outside`.",
+    "44:1 info import.approximated [sequence.gate approximated] Messages from or to outside the diagram go through a participant `outside`.",
+    "45:1 info import.approximated [sequence.teoz approximated] Parallel messages (`&`) are drawn one after the other.",
+    "54:1 warning import.unsupported-construct [sequence.autonumber.control dropped] Pausing or resuming the numbering is not imported."
+  ],
+  "coverage": [
+    {
+      "diagram": "payment",
+      "mapped": 46,
+      "approximated": 6,
+      "dropped": 5
+    }
+  ]
+}

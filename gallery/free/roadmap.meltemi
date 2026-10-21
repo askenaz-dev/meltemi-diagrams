@@ -1,0 +1,60 @@
+language "0.2"
+
+// A roadmap slide composed freely: a heading, three columns placed by hand, icons and a timeline.
+diagram roadmap: free {
+  title "Product roadmap"
+  canvas (1280, 720)
+  layout manual
+
+  text heading "Product roadmap"
+  text subtitle "What we build now, next and later"
+
+  group now "Now" {
+    description "This quarter"
+    box passkeys "Passkey sign-in"
+    box exports "Faster exports"
+  }
+  group next "Next" {
+    description "Next quarter"
+    box catalogs "Shared catalogs"
+    box themes "Theme editor"
+  }
+  group later "Later" {
+    description "This year"
+    box review "Review in the browser"
+    box offline "Offline mobile app"
+  }
+
+  icon nowIcon "tabler:bolt"
+  icon nextIcon "tabler:calendar"
+  icon laterIcon "tabler:map"
+
+  passkeys -> catalogs: "builds on" as reuse
+  exports -> themes as styles
+
+  placement {
+    place heading at (640, 90)
+    place subtitle at (640, 145)
+    place now at (240, 410)
+    size now (320, 300)
+    place next at (640, 410)
+    size next (320, 300)
+    place later at (1040, 410)
+    size later (320, 300)
+    place passkeys at (144, 65)
+    place exports at (144, 175)
+    place catalogs at (144, 65)
+    place themes at (144, 175)
+    place review at (144, 65)
+    place offline at (144, 175)
+    place nowIcon at (240, 215)
+    place nextIcon at (640, 215)
+    place laterIcon at (1040, 215)
+  }
+
+  style heading { fontSize 40; fontWeight 700 }
+  style subtitle { color muted }
+  style now { fill "#FFF4E5"; stroke "#E8A33D" }
+  style next { fill "#EAF1F8"; stroke "#5B8DB8" }
+  style later { fill "#F1EDF8"; stroke "#8A6CC2" }
+}

@@ -1,0 +1,9 @@
+{
+  "operation": {
+    "kind": "convertToContainer",
+    "diagram": "slide",
+    "element": "frame",
+    "children": [{ "id": "db", "at": { "x": 120, "y": 48 } }],
+    "size": { "width": 238, "height": 196 }
+  }
+}

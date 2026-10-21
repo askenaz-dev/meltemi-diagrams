@@ -1,0 +1,23 @@
+[
+  {
+    "code": "syntax.unexpected-character",
+    "severity": "error",
+    "message": "Unexpected characters `=>`.",
+    "range": {
+      "start": {
+        "offset": 43,
+        "line": 4,
+        "column": 5
+      },
+      "end": {
+        "offset": 45,
+        "line": 4,
+        "column": 7
+      }
+    },
+    "hints": [
+      "The supported arrows are `->`, `-->`, `<->` and `<-->`."
+    ],
+    "related": []
+  }
+]

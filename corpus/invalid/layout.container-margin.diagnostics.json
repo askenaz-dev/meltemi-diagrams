@@ -1,0 +1,21 @@
+[
+  {
+    "code": "layout.container-margin",
+    "severity": "warning",
+    "message": "`api` is too close to the edge or title band of its group `backend`.",
+    "range": {
+      "start": {
+        "offset": 152,
+        "line": 7,
+        "column": 5
+      },
+      "end": {
+        "offset": 162,
+        "line": 7,
+        "column": 15
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

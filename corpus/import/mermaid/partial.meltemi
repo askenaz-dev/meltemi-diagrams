@@ -1,0 +1,17 @@
+language "0.2"
+
+// Imported from partial.mmd (mermaid) by meltemi-diagrams.
+
+diagram partial: flow {
+  direction LR
+  layout auto
+
+  node a "Start"
+  node b "End"
+  node c
+
+  a -> b
+  b -> c
+
+  // Not imported: a --=> b
+}

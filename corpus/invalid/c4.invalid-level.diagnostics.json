@@ -1,0 +1,21 @@
+[
+  {
+    "code": "c4.invalid-level",
+    "severity": "error",
+    "message": "Expected `level context`, `level container` or `level component`.",
+    "range": {
+      "start": {
+        "offset": 105,
+        "line": 8,
+        "column": 9
+      },
+      "end": {
+        "offset": 115,
+        "line": 8,
+        "column": 19
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

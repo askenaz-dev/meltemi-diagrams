@@ -1,0 +1,23 @@
+{
+  "plugins/erd/meltemi-plugin.json": [
+    {
+      "code": "plugin.incompatible",
+      "severity": "error",
+      "message": "`erd` 1.0.0 is not compatible with the model 1.0.0 (it needs ^2.0.0).",
+      "range": {
+        "start": {
+          "offset": 202,
+          "line": 7,
+          "column": 20
+        },
+        "end": {
+          "offset": 255,
+          "line": 10,
+          "column": 4
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ]
+}

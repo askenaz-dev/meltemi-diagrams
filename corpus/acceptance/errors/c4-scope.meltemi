@@ -1,0 +1,41 @@
+language "0.2"
+
+// Based on c4/nested.meltemi, with a view scoped to an entity the model does not have.
+// Nested entities: a system holds containers, a container holds components, and the views draw
+// each level with the boundary of their scope.
+model banking {
+  person customer "Customer"
+  system bank "Internet banking" {
+    container web "Web app" { technology "React" }
+    container api "API" {
+      technology "Java"
+      component accounts "Accounts" { technology "Spring" }
+      component transfers "Transfers" { technology "Spring" }
+      component security "Security" { technology "Spring" }
+      api.transfers -> api.accounts: "Debits" as debit
+      api.transfers -> api.security: "Checks limits" as limits
+    }
+    datastore db "Database" { technology "Oracle" }
+    api.accounts -> db: "Reads and writes" as data
+  }
+  system mainframe "Core banking" { external }
+
+  customer -> bank.web: "Uses" as use
+  bank.web -> bank.api.accounts: "Shows balances" as balances
+  bank.web -> bank.api.transfers: "Sends money" as send
+  bank.api.transfers -> mainframe: "Books" as book
+}
+
+diagram context: c4 using banking {
+  level context
+}
+
+diagram containers: c4 using banking {
+  level container
+  scope bank
+}
+
+diagram components: c4 using banking {
+  level component
+  scope bank.payments
+}

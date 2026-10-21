@@ -1,0 +1,42 @@
+@startuml services
+!$services = ["orders", "billing", "mail"]
+!$env ?= "prod"
+!$env ?= "dev"
+!unquoted procedure SERVICE($name, $tech="Kotlin")
+  component "$name ($tech)" as $name
+!endprocedure
+!function $upper_first($s)
+  !$first = %upper(%substr($s, 0, 1))
+  !return $first + %substr($s, 1)
+!endfunction
+!function $twice($n) !return $n * 2
+!definelong GATEWAY(id)
+  node id {
+    [Router] as router
+  }
+!enddefinelong
+!foreach $s in $services
+SERVICE($s)
+!endfor
+!$i = 0
+!while $i < 2
+  component "Worker $i" as worker$i
+  !$i = $i + 1
+!endwhile
+!ifdef MISSING
+component Never
+!endif
+!ifndef MISSING
+component "$upper_first(gateway) x$twice(2)" as gw
+!endif
+GATEWAY(edge)
+!if %strlen($env) > 3 || $env == "prod"
+orders --> billing : %lower("CHARGES")
+!elseif $env == "dev"
+orders --> mail
+!else
+billing --> mail
+!endif
+!assert %variable_exists("$env")
+router --> orders : %string(%strpos("abc", "c"))
+@enduml

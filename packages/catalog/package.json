@@ -1,0 +1,72 @@
+{
+  "name": "@meltemi/diagrams-catalog",
+  "version": "1.8.0",
+  "description": "The offline HTML catalog of a Meltemi project: diagrams and stories by folder, the player, search and links, in one file.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/askenaz-dev/meltemi-diagrams.git",
+    "directory": "packages/catalog"
+  },
+  "homepage": "https://github.com/askenaz-dev/meltemi-diagrams/tree/main/packages/catalog#readme",
+  "bugs": {
+    "url": "https://github.com/askenaz-dev/meltemi-diagrams/issues"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "@meltemi/diagrams-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./node": {
+      "@meltemi/diagrams-source": "./src/node.ts",
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    },
+    "./runtime": {
+      "@meltemi/diagrams-source": "./src/runtime.ts",
+      "default": "./dist/catalog.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node build.mjs",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.runtime.json && tsc -p tsconfig.browser.json"
+  },
+  "dependencies": {
+    "@meltemi/diagrams-i18n": "workspace:*",
+    "@meltemi/diagrams-layout": "workspace:*",
+    "@meltemi/diagrams-model": "workspace:*",
+    "@meltemi/diagrams-motion": "workspace:*",
+    "@meltemi/diagrams-player": "workspace:*",
+    "@meltemi/diagrams-render": "workspace:*"
+  },
+  "devDependencies": {
+    "@meltemi/diagrams-fonts": "workspace:*",
+    "@meltemi/diagrams-layout-elk": "workspace:*",
+    "esbuild": "0.28.2",
+    "playwright-core": "1.63.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./node": {
+        "types": "./dist/node.d.ts",
+        "default": "./dist/node.js"
+      },
+      "./runtime": {
+        "default": "./dist/catalog.js"
+      }
+    }
+  }
+}

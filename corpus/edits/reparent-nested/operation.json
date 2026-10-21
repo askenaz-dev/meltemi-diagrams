@@ -1,0 +1,9 @@
+{
+  "operation": {
+    "kind": "moveElement",
+    "diagram": "stack",
+    "element": "inner",
+    "parent": "outer",
+    "at": { "x": 290, "y": 150 }
+  }
+}

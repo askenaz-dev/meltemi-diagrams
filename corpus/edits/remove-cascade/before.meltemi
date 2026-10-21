@@ -1,0 +1,15 @@
+language "0.2"
+
+diagram checkout: flow {
+  // Elements
+  orders["Orders"]
+  db[("PostgreSQL")]
+
+  /* Relations */
+  orders -> db: "Persist"
+
+  placement {
+    place orders at (700, 180)
+    place db at (1000, 180)
+  }
+}

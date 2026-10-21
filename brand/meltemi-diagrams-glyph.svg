@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="meltemi-diagrams-glyph-title">
+  <title id="meltemi-diagrams-glyph-title">Meltemi Diagrams glyph</title>
+  <desc>Two boxes joined by a gust-shaped connector rising north-east, drawn with the Meltemi gradient. Product glyph for UI and file types; it never replaces the Meltemi mark.</desc>
+  <defs>
+    <linearGradient id="meltemi-diagrams-glyph-gradient" x1="36" y1="220" x2="220" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <g fill="none" stroke="url(#meltemi-diagrams-glyph-gradient)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="36" y="148" width="72" height="72" rx="18"/>
+    <rect x="148" y="36" width="72" height="72" rx="18"/>
+    <path d="M108 184C154 184 184 154 184 108"/>
+  </g>
+</svg>

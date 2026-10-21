@@ -1,0 +1,307 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "parallel",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 152,
+          "line": 5,
+          "column": 1
+        },
+        "end": {
+          "offset": 303,
+          "line": 11,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "auto",
+        "theme": null,
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "orders",
+          "kind": "node",
+          "label": "orders",
+          "implicit": true,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 179,
+              "line": 6,
+              "column": 3
+            },
+            "end": {
+              "offset": 185,
+              "line": 6,
+              "column": 9
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 179,
+              "line": 6,
+              "column": 3
+            },
+            "end": {
+              "offset": 185,
+              "line": 6,
+              "column": 9
+            }
+          }
+        },
+        {
+          "id": "db",
+          "kind": "node",
+          "label": "db",
+          "implicit": true,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 189,
+              "line": 6,
+              "column": 13
+            },
+            "end": {
+              "offset": 191,
+              "line": 6,
+              "column": 15
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 189,
+              "line": 6,
+              "column": 13
+            },
+            "end": {
+              "offset": 191,
+              "line": 6,
+              "column": 15
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "orders->db#1",
+          "id": null,
+          "from": "orders",
+          "to": "db",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "write",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 179,
+              "line": 6,
+              "column": 3
+            },
+            "end": {
+              "offset": 200,
+              "line": 6,
+              "column": 24
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "orders->db#2",
+          "id": null,
+          "from": "orders",
+          "to": "db",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "read",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 203,
+              "line": 7,
+              "column": 3
+            },
+            "end": {
+              "offset": 223,
+              "line": 7,
+              "column": 23
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "audit",
+          "id": "audit",
+          "from": "orders",
+          "to": "db",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 226,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 247,
+              "line": 8,
+              "column": 24
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 242,
+              "line": 8,
+              "column": 19
+            },
+            "end": {
+              "offset": 247,
+              "line": 8,
+              "column": 24
+            }
+          }
+        },
+        {
+          "key": "db->orders#1",
+          "id": null,
+          "from": "db",
+          "to": "orders",
+          "line": "dashed",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "events",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 250,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 273,
+              "line": 9,
+              "column": 26
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "orders->orders#1",
+          "id": null,
+          "from": "orders",
+          "to": "orders",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "retry",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 276,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 301,
+              "line": 10,
+              "column": 28
+            }
+          },
+          "idRange": null
+        }
+      ],
+      "placement": [],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

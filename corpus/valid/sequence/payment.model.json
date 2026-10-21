@@ -1,0 +1,699 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "payment",
+      "type": "sequence",
+      "range": {
+        "start": {
+          "offset": 90,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 699,
+          "line": 32,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "auto",
+        "theme": "editorial.light",
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "customer",
+          "kind": "actor",
+          "label": "Cliente",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 147,
+              "line": 7,
+              "column": 3
+            },
+            "end": {
+              "offset": 171,
+              "line": 7,
+              "column": 27
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 153,
+              "line": 7,
+              "column": 9
+            },
+            "end": {
+              "offset": 161,
+              "line": 7,
+              "column": 17
+            }
+          }
+        },
+        {
+          "id": "api",
+          "kind": "participant",
+          "label": "API",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 174,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 195,
+              "line": 8,
+              "column": 24
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 186,
+              "line": 8,
+              "column": 15
+            },
+            "end": {
+              "offset": 189,
+              "line": 8,
+              "column": 18
+            }
+          }
+        },
+        {
+          "id": "bank",
+          "kind": "participant",
+          "label": "Banco",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 198,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 222,
+              "line": 9,
+              "column": 27
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 210,
+              "line": 9,
+              "column": 15
+            },
+            "end": {
+              "offset": 214,
+              "line": 9,
+              "column": 19
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "pay",
+          "id": "pay",
+          "from": "customer",
+          "to": "api",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Pagar",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 226,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 257,
+              "line": 11,
+              "column": 34
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 254,
+              "line": 11,
+              "column": 31
+            },
+            "end": {
+              "offset": 257,
+              "line": 11,
+              "column": 34
+            }
+          }
+        },
+        {
+          "key": "authorize",
+          "id": "authorize",
+          "from": "api",
+          "to": "bank",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Autorizar",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 275,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 312,
+              "line": 13,
+              "column": 40
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 303,
+              "line": 13,
+              "column": 31
+            },
+            "end": {
+              "offset": 312,
+              "line": 13,
+              "column": 40
+            }
+          }
+        },
+        {
+          "key": "approved",
+          "id": "approved",
+          "from": "bank",
+          "to": "api",
+          "line": "dashed",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "OK",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 344,
+              "line": 16,
+              "column": 5
+            },
+            "end": {
+              "offset": 374,
+              "line": 16,
+              "column": 35
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 366,
+              "line": 16,
+              "column": 27
+            },
+            "end": {
+              "offset": 374,
+              "line": 16,
+              "column": 35
+            }
+          }
+        },
+        {
+          "key": "success",
+          "id": "success",
+          "from": "api",
+          "to": "customer",
+          "line": "dashed",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Confirmación",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 379,
+              "line": 17,
+              "column": 5
+            },
+            "end": {
+              "offset": 422,
+              "line": 17,
+              "column": 48
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 415,
+              "line": 17,
+              "column": 41
+            },
+            "end": {
+              "offset": 422,
+              "line": 17,
+              "column": 48
+            }
+          }
+        },
+        {
+          "key": "declined",
+          "id": "declined",
+          "from": "bank",
+          "to": "api",
+          "line": "dashed",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Rechazo",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 450,
+              "line": 19,
+              "column": 5
+            },
+            "end": {
+              "offset": 485,
+              "line": 19,
+              "column": 40
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 477,
+              "line": 19,
+              "column": 32
+            },
+            "end": {
+              "offset": 485,
+              "line": 19,
+              "column": 40
+            }
+          }
+        },
+        {
+          "key": "retry",
+          "id": "retry",
+          "from": "api",
+          "to": "customer",
+          "line": "dashed",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Reintentar",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 490,
+              "line": 20,
+              "column": 5
+            },
+            "end": {
+              "offset": 529,
+              "line": 20,
+              "column": 44
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 524,
+              "line": 20,
+              "column": 39
+            },
+            "end": {
+              "offset": 529,
+              "line": 20,
+              "column": 44
+            }
+          }
+        }
+      ],
+      "placement": [],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [
+        {
+          "kind": "message",
+          "key": "pay",
+          "relation": "pay",
+          "range": {
+            "start": {
+              "offset": 226,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 257,
+              "line": 11,
+              "column": 34
+            }
+          }
+        },
+        {
+          "kind": "activate",
+          "key": "activate#1",
+          "participant": "api",
+          "range": {
+            "start": {
+              "offset": 260,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 272,
+              "line": 12,
+              "column": 15
+            }
+          }
+        },
+        {
+          "kind": "message",
+          "key": "authorize",
+          "relation": "authorize",
+          "range": {
+            "start": {
+              "offset": 275,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 312,
+              "line": 13,
+              "column": 40
+            }
+          }
+        },
+        {
+          "kind": "fragment",
+          "key": "result",
+          "id": "result",
+          "operator": "alt",
+          "branches": [
+            {
+              "condition": "Aprobado",
+              "events": [
+                {
+                  "kind": "message",
+                  "key": "approved",
+                  "relation": "approved",
+                  "range": {
+                    "start": {
+                      "offset": 344,
+                      "line": 16,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 374,
+                      "line": 16,
+                      "column": 35
+                    }
+                  }
+                },
+                {
+                  "kind": "message",
+                  "key": "success",
+                  "relation": "success",
+                  "range": {
+                    "start": {
+                      "offset": 379,
+                      "line": 17,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 422,
+                      "line": 17,
+                      "column": 48
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 316,
+                  "line": 15,
+                  "column": 3
+                },
+                "end": {
+                  "offset": 426,
+                  "line": 18,
+                  "column": 4
+                }
+              }
+            },
+            {
+              "condition": "Rechazado",
+              "events": [
+                {
+                  "kind": "message",
+                  "key": "declined",
+                  "relation": "declined",
+                  "range": {
+                    "start": {
+                      "offset": 450,
+                      "line": 19,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 485,
+                      "line": 19,
+                      "column": 40
+                    }
+                  }
+                },
+                {
+                  "kind": "message",
+                  "key": "retry",
+                  "relation": "retry",
+                  "range": {
+                    "start": {
+                      "offset": 490,
+                      "line": 20,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 529,
+                      "line": 20,
+                      "column": 44
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 427,
+                  "line": 18,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 533,
+                  "line": 21,
+                  "column": 4
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 316,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 533,
+              "line": 21,
+              "column": 4
+            }
+          }
+        },
+        {
+          "kind": "deactivate",
+          "key": "deactivate#1",
+          "participant": "api",
+          "range": {
+            "start": {
+              "offset": 537,
+              "line": 23,
+              "column": 3
+            },
+            "end": {
+              "offset": 551,
+              "line": 23,
+              "column": 17
+            }
+          }
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "approved",
+          "label": "Pago aprobado",
+          "choices": [
+            {
+              "kind": "choose",
+              "fragment": "result",
+              "branch": 0,
+              "iterations": null,
+              "range": {
+                "start": {
+                  "offset": 595,
+                  "line": 26,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 619,
+                  "line": 26,
+                  "column": 29
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 555,
+              "line": 25,
+              "column": 3
+            },
+            "end": {
+              "offset": 623,
+              "line": 27,
+              "column": 4
+            }
+          }
+        },
+        {
+          "id": "rejected",
+          "label": "Pago rechazado",
+          "choices": [
+            {
+              "kind": "choose",
+              "fragment": "result",
+              "branch": 1,
+              "iterations": null,
+              "range": {
+                "start": {
+                  "offset": 668,
+                  "line": 30,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 693,
+                  "line": 30,
+                  "column": 30
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 627,
+              "line": 29,
+              "column": 3
+            },
+            "end": {
+              "offset": 697,
+              "line": 31,
+              "column": 4
+            }
+          }
+        }
+      ],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

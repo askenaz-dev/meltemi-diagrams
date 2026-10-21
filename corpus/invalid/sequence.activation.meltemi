@@ -1,0 +1,6 @@
+language "0.2"
+
+diagram payment: sequence {
+  customer -> api: "Pay" as pay
+  deactivate api
+}

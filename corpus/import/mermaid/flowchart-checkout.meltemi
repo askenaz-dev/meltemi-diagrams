@@ -1,0 +1,36 @@
+language "0.2"
+
+// Imported from flowchart-checkout.mmd (mermaid) by meltemi-diagrams.
+
+diagram checkout: flow {
+  title "Checkout"
+  direction LR
+  layout auto
+
+  class hot { fill "#f96"; stroke "#333"; width 4 }
+
+  node cart "Cart" { class hot }
+  decision pay "Paid?"
+  node retry "Retry"
+  group backend "Back end" {
+    data orders "Orders"
+    node order_api "Order API"
+    group workers "Workers" {
+      node mailer "Mailer"
+    }
+  }
+
+  // Entry point of the shop
+  cart -> pay as e1
+  pay -> orders: "yes"
+  pay -> retry: "no"
+  retry --> cart
+  order_api -> orders as e2
+  orders -> mailer as e3
+
+  style retry { shape hexagon; fill "#eee" }
+  style mailer { shape pill }
+  style e2 { width 3 }
+  style e3 { arrowhead none }
+  style e1 { stroke "#d33" }
+}

@@ -1,0 +1,78 @@
+name: CI
+
+# Every push to main and every pull request: the types, the style, the licences, the unit tests,
+# the build and the corpus on Linux and Windows; the browser suites (the playground, the player,
+# the catalog and the canvas) and the cloud service's suite against `wrangler dev` on Linux. Nothing
+# here deploys, publishes or reads a secret. `pnpm vscode:test`, which downloads VS Code, stays a
+# step of RELEASING.md.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Node ${{ matrix.node }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm licenses:inventory --check
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm mdg validate corpus/valid
+      - run: pnpm mdg validate corpus/projects/valid/commerce
+      - run: pnpm mdg format --check examples skills corpus/projects/valid
+      - run: pnpm mdg export corpus/valid/edge/annotations.meltemi --out ${{ runner.temp }}
+
+  browser:
+    name: Browser suites
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - name: FFmpeg, for the videos the playground exports
+        run: sudo apt-get update && sudo apt-get install --yes ffmpeg
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm playground:test-browser
+      - run: pnpm player:test-browser
+      - run: pnpm catalog:test-browser
+      - run: pnpm vscode:test-webview
+
+  cloud:
+    name: The cloud service against wrangler dev
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm playground:build
+      - run: pnpm cloud:test-browser

@@ -1,0 +1,5 @@
+* text=auto eol=lf
+*.docx binary
+*.pdf binary
+# Corpus files are byte-exact test inputs (CRLF, BOM, tabs). Never convert them.
+corpus/** -text

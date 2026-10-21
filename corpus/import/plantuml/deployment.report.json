@@ -1,0 +1,33 @@
+{
+  "status": "complete",
+  "format": "plantuml",
+  "diagrams": [
+    {
+      "id": "deployment",
+      "type": "flow",
+      "model": null,
+      "kind": "description",
+      "lines": [
+        1,
+        44
+      ]
+    }
+  ],
+  "findings": [
+    "13:1 warning import.unsupported-construct [plantuml.skinparam dropped] `skinparam` styling is not imported.",
+    "14:1 warning import.unsupported-construct [plantuml.skinparam dropped] `skinparam` styling is not imported.",
+    "19:1 info import.approximated [description.stereotype approximated] Stereotypes become the element's description.",
+    "35:1 warning import.unsupported-construct [description.arrow.hidden dropped] Hidden links only steer PlantUML's layout; they are not imported.",
+    "36:1 info import.approximated [description.arrow.direction approximated] Arrow directions are left to the layout.",
+    "37:1 info import.approximated [description.arrow.multiplicity approximated] Labels at the ends of a link are not drawn.",
+    "41:1 warning import.unsupported-construct [plantuml.legend dropped] `legend` is not imported."
+  ],
+  "coverage": [
+    {
+      "diagram": "deployment",
+      "mapped": 21,
+      "approximated": 3,
+      "dropped": 4
+    }
+  ]
+}

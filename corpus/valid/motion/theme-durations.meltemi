@@ -1,0 +1,30 @@
+language "0.2"
+
+// A theme that sets the default speed of each effect; effects without a duration take it.
+theme quick {
+  extends "technical.light"
+  flowDuration 800ms
+  dashDuration 1.5s
+  pulseDuration 600ms
+}
+
+diagram pipeline: flow {
+  theme "quick"
+  layout manual
+
+  build["Build"]
+  test["Test"]
+  ship["Ship"]
+  build -> test as checks
+  test -> ship as release
+
+  placement {
+    place build at (100, 80)
+    place test at (340, 80)
+    place ship at (580, 80)
+  }
+
+  animate checks { effect flow }
+  animate release { effect dash; duration 3s }
+  animate ship { effect pulse }
+}

@@ -1,0 +1,96 @@
+# Meltemi Diagrams: validate the project, review what changed in pull requests, and build the
+# catalog. Written by `meltemi-diagrams init --ci github`; edit it freely.
+name: Meltemi Diagrams
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  PROJECT: "{{project}}"
+  MELTEMI_DIAGRAMS: "@meltemi/diagrams-cli@{{version}}"
+
+jobs:
+  diagrams:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The review compares with the base branch, so the history is needed.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Validate
+        run: npx --yes --package "$MELTEMI_DIAGRAMS" meltemi-diagrams validate "$PROJECT" --strict
+
+      - name: Review
+        if: github.event_name == 'pull_request'
+        # The base branch comes from the environment, never written into the script.
+        run: |
+          {
+            echo '### Diagram changes'
+            echo '```text'
+            npx --yes --package "$MELTEMI_DIAGRAMS" meltemi-diagrams review "$PROJECT" --base "origin/$GITHUB_BASE_REF" --out review
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Catalog
+        run: npx --yes --package "$MELTEMI_DIAGRAMS" meltemi-diagrams build catalog "$PROJECT" --out catalog
+
+      # PNG, PDF and video profiles use the runner's Chrome; video also needs FFmpeg:
+      # - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      # - run: npx --yes --package "$MELTEMI_DIAGRAMS" meltemi-diagrams export "$PROJECT" --profiles --out exports
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: diagrams
+          path: |
+            catalog
+            review
+          if-no-files-found: ignore
+
+  # {{cloud-begin}}
+  # The job below is written by `meltemi-diagrams init --ci github --cloud` only: it mirrors the
+  # project in the Meltemi cloud on every push to the default branch, so that the page, the share
+  # links and the published catalog follow the repository.
+  #
+  # The repository is the truth, so this job pushes with --force: CI cannot answer the question a
+  # push asks when the cloud holds something the folder lacks (a diagram somebody drew in the
+  # page), and a job that waits for an answer would hang. --strict refuses a project with errors.
+  # What differs in the cloud is overwritten; pull it first if it should survive.
+  #
+  # The job runs on the repository's default branch, and the workflow starts on pushes to main
+  # only (`on:` above): edit the branches there if the default branch has another name.
+  #
+  # MELTEMI_TOKEN is an API token kept in this repository's secrets (Settings, Secrets and
+  # variables, Actions); create it in the page, under API tokens in the account menu. It is
+  # never written in this file. MELTEMI_HOST is optional: a repository variable that names
+  # another service than https://diagrams.meltemi.dev, and it must be a variable, not a secret.
+  cloud:
+    if: github.event_name == 'push' && github.ref_name == github.event.repository.default_branch
+    # One push to the cloud at a time, and a run still waiting is replaced by a newer one: with
+    # --force a slow job for an older commit would otherwise overwrite the newer commit's push.
+    concurrency:
+      group: meltemi-cloud
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Push to the cloud
+        env:
+          MELTEMI_TOKEN: ${{ secrets.MELTEMI_TOKEN }}
+          MELTEMI_HOST: ${{ vars.MELTEMI_HOST }}
+        run: npx --yes --package "$MELTEMI_DIAGRAMS" meltemi-diagrams push "$PROJECT" --force --strict
+  # {{cloud-end}}

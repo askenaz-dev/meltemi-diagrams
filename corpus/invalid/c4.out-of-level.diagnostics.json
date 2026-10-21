@@ -1,0 +1,23 @@
+[
+  {
+    "code": "c4.out-of-level",
+    "severity": "error",
+    "message": "A container view does not draw the component `shop.api.orders`.",
+    "range": {
+      "start": {
+        "offset": 223,
+        "line": 14,
+        "column": 21
+      },
+      "end": {
+        "offset": 238,
+        "line": 14,
+        "column": 36
+      }
+    },
+    "hints": [
+      "Container views draw the containers and datastores of `shop`, persons and other systems."
+    ],
+    "related": []
+  }
+]

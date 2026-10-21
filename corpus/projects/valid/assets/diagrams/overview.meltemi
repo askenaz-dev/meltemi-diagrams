@@ -1,0 +1,73 @@
+language "0.2"
+
+// Icons from the built-in Tabler pack, an Iconify pack, a folder pack reached through the
+// `cloud` alias, and labels set in the project font.
+theme corpus {
+  extends "technical.light"
+  font "'Corpus Sans', sans-serif"
+}
+
+diagram overview: flow {
+  title "Assets"
+  theme "corpus"
+  layout manual
+
+  rule data {
+    icon "tabler:database"
+    iconColor accent
+  }
+
+  group platform "Platform" {
+    gateway["Gateway"] { description "routes requests" }
+    worker["Worker"]
+  }
+  data store "Store"
+  lambda["Function"]
+  bucket["Bucket"]
+  note limits "Quotas apply"
+  tag new "NEW"
+
+  gateway -> worker: "jobs" as jobs
+  worker -> store as persist
+  worker -> lambda as invoke
+  lambda -> bucket as save
+
+  style platform {
+    icon "brand:logo"
+  }
+  style gateway {
+    icon "tabler:server"
+  }
+  style worker {
+    icon "tabler:cpu"
+    iconPosition top
+  }
+  style lambda {
+    icon "cloud:lambda"
+  }
+  style bucket {
+    icon "aws:s3"
+  }
+  style limits {
+    icon "tabler:alert-triangle"
+  }
+  style new {
+    icon "brand:symbol"
+  }
+  style jobs {
+    icon "tabler:clock"
+  }
+  style save {
+    icon "tabler:lock"
+  }
+
+  placement {
+    place gateway at (140, 110)
+    place worker at (420, 110)
+    place store at (420, 300)
+    place lambda at (700, 110)
+    place bucket at (700, 300)
+    place limits at (130, 300)
+    place new at (530, 60)
+  }
+}

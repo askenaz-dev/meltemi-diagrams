@@ -1,0 +1,30 @@
+language "0.2"
+
+// The reference purchase: a customer, the API entry, orders, payments, events and data. Every view,
+// the payment sequence, the executive slide and the story draw these entities.
+model commerce {
+  person customer "Customer" { description "Buys online" }
+
+  system shop "Online shop" {
+    description "Takes orders and payments"
+    container web "Web store" { technology "React" }
+    container gateway "API gateway" { technology "Kong" }
+    container orders "Orders" { technology "Kotlin" }
+    container payments "Payments" { technology "Kotlin" }
+    container events "Event bus" { technology "Kafka" }
+    datastore db "Orders database" { technology "PostgreSQL" }
+  }
+  system provider "Payment provider" {
+    description "Authorises cards"
+    external
+  }
+
+  customer -> shop.web: "Places an order" as buys
+  shop.web -> shop.gateway: "Calls" as calls { technology "JSON/HTTPS" }
+  shop.gateway -> shop.orders: "Creates the order" as create
+  shop.orders -> shop.db: "Stores" as store
+  shop.orders -> shop.payments: "Requests the payment" as charge
+  shop.payments -> provider: "Authorises the card" as authorise
+  shop.payments -> shop.events: "PaymentApproved" as publish
+  shop.events -> shop.orders: "Confirms the order" as confirm
+}

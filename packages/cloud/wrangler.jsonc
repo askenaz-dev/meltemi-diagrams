@@ -1,0 +1,67 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "meltemi-diagrams-cloud",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-09-15",
+  "dev": { "port": 8788 },
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": "../playground/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "none",
+    "run_worker_first": [
+      "/api/*",
+      "/_identity/*",
+      "/_published/*",
+      "/cli-auth",
+      "/cli-auth/*",
+      "/p/*",
+      "/rooms/*",
+    ],
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "meltemi-diagrams",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "r2_buckets": [{ "binding": "BLOBS", "bucket_name": "meltemi-diagrams-blobs" }],
+  "durable_objects": {
+    "bindings": [{ "name": "ROOMS", "class_name": "ProjectRoom" }],
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["ProjectRoom"] }],
+  "secrets_store_secrets": [
+    {
+      "binding": "FORMS_SECRET_STORE",
+      "store_id": "00000000000000000000000000000000",
+      "secret_name": "FORMS_SECRET",
+    },
+    {
+      "binding": "IDENTITY_EVENTS_SECRET_STORE",
+      "store_id": "00000000000000000000000000000000",
+      "secret_name": "IDENTITY_EVENTS_SECRET",
+    },
+    {
+      "binding": "ADMIN_SUBS_STORE",
+      "store_id": "00000000000000000000000000000000",
+      "secret_name": "ADMIN_SUBS",
+    },
+  ],
+  "triggers": { "crons": ["0 3 * * 0"] },
+  "alias": {
+    "@meltemi/diagrams-project": "../project/src/index.ts",
+    "@meltemi/diagrams-assets": "../assets/src/index.ts",
+    "@meltemi/diagrams-i18n": "../i18n/src/index.ts",
+    "@meltemi/diagrams-language": "../language/src/index.ts",
+    "@meltemi/diagrams-model": "../model/src/index.ts",
+  },
+  "vars": {
+    "ORIGIN": "https://diagrams.meltemi.dev",
+    "IDENTITY_ISSUER": "https://id.meltemi.dev",
+    "IDENTITY_JWKS_URL": "https://id.meltemi.dev/.well-known/jwks.json",
+    "PUBLISH_HOST": "meltemi.page",
+  },
+}

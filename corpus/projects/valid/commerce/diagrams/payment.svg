@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="440" height="155" viewBox="0 0 440 155" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Payment</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="440" height="155" fill="#07111F"/>
+  <g data-id="api" data-role="element">
+    <rect x="20" y="35" width="160" height="56" rx="8" fill="#0F1B2D" stroke="#183149" stroke-width="1"/>
+    <text x="100" y="67.73" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">API Gateway</text>
+  </g>
+  <g data-id="payments" data-role="element">
+    <rect x="260" y="35" width="160" height="56" rx="8" fill="#0F1B2D" stroke="#183149" stroke-width="1"/>
+    <text x="340" y="67.73" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">Payments</text>
+  </g>
+  <g data-id="authorize" data-role="relation">
+    <polyline points="180,63 252,63" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M260 63 L252 66.5 L252 59.5 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+    <g data-id="authorize" data-role="label">
+      <rect x="189.29" y="54" width="61.42" height="18" rx="9" fill="#0F1B2D" stroke="#183149" stroke-width="1"/>
+      <text x="220" y="67" text-anchor="middle" font-size="11" font-weight="500" fill="#F7FBFF">authorize</text>
+    </g>
+  </g>
+  <g data-id="pci" data-role="element">
+    <rect x="381.5" y="20" width="37" height="18" rx="9" fill="#22D3EE" stroke="#22D3EE" stroke-width="1"/>
+    <text x="400" y="32.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#07111F">PCI</text>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,111.5 420,111.5" fill="none" stroke="#183149" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 121) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="137.37" text-anchor="start" font-size="12" font-weight="600" fill="#F7FBFF">Meltemi Diagrams</text>
+    <text x="420" y="137" text-anchor="end" font-size="11" font-weight="400" fill="#88A0B9">Payment</text>
+  </g>
+</svg>

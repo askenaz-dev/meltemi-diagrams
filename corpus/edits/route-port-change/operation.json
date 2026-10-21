@@ -1,0 +1,1 @@
+{ "operation": { "kind": "setRoute", "diagram": "d", "relation": "create", "from": "east", "to": "north", "via": [{ "x": 10.5, "y": 20.001 }] }, "expect": { "edits": 3 } }

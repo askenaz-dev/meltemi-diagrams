@@ -1,0 +1,15 @@
+language "0.2"
+
+// A first diagram. Change the boxes and arrows, then run `meltemi-diagrams preview` to see it.
+diagram overview: flow {
+  title "Overview"
+  description "How a request reaches the data"
+  direction LR
+
+  client["Client"]
+  api["API"] { description "Handles requests" }
+  db[("Database")]
+
+  client -> api: "HTTPS" as request
+  api -> db: "Reads and writes" as store
+}

@@ -1,0 +1,14 @@
+language "0.2"
+
+import commerce from "../models/commerce.meltemi"
+
+// A sequence whose participants are entities of the model: they take its labels.
+diagram purchase: sequence {
+  actor customer { link commerce.customer }
+  participant api { link commerce.shop.api }
+  participant bank { link commerce.bank }
+
+  customer -> api: "Pagar" as pay
+  api -> bank: "Autorizar" as authorize
+  bank --> api: "OK" as approved
+}

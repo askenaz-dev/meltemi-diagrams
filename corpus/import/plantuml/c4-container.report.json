@@ -1,0 +1,32 @@
+{
+  "status": "complete",
+  "format": "plantuml",
+  "diagrams": [
+    {
+      "id": "shop_containers",
+      "type": "c4",
+      "model": "shop_containers_model",
+      "kind": "C4_Container",
+      "lines": [
+        1,
+        19
+      ]
+    }
+  ],
+  "findings": [
+    "8:1 warning import.unsupported-construct [plantuml.c4.tags dropped] Tags are not imported.",
+    "10:3 info import.approximated [plantuml.c4.ContainerQueue approximated] A queue container is drawn as a container.",
+    "15:1 info import.approximated [plantuml.c4.Rel_direction approximated] Relation directions are left to the layout.",
+    "16:1 info import.approximated [plantuml.c4.BiRel approximated] A bidirectional relation becomes two relations.",
+    "17:1 warning import.unsupported-construct [plantuml.c4.Lay_R dropped] `Lay_R` only changes the drawing; it is not imported.",
+    "18:1 warning import.unsupported-construct [plantuml.c4.SHOW_LEGEND dropped] `SHOW_LEGEND` only changes the drawing; it is not imported."
+  ],
+  "coverage": [
+    {
+      "diagram": "shop_containers",
+      "mapped": 11,
+      "approximated": 3,
+      "dropped": 3
+    }
+  ]
+}

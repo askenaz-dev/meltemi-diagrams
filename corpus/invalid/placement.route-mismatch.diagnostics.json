@@ -1,0 +1,21 @@
+[
+  {
+    "code": "placement.route-mismatch",
+    "severity": "error",
+    "message": "The route of `create` must start at `api`, the source of the relation, but starts at `orders`.",
+    "range": {
+      "start": {
+        "offset": 101,
+        "line": 6,
+        "column": 23
+      },
+      "end": {
+        "offset": 112,
+        "line": 6,
+        "column": 34
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

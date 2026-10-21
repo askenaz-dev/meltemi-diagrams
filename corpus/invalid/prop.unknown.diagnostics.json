@@ -1,0 +1,44 @@
+[
+  {
+    "code": "prop.unknown",
+    "severity": "error",
+    "message": "Unknown property `colour` in an element block.",
+    "range": {
+      "start": {
+        "offset": 58,
+        "line": 5,
+        "column": 5
+      },
+      "end": {
+        "offset": 64,
+        "line": 5,
+        "column": 11
+      }
+    },
+    "hints": [
+      "Element blocks accept `description`, `class`, `layer`, `link`, `url` and `port`."
+    ],
+    "related": []
+  },
+  {
+    "code": "prop.unknown",
+    "severity": "error",
+    "message": "Unknown statement `shape` in a flow diagram.",
+    "range": {
+      "start": {
+        "offset": 77,
+        "line": 7,
+        "column": 3
+      },
+      "end": {
+        "offset": 82,
+        "line": 7,
+        "column": 8
+      }
+    },
+    "hints": [
+      "Flow diagrams accept element declarations, relations, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `placement`, `style`, `animate`, `class` and `rule`."
+    ],
+    "related": []
+  }
+]

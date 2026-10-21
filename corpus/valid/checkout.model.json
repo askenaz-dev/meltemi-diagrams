@@ -1,0 +1,556 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "checkout",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 83,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 671,
+          "line": 34,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "assisted",
+        "theme": "editorial.light",
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "client",
+          "kind": "node",
+          "label": "Cliente",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 170,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 187,
+              "line": 9,
+              "column": 20
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 170,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 176,
+              "line": 9,
+              "column": 9
+            }
+          }
+        },
+        {
+          "id": "api",
+          "kind": "node",
+          "label": "API Gateway",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 190,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 208,
+              "line": 10,
+              "column": 21
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 190,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 193,
+              "line": 10,
+              "column": 6
+            }
+          }
+        },
+        {
+          "id": "orders",
+          "kind": "node",
+          "label": "Pedidos",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 211,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 228,
+              "line": 11,
+              "column": 20
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 211,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 217,
+              "line": 11,
+              "column": 9
+            }
+          }
+        },
+        {
+          "id": "db",
+          "kind": "data",
+          "label": "PostgreSQL",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": "cylinder",
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 231,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 249,
+              "line": 12,
+              "column": 21
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 231,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 233,
+              "line": 12,
+              "column": 5
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "request",
+          "id": "request",
+          "from": "client",
+          "to": "api",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "HTTPS",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 253,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 286,
+              "line": 14,
+              "column": 36
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 279,
+              "line": 14,
+              "column": 29
+            },
+            "end": {
+              "offset": 286,
+              "line": 14,
+              "column": 36
+            }
+          }
+        },
+        {
+          "key": "create",
+          "id": "create",
+          "from": "api",
+          "to": "orders",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Crear pedido",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 289,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 328,
+              "line": 15,
+              "column": 42
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 322,
+              "line": 15,
+              "column": 36
+            },
+            "end": {
+              "offset": 328,
+              "line": 15,
+              "column": 42
+            }
+          }
+        },
+        {
+          "key": "save",
+          "id": "save",
+          "from": "orders",
+          "to": "db",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Persistir",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 331,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 364,
+              "line": 16,
+              "column": 36
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 360,
+              "line": 16,
+              "column": 32
+            },
+            "end": {
+              "offset": 364,
+              "line": 16,
+              "column": 36
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "api",
+          "x": 360,
+          "y": 180,
+          "range": {
+            "start": {
+              "offset": 384,
+              "line": 19,
+              "column": 5
+            },
+            "end": {
+              "offset": 407,
+              "line": 19,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 390,
+              "line": 19,
+              "column": 11
+            },
+            "end": {
+              "offset": 393,
+              "line": 19,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "orders",
+          "x": 700,
+          "y": 180,
+          "range": {
+            "start": {
+              "offset": 412,
+              "line": 20,
+              "column": 5
+            },
+            "end": {
+              "offset": 438,
+              "line": 20,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 418,
+              "line": 20,
+              "column": 11
+            },
+            "end": {
+              "offset": 424,
+              "line": 20,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "route",
+          "target": "create",
+          "from": {
+            "element": "api",
+            "port": "east"
+          },
+          "to": {
+            "element": "orders",
+            "port": "west"
+          },
+          "via": [
+            {
+              "x": 520,
+              "y": 180
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 443,
+              "line": 21,
+              "column": 5
+            },
+            "end": {
+              "offset": 501,
+              "line": 21,
+              "column": 63
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 449,
+              "line": 21,
+              "column": 11
+            },
+            "end": {
+              "offset": 455,
+              "line": 21,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "label",
+          "target": "create",
+          "at": 50,
+          "offset": {
+            "x": 0,
+            "y": -16
+          },
+          "range": {
+            "start": {
+              "offset": 506,
+              "line": 22,
+              "column": 5
+            },
+            "end": {
+              "offset": 541,
+              "line": 22,
+              "column": 40
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 512,
+              "line": 22,
+              "column": 11
+            },
+            "end": {
+              "offset": 518,
+              "line": 22,
+              "column": 17
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [
+        {
+          "target": "api",
+          "targetKind": "element",
+          "properties": {
+            "icon": "tabler:server"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 549,
+              "line": 25,
+              "column": 3
+            },
+            "end": {
+              "offset": 589,
+              "line": 27,
+              "column": 4
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 555,
+              "line": 25,
+              "column": 9
+            },
+            "end": {
+              "offset": 558,
+              "line": 25,
+              "column": 12
+            }
+          }
+        }
+      ],
+      "animations": [
+        {
+          "target": "request",
+          "targetKind": "relation",
+          "effect": "flow",
+          "durationMs": 1200,
+          "repeat": "forever",
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 593,
+              "line": 29,
+              "column": 3
+            },
+            "end": {
+              "offset": 669,
+              "line": 33,
+              "column": 4
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 601,
+              "line": 29,
+              "column": 11
+            },
+            "end": {
+              "offset": 608,
+              "line": 29,
+              "column": 18
+            }
+          }
+        }
+      ],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

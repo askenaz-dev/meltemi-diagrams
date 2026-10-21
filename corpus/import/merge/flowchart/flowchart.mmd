@@ -1,0 +1,8 @@
+flowchart LR
+  cart[Cart] --> pay{Paid?}
+  pay -->|yes| orders[(Orders)]
+  pay -->|no| retry[Retry]
+  retry --> cart
+  orders --> ship[Ship]
+  classDef hot fill:#f96
+  cart:::hot

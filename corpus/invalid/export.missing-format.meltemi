@@ -1,0 +1,10 @@
+language "0.2"
+
+diagram checkout: flow {
+  client -> api
+}
+
+// Every profile says what it writes.
+export slide for checkout {
+  scale 2
+}

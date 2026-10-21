@@ -1,0 +1,37 @@
+language "0.2"
+
+// Imported from c4-component.puml (plantuml) by meltemi-diagrams.
+
+model c4_component_model {
+  system system "System" {
+    container api "API Application" {
+      component sign "Sign In Controller" {
+        description "Allows users to sign in"
+        technology "MVC Rest Controller"
+      }
+      component security "Security Component" { technology "Spring Bean" }
+      component cache "Session cache" { technology "Redis" }
+    }
+    container spa "Single Page Application" {
+      description "Provides all the internet banking functionality to customers via their web browser."
+      technology "javascript and angular"
+    }
+    datastore db "Database" {
+      description "Stores user registration information."
+      technology "Relational Database Schema"
+    }
+  }
+  system mbs "Mainframe Banking System" { external }
+
+  system.api.sign -> system.api.security: "Uses"
+  system.api.security -> system.db: "Read & write to" { technology "JDBC" }
+  system.spa -> system.api.sign: "Uses" { technology "JSON/HTTPS" }
+  system.api.security -> mbs: "Uses" { technology "XML/HTTPS" }
+}
+
+diagram c4_component: c4 using c4_component_model {
+  level component
+  scope system.api
+  include system.spa, system.db, mbs, system.api.sign, system.api.security, system.api.cache
+  direction TB
+}

@@ -1,0 +1,84 @@
+{
+  "description": "Moves, relabels, renames and a refused delete on a commented sheet placed by hand.",
+  "sheet": "flow/parallel.meltemi",
+  "steps": [
+    {
+      "name": "move the cache",
+      "operation": {
+        "kind": "setPosition",
+        "diagram": "parallel",
+        "element": "cache",
+        "x": 140,
+        "y": 480
+      },
+      "changed": [
+        "^\\s*place cache at \\("
+      ],
+      "unmoved": {
+        "parallel": [
+          "api",
+          "db"
+        ]
+      },
+      "at": {
+        "parallel": {
+          "cache": [
+            140,
+            480
+          ]
+        }
+      }
+    },
+    {
+      "name": "relabel a relation",
+      "operation": {
+        "kind": "setRelationLabel",
+        "diagram": "parallel",
+        "relation": "insert",
+        "label": "Insert row"
+      },
+      "changed": [
+        "as insert$"
+      ],
+      "unmoved": {
+        "parallel": [
+          "api",
+          "db",
+          "cache"
+        ]
+      }
+    },
+    {
+      "name": "rename an element everywhere",
+      "operation": {
+        "kind": "renameElement",
+        "diagram": "parallel",
+        "element": "cache",
+        "newId": "store"
+      },
+      "changed": [
+        "\\bcache\\b",
+        "\\bstore\\b"
+      ],
+      "absent": [
+        "\\bcache\\b"
+      ],
+      "unmoved": {
+        "parallel": [
+          "api",
+          "db"
+        ]
+      }
+    },
+    {
+      "name": "refuse to delete a box others depend on",
+      "operation": {
+        "kind": "removeElement",
+        "diagram": "parallel",
+        "element": "db",
+        "cascade": false
+      },
+      "rejected": "edit.has-dependents"
+    }
+  ]
+}

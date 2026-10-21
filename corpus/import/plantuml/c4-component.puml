@@ -1,0 +1,16 @@
+@startuml
+!include <C4/C4_Component>
+LAYOUT_TOP_DOWN()
+Container(spa, "Single Page Application", "javascript and angular", "Provides all the internet banking functionality to customers via their web browser.")
+ContainerDb(db, "Database", "Relational Database Schema", "Stores user registration information.")
+System_Ext(mbs, "Mainframe Banking System")
+Container_Boundary(api, "API Application") {
+    Component(sign, "Sign In Controller", "MVC Rest Controller", "Allows users to sign in")
+    Component(security, "Security Component", "Spring Bean")
+    ComponentDb(cache, "Session cache", "Redis")
+    Rel(sign, security, "Uses")
+    Rel(security, db, "Read & write to", "JDBC")
+}
+Rel(spa, sign, "Uses", "JSON/HTTPS")
+Rel(security, mbs, "Uses", "XML/HTTPS")
+@enduml

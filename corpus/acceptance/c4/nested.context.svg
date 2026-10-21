@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="924" height="188" viewBox="0 0 924 188" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="924" height="188" fill="#F7FBFF"/>
+  <g data-id="customer" data-role="element">
+    <rect x="20" y="45.6" width="160" height="78.4" rx="24" fill="#0891B2" stroke="#0891B2" stroke-width="1"/>
+    <path d="M84 36 A16 16 0 1 0 116 36 A16 16 0 1 0 84 36 Z" fill="#0891B2" stroke="#0891B2" stroke-width="1"/>
+    <text x="100" y="86.33" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Customer</text>
+    <text x="100" y="103.6" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[Person]</text>
+  </g>
+  <g data-id="bank" data-role="element">
+    <rect x="359" y="32" width="180" height="80" rx="8" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+    <text x="449" y="68.73" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Internet banking</text>
+    <text x="449" y="86" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[Software System]</text>
+  </g>
+  <g data-id="mainframe" data-role="element">
+    <rect x="724" y="32" width="180" height="80" rx="8" fill="#526579" stroke="#526579" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="814" y="68.73" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Core banking</text>
+    <text x="814" y="86" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[External Software System]</text>
+  </g>
+  <g data-id="use" data-role="relation">
+    <polyline points="180,72 351,72" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M359 72 L351 75.5 L351 68.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="use" data-role="label">
+      <rect x="250.27" y="63" width="38.45" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="269.5" y="76" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Uses</text>
+    </g>
+  </g>
+  <g data-id="book" data-role="relation">
+    <polyline points="539,72 716,72" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M724 72 L716 75.5 L716 68.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="book" data-role="label">
+      <rect x="609.21" y="63" width="44.59" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="631.5" y="76" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Books</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,144.5 904,144.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 154) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="170.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+  </g>
+</svg>

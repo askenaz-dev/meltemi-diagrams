@@ -1,0 +1,33 @@
+{
+  "name": "@meltemi/diagrams-acceptance",
+  "version": "1.8.0",
+  "private": true,
+  "description": "The acceptance suite of Meltemi Diagrams: the acceptance corpus and conditions, visual regression, determinism, performance and the export verification matrix.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@meltemi/diagrams-assets": "workspace:*",
+    "@meltemi/diagrams-capture": "workspace:*",
+    "@meltemi/diagrams-cli": "workspace:*",
+    "@meltemi/diagrams-edit": "workspace:*",
+    "@meltemi/diagrams-editor": "workspace:*",
+    "@meltemi/diagrams-fonts": "workspace:*",
+    "@meltemi/diagrams-i18n": "workspace:*",
+    "@meltemi/diagrams-import": "workspace:*",
+    "@meltemi/diagrams-language": "workspace:*",
+    "@meltemi/diagrams-layout": "workspace:*",
+    "@meltemi/diagrams-layout-elk": "workspace:*",
+    "@meltemi/diagrams-model": "workspace:*",
+    "@meltemi/diagrams-motion": "workspace:*",
+    "@meltemi/diagrams-player": "workspace:*",
+    "@meltemi/diagrams-project": "workspace:*",
+    "@meltemi/diagrams-render": "workspace:*"
+  },
+  "devDependencies": {
+    "playwright-core": "1.63.0",
+    "prettier": "3.9.9"
+  }
+}

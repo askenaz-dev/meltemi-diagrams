@@ -1,0 +1,40 @@
+language "0.2"
+
+// Imported from component.puml (plantuml) by meltemi-diagrams.
+
+diagram components: flow {
+  title "Components"
+  layout auto
+
+  group Front_end "Front end" {
+    node web "Web app"
+    node rest "REST"
+  }
+  group Backend {
+    node api "API"
+    node billing "Billing" { description "«service»" }
+    data events "Events"
+    data files "Files"
+  }
+  group cluster "Cluster" {
+    node gw "Gateway"
+  }
+  node Legacy
+  node Report
+
+  web -> rest
+  rest -> api as e1
+  api -> billing: "charge"
+  api --> events: "publish"
+  api -> billing as e2
+  api -> files
+  gw -> api
+  api -> Legacy
+  Report -> files
+
+  style rest { shape circle }
+  style gw { shape hexagon }
+  style Legacy { fill "#ffcccc" }
+  style e1 { arrowhead none }
+  style e2 { arrowhead triangleOutline }
+}

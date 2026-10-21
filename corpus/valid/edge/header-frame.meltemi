@@ -1,0 +1,24 @@
+language "0.2"
+
+// A header frame without the mark, for a company that ships its own wordmark.
+theme plain {
+  frame header
+  mark none
+  brand "Acme Architecture"
+  font "Georgia, serif"
+}
+
+diagram shipping: flow {
+  title "Shipping"
+  layout manual
+  theme "plain"
+
+  orders["Orders"]
+  warehouse["Warehouse"]
+  orders -> warehouse: "pick"
+
+  placement {
+    place orders at (100, 60)
+    place warehouse at (360, 60)
+  }
+}

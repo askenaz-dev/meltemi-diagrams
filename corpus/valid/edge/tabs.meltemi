@@ -1,0 +1,15 @@
+language "0.2"
+
+// Tab indentation.
+diagram tabs: flow {
+	direction TB
+	layout manual
+	web["Web"]
+	api["API"]
+	web -> api: "REST" as call
+
+	placement {
+		place web at (100, 100)
+		place api at (100, 300)
+	}
+}

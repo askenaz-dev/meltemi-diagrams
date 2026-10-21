@@ -1,0 +1,12 @@
+language "0.2"
+
+diagram tabs: flow {
+	layout assisted
+	web["Web"]
+	api["API"]
+	web -> api
+
+	placement {
+		place web at (100, 100)
+	}
+}

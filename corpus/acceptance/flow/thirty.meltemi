@@ -1,0 +1,84 @@
+language "0.2"
+
+// Thirty elements in six groups, arranged by the engine: the size the performance targets name.
+diagram thirty: flow {
+  title "Commerce platform"
+  direction LR
+
+  group edge "Edge" {
+    cdn["Cdn"]
+    waf["Waf"]
+    gateway["Gateway"]
+    auth["Auth"]
+    rateLimit["Rate limit"]
+  }
+  group orders "Orders" {
+    orderApi["Order API"]
+    cart["Cart"]
+    pricing["Pricing"]
+    promotions["Promotions"]
+    checkout["Checkout"]
+  }
+  group payments "Payments" {
+    payApi["Payment API"]
+    fraud["Fraud"]
+    tokens["Tokens"]
+    ledger["Ledger"]
+    refunds["Refunds"]
+  }
+  group fulfilment "Fulfilment" {
+    warehouse["Warehouse"]
+    picking["Picking"]
+    shipping["Shipping"]
+    tracking["Tracking"]
+    returns["Returns"]
+  }
+  group data "Data" {
+    ordersDb[("Orders DB")]
+    paymentsDb[("Payments DB")]
+    events[("Events")]
+    search["Search"]
+    reports["Reports"]
+  }
+  group people "People" {
+    customers["Customers"]
+    support["Support"]
+    notifications["Notifications"]
+    emails["Emails"]
+    sms["Sms"]
+  }
+
+  cdn -> waf as r1
+  waf -> gateway as r2
+  gateway -> auth: "verify" as r3
+  gateway -> rateLimit as r4
+  gateway -> orderApi: "orders" as r5
+  gateway -> payApi: "payments" as r6
+  orderApi -> cart as r7
+  orderApi -> pricing as r8
+  pricing -> promotions as r9
+  orderApi -> checkout as r10
+  checkout -> payApi: "pay" as r11
+  payApi -> fraud: "score" as r12
+  payApi -> tokens as r13
+  payApi -> ledger: "post" as r14
+  ledger -> refunds as r15
+  orderApi -> ordersDb: "writes" as r16
+  payApi -> paymentsDb: "writes" as r17
+  checkout -> events: "publish" as r18
+  events -> warehouse as r19
+  warehouse -> picking as r20
+  picking -> shipping as r21
+  shipping -> tracking as r22
+  tracking -> notifications as r23
+  returns -> refunds as r24
+  events -> search as r25
+  events -> reports as r26
+  notifications -> emails as r27
+  notifications -> sms as r28
+  customers -> cdn: "visits" as r29
+  support -> returns as r30
+  support -> orderApi as r31
+  shipping -> returns as r32
+  reports -> support as r33
+}

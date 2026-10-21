@@ -1,0 +1,21 @@
+[
+  {
+    "code": "story.invalid-target",
+    "severity": "error",
+    "message": "`trace` follows a relation; `api` is an element.",
+    "range": {
+      "start": {
+        "offset": 175,
+        "line": 12,
+        "column": 11
+      },
+      "end": {
+        "offset": 178,
+        "line": 12,
+        "column": 14
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

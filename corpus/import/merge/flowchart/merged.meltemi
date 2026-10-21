@@ -1,0 +1,45 @@
+language "0.2"
+
+// Imported from flowchart.mmd (mermaid) by meltemi-diagrams.
+
+diagram flowchart: flow {
+  direction LR
+  layout assisted
+  routing orthogonal
+
+  class hot { fill "#f96" }
+  class warm { stroke "#c60" }
+
+  node cart "Cart" { class hot, warm }
+  decision pay "Paid?"
+  data orders "Orders" { port in west 30% }
+  node retry "Retry"
+  node ship "Ship"
+
+  cart -> pay
+  pay -> orders: "yes" as approve
+  pay -> retry: "no"
+  retry -> cart
+  orders -> ship
+
+  placement {
+    place cart at (100, 140)
+    place pay at (320, 140)
+    size orders (180, 72)
+    row cart, pay
+    route approve from pay.east to orders.in
+    label approve at 40% offset (0, -12)
+  }
+
+  style orders { fill "#eef" }
+  style approve { stroke success }
+
+  animate approve { effect flow; duration 1200ms; repeat forever }
+}
+
+diagram flowchart_free: free {
+  box cart "Cart"
+  placement {
+    place cart at (100, 100)
+  }
+}

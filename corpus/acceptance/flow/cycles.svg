@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="827" height="784" viewBox="0 0 827 784" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Order lifecycle</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="827" height="784" fill="#F7FBFF"/>
+  <g data-id="created" data-role="element">
+    <rect x="246.67" y="450" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="326.67" y="482.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Order created</text>
+  </g>
+  <g data-id="reserved" data-role="element">
+    <rect x="246.67" y="664" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="326.67" y="696.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Stock reserved</text>
+  </g>
+  <g data-id="charged" data-role="element">
+    <rect x="20" y="234" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="100" y="266.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Payment charged</text>
+  </g>
+  <g data-id="shipped" data-role="element">
+    <rect x="446.67" y="450" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="526.67" y="482.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Shipped</text>
+  </g>
+  <g data-id="failed" data-role="element">
+    <rect x="646.67" y="450" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="726.67" y="482.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Payment failed</text>
+  </g>
+  <g data-id="support" data-role="element">
+    <rect x="220" y="234" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="300" y="266.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Support desk</text>
+  </g>
+  <g data-id="customer" data-role="element">
+    <rect x="260" y="20" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="340" y="52.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Customer</text>
+  </g>
+  <g data-id="reserve" data-role="relation">
+    <polyline points="326.67,506 326.67,656" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M326.67 664 L323.17 656 L330.17 656 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="reserve" data-role="label">
+      <rect x="300.72" y="576" width="51.89" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="326.67" y="589" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">reserve</text>
+    </g>
+  </g>
+  <g data-id="charge" data-role="relation">
+    <polyline points="286.67,664 286.67,614 60,614 60,298" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M60 290 L63.5 298 L56.5 298 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="charge" data-role="label">
+      <rect x="35.73" y="581.34" width="48.53" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="60" y="594.34" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">charge</text>
+    </g>
+  </g>
+  <g data-id="ship" data-role="relation">
+    <polyline points="100,290 100,310 118,310 118,430 500,430 500,442" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M500 450 L496.5 442 L503.5 442 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="ship" data-role="label">
+      <rect x="222.94" y="421" width="34.11" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="240" y="434" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">ship</text>
+    </g>
+  </g>
+  <g data-id="decline" data-role="relation">
+    <polyline points="140,290 140,310 195,310 195,398 726.67,398 726.67,442" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M726.67 450 L723.17 442 L730.17 442 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="decline" data-role="label">
+      <rect x="376.82" y="389" width="57.03" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="405.34" y="402" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">declined</text>
+    </g>
+  </g>
+  <g data-id="retry" data-role="relation">
+    <polyline points="726.67,506 726.67,614 366.67,614 366.67,656" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M366.67 664 L363.17 656 L370.17 656 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="retry" data-role="label">
+      <rect x="557.17" y="605" width="37" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="575.67" y="618" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">retry</text>
+    </g>
+  </g>
+  <g data-id="deliver" data-role="relation">
+    <polyline points="553.33,450 553.33,96 380,96 380,84" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M380 76 L383.5 84 L376.5 84 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="deliver" data-role="label">
+      <rect x="529.51" y="167.33" width="47.63" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="553.33" y="180.34" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">deliver</text>
+    </g>
+  </g>
+  <g data-id="complain" data-role="relation">
+    <polyline points="300,76 300,226" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M300 234 L296.5 226 L303.5 226 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="complain" data-role="label">
+      <rect x="270.02" y="146" width="59.97" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="300" y="159" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">complain</text>
+    </g>
+  </g>
+  <g data-id="reorder" data-role="relation">
+    <polyline points="300,290 300,442" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M300 450 L296.5 442 L303.5 442 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="reorder" data-role="label">
+      <rect x="274.65" y="361" width="50.71" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="300" y="374" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">reorder</text>
+    </g>
+  </g>
+  <g data-id="again" data-role="relation">
+    <polyline points="340,76 340,112 500,112 500,414 353.33,414 353.33,442" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M353.33 450 L349.83 442 L356.83 442 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="again" data-role="label">
+      <rect x="461.12" y="247.34" width="77.76" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="500" y="260.34" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">orders again</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,740.5 807,740.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 750) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="766.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="807" y="766" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Order lifecycle</text>
+  </g>
+</svg>

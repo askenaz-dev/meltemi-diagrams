@@ -1,0 +1,18 @@
+language "0.2"
+
+// The shared model of the commerce views: entities and relations, no positions.
+model commerce {
+  person customer "Cliente"
+
+  system shop "Commerce" {
+    container web "Web" { technology "React" }
+    container api "API" { technology "Kotlin" }
+    datastore db "Pedidos" { technology "PostgreSQL" }
+  }
+  system bank "Banco" { external }
+
+  customer -> shop.web: "Compra" as visit
+  shop.web -> shop.api: "HTTPS" as request { technology "JSON/HTTPS" }
+  shop.api -> shop.db: "SQL" as persist
+  shop.api -> bank: "Autoriza" as authorize
+}

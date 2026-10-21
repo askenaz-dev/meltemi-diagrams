@@ -1,0 +1,12 @@
+language "0.2"
+
+diagram checkout: flow {
+  layout assisted
+  client["Cliente"]
+  api["API Gateway"]
+  client -> api: "HTTPS" as request
+
+  placement {
+    place api at (360, 180)
+  }
+}

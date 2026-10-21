@@ -1,0 +1,18 @@
+language "0.2"
+
+// `audit` runs along `save` before turning down.
+diagram checkout: flow {
+  layout manual
+  api["API"]
+  db["Orders DB"]
+  log["Audit log"]
+  api -> db as save
+  api -> log as audit
+  placement {
+    place api at (100, 100)
+    place db at (500, 100)
+    place log at (500, 300)
+    route save from api.east to db.west
+    route audit from api.east to log.west via [(300, 100), (300, 300)]
+  }
+}

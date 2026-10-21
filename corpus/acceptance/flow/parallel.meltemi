@@ -1,0 +1,30 @@
+language "0.2"
+
+// Parallel relations: several relations between the same two boxes in both directions, each with
+// its own label and its own effect, placed by hand.
+diagram parallel: flow {
+  title "Service and its store"
+  layout manual
+
+  // The calling service.
+  api["Order API"]
+  // The store it talks to.
+  db[("Orders DB")]
+  cache["Cache"]
+
+  api -> db: "insert" as insert
+  api -> db: "update" as update
+  db -> api: "rows" as rows
+  db --> api: "change events" as changes
+  api -> cache: "warm" as warm
+  cache -> api: "hit" as hit
+
+  placement {
+    place api at (140, 200)
+    place db at (560, 200)
+    place cache at (140, 420)
+  }
+
+  animate insert { effect flow; duration 1200ms; repeat forever }
+  animate changes { effect dash; duration 800ms; repeat forever }
+}

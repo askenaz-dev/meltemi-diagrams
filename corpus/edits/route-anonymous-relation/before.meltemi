@@ -1,0 +1,5 @@
+language "0.2"
+
+diagram checkout: flow {
+  orders -> db: "Persist"
+}

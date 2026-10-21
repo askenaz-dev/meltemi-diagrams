@@ -1,0 +1,11 @@
+import corporate from "./themes.meltemi"
+import "./themes.meltemi" as t
+
+diagram d: flow {
+  theme "corporate"
+  a -> b
+}
+
+theme local {
+  extends "t.corporate"
+}

@@ -1,0 +1,51 @@
+{
+  "name": "@meltemi/diagrams-capture",
+  "version": "1.8.0",
+  "description": "PNG, PDF and video captures of rendered SVG with the installed Edge, Chrome or Chromium over the DevTools protocol, and video encoding with the installed FFmpeg.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/askenaz-dev/meltemi-diagrams.git",
+    "directory": "packages/capture"
+  },
+  "homepage": "https://github.com/askenaz-dev/meltemi-diagrams/tree/main/packages/capture#readme",
+  "bugs": {
+    "url": "https://github.com/askenaz-dev/meltemi-diagrams/issues"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "@meltemi/diagrams-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./page": {
+      "@meltemi/diagrams-source": "./src/page.mjs",
+      "types": "./dist/page.d.mts",
+      "default": "./dist/page.mjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node build.mjs",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./page": {
+        "types": "./dist/page.d.mts",
+        "default": "./dist/page.mjs"
+      }
+    }
+  }
+}

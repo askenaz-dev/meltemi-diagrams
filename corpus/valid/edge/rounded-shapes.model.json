@@ -1,0 +1,1045 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "roundedShapes",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 206,
+          "line": 5,
+          "column": 1
+        },
+        "end": {
+          "offset": 1006,
+          "line": 41,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": null,
+        "title": "Rounded shapes",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "square",
+          "kind": "node",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 280,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 290,
+              "line": 9,
+              "column": 13
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 280,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 286,
+              "line": 9,
+              "column": 9
+            }
+          }
+        },
+        {
+          "id": "rect",
+          "kind": "node",
+          "label": "Rectangle",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 293,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 310,
+              "line": 10,
+              "column": 20
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 293,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 297,
+              "line": 10,
+              "column": 7
+            }
+          }
+        },
+        {
+          "id": "hex",
+          "kind": "node",
+          "label": "Hexagon",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 313,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 327,
+              "line": 11,
+              "column": 17
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 313,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 316,
+              "line": 11,
+              "column": 6
+            }
+          }
+        },
+        {
+          "id": "star",
+          "kind": "node",
+          "label": "Star",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 330,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 342,
+              "line": 12,
+              "column": 15
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 330,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 334,
+              "line": 12,
+              "column": 7
+            }
+          }
+        },
+        {
+          "id": "ok",
+          "kind": "decision",
+          "label": "OK?",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 345,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 362,
+              "line": 13,
+              "column": 20
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 354,
+              "line": 13,
+              "column": 12
+            },
+            "end": {
+              "offset": 356,
+              "line": 13,
+              "column": 14
+            }
+          }
+        },
+        {
+          "id": "flag",
+          "kind": "node",
+          "label": "Flag",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 365,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 377,
+              "line": 14,
+              "column": 15
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 365,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 369,
+              "line": 14,
+              "column": 7
+            }
+          }
+        },
+        {
+          "id": "round",
+          "kind": "node",
+          "label": "Circle",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 380,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 395,
+              "line": 15,
+              "column": 18
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 380,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 385,
+              "line": 15,
+              "column": 8
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "a",
+          "id": "a",
+          "from": "square",
+          "to": "hex",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 399,
+              "line": 17,
+              "column": 3
+            },
+            "end": {
+              "offset": 417,
+              "line": 17,
+              "column": 21
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 416,
+              "line": 17,
+              "column": 20
+            },
+            "end": {
+              "offset": 417,
+              "line": 17,
+              "column": 21
+            }
+          }
+        },
+        {
+          "key": "b",
+          "id": "b",
+          "from": "rect",
+          "to": "hex",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 420,
+              "line": 18,
+              "column": 3
+            },
+            "end": {
+              "offset": 436,
+              "line": 18,
+              "column": 19
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 435,
+              "line": 18,
+              "column": 18
+            },
+            "end": {
+              "offset": 436,
+              "line": 18,
+              "column": 19
+            }
+          }
+        },
+        {
+          "key": "c",
+          "id": "c",
+          "from": "hex",
+          "to": "ok",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 439,
+              "line": 19,
+              "column": 3
+            },
+            "end": {
+              "offset": 453,
+              "line": 19,
+              "column": 17
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 452,
+              "line": 19,
+              "column": 16
+            },
+            "end": {
+              "offset": 453,
+              "line": 19,
+              "column": 17
+            }
+          }
+        },
+        {
+          "key": "d",
+          "id": "d",
+          "from": "ok",
+          "to": "flag",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 456,
+              "line": 20,
+              "column": 3
+            },
+            "end": {
+              "offset": 471,
+              "line": 20,
+              "column": 18
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 470,
+              "line": 20,
+              "column": 17
+            },
+            "end": {
+              "offset": 471,
+              "line": 20,
+              "column": 18
+            }
+          }
+        },
+        {
+          "key": "e",
+          "id": "e",
+          "from": "ok",
+          "to": "star",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 474,
+              "line": 21,
+              "column": 3
+            },
+            "end": {
+              "offset": 489,
+              "line": 21,
+              "column": 18
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 488,
+              "line": 21,
+              "column": 17
+            },
+            "end": {
+              "offset": 489,
+              "line": 21,
+              "column": 18
+            }
+          }
+        },
+        {
+          "key": "f",
+          "id": "f",
+          "from": "star",
+          "to": "round",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 492,
+              "line": 22,
+              "column": 3
+            },
+            "end": {
+              "offset": 510,
+              "line": 22,
+              "column": 21
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 509,
+              "line": 22,
+              "column": 20
+            },
+            "end": {
+              "offset": 510,
+              "line": 22,
+              "column": 21
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "square",
+          "x": 100,
+          "y": 100,
+          "range": {
+            "start": {
+              "offset": 530,
+              "line": 25,
+              "column": 5
+            },
+            "end": {
+              "offset": 556,
+              "line": 25,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 536,
+              "line": 25,
+              "column": 11
+            },
+            "end": {
+              "offset": 542,
+              "line": 25,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "rect",
+          "x": 100,
+          "y": 280,
+          "range": {
+            "start": {
+              "offset": 561,
+              "line": 26,
+              "column": 5
+            },
+            "end": {
+              "offset": 585,
+              "line": 26,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 567,
+              "line": 26,
+              "column": 11
+            },
+            "end": {
+              "offset": 571,
+              "line": 26,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "hex",
+          "x": 360,
+          "y": 190,
+          "range": {
+            "start": {
+              "offset": 590,
+              "line": 27,
+              "column": 5
+            },
+            "end": {
+              "offset": 613,
+              "line": 27,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 596,
+              "line": 27,
+              "column": 11
+            },
+            "end": {
+              "offset": 599,
+              "line": 27,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "ok",
+          "x": 600,
+          "y": 190,
+          "range": {
+            "start": {
+              "offset": 618,
+              "line": 28,
+              "column": 5
+            },
+            "end": {
+              "offset": 640,
+              "line": 28,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 624,
+              "line": 28,
+              "column": 11
+            },
+            "end": {
+              "offset": 626,
+              "line": 28,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "flag",
+          "x": 840,
+          "y": 100,
+          "range": {
+            "start": {
+              "offset": 645,
+              "line": 29,
+              "column": 5
+            },
+            "end": {
+              "offset": 669,
+              "line": 29,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 651,
+              "line": 29,
+              "column": 11
+            },
+            "end": {
+              "offset": 655,
+              "line": 29,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "star",
+          "x": 840,
+          "y": 300,
+          "range": {
+            "start": {
+              "offset": 674,
+              "line": 30,
+              "column": 5
+            },
+            "end": {
+              "offset": 698,
+              "line": 30,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 680,
+              "line": 30,
+              "column": 11
+            },
+            "end": {
+              "offset": 684,
+              "line": 30,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "round",
+          "x": 1080,
+          "y": 300,
+          "range": {
+            "start": {
+              "offset": 703,
+              "line": 31,
+              "column": 5
+            },
+            "end": {
+              "offset": 729,
+              "line": 31,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 709,
+              "line": 31,
+              "column": 11
+            },
+            "end": {
+              "offset": 714,
+              "line": 31,
+              "column": 16
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [
+        {
+          "target": "square",
+          "targetKind": "element",
+          "properties": {
+            "radius": 16,
+            "shape": "square"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 737,
+              "line": 34,
+              "column": 3
+            },
+            "end": {
+              "offset": 777,
+              "line": 34,
+              "column": 43
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 743,
+              "line": 34,
+              "column": 9
+            },
+            "end": {
+              "offset": 749,
+              "line": 34,
+              "column": 15
+            }
+          }
+        },
+        {
+          "target": "rect",
+          "targetKind": "element",
+          "properties": {
+            "radius": 6,
+            "shape": "rectangle"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 780,
+              "line": 35,
+              "column": 3
+            },
+            "end": {
+              "offset": 820,
+              "line": 35,
+              "column": 43
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 786,
+              "line": 35,
+              "column": 9
+            },
+            "end": {
+              "offset": 790,
+              "line": 35,
+              "column": 13
+            }
+          }
+        },
+        {
+          "target": "hex",
+          "targetKind": "element",
+          "properties": {
+            "radius": 10,
+            "shape": "hexagon"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 823,
+              "line": 36,
+              "column": 3
+            },
+            "end": {
+              "offset": 861,
+              "line": 36,
+              "column": 41
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 829,
+              "line": 36,
+              "column": 9
+            },
+            "end": {
+              "offset": 832,
+              "line": 36,
+              "column": 12
+            }
+          }
+        },
+        {
+          "target": "star",
+          "targetKind": "element",
+          "properties": {
+            "radius": 4,
+            "shape": "star"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 864,
+              "line": 37,
+              "column": 3
+            },
+            "end": {
+              "offset": 899,
+              "line": 37,
+              "column": 38
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 870,
+              "line": 37,
+              "column": 9
+            },
+            "end": {
+              "offset": 874,
+              "line": 37,
+              "column": 13
+            }
+          }
+        },
+        {
+          "target": "ok",
+          "targetKind": "element",
+          "properties": {
+            "radius": 10
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 902,
+              "line": 38,
+              "column": 3
+            },
+            "end": {
+              "offset": 924,
+              "line": 38,
+              "column": 25
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 908,
+              "line": 38,
+              "column": 9
+            },
+            "end": {
+              "offset": 910,
+              "line": 38,
+              "column": 11
+            }
+          }
+        },
+        {
+          "target": "flag",
+          "targetKind": "element",
+          "properties": {
+            "radius": 6,
+            "shape": "flag"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 927,
+              "line": 39,
+              "column": 3
+            },
+            "end": {
+              "offset": 962,
+              "line": 39,
+              "column": 38
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 933,
+              "line": 39,
+              "column": 9
+            },
+            "end": {
+              "offset": 937,
+              "line": 39,
+              "column": 13
+            }
+          }
+        },
+        {
+          "target": "round",
+          "targetKind": "element",
+          "properties": {
+            "radius": 12,
+            "shape": "circle"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 965,
+              "line": 40,
+              "column": 3
+            },
+            "end": {
+              "offset": 1004,
+              "line": 40,
+              "column": 42
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 971,
+              "line": 40,
+              "column": 9
+            },
+            "end": {
+              "offset": 976,
+              "line": 40,
+              "column": 14
+            }
+          }
+        }
+      ],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

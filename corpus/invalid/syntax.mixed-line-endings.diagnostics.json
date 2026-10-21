@@ -1,0 +1,23 @@
+[
+  {
+    "code": "syntax.mixed-line-endings",
+    "severity": "warning",
+    "message": "This line ends with LF but the file started with CRLF.",
+    "range": {
+      "start": {
+        "offset": 49,
+        "line": 4,
+        "column": 9
+      },
+      "end": {
+        "offset": 50,
+        "line": 5,
+        "column": 1
+      }
+    },
+    "hints": [
+      "Use one line ending style per file; edits follow the first one."
+    ],
+    "related": []
+  }
+]

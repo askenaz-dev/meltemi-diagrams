@@ -1,0 +1,130 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2378" height="404" viewBox="0 0 2378 404" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Platform in its regions</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="2378" height="404" fill="#F7FBFF"/>
+  <g data-id="cloud" data-role="element">
+    <rect x="385" y="20" width="1602" height="320" rx="14" fill="#EAF1F8" stroke="#C9D6E3" stroke-width="1"/>
+    <text x="405" y="42.73" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">Cloud account</text>
+    <text x="405" y="58" text-anchor="start" font-size="11" font-weight="400" fill="#526579">Production</text>
+  </g>
+  <g data-id="region" data-role="element">
+    <rect x="1025" y="60" width="946" height="264" rx="14" fill="#EAF1F8" stroke="#C9D6E3" stroke-width="1"/>
+    <text x="1045" y="82.73" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">Region eu-west</text>
+  </g>
+  <g data-id="edge" data-role="element">
+    <rect x="401" y="100" width="422" height="112" rx="14" fill="#EAF1F8" stroke="#C9D6E3" stroke-width="1"/>
+    <text x="421" y="122.73" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">Edge</text>
+  </g>
+  <g data-id="cluster" data-role="element">
+    <rect x="1410" y="100" width="192" height="208" rx="14" fill="#EAF1F8" stroke="#C9D6E3" stroke-width="1"/>
+    <text x="1430" y="122.73" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">Kubernetes cluster</text>
+  </g>
+  <g data-id="client" data-role="element">
+    <rect x="20" y="140" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="100" y="172.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Client apps</text>
+  </g>
+  <g data-id="api" data-role="element">
+    <rect x="1426" y="140" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1506" y="172.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Order API</text>
+  </g>
+  <g data-id="worker" data-role="element">
+    <rect x="1426" y="236" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1506" y="268.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Worker</text>
+  </g>
+  <g data-id="queue" data-role="element">
+    <path d="M1041 229.33 L1041 277.33 A80 8 0 0 0 1201 277.33 L1201 229.33 A80 8 0 0 1 1041 229.33 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M1041 229.33 A80 8 0 0 1 1201 229.33 A80 8 0 0 1 1041 229.33 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1121" y="262.06" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Queue</text>
+  </g>
+  <g data-id="db" data-role="element">
+    <path d="M1795 164 L1795 212 A80 8 0 0 0 1955 212 L1955 164 A80 8 0 0 1 1795 164 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M1795 164 A80 8 0 0 1 1955 164 A80 8 0 0 1 1795 164 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1875" y="196.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Orders DB</text>
+  </g>
+  <g data-id="cdn" data-role="element">
+    <rect x="417" y="140" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="497" y="172.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">CDN</text>
+  </g>
+  <g data-id="waf" data-role="element">
+    <rect x="647" y="140" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="727" y="172.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Firewall</text>
+  </g>
+  <g data-id="partner" data-role="element">
+    <rect x="2198" y="268.67" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="2278" y="301.4" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Payment partner</text>
+  </g>
+  <g data-id="fetch" data-role="relation">
+    <polyline points="180,168 409,168" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M417 168 L409 171.5 L409 164.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="fetch" data-role="label">
+      <rect x="274.14" y="159" width="48.72" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="298.5" y="172" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">HTTPS</text>
+    </g>
+  </g>
+  <g data-id="filter" data-role="relation">
+    <polyline points="577,168 639,168" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M647 168 L639 171.5 L639 164.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="route" data-role="relation">
+    <polyline points="807,168 1418,168" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1426 168 L1418 171.5 L1418 164.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="route" data-role="label">
+      <rect x="1093.84" y="159" width="45.33" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="1116.5" y="172" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">routes</text>
+    </g>
+  </g>
+  <g data-id="enqueue" data-role="relation">
+    <polyline points="1586,158.67 1630,158.67 1630,80 1221,80 1221,242.67 1209,242.67" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1201 242.67 L1209 239.17 L1209 246.17 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="enqueue" data-role="label">
+      <rect x="1366.48" y="71" width="58.04" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="1395.5" y="84" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">enqueue</text>
+    </g>
+  </g>
+  <g data-id="consume" data-role="relation">
+    <polyline points="1201,264 1418,264" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1426 264 L1418 267.5 L1418 260.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="consume" data-role="label">
+      <rect x="1283.31" y="255" width="60.38" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="1313.5" y="268" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">consume</text>
+    </g>
+  </g>
+  <g data-id="write" data-role="relation">
+    <polyline points="1586,254.67 1745,254.67 1745,198.67 1787,198.67" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1795 198.67 L1787 202.17 L1787 195.17 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="write" data-role="label">
+      <rect x="1696.37" y="245.67" width="44.25" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="1718.5" y="258.67" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">writes</text>
+    </g>
+  </g>
+  <g data-id="read" data-role="relation">
+    <polyline points="1586,177.33 1787,177.33" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1795 177.33 L1787 180.83 L1787 173.83 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="read" data-role="label">
+      <rect x="1669.71" y="168.33" width="41.58" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="1690.5" y="181.33" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">reads</text>
+    </g>
+  </g>
+  <g data-id="charge" data-role="relation">
+    <polyline points="1586,273.33 1630,273.33 1630,296.67 2190,296.67" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M2198 296.67 L2190 300.17 L2190 293.17 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="charge" data-role="label">
+      <rect x="1853.1" y="287.67" width="54.46" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="1880.33" y="300.67" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">charges</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,360.5 2358,360.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 370) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="386.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="2358" y="386" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Platform in its regions</text>
+  </g>
+</svg>

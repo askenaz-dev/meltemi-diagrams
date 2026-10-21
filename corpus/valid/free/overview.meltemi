@@ -1,0 +1,29 @@
+language "0.2"
+
+// Free composition from the product proposal ("Composición libre").
+diagram overview: free {
+  canvas (1600, 900)
+  theme "editorial.dark"
+  layout manual
+
+  text heading "Arquitectura de eventos"
+  box api "API"
+  box events "Event bus"
+
+  api -> events: "Publica" as publish
+
+  placement {
+    place heading at (800, 90)
+    place api at (400, 420)
+    size api (240, 120)
+    place events at (1080, 420)
+    size events (240, 120)
+    route publish from api.east to events.west via [(740, 420)]
+  }
+
+  animate publish {
+    effect flow
+    duration 1600ms
+    repeat forever
+  }
+}

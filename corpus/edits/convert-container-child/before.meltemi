@@ -1,0 +1,17 @@
+language "0.2"
+
+diagram d: flow {
+  layout manual
+  frame[""]
+  group back "Back" {
+    db[("DB")]
+  }
+
+  placement {
+    place frame at (300, 200)
+    size frame (300, 200)
+    place back at (700, 200)
+    size back (240, 160)
+    place db at (700, 210)
+  }
+}

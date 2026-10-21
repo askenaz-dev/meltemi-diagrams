@@ -1,0 +1,28 @@
+{
+  "status": "partial",
+  "format": "mermaid",
+  "diagrams": [
+    {
+      "id": "partial",
+      "type": "flow",
+      "model": null,
+      "kind": "flowchart",
+      "lines": [
+        1,
+        6
+      ]
+    }
+  ],
+  "findings": [
+    "1:1 warning import.partial [import] 1 essential construct was not imported; the sheet is incomplete.",
+    "4:3 warning import.syntax [flowchart.statement dropped essential] Cannot read the link in `a --=> b`."
+  ],
+  "coverage": [
+    {
+      "diagram": "partial",
+      "mapped": 6,
+      "approximated": 0,
+      "dropped": 1
+    }
+  ]
+}

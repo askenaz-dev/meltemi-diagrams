@@ -1,0 +1,1 @@
+{ "operation": { "kind": "removeElement", "diagram": "checkout", "element": "db", "cascade": true }, "expect": { "edits": 3 } }

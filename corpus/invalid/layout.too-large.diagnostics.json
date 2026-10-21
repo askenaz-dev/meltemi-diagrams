@@ -1,0 +1,23 @@
+[
+  {
+    "code": "layout.too-large",
+    "severity": "warning",
+    "message": "The content is 2300 × 140 px; a slide is 1920 × 1080 px.",
+    "range": {
+      "start": {
+        "offset": 143,
+        "line": 6,
+        "column": 3
+      },
+      "end": {
+        "offset": 155,
+        "line": 6,
+        "column": 15
+      }
+    },
+    "hints": [
+      "Split the diagram into views or story scenes; text is never shrunk to fit the canvas."
+    ],
+    "related": []
+  }
+]

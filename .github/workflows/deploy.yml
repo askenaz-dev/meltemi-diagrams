@@ -1,0 +1,75 @@
+name: Deploy
+
+# Every push to main: the playground built, the D1 migrations applied, then the main Worker
+# (diagrams.meltemi.dev) and the publish Worker (meltemi.page) uploaded with wrangler onto the
+# Workers that the family's Terraform declared (packages/infra in the Meltemi Web repository,
+# decision 0046). This workflow creates nothing and sets no secret: the production environment holds
+# what Terraform put there, a deploy token that can only upload Workers and migrate D1, and the ids
+# the configurations need. Dispatched with a version id, it rolls a Worker back instead.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      rollback_version:
+        description: "A version id to roll back to, instead of deploying"
+        type: string
+        default: ""
+      rollback_worker:
+        description: "The Worker to roll back"
+        type: choice
+        options: [cloud, publish]
+        default: cloud
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+      SECRETS_STORE_ID: ${{ vars.SECRETS_STORE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: The Workers' configurations, with the ids Terraform gave
+        run: node scripts/deploy-config.mjs packages/cloud/wrangler.jsonc packages/cloud/wrangler.publish.jsonc
+
+      - name: Roll back
+        if: inputs.rollback_version != ''
+        working-directory: packages/cloud
+        env:
+          VERSION: ${{ inputs.rollback_version }}
+          CONFIG: ${{ inputs.rollback_worker == 'publish' && 'wrangler.publish.deploy.json' || 'wrangler.deploy.json' }}
+        run: pnpm exec wrangler rollback "$VERSION" -c "$CONFIG" --message "Rolled back from GitHub Actions run $GITHUB_RUN_ID"
+
+      - name: The playground
+        if: inputs.rollback_version == ''
+        run: pnpm playground:build
+      - name: Migrations
+        if: inputs.rollback_version == ''
+        working-directory: packages/cloud
+        run: pnpm exec wrangler d1 migrations apply DB --remote -c wrangler.deploy.json
+      - name: The main Worker
+        if: inputs.rollback_version == ''
+        working-directory: packages/cloud
+        run: pnpm exec wrangler deploy -c wrangler.deploy.json
+      - name: The publish Worker
+        if: inputs.rollback_version == ''
+        working-directory: packages/cloud
+        run: pnpm exec wrangler deploy -c wrangler.publish.deploy.json

@@ -1,0 +1,995 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "events",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 82,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 1027,
+          "line": 46,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": "technical.light",
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "api",
+          "kind": "node",
+          "label": "Orders API",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 150,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 167,
+              "line": 8,
+              "column": 20
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 150,
+              "line": 8,
+              "column": 3
+            },
+            "end": {
+              "offset": 153,
+              "line": 8,
+              "column": 6
+            }
+          }
+        },
+        {
+          "id": "ops",
+          "kind": "node",
+          "label": "Ops console",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 170,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 188,
+              "line": 9,
+              "column": 21
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 170,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 173,
+              "line": 9,
+              "column": 6
+            }
+          }
+        },
+        {
+          "id": "bus",
+          "kind": "node",
+          "label": "Event bus",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [
+            {
+              "name": "in",
+              "side": "west",
+              "position": 0.3
+            },
+            {
+              "name": "replay",
+              "side": "west",
+              "position": 0.7
+            },
+            {
+              "name": "out",
+              "side": "east",
+              "position": 0.5
+            }
+          ],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 191,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 277,
+              "line": 14,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 191,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 194,
+              "line": 10,
+              "column": 6
+            }
+          }
+        },
+        {
+          "id": "billing",
+          "kind": "node",
+          "label": "Billing",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 280,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 298,
+              "line": 15,
+              "column": 21
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 280,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 287,
+              "line": 15,
+              "column": 10
+            }
+          }
+        },
+        {
+          "id": "search",
+          "kind": "node",
+          "label": "Search",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 301,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 317,
+              "line": 16,
+              "column": 19
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 301,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 307,
+              "line": 16,
+              "column": 9
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "publish",
+          "id": "publish",
+          "from": "api",
+          "to": "bus",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 321,
+              "line": 18,
+              "column": 3
+            },
+            "end": {
+              "offset": 342,
+              "line": 18,
+              "column": 24
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 335,
+              "line": 18,
+              "column": 17
+            },
+            "end": {
+              "offset": 342,
+              "line": 18,
+              "column": 24
+            }
+          }
+        },
+        {
+          "key": "replay",
+          "id": "replay",
+          "from": "ops",
+          "to": "bus",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 345,
+              "line": 19,
+              "column": 3
+            },
+            "end": {
+              "offset": 365,
+              "line": 19,
+              "column": 23
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 359,
+              "line": 19,
+              "column": 17
+            },
+            "end": {
+              "offset": 365,
+              "line": 19,
+              "column": 23
+            }
+          }
+        },
+        {
+          "key": "billed",
+          "id": "billed",
+          "from": "bus",
+          "to": "billing",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 368,
+              "line": 20,
+              "column": 3
+            },
+            "end": {
+              "offset": 392,
+              "line": 20,
+              "column": 27
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 386,
+              "line": 20,
+              "column": 21
+            },
+            "end": {
+              "offset": 392,
+              "line": 20,
+              "column": 27
+            }
+          }
+        },
+        {
+          "key": "indexed",
+          "id": "indexed",
+          "from": "bus",
+          "to": "search",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 395,
+              "line": 21,
+              "column": 3
+            },
+            "end": {
+              "offset": 419,
+              "line": 21,
+              "column": 27
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 412,
+              "line": 21,
+              "column": 20
+            },
+            "end": {
+              "offset": 419,
+              "line": 21,
+              "column": 27
+            }
+          }
+        },
+        {
+          "key": "sync",
+          "id": "sync",
+          "from": "billing",
+          "to": "search",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "sync",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 422,
+              "line": 22,
+              "column": 3
+            },
+            "end": {
+              "offset": 455,
+              "line": 22,
+              "column": 36
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 451,
+              "line": 22,
+              "column": 32
+            },
+            "end": {
+              "offset": 455,
+              "line": 22,
+              "column": 36
+            }
+          }
+        },
+        {
+          "key": "repair",
+          "id": "repair",
+          "from": "billing",
+          "to": "search",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "repair",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 458,
+              "line": 23,
+              "column": 3
+            },
+            "end": {
+              "offset": 495,
+              "line": 23,
+              "column": 40
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 489,
+              "line": 23,
+              "column": 34
+            },
+            "end": {
+              "offset": 495,
+              "line": 23,
+              "column": 40
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "api",
+          "x": 120,
+          "y": 100,
+          "range": {
+            "start": {
+              "offset": 515,
+              "line": 26,
+              "column": 5
+            },
+            "end": {
+              "offset": 538,
+              "line": 26,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 521,
+              "line": 26,
+              "column": 11
+            },
+            "end": {
+              "offset": 524,
+              "line": 26,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "ops",
+          "x": 120,
+          "y": 260,
+          "range": {
+            "start": {
+              "offset": 543,
+              "line": 27,
+              "column": 5
+            },
+            "end": {
+              "offset": 566,
+              "line": 27,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 549,
+              "line": 27,
+              "column": 11
+            },
+            "end": {
+              "offset": 552,
+              "line": 27,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "bus",
+          "x": 420,
+          "y": 180,
+          "range": {
+            "start": {
+              "offset": 571,
+              "line": 28,
+              "column": 5
+            },
+            "end": {
+              "offset": 594,
+              "line": 28,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 577,
+              "line": 28,
+              "column": 11
+            },
+            "end": {
+              "offset": 580,
+              "line": 28,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "size",
+          "target": "bus",
+          "width": 160,
+          "height": 120,
+          "range": {
+            "start": {
+              "offset": 599,
+              "line": 29,
+              "column": 5
+            },
+            "end": {
+              "offset": 618,
+              "line": 29,
+              "column": 24
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 604,
+              "line": 29,
+              "column": 10
+            },
+            "end": {
+              "offset": 607,
+              "line": 29,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "billing",
+          "x": 720,
+          "y": 100,
+          "range": {
+            "start": {
+              "offset": 623,
+              "line": 30,
+              "column": 5
+            },
+            "end": {
+              "offset": 650,
+              "line": 30,
+              "column": 32
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 629,
+              "line": 30,
+              "column": 11
+            },
+            "end": {
+              "offset": 636,
+              "line": 30,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "search",
+          "x": 720,
+          "y": 300,
+          "range": {
+            "start": {
+              "offset": 655,
+              "line": 31,
+              "column": 5
+            },
+            "end": {
+              "offset": 681,
+              "line": 31,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 661,
+              "line": 31,
+              "column": 11
+            },
+            "end": {
+              "offset": 667,
+              "line": 31,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "route",
+          "target": "publish",
+          "from": {
+            "element": "api",
+            "port": "east"
+          },
+          "to": {
+            "element": "bus",
+            "port": "in"
+          },
+          "via": [],
+          "range": {
+            "start": {
+              "offset": 686,
+              "line": 32,
+              "column": 5
+            },
+            "end": {
+              "offset": 723,
+              "line": 32,
+              "column": 42
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 692,
+              "line": 32,
+              "column": 11
+            },
+            "end": {
+              "offset": 699,
+              "line": 32,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "route",
+          "target": "replay",
+          "from": {
+            "element": "ops",
+            "port": "east"
+          },
+          "to": {
+            "element": "bus",
+            "port": "replay"
+          },
+          "via": [],
+          "range": {
+            "start": {
+              "offset": 728,
+              "line": 33,
+              "column": 5
+            },
+            "end": {
+              "offset": 768,
+              "line": 33,
+              "column": 45
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 734,
+              "line": 33,
+              "column": 11
+            },
+            "end": {
+              "offset": 740,
+              "line": 33,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "route",
+          "target": "billed",
+          "from": {
+            "element": "bus",
+            "port": "out"
+          },
+          "to": {
+            "element": "billing",
+            "port": "west"
+          },
+          "via": [],
+          "range": {
+            "start": {
+              "offset": 773,
+              "line": 34,
+              "column": 5
+            },
+            "end": {
+              "offset": 814,
+              "line": 34,
+              "column": 46
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 779,
+              "line": 34,
+              "column": 11
+            },
+            "end": {
+              "offset": 785,
+              "line": 34,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "route",
+          "target": "indexed",
+          "from": {
+            "element": "bus",
+            "port": "out"
+          },
+          "to": {
+            "element": "search",
+            "port": "west"
+          },
+          "via": [],
+          "range": {
+            "start": {
+              "offset": 819,
+              "line": 35,
+              "column": 5
+            },
+            "end": {
+              "offset": 860,
+              "line": 35,
+              "column": 46
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 825,
+              "line": 35,
+              "column": 11
+            },
+            "end": {
+              "offset": 832,
+              "line": 35,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "label",
+          "target": "sync",
+          "at": 50,
+          "offset": {
+            "x": -44,
+            "y": 0
+          },
+          "range": {
+            "start": {
+              "offset": 865,
+              "line": 36,
+              "column": 5
+            },
+            "end": {
+              "offset": 898,
+              "line": 36,
+              "column": 38
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 871,
+              "line": 36,
+              "column": 11
+            },
+            "end": {
+              "offset": 875,
+              "line": 36,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "label",
+          "target": "repair",
+          "at": 50,
+          "offset": {
+            "x": 48,
+            "y": 0
+          },
+          "range": {
+            "start": {
+              "offset": 903,
+              "line": 37,
+              "column": 5
+            },
+            "end": {
+              "offset": 937,
+              "line": 37,
+              "column": 39
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 909,
+              "line": 37,
+              "column": 11
+            },
+            "end": {
+              "offset": 915,
+              "line": 37,
+              "column": 17
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [
+        {
+          "target": "replay",
+          "targetKind": "relation",
+          "properties": {
+            "routing": "bezier"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 945,
+              "line": 40,
+              "column": 3
+            },
+            "end": {
+              "offset": 982,
+              "line": 42,
+              "column": 4
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 951,
+              "line": 40,
+              "column": 9
+            },
+            "end": {
+              "offset": 957,
+              "line": 40,
+              "column": 15
+            }
+          }
+        },
+        {
+          "target": "indexed",
+          "targetKind": "relation",
+          "properties": {
+            "routing": "polyline"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 985,
+              "line": 43,
+              "column": 3
+            },
+            "end": {
+              "offset": 1025,
+              "line": 45,
+              "column": 4
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 991,
+              "line": 43,
+              "column": 9
+            },
+            "end": {
+              "offset": 998,
+              "line": 43,
+              "column": 16
+            }
+          }
+        }
+      ],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

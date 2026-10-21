@@ -1,0 +1,38 @@
+language "0.2"
+
+import "../diagrams/architecture.meltemi" as views
+
+// The animated walkthrough: from the shop in context to the containers that take the order.
+story purchase for views.context {
+  title "A purchase, step by step"
+  description "Who takes part, then how the order and the payment travel inside the shop."
+
+  scene who {
+    reveal customer, shop, provider over 800ms
+    highlight buys
+    hold 1s
+  }
+
+  scene inside {
+    view views.containers
+    transition morph over 900ms
+    trace calls over 700ms
+    trace create over 700ms
+    trace charge over 700ms
+    parallel {
+      trace authorise over 1000ms
+      highlight provider over 1000ms
+    }
+    trace publish over 700ms
+    trace confirm over 700ms
+    camera shop.orders, shop.payments, shop.events
+    hold 1500ms
+  }
+}
+
+// The story as a 1080p video at 30 frames per second.
+export video for purchase {
+  format mp4
+  size (1920, 1080)
+  fps 30
+}

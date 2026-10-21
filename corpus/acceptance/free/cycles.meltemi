@@ -1,0 +1,31 @@
+language "0.2"
+
+// A cycle on a slide: four stages placed in a ring, each leading to the next, the last one back
+// to the first, routed square around the ring.
+diagram cycles: free {
+  title "Continuous delivery loop"
+  preset slide
+  layout manual
+  routing orthogonal
+
+  text heading "Continuous delivery loop"
+  box plan "Plan"
+  box build "Build"
+  box release "Release"
+  box observe "Observe"
+  icon spark "tabler:refresh"
+
+  plan -> build: "stories" as next1
+  build -> release: "artifacts" as next2
+  release -> observe: "deploys" as next3
+  observe -> plan: "learnings" as next4
+
+  placement {
+    place heading at (960, 110)
+    place plan at (560, 360)
+    place build at (1360, 360)
+    place release at (1360, 760)
+    place observe at (560, 760)
+    place spark at (960, 560)
+  }
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "code": "story.unknown-diagram",
+    "severity": "error",
+    "message": "There is no diagram `checkout` to tell a story about.",
+    "range": {
+      "start": {
+        "offset": 38,
+        "line": 3,
+        "column": 23
+      },
+      "end": {
+        "offset": 46,
+        "line": 3,
+        "column": 31
+      }
+    },
+    "hints": [
+      "Declare a diagram or import one."
+    ],
+    "related": []
+  }
+]

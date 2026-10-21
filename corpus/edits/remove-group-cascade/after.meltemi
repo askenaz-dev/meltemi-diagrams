@@ -1,0 +1,6 @@
+diagram d: flow {
+  web["Web"]
+  placement {
+    place web at (0, 0)
+  }
+}

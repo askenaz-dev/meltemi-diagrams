@@ -1,0 +1,457 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "overview",
+      "type": "free",
+      "range": {
+        "start": {
+          "offset": 85,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 600,
+          "line": 29,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": "editorial.dark",
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": {
+          "width": 1600,
+          "height": 900
+        },
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "heading",
+          "kind": "text",
+          "label": "Arquitectura de eventos",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 175,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 213,
+              "line": 9,
+              "column": 41
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 180,
+              "line": 9,
+              "column": 8
+            },
+            "end": {
+              "offset": 187,
+              "line": 9,
+              "column": 15
+            }
+          }
+        },
+        {
+          "id": "api",
+          "kind": "box",
+          "label": "API",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 216,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 229,
+              "line": 10,
+              "column": 16
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 220,
+              "line": 10,
+              "column": 7
+            },
+            "end": {
+              "offset": 223,
+              "line": 10,
+              "column": 10
+            }
+          }
+        },
+        {
+          "id": "events",
+          "kind": "box",
+          "label": "Event bus",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 232,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 254,
+              "line": 11,
+              "column": 25
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 236,
+              "line": 11,
+              "column": 7
+            },
+            "end": {
+              "offset": 242,
+              "line": 11,
+              "column": 13
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "publish",
+          "id": "publish",
+          "from": "api",
+          "to": "events",
+          "line": "solid",
+          "twoWay": false,
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Publica",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 258,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 293,
+              "line": 13,
+              "column": 38
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 286,
+              "line": 13,
+              "column": 31
+            },
+            "end": {
+              "offset": 293,
+              "line": 13,
+              "column": 38
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "heading",
+          "x": 800,
+          "y": 90,
+          "range": {
+            "start": {
+              "offset": 313,
+              "line": 16,
+              "column": 5
+            },
+            "end": {
+              "offset": 339,
+              "line": 16,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 319,
+              "line": 16,
+              "column": 11
+            },
+            "end": {
+              "offset": 326,
+              "line": 16,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "api",
+          "x": 400,
+          "y": 420,
+          "range": {
+            "start": {
+              "offset": 344,
+              "line": 17,
+              "column": 5
+            },
+            "end": {
+              "offset": 367,
+              "line": 17,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 350,
+              "line": 17,
+              "column": 11
+            },
+            "end": {
+              "offset": 353,
+              "line": 17,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "size",
+          "target": "api",
+          "width": 240,
+          "height": 120,
+          "range": {
+            "start": {
+              "offset": 372,
+              "line": 18,
+              "column": 5
+            },
+            "end": {
+              "offset": 391,
+              "line": 18,
+              "column": 24
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 377,
+              "line": 18,
+              "column": 10
+            },
+            "end": {
+              "offset": 380,
+              "line": 18,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "events",
+          "x": 1080,
+          "y": 420,
+          "range": {
+            "start": {
+              "offset": 396,
+              "line": 19,
+              "column": 5
+            },
+            "end": {
+              "offset": 423,
+              "line": 19,
+              "column": 32
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 402,
+              "line": 19,
+              "column": 11
+            },
+            "end": {
+              "offset": 408,
+              "line": 19,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "size",
+          "target": "events",
+          "width": 240,
+          "height": 120,
+          "range": {
+            "start": {
+              "offset": 428,
+              "line": 20,
+              "column": 5
+            },
+            "end": {
+              "offset": 450,
+              "line": 20,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 433,
+              "line": 20,
+              "column": 10
+            },
+            "end": {
+              "offset": 439,
+              "line": 20,
+              "column": 16
+            }
+          }
+        },
+        {
+          "statement": "route",
+          "target": "publish",
+          "from": {
+            "element": "api",
+            "port": "east"
+          },
+          "to": {
+            "element": "events",
+            "port": "west"
+          },
+          "via": [
+            {
+              "x": 740,
+              "y": 420
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 455,
+              "line": 21,
+              "column": 5
+            },
+            "end": {
+              "offset": 514,
+              "line": 21,
+              "column": 64
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 461,
+              "line": 21,
+              "column": 11
+            },
+            "end": {
+              "offset": 468,
+              "line": 21,
+              "column": 18
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [],
+      "animations": [
+        {
+          "target": "publish",
+          "targetKind": "relation",
+          "effect": "flow",
+          "durationMs": 1600,
+          "repeat": "forever",
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 522,
+              "line": 24,
+              "column": 3
+            },
+            "end": {
+              "offset": 598,
+              "line": 28,
+              "column": 4
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 530,
+              "line": 24,
+              "column": 11
+            },
+            "end": {
+              "offset": 537,
+              "line": 24,
+              "column": 18
+            }
+          }
+        }
+      ],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

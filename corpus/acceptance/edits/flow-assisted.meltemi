@@ -1,0 +1,23 @@
+language "0.2"
+
+// Edits on an assisted diagram: some boxes are placed by hand, the others by the engine.
+diagram shop: flow {
+  title "Shop"
+  layout assisted
+  direction LR
+
+  // The entry point, placed by hand.
+  web["Web"]
+  api["API"] // placed too
+  db[("Orders DB")]
+  mail["Mailer"]
+
+  web -> api: "calls" as call
+  api -> db: "writes" as write
+  api -> mail as notify
+
+  placement {
+    place web at (120, 160)
+    place api at (420, 160)
+  }
+}

@@ -1,0 +1,7 @@
+language "0.2"
+
+diagram checkout: flow {
+  client["Cliente"]
+  api["API Gateway"]
+  client -> api: "HTTPS" as request
+}

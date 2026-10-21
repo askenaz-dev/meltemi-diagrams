@@ -1,0 +1,10 @@
+diagram d: flow {
+  a -> b as ab
+  placement {
+    place b at (2, 2) // b goes right
+    place a at (1, 1)
+  }
+  style ab {
+    stroke "#999"
+  }
+}

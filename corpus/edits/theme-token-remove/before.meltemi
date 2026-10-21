@@ -1,0 +1,13 @@
+language "0.2"
+
+theme brand {
+  extends "editorial.light"
+  // The brand colour.
+  accent "#6A4FD0"
+  radius 4
+}
+
+// The checkout.
+diagram d: flow {
+  a -> b
+}

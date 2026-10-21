@@ -1,0 +1,13 @@
+language "0.2"
+
+diagram themed: flow {
+  layout manual
+  theme "corporate"
+  api["API"]
+  cache["Cache"]
+  api -> cache
+  placement {
+    place api at (100, 100)
+    place cache at (100, 300)
+  }
+}

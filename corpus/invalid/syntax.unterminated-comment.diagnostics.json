@@ -1,0 +1,21 @@
+[
+  {
+    "code": "syntax.unterminated-comment",
+    "severity": "error",
+    "message": "Block comment is not closed with `*/` before the end of the file.",
+    "range": {
+      "start": {
+        "offset": 50,
+        "line": 6,
+        "column": 1
+      },
+      "end": {
+        "offset": 52,
+        "line": 6,
+        "column": 3
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

@@ -1,0 +1,6 @@
+language "0.2"
+
+// The checkout.
+diagram d: flow {
+  a -> b
+}

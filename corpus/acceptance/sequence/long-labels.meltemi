@@ -1,0 +1,26 @@
+language "0.2"
+
+// Long labels: participant names and messages far longer than their columns, notes and guards.
+diagram longLabels: sequence {
+  title "Autorización de un cargo con verificación reforzada"
+
+  actor customer "Cliente con cuenta empresarial"
+  participant web "Aplicación web del comercio"
+  participant gateway "Pasarela de pagos y autorización"
+  participant issuer "Banco emisor de la tarjeta"
+
+  customer -> web: "Confirma la compra con el método de pago guardado" as confirm
+  web -> gateway: "Solicita la autorización del cargo con un token de un solo uso" as authorize
+  gateway -> issuer: "Pide la verificación reforzada del titular de la tarjeta" as challenge
+  note right of issuer "El emisor puede pedir un segundo factor\nsegún el riesgo de la operación"
+
+  alt result "La verificación del titular fue aceptada" {
+    issuer --> gateway: "Autorización concedida con código de aprobación" as approved
+    gateway --> web: "Cargo autorizado y listo para liquidar" as authorized
+  } else "La verificación fue rechazada o expiró" {
+    issuer --> gateway: "Autorización denegada por el emisor" as denied
+    gateway --> web: "Cargo rechazado; ofrecer otro método" as rejected
+  }
+
+  web --> customer: "Muestra el resultado de la compra" as show
+}

@@ -1,0 +1,55 @@
+language "0.2"
+
+// Imported from c4-container.mmd (mermaid) by meltemi-diagrams.
+
+model container_diagram_for_internet_banking_model {
+  system email_system "E-Mail System" {
+    description "The internal Microsoft Exchange system"
+    external
+  }
+  person customer "Customer" { description "A customer of the bank, with personal bank accounts" }
+  system c1 "Internet Banking" {
+    container spa "Single-Page App" {
+      description "Provides all the Internet banking functionality to customers via their web browser"
+      technology "JavaScript, Angular"
+    }
+    container mobile_app "Mobile App" {
+      description "Provides a limited subset of the Internet banking functionality to customers via their mobile device"
+      technology "C#, Xamarin"
+    }
+    container web_app "Web Application" {
+      description "Delivers the static content and the Internet banking SPA"
+      technology "Java, Spring MVC"
+    }
+    datastore database "Database" {
+      description "Stores user registration information, hashed auth credentials, access logs, etc."
+      technology "SQL Database"
+    }
+    datastore backend_api "API Application" {
+      description "Provides Internet banking functionality via API"
+      technology "Java, Docker Container"
+    }
+  }
+  system banking_system "Mainframe Banking System" {
+    description "Stores all of the core banking information about customers, accounts, transactions, etc."
+    external
+  }
+
+  customer -> c1.web_app: "Uses" { technology "HTTPS" }
+  customer -> c1.spa: "Uses" { technology "HTTPS" }
+  customer -> c1.mobile_app: "Uses"
+  c1.web_app -> c1.spa: "Delivers"
+  c1.spa -> c1.backend_api: "Uses" { technology "async, JSON/HTTPS" }
+  c1.mobile_app -> c1.backend_api: "Uses" { technology "async, JSON/HTTPS" }
+  c1.backend_api -> c1.database: "Reads from and writes to" { technology "sync, JDBC" }
+  email_system -> customer: "Sends e-mails to"
+  c1.backend_api -> email_system: "Sends e-mails using" { technology "sync, SMTP" }
+  c1.backend_api -> banking_system: "Uses" { technology "sync/async, XML/HTTPS" }
+}
+
+diagram container_diagram_for_internet_banking: c4 using container_diagram_for_internet_banking_model {
+  title "Container diagram for Internet Banking System"
+  level container
+  scope c1
+  include email_system, customer, c1.spa, c1.mobile_app, c1.web_app, c1.database, c1.backend_api, banking_system
+}
