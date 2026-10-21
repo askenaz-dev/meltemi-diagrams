@@ -1,4 +1,6 @@
 import { spawnSync } from "node:child_process";
+import { realpathSync } from "node:fs";
+import { relative, resolve } from "node:path";
 import {
   joinPath,
   normalizePath,
@@ -19,6 +21,19 @@ function git(cwd: string, args: readonly string[]): { ok: boolean; out: Buffer; 
 }
 
 /**
+ * Git's top folder spelled as `folder` is: Git answers with the long form of a path, and a folder
+ * reached through a Windows short name (`RUNNER~1`) must find its files under the same spelling, so
+ * the top is reached by climbing from `folder` as far as Git's top is above it.
+ */
+function inSpellingOf(folder: string, top: string): string {
+  try {
+    return resolve(folder, relative(realpathSync.native(folder), realpathSync.native(top)));
+  } catch {
+    return top;
+  }
+}
+
+/**
  * A host that reads the files of `folder` as they were at a Git revision: the folder listing of
  * the revision, and the contents of its blobs, read on demand (decision 0028). A message, in the
  * interface language, when the folder is not in a Git repository or the revision is unknown.
@@ -27,7 +42,7 @@ export function gitRevisionHost(folder: string, revision: string): ProjectHost |
   const t = reviewMessages().git;
   const top = git(folder, ["rev-parse", "--show-toplevel"]);
   if (!top.ok) return t.notARepository;
-  const root = toProjectPath(top.out.toString("utf8").trim());
+  const root = toProjectPath(inSpellingOf(folder, top.out.toString("utf8").trim()));
   const known = git(root, ["rev-parse", "--verify", "--quiet", `${revision}^{commit}`]);
   if (!known.ok) return t.unknownRevision(revision);
   const listing = git(root, ["ls-tree", "-r", "-z", "--name-only", revision]);

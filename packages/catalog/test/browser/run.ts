@@ -184,6 +184,12 @@ const tests: Test[] = [
       assert.equal(await page.evaluate(() => document.activeElement?.id), "search");
       await page.keyboard.press("Enter");
       await page.waitForFunction(() => !location.hash.startsWith("#/search"));
+      // The page moves the focus to the new view's title once it has drawn it.
+      await page
+        .waitForFunction(() => document.activeElement?.tagName === "H1", undefined, {
+          timeout: 5000,
+        })
+        .catch(() => undefined);
       assert.equal(await page.evaluate(() => document.activeElement?.tagName), "H1");
       assert.equal(await page.inputValue("#search"), "");
       await page.goBack();

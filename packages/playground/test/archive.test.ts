@@ -45,8 +45,14 @@ describe("zip", () => {
         { path: "p/diagrams/ü.meltemi", data: encoder.encode("x\n".repeat(100)) },
       ]);
       writeFileSync(join(folder, "a.zip"), zip);
-      if (tar.endsWith("unzip")) execFileSync(tar, ["-q", "a.zip"], { cwd: folder });
-      else execFileSync(tar, ["-xf", "a.zip"], { cwd: folder });
+      // Info-ZIP's unzip turns UTF-8 names (bit 11) into the locale's characters: give it one that
+      // has them, as a person's terminal does.
+      if (tar.endsWith("unzip")) {
+        execFileSync(tar, ["-q", "a.zip"], {
+          cwd: folder,
+          env: { ...process.env, LC_ALL: "C.UTF-8" },
+        });
+      } else execFileSync(tar, ["-xf", "a.zip"], { cwd: folder });
       expect(readFileSync(join(folder, "p", "project.json"), "utf8")).toBe("{}\n");
       expect(readFileSync(join(folder, "p", "diagrams", "ü.meltemi"), "utf8")).toBe(
         "x\n".repeat(100),

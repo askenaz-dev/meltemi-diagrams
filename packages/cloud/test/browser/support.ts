@@ -291,12 +291,34 @@ export interface Watch {
   readonly errors: string[];
   /** The address of every WebSocket a page opened, in order (a context's requests do not list them). */
   readonly sockets: string[];
+  /** How many downloads the context's pages started. */
+  readonly downloads: { count: number };
+}
+
+/**
+ * What Chrome on Linux logs, once, when a navigation or a link becomes a download: the page's own
+ * load of that resource "fails" because the browser takes it as a file instead. One such message per
+ * download is the download, not an error of the page.
+ */
+export const DOWNLOAD_CONSOLE_ERROR = "Failed to load resource: net::ERR_FAILED";
+
+/** `errors` without one download message per download the context started. */
+export function withoutDownloads(errors: readonly string[], downloads: number): string[] {
+  let left = downloads;
+  return errors.filter((message) => {
+    if (left > 0 && message === DOWNLOAD_CONSOLE_ERROR) {
+      left--;
+      return false;
+    }
+    return true;
+  });
 }
 
 export function watch(context: BrowserContext): Watch {
   const requests: string[] = [];
   const errors: string[] = [];
   const sockets: string[] = [];
+  const downloads = { count: 0 };
   context.on("request", (request) => {
     const address = request.url();
     // The browser's own pages (data:, blob:, about:) are not the page's requests.
@@ -308,8 +330,11 @@ export function watch(context: BrowserContext): Watch {
       if (message.type() === "error") errors.push(message.text());
     });
     page.on("websocket", (socket) => sockets.push(socket.url()));
+    page.on("download", () => {
+      downloads.count++;
+    });
   });
-  return { requests, errors, sockets };
+  return { requests, errors, sockets, downloads };
 }
 
 /** The addresses among `sockets` that are not on the Worker's own host (`localhost:<port>`). */

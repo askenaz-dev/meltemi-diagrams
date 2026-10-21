@@ -302,6 +302,8 @@ export class CredentialsStore {
     const temporary = `${this.path}.${process.pid}.${randomBytes(6).toString("hex")}.tmp`;
     try {
       mkdirSync(this.folder, { recursive: true, mode: 0o700 });
+      // A folder that was already there keeps its mode through mkdir: tighten it, as it holds tokens.
+      if (process.platform !== "win32") chmodSync(this.folder, 0o700);
       writeFileSync(temporary, `${JSON.stringify(document, null, 2)}\n`, {
         encoding: "utf8",
         mode: 0o600,

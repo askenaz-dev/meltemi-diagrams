@@ -1,5 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import { parseArgs } from "node:util";
 import { fileURLToPath } from "node:url";
@@ -57,14 +65,25 @@ export function withCloudJob(template: string, cloud: boolean): string {
     : template.replace(/\n *# \{\{cloud-begin\}\}\n[\s\S]*?\n *# \{\{cloud-end\}\}\n/, "");
 }
 
-/** The Git working tree that holds `folder`, or null. */
+/**
+ * The Git working tree that holds `folder`, or null, spelled as `folder` is: Git answers with the
+ * long form of a path, and a folder reached through a Windows short name (`RUNNER~1`) would
+ * otherwise lie outside it, so the top is reached by climbing from `folder` as far as Git's top is
+ * above it.
+ */
 function gitTop(folder: string): string | null {
   const result = spawnSync("git", ["rev-parse", "--show-toplevel"], {
     cwd: folder,
     encoding: "utf8",
     windowsHide: true,
   });
-  return result.status === 0 ? resolve(result.stdout.trim()) : null;
+  if (result.status !== 0) return null;
+  const top = resolve(result.stdout.trim());
+  try {
+    return resolve(folder, relative(realpathSync.native(folder), realpathSync.native(top)));
+  } catch {
+    return top;
+  }
 }
 
 /**

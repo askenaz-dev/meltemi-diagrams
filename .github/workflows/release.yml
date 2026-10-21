@@ -33,6 +33,9 @@ jobs:
       - name: FFmpeg, for the installed command line's MP4 export
         run: sudo apt-get update && sudo apt-get install --yes ffmpeg
       - run: pnpm install --frozen-lockfile
+      - name: Let Chrome use its sandbox (Ubuntu 24.04 restricts user namespaces)
+        if: runner.os == 'Linux'
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: pnpm release:check
       - uses: actions/upload-artifact@v4
         with:

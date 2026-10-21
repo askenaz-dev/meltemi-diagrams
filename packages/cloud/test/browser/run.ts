@@ -69,9 +69,6 @@ import { testKeys } from "@meltemi/identity/testing";
 import { chromium, type Browser, type BrowserContext, type Page } from "playwright-core";
 import { browserPath } from "../../../vscode/scripts/browser.mjs";
 import {
-  SESSION_COOKIE,
-  SuiteError,
-  TOKEN_SHAPE,
   ask,
   assertBase32IsTheRfcs,
   assertError,
@@ -84,11 +81,15 @@ import {
   outside,
   pageHolds,
   ready,
+  SESSION_COOKIE,
   sessionCookie,
   signedEvent,
   socketsOutside,
+  SuiteError,
+  TOKEN_SHAPE,
   until,
   watch,
+  withoutDownloads,
 } from "./support.js";
 import type { Device, Person, Run, Scenario } from "./scenario.js";
 import { binaryScenarios } from "./scenarios-binaries.js";
@@ -928,7 +929,7 @@ async function runScenario(
   /** What every browser of the scenario logged, minus what the scenario provokes on purpose. */
   const logged = (): string[] =>
     [seen, ...devices.map((device) => device.seen)]
-      .flatMap((watched) => watched.errors)
+      .flatMap((watched) => withoutDownloads(watched.errors, watched.downloads.count))
       .filter(
         (message) => !(scenario.allowedErrors ?? []).some((pattern) => pattern.test(message)),
       );
@@ -1035,9 +1036,21 @@ function afterReady(output: string): string[] {
 /** One of wrangler's lines for a request the Worker answered: `[wrangler:info] GET /path 200 OK (7ms)`. */
 const REQUEST_LINE = /^\[wrangler:info\] (GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS) \S+ \d{3} /;
 
+/**
+ * What workerd prints when the browser hangs up while an answer is still being written, as Chrome
+ * on Linux does when a response becomes a download: the transport's report, with its stack line,
+ * not an error of the Worker.
+ */
+const PEER_HUNG_UP = /disconnected: write\(\): (Connection reset by peer|Broken pipe)/;
+
 /** What the Worker printed besides its request lines: its errors and warnings, wrangler's notices. */
 function reportedByTheWorker(output: string): string[] {
-  return afterReady(output).filter((line) => !REQUEST_LINE.test(line));
+  const lines = afterReady(output);
+  return lines.filter((line, i) => {
+    if (REQUEST_LINE.test(line) || PEER_HUNG_UP.test(line)) return false;
+    // The stack line that follows a hang-up's report.
+    return !(/^\s*stack: /.test(line) && i > 0 && PEER_HUNG_UP.test(lines[i - 1]!));
+  });
 }
 
 function requestsAndReports(output: string): string {
