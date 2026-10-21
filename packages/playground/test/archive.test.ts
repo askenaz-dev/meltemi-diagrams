@@ -33,11 +33,14 @@ describe("zip", () => {
     expect(zip.length).toBeLessThan(entries.reduce((n, e) => n + e.data.length, 0));
   });
 
-  it("is read by the system's unzip when it has one", async () => {
-    const tar = ["C:/Windows/System32/tar.exe", "/usr/bin/unzip", "/usr/bin/bsdtar"].find((p) =>
-      existsSync(p),
-    );
-    if (!tar) return;
+  it("is read by another program: Windows' tar, or Python's zipfile", async () => {
+    // Readers that follow the UTF-8 flag of the names (bit 11) as the ZIP specification says.
+    // Info-ZIP's unzip, Ubuntu's default, does not restore such names on every system.
+    const python = ["/usr/bin/python3", "/usr/local/bin/python3"].find((p) => existsSync(p));
+    const tar = existsSync("C:/Windows/System32/tar.exe")
+      ? "C:/Windows/System32/tar.exe"
+      : undefined;
+    if (!tar && !python) return;
     const folder = mkdtempSync(join(tmpdir(), "pg-zip-"));
     try {
       const zip = await writeZip([
@@ -45,14 +48,8 @@ describe("zip", () => {
         { path: "p/diagrams/ü.meltemi", data: encoder.encode("x\n".repeat(100)) },
       ]);
       writeFileSync(join(folder, "a.zip"), zip);
-      // Info-ZIP's unzip turns UTF-8 names (bit 11) into the locale's characters: give it one that
-      // has them, as a person's terminal does.
-      if (tar.endsWith("unzip")) {
-        execFileSync(tar, ["-q", "a.zip"], {
-          cwd: folder,
-          env: { ...process.env, LC_ALL: "C.UTF-8" },
-        });
-      } else execFileSync(tar, ["-xf", "a.zip"], { cwd: folder });
+      if (tar) execFileSync(tar, ["-xf", "a.zip"], { cwd: folder });
+      else execFileSync(python!, ["-m", "zipfile", "-e", "a.zip", "."], { cwd: folder });
       expect(readFileSync(join(folder, "p", "project.json"), "utf8")).toBe("{}\n");
       expect(readFileSync(join(folder, "p", "diagrams", "ü.meltemi"), "utf8")).toBe(
         "x\n".repeat(100),
