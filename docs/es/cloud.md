@@ -2013,19 +2013,17 @@ sesión, y borrarla es la forma de cerrarla.
 
 ### El paquete de identidad
 
-El Worker verifica las sesiones con `@meltemi/identity`, que está enlazado y todavía no publicado:
-`packages/cloud/package.json` apunta a `link:../../../../meltemi/packages/identity`, cuatro carpetas
-por encima de `packages/cloud`, así que el repositorio de Meltemi Web debe estar clonado ahí. Sus
-`exports` apuntan a `dist/`: instálalo y compílalo primero, y otra vez cuando cambie su verificador.
-`pnpm install` en este repositorio lo avisa cuando falta la carpeta.
+El Worker verifica las sesiones con `@meltemi/identity`, publicado en npm con procedencia por el
+flujo de publicación del repositorio de Meltemi Web; `packages/cloud/package.json` depende de
+`^0.1.0`, y `pnpm install` lo descarga como cualquier otro paquete. Mientras su verificador cambia,
+trabaja contra una copia del repositorio de Meltemi Web, sin confirmar el enlace:
 
 ```bash
-pnpm install
-pnpm build
+pnpm --filter @meltemi/diagrams-cloud link ../../meltemi-web/packages/identity
 ```
 
-Ejecuta ambos comandos en el repositorio de Meltemi Web. El cambio de entrega publicará el paquete y
-sustituirá el enlace.
+Compílalo allí primero (`pnpm build`), y otra vez tras cada cambio: los `exports` del paquete
+apuntan a `dist/`.
 
 ### La base de datos
 

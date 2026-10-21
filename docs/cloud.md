@@ -1926,19 +1926,17 @@ you in, and deleting it is how you sign out.
 
 ### The identity package
 
-The Worker verifies sessions with `@meltemi/identity`, which is linked and not yet published:
-`packages/cloud/package.json` points at `link:../../../../meltemi/packages/identity`, four folders
-above `packages/cloud`, so the Meltemi Web repository must be checked out there. Its `exports`
-point at `dist/`: install and build it first, and again after its verifier changes. `pnpm install`
-in this repository says so when the folder is missing.
+The Worker verifies sessions with `@meltemi/identity`, published on npm with provenance by the
+Meltemi Web repository's release workflow; `packages/cloud/package.json` depends on `^0.1.0`, and
+`pnpm install` fetches it like any other package. While its verifier changes, work against a
+checkout of the Meltemi Web repository instead, without committing the link:
 
 ```bash
-pnpm install
-pnpm build
+pnpm --filter @meltemi/diagrams-cloud link ../../meltemi-web/packages/identity
 ```
 
-Run both in the Meltemi Web repository. The delivery change will publish the package and replace
-the link.
+Build it there first (`pnpm build`), and again after each change: the package's `exports` point at
+`dist/`.
 
 ### The database
 

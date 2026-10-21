@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@meltemi/diagrams-project": "workspace:*",
-    "@meltemi/identity": "link:../../../../meltemi/packages/identity",
+    "@meltemi/identity": "^0.1.0",
     "yjs": "13.6.33"
   },
   "devDependencies": {
