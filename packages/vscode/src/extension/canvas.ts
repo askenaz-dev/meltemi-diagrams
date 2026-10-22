@@ -2,6 +2,7 @@ import type { EditPlan } from "@meltemi/diagrams-edit";
 import type { TextEdit } from "@meltemi/diagrams-language";
 import {
   CanvasSession,
+  stepsRejected,
   type CanvasSettings,
   type HostMessage,
   type SessionResult,
@@ -133,13 +134,17 @@ export async function applyPlan(
 /**
  * Makes the edits of other files of the project that a canvas asks: a theme created for the
  * project (its file and the default of `project.json`, which is saved so the project reads it),
- * or an operation on the file that holds the theme being edited.
+ * or steps over files (the model of a C4 view and the view's statements, a token of the file
+ * that holds the theme being edited), in one workspace edit.
  */
 async function applyProjectEdits(
   document: vscode.TextDocument,
   analyses: Analyses,
   request: NonNullable<SessionResult["project"]>,
-): Promise<{ ok: true; message: string } | { ok: false; reason: string }> {
+): Promise<
+  | { ok: true; message?: string }
+  | { ok: false; reason: string; rejected?: HostMessage & { type: "rejected" } }
+> {
   const t = messages().canvas;
   if (document.uri.scheme !== "file") {
     return { ok: false, reason: t.saveBeforeProjectThemes };
@@ -173,13 +178,19 @@ async function applyProjectEdits(
     }
     return { ok: true, message: t.themeCreated(request.theme) };
   }
-  const planned = sessions.planInFile(request.file, request.operation);
-  if (!planned.ok) return planned;
-  await addFileEdits(edit, new Map([[request.file, planned.edits]]));
-  if (!(await vscode.workspace.applyEdit(edit))) {
-    return { ok: false, reason: t.fileNotChanged(request.file) };
+  // Steps over files: the model of a view and the view's own statements, a theme's token.
+  const planned = sessions.planSteps(path, request.steps);
+  if (!planned.ok) {
+    return { ok: false, reason: planned.reason, rejected: stepsRejected(planned, request.retry) };
   }
-  return { ok: true, message: t.themeChanged(vscode.workspace.asRelativePath(request.file)) };
+  await addFileEdits(edit, planned.edits);
+  if (!(await vscode.workspace.applyEdit(edit))) {
+    return { ok: false, reason: t.projectNotWritten };
+  }
+  const others = [...planned.edits.keys()]
+    .filter((file) => file !== path)
+    .map((file) => vscode.workspace.asRelativePath(file));
+  return { ok: true, ...(others.length > 0 ? { message: t.filesChanged(others) } : {}) };
 }
 
 export interface CanvasHost {
@@ -254,10 +265,18 @@ export class CanvasEditorProvider implements vscode.CustomTextEditorProvider {
       if (result.project) {
         const written = await applyProjectEdits(document, analyses, result.project);
         if (written.ok) {
-          post([{ type: "status", message: written.message }]);
+          if (written.message) post([{ type: "status", message: written.message }]);
           analyses.now(document);
           post(session.update(analyses.get(document)));
-        } else post([{ type: "rejected", code: "edit.invalid-value", reason: written.reason }]);
+        } else {
+          post([
+            written.rejected ?? {
+              type: "rejected",
+              code: "edit.invalid-value",
+              reason: written.reason,
+            },
+          ]);
+        }
       }
       if (result.clipboard !== undefined) await vscode.env.clipboard.writeText(result.clipboard);
       if (result.readClipboard) {

@@ -11,6 +11,7 @@ import {
 import {
   ENTITY_CHILDREN,
   ENTITY_KINDS,
+  defaultEntities,
   isSafeUrl,
   type Compilation,
   type EntityReference,
@@ -47,6 +48,7 @@ const VIEW_OPERATIONS: ReadonlySet<string> = new Set([
   "includeEntity",
   "excludeEntity",
   "setLocalLabel",
+  "forgetModelRelation",
 ]);
 
 /** Refuses an operation that does not apply to a C4 view, naming the ones that do. */
@@ -128,10 +130,10 @@ export function includeEntity(ctx: EditContext, op: OperationOf<"includeEntity">
 
 /** The view statements that only target an element, and edits that drop it from shared ones. */
 function viewDependents(
-  ctx: EditContext,
+  ctx: TextContext,
+  diagram: FlowDiagram,
   id: string,
 ): { statements: CstNode[]; edits: TextEdit[]; dependents: Dependent[] } {
-  const diagram = ctx.diagram;
   const lines = ctx.compilation.parse.lines;
   const statements: CstNode[] = [];
   const edits: TextEdit[] = [];
@@ -205,7 +207,7 @@ export function excludeEntity(ctx: EditContext, op: OperationOf<"excludeEntity">
   if (element.kind === "group") {
     reject("edit.unsafe-target", reasons().c4.isScope(op.entity));
   }
-  const dependents = viewDependents(ctx, op.entity);
+  const dependents = viewDependents(ctx, ctx.diagram, op.entity);
   if (!op.cascade && dependents.dependents.length > 0) {
     reject(
       "edit.has-dependents",
@@ -649,31 +651,196 @@ export function createModelRelation(
   return edits;
 }
 
+/** Moves one end of a model relation to another entity; the label, id and block stay. */
+export function reconnectModelRelation(
+  ctx: ModelContext,
+  op: OperationOf<"reconnectModelRelation">,
+): TextEdit[] {
+  const relation = requireModelRelation(ctx, op.relation);
+  const entity = requireModelEntity(ctx, op.entity);
+  const current = op.end === "from" ? relation.from : relation.to;
+  if (current === entity.path) return [];
+  const ref = op.end === "from" ? relation.node.source : relation.node.target;
+  if (ref.kind !== "QualifiedRef") {
+    reject("edit.unsafe-target", reasons().c4.endUnreadable(relation.key));
+  }
+  // The path from the root resolves wherever the statement sits: the lookup from the enclosing
+  // entity outwards ends at the root.
+  const edits: TextEdit[] = [{ start: ref.start, end: ref.end, newText: entity.path }];
+  verifyNoNewErrors(ctx, edits);
+  return edits;
+}
+
+/**
+ * Removes a model relation with the statements of the file's views that name it. Without
+ * `cascade`, those statements and the views that draw the relation (other than `op.view`) are
+ * listed as dependents.
+ */
+/**
+ * What a view holds about a model relation: the statements that name it by its key, or by a
+ * combination standing for it alone, as statements to delete, edits that take it out of shared
+ * lists, and dependents; with the view itself as drawing it when `listDrawn`.
+ */
+function relationStatements(
+  ctx: TextContext,
+  diagram: FlowDiagram,
+  key: string,
+  listDrawn: boolean,
+): { statements: CstNode[]; edits: TextEdit[]; dependents: Dependent[] } {
+  const c4 = diagram.c4;
+  const lines = ctx.compilation.parse.lines;
+  const statements: CstNode[] = [];
+  const edits: TextEdit[] = [];
+  const dependents: Dependent[] = [];
+  if (!c4) return { statements, edits, dependents };
+  const depend = (kind: DependentKind, name: string, node: CstNode) => {
+    statements.push(node);
+    dependents.push({
+      kind,
+      name,
+      description: messages().dependents.statement(kind, name, lines.location(node.start).line),
+      range: lines.range(node),
+    });
+  };
+  const keys = new Set([key]);
+  let drawn = false;
+  for (const shown of diagram.relations) {
+    if (!shown.sources.includes(key)) continue;
+    drawn = true;
+    if (isCombination(diagram, shown.key) && shown.sources.every((k) => k === key)) {
+      keys.add(shown.key);
+      depend("relation", shown.key, shown.node);
+    }
+  }
+  if (drawn && listDrawn) {
+    dependents.push({
+      kind: "relation",
+      name: diagram.id,
+      description: messages().dependents.drawnIn(
+        key,
+        diagram.id,
+        lines.location(diagram.node.start).line,
+      ),
+      range: lines.range(diagram.node),
+    });
+  }
+  for (const entry of diagram.placement) {
+    if (keys.has(entry.target)) depend(entry.statement as DependentKind, entry.target, entry.node);
+  }
+  for (const label of c4.labels) {
+    if (keys.has(label.target)) depend("label", label.target, label.node);
+  }
+  // A style or an animation of several targets loses this one; of this one alone, it goes.
+  const partial = new Map<KeywordStatement, Set<number>>();
+  for (const entry of [...diagram.styles, ...diagram.animations]) {
+    if (!keys.has(entry.target)) continue;
+    const index = entry.node.args.findIndex((a) => a.start === entry.targetRange.start.offset);
+    const set = partial.get(entry.node) ?? new Set<number>();
+    if (index >= 0) set.add(index);
+    partial.set(entry.node, set);
+    const kind = "properties" in entry ? "style" : "animate";
+    dependents.push({
+      kind,
+      name: entry.target,
+      description: messages().dependents.statement(
+        kind,
+        entry.target,
+        lines.location(entry.node.start).line,
+      ),
+      range: lines.range(entry.node),
+    });
+  }
+  for (const [node, indices] of partial) {
+    if (indices.size >= node.args.length) statements.push(node);
+    else edits.push(...removeListItems(node.args, indices));
+  }
+  const stories = storyDependents(ctx.compilation, diagram.id, keys);
+  statements.push(...stories.statements);
+  edits.push(...stories.edits);
+  dependents.push(...stories.dependents);
+  // An entity the view drew only for this relation leaves its default set, with what names it.
+  const model = c4.resolved?.definition;
+  if (model && c4.includes === null) {
+    const without: ModelDefinition = {
+      ...model,
+      relations: model.relations.filter((r) => r.key !== key),
+    };
+    const after = defaultEntities(without, c4.level, c4.scope);
+    for (const path of defaultEntities(model, c4.level, c4.scope)) {
+      if (after.has(path) || !diagram.elementsById.has(path)) continue;
+      dependents.push({
+        kind: "element",
+        name: path,
+        description: messages().dependents.leavesView(path, diagram.id),
+        range: lines.range(diagram.node),
+      });
+      // What the entity's own removal would take, less what the relation's already takes.
+      const leaving = viewDependents(ctx, diagram, path);
+      const taken = new Set(statements.map((s) => s.start));
+      const listed = new Set(dependents.map((d) => `${d.range.start.offset}:${d.description}`));
+      statements.push(...leaving.statements.filter((s) => !taken.has(s.start)));
+      edits.push(...leaving.edits);
+      dependents.push(
+        ...leaving.dependents.filter(
+          (d) => !listed.has(`${d.range.start.offset}:${d.description}`),
+        ),
+      );
+    }
+  }
+  return { statements, edits, dependents };
+}
+
 export function removeModelRelation(
   ctx: ModelContext,
   op: OperationOf<"removeModelRelation">,
 ): TextEdit[] {
   const relation = requireModelRelation(ctx, op.relation);
   const statements: CstNode[] = [relation.node];
-  // View statements that name the relation by its key.
+  const edits: TextEdit[] = [];
+  const dependents: Dependent[] = [];
   for (const diagram of ctx.compilation.document.diagrams) {
     const c4 = diagram.c4;
     if (!c4 || c4.resolved?.file !== null || c4.resolved.definition.id !== ctx.model.id) continue;
-    // Combinations that stand for this relation only go too, with what names them.
-    const keys = new Set([relation.key]);
-    for (const drawn of diagram.relations) {
-      if (isCombination(diagram, drawn.key) && drawn.sources.every((k) => k === relation.key)) {
-        keys.add(drawn.key);
-        statements.push(drawn.node);
-      }
-    }
-    for (const entry of diagram.placement) if (keys.has(entry.target)) statements.push(entry.node);
-    for (const label of c4.labels) if (keys.has(label.target)) statements.push(label.node);
-    for (const entry of [...diagram.styles, ...diagram.animations]) {
-      if (keys.has(entry.target)) statements.push(entry.node);
-    }
+    const found = relationStatements(ctx, diagram, relation.key, diagram.id !== op.view);
+    statements.push(...found.statements);
+    edits.push(...found.edits);
+    dependents.push(...found.dependents);
   }
-  const edits = deleteStatements(ctx.text, ctx.compilation.parse.root, statements);
+  if (!op.cascade && dependents.length > 0) {
+    reject(
+      "edit.has-dependents",
+      reasons().c4.removingRelation(relation.key, dependents.length),
+      dependents,
+    );
+  }
+  edits.push(...deleteStatements(ctx.text, ctx.compilation.parse.root, statements));
+  verifyNoNewErrors(ctx, edits);
+  return edits;
+}
+
+/**
+ * Takes a model relation out of a view whose model is in another file: the statements that name
+ * it go (with `cascade`), or are listed as dependents, with the view as drawing it.
+ */
+export function forgetModelRelation(
+  ctx: EditContext,
+  op: OperationOf<"forgetModelRelation">,
+): TextEdit[] {
+  requireView(ctx);
+  const { statements, edits, dependents } = relationStatements(
+    ctx,
+    ctx.diagram,
+    op.relation,
+    op.listDrawn ?? true,
+  );
+  if (!op.cascade && dependents.length > 0) {
+    reject(
+      "edit.has-dependents",
+      reasons().c4.removingRelation(op.relation, dependents.length),
+      dependents,
+    );
+  }
+  edits.push(...deleteStatements(ctx.text, ctx.compilation.parse.root, statements));
   verifyNoNewErrors(ctx, edits);
   return edits;
 }

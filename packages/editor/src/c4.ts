@@ -8,6 +8,7 @@ import {
 } from "@meltemi/diagrams-model";
 import type { InspectorField } from "./canvas/protocol.js";
 import { messages } from "./messages/index.js";
+import { nameable, namedRelation } from "./targets.js";
 
 /** The entities a view may draw and does not: what "Add from the model…" offers. */
 export function entityChoices(
@@ -44,7 +45,7 @@ export function c4ElementFields(diagram: FlowDiagram, element: Element): Inspect
   const model = diagram.c4?.resolved?.definition;
   const entity = model?.entitiesByPath.get(element.id);
   const local = diagram.c4?.labels.find((l) => l.target === element.id);
-  const readonly = !modelIsLocal(diagram);
+  const elsewhere = !modelIsLocal(diagram);
   const words = messages();
   const fields: InspectorField[] = [
     { name: "id", label: words.c4.fields.entity, type: "text", value: element.id, readonly: true },
@@ -74,7 +75,6 @@ export function c4ElementFields(diagram: FlowDiagram, element: Element): Inspect
     label,
     type,
     value,
-    ...(readonly ? { readonly: true, placeholder: words.c4.readOnly } : {}),
   });
   fields.push(
     entityField("label", words.c4.fields.modelLabel, entity.label),
@@ -89,10 +89,21 @@ export function c4ElementFields(diagram: FlowDiagram, element: Element): Inspect
       type: "enum",
       value: entity.external ? "yes" : "no",
       options: ["no", "yes"],
-      ...(readonly ? { readonly: true } : {}),
     });
   }
+  if (elsewhere) fields.push(modelFileField(diagram));
   return fields;
+}
+
+/** Where the model's fields are written when the model is in another file of the project. */
+function modelFileField(diagram: FlowDiagram): InspectorField {
+  return {
+    name: "modelFile",
+    label: messages().c4.fields.modelFile,
+    type: "text",
+    value: diagram.c4?.resolved?.file ?? null,
+    readonly: true,
+  };
 }
 
 /** Fields of a relation of a C4 view: the local label, the model relation and its sources. */
@@ -101,16 +112,17 @@ export function c4RelationFields(diagram: FlowDiagram, relation: Relation): Insp
   const local = diagram.c4?.labels.find((l) => l.target === relation.key);
   const combined = diagram.c4?.combined.includes(relation.key) ?? false;
   const source = combined ? undefined : model?.relationsByKey.get(relation.key);
-  const readonly = !modelIsLocal(diagram);
+  const elsewhere = !modelIsLocal(diagram);
   const words = messages();
   const fields: InspectorField[] = [
+    // A model relation is named, or renamed, from here; a combination keeps the id it was written with.
     {
       name: "id",
       label: words.fields.id,
-      type: "text",
+      type: source ? "id" : "text",
       value: relation.id,
       placeholder: relation.key,
-      readonly: true,
+      ...(source ? {} : { readonly: true }),
     },
     {
       name: "label",
@@ -133,13 +145,13 @@ export function c4RelationFields(diagram: FlowDiagram, relation: Relation): Insp
       label,
       type: "text",
       value,
-      ...(readonly ? { readonly: true, placeholder: words.c4.readOnly } : {}),
     });
     fields.push(
       field("label", words.c4.fields.modelLabel, source.label),
       field("technology", words.c4.fields.technology, source.technology),
       field("description", words.fields.description, source.description),
     );
+    if (elsewhere) fields.push(modelFileField(diagram));
   }
   return fields;
 }
@@ -191,13 +203,44 @@ export function c4FieldOperations(
         ],
       };
     }
+    if (relation) {
+      // A local label names the relation; an anonymous model relation is named first.
+      if (!nameable(diagram, relation)) return { ok: false, reason: messages().c4.nameCombination };
+      if (relation.id === null && !text) return { ok: true, operations: [] };
+      const { id: named, operations } = namedRelation(diagram, relation);
+      return {
+        ok: true,
+        operations: [
+          ...operations,
+          { kind: "setLocalLabel", diagram: diagram.id, target: named, label: text || null },
+        ],
+      };
+    }
     return {
       ok: true,
       operations: [{ kind: "setLocalLabel", diagram: diagram.id, target: id, label: text || null }],
     };
   }
+  if (field === "id") {
+    // The id of a model relation: written into the model, where it names or renames it.
+    const relation = diagram.relationsByKey.get(id);
+    const source = relation && !c4.combined.includes(id) ? model.relationsByKey.get(id) : undefined;
+    if (!source) return undefined;
+    if (!text?.trim()) return { ok: true, operations: [] };
+    return {
+      ok: true,
+      operations: [
+        {
+          kind: "setModelRelationProperty",
+          model: model.id,
+          relation: source.key,
+          property: "id",
+          value: text.trim(),
+        },
+      ],
+    };
+  }
   if (field.startsWith("entity.") || field.startsWith("relation.")) {
-    if (!modelIsLocal(diagram)) return { ok: false, reason: messages().c4.readOnly };
     const [scope, property] = field.split(".") as [string, string];
     if (scope === "entity") {
       return {

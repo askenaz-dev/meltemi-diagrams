@@ -162,12 +162,149 @@ describe("model operations", () => {
       id: "pays",
     });
     expect(added).toContain('  customer -> bank: "Paga" as pays\n');
+    // `orders` is combined by `uses` in `components` and drawn, lifted, in `containers`.
+    const asked = planEdit(compile(commerce), {
+      kind: "removeModelRelation",
+      model: "commerce",
+      relation: "orders",
+      cascade: false,
+      view: "components",
+    });
+    expect(asked.ok).toBe(false);
+    if (!asked.ok) {
+      expect(asked.rejection.code).toBe("edit.has-dependents");
+      // `shop.web` is in `components` only for `orders`: it leaves the view with the relation.
+      expect(asked.rejection.dependents!.map((d) => d.description).sort()).toEqual([
+        expect.stringMatching(/^`orders` drawn in the view `containers` on line \d+$/),
+        "`shop.web` no longer drawn in the view `components`",
+        expect.stringMatching(/^relation `uses` on line \d+$/),
+      ]);
+    }
     const removed = run(commerce, {
       kind: "removeModelRelation",
       model: "commerce",
       relation: "orders",
+      cascade: true,
     });
     expect(removed).not.toContain('"Usa" as uses');
+    expect(removed).not.toContain("as orders");
+    // Nothing names `request` and only `containers` draws it: it goes at once from there.
+    const alone = run(commerce, {
+      kind: "removeModelRelation",
+      model: "commerce",
+      relation: "request",
+      cascade: false,
+      view: "containers",
+    });
+    expect(alone).not.toContain("as request");
+  });
+
+  it("removes a relation out of the styles it shares and with its own statements", () => {
+    const text = commerce.replace(
+      "diagram containers: c4 using commerce {\n",
+      'diagram containers: c4 using commerce {\n  style visit, request { width 2 }\n  animate request { effect flow }\n  label request "Pide"\n',
+    );
+    const after = run(text, {
+      kind: "removeModelRelation",
+      model: "commerce",
+      relation: "request",
+      cascade: true,
+    });
+    expect(after).toContain("  style visit { width 2 }\n");
+    expect(after).not.toContain("animate request");
+    expect(after).not.toContain('label request "Pide"');
+    expect(after).not.toContain("as request");
+  });
+
+  it("moves an end of a relation, by its id or its key, and refuses impossible ends", () => {
+    const moved = run(commerce, {
+      kind: "reconnectModelRelation",
+      model: "commerce",
+      relation: "visit",
+      end: "to",
+      entity: "bank",
+    });
+    expect(moved).toContain('  customer -> bank: "Compra" as visit\n');
+    // A relation written with relative paths inside an entity takes the path from the root.
+    const nested = run(commerce, {
+      kind: "reconnectModelRelation",
+      model: "commerce",
+      relation: "store",
+      end: "to",
+      entity: "bank",
+    });
+    expect(nested).toContain('    api.orders -> bank: "Guarda" as store\n');
+    const anonymous = run(commerce.replace(" as persist", ""), {
+      kind: "reconnectModelRelation",
+      model: "commerce",
+      relation: "shop.api->shop.db#1",
+      end: "from",
+      entity: "shop.web",
+    });
+    expect(anonymous).toContain('  shop.web -> shop.db: "SQL"\n');
+    // The same end changes nothing.
+    expect(
+      run(commerce, {
+        kind: "reconnectModelRelation",
+        model: "commerce",
+        relation: "visit",
+        end: "from",
+        entity: "customer",
+      }),
+    ).toBe(commerce);
+    expect(
+      refused(commerce, {
+        kind: "reconnectModelRelation",
+        model: "commerce",
+        relation: "persist",
+        end: "to",
+        entity: "shop",
+      }),
+    ).toMatch(/^edit\.invalid-value: /);
+    expect(
+      refused(commerce, {
+        kind: "reconnectModelRelation",
+        model: "commerce",
+        relation: "persist",
+        end: "to",
+        entity: "nothing",
+      }),
+    ).toMatch(/has no entity `nothing`/);
+  });
+
+  it("names an anonymous relation by its key, once", () => {
+    const text = commerce.replace(" as persist", "");
+    const named = run(text, {
+      kind: "batch",
+      operations: [
+        {
+          kind: "setModelRelationProperty",
+          model: "commerce",
+          relation: "shop.api->shop.db#1",
+          property: "id",
+          value: "shop_api_shop_db",
+        },
+        {
+          kind: "setStyleProperty",
+          diagram: "containers",
+          target: "shop_api_shop_db",
+          targetKind: "relation",
+          property: "width",
+          value: 2,
+        },
+      ],
+    });
+    expect(named).toContain('  shop.api -> shop.db: "SQL" as shop_api_shop_db\n');
+    expect(named).toContain("  style shop_api_shop_db { width 2 }\n");
+    expect(
+      refused(text, {
+        kind: "setModelRelationProperty",
+        model: "commerce",
+        relation: "shop.api->shop.db#1",
+        property: "id",
+        value: "visit",
+      }),
+    ).toMatch(/^edit\.id-conflict: /);
   });
 });
 

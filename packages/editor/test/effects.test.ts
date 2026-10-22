@@ -225,7 +225,7 @@ describe("anonymous relations", () => {
     expect(result.plan).toBeDefined();
     expect(result.messages).toContainEqual({
       type: "status",
-      message: "Named the relation `api_db`.",
+      message: "Named `api_db`.",
     });
     expect(canvas.text()).toContain("  api -> db as api_db\n  api -> db\n");
     expect(canvas.text()).toContain("style api_db { stroke danger }");

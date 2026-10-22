@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
@@ -186,6 +186,286 @@ describe("C4 canvas", () => {
     expect(written).toContain('container web "Web" { technology "Vue" }');
     canvas.send({ type: "select", ids: ["request"] });
     expect(canvas.inspector().fields.find((f) => f.name === "sources")!.value).toBe("request");
+  });
+
+  it("styles and animates an anonymous relation by naming it in the model", () => {
+    const canvas = open(commerce.replace(" as persist", ""), "containers");
+    canvas.send({ type: "select", ids: ["shop.api->shop.db#1"] });
+    const names = canvas.inspector().fields.map((f) => f.name);
+    expect(names).toContain("effect.flow");
+    expect(names).toContain("style.width");
+    const flow: CanvasAction = {
+      kind: "setField",
+      ids: ["shop.api->shop.db#1"],
+      field: "effect.flow",
+      value: "on",
+    };
+    const result = canvas.act(flow);
+    expect(result.plan).toBeDefined();
+    expect(result.messages).toContainEqual({
+      type: "status",
+      message: "Named `shop_api_shop_db`.",
+    });
+    const flowed = canvas.apply(flow);
+    expect(flowed).toContain('  shop.api -> shop.db: "SQL" as shop_api_shop_db\n');
+    expect(flowed).toContain("  animate shop_api_shop_db { effect flow }\n");
+    const widened = canvas.apply({
+      kind: "setField",
+      ids: ["shop_api_shop_db"],
+      field: "style.width",
+      value: 2,
+    });
+    expect(widened).toContain("  style shop_api_shop_db { width 2 }\n");
+    // The view an imported Mermaid C4 diagram makes has no relation ids at all.
+    const imported = readFileSync(
+      join(CORPUS_ROOT, "import", "mermaid", "c4-context.meltemi"),
+      "utf8",
+    );
+    const view = open(imported, "system_context_diagram_for_internet");
+    const animated = view.apply({
+      kind: "setField",
+      ids: ["customerA->SystemAA#1"],
+      field: "effect.flow",
+      value: "on",
+    });
+    expect(animated).toContain('  customerA -> SystemAA: "Uses" as customerA_SystemAA\n');
+    expect(animated).toContain("  animate customerA_SystemAA { effect flow }\n");
+  });
+
+  it("draws a relation into the model, pinned or not", () => {
+    const canvas = open(commerce, "containers");
+    const plain = canvas.apply({ kind: "connect", from: "customer", to: "shop.db", line: "solid" });
+    expect(plain).toContain(
+      '  shop.web -> shop.api.orders: "Pedidos" as orders\n  customer -> shop.db\n',
+    );
+    expect(canvas.inspector().target.ids).toEqual(["customer->shop.db#1"]);
+    const pinned = canvas.apply({
+      kind: "connect",
+      from: "customer",
+      to: "shop.api",
+      line: "dashed",
+      pinned: { fromPort: "east", toPort: "west", toPosition: 25 },
+    });
+    expect(pinned).toContain("  customer -> shop.api as customer_shop_api\n");
+    expect(pinned).toMatch(/route customer_shop_api from customer\.east to shop\.api\.west 25%/);
+    expect(canvas.inspector().target.ids).toEqual(["customer_shop_api"]);
+  });
+
+  it("moves the end of a drawn relation in the model, routing it when dropped on a port", () => {
+    // `visit` is drawn from `customer` to `shop` in the context view, lifted from `shop.web`.
+    const context = open(commerce, "context");
+    const lifted = context.apply({
+      kind: "setEnd",
+      relation: "visit",
+      end: "to",
+      element: "bank",
+      port: null,
+    });
+    expect(lifted).toContain('  customer -> bank: "Compra" as visit\n');
+    const canvas = open(commerce.replace(" as persist", ""), "containers");
+    const moved = canvas.apply({
+      kind: "setEnd",
+      relation: "shop.api->shop.db#1",
+      end: "from",
+      element: "shop.web",
+      port: null,
+    });
+    expect(moved).toContain('  shop.web -> shop.db: "SQL"\n');
+    expect(canvas.inspector().target.ids).toEqual(["shop.web->shop.db#1"]);
+    const ported = canvas.apply({
+      kind: "setEnd",
+      relation: "shop.web->shop.db#1",
+      end: "to",
+      element: "shop.api",
+      port: "north",
+      position: 25,
+    });
+    expect(ported).toContain('  shop.web -> shop.api: "SQL" as shop_web_shop_api\n');
+    expect(ported).toMatch(/route shop_web_shop_api from shop\.web\.auto to shop\.api\.north 25%/);
+    // The same entity: the end pinned to a side of its border.
+    const pinned = canvas.apply({
+      kind: "setEnd",
+      relation: "visit",
+      end: "to",
+      element: "shop.web",
+      port: "south",
+    });
+    expect(pinned).toMatch(/route visit from customer\.auto to shop\.web\.south/);
+    // A combination stands for model relations: its ends do not move.
+    const components = open(commerce, "components");
+    const refused = components.act({
+      kind: "setEnd",
+      relation: "uses",
+      end: "to",
+      element: "shop.api.payments",
+      port: null,
+    });
+    expect(refused.messages[0]).toMatchObject({
+      type: "rejected",
+      reason: "`uses` stands for `orders`; change them in the model.",
+    });
+  });
+
+  it("deletes a drawn relation from the model, asking when other views draw it", () => {
+    const canvas = open(commerce, "containers");
+    const asked = canvas.act({ kind: "remove", ids: ["visit"], cascade: false });
+    const message = asked.messages[0] as unknown as {
+      type: string;
+      code: string;
+      dependents: { description: string }[];
+      retry: CanvasAction;
+    };
+    expect(message).toMatchObject({ type: "rejected", code: "edit.has-dependents" });
+    expect(message.dependents.map((d) => d.description)).toEqual([
+      expect.stringMatching(/^`visit` drawn in the view `context` on line \d+$/),
+    ]);
+    const removed = canvas.apply(message.retry);
+    expect(removed).not.toContain("as visit");
+    // Only this view draws `request`, and nothing names it: it goes at once.
+    const alone = canvas.apply({ kind: "remove", ids: ["request"], cascade: false });
+    expect(alone).not.toContain("as request");
+  });
+
+  it("labels a drawn relation in the model when it has none, locally otherwise", () => {
+    const canvas = open(commerce, "containers");
+    canvas.apply({ kind: "connect", from: "customer", to: "shop.db", line: "solid" });
+    const model = canvas.apply({ kind: "setLabel", id: "customer->shop.db#1", label: "Consulta" });
+    expect(model).toContain('  customer -> shop.db: "Consulta"\n');
+    const local = canvas.apply({ kind: "setLabel", id: "visit", label: "Entra" });
+    expect(local).toContain('  label visit "Entra"\n');
+    const anonymous = open(commerce.replace(" as persist", ""), "containers");
+    const named = anonymous.apply({
+      kind: "setLabel",
+      id: "shop.api->shop.db#1",
+      label: "Guarda",
+    });
+    expect(named).toContain('  shop.api -> shop.db: "SQL" as shop_api_shop_db\n');
+    expect(named).toContain('  label shop_api_shop_db "Guarda"\n');
+    // The inspector's id field names or renames the model relation, with what names it.
+    anonymous.send({ type: "select", ids: ["shop_api_shop_db"] });
+    expect(anonymous.inspector().fields.find((f) => f.name === "id")).toMatchObject({
+      type: "id",
+      value: "shop_api_shop_db",
+    });
+    const renamed = anonymous.apply({
+      kind: "setField",
+      ids: ["shop_api_shop_db"],
+      field: "id",
+      value: "persist",
+    });
+    expect(renamed).toContain('"SQL" as persist');
+    expect(renamed).toContain('  label persist "Guarda"\n');
+  });
+});
+
+describe("a model in another file of the project", () => {
+  const root = mkdtempSync(join(tmpdir(), "mdg-c4-steps-"));
+  afterAll(() => rmSync(root, { recursive: true, force: true }));
+  cpSync(join(CORPUS_ROOT, "projects", "valid", "architecture"), root, { recursive: true });
+  const slash = (path: string) => path.split(sep).join("/");
+  const modelFile = slash(join(root, "models", "commerce.meltemi"));
+  const containersFile = slash(join(root, "diagrams", "containers.meltemi"));
+  const contextFile = slash(join(root, "diagrams", "context.meltemi"));
+  // `persist` loses its id: the import of a Mermaid C4 diagram names no relation.
+  writeFileSync(modelFile, readFileSync(modelFile, "utf8").replace(" as persist", ""));
+  const sessions = new ProjectSessions({ toolVersion: "1.0.0" });
+  const text = (file: string) => readFileSync(file, "utf8");
+  const errors = (file: string) =>
+    sessions.analyze(file).diagnostics.filter((d) => d.severity === "error");
+
+  function openIn(file: string, diagram: string) {
+    const session = new CanvasSession({ path: file, project: () => true });
+    let messages = session.update(sessions.analyze(file));
+    session.receive({ type: "pickDiagram", diagram });
+    const act = (action: CanvasAction) => session.receive({ type: "action", revision: 0, action });
+    return {
+      act,
+      /** Acts, and applies the steps the session hands the host, as the hosts do. */
+      apply: (action: CanvasAction) => {
+        const result = act(action);
+        if (result.plan) throw new Error("expected steps over files, not a plan");
+        if (result.project?.kind !== "files") throw new Error(JSON.stringify(result.messages));
+        const planned = sessions.planSteps(file, result.project.steps);
+        if (!planned.ok) throw new Error(planned.reason);
+        for (const [path, edits] of planned.edits) {
+          writeFileSync(path, applyTextEdits(text(path), edits));
+          sessions.forFile(path).invalidate(path);
+        }
+        messages = session.update(sessions.analyze(file));
+        return result.project;
+      },
+      inspector: () =>
+        messages.find((m): m is HostMessage & { type: "inspector" } => m.type === "inspector")!
+          .model,
+      send: (message: unknown) => {
+        messages = [...session.receive(message).messages];
+      },
+    };
+  }
+
+  it("styles and animates an anonymous relation by naming it in the model's file", () => {
+    const canvas = openIn(containersFile, "containers");
+    canvas.send({ type: "select", ids: ["shop.api->shop.db#1"] });
+    const fields = canvas.inspector().fields;
+    expect(fields.map((f) => f.name)).toContain("effect.flow");
+    expect(fields.find((f) => f.name === "relation.technology")).not.toHaveProperty("readonly");
+    expect(fields.find((f) => f.name === "modelFile")).toMatchObject({ value: modelFile });
+    const request = canvas.apply({
+      kind: "setField",
+      ids: ["shop.api->shop.db#1"],
+      field: "effect.flow",
+      value: "on",
+    });
+    expect(request.steps.map((s) => [s.file, s.operation.kind])).toEqual([
+      [modelFile, "setModelRelationProperty"],
+      [null, "setAnimation"],
+    ]);
+    expect(text(modelFile)).toContain('  shop.api -> shop.db: "SQL" as shop_api_shop_db\n');
+    expect(text(containersFile)).toContain("  animate shop_api_shop_db { effect flow }\n");
+    expect(errors(containersFile)).toEqual([]);
+    expect(canvas.inspector().target.ids).toEqual(["shop_api_shop_db"]);
+  });
+
+  it("moves an end, writes a model field and renames an entity in every file", () => {
+    const canvas = openIn(containersFile, "containers");
+    canvas.apply({ kind: "setEnd", relation: "visit", end: "to", element: "shop.api", port: null });
+    expect(text(modelFile)).toContain('  customer -> shop.api: "Compra" as visit\n');
+    canvas.apply({
+      kind: "setField",
+      ids: ["request"],
+      field: "relation.technology",
+      value: "gRPC",
+    });
+    expect(text(modelFile)).toContain('as request { technology "gRPC" }');
+    canvas.apply({ kind: "renameId", id: "shop.api", newId: "orders" });
+    expect(text(modelFile)).toContain('    container orders "API"');
+    expect(text(modelFile)).toContain("  shop.web -> shop.orders:");
+    expect(text(containersFile)).toContain('  label shop.orders "API de pedidos"');
+    for (const file of [modelFile, containersFile, contextFile]) expect(errors(file)).toEqual([]);
+  });
+
+  it("removes a relation from the model after listing what the other files lose", () => {
+    const canvas = openIn(containersFile, "containers");
+    // The context view combines `visit` as `buys`: it loses the combination and the arrow.
+    const asked = canvas.act({ kind: "remove", ids: ["visit"], cascade: false });
+    if (asked.project?.kind !== "files") throw new Error("expected steps over files");
+    expect(asked.project.retry).toEqual({ kind: "remove", ids: ["visit"], cascade: true });
+    const planned = sessions.planSteps(containersFile, asked.project.steps);
+    expect(planned.ok).toBe(false);
+    if (planned.ok) return;
+    expect(planned.code).toBe("edit.has-dependents");
+    // The containers view drew `customer` for `visit` alone: it leaves with its `place`.
+    expect(planned.dependents!.map((d) => d.description).sort()).toEqual([
+      "`customer` no longer drawn in the view `containers`",
+      expect.stringMatching(/^`visit` drawn in the view `context` on line \d+$/),
+      expect.stringMatching(/^place `customer` on line \d+$/),
+      expect.stringMatching(/^relation `buys` on line \d+$/),
+    ]);
+    canvas.apply(asked.project.retry!);
+    expect(text(modelFile)).not.toContain("as visit");
+    expect(text(contextFile)).not.toContain("as buys");
+    expect(text(containersFile)).not.toContain("place customer");
+    for (const file of [modelFile, containersFile, contextFile]) expect(errors(file)).toEqual([]);
   });
 });
 

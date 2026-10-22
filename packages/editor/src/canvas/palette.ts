@@ -14,7 +14,8 @@ export type ArrowKind = (typeof ARROW_KINDS)[number];
  */
 export function arrowKinds(profile: CanvasProfile): readonly ArrowKind[] {
   if (profile === "sequence") return [];
-  if (profile === "c4") return ARROW_KINDS.filter((kind) => !twoWay(kind));
+  // A model writes its relations with `->` alone: a C4 view offers no other kind.
+  if (profile === "c4") return ["->"];
   return ARROW_KINDS;
 }
 
@@ -28,7 +29,8 @@ const dashed = (kind: ArrowKind) => kind.endsWith("-->");
 export function arrowKindIn(kind: ArrowKind, profile: CanvasProfile): ArrowKind {
   const kinds = arrowKinds(profile);
   if (kinds.length === 0 || kinds.includes(kind)) return kind;
-  return dashed(kind) ? "-->" : "->";
+  const oneWay: ArrowKind = dashed(kind) ? "-->" : "->";
+  return kinds.includes(oneWay) ? oneWay : kinds[0]!;
 }
 
 /** The kind after `kind` in a profile's cycle: what R chooses while the relation tool is armed. */

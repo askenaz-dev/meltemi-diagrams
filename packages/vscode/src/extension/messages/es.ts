@@ -24,7 +24,7 @@ export const es: typeof en = {
     themeCreated: (theme) =>
       `Se creó el tema \`${theme}\` del proyecto en themes/${theme}.meltemi.`,
     fileNotChanged: (file) => `No se pudo cambiar ${file}.`,
-    themeChanged: (file) => `Se cambió el tema en ${file}.`,
+    filesChanged: (files) => `Cambios en ${files.join(", ")}.`,
   },
   pickers: {
     useImage: "Usar la imagen",

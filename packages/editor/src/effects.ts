@@ -140,18 +140,12 @@ export function effectOperations(
   value: string | number | null,
 ): { ok: true; operations: EditOperation[]; notice?: string } | { ok: false; reason: string } {
   const [, effect, property] = field.split(".") as [string, AnimationEffect, string | undefined];
-  for (const id of ids) {
-    const event = diagram.relationsByKey.has(id) ? undefined : diagram.eventsByKey.get(id);
-    if (event && (event.id === null || event.kind === "message")) {
-      return { ok: false, reason: messages().reasons.nameForEffect(event.kind) };
-    }
-  }
-  // Turning an effect off names nothing: an anonymous relation has no effect to remove.
+  // Turning an effect off names nothing: an anonymous relation, note or fragment has no effect
+  // to remove.
   const off = property === undefined && String(value ?? "").trim() !== "on";
-  const resolved = styleTargets(
-    diagram,
-    off ? ids.filter((id) => diagram.relationsByKey.get(id)?.id !== null) : ids,
-  );
+  const anonymous = (id: string) =>
+    (diagram.relationsByKey.get(id) ?? diagram.eventsByKey.get(id))?.id === null;
+  const resolved = styleTargets(diagram, off ? ids.filter((id) => !anonymous(id)) : ids);
   if (!resolved.ok) return resolved;
   const operations: EditOperation[] = [...resolved.operations];
   for (const { target, targetKind } of resolved.targets) {
@@ -184,5 +178,17 @@ export function effectOperations(
     });
   }
   const notice = namedNotice(resolved.named);
-  return { ok: true, operations, ...(notice ? { notice } : {}) };
+  return {
+    ok: true,
+    operations,
+    ...(notice ? { notice, select: selectionAfter(ids, resolved.targets) } : {}),
+  };
+}
+
+/** The selection once anonymous relations among `ids` have been named: their new ids. */
+export function selectionAfter(
+  ids: readonly string[],
+  targets: readonly { id: string; target: string }[],
+): string[] {
+  return ids.map((id) => targets.find((t) => t.id === id)?.target ?? id);
 }

@@ -222,8 +222,11 @@ rango se rechaza indicando el rango, y el texto queda como estaba.
 
 - **Nombrar relaciones.** Las acciones sobre una relación anónima, incluidos un estilo o un efecto,
   primero la nombran `<from>_<to>` (`as api_db`), en la misma edición, y la línea de estado lo
-  indica. Las clases y desactivar un efecto no nombran nada. En las vistas C4 las relaciones vienen
-  del modelo: nómbralas allí.
+  indica. Las clases y desactivar un efecto no nombran nada. En las vistas C4 el nombre se escribe
+  en la relación del modelo (`as shop_api_db`, a partir de las rutas de las entidades), en el
+  archivo del modelo cuando es otro archivo del proyecto. Los mensajes, las notas y los fragmentos
+  anónimos de los diagramas de secuencia se nombran igual (`as web_api`, `note1`, `alt1`) cuando un
+  efecto o un estilo lo necesita.
 - **Diagramas libres.** Las posiciones de los objetos dentro de un grupo se escriben relativas al
   interior del grupo ([free.md](language/free.md)): mover un grupo escribe solo el `place` del
   grupo, y cambiar su tamaño desde el lado izquierdo o el superior desplaza las posiciones de sus
@@ -243,8 +246,9 @@ rango se rechaza indicando el rango, y el texto queda como estaba.
   caja, donde no hay un tirador ni un conector, se muestra el punto desde el que empezaría una
   conexión, y el puntero se vuelve una cruz. Presiona ahí y arrastra hasta otra caja: la relación se escribe con el inicio
   fijado en ese punto, como `route cache_db from cache.north 30% to db.auto`, y con el final fijado
-  también si la sueltas sobre el borde del destino. Los diagramas de secuencia y las vistas C4 no
-  tienen rutas, así que ahí la conexión se crea sin extremos fijados.
+  también si la sueltas sobre el borde del destino. Los diagramas de secuencia no tienen rutas, así
+  que ahí la conexión se crea sin extremos fijados; en una vista C4 la conexión escribe la relación
+  en el modelo, con nombre cuando un extremo queda fijado.
 - **Tiradores sobre la línea.** Un conector seleccionado muestra sus extremos, sus puntos de paso
   y, para cada tramo entre dos de ellos, un tirador a mitad de la línea tal como se dibuja, aunque
   la línea gire. Al arrastrarlo se agrega un punto de paso ahí.
@@ -726,18 +730,33 @@ Una vista C4 dibuja entidades de un modelo; el lienzo nunca declara entidades
   entidades que la vista puede dibujar y no dibuja; la elegida se suma a `include`.
 - **Quitar.** Eliminar quita una entidad de la vista (la saca de `include` o la pone en `exclude`)
   junto con las instrucciones de la vista que la nombran; el modelo la conserva.
-- **Etiquetas.** Editar una etiqueta escribe `label <entity> "Text"` solo en esta vista. Las
-  combinaciones (C) escriben en la vista una relación que representa las relaciones del modelo
-  entre dos entidades.
+- **Relaciones.** Las flechas son del modelo, y el lienzo las escribe allí. Arrastrar desde un
+  asa de conexión, la herramienta de relación y **Conectar con…** escriben `a -> b` en el modelo
+  (`->` es el único tipo que admite un modelo; Mayús no cambia nada aquí). Arrastrar un extremo
+  de una flecha hasta otra entidad mueve ese extremo de la relación del modelo; una flecha que
+  combina varias relaciones del modelo (C) conserva sus extremos. Eliminar quita la relación del
+  modelo con todo lo que la nombra, y pregunta antes cuando otra vista la dibuja, una instrucción
+  la nombra o una entidad que la vista dibujaba solo por esa relación se va con sus
+  instrucciones. Los estilos, los efectos, las rutas, los codos y las posiciones de etiqueta
+  sobre una relación que el modelo no nombró primero la nombran allí.
+- **Etiquetas.** Editar una etiqueta escribe `label <entity> "Text"` solo en esta vista. Sobre una
+  flecha, rellena la etiqueta de la relación del modelo cuando no tiene y escribe la etiqueta local
+  de la vista en caso contrario. Las combinaciones (C) escriben en la vista una relación que
+  representa las relaciones del modelo entre dos entidades.
 - **Mover.** Arrastrar, los modos de disposición y Organizar escriben solo las posiciones de la
   vista.
 - **Inspector.** Los elementos muestran su ruta y su tipo, la etiqueta en esta vista y la etiqueta,
-  la descripción, la tecnología y `external` de la entidad, que se escriben en el modelo cuando está
-  en el mismo archivo. Las relaciones muestran sus orígenes (las relaciones del modelo que
-  representan). La vista muestra su nivel, su ámbito y su modelo.
-- **Cambiar el nombre.** Cambiar el nombre del símbolo sobre una entidad, en un modelo, una vista o
-  un enlace, le cambia el nombre en todos los archivos del proyecto. **Abrir el modelo** (menú
-  contextual, paleta de comandos) muestra el modelo de la vista.
+  la descripción, la tecnología y `external` de la entidad, que se escriben en el modelo: en este
+  archivo o en el archivo propio del modelo, que el inspector nombra. Las relaciones muestran sus
+  orígenes (las relaciones del modelo que representan), su estilo y sus efectos, y su id, que
+  nombra o renombra la relación del modelo. La vista muestra su nivel, su ámbito y su modelo.
+- **Otro archivo.** Cuando el modelo está en otro archivo del proyecto, la edición llega a los dos
+  archivos en un solo paso: el del modelo y las instrucciones propias de la vista. La línea de
+  estado nombra el archivo del modelo, y Ctrl+Z deshace ambos desde el archivo de la vista.
+- **Cambiar el nombre.** Cambiar el nombre de una entidad desde el lienzo, o con Cambiar el nombre
+  del símbolo en un modelo, una vista o un enlace, le cambia el nombre en todos los archivos del
+  proyecto. **Abrir el modelo** (menú contextual, paleta de comandos) muestra el modelo de la
+  vista.
 
 ## Estilos y temas
 

@@ -706,7 +706,7 @@ describe("what sequence diagrams and C4 views refuse", () => {
     expect(result.plan).toBeUndefined();
     expect(result.messages[0]).toMatchObject({
       type: "rejected",
-      reason: "Relations of C4 views go one way: `->` or `-->`.",
+      reason: "Relations of C4 views go one way: `->`.",
     });
   });
 });

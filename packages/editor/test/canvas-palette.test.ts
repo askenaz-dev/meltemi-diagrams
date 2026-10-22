@@ -122,14 +122,14 @@ describe("the kinds of arrow of the relation tool", () => {
     expect(cycle).toEqual(["->", "-->", "<->", "<-->", "->"]);
   });
 
-  it("leave the two-way kinds out of C4 views, and sequence diagrams have none", () => {
-    expect(arrowKinds("c4")).toEqual(["->", "-->"]);
-    expect(nextArrowKind("->", "c4")).toBe("-->");
-    expect(nextArrowKind("-->", "c4")).toBe("->");
-    // A two-way kind chosen elsewhere is drawn one way in a view, keeping its line.
+  it("are `->` alone in C4 views, whose models write no other, and none in sequence diagrams", () => {
+    expect(arrowKinds("c4")).toEqual(["->"]);
+    expect(nextArrowKind("->", "c4")).toBe("->");
+    // A kind chosen elsewhere is the model's `->` in a view.
     expect(arrowKindIn("<->", "c4")).toBe("->");
-    expect(arrowKindIn("<-->", "c4")).toBe("-->");
-    expect(nextArrowKind("<->", "c4")).toBe("-->");
+    expect(arrowKindIn("<-->", "c4")).toBe("->");
+    expect(arrowKindIn("-->", "c4")).toBe("->");
+    expect(nextArrowKind("<->", "c4")).toBe("->");
     expect(arrowKindIn("<->", "flow")).toBe("<->");
     expect(arrowKinds("sequence")).toEqual([]);
     expect(nextArrowKind("-->", "sequence")).toBe("-->");

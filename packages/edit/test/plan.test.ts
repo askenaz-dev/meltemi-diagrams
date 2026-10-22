@@ -465,7 +465,7 @@ describe("every operation on the valid corpus", () => {
         operations.push(
           { kind: "setModelRelationProperty", ...base, property: "label", value: "Uses" },
           { kind: "setModelRelationProperty", ...base, property: "technology", value: "gRPC" },
-          { kind: "removeModelRelation", ...base },
+          { kind: "removeModelRelation", ...base, cascade: true },
         );
       }
       for (const operation of operations) {

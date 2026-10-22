@@ -93,7 +93,9 @@ o un fotograma.
 
 ## En el editor
 
-El inspector lista los efectos que admite un elemento, una relación, una nota o un fragmento
-seleccionado (Partículas, Trazo en movimiento, Pulso, Recorrido) con sus propiedades;
-**Reproducir los efectos**, en la barra de herramientas del lienzo, los ejecuta en el lienzo hasta
-que se vuelve a pulsar ([editor.md](../editor.md)).
+El inspector lista los efectos que admite un elemento, una relación, un mensaje, una nota o un
+fragmento seleccionado (Partículas, Trazo en movimiento, Pulso, Recorrido) con sus propiedades; un
+objetivo sin id, como una relación que escribió una importación o una relación del modelo de una
+vista C4, se nombra primero en la misma edición. **Reproducir los efectos**, en la barra de
+herramientas del lienzo, los ejecuta en el lienzo hasta que se vuelve a pulsar
+([editor.md](../editor.md)).

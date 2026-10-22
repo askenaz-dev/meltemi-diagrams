@@ -40,8 +40,10 @@ import {
   createModelContext,
   createModelRelation,
   excludeEntity,
+  forgetModelRelation,
   includeEntity,
   isCombination,
+  reconnectModelRelation,
   refuseInView,
   removeEntity,
   removeModelRelation,
@@ -214,6 +216,8 @@ function runModel(ctx: ModelContext, operation: ModelOperation): TextEdit[] {
       return setEntityProperty(ctx, operation);
     case "createModelRelation":
       return createModelRelation(ctx, operation);
+    case "reconnectModelRelation":
+      return reconnectModelRelation(ctx, operation);
     case "removeModelRelation":
       return removeModelRelation(ctx, operation);
     case "setModelRelationProperty":
@@ -372,6 +376,8 @@ function run(
       return excludeEntity(ctx, operation);
     case "setLocalLabel":
       return setLocalLabel(ctx, operation);
+    case "forgetModelRelation":
+      return forgetModelRelation(ctx, operation);
     case "renameEvent":
       return renameEvent(ctx, operation);
     case "toggleActivation":

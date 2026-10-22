@@ -24,6 +24,7 @@ import {
   type LabelEntry,
   type PlaceEntry,
   type Point,
+  type RouteEntry,
 } from "@meltemi/diagrams-model";
 import { diagramView, type DiagramView, type DocumentAnalysis } from "./analysis.js";
 import {
@@ -59,7 +60,7 @@ import { DEFAULT_GRID, snapValue, writtenCenter } from "./canvas/snapping.js";
 import { copyFragment, pasteOperations } from "./clipboard.js";
 import { iconGroups, takesIcon, writtenIcon } from "./icons.js";
 import { fieldOperations, inspect, namedRelation } from "./inspector.js";
-import { freshRelationId } from "./targets.js";
+import { freshModelRelationId, freshRelationId, nameable } from "./targets.js";
 // The editor's catalog; `messages` names the host messages in this file.
 import { messages as wording } from "./messages/index.js";
 import { baseName, themeLocation, themePanel, themeTokenOperation } from "./themes.js";
@@ -67,6 +68,7 @@ import { renderDiagram, renderLayout } from "./render.js";
 import { selectionAt } from "./services/navigation.js";
 import { eventInfos, sequenceAction, sequenceMove } from "./sequence.js";
 import { entityChoices, modelIsLocal } from "./c4.js";
+import type { ProjectStep } from "./projects.js";
 import { storyChoices, storyPlayback } from "./story.js";
 
 /** What the host does after the session handled a message. */
@@ -86,11 +88,18 @@ export interface SessionResult {
   readonly story?: string;
   /**
    * Edits of other files of the project, which the host makes with `ProjectSessions`: a theme
-   * created for the project, or an operation on the file that holds the theme being edited.
+   * created for the project, or steps over files (`planSteps`), such as a token of the file that
+   * holds the theme being edited, or the model of a C4 view and the view's own statements, which
+   * the host applies together in one undo step.
    */
   readonly project?:
     | { readonly kind: "createTheme"; readonly theme: string; readonly extends: string }
-    | { readonly kind: "themeFile"; readonly file: string; readonly operation: EditOperation };
+    | {
+        readonly kind: "files";
+        readonly steps: readonly ProjectStep[];
+        /** The action to send again with `cascade: true` when the steps are refused for dependents. */
+        readonly retry?: CanvasAction;
+      };
   /**
    * Ask the user for the image file of a new image, then call `createObject` with it (`at` is in
    * diagram coordinates). Icons are chosen in the canvas's own icon picker.
@@ -357,7 +366,10 @@ export class CanvasSession {
     if (value === "custom") return NONE;
     const operation = themeTokenOperation(location, token, value);
     if (location.file !== null) {
-      return { messages: [], project: { kind: "themeFile", file: location.file, operation } };
+      return {
+        messages: [],
+        project: { kind: "files", steps: [{ file: location.file, operation }] },
+      };
     }
     return this.planned(view, "setField", [operation]);
   }
@@ -853,12 +865,19 @@ export class CanvasSession {
     );
   }
 
-  /** The plan of `plan` for the host to apply; a refusal drops what waited for the edit. */
+  /**
+   * The plan of `plan` for the host to apply; a refusal drops what waited for the edit. When the
+   * operations write the model of a C4 view that another file holds, they go to the host as
+   * steps over files instead, with `retry` for the dependents dialog.
+   */
   private planned(
     view: DiagramView,
     kind: CanvasAction["kind"],
     operations: readonly EditOperation[],
+    retry?: CanvasAction,
   ): SessionResult {
+    const steps = this.modelSteps(view, kind, operations, retry);
+    if (steps) return steps;
     const result = this.plan(view, kind, operations);
     if (!result) return NONE;
     if (!result.ok) {
@@ -875,9 +894,50 @@ export class CanvasSession {
   }
 
   /**
+   * The operations as steps over files when a C4 view's model is in another file of the project
+   * and they write it: the model's first, then the view's, which name what the model's wrote;
+   * the host plans and applies them together. Undefined when the plan is the document's alone.
+   */
+  private modelSteps(
+    view: DiagramView,
+    kind: CanvasAction["kind"],
+    operations: readonly EditOperation[],
+    retry?: CanvasAction,
+  ): SessionResult | undefined {
+    const diagram = view.diagram;
+    const file = diagram.type === "c4" ? (diagram.c4?.resolved?.file ?? null) : null;
+    if (file === null || !operations.some((op) => "model" in op)) return undefined;
+    const own: EditOperation[] = [];
+    if (GEOMETRY.has(kind)) {
+      const materialize = materializeOperation(view);
+      if (materialize) own.push(materialize);
+    }
+    own.push(...operations.filter((op) => !("model" in op)));
+    const steps: ProjectStep[] = [
+      ...operations.filter((op) => "model" in op).map((operation) => ({ file, operation })),
+      ...own.map((operation) => ({ file: null, operation })),
+    ];
+    const asks = operations.some((op) => op.kind === "removeModelRelation" && !op.cascade);
+    return {
+      messages: [],
+      project: { kind: "files", steps, ...(asks && retry ? { retry } : {}) },
+    };
+  }
+
+  /** A view whose model is not resolved cannot write it. */
+  private unresolved(): SessionResult {
+    return {
+      messages: [
+        { type: "rejected", code: "edit.unsafe-target", reason: wording().session.fixFirst },
+      ],
+    };
+  }
+
+  /**
    * The actions of a C4 view that differ from flow diagrams: entities are added from the model
-   * and removed by excluding them; labels are local; ids rename the model's entities. Returns
-   * undefined for the actions the flow code handles.
+   * and removed by excluding them; relations are the model's; labels are local or the model's;
+   * ids rename the model's entities and relations. Returns undefined for the actions the flow
+   * code handles.
    */
   private c4Action(view: DiagramView, action: CanvasAction): SessionResult | undefined {
     const diagram = view.diagram;
@@ -897,6 +957,137 @@ export class CanvasSession {
         this.pendingSelection = [action.entity];
         return this.planned(view, "includeEntity", ops);
       }
+      case "connect": {
+        if (!model) return this.unresolved();
+        // A relation pinned to points needs a route, and a route needs a named relation.
+        const pinned = action.pinned;
+        const id = pinned ? freshModelRelationId(diagram, action) : undefined;
+        const ops: EditOperation[] = [
+          {
+            kind: "createModelRelation",
+            model: model.id,
+            from: action.from,
+            to: action.to,
+            ...(id ? { id } : {}),
+          },
+        ];
+        if (pinned && id) {
+          ops.push({
+            kind: "setRoute",
+            diagram: d,
+            relation: id,
+            via: [],
+            ...(pinned.fromPort !== undefined ? { from: pinned.fromPort } : {}),
+            ...(pinned.fromPosition !== undefined ? { fromPosition: pinned.fromPosition } : {}),
+            ...(pinned.toPort !== undefined ? { to: pinned.toPort } : {}),
+            ...(pinned.toPosition !== undefined ? { toPosition: pinned.toPosition } : {}),
+          });
+        }
+        // The new relation comes after the others of its pair in the model, so its key is the next.
+        const pair = model.relations.filter((r) => r.from === action.from && r.to === action.to);
+        this.pendingSelection = [id ?? `${action.from}->${action.to}#${pair.length + 1}`];
+        return this.planned(view, "connect", ops);
+      }
+      case "setEnd": {
+        const relation = diagram.relationsByKey.get(action.relation);
+        if (!relation) return { messages: [] };
+        if (!model) return this.unresolved();
+        const combined = diagram.c4?.combined.includes(relation.key) ?? false;
+        const source = combined ? undefined : model.relationsByKey.get(relation.key);
+        const current = action.end === "from" ? relation.from : relation.to;
+        const end = (id: string, port: string | null): EditOperation => ({
+          kind: "setRoute",
+          diagram: d,
+          relation: id,
+          via: currentVia(diagram, id),
+          ...(action.end === "from"
+            ? {
+                from: port,
+                ...(action.position !== undefined ? { fromPosition: action.position } : {}),
+              }
+            : {
+                to: port,
+                ...(action.position !== undefined ? { toPosition: action.position } : {}),
+              }),
+        });
+        if (current !== action.element) {
+          // Another entity: the model relation's end moves there.
+          if (!source) {
+            return {
+              messages: [
+                {
+                  type: "rejected",
+                  code: "edit.invalid-value",
+                  reason: wording().c4.reconnectCombination(relation.key, relation.sources),
+                },
+              ],
+            };
+          }
+          const route = relation.id
+            ? diagram.placement.find(
+                (p): p is RouteEntry => p.statement === "route" && p.target === relation.id,
+              )
+            : undefined;
+          const endpoint = route ? (action.end === "from" ? route.from : route.to) : undefined;
+          // A dropped port, else the compass port of the old end carried over; a named port of
+          // the old entity does not carry over.
+          const port =
+            action.port !== null
+              ? action.port
+              : endpoint?.explicitPort
+                ? endpoint.named
+                  ? null
+                  : endpoint.port
+                : undefined;
+          const from = action.end === "from" ? action.element : source.from;
+          const to = action.end === "to" ? action.element : source.to;
+          const ops: EditOperation[] = [];
+          let id = relation.id;
+          if (port !== undefined && id === null) {
+            // The route needs a name: the relation is named after its new ends.
+            id = freshModelRelationId(diagram, { from, to });
+            ops.push({
+              kind: "setModelRelationProperty",
+              model: model.id,
+              relation: source.key,
+              property: "id",
+              value: id,
+            });
+          }
+          // Once named, the relation goes by its id.
+          ops.push({
+            kind: "reconnectModelRelation",
+            model: model.id,
+            relation: id ?? source.key,
+            end: action.end,
+            entity: action.element,
+          });
+          if (port !== undefined && id !== null) ops.push(end(id, port));
+          // The relation keeps its place in the model's text, so its key counts the relations of
+          // its new pair written before it.
+          const before = model.relations.filter(
+            (r) => r.from === from && r.to === to && r.node.start < source.node.start,
+          ).length;
+          this.pendingSelection = [id ?? `${from}->${to}#${before + 1}`];
+          return this.planned(view, "setEnd", ops);
+        }
+        // The same entity: the end pinned to a port or a point of its border, or handed back to
+        // the layout, which changes nothing for a relation without a route.
+        if (action.port === null && relation.id === null) return { messages: [] };
+        if (!nameable(diagram, relation)) {
+          return {
+            messages: [
+              {
+                type: "rejected",
+                code: "edit.invalid-value",
+                reason: wording().c4.nameCombination,
+              },
+            ],
+          };
+        }
+        const { id, operations } = namedRelation(diagram, relation);
+        return this.planned(view, "setEnd", [...operations, end(id, action.port)]);
+      }
       case "remove": {
         const ops: EditOperation[] = [];
         const elements = action.ids.filter(
@@ -910,21 +1101,25 @@ export class CanvasSession {
           if (diagram.c4?.combined.includes(key))
             ops.push({ kind: "removeRelation", diagram: d, relation: key });
           else if (diagram.relationsByKey.has(key)) {
-            return {
-              messages: [
-                {
-                  type: "rejected",
-                  code: "edit.invalid-value",
-                  reason: wording().session.modelRelation(key),
-                },
-              ],
-            };
+            // A drawn model relation goes from the model, with what names it in its views.
+            const source = model?.relationsByKey.get(key);
+            if (!model || !source) return this.unresolved();
+            ops.push({
+              kind: "removeModelRelation",
+              model: model.id,
+              relation: source.key,
+              cascade: action.cascade,
+              view: d,
+            });
           }
         }
         if (!action.cascade) {
           const dependents: DependentInfo[] = [];
           for (const operation of ops) {
-            if (operation.kind !== "excludeEntity") continue;
+            if (operation.kind !== "excludeEntity" && operation.kind !== "removeModelRelation")
+              continue;
+            // A model in another file is asked through the host's steps.
+            if (operation.kind === "removeModelRelation" && !modelIsLocal(diagram)) continue;
             const probe = planEdit(this.analysis!.compilation, operation);
             if (!probe.ok && probe.rejection.code === "edit.has-dependents") {
               for (const dep of probe.rejection.dependents ?? [])
@@ -946,27 +1141,55 @@ export class CanvasSession {
           }
         }
         this.pendingSelection = [];
-        return this.planned(view, "remove", ops);
+        return this.planned(view, "remove", ops, { ...action, cascade: true });
       }
       case "setLabel": {
         const label = action.label === "" ? null : action.label;
-        const ops: EditOperation[] = diagram.c4?.combined.includes(action.id)
-          ? [{ kind: "setRelationLabel", diagram: d, relation: action.id, label }]
-          : [{ kind: "setLocalLabel", diagram: d, target: action.id, label }];
-        return this.planned(view, "setLabel", ops);
-      }
-      case "renameId": {
-        if (!model || !modelIsLocal(diagram)) {
+        if (diagram.c4?.combined.includes(action.id)) {
+          return this.planned(view, "setLabel", [
+            { kind: "setRelationLabel", diagram: d, relation: action.id, label },
+          ]);
+        }
+        const relation = diagram.relationsByKey.get(action.id);
+        if (!relation) {
+          return this.planned(view, "setLabel", [
+            { kind: "setLocalLabel", diagram: d, target: action.id, label },
+          ]);
+        }
+        // A label typed on an arrow fills the model relation's when it has none; otherwise it is
+        // this view's local label, which names the relation first.
+        const source = model?.relationsByKey.get(relation.key);
+        if (source && source.label === null && label !== null) {
+          return this.planned(view, "setLabel", [
+            {
+              kind: "setModelRelationProperty",
+              model: model!.id,
+              relation: source.key,
+              property: "label",
+              value: label,
+            },
+          ]);
+        }
+        if (!nameable(diagram, relation)) {
           return {
             messages: [
               {
                 type: "rejected",
-                code: "edit.unsafe-target",
-                reason: wording().session.modelElsewhere,
+                code: "edit.invalid-value",
+                reason: wording().c4.nameCombination,
               },
             ],
           };
         }
+        if (relation.id === null && label === null) return { messages: [] };
+        const { id, operations } = namedRelation(diagram, relation);
+        return this.planned(view, "setLabel", [
+          ...operations,
+          { kind: "setLocalLabel", diagram: d, target: id, label },
+        ]);
+      }
+      case "renameId": {
+        if (!model) return this.unresolved();
         const entity = model.entitiesByPath.get(action.id);
         const relation = model.relationsByKey.get(action.id);
         const ops: EditOperation[] = entity

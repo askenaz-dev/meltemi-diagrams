@@ -88,6 +88,8 @@ use the static export or a frame.
 
 ## In the editor
 
-The inspector lists the effects a selected element, relation, note or fragment can take (Flow
-particles, Moving dash, Pulse, Trace) with their properties; **Play effects** on the canvas toolbar runs
-them in the canvas until it is pressed again ([editor.md](../editor.md)).
+The inspector lists the effects a selected element, relation, message, note or fragment can take
+(Flow particles, Moving dash, Pulse, Trace) with their properties; a target without an id, such as
+a relation an import wrote or a model relation of a C4 view, is named first in the same edit.
+**Play effects** on the canvas toolbar runs them in the canvas until it is pressed again
+([editor.md](../editor.md)).

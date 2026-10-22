@@ -207,7 +207,10 @@ the range, and the text stays as it was.
 
 - **Naming relations.** Actions on an anonymous relation, a style or an effect included, first
   name it `<from>_<to>` (`as api_db`), in the same edit, and the status line says so. Classes and
-  turning an effect off name nothing. In C4 views relations come from the model: name them there.
+  turning an effect off name nothing. In C4 views the name goes into the model relation
+  (`as shop_api_db`, from the entity paths), in the model's file when that is another file of the
+  project. Anonymous messages, notes and fragments of sequence diagrams are named the same way
+  (`as web_api`, `note1`, `alt1`) when an effect or a style needs it.
 - **Free diagrams.** Positions of objects inside a group are written relative to the group's
   interior ([free.md](language/free.md)): moving a group writes only the group's `place`, and
   resizing it from the left or top edge shifts its children's places so they stay where they are.
@@ -226,8 +229,9 @@ the range, and the text stays as it was.
   or connector is, shows the point a connection would start from, and the pointer turns into a
   crosshair. Press there and drag onto another box: the relation is written with its start
   pinned to that point, such as `route cache_db from cache.north 30% to db.auto`, and its end
-  pinned too when you drop on the target's border. Sequence diagrams and C4 views have no routes,
-  so there the connection is created without pinned ends.
+  pinned too when you drop on the target's border. Sequence diagrams have no routes, so there the
+  connection is created without pinned ends; in a C4 view the connection writes the relation into
+  the model, named when an end is pinned.
 - **Handles on the line.** A selected connector shows its ends, its bends and, for each stretch
   between two of them, a handle halfway along the line as drawn, wherever the line turns. Dragging
   it adds a bend there.
@@ -665,15 +669,30 @@ A C4 view draws entities of a model; the canvas never declares entities
   draw and does not; the choice joins `include`.
 - **Removing.** Delete removes an entity from the view (out of `include`, or into `exclude`) with the
   view's statements that name it; the model keeps it.
-- **Labels.** Editing a label writes `label <entity> "Text"` in this view only. Combinations (C)
-  write a relation in the view that stands for the model relations between two entities.
+- **Relations.** The arrows are the model's, and the canvas writes them there. Dragging from a
+  connection handle, the relation tool and **Connect to…** write `a -> b` into the model (`->` is
+  the one kind a model accepts; Shift changes nothing here). Dragging an end of an arrow onto
+  another entity moves that end of the model relation; an arrow that combines several model
+  relations (C) keeps its ends. Delete removes the model relation with everything that names it,
+  asking first when another view draws it, a statement names it, or an entity the view drew only
+  for that relation leaves with its statements. Styles, effects, routes, bends and label
+  positions on a relation the model did not name first name it there.
+- **Labels.** Editing a label writes `label <entity> "Text"` in this view only. On an arrow it fills
+  the model relation's label when it has none, and writes the view's local label otherwise.
+  Combinations (C) write a relation in the view that stands for the model relations between two
+  entities.
 - **Moving.** Dragging, the layout modes and Arrange write the view's placement only.
 - **Inspector.** Elements show their path and kind, the label in this view, and the entity's label,
-  description, technology and `external`, which are written into the model when it is in the same
-  file. Relations show their sources (the model relations they stand for). The view shows its level,
-  scope and model.
-- **Renaming.** Rename Symbol on an entity, in a model, a view or a link, renames it in every file of
-  the project. **Open the Model** (context menu, command palette) shows the model of the view.
+  description, technology and `external`, which are written into the model: in this file, or in
+  the model's own file, which the inspector names. Relations show their sources (the model
+  relations they stand for), their style and effects, and their id, which names or renames the
+  model relation. The view shows its level, scope and model.
+- **Another file.** When the model is in another file of the project, the edit reaches both files
+  in one step: the model's and the view's own statements. The status line names the model's file,
+  and Ctrl+Z undoes both from the view's file.
+- **Renaming.** Renaming an entity from the canvas, or with Rename Symbol in a model, a view or a
+  link, renames it in every file of the project. **Open the Model** (context menu, command
+  palette) shows the model of the view.
 
 ## Styling and themes
 

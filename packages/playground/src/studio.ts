@@ -3,6 +3,7 @@ import {
   CanvasSession,
   ProjectSessions,
   moveFileEdits,
+  stepsRejected,
   type DocumentAnalysis,
   type HostMessage,
   type SessionResult,
@@ -935,12 +936,17 @@ export class Studio {
       this.status(messages().studio.themeCreated(request.theme));
       return;
     }
-    const planned = this.sessions.planInFile(request.file, request.operation);
-    if (!planned.ok) return reject(planned.reason);
-    const file = this.relative(request.file);
-    if (file === undefined) return reject(messages().studio.notInProject(request.file));
-    this.applyEdits(new Map([[file, planned.edits]]));
-    this.status(messages().studio.themeChanged(file));
+    // Steps over files: the model of a view and the view's own statements, a theme's token.
+    const planned = this.sessions.planSteps(path, request.steps);
+    if (!planned.ok) {
+      this.emit("canvas", [stepsRejected(planned, request.retry)]);
+      return;
+    }
+    const edits = relativeEdits(planned.edits);
+    if (edits.size === 0) return;
+    this.applyEdits(edits);
+    const others = [...edits.keys()].filter((file) => file !== this.openPath);
+    if (others.length > 0) this.status(messages().studio.filesChanged(others));
   }
 
   /** Applies a plan made against the open file's current revision, with its story renames. */

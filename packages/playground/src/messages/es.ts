@@ -424,7 +424,7 @@ export const es: typeof en = {
     themeCreated: (theme) =>
       `Se creó el tema \`${theme}\` del proyecto en themes/${theme}.meltemi.`,
     notInProject: (file) => `\`${file}\` no es un archivo del proyecto.`,
-    themeChanged: (file) => `Se cambió el tema en ${file}.`,
+    filesChanged: (files) => `Cambios en ${files.join(", ")}.`,
   },
 
   explorer,

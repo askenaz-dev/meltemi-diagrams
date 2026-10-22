@@ -7,7 +7,12 @@ import {
   type Library,
 } from "@meltemi/diagrams-assets";
 import { FontLibrary, type FontFileReader } from "@meltemi/diagrams-fonts";
-import { LANGUAGE_VERSION, type Range, type TextEdit } from "@meltemi/diagrams-language";
+import {
+  LANGUAGE_VERSION,
+  applyTextEdits,
+  type Range,
+  type TextEdit,
+} from "@meltemi/diagrams-language";
 import { layoutDiagram, type LayoutEngine } from "@meltemi/diagrams-layout";
 import { createElkEngine } from "@meltemi/diagrams-layout-elk";
 import {
@@ -25,11 +30,13 @@ import {
   themeDefinitionsFor,
   type FileCompilation,
   type ModelLocation,
+  type Program,
   type ProjectHost,
 } from "@meltemi/diagrams-project";
-import { planEdit, type EditOperation } from "@meltemi/diagrams-edit";
+import { planEdit, type Dependent, type EditOperation } from "@meltemi/diagrams-edit";
 import type { FlowDiagram, TargetKind } from "@meltemi/diagrams-model";
 import { analyzeDocument, type DocumentAnalysis, type ImportedViews } from "./analysis.js";
+import type { CanvasAction, HostMessage } from "./canvas/protocol.js";
 import { messages } from "./messages/index.js";
 import { declarationOf, renameOperation } from "./services/navigation.js";
 import { referenceAt } from "./syntax.js";
@@ -401,6 +408,112 @@ export class ProjectSessions {
   }
 
   /**
+   * Plans steps over the files of a project, in order: consecutive steps of one file become one
+   * batch against that file, and the planned text stands as the file's content for the steps
+   * that follow, so a view's statements resolve what its model's steps wrote. A rename of an
+   * entity reaches every file that names it; a relation renamed in its model is renamed in the
+   * views of other files; a relation removed from its model goes out of the views of other
+   * files first, each asked what it loses. The result is one edit per file against its current
+   * text, or the first rejection, with every dependent found when one is a dependents refusal.
+   * The project's files are left as they were.
+   */
+  planSteps(documentPath: string, steps: readonly ProjectStep[]): StepsResult {
+    const workspace = this.forFile(documentPath);
+    const program = workspace.compileProject();
+    const pathOf = (path: string) => workspace.file(path)?.path ?? path;
+    const document = pathOf(documentPath);
+    type Group =
+      | { kind: "plan"; file: string; operations: EditOperation[] }
+      | { kind: "edits"; edits: ReadonlyMap<string, readonly TextEdit[]> };
+    const groups: Group[] = [];
+    for (const step of steps) {
+      const file = step.file === null ? document : pathOf(step.file);
+      const op = step.operation;
+      if (op.kind === "renameEntity") {
+        const renamed = renameEntityInProject(program, { file, id: op.model }, op.entity, op.newId);
+        if (!renamed.ok) return { ok: false, code: "edit.invalid-value", reason: renamed.reason };
+        groups.push({ kind: "edits", edits: renamed.edits });
+        continue;
+      }
+      if (op.kind === "setModelRelationProperty" && op.property === "id") {
+        const edits = relationReferences(program, file, op.model, op.relation, op.value ?? "");
+        if (edits.size > 0) groups.push({ kind: "edits", edits });
+      }
+      if (op.kind === "removeModelRelation") {
+        groups.push(...forgetSteps(program, file, document, op));
+      }
+      const last = groups[groups.length - 1];
+      if (last?.kind === "plan" && last.file === file) last.operations.push(op);
+      else groups.push({ kind: "plan", file, operations: [op] });
+    }
+    const original = new Map<string, string>();
+    const overlays = new Map<string, string | undefined>();
+    const current = new Map<string, string>();
+    const textOf = (file: string) => current.get(file) ?? workspace.text(file) ?? "";
+    const stage = (file: string, after: string) => {
+      if (!original.has(file)) {
+        original.set(file, textOf(file));
+        overlays.set(file, workspace.overlay(file));
+      }
+      current.set(file, after);
+      workspace.setOverlay(file, after);
+    };
+    let refused: string | undefined;
+    const dependents: Dependent[] = [];
+    try {
+      for (const group of groups) {
+        if (group.kind === "edits") {
+          if (refused) continue;
+          // Edits made against the files as the program read them.
+          for (const [file, list] of group.edits) {
+            if (original.has(file)) {
+              return {
+                ok: false,
+                code: "edit.unsafe-target",
+                reason: messages().projects.staleStep,
+              };
+            }
+            stage(file, applyTextEdits(textOf(file), list));
+          }
+          continue;
+        }
+        const compiled = workspace.file(group.file);
+        if (!compiled) {
+          return {
+            ok: false,
+            code: "edit.unsafe-target",
+            reason: messages().projects.notAFile(group.file),
+          };
+        }
+        const operation: EditOperation =
+          group.operations.length === 1
+            ? group.operations[0]!
+            : { kind: "batch", operations: group.operations };
+        const result = planEdit(compiled.compilation, operation);
+        if (!result.ok) {
+          const { code, reason } = result.rejection;
+          if (code !== "edit.has-dependents") return { ok: false, code, reason };
+          // The other files are still asked what they would lose, so one dialog lists it all.
+          refused ??= reason;
+          dependents.push(...(result.rejection.dependents ?? []));
+          continue;
+        }
+        if (refused) continue;
+        stage(group.file, applyTextEdits(compiled.compilation.text, result.plan.edits));
+      }
+    } finally {
+      for (const [file, overlay] of overlays) workspace.setOverlay(file, overlay ?? null);
+    }
+    if (refused) return { ok: false, code: "edit.has-dependents", reason: refused, dependents };
+    const edits = new Map<string, TextEdit[]>();
+    for (const [file, before] of original) {
+      const edit = replacingEdit(before, current.get(file)!);
+      if (edit) edits.set(file, [edit]);
+    }
+    return { ok: true, edits };
+  }
+
+  /**
    * Creates a theme for the project of a file: `themes/<id>.meltemi` with the block, and the
    * project's default theme in `project.json`, so every diagram without its own theme uses it.
    */
@@ -574,4 +687,135 @@ function renamesOf(
     default:
       return [];
   }
+}
+
+/** One step of a `files` request: an operation on a file of the project; null is the document. */
+export interface ProjectStep {
+  readonly file: string | null;
+  readonly operation: EditOperation;
+}
+
+/** What `planSteps` gives: the edits of every file touched, or the first refusal. */
+export type StepsResult =
+  | { readonly ok: true; readonly edits: ReadonlyMap<string, readonly TextEdit[]> }
+  | {
+      readonly ok: false;
+      readonly code: string;
+      readonly reason: string;
+      readonly dependents?: readonly Dependent[];
+    };
+
+/**
+ * The edits that rename a model relation where the views of other files name it by its id; none
+ * for a relation without an id, which nothing names yet.
+ */
+function relationReferences(
+  program: Program,
+  modelFile: string,
+  model: string,
+  relation: string,
+  newId: string,
+): Map<string, TextEdit[]> {
+  const edits = new Map<string, TextEdit[]>();
+  const definition = program.files
+    .get(modelFile)
+    ?.compilation.document.models.find((m) => m.id === model);
+  const id = definition?.relationsByKey.get(relation)?.id;
+  if (!id || !newId || id === newId) return edits;
+  for (const other of program.files.values()) {
+    if (other.path === modelFile) continue;
+    const list: TextEdit[] = [];
+    for (const diagram of other.compilation.document.diagrams) {
+      const c4 = diagram.c4;
+      if (!c4 || c4.resolved?.file !== modelFile || c4.resolved.definition.id !== model) continue;
+      for (const reference of diagram.references) {
+        if (reference.targetKind === "relation" && reference.target === id) {
+          list.push({ start: reference.token.start, end: reference.token.end, newText: newId });
+        }
+      }
+    }
+    if (list.length > 0) edits.set(other.path, list);
+  }
+  return edits;
+}
+
+/**
+ * The steps that take a model relation out of the views of other files before it goes from its
+ * model: each view names what it loses, and that it draws the relation, except the view the
+ * removal is asked from.
+ */
+function forgetSteps(
+  program: Program,
+  modelFile: string,
+  document: string,
+  op: Extract<EditOperation, { kind: "removeModelRelation" }>,
+): { kind: "plan"; file: string; operations: EditOperation[] }[] {
+  const steps: { kind: "plan"; file: string; operations: EditOperation[] }[] = [];
+  const definition = program.files
+    .get(modelFile)
+    ?.compilation.document.models.find((m) => m.id === op.model);
+  const key = definition?.relationsByKey.get(op.relation)?.key;
+  if (key === undefined) return steps;
+  for (const other of program.files.values()) {
+    if (other.path === modelFile) continue;
+    for (const diagram of other.compilation.document.diagrams) {
+      const c4 = diagram.c4;
+      if (!c4 || c4.resolved?.file !== modelFile || c4.resolved.definition.id !== op.model)
+        continue;
+      const named =
+        diagram.relations.some((r) => r.sources.includes(key)) ||
+        [...diagram.styles, ...diagram.animations, ...diagram.placement].some(
+          (e) => e.target === key,
+        ) ||
+        c4.labels.some((l) => l.target === key);
+      if (!named) continue;
+      steps.push({
+        kind: "plan",
+        file: other.path,
+        operations: [
+          {
+            kind: "forgetModelRelation",
+            diagram: diagram.id,
+            relation: key,
+            cascade: op.cascade,
+            listDrawn: !(other.path === document && diagram.id === op.view),
+          },
+        ],
+      });
+    }
+  }
+  return steps;
+}
+
+/** One edit that turns `before` into `after`: the span between their common prefix and suffix. */
+function replacingEdit(before: string, after: string): TextEdit | undefined {
+  if (before === after) return undefined;
+  let start = 0;
+  const shortest = Math.min(before.length, after.length);
+  while (start < shortest && before[start] === after[start]) start++;
+  let endBefore = before.length;
+  let endAfter = after.length;
+  while (endBefore > start && endAfter > start && before[endBefore - 1] === after[endAfter - 1]) {
+    endBefore--;
+    endAfter--;
+  }
+  return { start, end: endBefore, newText: after.slice(start, endAfter) };
+}
+
+/** The `rejected` message a host posts when `planSteps` refuses the steps of a `files` request. */
+export function stepsRejected(
+  planned: Extract<StepsResult, { ok: false }>,
+  retry?: CanvasAction,
+): Extract<HostMessage, { type: "rejected" }> {
+  return {
+    type: "rejected",
+    code: planned.code,
+    reason: planned.reason,
+    ...(planned.dependents
+      ? {
+          dependents: planned.dependents.map((d) => ({ kind: d.kind, description: d.description })),
+        }
+      : {}),
+    ...(planned.code === "edit.has-dependents" && retry ? { retry } : {}),
+  };
 }

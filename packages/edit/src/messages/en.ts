@@ -541,6 +541,11 @@ export const en = {
       relationExists: (id: string) => `\`${id}\` is already a relation of the model.`,
       /** `edit.invalid-value`. */
       keepsId: "A relation keeps its id once named; rename it instead.",
+      /** `edit.has-dependents`: the statements and views that go with the relation. */
+      removingRelation: (key: string, count: number) =>
+        `Removing \`${key}\` from the model also touches ${count} ${count === 1 ? "statement or view" : "statements or views"}.`,
+      /** `edit.unsafe-target`. */
+      endUnreadable: (key: string) => `The end of \`${key}\` cannot be read.`,
     },
 
     /** Stories, their scenes and actions. */
@@ -604,6 +609,12 @@ export const en = {
     /** The `include` or `exclude` list of a C4 view. */
     viewList: (keyword: string, view: string, line: number) =>
       `${keyword} in \`${view}\` on line ${line}`,
+    /** A C4 view that draws a model relation about to be removed. */
+    drawnIn: (relation: string, view: string, line: number) =>
+      `\`${relation}\` drawn in the view \`${view}\` on line ${line}`,
+    /** An entity a C4 view draws only for a relation about to be removed. */
+    leavesView: (entity: string, view: string) =>
+      `\`${entity}\` no longer drawn in the view \`${view}\``,
     /** The `link` of an element of another diagram. */
     link: (owner: string, line: number) => `link of \`${owner}\` on line ${line}`,
     /** An action of a story. */

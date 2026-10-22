@@ -45,7 +45,13 @@ import type {
   InspectorModel,
 } from "./canvas/protocol.js";
 import { c4DiagramFields, c4ElementFields, c4FieldOperations, c4RelationFields } from "./c4.js";
-import { effectFields, effectLabel, effectOperations, effectsFor } from "./effects.js";
+import {
+  effectFields,
+  effectLabel,
+  effectOperations,
+  effectsFor,
+  selectionAfter,
+} from "./effects.js";
 import { drawnIconSize, iconChoice, iconKind } from "./icons.js";
 import { messages } from "./messages/index.js";
 import { freshRelationId, namedNotice, namedRelation, styleTargets } from "./targets.js";
@@ -1020,17 +1026,16 @@ function inspectFields(
     return {
       title: titles.relation(relation.id ?? `${relation.from} → ${relation.to}`),
       target: { kind: "relation", ids: [id] },
+      // Anonymous relations take styles and effects too: setting one names them in the model.
       fields: [
         ...c4RelationFields(diagram, relation),
-        ...(relation.id
-          ? withRelationDefaults(
-              styleFields(diagram, [{ id: relation.id, kind: "relation" }]),
-              diagram,
-              relation,
-              effectiveTheme(analysis, view),
-            )
-          : []),
-        ...(relation.id ? effectFields(diagram, relation.id, "relation") : []),
+        ...withRelationDefaults(
+          styleFields(diagram, [{ id: relation.id ?? relation.key, kind: "relation" }]),
+          diagram,
+          relation,
+          effectiveTheme(analysis, view),
+        ),
+        ...effectFields(diagram, relation.id ?? relation.key, "relation"),
       ],
     };
   }
@@ -1059,8 +1064,8 @@ function inspectFields(
     }
     if (kind === "event") {
       const event = diagram.eventsByKey.get(id)!;
-      // Notes and fragments with an id take styles.
-      const styled = event.id !== null && (event.kind === "note" || event.kind === "fragment");
+      // Notes and fragments take styles and effects; setting one names an anonymous one.
+      const styled = event.kind === "note" || event.kind === "fragment";
       return {
         // Fragment operators are notation and stay as written.
         title: titles.target(
@@ -1070,8 +1075,8 @@ function inspectFields(
         target: { kind: "event", ids: [id] },
         fields: [
           ...eventFields(diagram, event),
-          ...(styled ? styleFields(diagram, [{ id: event.id!, kind: "event" }]) : []),
-          ...(styled ? effectFields(diagram, event.id!, "event") : []),
+          ...(styled ? styleFields(diagram, [{ id: event.id ?? id, kind: "event" }]) : []),
+          ...(styled ? effectFields(diagram, event.id ?? id, "event") : []),
         ],
       };
     }
@@ -1092,10 +1097,8 @@ function inspectFields(
           relation,
           effectiveTheme(analysis, view),
         ),
-        // Anonymous relations take effects too: setting one names the relation.
-        ...(relation.id || !sequence
-          ? effectFields(diagram, relation.id ?? relation.key, "relation")
-          : []),
+        // Anonymous relations and messages take effects too: setting one names them.
+        ...effectFields(diagram, relation.id ?? relation.key, "relation"),
       ],
     };
   }
@@ -1106,8 +1109,8 @@ function inspectFields(
     const event = diagram.eventsByKey.get(t.id)!;
     if (event.kind === "message")
       return [{ id: diagram.relationsByKey.get(t.id)?.id ?? t.id, kind: "relation" }];
-    return event.id !== null && (event.kind === "note" || event.kind === "fragment")
-      ? [{ id: event.id, kind: "event" }]
+    return event.kind === "note" || event.kind === "fragment"
+      ? [{ id: event.id ?? t.id, kind: "event" }]
       : [];
   });
   return {
@@ -1235,7 +1238,11 @@ export function fieldOperations(
       });
     }
     const notice = namedNotice(resolved.named);
-    return { ok: true, operations: ops, ...(notice ? { notice } : {}) };
+    return {
+      ok: true,
+      operations: ops,
+      ...(notice ? { notice, select: selectionAfter(ids, resolved.targets) } : {}),
+    };
   }
   const id = ids[0]!;
   if (diagram.type === "sequence") {

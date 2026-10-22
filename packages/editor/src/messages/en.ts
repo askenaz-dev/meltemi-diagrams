@@ -232,6 +232,7 @@ export const en = {
       level: "Level",
       scope: "Scope",
       model: "Model",
+      modelFile: "Model file",
     },
     /** The kind of an entity, read-only in the inspector. */
     kinds: {
@@ -248,9 +249,10 @@ export const en = {
       datastore: "external container",
       component: "external component",
     },
-    /** The placeholder of the model's fields, and the reason they cannot be written. */
-    readOnly: "The model is in another file; open it to change this.",
-    nameRelation: "Name the relation in the model (`as <id>`) before styling it.",
+    nameCombination: "Name the combination in the view (`as <id>`) before styling it.",
+    /** A combination stands for several model relations: its ends cannot move. */
+    reconnectCombination: (key: string, sources: readonly string[]) =>
+      `${code(key)} stands for ${sources.map(code).join(", ")}; change them in the model.`,
   },
 
   /** Why an inspector field or a paste cannot be written. */
@@ -260,7 +262,6 @@ export const en = {
       `${code(id)} is not in diagram ${code(diagram)}.`,
     /** `kind` is the kind of an event: `note`, `fragment`, `message`… */
     nameToStyle: (kind: string) => `Name the ${kind} (its id) before styling it.`,
-    nameForEffect: (kind: string) => `Name the ${kind} (its id) before adding an effect.`,
     nameToMoveLabel: "Name the relation (its id) before moving its label.",
     source: "Write the icon or the image path.",
     ports: "Write ports as `name side [n%]`, separated by commas.",
@@ -277,11 +278,8 @@ export const en = {
     notFragment: "The clipboard does not hold a Meltemi Diagrams fragment.",
   },
 
-  /** The status line's note for relations an edit named to style them. */
-  named: (ids: readonly string[]) =>
-    ids.length === 1
-      ? `Named the relation ${code(ids[0]!)}.`
-      : `Named the relations ${ids.map(code).join(", ")}.`,
+  /** The status line's note for relations, notes and fragments an edit named to style them. */
+  named: (ids: readonly string[]) => `Named ${ids.map(code).join(", ")}.`,
 
   /** What the canvas session says to the canvas and the host: notices, statuses and refusals. */
   session: {
@@ -303,10 +301,6 @@ export const en = {
       `Deleting also removes ${count} ${plural("en", count, { one: "statement", other: "statements" })}.`,
     removingFromView: (count: number) =>
       `Removing from the view also removes ${count} ${plural("en", count, { one: "statement", other: "statements" })}.`,
-    modelRelation: (key: string) =>
-      `${code(key)} is a relation of the model; remove it in the model, or remove one of its ends from the view.`,
-    modelElsewhere:
-      "The model is in another file; rename the entity there, or with Rename Symbol, which reaches every file.",
     convert: "Only flow diagrams that are drawn can be converted to a free composition.",
     cannotArrange: (problem: string) =>
       `Fix the problems of the diagram before arranging it: ${problem}`,
@@ -336,10 +330,9 @@ export const en = {
     setLayer: "Layers belong to flow diagrams and free compositions.",
     paste: "Copy entities in the model's text; views list them in `include`.",
     duplicate: "Views draw each entity once.",
-    setEnd: "Relations of a view come from the model; change them there.",
     "move.parent":
       "The elements of a view sit where their entities are in the model; move them between systems and containers there.",
-    "connect.twoWay": "Relations of C4 views go one way: `->` or `-->`.",
+    "connect.twoWay": "Relations of C4 views go one way: `->`.",
   },
 
   /** The layers panel's refusals. */
@@ -405,5 +398,7 @@ export const en = {
       `${code(`themes/${id}.meltemi`)} already exists; choose another id.`,
     unreadableManifest: "project.json cannot be read; fix it first.",
     notAFile: (path: string) => `${code(path)} is not a file of the project.`,
+    /** Steps that would edit a file twice from texts that no longer hold. */
+    staleStep: "The steps change a file twice; ask again.",
   },
 };

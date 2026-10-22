@@ -481,6 +481,19 @@ export type EditOperation =
       readonly cascade: boolean;
     }
   | {
+      /**
+       * C4 views: removes the view's statements that name a relation of its model, which another
+       * file holds and loses it (with `cascade`; else they are listed as dependents, with the
+       * view itself as drawing the relation unless `listDrawn` is false).
+       */
+      readonly kind: "forgetModelRelation";
+      readonly diagram: string;
+      /** The model relation's key: its id, or `<from>-><to>#<n>`. */
+      readonly relation: string;
+      readonly cascade: boolean;
+      readonly listDrawn?: boolean;
+    }
+  | {
       /** C4 views: writes, changes or (with null) removes `label <target> "Text"`. */
       readonly kind: "setLocalLabel";
       readonly diagram: string;
@@ -529,10 +542,24 @@ export type EditOperation =
       readonly technology?: string;
     }
   | {
-      /** Models: removes a relation and the view statements that name it. */
+      /** Models: moves one end of a relation to another entity, keeping its label, id and block. */
+      readonly kind: "reconnectModelRelation";
+      readonly model: string;
+      readonly relation: string;
+      readonly end: "from" | "to";
+      readonly entity: string;
+    }
+  | {
+      /**
+       * Models: removes a relation with the view statements that name it (with `cascade`; else
+       * they are listed as dependents, with the views of the file that draw the relation, other
+       * than `view`).
+       */
       readonly kind: "removeModelRelation";
       readonly model: string;
       readonly relation: string;
+      readonly cascade: boolean;
+      readonly view?: string;
     }
   | {
       /** Models: sets or (with null) removes a relation's label, technology, description or id. */

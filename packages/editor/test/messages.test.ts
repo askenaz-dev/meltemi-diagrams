@@ -233,7 +233,7 @@ describe("a Spanish interface", () => {
     canvas.act({ kind: "setField", ids: ["api"], field: "x", value: "abc" });
     expect(canvas.rejected()).toBe("Escribe un número.");
     canvas.apply({ kind: "setField", ids: ["db->api#1"], field: "style.stroke", value: "accent" });
-    expect(canvas.status()).toBe("Se nombró la relación `db_api`.");
+    expect(canvas.status()).toBe("Se nombró `db_api`.");
     const empty = open('language "0.2"\n', "none");
     expect(empty.empty()).toMatch(/^No hay ningún diagrama que dibujar: agrega `diagram <id>/);
   });
@@ -345,7 +345,7 @@ describe("a Spanish interface", () => {
     const context = open(commerce, "context");
     context.act({ kind: "connect", from: "customer", to: "shop", line: "solid", twoWay: true });
     expect(context.rejected()).toBe(
-      "Las relaciones de las vistas C4 van en un solo sentido: `->` o `-->`.",
+      "Las relaciones de las vistas C4 van en un solo sentido: `->`.",
     );
   });
 });

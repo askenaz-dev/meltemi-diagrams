@@ -299,12 +299,19 @@ describe("project themes", () => {
     const result = session.receive({ type: "themeToken", token: "accent", value: "#FF8800" });
     expect(result.plan).toBeUndefined();
     expect(result.project).toEqual({
-      kind: "themeFile",
-      file: themeFile,
-      operation: { kind: "setThemeToken", theme: "night", token: "accent", value: "#FF8800" },
+      kind: "files",
+      steps: [
+        {
+          file: themeFile,
+          operation: { kind: "setThemeToken", theme: "night", token: "accent", value: "#FF8800" },
+        },
+      ],
     });
-    if (result.project?.kind !== "themeFile") throw new Error("no theme file edit");
-    const planned = sessions.planInFile(themeFile, result.project.operation);
+    if (result.project?.kind !== "files") throw new Error("no theme file edit");
+    const stepped = sessions.planSteps(checkout, result.project.steps);
+    if (!stepped.ok) throw new Error(stepped.reason);
+    expect([...stepped.edits.keys()]).toEqual([themeFile]);
+    const planned = sessions.planInFile(themeFile, result.project.steps[0]!.operation);
     if (!planned.ok) throw new Error(planned.reason);
     expect(
       applyTextEdits(

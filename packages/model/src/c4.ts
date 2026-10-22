@@ -60,6 +60,52 @@ export function analyzeC4View(
  * scope's components, the other containers of its system, persons and other systems at the
  * component level.
  */
+/** The nearest ancestor-or-self of an entity path in a set of paths. */
+function liftTo(
+  model: ModelDefinition,
+  path: string,
+  set: ReadonlySet<string>,
+): string | undefined {
+  let current: string | null = path;
+  while (current !== null) {
+    if (set.has(current)) return current;
+    current = model.entitiesByPath.get(current)?.parent ?? null;
+  }
+  return undefined;
+}
+
+/**
+ * The entities a view of this level and scope draws without `include`: every allowed entity at
+ * the context level without a scope; else the core (the scope at the context level, its children
+ * below) and the allowed entities the model's relations join to it, each end lifted to the
+ * nearest allowed ancestor. `allowed` is `allowedEntities` of the same view when given.
+ */
+export function defaultEntities(
+  model: ModelDefinition,
+  level: C4Level,
+  scopePath: string | null,
+  allowed: ReadonlySet<string> = allowedEntities(model, level, scopePath),
+): Set<string> {
+  const scope = scopePath === null ? null : (model.entitiesByPath.get(scopePath) ?? null);
+  if (level === "context" && !scope) return new Set(allowed);
+  // Without its scope a container or component view has no core; its error is reported.
+  if (!scope) return new Set();
+  const core = new Set<string>();
+  if (level === "context") core.add(scope.path);
+  else
+    for (const path of allowed)
+      if (model.entitiesByPath.get(path)!.parent === scope.path) core.add(path);
+  const set = new Set(core);
+  for (const relation of model.relations) {
+    const a = liftTo(model, relation.from, allowed);
+    const b = liftTo(model, relation.to, allowed);
+    if (!a || !b || a === b) continue;
+    if (core.has(a)) set.add(b);
+    if (core.has(b)) set.add(a);
+  }
+  return set;
+}
+
 export function allowedEntities(
   model: ModelDefinition,
   level: C4Level,
@@ -326,36 +372,12 @@ class C4Analyzer extends FlowAnalyzer {
 
   /** The nearest ancestor-or-self of a path in a set. */
   private lift(path: string, set: ReadonlySet<string>): string | undefined {
-    let current: string | null = path;
-    const model = this.definition!;
-    while (current !== null) {
-      if (set.has(current)) return current;
-      current = model.entitiesByPath.get(current)?.parent ?? null;
-    }
-    return undefined;
+    return liftTo(this.definition!, path, set);
   }
 
   /** The default set: everything at context without scope; else the core and its neighbours. */
   private defaults(allowed: ReadonlySet<string>): Set<string> {
-    const model = this.definition!;
-    const scope = this.scope;
-    if (this.level === "context" && !scope) return new Set(allowed);
-    // Without its scope a container or component view has no core; its error is reported.
-    if (!scope) return new Set();
-    const core = new Set<string>();
-    if (this.level === "context") core.add(scope.path);
-    else
-      for (const path of allowed)
-        if (model.entitiesByPath.get(path)!.parent === scope.path) core.add(path);
-    const set = new Set(core);
-    for (const relation of model.relations) {
-      const a = this.lift(relation.from, allowed);
-      const b = this.lift(relation.to, allowed);
-      if (!a || !b || a === b) continue;
-      if (core.has(a)) set.add(b);
-      if (core.has(b)) set.add(a);
-    }
-    return set;
+    return defaultEntities(this.definition!, this.level, this.scope?.path ?? null, allowed);
   }
 
   // ---------------------------------------------------------------- statements

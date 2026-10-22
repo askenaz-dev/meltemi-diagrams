@@ -1820,6 +1820,61 @@ const tests: {
     },
   },
   {
+    name: "C4: an anonymous relation takes an effect, an end moves in the model, Delete asks for the other view",
+    text:
+      C4.replace(" as persist", "") +
+      "\ndiagram context: c4 using commerce {\n  level context\n}\n",
+    async run(h) {
+      const page = h.page;
+      const box = async (selector: string) => {
+        const found = await page.locator(selector).first().boundingBox();
+        assert.ok(found, `no ${selector}`);
+        return found;
+      };
+      const centre = (b: Rect) => ({ x: b.x + b.width / 2, y: b.y + b.height / 2 });
+      // `shop.api -> shop.db` has no id in the model: selected by its label, its Effects show,
+      // and Flow particles names it there.
+      const key = "shop.api->shop.db#1";
+      const label = centre(
+        await box(`.content g[data-id="${key}"][data-role="relation"] [data-role="label"]`),
+      );
+      await page.mouse.click(label.x, label.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, [key]);
+      const flow = page.getByRole("button", { name: "Flow particles" });
+      assert.equal(await flow.getAttribute("aria-pressed"), "false");
+      await flow.click();
+      await h.settled();
+      assert.match(h.text, /shop\.api -> shop\.db: "SQL" as shop_api_shop_db\n/);
+      assert.match(h.text, /animate shop_api_shop_db \{ effect flow \}/);
+      assert.deepEqual(h.session.selected, ["shop_api_shop_db"]);
+      // Dropping the end at shop.db inside shop.web moves the model relation's end there.
+      const end = centre(await box('.overlay [data-handle="end:to"]'));
+      const web = await h.centre("shop.web");
+      await page.mouse.move(end.x, end.y);
+      await page.mouse.down();
+      await page.mouse.move(web.x, web.y, { steps: 8 });
+      await page.mouse.up();
+      await h.settled();
+      assert.match(h.text, /shop\.api -> shop\.web: "SQL" as shop_api_shop_db\n/);
+      // Delete on `visit`, which the context view draws too: the dialog says so, Enter confirms.
+      const visit = centre(
+        await box('.content g[data-id="visit"][data-role="relation"] [data-role="label"]'),
+      );
+      await page.mouse.click(visit.x, visit.y);
+      await h.settled();
+      await page.keyboard.press("Delete");
+      await h.settled();
+      const dialog = page.locator(".dialog");
+      assert.equal(await dialog.isVisible(), true);
+      assert.match(await dialog.locator("li").first().innerText(), /drawn in the view `context`/);
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.doesNotMatch(h.text, /as visit/);
+      await page.screenshot({ path: join(output, "canvas-c4-relations.png") });
+    },
+  },
+  {
     name: "plays the effects of a diagram and stops them",
     text: SHEET.replace(
       "  placement {",

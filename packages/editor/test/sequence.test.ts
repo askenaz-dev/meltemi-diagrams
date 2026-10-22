@@ -382,3 +382,56 @@ describe("sequence language services", () => {
     expect(applyTextEdits(text, declare[0]!.edits)).toContain('participant ghost "ghost"');
   });
 });
+
+describe("effects on what an imported sequence diagram leaves anonymous", () => {
+  const imported = readFileSync(
+    join(CORPUS_ROOT, "import", "mermaid", "sequence-payment.meltemi"),
+    "utf8",
+  );
+
+  it("names a message for a trace, in one edit, and says so", () => {
+    const canvas = open(imported);
+    canvas.send({ type: "pickDiagram", diagram: "card_payment" });
+    canvas.send({ type: "select", ids: ["Customer->Web#1"] });
+    const names = canvas.inspector().fields.map((f) => f.name);
+    expect(names).toContain("effect.trace");
+    expect(names).toContain("effect.flow");
+    const trace: CanvasAction = {
+      kind: "setField",
+      ids: ["Customer->Web#1"],
+      field: "effect.trace",
+      value: "on",
+    };
+    expect(canvas.act(trace).messages).toContainEqual({
+      type: "status",
+      message: "Named `Customer_Web`.",
+    });
+    const text = canvas.apply(trace);
+    expect(text).toContain('  Customer -> Web: "Pay" as Customer_Web\n');
+    expect(text).toContain("  animate Customer_Web { effect trace }\n");
+    expect(canvas.inspector().target.ids).toEqual(["Customer_Web"]);
+  });
+
+  it("names a note for a pulse, and names nothing to turn an effect off", () => {
+    const canvas = open(imported);
+    canvas.send({ type: "pickDiagram", diagram: "card_payment" });
+    canvas.send({ type: "select", ids: ["note#1"] });
+    expect(canvas.inspector().fields.map((f) => f.name)).toContain("effect.pulse");
+    const text = canvas.apply({
+      kind: "setField",
+      ids: ["note#1"],
+      field: "effect.pulse",
+      value: "on",
+    });
+    expect(text).toContain('  note note1 over Web, Api "The page never sees the card number"\n');
+    expect(text).toContain("  animate note1 { effect pulse }\n");
+    const off = canvas.act({
+      kind: "setField",
+      ids: ["Web->Api#1"],
+      field: "effect.flow",
+      value: "off",
+    });
+    expect(off.plan).toBeUndefined();
+    expect(off.messages.some((m) => m.type === "rejected")).toBe(false);
+  });
+});

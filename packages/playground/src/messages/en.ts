@@ -453,7 +453,8 @@ export const en = {
     themeCreated: (theme: string) =>
       `Created the project's theme \`${theme}\` in themes/${theme}.meltemi.`,
     notInProject: (file: string) => `\`${file}\` is not a file of the project.`,
-    themeChanged: (file: string) => `Changed the theme in ${file}.`,
+    /** Other files of the project an edit of the canvas wrote, with the open one. */
+    filesChanged: (files: readonly string[]) => `Changed ${files.join(", ")}.`,
   },
 
   /** The explorer, the project switcher, New project and Import project (`explorer-en.ts`). */

@@ -415,6 +415,9 @@ export const es: typeof en = {
       pathExists: (path) => `${code(path)} ya existe.`,
       relationExists: (id) => `${code(id)} ya es una relación del modelo.`,
       keepsId: "Una relación conserva su id una vez que tiene nombre; cámbiale el nombre.",
+      removingRelation: (key, n) =>
+        `Quitar ${code(key)} del modelo también afecta a ${count(n, "instrucción o vista", "instrucciones o vistas")}.`,
+      endUnreadable: (key) => `No se puede leer el extremo de ${code(key)}.`,
     },
 
     stories: {
@@ -455,6 +458,9 @@ export const es: typeof en = {
         : `${code(kind)} de ${code(name)} en la línea ${line}`,
     viewList: (keyword, view, line) =>
       `${code(keyword)} de la vista ${code(view)} en la línea ${line}`,
+    drawnIn: (relation, view, line) =>
+      `${code(relation)} dibujada en la vista ${code(view)} en la línea ${line}`,
+    leavesView: (entity, view) => `${code(entity)} deja de dibujarse en la vista ${code(view)}`,
     link: (owner, line) => `enlace de ${code(owner)} en la línea ${line}`,
     storyAction: (action, story, line) =>
       `${code(action)} de la historia ${code(story)} en la línea ${line}`,

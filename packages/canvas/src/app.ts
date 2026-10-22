@@ -3973,11 +3973,12 @@ export class CanvasApp {
             ...(end?.port ? { toPort: end.port } : {}),
             ...(end?.position !== undefined ? { toPosition: end.position } : {}),
           };
+          // Shift dashes the line, except in a C4 view, whose model writes `->` alone.
           this.act({
             kind: "connect",
             from: drag.from,
             to: element,
-            line: e.shiftKey ? "dashed" : "solid",
+            line: e.shiftKey && this.render?.profile !== "c4" ? "dashed" : "solid",
             ...(Object.keys(pinned).length > 0 ? { pinned } : {}),
           });
         }
@@ -4849,11 +4850,13 @@ export class CanvasApp {
     }
     const from = this.relationFrom;
     this.arm(undefined);
-    // The current kind of arrow; Shift on this click swaps its solid and dashed lines.
+    // The current kind of arrow; Shift on this click swaps its solid and dashed lines, except in
+    // a C4 view, whose model writes `->` alone.
     const kind = this.currentArrowKind();
+    const flip = dashed && this.render?.profile !== "c4";
     const { line, twoWay } = kind
-      ? arrowKindLine(kind, dashed)
-      : { line: dashed ? ("dashed" as const) : ("solid" as const), twoWay: false };
+      ? arrowKindLine(kind, flip)
+      : { line: flip ? ("dashed" as const) : ("solid" as const), twoWay: false };
     this.announce(words.connected(from, id, line === "dashed", twoWay));
     this.act({ kind: "connect", from, to: id, line, ...(twoWay ? { twoWay } : {}) });
   }

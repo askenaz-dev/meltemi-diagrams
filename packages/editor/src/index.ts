@@ -61,7 +61,14 @@ export {
 } from "./services/tokens.js";
 export { codeActions, editDistance, type CodeAction } from "./services/actions.js";
 export { CanvasSession, type SessionResult } from "./session.js";
-export { ProjectSessions, type ProjectDefaults, type ProjectSessionsOptions } from "./projects.js";
+export {
+  ProjectSessions,
+  type ProjectDefaults,
+  type ProjectSessionsOptions,
+  stepsRejected,
+  type ProjectStep,
+  type StepsResult,
+} from "./projects.js";
 export { importSpec, moveFileEdits, type FileMove, type MoveEdits } from "./move-file.js";
 export {
   MAX_PIXELS,

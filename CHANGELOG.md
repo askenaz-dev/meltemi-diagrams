@@ -54,6 +54,19 @@ with the project's switcher at its top, as VS Code lists a workspace
   `identity.unavailable`.
 - The publish dialog says what your handle is and that it changes in the account.
 
+### Canvas (VS Code and the playground)
+
+- The relations of a C4 view are edited in its model from the canvas: a connection writes `a -> b`
+  into the model, dragging an end of an arrow onto another entity moves that end of the model
+  relation, and Delete removes the model relation with what names it, asking first when another
+  view draws it or an entity leaves the view with it. A style, an effect, a route or a label on a
+  relation the model did not name first names it there (`as shop_api_db`). When the model is in
+  another file of the project, both files change in one undo step, and the inspector writes the
+  model's fields there too ([decision 0051](docs/decisions/0051-c4-relations-from-the-canvas.md)).
+- Effects on what an import leaves anonymous: the Effects section shows for every relation of a C4
+  view and every message, note and fragment of a sequence diagram, and turning one on names the
+  target first (`as customer_web`, `note1`, `alt1`), as it does for flow relations.
+
 ### Command line
 
 - `init --list` prints each template's title, description and contents ("1 model, 2 views").

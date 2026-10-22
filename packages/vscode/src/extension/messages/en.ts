@@ -25,7 +25,8 @@ export const en = {
     themeCreated: (theme: string) =>
       `Created the project's theme \`${theme}\` in themes/${theme}.meltemi.`,
     fileNotChanged: (file: string) => `${file} could not be changed.`,
-    themeChanged: (file: string) => `Changed the theme in ${file}.`,
+    /** Other files of the project an edit of the canvas wrote, with the open one. */
+    filesChanged: (files: readonly string[]) => `Changed ${files.join(", ")}.`,
   },
   /** The picker of images for the canvas. */
   pickers: {

@@ -227,6 +227,7 @@ export const es: typeof en = {
       level: "Nivel",
       scope: "Ámbito",
       model: "Modelo",
+      modelFile: "Archivo del modelo",
     },
     kinds: {
       person: "persona",
@@ -242,15 +243,15 @@ export const es: typeof en = {
       datastore: "contenedor externo",
       component: "componente externo",
     },
-    readOnly: "El modelo está en otro archivo; ábrelo para cambiar esto.",
-    nameRelation: "Nombra la relación en el modelo (`as <id>`) antes de darle estilo.",
+    nameCombination: "Nombra la combinación en la vista (`as <id>`) antes de darle estilo.",
+    reconnectCombination: (key, sources) =>
+      `${code(key)} representa a ${sources.map(code).join(", ")}; cámbialas en el modelo.`,
   },
 
   reasons: {
     noDiagram: (id) => `No hay ningún diagrama ${code(id)}.`,
     notInDiagram: (id, diagram) => `${code(id)} no está en el diagrama ${code(diagram)}.`,
     nameToStyle: (kind) => `Nombra ${the(kind)} (su id) antes de darle estilo.`,
-    nameForEffect: (kind) => `Nombra ${the(kind)} (su id) antes de agregarle un efecto.`,
     nameToMoveLabel: "Nombra la relación (su id) antes de mover su etiqueta.",
     source: "Escribe el icono o la ruta de la imagen.",
     ports: "Escribe los puertos como `name side [n%]`, separados por comas.",
@@ -265,9 +266,7 @@ export const es: typeof en = {
   },
 
   named: (ids) =>
-    ids.length === 1
-      ? `Se nombró la relación ${code(ids[0]!)}.`
-      : `Se nombraron las relaciones ${list("es", ids.map(code))}.`,
+    ids.length === 1 ? `Se nombró ${code(ids[0]!)}.` : `Se nombraron ${list("es", ids.map(code))}.`,
 
   session: {
     noDiagramStories: "No hay ningún diagrama en este archivo: reproduce una de sus historias.",
@@ -288,10 +287,6 @@ export const es: typeof en = {
       "El lienzo muestra la vista previa de un escenario; elige “Todos los eventos” para editar el diagrama.",
     deleting: (count) => `Eliminar también quita ${statements(count)}.`,
     removingFromView: (count) => `Quitar de la vista también quita ${statements(count)}.`,
-    modelRelation: (key) =>
-      `${code(key)} es una relación del modelo; quítala en el modelo o quita uno de sus extremos de la vista.`,
-    modelElsewhere:
-      "El modelo está en otro archivo; cambia el nombre de la entidad allí o con “Cambiar el nombre del símbolo”, que llega a todos los archivos.",
     convert: "Solo los diagramas de flujo que se dibujan se pueden convertir en composición libre.",
     cannotArrange: (problem) =>
       `Corrige los problemas del diagrama antes de organizarlo: ${problem}`,
@@ -320,10 +315,9 @@ export const es: typeof en = {
     setLayer: "Las capas pertenecen a los diagramas de flujo y a las composiciones libres.",
     paste: "Copia las entidades en el texto del modelo; las vistas las listan en `include`.",
     duplicate: "Las vistas dibujan cada entidad una sola vez.",
-    setEnd: "Las relaciones de una vista vienen del modelo; cámbialas allí.",
     "move.parent":
       "Los elementos de una vista están donde sus entidades están en el modelo; muévelos allí entre sistemas y contenedores.",
-    "connect.twoWay": "Las relaciones de las vistas C4 van en un solo sentido: `->` o `-->`.",
+    "connect.twoWay": "Las relaciones de las vistas C4 van en un solo sentido: `->`.",
   },
 
   layers: {
@@ -384,5 +378,6 @@ export const es: typeof en = {
     themeExists: (id) => `${code(`themes/${id}.meltemi`)} ya existe; elige otro id.`,
     unreadableManifest: "No se puede leer project.json; corrígelo primero.",
     notAFile: (path) => `${code(path)} no es un archivo del proyecto.`,
+    staleStep: "Los pasos cambian dos veces un archivo; pídelo otra vez.",
   },
 };
