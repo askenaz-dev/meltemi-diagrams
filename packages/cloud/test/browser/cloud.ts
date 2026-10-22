@@ -32,6 +32,15 @@ interface PageWindow {
  */
 export const THUMBNAIL_RATE_LOGGED = /status of 429/;
 
+/**
+ * What Playwright's routed socket throws in the page when the room's message reaches a socket the
+ * page is already closing: `routeWebSocket` (`gateRooms`, `muteRooms`) puts Playwright's own socket
+ * in place of the browser's, and it throws this when the route hands it a message after the close
+ * began. The page's own sends never cause it (they check `readyState` and catch), as the scenario on
+ * a socket the Worker closes checks with no console error allowed.
+ */
+export const ROUTED_SOCKET_CLOSING = /^WebSocket is already in CLOSING or CLOSED state\.$/;
+
 // ---------------------------------------------------------------------------------------------
 // Files the scenarios make projects of
 

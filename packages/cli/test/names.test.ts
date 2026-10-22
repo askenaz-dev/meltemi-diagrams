@@ -42,6 +42,8 @@ const SKIPPED = new Set([
   ".wrangler",
   "release",
   "mi-prueba",
+  // Coding agents' git worktrees: other checkouts of the repository, with their own history.
+  ".claude/worktrees",
   "openspec/changes/archive",
   "openspec/changes/cli-and-package-names",
   "docs/decisions",

@@ -54,6 +54,7 @@ import {
   statusLine,
   typeAtEnd,
   waitFor,
+  ROUTED_SOCKET_CLOSING,
 } from "./cloud.js";
 import { KIND, join as joinRoom } from "./room-socket.js";
 import type { Person, Scenario } from "./scenario.js";
@@ -64,7 +65,7 @@ export const collaborationRoomScenarios: Scenario[] = [
   {
     name: "collaboration: a socket the Worker cuts reconnects and merges what each person typed meanwhile: the page says reconnecting and shows nobody while it is cut, and presence returns after the reconnection",
     signedIn: "u-ana-cut",
-    allowedErrors: [THUMBNAIL_RATE_LOGGED],
+    allowedErrors: [THUMBNAIL_RATE_LOGGED, ROUTED_SOCKET_CLOSING],
     async run(t) {
       const { ana, bens, project, door } = await pairIn(t, "flow", "u-ben-cut", "Ben", {
         gate: "ana",
@@ -244,7 +245,7 @@ export const collaborationRoomScenarios: Scenario[] = [
   {
     name: "collaboration: a person who falls silent without leaving disappears after thirty seconds, a client of the room and a page that stops reaching it alike, while one who only keeps still stays (the heartbeat), and the silent one's next message brings them back",
     signedIn: "u-ana-silent",
-    allowedErrors: [THUMBNAIL_RATE_LOGGED],
+    allowedErrors: [THUMBNAIL_RATE_LOGGED, ROUTED_SOCKET_CLOSING],
     async run(t) {
       const { ana, ben, project } = await pairIn(t, "flow", "u-ben-silent");
       const sam = await t.person("u-sam-silent", { name: "Sam" });

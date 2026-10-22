@@ -25,6 +25,9 @@ wrangler.publish.deploy.json
 # What `pnpm release:check` packs: the release workflow publishes it, the GitHub release keeps it.
 release/
 
+# Coding agents' git worktrees: other checkouts of this repository.
+.claude/worktrees/
+
 # The owner's scratch project, and the proposal documents, which stay the owner's.
 mi-prueba/
 propuesta-detallada-diagramas-como-codigo.*

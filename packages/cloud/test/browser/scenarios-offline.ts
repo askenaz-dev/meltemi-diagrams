@@ -12,6 +12,7 @@ import assert from "node:assert/strict";
 import type { Page } from "playwright-core";
 import type { Scenario } from "./scenario.js";
 import {
+  ROUTED_SOCKET_CLOSING,
   THUMBNAIL_RATE_LOGGED,
   backOnline,
   code,
@@ -68,7 +69,7 @@ export const offlineScenarios: Scenario[] = [
   {
     name: "offline merge: the sockets are cut, each device edits a different file while the connection is down, and when it returns both documents hold both edits",
     signedIn: "u-ana-offline",
-    allowedErrors: [THUMBNAIL_RATE_LOGGED],
+    allowedErrors: [THUMBNAIL_RATE_LOGGED, ROUTED_SOCKET_CLOSING],
     async run(t) {
       const project = await makeProject(t.me, "Two files", {
         files: Object.fromEntries([ONE, TWO]),
@@ -145,6 +146,7 @@ export const offlineScenarios: Scenario[] = [
   {
     name: "kept in IndexedDB: a reload while the changes are only in this browser opens the project from it at once, and then syncs them",
     signedIn: "u-ana-indexeddb",
+    allowedErrors: [ROUTED_SOCKET_CLOSING],
     async run(t) {
       const { page } = t;
       const project = await makeProject(t.me, "Kept", { files: Object.fromEntries([ONE]) });
@@ -256,7 +258,7 @@ export const offlineScenarios: Scenario[] = [
   {
     name: "two devices adding a file of the same name while offline: both files are kept, the smaller id keeps the name, the other shows as <name>~<id>, and the page says so",
     signedIn: "u-ana-collision",
-    allowedErrors: [THUMBNAIL_RATE_LOGGED],
+    allowedErrors: [THUMBNAIL_RATE_LOGGED, ROUTED_SOCKET_CLOSING],
     async run(t) {
       const project = await makeProject(t.me, "Collide", { files: Object.fromEntries([ONE]) });
       const second = await t.device();
