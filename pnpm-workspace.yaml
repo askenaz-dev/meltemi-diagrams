@@ -4,3 +4,8 @@ packages:
 onlyBuiltDependencies:
   - esbuild
   - workerd
+
+# Dependabot: markdown-it below 14.3.3 renders some inputs in quadratic time; it reaches the
+# workspace only through @vscode/vsce, which packages the extension.
+overrides:
+  markdown-it: ^14.3.3

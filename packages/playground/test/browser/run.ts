@@ -1293,7 +1293,6 @@ const tests: Test[] = [
   {
     name: "draws the connectors of a dragged box before the release, and Escape gives the drawing back",
     async run({ page }) {
-      const app = page.locator("#app");
       const lines = () =>
         page.evaluate(() =>
           [...document.querySelectorAll('#app .content g[data-role="relation"]')].map((g) => {
@@ -1301,13 +1300,17 @@ const tests: Test[] = [
             return Math.round(r.height);
           }),
         );
-      // The canvas may draw again once the project's assets arrive: wait for a box that stays.
+      // The canvas may draw again once the project's assets arrive: wait for a box that stays. It is
+      // measured in one evaluation: Playwright's boundingBox() can fail inside when a redraw
+      // replaces the element while it measures.
       let api: { x: number; y: number; width: number; height: number } | null = null;
       for (let tries = 0; tries < 40; tries++) {
-        const box = await app
-          .locator('.content g[data-id="api"][data-role="element"]')
-          .first()
-          .boundingBox();
+        const box = await page.evaluate(() => {
+          const g = document.querySelector('#app .content g[data-id="api"][data-role="element"]');
+          if (!g) return null;
+          const r = g.getBoundingClientRect();
+          return { x: r.x, y: r.y, width: r.width, height: r.height };
+        });
         if (box && api && box.x === api.x && box.y === api.y) break;
         api = box;
         await page.waitForTimeout(100);
