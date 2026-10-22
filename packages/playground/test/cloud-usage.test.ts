@@ -51,7 +51,20 @@ describe("the numbers the menu shows", () => {
       maxProjects: 50,
       storageBytes: 1024,
       maxStorageBytes: 1000,
+      limits: {
+        files: CLOUD_LIMITS.files,
+        documentBytes: CLOUD_LIMITS.documentBytes,
+        binaryBytes: CLOUD_LIMITS.binaryBytes,
+        versions: CLOUD_LIMITS.versions,
+      },
     });
+  });
+
+  it("carry the other limits the service gives, for the account panel", () => {
+    expect(
+      usageView(usage(1, 1, { files: 10, documentBytes: 20, binaryBytes: 30, versions: 40 }))
+        .limits,
+    ).toEqual({ files: 10, documentBytes: 20, binaryBytes: 30, versions: 40 });
   });
 
   it("fall back to the page's own limits for any the service leaves out or gives as nothing", () => {
@@ -60,6 +73,12 @@ describe("the numbers the menu shows", () => {
       maxProjects: CLOUD_LIMITS.projects,
       storageBytes: 1024,
       maxStorageBytes: CLOUD_LIMITS.storageBytes,
+      limits: {
+        files: CLOUD_LIMITS.files,
+        documentBytes: CLOUD_LIMITS.documentBytes,
+        binaryBytes: CLOUD_LIMITS.binaryBytes,
+        versions: CLOUD_LIMITS.versions,
+      },
     });
     expect(usageView(usage(0, 0, { projects: 0, storageBytes: -5 }))).toMatchObject({
       maxProjects: CLOUD_LIMITS.projects,

@@ -112,6 +112,8 @@ export function openDialog(
   options: {
     wide?: boolean;
     drawer?: boolean;
+    /** A settings dialog: wide and tall, with a list of sections beside the one shown. */
+    settings?: boolean;
     label?: string;
     /** Where focus goes when the dialog closes, when its action says (a row it made, say). */
     returnTo?: () => HTMLElement | undefined;
@@ -120,7 +122,12 @@ export function openDialog(
   const returnFocus = document.activeElement as HTMLElement | null;
   const heading = h("h2", { id: `dialog-${Math.random().toString(36).slice(2)}` }, title);
   const dialog = h("dialog", {
-    class: ["pg-dialog", options.wide ? "wide" : "", options.drawer ? "drawer" : ""]
+    class: [
+      "pg-dialog",
+      options.wide ? "wide" : "",
+      options.drawer ? "drawer" : "",
+      options.settings ? "settings" : "",
+    ]
       .filter(Boolean)
       .join(" "),
     "aria-labelledby": heading.id,

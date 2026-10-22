@@ -13,6 +13,13 @@ export interface UsageView {
   readonly maxProjects: number;
   readonly storageBytes: number;
   readonly maxStorageBytes: number;
+  /** The other limits the account panel lists: of a project's files, size and versions, and of an image. */
+  readonly limits: {
+    readonly files: number;
+    readonly documentBytes: number;
+    readonly binaryBytes: number;
+    readonly versions: number;
+  };
 }
 
 /** The service's numbers, with the page's own limits for any the service left out. */
@@ -24,6 +31,12 @@ export function usageView(usage: Usage): UsageView {
     maxProjects: limit(usage.limits["projects"], CLOUD_LIMITS.projects),
     storageBytes: usage.storageBytes,
     maxStorageBytes: limit(usage.limits["storageBytes"], CLOUD_LIMITS.storageBytes),
+    limits: {
+      files: limit(usage.limits["files"], CLOUD_LIMITS.files),
+      documentBytes: limit(usage.limits["documentBytes"], CLOUD_LIMITS.documentBytes),
+      binaryBytes: limit(usage.limits["binaryBytes"], CLOUD_LIMITS.binaryBytes),
+      versions: limit(usage.limits["versions"], CLOUD_LIMITS.versions),
+    },
   };
 }
 

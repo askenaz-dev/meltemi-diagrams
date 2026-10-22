@@ -60,7 +60,7 @@ export async function resolvePrincipal(
     emailVerified: claims.email_verified,
   };
   await deps.store.upsertUser(profile, now.toISOString());
-  return { via: "cookie", sub: claims.sub, sid: claims.sid, profile };
+  return { via: "cookie", sub: claims.sub, sid: claims.sid, profile, token };
 }
 
 /**

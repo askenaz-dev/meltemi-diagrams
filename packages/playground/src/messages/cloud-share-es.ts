@@ -131,6 +131,7 @@ export const publishing: typeof publishingEn = {
   handleTaken: "Ese alias ya está en uso. Prueba con otro.",
   handleInvalid: "El servicio no aceptó ese alias.",
   handleLocked: "Tu alias no puede cambiar mientras tengas páginas publicadas.",
+  handleInAccount: (handle) => `Tu alias es ${handle}; puedes cambiarlo en Cuenta.`,
   choosingHandle: "Eligiendo tu alias…",
 
   slugLabel: "Nombre de la página",

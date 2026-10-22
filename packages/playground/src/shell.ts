@@ -10,12 +10,18 @@ import {
 } from "@meltemi/diagrams-language";
 import { MANIFEST_NAME, templateManifest } from "@meltemi/diagrams-project";
 import { mountCanvas } from "./canvas-host.js";
-import { accountControl } from "./cloud/account.js";
+import { accountControl, type AccountControl } from "./cloud/account.js";
+import {
+  ACCOUNT_PARAMETER,
+  sectionFrom,
+  withoutAccountParameter,
+} from "./cloud/account-panel-model.js";
 import { planOpen } from "./cloud/address.js";
 import { CloudController, manifestName, type CloudEnvironment } from "./cloud/controller.js";
 import { explainFailure } from "./cloud/explain.js";
 import { CLOUD_ICON } from "./cloud/icons.js";
 import { mountCloudExtras } from "./cloud/mount.js";
+import { publishApi } from "./cloud/publish-api.js";
 import { openShareDialog } from "./cloud/share.js";
 import type { Session } from "./cloud/session.js";
 import { announcement, statusText, type ConnectionStatus } from "./cloud/status.js";
@@ -158,6 +164,8 @@ export class Playground {
   private announced = "";
   /** Viewing a project by its link: the mode, the snapshot, opening an address and the copies. */
   readonly viewing: ViewPage;
+  /** The header's account control, and the way to open the account panel at a section. */
+  private account: AccountControl | undefined;
   /** The header's badge and copies and the status bar's reload hint; made when view mode is first entered. */
   private viewControls: ViewBar | undefined;
   /** The buttons that edit the project: off in view mode. */
@@ -333,11 +341,7 @@ export class Playground {
       ),
       h("span", { class: "separator", role: "presentation" }),
       // Nobody signed in: a "Sign in" link. A person: their avatar and name, and a menu.
-      accountControl(this.options.session, {
-        keep: () => void this.keepNow({ edited: false }),
-        // Where cloud projects exist, the menu shows what the account holds.
-        ...(this.cloud ? { usage: this.cloud.usage } : {}),
-      }),
+      this.accountControl().element,
     );
     const header = h("header", { class: "topbar" }, brand, actions);
 
@@ -621,6 +625,51 @@ export class Playground {
    * reopens it, and the sign-in link of a page nobody is signed in on returns to it.
    */
   async start(): Promise<void> {
+    await this.openFirst();
+    this.openAccountFromAddress();
+  }
+
+  /**
+   * The header's account control: the sign-in link, or the person's menu, whose Account and API
+   * tokens open the account panel. The panel saves the handle with the publishing calls, and a
+   * session that ends under it reloads the page signed out, the work kept first.
+   */
+  private accountControl(): AccountControl {
+    const env = this.options.cloud;
+    const api = env
+      ? publishApi(env.fetch, { href: env.location.href() })
+      : publishApi((url, init) => fetch(url, init), location);
+    this.account = accountControl(this.options.session, {
+      keep: () => void this.keepNow({ edited: false }),
+      // Where cloud projects exist, the menu shows what the account holds.
+      ...(this.cloud ? { usage: this.cloud.usage } : {}),
+      setHandle: (handle) => api.setHandle(handle),
+      report: (message) => this.status(message),
+      signedOut: () => {
+        this.keepNow({ edited: false });
+        location.replace(withoutAccountParameter(location.href));
+      },
+    });
+    return this.account;
+  }
+
+  /**
+   * `?account=<section>`: where the identity service brings a person back (after linking a sign-in,
+   * say). The panel opens at that section for a person who is signed in, and the parameter leaves
+   * the address either way, so that a reload shows the page alone.
+   */
+  private openAccountFromAddress(): void {
+    const section = sectionFrom(new URLSearchParams(location.search).get(ACCOUNT_PARAMETER));
+    if (section === undefined) return;
+    history.replaceState(history.state, "", withoutAccountParameter(location.href));
+    if (this.options.session.kind === "cookie") this.account?.open(section);
+  }
+
+  /**
+   * Opens the first project: the project the address names (the mode follows what the person is to
+   * it), a link's, the kept one, or the flow template.
+   */
+  private async openFirst(): Promise<void> {
     const plan = planOpen(location.search);
     let notice: string | undefined;
     if (plan.kind !== "none") {

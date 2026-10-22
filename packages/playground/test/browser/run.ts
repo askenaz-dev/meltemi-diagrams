@@ -466,10 +466,99 @@ class UsageDouble {
   };
 }
 
+/** What the identity service holds about Ana, as the Worker passes it on. */
+const ANAS_IDENTITY = () => ({
+  user: { id: "u-ana", name: "Ana", picture: "" },
+  identities: [
+    {
+      provider: "github",
+      email: "ana@example.com",
+      emailVerified: true,
+      handle: "ana-dev",
+      linkedAt: "2026-10-01T10:00:00.000Z",
+    },
+  ],
+  sessions: [
+    {
+      sid: "sid-phone",
+      label: "Firefox on Android",
+      createdAt: "2026-10-10T07:15:00.000Z",
+      lastSeen: "2026-10-12T09:00:00.000Z",
+      expiresAt: "2026-11-09T07:15:00.000Z",
+      current: false,
+    },
+    {
+      sid: "sid-here",
+      label: "Edge on Windows",
+      createdAt: "2026-10-01T10:00:00.000Z",
+      lastSeen: "2026-10-14T12:00:00.000Z",
+      expiresAt: "2026-10-31T10:00:00.000Z",
+      current: true,
+    },
+  ],
+  canUnlink: false,
+});
+
+/**
+ * The identity data the Worker reads on Ana's behalf (`/api/account/identity…`), and the handle
+ * (`PATCH /api/account`), answered from the test the way the Worker answers them.
+ */
+class AccountDouble {
+  readonly requests: Sent[] = [];
+  view = ANAS_IDENTITY();
+  /** When set, the identity data answers this status and code instead (`identity.unavailable`, say). */
+  failure: { status: number; code: string } | undefined;
+  /** The handles already taken by someone else. */
+  taken = new Set<string>(["taken"]);
+
+  readonly handle = async (route: Route): Promise<void> => {
+    const request = route.request();
+    const { pathname } = new URL(request.url());
+    const method = request.method();
+    let body: unknown;
+    try {
+      body = request.postDataJSON();
+    } catch {
+      body = undefined;
+    }
+    this.requests.push({ method, path: pathname, type: request.headers()["content-type"], body });
+    const json = (status: number, answer: unknown) =>
+      route.fulfill({ status, contentType: "application/json", body: JSON.stringify(answer) });
+    if (pathname === "/api/account" && method === "PATCH") {
+      const handle = (body as { handle?: string } | undefined)?.handle ?? "";
+      if (this.taken.has(handle)) {
+        return json(409, { code: "handle.taken", message: "Another account has that handle." });
+      }
+      return json(200, { handle });
+    }
+    if (this.failure) {
+      return json(this.failure.status, { code: this.failure.code, message: "Refused." });
+    }
+    if (pathname === "/api/account/identity" && method === "GET") return json(200, this.view);
+    if (pathname === "/api/account/identity/sessions/revoke-others" && method === "POST") {
+      this.view = { ...this.view, sessions: this.view.sessions.filter((s) => s.current) };
+      return json(200, this.view);
+    }
+    const one = /^\/api\/account\/identity\/sessions\/([^/]+)\/revoke$/.exec(pathname);
+    if (one && method === "POST") {
+      const sid = decodeURIComponent(one[1]!);
+      this.view = { ...this.view, sessions: this.view.sessions.filter((s) => s.sid !== sid) };
+      return json(200, this.view);
+    }
+    return json(404, { code: "not-found", message: "Not found." });
+  };
+
+  /** The requests of a method, in order. */
+  sent(method: string): Sent[] {
+    return this.requests.filter((request) => request.method === method);
+  }
+}
+
 interface SignedIn extends Context {
   readonly origin: string;
   readonly tokens: TokensDouble;
   readonly usage: UsageDouble;
+  readonly account: AccountDouble;
 }
 
 /**
@@ -491,6 +580,7 @@ function signedIn(options: {
 }): Test {
   const tokens = new TokensDouble(options.held ?? ANAS_TOKENS());
   const usage = new UsageDouble(options.usage);
+  const account = new AccountDouble();
   return {
     name: options.name,
     locale: options.locale,
@@ -508,10 +598,14 @@ function signedIn(options: {
       );
       await context.route(/\/api\/tokens(\/[^/?]*)?(\?.*)?$/, tokens.handle);
       await context.route(/\/api\/account\/usage(\?.*)?$/, usage.handle);
+      await context.route(/\/api\/account(\/identity(\/[^?]*)?)?(\?.*)?$/, account.handle);
     },
-    run: (t) => options.run({ ...t, origin: new URL(t.url).origin, tokens, usage }),
+    run: (t) => options.run({ ...t, origin: new URL(t.url).origin, tokens, usage, account }),
   };
 }
+
+/** Lets the page's motion end (a panel that opens, a section that fades in) before a screenshot. */
+const settled = (page: Page) => page.waitForTimeout(400);
 
 /** What has the focus: its label (or its text) and whether it is in a dialog. */
 const focused = (page: Page) =>
@@ -690,18 +784,28 @@ async function accountFlow(t: SignedIn, m: typeof en, shot: string): Promise<voi
   assert.equal(await menu.isVisible(), false);
   assert.equal(await button.getAttribute("aria-expanded"), "false");
 
-  // "Account" opens the identity service's page in a tab of its own, without handing it this one.
+  // "Account" opens the account panel at Profile, in this page: no tab, no frame.
   await button.click();
   const account = menu.getByRole("menuitem", { name: a.account, exact: true });
-  assert.equal(await account.getAttribute("href"), `${origin}/NOTICES.md`);
-  assert.equal(await account.getAttribute("target"), "_blank");
-  const rel = ((await account.getAttribute("rel")) ?? "").split(" ").sort();
-  assert.deepEqual(rel, ["noopener", "noreferrer"]);
-  const [popup] = await Promise.all([context.waitForEvent("page"), account.click()]);
-  await popup.waitForLoadState();
-  assert.equal(popup.url(), `${origin}/NOTICES.md`);
-  await popup.close();
+  assert.equal(await account.getAttribute("href"), null, "Account is no link to another site");
+  const pagesBefore = context.pages().length;
+  await account.click();
+  const panel = page.locator("dialog.settings[open]");
+  await panel.waitFor();
+  assert.equal(context.pages().length, pagesBefore, "no tab was opened");
+  assert.equal(await page.locator("iframe").count(), 0, "no frame was opened");
+  assert.equal(await panel.locator("h2").first().textContent(), m.accountPanel.title);
+  const profileTab = panel.getByRole("tab", { name: m.accountPanel.sections.profile });
+  assert.equal(await profileTab.getAttribute("aria-selected"), "true");
+  assert.equal(
+    (await focused(page)).label,
+    m.accountPanel.sections.profile,
+    "the tab has the focus",
+  );
   assert.equal(await menu.isVisible(), false, "choosing an entry closes the menu");
+  await page.keyboard.press("Escape");
+  await until(page, "the panel to close", () => document.querySelector("dialog") === null);
+  assert.equal((await focused(page)).label, a.button("Ana"), "the focus comes back to the button");
 
   // "Sign out" is a form that posts to the identity service with the page as return address. It is
   // watched, not sent: the service is another site.
@@ -739,13 +843,23 @@ async function accountFlow(t: SignedIn, m: typeof en, shot: string): Promise<voi
   assert.equal(kept, true, "the work is kept before the page is left");
   await page.keyboard.press("Escape");
 
-  // "API tokens" opens the dialog, with the name field focused and the tokens listed.
+  // "API tokens" opens the panel at that section, with its tab focused and the tokens listed.
   await button.click();
   await menu.getByRole("menuitem", { name: a.tokens, exact: true }).click();
   const dialog = page.locator("dialog[open]");
-  assert.equal(await dialog.locator("h2").textContent(), k.title);
+  assert.equal(await dialog.locator("h2").first().textContent(), m.accountPanel.title);
+  assert.equal(
+    await dialog
+      .getByRole("tab", { name: m.accountPanel.sections.tokens })
+      .getAttribute("aria-selected"),
+    "true",
+  );
   assert.equal(await menu.isVisible(), false);
-  assert.equal((await focused(page)).tag, "INPUT", "the name field has the focus");
+  assert.equal(
+    (await focused(page)).label,
+    m.accountPanel.sections.tokens,
+    "the tab has the focus",
+  );
   const rows = dialog.locator(".token-row");
   await rows.first().waitFor();
   assert.deepEqual(await rows.locator(".token-name").allTextContents(), ["laptop", "CI"]);
@@ -764,7 +878,7 @@ async function accountFlow(t: SignedIn, m: typeof en, shot: string): Promise<voi
   // A name is needed, and a refused name never reaches the service.
   const nameField = dialog.getByLabel(k.name, { exact: true });
   await dialog.getByRole("button", { name: k.create, exact: true }).click();
-  assert.equal(await dialog.locator(".field-problem").textContent(), k.needName);
+  assert.equal(await dialog.locator(".tokens-section .field-problem").textContent(), k.needName);
   assert.equal(tokens.sent("POST").length, 0);
   assert.equal((await focused(page)).tag, "INPUT", "the name field has the focus again");
 
@@ -807,7 +921,7 @@ async function accountFlow(t: SignedIn, m: typeof en, shot: string): Promise<voi
   assert.equal(await page.evaluate(() => navigator.clipboard.readText()), secret);
   await page.screenshot({ path: join(output, `tokens-${shot}.png`) });
 
-  // Closing the dialog drops the token from the page, and the focus returns to the button.
+  // Closing the panel drops the token from the page, and the focus returns to the button.
   await dialog.getByRole("button", { name: m.dialog.close, exact: true }).last().click();
   await until(page, "the dialog to close", () => document.querySelector("dialog") === null);
   assert.equal(await pageHolds(page, secret), false, "the token is nowhere once the dialog closes");
@@ -864,7 +978,8 @@ async function accountFlow(t: SignedIn, m: typeof en, shot: string): Promise<voi
   await until(
     page,
     "the quota to be explained",
-    (text) => document.querySelector("dialog[open] .field-problem")?.textContent === text,
+    (text) =>
+      document.querySelector("dialog[open] .tokens-section .field-problem")?.textContent === text,
     k.quota(20),
   );
   assert.equal(await dialog.locator(".token-reveal").isVisible(), false);
@@ -2643,6 +2758,337 @@ const tests: Test[] = [
     allowedErrors: [/status of 413/],
     run: (t) => accountFlow(t, es, "es"),
   }),
+  signedIn({
+    name: "the account panel: three ways in, its tabs by keyboard, the handle, sign-ins, devices and the ways out",
+    // The browser notes in its console that the taken handle's refusal was a 409.
+    allowedErrors: [/status of 409/],
+    async run({ page, origin, account }) {
+      const ap = en.accountPanel;
+      const button = page.locator(".topbar .account-button");
+      const panel = page.locator("dialog.settings[open]");
+      const tab = (name: string) => panel.getByRole("tab", { name, exact: true });
+      const selected = () =>
+        panel.locator('[role="tab"][aria-selected="true"]').getAttribute("data-section");
+      const back = (section: string) => {
+        const url = new URL(page.url());
+        url.hash = "";
+        url.searchParams.set("account", section);
+        return url.href;
+      };
+
+      // The numbers under the menu open Usage, with the other limits.
+      await button.click();
+      await page.locator(".account-usage-button").waitFor();
+      await page.locator(".account-usage-button").click();
+      await panel.waitFor();
+      assert.equal(await selected(), "usage");
+      await until(
+        page,
+        "the usage numbers",
+        () =>
+          document.querySelectorAll("dialog[open] .account-usage-panel .usage-row").length === 2,
+      );
+      assert.deepEqual(await panel.locator(".account-usage-panel .usage-text").allTextContents(), [
+        en.cloud.projects.count(3, 100),
+        en.cloud.usage.storage("5.2 MiB", "200 MiB"),
+      ]);
+      assert.deepEqual(
+        await panel
+          .locator(".account-limits tr")
+          .evaluateAll((rows) =>
+            rows.map((row) => [
+              row.getAttribute("data-limit"),
+              row.querySelector("td")?.textContent,
+            ]),
+          ),
+        [
+          ["files", "2,000"],
+          ["documentBytes", "16 MiB"],
+          ["binaryBytes", "10 MiB"],
+          ["versions", "200"],
+        ],
+      );
+
+      // The tabs are a tablist: the arrows, Home and End move the selection and the focus.
+      await tab(ap.sections.usage).focus();
+      const press = async (key: string) => {
+        await page.keyboard.press(key);
+        return [await selected(), (await focused(page)).label];
+      };
+      assert.deepEqual(await press("ArrowDown"), ["danger", ap.sections.danger]);
+      assert.deepEqual(await press("ArrowDown"), ["profile", ap.sections.profile]);
+      assert.deepEqual(await press("End"), ["danger", ap.sections.danger]);
+      assert.deepEqual(await press("Home"), ["profile", ap.sections.profile]);
+      assert.deepEqual(await press("ArrowUp"), ["danger", ap.sections.danger]);
+
+      // Profile: the emails of the sign-ins, and the handle, checked before it is sent.
+      await tab(ap.sections.profile).click();
+      const profile = panel.locator("#account-section-profile");
+      await until(
+        page,
+        "the emails",
+        () =>
+          document.querySelector("#account-section-profile .account-emails li")?.textContent ===
+          "ana@example.com",
+      );
+      assert.equal(await profile.locator(".account-handle-now").textContent(), ap.handleNone);
+      const handle = profile.getByLabel(ap.handleLabel, { exact: true });
+      await handle.fill("Ana!");
+      await profile.getByRole("button", { name: ap.handleSave }).click();
+      assert.equal(
+        await profile.locator(".account-handle .field-problem").textContent(),
+        en.cloud.publishing.handleChars,
+      );
+      assert.equal(account.sent("PATCH").length, 0, "a refused handle is never sent");
+      await handle.fill("taken");
+      await page.keyboard.press("Enter");
+      await until(
+        page,
+        "the taken handle to be explained",
+        (text) =>
+          document.querySelector("#account-section-profile .account-handle .field-problem")
+            ?.textContent === text,
+        en.cloud.publishing.handleTaken,
+      );
+      await handle.fill("ana-2");
+      await page.keyboard.press("Enter");
+      await until(
+        page,
+        "the handle to be saved",
+        (text) => document.querySelector(".account-handle-now")?.textContent === text,
+        ap.handleSaved("ana-2"),
+      );
+      assert.deepEqual(
+        account.sent("PATCH").map((sent) => sent.body),
+        [{ handle: "taken" }, { handle: "ana-2" }],
+      );
+      await settled(page);
+      await page.screenshot({ path: join(output, "account-panel-profile.png") });
+
+      // Sign-ins: the only one cannot be unlinked; linking Google leaves for the identity service
+      // and comes back to this section.
+      await tab(ap.sections.signins).click();
+      const signins = panel.locator("#account-section-signins");
+      const rows = signins.locator(".signin-list .account-row");
+      assert.equal(await rows.count(), 1);
+      assert.match((await rows.first().textContent()) ?? "", /GitHub/);
+      assert.equal(
+        await rows
+          .first()
+          .getByRole("button", { name: ap.unlinkLabel("GitHub") })
+          .isDisabled(),
+        true,
+      );
+      assert.equal(await signins.getByText(ap.onlySignin).count(), 1);
+      const link = signins.getByRole("link", { name: ap.link("Google") });
+      const linkTo = new URL((await link.getAttribute("href"))!);
+      assert.equal(`${linkTo.origin}${linkTo.pathname}`, `${origin}/login`);
+      assert.deepEqual(Object.fromEntries(linkTo.searchParams), {
+        provider: "google",
+        link: "1",
+        return_to: back("signins"),
+      });
+      await settled(page);
+      await page.screenshot({ path: join(output, "account-panel-signins.png") });
+
+      // Devices: one other device, signed out after a question; then nothing else to sign out.
+      await tab(ap.sections.devices).click();
+      const devices = panel.locator("#account-section-devices");
+      const deviceRows = devices.locator(".device-list .account-row");
+      assert.equal(await deviceRows.count(), 2);
+      assert.equal(await devices.getByText(ap.thisDevice).count(), 1);
+      await devices
+        .getByRole("button", { name: ap.signOutDeviceLabel("Firefox on Android") })
+        .click();
+      const question = page.locator("dialog[open]").last();
+      assert.equal(await question.locator("h2").textContent(), ap.signOutDeviceTitle);
+      await question.getByRole("button", { name: ap.signOutDeviceConfirm, exact: true }).click();
+      await until(
+        page,
+        "the phone to go",
+        () =>
+          document.querySelectorAll(
+            "#account-section-devices .device-list .account-row:not(.row-gone)",
+          ).length === 1,
+      );
+      assert.deepEqual(
+        account.sent("POST").map((sent) => sent.path),
+        ["/api/account/identity/sessions/sid-phone/revoke"],
+      );
+      assert.equal(
+        await devices.getByRole("button", { name: ap.signOutOthers }).isDisabled(),
+        true,
+      );
+      assert.equal(
+        await panel.locator(".account-status").textContent(),
+        ap.signedOutDevice("Firefox on Android"),
+      );
+
+      // The Danger zone leaves for the identity service's page, which deletes the account.
+      await tab(ap.sections.danger).click();
+      const remove = panel.getByRole("link", { name: ap.deleteAccount });
+      assert.equal(
+        await remove.getAttribute("href"),
+        `${origin}/NOTICES.md?return_to=${encodeURIComponent(back("danger"))}`,
+      );
+      await settled(page);
+      await page.screenshot({ path: join(output, "account-panel-danger.png") });
+    },
+  }),
+  signedIn({
+    name: "the account panel says when the identity service cannot be reached, and tries again",
+    allowedErrors: [/status of 502/],
+    async run({ page, account }) {
+      const ap = en.accountPanel;
+      account.failure = { status: 502, code: "identity.unavailable" };
+      await page.locator(".topbar .account-button").click();
+      await page
+        .locator("#menu-account")
+        .getByRole("menuitem", { name: en.account.account })
+        .click();
+      const panel = page.locator("dialog.settings[open]");
+      await panel.getByRole("tab", { name: ap.sections.signins }).click();
+      const signins = panel.locator("#account-section-signins");
+      await signins.getByText(ap.unavailable).waitFor();
+      assert.equal(await signins.getByRole("link", { name: ap.openPage }).count(), 1);
+      // The rest of the account works without the identity service.
+      await panel.getByRole("tab", { name: ap.sections.tokens }).click();
+      await panel.locator(".token-row").first().waitFor();
+      await panel.getByRole("tab", { name: ap.sections.signins }).click();
+      account.failure = undefined;
+      await signins.getByRole("button", { name: ap.tryAgain }).click();
+      await signins.locator(".signin-list .account-row").first().waitFor();
+      assert.equal(await signins.getByText(ap.unavailable).count(), 0);
+    },
+  }),
+  signedIn({
+    name: "?account=tokens opens the account panel at API tokens once the page is ready, and leaves the address",
+    async run({ page, url }) {
+      await page.goto(new URL("?account=tokens", url).href);
+      await ready(page);
+      const panel = page.locator("dialog.settings[open]");
+      await panel.waitFor();
+      assert.equal(
+        await panel.locator('[role="tab"][aria-selected="true"]').getAttribute("data-section"),
+        "tokens",
+      );
+      assert.equal(new URL(page.url()).searchParams.has("account"), false);
+    },
+  }),
+  signedIn({
+    name: "a session that ends under the account panel closes it and shows the page signed out, the work kept",
+    allowedErrors: [/status of 401/],
+    async run({ page, context, account }) {
+      const kept = `${await code(page)}\n// kept while signed out\n`;
+      await page.locator(".code-input").fill(kept);
+      // The session ends: the identity data says so, and the Worker says nobody from now on.
+      account.failure = { status: 401, code: "auth.required" };
+      await context.unroute("**/api/session");
+      await context.route("**/api/session", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({ user: null }),
+        }),
+      );
+      await page.locator(".topbar .account-button").click();
+      await Promise.all([
+        page.waitForEvent("load"),
+        page.locator("#menu-account").getByRole("menuitem", { name: en.account.account }).click(),
+      ]);
+      await ready(page);
+      assert.equal(
+        await page.locator(".topbar").getByRole("link", { name: en.account.signIn }).count(),
+        1,
+      );
+      assert.equal(await page.locator("dialog[open]").count(), 0);
+      assert.equal(await code(page), kept, "the open file is as it was");
+    },
+  }),
+  signedIn({
+    name: "the account panel opens with its motion, and with none when reduced motion is asked",
+    async run({ page }) {
+      const open = async () => {
+        await page.locator(".topbar .account-button").click();
+        await page
+          .locator("#menu-account")
+          .getByRole("menuitem", { name: en.account.account })
+          .click();
+        await page.locator("dialog.settings[open]").waitFor();
+        return page.locator("dialog.settings").evaluate((dialog) => {
+          const style = getComputedStyle(dialog);
+          return [style.animationName, style.animationDuration];
+        });
+      };
+      assert.deepEqual(await open(), ["pg-panel-in", "0.16s"]);
+      await page.keyboard.press("Escape");
+      await until(page, "the panel to close", () => document.querySelector("dialog") === null);
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      try {
+        assert.equal((await open())[0], "none");
+        await page.keyboard.press("Escape");
+        await until(
+          page,
+          "the panel to close at once",
+          () => document.querySelector("dialog") === null,
+        );
+      } finally {
+        await page.emulateMedia({ reducedMotion: "no-preference" });
+      }
+    },
+  }),
+  signedIn({
+    name: "the account panel is a full-screen sheet on a narrow screen, its tabs a strip above",
+    viewport: { width: 375, height: 760 },
+    async run({ page }) {
+      await page.locator(".topbar .account-button").click();
+      await page
+        .locator("#menu-account")
+        .getByRole("menuitem", { name: en.account.tokens })
+        .click();
+      const panel = page.locator("dialog.settings[open]");
+      await panel.waitFor();
+      const box = await panel.boundingBox();
+      assert.ok(box && box.width === 375 && box.height === 760, JSON.stringify(box));
+      assert.equal(
+        await panel.locator('[role="tablist"]').getAttribute("aria-orientation"),
+        "horizontal",
+      );
+      const tab = panel.getByRole("tab", { name: en.accountPanel.sections.tokens });
+      const inView = await tab.evaluate((element) => {
+        const list = element.parentElement!.getBoundingClientRect();
+        const own = element.getBoundingClientRect();
+        return own.left >= list.left - 1 && own.right <= list.right + 1;
+      });
+      assert.equal(inView, true, "the chosen tab is in view");
+      assert.equal(
+        await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
+        false,
+      );
+      await settled(page);
+      await page.screenshot({ path: join(output, "account-panel-narrow.png") });
+    },
+  }),
+  signedIn({
+    name: "the account panel speaks Spanish in a Spanish browser",
+    locale: "es-CL",
+    async run({ page }) {
+      await page.locator(".topbar .account-button").click();
+      await page
+        .locator("#menu-account")
+        .getByRole("menuitem", { name: es.account.account })
+        .click();
+      const panel = page.locator("dialog.settings[open]");
+      await panel.waitFor();
+      assert.deepEqual(
+        await panel.getByRole("tab").allTextContents(),
+        Object.values(es.accountPanel.sections),
+      );
+      await panel.getByRole("tab", { name: es.accountPanel.sections.devices }).click();
+      await panel.getByText("Firefox en Android").waitFor();
+      assert.equal(await panel.getByText(es.accountPanel.thisDevice).count(), 1);
+    },
+  }),
   {
     name: "keeps the header, with its sign-in link, inside the screen from a phone to a wide screen",
     run: ({ page }) => headerFits(page, WIDTHS),
@@ -2794,7 +3240,7 @@ const tests: Test[] = [
     },
   }),
   signedIn({
-    name: "signed in, in the dark, shows the account menu and the tokens dialog",
+    name: "signed in, in the dark, shows the account menu and the account panel",
     dark: true,
     async run({ page }) {
       assert.equal(
@@ -2811,6 +3257,9 @@ const tests: Test[] = [
       await page.keyboard.press("Enter");
       await dialog.locator(".token-value").waitFor();
       await page.screenshot({ path: join(output, "tokens-dark.png") });
+      await dialog.getByRole("tab", { name: en.accountPanel.sections.profile }).click();
+      await settled(page);
+      await page.screenshot({ path: join(output, "account-panel-dark.png") });
     },
   }),
   signedIn({

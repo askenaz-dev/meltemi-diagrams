@@ -4,7 +4,14 @@ import type { Env } from "./env.js";
 import { ApiError, errorResponse, fail } from "./errors.js";
 import { pageResponse } from "./http.js";
 import { requireOwnOrigin, resolvePrincipal } from "./principal.js";
-import { patchAccountRoute, usageRoute } from "./routes/account.js";
+import {
+  identityAccountRoute,
+  identityRevokeOneRoute,
+  identityRevokeOthersRoute,
+  identityUnlinkRoute,
+  patchAccountRoute,
+  usageRoute,
+} from "./routes/account.js";
 import { takedownRoute } from "./routes/admin.js";
 import { cliAuthApprove, cliAuthPage, cliAuthStyle, cliAuthToken } from "./routes/cli-auth.js";
 import {
@@ -303,6 +310,32 @@ export const ROUTES: readonly RouteEntry[] = [
   { method: "GET", path: /^\/api\/account\/usage$/, principal: true, route: usageRoute },
   // A handle is the page's to choose: the route refuses a token.
   { method: "PATCH", path: /^\/api\/account$/, principal: true, route: patchAccountRoute },
+  // The identity service's account data, on the person's behalf: the page's cookie only.
+  {
+    method: "GET",
+    path: /^\/api\/account\/identity$/,
+    principal: true,
+    route: identityAccountRoute,
+  },
+  {
+    method: "POST",
+    path: /^\/api\/account\/identity\/unlink$/,
+    principal: true,
+    route: identityUnlinkRoute,
+  },
+  {
+    method: "POST",
+    path: /^\/api\/account\/identity\/sessions\/revoke-others$/,
+    principal: true,
+    route: identityRevokeOthersRoute,
+  },
+  {
+    method: "POST",
+    path: /^\/api\/account\/identity\/sessions\/([^/]+)\/revoke$/,
+    params: ["sid"],
+    principal: true,
+    route: identityRevokeOneRoute,
+  },
   // The administrators' route: it answers 404 to everybody else, and the `Origin` rule covers it.
   {
     method: "DELETE",

@@ -13,7 +13,10 @@ export interface Deps {
   readonly assets: { fetch(request: Request): Promise<Response> };
   now(): Date;
   randomBytes(length: number): Uint8Array;
-  /** The identity service's key set and session check, and nothing else. */
+  /**
+   * The identity service, and nothing else: its key set, its session check and, for the account
+   * panel, its account API.
+   */
   readonly fetch: typeof fetch;
 }
 
@@ -25,6 +28,11 @@ export type Principal =
       readonly sid: string;
       /** The profile the session token carried. */
       readonly profile: UserProfile;
+      /**
+       * The session token the principal was verified from. Only the account routes read it, to
+       * present it to the identity service on the person's behalf (`routes/account.ts`).
+       */
+      readonly token: string;
     }
   | {
       readonly via: "token";

@@ -1,4 +1,5 @@
 import { list, plural } from "@meltemi/diagrams-i18n";
+import { accountPanel } from "./account-panel-es.js";
 import { cloud } from "./cloud-es.js";
 import { explorer } from "./explorer-es.js";
 import { presence } from "./cloud-presence-es.js";
@@ -430,4 +431,5 @@ export const es: typeof en = {
   cloud,
   viewing,
   presence,
+  accountPanel,
 };

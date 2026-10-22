@@ -7,7 +7,7 @@
 import { menuButton } from "../menu.js";
 import { messages } from "../messages/index.js";
 import { h } from "../ui.js";
-import { avatar } from "./account.js";
+import { avatar } from "./avatar.js";
 import type { Person } from "./presence-model.js";
 
 /** The people listed in the header itself; the others are in a menu. */

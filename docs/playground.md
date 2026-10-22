@@ -251,23 +251,52 @@ project in the browser. Everything else works as before and nothing is sent.
 
 **Signed in**, the header shows your avatar and name, with a menu of three entries:
 
-| Entry          | Does                                                                                                                    |
-| -------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| **Account**    | Opens your account page at the identity service in a new tab: your sign-in methods, your sessions, deleting the account |
-| **API tokens** | Opens the API tokens dialog                                                                                             |
-| **Sign out**   | Ends the session at the identity service and returns to the page                                                        |
+| Entry          | Does                                                             |
+| -------------- | ---------------------------------------------------------------- |
+| **Account**    | Opens the account panel at Profile, in this page                 |
+| **API tokens** | Opens the account panel at API tokens                            |
+| **Sign out**   | Ends the session at the identity service and returns to the page |
 
 Under the entries the menu shows what your account holds, read when the menu opens: how many of the
 100 projects it may hold and how much of its 200 MiB of storage it uses, as in "3 of 100 projects"
-and "5.2 MiB of 200 MiB used", with a thin bar beside each. It shows nothing when the service does
-not answer, and it appears only where cloud projects do.
+and "5.2 MiB of 200 MiB used", with a thin bar beside each; a click on them opens the panel at
+Usage. They show nothing when the service does not answer, and appear only where cloud projects do.
 
-The **API tokens** dialog makes the tokens that let the command line and scripts act as you. It
-lists them with when each was created and last used, makes one from a name of up to 60 characters,
-and revokes one after a confirmation. A new token is shown once, with a button to copy it, and is
-gone when the dialog closes; the service keeps only a hash of it. An account holds at most 20. A
-token authenticates the service's API as `Authorization: Bearer`, which is how the command line's
-cloud commands use it ([the API tokens](cloud.md#api-tokens), [the command line](cli.md#the-cloud-commands)).
+### The account panel
+
+The account is one panel in the page, never a tab, a popup or a frame: a list of sections on the
+left and the one chosen beside it, or, on a narrow screen, a sheet over the whole page with the
+sections as a strip of tabs above. The arrows, Home and End move between the sections; Escape and
+the close button return to the page.
+
+| Section         | Holds                                                                                                                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Profile**     | Your picture and name, the emails of your sign-ins, the publishing handle (3 to 30 lowercase letters, digits or hyphens; it cannot change while a page is published under it) and Sign out |
+| **Sign-ins**    | GitHub and Google as you sign in with them: the account, whether the provider verified its email, when it was linked; Unlink, after a question, while another one is left; Link the other  |
+| **Devices**     | Where you are signed in, this device marked; Sign out of one device or of all the others, after a question                                                                                 |
+| **API tokens**  | The tokens that let the command line and scripts act as you (below)                                                                                                                        |
+| **Usage**       | Your projects and storage against their limits, and the limits of a project's files, size and versions and of an image                                                                     |
+| **Danger zone** | Deleting the account: what it removes, and the way to the identity service's page where you confirm it                                                                                     |
+
+Sign-ins and Devices are what the identity service holds; the page asks its own origin, whose Worker
+asks the identity service on your behalf ([the identity data](cloud.md#the-identity-data)). When the
+identity service cannot be reached the two sections say so, with **Try again** and a link to its
+account page; the other sections keep working. A device you sign out keeps working on this product
+for up to an hour, until the Worker checks its session again.
+
+Two things leave the page, in the same tab, and come back to the section they left: linking a
+provider (GitHub and Google show their own pages) and deleting the account (you confirm it on the
+identity service's page). The page keeps your work in the browser before it goes. The identity
+service brings you back to `?account=signins` or `?account=danger`; the panel opens at that section
+and the parameter leaves the address. A session that ends while the panel is open closes it and
+shows the page signed out, your work kept.
+
+**API tokens** makes the tokens that let the command line and scripts act as you. It lists them with
+when each was created and last used, makes one from a name of up to 60 characters, and revokes one
+after a confirmation. A new token is shown once, with a button to copy it, and is gone when the
+panel closes; the service keeps only a hash of it. An account holds at most 20. A token
+authenticates the service's API as `Authorization: Bearer`, which is how the command line's cloud
+commands use it ([the API tokens](cloud.md#api-tokens), [the command line](cli.md#the-cloud-commands)).
 
 Signing in adds your cloud projects to the explorer's Projects panel
 ([projects in the cloud](#projects-in-the-cloud)) and changes nothing else: the project in your browser stays where it is, nothing is uploaded until you

@@ -50,7 +50,7 @@ export interface TokenApi {
 }
 
 /** What a call accepts from a successful answer: the value, or undefined when it cannot be read. */
-type Reader<T> = (answer: Answer) => { value: T } | undefined;
+export type Reader<T> = (answer: Answer) => { value: T } | undefined;
 
 function refusal(answer: Answer): ApiFailure {
   const body = parseObject(answer.text);
@@ -64,7 +64,8 @@ function refusal(answer: Answer): ApiFailure {
   };
 }
 
-async function call<T>(
+/** One call to the service: an `Outcome`, never an exception. The account panel shares it. */
+export async function call<T>(
   fetchFn: Fetch,
   url: string,
   init: RequestInit,

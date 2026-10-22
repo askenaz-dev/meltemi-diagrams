@@ -68,6 +68,11 @@ export interface FakeIdentity {
   readonly revoked: Set<string>;
   /** When true, the service is unreachable (the fetch throws). */
   down: boolean;
+  /**
+   * What the service's account API (`/api/…`) answers, given the request and its body; unset, a call
+   * to it fails the test like any other unexpected request.
+   */
+  api: ((request: Request, body: string) => Response | Promise<Response>) | undefined;
 }
 
 export function fakeIdentity(keys: TestKeys, issuer = "https://id.meltemi.dev"): FakeIdentity {
@@ -75,10 +80,14 @@ export function fakeIdentity(keys: TestKeys, issuer = "https://id.meltemi.dev"):
     calls: [],
     revoked: new Set(),
     down: false,
+    api: undefined,
     fetch: async (input, init) => {
       const request = new Request(input as RequestInfo, init);
       identity.calls.push(`${request.method} ${request.url}`);
       if (identity.down) throw new TypeError("the identity service is unreachable");
+      if (request.url.startsWith(`${issuer}/api/`) && identity.api) {
+        return identity.api(request, await request.clone().text());
+      }
       if (request.url === `${issuer}/.well-known/jwks.json`) {
         return new Response(JSON.stringify(testJwks(keys)), {
           headers: { "Content-Type": "application/json" },

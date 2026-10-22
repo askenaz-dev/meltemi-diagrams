@@ -1,23 +1,35 @@
-// The API tokens dialog: the person's tokens, a form that makes one, the new token shown once, and
-// a revocation after a confirmation. What it knows and does is `TokensModel`'s; this draws it.
-// Names, dates and the service's messages are set as text, never as markup.
+// The API tokens section of the account panel: the person's tokens, a form that makes one, the new
+// token shown once, and a revocation after a confirmation. What it knows and does is
+// `TokensModel`'s; this draws it. Names, dates and the service's messages are set as text, never as
+// markup. The section reads the list the first time it is shown, and forgets the token it showed
+// when the panel closes.
 
 import { getLocale } from "@meltemi/diagrams-i18n";
 import { confirmDialog } from "../dialogs.js";
 import { messages } from "../messages/index.js";
-import { field, h, openDialog } from "../ui.js";
+import { field, h } from "../ui.js";
 import { TOKEN_LIMIT, tokenApi, whenText, type ApiToken, type NewToken } from "./tokens.js";
 import { TokensModel, type TokensState } from "./tokens-model.js";
 
-let dialogs = 0;
+let sections = 0;
 
-/** Opens the dialog for the person signed in on this page. */
-export function openTokensDialog(): void {
+/** The section's element, how to start it the first time it shows, and how to end it. */
+export interface TokensSection {
+  readonly element: HTMLElement;
+  /** Reads the list (the first time only) and focuses the name field. */
+  shown(): void;
+  /** The panel closed: the token shown once leaves the page. */
+  dispose(): void;
+}
+
+/** The section for the person signed in on this page. */
+export function tokensSection(): TokensSection {
   const m = messages().tokens;
-  const unique = ++dialogs;
+  const unique = ++sections;
   const api = tokenApi((url, init) => fetch(url, init), location);
-  let closed = false;
-  /** The rows and the token the dialog is showing, so that it redraws only what changed. */
+  let disposed = false;
+  let started = false;
+  /** The rows and the token the section is showing, so that it redraws only what changed. */
   let rows: readonly ApiToken[] | undefined;
   let shown: NewToken | undefined;
 
@@ -99,7 +111,7 @@ export function openTokensDialog(): void {
   };
 
   const render = (state: TokensState): void => {
-    if (closed) return;
+    if (disposed) return;
     status.textContent = state.status;
     problem.textContent = state.problem;
     if (state.tokens !== rows) {
@@ -130,17 +142,17 @@ export function openTokensDialog(): void {
   /** Asks first, then revokes; focus lands on a button that is still there. */
   async function askRevoke(token: ApiToken): Promise<void> {
     const sure = await confirmDialog(m.revokeTitle, m.revokeMessage(token.name), m.revokeConfirm);
-    if (!sure || closed) return;
+    if (!sure || disposed) return;
     const position = model.state.tokens.findIndex((held) => held.id === token.id);
     await model.revoke(token);
-    if (!closed) focusRow(position);
+    if (!disposed) focusRow(position);
   }
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const made = await model.create(nameInput.value);
-    if (closed) {
-      // The dialog was closed while the token was being made: nobody sees it, and nothing keeps it.
+    if (disposed) {
+      // The panel was closed while the token was being made: nobody sees it, and nothing keeps it.
       model.forget();
       return;
     }
@@ -153,30 +165,35 @@ export function openTokensDialog(): void {
   });
   retry.addEventListener("click", () => void model.load());
 
-  const dialog = openDialog(
-    m.title,
-    [
-      h("p", {}, m.intro),
-      form,
-      reveal,
-      status,
-      problem,
-      h("h3", { id: `token-list-title-${unique}` }, m.listLabel),
-      count,
-      list,
-      none,
-      retry,
-    ],
-    [{ label: messages().dialog.close, primary: true }],
-    { wide: true },
+  const element = h(
+    "div",
+    { class: "account-section-body tokens-section" },
+    h("p", { class: "account-intro" }, m.intro),
+    form,
+    reveal,
+    status,
+    problem,
+    h("h3", { id: `token-list-title-${unique}` }, m.listLabel),
+    count,
+    list,
+    none,
+    retry,
   );
-  dialog.addEventListener("close", () => {
-    // The token is shown once: nothing of it stays in the page.
-    closed = true;
-    nameInput.value = "";
-    reveal.replaceChildren();
-    model.forget();
-  });
-  nameInput.focus();
-  void model.load();
+
+  return {
+    element,
+    shown() {
+      if (!started) {
+        started = true;
+        void model.load();
+      }
+    },
+    dispose() {
+      // The token is shown once: nothing of it stays in the page.
+      disposed = true;
+      nameInput.value = "";
+      reveal.replaceChildren();
+      model.forget();
+    },
+  };
 }

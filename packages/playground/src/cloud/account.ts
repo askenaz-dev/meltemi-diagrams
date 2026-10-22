@@ -1,17 +1,23 @@
 // The account in the header. Nobody signed in: a "Sign in" link to the identity service. A person
-// signed in: a button with their avatar and name, and a menu with their account page, their API
-// tokens and "Sign out", and, where the page has cloud projects, what the account holds (its
-// projects and its storage against their limits, read when the menu opens and never waited for).
-// Signing in and out are navigations to the identity service (a link, and a form the page's policy
-// allows), never requests the page makes, so the page never handles a credential. Everything a
-// person or the service wrote reaches the page as text or as an attribute, never as markup.
+// signed in: a button with their avatar and name, and a menu with Account and API tokens (which open
+// the account panel at a section) and "Sign out", and, where the page has cloud projects, what the
+// account holds (its projects and its storage against their limits, read when the menu opens and
+// never waited for), which opens the panel at Usage. Signing in and out are navigations to the
+// identity service (a link, and a form the page's policy allows), never requests the page makes, so
+// the page never handles a credential. Everything a person or the service wrote reaches the page as
+// text or as an attribute, never as markup.
 
 import { getLocale } from "@meltemi/diagrams-i18n";
 import { messages } from "../messages/index.js";
 import { ICONS, h, icon } from "../ui.js";
+import { openAccountPanel } from "./account-panel.js";
+import type { AccountSection } from "./account-panel-model.js";
+import { avatar } from "./avatar.js";
 import { returnAddress, type Session, type SessionUser } from "./session.js";
-import { openTokensDialog } from "./tokens-dialog.js";
+import type { Outcome } from "./tokens.js";
 import { formatBytes, type UsageSource } from "./usage.js";
+
+export { avatar };
 
 /** The room, in pixels, the account menu keeps between itself and the edge of the page. */
 const MENU_MARGIN = 8;
@@ -24,13 +30,39 @@ export interface AccountHooks {
   readonly keep: () => void;
   /** What the account holds. Without it (a page with no cloud projects) the menu shows none of it. */
   readonly usage?: UsageSource;
+  /** Chooses the publishing handle (`PATCH /api/account`), for the panel's Profile. */
+  readonly setHandle: (handle: string) => Promise<Outcome<{ readonly handle: string }>>;
+  /** The session ended under the page: keep the work and show the page signed out. */
+  readonly signedOut: () => void;
+  /** Says something in the status line. */
+  readonly report?: (message: string) => void;
+}
+
+/** The header's account control, and the way to open the account panel at a section. */
+export interface AccountControl {
+  readonly element: HTMLElement;
+  /** Opens the account panel at a section; nobody signed in has none. */
+  open(section: AccountSection): void;
 }
 
 /** The header's account control for a session: the sign-in link, or the account menu. */
-export function accountControl(session: Session, hooks: AccountHooks): HTMLElement {
-  return session.kind === "cookie"
-    ? accountMenu(session.user, session.account, session.signOut, hooks)
-    : signInAnchor(session.signIn, hooks);
+export function accountControl(session: Session, hooks: AccountHooks): AccountControl {
+  if (session.kind !== "cookie") {
+    return { element: signInAnchor(session.signIn, hooks), open: () => {} };
+  }
+  const open = (section: AccountSection): void =>
+    openAccountPanel({
+      user: session.user,
+      accountPage: session.account,
+      signOut: session.signOut,
+      section,
+      usage: hooks.usage,
+      keep: hooks.keep,
+      setHandle: hooks.setHandle,
+      signedOut: hooks.signedOut,
+      ...(hooks.report ? { report: hooks.report } : {}),
+    });
+  return { element: accountMenu(session.user, session.signOut, hooks, open), open };
 }
 
 function signInAnchor(href: string, hooks: AccountHooks): HTMLElement {
@@ -43,23 +75,6 @@ function signInAnchor(href: string, hooks: AccountHooks): HTMLElement {
   );
   link.addEventListener("click", () => hooks.keep());
   return link;
-}
-
-/** A person's picture, or a person's outline when they have none or it cannot be loaded. */
-export function avatar(picture: string | undefined): HTMLElement {
-  const outline = () => h("span", { class: "account-avatar outline" }, icon(ICONS.person));
-  if (picture === undefined) return outline();
-  const image = h("img", {
-    class: "account-avatar",
-    src: picture,
-    alt: "",
-    width: 20,
-    height: 20,
-    referrerpolicy: "no-referrer",
-    decoding: "async",
-  });
-  image.addEventListener("error", () => image.replaceWith(outline()), { once: true });
-  return image;
 }
 
 /** A meter from 0 to `max` at `value`, which stays full when the account is over its limit. */
@@ -77,7 +92,10 @@ function setMeter(meter: HTMLMeterElement, value: number, max: number): void {
  * first answer, and when the service cannot be reached. `watch` starts following the numbers and
  * reading them again, and returns how to stop; the menu calls it as it opens and closes.
  */
-function usageSection(source: UsageSource): { element: HTMLElement; watch: () => () => void } {
+function usageSection(
+  source: UsageSource,
+  openUsage: () => void,
+): { element: HTMLElement; watch: () => () => void } {
   const m = messages().cloud;
   const line = () => ({
     text: h("span", { class: "usage-text" }),
@@ -85,11 +103,22 @@ function usageSection(source: UsageSource): { element: HTMLElement; watch: () =>
   });
   const projects = line();
   const storage = line();
+  // The numbers open the panel's Usage, where the other limits are.
+  const more = h(
+    "button",
+    {
+      type: "button",
+      class: "account-usage-button",
+      title: messages().accountPanel.sections.usage,
+    },
+    h("span", { class: "usage-row" }, projects.text, projects.meter),
+    h("span", { class: "usage-row" }, storage.text, storage.meter),
+  );
+  more.addEventListener("click", openUsage);
   const element = h(
     "div",
     { class: "account-usage", role: "group", "aria-label": m.usage.label, hidden: true },
-    h("div", { class: "usage-row" }, projects.text, projects.meter),
-    h("div", { class: "usage-row" }, storage.text, storage.meter),
+    more,
   );
   const draw = (): void => {
     const view = source.view;
@@ -118,9 +147,9 @@ function usageSection(source: UsageSource): { element: HTMLElement; watch: () =>
 
 function accountMenu(
   user: SessionUser,
-  account: string,
   signOutAction: string,
   hooks: AccountHooks,
+  openPanel: (section: AccountSection) => void,
 ): HTMLElement {
   const m = messages().account;
   const id = "menu-account";
@@ -144,16 +173,9 @@ function accountMenu(
   );
 
   const entry = (text: string) => h("span", { class: "pg-menu-label" }, text);
-  const accountLink = h(
-    "a",
-    {
-      class: "pg-menu-item",
-      role: "menuitem",
-      href: account,
-      target: "_blank",
-      rel: "noopener noreferrer",
-      tabindex: "-1",
-    },
+  const accountItem = h(
+    "button",
+    { type: "button", class: "pg-menu-item", role: "menuitem", tabindex: "-1" },
     entry(m.account),
   );
   const tokens = h(
@@ -185,12 +207,17 @@ function accountMenu(
   const menu = h(
     "div",
     { class: "account-menu", role: "menu", id, "aria-label": m.menu },
-    accountLink,
+    accountItem,
     tokens,
     h("div", { class: "pg-menu-separator", role: "separator" }),
     form,
   );
-  const usage = hooks.usage ? usageSection(hooks.usage) : undefined;
+  const usage = hooks.usage
+    ? usageSection(hooks.usage, () => {
+        close();
+        openPanel("usage");
+      })
+    : undefined;
   const popup = h(
     "div",
     { class: "pg-menu", hidden: true },
@@ -262,16 +289,15 @@ function accountMenu(
       close();
     } else if (event.key === "Tab") {
       close(false);
-    } else if (event.key === " " && document.activeElement === accountLink) {
-      // A link opens with Enter; a menu item also opens with Space.
-      event.preventDefault();
-      accountLink.click();
     }
   });
-  accountLink.addEventListener("click", () => close());
+  accountItem.addEventListener("click", () => {
+    close();
+    openPanel("profile");
+  });
   tokens.addEventListener("click", () => {
     close();
-    openTokensDialog();
+    openPanel("tokens");
   });
   return wrapper;
 }

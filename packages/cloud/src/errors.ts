@@ -76,6 +76,18 @@ export const ERROR_STATUS = {
   "room.full": 409,
   /** A client sent more than 100 awareness messages in a second (`4429` on the socket). */
   "awareness.rate": 429,
+  /** The identity service keeps the last way a person signs in. */
+  "identity.last": 409,
+  /** A provider the identity service does not sign people in with. */
+  "provider.unknown": 400,
+  /** The session of the request itself, which ends with Sign out, not from the account panel. */
+  "session.current": 409,
+  /** A session that is not the person's, or none. */
+  "session.not-found": 404,
+  /** The identity service's bound on this service's calls for one person (sixty a minute). */
+  "rate.limited": 429,
+  /** The identity service did not answer in time, or answered something this service cannot read. */
+  "identity.unavailable": 502,
   internal: 500,
 } as const;
 
@@ -141,6 +153,12 @@ const MESSAGES: Record<ErrorCode, string> = {
   "message.too-large": "The message is over the size limit.",
   "room.full": "The project is open on as many devices as it may be.",
   "awareness.rate": "Too many presence updates in a second.",
+  "identity.last": "This is the only way you sign in; link another provider first.",
+  "provider.unknown": "Meltemi signs you in with GitHub or Google only.",
+  "session.current": "This is the session you are using; sign out instead.",
+  "session.not-found": "None of your sessions has that id.",
+  "rate.limited": "Too many account changes in a minute; wait a little.",
+  "identity.unavailable": "The identity service could not be reached.",
   internal: "Something went wrong.",
 };
 

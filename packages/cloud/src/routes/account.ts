@@ -1,13 +1,170 @@
 // What an account holds and may hold (`cloud-projects`, "Usage and storage quota"): `GET
-// /api/account/usage`; and the one thing a person sets about themselves (`publishing`, "Handles"):
-// `PATCH /api/account { handle }`.
+// /api/account/usage`; the one thing a person sets about themselves (`publishing`, "Handles"):
+// `PATCH /api/account { handle }`; and what only the identity service holds about them, its
+// sign-ins and its sessions (`cloud-accounts`, "The identity data through the Worker"), which this
+// Worker reads and changes on the person's behalf so that the page talks to its own origin only.
 
+import { signProductRequest } from "@meltemi/identity";
 import { CLOUD_LIMITS } from "@meltemi/diagrams-project";
 import { requirePrincipal } from "../access.js";
-import type { Route } from "../context.js";
-import { fail } from "../errors.js";
+import type { Ctx, Route } from "../context.js";
+import { fail, type ErrorCode } from "../errors.js";
 import { json, readJsonObject } from "../http.js";
 import { HANDLE } from "../ids.js";
+import type { Principal } from "../types.js";
+
+/** This product's name in the identity service's `PRODUCTS`: what its calls are signed as. */
+export const PRODUCT_NAME = "diagrams";
+
+/** How long a call to the identity service may take before the panel says it is unavailable. */
+export const IDENTITY_TIMEOUT_MS = 5_000;
+
+/** The refusals of the identity service the page acts on, passed through as this service's own. */
+const PASSED_THROUGH: ReadonlySet<ErrorCode> = new Set<ErrorCode>([
+  "identity.last",
+  "provider.unknown",
+  "session.current",
+  "session.not-found",
+  "rate.limited",
+]);
+
+/** A session id as the page may send one: the identity service checks it exactly. */
+const SESSION_ID = /^[A-Za-z0-9_-]{1,64}$/;
+
+/**
+ * The person, signed in on the page with the cookie: the account is managed from the page, never
+ * with an API token (`403 request.forbidden`), and never by nobody (`401 auth.required`).
+ */
+function pagePerson(ctx: Ctx): Extract<Principal, { via: "cookie" }> {
+  const principal = requirePrincipal(ctx);
+  if (principal.via !== "cookie") {
+    throw fail("request.forbidden", "The account is managed from the page, not with an API token.");
+  }
+  return principal;
+}
+
+/** The answer of a request, or undefined when it does not come within the time allowed. */
+async function withinTime(
+  request: () => Promise<Response>,
+  ms: number,
+): Promise<Response | undefined> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<undefined>((done) => {
+    timer = setTimeout(() => done(undefined), ms);
+  });
+  const work = request();
+  // If the timeout wins nobody else observes this promise: its failure is not news.
+  work.catch(() => {});
+  try {
+    return await Promise.race([work, timeout]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+/** An account view as the identity service sends it: an object with its lists. */
+function isAccountView(value: unknown): value is Record<string, unknown> {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
+  const view = value as Record<string, unknown>;
+  return (
+    typeof view["user"] === "object" &&
+    view["user"] !== null &&
+    Array.isArray(view["identities"]) &&
+    Array.isArray(view["sessions"]) &&
+    typeof view["canUnlink"] === "boolean"
+  );
+}
+
+/**
+ * One call of the identity service's account API for the person of the page: signed as this
+ * product with the secret it shares with the identity service (the one that signs the deletion
+ * events), carrying the person's session token, within five seconds. The account view comes back
+ * as it is; a refusal the page acts on becomes this service's own code; a session that ended is
+ * `401 auth.required`; anything else (no answer, an answer that is not JSON, a refusal of the
+ * signature, which is a configuration problem) is `502 identity.unavailable`, logged with the
+ * route and the status, never a body.
+ */
+async function identityCall(
+  ctx: Ctx,
+  method: "GET" | "POST",
+  path: string,
+  body?: Record<string, unknown>,
+): Promise<Response> {
+  const person = pagePerson(ctx);
+  const url = `${ctx.config.issuer}${path}`;
+  const text = body === undefined ? undefined : JSON.stringify(body);
+  const headers = new Headers(
+    await signProductRequest({
+      product: PRODUCT_NAME,
+      secret: ctx.env.IDENTITY_EVENTS_SECRET,
+      method,
+      url,
+      ...(text !== undefined ? { body: text } : {}),
+      now: ctx.deps.now(),
+    }),
+  );
+  headers.set("Authorization", `Bearer ${person.token}`);
+  headers.set("Accept", "application/json");
+  if (text !== undefined) headers.set("Content-Type", "application/json");
+
+  const unavailable = (status: number | string) => {
+    console.error(`cloud: the identity service's ${method} ${path} answered ${status}`);
+    return fail("identity.unavailable");
+  };
+  let answer: Response | undefined;
+  try {
+    answer = await withinTime(
+      () =>
+        ctx.deps.fetch(url, {
+          method,
+          headers,
+          ...(text !== undefined ? { body: text } : {}),
+          redirect: "manual",
+        }),
+      IDENTITY_TIMEOUT_MS,
+    );
+  } catch {
+    throw unavailable("nothing (unreachable)");
+  }
+  if (!answer) throw unavailable("nothing in time");
+  let value: unknown;
+  try {
+    value = JSON.parse(await answer.text());
+  } catch {
+    throw unavailable(answer.status);
+  }
+  if (answer.status === 200 && isAccountView(value)) return json(value);
+  const code =
+    value !== null && typeof value === "object" ? (value as Record<string, unknown>)["error"] : "";
+  if (answer.status === 401 && code === "session.invalid") throw fail("auth.required");
+  if (typeof code === "string" && PASSED_THROUGH.has(code as ErrorCode)) {
+    throw fail(code as ErrorCode);
+  }
+  throw unavailable(answer.status);
+}
+
+/** `GET /api/account/identity`: the person's sign-ins and sessions, as the identity service has them. */
+export const identityAccountRoute: Route = (ctx) => identityCall(ctx, "GET", "/api/account");
+
+/** `POST /api/account/identity/unlink { provider }`: one way of signing in removed. */
+export const identityUnlinkRoute: Route = async (ctx) => {
+  pagePerson(ctx);
+  const provider = (await readJsonObject(ctx.request))["provider"];
+  if (typeof provider !== "string") throw fail("provider.unknown");
+  return identityCall(ctx, "POST", "/api/account/unlink", { provider });
+};
+
+/** `POST /api/account/identity/sessions/revoke-others`: every other device signed out. */
+export const identityRevokeOthersRoute: Route = (ctx) =>
+  identityCall(ctx, "POST", "/api/account/sessions/revoke-others", {});
+
+/** `POST /api/account/identity/sessions/:sid/revoke`: one other device signed out. */
+export const identityRevokeOneRoute: Route = async (ctx) => {
+  pagePerson(ctx);
+  const sid = ctx.params["sid"] ?? "";
+  if (!SESSION_ID.test(sid)) throw fail("session.not-found");
+  return identityCall(ctx, "POST", `/api/account/sessions/${sid}/revoke`, {});
+};
 
 /**
  * `GET /api/account/usage`: `{ projects, storageBytes, limits }`. `projects` is the number of the

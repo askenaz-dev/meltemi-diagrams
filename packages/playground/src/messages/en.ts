@@ -1,4 +1,5 @@
 import { plural, type Locale } from "@meltemi/diagrams-i18n";
+import { accountPanel } from "./account-panel-en.js";
 import { cloud } from "./cloud-en.js";
 import { explorer } from "./explorer-en.js";
 import { presence } from "./cloud-presence-en.js";
@@ -463,4 +464,6 @@ export const en = {
   viewing,
   /** Who else is in the open project (`cloud-presence-en.ts`). */
   presence,
+  /** The account panel: profile, sign-ins, devices, tokens, usage (`account-panel-en.ts`). */
+  accountPanel,
 };

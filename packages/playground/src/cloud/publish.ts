@@ -117,6 +117,8 @@ export function openPublish(options: PublishOptions): HTMLDialogElement {
   handleInput.setAttribute("aria-describedby", `${handleInput.id}-hint ${handleProblem.id}`);
   slugInput.setAttribute("aria-describedby", `${slugInput.id}-hint ${slugProblem.id}`);
   const addressEnd = h("p", { class: "field-hint publish-address-end" });
+  /** For a person who already has a handle: what it is, and that it changes in the account panel. */
+  const handleNote = h("p", { class: "field-hint publish-handle-note" });
   const publishButton = h(
     "button",
     { type: "submit", class: "button primary with-text" },
@@ -135,6 +137,7 @@ export function openPublish(options: PublishOptions): HTMLDialogElement {
     slugField,
     slugProblem,
     addressEnd,
+    handleNote,
     publishButton,
   );
 
@@ -402,6 +405,7 @@ export function openPublish(options: PublishOptions): HTMLDialogElement {
     const ready = state.list === "ready";
     form.hidden = !ready;
     handleBlock.hidden = state.handle !== null;
+    handleNote.textContent = state.handle === null ? "" : m.handleInAccount(state.handle);
     listSection.hidden = !ready;
     none.hidden = !(ready && state.publications.length === 0);
     removedSection.hidden = !(ready && state.takedowns.length > 0);

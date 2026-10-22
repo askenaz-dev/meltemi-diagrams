@@ -144,6 +144,8 @@ export const publishing = {
   handleTaken: "That handle is already taken. Try another.",
   handleInvalid: "The service did not accept that handle.",
   handleLocked: "Your handle cannot change while you have published pages.",
+  /** Under the address, for a person who already has a handle: where it changes. */
+  handleInAccount: (handle: string) => `Your handle is ${handle}; change it in Account.`,
   choosingHandle: "Choosing your handle…",
 
   /** The page's name: the last part of its address. */

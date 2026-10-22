@@ -49,6 +49,7 @@ describe("a session cookie the verifier accepts", () => {
       sub: "u1",
       sid,
       profile: ANA,
+      token: cookie.slice("meltemi_session=".length),
     });
     expect(await h.store.user("u1")).toEqual({
       ...ANA,
@@ -76,6 +77,7 @@ describe("a session cookie the verifier accepts", () => {
       sub: "u1",
       sid,
       profile: ANA,
+      token: cookie.slice("meltemi_session=".length),
     });
     expect(await h.store.user("u1")).toMatchObject(ANA);
     // The keys were inline; the only thing tried was the session check, and nobody answered.

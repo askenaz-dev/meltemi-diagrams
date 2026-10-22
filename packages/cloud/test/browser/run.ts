@@ -135,6 +135,103 @@ function accountParts(page: Page) {
 
 const scenarios: Scenario[] = [
   {
+    name: "the account panel reads sign-ins and devices through the Worker, signed and with Ana's session, and signs a device out",
+    signedIn: "u-ana-panel",
+    async run(t) {
+      const { page, worker, identity, context } = t;
+      // Ana has a second device, a phone, besides this browser.
+      identity.account("u-ana-panel", {
+        sessions: [{ sid: "sid-panel-phone", label: "Firefox on Android" }],
+      });
+      await t.open("/");
+      const { button, menu } = accountParts(page);
+      await button.click();
+      await menu.getByRole("menuitem", { name: "Account", exact: true }).click();
+      const panel = page.locator("dialog.settings[open]");
+      await panel.waitFor();
+      assert.equal(await page.locator("iframe").count(), 0, "nothing is framed");
+      assert.equal(context.pages().length, 1, "no tab was opened");
+
+      // Sign-ins: the stand-in's GitHub identity, the only one, which cannot be unlinked.
+      await panel.getByRole("tab", { name: "Sign-ins" }).click();
+      const signins = panel.locator("#account-section-signins .signin-list .account-row");
+      await signins.first().waitFor();
+      assert.equal(await signins.count(), 1);
+      assert.equal(
+        await signins.first().getByRole("button", { name: "Unlink GitHub" }).isDisabled(),
+        true,
+      );
+
+      // The Worker made the call, signed as this product and with Ana's session.
+      const read = identity.accountCalls.find(
+        (call) => call.path === "/api/account" && call.sub === "u-ana-panel",
+      );
+      assert.ok(read, "the identity service was asked for Ana's account");
+      assert.equal(read.product, "diagrams");
+      assert.equal(read.status, 200);
+
+      // Devices: the phone is signed out after a question, and its session ends at the identity
+      // service: the Worker asks about it once its cache lets go, and finds nobody.
+      await panel.getByRole("tab", { name: "Devices" }).click();
+      const devices = panel.locator("#account-section-devices .device-list .account-row");
+      await until(
+        page,
+        "two devices",
+        () =>
+          document.querySelectorAll("#account-section-devices .device-list .account-row").length ===
+          2,
+      );
+      await panel.getByRole("button", { name: "Sign out Firefox on Android" }).click();
+      await page
+        .locator("dialog[open]")
+        .last()
+        .getByRole("button", { name: "Sign out the device", exact: true })
+        .click();
+      await until(
+        page,
+        "the phone to go",
+        () =>
+          document.querySelectorAll(
+            "#account-section-devices .device-list .account-row:not(.row-gone)",
+          ).length === 1,
+      );
+      assert.equal(await devices.filter({ hasText: "This device" }).count(), 1);
+      assert.ok(
+        identity.accountCalls.some(
+          (call) =>
+            call.path === "/api/account/sessions/sid-panel-phone/revoke" && call.status === 200,
+        ),
+        "the identity service signed the phone out",
+      );
+      assert.equal(
+        (await fetch(`${IDENTITY}/sessions/sid-panel-phone`)).status,
+        404,
+        "the phone's session ended",
+      );
+
+      // An API token cannot read the account, and another page cannot change it.
+      const made = await t.ask("/api/tokens", {
+        method: "POST",
+        headers: { ...t.cookie, Origin: worker.origin, "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "panel" }),
+      });
+      const token = made.json()["token"] as string;
+      assertError(
+        await t.ask("/api/account/identity", { headers: bearer(token) }),
+        403,
+        "request.forbidden",
+      );
+      assertError(
+        await t.ask("/api/account/identity/sessions/revoke-others", {
+          method: "POST",
+          headers: { ...t.cookie, Origin: IDENTITY },
+        }),
+        403,
+        "request.forbidden",
+      );
+    },
+  },
+  {
     name: "anonymous: Sign in links to the identity service, the Worker answers the session, the playground works as before",
     async run(t) {
       const { page, origin } = t;
@@ -339,7 +436,7 @@ const scenarios: Scenario[] = [
       );
       assert.equal(drawn, true, "her picture loads from the Worker's origin");
 
-      // The menu: Account (a page of the identity service), API tokens, Sign out (a form).
+      // The menu: Account (the account panel), API tokens (the panel at that section), Sign out (a form).
       assert.equal(await menu.isVisible(), false);
       await button.click();
       assert.equal(await menu.isVisible(), true);
@@ -349,8 +446,7 @@ const scenarios: Scenario[] = [
         "Sign out",
       ]);
       const account = menu.getByRole("menuitem", { name: "Account", exact: true });
-      assert.equal(await account.getAttribute("href"), `${IDENTITY}/account`);
-      assert.equal(await account.getAttribute("target"), "_blank");
+      assert.equal(await account.getAttribute("href"), null, "Account opens the panel, not a tab");
       const form = menu.locator("form");
       assert.equal(await form.getAttribute("method"), "post");
       assert.equal(await form.getAttribute("action"), `${IDENTITY}/logout`);
@@ -377,7 +473,7 @@ const scenarios: Scenario[] = [
     },
   },
   {
-    name: "API tokens: made in the dialog and shown once, listed, used as a bearer, revoked",
+    name: "API tokens: made in the account panel and shown once, listed, used as a bearer, revoked",
     signedIn: "u-ana-tokens",
     async run(t) {
       const { page, origin, seen } = t;
@@ -389,7 +485,11 @@ const scenarios: Scenario[] = [
       };
       await openDialog();
       const dialog = page.locator("dialog[open]");
-      assert.equal(await dialog.locator("h2").textContent(), "API tokens");
+      assert.equal(await dialog.locator("h2").first().textContent(), "Account");
+      assert.equal(
+        await dialog.getByRole("tab", { name: "API tokens" }).getAttribute("aria-selected"),
+        "true",
+      );
       await until(
         page,
         "the list to load",
@@ -447,7 +547,7 @@ const scenarios: Scenario[] = [
         "request.forbidden",
       );
 
-      // Closing the dialog drops the token from the page, and it is nowhere in the browser.
+      // Closing the panel drops the token from the page, and it is nowhere in the browser.
       await dialog.getByRole("button", { name: "Close", exact: true }).last().click();
       await until(page, "the dialog to close", () => document.querySelector("dialog") === null);
       assert.equal(await pageHolds(page, token), false, "the token is gone from the page");
@@ -1086,6 +1186,7 @@ async function main(): Promise<void> {
     started = Date.now();
     const running = await startWorker();
     worker = running;
+    identity.serveAccounts({ secret: running.eventsSecret, keys: running.keys });
     console.log(`  the Worker, running at ${running.origin} (${took(started)})`);
     browser = await chromium.launch({ executablePath, headless: true });
     console.log(`  the browser, ${basename(executablePath)} ${browser.version()}`);

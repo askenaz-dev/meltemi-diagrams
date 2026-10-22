@@ -31,9 +31,20 @@ afterEach(() => setLocale("en"));
 
 describe("the playground's catalog", () => {
   it("has every entry in Spanish", () => {
-    // Words that are rightly the same in both languages: formats and the playground's name.
+    // Words that are rightly the same in both languages: formats, the playground's name and the
+    // sign-in providers' names.
     expect(
-      untranslated(en, es, ["SVG", "PNG", "GIF", "MP4", "WebM", "playground", "Playground"]),
+      untranslated(en, es, [
+        "SVG",
+        "PNG",
+        "GIF",
+        "MP4",
+        "WebM",
+        "playground",
+        "Playground",
+        "GitHub",
+        "Google",
+      ]),
     ).toEqual([]);
   });
 

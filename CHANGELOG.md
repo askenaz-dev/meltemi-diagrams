@@ -37,6 +37,23 @@ with the project's switcher at its top, as VS Code lists a workspace
 - The path of the open file above the code; menus and dialogs fade in, folders open by their height,
   rows made or moved flash once, and none of it moves with reduced motion.
 
+### Account
+
+- The account panel: the avatar's Account and API tokens open one panel in the page, with Profile
+  (picture, name, the emails of your sign-ins, the publishing handle, Sign out), Sign-ins (unlink
+  one, link the other), Devices (sign out one device or all the others), API tokens (the dialog,
+  now a section), Usage (the limits too) and the Danger zone. Nothing opens a tab, a popup or a
+  frame; on a phone the panel is a sheet with its sections as tabs
+  ([decision 0049](docs/decisions/0049-account-panel.md)).
+- Linking a provider and deleting the account go to the identity service in the same tab, the work
+  kept first, and come back to the section they left (`?account=<section>`).
+- The Worker reads and changes the identity service's sign-ins and sessions on the person's behalf
+  (`/api/account/identity…`), signed as this product and carrying the person's session, so the page
+  keeps talking to its own origin only; it needs `@meltemi/identity` 0.2.0. New codes:
+  `identity.last`, `provider.unknown`, `session.current`, `session.not-found`, `rate.limited` and
+  `identity.unavailable`.
+- The publish dialog says what your handle is and that it changes in the account.
+
 ### Command line
 
 - `init --list` prints each template's title, description and contents ("1 model, 2 views").

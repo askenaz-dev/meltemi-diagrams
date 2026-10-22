@@ -267,24 +267,55 @@ página guarda tu proyecto en el navegador. Todo lo demás funciona como antes y
 
 **Con la sesión iniciada**, la cabecera muestra tu avatar y tu nombre, con un menú de tres entradas:
 
-| Entrada           | Hace                                                                                                                                             |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Cuenta**        | Abre en una pestaña nueva la página de tu cuenta en el servicio de identidad: tus métodos de inicio de sesión, tus sesiones y eliminar la cuenta |
-| **Tokens de API** | Abre el diálogo de tokens de API                                                                                                                 |
-| **Cerrar sesión** | Termina la sesión en el servicio de identidad y vuelve a la página                                                                               |
+| Entrada           | Hace                                                               |
+| ----------------- | ------------------------------------------------------------------ |
+| **Cuenta**        | Abre el panel de la cuenta en Perfil, en esta página               |
+| **Tokens de API** | Abre el panel de la cuenta en Tokens de API                        |
+| **Cerrar sesión** | Termina la sesión en el servicio de identidad y vuelve a la página |
 
 Debajo de las entradas el menú muestra lo que contiene tu cuenta, leído al abrir el menú: cuántos de
 los 100 proyectos que admite tiene y cuánto de sus 200 MiB de almacenamiento usa, como en "3 de 100
-proyectos" y "5,2 MiB de 200 MiB usados", con una barra delgada junto a cada uno. No muestra nada si
-el servicio no responde, y aparece solo donde hay proyectos en la nube.
+proyectos" y "5,2 MiB de 200 MiB usados", con una barra delgada junto a cada uno; un clic sobre
+ellos abre el panel en Uso. No muestran nada si el servicio no responde, y aparecen solo donde hay
+proyectos en la nube.
 
-El diálogo de **Tokens de API** crea los tokens que permiten que la línea de comandos y los scripts
-actúen como tú. Los lista con la fecha de creación y del último uso de cada uno, crea uno a partir
-de un nombre de hasta 60 caracteres y revoca uno después de una confirmación. Un token nuevo se
-muestra una sola vez, con un botón para copiarlo, y desaparece cuando se cierra el diálogo; el
-servicio solo conserva un hash. Una cuenta tiene como máximo 20. Un token autentica la API del
-servicio como `Authorization: Bearer`, que es como lo usan los comandos de la nube de la línea de
-comandos ([los tokens de API](cloud.md#tokens-de-api), [la línea de comandos](cli.md#los-comandos-de-la-nube)).
+### El panel de la cuenta
+
+La cuenta es un panel en la página, nunca una pestaña, una ventana emergente ni un marco: una lista
+de secciones a la izquierda y la elegida a su lado, o, en una pantalla estrecha, una hoja sobre toda
+la página con las secciones como una tira de pestañas arriba. Las flechas, Inicio y Fin pasan de una
+sección a otra; Escape y el botón de cerrar vuelven a la página.
+
+| Sección               | Contiene                                                                                                                                                                                                        |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Perfil**            | Tu foto y tu nombre, los correos de tus inicios de sesión, el alias de publicación (de 3 a 30 letras minúsculas, dígitos o guiones; no puede cambiar mientras haya una página publicada con él) y Cerrar sesión |
+| **Inicios de sesión** | GitHub y Google tal como inicias sesión con ellos: la cuenta, si el proveedor verificó su correo, cuándo se vinculó; Desvincular, tras una pregunta, mientras quede otro; Vincular el otro                      |
+| **Dispositivos**      | Dónde tienes la sesión iniciada, con este dispositivo marcado; cerrar la sesión de un dispositivo o de todos los demás, tras una pregunta                                                                       |
+| **Tokens de API**     | Los tokens que permiten que la línea de comandos y los scripts actúen como tú (más abajo)                                                                                                                       |
+| **Uso**               | Tus proyectos y tu almacenamiento frente a sus límites, y los límites de los archivos, el tamaño y las versiones de un proyecto y de una imagen                                                                 |
+| **Zona de peligro**   | Eliminar la cuenta: lo que borra, y el camino a la página del servicio de identidad donde lo confirmas                                                                                                          |
+
+Inicios de sesión y Dispositivos son lo que guarda el servicio de identidad; la página le pregunta a
+su propio origen, cuyo Worker le pregunta al servicio de identidad en tu nombre
+([los datos de identidad](cloud.md#los-datos-de-identidad)). Cuando no se puede contactar con el
+servicio de identidad, las dos secciones lo dicen, con **Reintentar** y un enlace a su página de la
+cuenta; las demás secciones siguen funcionando. Un dispositivo cuya sesión cierras sigue
+funcionando en este producto hasta una hora, hasta que el Worker vuelve a comprobar su sesión.
+
+Dos cosas salen de la página, en la misma pestaña, y vuelven a la sección de la que salieron:
+vincular un proveedor (GitHub y Google muestran sus propias páginas) y eliminar la cuenta (lo
+confirmas en la página del servicio de identidad). La página guarda tu trabajo en el navegador
+antes de salir. El servicio de identidad te trae de vuelta a `?account=signins` o `?account=danger`;
+el panel se abre en esa sección y el parámetro sale de la dirección. Una sesión que termina con el
+panel abierto lo cierra y muestra la página sin sesión, con tu trabajo guardado.
+
+**Tokens de API** crea los tokens que permiten que la línea de comandos y los scripts actúen como
+tú. Los lista con la fecha de creación y del último uso de cada uno, crea uno a partir de un nombre
+de hasta 60 caracteres y revoca uno después de una confirmación. Un token nuevo se muestra una sola
+vez, con un botón para copiarlo, y desaparece cuando se cierra el panel; el servicio solo conserva
+un hash. Una cuenta tiene como máximo 20. Un token autentica la API del servicio como
+`Authorization: Bearer`, que es como lo usan los comandos de la nube de la línea de comandos
+([los tokens de API](cloud.md#tokens-de-api), [la línea de comandos](cli.md#los-comandos-de-la-nube)).
 
 Iniciar sesión añade tus proyectos en la nube al panel Proyectos del explorador
 ([proyectos en la nube](#proyectos-en-la-nube)) y no cambia nada más: el proyecto de tu navegador se queda donde está, no se sube nada hasta que
