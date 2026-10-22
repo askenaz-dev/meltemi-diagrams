@@ -40,7 +40,7 @@ client's socket on an internal `POST /disconnect`, for the suite's reconnection 
 - **WHEN** a WebSocket upgrade arrives with `Origin: https://evil.example` and a valid cookie
 - **THEN** the Worker answers 403 and no connection reaches the room
 
-#### Scenario: Anonymous on a private project cannot upgrade
+#### Scenario: Anonymous cannot upgrade
 - **WHEN** a WebSocket upgrade for `/rooms/<id>` of a `private` project arrives without a cookie and without a token
 - **THEN** the Worker answers `404 project.not-found` and no connection reaches the room
 
