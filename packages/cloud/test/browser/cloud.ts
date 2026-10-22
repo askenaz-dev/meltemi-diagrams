@@ -416,6 +416,8 @@ export interface Gate {
 export async function gateRooms(context: BrowserContext): Promise<Gate> {
   let shut = false;
   let refused = 0;
+  // Before the route, so that it finds the browser's own sockets: see `relayOnlyWhenOpen`.
+  await context.addInitScript(relayOnlyWhenOpen);
   await context.routeWebSocket(/\/rooms\//, (socket) => {
     if (shut) {
       refused++;
@@ -428,6 +430,24 @@ export async function gateRooms(context: BrowserContext): Promise<Gate> {
     get refused() {
       return refused;
     },
+  };
+}
+
+/**
+ * The page's sockets behind a door are Playwright's stand-ins: each relays what the page sends, by
+ * way of Node, to a socket of the browser's own, and says it is open until that socket's close has
+ * reached Node and come back. The page asks its socket before each message (`room.ts`) and cannot
+ * know better, so what it sent in that while would be tried on a socket the browser is closing,
+ * and the browser logs an error for each such message. Where rooms are behind a door, the
+ * browser's own sockets are only the ones behind the stand-ins: they take a message only while
+ * open, and what they drop the page offers the room again at the next hello. Runs in the page.
+ */
+function relayOnlyWhenOpen(): void {
+  const send = WebSocket.prototype.send;
+  // After the stand-in is in place, `WebSocket` is the stand-in's, and this would guard nothing.
+  if (!String(send).includes("[native code]")) throw new Error("WebSocket is not the browser's");
+  WebSocket.prototype.send = function (this: WebSocket, data: Parameters<WebSocket["send"]>[0]) {
+    if (this.readyState === WebSocket.OPEN) send.call(this, data);
   };
 }
 
