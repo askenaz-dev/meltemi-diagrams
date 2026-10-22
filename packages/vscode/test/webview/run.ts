@@ -748,11 +748,18 @@ async function closed(locator: Locator): Promise<boolean> {
   }
 }
 
-/** The centre of a locator's box, in page pixels. */
+/**
+ * The centre of a locator's box, in page pixels. A list that draws again (the icon results while
+ * the search settles) can replace the element between finding and measuring it, so it is measured
+ * again until it stays.
+ */
 async function middleOf(locator: Locator): Promise<{ x: number; y: number }> {
-  const box = await locator.boundingBox();
-  assert.ok(box, "no box");
-  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+  for (let tries = 0; tries < 40; tries++) {
+    const box = await locator.boundingBox().catch(() => null);
+    if (box) return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    await locator.page().waitForTimeout(50);
+  }
+  assert.fail("no box");
 }
 
 /** The icon picker, its search field and one of its results by reference. */
