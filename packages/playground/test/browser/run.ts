@@ -3051,8 +3051,16 @@ const tests: Test[] = [
         .click();
       const panel = page.locator("dialog.settings[open]");
       await panel.waitFor();
-      const box = await panel.boundingBox();
-      assert.ok(box && box.width === 375 && box.height === 760, JSON.stringify(box));
+      // The panel arrives with its motion: the sheet is measured once it has stopped moving.
+      await until(page, "the panel covering the screen", () => {
+        const sheet = document.querySelector("dialog.settings[open]")!.getBoundingClientRect();
+        return (
+          Math.abs(sheet.x) < 0.5 &&
+          Math.abs(sheet.y) < 0.5 &&
+          Math.abs(sheet.width - 375) < 0.5 &&
+          Math.abs(sheet.height - 760) < 0.5
+        );
+      });
       assert.equal(
         await panel.locator('[role="tablist"]').getAttribute("aria-orientation"),
         "horizontal",
