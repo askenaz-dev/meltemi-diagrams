@@ -47,11 +47,23 @@ export function presenceBar(actions: PresenceBarActions): PresenceBar {
         type: "button",
         class: "presence-person",
         title: where === undefined ? m.noFile : m.go(where),
-        "aria-label": m.person(name, where),
+        "aria-label": who.guest
+          ? `${m.person(name, where)} (${messages().cloud.live.guestBadge})`
+          : m.person(name, where),
         ...(where === undefined ? { "aria-disabled": "true" } : {}),
       },
       avatar(who.picture),
       h("span", { class: "presence-name" }, name),
+      // A person without an account, as the room says: badged, so nobody takes them for an account.
+      ...(who.guest
+        ? [
+            h(
+              "span",
+              { class: "presence-guest", title: messages().cloud.live.guestBadgeTitle },
+              messages().cloud.live.guestBadge,
+            ),
+          ]
+        : []),
       ...(where === undefined ? [] : [h("span", { class: "presence-file" }, fileName(where))]),
     );
     button.style.setProperty("--presence", who.colour);

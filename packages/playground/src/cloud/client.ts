@@ -49,6 +49,18 @@ export interface CloudProject {
   readonly thumbnail: string | undefined;
   /** What the person is to the project: `owner` in this change. */
   readonly role: string;
+  /**
+   * What the service says of the live session whose token the page sent (`live-sessions`): on, until
+   * when and whether guests edit; `null` when it is over; undefined when the page sent none.
+   */
+  readonly live?: LiveGrant | null;
+}
+
+/** A live session as the project's answer tells a page that sent its token. */
+export interface LiveGrant {
+  /** An ISO time. */
+  readonly until: string;
+  readonly guestsEdit: boolean;
 }
 
 /** What a person asks for when creating a project: a template by name, or files of their own. */
@@ -216,11 +228,20 @@ function thumbnailOf(value: unknown, page: string): string | undefined {
   }
 }
 
+/** What a project's answer says of a live session: a grant, `null`, or undefined when it says nothing. */
+function liveGrantOf(value: unknown): LiveGrant | null | undefined {
+  if (value === null) return null;
+  if (!isObject(value)) return undefined;
+  const { until, guestsEdit } = value;
+  return text(until) && typeof guestsEdit === "boolean" ? { until, guestsEdit } : undefined;
+}
+
 /** A project of the service's shape, or undefined for anything that lacks an id or a name. */
 export function projectOf(value: unknown, page: string): CloudProject | undefined {
   if (!isObject(value) || !text(value["id"]) || value["id"] === "" || !text(value["name"])) {
     return undefined;
   }
+  const live = liveGrantOf(value["live"]);
   return {
     id: value["id"],
     name: value["name"],
@@ -228,6 +249,7 @@ export function projectOf(value: unknown, page: string): CloudProject | undefine
     updatedAt: timeOf(value["updated_at"]),
     thumbnail: thumbnailOf(value["thumbnail"], page),
     role: text(value["role"]) ? value["role"] : "owner",
+    ...(live !== undefined ? { live } : {}),
   };
 }
 
@@ -323,10 +345,31 @@ function inPath(path: string): string {
   return path.split("/").map(encodeURIComponent).join("/");
 }
 
+/** The header a live session's guest sends its token in, on the two reads that take it. */
+export const LIVE_HEADER = "X-Meltemi-Live";
+
+/** What the calls need beyond the page: the live session's token the page holds, if any. */
+export interface CloudApiOptions {
+  /**
+   * The token of the live session the page joined (`live-sessions`), read at each call: it goes in
+   * `X-Meltemi-Live` on the project's read and on the blobs, and on nothing else.
+   */
+  readonly live?: () => string | undefined;
+}
+
 /** The calls of the page to `/api/projects` and `/api/account/usage`, relative to the page. */
-export function cloudApi(fetchFn: Fetch, location: Pick<Location, "href">): CloudApi {
+export function cloudApi(
+  fetchFn: Fetch,
+  location: Pick<Location, "href">,
+  options: CloudApiOptions = {},
+): CloudApi {
   const page = location.href.replace(/#.*$/, "");
   const accept = { Accept: "application/json" };
+  /** The token's header, for the two reads a guest makes outside the room. */
+  const token = (): Record<string, string> => {
+    const live = options.live?.();
+    return live === undefined ? {} : { [LIVE_HEADER]: live };
+  };
   const asJson = { ...accept, "Content-Type": "application/json" };
   const at = (path: string) => inPage(page, `api/${path}`);
   const project = (id: string, rest = "") => at(`projects/${encodeURIComponent(id)}${rest}`);
@@ -338,7 +381,8 @@ export function cloudApi(fetchFn: Fetch, location: Pick<Location, "href">): Clou
   return {
     list: () => call(fetchFn, at("projects"), { headers: accept }, readProjects(page)),
     create: (input) => call(fetchFn, at("projects"), withBody("POST", input), readProject(page)),
-    get: (id) => call(fetchFn, project(id), { headers: accept }, readProject(page)),
+    get: (id) =>
+      call(fetchFn, project(id), { headers: { ...accept, ...token() } }, readProject(page)),
     update: (id, patch) => call(fetchFn, project(id), withBody("PATCH", patch), readProject(page)),
     duplicate: (id) =>
       call(
@@ -372,7 +416,7 @@ export function cloudApi(fetchFn: Fetch, location: Pick<Location, "href">): Clou
       call(
         fetchFn,
         project(id, `/blobs/${encodeURIComponent(hash)}`),
-        {},
+        { headers: token() },
         (answer) => (answer.bytes ? { value: answer.bytes } : undefined),
         { timeout: TRANSFER_TIMEOUT_MS, bytes: true },
       ),

@@ -76,6 +76,10 @@ export const ERROR_STATUS = {
   "room.full": 409,
   /** A client sent more than 100 awareness messages in a second (`4429` on the socket). */
   "awareness.rate": 429,
+  /** Ten connections without an account are open from the client's address already (`4428` on the socket). */
+  "connections.limit": 429,
+  /** The live session that admitted the connection ended (`4410` on the socket). */
+  "session.ended": 410,
   /** The identity service keeps the last way a person signs in. */
   "identity.last": 409,
   /** A provider the identity service does not sign people in with. */
@@ -151,8 +155,10 @@ const MESSAGES: Record<ErrorCode, string> = {
   "publish.rate": "Too many publications for this project in an hour; wait a little.",
   "publish.taken": "Another of your projects already publishes under that name.",
   "message.too-large": "The message is over the size limit.",
-  "room.full": "The project is open on as many devices as it may be.",
+  "room.full": "The project is open on as many devices and by as many guests as it may be.",
   "awareness.rate": "Too many presence updates in a second.",
+  "connections.limit": "Too many connections without an account from this network.",
+  "session.ended": "The live session ended.",
   "identity.last": "This is the only way you sign in; link another provider first.",
   "provider.unknown": "Meltemi signs you in with GitHub or Google only.",
   "session.current": "This is the session you are using; sign out instead.",

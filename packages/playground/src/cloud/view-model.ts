@@ -28,6 +28,8 @@ export function viewerStatusWords(words: ViewWords["status"]): StatusWords {
     dropped: words.dropped,
     gone: words.gone,
     full: words.full,
+    ended: words.ended,
+    limited: words.limited,
     retry: words.retry,
   };
 }
@@ -43,17 +45,35 @@ export function roleOf(value: unknown): Role | undefined {
 /**
  * How a project opens:
  * - `edit`: the normal page, bound to the room; an `editor` works as the owner does, minus the
- *   actions only the owner has (rename, delete, share), which the projects drawer leaves out.
- * - `view-live`: view mode, connected to the room as a viewer (a signed-in person's quota is theirs
- *   to spend, and a room is cheap to follow).
+ *   actions only the owner has (rename, delete, share), which the projects drawer leaves out. A
+ *   guest of a live session that lets guests edit opens so too, keeping nothing in this browser.
+ * - `view-live`: view mode, connected to the room as a viewer: a signed-in viewer, a guest of a
+ *   session whose guests only look, and an anonymous visitor of a `view` or `edit` link, who follows
+ *   the room with a guest identity (`live-sessions`).
  * - `view-snapshot`: view mode on the files as they were when the page opened, with no socket and
- *   nothing kept in this browser (nobody is signed in; the reload hint tells when to look again).
+ *   nothing kept in this browser: only when the room did not answer an anonymous visitor in time
+ *   (the page says it may be old and offers to reload).
  */
 export type Opening = "edit" | "view-live" | "view-snapshot";
 
-/** The mode a person gets for a role: nobody signed in can only look, whatever the role says. */
-export function openingFor(signedIn: boolean, role: Role): Opening {
-  if (!signedIn) return "view-snapshot";
+/** What decides the mode: who is on the page, and what the service or the room says they are. */
+export interface OpeningFacts {
+  readonly signedIn: boolean;
+  readonly role: Role;
+  /** A live session's current token came with the address: the role is the session's (or higher). */
+  readonly live?: boolean;
+  /** The room did not answer within the usual wait (an anonymous visitor reads the snapshot). */
+  readonly unanswered?: boolean;
+}
+
+/**
+ * The mode a person gets: a session's token lets anyone edit when its role does; without one,
+ * nobody signed in can only look, whatever the role says, and follows the room live; the snapshot
+ * is only for an anonymous visitor the room did not answer.
+ */
+export function openingFor(facts: OpeningFacts): Opening {
+  const { signedIn, role, live } = facts;
+  if (!signedIn && live !== true) return facts.unanswered === true ? "view-snapshot" : "view-live";
   return role === "viewer" ? "view-live" : "edit";
 }
 

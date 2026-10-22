@@ -1,4 +1,5 @@
 import { setLocale } from "@meltemi/diagrams-i18n";
+import { planOpen } from "./cloud/address.js";
 import { realTimers } from "./cloud/binding.js";
 import type { CloudEnvironment } from "./cloud/controller.js";
 import type { IdbFactoryLike, KeyValueStore } from "./cloud/persistence.js";
@@ -57,7 +58,10 @@ function optional<T>(read: () => T | null | undefined): T | undefined {
   }
 }
 
-/** What the cloud projects use of the browser; the page gives it only to a person who is signed in. */
+/**
+ * What the cloud projects use of the browser; the page gives it to a person who is signed in, and to
+ * anybody whose address names a project (a guest's way into its room).
+ */
 function cloudEnvironment(): CloudEnvironment {
   return {
     fetch: (input, init) => fetch(input, init),
@@ -120,8 +124,11 @@ async function start(): Promise<void> {
     page,
     session,
     view: viewEnvironment(),
-    // Cloud projects are for a person signed in; nobody else gets any of their machinery.
-    ...(session.kind === "cookie" ? { cloud: cloudEnvironment() } : {}),
+    // Cloud projects are for a person signed in. A person nobody is signed in as gets the room's
+    // machinery only when the address names a project, to follow it live or join its live session.
+    ...(session.kind === "cookie" || planOpen(location.search).kind === "open"
+      ? { cloud: cloudEnvironment() }
+      : {}),
   });
   await playground.start();
   // For tests and the curious: the page's parts, read-only by convention.

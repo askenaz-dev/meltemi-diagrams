@@ -1,5 +1,6 @@
 import { list, plural } from "@meltemi/diagrams-i18n";
 import type { cloud as en } from "./cloud-en.js";
+import { live } from "./cloud-live-es.js";
 import { publishing, sharing } from "./cloud-share-es.js";
 
 /** Las palabras de los proyectos en la nube, entrada por entrada como en `cloud-en.ts`. */
@@ -120,6 +121,8 @@ export const cloud: typeof en = {
     dropped: "Se perdió la conexión. Reconectando…",
     gone: "Eliminado de la nube",
     full: (most) => `Sala llena: ya hay ${most} personas en este proyecto. Reintentando…`,
+    ended: "La sesión en vivo terminó",
+    limited: "Demasiadas conexiones desde esta red",
     retry: "Reintentar",
   },
 
@@ -151,7 +154,9 @@ export const cloud: typeof en = {
     thumbnailRate: "Las vistas previas se actualizan demasiado rápido.",
     accessDenied: "No puedes modificar este proyecto.",
     roomFull: (most) =>
-      `Ya hay ${most} personas conectadas a este proyecto. La página sigue intentándolo.`,
+      `Ya hay ${most} personas e invitados conectados a este proyecto. La página sigue intentándolo.`,
+    sessionEnded: "La sesión en vivo terminó.",
+    connectionsLimit: "Hay demasiadas personas sin cuenta conectadas desde esta red.",
     failed: (message, code) => `${message} (${code})`,
     failedStatus: (status) => `El servicio respondió con el estado ${status}.`,
     other: (code) => `La sala rechazó el cambio (${code}).`,
@@ -189,4 +194,6 @@ export const cloud: typeof en = {
       "Algo falló al mantener tus cambios al día. Vuelve a cargar la página si el proyecto se ve mal.",
     savedShortcut: "Guardado en la nube. Descarga el proyecto para tener una copia en otro lugar.",
   },
+
+  live,
 };

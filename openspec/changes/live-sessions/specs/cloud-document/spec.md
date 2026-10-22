@@ -131,5 +131,5 @@ hour after its last client left, each handler setting the next.
 - **THEN** the peers receive at most 20 of the first second's messages, and the sender's socket closes with 4429 `awareness.rate` during the second
 
 #### Scenario: One alarm, three reasons
-- **WHEN** a session ends in forty minutes, the last client left ten minutes ago, and a state goes silent now
-- **THEN** the alarm fires in thirty seconds for the state, then at the idle hour, then not at all for the session, which ended at the idle hour
+- **WHEN** a session ends in ninety minutes, a client's state goes silent now, and every client leaves ten minutes later
+- **THEN** the alarm fires in thirty seconds for the state, then at the idle hour seventy minutes from now, which ends the session, and not at all at ninety minutes

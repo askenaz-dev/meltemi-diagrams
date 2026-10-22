@@ -47,8 +47,13 @@ A host that shares the diagram can show who else is in it with `presence` messag
 in `@meltemi/diagrams-editor`): the other people, each with a name, a colour and the ids they have
 selected. The canvas draws an outline in the person's colour around each of those and a tag with
 the name (always text, never markup) on a layer above the scene that is never selected, copied or
-exported and that nothing of is sent back. Each message replaces the last; a message with nobody,
-an empty canvas or another diagram clears it, and ids the diagram does not have are ignored.
+exported and that nothing of is sent back. A person may also have a `pointer` (`{ x, y }` in
+diagram units): the canvas draws a cursor in their colour with the name at its tail, which glides
+to the next point in 200 ms and keeps its size at every zoom. Each message replaces the last; a
+message with nobody, an empty canvas or another diagram clears it, and ids the diagram does not
+have, and pointers that are not two finite numbers, are ignored. Once a host has sent `presence`,
+the canvas tells it where the person's own pointer is with `presencePointer` messages (diagram
+units and the diagram's id, `null` when it leaves), at most every 50 ms.
 
 Popovers, menus, side panels, tooltips and target outlines open and close with short transitions
 on the motion tokens of `canvas.css` (`--mdg-motion-fast`, `--mdg-motion`, `--mdg-motion-slow`,

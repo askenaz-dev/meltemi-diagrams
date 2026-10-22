@@ -1,4 +1,5 @@
 import { list, plural } from "@meltemi/diagrams-i18n";
+import { live } from "./cloud-live-en.js";
 import { publishing, sharing } from "./cloud-share-en.js";
 
 /**
@@ -130,6 +131,8 @@ export const cloud = {
     dropped: "The connection was lost. Reconnecting…",
     gone: "Deleted from the cloud",
     full: (most: number) => `Room full: ${most} people are in this project. Trying again…`,
+    ended: "Live session ended",
+    limited: "Too many connections from this network",
     retry: "Try again",
   },
 
@@ -162,7 +165,9 @@ export const cloud = {
     thumbnailRate: "Previews are updated too quickly.",
     accessDenied: "You cannot change this project.",
     roomFull: (most: number) =>
-      `${most} people are connected to this project already. The page keeps trying.`,
+      `${most} people and guests are connected to this project already. The page keeps trying.`,
+    sessionEnded: "The live session ended.",
+    connectionsLimit: "Too many people without an account are connected from this network.",
     failed: (message: string, code: string) => `${message} (${code})`,
     failedStatus: (status: number) => `The service answered with status ${status}.`,
     other: (code: string) => `The room refused the change (${code}).`,
@@ -204,4 +209,7 @@ export const cloud = {
       "Something went wrong while keeping your changes in step. Reload the page if the project looks wrong.",
     savedShortcut: "Saved to the cloud. Download the project to keep a copy elsewhere.",
   },
+
+  /** Live sessions: guests, their bar, and the owner's controls (`cloud-live-en.ts`). */
+  live,
 };

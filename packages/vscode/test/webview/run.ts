@@ -5489,8 +5489,8 @@ const tests: {
         await page
           .locator(".presence, .presence *")
           .evaluateAll((els) => els.map((e) => getComputedStyle(e).pointerEvents)),
-        Array(6).fill("none"),
-        "the layer, its svg, two outlines and two tags",
+        Array(7).fill("none"),
+        "the layer, its svg, the cursors' layer, two outlines and two tags",
       );
       await page.mouse.click(edge.x, edge.y);
       await h.settled();
@@ -5930,6 +5930,151 @@ const tests: {
       await h.settings({ readOnly: true });
       assert.equal(await page.locator(".presence-outline").count(), 2);
       assert.equal(h.text, SHEET);
+    },
+  },
+  {
+    name: "presence: reports the pointer to a host that shares presence, and only to one",
+    async run(h) {
+      const page = h.page;
+      const pointers = () =>
+        h.received.filter((m) => (m as { type: string }).type === "presencePointer");
+      const api = await h.centre("api");
+      // A host that never sent `presence` (an editor of one person's diagram) is told nothing.
+      await page.mouse.move(api.x, api.y);
+      await h.settled();
+      assert.deepEqual(pointers(), []);
+      await h.presence([]);
+      await page.mouse.move(api.x + 10, api.y + 4);
+      await page.waitForTimeout(80);
+      await h.settled();
+      const [first] = pointers() as { point: { x: number; y: number }; diagram?: string }[];
+      assert.ok(first, "the pointer was reported");
+      assert.equal(first.diagram, "d");
+      // In diagram units: api is placed at (126, 112), and the pointer is inside it.
+      assert.ok(first.point.x > 126 && first.point.y > 112, JSON.stringify(first.point));
+      assert.ok(Number.isInteger(first.point.x) && Number.isInteger(first.point.y));
+      // A burst of moves is at most a message every 50 ms, not one per move; the last position
+      // always arrives.
+      const before = pointers().length;
+      const started = Date.now();
+      for (let i = 1; i <= 20; i++) await page.mouse.move(api.x + i, api.y + i);
+      const took = Date.now() - started;
+      await page.waitForTimeout(120);
+      await h.settled();
+      const burst = pointers().slice(before) as { point: { x: number; y: number } }[];
+      assert.ok(
+        burst.length >= 1 && burst.length <= Math.ceil(took / 50) + 2 && burst.length < 20,
+        `${burst.length} messages for 20 moves in ${took} ms`,
+      );
+      const end = burst.at(-1)!.point;
+      assert.ok(end.x > first.point.x, "the last position arrived");
+      // Leaving the canvas says so.
+      await page.mouse.move(2, 2);
+      await page.waitForTimeout(80);
+      await h.settled();
+      assert.deepEqual(pointers().at(-1), { type: "presencePointer", point: null });
+      assert.deepEqual(h.writes(), []);
+    },
+  },
+  {
+    name: "presence: draws a cursor at each pointer, gliding, at every zoom, with the name as text, never exported",
+    async run(h) {
+      const page = h.page;
+      const errors: string[] = [];
+      page.on("pageerror", (error) => errors.push(error.message));
+      const exported = () => renderDiagram(h.analyze(h.text, h.revision), "d")!.svg;
+      const without = exported();
+      // The canvas's own report of a screen point is the diagram point a cursor there must show.
+      const reportAt = async (x: number, y: number) => {
+        await page.mouse.move(x, y);
+        await page.waitForTimeout(80);
+        await h.settled();
+        const last = h.received
+          .filter((m) => (m as { type: string }).type === "presencePointer")
+          .at(-1) as { point: { x: number; y: number } | null };
+        assert.ok(last.point, "a point was reported");
+        // The pointer leaves the stage again, so that it does not stand for the cursor.
+        await page.mouse.move(2, 2);
+        return last.point;
+      };
+      const cursor = async () =>
+        page.evaluate(() => {
+          const e = document.querySelector(".presence .presence-cursor");
+          if (!e) return undefined;
+          const r = e.getBoundingClientRect();
+          const arrow = e.querySelector("svg")!.getBoundingClientRect();
+          return {
+            x: r.x,
+            y: r.y,
+            arrow: { width: arrow.width, height: arrow.height },
+            gliding: e.classList.contains("gliding"),
+            transition: getComputedStyle(e).transitionDuration,
+            tag: e.querySelector(".presence-cursor-tag")?.textContent ?? "",
+          };
+        });
+      await h.presence([]);
+      const api = await h.centre("api");
+      const at = await reportAt(api.x, api.y);
+      const name = "<img src=x onerror=alert(1)>";
+      await h.presence([{ name, colour: "#1c7ed6", selection: [], pointer: at }]);
+      await page.waitForTimeout(300);
+      const drawnAt = await cursor();
+      assert.ok(drawnAt, "a cursor is drawn");
+      // The tip is one pixel into the arrow's box: it is where the pointer was on Ben's screen.
+      assert.ok(Math.abs(drawnAt.x + 1 - api.x) <= 1.5, `tip x ${drawnAt.x + 1} for ${api.x}`);
+      assert.ok(Math.abs(drawnAt.y + 1 - api.y) <= 1.5, `tip y ${drawnAt.y + 1} for ${api.y}`);
+      assert.equal(drawnAt.gliding, false, "a new cursor appears where it is");
+      // The name is the characters it is, in a text node, and builds nothing.
+      assert.equal(drawnAt.tag, name);
+      assert.equal(await page.locator(".presence img, .presence script").count(), 0);
+      // A press on the cursor goes through to the element under it.
+      const through = await page.evaluate(
+        ({ x, y }) => document.elementFromPoint(x, y)?.closest(".presence") == null,
+        { x: api.x + 2, y: api.y + 2 },
+      );
+      assert.equal(through, true);
+      // The next point glides there in 200 ms.
+      await h.presence([
+        { name, colour: "#1c7ed6", selection: [], pointer: { x: at.x + 60, y: at.y } },
+      ]);
+      const moving = await cursor();
+      assert.equal(moving?.gliding, true);
+      assert.equal(moving?.transition, "0.2s");
+      await page.waitForTimeout(350);
+      const glided = await cursor();
+      assert.ok(glided && glided.x > drawnAt.x + 40, "it went along");
+      // At 50% the tip is still on the point the canvas reports there, and the glyph keeps its size.
+      await page.getByRole("combobox", { name: "Zoom" }).selectOption("0.5");
+      await page.waitForTimeout(80);
+      const half = await h.centre("api");
+      const there = await reportAt(half.x, half.y);
+      await h.presence([{ name: "Ben", colour: "#1c7ed6", selection: [], pointer: there }]);
+      await page.waitForTimeout(300);
+      const small = await cursor();
+      assert.ok(small, "a cursor is drawn at 50%");
+      assert.ok(Math.abs(small.x + 1 - half.x) <= 1.5, `zoomed tip x ${small.x + 1} for ${half.x}`);
+      assert.ok(Math.abs(small.y + 1 - half.y) <= 1.5, `zoomed tip y ${small.y + 1} for ${half.y}`);
+      assert.deepEqual(small.arrow, drawnAt.arrow, "the glyph keeps its size on screen");
+      // A pointer that is not two finite numbers draws nothing, and raises nothing.
+      await h.postRaw({
+        type: "presence",
+        people: [{ name: "Eve", colour: "#000", selection: [], pointer: { x: "1", y: null } }],
+      });
+      assert.equal(await page.locator(".presence-cursor").count(), 0);
+      // Nobody leaves no cursor; the export never had one.
+      await h.presence([{ name: "Zed", colour: "#7048e8", selection: [], pointer: there }]);
+      assert.equal(await page.locator(".presence-cursor").count(), 1);
+      assert.equal(exported(), without);
+      assert.ok(!exported().includes("Zed") && !exported().includes("presence"));
+      assert.equal(
+        await page.locator(".content .presence-cursor, .minimap .presence-cursor").count(),
+        0,
+      );
+      await h.presence([]);
+      assert.equal(await page.locator(".presence-cursor").count(), 0);
+      await page.screenshot({ path: join(output, "canvas-presence-pointer.png") });
+      assert.deepEqual(h.writes(), []);
+      assert.deepEqual(errors, []);
     },
   },
   {

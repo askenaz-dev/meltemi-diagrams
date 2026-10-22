@@ -103,6 +103,7 @@ import { collaborationScenarios } from "./scenarios-collaboration.js";
 import { editingScenarios } from "./scenarios-editing.js";
 import { importScenarios } from "./scenarios-import.js";
 import { limitScenarios } from "./scenarios-limits.js";
+import { liveScenarios } from "./scenarios-live.js";
 import { offlineScenarios } from "./scenarios-offline.js";
 import { projectScenarios } from "./scenarios-projects.js";
 import { publishDialogScenarios } from "./scenarios-publish-dialog.js";
@@ -972,6 +973,7 @@ scenarios.push(
   ...limitScenarios,
   ...collaborationScenarios,
   ...collaborationRoomScenarios,
+  ...liveScenarios,
   ...cliScenarios,
 );
 if (stopsIdentity) scenarios.push(stopsIdentity);

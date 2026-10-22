@@ -35,12 +35,13 @@ const CY = { sub: "u-cy", name: "Cy", picture: "" };
 /** The connection id of a client: the key the room relays its state under. */
 const idOf = (client: RoomClient): string => client.connection.info.id;
 
-/** The identity the room attaches to what a person publishes. */
+/** The identity the room attaches to what a person publishes: these people have an account. */
 const userOf = (who: { sub: string; name: string; picture: string }) => ({
   sub: who.sub,
   name: who.name,
   picture: who.picture,
   colour: presenceColour(who.sub),
+  guest: false,
 });
 
 const CARET = { anchor: "AQID", head: "AQIE" };
@@ -768,7 +769,7 @@ describe("silence", () => {
     await ben.awareness({ file: A });
 
     expect(ana.peers).toHaveLength(1);
-    expect(w.room.warnings).toEqual(["room: the awareness alarm could not be set"]);
+    expect(w.room.warnings).toEqual(["room: the alarm could not be set"]);
     expect(w.room.alarmsSet).toEqual([]);
 
     await ben.awareness({ file: B });

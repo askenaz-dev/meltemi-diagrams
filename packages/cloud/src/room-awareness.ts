@@ -8,8 +8,10 @@
 //   client to room   { "<any key>": <state> | null }
 //   room to client   { "<connection id>": <peer> | null, ... }
 //
-// `<state>` is `{ file?, caret?, canvas? }` (`parseAwareness`), `<peer>` is the same with the room's
-// `user` on it. From a client the map holds exactly ONE entry, which is the client's own state; the
+// `<state>` is `{ file?, caret?, canvas? }` (`parseAwareness`), `canvas` holding the selection and
+// the pointer, `<peer>` is the same with the room's `user` on it (`guest` included, so that every
+// page badges a person without an account from the room's word alone). From a client the map holds
+// exactly ONE entry, which is the client's own state; the
 // key the client gives it is ignored, because the room keys what it relays by the sender's
 // connection id (`hello.you.id`), so that no client can speak for another's entry. `null` is "I have
 // no state any more". From the room, `null` is "that connection has no state any more" (it left, or
@@ -33,8 +35,10 @@ export const ATTACHMENT_BYTES = 2 * 1024;
 
 /** The longest encoded relative position of a caret (the page's own encoding, opaque to the room). */
 const MAX_POSITION = 256;
-/** The longest element id of a canvas selection. */
+/** The longest element id of a canvas selection, and of the diagram a pointer is over. */
 const MAX_ELEMENT = 256;
+/** How far from the origin a pointer may be, in diagram units: a diagram is never this large. */
+export const MAX_POINTER = 1_000_000;
 
 /** The two ends of a selection in the code pane: encoded Yjs relative positions. */
 export interface AwarenessCaret {
@@ -42,13 +46,29 @@ export interface AwarenessCaret {
   readonly head: string;
 }
 
+/**
+ * Where a person's pointer is over their canvas (`live-collaboration`, "Presence"): integers in
+ * diagram units, and the diagram it is over when the page said.
+ */
+export interface AwarenessPointer {
+  readonly x: number;
+  readonly y: number;
+  readonly diagram?: string;
+}
+
 /** What a client publishes. Every part is optional: a client with no file open publishes `{}`. */
 export interface AwarenessState {
   /** The id of the file the person has open (`FILE_ID`), so that presence survives a rename. */
   readonly file?: string;
   readonly caret?: AwarenessCaret;
-  /** The ids of the elements selected on the canvas. Never kept by the room, only relayed. */
-  readonly canvas?: { readonly selection: readonly string[] };
+  /**
+   * The ids of the elements selected on the canvas, and the pointer while it moves over it. Never
+   * kept by the room, only relayed.
+   */
+  readonly canvas?: {
+    readonly selection: readonly string[];
+    readonly pointer?: AwarenessPointer;
+  };
 }
 
 /** Who a state is of: what the room knows, never what the client says. */
@@ -57,6 +77,8 @@ export interface AwarenessUser {
   readonly name: string;
   readonly picture: string;
   readonly colour: string;
+  /** A person without an account: set by the room from the connection, never by the client. */
+  readonly guest: boolean;
 }
 
 /** A state as the room relays it. */
@@ -114,7 +136,11 @@ export function parseAwareness(payload: Uint8Array): ParsedAwareness | undefined
   if (entry === null) return { remove: true };
   if (!isRecord(entry)) return undefined;
 
-  const state: { file?: string; caret?: AwarenessCaret; canvas?: { selection: string[] } } = {};
+  const state: {
+    file?: string;
+    caret?: AwarenessCaret;
+    canvas?: { selection: string[]; pointer?: AwarenessPointer };
+  } = {};
   const file = entry["file"];
   if (file !== undefined && file !== null) {
     if (typeof file !== "string" || !FILE_ID.test(file)) return undefined;
@@ -130,16 +156,47 @@ export function parseAwareness(payload: Uint8Array): ParsedAwareness | undefined
   }
   const canvas = entry["canvas"];
   if (canvas !== undefined && canvas !== null) {
-    if (!isRecord(canvas) || !Array.isArray(canvas["selection"])) return undefined;
+    if (!isRecord(canvas)) return undefined;
+    // A canvas part holds a selection, a pointer or both; one without either is not a part.
+    const listed = canvas["selection"];
+    if (listed !== undefined && !Array.isArray(listed)) return undefined;
     const selection: string[] = [];
-    for (const element of canvas["selection"] as unknown[]) {
+    for (const element of (listed ?? []) as unknown[]) {
       const id = bounded(element, MAX_ELEMENT);
       if (id === undefined) return undefined;
       selection.push(id);
     }
-    state.canvas = { selection };
+    const given = canvas["pointer"];
+    let pointer: AwarenessPointer | undefined;
+    if (given !== undefined && given !== null) {
+      pointer = parsePointer(given);
+      if (!pointer) return undefined;
+    }
+    if (listed === undefined && !pointer) return undefined;
+    state.canvas = pointer ? { selection, pointer } : { selection };
   }
   return { state };
+}
+
+/** A coordinate of a pointer: a finite number within `MAX_POINTER` of the origin, as an integer. */
+function coordinate(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || Math.abs(value) > MAX_POINTER) {
+    return undefined;
+  }
+  // `Math.round(-0.4)` is `-0`, which JSON writes as `0` anyway.
+  return Math.round(value) || 0;
+}
+
+/** A pointer from a client: two coordinates and, maybe, the diagram; undefined for anything else. */
+function parsePointer(value: unknown): AwarenessPointer | undefined {
+  if (!isRecord(value)) return undefined;
+  const x = coordinate(value["x"]);
+  const y = coordinate(value["y"]);
+  if (x === undefined || y === undefined) return undefined;
+  const diagram = value["diagram"];
+  if (diagram === undefined || diagram === null) return { x, y };
+  const id = bounded(diagram, MAX_ELEMENT);
+  return id === undefined ? undefined : { x, y, diagram: id };
 }
 
 /** The identity of a person as the room attaches it to what it relays. */
@@ -147,7 +204,13 @@ export function userOf(
   info: RoomIdentity,
   colour: string = presenceColour(info.sub),
 ): AwarenessUser {
-  return { sub: info.sub, name: info.name, picture: info.picture, colour };
+  return {
+    sub: info.sub,
+    name: info.name,
+    picture: info.picture,
+    colour,
+    guest: info.guest === true,
+  };
 }
 
 /** The room's view of a client's state: the identity the room knows, then the client's parts. */

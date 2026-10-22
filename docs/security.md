@@ -50,7 +50,7 @@ storage until the person downloads it or, signed in, saves it to a cloud project
 ## Cloud projects
 
 Cloud projects (decision 0041, [cloud](cloud.md)) are how a person's work reaches the service, and
-only when they choose it. Five things keep them safe:
+only when they choose it. Six things keep them safe:
 
 - **The room.** Every change to a project passes its room, one Durable Object per project, which
   validates every transaction whatever its origin (a socket, a push through the API, a restored
@@ -58,8 +58,9 @@ only when they choose it. Five things keep them safe:
   hidden), values must have the shape of the document, a binary must be a hash the project
   uploaded, and the limits must hold. A transaction that breaks a rule is rolled back and its
   sender told. The room answers only requests the Worker constructs, so no header or path of a
-  browser reaches it and nobody can name their own role; the socket needs the session cookie and an
-  `Origin` that is the service's own.
+  browser reaches it and nobody can name their own role; the socket needs an `Origin` that is the
+  service's own, and either a role the project gives the person or a live session's token the room
+  checks itself.
 - **Sandboxed blobs.** An uploaded image or font is typed from its bytes, never from the
   `Content-Type` a client claims, and an SVG must be well-formed XML with an `svg` root. Every blob
   is served with `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff` and as an
@@ -73,8 +74,9 @@ only when they choose it. Five things keep them safe:
   are limited (six versions a minute and ten publish requests an hour for a project), each refusal
   with a stable code ([quotas and limits](cloud.md#quotas-and-limits)).
 - **Presence comes from the room.** Who is where is relayed by the room and kept by nobody
-  ([awareness](cloud.md#awareness)). The room sets the `sub`, name, picture and colour of every
-  state it relays from the cookie that opened the sender's socket, whatever the message said, and
+  ([awareness](cloud.md#awareness)). The room sets the `sub`, name, picture, colour and guest flag
+  of every state it relays from the identity the Worker gave the sender's socket (the cookie's
+  person, or a guest the Worker named), whatever the message said, and
   keys the state by that socket, so nobody can appear as another person or speak for another's
   entry. A page reads who a person is from that and from nowhere else, and bounds what it takes
   (a name is one line of at most 100 characters, a picture passes the avatar rule and the page's
@@ -82,9 +84,23 @@ only when they choose it. Five things keep them safe:
   the code and the canvas as a text node, so a name such as `<img src=x>` shows as its characters
   and builds nothing. The traffic is bounded too: a presence message over 16 KiB closes its sender,
   more than 20 a second are dropped and more than 100 close the socket (`awareness.rate`), a page
-  sends four a second at most, and a viewer may send presence but never an update. The room keeps
-  a client's last state only in the socket's attachment, never in its database, the canvas
-  selection nowhere, and the page never saves it or writes it into an export.
+  sends four a second at most, and a viewer may send presence but never an update. A pointer is two
+  finite numbers within a million of the origin, or the state is dropped. The room keeps a client's
+  last state only in the socket's attachment, never in its database, the canvas selection and the
+  pointer nowhere, and the page never saves it or writes it into an export.
+- **Connections without an account are bounded.** An anonymous visitor of a `view` or `edit` link,
+  and a guest of a live session, connect with an identity the Worker sets: a `guest:` sub from an id
+  their browser made (32 hexadecimal characters, else `400`), a name of 1 to 40 characters with no
+  control character (else "Guest NN"), and no picture; the room refuses an account whose sub would
+  pass for a guest's. They take the room's twenty places and give them up to the owner and the
+  editors with an account; one client address holds at most ten of them in a room
+  (`connections.limit`); a visitor is a viewer, and a guest edits only while a session that lets
+  guests edit is on. A live session lasts a day at most and ends after an hour with nobody in its
+  room; ending it closes every connection it admitted (`session.ended`). Its token is 128 random bits
+  kept in clear in the room, like an invitation's, answered to the owner alone and never logged; a
+  token that is not current is `404`, revealing nothing. Besides the room it reaches the project's
+  row and its blobs, and no route that writes outside the room, reads the versions, the thumbnail or
+  the sharing, or costs the owner's storage ([live sessions](cloud.md#live-sessions)).
 
 ## Sharing and publishing
 
@@ -109,8 +125,9 @@ again only when they choose it, and a new project is private. Four things keep t
 - **A page that only shows.** View mode refuses every edit at the one place edits pass, and again at
   each control; the canvas is told `readOnly`, sends the page no action and hides what writes; the
   binding of a viewer never sends an update, and the room would refuse one. A person who is not
-  signed in reads the project with ordinary requests to the page's own origin, and nothing of a
-  viewed project is kept in the browser.
+  signed in follows the room as a viewer, or reads the project with ordinary requests to the page's
+  own origin when the room does not answer, and nothing of a viewed project, nor of a project a
+  guest edits, is kept in the browser.
 - **Published pages are other people's HTML, on a domain of their own.** A published page is the
   catalog the page built, served from a domain that is not under `meltemi.dev` by a second Worker
   that holds the database and the bucket and nothing else: no assets, no secret, no cookie and no
@@ -197,6 +214,8 @@ only measured.
 | A published page                | 16 MiB, ten requests an hour for a project                 | `publish.too-large`, `publish.rate`                                        |
 | Members of a project            | 50 with the pending invitations                            | `quota.members`                                                            |
 | Presence messages               | 16 KiB; 20 a second relayed, 100 a second close the socket | `message.too-large`, `awareness.rate`                                      |
+| Connections without an account  | 10 open ones in a room from one client address             | `connections.limit`                                                        |
+| A live session                  | 24 hours, one hour with nobody in the room                 | `session.ended`                                                            |
 | A push to the cloud             | 2,000 files, 16 MiB of text, 10 MiB an image or a font     | `quota.files`, `doc.too-large`, `quota.binary`, refused before any request |
 
 ## Errors without secrets

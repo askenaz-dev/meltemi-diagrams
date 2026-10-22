@@ -9,7 +9,13 @@
 // person is a member of beside their own).
 
 import { CLOUD_LIMITS, isCleanPath } from "@meltemi/diagrams-project";
-import { access as accessOf, requireAccess, requirePrincipal, type Role } from "../access.js";
+import {
+  access as accessOf,
+  requireAccess,
+  requirePrincipal,
+  requireReadWithLive,
+  type Role,
+} from "../access.js";
 import type { Ctx, Route } from "../context.js";
 import { BLOB_HASH } from "../document.js";
 import { fail, type ErrorCode } from "../errors.js";
@@ -274,12 +280,20 @@ export const createProjectRoute: Route = async (ctx) => {
 
 /**
  * `GET /api/projects/:id`: the project's row, for anyone the project's link admits, anonymous
- * callers included (`read`); `role` says what the asker is to it, which the page opens in view mode
- * for when it is `viewer`.
+ * callers included (`read`), and for whoever carries a live session's current token in
+ * `X-Meltemi-Live`; `role` says what the asker is to it, which the page opens in view mode for when
+ * it is `viewer`. With the header, `live` says whether the session is on (`{ until, guestsEdit }`)
+ * or not (`null`), so that a page holding an old link drops the token.
  */
 export const getProjectRoute: Route = async (ctx) => {
-  const { access } = await requireAccess(ctx, "read");
-  return json(projectJson(access.project, access.role));
+  const { access, live } = await requireReadWithLive(ctx, { report: true });
+  const answer = projectJson(access.project, access.role);
+  if (live === undefined) return json(answer);
+  // The page that sent a token is told whether its session is still on, and until when.
+  return json({
+    ...answer,
+    live: live ? { until: new Date(live.until).toISOString(), guestsEdit: live.guestsEdit } : null,
+  });
 };
 
 /**

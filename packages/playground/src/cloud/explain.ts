@@ -56,6 +56,10 @@ export function codeText(code: string, words: CloudWords["errors"]): string | un
       return words.accessDenied;
     case "room.full":
       return words.roomFull(CLOUD_LIMITS.clients);
+    case "session.ended":
+      return words.sessionEnded;
+    case "connections.limit":
+      return words.connectionsLimit;
     default:
       return undefined;
   }

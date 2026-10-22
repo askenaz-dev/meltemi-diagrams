@@ -94,10 +94,11 @@ describe("a peer's state", () => {
       PAGE,
     );
     expect(state).toEqual({
-      user: { sub: "u_ben", name: "Ben", picture: "https://avatars.example/ben.png" },
+      user: { sub: "u_ben", name: "Ben", picture: "https://avatars.example/ben.png", guest: false },
       file: FILE,
       caret: { anchor: "AAEC", head: "AwQF" },
       selection: ["api", "db"],
+      pointer: undefined,
     });
   });
 
@@ -125,6 +126,7 @@ describe("a peer's state", () => {
       sub: "u_ben",
       name: "Ben",
       picture: "https://avatars.example/ben.png",
+      guest: false,
     });
   });
 

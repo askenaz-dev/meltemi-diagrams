@@ -9,7 +9,7 @@ import {
   type TextEdit,
 } from "@meltemi/diagrams-language";
 import { MANIFEST_NAME, templateManifest } from "@meltemi/diagrams-project";
-import { mountCanvas } from "./canvas-host.js";
+import { mountCanvas, type CanvasPointer } from "./canvas-host.js";
 import { accountControl, type AccountControl } from "./cloud/account.js";
 import {
   ACCOUNT_PARAMETER,
@@ -17,10 +17,19 @@ import {
   withoutAccountParameter,
 } from "./cloud/account-panel-model.js";
 import { planOpen } from "./cloud/address.js";
-import { CloudController, manifestName, type CloudEnvironment } from "./cloud/controller.js";
+import {
+  CloudController,
+  manifestName,
+  type CloudEnvironment,
+  type CloudHooks,
+} from "./cloud/controller.js";
 import { explainFailure } from "./cloud/explain.js";
+import { defaultGuestName, guestId, keepGuestName, keptGuestName } from "./cloud/guest.js";
 import { CLOUD_ICON } from "./cloud/icons.js";
+import { LiveSessions } from "./cloud/live.js";
+import { guestsIn, mountGuestBar, mountLiveChip, type GuestName } from "./cloud/live-mount.js";
 import { mountCloudExtras } from "./cloud/mount.js";
+import { mountPresence } from "./cloud/presence-mount.js";
 import { publishApi } from "./cloud/publish-api.js";
 import { openShareDialog } from "./cloud/share.js";
 import type { Session } from "./cloud/session.js";
@@ -136,6 +145,17 @@ export class Playground {
   /** The page's cloud projects, for a person who is signed in. */
   readonly cloud: CloudController | undefined;
   /**
+   * A person without an account's way into a project's room (`live-sessions`): made where the page
+   * can reach the service and its address names a project, for a person nobody is signed in as.
+   */
+  readonly guestCloud: CloudController | undefined;
+  /** The name a person without an account goes by, and how to change it. */
+  private readonly guestName: GuestName | undefined;
+  /** What the page knows of the open project's live session, for its owner. */
+  readonly live = new LiveSessions();
+  /** Who hears where the person's pointer is over the canvas (presence). */
+  private canvasPointer: ((at: CanvasPointer | undefined) => void) | undefined;
+  /**
    * Where the header shows what only a cloud project has (the versions panel's button, say): beside
    * the Projects button, and hidden while no cloud project is open. Another module appends its
    * controls here and follows `cloud.subscribe`.
@@ -190,31 +210,51 @@ export class Playground {
       rename: (offset, newId) => this.rename(offset, newId),
       definition: (offset) => this.definition(offset),
     });
-    // Cloud projects exist only for a person signed in with a cookie; nobody else gets any of it.
+    const hooks: CloudHooks = {
+      studio,
+      templates: () => this.templates,
+      selection: () => this.code.selection(),
+      words: () => messages().cloud,
+      report: (message) => this.status(message),
+      status: (status) => this.showConnection(status),
+      changed: (project) => this.cloudChanged(project !== undefined),
+      // Nothing open yet (the page is starting) has nothing to keep: an empty project must never
+      // replace the work the browser holds.
+      keepLocal: () => {
+        if (this.studio.host.paths().length > 0) this.keepNow({ edited: false });
+      },
+      showLocal: () => this.openAnonymous(),
+      undoChanged: () => this.updateUndo(),
+      localFiles: () => this.files(),
+      // What the person is to the project decides the mode: a viewer's page edits nothing.
+      access: (access) => this.viewing.access(access),
+      // A live session ended and the link does not admit the person: what the page shows stays.
+      frozen: (project) => this.viewing.frozen(project),
+    };
+    // Cloud projects exist only for a person signed in with a cookie. A person nobody is signed in as
+    // gets only a way into the room of the project the address names, as a guest (`live-sessions`).
     if (options.session.kind === "cookie" && options.cloud) {
-      this.cloud = new CloudController(options.cloud, {
-        studio,
-        templates: () => this.templates,
-        selection: () => this.code.selection(),
-        words: () => messages().cloud,
-        report: (message) => this.status(message),
-        status: (status) => this.showConnection(status),
-        changed: (project) => this.cloudChanged(project !== undefined),
-        // Nothing open yet (the page is starting) has nothing to keep: an empty project must never
-        // replace the work the browser holds.
-        keepLocal: () => {
-          if (this.studio.host.paths().length > 0) this.keepNow({ edited: false });
+      this.cloud = new CloudController(options.cloud, hooks);
+    } else if (options.cloud && planOpen(location.search).kind === "open") {
+      const storage = options.cloud.storage;
+      const id = guestId(storage, (length) => crypto.getRandomValues(new Uint8Array(length)));
+      let chosen = keptGuestName(storage);
+      this.guestName = {
+        name: () => chosen ?? defaultGuestName(id, messages().cloud.live),
+        setName: (name) => {
+          chosen = name;
+          keepGuestName(storage, name);
         },
-        showLocal: () => this.openAnonymous(),
-        undoChanged: () => this.updateUndo(),
-        localFiles: () => this.files(),
-        // What the person is to the project decides the mode: a viewer's page edits nothing.
-        access: (access) => this.viewing.access(access),
+      };
+      const guest = this.guestName;
+      this.guestCloud = new CloudController(options.cloud, hooks, {
+        guest: { id, name: () => guest.name() },
       });
     }
     this.viewing = new ViewPage({
       studio,
       cloud: this.cloud,
+      guest: this.guestCloud,
       environment: options.view,
       words: () => messages(),
       report: (message) => this.status(message),
@@ -248,8 +288,49 @@ export class Playground {
       status: (message) => this.status(message),
     });
     // The versions button and the thumbnail: only for a person signed in, and only while a cloud
-    // project is open.
-    if (this.cloud) mountCloudExtras(this, this.cloud);
+    // project is open; the live session's chip only for its owner.
+    if (this.cloud) {
+      mountCloudExtras(this, this.cloud);
+      mountLiveChip(this, this.cloud);
+    }
+    // A person without an account in a room: who else is here, and the guest bar.
+    if (this.guestCloud && this.guestName) {
+      mountPresence(this, this.guestCloud);
+      const session = options.session;
+      mountGuestBar(
+        this,
+        this.guestCloud,
+        this.guestName,
+        session.kind === "cookie" ? undefined : session.signIn,
+      );
+    }
+  }
+
+  /**
+   * The controller of the project bound to a room, whoever is on the page: the signed-in person's,
+   * or a guest's. What concerns the connection (its status, the network, keeping) asks this one.
+   */
+  private get room(): CloudController | undefined {
+    return this.cloud ?? this.guestCloud;
+  }
+
+  /** Hears where the person's pointer is over the canvas (presence shares it); one listener. */
+  onCanvasPointer(listener: (at: CanvasPointer | undefined) => void): void {
+    this.canvasPointer = listener;
+  }
+
+  /** How many guests are in the open project now, from presence, and how to hear it change. */
+  guestsNow(): { now(): number; watch(listener: () => void): () => void } {
+    const controller = this.room;
+    return {
+      now: () => guestsIn(controller),
+      watch: (listener) => controller?.presence?.listen(listener) ?? (() => undefined),
+    };
+  }
+
+  /** Whether a person without an account is in a project's room: what needs an account is refused. */
+  private get asGuest(): boolean {
+    return this.guestCloud?.openProject !== undefined;
   }
 
   get templates(): readonly Template[] {
@@ -286,11 +367,15 @@ export class Playground {
     const share = iconButton("share", m.header.share, { text: true, title: m.header.shareTitle });
     // A cloud project offers its own link and its people, and so does a project that is only shown to
     // view by its link (nobody signed in included); the anonymous project's dialog is the `#p=` one.
-    share.addEventListener("click", () =>
-      this.cloud?.current() !== undefined || this.viewing.mode.active
-        ? openShareDialog(this)
-        : shareDialog(this),
-    );
+    share.addEventListener("click", () => {
+      // A guest of a live session shares nothing of a project that is not theirs: that needs an account.
+      if (this.guestCloud?.session !== undefined) {
+        this.status(messages().cloud.live.needsAccount.share);
+        return;
+      }
+      if (this.cloud?.current() !== undefined || this.viewing.mode.active) openShareDialog(this);
+      else void shareDialog(this);
+    });
     const exportButton = iconButton("export", m.header.export, {
       text: true,
       title: m.header.exportTitle,
@@ -311,7 +396,7 @@ export class Playground {
       "nav",
       { class: "actions", "aria-label": m.header.actions },
       // Signed in: what only an open cloud project has (its versions, its people).
-      ...(this.cloud
+      ...(this.room
         ? [this.cloudSlot, h("span", { class: "separator cloud-separator", role: "presentation" })]
         : []),
       open,
@@ -444,6 +529,7 @@ export class Playground {
         exportDialog: () => openExportDialog(this),
         exportPlayer: (story) => void writePlayer(this, story),
         openModel: () => this.openModel(),
+        pointer: (at) => this.canvasPointer?.(at),
       },
       {
         get: () => this.settings.canvas as never,
@@ -455,14 +541,14 @@ export class Playground {
     );
 
     document.addEventListener("keydown", (e) => this.onKey(e));
-    if (this.cloud) {
+    if (this.room) {
       // The connection changes with the network, and the work is kept as the page is left.
-      window.addEventListener("online", () => this.cloud?.network());
-      window.addEventListener("offline", () => this.cloud?.network());
-      window.addEventListener("pagehide", () => this.cloud?.flush());
+      window.addEventListener("online", () => this.room?.network());
+      window.addEventListener("offline", () => this.room?.network());
+      window.addEventListener("pagehide", () => this.room?.flush());
       document.addEventListener("visibilitychange", () => {
-        if (document.visibilityState === "hidden") this.cloud?.flush();
-        else this.cloud?.network();
+        if (document.visibilityState === "hidden") this.room?.flush();
+        else this.room?.network();
       });
     }
     const narrow = window.matchMedia(`(max-width: ${NARROW - 1}px)`);
@@ -731,7 +817,7 @@ export class Playground {
     if (status.state === "full") {
       // The page tries again by itself; the person may not want to wait.
       const retry = h("button", { type: "button", class: "cloud-retry" }, words.retry);
-      retry.addEventListener("click", () => this.cloud?.network());
+      retry.addEventListener("click", () => this.room?.network());
       this.connection.append(retry);
     }
     const note = announcement(this.shownConnection, status, words);
@@ -776,7 +862,7 @@ export class Playground {
   projectName(): string {
     const viewed = this.viewing.mode.state;
     if (viewed) return viewed.name;
-    const cloud = this.cloud?.openProject;
+    const cloud = this.room?.openProject;
     if (cloud) return cloud.name;
     return this.localName();
   }
@@ -870,9 +956,9 @@ export class Playground {
       switcher: {
         project: () => {
           const viewed = this.viewing.mode.state;
-          const status = this.cloud?.status;
+          const status = this.room?.status;
           if (viewed) return { name: viewed.name, where: "view", ...(status ? { status } : {}) };
-          const open = this.cloud?.openProject;
+          const open = this.room?.openProject;
           if (open) return { name: open.name, where: "cloud", ...(status ? { status } : {}) };
           return { name: this.localName(), where: "browser" };
         },
@@ -1013,7 +1099,7 @@ export class Playground {
     // A link opens as the anonymous project: a cloud project that is open, or one that is being
     // viewed, is left first, and the drawer then offers to save what the link brought.
     if (this.inCloud()) {
-      this.cloud?.leaveToLocal();
+      this.room?.leaveToLocal();
       this.viewing.leave();
     }
     const m = messages().project;
@@ -1174,6 +1260,7 @@ export class Playground {
     const m = messages().project;
     const prefix = folder === "" ? "" : `${folder}/`;
     const added: [string, string | Uint8Array][] = [];
+    let refused = false;
     for (const file of chosen) {
       const name = cleanPath(file.name);
       if (!name) continue;
@@ -1183,11 +1270,16 @@ export class Playground {
       } else if (name.endsWith(".meltemi")) {
         const into = beside && prefix === "" ? "diagrams/" : prefix;
         added.push([`${into}${name}`, new TextDecoder().decode(bytes)]);
-      } else if (isImagePath(name)) added.push([`${prefix}${name}`, bytes]);
-      else if (isTextPath(name)) added.push([`${prefix}${name}`, new TextDecoder().decode(bytes)]);
+      } else if (isImagePath(name)) {
+        // An image is stored in the owner's account: a guest has none to add it with.
+        if (this.asGuest) refused = true;
+        else added.push([`${prefix}${name}`, bytes]);
+      } else if (isTextPath(name)) {
+        added.push([`${prefix}${name}`, new TextDecoder().decode(bytes)]);
+      }
     }
     if (added.length === 0) {
-      this.status(m.noneOpenable);
+      this.status(refused ? messages().cloud.live.needsAccount.images : m.noneOpenable);
       return;
     }
     const replaced = added.filter(([path]) => this.studio.host.has(path)).map(([path]) => path);
@@ -1199,13 +1291,21 @@ export class Playground {
     const first = added.find(([path]) => path.endsWith(".meltemi"))?.[0];
     this.studio.addFiles(added, first);
     this.keepNow();
-    this.status(m.added(added.map(([p]) => p)));
+    this.status(
+      refused
+        ? `${m.added(added.map(([p]) => p))} ${messages().cloud.live.needsAccount.images}`
+        : m.added(added.map(([p]) => p)),
+    );
     if (first) this.explorer.reveal(first);
   }
 
   /** Asks for an image file, adds it beside the open file and returns its relative path. */
   private async pickImage(): Promise<string | undefined> {
     if (this.viewOnly()) return undefined;
+    if (this.asGuest) {
+      this.status(messages().cloud.live.needsAccount.images);
+      return undefined;
+    }
     const [file] = await chooseFiles(".png,.jpg,.jpeg,.gif,.webp,.svg", false);
     const name = file && cleanPath(file.name);
     if (!file || !name) return undefined;
@@ -1482,7 +1582,7 @@ export class Playground {
       }
       if (this.inCloud()) {
         // A cloud project saves itself: send what waits, and say where the work is.
-        this.cloud?.flush();
+        this.room?.flush();
         announce(messages().cloud.project.savedShortcut);
         this.status(messages().cloud.project.savedShortcut);
         return;

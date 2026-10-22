@@ -1,6 +1,6 @@
 // Presence in an open cloud project (`live-collaboration`, "Presence"): what this page tells the
 // room about the person (the file they have open, where the caret or selection is in it, what is
-// selected on the canvas) and what the room tells it about the others. Nothing here touches a DOM, a
+// selected on the canvas, where the pointer is over it) and what the room tells it about the others. Nothing here touches a DOM, a
 // socket or a clock of its own: the connection, the timers and the page's own state are handed in,
 // so a test plays all of them. Nothing of presence is saved, exported or written to this browser.
 //
@@ -30,6 +30,7 @@ import {
   encodeCaret,
   encodeLocal,
   type LocalState,
+  type PointerPosition,
 } from "./presence-wire.js";
 import type { RoomPhase } from "./room.js";
 
@@ -40,6 +41,8 @@ const SELECTION_BYTES = 12_000;
 export const THROTTLE_MS = 250;
 /** The state is sent again after this long without a send, so that the room keeps it. */
 export const HEARTBEAT_MS = 15_000;
+/** A pointer that has not moved for this long leaves the state (the others stop drawing it). */
+export const POINTER_IDLE_MS = 3_000;
 /**
  * A peer the room has not spoken of for this long is forgotten. The room takes a silent client out
  * after thirty seconds and says so; this is only for a page that never heard it say so.
@@ -140,6 +143,9 @@ export class Presence {
   private heartbeatTimer: unknown;
   private sweepTimer: unknown;
   private destroyed = false;
+  /** Where the person's pointer is over the canvas, while it moves there. */
+  private pointerAt: PointerPosition | undefined;
+  private pointerTimer: unknown;
 
   constructor(private readonly options: PresenceOptions) {
     this.book = new PeerBook(options.page);
@@ -167,13 +173,43 @@ export class Presence {
     if (this.open && !this.windowOpen) this.publish(false);
   }
 
+  /**
+   * The person's pointer moved over the canvas (in diagram units, over `diagram`), or left it
+   * (undefined). It goes out with the rest of the state, in the same message and at the same pace,
+   * and leaves it three seconds after it stopped moving: a pointer that rests is nobody's business.
+   */
+  pointer(at: PointerPosition | undefined): void {
+    if (this.destroyed) return;
+    const { timers } = this.options;
+    timers.clear(this.pointerTimer);
+    this.pointerTimer = undefined;
+    this.pointerAt =
+      at && Number.isFinite(at.x) && Number.isFinite(at.y)
+        ? {
+            x: Math.round(at.x) || 0,
+            y: Math.round(at.y) || 0,
+            ...(at.diagram !== undefined && at.diagram !== "" ? { diagram: at.diagram } : {}),
+          }
+        : undefined;
+    if (this.pointerAt) {
+      this.pointerTimer = timers.set(() => {
+        this.pointerTimer = undefined;
+        this.pointerAt = undefined;
+        this.moved();
+      }, POINTER_IDLE_MS);
+    }
+    this.moved();
+  }
+
   /** The cheapest description of what the state would be made of. */
   private inputs(source: PresenceSource): string {
     const selection = source.selection();
     const caret = selection
       ? `${selection.start},${selection.end},${selection.backward === true ? "b" : "f"}`
       : "-";
-    return `${source.open()}\n${caret}\n${source.canvas().join("\n")}`;
+    const pointer = this.pointerAt;
+    const at = pointer ? `${pointer.x},${pointer.y},${pointer.diagram ?? ""}` : "-";
+    return `${source.open()}\n${caret}\n${at}\n${source.canvas().join("\n")}`;
   }
 
   /** The state of the person now, in the format of the room; undefined when nothing is attached. */
@@ -194,10 +230,13 @@ export class Presence {
       );
     }
     const ids = fitSelection(source.canvas());
+    const pointer = this.pointerAt;
     return {
       file: file.id,
       ...(caret ? { caret } : {}),
-      ...(ids.length > 0 ? { canvas: { selection: ids } } : {}),
+      ...(ids.length > 0 || pointer
+        ? { canvas: { selection: ids, ...(pointer ? { pointer } : {}) } }
+        : {}),
     };
   }
 
@@ -311,8 +350,10 @@ export class Presence {
     const { timers } = this.options;
     timers.clear(this.windowTimer);
     timers.clear(this.heartbeatTimer);
+    timers.clear(this.pointerTimer);
     this.stopSweep();
-    this.windowTimer = this.heartbeatTimer = undefined;
+    this.windowTimer = this.heartbeatTimer = this.pointerTimer = undefined;
+    this.pointerAt = undefined;
     this.source = undefined;
     this.book.clear();
     this.listeners.clear();
@@ -363,9 +404,12 @@ export class Presence {
     );
   }
 
-  /** The selections for the canvas of the file shown under `path`. */
-  canvas(path: string, fallbackName: string): CanvasPerson[] {
-    return canvasPeople(this.book.list(), this.fileAt(path)?.id, fallbackName);
+  /**
+   * The selections and pointers for the canvas of the file shown under `path`, `diagram` being the
+   * diagram it shows (a pointer over another diagram of the file is not drawn).
+   */
+  canvas(path: string, fallbackName: string, diagram?: string): CanvasPerson[] {
+    return canvasPeople(this.book.list(), this.fileAt(path)?.id, fallbackName, diagram);
   }
 }
 

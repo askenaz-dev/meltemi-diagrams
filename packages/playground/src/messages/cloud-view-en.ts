@@ -70,6 +70,8 @@ export const viewing = {
     dropped: "The connection was lost. Reconnecting…",
     gone: "This project is no longer available to you",
     full: (most: number) => `Room full: ${most} people are in this project. Trying again…`,
+    ended: "Live session ended",
+    limited: "Too many connections from this network",
     retry: "Try again",
   },
 };

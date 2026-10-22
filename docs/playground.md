@@ -339,16 +339,17 @@ and a click on the project of this browser, in the panel, brings it back. The na
 ### Opening a project and its address
 
 A project opens from the panel or from an address. The link you copy, `<origin>/p/<id>`, redirects
-to `/?project=<id>`: on load the page reads `project` (and `invite`) from the address, asks the
-service what you are to that project, opens it in the mode that role gives and keeps the address, so
-reloading reopens it.
+to `/?project=<id>`: on load the page reads `project` (and `invite`, and `live`) from the address,
+asks the service what you are to that project, opens it in the mode that role gives and keeps the
+address, so reloading reopens it.
 
-| You are                                              | The project opens                                                           |
-| ---------------------------------------------------- | --------------------------------------------------------------------------- |
-| The owner, an editor, or signed in on an `edit` link | As a cloud project: bound to its room and edited as usual                   |
-| A viewer, signed in (a member, or on a `view` link)  | In view mode, following the project live                                    |
-| Not signed in, on a `view` or `edit` link            | In view mode, on a snapshot read when the page opened                       |
-| Not admitted (a private project that is not yours)   | The status line says the project was not found; the browser's project opens |
+| You are                                              | The project opens                                                                                          |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| The owner, an editor, or signed in on an `edit` link | As a cloud project: bound to its room and edited as usual                                                  |
+| A viewer, signed in (a member, or on a `view` link)  | In view mode, following the project live                                                                   |
+| Not signed in, on a `view` or `edit` link            | In view mode, following the project live as a visitor; on a snapshot only if the room is silent            |
+| Anyone with a live session's link (`?live=`)         | Bound to its room with the session's role, as a guest when not signed in ([live sessions](#live-sessions)) |
+| Not admitted (a private project that is not yours)   | The status line says the project was not found; the browser's project opens                                |
 
 Opening another project from the panel changes `project` in the address, and opening the project
 of this browser removes it. When the project is not found, or the link does not admit you, the status line
@@ -505,11 +506,11 @@ not, opens the project's own dialog instead of the `#p=` one. Changing anything 
 everyone else sees what concerns them. [The cloud service](cloud.md#sharing-and-permissions)
 holds the rules.
 
-| You are                     | The dialog shows                                                                                                                                                |
-| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| The owner                   | The link; who can open it; the people with their emails, a role menu and **Remove**; **Invite someone**; the pending invitations with their links; **Publish…** |
-| A member                    | The link; your role; the people (their names, pictures and roles); **Leave**                                                                                    |
-| Anyone else the link admits | The link and your role: "You can view this project but not change it."; nothing of the people                                                                   |
+| You are                     | The dialog shows                                                                                                                                                                  |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The owner                   | The link; who can open it; the live session; the people with their emails, a role menu and **Remove**; **Invite someone**; the pending invitations with their links; **Publish…** |
+| A member                    | The link; your role; the people (their names, pictures and roles); **Leave**                                                                                                      |
+| Anyone else the link admits | The link and your role: "You can view this project but not change it."; nothing of the people                                                                                     |
 
 - **The link** is `<origin>/p/<id>`, with **Copy**. It opens the project for whoever its level
   admits.
@@ -533,6 +534,12 @@ holds the rules.
   only have the project's link never see one.
 - **Leave** asks first. The project goes from your projects, and you can open it again only if the
   owner invites you or the link admits you. The owner has no **Leave**: they delete the project.
+- **Live session**, the owner's alone, lets anyone with its link in for a while, with or without an
+  account ([live sessions](#live-sessions)). With none on, it says so and offers **Start a live
+  session** beside the **Guests can edit** switch. With one on, it shows its link with **Copy
+  link**, the switch, how many guests are in now and when it ends ("Ends in 23 h 59 min"), and **End
+  session**, which asks first. The dialog reads the session each time it opens, so one started on
+  another device shows.
 - **Publish…** opens the publish dialog ([publishing a project](#publishing-a-project)).
 
 What the service refuses is said in words: for example "A project holds at most 50 people and
@@ -566,11 +573,13 @@ signed in is a viewer on an `edit` link too, because editing needs an account. T
 
 What a viewer sees is not the same for everyone:
 
-- **Not signed in.** The page reads the project once when it opens, its files and the images and
-  fonts they use. It opens no connection and keeps nothing in the browser, and the project the
-  browser keeps is not touched. After five minutes the status bar says that the page has been open
-  for a while and the project may have changed, with **Reload to see changes**, which reads it
-  again. It is not in the room, so it sees nobody else and nobody sees it.
+- **Not signed in.** The page connects to the project's room as a visitor, with a guest identity
+  ("Guest 37", or the name you give in the bar under the header): what editors change appears as
+  they make it, you see who else is here with their carets, selections and pointers, and they see
+  you, with a **Guest** badge. It keeps nothing in the browser (no copy in IndexedDB), and the
+  project the browser keeps is not touched. Only when the room does not answer in time does the page
+  read the project once instead, its files and the images and fonts they use, and then it says at
+  once that the project may have changed, with **Reload to see changes**, which reads it again.
 - **Signed in.** The page connects to the project's room as a viewer: what editors change appears
   as they make it ("Following live"), and the connection reconnects as any cloud project's does
   ("Reconnecting… you see the last version meanwhile"). You see who else is here, with their
@@ -600,12 +609,13 @@ no longer available to you".
 ### Working together
 
 A cloud project can be open in several places at once: on your own devices and, once you share it,
-for the people who open its link signed in ([sharing a project](#sharing-a-project)). The owner and
-the editors type in it together; viewers follow along. Nothing is switched on: what you do shows to
-the others and what they do shows to you. A room holds twenty connections at a time, so a person
-with the project open in two tabs counts twice. When it is full, the owner and the editors still
-get in: a viewer (the newest connection of whoever has the most) gives up its place and is shown
-the full room instead.
+for the people who open its link ([sharing a project](#sharing-a-project)), and, during a live
+session, for anyone with the session's link ([live sessions](#live-sessions)). The owner, the
+editors and the guests who may edit type in it together; viewers and visitors follow along. Nothing
+is switched on: what you do shows to the others and what they do shows to you. A room holds twenty
+connections at a time, so a person with the project open in two tabs counts twice. When it is full,
+the owner and the editors with an account still get in: a viewer or a guest (the newest connection
+of whoever has the most) gives up its place and is shown the full room instead.
 
 **Who is here.** The header lists the other people who have the project open: a picture, a name
 and, on a screen 1700 pixels wide or more, the name of the file they are in. Each person has a
@@ -614,7 +624,9 @@ share one. Four are listed and the rest are behind a **+N** button, in a menu. C
 opens the file they are in; a person who has none open, or one this project does not have, is
 listed but cannot be clicked. The list is hidden while you are alone. Your own account is never
 listed, however many tabs or devices have the project open, though the caret and selection of
-another tab of yours are drawn like anybody's, in your colour.
+another tab of yours are drawn like anybody's, in your colour. A person without an account has no
+picture and a **Guest** badge beside their name, on the header and on their caret's flag: the room
+says who is a guest, so nobody can pass for an account.
 
 **In the code.** Another person's caret in the file you have open is a thin bar in their colour with
 their name on a flag above it (below it on the first line). The flag fades after two seconds
@@ -631,8 +643,15 @@ on it reaches the element under it. It is not drawn for something on a hidden la
 story plays (it returns when the story ends), and none of the exports carries it. The canvas takes
 it as a `presence` message ([the editor guide](editor.md#the-panes)).
 
-**What is shared.** Three things: the file you have open, where your caret or selection is in it,
-and what you have selected on the canvas. Never who you are: the room attaches your account's name
+**Pointers.** Where another person's pointer is over the canvas of the diagram you are looking at,
+the canvas draws a cursor in their colour with their name at its tail. It moves four times a second
+and glides from one position to the next over 200 milliseconds, so it reads as one motion; its tip
+is on the same place of the diagram at every zoom, and it keeps its size on the screen. It goes
+three seconds after the person's pointer stops, or as soon as it leaves their canvas. A click goes
+through it; it is not drawn while a story plays, and no export carries it.
+
+**What is shared.** Four things: the file you have open, where your caret or selection is in it,
+what you have selected on the canvas, and where your pointer is over it while it moves there. Never who you are: the room attaches your account's name
 and picture to what it relays ([awareness](cloud.md#awareness)), so nobody can appear as somebody
 else, and a person with no name is shown as "Someone". Names are always shown as the characters they
 are: a person called `<b>Ben</b>` appears as exactly that. The page sends your state when it changes,
@@ -644,9 +663,8 @@ reached it). While your own connection is down nobody else is shown, and everybo
 again when it returns. Nothing of presence is saved: not in the project, not in an export, not in
 this browser and not in the room's storage.
 
-A viewer signed in shares presence like anybody (where they are, never an edit), and sees everyone's.
-A visitor who is not signed in reads a snapshot with no connection, so sees nobody and is seen by
-nobody ([viewing a shared project](#viewing-a-shared-project)).
+A viewer, signed in or not, shares presence like anybody (where they are, never an edit), and sees
+everyone's ([viewing a shared project](#viewing-a-shared-project)).
 
 **Typing together.** Two people typing in one file, even in one line at the same moment, end with
 the same text on both pages and every character of both kept; there is no dialog and nothing to
@@ -678,9 +696,47 @@ What it does not do:
   no presence; a push through the API or the command line reaches the people in the room live, as
   any change does.
 - It does not follow anybody's view, and has no comments, chat or voice.
-- Carets and selections are drawn for the file you have open only; people in other files are in the
-  header.
-- Nobody works together without an account: a project that is not in the cloud has no room.
+- Carets, selections and pointers are drawn for the file you have open only; people in other files
+  are in the header.
+- A project that is not in the cloud has no room: the `#p=` dialog of the browser's project says a
+  live session needs the project in an account, with **Save to my projects** when you are signed in
+  and **Sign in to start one** when you are not.
+
+### Live sessions
+
+A live session lets anyone with its link into a cloud project for a while, with or without an
+account, to work on it together as it happens. The owner starts it from the share dialog
+([sharing a project](#sharing-a-project)) and passes its link on, `<origin>/p/<id>?live=<token>`.
+It lasts twenty-four hours, ends by itself after an hour with nobody in the project, and the owner
+ends it with **End session** at any time. While it is on, the owner's header shows **Live · 2
+guests**, which opens the dialog. **Guests can edit** decides what the people who join by the link
+may do: edit, or only watch; changing it while guests are in reconnects them in a second with the
+new role.
+
+**Joining.** Whoever opens the link joins at once: a person signed in with their account, keeping the
+higher of their own role and the session's; anybody else as a guest, with no account and no sign-in.
+A guest's page opens the project bound to its room, keeps nothing in the browser and keeps `live` in
+the address, so a reload rejoins. A bar under the header says "You are in the live session of
+Together as" with the name others see, **Guest 37** at first (two digits from the browser's own id,
+so two guests differ by name and not only by colour), which you change there: the page reconnects
+and the others see the new name in a moment. The bar also says when the session ends, and offers
+**Make a copy** and **Sign in**. A visitor of a `view` or `edit` link without a session has the
+same bar ("You are following Together live as").
+
+**What a guest can do.** Edit the text and the canvas, add, rename and delete files, and undo their
+own edits, as an editor does. What is kept in an account needs one, and the page says so with the
+way to it: adding images and fonts ("Adding images and fonts needs an account. Sign in to add them."),
+versions, the thumbnail, sharing and publishing. **Make a copy** puts the files in this browser as
+its own project.
+
+**When it ends.** A guest's connection closes and the status line says "Live session ended"; the
+page never reconnects with that link. When the project's link lets anybody view, the page goes on
+following it live as a visitor, without editing. When it does not, the page keeps what it shows,
+read-only, with **Make a copy**: nothing else of the project reaches it.
+
+**Limits.** Guests and visitors count in the room's twenty places and give theirs up to the owner and
+the editors as viewers do. One network holds at most ten connections without an account in a room:
+the eleventh says "Too many connections from this network" and does not try again by itself.
 
 ### Publishing a project
 

@@ -629,6 +629,76 @@ body {
   box-shadow: 0 0 0 1px rgba(127, 127, 127, 0.35);
 }
 
+/*
+ * Other people's pointers: an arrow in the person's colour, its tip on the point their pointer is
+ * over at every zoom, and the name at its tail. Four positions a second glide into one another
+ * (200 ms, linear, so that a moving pointer reads as one motion); a new cursor fades in.
+ */
+.presence-cursors {
+  position: absolute;
+  inset: 0;
+}
+
+.presence-cursor {
+  position: absolute;
+  left: 0;
+  top: 0;
+  will-change: transform;
+  animation: mdg-cursor-in var(--mdg-motion) var(--mdg-ease);
+}
+
+.presence-cursor.gliding {
+  transition: transform var(--mdg-cursor-glide, 200ms) linear;
+}
+
+.presence-cursor-arrow {
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
+}
+
+.presence-cursor-arrow path {
+  fill: var(--presence-colour, #6b7280);
+  stroke: #ffffff;
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+}
+
+.presence-cursor-tag {
+  position: absolute;
+  left: 12px;
+  top: 17px;
+  box-sizing: border-box;
+  height: 18px;
+  padding: 0 6px;
+  overflow: hidden;
+  border-radius: 3px 9px 9px 9px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  unicode-bidi: isolate;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+@keyframes mdg-cursor-in {
+  from {
+    opacity: 0;
+    scale: 0.8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .presence-cursor {
+    animation: none;
+  }
+
+  .presence-cursor.gliding {
+    transition: none;
+  }
+}
+
 /* Messages --------------------------------------------------------------- */
 
 .empty {

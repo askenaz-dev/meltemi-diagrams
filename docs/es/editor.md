@@ -90,13 +90,15 @@ tiempo y los efectos funcionan.
 
 **Las selecciones de otras personas.** Un anfitrión que comparte el diagrama puede decirle al
 lienzo quién más está en él con un mensaje `presence`, `{ type: "presence", people }`, donde cada
-persona tiene un `name`, un `colour` y los ids que ha seleccionado (elementos, relaciones y
-eventos). El playground lo hace en un proyecto en la nube que tienen abierto varias personas
+persona tiene un `name`, un `colour`, los ids que ha seleccionado (elementos, relaciones y
+eventos) y, mientras se mueve, el `pointer` sobre su lienzo. El playground lo hace en un proyecto en la nube que tienen abierto varias personas
 ([trabajar juntos](playground.md#trabajar-juntos)); la extensión nunca lo envía, así que VS Code no
 ve ningún cambio. El lienzo rodea cada uno de esos ids con un contorno del color de la persona y le
-pone una etiqueta con su nombre, en una capa por encima de la escena que nunca se selecciona, se
-copia ni se exporta y de la que no se devuelve nada: pulsar sobre un contorno llega al elemento que
-tiene debajo. Cada mensaje es la imagen completa y sustituye al anterior; un mensaje sin nadie, un
+pone una etiqueta con su nombre, y dibuja cada puntero como un cursor del color de la persona con
+el nombre en la cola, que se desliza de un punto al siguiente, en una capa por encima de la escena
+que nunca se selecciona, se copia ni se exporta: pulsar sobre un contorno o un cursor llega al
+elemento que tiene debajo. El lienzo le dice a ese anfitrión dónde está su propio puntero
+(`presencePointer`), y nada más de la capa. Cada mensaje es la imagen completa y sustituye al anterior; un mensaje sin nadie, un
 lienzo vacío u otro diagrama la borran. Los ids que el diagrama no tiene se ignoran, igual que lo
 que está en una capa oculta, y mientras se reproduce una historia no se dibuja nada (las personas
 se conservan para cuando termine). Un nombre se muestra siempre como texto, nunca como marcado. El

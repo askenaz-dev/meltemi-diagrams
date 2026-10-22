@@ -166,6 +166,7 @@ describe("two people in one file", () => {
         name: "Ben",
         picture: "https://avatars.example/ben.png",
         colour: presenceColour("u_ben"),
+        guest: false,
         file: { id: expect.any(String), path: A },
         connections: 1,
       },

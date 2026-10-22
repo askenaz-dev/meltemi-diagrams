@@ -16,6 +16,42 @@ export interface RoomIdentity {
   readonly role: RoomRole;
   readonly name: string;
   readonly picture: string;
+  /** A person without an account (`live-sessions`): `sub` is `guest:<id>`, and there is no picture. */
+  readonly guest?: boolean;
+  /** The client's address (`CF-Connecting-IP`): connections without an account are counted by it. */
+  readonly address?: string;
+  /**
+   * The id of the live session whose token admitted the connection, once the room checked it: the
+   * connection is cut with `4410 session.ended` when that session ends.
+   */
+  readonly live?: string;
+}
+
+/** The prefix of a `sub` of a person without an account; an account's `sub` never starts with it. */
+export const GUEST_PREFIX = "guest:";
+
+/**
+ * A project's live session (`live-sessions`): one per room, in the room's storage. `token` is 32
+ * lowercase hexadecimal characters of 128 random bits, kept in clear so that the owner can copy the
+ * link again; `startedAt` and `until` are milliseconds since the epoch.
+ */
+export interface LiveSession {
+  readonly id: string;
+  readonly token: string;
+  readonly guestsEdit: boolean;
+  readonly startedAt: number;
+  readonly until: number;
+}
+
+/** A live session as the room answers the Worker: the record and the connections it admitted now. */
+export interface LiveState extends LiveSession {
+  readonly guests: number;
+}
+
+/** What a token is worth now: the session's end and whether guests may edit, or nothing. */
+export interface LiveGrant {
+  readonly until: number;
+  readonly guestsEdit: boolean;
 }
 
 /** The latest files of a project, by path, as the room holds them. */
@@ -85,9 +121,27 @@ export interface RoomsApi {
   /**
    * Opens a client's socket on the project's room and answers the upgrade. `request` is the
    * client's request, which is never forwarded: the room gets a request the Worker constructs,
-   * with the identity in headers that only the Worker sets.
+   * with the identity in headers that only the Worker sets. `live` is the token the request's
+   * query carried: the room checks it against its session (`404 project.not-found` when it is not
+   * current) and raises the role to the session's.
    */
-  connect(projectId: string, request: Request, identity: RoomIdentity): Promise<Response>;
+  connect(
+    projectId: string,
+    request: Request,
+    identity: RoomIdentity,
+    live?: string,
+  ): Promise<Response>;
+  /**
+   * Starts the project's live session, or answers the one that is on, applying `guestsEdit` when
+   * given (a change cuts the connections the session admitted, which reconnect with the new role).
+   */
+  startLive(projectId: string, request: { guestsEdit?: boolean }): Promise<LiveState>;
+  /** The live session that is on, or null. */
+  readLive(projectId: string): Promise<LiveState | null>;
+  /** Ends the live session, if one is on: the connections it admitted close with `4410`. */
+  endLive(projectId: string): Promise<void>;
+  /** Whether a token is the current session's: what it grants, or null. */
+  checkLive(projectId: string, token: string): Promise<LiveGrant | null>;
   /** The latest files, from the room (never from D1). */
   read(projectId: string): Promise<RoomFiles>;
   /** Applies a push as one transaction; `409 revision.mismatch` carries the current revision. */
@@ -132,6 +186,8 @@ export type RoomErrorCode = Extract<
   | "message.too-large"
   | "awareness.rate"
   | "room.full"
+  | "connections.limit"
+  | "session.ended"
   | "project.not-found"
   | "internal"
 >;

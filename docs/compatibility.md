@@ -93,11 +93,14 @@ Realtime collaboration (several people editing the same file at once) was outsid
 not a limitation any more: the playground's cloud projects have it
 ([working together](playground.md#working-together)). What it does not do:
 
-- It needs the cloud service and an account. The VS Code extension and the command line show no
-  presence, though a push through the API or the command line reaches the people in a room live.
-- A room holds twenty connections; the twenty-first waits and tries again.
-- A person who is not signed in reads a snapshot of a shared project, sees nobody else and is seen
-  by nobody.
+- It needs the cloud service, and a project in an account. The people who join need none: a
+  visitor of a shared link follows live, and a guest of the owner's live session edits without an
+  account ([live sessions](playground.md#live-sessions)). The VS Code extension and the command line
+  show no presence, though a push through the API or the command line reaches the people in a room
+  live.
+- A room holds twenty connections, and ten without an account from one network; the twenty-first
+  waits and tries again. A live session lasts a day at most.
+- A guest cannot add images or fonts, make versions, share or publish: those need an account.
 - There is no following another person's view, and no comments, chat or voice.
 
 In 1.0:

@@ -272,25 +272,25 @@ export const collaborationScenarios: Scenario[] = [
       for (const page of [ana, bens]) {
         assert.equal(await page.locator('img[src="x"]').count(), 0, "no image from the name");
         assert.equal(
-          await page
-            .locator(".presence-bar *, .code-presence *, #app .presence *")
-            .evaluateAll(
-              (nodes) =>
-                nodes.filter(
-                  (node) =>
-                    ![
-                      "IMG",
-                      "SPAN",
-                      "DIV",
-                      "svg",
-                      "rect",
-                      "polyline",
-                      "BUTTON",
-                      "LI",
-                      "UL",
-                    ].includes(node.tagName),
-                ).length,
-            ),
+          await page.locator(".presence-bar *, .code-presence *, #app .presence *").evaluateAll(
+            (nodes) =>
+              nodes.filter(
+                (node) =>
+                  ![
+                    "IMG",
+                    "SPAN",
+                    "DIV",
+                    "svg",
+                    "rect",
+                    "polyline",
+                    // A pointer's cursor is an arrow drawn as a path.
+                    "path",
+                    "BUTTON",
+                    "LI",
+                    "UL",
+                  ].includes(node.tagName),
+              ).length,
+          ),
           0,
           "no element of a kind the page does not draw",
         );

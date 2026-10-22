@@ -55,13 +55,18 @@ import {
   toBytes,
 } from "./room-protocol.js";
 import {
+  GUEST_PREFIX,
   RoomError,
   parsePush,
   type DisconnectTarget,
+  type LiveGrant,
+  type LiveSession,
+  type LiveState,
   type PushRequest,
   type RoomErrorCode,
   type RoomFiles,
   type RoomIdentity,
+  type RoomRole,
   type RoomStats,
 } from "./rooms.js";
 
@@ -75,11 +80,25 @@ export const MATERIALISE_DELAY_MS = 30_000;
 export const CHUNK_BYTES = 1024 * 1024;
 /** Updates kept for a rollback beyond this many bytes make the room encode the document again. */
 const REBASE_LOG_BYTES = 4 * 1024 * 1024;
+/** A live session lasts this long at most (`live-sessions`, "Starting and ending a session"). */
+export const LIVE_SESSION_MS = 24 * 60 * 60_000;
+/** A live session ends once the room has been empty this long. */
+export const LIVE_IDLE_MS = 60 * 60_000;
+/** Open connections without an account from one client address; the next is `connections.limit`. */
+export const GUEST_CONNECTIONS_PER_ADDRESS = 10;
 
 /** The persisted state of a room: the revision and the encoded document in chunks. */
 export interface StoredRoom {
   readonly revision: number;
   readonly chunks: readonly Uint8Array[];
+}
+
+/**
+ * A live session as the room keeps it: the record, and since when the room has had nobody in it
+ * (the idle hour is counted from there, after a wake too).
+ */
+export interface StoredLive extends LiveSession {
+  readonly emptySince?: number;
 }
 
 /** The room's storage. The chunks and the revision are written in ONE storage transaction. */
@@ -88,8 +107,12 @@ export interface RoomStorage {
   load(): StoredRoom | undefined;
   /** Replaces the stored chunks and revision, atomically. */
   save(revision: number, chunks: readonly Uint8Array[]): void;
-  /** Deletes everything the room stored. */
+  /** Deletes everything the room stored, the live session included. */
   destroy(): void;
+  /** The live session the room holds, if one is on. */
+  live(): StoredLive | undefined;
+  /** Replaces the live session's record; `undefined` deletes it. May throw. */
+  setLive(live: StoredLive | undefined): void;
 }
 
 /** A connection, with the identity the Worker gave it (which survives a hibernation). */
@@ -116,7 +139,8 @@ export interface RoomPorts {
   /**
    * Asks the platform to call `RoomCore.alarm()` at this time (milliseconds since the epoch), replacing
    * the alarm it held: the room has at most one. The alarm outlives the object, so it fires after a
-   * hibernation; only awareness uses it, and it writes nothing to the room's database.
+   * hibernation. It serves three moments, the earliest of which it is set for: the next awareness
+   * timeout, the live session's end and the idle hour after the last client left.
    */
   setAlarm(at: number): Promise<void> | void;
   /** Every open connection of the room. */
@@ -179,6 +203,24 @@ function concat(chunks: readonly Uint8Array[]): Uint8Array {
   return bytes;
 }
 
+const RANK: Readonly<Record<RoomRole, number>> = { viewer: 1, editor: 2, owner: 3 };
+
+/** Bytes as lowercase hexadecimal. */
+function hex(bytes: Uint8Array): string {
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+/** Whether two tokens are the same, in a time that does not depend on where they differ. */
+function sameToken(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let differ = 0;
+  for (let i = 0; i < a.length; i++) differ |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return differ === 0;
+}
+
+/** A time in milliseconds since the epoch, as the answers write one. */
+const iso = (at: number): string => new Date(at).toISOString();
+
 /** The encoded state split into chunks of at most `CHUNK_BYTES`; one (maybe empty) chunk at least. */
 export function toChunks(bytes: Uint8Array): Uint8Array[] {
   const chunks: Uint8Array[] = [];
@@ -238,11 +280,19 @@ export class RoomCore {
   private readonly rates = new Map<string, AwarenessRate>();
   /** The time the platform's alarm was last set for, while this object knows it is still set. */
   private alarmAt: number | undefined;
+  /** The live session, as the storage holds it (`live-sessions`); read again when the object is built. */
+  private live: StoredLive | undefined;
 
   constructor(private readonly ports: RoomPorts) {
     this.standard = { ...DEFAULT_LIMITS, ...ports.limits };
     this.limits = this.standard;
     this.load();
+    try {
+      this.live = ports.storage.live();
+    } catch {
+      // A record that cannot be read admits nobody; the owner starts another session.
+      ports.warn("room: the live session could not be read");
+    }
   }
 
   /**
@@ -472,15 +522,19 @@ export class RoomCore {
   }
 
   /**
-   * The viewer whose place a person who can write takes in a full room: of the viewers, the newest
-   * socket of the person who holds the most (so that one account that opened many sockets to keep
-   * the room full loses its own first). Undefined when nobody in the room is a viewer.
+   * The viewer whose place a person who can write takes in a full room: of the viewers and the
+   * guests (a guest of any role gives up a place as a viewer does), the newest socket of the person
+   * who holds the most (so that one account that opened many sockets to keep the room full loses its
+   * own first). Undefined when nobody in the room is a viewer or a guest.
    */
   private viewerToMakeRoom(except: string): RoomSocket | undefined {
     const viewers = this.ports
       .sockets()
       .filter(
-        (s) => s.info.id !== except && !this.closing.has(s.info.id) && s.info.role === "viewer",
+        (s) =>
+          s.info.id !== except &&
+          !this.closing.has(s.info.id) &&
+          (s.info.role === "viewer" || s.info.guest === true),
       );
     const held = new Map<string, number>();
     for (const viewer of viewers) held.set(viewer.info.sub, (held.get(viewer.info.sub) ?? 0) + 1);
@@ -496,13 +550,59 @@ export class RoomCore {
     return chosen;
   }
 
+  /** The live session, unless its time is up (the alarm that ends it may not have run yet). */
+  private currentLive(): StoredLive | undefined {
+    const live = this.live;
+    return live && this.ports.now() < live.until ? live : undefined;
+  }
+
   /**
-   * A client has connected (the platform accepted its socket): the 21st is refused with
-   * `room.full`, unless it can write and a viewer holds a place, which the viewer gives up (it is
-   * told `room.full`, as if it had come last): a room full of people who only read, or of one
-   * account's sockets, must not keep the owner and the editors out. The others get `hello` and the
-   * room's state vector, which tells the client what the room already holds so that it can send
-   * what the room lacks.
+   * What a connection the Worker passes is admitted as, before the platform accepts its socket
+   * (`live-sessions`, "Joining with the link"). The identity is the Worker's; a `guest:` sub is a
+   * person without an account and nothing else, and the other way round (either mismatch is the
+   * Worker's fault: `internal`). With a token, the token must be the current session's, or the
+   * upgrade is answered `404 project.not-found` and nothing is said of why (a destroyed room has no
+   * session; without a token, `connect` refuses what comes after a deletion); the role is then the
+   * higher of the person's own and the session's, and the connection is marked as the session's,
+   * so that it is cut when the session ends. Without one, a guest only looks.
+   */
+  admit(identity: RoomIdentity, token: string | undefined): RoomIdentity {
+    const guest = identity.guest === true;
+    if (identity.sub.startsWith(GUEST_PREFIX) !== guest) throw new RoomError("internal");
+    const { live: _given, ...own } = identity;
+    if (token === undefined) return guest ? { ...own, role: "viewer" } : own;
+    const live = this.currentLive();
+    if (!live || !sameToken(token, live.token)) throw new RoomError("project.not-found");
+    const granted: RoomRole = live.guestsEdit ? "editor" : "viewer";
+    return {
+      ...own,
+      role: RANK[own.role] >= RANK[granted] ? own.role : granted,
+      live: live.id,
+    };
+  }
+
+  /** Open connections without an account from an address, but one. */
+  private fromAddress(address: string, except: string): number {
+    return this.ports
+      .sockets()
+      .filter(
+        (s) =>
+          s.info.id !== except &&
+          !this.closing.has(s.info.id) &&
+          s.info.guest === true &&
+          (s.info.address ?? "") === address,
+      ).length;
+  }
+
+  /**
+   * A client has connected (the platform accepted its socket, admitted by `admit`): one the session
+   * admitted after that session ended is told `session.ended`; the eleventh connection without an
+   * account from one address is refused with `connections.limit`; the 21st is refused with
+   * `room.full`, unless it is the owner or an editor with an account and a viewer or a guest holds a
+   * place, which that one gives up (it is told `room.full`, as if it had come last): a room full of
+   * people who only read, of guests, or of one account's sockets, must not keep the owner and the
+   * editors out. The others get `hello` and the room's state vector, which tells the client what the
+   * room already holds so that it can send what the room lacks.
    */
   connect(socket: RoomSocket): Promise<void> {
     return this.enqueue(() => {
@@ -510,9 +610,21 @@ export class RoomCore {
         this.refuse(socket, "project.not-found");
         return;
       }
+      const live = this.currentLive();
+      if (socket.info.live !== undefined && socket.info.live !== live?.id) {
+        this.refuse(socket, "session.ended");
+        return;
+      }
+      if (
+        socket.info.guest === true &&
+        this.fromAddress(socket.info.address ?? "", socket.info.id) >= GUEST_CONNECTIONS_PER_ADDRESS
+      ) {
+        this.refuse(socket, "connections.limit");
+        return;
+      }
       if (this.openClients(socket.info.id) >= this.limits.clients) {
-        const viewer =
-          socket.info.role === "viewer" ? undefined : this.viewerToMakeRoom(socket.info.id);
+        const writes = socket.info.role !== "viewer" && socket.info.guest !== true;
+        const viewer = writes ? this.viewerToMakeRoom(socket.info.id) : undefined;
         if (!viewer) {
           this.refuse(socket, "room.full");
           return;
@@ -520,6 +632,7 @@ export class RoomCore {
         this.refuse(viewer, "room.full");
       }
       const { id, sub, name, picture, role } = socket.info;
+      const admittedBy = socket.info.live !== undefined ? live : undefined;
       attempt(() =>
         socket.send(
           jsonFrame(KIND.hello, {
@@ -533,7 +646,10 @@ export class RoomCore {
               clients: this.limits.clients,
             },
             collisions: collisionsOf(this.cloud),
-            you: { id, sub, name, picture },
+            you: { id, sub, name, picture, guest: socket.info.guest === true },
+            live: admittedBy
+              ? { until: iso(admittedBy.until), guestsEdit: admittedBy.guestsEdit }
+              : null,
           }),
         ),
       );
@@ -691,48 +807,65 @@ export class RoomCore {
   }
 
   /**
-   * Makes sure the platform's alarm is set for the earliest moment a state may be dropped. It is set
-   * when this object does not know it is (a first state, or the object was built again), and not on
-   * every message: a state refreshed after the alarm was set only makes the alarm come early, and
-   * `alarm()` sets the next one. A failure is logged and retried by the next state.
+   * The next moment the room has something to do by the clock, or undefined: the earliest of the
+   * next awareness timeout (of the clients but `gone`), the live session's end, and the idle hour
+   * after the last client left while the room is empty.
    */
-  private async armAlarm(): Promise<void> {
-    if (this.alarmAt !== undefined) return;
+  private nextAlarm(gone: ReadonlySet<string> = new Set()): number | undefined {
     let earliest: number | undefined;
+    const consider = (at: number) => {
+      if (earliest === undefined || at < earliest) earliest = at;
+    };
     for (const socket of this.ports.sockets()) {
       const seen = socket.awareness?.seen;
-      if (seen !== undefined && (earliest === undefined || seen < earliest)) earliest = seen;
+      if (seen !== undefined && !gone.has(socket.info.id)) consider(seen + AWARENESS_TIMEOUT_MS);
     }
-    if (earliest === undefined) return;
-    const at = earliest + AWARENESS_TIMEOUT_MS;
+    const live = this.live;
+    if (live) {
+      consider(live.until);
+      if (live.emptySince !== undefined && this.openClients() === 0) {
+        consider(live.emptySince + LIVE_IDLE_MS);
+      }
+    }
+    return earliest;
+  }
+
+  /**
+   * Makes sure the platform's alarm is set for the earliest moment the room has something to do
+   * (`nextAlarm`). It is set when this object does not know it is (a first state, a session started,
+   * or the object was built again) or knows it is set for later, and not on every message: a state
+   * refreshed after the alarm was set only makes the alarm come early, and `alarm()` sets the next
+   * one. A failure is logged and retried by the next state.
+   */
+  private async armAlarm(): Promise<void> {
+    const at = this.nextAlarm();
+    if (at === undefined || (this.alarmAt !== undefined && this.alarmAt <= at)) return;
     try {
       await this.ports.setAlarm(at);
       this.alarmAt = at;
     } catch {
-      this.ports.warn("room: the awareness alarm could not be set");
+      this.ports.warn("room: the alarm could not be set");
     }
   }
 
   /**
    * The platform's alarm fired (possibly in an object built again after a hibernation): drops every
-   * state that was not refreshed for thirty seconds, tells the clients that remain, and sets the next
-   * alarm for the earliest state left. The sockets stay open: a client that sends a state again is
-   * back. Nothing is written to the room's storage.
+   * state that was not refreshed for thirty seconds and tells the clients that remain; ends the live
+   * session when its time is up or the room has been empty for an hour; and sets the next alarm. The
+   * sockets of the states dropped stay open: a client that sends a state again is back. Nothing of
+   * awareness is written to the room's storage.
    */
   alarm(): Promise<void> {
     return this.enqueue(async () => {
       this.alarmAt = undefined;
       const now = this.ports.now();
       const gone: string[] = [];
-      let next: number | undefined;
       for (const socket of this.ports.sockets()) {
         const seen = socket.awareness?.seen;
         if (seen === undefined) continue;
         if (now >= seen + AWARENESS_TIMEOUT_MS) {
           this.keepAwareness(socket, undefined);
           gone.push(socket.info.id);
-        } else if (next === undefined || seen + AWARENESS_TIMEOUT_MS < next) {
-          next = seen + AWARENESS_TIMEOUT_MS;
         }
       }
       // Each client is told of the others that are gone, not of itself.
@@ -745,19 +878,30 @@ export class RoomCore {
           attempt(() => socket.send(jsonFrame(KIND.awareness, removed)));
         }
       }
+      const live = this.live;
+      if (
+        live &&
+        (now >= live.until ||
+          (live.emptySince !== undefined &&
+            this.openClients() === 0 &&
+            now >= live.emptySince + LIVE_IDLE_MS))
+      ) {
+        this.endSession();
+      }
+      const next = this.nextAlarm(new Set(gone));
       if (next === undefined) return;
       try {
         await this.ports.setAlarm(next);
         this.alarmAt = next;
       } catch {
-        this.ports.warn("room: the awareness alarm could not be set");
+        this.ports.warn("room: the alarm could not be set");
       }
     });
   }
 
   /** A socket has closed (by the client, by the room or by an error). */
   async closed(socket: RoomSocket): Promise<void> {
-    const started = await this.enqueue(() => {
+    const started = await this.enqueue(async () => {
       this.closing.delete(socket.info.id);
       this.asked.delete(socket.info.id);
       this.rates.delete(socket.info.id);
@@ -768,7 +912,15 @@ export class RoomCore {
       if (this.openClients(socket.info.id) > 0) return undefined;
       // The last client left: write now, and materialise without waiting for the timer.
       this.persist();
-      return this.startMaterialise();
+      const started = this.startMaterialise();
+      // A live session counts its idle hour from now, after a wake too.
+      const live = this.live;
+      if (live && !this.destroyed) {
+        this.live = { ...live, emptySince: this.ports.now() };
+        this.saveLive();
+        await this.armAlarm();
+      }
+      return started;
     });
     if (started?.done) await started.done;
   }
@@ -785,6 +937,108 @@ export class RoomCore {
       closed++;
     }
     return closed;
+  }
+
+  // ---- The live session -----------------------------------------------------------------------
+
+  /** Writes the live session's record as it is in memory; a failure is logged (the memory still holds it). */
+  private saveLive(): void {
+    try {
+      this.ports.storage.setLive(this.live);
+    } catch {
+      this.ports.warn("room: the live session could not be written");
+    }
+  }
+
+  /** The connections a session admitted that are open now. */
+  private admittedBy(live: LiveSession): RoomSocket[] {
+    return this.ports
+      .sockets()
+      .filter((s) => s.info.live === live.id && !this.closing.has(s.info.id));
+  }
+
+  private liveState(live: StoredLive): LiveState {
+    const { emptySince: _emptySince, ...session } = live;
+    return { ...session, guests: this.admittedBy(live).length };
+  }
+
+  /**
+   * Ends the live session (the owner ended it, its time is up, or the room was empty for an hour):
+   * the record goes, and every connection the session admitted is told `session.ended` and closed,
+   * so that its page stops reconnecting with the token. Connections that came without it stay.
+   */
+  private endSession(): void {
+    const live = this.live;
+    if (!live) return;
+    const admitted = this.admittedBy(live);
+    this.live = undefined;
+    this.saveLive();
+    for (const socket of admitted) this.refuse(socket, "session.ended");
+  }
+
+  /**
+   * Starts the live session (`PUT …/live`): a new id and a token of 128 random bits, guests may edit
+   * unless `guestsEdit` says otherwise, for twenty-four hours. A session that is on is answered as it
+   * is, with `guestsEdit` applied when it is given and differs: the connections it admitted are then
+   * cut as a change of access cuts them, and reconnect with the role it gives now. The record is
+   * written before the answer: a session the room could not keep is `internal`, not a link.
+   */
+  startLive(request: { guestsEdit?: boolean }): Promise<LiveState> {
+    return this.enqueue(async () => {
+      if (this.destroyed) throw new RoomError("project.not-found");
+      if (this.live && !this.currentLive()) this.endSession();
+      let live = this.live;
+      if (!live) {
+        const now = this.ports.now();
+        live = {
+          id: hex(this.ports.randomBytes(8)),
+          token: hex(this.ports.randomBytes(16)),
+          guestsEdit: request.guestsEdit ?? true,
+          startedAt: now,
+          until: now + LIVE_SESSION_MS,
+          ...(this.openClients() === 0 ? { emptySince: now } : {}),
+        };
+        try {
+          this.ports.storage.setLive(live);
+        } catch {
+          this.ports.warn("room: the live session could not be written");
+          throw new RoomError("internal");
+        }
+        this.live = live;
+      } else if (request.guestsEdit !== undefined && request.guestsEdit !== live.guestsEdit) {
+        live = { ...live, guestsEdit: request.guestsEdit };
+        this.live = live;
+        this.saveLive();
+        for (const socket of this.admittedBy(live)) {
+          this.closing.add(socket.info.id);
+          attempt(() => socket.close(CLOSE_DISCONNECTED, "disconnected"));
+        }
+      }
+      await this.armAlarm();
+      return this.liveState(live);
+    });
+  }
+
+  /** The live session that is on, or null (`GET …/live`). */
+  readLive(): Promise<LiveState | null> {
+    return this.enqueue(() => {
+      const live = this.currentLive();
+      return live ? this.liveState(live) : null;
+    });
+  }
+
+  /** Ends the live session if one is on (`DELETE …/live`). */
+  endLive(): Promise<void> {
+    return this.enqueue(() => this.endSession());
+  }
+
+  /** What a token is worth now: the session's end and whether guests edit, or null when it is not current. */
+  checkLive(token: string): Promise<LiveGrant | null> {
+    return this.enqueue(() => {
+      const live = this.currentLive();
+      if (this.destroyed || !live || !sameToken(token, live.token)) return null;
+      return { until: live.until, guestsEdit: live.guestsEdit };
+    });
   }
 
   // ---- Reads and pushes -----------------------------------------------------------------------
@@ -967,6 +1221,8 @@ export class RoomCore {
       this.alarmAt = undefined;
       this.rates.clear();
       this.asked.clear();
+      // The live session goes with the room: its token admits nobody afterwards.
+      this.live = undefined;
       this.ports.storage.destroy();
       for (const socket of this.ports.sockets()) this.refuse(socket, "project.not-found");
       this.install(new Y.Doc());

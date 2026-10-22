@@ -285,8 +285,10 @@ Los rechazos de la propia sala llegan a una persona de dos maneras: como el JSON
 | `publish.rate`         | 429    | Más de diez solicitudes de publicación para un proyecto en la última hora; `Retry-After` indica cuántos segundos faltan para que la más antigua deje de contar                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `publish.taken`        | 409    | Un `slug` que otro proyecto de la misma persona ya publica bajo su alias                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `message.too-large`    | 413    | Un mensaje de un socket de más de 512 KiB, o un mensaje de presencia de más de 16 KiB ([Presencia](#presencia-awareness)); el socket se cierra con `4413`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-| `room.full`            | 409    | Una sala que ya tiene 20 clientes: al 21.º se le avisa y su socket se cierra con `4409`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `room.full`            | 409    | Una sala que ya tiene 20 clientes, invitados y visitantes incluidos: al 21.º se le avisa y su socket se cierra con `4409`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `awareness.rate`       | 429    | Un cliente que ha enviado más de 100 mensajes de presencia en un segundo: se le avisa en el socket y el socket se cierra con `4429` ([Presencia](#presencia-awareness)); ninguna ruta lo responde                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `connections.limit`    | 429    | La undécima conexión abierta sin cuenta desde una misma dirección de cliente: se le avisa en el socket y el socket se cierra con `4428` ([Sesiones en vivo](#sesiones-en-vivo)); ninguna ruta lo responde                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `session.ended`        | 410    | La sesión en vivo que admitió una conexión terminó (su propietario la terminó, pasaron sus 24 horas, o su sala estuvo vacía una hora): el socket se cierra con `4410` ([Sesiones en vivo](#sesiones-en-vivo)); ninguna ruta lo responde                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `identity.last`        | 409    | El servicio de identidad conserva la única forma de iniciar sesión de una persona: desvincular el último proveedor desde el panel de la cuenta; no cambia nada                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `provider.unknown`     | 400    | Un proveedor con el que el servicio de identidad no inicia sesión (solo `github` y `google`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `session.current`      | 409    | La sesión con la que llega la solicitud, a la que se pide cerrar desde el panel de la cuenta: termina con Cerrar sesión                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -312,7 +314,7 @@ que muestran el código, en inglés o en español, en lugar de JSON.
 | `POST /cli-auth/token`                              | la línea de comandos                                                 | `200 { id, name, token }`                                                                |
 | `GET /cli-auth/style.css`                           | cualquiera                                                           | la hoja de estilo de la página de aprobación                                             |
 | `GET /p/<id>`                                       | cualquiera                                                           | `302` a `/?project=<id>`                                                                 |
-| `GET /rooms/<id>`                                   | una persona a la que admite el proyecto, con la cookie               | `101`, un socket a la sala del proyecto                                                  |
+| `GET /rooms/<id>`                                   | quien admita el proyecto, o el token de una sesión en vivo           | `101`, un socket a la sala del proyecto                                                  |
 | `PATCH /api/account`                                | una persona, con la cookie o un token                                | `200 { handle }`                                                                         |
 | `GET /api/account/identity`                         | una persona con sesión iniciada en la página                         | `200`, los inicios de sesión y las sesiones de la persona según el servicio de identidad |
 | `POST /api/account/identity/unlink`                 | una persona con sesión iniciada en la página                         | `200`, lo mismo sin el proveedor                                                         |
@@ -361,6 +363,9 @@ la cookie o con un token; un proyecto que la persona no puede abrir en absoluto 
 | `GET /api/projects/<id>/publish`               | `200 { handle, publications, takedowns }`                                                      |
 | `PUT /api/projects/<id>/publish`               | `200 { url, handle, slug, bytes, published_at }`                                               |
 | `DELETE /api/projects/<id>/publish/<slug>`     | `204`                                                                                          |
+| `PUT /api/projects/<id>/live`                  | `200 { id, link, guestsEdit, startedAt, until, guests }`                                       |
+| `GET /api/projects/<id>/live`                  | `200`, la sesión en vivo como la responde `PUT`, o `null`                                      |
+| `DELETE /api/projects/<id>/live`               | `204`                                                                                          |
 | `GET /api/account/usage`                       | `200 { projects, storageBytes, limits }`                                                       |
 | `GET /api/dev/rooms/<id>/stats`                | solo en desarrollo: `200`, los contadores de la sala                                           |
 | `POST /api/dev/rooms/<id>/disconnect`          | solo en desarrollo: `200 { closed }`                                                           |
@@ -695,25 +700,37 @@ La página se conecta a `wss://<origin>/rooms/<project id>` (`ws:` cuando la pá
 WebSocket; cualquier otro método, o una solicitud sin el upgrade, es `404 not-found`, la haga quien
 la haga. Después, por este orden:
 
-1. Quién pregunta, solo por la cookie: en un socket no se admite un token bearer, y una solicitud
-   sin una cookie válida es `401 auth.required`.
+1. Quién pregunta, solo por la cookie: en un socket no se admite un token bearer (una solicitud con
+   uno y sin cookie es anónima).
 2. De dónde viene el upgrade: su `Origin` debe ser el del propio servicio, o es
-   `403 request.forbidden`.
-3. Qué es la persona para el proyecto ([Roles](#roles)): `owner`, `editor` o `viewer`. Una persona
-   a la que el proyecto no admite en absoluto, un proyecto que no existe y un id que no puede serlo
-   responden todos `404 project.not-found`. Las personas anónimas nunca llegan hasta aquí: el
-   socket necesita la cookie, y quien mira de forma anónima lee en cambio una instantánea mediante
-   `GET …/files`.
+   `403 request.forbidden`, con token o sin él.
+3. Qué es la persona para el proyecto ([Roles](#roles)): `owner`, `editor`, `viewer`, o nada. Nada,
+   sin el token de una sesión en vivo (`?live=<token>`), es `404 project.not-found`, como lo son un
+   proyecto que no existe y un id que no puede serlo. Con un token el proyecto debe existir (nunca
+   se crea una sala para un id que el almacén no tiene), y la sala comprueba el token ella misma
+   ([Sesiones en vivo](#sesiones-en-vivo)).
+4. Quién es la conexión. Una persona con sesión iniciada es su cuenta: `sub`, nombre e imagen. Una
+   persona sin cuenta es un invitado: `?guest=` debe ser los 32 caracteres hexadecimales en
+   minúscula que su navegador creó una vez y conserva (`400 request.invalid` si no), su `sub` es
+   `guest:<id>`, su nombre es `?name=` recortado cuando tiene de 1 a 40 caracteres y ningún carácter
+   de control (si no, "Guest NN", NN dos dígitos del id), y no tiene imagen. Sin token un invitado
+   es `viewer`, que es lo que da cualquier enlace que admite a una persona anónima: quien visita de
+   forma anónima un enlace `view` o `edit` sigue la sala en vivo.
 
 La sala recibe una solicitud que construye el Worker: la dirección interna fija
 `https://room/connect` y solo las cabeceras que establece el Worker, `X-Meltemi-Project`,
-`X-Meltemi-Sub`, `X-Meltemi-Role` (el rol que el Worker determinó: `owner`, `editor` o `viewer`),
-`X-Meltemi-Name` y `X-Meltemi-Picture` (las dos últimas codificadas como URL). No se reenvía nada
-de la solicitud del navegador, ni su path ni ninguna cabecera, así que un `X-Meltemi-Role`
-falsificado nunca llega a la sala. La sala lee el rol solo de la cabecera del Worker, trata un rol
-desconocido como lo mínimo que puede ser una persona (`viewer`) y rechaza una conexión sin `sub`. La
-identidad y un id de conexión aleatorio se guardan en el adjunto del socket, que sobrevive a la
-hibernación.
+`X-Meltemi-Sub`, `X-Meltemi-Role` (el rol que el Worker determinó: `owner`, `editor` o `viewer`, o
+`viewer` para una persona a la que el proyecto solo admite por un token), `X-Meltemi-Name` y
+`X-Meltemi-Picture` (las tres últimas codificadas como URL), `X-Meltemi-Guest: 1` para una persona
+sin cuenta, `X-Meltemi-Address` (la dirección del cliente, `CF-Connecting-IP`) y `X-Meltemi-Live`,
+el token, solo cuando la consulta del socket traía uno. No se reenvía nada de la solicitud del
+navegador, ni su path ni ninguna cabecera, así que un `X-Meltemi-Role` o un `X-Meltemi-Live`
+falsificados nunca llegan a la sala. La sala lee el rol solo de la cabecera del Worker, trata un rol
+desconocido como lo mínimo que puede ser una persona (`viewer`), rechaza una conexión sin `sub`, y
+rechaza como error interno un sub `guest:` sin la cabecera de invitado o la cabecera de invitado con
+otro sub, de modo que el prefijo nombra a un invitado y a nada más. La identidad, la marca de
+invitado, la dirección, la sesión que admitió la conexión y un id de conexión aleatorio se guardan
+en el adjunto del socket, que sobrevive a la hibernación.
 
 El rol queda fijado cuando se abre el socket. Un lector recibe todo lo que escribe un editor, como
 todo el mundo, y la primera actualización que envía un lector se rechaza: la sala lo avisa con
@@ -722,10 +739,10 @@ presencia no es una actualización: un lector la envía y la recibe como cualqui
 ([Presencia](#presencia-awareness)). Un cambio de acceso corta los sockets que pueda haber dejado obsoletos, para que el rol se determine de
 nuevo ([Cuando cambia el acceso](#cuando-cambia-el-acceso)).
 
-Las rutas propias de la sala (`/files`, `/restore`, `/materialise`, `/destroy`, `/stats` y
-`/disconnect`) solo responden a solicitudes que construye el Worker: `POST /rooms/<id>/destroy`
-desde un navegador, con la cookie del propietario, es `404 not-found`, y la sala conserva su
-documento y su revisión.
+Las rutas propias de la sala (`/files`, `/restore`, `/materialise`, `/destroy`, `/stats`,
+`/disconnect` y `/live`) solo responden a solicitudes que construye el Worker:
+`POST /rooms/<id>/destroy` o `POST /rooms/<id>/live` desde un navegador, con la cookie del
+propietario, es `404 not-found`, y la sala conserva su documento, su revisión y su sesión.
 
 ### El protocolo de la sala
 
@@ -736,11 +753,13 @@ Los mensajes son binarios; el primer byte es el tipo.
 | 0    | `sync`      | en ambos sentidos | Un vector de estado. De un cliente: la sala responde con un tipo 1 con lo que le falta al cliente (siempre, aunque no tenga nada que enviar). De la sala: su propio vector, enviado una vez después de `hello` y siempre que una actualización espera algo de lo que depende; el cliente responde con un tipo 1 con lo que le falta a la sala |
 | 1    | `update`    | en ambos sentidos | Una actualización de Yjs. De un cliente, la sala la aplica como una transacción, sube la revisión, programa una escritura y una materialización, y la envía a todos los demás clientes; de la sala es un cambio que el cliente aplica como venido de fuera                                                                                    |
 | 2    | `awareness` | en ambos sentidos | Presencia ([Presencia](#presencia-awareness)). De un cliente: su propio estado. De la sala: los estados de los demás clientes, cada uno con la identidad que la sala conoce del remitente, o `null` para un cliente que se ha ido. La sala solo lo retransmite                                                                                |
-| 3    | `hello`     | sala a cliente    | JSON, una vez al conectar: `{ role, revision, limits, collisions, you }`                                                                                                                                                                                                                                                                      |
+| 3    | `hello`     | sala a cliente    | JSON, una vez al conectar: `{ role, revision, limits, collisions, you, live }`                                                                                                                                                                                                                                                                |
 | 4    | `error`     | sala a cliente    | JSON `{ code }`, y después el socket se cierra                                                                                                                                                                                                                                                                                                |
 
 `hello` dice qué es la persona para el proyecto, la revisión en la que está la sala, los límites que
-impone, las colisiones del documento y cuál es esta conexión:
+impone, las colisiones del documento, cuál es esta conexión (`guest` para una persona sin cuenta)
+y, para una conexión que admitió una sesión en vivo, el fin de la sesión y si los invitados editan
+(`null` para cualquier otra):
 
 ```json
 {
@@ -754,7 +773,14 @@ impone, las colisiones del documento y cuál es esta conexión:
     "clients": 20
   },
   "collisions": [],
-  "you": { "id": "9f3c2a71d04be856", "sub": "u_7d3f", "name": "Ana", "picture": "https://…" }
+  "you": {
+    "id": "9f3c2a71d04be856",
+    "sub": "u_7d3f",
+    "name": "Ana",
+    "picture": "https://…",
+    "guest": false
+  },
+  "live": null
 }
 ```
 
@@ -780,7 +806,9 @@ que dice de qué familia es el rechazo:
 | 4403             | `access.denied`                                     | Un lector envió una actualización                                                                                                                                                                                                 |
 | 4404             | `project.not-found`                                 | El proyecto se eliminó mientras el cliente estaba conectado                                                                                                                                                                       |
 | 4409             | `room.full`                                         | El 21.º cliente: no recibe `hello`                                                                                                                                                                                                |
+| 4410             | `session.ended`                                     | Terminó la sesión en vivo que admitió la conexión                                                                                                                                                                                 |
 | 4413             | `doc.too-large`, `quota.files`, `message.too-large` | Un texto de más de 2 Mi caracteres o un documento de más de 16 MiB, más de 2000 archivos, un mensaje de más de 512 KiB (por debajo del 1 MiB de la plataforma, para que la sala lo vea), un mensaje de presencia de más de 16 KiB |
+| 4428             | `connections.limit`                                 | La undécima conexión abierta sin cuenta desde una misma dirección de cliente: no recibe `hello`                                                                                                                                   |
 | 4429             | `awareness.rate`                                    | Un cliente envió más de 100 mensajes de presencia en un segundo                                                                                                                                                                   |
 | 4500             | `internal`                                          | La sala no pudo atender un mensaje                                                                                                                                                                                                |
 | 4000             | ninguno                                             | La herramienta de desarrollo ([Las rutas de desarrollo](#las-rutas-de-desarrollo)), o un cambio de acceso ([Cuando cambia el acceso](#cuando-cambia-el-acceso)), cortó la conexión; no es un rechazo                              |
@@ -789,19 +817,23 @@ La página distingue una conexión caída de un rechazo: un cierre sin mensaje d
 código de 4400 a 4429 es una caída, y reconecta al cabo de un segundo, duplicando hasta treinta; un
 rechazo se muestra a la persona y el socket se reabre al cabo de medio segundo, duplicando si se
 repite. `4404` no es ni una cosa ni la otra: el proyecto ya no existe, así que la página deja de
-reconectar, lo dice y conserva lo que tiene.
+reconectar, lo dice y conserva lo que tiene. Tampoco lo son `4410` y `4428`: la página deja de
+reconectar con esa dirección, dice por qué, y sigue como describe
+[Sesiones en vivo](#sesiones-en-vivo).
 
 Una sala que ya tiene 20 clientes rechaza al 21 con `room.full`, con una excepción: el propietario
-y los editores entran mientras un lector ocupe un sitio. Ese lector cede su sitio y se le dice
-`room.full` como si hubiera llegado el último; es el socket más reciente de la persona que más
-sockets de lector tiene, de modo que una cuenta que abrió muchos sockets para mantener la sala
-llena pierde primero los suyos. Un lector nunca entra por encima de nadie, y el propietario y los
-editores son rechazados cuando los 20 son personas que pueden escribir.
+y los editores con cuenta entran mientras un lector o un invitado ocupe un sitio. Ese cede su sitio
+y se le dice `room.full` como si hubiera llegado el último; es el socket más reciente de la persona
+que más de esos sockets tiene, de modo que una cuenta, o el navegador de un invitado, que abrió
+muchos sockets para mantener la sala llena pierde primero los suyos. Un lector o un invitado (de
+cualquier rol) nunca entra por encima de nadie, y el propietario y los editores son rechazados
+cuando los 20 son personas con cuenta que pueden escribir.
 
 ### Presencia (awareness)
 
 La presencia es lo que cada página cuenta a las demás sobre su persona: el archivo que tiene
-abierto, dónde está su cursor o su selección en él y qué ha seleccionado en el lienzo. Viaja en
+abierto, dónde está su cursor o su selección en él, qué ha seleccionado en el lienzo y dónde está
+su puntero sobre él. Viaja en
 mensajes de tipo 2, y la sala solo los retransmite: nada de ello se escribe en el almacenamiento de
 la sala, y no cambia ni el documento ni su revisión. [El playground](playground.md#trabajar-juntos)
 la muestra. El formato es pequeño y propio de la página: un objeto con una clave por conexión, como
@@ -816,7 +848,7 @@ parte de un estado es opcional (una persona sin ningún archivo abierto envía `
   "9f3c2a71d04be856": {
     "file": "k7h2m4n9p3q5r8s2",
     "caret": { "anchor": "AQID", "head": "AQIE" },
-    "canvas": { "selection": ["api", "db"] }
+    "canvas": { "selection": ["api", "db"], "pointer": { "x": 312, "y": 148, "diagram": "flow" } }
   }
 }
 ```
@@ -828,6 +860,10 @@ parte de un estado es opcional (una persona sin ningún archivo abierto envía `
   texto y no desplazamientos, se quedan en los mismos caracteres mientras otros editan.
 - `canvas.selection` lista los ids seleccionados en el lienzo, cada uno de 256 caracteres como
   máximo.
+- `canvas.pointer` es dónde está el puntero de la persona sobre su lienzo, mientras se mueve por
+  él: dos números en unidades del diagrama, finitos y a menos de un millón del origen, que la sala
+  redondea a enteros, y el id del diagrama sobre el que está. Una parte del lienzo lleva una
+  selección, un puntero o ambos.
 
 La clave de la entrada se ignora (la página usa el id de su conexión), y la sala no lee nada más del
 estado: un `user`, un nombre o cualquier otro campo no se retransmite nunca. Un mensaje de otra
@@ -842,10 +878,16 @@ la identidad en `user`:
 ```json
 {
   "5d0e7a1c9b24f3a8": {
-    "user": { "sub": "u_8a21", "name": "Ben", "picture": "https://…", "colour": "#1c7ed6" },
+    "user": {
+      "sub": "u_8a21",
+      "name": "Ben",
+      "picture": "https://…",
+      "colour": "#1c7ed6",
+      "guest": false
+    },
     "file": "k7h2m4n9p3q5r8s2",
     "caret": { "anchor": "AQID", "head": "AQIE" },
-    "canvas": { "selection": ["api"] }
+    "canvas": { "selection": ["api"], "pointer": { "x": 120, "y": 80, "diagram": "flow" } }
   }
 }
 ```
@@ -855,23 +897,28 @@ al socket cuando se abrió ([El socket](#el-socket)), diga lo que diga el mensaj
 200 caracteres del `sub`, 100 del nombre y 500 de la dirección de la imagen. El `colour` sale del
 `sub`: uno de doce, elegido con un hash FNV-1a de él (`presenceColour`, en
 `@meltemi/diagrams-project`, que la página usa también), así que la sala y todas las páginas
-coinciden y ningún cliente envía un color. Como la clave es la del propio remitente, un cliente
-tampoco puede hablar por la entrada de otro. La página toma la identidad de una persona solo de este
+coinciden y ningún cliente envía un color. `guest` es verdadero para una persona sin cuenta, por la
+conexión y nunca por el mensaje, de modo que cada página marca a un invitado y nunca lo toma por
+una cuenta. Como la clave es la del propio remitente, un cliente tampoco puede hablar por la
+entrada de otro. La página toma la identidad de una persona solo de este
 `user`.
 
 **Al conectar.** Después de `hello` y de su vector de estado, la sala envía al recién llegado un
 mensaje de tipo 2 con los estados de los demás clientes, con la misma forma, leídos de los adjuntos
 de los sockets: los de quienes han dado señales en los últimos treinta segundos, y ningún mensaje si
 no hay ninguno. Los demás conocen al recién llegado por su primer estado, no al conectar. La
-sala no guarda la selección del lienzo, así que el recién llegado la conoce por el siguiente estado
-del remitente; una página envía su estado de nuevo cada quince segundos.
+sala no guarda la selección del lienzo ni el puntero, así que el recién llegado los conoce por el
+siguiente estado del remitente; una página envía su estado de nuevo cada quince segundos.
 
 **Retirada.** `{ "<id>": null }`, de parte de la sala, dice que esa conexión ya no tiene estado. La
 sala lo envía cuando un cliente envía `null` (si tenía un estado), cuando se cierra su socket (si
 tenía uno) y cuando pasan treinta segundos sin un estado suyo. Ese plazo es una alarma: la sala la
 fija para la hora de la última señal más antigua más treinta segundos y, cuando salta, descarta
 todos los estados que tienen al menos esa antigüedad, avisa a cada cliente que queda (de los demás,
-nunca de sí mismo) y fija la siguiente alarma para el estado más antiguo que queda. Los sockets
+nunca de sí mismo) y fija la siguiente alarma. La sala tiene una sola alarma, y sirve también a una
+sesión en vivo ([Sesiones en vivo](#sesiones-en-vivo)): se fija para el primero de estos momentos,
+el siguiente plazo de presencia, el fin de la sesión y la hora de inactividad tras la salida del
+último cliente, y cada vez que salta hace lo que toca y fija la siguiente. Los sockets
 siguen abiertos, y un cliente que vuelve a enviar un estado ha vuelto. Una página envía un estado
 cuando cambia, como máximo cuatro veces por segundo, y otra vez cada quince segundos como latido,
 así que un estado de treinta segundos es el de una página que se fue.
@@ -897,6 +944,8 @@ construida de nuevo cuenta desde cero.
   las dos pestañas de una persona cuentan por separado.
 - Una página envía como máximo cuatro estados por segundo y recorta una selección del lienzo a 200
   ids y 12 000 bytes, así que solo un cliente que no sea la página llega a alguno de estos límites.
+  Un puntero en movimiento va en el mismo mensaje que el cursor y la selección: no añade ningún
+  mensaje propio.
 - La presencia es igual para todos los que pueden conectarse: un lector la envía y la recibe como un
   editor, y solo se rechazan las actualizaciones de un lector ([El socket](#el-socket)).
 
@@ -1358,16 +1407,19 @@ que cada celda de la tabla es una prueba (`test/access.test.ts`).
 Una ruta declara el rol que necesita: `read` es un lector, `write` un editor y `manage` el
 propietario.
 
-| Necesita                                                                  | Rutas                                                                                                                                                                             |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `manage` (el propietario)                                                 | `PATCH` y `DELETE /api/projects/<id>`; `PATCH …/sharing`; `POST …/members`; `PATCH` y `DELETE …/members/<sub>`; `GET` y `DELETE …/invitations`; `GET`, `PUT` y `DELETE …/publish` |
-| `write` (un editor)                                                       | `PUT …/files`; `PUT` y `DELETE …/binaries/<path>`; `PUT …/thumbnail`; `POST …/versions`; `POST …/versions/<n>/restore`                                                            |
-| `read` (un lector; también personas anónimas cuando un enlace las admite) | `GET /api/projects/<id>`; `GET …/files`; `GET` y `HEAD …/blobs/<hash>`; `GET …/versions` y `…/versions/<n>`; `GET …/thumbnail`; `GET …/sharing`                                   |
+| Necesita                                                                  | Rutas                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `manage` (el propietario)                                                 | `PATCH` y `DELETE /api/projects/<id>`; `PATCH …/sharing`; `POST …/members`; `PATCH` y `DELETE …/members/<sub>`; `GET` y `DELETE …/invitations`; `GET`, `PUT` y `DELETE …/publish`; `PUT`, `GET` y `DELETE …/live` |
+| `write` (un editor)                                                       | `PUT …/files`; `PUT` y `DELETE …/binaries/<path>`; `PUT …/thumbnail`; `POST …/versions`; `POST …/versions/<n>/restore`                                                                                            |
+| `read` (un lector; también personas anónimas cuando un enlace las admite) | `GET /api/projects/<id>`; `GET …/files`; `GET` y `HEAD …/blobs/<hash>`; `GET …/versions` y `…/versions/<n>`; `GET …/thumbnail`; `GET …/sharing`                                                                   |
 
 Algunas rutas nombran otra cosa. `POST …/duplicate` necesita `read` y una persona, y hace la copia
 en la cuenta de quien pregunta. `DELETE …/members/me` necesita una membresía.
 `POST /api/invitations/<token>/accept` necesita una persona y el token, que es la prueba. El socket
-necesita la cookie y después cualquier rol que el proyecto admita. `PATCH /api/account { handle }`
+necesita cualquier rol que el proyecto admita, o el token de una sesión en vivo
+([El socket](#el-socket)). `GET /api/projects/<id>` y `GET` y `HEAD …/blobs/<hash>` también toman
+`read` del token vigente de una sesión en vivo en `X-Meltemi-Live`; ninguna otra ruta lee esa
+cabecera. `PATCH /api/account { handle }`
 necesita una persona, con la cookie o un token, y la ruta de los administradores una cookie que
 `ADMIN_SUBS` liste. Las rutas
 sobre la propia cuenta de quien pregunta (`GET` y `POST /api/projects`, `GET /api/account/usage`)
@@ -1509,11 +1561,11 @@ invitación y no por su token (`204`; `404 not-found` cuando no hay ninguna).
 
 Un proyecto cuyo enlace es `view` o `edit` sirve sus rutas `read` a cualquiera: los metadatos, con
 el `role` de quien pregunta, los archivos como instantánea, los blobs, las versiones y la miniatura.
-Es todo lo que necesita quien mira de forma anónima, y todo lo que el servicio le da. El socket es
-de las personas con sesión iniciada: un lector con sesión se conecta como tal, recibe cada cambio y
-no puede escribir ([El socket](#el-socket)). Un proyecto que el enlace no admite es
-`404 project.not-found` para las personas anónimas como para cualquier otra, lo que la página dice
-como "no se encontró" y nada más. Cómo usa la página todo esto está en
+Un lector, con sesión o sin ella, se conecta a la sala como tal, recibe cada cambio y no puede
+escribir ([El socket](#el-socket)); uno anónimo se conecta con una identidad de invitado, está en la
+presencia como cualquiera, y lee la instantánea (`GET …/files`) solo cuando la sala no responde. Un
+proyecto que el enlace no admite es `404 project.not-found` para las personas anónimas como para
+cualquier otra, lo que la página dice como "no se encontró" y nada más. Cómo usa la página todo esto está en
 [el playground](playground.md#ver-un-proyecto-compartido).
 
 ### Cuando cambia el acceso
@@ -1541,6 +1593,67 @@ cuando se hizo el cambio: cuando la sala ha aceptado un socket, el Worker resuel
 y corta los sockets de la persona si es distinto; si ese corte falla, el upgrade es
 `500 internal`, no un socket con el rol antiguo. Eliminar una cuenta corta de la misma manera los
 sockets de la persona en los proyectos de otras, antes y después de aplicar el evento.
+
+### Sesiones en vivo
+
+Una sesión en vivo deja entrar en un proyecto durante un tiempo a cualquiera con su enlace, con
+cuenta o sin ella ([decisión 0050](../decisions/0050-live-sessions.md)). Hay una como máximo por
+proyecto, y vive en la sala del proyecto, en el almacenamiento propio de la sala, como
+`{ id, token, guestsEdit, startedAt, until }`: no se escribe ninguna fila de D1 para ella, y se va
+con la sala cuando se elimina el proyecto. El token son 128 bits aleatorios en hexadecimal en
+minúscula, guardados en claro para que el propietario pueda copiar el enlace de nuevo; se responde
+solo al propietario y nunca se registra.
+
+- `PUT /api/projects/<id>/live { guestsEdit? }` (del propietario) inicia la sesión, con invitados
+  que pueden editar salvo que `guestsEdit` sea `false`, durante veinticuatro horas; con una sesión
+  activa responde esa, aplicando `guestsEdit` cuando se da. Un cambio de `guestsEdit` corta las
+  conexiones que admitió la sesión con `4000`, como lo hace un cambio de acceso, y estas reconectan
+  con el rol que da ahora. La respuesta:
+
+  ```json
+  {
+    "id": "8c1f02b9e45a7d36",
+    "link": "https://diagrams.meltemi.dev/p/k7h2m4n9p3q5r8s2t6v1?live=0f4b…",
+    "guestsEdit": true,
+    "startedAt": "2026-10-21T18:02:11.000Z",
+    "until": "2026-10-22T18:02:11.000Z",
+    "guests": 2
+  }
+  ```
+
+  `guests` cuenta las conexiones que admitió la sesión y que están abiertas ahora.
+
+- `GET …/live` (del propietario) responde lo mismo, o `null`.
+- `DELETE …/live` (del propietario) termina la sesión, y responde `204` haya o no una activa.
+
+Una sesión también termina sola en `until` y tras una hora sin ningún cliente en la sala. La única
+alarma de la sala se ocupa de ambas cosas, también tras una hibernación. Termine como termine, el
+registro se va y a cada conexión que admitió la sesión se le dice `session.ended` y se cierra con
+`4410`; una conexión que llegó sin el token se queda. Una página cerrada con `4410` deja de
+reconectar con el token.
+
+**Unirse.** Un socket con `?live=<token>` llega a la sala con el token en `X-Meltemi-Live`
+([El socket](#el-socket)). La sala lo compara con su registro: un token distinto, o una sesión ya
+terminada, es `404 project.not-found` en el upgrade, sin revelar nada. Uno vigente admite la
+conexión con el mayor entre el rol propio de la persona y el de la sesión (`editor` cuando
+`guestsEdit`, si no `viewer`), así que un miembro con sesión iniciada conserva más cuando lo tiene,
+y el propietario es el propietario. `hello` nombra entonces la sesión (`live: { until, guestsEdit }`).
+
+**Invitados y sitios.** Un invitado, y quien visita de forma anónima, ocupan uno de los veinte
+sitios de la sala y lo ceden como lo hace un lector ([El protocolo de la sala](#el-protocolo-de-la-sala)).
+Entre las conexiones sin cuenta la sala admite como máximo diez abiertas por dirección de cliente y
+rechaza la undécima con `connections.limit` (`4428`), para que una red no pueda llenar una sala
+mientras un aula o una oficina detrás de una dirección siguen cabiendo; las conexiones con cuenta no
+se cuentan por dirección. La actualización de un invitado cuenta frente a los límites del proyecto
+como la de un editor.
+
+**A qué llega un token.** A la sala, y a dos lecturas: `GET /api/projects/<id>` (con
+`live: { until, guestsEdit }`, o `null` cuando el token no está vigente, para que una página con un
+enlace viejo lo descarte) y `GET` y `HEAD …/blobs/<hash>` (las imágenes y fuentes que usan los
+diagramas), que toman el token en `X-Meltemi-Live` cuando el acceso propio de quien pregunta no
+basta y preguntan a la sala si está vigente. Todas las demás rutas ignoran la cabecera: un invitado
+no puede subir, crear versiones, publicar, cambiar la miniatura ni leer lo compartido; eso requiere
+una cuenta.
 
 ## Publicación
 
@@ -1737,6 +1850,8 @@ está en `CLOUD_LIMITS` es el de los miembros de un proyecto, que solo impone el
 | Versiones de un proyecto             | 200, contando las que tienen etiqueta; se conservan 100 sin ella          | `quota.versions`                      |
 | Versiones hechas en un minuto        | 6 para un proyecto                                                        | `versions.rate`                       |
 | Clientes de una sala                 | 20                                                                        | `room.full`                           |
+| Conexiones sin cuenta                | 10 abiertas desde una misma dirección de cliente                          | `connections.limit`                   |
+| Una sesión en vivo                   | 24 horas, y una hora sin nadie en su sala                                 | `session.ended`                       |
 | Un mensaje de un socket              | 512 KiB                                                                   | `message.too-large`                   |
 | Un mensaje de presencia              | 16 KiB; se retransmiten 20 por segundo, más de 100 por segundo lo cierran | `message.too-large`, `awareness.rate` |
 | Una miniatura                        | 200 KiB                                                                   | `thumbnail.too-large`                 |

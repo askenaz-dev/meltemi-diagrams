@@ -1,6 +1,7 @@
 // The share dialog of a cloud project: the project's link with copy, who the link admits (the owner's
-// three choices), the people with their roles, an invitation by email, the invitations that wait with
-// their links, leaving (a member's) and the entry that opens the publish dialog (the owner's). What it
+// three choices), the live session (the owner's: start, the link, guests can edit, end), the people
+// with their roles, an invitation by email, the invitations that wait with their links, leaving (a
+// member's) and the entry that opens the publish dialog (the owner's). What it
 // knows and does is `ShareModel`'s, and what each person is shown is `shareView`'s; this draws it. A
 // control the person may not use is not drawn at all. Names, emails, dates and the service's messages
 // are set as text, never as markup; a person's picture is an `<img>` with no alternative text (the name
@@ -14,6 +15,7 @@ import type { Playground } from "../shell.js";
 import { ICONS, field, h, icon, openDialog, select } from "../ui.js";
 import { projectLink } from "./address.js";
 import { copyText } from "./clipboard.js";
+import { liveApi, type LiveApi, type LiveSession } from "./live.js";
 import { openPublishDialog } from "./publish.js";
 import { sharingApi, type MemberRole, type SharingApi } from "./share-api.js";
 import {
@@ -42,6 +44,12 @@ export interface ShareOptions {
   readonly publish?: () => void;
   /** Writes to the clipboard; the browser's by default. */
   readonly copy?: (text: string) => Promise<boolean>;
+  /** The owner's live session calls; given only where the page offers sessions (`live-sessions`). */
+  readonly live?: LiveApi;
+  /** What the page now knows of the session: the header's chip follows it. */
+  readonly liveKnown?: (session: LiveSession | null) => void;
+  /** How many guests are in the project now, from presence, and how to hear it change. */
+  readonly guests?: { now(): number; watch(listener: () => void): () => void };
 }
 
 let dialogs = 0;
@@ -78,6 +86,7 @@ export function openShareDialog(playground: Playground): void {
   if (!project) return;
   const session = playground.options.session;
   const location = { href: env.location.href() };
+  const open = cloud?.openProject?.id === project.id;
   openShare({
     project,
     api: sharingApi(env.fetch, location),
@@ -87,8 +96,16 @@ export function openShareDialog(playground: Playground): void {
     // Leaving is, for this page, what deleting is: the browser's copy goes and the page lets go. Only
     // a member can leave, and nobody signed in is one.
     left: () => cloud?.deleted(project.id),
-    // Only the owner publishes, and only a person signed in is one.
+    // Only the owner publishes and starts a live session, and only a person signed in is one: the
+    // dialog offers both to the owner alone.
     ...(cloud ? { publish: () => openPublishDialog(playground) } : {}),
+    ...(cloud && open
+      ? {
+          live: liveApi(env.fetch, location),
+          liveKnown: (known: LiveSession | null) => playground.live.set(project.id, known),
+          guests: playground.guestsNow(),
+        }
+      : {}),
   });
 }
 
@@ -379,6 +396,133 @@ export function openShare(options: ShareOptions): HTMLDialogElement {
     noPending,
   );
 
+  // The live session: the owner's ------------------------------------------------------------------
+  const live = options.live === undefined ? undefined : liveSection();
+
+  /** The section the owner starts, watches and ends a live session in. */
+  function liveSection() {
+    const l = words().live.section;
+    const title = h(
+      "h3",
+      { id: `share-live-${unique}`, class: "share-live-title" },
+      h("span", { class: "share-live-dot", "aria-hidden": "true" }),
+      h("span", {}, l.title),
+    );
+    const intro = h("p", { class: "field-hint share-live-intro" }, l.off);
+    const loading = h("p", { class: "field-hint share-live-loading", role: "status" }, l.loading);
+    const edits = h("input", {
+      type: "checkbox",
+      role: "switch",
+      class: "switch-input",
+      "data-action": "live-edit",
+      "aria-describedby": `share-live-edit-hint-${unique}`,
+    }) as HTMLInputElement;
+    edits.checked = true;
+    const editSwitch = h(
+      "label",
+      { class: "switch share-live-switch" },
+      edits,
+      h("span", { class: "switch-track", "aria-hidden": "true" }),
+      h("span", {}, l.guestsEdit),
+    );
+    const editHint = h(
+      "span",
+      { class: "field-hint", id: `share-live-edit-hint-${unique}` },
+      l.guestsEditHint,
+    );
+    const start = h(
+      "button",
+      { type: "button", class: "button primary with-text", "data-action": "live-start" },
+      icon(ICONS.share),
+      h("span", {}, l.start),
+    );
+    const linkBox = h("input", {
+      type: "text",
+      id: `share-live-link-${unique}`,
+      class: "share-link share-live-link",
+      readonly: true,
+      autocomplete: "off",
+      spellcheck: "false",
+      "aria-describedby": `share-live-link-hint-${unique}`,
+    }) as HTMLInputElement;
+    const copyLive = h(
+      "button",
+      {
+        type: "button",
+        class: "button primary with-text",
+        "data-action": "live-copy",
+        "aria-label": l.copyLabel,
+      },
+      h("span", {}, l.copy),
+    );
+    const guests = h("span", { class: "share-live-guests" });
+    const ends = h("span", { class: "share-live-ends" });
+    const end = h(
+      "button",
+      { type: "button", class: "button with-text danger", "data-action": "live-end" },
+      h("span", {}, l.end),
+    );
+    const onPart = h(
+      "div",
+      { class: "share-live-on" },
+      h(
+        "div",
+        { class: "field share-link-field" },
+        h("label", { class: "field-label", for: linkBox.id }, l.linkLabel),
+        h("div", { class: "share-row share-link-row" }, linkBox, copyLive),
+        h("span", { class: "field-hint", id: `share-live-link-hint-${unique}` }, l.linkHint),
+      ),
+      h("p", { class: "share-live-meta", role: "status" }, guests, ends),
+    );
+    const section = h(
+      "section",
+      { class: "share-section share-live", "aria-labelledby": title.id, hidden: true },
+      title,
+      intro,
+      loading,
+      onPart,
+      h("div", { class: "share-live-edit" }, editSwitch, editHint),
+      h("div", { class: "share-live-actions" }, start, end),
+    );
+    start.addEventListener("click", async () => {
+      if (await model.startLive(edits.checked)) copyLive.focus();
+    });
+    edits.addEventListener("change", async () => {
+      // Before a session starts the switch only says what it will be.
+      if (model.state.live && !(await model.setGuestsEdit(edits.checked)) && !closed) {
+        edits.checked = model.state.live?.guestsEdit ?? true;
+      }
+    });
+    copyLive.addEventListener("click", async () => {
+      if (!(await model.copy("live")) && !closed) {
+        linkBox.focus();
+        linkBox.select();
+      }
+    });
+    end.addEventListener("click", async () => {
+      const sure = await confirmDialog(l.endTitle, l.endMessage, l.endConfirm);
+      if (!sure || closed) return;
+      if (await model.endLive()) start.focus();
+    });
+    return {
+      section,
+      draw(view: NonNullable<ReturnType<typeof shareView>["live"]>, busy: boolean): void {
+        section.hidden = false;
+        section.classList.toggle("on", view.on);
+        loading.hidden = view.known;
+        intro.hidden = !view.known || view.on;
+        onPart.hidden = !view.on;
+        start.hidden = !view.known || view.on;
+        end.hidden = !view.on;
+        if (linkBox.value !== view.link) linkBox.value = view.link;
+        // While a change is on its way the switch shows the person's choice, not the old one.
+        if (view.on && !busy) edits.checked = view.guestsEdit;
+        guests.textContent = view.guests;
+        ends.textContent = view.ends;
+      },
+    };
+  }
+
   // Leaving, and publishing --------------------------------------------------------------------------
   const leave = h("button", { type: "button", class: "button with-text" }, m.leave);
   const leaveSection = h(
@@ -462,6 +606,9 @@ export function openShare(options: ShareOptions): HTMLDialogElement {
       me: options.me,
       locale: getLocale(),
       canPublish: options.publish !== undefined,
+      canLive: options.live !== undefined,
+      guestsNow: options.guests?.now() ?? 0,
+      now: Date.now(),
     });
     status.textContent = state.status;
     problem.textContent = state.problem;
@@ -487,6 +634,10 @@ export function openShare(options: ShareOptions): HTMLDialogElement {
     pendingSection.hidden = view.invitations === undefined;
     leaveSection.hidden = !view.leave;
     publishSection.hidden = !view.publish;
+    if (live) {
+      if (view.live) live.draw(view.live, state.busy);
+      else live.section.hidden = true;
+    }
 
     if (
       state.sharing !== shownSharing ||
@@ -532,6 +683,8 @@ export function openShare(options: ShareOptions): HTMLDialogElement {
       copy,
       report: options.report,
       left: options.left,
+      ...(options.live ? { live: options.live } : {}),
+      ...(options.liveKnown ? { liveKnown: options.liveKnown } : {}),
     },
     options.project.id,
     options.link,
@@ -547,6 +700,7 @@ export function openShare(options: ShareOptions): HTMLDialogElement {
       messagesBox,
       retry,
       levelSet,
+      ...(live ? [live.section] : []),
       peopleSection,
       inviteForm,
       reveal,
@@ -556,9 +710,14 @@ export function openShare(options: ShareOptions): HTMLDialogElement {
     ],
     [{ label: messages().dialog.close, primary: true }],
   );
+  // The guests come and go, and the time left runs: the section follows both while it is open.
+  const stopGuests = options.guests?.watch(() => render(model.state));
+  const tick = live ? setInterval(() => render(model.state), 30_000) : undefined;
   dialog.addEventListener("close", () => {
     closed = true;
     model.dispose();
+    stopGuests?.();
+    if (tick !== undefined) clearInterval(tick);
   });
   render(model.state);
   copyLink.focus();

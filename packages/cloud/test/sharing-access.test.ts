@@ -70,7 +70,8 @@ const ACCESS_CODES = ["project.not-found", "auth.required", "access.denied"];
 /** The `code` of an error answer; undefined for an answer with no JSON body (a success, a HEAD). */
 async function codeOf(response: Response): Promise<string | undefined> {
   if (!response.headers.get("Content-Type")?.startsWith("application/json")) return undefined;
-  return (await jsonOf<{ code?: string }>(response.clone())).code;
+  // `null` is an answer too (`GET …/live` with no session on).
+  return (await jsonOf<{ code?: string } | null>(response.clone()))?.code;
 }
 
 interface Route {
@@ -196,6 +197,16 @@ const ROUTES: Route[] = [
     method: "DELETE",
     path: (w) => w.url("/publish/page"),
   },
+  // A live session is the owner's to start, read and end (`live-sessions`).
+  {
+    name: "PUT live",
+    need: "manage",
+    method: "PUT",
+    path: (w) => w.url("/live"),
+    body: () => ({}),
+  },
+  { name: "GET live", need: "manage", method: "GET", path: (w) => w.url("/live") },
+  { name: "DELETE live", need: "manage", method: "DELETE", path: (w) => w.url("/live") },
 ];
 
 describe.each(LINKS)("with the link %s", (link) => {
@@ -582,13 +593,25 @@ describe("the room", () => {
     }
   });
 
-  it("asks for a cookie even where the link admits anonymous viewers: they read a snapshot through GET files", async () => {
+  it("lets an anonymous visitor the link admits follow live, as a viewer with a guest identity", async () => {
     const w = await world("view");
-    const anonymous = await w.h.request(`/rooms/${w.id}`, {
+    const guest = "a".repeat(32);
+    const anonymous = await w.h.request(`/rooms/${w.id}?guest=${guest}&name=Lu`, {
       headers: { Upgrade: "websocket", Connection: "Upgrade", Origin: ORIGIN },
     });
-    expect([anonymous.status, await codeOf(anonymous)]).toEqual([401, "auth.required"]);
-    expect(w.h.rooms.connects).toEqual([]);
+    expect(anonymous.status).toBe(200);
+    const client = w.h.rooms.clientOf(anonymous);
+    expect(client.hello).toMatchObject({
+      role: "viewer",
+      you: { sub: `guest:${guest}`, name: "Lu", picture: "", guest: true },
+      live: null,
+    });
+    // Without the id its browser made, an anonymous connection is not one the room can name.
+    const nameless = await w.h.request(`/rooms/${w.id}`, {
+      headers: { Upgrade: "websocket", Connection: "Upgrade", Origin: ORIGIN },
+    });
+    expect([nameless.status, await codeOf(nameless)]).toEqual([400, "request.invalid"]);
+    // The snapshot stays as the fallback for when the room does not answer.
     expect((await w.ask(NOBODY, "GET", w.url("/files"))).status).toBe(200);
   });
 

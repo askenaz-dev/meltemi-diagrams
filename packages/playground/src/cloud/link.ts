@@ -1,14 +1,17 @@
 // Opening a project by its link, for whoever is on the page (`project-sharing`, "Viewing by link";
-// `playground-cloud`, "Opening a project by address"). The address names the project (`?project=`)
-// and may carry an invitation (`?invite=`): a person signed in accepts it first, and opens the
-// project in the mode their role gives; nobody signed in is shown what the link admits, read once
-// (view mode on a snapshot), and told to sign in to accept an invitation. A project that is not
-// found says so and nothing more: whether it exists, or is private, is not for the page to say.
-// The address is never changed here except to drop an invitation that was accepted.
+// `playground-cloud`, "Opening a project by address"; `live-sessions`). The address names the
+// project (`?project=`) and may carry an invitation (`?invite=`) and a live session's token
+// (`?live=`): a person signed in accepts the invitation first, and opens the project in the mode
+// their role (or the session's) gives; nobody signed in follows the room live as a guest, editing
+// when a session lets guests edit, and reads a snapshot only when the room does not answer in time;
+// they are told to sign in to accept an invitation. A project that is not found says so and nothing
+// more: whether it exists, or is private, is not for the page to say. The address is never changed
+// here except to drop an invitation that was accepted.
 
 import { addressFor, withoutInvite, type OpenPlan } from "./address.js";
 import { hasCode, type CloudApi } from "./client.js";
 import { explainFailure, type CloudWords } from "./explain.js";
+import type { LinkOpened } from "./controller.js";
 import type { OpenOutcome } from "./projects-model.js";
 import type { SnapshotViewer } from "./snapshot.js";
 import type { InvitationApi } from "./view-api.js";
@@ -26,10 +29,8 @@ import {
 export interface LinkCloud {
   /** Opens the project the address names (a plan of the `open` or `missing` kind); what to say when it did not open. */
   openAddress(plan: OpenPlan): Promise<string | undefined>;
-  /** As `openAddress` for a project that may be there, with how it ended. */
-  openLink(
-    id: string,
-  ): Promise<{ readonly outcome: OpenOutcome; readonly notice: string | undefined }>;
+  /** As `openAddress` for a project that may be there, with how it ended (`live`: a session's token). */
+  openLink(id: string, live?: string): Promise<LinkOpened>;
   /** What the person is to the project that is open. */
   readonly role: Role | undefined;
   readonly openProject: { readonly id: string; readonly name: string } | undefined;
@@ -38,6 +39,11 @@ export interface LinkCloud {
 export interface LinkDeps {
   /** Set when a person is signed in with a cookie: only they have projects to open. */
   readonly cloud: LinkCloud | undefined;
+  /**
+   * Set for a person nobody is signed in as, where the page can reach the service: their way into a
+   * project's room as a guest (`live-sessions`). Without it, the page reads a snapshot.
+   */
+  readonly guest?: LinkCloud | undefined;
   /** `list` is asked only of a person signed in whose invitation turned out to be spent (see `isMember`). */
   readonly api: Pick<CloudApi, "get" | "list">;
   readonly invitations: InvitationApi;
@@ -67,8 +73,9 @@ export class LinkOpener {
         noticeText(linkNotices(facts(false, plan.invite, "none", "not-found")), this.words(), none),
       );
     }
-    if (!cloud) return this.openAnonymously(plan.id, plan.invite);
-    return this.openSignedIn(cloud, plan.id, plan.invite);
+    if (cloud) return this.openSignedIn(cloud, plan.id, plan.invite, plan.live);
+    if (this.deps.guest) return this.openAsGuest(this.deps.guest, plan.id, plan.invite, plan.live);
+    return this.openAnonymously(plan.id, plan.invite);
   }
 
   private words(): ViewWords {
@@ -86,6 +93,7 @@ export class LinkOpener {
     cloud: LinkCloud,
     named: string,
     invite: string | undefined,
+    live?: string,
   ): Promise<string | undefined> {
     let id = named;
     const words = this.words();
@@ -117,7 +125,7 @@ export class LinkOpener {
         failure = explainFailure(accepted.failure, this.deps.words().cloud.errors);
       }
     }
-    const opened = await cloud.openLink(id);
+    const opened = await cloud.openLink(id, live);
     const outcome = linkOutcome(opened.outcome);
     const notices = linkNotices(facts(true, invite, acceptance, outcome));
     if (outcome === "opened") {
@@ -127,7 +135,8 @@ export class LinkOpener {
       const said = noticeText(notices, words, { name, role });
       if (said !== "") this.deps.report(said);
       else if (failure !== undefined) this.deps.report(failure);
-      else if (role === "viewer") this.deps.report(words.openedLive(name));
+      // A session's joining was said by the controller; a viewer is told the page follows live.
+      else if (role === "viewer" && live === undefined) this.deps.report(words.openedLive(name));
       return undefined;
     }
     // Not opened: the controller said why; the invitation is said first, and the anonymous project opens.
@@ -149,9 +158,44 @@ export class LinkOpener {
 
   // Nobody signed in -------------------------------------------------------------------------------
 
+  /**
+   * Opens the project in its room for a person without an account: as a guest of the live session
+   * the token names (the role is the session's), or as a visitor the link admits (a viewer). The
+   * snapshot is read only when the room did not answer within the usual wait, and then the page
+   * says it may be old and offers to reload at once.
+   */
+  private async openAsGuest(
+    guest: LinkCloud,
+    id: string,
+    invite: string | undefined,
+    live: string | undefined,
+  ): Promise<string | undefined> {
+    const words = this.words();
+    const opened = await guest.openLink(id, live);
+    const outcome = linkOutcome(opened.outcome);
+    if (outcome === "opened") {
+      const name = guest.openProject?.name ?? id;
+      const lead = linkNotices(facts(false, invite, "none", "opened"));
+      if (lead.length > 0) this.deps.report(noticeText(lead, words, none));
+      // A session's joining was said by the controller.
+      else if (live === undefined) this.deps.report(words.openedLive(name));
+      return undefined;
+    }
+    if (opened.unanswered === true && live === undefined) {
+      return this.openAnonymously(id, invite, { fallback: true });
+    }
+    if (outcome === "not-found") {
+      return this.say(
+        noticeText(linkNotices(facts(false, invite, "none", "not-found")), words, none),
+      );
+    }
+    return opened.notice;
+  }
+
   private async openAnonymously(
     id: string,
     invite: string | undefined,
+    options: { readonly fallback?: boolean } = {},
   ): Promise<string | undefined> {
     const { api, snapshot, mode } = this.deps;
     const words = this.words();
@@ -176,6 +220,8 @@ export class LinkOpener {
       return this.say(explainFailure(loaded.failure, cloudWords.errors));
     }
     if (loaded.value.cancelled) return undefined;
+    // The room did not answer: what the page shows may be old, and it says so at once.
+    if (options.fallback === true) mode.setStale(true);
     const lead = linkNotices(facts(false, invite, "none", "opened"));
     const missingFiles = loaded.value.missing;
     this.deps.report(
@@ -183,7 +229,9 @@ export class LinkOpener {
         ? noticeText(lead, words, none)
         : missingFiles.length > 0
           ? cloudWords.project.binaryFetch(missingFiles[0]!)
-          : words.opened(name),
+          : options.fallback === true
+            ? cloudWords.live.snapshot(name)
+            : words.opened(name),
     );
     return undefined;
   }

@@ -94,12 +94,15 @@ La colaboración en tiempo real (varias personas que editan el mismo archivo a l
 quedaba fuera de la 1.0 y ya no es una limitación: los proyectos en la nube del playground la tienen
 ([trabajar juntos](playground.md#trabajar-juntos)). Lo que no hace:
 
-- Necesita el servicio en la nube y una cuenta. La extensión de VS Code y la línea de comandos no
-  muestran presencia, aunque un push mediante la API o la línea de comandos llega en vivo a las
-  personas de una sala.
-- Una sala admite veinte conexiones; la número veintiuno espera y lo intenta de nuevo.
-- Una persona sin sesión iniciada lee una instantánea de un proyecto compartido, no ve a nadie más y
-  nadie la ve.
+- Necesita el servicio en la nube, y un proyecto en una cuenta. Quienes se unen no necesitan
+  ninguna: quien visita un enlace compartido lo sigue en vivo, y el invitado de la sesión en vivo del
+  propietario edita sin cuenta ([sesiones en vivo](playground.md#sesiones-en-vivo)). La extensión de
+  VS Code y la línea de comandos no muestran presencia, aunque un push mediante la API o la línea de
+  comandos llega en vivo a las personas de una sala.
+- Una sala admite veinte conexiones, y diez sin cuenta desde una misma red; la número veintiuno
+  espera y lo intenta de nuevo. Una sesión en vivo dura un día como máximo.
+- Un invitado no puede añadir imágenes ni fuentes, crear versiones, compartir ni publicar: eso
+  requiere una cuenta.
 - No se puede seguir la vista de otra persona, y no hay comentarios, chat ni voz.
 
 En la 1.0:

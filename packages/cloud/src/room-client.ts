@@ -7,6 +7,8 @@
 import { fail, type ErrorCode, ERROR_STATUS } from "./errors.js";
 import type {
   DisconnectTarget,
+  LiveGrant,
+  LiveState,
   PushRequest,
   RoomFiles,
   RoomIdentity,
@@ -33,7 +35,16 @@ export const ROOM_HEADERS = {
   role: "X-Meltemi-Role",
   name: "X-Meltemi-Name",
   picture: "X-Meltemi-Picture",
+  guest: "X-Meltemi-Guest",
+  live: "X-Meltemi-Live",
+  address: "X-Meltemi-Address",
 } as const;
+
+/** A live session as the room answers it, with its times as numbers. */
+function liveStateOf(value: unknown): LiveState | null {
+  if (typeof value !== "object" || value === null) return null;
+  return value as LiveState;
+}
 
 /** An error the room answered with, back as the `ApiError` the handler answers. */
 async function failure(response: Response): Promise<Error> {
@@ -60,7 +71,7 @@ export function durableRooms(namespace: RoomNamespaceLike): RoomsApi {
   const ask = async (
     projectId: string,
     operation: string,
-    method: "GET" | "POST" | "PUT",
+    method: "GET" | "POST" | "PUT" | "DELETE",
     body?: unknown,
   ): Promise<Response> => {
     const headers: Record<string, string> = { [ROOM_HEADERS.project]: projectId };
@@ -77,8 +88,9 @@ export function durableRooms(namespace: RoomNamespaceLike): RoomsApi {
   const answer = async <T>(response: Response): Promise<T> => (await response.json()) as T;
 
   return {
-    async connect(projectId, _request, identity: RoomIdentity) {
-      // The client's request is not forwarded: the room gets the upgrade and the identity, built here.
+    async connect(projectId, _request, identity: RoomIdentity, live?: string) {
+      // The client's request is not forwarded: the room gets the upgrade and the identity, built
+      // here, and the token only when the Worker was given one in the socket's query.
       const request = new Request("https://room/connect", {
         headers: {
           Upgrade: "websocket",
@@ -87,11 +99,31 @@ export function durableRooms(namespace: RoomNamespaceLike): RoomsApi {
           [ROOM_HEADERS.role]: identity.role,
           [ROOM_HEADERS.name]: encodeURIComponent(identity.name),
           [ROOM_HEADERS.picture]: encodeURIComponent(identity.picture),
+          ...(identity.guest === true ? { [ROOM_HEADERS.guest]: "1" } : {}),
+          ...(identity.address !== undefined
+            ? { [ROOM_HEADERS.address]: encodeURIComponent(identity.address) }
+            : {}),
+          ...(live !== undefined ? { [ROOM_HEADERS.live]: live } : {}),
         },
       });
       const response = await namespace.get(namespace.idFromName(projectId)).fetch(request);
       if (response.status !== 101) throw await failure(response);
       return response;
+    },
+    async startLive(projectId, body) {
+      return answer<LiveState>(await ask(projectId, "live", "PUT", body));
+    },
+    async readLive(projectId) {
+      return liveStateOf(await answer<unknown>(await ask(projectId, "live", "GET")));
+    },
+    async endLive(projectId) {
+      await ask(projectId, "live", "DELETE");
+    },
+    async checkLive(projectId, token) {
+      const { live } = await answer<{ live: LiveGrant | null }>(
+        await ask(projectId, "live/check", "POST", { token }),
+      );
+      return live ?? null;
     },
     async read(projectId) {
       return answer<RoomFiles>(await ask(projectId, "files", "GET"));

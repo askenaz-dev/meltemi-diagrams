@@ -209,11 +209,33 @@ export async function shareDialog(playground: Playground): Promise<void> {
     }
     return true;
   };
-  openDialog(
+  // A live session needs the project in an account: the way there is offered (`live-sessions`).
+  const live = messages().cloud.live.anonymous;
+  const session = playground.options.session;
+  const toLive =
+    playground.cloud !== undefined
+      ? h("button", { type: "button", class: "button with-text" }, live.save)
+      : session.kind !== "cookie"
+        ? h("a", { class: "button with-text", href: session.signIn }, live.signIn)
+        : undefined;
+  const liveNote = h(
+    "div",
+    { class: "share-live-note" },
+    h("p", { class: "field-hint" }, live.text),
+    ...(toLive ? [toLive] : []),
+  );
+  const dialog = openDialog(
     m.title,
-    [...notes, field(m.link, box)],
+    [...notes, field(m.link, box), liveNote],
     [{ label: messages().dialog.close }, { label: m.copy, primary: true, run: copy }],
   );
+  if (toLive instanceof HTMLButtonElement) {
+    toLive.addEventListener("click", () => {
+      dialog.close();
+      // The switcher's panel saves this project to the person's account, and opens it there.
+      playground.explorer.switcher.open();
+    });
+  }
   box.focus();
   box.select();
 }

@@ -703,7 +703,8 @@ export const sharingScenarios: Scenario[] = [
       await anon.context.grantPermissions(["clipboard-read", "clipboard-write"], { origin });
       await anon.page.goto(link);
       await ready(anon.page);
-      await viewingIs(anon.page, "snapshot");
+      await viewingIs(anon.page, "live");
+      await connected(anon.page);
       const before = anon.seen.requests.length;
       const dialog = await openShare(anon.page);
       await settled(dialog);

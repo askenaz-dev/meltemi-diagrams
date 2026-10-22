@@ -345,7 +345,7 @@ export function stateOf(state: { file?: string; canvas?: { selection: string[] }
 
 /** A person as the room relays them: the identity it attached, and where the person is. */
 export interface RelayedPeer {
-  readonly user: { sub: string; name: string; picture: string; colour: string };
+  readonly user: { sub: string; name: string; picture: string; colour: string; guest: boolean };
   readonly file?: string;
   readonly caret?: { anchor: string; head: string };
   readonly canvas?: { selection: string[] };

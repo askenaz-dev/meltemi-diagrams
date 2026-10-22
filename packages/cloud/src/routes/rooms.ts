@@ -1,23 +1,54 @@
-import { CLOUD_LIMITS } from "@meltemi/diagrams-project";
+import { CLOUD_LIMITS, guestNumber } from "@meltemi/diagrams-project";
 import { requireAccess, requirePrincipal, resolveAccess } from "../access.js";
 import type { Ctx, Route } from "../context.js";
 import { BLOB_HASH } from "../document.js";
 import { errorResponse, fail } from "../errors.js";
 import { MAX_JSON_BYTES, MAX_PUSH_BYTES, json, originOf, readCappedBytes } from "../http.js";
+import { PROJECT_ID } from "../ids.js";
 import { resolvePrincipal } from "../principal.js";
-import { parsePush } from "../rooms.js";
+import { GUEST_PREFIX, parsePush, type RoomIdentity } from "../rooms.js";
 import { resolveAgain } from "./sharing.js";
 
+/** The id a browser without an account made once and keeps: 32 lowercase hexadecimal characters. */
+const GUEST_ID = /^[0-9a-f]{32}$/;
+/** The longest name a person without an account may give, in characters. */
+export const MAX_GUEST_NAME = 40;
+/** What a name may not hold: control characters, line and paragraph separators, lone surrogates. */
+const UNSHOWABLE = /[\p{Cc}\p{Zl}\p{Zp}\p{Cs}]/u;
+
 /**
- * `GET /rooms/<id>`: the page's socket to a project's room. It answers only an upgrade (anything
- * else is the Worker's JSON 404, whoever asks), then, in this order: who is asking, from the
- * cookie alone (a bearer token is not taken on the socket: `401 auth.required`); where the
- * upgrade comes from, which must be this service's own page (`403 request.forbidden`: a socket is
- * a `GET`, so the `Origin` rule of the changing routes does not cover it); and what the person is
- * to the project (`404 project.not-found` for none). The room then gets a request the Worker
- * constructs, with the identity and the role the Worker resolved (`owner`, `editor` or `viewer`: a
- * viewer connects and receives, and the room closes its socket if it writes). The socket asks for a
- * cookie even where a link admits anonymous viewers: they read a snapshot through `GET …/files`.
+ * The name a person without an account gave (`?name=`), trimmed: 1 to 40 characters with nothing
+ * unshowable in it, else undefined (the default name is used).
+ */
+export function guestName(value: string | null): string | undefined {
+  if (value === null) return undefined;
+  const name = value.trim();
+  const length = Array.from(name).length;
+  if (length === 0 || length > MAX_GUEST_NAME || UNSHOWABLE.test(name)) return undefined;
+  return name;
+}
+
+/** The name of a person without an account who gave none: "Guest NN", as the page names them. */
+export function defaultGuestName(id: string): string {
+  return `Guest ${guestNumber(id)}`;
+}
+
+/**
+ * `GET /rooms/<id>`: the page's socket to a project's room (`cloud-document`, "The room's protocol";
+ * `live-sessions`, "Joining with the link"). It answers only an upgrade (anything else is the
+ * Worker's JSON 404, whoever asks), then, in this order: who is asking, from the cookie alone (a
+ * bearer token is not taken on the socket); where the upgrade comes from, which must be this
+ * service's own page (`403 request.forbidden`: a socket is a `GET`, so the `Origin` rule of the
+ * changing routes does not cover it); and what the person is to the project. Nothing and no
+ * `?live=` token is `404 project.not-found`; with a token the project must exist (a room is never
+ * made for an id the store does not hold) and the room checks the token itself, answering 404 when
+ * it is not its current session's. A person with no account connects as a guest: `?guest=` is the id
+ * their browser made (`400 request.invalid` for another shape) and `?name=` their name (the default
+ * one when it is empty, longer than 40 characters or holds control characters); without a token
+ * they are a viewer, as the project's link admits them.
+ *
+ * The room then gets a request the Worker constructs, with the identity, the role, the token and
+ * the client's address in headers only the Worker sets: nothing the browser sent is forwarded.
  */
 export const roomSocket: Route = async (ctx) => {
   if (ctx.request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
@@ -25,23 +56,54 @@ export const roomSocket: Route = async (ctx) => {
   }
   // The credentials the socket takes are the cookie's: nothing else of the request is consulted.
   const cookie = ctx.request.headers.get("Cookie");
-  const principal = await resolvePrincipal(
+  const resolved = await resolvePrincipal(
     new Request(ctx.url, { headers: cookie ? { Cookie: cookie } : {} }),
     ctx.deps,
     ctx.config,
   );
-  if (principal?.via !== "cookie") throw fail("auth.required");
+  const principal = resolved?.via === "cookie" ? resolved : undefined;
   if (originOf(ctx.request) !== ctx.config.origin) throw fail("request.forbidden");
 
   const projectId = ctx.params["id"] ?? "";
+  const query = ctx.url.searchParams;
+  const live = query.get("live") ?? undefined;
   const access = await resolveAccess({ ...ctx, principal }, projectId);
-  if (!access) throw fail("project.not-found");
-  const response = await ctx.deps.rooms.connect(projectId, ctx.request, {
-    sub: principal.sub,
-    role: access.role,
-    name: principal.profile.name,
-    picture: principal.profile.picture,
-  });
+  if (!access) {
+    // Nothing of the person's own: only a token can let them in, and only to a project that exists.
+    if (live === undefined) throw fail("project.not-found");
+    if (!PROJECT_ID.test(projectId) || !(await ctx.deps.store.projectById(projectId))) {
+      throw fail("project.not-found");
+    }
+  }
+  // Where the connection comes from: connections without an account are counted by it.
+  const address = ctx.request.headers.get("CF-Connecting-IP") ?? "";
+  const from = address !== "" ? { address } : {};
+  let identity: RoomIdentity;
+  if (principal) {
+    identity = {
+      sub: principal.sub,
+      role: access?.role ?? "viewer",
+      name: principal.profile.name,
+      picture: principal.profile.picture,
+      ...from,
+    };
+  } else {
+    const guest = query.get("guest") ?? "";
+    if (!GUEST_ID.test(guest)) {
+      throw fail("request.invalid", "A connection without an account needs its browser's id.");
+    }
+    identity = {
+      sub: `${GUEST_PREFIX}${guest}`,
+      // Whatever the link gives an anonymous person, they only look without a session's token.
+      role: "viewer",
+      name: guestName(query.get("name")) ?? defaultGuestName(guest),
+      picture: "",
+      guest: true,
+      ...from,
+    };
+  }
+  const response = await ctx.deps.rooms.connect(projectId, ctx.request, identity, live);
+  if (!access) return response;
   // A change of access that committed while this upgrade was in flight cut the sockets the room
   // held then, and not this one, which the room accepted after the cut with the role resolved
   // before the change. Resolving again now, with the socket in the room, closes that gap: a change
@@ -52,7 +114,7 @@ export const roomSocket: Route = async (ctx) => {
   } catch {
     // Whether the person still has the role is not known: the socket does not stay on a guess.
   }
-  if (role !== access.role && !(await resolveAgain(ctx, projectId, { sub: principal.sub }))) {
+  if (role !== access.role && !(await resolveAgain(ctx, projectId, { sub: identity.sub }))) {
     throw fail("internal");
   }
   return response;
@@ -69,7 +131,8 @@ async function owned(ctx: Ctx): Promise<string> {
 
 /**
  * `GET /api/projects/:id/files`: the latest files, from the room (never from D1). Needs `read`: it
- * is the snapshot an anonymous viewer of a `view` or `edit` link reads.
+ * is the snapshot an anonymous viewer of a `view` or `edit` link reads when the room does not answer
+ * its socket. A live session's token is not taken here: a guest has the room.
  */
 export const getFiles: Route = async (ctx) => {
   const { projectId } = await requireAccess(ctx, "read");

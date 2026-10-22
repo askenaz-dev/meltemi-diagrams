@@ -58,6 +58,8 @@ export const viewing: typeof en = {
     dropped: "Se perdió la conexión. Reconectando…",
     gone: "Este proyecto ya no está disponible para ti",
     full: (most) => `Sala llena: ya hay ${most} personas en este proyecto. Reintentando…`,
+    ended: "La sesión en vivo terminó",
+    limited: "Demasiadas conexiones desde esta red",
     retry: "Reintentar",
   },
 };

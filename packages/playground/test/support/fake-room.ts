@@ -111,6 +111,8 @@ export class FakeRoom {
   greeting = true;
   /** The role the room's hello says the client has: `owner` unless a test is about another. */
   role = "owner";
+  /** What else the room's hello says (a live session's `live`, the connection's `you`). */
+  helloExtra: Record<string, unknown> = {};
 
   constructor(network?: FakeNetwork) {
     if (network) this.serve(network);
@@ -130,7 +132,13 @@ export class FakeRoom {
   greet(socket: FakeSocket): void {
     if (socket.closed) return;
     this.clients.add(socket);
-    socket.hello({ role: this.role, revision: this.received.length, limits: {}, collisions: [] });
+    socket.hello({
+      role: this.role,
+      revision: this.received.length,
+      limits: {},
+      collisions: [],
+      ...this.helloExtra,
+    });
   }
 
   /** Drops every connection, as a network failure does: the page hears a close with no code. */

@@ -23,6 +23,7 @@ import {
 import { devCollect } from "./routes/dev.js";
 import { eventsRoute } from "./routes/events.js";
 import { projectLink } from "./routes/links.js";
+import { deleteLiveRoute, getLiveRoute, putLiveRoute } from "./routes/live.js";
 import {
   createProjectRoute,
   deleteProjectRoute,
@@ -283,6 +284,28 @@ export const ROUTES: readonly RouteEntry[] = [
     params: ["token"],
     principal: true,
     route: acceptInvitationRoute,
+  },
+  // A live session: the owner's. The token it holds is checked by the room, where the socket arrives.
+  {
+    method: "PUT",
+    path: /^\/api\/projects\/([^/]+)\/live$/,
+    params: ["id"],
+    principal: true,
+    route: putLiveRoute,
+  },
+  {
+    method: "GET",
+    path: /^\/api\/projects\/([^/]+)\/live$/,
+    params: ["id"],
+    principal: true,
+    route: getLiveRoute,
+  },
+  {
+    method: "DELETE",
+    path: /^\/api\/projects\/([^/]+)\/live$/,
+    params: ["id"],
+    principal: true,
+    route: deleteLiveRoute,
   },
   // Publishing: the owner's, with the cookie or a token. The page is served by the publish host
   // (`publish.ts`), never by this Worker, but for the development route below.

@@ -104,13 +104,13 @@ describe("GET /rooms/:id", () => {
     expect(h.rooms.connects).toEqual([]);
   });
 
-  it("is refused for nobody with 401 auth.required, and nothing reaches the room", async () => {
+  it("is 404 for nobody on a private project, and nothing reaches the room", async () => {
     const { h } = await setup();
 
     const response = await h.request(`/rooms/${PROJECT}`, upgrade(undefined));
 
-    expect(response.status).toBe(401);
-    expect(await code(response)).toBe("auth.required");
+    expect(response.status).toBe(404);
+    expect(await code(response)).toBe("project.not-found");
     expect(h.rooms.connects).toEqual([]);
   });
 
@@ -118,21 +118,21 @@ describe("GET /rooms/:id", () => {
     const { h } = await setup();
     for (const cookie of ["meltemi_session=not-a-token", "meltemi_session=", "other=1"]) {
       const response = await h.request(`/rooms/${PROJECT}`, upgrade(cookie));
-      expect(response.status, cookie).toBe(401);
-      expect(await code(response), cookie).toBe("auth.required");
+      expect(response.status, cookie).toBe(404);
+      expect(await code(response), cookie).toBe("project.not-found");
     }
     expect(h.rooms.connects).toEqual([]);
   });
 
-  it("does not take a bearer token: it is 401 for the token alone, and the cookie's person when both come", async () => {
+  it("does not take a bearer token: the token alone is nobody, and the cookie's person when both come", async () => {
     const { h, ana, beto } = await setup();
     const token = await addToken(h.store, { sub: "u-ana" });
 
     const alone = await h.request(`/rooms/${PROJECT}`, {
       headers: { ...upgrade(undefined).headers, Authorization: `Bearer ${token.token}` },
     });
-    expect(alone.status).toBe(401);
-    expect(await code(alone)).toBe("auth.required");
+    expect(alone.status).toBe(404);
+    expect(await code(alone)).toBe("project.not-found");
 
     // With a cookie beside it, the cookie is who is asking: Beto's, whatever the token says.
     const both = await h.request(`/rooms/${OTHER_PROJECT}`, {

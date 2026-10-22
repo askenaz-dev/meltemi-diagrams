@@ -14,6 +14,7 @@ import {
   type TextMetrics,
 } from "./presence-geometry.js";
 import type { DrawnCaret } from "./presence-model.js";
+import { messages } from "../messages/index.js";
 import { h } from "../ui.js";
 
 /** A name flag is shown this long after its caret moved, then fades. */
@@ -125,10 +126,16 @@ export class PresenceOverlay {
         drawing.caret.style.top = `${bar.y}px`;
         drawing.caret.style.height = `${bar.height}px`;
         drawing.caret.classList.toggle("below", bar.y < FLAG_HEIGHT);
-        if (drawing.name !== caret.name) {
-          // The name is set as text, whatever characters it holds.
-          drawing.flag.textContent = caret.name;
-          drawing.name = caret.name;
+        const named = caret.guest ? `${caret.name}\nguest` : caret.name;
+        if (drawing.name !== named) {
+          // The name is set as text, whatever characters it holds; a guest's flag says so.
+          drawing.flag.replaceChildren(
+            caret.name,
+            ...(caret.guest
+              ? [h("span", { class: "presence-flag-guest" }, messages().cloud.live.guestBadge)]
+              : []),
+          );
+          drawing.name = named;
         }
         drawing.flag.classList.toggle("faded", this.now() - caret.movedAt >= FLAG_FADE_MS);
         const bands = places

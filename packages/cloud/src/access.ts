@@ -19,6 +19,7 @@
 import type { Ctx } from "./context.js";
 import { fail, type ApiError } from "./errors.js";
 import { PROJECT_ID } from "./ids.js";
+import type { LiveGrant } from "./rooms.js";
 import type { LinkAccess, MemberRole, Project } from "./store/types.js";
 import type { Principal } from "./types.js";
 
@@ -144,4 +145,73 @@ export async function requireAccess(
   // A role above `viewer` only comes with a person: this is the guard that keeps it so.
   if (need !== "read" && ctx.principal === undefined) throw fail("auth.required");
   return { principal: ctx.principal, projectId, access: resolved };
+}
+
+// A live session's token ----------------------------------------------------------------------------
+
+/** A live session's token, as a query or a header carries it: 32 lowercase hexadecimal characters. */
+export const LIVE_TOKEN = /^[0-9a-f]{32}$/;
+
+/** The header a guest's page sends its session's token in, on the two reads that take it. */
+export const LIVE_HEADER = "X-Meltemi-Live";
+
+/** The role a live session gives whoever carries its token. */
+export function sessionRole(grant: LiveGrant): Role {
+  return grant.guestsEdit ? "editor" : "viewer";
+}
+
+/** What a read that takes the token resolved: the access as `requireAccess` gives it, and the token's grant. */
+export interface LiveRead extends Resolved<Principal | undefined> {
+  /**
+   * What the token in `X-Meltemi-Live` is worth now: a grant, `null` when it is not current, and
+   * undefined when the request carried none or nobody asked the room.
+   */
+  readonly live: LiveGrant | null | undefined;
+}
+
+/**
+ * `requireAccess(ctx, "read")` for the two reads a live session's guest needs outside the room
+ * (`live-sessions`, "What a guest reaches"): `GET /api/projects/:id` and the blobs. When the caller's
+ * own access falls short (nothing at all: every access reads), a current token in `X-Meltemi-Live`
+ * gives the session's role, asking the room whether it is current; a token that is not, or none, is
+ * `404 project.not-found` as no access is. The room is never asked about a project the store does
+ * not hold. With `report`, the room is asked even when the caller's own access suffices, so that the
+ * project's answer can say whether the token is still current; a room that cannot answer then
+ * leaves that unsaid. Every other route ignores the header.
+ */
+export async function requireReadWithLive(
+  ctx: Ctx,
+  options: { readonly report?: boolean } = {},
+): Promise<LiveRead> {
+  const projectId = ctx.params["id"] ?? "";
+  const resolved = await resolveAccess(ctx, projectId);
+  const header = ctx.request.headers.get(LIVE_HEADER) ?? undefined;
+  if (header === undefined || (resolved && options.report !== true)) {
+    if (!resolved) throw fail("project.not-found");
+    return { principal: ctx.principal, projectId, access: resolved, live: undefined };
+  }
+  const project =
+    resolved?.project ??
+    (PROJECT_ID.test(projectId) ? await ctx.deps.store.projectById(projectId) : undefined);
+  if (!project) throw fail("project.not-found");
+  let grant: LiveGrant | null | undefined;
+  if (!LIVE_TOKEN.test(header)) grant = null;
+  else if (resolved) {
+    try {
+      grant = await ctx.deps.rooms.checkLive(projectId, header);
+    } catch {
+      grant = undefined;
+    }
+  } else grant = await ctx.deps.rooms.checkLive(projectId, header);
+  if (!resolved) {
+    if (!grant) throw fail("project.not-found");
+    return {
+      principal: ctx.principal,
+      projectId,
+      access: { role: sessionRole(grant), project },
+      live: grant,
+    };
+  }
+  const role = grant ? (higher(resolved.role, sessionRole(grant)) ?? resolved.role) : resolved.role;
+  return { principal: ctx.principal, projectId, access: { role, project }, live: grant };
 }

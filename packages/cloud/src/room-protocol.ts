@@ -11,7 +11,10 @@ export const KIND = {
   update: 1,
   /** Both ways: JSON presence states (`room-awareness.ts`); the room relays them, with the sender's identity. */
   awareness: 2,
-  /** Room to client, once on connect: JSON `{ role, revision, limits, collisions, you }`. */
+  /**
+   * Room to client, once on connect: JSON `{ role, revision, limits, collisions, you, live }`, `you`
+   * with `guest`, and `live` the session's `{ until, guestsEdit }` for a connection it admitted.
+   */
   hello: 3,
   /** Room to client: JSON `{ code }`, then the socket closes. */
   error: 4,
@@ -25,9 +28,11 @@ export const CLOSE_CODE: Readonly<Record<RoomErrorCode, number>> = {
   "access.denied": 4403,
   "project.not-found": 4404,
   "room.full": 4409,
+  "session.ended": 4410,
   "doc.too-large": 4413,
   "quota.files": 4413,
   "message.too-large": 4413,
+  "connections.limit": 4428,
   "awareness.rate": 4429,
   "revision.mismatch": 4409,
   internal: 4500,

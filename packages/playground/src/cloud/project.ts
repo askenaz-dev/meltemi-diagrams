@@ -17,7 +17,13 @@ import { REMOTE, isLocalOrigin, type Collision } from "./doc.js";
 import { codeText, explainFailure, explainRefusal, type CloudWords } from "./explain.js";
 import type { CloudDatabase, ProjectStore, StoredDoc } from "./persistence.js";
 import { Presence, pageOf } from "./presence.js";
-import { RoomConnection, type RoomHello, type RoomPhase, type SocketFactory } from "./room.js";
+import {
+  RoomConnection,
+  type RoomHello,
+  type RoomPhase,
+  type SocketFactory,
+  type Stop,
+} from "./room.js";
 import { connectionStatus, sameStatus, type ConnectionStatus } from "./status.js";
 
 /** How long a project with no copy in this browser waits for the room's first answer. */
@@ -54,8 +60,11 @@ export interface ProjectDeps {
   /** This browser's database; unavailable where IndexedDB is. */
   readonly database: CloudDatabase;
   readonly socket: SocketFactory;
-  /** The room's address. */
-  readonly address: string;
+  /**
+   * The room's address, read at every attempt: a guest's name or a live session's token is in it,
+   * and a guest who renames themselves reconnects with the new one.
+   */
+  readonly address: string | (() => string);
   readonly timers: Timers;
   /** Whether the browser says it is online. */
   readonly online: () => boolean;
@@ -80,6 +89,19 @@ export interface ProjectDeps {
    */
   readonly readOnly?: boolean;
   /**
+   * The person has no account (`live-sessions`): the project is kept nowhere in this browser, as a
+   * viewer's is, though a guest of a session that lets guests edit writes through the room.
+   */
+  readonly keepsNothing?: boolean;
+  /** The room said hello: who this connection is, and the live session that admitted it, if any. */
+  readonly helloed?: (hello: RoomHello) => void;
+  /**
+   * The room stopped the connection for good: the live session that admitted it ended
+   * (`session.ended`), or this network holds as many connections without an account as it may
+   * (`connections.limit`). Nothing reconnects until `rejoin`.
+   */
+  readonly stopped?: (reason: Stop) => void;
+  /**
    * The room said hello with a role that differs from the one the project was opened with (a
    * viewer was promoted, an editor demoted while the page was away). The caller opens the project
    * again in the mode the role gives; this project goes on until it is closed.
@@ -91,8 +113,11 @@ export interface ProjectDeps {
 
 export type PrepareResult =
   | { readonly ok: true; readonly project: CloudProject }
-  /** `full`: the room turned the page away because it holds as many people as it may. */
-  | { readonly ok: false; readonly full?: true };
+  /**
+   * `full`: the room turned the page away because it holds as many people as it may; `stopped`: it
+   * stopped the connection for a reason a retry would meet again; neither: no answer in time.
+   */
+  | { readonly ok: false; readonly full?: true; readonly stopped?: Stop };
 
 /**
  * Codes of a refusal that is not about the person's change: the page keeps its document. A room
@@ -153,6 +178,12 @@ export class CloudProject {
   private readonly viewer: boolean;
   /** The room refused the last socket because it holds as many people as it may (`room.full`). */
   private roomFull = false;
+  /** Why the room stopped the connection for good, until the page rejoins. */
+  private stopReason: Stop | undefined;
+  /** A room that cannot be reached is given up before the first answer's wait is over. */
+  private quick = false;
+  /** A person without an account: nothing of the project is kept in this browser. */
+  private readonly keepsNothing: boolean;
   /**
    * Who else is in the project and where (`live-collaboration`). It lives as long as the project
    * does; the page gives it the person's file, caret and canvas selection (`presence.attach`).
@@ -164,46 +195,54 @@ export class CloudProject {
     private readonly deps: ProjectDeps,
   ) {
     this.viewer = deps.readOnly === true;
+    this.keepsNothing = deps.keepsNothing === true;
     this.presence = new Presence({
       doc: () => this.doc,
       timers: deps.timers,
       now: deps.now ?? (() => Date.now()),
-      page: pageOf(deps.address),
+      page: pageOf(typeof deps.address === "function" ? deps.address() : deps.address),
       send: (payload) => this.connection.sendAwareness(payload),
     });
-    this.store = this.viewer
-      ? NO_STORE
-      : deps.database.project(
-          id,
-          { snapshot: () => Y.encodeStateAsUpdate(this.doc), unsynced: () => this.dirty },
-          () => {
-            // The browser stopped keeping the project: say so (before it is open, `attach` does).
-            if (this.binding && !this.closed) deps.report(deps.words().status.notKept);
-            this.refresh();
-          },
-        );
+    this.store =
+      this.viewer || this.keepsNothing
+        ? NO_STORE
+        : deps.database.project(
+            id,
+            { snapshot: () => Y.encodeStateAsUpdate(this.doc), unsynced: () => this.dirty },
+            () => {
+              // The browser stopped keeping the project: say so (before it is open, `attach` does).
+              if (this.binding && !this.closed) deps.report(deps.words().status.notKept);
+              this.refresh();
+            },
+          );
   }
 
   /**
    * Gets a project ready: loads this browser's copy, connects to the room, and, when there is no
-   * copy, waits for the room's first answer (or gives up after `FIRST_ANSWER_MS`). The Studio is
-   * not touched; `attach()` does that.
+   * copy, waits for the room's first answer (or gives up after `FIRST_ANSWER_MS`). With `quick`, a
+   * room that cannot even be reached (two sockets in a row that failed before any answer) is given
+   * up at once: an anonymous visitor has the snapshot to read instead. The Studio is not touched;
+   * `attach()` does that.
    */
   static async prepare(
     id: string,
     deps: ProjectDeps,
-    options: { needsCopy?: boolean } = {},
+    options: { needsCopy?: boolean; quick?: boolean } = {},
   ): Promise<PrepareResult> {
     const project = new CloudProject(id, deps);
+    project.quick = options.quick === true;
     const stored = await project.store.load();
     const restored = stored !== undefined && project.restore(stored);
     // With the service out of reach, only this browser's copy can open the project.
     if (!restored && options.needsCopy) return { ok: false };
     project.begin();
     if (!restored && !(await project.firstAnswer())) {
-      // A room that is full says so at once: there is nothing to wait ten seconds for.
+      // A room that is full, or that stopped the connection, says so at once: there is nothing to
+      // wait ten seconds for.
       const full = project.roomFull;
+      const stopped = project.stopReason;
       project.close();
+      if (stopped) return { ok: false, stopped };
       return full ? { ok: false, full: true } : { ok: false };
     }
     return { ok: true, project };
@@ -221,8 +260,8 @@ export class CloudProject {
     this.watch(this.doc);
     // A project that came from the room, not from this browser, is kept at once.
     if (!this.restored) this.keep();
-    // A viewer keeps nothing on purpose: there is nothing to say about it.
-    if (!this.store.available && !this.viewer) {
+    // A viewer and a guest keep nothing on purpose: there is nothing to say about it.
+    if (!this.store.available && !this.viewer && !this.keepsNothing) {
       this.deps.report(this.deps.words().status.notKept);
     }
     this.refresh();
@@ -239,6 +278,18 @@ export class CloudProject {
   /** Forgets what the person could undo or redo: a restored version replaced the files. */
   clearUndo(): void {
     this.binding?.clearUndo();
+  }
+
+  /**
+   * Connects again after the room stopped the connection (the address may say something else now: a
+   * live session's token dropped, another name), or reconnects at once with the new address.
+   */
+  rejoin(): void {
+    if (this.closed) return;
+    this.stopReason = undefined;
+    if (this.connection.phase === "idle") this.connection.connect();
+    else this.connection.reopen();
+    this.refresh();
   }
 
   /** Sends what is waiting and keeps the document in this browser now, as the page is left. */
@@ -362,6 +413,7 @@ export class CloudProject {
         error: (code) => this.refuse(code),
         refused: (refusal) => this.refuse(refusal.code),
         gone: () => this.gone(),
+        stopped: (reason) => this.stoppedBy(reason),
         dropped: (closes) => this.dropped(closes),
         phase: (phase) => {
           this.presence.phase(phase);
@@ -395,6 +447,9 @@ export class CloudProject {
   private opened(hello: RoomHello): void {
     this.everOpen = true;
     this.roomFull = false;
+    this.stopReason = undefined;
+    this.deps.helloed?.(hello);
+    if (this.closed) return;
     // Who this connection is, and where the person is, goes to the room with the first thing it hears.
     this.presence.opened(hello.you);
     // The room's word on the role is the last one: a page opened as a viewer that is told it can
@@ -491,11 +546,31 @@ export class CloudProject {
   }
 
   /**
+   * The room stopped the connection for good (`session.ended`, `connections.limit`): the page says
+   * nothing itself (whoever opened the project knows what comes next) and does not reconnect. What
+   * the person typed and the room never got is not offered again by this connection.
+   */
+  private stoppedBy(reason: Stop): void {
+    if (this.closed) return;
+    this.stopReason = reason;
+    this.refusedFirst?.();
+    this.refusedFirst = undefined;
+    this.refresh();
+    this.deps.stopped?.(reason);
+  }
+
+  /**
    * A socket ended without a refusal. A project deleted while the page was away is refused at the
    * upgrade, and the browser says only that the socket failed: after the second close in a row, and
    * at every doubling after it, the page asks the service whether the project is still there.
    */
   private dropped(closes: number): void {
+    // Not reached twice before any answer: the caller has somewhere else to go (`quick`).
+    if (this.quick && !this.everOpen && closes >= 2 && this.refusedFirst) {
+      this.refusedFirst();
+      this.refusedFirst = undefined;
+      return;
+    }
     if (this.vanished || closes < 2 || (closes & (closes - 1)) !== 0) return;
     void this.askIfGone();
   }
@@ -671,6 +746,10 @@ export class CloudProject {
   }
 
   private async uploadBinary(path: string, bytes: Uint8Array): Promise<void> {
+    // An image or a font is stored in an account: a guest has none to store it in.
+    if (this.keepsNothing) {
+      throw new CallFailed({ kind: "refused", status: 401, code: "account.required" });
+    }
     if (bytes.byteLength > CLOUD_LIMITS.binaryBytes) {
       throw new CallFailed({ kind: "refused", status: 413, code: "quota.binary" });
     }
@@ -744,6 +823,10 @@ export class CloudProject {
         this.deps.report(words.project.binaryUnsupported(path));
         break;
       case "binary.upload": {
+        if (error.cause instanceof CallFailed && error.cause.failure.code === "account.required") {
+          this.deps.report(words.live.needsAccount.images);
+          break;
+        }
         const reason =
           error.cause instanceof CallFailed
             ? explainFailure(error.cause.failure, words.errors)
@@ -768,10 +851,11 @@ export class CloudProject {
       everOpen: this.everOpen,
       online: this.deps.online(),
       saving: this.saving,
-      // A viewer has nothing to keep: its status never says the browser keeps no copy.
-      kept: this.store.available || this.viewer,
+      // A viewer and a guest have nothing to keep: the status never says the browser keeps no copy.
+      kept: this.store.available || this.viewer || this.keepsNothing,
       gone: this.vanished,
       full: this.roomFull,
+      ...(this.stopReason ? { stopped: this.stopReason } : {}),
     });
     if (sameStatus(status, this.shown)) return;
     this.shown = status;

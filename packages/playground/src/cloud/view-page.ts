@@ -29,6 +29,12 @@ export interface ViewPageDeps {
   readonly studio: Studio;
   /** The signed-in person's projects; undefined for nobody. */
   readonly cloud: CloudController | undefined;
+  /**
+   * A person nobody is signed in as, on a page that can reach the service: their way into a
+   * project's room as a guest (`live-sessions`). Undefined for a person signed in, or a page with no
+   * service.
+   */
+  readonly guest?: CloudController | undefined;
   readonly environment: ViewEnvironment;
   readonly words: () => { readonly viewing: ViewWords; readonly cloud: CloudWords };
   /** Says something in the status line. */
@@ -72,6 +78,7 @@ export class ViewPage {
     });
     this.opener = new LinkOpener({
       cloud,
+      guest: deps.guest,
       api,
       invitations: invitationApi(environment.fetch, { href: environment.location.href() }),
       snapshot: this.snapshot,
@@ -95,6 +102,8 @@ export class ViewPage {
       confirm: deps.confirm,
       leave: () => this.leave(),
       replaceProject: (files, open) => deps.replaceProject(files, open),
+      // A guest who edits is not in view mode, and makes a copy all the same.
+      bound: () => deps.guest?.openProject,
     };
     this.actions = new ViewActions(host);
   }
@@ -123,18 +132,39 @@ export class ViewPage {
           readonly id: string;
           readonly name: string;
           readonly reason: "open" | "role";
+          readonly guest?: boolean;
         }
       | undefined,
   ): void {
     const words = this.deps.words().viewing;
     if (access?.role === "viewer") {
-      this.mode.enter({ id: access.id, name: access.name, live: true, signedIn: true });
+      // A guest follows the room too; only a person signed in has projects to save a copy to.
+      this.mode.enter({
+        id: access.id,
+        name: access.name,
+        live: true,
+        signedIn: access.guest !== true,
+      });
       if (access.reason === "role") this.deps.report(words.access.nowViewer);
       return;
     }
     // A snapshot is the page's own, not the cloud controller's: it is not ended by the controller.
     if (this.mode.state?.live) this.mode.leave();
     if (access?.reason === "role") this.deps.report(words.access.nowEditor);
+  }
+
+  /**
+   * The live session that let the page in ended and the link does not admit the person: the page
+   * stays on the files it holds, read-only, with "Make a copy" (`live-sessions`).
+   */
+  frozen(project: { readonly id: string; readonly name: string }): void {
+    this.mode.enter({
+      id: project.id,
+      name: project.name,
+      live: false,
+      signedIn: this.deps.cloud !== undefined,
+      frozen: true,
+    });
   }
 
   makeCopy(): Promise<boolean> {
@@ -154,10 +184,11 @@ export class ViewPage {
    * never touched): the address stops naming a project, view mode ends and the project shows.
    */
   leave(): void {
-    const { cloud, environment } = this.deps;
-    if (cloud?.openProject) {
+    const { cloud, guest, environment } = this.deps;
+    const room = cloud?.openProject ? cloud : guest?.openProject ? guest : undefined;
+    if (room) {
       // The controller ends view mode on its way out (`access`), and shows the anonymous project.
-      cloud.leaveToLocal();
+      room.leaveToLocal();
       return;
     }
     if (!this.mode.active) return;

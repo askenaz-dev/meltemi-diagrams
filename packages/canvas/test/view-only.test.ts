@@ -188,6 +188,11 @@ const MESSAGES = {
     { message: { type: "editTheme", open: false }, writes: false },
   ],
   themeToken: [{ message: { type: "themeToken", token: "accent", value: "#fff" }, writes: true }],
+  // Where a viewer's pointer is, they share as anybody does: it changes nothing.
+  presencePointer: [
+    { message: { type: "presencePointer", point: { x: 1, y: 2 }, diagram: "d" }, writes: false },
+    { message: { type: "presencePointer", point: null }, writes: false },
+  ],
 } as const satisfies Record<
   CanvasMessage["type"],
   readonly { readonly message: CanvasMessage; readonly writes: boolean }[]

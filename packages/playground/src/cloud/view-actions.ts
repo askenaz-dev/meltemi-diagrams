@@ -45,6 +45,11 @@ export interface ActionsHost {
   readonly leave: () => void;
   /** Replaces the anonymous project with these files, keeping what it replaces as the previous project. */
   readonly replaceProject: (files: Files, open: string | undefined) => void;
+  /**
+   * The project bound to its room that the person edits without being in view mode: a guest of a
+   * live session (`live-sessions`), who makes a copy as a viewer does.
+   */
+  readonly bound?: () => { readonly id: string; readonly name: string } | undefined;
 }
 
 /** Whether two sets of files hold the same paths with the same text or bytes. */
@@ -80,7 +85,7 @@ export class ViewActions {
    * header offers anything, a snapshot is read after view mode begins.
    */
   private loaded(state: ViewState): boolean {
-    return state.live || this.host.snapshot.id === state.id;
+    return state.live || state.frozen === true || this.host.snapshot.id === state.id;
   }
 
   /**
@@ -88,8 +93,16 @@ export class ViewActions {
    * after asking when that replaces work that is not a template; the work it replaces stays as the
    * previous project. True when the copy was made.
    */
-  async makeCopy(): Promise<boolean> {
+  /** What is being copied: the project in view mode, or the one a guest edits in its room. */
+  private viewed(): ViewState | undefined {
     const state = this.host.mode.state;
+    if (state) return state;
+    const bound = this.host.bound?.();
+    return bound && { ...bound, live: true, signedIn: false, stale: false };
+  }
+
+  async makeCopy(): Promise<boolean> {
+    const state = this.viewed();
     if (!state || this.busy) return false;
     this.busy = true;
     try {
@@ -115,7 +128,7 @@ export class ViewActions {
         if (!yes) return false;
       }
       // The page may have left the project, or been given another, while the person decided.
-      const now = this.host.mode.state;
+      const now = this.viewed();
       if (!now || now.id !== state.id) return false;
       if (!this.loaded(now)) {
         this.host.report(w.copyLoading);

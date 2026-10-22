@@ -1,9 +1,10 @@
 import type { Box, Point } from "@meltemi/diagrams-editor/canvas";
 
 /*
- * Other people's selections (`live-collaboration`). This file is the logic of the layer that draws
- * them, with no DOM: reading and checking what the host sent, the colour of a tag's text, and where
- * the outlines and the stacked tags go. `presence-layer.ts` draws what this computes.
+ * Other people's selections and pointers (`live-collaboration`). This file is the logic of the layer
+ * that draws them, with no DOM: reading and checking what the host sent, the colour of a tag's text,
+ * where the outlines and the stacked tags go, and where each cursor's tip is. `presence-layer.ts`
+ * draws what this computes.
  */
 
 /** A colour as its three channels, 0 to 255. */
@@ -118,6 +119,8 @@ export interface PersonView {
   /** The text colour of the tag, for contrast with `colour`. */
   readonly text: "#000000" | "#ffffff";
   readonly selection: readonly string[];
+  /** Where the person's pointer is, in diagram units; undefined when the host sent none that will do. */
+  readonly pointer: Point | undefined;
 }
 
 /** Bounds on what a host may send, so that a hostile or broken message cannot flood the page. */
@@ -125,6 +128,17 @@ export const MAX_PEOPLE = 50;
 export const MAX_SELECTED = 1000;
 export const MAX_NAME = 200;
 const MAX_ID = 10_000;
+/** How far from the origin a pointer may be, in diagram units: the room's own bound. */
+export const MAX_POINTER = 1_000_000;
+
+/** A pointer the host sent: two finite numbers within the bound; anything else is no pointer. */
+export function readPointer(value: unknown): Point | undefined {
+  if (!isObject(value)) return undefined;
+  const { x, y } = value;
+  const fits = (n: unknown): n is number =>
+    typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= MAX_POINTER;
+  return fits(x) && fits(y) ? { x, y } : undefined;
+}
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
 
@@ -154,9 +168,45 @@ export function readPeople(value: unknown): PersonView[] {
       colour: toHex(rgb),
       text: tagTextColour(rgb),
       selection,
+      pointer: readPointer(entry.pointer),
     });
   }
   return people;
+}
+
+/** A person's cursor: where its tip goes on screen, and where it is in the diagram. */
+export interface CursorMark {
+  /**
+   * Stable from one message to the next for the same person (their colour and name, and which of
+   * their pointers it is), so that the layer moves the same cursor instead of drawing another.
+   */
+  readonly key: string;
+  readonly person: PersonView;
+  /** The tip, in screen pixels. */
+  readonly tip: Point;
+  /** The tip, in diagram units: a cursor whose scene point changed glides; one the view moved does not. */
+  readonly scene: Point;
+}
+
+/**
+ * The cursors to draw: one for each person with a pointer, in the order of the message, with the tip
+ * where `toScreen` puts the pointer's diagram point (so it points at the same place at every zoom).
+ */
+export function cursorMarks(
+  people: readonly PersonView[],
+  toScreen: (point: Point) => Point,
+): CursorMark[] {
+  const seen = new Map<string, number>();
+  const marks: CursorMark[] = [];
+  for (const person of people) {
+    const pointer = person.pointer;
+    if (!pointer) continue;
+    const base = `${person.colour}|${person.name}`;
+    const nth = seen.get(base) ?? 0;
+    seen.set(base, nth + 1);
+    marks.push({ key: `${base}|${nth}`, person, tip: toScreen(pointer), scene: pointer });
+  }
+  return marks;
 }
 
 /**

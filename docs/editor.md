@@ -81,12 +81,15 @@ hiding and showing layers, copying, stories with their timeline, and effects wor
 
 **Other people's selections.** A host that shares the diagram can tell the canvas who else is in it
 with a `presence` message, `{ type: "presence", people }`, where each person has a `name`, a
-`colour` and the ids they have selected (elements, relations and events). The playground does it
+`colour`, the ids they have selected (elements, relations and events) and, while it moves, the
+`pointer` over their canvas. The playground does it
 for a cloud project that several people have open
 ([working together](playground.md#working-together)); the extension never sends it, so VS Code
 sees no change. The canvas outlines each of those ids in the person's colour and tags it with their
-name, on a layer above the scene that is never selected, copied or exported and of which nothing is
-sent back: a press on an outline reaches the element under it. Each message is the whole picture
+name, and draws each pointer as a cursor in the person's colour with the name at its tail, gliding
+from one point to the next, on a layer above the scene that is never selected, copied or exported:
+a press on an outline or a cursor reaches the element under it. The canvas tells such a host where
+its own pointer is (`presencePointer`), and nothing else of the layer. Each message is the whole picture
 and replaces the last; a message with nobody, an empty canvas or another diagram clears it. Ids the
 diagram does not have are ignored, as is anything on a hidden layer, and while a story plays
 nothing is drawn (the people are kept for when it ends). A name is always shown as text, never as

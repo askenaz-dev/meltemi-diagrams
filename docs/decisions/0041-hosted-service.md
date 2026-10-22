@@ -101,7 +101,8 @@ mind from the start.
 - The room is the only writer of a project's document and is reachable only through requests the
   Worker constructs: the socket takes the session cookie alone, checks `Origin` itself (a socket
   is a `GET`, outside the rule for changes), and no header of a browser is forwarded, so nobody
-  can name their own role. Every transaction is validated by the room whatever its origin, and
+  can name their own role. (Since decision 0050 a socket without a cookie is admitted as a guest,
+  with an identity the Worker sets, when a link or a live session's token admits it.) Every transaction is validated by the room whatever its origin, and
   every blob is served sandboxed from an address scoped to its project.
 - Offline means a project that is open when the connection drops: the document is kept in
   IndexedDB and merges on reconnect. There is no service worker, so the page itself needs a

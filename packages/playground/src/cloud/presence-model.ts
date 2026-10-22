@@ -7,7 +7,13 @@
 import { presenceColour } from "@meltemi/diagrams-project";
 import type * as Y from "yjs";
 import type { DocFile } from "./doc.js";
-import { positionIn, readState, type AwarenessEntry, type EncodedCaret } from "./presence-wire.js";
+import {
+  positionIn,
+  readState,
+  type AwarenessEntry,
+  type EncodedCaret,
+  type PointerPosition,
+} from "./presence-wire.js";
 
 /** The most peers kept: a room holds twenty, so more could only be a flood of ids. */
 export const MAX_PEERS = 64;
@@ -23,11 +29,15 @@ export interface Peer {
   readonly picture: string | undefined;
   /** The colour of the person: computed from `sub`, never taken from the message. */
   readonly colour: string;
+  /** A person without an account, as the room says (`live-sessions`). */
+  readonly guest: boolean;
   /** The id of the file the client has open, if it said. */
   readonly file: string | undefined;
   readonly caret: EncodedCaret | undefined;
   /** The canvas ids the client has selected. */
   readonly selection: readonly string[];
+  /** Where the client's pointer is over its canvas, while it moves there. */
+  readonly pointer: PointerPosition | undefined;
   /** When the caret last moved, or the client appeared, by the page's clock. */
   readonly movedAt: number;
   /** When the room last spoke of the client. */
@@ -41,6 +51,9 @@ const sameCaret = (a: EncodedCaret | undefined, b: EncodedCaret | undefined): bo
 
 const sameList = (a: readonly string[], b: readonly string[]): boolean =>
   a.length === b.length && a.every((id, i) => id === b[i]);
+
+const samePointer = (a: PointerPosition | undefined, b: PointerPosition | undefined): boolean =>
+  a?.x === b?.x && a?.y === b?.y && a?.diagram === b?.diagram;
 
 /**
  * The peers of the room, by client id. Nothing here is saved or sent anywhere: when the socket
@@ -90,9 +103,11 @@ export class PeerBook {
         name: read.user.name,
         picture: read.user.picture,
         colour: presenceColour(read.user.sub),
+        guest: read.user.guest,
         file: read.file,
         caret: read.caret,
         selection: read.selection,
+        pointer: read.pointer,
         movedAt:
           before && before.file === read.file && sameCaret(before.caret, read.caret)
             ? before.movedAt
@@ -106,9 +121,11 @@ export class PeerBook {
         before.sub !== next.sub ||
         before.name !== next.name ||
         before.picture !== next.picture ||
+        before.guest !== next.guest ||
         before.file !== next.file ||
         !sameCaret(before.caret, next.caret) ||
-        !sameList(before.selection, next.selection)
+        !sameList(before.selection, next.selection) ||
+        !samePointer(before.pointer, next.pointer)
       ) {
         changed = true;
       }
@@ -144,6 +161,8 @@ export interface Person {
   readonly name: string;
   readonly picture: string | undefined;
   readonly colour: string;
+  /** A person without an account: the header badges them. */
+  readonly guest: boolean;
   /** The file the person has open, when the project has it. */
   readonly file: { readonly id: string; readonly path: string } | undefined;
   /** How many connections the account has in the room. */
@@ -179,6 +198,7 @@ export function whoIsHere(
         name: latest.name,
         picture: latest.picture,
         colour: latest.colour,
+        guest: latest.guest,
         file: file ? { id: file.id, path: file.shown } : undefined,
         connections: group.length,
       },
@@ -195,6 +215,8 @@ export interface DrawnCaret {
   readonly id: string;
   readonly name: string;
   readonly colour: string;
+  /** A person without an account: the flag badges them. */
+  readonly guest: boolean;
   /** Where the caret bar goes: the head of the selection. */
   readonly head: number;
   /** The selection, `start` to `end`; equal when it is only a caret. */
@@ -231,6 +253,7 @@ export function drawnCarets(
       id: peer.id,
       name: peer.name === "" ? fallbackName : peer.name,
       colour: peer.colour,
+      guest: peer.guest,
       head: b,
       start: Math.min(a, b),
       end: Math.max(a, b),
@@ -247,23 +270,37 @@ export interface CanvasPerson {
   readonly name: string;
   readonly colour: string;
   readonly selection: readonly string[];
+  /** Where the person's pointer is over the same diagram, in diagram units. */
+  readonly pointer?: { readonly x: number; readonly y: number };
 }
 
 /**
- * Other people's selections for the canvas of a file: those of the clients that have the file open
- * and have something selected. The canvas ignores the ids its diagram does not hold.
+ * Other people's selections and pointers for the canvas of a file: those of the clients that have
+ * the file open and have something selected or a pointer over it. A pointer over another diagram of
+ * the file than `diagram` (the one the canvas shows) is not drawn: its coordinates are that
+ * diagram's. The canvas ignores the ids its diagram does not hold.
  */
 export function canvasPeople(
   peers: readonly Peer[],
   fileId: string | undefined,
   fallbackName: string,
+  diagram?: string,
 ): CanvasPerson[] {
   if (fileId === undefined) return [];
-  return peers
-    .filter((peer) => peer.file === fileId && peer.selection.length > 0)
-    .map((peer) => ({
+  const people: CanvasPerson[] = [];
+  for (const peer of peers) {
+    if (peer.file !== fileId) continue;
+    const pointer = peer.pointer;
+    const here =
+      pointer !== undefined &&
+      (pointer.diagram === undefined || diagram === undefined || pointer.diagram === diagram);
+    if (peer.selection.length === 0 && !here) continue;
+    people.push({
       name: peer.name === "" ? fallbackName : peer.name,
       colour: peer.colour,
       selection: peer.selection,
-    }));
+      ...(here ? { pointer: { x: pointer.x, y: pointer.y } } : {}),
+    });
+  }
+  return people;
 }

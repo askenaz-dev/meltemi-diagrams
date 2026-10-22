@@ -83,7 +83,16 @@ import { LibraryPanel } from "./library.js";
 import { messages, type CanvasMessages } from "./messages/index.js";
 import { Dialog, Menu, Picker, type MenuItem } from "./panels.js";
 import { PresenceLayer } from "./presence-layer.js";
-import { presenceMarks, readPeople, type PersonView, type PresenceShape } from "./presence.js";
+import {
+  cursorMarks,
+  presenceMarks,
+  readPeople,
+  type PersonView,
+  type PresenceShape,
+} from "./presence.js";
+
+/** The pointer goes to the host at most this often while it moves (it shares it as presence). */
+const POINTER_EVERY_MS = 50;
 import { placementIn } from "./placement.js";
 import { ShapeGrid } from "./shape-grid.js";
 import { StoryPanel } from "./story.js";
@@ -357,8 +366,17 @@ export class CanvasApp {
   private viewport: Viewport = { x: 0, y: 0, zoom: 1 };
   private selection: string[] = [];
   private highlight: string[] = [];
-  /** Other people's selections, as the host's last `presence` message left them. */
+  /** Other people's selections and pointers, as the host's last `presence` message left them. */
   private presence: readonly PersonView[] = [];
+  /**
+   * The host shares presence (it has sent `presence` once): only then does the canvas tell it where
+   * the pointer is. An editor that shows one person's diagram is never sent a pointer it would drop.
+   */
+  private sharesPointer = false;
+  /** The pointer message waiting for its turn, the last one sent, and the turn's timer. */
+  private pointerNext: CanvasMessage | undefined;
+  private pointerSent: string | undefined;
+  private pointerTimer: ReturnType<typeof setTimeout> | undefined;
   private stale = false;
   private drag: Drag | undefined;
   private tool: ElementKind | "relation" | undefined;
@@ -652,6 +670,7 @@ export class CanvasApp {
         // Each message is the whole picture: it replaces the last, never merges with it. It only
         // draws; nothing of it is sent back, saved or part of what is exported.
         this.presence = readPeople(message.people);
+        this.sharesPointer = true;
         this.drawPresence();
         break;
       case "select":
@@ -1837,7 +1856,42 @@ export class CanvasApp {
       this.presenceLayer.clear();
       return;
     }
-    this.presenceLayer.draw(presenceMarks(this.presence, (id) => this.presenceShape(id)));
+    this.presenceLayer.draw(
+      presenceMarks(this.presence, (id) => this.presenceShape(id)),
+      cursorMarks(this.presence, (point) => this.screenOf(point)),
+    );
+  }
+
+  /**
+   * Tells the host where the pointer is over the diagram shown, in diagram units, or that it left
+   * (no event, or a story playing): at most every `POINTER_EVERY_MS`, the last position always
+   * arriving, and nothing that repeats what was sent. Only to a host that shares presence.
+   */
+  private sharePointer(event: { clientX: number; clientY: number } | undefined): void {
+    if (!this.sharesPointer) return;
+    const r = this.render;
+    const at = event && r && !this.storyPanel.active ? this.diagramOf(this.pointOf(event)) : null;
+    this.pointerNext = {
+      type: "presencePointer",
+      point: at && { x: Math.round(at.x) || 0, y: Math.round(at.y) || 0 },
+      ...(at && r ? { diagram: r.diagram } : {}),
+    };
+    if (this.pointerTimer === undefined) this.sendPointer();
+  }
+
+  private sendPointer(): void {
+    const next = this.pointerNext;
+    this.pointerNext = undefined;
+    if (!next) return;
+    const key = JSON.stringify(next);
+    if (key !== this.pointerSent) {
+      this.pointerSent = key;
+      this.post(next);
+    }
+    this.pointerTimer = setTimeout(() => {
+      this.pointerTimer = undefined;
+      this.sendPointer();
+    }, POINTER_EVERY_MS);
   }
 
   /** The shape of an id in screen pixels, for the presence layer. */
@@ -3311,6 +3365,8 @@ export class CanvasApp {
     const stage = this.stage;
     stage.addEventListener("pointerdown", (e) => this.pointerDown(e));
     stage.addEventListener("pointermove", (e) => this.pointerMove(e));
+    // Where the pointer is goes to a host that shares presence, whatever the gesture.
+    stage.addEventListener("pointermove", (e) => this.sharePointer(e));
     stage.addEventListener("pointerup", (e) => this.pointerUp(e));
     stage.addEventListener("pointercancel", () => this.resetPreview());
     stage.addEventListener("dblclick", (e) => this.doubleClick(e));
@@ -3330,6 +3386,7 @@ export class CanvasApp {
       }
     });
     stage.addEventListener("pointerleave", () => {
+      this.sharePointer(undefined);
       if (!this.drag && this.borderStart) {
         this.borderStart = undefined;
         stage.classList.remove("connecting");

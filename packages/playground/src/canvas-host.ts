@@ -1,5 +1,10 @@
 import { CanvasApp, type PersistedState } from "@meltemi/diagrams-canvas";
-import type { HostMessage, PresencePerson, SessionResult } from "@meltemi/diagrams-editor";
+import type {
+  CanvasMessage,
+  HostMessage,
+  PresencePerson,
+  SessionResult,
+} from "@meltemi/diagrams-editor";
 import { CANVAS_SETTINGS, settingsMessage } from "./canvas-settings.js";
 import type { Studio } from "./studio.js";
 import { isMac } from "./ui.js";
@@ -7,11 +12,31 @@ import { isMac } from "./ui.js";
 export { CANVAS_SETTINGS };
 
 /**
- * Other people's selections for the canvas to outline over the scene (`live-collaboration`): never
- * part of the project or of an export, and empty when nobody else has anything selected here.
+ * Other people's selections and pointers for the canvas to draw over the scene
+ * (`live-collaboration`): never part of the project or of an export, and empty when nobody else has
+ * anything selected or a pointer here.
  */
 export function presenceMessage(people: readonly PresencePerson[]): HostMessage {
   return { type: "presence", people };
+}
+
+/** Where the person's pointer is over the canvas, as presence publishes it. */
+export interface CanvasPointer {
+  readonly x: number;
+  readonly y: number;
+  readonly diagram?: string;
+}
+
+/**
+ * What a canvas's `presencePointer` message says: where the pointer is (diagram units, and the
+ * diagram), or undefined once it left the canvas.
+ */
+export function pointerOf(
+  message: Extract<CanvasMessage, { type: "presencePointer" }>,
+): CanvasPointer | undefined {
+  const { point, diagram } = message;
+  if (!point) return undefined;
+  return diagram === undefined ? { x: point.x, y: point.y } : { x: point.x, y: point.y, diagram };
 }
 
 /** What the canvas asks of the page beyond the session. */
@@ -23,6 +48,11 @@ export interface CanvasRequests {
   exportDialog(): void;
   exportPlayer(story: string | undefined): void;
   openModel(): void;
+  /**
+   * The person's pointer moved over the canvas, or left it (undefined): for presence to share. The
+   * Studio never hears of it; nothing of the document changes.
+   */
+  pointer?(at: CanvasPointer | undefined): void;
 }
 
 /**
@@ -39,7 +69,14 @@ export function mountCanvas(
   const app = new CanvasApp(
     element,
     {
-      post: (message) => setTimeout(() => studio.receive(message), 0),
+      post: (message) => {
+        // Where the pointer is goes to presence, at once and never through the Studio.
+        if (message.type === "presencePointer") {
+          requests.pointer?.(pointerOf(message));
+          return;
+        }
+        setTimeout(() => studio.receive(message), 0);
+      },
       getState: () => state.get(),
       setState: (next) => state.set(next),
     },

@@ -81,7 +81,7 @@ const seedKept = (value: string) =>
 
 export const viewingScenarios: Scenario[] = [
   {
-    name: "viewing: an anonymous browser opens a view link: the diagrams draw, a story plays, the SVG exports, the code and the canvas refuse every edit, nothing reaches the room and nothing is kept in the browser",
+    name: "viewing: an anonymous browser opens a view link: it follows the room live as a guest, the diagrams draw, a story plays, the SVG exports, the code and the canvas refuse every edit, nothing reaches the room and nothing is kept in the browser",
     signedIn: "u-ana-view",
     async run(t) {
       const { origin } = t;
@@ -96,17 +96,27 @@ export const viewingScenarios: Scenario[] = [
       await page.goto(`${origin}/p/${project.id}`);
       await ready(page);
 
-      // The link lands on the page, which keeps the address; view mode on a snapshot, no cloud machinery.
+      // The link lands on the page, which keeps the address; view mode, following the room live.
       assert.equal(page.url(), `${origin}/?project=${project.id}`);
-      await viewingIs(page, "snapshot");
+      await viewingIs(page, "live");
       assert.equal(await page.locator(".view-badge").innerText(), "View only");
       assert.equal(await page.locator(".view-copy").isVisible(), true, "Make a copy");
       assert.equal(await page.locator(".view-save").isVisible(), false, "nobody has an account");
       // The explorer's header names the viewed project, says it is view only and offers no rename.
       assert.equal(await page.locator(".switcher-name").innerText(), "Viewed");
-      assert.equal(await page.locator(".switcher-where").innerText(), "View only");
+      // The header says how it is seen: following the room live.
+      await until(
+        page,
+        "the explorer's header to say it follows live",
+        () => document.querySelector(".switcher-where")?.textContent === "Following live",
+      );
       assert.equal(await page.locator(".switcher-rename").isHidden(), true);
-      assert.equal(await page.locator(".cloud-status").isHidden(), true);
+      await until(
+        page,
+        "the visitor's connection to say it follows live",
+        () => document.querySelector(".cloud-status")?.getAttribute("data-state") === "connected",
+      );
+      assert.match(await page.locator(".cloud-status").innerText(), /Following live/);
       assert.equal(
         await page.locator(".privacy").isHidden(),
         true,
@@ -238,21 +248,24 @@ export const viewingScenarios: Scenario[] = [
       // The room is as it was: the projects' files and revision, read through the owner's call.
       assert.deepEqual(await readRoom(t.me, project.id), before);
 
-      // Of the cloud the page asked what a viewer needs: the project's row and its files, once each.
+      // Of the cloud the page asked what a viewer needs: the project's row, its image and the room;
+      // the snapshot of the files is only for a room that does not answer.
       const paths = anon.seen.requests
         .map((address) => new URL(address).pathname)
         .filter((path) => /^\/(api|rooms|p)(\/|$)/.test(path));
       assert.deepEqual(
-        paths.sort(),
+        [...new Set(paths)].sort(),
         [
           `/api/projects/${project.id}`,
-          `/api/projects/${project.id}/files`,
           `/api/projects/${project.id}/blobs/${hash}`,
           "/api/session",
           `/p/${project.id}`,
         ].sort(),
       );
-      assert.deepEqual(anon.seen.sockets, [], "no socket to the room");
+      assert.equal(anon.seen.sockets.length, 1, "one socket to the room");
+      const socket = new URL(anon.seen.sockets[0]!);
+      assert.match(socket.searchParams.get("guest") ?? "", /^[0-9a-f]{32}$/, "as a guest");
+      assert.match(socket.searchParams.get("name") ?? "", /^Guest \d{2}$/);
 
       // Nothing is kept in the browser: no copy in IndexedDB, and the anonymous project is as it was.
       const databases = await page.evaluate(async () =>
@@ -271,7 +284,7 @@ export const viewingScenarios: Scenario[] = [
   },
 
   {
-    name: "viewing: a snapshot says after five minutes that the project may have changed, and reading it again shows what the owner changed meanwhile",
+    name: "viewing: when the room does not answer an anonymous visitor, the page reads a snapshot, says at once that it may be old, and reading it again shows what the owner changed meanwhile",
     signedIn: "u-ana-hint",
     async run(t) {
       const { origin } = t;
@@ -279,20 +292,25 @@ export const viewingScenarios: Scenario[] = [
       await setLinkLevel(t.me, project.id, "view");
       const anon = await t.device({ as: null });
       const { page } = anon;
-      // The page's clock is the test's: five minutes pass in a moment.
+      // The room never answers this browser: its sockets are held open, unanswered.
+      await anon.context.routeWebSocket(/\/rooms\//, () => undefined);
+      // The page's clock is the test's: the wait for the room passes in a moment.
       await page.clock.install();
       await page.goto(`${origin}/p/${project.id}`);
       await ready(page);
+      for (let i = 0; i < 20 && (await viewing(page)) !== "snapshot"; i++) {
+        await page.clock.fastForward(2000);
+        await page.waitForTimeout(100);
+      }
       await viewingIs(page, "snapshot");
-      assert.equal(await page.locator(".view-hint").isHidden(), true);
+      await statusHas(
+        page,
+        "Hinted opened from a copy, because the project did not answer in time",
+      );
+      await page.locator(".view-hint").waitFor({ state: "visible" });
+      assert.match(await page.locator(".view-hint").innerText(), /may have changed/);
       await showFile(page, SLIDE);
       await analysed(page);
-
-      await page.clock.fastForward(4 * 60 * 1000);
-      assert.equal(await page.locator(".view-hint").isHidden(), true, "not yet at four minutes");
-      await page.clock.fastForward(61 * 1000);
-      await page.locator(".view-hint").waitFor({ state: "visible" });
-      assert.match(await page.locator(".view-hint").innerText(), /open for a while/);
       assert.equal(
         await page.locator(".view-hint .view-reload").innerText(),
         "Reload to see changes",
@@ -409,7 +427,7 @@ export const viewingScenarios: Scenario[] = [
       await anon.context.addInitScript(...seedKept(KEPT_WORK));
       await page.goto(`${origin}/p/${project.id}`);
       await ready(page);
-      await viewingIs(page, "snapshot");
+      await viewingIs(page, "live");
 
       // Asked first, since the browser holds work that is not a template; cancelled, nothing changes.
       await page.locator(".view-copy").click();
@@ -417,7 +435,7 @@ export const viewingScenarios: Scenario[] = [
       assert.match(await dialog.innerText(), /Replace the project in this browser\?/);
       await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
       await noDialog(page);
-      assert.equal(await viewing(page), "snapshot");
+      assert.equal(await viewing(page), "live");
       assert.equal(await page.evaluate((key) => localStorage.getItem(key), KEPT), KEPT_WORK);
 
       // Confirmed: view mode ends, the address stops naming the project, and the browser keeps the copy.
@@ -460,7 +478,8 @@ export const viewingScenarios: Scenario[] = [
       assert.match(await code(page), /\/\/ edited the copy$/);
       await page.waitForTimeout(800);
       assert.deepEqual(await readRoom(t.me, project.id), before);
-      assert.deepEqual(anon.seen.sockets, []);
+      // The page followed the room before the copy, and left it with the copy.
+      assert.equal(anon.seen.sockets.length, 1);
     },
   },
 
@@ -546,14 +565,15 @@ export const viewingScenarios: Scenario[] = [
       );
       await textHas(page, file, "// bob edited through the link");
 
-      // Nobody signed in: view mode on a snapshot, and no way to write through the page.
+      // Nobody signed in: view mode, following the room as a guest, and no way to write through the page.
       const anon = await t.device({ as: null });
       await anon.page.goto(`${origin}/?project=${project.id}`);
       await ready(anon.page);
-      await viewingIs(anon.page, "snapshot");
+      await viewingIs(anon.page, "live");
       assert.equal(anon.page.url(), `${origin}/?project=${project.id}`, "the address stays");
       assert.equal(await readOnly(anon.page), true);
-      assert.deepEqual(anon.seen.sockets, []);
+      assert.equal(anon.seen.sockets.length, 1);
+      assert.match(new URL(anon.seen.sockets[0]!).search, /guest=[0-9a-f]{32}/);
       assertError(
         await t.ask(`/api/projects/${project.id}/files`, {
           method: "PUT",
@@ -788,12 +808,13 @@ export const viewingScenarios: Scenario[] = [
       const model = "models/commerce.meltemi";
       assert.ok(diagrams.includes(model), "the purchase template has its model");
 
-      // Nobody signed in looks at a snapshot through the link; Bea, a viewer by name, follows the
-      // room live.
+      // Nobody signed in follows the room through the link, as a guest; Bea, a viewer by name, follows
+      // it too.
       const anon = await t.device({ as: null });
       await anon.page.goto(`${origin}/p/${project.id}`);
       await ready(anon.page);
-      await viewingIs(anon.page, "snapshot");
+      await connected(anon.page);
+      await viewingIs(anon.page, "live");
       const member = await t.device({ as: bea });
       await member.page.goto(`${origin}/p/${project.id}`);
       await ready(member.page);
@@ -801,7 +822,7 @@ export const viewingScenarios: Scenario[] = [
       await viewingIs(member.page, "live");
 
       for (const [who, page, where] of [
-        ["nobody signed in", anon.page, "View only"],
+        ["nobody signed in", anon.page, "Following live"],
         ["Bea", member.page, "Following live"],
       ] as const) {
         assert.equal(await readOnly(page), true, who);

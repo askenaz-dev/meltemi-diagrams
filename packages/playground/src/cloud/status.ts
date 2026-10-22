@@ -9,7 +9,17 @@ import type { en } from "../messages/en.js";
 export type StatusWords = (typeof en)["cloud"]["status"];
 
 export type ConnectionState =
-  "connecting" | "connected" | "saving" | "reconnecting" | "offline" | "full" | "gone";
+  | "connecting"
+  | "connected"
+  | "saving"
+  | "reconnecting"
+  | "offline"
+  | "full"
+  | "gone"
+  /** The live session that let this page in ended (`live-sessions`): it does not reconnect with it. */
+  | "ended"
+  /** This network holds as many connections without an account as a room takes: no retry by itself. */
+  | "limited";
 
 export interface ConnectionStatus {
   readonly state: ConnectionState;
@@ -32,6 +42,8 @@ export interface ConnectionInputs {
   readonly gone?: boolean;
   /** The room refused the last socket because it holds as many people as it may (`room.full`). */
   readonly full?: boolean;
+  /** The room stopped the connection for good: the session ended, or the network is full. */
+  readonly stopped?: "session.ended" | "connections.limit";
 }
 
 /**
@@ -44,6 +56,8 @@ export interface ConnectionInputs {
 export function connectionStatus(input: ConnectionInputs): ConnectionStatus {
   const { socket, everOpen, online, saving, kept } = input;
   if (input.gone) return { state: "gone", kept };
+  if (input.stopped === "session.ended") return { state: "ended", kept };
+  if (input.stopped === "connections.limit") return { state: "limited", kept };
   let state: ConnectionState;
   if (socket === "open") state = saving ? "saving" : "connected";
   else if (!online) state = "offline";
@@ -56,6 +70,8 @@ export function connectionStatus(input: ConnectionInputs): ConnectionStatus {
 export function statusText(status: ConnectionStatus, words: StatusWords): string {
   const { state, kept } = status;
   if (state === "gone") return words.gone;
+  if (state === "ended") return words.ended;
+  if (state === "limited") return words.limited;
   if (state === "full") return words.full(CLOUD_LIMITS.clients);
   if (state === "reconnecting") return words.reconnecting(kept);
   if (state === "offline") return words.offline(kept);
@@ -85,8 +101,11 @@ export function announcement(
   words: StatusWords,
 ): string | undefined {
   if (!before) return undefined;
-  // A deleted project never comes back: that is said once, whatever it was doing before.
+  // A deleted project never comes back: that is said once, whatever it was doing before; and so
+  // are a live session's end and a network that holds as many connections as it may.
   if (after.state === "gone") return before.state === "gone" ? undefined : words.gone;
+  if (after.state === "ended") return before.state === "ended" ? undefined : words.ended;
+  if (after.state === "limited") return before.state === "limited" ? undefined : words.limited;
   // A room that is full is said when it refuses (the refusal's own sentence): not said twice.
   if (after.state === "full") return undefined;
   if (!down(before.state) && down(after.state)) return statusText(after, words);

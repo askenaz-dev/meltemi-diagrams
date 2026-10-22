@@ -693,6 +693,9 @@ export class CanvasSession {
           };
         }
         return this.act(message.action);
+      case "presencePointer":
+        // The host's to share; the document has nothing to do with it.
+        return NONE;
     }
   }
 

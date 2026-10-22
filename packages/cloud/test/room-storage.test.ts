@@ -69,7 +69,7 @@ describe.skipIf(!sqlite)("the room's storage over SQL", () => {
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
       .all()
       .map((row) => row["name"]);
-    expect(tables).toEqual(["doc_chunks", "meta"]);
+    expect(tables).toEqual(["doc_chunks", "live", "meta"]);
   });
 
   it("stores the revision and the chunks and gives them back in order, as bytes", () => {

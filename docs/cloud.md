@@ -266,8 +266,10 @@ The same code names both.
 | `publish.rate`         | 429    | More than ten publish requests for one project in the last hour; `Retry-After` says how many seconds until the earliest of them stops counting                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `publish.taken`        | 409    | A slug that another project of the same person already publishes under their handle                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `message.too-large`    | 413    | A message on a socket over 512 KiB, or an awareness message over 16 KiB ([Awareness](#awareness)); the socket closes with `4413`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| `room.full`            | 409    | A room that already holds 20 clients: the 21st is told and its socket closes with `4409`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| `room.full`            | 409    | A room that already holds 20 clients, guests and visitors included: the 21st is told and its socket closes with `4409`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `awareness.rate`       | 429    | A client that sent more than 100 awareness messages within a second: it is told on the socket and the socket closes with `4429` ([Awareness](#awareness)); no route answers it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `connections.limit`    | 429    | The eleventh open connection without an account from one client address: it is told on the socket and the socket closes with `4428` ([Live sessions](#live-sessions)); no route answers it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `session.ended`        | 410    | The live session that admitted a connection ended (its owner ended it, its 24 hours passed, or its room was empty for an hour): the socket closes with `4410` ([Live sessions](#live-sessions)); no route answers it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `identity.last`        | 409    | The identity service keeps a person's only way of signing in: an unlink of the last provider from the account panel; nothing changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `provider.unknown`     | 400    | A provider the identity service does not sign people in with (`github` and `google` only)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `session.current`      | 409    | The session the request comes with, asked to be signed out from the account panel: it ends with Sign out instead                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
@@ -293,7 +295,7 @@ the code, in English or Spanish, instead of JSON.
 | `POST /cli-auth/token`                              | the command line                                          | `200 { id, name, token }`                                         |
 | `GET /cli-auth/style.css`                           | anyone                                                    | the approval page's style sheet                                   |
 | `GET /p/<id>`                                       | anyone                                                    | `302` to `/?project=<id>`                                         |
-| `GET /rooms/<id>`                                   | a person the project admits, with the cookie              | `101`, a socket to the project's room                             |
+| `GET /rooms/<id>`                                   | anyone the project admits, or a live session's token      | `101`, a socket to the project's room                             |
 | `PATCH /api/account`                                | a person, with the cookie or a token                      | `200 { handle }`                                                  |
 | `GET /api/account/identity`                         | a person signed in on the page                            | `200`, the identity service's sign-ins and sessions of the person |
 | `POST /api/account/identity/unlink`                 | a person signed in on the page                            | `200`, the same without the provider                              |
@@ -342,6 +344,9 @@ shapes.
 | `GET /api/projects/<id>/publish`               | `200 { handle, publications, takedowns }`                                            |
 | `PUT /api/projects/<id>/publish`               | `200 { url, handle, slug, bytes, published_at }`                                     |
 | `DELETE /api/projects/<id>/publish/<slug>`     | `204`                                                                                |
+| `PUT /api/projects/<id>/live`                  | `200 { id, link, guestsEdit, startedAt, until, guests }`                             |
+| `GET /api/projects/<id>/live`                  | `200`, the live session as `PUT` answers it, or `null`                               |
+| `DELETE /api/projects/<id>/live`               | `204`                                                                                |
 | `GET /api/account/usage`                       | `200 { projects, storageBytes, limits }`                                             |
 | `GET /api/dev/rooms/<id>/stats`                | development only: `200`, the room's counters                                         |
 | `POST /api/dev/rooms/<id>/disconnect`          | development only: `200 { closed }`                                                   |
@@ -664,23 +669,37 @@ The page connects to `wss://<origin>/rooms/<project id>` (`ws:` when the page is
 other method, or a request without the upgrade, is `404 not-found`, whoever asks. Then, in this
 order:
 
-1. Who is asking, from the cookie alone: a bearer token is not taken on a socket, and a request
-   without a valid cookie is `401 auth.required`.
+1. Who is asking, from the cookie alone: a bearer token is not taken on a socket (a request with
+   one and no cookie is anonymous).
 2. Where the upgrade comes from: its `Origin` must be the service's own, or it is
-   `403 request.forbidden`.
-3. What the person is to the project ([Roles](#roles)): `owner`, `editor` or `viewer`. A person
-   the project does not admit at all, a project that does not exist and an id that cannot be one
-   all answer `404 project.not-found`. Anonymous callers never get here: the socket needs the
-   cookie, and an anonymous viewer reads a snapshot through `GET …/files` instead.
+   `403 request.forbidden`, with a token as without one.
+3. What the person is to the project ([Roles](#roles)): `owner`, `editor`, `viewer`, or nothing.
+   Nothing, without a live session's token (`?live=<token>`), is `404 project.not-found`, as are a
+   project that does not exist and an id that cannot be one. With a token the project must exist
+   (a room is never made for an id the store does not hold), and the room checks the token itself
+   ([Live sessions](#live-sessions)).
+4. Who the connection is. A person signed in is their account: `sub`, name and picture. A person
+   without an account is a guest: `?guest=` must be the 32 lowercase hexadecimal characters their
+   browser made once and keeps (`400 request.invalid` otherwise), their `sub` is `guest:<id>`,
+   their name is `?name=` trimmed when it has 1 to 40 characters and no control character (else
+   "Guest NN", NN two digits from the id), and they have no picture. Without a token a guest is a
+   `viewer`, which is what any link that admits an anonymous person gives: an anonymous visitor of
+   a `view` or `edit` link follows the room live.
 
 The room gets a request that the Worker constructs: the fixed internal address
 `https://room/connect` and only the headers the Worker sets, `X-Meltemi-Project`,
-`X-Meltemi-Sub`, `X-Meltemi-Role` (the role the Worker resolved: `owner`, `editor` or `viewer`),
-`X-Meltemi-Name` and `X-Meltemi-Picture` (the last three URL-encoded). Nothing of the browser's
-request is forwarded, neither its path nor any header, so a spoofed `X-Meltemi-Role` never reaches
-the room. The room reads the role from the Worker's header alone, treats an unknown role as the
-least a person can be (`viewer`) and refuses a connection with no `sub`. The identity and a random
-connection id are kept in the socket's attachment, which survives hibernation.
+`X-Meltemi-Sub`, `X-Meltemi-Role` (the role the Worker resolved: `owner`, `editor` or `viewer`, or
+`viewer` for a person the project admits only by a token), `X-Meltemi-Name` and `X-Meltemi-Picture`
+(the last three URL-encoded), `X-Meltemi-Guest: 1` for a person without an account,
+`X-Meltemi-Address` (the client's address, `CF-Connecting-IP`) and `X-Meltemi-Live`, the token,
+only when the socket's query carried one. Nothing of the browser's request is forwarded, neither
+its path nor any header, so a spoofed `X-Meltemi-Role` or `X-Meltemi-Live` never reaches the room.
+The room reads the role from the Worker's header alone, treats an unknown role as the least a
+person can be (`viewer`), refuses a connection with no `sub`, and refuses as an internal error a
+`guest:` sub without the guest header or the guest header with another sub, so that the prefix
+names a guest and nothing else. The identity, the guest flag, the address, the session that
+admitted the connection and a random connection id are kept in the socket's attachment, which
+survives hibernation.
 
 The role is fixed when the socket opens. A viewer receives everything an editor writes, as
 everyone does, and the first update a viewer sends is refused: the room tells it with
@@ -689,10 +708,10 @@ were. Awareness is not an update: a viewer sends and receives it like anyone
 ([Awareness](#awareness)). A change of access cuts the sockets it may have outdated, so that the role is resolved again
 ([When access changes](#when-access-changes)).
 
-The room's own routes (`/files`, `/restore`, `/materialise`, `/destroy`, `/stats` and
-`/disconnect`) answer only requests that the Worker constructs: `POST /rooms/<id>/destroy` from a
-browser, with the owner's cookie, is `404 not-found`, and the room keeps its document and
-revision.
+The room's own routes (`/files`, `/restore`, `/materialise`, `/destroy`, `/stats`,
+`/disconnect` and `/live`) answer only requests that the Worker constructs:
+`POST /rooms/<id>/destroy` or `POST /rooms/<id>/live` from a browser, with the owner's cookie, is
+`404 not-found`, and the room keeps its document, revision and session.
 
 ### The room's protocol
 
@@ -703,11 +722,13 @@ Messages are binary; the first byte is the kind.
 | 0    | `sync`      | both ways      | A state vector. From a client: the room answers with a kind 1 of what the client lacks (always, even when it has nothing to send). From the room: its own vector, sent once after `hello` and whenever an update waits for what it depends on; the client answers with a kind 1 of what the room lacks |
 | 1    | `update`    | both ways      | A Yjs update. From a client the room applies it as one transaction, raises the revision, schedules a write and a materialisation, and sends it to every other client; from the room it is a change the client applies as coming from elsewhere                                                         |
 | 2    | `awareness` | both ways      | Presence ([Awareness](#awareness)). From a client: its own state. From the room: the states of other clients, each with the identity the room knows for the sender, or `null` for a client that is gone. The room only relays it                                                                       |
-| 3    | `hello`     | room to client | JSON, once on connect: `{ role, revision, limits, collisions, you }`                                                                                                                                                                                                                                   |
+| 3    | `hello`     | room to client | JSON, once on connect: `{ role, revision, limits, collisions, you, live }`                                                                                                                                                                                                                             |
 | 4    | `error`     | room to client | JSON `{ code }`, then the socket closes                                                                                                                                                                                                                                                                |
 
 `hello` says what the person is to the project, the revision the room is at, the limits it
-enforces, the collisions of the document, and which connection this is:
+enforces, the collisions of the document, which connection this is (`guest` for a person without
+an account), and, for a connection a live session admitted, the session's end and whether guests
+edit (`null` for any other):
 
 ```json
 {
@@ -721,7 +742,14 @@ enforces, the collisions of the document, and which connection this is:
     "clients": 20
   },
   "collisions": [],
-  "you": { "id": "9f3c2a71d04be856", "sub": "u_7d3f", "name": "Ana", "picture": "https://…" }
+  "you": {
+    "id": "9f3c2a71d04be856",
+    "sub": "u_7d3f",
+    "name": "Ana",
+    "picture": "https://…",
+    "guest": false
+  },
+  "live": null
 }
 ```
 
@@ -747,7 +775,9 @@ which family the refusal is of:
 | 4403       | `access.denied`                                     | A viewer sent an update                                                                                                                                                                      |
 | 4404       | `project.not-found`                                 | The project was deleted while the client was connected                                                                                                                                       |
 | 4409       | `room.full`                                         | The 21st client: it gets no `hello`                                                                                                                                                          |
+| 4410       | `session.ended`                                     | The live session that admitted the connection ended                                                                                                                                          |
 | 4413       | `doc.too-large`, `quota.files`, `message.too-large` | A text over 2 Mi characters or a document over 16 MiB, more than 2000 files, a message over 512 KiB (below the platform's 1 MiB, so that the room sees it), an awareness message over 16 KiB |
+| 4428       | `connections.limit`                                 | The eleventh open connection without an account from one client address: it gets no `hello`                                                                                                  |
 | 4429       | `awareness.rate`                                    | A client sent more than 100 awareness messages within a second                                                                                                                               |
 | 4500       | `internal`                                          | The room could not handle a message                                                                                                                                                          |
 | 4000       | none                                                | The development tool ([The development routes](#the-development-routes)), or a change of access ([When access changes](#when-access-changes)), cut the connection; not a refusal             |
@@ -756,19 +786,22 @@ The page tells a dropped connection from a refusal: a close with no kind 4 messa
 4400 to 4429 is a drop, and it reconnects after one second, doubling up to thirty; a refusal is
 shown to the person and the socket reopens after half a second, doubling on repeats. `4404` is
 neither: the project no longer exists, so the page stops reconnecting, says so and keeps what it
-has.
+has. Nor are `4410` and `4428`: the page stops reconnecting with that address, says why, and goes on
+as [Live sessions](#live-sessions) describes.
 
 A room that already holds 20 clients turns the 21st away with `room.full`, with one exception: the
-owner and the editors are let in as long as a viewer holds a place. That viewer gives up its place
-and is told `room.full` as if it had come last; it is the newest socket of the person who holds
-the most viewer sockets, so that an account that opened many sockets to keep the room full loses
-its own first. A viewer is never let in over anybody, and the owner and the editors are refused
-when the 20 are all people who can write.
+owner and the editors with an account are let in as long as a viewer or a guest holds a place.
+That one gives up its place and is told `room.full` as if it had come last; it is the newest socket
+of the person who holds the most of those sockets, so that an account, or a guest's browser, that
+opened many sockets to keep the room full loses its own first. A viewer or a guest (of any role)
+is never let in over anybody, and the owner and the editors are refused when the 20 are all people
+with an account who can write.
 
 ### Awareness
 
 Awareness is what each page tells the others about its person: the file they have open, where their
-caret or selection is in it and what they have selected on the canvas. It travels in kind 2
+caret or selection is in it, what they have selected on the canvas and where their pointer is over
+it. It travels in kind 2
 messages, and the room only relays it: nothing of it is written to the room's storage, and it
 changes neither the document nor its revision. [The playground](playground.md#working-together)
 shows it. The format is small and the page's own: an object keyed by connection, as Yjs's awareness
@@ -783,7 +816,7 @@ person with no file open sends `{}`):
   "9f3c2a71d04be856": {
     "file": "k7h2m4n9p3q5r8s2",
     "caret": { "anchor": "AQID", "head": "AQIE" },
-    "canvas": { "selection": ["api", "db"] }
+    "canvas": { "selection": ["api", "db"], "pointer": { "x": 312, "y": 148, "diagram": "flow" } }
   }
 }
 ```
@@ -794,6 +827,10 @@ person with no file open sends `{}`):
   256 characters and the room does not read them. Being positions in the text and not offsets, they
   stay on the same characters while others edit.
 - `canvas.selection` lists the ids selected on the canvas, each at most 256 characters.
+- `canvas.pointer` is where the person's pointer is over their canvas, while it moves there: two
+  numbers in diagram units, finite and within a million of the origin, which the room rounds to
+  integers, and the id of the diagram it is over. A canvas part holds a selection, a pointer or
+  both.
 
 The key of the entry is ignored (the page uses its connection id), and the room reads nothing else
 of the state: a `user`, a name or any other field is never relayed. A message of another shape (not
@@ -808,10 +845,16 @@ an object keyed by the sender's connection id (the `you.id` of its `hello`), wit
 ```json
 {
   "5d0e7a1c9b24f3a8": {
-    "user": { "sub": "u_8a21", "name": "Ben", "picture": "https://…", "colour": "#1c7ed6" },
+    "user": {
+      "sub": "u_8a21",
+      "name": "Ben",
+      "picture": "https://…",
+      "colour": "#1c7ed6",
+      "guest": false
+    },
     "file": "k7h2m4n9p3q5r8s2",
     "caret": { "anchor": "AQID", "head": "AQIE" },
-    "canvas": { "selection": ["api"] }
+    "canvas": { "selection": ["api"], "pointer": { "x": 120, "y": 80, "diagram": "flow" } }
   }
 }
 ```
@@ -821,22 +864,26 @@ socket when it opened ([The socket](#the-socket)), whatever the message said, wi
 characters of the `sub`, 100 of the name and 500 of the picture address. The `colour` comes from the
 `sub`: one of twelve, chosen by an FNV-1a hash of it (`presenceColour` in
 `@meltemi/diagrams-project`, which the page uses too), so the room and every page agree and no
-client sends a colour. Because the key is the sender's own, a client cannot speak for another's
-entry either. A page takes a person's identity from this `user` alone.
+client sends a colour. `guest` is true for a person without an account, from the connection and
+never from the message, so that every page badges a guest and never takes one for an account.
+Because the key is the sender's own, a client cannot speak for another's entry either. A page takes
+a person's identity from this `user` alone.
 
 **On connect.** After `hello` and its state vector the room sends the newcomer one kind 2 message
 with the states of the other clients, in the same shape, read from the sockets' attachments: those
 heard from within the last thirty seconds, and no message at all when there are none. The newcomer
 is announced to the others with its first state, not when it connects. The room does not keep the
-canvas selection, so a newcomer learns it from the sender's next state; a page sends its state
-again every fifteen seconds.
+canvas selection or the pointer, so a newcomer learns them from the sender's next state; a page
+sends its state again every fifteen seconds.
 
 **Removal.** `{ "<id>": null }` from the room says that connection has no state any more. The room
 sends it when a client sends `null` (if it had a state), when its socket closes (if it had one) and
 when thirty seconds pass without a state from it. That timeout is an alarm: the room sets it for the
 earliest last-heard time plus thirty seconds, and when it fires drops every state at least that old,
-tells each client that remains (about the others, never about itself) and sets the next alarm for
-the earliest state left. The sockets stay open, and a client that sends a state again is back. A
+tells each client that remains (about the others, never about itself) and sets the next alarm. The
+room has one alarm, and it serves a live session too ([Live sessions](#live-sessions)): it is set
+for the earliest of the next awareness timeout, the session's end and the idle hour after the last
+client left, and each time it fires it does what is due and sets the next. The sockets stay open, and a client that sends a state again is back. A
 page sends a state when it changes, at most four times a second, and again every fifteen seconds as
 a heartbeat, so a state thirty seconds old belongs to a page that went away.
 
@@ -859,7 +906,8 @@ in the last second: a room built again counts from nothing.
   closes the socket with `awareness.rate` (`4429`). The window is per connection: a person's two
   tabs count apart.
 - A page sends at most four states a second and cuts a canvas selection to 200 ids and 12,000 bytes,
-  so only a client that is not the page reaches any of these limits.
+  so only a client that is not the page reaches any of these limits. A moving pointer rides in the
+  same message as the caret and the selection: it adds no message of its own.
 - Awareness is the same for everyone who may connect: a viewer sends and receives it like an
   editor, and only a viewer's updates are refused ([The socket](#the-socket)).
 
@@ -1296,16 +1344,18 @@ a function of what it is given, so every cell of the table is a test (`test/acce
 
 A route states the role it needs: `read` is a viewer, `write` an editor and `manage` the owner.
 
-| Needs                                                            | Routes                                                                                                                                                                                    |
-| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `manage` (the owner)                                             | `PATCH` and `DELETE /api/projects/<id>`; `PATCH …/sharing`; `POST …/members`; `PATCH` and `DELETE …/members/<sub>`; `GET` and `DELETE …/invitations`; `GET`, `PUT` and `DELETE …/publish` |
-| `write` (an editor)                                              | `PUT …/files`; `PUT` and `DELETE …/binaries/<path>`; `PUT …/thumbnail`; `POST …/versions`; `POST …/versions/<n>/restore`                                                                  |
-| `read` (a viewer; anonymous callers too when a link admits them) | `GET /api/projects/<id>`; `GET …/files`; `GET` and `HEAD …/blobs/<hash>`; `GET …/versions` and `…/versions/<n>`; `GET …/thumbnail`; `GET …/sharing`                                       |
+| Needs                                                            | Routes                                                                                                                                                                                                                      |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `manage` (the owner)                                             | `PATCH` and `DELETE /api/projects/<id>`; `PATCH …/sharing`; `POST …/members`; `PATCH` and `DELETE …/members/<sub>`; `GET` and `DELETE …/invitations`; `GET`, `PUT` and `DELETE …/publish`; `PUT`, `GET` and `DELETE …/live` |
+| `write` (an editor)                                              | `PUT …/files`; `PUT` and `DELETE …/binaries/<path>`; `PUT …/thumbnail`; `POST …/versions`; `POST …/versions/<n>/restore`                                                                                                    |
+| `read` (a viewer; anonymous callers too when a link admits them) | `GET /api/projects/<id>`; `GET …/files`; `GET` and `HEAD …/blobs/<hash>`; `GET …/versions` and `…/versions/<n>`; `GET …/thumbnail`; `GET …/sharing`                                                                         |
 
 Some routes name something else. `POST …/duplicate` needs `read` and a person, and makes the copy in
 the caller's account. `DELETE …/members/me` needs a membership. `POST /api/invitations/<token>/accept`
-needs a person and the token, which is the proof. The socket needs the cookie and then any role the
-project admits. `PATCH /api/account { handle }` needs a person, with the cookie or a token, and the
+needs a person and the token, which is the proof. The socket needs any role the project admits, or
+a live session's token ([The socket](#the-socket)). `GET /api/projects/<id>` and `GET` and `HEAD
+…/blobs/<hash>` also take `read` from a live session's current token in `X-Meltemi-Live`; no other
+route reads that header. `PATCH /api/account { handle }` needs a person, with the cookie or a token, and the
 administrators' route a cookie that `ADMIN_SUBS` lists. The routes about the asker's own account (`GET` and
 `POST /api/projects`, `GET /api/account/usage`) need a person.
 
@@ -1441,12 +1491,13 @@ earliest first, each as in the list above; anyone but the owner gets `403 access
 ### Viewing by link
 
 A project whose link is `view` or `edit` serves its `read` routes to anybody: the metadata, with
-the asker's `role`, the files as a snapshot, the blobs, the versions and the thumbnail. That is all
-an anonymous viewer needs, and all the service gives them. The socket is a signed-in person's: a
-signed-in viewer connects as one, receives every change and may not write
-([The socket](#the-socket)). A project the link does not admit is `404 project.not-found` for
-anonymous callers as for anyone else, which the page words as "not found" and nothing more. How the
-page uses all this is in [the playground](playground.md#viewing-a-shared-project).
+the asker's `role`, the files as a snapshot, the blobs, the versions and the thumbnail. A viewer,
+signed in or not, connects to the room as one, receives every change and may not write
+([The socket](#the-socket)); an anonymous one connects with a guest identity, is in the presence as
+anybody, and reads the snapshot (`GET …/files`) only when the room does not answer. A project the
+link does not admit is `404 project.not-found` for anonymous callers as for anyone else, which the
+page words as "not found" and nothing more. How the page uses all this is in
+[the playground](playground.md#viewing-a-shared-project).
 
 ### When access changes
 
@@ -1472,6 +1523,63 @@ once the room has accepted a socket the Worker resolves the role again, and cuts
 sockets if it differs; if that cut fails the upgrade is `500 internal`, not a socket with the old
 role. Deleting an account cuts the person's sockets in the projects of others in the same way,
 before and after the event is applied.
+
+### Live sessions
+
+A live session lets anyone with its link into a project for a while, with or without an account
+([decision 0050](decisions/0050-live-sessions.md)). There is at most one per project, and it lives
+in the project's room, in the room's own storage, as `{ id, token, guestsEdit, startedAt, until }`:
+no row of D1 is written for it, and it goes with the room when the project is deleted. The token is
+128 random bits in lowercase hexadecimal, kept in clear so that the owner can copy the link again;
+it is answered to the owner alone and never logged.
+
+- `PUT /api/projects/<id>/live { guestsEdit? }` (the owner's) starts the session, with guests who
+  may edit unless `guestsEdit` is `false`, for twenty-four hours; on a session that is on it
+  answers that one, applying `guestsEdit` when given. A change of `guestsEdit` cuts the connections
+  the session admitted with `4000`, as a change of access does, and they reconnect with the role it
+  gives now. The answer:
+
+  ```json
+  {
+    "id": "8c1f02b9e45a7d36",
+    "link": "https://diagrams.meltemi.dev/p/k7h2m4n9p3q5r8s2t6v1?live=0f4b…",
+    "guestsEdit": true,
+    "startedAt": "2026-10-21T18:02:11.000Z",
+    "until": "2026-10-22T18:02:11.000Z",
+    "guests": 2
+  }
+  ```
+
+  `guests` counts the connections the session admitted that are open now.
+
+- `GET …/live` (the owner's) answers the same, or `null`.
+- `DELETE …/live` (the owner's) ends the session, and answers `204` whether or not one was on.
+
+A session also ends by itself at `until` and after an hour with no client in the room. The room's
+one alarm sees to both, after a hibernation too. However it ends, the record goes and every
+connection the session admitted is told `session.ended` and closed with `4410`; a connection that
+came without the token stays. A page closed with `4410` stops reconnecting with the token.
+
+**Joining.** A socket with `?live=<token>` reaches the room with the token in `X-Meltemi-Live`
+([The socket](#the-socket)). The room compares it with its record: a token that differs, or a
+session that is over, is `404 project.not-found` on the upgrade, revealing nothing. A current one
+admits the connection with the higher of the person's own role and the session's (`editor` when
+`guestsEdit`, else `viewer`), so a signed-in member keeps more when they have it, and the owner is
+the owner. `hello` then names the session (`live: { until, guestsEdit }`).
+
+**Guests and places.** A guest, and an anonymous visitor, take one of the room's twenty places and
+give it up as a viewer does ([The room's protocol](#the-rooms-protocol)). Among connections without
+an account the room admits at most ten open ones per client address and refuses the eleventh with
+`connections.limit` (`4428`), so that one network cannot fill a room while a classroom or an office
+behind one address still fits; account connections are not counted by address. A guest's update
+counts against the project's limits as an editor's does.
+
+**What a token reaches.** The room, and two reads: `GET /api/projects/<id>` (with
+`live: { until, guestsEdit }`, or `null` when the token is not current, so that a page holding an
+old link drops it) and `GET` and `HEAD …/blobs/<hash>` (the images and fonts the diagrams use),
+which take the token in `X-Meltemi-Live` when the caller's own access falls short and ask the room
+whether it is current. Every other route ignores the header: a guest cannot upload, version,
+publish, change the thumbnail or read the sharing; those need an account.
 
 ## Publishing
 
@@ -1661,6 +1769,8 @@ only the Worker enforces.
 | Versions in a project                | 200, labelled ones counted; 100 unlabelled are kept             | `quota.versions`                      |
 | Versions made in a minute            | 6 for one project                                               | `versions.rate`                       |
 | Clients in a room                    | 20                                                              | `room.full`                           |
+| Connections without an account       | 10 open ones from one client address                            | `connections.limit`                   |
+| A live session                       | 24 hours, and one hour with nobody in its room                  | `session.ended`                       |
 | A message on a socket                | 512 KiB                                                         | `message.too-large`                   |
 | An awareness message                 | 16 KiB; 20 a second are relayed, over 100 a second close it     | `message.too-large`, `awareness.rate` |
 | A thumbnail                          | 200 KiB                                                         | `thumbnail.too-large`                 |

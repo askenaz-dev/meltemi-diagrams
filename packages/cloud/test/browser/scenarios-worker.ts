@@ -62,10 +62,19 @@ export const workerScenarios: Scenario[] = [
       const bob = await t.person("u-bob-door");
       const path = `/rooms/${project.id}`;
 
-      // Refused before anything reaches the room, each with the Worker's own answer.
+      // Refused before anything reaches the room, each with the Worker's own answer: nobody, on a
+      // private project, is told it is not there (a link that admitted them would let them follow).
       const anonymous = await upgrade(origin, path, { Origin: origin });
-      assert.equal(anonymous.status, 401);
-      assert.equal(JSON.parse(anonymous.body).code, "auth.required");
+      assert.equal(anonymous.status, 404);
+      assert.equal(JSON.parse(anonymous.body).code, "project.not-found");
+      // A live session's token the room does not hold is the same answer, from the room.
+      const token = await upgrade(
+        origin,
+        `${path}?live=${"0".repeat(32)}&guest=${"a".repeat(32)}`,
+        { Origin: origin },
+      );
+      assert.equal(token.status, 404);
+      assert.equal(JSON.parse(token.body).code, "project.not-found");
       const foreign = await upgrade(origin, path, {
         ...t.me.cookie,
         Origin: "https://evil.example",
@@ -78,7 +87,7 @@ export const workerScenarios: Scenario[] = [
       // Not an upgrade at all, and the room's internal routes, are the Worker's JSON 404.
       assertError(await t.me.api("GET", path), 404, "not-found");
       const held = await readRoom(t.me, project.id);
-      for (const internal of ["destroy", "stats", "disconnect", "files", "connect"]) {
+      for (const internal of ["destroy", "stats", "disconnect", "files", "connect", "live"]) {
         const answer = await t.me.api("POST", `${path}/${internal}`);
         assert.equal(answer.status, 404, internal);
       }

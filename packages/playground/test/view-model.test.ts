@@ -32,17 +32,42 @@ describe("the role a text names", () => {
 
 describe("the mode a role gives", () => {
   const cases: [signedIn: boolean, role: Role, opening: string][] = [
-    // Nobody signed in can only look, whatever the service says they are.
-    [false, "viewer", "view-snapshot"],
-    [false, "editor", "view-snapshot"],
-    [false, "owner", "view-snapshot"],
+    // Nobody signed in can only look, whatever the service says they are: and follows the room live.
+    [false, "viewer", "view-live"],
+    [false, "editor", "view-live"],
+    [false, "owner", "view-live"],
     [true, "viewer", "view-live"],
     [true, "editor", "edit"],
     [true, "owner", "edit"],
   ];
   it.each(cases)("signed in %s, as %s: %s", (signedIn, role, opening) => {
-    expect(openingFor(signedIn, role)).toBe(opening);
-    expect(viewsOnly(openingFor(signedIn, role))).toBe(opening !== "edit");
+    expect(openingFor({ signedIn, role })).toBe(opening);
+    expect(viewsOnly(openingFor({ signedIn, role }))).toBe(opening !== "edit");
+  });
+
+  const live: [signedIn: boolean, role: Role, opening: string][] = [
+    // A live session's token: the role is the session's, for a guest as for a person signed in.
+    [false, "editor", "edit"],
+    [false, "viewer", "view-live"],
+    [true, "editor", "edit"],
+    [true, "viewer", "view-live"],
+    [true, "owner", "edit"],
+  ];
+  it.each(live)(
+    "with a live session's token, signed in %s, as %s: %s",
+    (signedIn, role, opening) => {
+      expect(openingFor({ signedIn, role, live: true })).toBe(opening);
+    },
+  );
+
+  it("reads the snapshot only for an anonymous visitor the room did not answer", () => {
+    expect(openingFor({ signedIn: false, role: "viewer", unanswered: true })).toBe("view-snapshot");
+    expect(openingFor({ signedIn: false, role: "viewer", unanswered: false })).toBe("view-live");
+    // A guest of a session, or a person signed in, is never shown a snapshot for it.
+    expect(openingFor({ signedIn: false, role: "editor", live: true, unanswered: true })).toBe(
+      "edit",
+    );
+    expect(openingFor({ signedIn: true, role: "viewer", unanswered: true })).toBe("view-live");
   });
 
   it("offers a reload to a snapshot after five minutes", () => {

@@ -117,7 +117,67 @@ describe("durableRooms", () => {
       role: "X-Meltemi-Role",
       name: "X-Meltemi-Name",
       picture: "X-Meltemi-Picture",
+      guest: "X-Meltemi-Guest",
+      live: "X-Meltemi-Live",
+      address: "X-Meltemi-Address",
     });
+  });
+
+  it("passes a guest's upgrade with the guest flag, the address and the token the Worker was given", async () => {
+    const { binding, seen } = namespace(() => new Response(null, { status: 200 }));
+    const rooms = durableRooms(binding);
+    const clientRequest = new Request(`https://diagrams.meltemi.dev/rooms/${PROJECT}`, {
+      headers: { Upgrade: "websocket", "X-Meltemi-Live": "f".repeat(32), "X-Meltemi-Guest": "0" },
+    });
+
+    await rooms
+      .connect(
+        PROJECT,
+        clientRequest,
+        {
+          sub: `guest:${"a".repeat(32)}`,
+          role: "viewer",
+          name: "Guest 37",
+          picture: "",
+          guest: true,
+          address: "2001:db8::1",
+        },
+        "0".repeat(32),
+      )
+      .catch(() => undefined);
+
+    const [call] = seen as [Seen];
+    expect(call.headers["x-meltemi-guest"]).toBe("1");
+    expect(call.headers["x-meltemi-live"]).toBe("0".repeat(32));
+    expect(decodeURIComponent(call.headers["x-meltemi-address"] as string)).toBe("2001:db8::1");
+    expect(decodeURIComponent(call.headers["x-meltemi-sub"] as string)).toBe(
+      `guest:${"a".repeat(32)}`,
+    );
+  });
+
+  it("asks the room about its live session with requests of its own, the token in a body", async () => {
+    const { binding, seen } = namespace((call) =>
+      call.url.endsWith("/check")
+        ? json({ live: { until: 5, guestsEdit: true } })
+        : call.method === "GET"
+          ? json(null)
+          : json({ id: "s", token: "t", guestsEdit: false, startedAt: 1, until: 2, guests: 0 }),
+    );
+    const rooms = durableRooms(binding);
+
+    expect(await rooms.startLive(PROJECT, { guestsEdit: false })).toMatchObject({ id: "s" });
+    expect(await rooms.readLive(PROJECT)).toBeNull();
+    await rooms.endLive(PROJECT);
+    expect(await rooms.checkLive(PROJECT, "a".repeat(32))).toEqual({ until: 5, guestsEdit: true });
+
+    expect(seen.map((call) => `${call.method} ${call.url}`)).toEqual([
+      "PUT https://room/live",
+      "GET https://room/live",
+      "DELETE https://room/live",
+      "POST https://room/live/check",
+    ]);
+    // The token never rides in an address.
+    expect(seen.every((call) => !call.url.includes("a".repeat(32)))).toBe(true);
   });
 
   it("makes each operation a request of its own: method, address and JSON body", async () => {

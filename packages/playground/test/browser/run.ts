@@ -3380,7 +3380,7 @@ const tests: Test[] = [
     },
   }),
   {
-    name: "opens a project by its link in view mode: reads it once, draws, exports, refuses every edit and keeps nothing",
+    name: "opens a project by its link in view mode when its room cannot be reached: reads it once, says it may be old, draws, exports, refuses every edit and keeps nothing",
     async setup({ context }) {
       await shareByLink(context, { found: true });
     },
@@ -3395,15 +3395,20 @@ const tests: Test[] = [
       await page.goto(`${url}?project=${SHARED_ID}`);
       await ready(page);
       assert.equal(new URL(page.url()).searchParams.get("project"), SHARED_ID, "the address stays");
+      await until(
+        page,
+        "the snapshot, the room being out of reach",
+        () => document.querySelector("#playground")?.getAttribute("data-viewing") === "snapshot",
+      );
       assert.equal(await page.locator(".view-badge").innerText(), "View only");
       assert.equal(await page.locator(".view-copy").isVisible(), true);
       assert.equal(await page.locator(".view-save").isVisible(), false, "nobody has an account");
       assert.equal(await page.locator(".privacy").isHidden(), true);
-      assert.equal(await page.locator("#playground").getAttribute("data-viewing"), "snapshot");
       assert.match(
         await page.locator(".status-text").innerText(),
-        /Opened Shared purchase to view/,
+        /Shared purchase opened from a copy, because the project did not answer in time/,
       );
+      assert.equal(await page.locator(".view-hint").isVisible(), true, "it may be old");
       assert.match(await code(page), /diagram|language/);
       // The code pane and the canvas only show.
       assert.equal(
@@ -3661,6 +3666,9 @@ const tests: Test[] = [
 const SHARED_ID = "sharedproject0123456";
 async function shareByLink(context: BrowserContext, answer: { found: boolean }): Promise<void> {
   const purchase = templates.find((t) => t.name === "purchase")!;
+  // This server has no rooms: a socket to one fails at once, as a room that cannot be reached does,
+  // and a visitor reads the snapshot instead (the cloud suite follows a real room).
+  await context.routeWebSocket(/\/rooms\//, (socket) => void socket.close({ code: 1011 }));
   await context.route(new RegExp(`/api/projects/${SHARED_ID}(/files)?$`), (route) => {
     if (!answer.found) {
       return route.fulfill({

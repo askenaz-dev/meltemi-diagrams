@@ -16,6 +16,7 @@ import {
   type RoomLimits,
   type RoomSocket,
   type RoomStorage,
+  type StoredLive,
 } from "../../src/room-core.js";
 import { KIND, frame, jsonFrame, parseFrame } from "../../src/room-protocol.js";
 import {
@@ -142,7 +143,22 @@ export class MemoryStorage implements RoomStorage {
   destroy(): void {
     this.chunks = undefined;
     this.revision = 0;
+    this.session = undefined;
     this.destroyed++;
+  }
+
+  /** The live session's record, as the room last wrote it. */
+  session: StoredLive | undefined;
+  /** Every write of the live session's record, in order (`undefined` for a deletion). */
+  readonly liveWrites: (StoredLive | undefined)[] = [];
+
+  live(): StoredLive | undefined {
+    return this.session;
+  }
+
+  setLive(live: StoredLive | undefined): void {
+    this.session = live;
+    this.liveWrites.push(live);
   }
 
   /** The document the storage holds, decoded. */
@@ -443,15 +459,28 @@ export class MemoryRoom {
     return this.core;
   }
 
-  /** Opens a socket as a client of the room (as the platform does once the Worker passed the upgrade). */
-  async open(identity: Partial<RoomIdentity> = {}, doc?: Y.Doc): Promise<RoomClient> {
-    const info = {
-      id: `c${++this.ids}`,
-      sub: identity.sub ?? "user-1",
-      role: identity.role ?? "owner",
-      name: identity.name ?? "Ana",
-      picture: identity.picture ?? "",
-    };
+  /**
+   * Opens a socket as a client of the room (as the platform does once the Worker passed the upgrade):
+   * the room admits the identity first (with `token`, the live session's token the Worker passed),
+   * and a refusal there throws the room's error before any socket exists.
+   */
+  async open(
+    identity: Partial<RoomIdentity> = {},
+    doc?: Y.Doc,
+    token?: string,
+  ): Promise<RoomClient> {
+    const admitted = this.core.admit(
+      {
+        sub: identity.sub ?? "user-1",
+        role: identity.role ?? "owner",
+        name: identity.name ?? "Ana",
+        picture: identity.picture ?? "",
+        ...(identity.guest !== undefined ? { guest: identity.guest } : {}),
+        ...(identity.address !== undefined ? { address: identity.address } : {}),
+      },
+      token,
+    );
+    const info = { id: `c${++this.ids}`, ...admitted };
     const connection = new FakeConnection(info);
     const client = new RoomClient(connection, () => this.core, doc);
     // The platform tells the room when a socket closed, however it closed.
@@ -482,6 +511,8 @@ export interface ConnectCall {
 export interface MemoryRooms extends RoomsApi {
   /** The room of a project; made when first asked for. */
   room(projectId: string): MemoryRoom;
+  /** Whether anything asked for the room of a project (a Durable Object would have been made). */
+  has(projectId: string): boolean;
   /** The `connect()` calls made through the API, in order. */
   readonly connects: ConnectCall[];
   /** The client a `connect()` answer stands for. */
@@ -547,8 +578,8 @@ export interface World {
   readonly store: CloudStore;
   readonly rooms: MemoryRooms;
   readonly room: MemoryRoom;
-  /** Opens a client of the owner on `PROJECT`'s room. */
-  open(identity?: Partial<RoomIdentity>, doc?: Y.Doc): Promise<RoomClient>;
+  /** Opens a client of the owner on `PROJECT`'s room (with `token`, a live session's). */
+  open(identity?: Partial<RoomIdentity>, doc?: Y.Doc, token?: string): Promise<RoomClient>;
 }
 
 /**
@@ -581,7 +612,13 @@ export async function world(options: {
     ...(options.limits ? { limits: options.limits } : {}),
   });
   const room = rooms.room(PROJECT);
-  return { clock, store, rooms, room, open: (identity, doc) => room.open(identity, doc) };
+  return {
+    clock,
+    store,
+    rooms,
+    room,
+    open: (identity, doc, token) => room.open(identity, doc, token),
+  };
 }
 
 export function memoryRooms(options: MemoryRoomsOptions): MemoryRooms {
@@ -619,6 +656,7 @@ export function memoryRooms(options: MemoryRoomsOptions): MemoryRooms {
 
   const api: MemoryRooms = {
     room,
+    has: (projectId) => rooms.has(projectId),
     connects,
     timers,
     clientOf(response) {
@@ -628,8 +666,8 @@ export function memoryRooms(options: MemoryRoomsOptions): MemoryRooms {
     },
     advance: (milliseconds) => timers.advance(milliseconds),
 
-    async connect(projectId, request, identity) {
-      const client = await call(() => room(projectId).open(identity));
+    async connect(projectId, request, identity, live) {
+      const client = await call(() => room(projectId).open(identity, undefined, live));
       const response = new Response(null, { status: 200, headers: { "X-Test-Socket": "open" } });
       responses.set(response, client);
       connects.push({ projectId, request, identity, client });
@@ -654,6 +692,10 @@ export function memoryRooms(options: MemoryRoomsOptions): MemoryRooms {
     async limits(projectId, request: RoomLimitsRequest) {
       return { clients: room(projectId).core.limitClients(request.clients) };
     },
+    startLive: (projectId, request) => call(() => room(projectId).core.startLive(request)),
+    readLive: (projectId) => call(() => room(projectId).core.readLive()),
+    endLive: (projectId) => call(() => room(projectId).core.endLive()),
+    checkLive: (projectId, token) => call(() => room(projectId).core.checkLive(token)),
   };
   return api;
 }

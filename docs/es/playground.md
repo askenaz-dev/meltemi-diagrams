@@ -362,16 +362,17 @@ en el proyecto de este navegador, en el panel, lo recupera. El nombre empieza si
 ### Abrir un proyecto y su dirección
 
 Un proyecto se abre desde el panel o desde una dirección. El enlace que copias, `<origin>/p/<id>`,
-redirige a `/?project=<id>`: al cargar, la página lee `project` (e `invite`) de la dirección,
-pregunta al servicio qué eres para ese proyecto, lo abre en el modo que ese rol da y conserva la
-dirección, así que al recargar se vuelve a abrir.
+redirige a `/?project=<id>`: al cargar, la página lee `project` (e `invite`, y `live`) de la
+dirección, pregunta al servicio qué eres para ese proyecto, lo abre en el modo que ese rol da y
+conserva la dirección, así que al recargar se vuelve a abrir.
 
-| Eres                                                        | El proyecto se abre                                                              |
-| ----------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| El propietario, un editor, o con sesión en un enlace `edit` | Como un proyecto en la nube: ligado a su sala y editado como siempre             |
-| Un lector con sesión (un miembro, o con un enlace `view`)   | En modo de solo lectura, siguiendo el proyecto en vivo                           |
-| Sin sesión, con un enlace `view` o `edit`                   | En modo de solo lectura, sobre una instantánea leída al abrir la página          |
-| Sin admisión (un proyecto privado que no es tuyo)           | La línea de estado dice que no se encontró el proyecto; se abre el del navegador |
+| Eres                                                        | El proyecto se abre                                                                                                   |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| El propietario, un editor, o con sesión en un enlace `edit` | Como un proyecto en la nube: ligado a su sala y editado como siempre                                                  |
+| Un lector con sesión (un miembro, o con un enlace `view`)   | En modo de solo lectura, siguiendo el proyecto en vivo                                                                |
+| Sin sesión, con un enlace `view` o `edit`                   | En modo de solo lectura, siguiendo el proyecto en vivo como visita; sobre una instantánea solo si la sala no responde |
+| Cualquiera con el enlace de una sesión en vivo (`?live=`)   | Ligado a su sala con el rol de la sesión, como invitado sin sesión iniciada ([sesiones en vivo](#sesiones-en-vivo))   |
+| Sin admisión (un proyecto privado que no es tuyo)           | La línea de estado dice que no se encontró el proyecto; se abre el del navegador                                      |
 
 Abrir otro proyecto desde el panel cambia `project` en la dirección, y abrir el proyecto de este
 navegador lo quita. Cuando el proyecto no se encuentra, o el enlace no te admite, la línea de estado dice "No
@@ -539,11 +540,11 @@ El propietario de un proyecto en la nube decide quién puede abrirlo, y como qu�
 su enlace, con la sesión iniciada o sin ella, abre el diálogo propio del proyecto en lugar del de
 `#p=`. Cambiar cualquier cosa es cosa del propietario; los demás ven lo que les concierne. [El servicio en la nube](cloud.md#compartir-y-permisos) tiene las reglas.
 
-| Eres                                        | El diálogo muestra                                                                                                                                                           |
-| ------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| El propietario                              | El enlace; quién puede abrirlo; las personas con sus correos, un menú de rol y **Quitar**; **Invitar a alguien**; las invitaciones pendientes con sus enlaces; **Publicar…** |
-| Un miembro                                  | El enlace; tu rol; las personas (sus nombres, imágenes y roles); **Salir**                                                                                                   |
-| Cualquier otra persona que admite el enlace | El enlace y tu rol: "Puedes ver este proyecto, pero no cambiarlo."; nada de las personas                                                                                     |
+| Eres                                        | El diálogo muestra                                                                                                                                                                              |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| El propietario                              | El enlace; quién puede abrirlo; la sesión en vivo; las personas con sus correos, un menú de rol y **Quitar**; **Invitar a alguien**; las invitaciones pendientes con sus enlaces; **Publicar…** |
+| Un miembro                                  | El enlace; tu rol; las personas (sus nombres, imágenes y roles); **Salir**                                                                                                                      |
+| Cualquier otra persona que admite el enlace | El enlace y tu rol: "Puedes ver este proyecto, pero no cambiarlo."; nada de las personas                                                                                                        |
 
 - **El enlace** es `<origin>/p/<id>`, con **Copiar**. Abre el proyecto para quien su nivel admita.
 - **Quién puede abrir el enlace** tiene tres opciones, una frase cada una. **Solo las personas de la
@@ -569,6 +570,12 @@ su enlace, con la sesión iniciada o sin ella, abre el diálogo propio del proye
 - **Salir** pregunta antes. El proyecto desaparece de tus proyectos, y solo podrás abrirlo de nuevo
   si el propietario te invita o si el enlace te admite. El propietario no tiene **Salir**: elimina
   el proyecto.
+- **Sesión en vivo**, solo del propietario, deja entrar durante un tiempo a cualquiera con su
+  enlace, con cuenta o sin ella ([sesiones en vivo](#sesiones-en-vivo)). Sin ninguna activa, lo dice
+  y ofrece **Iniciar una sesión en vivo** junto al interruptor **Los invitados pueden editar**. Con
+  una activa, muestra su enlace con **Copiar enlace**, el interruptor, cuántos invitados hay ahora y
+  cuándo termina ("Termina en 23 h 59 min"), y **Terminar sesión**, que pregunta antes. El diálogo
+  lee la sesión cada vez que se abre, así que se ve una iniciada en otro dispositivo.
 - **Publicar…** abre el diálogo de publicar ([publicar un proyecto](#publicar-un-proyecto)).
 
 Lo que el servicio rechaza se dice con palabras: por ejemplo "Un proyecto admite como máximo 50
@@ -605,11 +612,14 @@ guardan una copia, y desactiva todo lo que edita:
 
 Lo que ve un lector no es igual para todos:
 
-- **Sin sesión.** La página lee el proyecto una sola vez al abrirse: sus archivos y las imágenes y
-  fuentes que usan. No abre ninguna conexión y no guarda nada en el navegador, y el proyecto que
-  guarda el navegador no se toca. Pasados cinco minutos, la barra de estado dice que la página lleva
-  abierta un rato y que el proyecto puede haber cambiado, con **Recargar para ver los cambios**, que
-  vuelve a leerlo. No está en la sala, así que no ve a nadie más y nadie lo ve.
+- **Sin sesión.** La página se conecta a la sala del proyecto como visita, con una identidad de
+  invitado ("Invitado 37", o el nombre que des en la barra bajo la cabecera): lo que cambian los
+  editores aparece según lo hacen, ves quién más está con sus cursores, selecciones y punteros, y te
+  ven, con una insignia de **Invitado**. No guarda nada en el navegador (ninguna copia en
+  IndexedDB), y el proyecto que guarda el navegador no se toca. Solo cuando la sala no responde a
+  tiempo la página lee en cambio el proyecto una vez, sus archivos y las imágenes y fuentes que
+  usan, y entonces dice enseguida que el proyecto puede haber cambiado, con **Recargar para ver los
+  cambios**, que vuelve a leerlo.
 - **Con sesión.** La página se conecta a la sala del proyecto como lectora: lo que cambian los
   editores aparece según lo hacen ("Siguiendo en vivo"), y la conexión se restablece como la de
   cualquier proyecto en la nube ("Reconectando… mientras tanto ves la última versión"). Ves quién
@@ -640,13 +650,15 @@ no está disponible para ti".
 ### Trabajar juntos
 
 Un proyecto en la nube puede estar abierto en varios sitios a la vez: en tus propios dispositivos y,
-cuando lo compartes, para las personas que abren su enlace con la sesión iniciada
-([compartir un proyecto](#compartir-un-proyecto)). El propietario y los editores escriben en él
-juntos; los lectores lo siguen. No hay nada que activar: lo que haces se muestra a los demás y lo
-que hacen ellos se te muestra a ti. Una sala admite veinte conexiones a la vez, así que una persona
-con el proyecto abierto en dos pestañas cuenta dos veces. Cuando está llena, el propietario y los
-editores siguen entrando: un lector (la conexión más reciente de quien tenga más) cede su sitio y ve
-la sala llena en su lugar.
+cuando lo compartes, para las personas que abren su enlace
+([compartir un proyecto](#compartir-un-proyecto)), y, durante una sesión en vivo, para cualquiera
+con el enlace de la sesión ([sesiones en vivo](#sesiones-en-vivo)). El propietario, los editores y
+los invitados que pueden editar escriben en él juntos; los lectores y las visitas lo siguen. No hay
+nada que activar: lo que haces se muestra a los demás y lo que hacen ellos se te muestra a ti. Una
+sala admite veinte conexiones a la vez, así que una persona con el proyecto abierto en dos pestañas
+cuenta dos veces. Cuando está llena, el propietario y los editores con cuenta siguen entrando: un
+lector o un invitado (la conexión más reciente de quien tenga más) cede su sitio y ve la sala llena
+en su lugar.
 
 **Quién está.** La cabecera lista a las demás personas que tienen el proyecto abierto: una imagen,
 un nombre y, en una pantalla de 1700 píxeles de ancho o más, el nombre del archivo en el que están.
@@ -656,7 +668,9 @@ páginas, aunque dos personas pueden compartir uno. Se listan cuatro y las demá
 ninguno abierto, o que tiene uno que este proyecto no tiene, aparece en la lista pero no se puede
 pulsar. La lista se oculta mientras estás solo. Tu propia cuenta no aparece nunca, tengan el
 proyecto abierto las pestañas o los dispositivos que tengan, aunque el cursor y la selección de otra
-pestaña tuya se dibujan como los de cualquiera, en tu color.
+pestaña tuya se dibujan como los de cualquiera, en tu color. Una persona sin cuenta no tiene imagen
+y lleva una insignia de **Invitado** junto a su nombre, en la cabecera y en la etiqueta de su
+cursor: la sala dice quién es invitado, así que nadie puede pasar por una cuenta.
 
 **En el código.** El cursor de otra persona en el archivo que tienes abierto es una barra fina de su
 color con su nombre en una etiqueta encima (debajo, en la primera línea). La etiqueta se desvanece
@@ -674,8 +688,17 @@ una capa oculta, ni mientras se reproduce una historia (vuelve cuando la histori
 ninguna de las exportaciones lo lleva. El lienzo lo recibe como un mensaje `presence`
 ([la guía del editor](editor.md#los-paneles)).
 
-**Qué se comparte.** Tres cosas: el archivo que tienes abierto, dónde está tu cursor o tu selección
-en él y qué has seleccionado en el lienzo. Nunca quién eres: la sala añade el nombre y la imagen de
+**Punteros.** Donde está el puntero de otra persona sobre el lienzo del diagrama que estás mirando,
+el lienzo dibuja un cursor de su color con su nombre en la cola. Se mueve cuatro veces por segundo y
+se desliza de una posición a la siguiente en 200 milisegundos, así que se lee como un solo
+movimiento; su punta está en el mismo sitio del diagrama con cualquier zoom, y mantiene su tamaño
+en la pantalla. Se va tres segundos después de que el puntero de la persona se detenga, o en cuanto
+sale de su lienzo. Un clic lo atraviesa; no se dibuja mientras se reproduce una historia, y ninguna
+exportación lo lleva.
+
+**Qué se comparte.** Cuatro cosas: el archivo que tienes abierto, dónde está tu cursor o tu
+selección en él, qué has seleccionado en el lienzo y dónde está tu puntero sobre él mientras se
+mueve por él. Nunca quién eres: la sala añade el nombre y la imagen de
 tu cuenta a lo que retransmite ([presencia](cloud.md#presencia-awareness)), así que nadie puede
 aparecer como otra persona, y a quien no tiene nombre se le muestra como "Alguien". Los nombres se
 muestran siempre como los caracteres que son: una persona llamada `<b>Ben</b>` aparece exactamente
@@ -687,9 +710,8 @@ mencionado en cuarenta y cinco segundos, por si el aviso de que se fue no le lle
 vez cuando vuelve. Nada de la presencia se guarda: ni en el proyecto, ni en una exportación, ni en
 este navegador, ni en el almacenamiento de la sala.
 
-Un lector con sesión iniciada comparte su presencia como cualquiera (dónde está, nunca una edición)
-y ve la de todos. Una visita sin sesión lee una instantánea sin conexión, así que no ve a nadie y
-nadie la ve ([ver un proyecto compartido](#ver-un-proyecto-compartido)).
+Un lector, con sesión o sin ella, comparte su presencia como cualquiera (dónde está, nunca una
+edición) y ve la de todos ([ver un proyecto compartido](#ver-un-proyecto-compartido)).
 
 **Escribir juntos.** Dos personas que escriben en un mismo archivo, incluso en una misma línea en el
 mismo momento, acaban con el mismo texto en las dos páginas y con todos los caracteres de ambas
@@ -723,9 +745,49 @@ Lo que no hace:
   comandos no muestran presencia; un push mediante la API o la línea de comandos llega en vivo a las
   personas de la sala, como cualquier cambio.
 - No sigue la vista de nadie, y no tiene comentarios, chat ni voz.
-- Los cursores y las selecciones se dibujan solo para el archivo que tienes abierto; las personas
-  que están en otros archivos figuran en la cabecera.
-- Nadie trabaja junto a otros sin una cuenta: un proyecto que no está en la nube no tiene sala.
+- Los cursores, las selecciones y los punteros se dibujan solo para el archivo que tienes abierto;
+  las personas que están en otros archivos figuran en la cabecera.
+- Un proyecto que no está en la nube no tiene sala: el diálogo `#p=` del proyecto del navegador dice
+  que una sesión en vivo requiere el proyecto en una cuenta, con **Guardar en mis proyectos** cuando
+  tienes la sesión iniciada e **Inicia sesión para iniciar una** cuando no.
+
+### Sesiones en vivo
+
+Una sesión en vivo deja entrar durante un tiempo a cualquiera con su enlace en un proyecto en la
+nube, con cuenta o sin ella, para trabajar en él juntos según ocurre. El propietario la inicia desde
+el diálogo de compartir ([compartir un proyecto](#compartir-un-proyecto)) y pasa su enlace,
+`<origin>/p/<id>?live=<token>`. Dura veinticuatro horas, termina sola tras una hora sin nadie en el
+proyecto, y el propietario la termina con **Terminar sesión** cuando quiera. Mientras está activa,
+la cabecera del propietario muestra **En vivo · 2 invitados**, que abre el diálogo. **Los invitados
+pueden editar** decide qué pueden hacer quienes se unen por el enlace: editar, o solo mirar;
+cambiarlo con invitados dentro los reconecta en un segundo con el nuevo rol.
+
+**Unirse.** Quien abre el enlace se une enseguida: una persona con sesión, con su cuenta y el mayor
+entre su propio rol y el de la sesión; cualquier otra, como invitado, sin cuenta y sin iniciar
+sesión. La página de un invitado abre el proyecto ligado a su sala, no guarda nada en el navegador y
+conserva `live` en la dirección, así que al recargar vuelve a unirse. Una barra bajo la cabecera dice
+"Estás en la sesión en vivo de Together como" con el nombre que ven los demás, **Invitado 37** al
+principio (dos dígitos del propio id del navegador, así que dos invitados se distinguen por el
+nombre y no solo por el color), que cambias ahí: la página reconecta y los demás ven el nuevo nombre
+enseguida. La barra dice también cuándo termina la sesión, y ofrece **Hacer una copia** e **Iniciar
+sesión**. Quien visita un enlace `view` o `edit` sin sesión en vivo tiene la misma barra ("Sigues
+Together en vivo como").
+
+**Qué puede hacer un invitado.** Editar el texto y el lienzo, añadir, renombrar y eliminar archivos,
+y deshacer sus propias ediciones, como un editor. Lo que se guarda en una cuenta la necesita, y la
+página lo dice con el camino para tenerla: añadir imágenes y fuentes ("Añadir imágenes y fuentes
+requiere una cuenta. Inicia sesión para añadirlas."), las versiones, la miniatura, compartir y
+publicar. **Hacer una copia** pone los archivos en este navegador como su propio proyecto.
+
+**Cuando termina.** La conexión de un invitado se cierra y la línea de estado dice "La sesión en vivo
+terminó"; la página nunca reconecta con ese enlace. Cuando el enlace del proyecto deja ver a
+cualquiera, la página sigue el proyecto en vivo como visita, sin editar. Cuando no, la página
+conserva lo que muestra, en solo lectura, con **Hacer una copia**: nada más del proyecto le llega.
+
+**Límites.** Los invitados y las visitas cuentan entre los veinte sitios de la sala y ceden el suyo
+al propietario y a los editores como lo hacen los lectores. Una red admite como máximo diez
+conexiones sin cuenta en una sala: la undécima dice "Demasiadas conexiones desde esta red" y no lo
+vuelve a intentar sola.
 
 ### Publicar un proyecto
 

@@ -1,6 +1,8 @@
 # 0042. Sharing, permissions and published content on its own domain
 
-Status: accepted (sharing-and-permissions change, 13 October 2026)
+Status: accepted (sharing-and-permissions change, 13 October 2026). Amended by
+[decision 0050](0050-live-sessions.md): anonymous viewers follow the room live (the snapshot is only
+the fallback), and a project's live session lets anyone with its link in as a guest.
 
 ## Context
 
@@ -27,7 +29,8 @@ API with the cookie attached. User-authored content therefore cannot live under 
 - **Viewing is the app, read only.** `/p/<id>` opens the playground in read-only mode: the
   canvas, stories, effects and every export work; code and canvas do not edit; "make a copy"
   takes the project into one's own account or into the local, anonymous page. Anonymous viewers
-  read a snapshot; signed-in viewers watch live.
+  read a snapshot; signed-in viewers watch live. (Since decision 0050 anonymous viewers watch live
+  too, with a guest identity, and read the snapshot only when the room does not answer.)
 - **Published catalogs live on their own domain.** Publishing builds the project's HTML
   catalog (the same build as `mdg build catalog`) and serves it at
   `https://<PUBLISH_HOST>/<handle>/<slug>/`, a separate registrable domain the owner provides,

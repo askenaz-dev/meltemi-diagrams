@@ -704,6 +704,7 @@ describe("who is offered publishing", () => {
     emailProblem: "",
     invited: undefined,
     left: false,
+    live: undefined,
   });
   const context = {
     words: en.cloud,

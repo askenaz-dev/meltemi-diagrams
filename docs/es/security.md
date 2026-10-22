@@ -56,7 +56,7 @@ en un proyecto en la nube.
 ## Proyectos en la nube
 
 Los proyectos en la nube (decisión 0041, [cloud](cloud.md)) son la forma en que el trabajo de una
-persona llega al servicio, y solo cuando ella lo decide. Cinco cosas los mantienen seguros:
+persona llega al servicio, y solo cuando ella lo decide. Seis cosas los mantienen seguros:
 
 - **La sala.** Todo cambio de un proyecto pasa por su sala, un Durable Object por proyecto, que
   valida cada transacción sea cual sea su origen (un socket, un push mediante la API, una versión
@@ -65,8 +65,9 @@ persona llega al servicio, y solo cuando ella lo decide. Cinco cosas los mantien
   debe ser un hash que el proyecto subió, y los límites deben cumplirse. Una transacción que
   incumple una regla se revierte y se avisa a quien la envió. La sala solo responde a solicitudes
   que construye el Worker, así que ninguna cabecera ni path de un navegador llega a ella y nadie
-  puede nombrar su propio rol; el socket necesita la cookie de sesión y un `Origin` que sea el del
-  propio servicio.
+  puede nombrar su propio rol; el socket necesita un `Origin` que sea el del propio servicio, y o un
+  rol que el proyecto da a la persona o el token de una sesión en vivo que la sala comprueba ella
+  misma.
 - **Blobs en una sandbox.** Una imagen o una fuente subida se tipa por sus bytes, nunca por el
   `Content-Type` que diga un cliente, y un SVG debe ser XML bien formado con una raíz `svg`. Todo
   blob se sirve con `Content-Security-Policy: sandbox`, `X-Content-Type-Options: nosniff` y como
@@ -81,9 +82,10 @@ persona llega al servicio, y solo cuando ella lo decide. Cinco cosas los mantien
   un proyecto), y cada rechazo lleva un código estable
   ([cuotas y límites](cloud.md#cuotas-y-límites)).
 - **La presencia viene de la sala.** Quién está dónde lo retransmite la sala y no lo guarda nadie
-  ([presencia](cloud.md#presencia-awareness)). La sala fija el `sub`, el nombre, la imagen y el
-  color de cada estado que retransmite a partir de la cookie con la que se abrió el socket del
-  remitente, diga lo que diga el mensaje, y lo identifica con ese socket, así que nadie puede
+  ([presencia](cloud.md#presencia-awareness)). La sala fija el `sub`, el nombre, la imagen, el
+  color y la marca de invitado de cada estado que retransmite a partir de la identidad que el Worker
+  dio al socket del remitente (la persona de la cookie, o un invitado al que nombró el Worker), diga
+  lo que diga el mensaje, y lo identifica con ese socket, así que nadie puede
   aparecer como otra persona ni hablar por la entrada de otra. Una página lee quién es una persona de
   eso y de ningún otro sitio, y acota lo que toma (un nombre es una línea de 100 caracteres como
   máximo, una imagen cumple la regla del avatar y la política de la página, una posición o un id que
@@ -91,10 +93,25 @@ persona llega al servicio, y solo cuando ella lo decide. Cinco cosas los mantien
   texto, así que un nombre como `<img src=x>` se muestra como esos caracteres y no construye nada. El
   tráfico también está acotado: un mensaje de presencia de más de 16 KiB cierra a su remitente, más
   de 20 por segundo se descartan y más de 100 cierran el socket (`awareness.rate`), una página envía
-  cuatro por segundo como máximo, y un lector puede enviar presencia pero nunca una actualización. La
+  cuatro por segundo como máximo, y un lector puede enviar presencia pero nunca una actualización.
+  Un puntero son dos números finitos a menos de un millón del origen, o el estado se descarta. La
   sala guarda el último estado de un cliente solo en el adjunto del socket, nunca en su base de
-  datos, y la selección del lienzo en ningún sitio, y la página nunca lo guarda ni lo escribe en una
-  exportación.
+  datos, y la selección del lienzo y el puntero en ningún sitio, y la página nunca lo guarda ni lo
+  escribe en una exportación.
+- **Las conexiones sin cuenta están acotadas.** Quien visita de forma anónima un enlace `view` o
+  `edit`, y el invitado de una sesión en vivo, se conectan con una identidad que fija el Worker: un
+  sub `guest:` a partir de un id que creó su navegador (32 caracteres hexadecimales, si no `400`), un
+  nombre de 1 a 40 caracteres sin caracteres de control (si no, "Guest NN"), y ninguna imagen; la
+  sala rechaza una cuenta cuyo sub pasaría por el de un invitado. Ocupan los veinte sitios de la sala
+  y los ceden al propietario y a los editores con cuenta; una dirección de cliente admite como máximo
+  diez de ellas en una sala (`connections.limit`); una visita es un lector, y un invitado edita solo
+  mientras esté activa una sesión que deje editar a los invitados. Una sesión en vivo dura un día
+  como máximo y termina tras una hora sin nadie en su sala; terminarla cierra cada conexión que
+  admitió (`session.ended`). Su token son 128 bits aleatorios guardados en claro en la sala, como el
+  de una invitación, respondidos solo al propietario y nunca registrados; un token que no está
+  vigente es `404`, sin revelar nada. Además de la sala, llega a la fila del proyecto y a sus blobs, y
+  a ninguna ruta que escriba fuera de la sala, lea las versiones, la miniatura o lo compartido, o
+  gaste el almacenamiento del propietario ([sesiones en vivo](cloud.md#sesiones-en-vivo)).
 
 ## Compartir y publicar
 
@@ -122,9 +139,10 @@ mantienen seguro:
 - **Una página que solo muestra.** El modo de solo lectura rechaza toda edición en el único lugar
   por el que pasan las ediciones, y de nuevo en cada control; al lienzo se le dice `readOnly`, no
   envía ninguna acción a la página y oculta lo que escribe; el binding de un lector nunca envía una
-  actualización, y la sala la rechazaría. Quien no ha iniciado sesión lee el proyecto con
-  solicitudes normales al propio origen de la página, y nada de un proyecto que se mira se guarda en
-  el navegador.
+  actualización, y la sala la rechazaría. Quien no ha iniciado sesión sigue la sala como lector, o
+  lee el proyecto con solicitudes normales al propio origen de la página cuando la sala no responde,
+  y nada de un proyecto que se mira, ni de un proyecto que edita un invitado, se guarda en el
+  navegador.
 - **Las páginas publicadas son HTML de otras personas, en un dominio propio.** Una página publicada
   es el catálogo que construyó la página, servido desde un dominio que no está bajo `meltemi.dev` por
   un segundo Worker que solo tiene la base de datos y el bucket: ni recursos, ni secretos, ni
@@ -217,6 +235,8 @@ inspeccionan antes de usarse; las fuentes cuya licencia prohíbe incrustarlas so
 | Una página publicada                          | 16 MiB, diez solicitudes por hora para un proyecto                        | `publish.too-large`, `publish.rate`                                                    |
 | Miembros de un proyecto                       | 50 con las invitaciones pendientes                                        | `quota.members`                                                                        |
 | Mensajes de presencia                         | 16 KiB; se retransmiten 20 por segundo, 100 por segundo cierran el socket | `message.too-large`, `awareness.rate`                                                  |
+| Conexiones sin cuenta                         | 10 abiertas en una sala desde una misma dirección de cliente              | `connections.limit`                                                                    |
+| Una sesión en vivo                            | 24 horas, una hora sin nadie en la sala                                   | `session.ended`                                                                        |
 | Un push a la nube                             | 2000 archivos, 16 MiB de texto, 10 MiB una imagen o una fuente            | `quota.files`, `doc.too-large`, `quota.binary`, rechazado antes de cualquier solicitud |
 
 ## Errores sin secretos

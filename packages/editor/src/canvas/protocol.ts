@@ -425,8 +425,9 @@ export interface LibraryInfo {
 
 /**
  * Another person's selection, drawn over the scene with an outline in `colour` and a tag holding
- * `name` (as text). It is never selectable, saved, copied or exported, and nothing of it is sent
- * back to the host; ids the diagram does not have are ignored.
+ * `name` (as text), and their pointer, drawn as a cursor in `colour` with the name at its tail. It is
+ * never selectable, saved, copied or exported, and nothing of it is sent back to the host; ids the
+ * diagram does not have are ignored.
  */
 export interface PresencePerson {
   /** Shown verbatim in the tag as a text node, so markup in it shows as its characters. */
@@ -443,6 +444,12 @@ export interface PresencePerson {
    * several people on one id are stacked in the order of the list.
    */
   readonly selection: readonly string[];
+  /**
+   * Where the person's pointer is over their canvas, in diagram units of the diagram shown: a
+   * cursor in `colour` whose tip is at that point at every zoom, keeping its size on screen, and
+   * gliding to the next point in 200 ms. Ignored unless it is two finite numbers.
+   */
+  readonly pointer?: { readonly x: number; readonly y: number };
 }
 
 /** An element of a library with its thumbnail, null while its pack is still loading. */
@@ -807,6 +814,17 @@ export type CanvasMessage =
       readonly type: "themeToken";
       readonly token: string;
       readonly value: string | number | null;
+    }
+  /**
+   * Where the person's pointer is over the canvas, in diagram units of the diagram shown
+   * (`diagram`), or `null` once it left the canvas or a story plays: for the host to share as
+   * presence (`live-collaboration`). The canvas sends it only to a host that has sent `presence`,
+   * at most every 50 ms while the pointer moves. It changes nothing of the document.
+   */
+  | {
+      readonly type: "presencePointer";
+      readonly point: Point | null;
+      readonly diagram?: string;
     };
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
@@ -1049,6 +1067,10 @@ export function isCanvasMessage(m: unknown): m is CanvasMessage {
       return isString(m.token) && (m.value === null || isString(m.value) || isNumber(m.value));
     case "focusText":
       return isString(m.id);
+    case "presencePointer":
+      return (
+        (m.point === null || isPoint(m.point)) && (m.diagram === undefined || isString(m.diagram))
+      );
     case "action":
       return isNumber(m.revision) && isAction(m.action);
     default:

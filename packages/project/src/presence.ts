@@ -37,3 +37,12 @@ export function presenceColourIndex(sub: string): number {
 export function presenceColour(sub: string): string {
   return PRESENCE_COLOURS[presenceColourIndex(sub)] as string;
 }
+
+/**
+ * The number of a person without an account (`live-sessions`, "Guest identity"), 10 to 99, from the
+ * id their browser made: the default name "Guest NN" the page and the Worker give is the same for
+ * the same browser, and two guests differ by name and not only by colour.
+ */
+export function guestNumber(id: string): number {
+  return 10 + (hash(id) % 90);
+}

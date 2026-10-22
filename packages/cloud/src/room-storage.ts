@@ -5,8 +5,9 @@
 //
 //   meta       (id = 1, revision, chunks, project)   one row
 //   doc_chunks (n, bytes)                              the encoded document, 1 MiB at most per row
+//   live       (id = 1, session)                       the live session, as JSON, while one is on
 
-import type { RoomStorage, StoredRoom } from "./room-core.js";
+import type { RoomStorage, StoredLive, StoredRoom } from "./room-core.js";
 
 /** What the storage needs of the platform: statements, and a way to run several as one transaction. */
 export interface SqlRoomDb {
@@ -29,7 +30,36 @@ const SCHEMA = [
      project TEXT
    )`,
   `CREATE TABLE IF NOT EXISTS doc_chunks (n INTEGER PRIMARY KEY, bytes BLOB NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS live (id INTEGER PRIMARY KEY CHECK (id = 1), session TEXT NOT NULL)`,
 ];
+
+const isWhole = (value: unknown): value is number =>
+  typeof value === "number" && Number.isSafeInteger(value);
+
+/** A live session read back from its JSON; undefined for anything that is not one (it is then dropped). */
+function liveOf(text: unknown): StoredLive | undefined {
+  if (typeof text !== "string") return undefined;
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    return undefined;
+  }
+  if (typeof value !== "object" || value === null) return undefined;
+  const { id, token, guestsEdit, startedAt, until, emptySince } = value as Record<string, unknown>;
+  if (typeof id !== "string" || typeof token !== "string" || typeof guestsEdit !== "boolean") {
+    return undefined;
+  }
+  if (!isWhole(startedAt) || !isWhole(until)) return undefined;
+  return {
+    id,
+    token,
+    guestsEdit,
+    startedAt,
+    until,
+    ...(isWhole(emptySince) ? { emptySince } : {}),
+  };
+}
 
 /** The bytes of a BLOB column, which the platform gives as an `ArrayBuffer` and Node as a `Uint8Array`. */
 function bytesOf(value: unknown): Uint8Array {
@@ -87,7 +117,25 @@ export function sqlRoomStorage(db: SqlRoomDb): SqlRoomStorage {
       db.transactionSync(() => {
         db.exec("DELETE FROM doc_chunks");
         db.exec("DELETE FROM meta");
+        db.exec("DELETE FROM live");
       });
+    },
+
+    live(): StoredLive | undefined {
+      const [row] = db.exec("SELECT session FROM live WHERE id = 1").toArray();
+      return liveOf(row?.["session"]);
+    },
+
+    setLive(live): void {
+      if (live === undefined) {
+        db.exec("DELETE FROM live");
+        return;
+      }
+      db.exec(
+        `INSERT INTO live (id, session) VALUES (1, ?)
+         ON CONFLICT(id) DO UPDATE SET session = excluded.session`,
+        JSON.stringify(live),
+      );
     },
 
     project(): string | undefined {

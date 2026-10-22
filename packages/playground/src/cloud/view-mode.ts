@@ -15,6 +15,11 @@ export interface ViewState {
   readonly signedIn: boolean;
   /** A snapshot has been open for long enough that the project may have changed. */
   readonly stale: boolean;
+  /**
+   * The live session that let the page in ended and the link does not admit the person: the page
+   * holds the files it showed, with no room and no snapshot behind them (`live-sessions`).
+   */
+  readonly frozen?: boolean;
 }
 
 /** What entering view mode takes: the project; the snapshot is fresh. */

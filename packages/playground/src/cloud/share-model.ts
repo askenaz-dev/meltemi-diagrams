@@ -5,13 +5,14 @@
 // `shareView` says and calls these methods; a test drives them with a fake host.
 //
 // `shareView` decides what each person is shown, and is the only place that does: the owner gets the
-// level, the people with their emails, the invitations with their links, the invitation form and the
-// publish entry; a member gets their role, the people (names and pictures) and "Leave"; anyone else the
-// link admits gets the link and their role. A control the person may not use is not in the view, so
+// level, the people with their emails, the invitations with their links, the invitation form, the
+// live session's section (`live-sessions`) and the publish entry; a member gets their role, the
+// people (names and pictures) and "Leave"; anyone else the link admits gets the link and their role. A control the person may not use is not in the view, so
 // the dialog cannot draw it. The service enforces the same (`GET …/sharing` answers each of them only
 // what they may see); this keeps the page from asking for, or showing, what is not theirs.
 
 import { explainFailure, type CloudWords } from "./explain.js";
+import { leftText, type LiveApi, type LiveSession } from "./live.js";
 import {
   MAX_MEMBERS,
   MEMBER_ROLES,
@@ -100,6 +101,10 @@ export interface ShareHost {
   report(message: string): void;
   /** The person left the project: the page lets go of it. */
   left(): void;
+  /** The owner's live session calls; undefined where the page offers none. */
+  readonly live?: LiveApi;
+  /** What the page now knows of the live session: the header's chip follows it. */
+  liveKnown?(session: LiveSession | null): void;
 }
 
 export interface ShareState {
@@ -121,10 +126,12 @@ export interface ShareState {
   readonly invited: Invitation | undefined;
   /** The person left the project: nothing more is shown of it. */
   readonly left: boolean;
+  /** The live session, as the owner's dialog read it: null for none, undefined until it is read. */
+  readonly live: LiveSession | null | undefined;
 }
 
-/** What `copy` copies: the project's link, or an invitation's. */
-export type CopyTarget = "link" | { readonly invitation: string };
+/** What `copy` copies: the project's link, the live session's, or an invitation's. */
+export type CopyTarget = "link" | "live" | { readonly invitation: string };
 
 const byCreation = (a: Invitation, b: Invitation): number =>
   a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0;
@@ -163,6 +170,7 @@ export class ShareModel {
       emailProblem: "",
       invited: undefined,
       left: false,
+      live: undefined,
     };
   }
 
@@ -224,6 +232,75 @@ export class ShareModel {
       return;
     }
     this.update({ list: "ready", sharing: read.value, status: "", problem: "" });
+    // The owner's dialog reads the session too, so that one started on another device shows.
+    await this.loadLive();
+  }
+
+  // The live session (`live-sessions`) ---------------------------------------------------------
+
+  /** Reads the live session, for the owner: nothing is asked for anyone else. */
+  async loadLive(): Promise<void> {
+    const api = this.host.live;
+    if (!api || !this.managing) return;
+    const read = await api.read(this.project);
+    if (!read.ok) {
+      const problem = explainSharing(read.failure, this.words());
+      this.update({ problem });
+      return;
+    }
+    this.update({ live: read.value });
+    this.host.liveKnown?.(read.value);
+  }
+
+  /** The owner starts a live session; guests edit unless `guestsEdit` is false. True when it is on. */
+  async startLive(guestsEdit: boolean): Promise<boolean> {
+    const api = this.host.live;
+    if (!api || this.current.busy || !this.managing) return false;
+    const m = this.words().live.section;
+    this.update({ busy: true, status: m.starting, problem: "" });
+    const started = await api.start(this.project, guestsEdit);
+    if (!started.ok) {
+      this.refuse(started.failure);
+      return false;
+    }
+    this.done({ live: started.value }, m.started);
+    this.host.liveKnown?.(started.value);
+    return true;
+  }
+
+  /** The owner lets guests edit, or only watch: the guests connected reconnect with the new role. */
+  async setGuestsEdit(on: boolean): Promise<boolean> {
+    const api = this.host.live;
+    const live = this.current.live;
+    if (!api || !live || this.current.busy || !this.managing) return false;
+    if (live.guestsEdit === on) return true;
+    const m = this.words().live.section;
+    this.update({ busy: true, status: m.changing, problem: "" });
+    const changed = await api.start(this.project, on);
+    if (!changed.ok) {
+      this.refuse(changed.failure);
+      await this.loadLive();
+      return false;
+    }
+    this.done({ live: changed.value }, changed.value.guestsEdit ? m.nowEdit : m.nowView);
+    this.host.liveKnown?.(changed.value);
+    return true;
+  }
+
+  /** The owner ends the live session (the dialog asked first). True when it is over. */
+  async endLive(): Promise<boolean> {
+    const api = this.host.live;
+    if (!api || this.current.busy || !this.managing) return false;
+    const m = this.words().live.section;
+    this.update({ busy: true, status: m.ending, problem: "" });
+    const ended = await api.end(this.project);
+    if (!ended.ok) {
+      this.refuse(ended.failure);
+      return false;
+    }
+    this.done({ live: null }, m.endedDone);
+    this.host.liveKnown?.(null);
+    return true;
   }
 
   /** The owner changes who the link admits. True when the service accepted it. */
@@ -404,12 +481,20 @@ export class ShareModel {
     const text =
       target === "link"
         ? this.link
-        : [this.current.invited, ...(this.current.sharing?.invitations ?? [])].find(
-            (invitation) => invitation?.id === target.invitation,
-          )?.link;
+        : target === "live"
+          ? (this.current.live ?? undefined)?.link
+          : [this.current.invited, ...(this.current.sharing?.invitations ?? [])].find(
+              (invitation) => invitation?.id === target.invitation,
+            )?.link;
     if (text === undefined) return false;
     const copied = await this.host.copy(text);
-    const status = copied ? (target === "link" ? m.linkCopied : m.invitationCopied) : m.selectIt;
+    const status = copied
+      ? target === "link"
+        ? m.linkCopied
+        : target === "live"
+          ? this.words().live.section.copied
+          : m.invitationCopied
+      : m.selectIt;
     this.update({ status, problem: "" });
     this.host.report(status);
     return copied;
@@ -454,6 +539,21 @@ export interface InvitationRow {
   readonly link: string;
 }
 
+/** The owner's live session section. */
+export interface LiveView {
+  /** The session has been read: until then the section says it is reading. */
+  readonly known: boolean;
+  /** A session is on. */
+  readonly on: boolean;
+  /** Its link; empty while none is on. */
+  readonly link: string;
+  readonly guestsEdit: boolean;
+  /** "2 guests now", from presence. */
+  readonly guests: string;
+  /** "Ends in 23 h 59 min". */
+  readonly ends: string;
+}
+
 /** What the dialog shows, for the person who opened it and what the service told of the sharing. */
 export interface ShareView {
   /** The project's link, `<origin>/p/<id>`: everyone sees it, copying is always offered. */
@@ -477,6 +577,8 @@ export interface ShareView {
   readonly leave: boolean;
   /** The entry that opens the publish dialog: the owner's, when the page can publish. */
   readonly publish: boolean;
+  /** The live session's section: the owner's alone, where the page offers sessions. */
+  readonly live: LiveView | undefined;
   /** The sharing could not be read: offer to try again. */
   readonly retry: boolean;
 }
@@ -491,6 +593,27 @@ export interface ViewContext {
   readonly locale: string;
   /** Whether the page can publish (a cloud project with the catalog build). */
   readonly canPublish: boolean;
+  /** Whether the page offers live sessions (a cloud project of a person signed in). */
+  readonly canLive?: boolean;
+  /** How many guests are in the project now, from presence. */
+  readonly guestsNow?: number;
+  /** The page's clock, in milliseconds since the epoch. */
+  readonly now?: number;
+}
+
+function liveView(state: ShareState, context: ViewContext): LiveView {
+  const m = context.words.live.section;
+  const live = state.live ?? undefined;
+  return {
+    known: state.live !== undefined,
+    on: live !== undefined,
+    link: live?.link ?? "",
+    guestsEdit: live?.guestsEdit ?? true,
+    guests: m.guestsNow(context.guestsNow ?? 0),
+    ends: live
+      ? m.ends(leftText(live.until, context.now ?? Date.now(), context.words.live) || "0 min")
+      : "",
+  };
 }
 
 function invitationRow(invitation: Invitation, context: ViewContext): InvitationRow {
@@ -541,6 +664,7 @@ export function shareView(state: ShareState, context: ViewContext): ShareView {
     revealed: owner && state.invited ? invitationRow(state.invited, context) : undefined,
     leave: sharing !== undefined && sharing.role !== "owner" && members !== undefined,
     publish: owner && context.canPublish,
+    live: owner && context.canLive === true ? liveView(state, context) : undefined,
     retry: state.list === "failed",
   };
 }

@@ -1,8 +1,9 @@
 // What the page adds to an open cloud project for presence (`live-collaboration`, "Presence"):
 // the header's list of the people who are here, their carets and selections over the code pane, and
-// their selections on the canvas. It tells presence what the person does (the open file, the
-// caret, the canvas selection) and draws what presence says about the others. Both live and die
-// with the open project; the anonymous page never calls this, so it has none of it.
+// their selections and pointers on the canvas. It tells presence what the person does (the open
+// file, the caret, the canvas selection, where the pointer is over the canvas) and draws what
+// presence says about the others. Both live and die with the open project; the anonymous page with
+// no project in a room never calls this, so it has none of it.
 
 import { presenceMessage } from "../canvas-host.js";
 import { messages } from "../messages/index.js";
@@ -55,7 +56,9 @@ export function mountPresence(playground: Playground, controller: CloudControlle
       bar.update(people);
     }
     overlay.show(presence ? presence.carets(studio.open, code.text, m.unnamed) : [], code.text);
-    const selections = presence ? presence.canvas(studio.open, m.unnamed) : [];
+    // A pointer is drawn over the diagram it was over: the canvas shows one diagram of the file.
+    const diagram = studio.open === "" ? undefined : studio.session.current;
+    const selections = presence ? presence.canvas(studio.open, m.unnamed, diagram) : [];
     const key = JSON.stringify(selections);
     if (key !== told) {
       told = key;
@@ -75,10 +78,14 @@ export function mountPresence(playground: Playground, controller: CloudControlle
     if (presence) {
       stop = presence.listen(later);
       presence.attach(source);
+      // The canvas reports the pointer to a host that shares presence: this says it does.
+      if (told === "[]") playground.canvas.receive(presenceMessage([]));
     }
     later();
   };
   controller.subscribe((project) => follow(project ? controller.presence : undefined));
+  // Where the person's pointer is over the canvas goes out with the rest of their state.
+  playground.onCanvasPointer((at) => current?.pointer(at));
 
   studio.listen({
     // Another file was opened (or this one renamed): the person is somewhere else. What the canvas

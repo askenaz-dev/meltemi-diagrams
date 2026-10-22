@@ -8,7 +8,7 @@
 // can run on the page's origin: sandboxed, never sniffed, an attachment.
 
 import { CLOUD_LIMITS, isCleanPath } from "@meltemi/diagrams-project";
-import { requireAccess } from "../access.js";
+import { requireAccess, requireReadWithLive } from "../access.js";
 import { BINARY_TYPES, binaryType } from "../binary.js";
 import type { Ctx, Route } from "../context.js";
 import { BLOB_HASH } from "../document.js";
@@ -183,7 +183,8 @@ function blobHeaders(mediaType: string, hash: string, size: number): Headers {
  * `read`, which an anonymous caller has when the project's link admits them.
  */
 async function heldBlob(ctx: Ctx) {
-  const { projectId } = await requireAccess(ctx, "read");
+  // A live session's guest reads the images and fonts of the diagrams with the token in a header.
+  const { projectId } = await requireReadWithLive(ctx);
   const hash = ctx.params["hash"] ?? "";
   const gone = () => fail("not-found", "This project holds no image or font with that hash.");
   if (!BLOB_HASH.test(hash)) throw gone();

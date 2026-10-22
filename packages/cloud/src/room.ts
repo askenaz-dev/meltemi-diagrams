@@ -42,10 +42,14 @@ const CLIENT_LIMIT_KEY = "dev-client-limit";
 /** The most a request to the room may carry: a whole document and the JSON around it. */
 const MAX_BODY_BYTES = CLOUD_LIMITS.documentBytes + 2 * 1024 * 1024;
 
-/** The longest sub, name and picture address kept in an attachment (2 KiB serialised at most). */
+/** The longest sub, name, picture address and client address kept in an attachment (2 KiB serialised at most). */
 const MAX_SUB = 200;
 const MAX_NAME = 100;
 const MAX_PICTURE = 500;
+const MAX_ADDRESS = 64;
+
+/** A live session's token: 32 lowercase hexadecimal characters. */
+const LIVE_TOKEN = /^[0-9a-f]{32}$/;
 
 const OPEN = 1;
 
@@ -90,11 +94,13 @@ export class ProjectRoom extends DurableObject<Env> {
         load: () => this.storage.load(),
         save: (revision, chunks) => this.storage.save(revision, chunks),
         destroy: () => this.storage.destroy(),
+        live: () => this.storage.live(),
+        setLive: (live) => this.storage.setLive(live),
       },
       now: () => Date.now(),
       setTimer: (milliseconds, run) => setTimeout(run, milliseconds),
       clearTimer: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
-      // The alarm is only for awareness: it outlives the object, so a state is dropped after a wake.
+      // The alarm outlives the object, so a state is dropped and a live session ends after a wake.
       setAlarm: (at) => ctx.storage.setAlarm(at),
       sockets: () =>
         this.ctx
@@ -147,6 +153,24 @@ export class ProjectRoom extends DurableObject<Env> {
           return json({});
         case "GET /stats":
           return json(this.core.stats());
+        case "PUT /live": {
+          const body = (await this.body(request)) as { guestsEdit?: unknown } | null;
+          const guestsEdit = body?.guestsEdit;
+          return json(
+            await this.core.startLive(typeof guestsEdit === "boolean" ? { guestsEdit } : {}),
+          );
+        }
+        case "GET /live":
+          return json(await this.core.readLive());
+        case "DELETE /live":
+          await this.core.endLive();
+          return json({});
+        case "POST /live/check": {
+          // The token comes in the body, never in an address a log could keep.
+          const body = (await this.body(request)) as { token?: unknown } | null;
+          const token = typeof body?.token === "string" ? body.token : "";
+          return json({ live: LIVE_TOKEN.test(token) ? await this.core.checkLive(token) : null });
+        }
         case "POST /limits": {
           // Development only (the Worker's route is): lowers how many clients the room admits.
           const body = (await this.body(request)) as { clients?: unknown } | null;
@@ -199,26 +223,45 @@ export class ProjectRoom extends DurableObject<Env> {
     for (const socket of wrap(ws)) await this.core.closed(socket);
   }
 
-  /** The alarm awareness set: drops the states that were silent for thirty seconds. */
+  /**
+   * The room's one alarm: drops the awareness states that were silent for thirty seconds, and ends a
+   * live session whose time is up or whose room has been empty for an hour.
+   */
   override async alarm(): Promise<void> {
     await this.core.alarm();
   }
 
-  /** Accepts the upgrade the Worker constructed and hands the socket to the core. */
+  /**
+   * Accepts the upgrade the Worker constructed and hands the socket to the core. The core admits it
+   * first (a token that is not the current session's answers 404 before any socket exists).
+   */
   private async acceptSocket(request: Request): Promise<Response> {
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
       return json({ code: "not-found", message: "There is nothing at this address." }, 404);
     }
     const sub = decoded(request.headers.get("X-Meltemi-Sub"), MAX_SUB);
     if (!sub) throw new RoomError("access.denied");
+    const guest = request.headers.get("X-Meltemi-Guest") === "1";
+    const address = decoded(request.headers.get("X-Meltemi-Address"), MAX_ADDRESS);
+    const token = request.headers.get("X-Meltemi-Live") ?? undefined;
+    const admitted = this.core.admit(
+      {
+        sub,
+        role: roleOf(request.headers.get("X-Meltemi-Role")),
+        name: decoded(request.headers.get("X-Meltemi-Name"), MAX_NAME),
+        // A person without an account has no picture, whatever a header says.
+        picture: guest ? "" : decoded(request.headers.get("X-Meltemi-Picture"), MAX_PICTURE),
+        ...(guest ? { guest: true } : {}),
+        ...(address !== "" ? { address } : {}),
+      },
+      // A token of another shape is a token no session holds.
+      token === undefined || LIVE_TOKEN.test(token) ? token : "",
+    );
     const identity: Identity = {
       id: [...crypto.getRandomValues(new Uint8Array(8))]
         .map((byte) => byte.toString(16).padStart(2, "0"))
         .join(""),
-      sub,
-      role: roleOf(request.headers.get("X-Meltemi-Role")),
-      name: decoded(request.headers.get("X-Meltemi-Name"), MAX_NAME),
-      picture: decoded(request.headers.get("X-Meltemi-Picture"), MAX_PICTURE),
+      ...admitted,
     };
     const pair = new WebSocketPair();
     const client = pair[0];

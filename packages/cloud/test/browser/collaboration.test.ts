@@ -7,7 +7,7 @@ import { Listener, rgb, type RelayedPeer } from "./collaboration.js";
 import { KIND, type Frame, type Joined } from "./room-socket.js";
 
 const person = (sub: string, name = sub): RelayedPeer => ({
-  user: { sub, name, picture: "", colour: "#1c7ed6" },
+  user: { sub, name, picture: "", colour: "#1c7ed6", guest: false },
   file: "f-1",
 });
 

@@ -11,9 +11,20 @@ export const KIND = { sync: 0, update: 1, awareness: 2, hello: 3, error: 4 } as 
 
 /**
  * The range of close codes the room uses to say why it closed a socket, and the one that says the
- * project is gone: the room closes every socket with it when its project is deleted.
+ * project is gone: the room closes every socket with it when its project is deleted. `ended` is a
+ * live session's end (`live-sessions`), `limit` the eleventh connection without an account from one
+ * network: neither is tried again as it was.
  */
-export const CLOSE_CODES = { first: 4400, last: 4429, gone: 4404 } as const;
+export const CLOSE_CODES = {
+  first: 4400,
+  last: 4429,
+  gone: 4404,
+  ended: 4410,
+  limit: 4428,
+} as const;
+
+/** The refusals after which the connection stops: trying again could only be answered the same way. */
+export type Stop = "session.ended" | "connections.limit";
 
 /** The wait before the first reconnection, and the longest wait between two. */
 export const BACKOFF = { initial: 1000, max: 30_000 } as const;
@@ -51,6 +62,11 @@ export interface RoomHello {
   readonly limits: unknown;
   readonly collisions: unknown;
   readonly you: unknown;
+  /**
+   * The live session that admitted this connection (`{ until, guestsEdit }`), or undefined when none
+   * did (`live-sessions`).
+   */
+  readonly live: { readonly until: string; readonly guestsEdit: boolean } | undefined;
 }
 
 /** The room closed a socket because it refused something the page sent. */
@@ -89,6 +105,12 @@ export interface RoomEvents {
    */
   gone?(): void;
   /**
+   * The room stopped this connection for a reason a retry would meet again: the live session that
+   * admitted it ended (4410), or this network holds as many connections without an account as it
+   * may (4428). The connection does not reconnect; the caller decides what comes next.
+   */
+  stopped?(reason: Stop): void;
+  /**
    * A socket ended without a refusal (a drop, or an attempt the network or the Worker did not
    * let through): `closes` of them in a row since the room last said hello. A project deleted
    * while the page was away is refused at the upgrade, which the browser reports as nothing but a
@@ -102,7 +124,11 @@ export interface RoomEvents {
 }
 
 export interface RoomOptions {
-  readonly url: string;
+  /**
+   * The room's address, read at every attempt: a guest's name, or a session's token dropped, is the
+   * next socket's.
+   */
+  readonly url: string | (() => string);
   readonly socket: SocketFactory;
   readonly timers: Timers;
   /** The page's state vector now, asked after each hello. */
@@ -152,6 +178,14 @@ function codeOfClose(closeCode: number, reason: string | undefined): string {
 
 const decoder = new TextDecoder();
 
+/** The live session of a hello: an end time and the guests' right to edit, or nothing. */
+function liveOf(value: unknown): RoomHello["live"] {
+  if (value === null || typeof value !== "object") return undefined;
+  const { until, guestsEdit } = value as { until?: unknown; guestsEdit?: unknown };
+  if (typeof until !== "string" || typeof guestsEdit !== "boolean") return undefined;
+  return { until, guestsEdit };
+}
+
 function hello(payload: Uint8Array): RoomHello {
   let body: Record<string, unknown> = {};
   try {
@@ -168,6 +202,7 @@ function hello(payload: Uint8Array): RoomHello {
     limits: body["limits"],
     collisions: body["collisions"],
     you: body["you"],
+    live: liveOf(body["live"]),
   };
 }
 
@@ -322,8 +357,9 @@ export class RoomConnection {
     const generation = ++this.generation;
     this.said = undefined;
     let socket: RoomSocket;
+    const { url } = this.options;
     try {
-      socket = this.options.socket(this.options.url);
+      socket = this.options.socket(typeof url === "function" ? url() : url);
     } catch {
       this.socket = undefined;
       this.closed(generation, 1006, undefined);
@@ -381,11 +417,21 @@ export class RoomConnection {
     if (this.stopped) return;
     if (closeCode === CLOSE_CODES.gone || said === "project.not-found") {
       // The project was deleted: no later socket could be answered differently.
-      this.stopped = true;
-      this.options.timers.clear(this.timer);
-      this.timer = undefined;
-      this.move("idle");
+      this.stop();
       this.options.events.gone?.();
+      return;
+    }
+    const stop: Stop | undefined =
+      closeCode === CLOSE_CODES.ended || said === "session.ended"
+        ? "session.ended"
+        : closeCode === CLOSE_CODES.limit || said === "connections.limit"
+          ? "connections.limit"
+          : undefined;
+    if (stop) {
+      // The session that let this page in is over, or this network is full: a retry with the same
+      // address would be refused again. The caller reconnects, if at all, with `connect`.
+      this.stop();
+      this.options.events.stopped?.(stop);
       return;
     }
     const inRoomRange = closeCode >= CLOSE_CODES.first && closeCode <= CLOSE_CODES.last;
@@ -401,6 +447,14 @@ export class RoomConnection {
     if (this.stopped) return;
     this.schedule(Math.min(REFUSED_BACKOFF.max, REFUSED_BACKOFF.initial * 2 ** this.refusals));
     this.refusals++;
+  }
+
+  /** Stops reconnecting: the phase is idle until `connect` or `reopen` starts again. */
+  private stop(): void {
+    this.stopped = true;
+    this.options.timers.clear(this.timer);
+    this.timer = undefined;
+    this.move("idle");
   }
 
   /** Waits (`initial * 2 ** failures`, capped) and tries again. */

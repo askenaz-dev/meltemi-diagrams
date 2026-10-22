@@ -757,9 +757,16 @@ export const collaborationRoomScenarios: Scenario[] = [
         ["file", "user"],
         "only the parts of a state are relayed",
       );
-      assert.deepEqual(Object.keys(relayed.user).sort(), ["colour", "name", "picture", "sub"]);
+      assert.deepEqual(Object.keys(relayed.user).sort(), [
+        "colour",
+        "guest",
+        "name",
+        "picture",
+        "sub",
+      ]);
       assert.equal(relayed.user.sub, people["Mallory"]!.sub);
       assert.equal(relayed.user.name, "Mallory");
+      assert.equal(relayed.user.guest, false, "an account is no guest, whatever it claims");
       assert.equal(relayed.user.picture, `${origin}/favicon.svg`, "the picture the Worker passed");
       assert.notEqual(relayed.user.colour, "#000000");
       assert.match(relayed.user.colour, /^#[0-9a-f]{6}$/);
