@@ -11,6 +11,7 @@ import {
   outputSize,
   pngInfo,
 } from "../src/index.js";
+import { PipeSession, STARTUP_TIMEOUT } from "../src/cdp.mjs";
 
 const browser = findBrowser();
 const scratch = mkdtempSync(join(tmpdir(), "mdg-capture-"));
@@ -60,6 +61,25 @@ const SVG =
   '<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200">' +
   '<a href="https://example.com/docs"><rect x="100" y="50" width="100" height="100" fill="#ff0000"/></a>' +
   '<text x="20" y="30" font-family="Arial" font-size="16">Checkout</text></svg>';
+
+describe("the browser's start", () => {
+  it("may take the startup timeout to answer its first call, or the session's when longer", async () => {
+    // A first start builds the browser's caches, far slower than any later call.
+    const waits: (number | undefined)[] = [];
+    const as = (timeout: number) =>
+      ({
+        timeout,
+        send: (_method: string, _params: unknown, _session: unknown, wait?: number) => {
+          waits.push(wait);
+          return Promise.resolve({});
+        },
+      }) as unknown as PipeSession;
+    await PipeSession.prototype.started.call(as(30_000));
+    await PipeSession.prototype.started.call(as(300_000));
+    expect(STARTUP_TIMEOUT).toBeGreaterThan(30_000);
+    expect(waits).toEqual([STARTUP_TIMEOUT, 300_000]);
+  });
+});
 
 describe("pages", () => {
   it("draw the picture at the output size, with a page of that size", () => {

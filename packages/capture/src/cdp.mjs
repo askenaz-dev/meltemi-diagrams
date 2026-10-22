@@ -53,6 +53,9 @@ export function browserArgs(profile) {
   ];
 }
 
+/** How long a starting browser may take to answer its first call (see `started`). */
+export const STARTUP_TIMEOUT = 120_000;
+
 export class PipeSession {
   /** Starts the browser. */
   static async launch(executable, { timeout = 30_000 } = {}) {
@@ -120,16 +123,25 @@ export class PipeSession {
     }
   }
 
-  /** Sends a command and waits for its result. */
-  send(method, params = {}, sessionId) {
+  /**
+   * Waits for the browser to have started: its version, once it answers. A first start builds the
+   * browser's caches (fonts, profile), which on a fresh or busy machine takes far longer than any
+   * later call, so it may take up to `STARTUP_TIMEOUT` (or the session's timeout, if longer).
+   */
+  started() {
+    return this.send("Browser.getVersion", {}, undefined, Math.max(this.timeout, STARTUP_TIMEOUT));
+  }
+
+  /** Sends a command and waits for its result, for `timeout` ms (the session's by default). */
+  send(method, params = {}, sessionId, timeout = this.timeout) {
     if (this.closed) return Promise.reject(new Error("The browser is closed."));
     const id = this.nextId++;
     const message = { id, method, params, ...(sessionId ? { sessionId } : {}) };
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
-        reject(new Error(`The browser did not answer ${method} within ${this.timeout} ms.`));
-      }, this.timeout);
+        reject(new Error(`The browser did not answer ${method} within ${timeout} ms.`));
+      }, timeout);
       this.pending.set(id, { resolve, reject, timer });
       this.child.stdio[3].write(`${JSON.stringify(message)}\0`);
     });

@@ -96,7 +96,7 @@ export async function capture(jobs, options = {}) {
   if (!executable) throw new Error(NO_BROWSER);
   const session = await PipeSession.launch(executable, { timeout: options.timeout ?? 30_000 });
   try {
-    const { product } = await session.send("Browser.getVersion");
+    const { product } = await session.started();
     const results = [];
     for (const job of jobs) results.push(await captureOne(session, job));
     return { browser: product, results };

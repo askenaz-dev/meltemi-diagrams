@@ -61,6 +61,9 @@ with the project's switcher at its top, as VS Code lists a workspace
 ### Fixed
 
 - An empty sequence diagram drew with an unknown width (`NaN`) on the canvas.
+- PNG, PDF and video exports give a browser that is starting two minutes to answer, not thirty
+  seconds: a first start builds the browser's caches, which on a fresh or busy Linux machine took
+  longer and failed the export with "The browser did not answer Browser.getVersion".
 
 ## 1.9.0 (2026-10-21)
 

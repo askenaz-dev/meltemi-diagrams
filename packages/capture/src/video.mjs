@@ -148,7 +148,7 @@ export async function captureVideo(job, options = {}) {
   });
   const session = await PipeSession.launch(browser, { timeout: options.timeout ?? 30_000 });
   try {
-    const { product } = await session.send("Browser.getVersion");
+    const { product } = await session.started();
     const { targetId } = await session.send("Target.createTarget", { url: "about:blank" });
     const { sessionId } = await session.send("Target.attachToTarget", { targetId, flatten: true });
     await session.send("Page.enable", {}, sessionId);
