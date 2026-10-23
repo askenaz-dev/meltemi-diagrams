@@ -28,5 +28,5 @@
 
 ## 6. Gates
 
-- [ ] 6.1 `pnpm typecheck`, `pnpm lint`, `pnpm test`
-- [ ] 6.2 `pnpm vscode:test-webview` (the two new scenarios included) and a look at the C4 screenshots it writes
+- [x] 6.1 `pnpm typecheck`, `pnpm lint`, `pnpm test`
+- [x] 6.2 `pnpm vscode:test-webview` (the two new scenarios included) and a look at the C4 screenshots it writes
