@@ -252,6 +252,19 @@ test("records a video of a diagram", async () => {
   assert.equal(readFileSync(written[0].fsPath).subarray(0, 6).toString("latin1"), "GIF89a");
 });
 
+test("records a video of a diagram without a length, never asking for one", async () => {
+  const { document } = await open("profiles.meltemi");
+  // The diagram has no moving effects: the export takes a second, as the message says.
+  const written = await vscode.commands.executeCommand(
+    "meltemi.exportVideo",
+    document.uri,
+    "gif",
+    "d",
+  );
+  assert.equal(written.length, 1);
+  assert.equal(readFileSync(written[0].fsPath).subarray(0, 6).toString("latin1"), "GIF89a");
+});
+
 test("builds the catalog of a project", async () => {
   const root = join(workspace, "catalogued");
   require("node:fs").mkdirSync(join(root, "views"), { recursive: true });

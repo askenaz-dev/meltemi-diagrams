@@ -54,3 +54,5 @@ bundles it.
 - A 7.4 s story at 1080p and 30 fps is 222 screenshots; recording takes tens of seconds, so VS Code
   shows progress per frame.
 - The verification matrix (change 23) records the browser and FFmpeg versions each export names.
+- The refusals of endless or still effects, of a transparent MP4 and of sizes over the limit gave
+  way to defaults with notices in [decision 0055](0055-export-defaults-and-visible-effects.md).

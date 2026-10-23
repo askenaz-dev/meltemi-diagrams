@@ -183,10 +183,11 @@ their kinds are boxes with the type's style and properties; `pnpm mdg plugins <p
 a container its component view, on an element with `link` the diagram it names: write those
 views (`level` + `scope`) and links so readers can drill down; descriptions show on hover.
 `pnpm mdg export sheet.meltemi --profiles` writes every profile; `--profile slide` one.
-`--format mp4|webm|gif` records a story (`--story`) or effects (`--duration` when they repeat
-forever) with the installed browser and FFmpeg: 1080p at 30 fps, GIF 960 × 540 at 15 fps. Options
-of another format are `export.invalid-option`; a video of effects that repeat forever needs
-`duration` (`export.missing-duration`). Elements, groups and model entities take
+`--format mp4|webm|gif` records a story (`--story`) or effects with the installed browser and
+FFmpeg: 1080p at 30 fps, GIF 960 × 540 at 15 fps. Effects that repeat forever last one loop of their
+cycles (6 s with the defaults) unless `--duration` or a profile's `duration` says otherwise, and the
+export notes the length it chose; a transparent MP4 takes the theme's background. Options of
+another format are `export.invalid-option`. Elements, groups and model entities take
 `url "https://…"`: SVG, PDF and HTML exports keep the link.
 `pnpm mdg login`, `push`, `pull`, `publish` and `projects` keep a project in step with its copy in
 the optional cloud service, which `project.json` records in `cloud`, and

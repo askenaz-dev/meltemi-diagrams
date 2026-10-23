@@ -65,8 +65,8 @@ describe("export --story", () => {
     expect(code).toBe(0);
     expect(stdout.startsWith("<svg")).toBe(true);
     expect(stdout).not.toContain('opacity="0.63"');
-    // The flow of `request` runs on the story's clock.
-    expect(stdout).toContain('data-role="motion"');
+    // The flow of `request` runs on the story's clock: a particle rides its line.
+    expect(stdout).toMatch(/<g data-id="request" data-role="relation">[\s\S]*? a4 4 0 1 0 8 0 /);
   });
 
   it("writes into a directory given by --out", () => {

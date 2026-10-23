@@ -501,8 +501,6 @@ export const es: typeof en = {
         `El perfil ${code(id)} necesita un \`format\`: ${formats.join(", ")}.`,
       notForFormat: (name, format, formats) =>
         `${code(name)} no se aplica a las exportaciones ${format}; se aplica a ${formats.join(", ")}.`,
-      mp4Transparency:
-        "MP4 no admite transparencia; elige un color, o WebM para un video transparente.",
       atWithMotion: "`at` escribe un solo fotograma; no va con `motion animated`.",
       extension: (format, extension) =>
         `\`file\` de una exportación ${format} termina en \`.${extension}\`.`,
@@ -515,10 +513,6 @@ export const es: typeof en = {
       unknownScenario: (target, scenario, scenarios) =>
         `${code(target)} no tiene ningún escenario ${code(scenario)}; sus escenarios: ${scenarios.join(", ")}.`,
       noScenarios: (target) => `${code(target)} no tiene escenarios.`,
-      endless: (target, format) =>
-        `Los efectos de ${code(target)} se repiten indefinidamente; una exportación ${format} necesita una \`duration\`.`,
-      noEffects: (target, format) =>
-        `${code(target)} no tiene efectos que medir; una exportación ${format} necesita una \`duration\`.`,
     },
   },
 
@@ -699,7 +693,6 @@ export const es: typeof en = {
       declareTarget: "Declara un diagrama o una historia.",
       options: (names) => `Opciones: ${names.join(", ")}.`,
       background: "`background transparent`, un color entre comillas o un token de color.",
-      duration: "Agrega `duration 5s` o da a cada efecto un número de `repeat`.",
     },
   },
 

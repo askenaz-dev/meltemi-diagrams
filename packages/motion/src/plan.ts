@@ -120,10 +120,10 @@ export function planMotion(
     const bounds = role !== "relation" ? (group.bounds ?? null) : null;
     if (role === "relation" ? !track || track.length < 2 : !bounds) continue;
     const drawn = strokeOf(group);
-    const fallback = typeof options.colors?.accent === "string" ? options.colors.accent : "#1f6feb";
-    // A trace in the line's own colour would not show on it: it takes the accent, as stories do.
-    let color =
-      entry.effect !== "trace" && drawn && drawn.stroke !== "none" ? drawn.stroke : fallback;
+    const accent = typeof options.colors?.accent === "string" ? options.colors.accent : "#1f6feb";
+    // Particles, halos and traces in the target's own colour would not show on it: they take the
+    // accent, as stories do. A moving dash animates the line itself, in its own colour.
+    let color = entry.effect === "dash" && drawn && drawn.stroke !== "none" ? drawn.stroke : accent;
     if (entry.color !== null) {
       if (entry.color.startsWith("@")) {
         const token = options.colors?.[entry.color.slice(1)];
@@ -159,6 +159,49 @@ export function motionDuration(plan: MotionPlan): number | null {
   }
   return end;
 }
+
+/** The longest a default duration lasts when the cycles' common multiple is longer. */
+export const DEFAULT_DURATION_CAP_MS = 10_000;
+/** How long a video of a diagram without moving effects lasts. */
+export const STILL_DURATION_MS = 1000;
+
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+
+/**
+ * How long a video of the plan lasts when nothing says: the least common multiple of the effects'
+ * cycles after the longest delay, so the loop is seamless, rounded to whole milliseconds; the
+ * longest cycle after that delay when the multiple would pass `DEFAULT_DURATION_CAP_MS`; and
+ * `STILL_DURATION_MS` for a plan without effects. With the engine's defaults (flow 1200 ms, dash
+ * and pulse 1000 ms, trace 1500 ms) any mix lasts 6 s.
+ */
+export function defaultMotionDuration(plan: MotionPlan): number {
+  if (plan.effects.length === 0) return STILL_DURATION_MS;
+  return motionLoop(plan) ?? longestCycle(plan);
+}
+
+/**
+ * The length of one seamless loop of every effect of the plan, after the longest delay: the least
+ * common multiple of the cycles, or null when it passes `DEFAULT_DURATION_CAP_MS` or the plan has
+ * no effects.
+ */
+export function motionLoop(plan: MotionPlan): number | null {
+  if (plan.effects.length === 0) return null;
+  const delay = longestDelay(plan);
+  let multiple = 1;
+  for (const effect of plan.effects) {
+    const cycle = Math.max(1, Math.round(effect.durationMs));
+    multiple = (multiple / gcd(multiple, cycle)) * cycle;
+    if (multiple + delay > DEFAULT_DURATION_CAP_MS) return null;
+  }
+  return multiple + delay;
+}
+
+const longestDelay = (plan: MotionPlan) =>
+  Math.round(Math.max(...plan.effects.map((e) => e.delayMs)));
+
+/** The longest cycle of the plan after its longest delay. */
+const longestCycle = (plan: MotionPlan) =>
+  Math.max(...plan.effects.map((e) => Math.max(1, Math.round(e.durationMs)))) + longestDelay(plan);
 
 /** The phase of an effect at `t` in [0, 1), or `null` outside its window. */
 export function phaseAt(effect: MotionEffect, t: number): number | null {

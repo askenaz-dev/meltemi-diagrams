@@ -195,7 +195,8 @@ describe("video usage", () => {
     const cases: [string[], string][] = [
       [["--format", "png", "--fps", "10"], "--fps sets the frames per second"],
       [["--duration", "2s"], "--duration sets the length"],
-      [["--format", "mp4", "--background", "transparent"], "MP4 has no transparency"],
+      [["--format", "gif", "--duration", "soon"], "--duration"],
+      [["--format", "png", "--scale", "12"], "--scale"],
       [["--format", "mp4", "--stdout"], "--stdout prints text formats only"],
       [["--format", "gif", "--fps", "90"], "--fps takes a whole number from 1 to 60"],
       [["--format", "webm", "--at", "1s"], "writes a video; it cannot be combined with --at"],
@@ -240,21 +241,62 @@ describe.skipIf(!findBrowser() || !ffprobe || !existsSync(ffprobe))(
       expect(Number(info.duration)).toBeCloseTo(7.4, 1);
     }, 180_000);
 
-    it("needs a duration for effects that repeat forever, and runs video profiles", () => {
+    it("gives effects that repeat forever one loop of their cycles, and runs video profiles", () => {
       writeFileSync(
         join(scratch, "video.meltemi"),
-        SHEET.replace("  placement {", "  animate save { effect flow }\n  placement {").replace(
+        SHEET.replace(
+          "  placement {",
+          "  animate save { effect flow }\n  animate api { effect pulse }\n  placement {",
+        ).replace(
           "export page for checkout {",
-          'export clip for checkout {\n  format gif\n  size (160, 90)\n  fps 5\n  duration 1s\n  file "clip.gif"\n}\n\nexport page for checkout {',
+          'export clip for checkout {\n  format gif\n  size (160, 90)\n  fps 5\n  duration 1s\n  file "clip.gif"\n}\n\nexport loop for checkout {\n  format gif\n  size (160, 90)\n  fps 5\n  file "loop.gif"\n}\n\nexport page for checkout {',
         ),
       );
-      const endless = mdg("export", "video.meltemi", "--format", "gif");
-      expect(endless.code).toBe(1);
-      expect(endless.stderr).toContain("repeat forever; give the video a duration");
-      const { code, stdout } = mdg("export", "video.meltemi", "--profile", "clip");
+      // No duration: 6 s, one loop of the flow (1.2 s) and the pulse (1 s), 90 frames at 15 fps.
+      const endless = mdg("export", "video.meltemi", "--format", "gif", "--size", "160x90");
+      expect(endless.code).toBe(0);
+      expect(endless.stdout).toMatch(/Wrote video\.gif \(.+, 90 frames\)/);
+      expect(endless.stderr).toBe(
+        "video.gif: The effects of `checkout` repeat forever: the video lasts 6 s, one loop of them.\n",
+      );
+      expect(probe(join(scratch, "video.gif"))).toMatchObject({
+        codec_name: "gif",
+        nb_read_frames: "90",
+      });
+      // A profile with its duration, and one without, which takes the default too.
+      const { code, stdout, stderr } = mdg("export", "video.meltemi", "--profile", "clip");
       expect(code).toBe(0);
       expect(stdout).toMatch(/Wrote clip\.gif \(.+, 5 frames\)/);
+      expect(stderr).toBe("");
       expect(probe(join(scratch, "clip.gif"))).toMatchObject({ codec_name: "gif", width: "160" });
+      const loop = mdg("export", "video.meltemi", "--profile", "loop");
+      expect(loop.code).toBe(0);
+      expect(loop.stdout).toMatch(/Wrote loop\.gif \(.+, 30 frames\)/);
+      expect(loop.stderr).toContain("the video lasts 6 s");
+    }, 180_000);
+
+    it("draws a transparent MP4 over the theme's background, and a still diagram for a second", () => {
+      const { code, stdout, stderr } = mdg(
+        "export",
+        "sheet.meltemi",
+        "--format",
+        "mp4",
+        "--background",
+        "transparent",
+        "--size",
+        "160x90",
+        "--fps",
+        "10",
+      );
+      expect(code).toBe(0);
+      expect(stdout).toMatch(/Wrote sheet\.mp4 \(.+, 10 frames\)/);
+      expect(stderr).toContain(
+        "sheet.mp4: `checkout` has no moving effects: the video lasts 1 s.\n",
+      );
+      expect(stderr).toContain(
+        "sheet.mp4: MP4 has no transparency: the theme's background was used.\n",
+      );
+      expect(probe(join(scratch, "sheet.mp4"))).toMatchObject({ codec_name: "h264" });
     }, 180_000);
   },
 );

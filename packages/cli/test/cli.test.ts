@@ -44,7 +44,7 @@ describe("meltemi-diagrams validate", () => {
     expect(stdout).toContain(
       "corpus/invalid/syntax.unexpected-character.meltemi:4:5: error syntax.unexpected-character",
     );
-    expect(stdout).toMatch(/Checked 68 files: \d+ errors, 16 warnings\./);
+    expect(stdout).toMatch(/Checked 67 files: \d+ errors, 16 warnings\./);
     // The composition of the diagrams is checked too, as the editor shows it.
     expect(stdout).toContain(
       "corpus/invalid/layout.connector-crossing.meltemi:10:3: warning layout.connector-crossing",

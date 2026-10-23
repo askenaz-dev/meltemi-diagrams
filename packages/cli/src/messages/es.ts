@@ -552,7 +552,6 @@ iniciada o el token fue rechazado.
     backgroundHtml: "--background no se aplica a los reproductores HTML.",
     background: (background) =>
       `--background lleva transparent, un token de color o un color CSS, no "${background}".`,
-    mp4Transparent: "MP4 no admite transparencia; elige un color, o --format webm.",
     linkFormats: "--link se aplica a las exportaciones SVG y PDF.",
     link: (link) => `--link lleva una URL https:, http: o mailto:, o una relativa, no "${link}".`,
     oneFile: (option) =>

@@ -8,8 +8,9 @@ same functions as the player, after fonts and images load, so the video lasts th
 1920 × 1080 at 30 fps and GIF to 960 × 540 at 15 fps, the picture fitted and centred; `--size` and
 `--fps` SHALL change them. Without `--duration`, a diagram whose effects repeat forever SHALL last
 `defaultMotionDuration` (the least common multiple of the effects' cycles after the longest delay,
-capped at 10 s, else the longest cycle), a diagram without moving effects SHALL last 1 s, and the
-command SHALL print a notice naming the duration used; `--duration` SHALL always win. An MP4 with a
+capped at 10 s, else the longest cycle after that delay), a diagram without moving effects SHALL
+last 1 s, and the command SHALL print a notice on stderr after the `Wrote` line naming the duration
+used and whether it is a loop of every cycle or the longest one; `--duration` SHALL always win. An MP4 with a
 transparent background SHALL be drawn over the theme's background with a notice saying MP4 has no
 transparency. A `--size` whose side exceeds 16 384 pixels SHALL be scaled down to fit, keeping its
 proportions, with a notice naming the size used. A `--duration`, `--fps` or `--size` outside its
@@ -22,6 +23,10 @@ range SHALL be a usage error.
 #### Scenario: Endless effects without a duration
 - **WHEN** `mdg export checkout.meltemi --format gif` runs on a diagram with `animate pay { effect flow }` and `animate api { effect pulse }` and no durations written
 - **THEN** `checkout.gif` has 90 frames at 15 fps, the frames differ, and stderr notes that the video lasts 6 s, one loop of the effects
+
+#### Scenario: A loop longer than 10 s
+- **WHEN** a diagram's endless effects last 1100 ms and 2000 ms, the second after a delay of 300 ms
+- **THEN** the video lasts 2.3 s and the notice says it is their longest cycle
 
 #### Scenario: No moving effects
 - **WHEN** `mdg export overview.meltemi --format mp4` runs on a diagram without effects

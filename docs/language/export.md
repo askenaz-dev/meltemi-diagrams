@@ -20,7 +20,8 @@ the same files on every machine with the same tools (decision 0025).
 | `pnpm mdg export sheet.meltemi --format html --story tour`                      | the story's player ([player.md](../player.md))             |
 | `pnpm mdg export sheet.meltemi --diagram context --format html`                 | `sheet.context.html`, with every view it opens             |
 | `pnpm mdg export sheet.meltemi --story tour --format mp4`                       | `sheet.tour.mp4`, 1920 × 1080 at 30 fps                    |
-| `pnpm mdg export sheet.meltemi --format gif --duration 4s`                      | a looping GIF of the diagram's effects                     |
+| `pnpm mdg export sheet.meltemi --format gif`                                    | a GIF of one loop of the diagram's effects                 |
+| `pnpm mdg export sheet.meltemi --format gif --duration 4s`                      | the same GIF, 4 s long                                     |
 | `pnpm mdg export sheet.meltemi --profile slide`                                 | what the profile `slide` describes                         |
 | `pnpm mdg export sheet.meltemi --profiles`                                      | every profile of the file                                  |
 
@@ -38,7 +39,10 @@ proposal fixes reproducibility within a pinned environment rather than across br
 
 - **PNG.** The SVG with embedded fonts is drawn once the fonts and images are loaded, at a pixel
   scale (2 by default, 1 to 8) or a fixed `size`, with the theme's background, another colour, or a
-  transparent one (with an alpha channel). A side may not exceed 16384 pixels.
+  transparent one (with an alpha channel). A side of at most 16384 pixels: a scale or a size that
+  would pass it is lowered to the largest that fits, keeping the proportions, and a notice names
+  the pixels used (`Made at 16384 × 3641 pixels, the largest that fits the limit of 16384 a
+side.`). A PDF page over the limit shrinks the same way.
 - **PDF.** One page of the picture's size (or `size`), printed as vectors: fonts embedded, text
   selectable and tagged, `url` links as link annotations, the background unless it is transparent.
 
@@ -57,9 +61,21 @@ names the browser, FFmpeg's version and the frame count.
 | WebM   | 1920 × 1080, 30 fps | VP9 (libvpx-vp9), CRF 32; with an alpha channel when `--background transparent` |
 | GIF    | 960 × 540, 15 fps   | a palette made for the clip, Bayer dithering, looping                           |
 
-`--size`, `--fps` (1 to 60) and `--background` change them. A story lasts its own duration; a
-diagram's effects last until the last one ends, or `--duration` says how long when one repeats
-forever (the default for effects). `--at`, `--motion animated` and `--link` do not apply.
+`--size`, `--fps` (1 to 60) and `--background` change them; a `size` whose side would pass 16384
+pixels is scaled down, keeping its proportions. A story lasts its own duration; a diagram's effects
+last until the last one ends, or `--duration` says how long. Without it, effects that repeat
+forever (the default) last one seamless loop of every cycle: the least common multiple of their
+durations after the longest delay, 6 s with the engine's defaults (flow 1.2 s, dash and pulse 1 s,
+trace 1.5 s); when that would pass 10 s, the longest cycle. A diagram without moving effects lasts
+1 s. The export names what it chose after the `Wrote` line, on stderr:
+
+```text
+Wrote sheet.gif (Edg/155.0.4283.62, FFmpeg 6.1.1, 90 frames)
+sheet.gif: The effects of `checkout` repeat forever: the video lasts 6 s, one loop of them.
+```
+
+MP4 has no transparency: `--background transparent` draws it over the theme's background and says
+so. `--at`, `--motion animated` and `--link` do not apply.
 
 ## Profiles
 
@@ -84,33 +100,32 @@ export presentation for purchase {
 }
 ```
 
-| Option                      | Formats                  | Values                                                                                                      |
-| --------------------------- | ------------------------ | ----------------------------------------------------------------------------------------------------------- |
-| `format`                    | all                      | `svg`, `png`, `pdf`, `html`, `mp4`, `webm`, `gif`; required                                                 |
-| `size`                      | png, pdf, mp4, webm, gif | `(w, h)`, 16 to 16384; the picture is fitted and centred                                                    |
-| `scale`                     | png                      | 1 to 8; 2 by default                                                                                        |
-| `background`                | svg, png, pdf, webm, gif | `transparent`, a quoted colour or a colour token; MP4 has no transparency                                   |
-| `at`                        | svg, png, pdf            | a time; without it the static view of a diagram or the end of a story                                       |
-| `motion`                    | svg                      | `static` or `animated`; diagrams only                                                                       |
-| `theme`                     | all                      | a theme name                                                                                                |
-| `fonts`                     | svg, html                | `embedded` (default), `outlined`, `system`                                                                  |
-| `scenario`                  | all                      | a scenario of the sequence diagram                                                                          |
-| `link`                      | svg, pdf                 | an `https:`, `http:` or `mailto:` URL, or a relative one                                                    |
-| `fps`                       | mp4, webm, gif           | 1 to 60; 30 by default                                                                                      |
-| `duration`                  | mp4, webm, gif           | a time; required when the diagram's effects repeat forever                                                  |
-| `file`                      | all                      | a path relative to the file, without `..`, ending in the format's extension; `<stem>.<id>.<ext>` by default |
-| `autoplay`, `loop`, `embed` | html                     | player options ([player.md](../player.md))                                                                  |
+| Option                      | Formats                  | Values                                                                                                       |
+| --------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `format`                    | all                      | `svg`, `png`, `pdf`, `html`, `mp4`, `webm`, `gif`; required                                                  |
+| `size`                      | png, pdf, mp4, webm, gif | `(w, h)`, 16 to 16384; the picture is fitted and centred                                                     |
+| `scale`                     | png                      | 1 to 8; 2 by default                                                                                         |
+| `background`                | all but html             | `transparent`, a quoted colour or a colour token; an MP4 takes the theme's background instead of transparent |
+| `at`                        | svg, png, pdf            | a time; without it the static view of a diagram or the end of a story                                        |
+| `motion`                    | svg                      | `static` or `animated`; diagrams only                                                                        |
+| `theme`                     | all                      | a theme name                                                                                                 |
+| `fonts`                     | svg, html                | `embedded` (default), `outlined`, `system`                                                                   |
+| `scenario`                  | all                      | a scenario of the sequence diagram                                                                           |
+| `link`                      | svg, pdf                 | an `https:`, `http:` or `mailto:` URL, or a relative one                                                     |
+| `fps`                       | mp4, webm, gif           | 1 to 60; 30 by default                                                                                       |
+| `duration`                  | mp4, webm, gif           | a time; without it, one loop of the effects (or 1 s without moving effects)                                  |
+| `file`                      | all                      | a path relative to the file, without `..`, ending in the format's extension; `<stem>.<id>.<ext>` by default  |
+| `autoplay`, `loop`, `embed` | html                     | player options ([player.md](../player.md))                                                                   |
 
 The target is a diagram of the file, an imported diagram or a story of the file. Profile ids share
 the file namespace.
 
-| Code                      | When                                                                                                                                            |
-| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| `export.unknown-target`   | the target is not a diagram or story of the file or an import                                                                                   |
-| `export.missing-format`   | the profile has no `format`                                                                                                                     |
-| `export.invalid-option`   | an option of another format; transparency in MP4; `motion` or `scenario` on a story; `at` past the story's end; a `file` with another extension |
-| `export.missing-duration` | a video of a diagram whose effects repeat forever, or that has none, without `duration`                                                         |
-| `prop.invalid-value`      | a malformed value, an unsafe link or a `file` outside the folder                                                                                |
+| Code                    | When                                                                                                                       |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `export.unknown-target` | the target is not a diagram or story of the file or an import                                                              |
+| `export.missing-format` | the profile has no `format`                                                                                                |
+| `export.invalid-option` | an option of another format; `motion` or `scenario` on a story; `at` past the story's end; a `file` with another extension |
+| `prop.invalid-value`    | a malformed value, an unsafe link or a `file` outside the folder                                                           |
 
 ## Links
 

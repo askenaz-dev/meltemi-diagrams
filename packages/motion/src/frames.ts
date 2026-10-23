@@ -95,7 +95,10 @@ export function beforeLabel(items: readonly SceneItem[], extra: readonly SceneIt
   return [...items.slice(0, at), ...extra, ...items.slice(at)];
 }
 
-/** The halo, glow or particles an effect draws at `phase`, above everything else. */
+/**
+ * The halo or glow an effect draws at `phase`, above everything else, or its particles, which go
+ * into the relation's group under its label.
+ */
 export function overlayAt(effect: MotionEffect, phase: number): SceneItem[] {
   if (effect.effect === "pulse") {
     if (effect.bounds) {
@@ -157,16 +160,19 @@ export function sceneAt(scene: Scene, plan: MotionPlan, t: number): Scene {
   if (active.length === 0) return scene;
   const dashes = new Map<string, { phase: number; reverse: boolean }>();
   const traces = new Map<string, SceneItem[]>();
+  const particles = new Map<string, SceneItem[]>();
   for (const { effect, phase } of active) {
     const key = targetKey(effect.role, effect.target);
     if (effect.effect === "dash") dashes.set(key, { phase, reverse: effect.reverse });
     if (effect.effect === "trace") traces.set(key, traceAt(effect, phase));
+    if (effect.effect === "flow") particles.set(key, overlayAt(effect, phase));
   }
   const items = withTargets(scene.items, (group) => {
     const key = targetKey(group.role, group.id);
     const dash = dashes.get(key);
     const trace = traces.get(key);
-    if (!dash && !trace) return null;
+    const flow = particles.get(key);
+    if (!dash && !trace && !flow) return null;
     let list: readonly SceneItem[] = group.items;
     const index = dash ? outlineIndex(list) : -1;
     if (dash && index >= 0) {
@@ -178,14 +184,14 @@ export function sceneAt(scene: Scene, plan: MotionPlan, t: number): Scene {
       );
     }
     if (trace) list = beforeLabel(list, trace);
+    // Particles ride the line under its label, which stays readable as they pass.
+    if (flow) list = beforeLabel(list, flow);
     return list === group.items ? null : [...list];
   });
-  // Halos and glows under the particles, both above the drawing.
+  // Halos and glows above the drawing.
   const overlays: SceneItem[] = [];
   for (const { effect, phase } of active)
     if (effect.effect === "pulse") overlays.push(...overlayAt(effect, phase));
-  for (const { effect, phase } of active)
-    if (effect.effect === "flow") overlays.push(...overlayAt(effect, phase));
   if (overlays.length > 0)
     items.push({ kind: "group", id: "motion", role: "motion", items: overlays });
   return { ...scene, items };

@@ -16,7 +16,7 @@ fail with a message that says how to set one.
 
 #### Scenario: Scale over the limit is clamped
 - **WHEN** a 9000 × 2000 picture is exported with `--format png --scale 4`
-- **THEN** the PNG is 16 384 pixels wide, the scale used is 1.82, and the notice names 16 384 × 3640
+- **THEN** it is captured at the scale 16384 / 9000 (about 1.82), 16384 pixels wide, and the notice names 16384 × 3641
 
 #### Scenario: Scale outside the range
 - **WHEN** a picture is exported with `--format png --scale 12`

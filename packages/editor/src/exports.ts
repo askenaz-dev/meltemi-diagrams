@@ -5,6 +5,8 @@ import type { LayoutResult, Scene } from "@meltemi/diagrams-layout";
 import type { ExportProfile, FlowDiagram, StoryDefinition } from "@meltemi/diagrams-model";
 import {
   animatedScene,
+  defaultMotionDuration,
+  motionLoop,
   motionOptions,
   planMotion,
   sceneAt,
@@ -74,6 +76,19 @@ export interface ExportRequest {
    */
   readonly locale?: Locale;
 }
+
+/**
+ * What an export makes: a text, a picture to capture or a video to record, with the notices of what
+ * it chose because nothing said (a duration, a background, a size), in the interface language; or
+ * the reason it cannot be made.
+ */
+export type ExportOutput =
+  | ((
+      | { text: string; views?: number }
+      | { job: CaptureJob }
+      | { video: VideoJob; document: PlayerDocument }
+    ) & { readonly notices?: readonly string[] })
+  | { problem: string };
 
 /** What an export needs of its file and project. */
 export interface ExportContext {
@@ -213,14 +228,7 @@ function captureJob(
  * the editor and the playground write what this returns. What the export adds is in the content
  * language; its messages are in the interface language.
  */
-export function produceExport(
-  context: ExportContext,
-  request: ExportRequest,
-):
-  | { text: string; views?: number }
-  | { job: CaptureJob }
-  | { video: VideoJob; document: PlayerDocument }
-  | { problem: string } {
+export function produceExport(context: ExportContext, request: ExportRequest): ExportOutput {
   const provider = context.projects.fontsFor(context.workspace);
   const fontsFor = (policy: FontPolicy) => (policy === "embedded" ? { fonts: provider } : {});
   if ((VIDEO as readonly string[]).includes(request.format)) return produceVideo(context, request);
@@ -290,33 +298,48 @@ export function produceExport(
   if (request.format === "svg") {
     return { text: renderSvg(decorated.scene, { fonts: request.fonts, provider }) };
   }
-  const job = captureJob(context, decorated.scene, decorated.background, request);
-  if (job.width * (job.scale ?? 1) > MAX_PIXELS || job.height * (job.scale ?? 1) > MAX_PIXELS) {
-    return {
-      problem: problems.tooLarge(
-        request.format.toUpperCase(),
-        Math.round(job.width * (job.scale ?? 1)),
-        Math.round(job.height * (job.scale ?? 1)),
-        MAX_PIXELS,
-      ),
-    };
-  }
-  return { job };
+  const fitted = fitPicture(captureJob(context, decorated.scene, decorated.background, request));
+  return fitted.notice ? { job: fitted.job, notices: [fitted.notice] } : { job: fitted.job };
+}
+
+/**
+ * A picture whose side would pass `MAX_PIXELS` made as large as fits, keeping its proportions: a
+ * PNG at a smaller scale, a PDF on a smaller page; with the notice naming the pixels used.
+ */
+function fitPicture(job: CaptureJob): { job: CaptureJob; notice?: string } {
+  const scale = job.scale ?? 1;
+  const factor = Math.min(1, MAX_PIXELS / (job.width * scale), MAX_PIXELS / (job.height * scale));
+  if (factor >= 1) return { job };
+  const fitted: CaptureJob =
+    job.kind === "png"
+      ? { ...job, scale: scale * factor }
+      : {
+          ...job,
+          width: Math.floor(job.width * factor),
+          height: Math.floor(job.height * factor),
+        };
+  const used = fitted.scale ?? 1;
+  return {
+    job: fitted,
+    notice: messages().exports.notices.clamped(
+      Math.round(fitted.width * used),
+      Math.round(fitted.height * used),
+      MAX_PIXELS,
+    ),
+  };
 }
 
 /**
  * A video: the player document of the story or of the diagram's effects (with embedded fonts), and
  * the page that draws its frames at the output size.
  */
-function produceVideo(
-  context: ExportContext,
-  request: ExportRequest,
-): { video: VideoJob; document: PlayerDocument } | { problem: string } {
+function produceVideo(context: ExportContext, request: ExportRequest): ExportOutput {
   const format = request.format as (typeof VIDEO)[number];
   const fonts = { fonts: context.projects.fontsFor(context.workspace) };
   const problems = messages().exports;
+  const notices: string[] = [];
   let doc: PlayerDocument | undefined;
-  let duration: number | null;
+  let duration: number;
   let colors: Readonly<Record<string, unknown>> | undefined;
   if (request.target.kind === "story") {
     const layouts = storyLayouts(
@@ -328,7 +351,7 @@ function produceVideo(
     const story = layouts && storyDocument(request.target.story, layouts, fonts);
     if (!story) return { problem: problems.storyNotDrawn(request.target.story.id) };
     doc = story;
-    duration = request.durationMs ?? story.timeline.durationMs;
+    duration = request.durationMs || story.timeline.durationMs;
     colors = [...layouts!.values()][0]?.layout.theme as unknown as Record<string, unknown>;
   } else {
     const { diagram, owner } = request.target;
@@ -343,24 +366,40 @@ function produceVideo(
     const effects = result.scene ? effectsDocument({ diagram, layout: result }, fonts) : undefined;
     if (!effects) return { problem: problems.cannotDraw(diagram.id) };
     doc = effects;
-    duration = request.durationMs ?? rootView(effects).durationMs;
     colors = result.theme as unknown as Record<string, unknown>;
-    if (duration === null || duration === 0) {
-      return {
-        problem: duration === null ? problems.endless(diagram.id) : problems.still(diagram.id),
-      };
+    // A given duration wins, then the end of finite effects; endless or still effects take the
+    // default, which the notice names.
+    const view = rootView(effects);
+    if (request.durationMs) duration = request.durationMs;
+    else if (view.durationMs) duration = view.durationMs;
+    else {
+      duration = defaultMotionDuration(view.plan);
+      const notices_ = problems.notices;
+      notices.push(
+        view.plan.effects.length === 0
+          ? notices_.stillDuration(diagram.id, duration)
+          : motionLoop(view.plan) !== null
+            ? notices_.defaultDuration(diagram.id, duration)
+            : notices_.longestDuration(diagram.id, duration),
+      );
     }
   }
+  // MP4 has no transparency: it takes the theme's background, as the canvas shows it.
+  let drawn = request;
   if (format === "mp4" && request.background === "transparent") {
-    return { problem: problems.transparentMp4 };
+    drawn = { ...request, background: null };
+    notices.push(problems.notices.mp4Background);
   }
   const scene = doc.kind === "story" ? Object.values(doc.views)[0]!.scene : rootView(doc).scene;
-  const background = decorate(scene, request, colors).background;
+  const background = decorate(scene, drawn, colors).background;
   const defaults = VIDEO_DEFAULTS[format];
-  const width = request.size?.width ?? defaults.width;
-  const height = request.size?.height ?? defaults.height;
-  if (width > MAX_PIXELS || height > MAX_PIXELS) {
-    return { problem: problems.videoSide(MAX_PIXELS) };
+  let width = request.size?.width ?? defaults.width;
+  let height = request.size?.height ?? defaults.height;
+  const factor = Math.min(1, MAX_PIXELS / width, MAX_PIXELS / height);
+  if (factor < 1) {
+    width = Math.floor(width * factor);
+    height = Math.floor(height * factor);
+    notices.push(problems.notices.clamped(width, height, MAX_PIXELS));
   }
   return {
     video: {
@@ -369,11 +408,12 @@ function produceVideo(
       width,
       height,
       fps: request.fps ?? defaults.fps,
-      durationMs: duration!,
+      durationMs: duration,
       background,
       out: request.out!,
     },
     document: doc,
+    ...(notices.length > 0 ? { notices } : {}),
   };
 }
 

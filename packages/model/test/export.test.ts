@@ -55,9 +55,6 @@ describe("export profiles", () => {
 
   it("refuses options of other formats and unsafe values", () => {
     expect(codes(withProfile("  format pdf\n  scale 2"))).toEqual(["export.invalid-option"]);
-    expect(codes(withProfile("  format mp4\n  background transparent\n  duration 3s"))).toEqual([
-      "export.invalid-option",
-    ]);
     expect(codes(withProfile('  format png\n  file "out/x.pdf"'))).toEqual([
       "export.invalid-option",
     ]);
@@ -73,11 +70,14 @@ describe("export profiles", () => {
     expect(codes(withProfile("  format png\n  format pdf"))).toEqual(["prop.duplicate"]);
   });
 
-  it("needs a format, a known target and a duration for endless videos", () => {
+  it("needs a format and a known target, and leaves a video's length and background to the export", () => {
     expect(codes(withProfile("  scale 2"))).toEqual(["export.missing-format"]);
     expect(codes(withProfile("  format png", "nowhere"))).toEqual(["export.unknown-target"]);
-    expect(codes(withProfile("  format webm"))).toEqual(["export.missing-duration"]);
+    // A video without `duration` takes the effects' default when it runs; MP4 draws over the
+    // theme's background.
+    expect(codes(withProfile("  format webm"))).toEqual([]);
     expect(codes(withProfile("  format webm\n  duration 4s"))).toEqual([]);
+    expect(codes(withProfile("  format mp4\n  background transparent"))).toEqual([]);
     // Shares the file namespace.
     expect(codes(compile(`${BASE}export checkout for checkout { format png }\n`))).toEqual([
       "ref.duplicate-id",

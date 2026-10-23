@@ -9,8 +9,8 @@ duration, the effective theme's `flowDuration`, `dashDuration`, `pulseDuration` 
 `traceDuration` when the theme writes it, else 1200 ms for flow, 1500 ms for trace and 1 s
 otherwise; `repeat forever`, no delay, `forward`, one particle, and as colour the theme's accent
 for flow, pulse and trace, and the target's stroke for dash. Flow particles SHALL be drawn with a
-radius of `max(4, 1.5 × width)` scene units on a line of `width`, the same in the CSS and the
-frame profiles. Every motion plan SHALL take the durations of the theme the diagram was laid out
+radius of `max(4, 1.5 × width)` scene units on a line of `width`, inside their relation's group
+under its label, the same in the CSS and the frame profiles. Every motion plan SHALL take the durations of the theme the diagram was laid out
 with, so that the canvas preview, the animated SVG, the players and the videos plan the same
 motion.
 `direction` SHALL apply to flow, dash and trace, `particles` to flow, `color` to flow, pulse and
@@ -33,6 +33,10 @@ values and the JSON model SHALL include them.
 #### Scenario: Particles and halos in the accent
 - **WHEN** a diagram under `technical.light` has `animate pay { effect flow }` on a relation stroked `#526579` and `animate api { effect pulse }` on a node stroked `#DCE5ED`
 - **THEN** the motion plan colours both effects with the theme's accent, the particle's radius is 4 for a line 1.3 wide, and the animated SVG and the frame at 300 ms draw them with that colour and radius
+
+#### Scenario: Particles pass under the label
+- **WHEN** `a -> b: "Pay" as r` has `animate r { effect flow }`
+- **THEN** in the frame at 600 ms and in the animated SVG the particle is an item of the relation's group placed before its label
 
 #### Scenario: Written colour wins
 - **WHEN** a diagram has `animate pay { effect flow; color danger }`

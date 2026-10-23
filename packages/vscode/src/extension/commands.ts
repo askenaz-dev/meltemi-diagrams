@@ -20,13 +20,13 @@ import {
   type CatalogBuild,
   type ExportRequest,
 } from "@meltemi/diagrams-editor/node";
-import { effectsEnd, type FlowDiagram } from "@meltemi/diagrams-model";
-import { parseTime } from "@meltemi/diagrams-motion";
+import type { FlowDiagram } from "@meltemi/diagrams-model";
 import * as vscode from "vscode";
 import { applyPlan, VIEW_TYPE, type CanvasHost } from "./canvas.js";
 import { toWorkspaceEdit } from "./convert.js";
 import { isMeltemi } from "./documents.js";
 import { messages } from "./messages/index.js";
+import { writtenMessage } from "./written.js";
 
 /** The `.meltemi` document of the active text editor or canvas. */
 export function activeDocument(
@@ -192,9 +192,15 @@ async function writeExports(
   const pictures: { request: ExportRequest; job: Parameters<typeof capture>[0][number] }[] = [];
   const videos: VideoJob[] = [];
   const problems: string[] = [];
+  // What the exports chose because nothing said: said with the files written.
+  const notices: string[] = [];
   for (const { request, output } of outputs) {
-    if ("problem" in output) problems.push(output.problem);
-    else if ("text" in output) {
+    if ("problem" in output) {
+      problems.push(output.problem);
+      continue;
+    }
+    notices.push(...(output.notices ?? []));
+    if ("text" in output) {
       const uri = vscode.Uri.file(request.out!);
       await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(output.text));
       written.push(uri);
@@ -268,7 +274,7 @@ async function writeExports(
   if (problems.length > 0) void vscode.window.showWarningMessage(problems.join(" "));
   if (written.length > 0) {
     const names = written.map((u) => u.path.replace(/^.*\//, ""));
-    void vscode.window.showInformationMessage(t.common.wrote(names));
+    void vscode.window.showInformationMessage(writtenMessage(t.common.wrote, names, notices));
   }
   return written;
 }
@@ -392,20 +398,6 @@ export async function exportVideo(
           placeHolder: t.exports.videoPlaceholder,
         }));
   if (!picked) return undefined;
-  let duration = durationMs ?? null;
-  if (picked.target === "diagram" && duration === null) {
-    const diagram = document_.diagrams.find((d) => d.id === picked.label)!;
-    if (effectsEnd(diagram) === null || effectsEnd(diagram) === 0) {
-      const answer = await vscode.window.showInputBox({
-        title: t.exports.video,
-        prompt: t.exports.durationPrompt,
-        value: "5s",
-        validateInput: (v) => (parseTime(v) ? undefined : t.exports.durationInvalid),
-      });
-      if (!answer) return undefined;
-      duration = parseTime(answer);
-    }
-  }
   const stem = document.uri.path.replace(/^.*\//, "").replace(/\.meltemi$/, "");
   const name = `${stem}.${picked.label}.${chosenFormat}`;
   const request: ExportRequest = {
@@ -431,7 +423,8 @@ export async function exportVideo(
     autoplay: false,
     loop: false,
     fps: null,
-    durationMs: duration,
+    // Effects that repeat forever, or none, take the export's default; the message names it.
+    durationMs: durationMs ?? null,
     out: vscode.Uri.joinPath(document.uri, "..", name).fsPath,
   };
   return writeExports([{ request, output: produceExport(context, request) }]);

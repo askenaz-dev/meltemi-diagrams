@@ -427,13 +427,15 @@ const tests: {
       assert.equal(await slider.isHidden(), true);
       await page.locator("meltemi-player").nth(1).getByRole("button", { name: "Play" }).click();
       await page.waitForTimeout(300);
-      assert.match((await state(page, 1)).svg, /data-role="motion"/);
+      // A flow particle: the circle a frame draws on its relation's line, under the label.
+      const particle = /a([\d.]+) \1 0 1 0 [\d.]+ 0 a\1 \1 0 1 0 -[\d.]+ 0 Z/;
+      assert.match((await state(page, 1)).svg, particle);
       await page
         .locator("meltemi-player")
         .nth(1)
         .getByRole("button", { name: "Static view" })
         .click();
-      assert.doesNotMatch((await state(page, 1)).svg, /data-role="motion"/);
+      assert.doesNotMatch((await state(page, 1)).svg, particle);
     },
   },
   {

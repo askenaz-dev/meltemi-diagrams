@@ -96,15 +96,24 @@ function writeAll(
   let failed = false;
   const jobs: FileJob[] = [];
   const videos: VideoJob[] = [];
+  // What each output chose because nothing said (a duration, a background, a size), said after it.
+  const notices = new Map<string, readonly string[]>();
+  const tell = (out: string) => {
+    for (const notice of notices.get(out) ?? []) {
+      host.io.stderr(`${host.display(out)}: ${notice}\n`);
+    }
+  };
   for (const { request, output } of outputs) {
     if ("problem" in output) {
       host.io.stderr(`${host.name} export: ${output.problem}\n`);
       failed = true;
       continue;
     }
+    if (output.notices && request.out !== null) notices.set(request.out, output.notices);
     if ("text" in output) {
       if (request.out === null) host.io.stdout(output.text);
       else if (!writeOutput(host, request.out, output.text, output.views)) return EXIT_USAGE;
+      else tell(request.out);
       continue;
     }
     if ("video" in output) videos.push(output.video);
@@ -122,12 +131,14 @@ function writeAll(
     const t = messages().export;
     for (const job of jobs) {
       host.io.stdout(`${t.wrotePicture(host.display(job.out), result.browser)}\n`);
+      tell(job.out);
     }
-    videos.forEach((video, i) =>
+    videos.forEach((video, i) => {
       host.io.stdout(
         `${t.wroteVideo(host.display(video.out), result.browser, result.ffmpeg, result.frames[i]!)}\n`,
-      ),
-    );
+      );
+      tell(video.out);
+    });
   }
   return failed ? EXIT_FINDINGS : EXIT_OK;
 }
@@ -343,7 +354,6 @@ export function exportCommand(args: readonly string[], host: ExportHost): number
     if (format === "html") return usage(t.backgroundHtml);
     background = readBackground(options.background) ?? null;
     if (!background) return usage(t.background(options.background));
-    if (format === "mp4" && background === "transparent") return usage(t.mp4Transparent);
   }
   if (options.link !== undefined) {
     if (format !== "svg" && format !== "pdf") return usage(t.linkFormats);

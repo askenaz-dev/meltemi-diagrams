@@ -100,9 +100,14 @@ describe("story frames", () => {
     const track = group(views("checkout")!.scene, "request", "relation")!.track!;
     expect(trackLength(line.points)).toBeCloseTo(trackLength(track) / 2, 0);
     expect(head.fill).toBe("#ff0000");
-    // The flow of `request` is not drawn while it is traced, and is drawn again afterwards.
-    expect(at.items.some((i) => i.kind === "group" && i.id === "motion")).toBe(false);
-    expect(frame(3100).items.some((i) => i.kind === "group" && i.id === "motion")).toBe(true);
+    // The flow of `request` is not drawn while it is traced, and is drawn again afterwards: its
+    // particles ride the relation under its label, beside the trace's red head.
+    const particles = (scene: Scene) =>
+      group(scene, "request", "relation")!.items.filter(
+        (i) => i.kind === "path" && / a[\d.]+ /.test(i.d) && i.fill !== "#ff0000",
+      );
+    expect(particles(at)).toEqual([]);
+    expect(particles(frame(3100)).length).toBeGreaterThan(0);
   });
 
   it("highlights for the action's time only", () => {

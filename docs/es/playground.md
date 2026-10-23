@@ -201,8 +201,14 @@ porque una página web no tiene ni un navegador sin interfaz ni FFmpeg:
 | Perfiles  | Cada bloque `export` del archivo, con el nombre que este indica.                                                                                                                                |
 
 Los tamaños, las frecuencias de fotogramas y las duraciones de los videos siguen los valores
-predeterminados de la CLI (1080p a 30 fps; GIF de 960 × 540 a 15 fps). El video transparente lo
-genera la CLI (`--format webm --background transparent`). Los fotogramas son los de la CLI; los
+predeterminados de la CLI (1080p a 30 fps; GIF de 960 × 540 a 15 fps). El campo **Duración** vacío
+muestra, en gris, lo que dura el video: lo de la historia, el final de los efectos finitos, una vuelta
+de los que se repiten (`6s, una vuelta de los efectos`), o 1 s sin efectos que se muevan; el mensaje
+después de la descarga lo nombra. Un MP4 pedido transparente se dibuja sobre el fondo del tema,
+porque MP4 no admite transparencia, y aquí también un WebM, porque los codificadores del navegador
+no tienen canal alfa: el mensaje lo dice, y que la CLI conserva el WebM transparente
+(`--format webm --background transparent`). Un tamaño de más de 16.384 píxeles por lado se reduce.
+Los fotogramas son los de la CLI; los
 codificadores difieren, así que los archivos difieren en los bytes, no en el contenido.
 
 El campo **Idioma** del diálogo fija las palabras que la herramienta agrega a la exportación: las

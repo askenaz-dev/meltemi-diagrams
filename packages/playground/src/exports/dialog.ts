@@ -4,6 +4,7 @@ import {
   exportFileName,
   produceExport,
   profileRequest,
+  type DocumentAnalysis,
   type ExportContext,
   type ExportRequest,
   type WritableFormat,
@@ -14,8 +15,17 @@ import {
   THEME_COLOR_TOKENS,
   isSafeUrl,
   type ExportProfile,
+  type StoryDefinition,
 } from "@meltemi/diagrams-model";
-import { parseTime } from "@meltemi/diagrams-motion";
+import {
+  defaultMotionDuration,
+  motionDuration,
+  motionLoop,
+  motionOptions,
+  parseTime,
+  planMotion,
+  storyTimeline,
+} from "@meltemi/diagrams-motion";
 import type { FontPolicy } from "@meltemi/diagrams-render";
 import { LANGUAGE_NAMES } from "../language.js";
 import { messages } from "../messages/index.js";
@@ -104,29 +114,44 @@ async function run(
           readonly ok: true;
           readonly built: Exclude<Built, string>;
           readonly output: ReturnType<typeof produceExport>;
+          readonly notices: readonly string[];
         } => {
       const context = exportContext(playground, script);
       if (!context) return { ok: false, problem: m.openSource };
       const built = build(context);
       if (typeof built === "string") return { ok: false, problem: built };
-      return { ok: true, built, output: produceExport(context, built.request) };
+      // The browser's encoders have no alpha: a transparent WebM takes the theme's background
+      // here, and the command line keeps the transparency.
+      if (built.request.format === "webm" && built.request.background === "transparent") {
+        const request = { ...built.request, background: null };
+        return {
+          ok: true,
+          built: { ...built, request },
+          output: produceExport(context, request),
+          notices: [m.webmBackground],
+        };
+      }
+      return { ok: true, built, output: produceExport(context, built.request), notices: [] };
     },
   );
   if (!produced.ok) return failed(produced.problem);
   const { built, output } = produced;
   if ("problem" in output) return failed(output.problem);
   const name = built.name;
+  // What the export chose because nothing said (a duration, a background, a size) follows.
+  const told = (message: string) =>
+    [message, ...produced.notices, ...(output.notices ?? [])].join(" ");
   if ("text" in output) {
     download(name, output.text, TYPES[built.request.format] ?? "text/plain");
-    return { ok: true, message: m.downloaded(name) };
+    return { ok: true, message: told(m.downloaded(name)) };
   }
   if ("job" in output) {
     if (output.job.kind === "png") {
       download(name, (await pngOf(output.job)) as Uint8Array<ArrayBuffer>, "image/png");
-      return { ok: true, message: m.downloaded(name) };
+      return { ok: true, message: told(m.downloaded(name)) };
     }
     await printPicture(output.job);
-    return { ok: true, message: m.printing(name) };
+    return { ok: true, message: told(m.printing(name)) };
   }
   const controller = progress ?? {
     bar: h("progress"),
@@ -148,7 +173,9 @@ async function run(
     download(name, video.data as Uint8Array<ArrayBuffer>, video.type);
     return {
       ok: true,
-      message: m.downloadedVideo(name, output.video.width, output.video.height, output.video.fps),
+      message: told(
+        m.downloadedVideo(name, output.video.width, output.video.height, output.video.fps),
+      ),
     };
   } catch (error) {
     if (error instanceof VideoCancelled) return failed(m.cancelled);
@@ -214,6 +241,29 @@ function readBackground(value: string): string | undefined {
   if (value === "transparent") return value;
   if ((THEME_COLOR_TOKENS as readonly string[]).includes(value)) return `@${value}`;
   return /^(#[0-9a-f]{3,8}|(rgb|hsl)a?\([\d\s.,%/-]+\)|[a-z]+)$/i.test(value) ? value : undefined;
+}
+
+/** A length as the Duration field takes it: `6s`, `2.3s`. */
+const asField = (ms: number) => `${Math.round(ms / 100) / 10}s`;
+
+/**
+ * What an empty Duration field gives a video, as its placeholder: the story's length, the end of
+ * finite effects, one loop of endless ones, or the second of a diagram without moving effects.
+ */
+function durationShown(
+  story: StoryDefinition | undefined,
+  view: DocumentAnalysis["diagrams"][number] | undefined,
+): string {
+  const m = messages().exports;
+  if (story) return m.durationStory(asField(storyTimeline(story).durationMs));
+  const scene = view?.layout?.scene;
+  if (!view || !scene) return m.durationPlaceholder;
+  const plan = planMotion(view.diagram, scene, motionOptions(view.layout!.theme));
+  const finite = motionDuration(plan);
+  if (finite) return m.durationFinite(asField(finite));
+  const ms = defaultMotionDuration(plan);
+  if (plan.effects.length === 0) return m.durationStill(asField(ms));
+  return motionLoop(plan) !== null ? m.durationLoop(asField(ms)) : m.durationLongest(asField(ms));
 }
 
 /**
@@ -358,6 +408,10 @@ export function openExportDialog(
       });
     } else size.placeholder = m.sizePlaceholder;
     if (f === "pdf") support.textContent = m.pdfHint;
+    duration.placeholder = durationShown(
+      stories.find((s) => `story:${s.id}` === what.value),
+      diagram,
+    );
   };
   what.addEventListener("change", show);
   format.addEventListener("change", show);
@@ -409,7 +463,6 @@ export function openExportDialog(
     if (!rows.background!.hidden && background.value.trim()) {
       const value = readBackground(background.value.trim());
       if (!value) return m.badBackground;
-      if (f === "mp4" && value === "transparent") return m.mp4Transparent;
       request.background = value;
     }
     if (!rows.link!.hidden && link.value.trim()) {

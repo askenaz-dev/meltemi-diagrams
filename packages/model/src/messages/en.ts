@@ -478,7 +478,6 @@ export const en = {
       /** `export.invalid-option`. */
       notForFormat: (name: string, format: string, formats: readonly string[]) =>
         `\`${name}\` does not apply to ${format} exports; it applies to ${formats.join(", ")}.`,
-      mp4Transparency: "MP4 has no transparency; choose a colour, or WebM for a transparent video.",
       atWithMotion: "`at` writes one frame; it does not go with `motion animated`.",
       extension: (format: string, extension: string) =>
         `\`file\` of a ${format} export ends in \`.${extension}\`.`,
@@ -488,11 +487,6 @@ export const en = {
       unknownScenario: (target: string, scenario: string, scenarios: readonly string[]) =>
         `\`${target}\` has no scenario \`${scenario}\`; its scenarios: ${scenarios.join(", ")}.`,
       noScenarios: (target: string) => `\`${target}\` has no scenarios.`,
-      /** `export.missing-duration`. */
-      endless: (target: string, format: string) =>
-        `The effects of \`${target}\` repeat forever; a ${format} export needs a \`duration\`.`,
-      noEffects: (target: string, format: string) =>
-        `\`${target}\` has no effects to time; a ${format} export needs a \`duration\`.`,
     },
   },
 
@@ -685,7 +679,6 @@ export const en = {
       declareTarget: "Declare a diagram or a story.",
       options: (names: readonly string[]) => `Options: ${names.join(", ")}.`,
       background: "`background transparent`, a quoted colour or a colour token.",
-      duration: "Add `duration 5s`, or give every effect a `repeat` count.",
     },
   },
 

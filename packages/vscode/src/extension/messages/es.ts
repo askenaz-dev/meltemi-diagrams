@@ -59,8 +59,6 @@ export const es: typeof en = {
     storyDescription: "historia",
     diagramEffects: (type) => `diagrama ${type} y sus efectos`,
     videoPlaceholder: "La historia o el diagrama",
-    durationPrompt: "Los efectos se repiten sin fin (o no hay ninguno); ¿cuánto dura el video?",
-    durationInvalid: "Un tiempo como 5s o 2500ms",
     noProfile:
       "El archivo no tiene ningún perfil de exportación; escribe `export <id> for <diagram> { format png }`.",
     allProfiles: "Todos los perfiles",

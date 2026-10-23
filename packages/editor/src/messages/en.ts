@@ -1,4 +1,4 @@
-import { plural } from "@meltemi/diagrams-i18n";
+import { plural, seconds } from "@meltemi/diagrams-i18n";
 
 /** Code inside a sentence, as the canvas shows it: `id`. */
 const code = (text: string) => `\`${text}\``;
@@ -374,13 +374,19 @@ export const en = {
     storyNotDrawn: (id: string) => `${code(id)} shows a diagram that cannot be drawn.`,
     nothingToDraw: (id: string) => `${code(id)} has nothing to draw.`,
     cannotDraw: (id: string) => `${code(id)} cannot be drawn.`,
-    tooLarge: (format: string, width: number, height: number, limit: number) =>
-      `The ${format} would be ${width} × ${height} pixels; the limit is ${limit} a side. Lower the scale or the size.`,
-    endless: (id: string) =>
-      `The effects of ${code(id)} repeat forever; give the video a duration.`,
-    still: (id: string) => `The effects of ${code(id)} do not move; give the video a duration.`,
-    transparentMp4: "MP4 has no transparency; choose a colour, or WebM.",
-    videoSide: (limit: number) => `A video side may not exceed ${limit} pixels.`,
+    /** What an export chose because nothing said, as the hosts show it after the export. */
+    notices: {
+      defaultDuration: (id: string, ms: number) =>
+        `The effects of ${code(id)} repeat forever: the video lasts ${seconds("en", ms)}, one loop of them.`,
+      /** When the cycles' common multiple would pass 10 s. */
+      longestDuration: (id: string, ms: number) =>
+        `The effects of ${code(id)} repeat forever: the video lasts ${seconds("en", ms)}, their longest cycle.`,
+      stillDuration: (id: string, ms: number) =>
+        `${code(id)} has no moving effects: the video lasts ${seconds("en", ms)}.`,
+      mp4Background: "MP4 has no transparency: the theme's background was used.",
+      clamped: (width: number, height: number, limit: number) =>
+        `Made at ${width} × ${height} pixels, the largest that fits the limit of ${limit} a side.`,
+    },
     /** After the profile's id: `poster: the profile has problems…`. */
     profileProblems: "the profile has problems; fix them first.",
     notExportable: (name: string) => `${code(name)} is not a diagram or story to export.`,
