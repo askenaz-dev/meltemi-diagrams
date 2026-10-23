@@ -11,6 +11,7 @@ import {
 import type { GroupItem, SceneItem } from "@meltemi/diagrams-layout";
 import type { Element, FlowDiagram } from "@meltemi/diagrams-model";
 import type { DiagramView, DocumentAnalysis } from "./analysis.js";
+import { PROJECT_LIBRARY } from "./asset-files.js";
 import type { IconChoiceInfo, IconGroupInfo } from "./canvas/protocol.js";
 import { iconChoices } from "./services/completion.js";
 
@@ -22,6 +23,12 @@ const TECHNOLOGY = "tech";
 
 /** A query that reads as an icon reference, `pack:name`. */
 const REFERENCE = /^[a-z0-9][a-z0-9-]*:[A-Za-z0-9_.-]+$/;
+
+/** How many icons of each of the project's own packs the picker shows before anything is typed. */
+export const PROJECT_PACK_ICONS = 24;
+
+/** The room an empty search keeps for the Technology library after the project's packs. */
+const TECHNOLOGY_ROOM = 12;
 
 /**
  * The kinds whose icon takes the five positions, an icon size and a label position, and which the
@@ -191,23 +198,49 @@ export function iconGroups(
   const files = libraries.filter((l) => !fromPack(l, icons));
   const wanted = query.trim();
   if (wanted === "") {
-    const library = files.find((l) => l.id === TECHNOLOGY) ?? files[0];
+    // The project's own packs first, named as the project's library names them.
+    const labels = new Map<string, string>();
+    for (const library of files.filter((l) => l.id === PROJECT_LIBRARY.id)) {
+      for (const category of library.categories) {
+        for (const item of category.items)
+          if (!labels.has(item.icon)) labels.set(item.icon, item.label);
+      }
+    }
+    const own = icons
+      .list()
+      .filter((pack) => pack.metadata.source.startsWith("assets/icons/"))
+      .sort((a, b) => a.prefix.localeCompare(b.prefix))
+      .flatMap((pack) =>
+        drawableNames(pack, PROJECT_PACK_ICONS).map((name): Entry => {
+          const reference = `${pack.prefix}:${name}`;
+          return {
+            ...packEntry(reference),
+            label: labels.get(reference) ?? iconLabel(icons, reference),
+          };
+        }),
+      )
+      .slice(0, Math.max(0, limit - TECHNOLOGY_ROOM));
+    const room = limit - own.length;
+    const library =
+      files.find((l) => l.id === TECHNOLOGY) ?? files.find((l) => l.id !== PROJECT_LIBRARY.id);
     const category = library?.categories.find((c) => c.items.length > 0);
     if (library && category) {
-      return grouped(
-        icons,
-        category.items
+      return grouped(icons, [
+        ...own,
+        ...category.items
           .map((item) => libraryEntry({ library, category, item }))
           .filter(offered)
-          .slice(0, limit),
-      );
+          .slice(0, room),
+      ]);
     }
     // The general-purpose pack, when the project has it.
     const pack = icons.pack("tabler") ?? icons.list()[0];
-    return grouped(
-      icons,
-      (pack ? drawableNames(pack, limit) : []).map((name) => packEntry(`${pack!.prefix}:${name}`)),
-    );
+    return grouped(icons, [
+      ...own,
+      ...(pack ? drawableNames(pack, room) : []).map((name) =>
+        packEntry(`${pack!.prefix}:${name}`),
+      ),
+    ]);
   }
   const seen = new Set<string>();
   const fresh = (entry: Entry) => {

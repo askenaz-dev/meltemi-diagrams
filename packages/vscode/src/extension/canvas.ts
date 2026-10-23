@@ -178,14 +178,44 @@ async function applyProjectEdits(
     }
     return { ok: true, message: t.themeCreated(request.theme) };
   }
-  // Steps over files: the model of a view and the view's own statements, a theme's token.
-  const planned = sessions.planSteps(path, request.steps);
+  // Steps over files: the model of a view and the view's own statements, a theme's token, and
+  // the files of the assets written first (icons added to the project).
+  const planned = request.assets
+    ? sessions.planAssetSteps(path, request.assets, request.steps)
+    : sessions.planSteps(path, request.steps);
   if (!planned.ok) {
     return { ok: false, reason: planned.reason, rejected: stepsRejected(planned, request.retry) };
+  }
+  const created = planned.create ?? [];
+  for (const file of created) {
+    edit.createFile(vscode.Uri.file(file.path), {
+      overwrite: false,
+      contents: new TextEncoder().encode(file.text),
+    });
   }
   await addFileEdits(edit, planned.edits);
   if (!(await vscode.workspace.applyEdit(edit))) {
     return { ok: false, reason: t.projectNotWritten };
+  }
+  if (created.length > 0) {
+    // The assets are read from disk: the JSON files edited are saved, and every project forgets
+    // what it read, so the new icons are found at once.
+    for (const changed of planned.edits.keys()) {
+      if (changed === path) continue;
+      const opened = vscode.workspace.textDocuments.find(
+        (d) => d.uri.fsPath === vscode.Uri.file(changed).fsPath,
+      );
+      await opened?.save();
+    }
+    for (const workspace of sessions.all()) {
+      for (const changed of [...created.map((f) => f.path), ...planned.edits.keys()]) {
+        workspace.invalidate(toProjectPath(vscode.Uri.file(changed).fsPath));
+      }
+    }
+    const written = [...created.map((f) => f.path), ...planned.edits.keys()]
+      .filter((file) => file !== path)
+      .map((file) => vscode.workspace.asRelativePath(file));
+    return { ok: true, message: t.filesChanged(written) };
   }
   const others = [...planned.edits.keys()]
     .filter((file) => file !== path)

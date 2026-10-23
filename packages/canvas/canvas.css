@@ -899,7 +899,7 @@ body {
 .toolbar button:focus-visible,
 .toolbar select:focus-visible,
 .menu [role="menuitem"]:focus,
-.dialog button:focus-visible,
+:is(.dialog, .icon-dialog) button:focus-visible,
 .picker input:focus {
   outline: 2px solid var(--mdg-focus);
   outline-offset: -1px;
@@ -1284,7 +1284,7 @@ body {
     var(--mdg-menu-bg);
 }
 
-.dialog[hidden] {
+:is(.dialog, .icon-dialog)[hidden] {
   display: none;
 }
 
@@ -1428,7 +1428,7 @@ body {
   color: var(--vscode-list-activeSelectionForeground, #fff);
 }
 
-.dialog {
+:is(.dialog, .icon-dialog) {
   position: absolute;
   inset: 0;
   z-index: 20;
@@ -1438,7 +1438,7 @@ body {
   background: rgba(0, 0, 0, 0.25);
 }
 
-.dialog .box {
+:is(.dialog, .icon-dialog) .box {
   max-width: 420px;
   padding: 14px 16px;
   border: 1px solid var(--mdg-border);
@@ -1454,13 +1454,13 @@ body {
   overflow: auto;
 }
 
-.dialog .buttons {
+:is(.dialog, .icon-dialog) .buttons {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
 }
 
-.dialog button {
+:is(.dialog, .icon-dialog) button {
   padding: 4px 12px;
   border: 1px solid var(--vscode-button-border, transparent);
   border-radius: 3px;
@@ -1470,19 +1470,19 @@ body {
   cursor: pointer;
 }
 
-.dialog .title {
+:is(.dialog, .icon-dialog) .title {
   margin-bottom: 10px;
   font-weight: 600;
 }
 
-.dialog .box > label {
+:is(.dialog, .icon-dialog) .box > label {
   display: block;
   margin-bottom: 2px;
   font-size: 12px;
   color: var(--mdg-muted);
 }
 
-.dialog input[type="text"] {
+:is(.dialog, .icon-dialog) input[type="text"] {
   width: 100%;
   padding: 3px 6px;
   border: 1px solid var(--vscode-input-border, var(--mdg-border));
@@ -1492,19 +1492,19 @@ body {
   font: inherit;
 }
 
-.dialog input:focus-visible {
+:is(.dialog, .icon-dialog) input:focus-visible {
   outline: 2px solid var(--mdg-focus);
   outline-offset: -1px;
 }
 
-.dialog .hint {
+:is(.dialog, .icon-dialog) .hint {
   display: block;
   margin-top: 2px;
   font-size: 12px;
   color: var(--mdg-muted);
 }
 
-.dialog .hint.error {
+:is(.dialog, .icon-dialog) .hint.error {
   color: var(--vscode-errorForeground, #c42b1c);
 }
 
@@ -1526,7 +1526,7 @@ body {
   opacity: 0.6;
 }
 
-.dialog button.primary {
+:is(.dialog, .icon-dialog) button.primary {
   background: var(--vscode-button-background, #0e639c);
   color: var(--vscode-button-foreground, #fff);
 }
@@ -2050,6 +2050,241 @@ body {
   color: var(--mdg-muted);
 }
 
+/* The foot holds the picker's hint and, on a canvas of a project, Add icon… at its end. */
+.icon-picker-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-picker-foot .hint {
+  flex: 1;
+  min-width: 0;
+}
+
+.icon-picker-foot button.add-icon,
+.library-foot button.add-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border: 1px solid var(--vscode-button-border, var(--mdg-border));
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 11px;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color var(--mdg-motion-fast) var(--mdg-ease),
+    border-color var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.icon-picker-foot button.add-icon:hover,
+.library-foot button.add-icon:hover {
+  border-color: var(--mdg-focus);
+  background: color-mix(in srgb, var(--mdg-focus) 10%, transparent);
+}
+
+.icon-picker-foot button.add-icon:focus-visible,
+.library-foot button.add-icon:focus-visible {
+  outline: 2px solid var(--mdg-focus);
+  outline-offset: 1px;
+}
+
+.icon-picker-foot button.add-icon svg,
+.library-foot button.add-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+.library-foot {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--mdg-border);
+}
+
+.library-foot:has(> button[hidden]) {
+  display: none;
+}
+
+/* The Add icon dialog: the pack, the licence of a new one, and a row per file. */
+.add-icons .box {
+  display: flex;
+  flex-direction: column;
+  width: min(460px, calc(100% - 32px));
+  max-width: none;
+  max-height: calc(100% - 32px);
+}
+
+.add-icons .rows-title,
+.add-icons .licence > label {
+  display: block;
+  margin: 10px 0 4px;
+  font-size: 12px;
+  color: var(--mdg-muted);
+}
+
+.add-icons .licence .row {
+  display: flex;
+  gap: 6px;
+}
+
+.add-icons select,
+.add-icons .licence-other {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 2px 6px;
+  border: 1px solid var(--vscode-input-border, var(--mdg-border));
+  border-radius: 3px;
+  background: var(--vscode-input-background, #fff);
+  color: var(--vscode-input-foreground, inherit);
+  font: inherit;
+}
+
+.add-icons .icon-rows {
+  display: grid;
+  gap: 6px;
+  min-height: 0;
+  max-height: 300px;
+  margin: 0 0 8px;
+  padding: 0 2px 0 0;
+  overflow: auto;
+  list-style: none;
+  scrollbar-width: thin;
+}
+
+.add-icons .icon-row {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px;
+  border: 1px solid var(--mdg-border);
+  border-radius: 6px;
+  animation: mdg-rise-in var(--mdg-motion) var(--mdg-ease) both;
+  animation-delay: calc(var(--i, 0) * 24ms);
+  transition:
+    opacity var(--mdg-motion-fast) var(--mdg-ease),
+    border-color var(--mdg-motion-fast) var(--mdg-ease),
+    display var(--mdg-motion-fast) allow-discrete;
+}
+
+.add-icons .icon-row:has(input[aria-invalid="true"]) {
+  border-color: var(--vscode-inputValidation-errorBorder, #be1100);
+}
+
+.add-icons .icon-row.left-out {
+  opacity: 0.62;
+}
+
+.add-icons .icon-row.gone {
+  display: none;
+  opacity: 0;
+}
+
+.add-icons .thumb {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--mdg-fg) 4%, transparent);
+  color: var(--mdg-fg);
+}
+
+.add-icons .thumb svg {
+  width: 40px;
+  height: 40px;
+  animation: mdg-fade-in var(--mdg-motion) var(--mdg-ease);
+}
+
+.add-icons .thumb.loading {
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--mdg-fg) 6%, transparent) 25%,
+    color-mix(in srgb, var(--mdg-fg) 13%, transparent) 50%,
+    color-mix(in srgb, var(--mdg-fg) 6%, transparent) 75%
+  );
+  background-size: 300% 100%;
+  animation: mdg-shimmer 1.2s linear infinite;
+}
+
+.add-icons .thumb.refused {
+  color: var(--vscode-errorForeground, #c42b1c);
+}
+
+.add-icons .thumb.refused svg {
+  width: 20px;
+  height: 20px;
+}
+
+.add-icons .fields {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.add-icons .file {
+  overflow: hidden;
+  font-size: 11px;
+  color: var(--mdg-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.add-icons input[aria-invalid="true"] {
+  border-color: var(--vscode-inputValidation-errorBorder, #be1100);
+}
+
+.add-icons .problem {
+  min-height: 15px;
+  font-size: 11px;
+  color: var(--mdg-muted);
+  transition: color var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.add-icons .problem.error,
+.add-icons .add-status.error {
+  color: var(--vscode-errorForeground, #c42b1c);
+}
+
+.add-icons button.remove {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--mdg-muted);
+}
+
+.add-icons button.remove:hover {
+  border-color: var(--mdg-border);
+  color: inherit;
+}
+
+.add-icons button.remove svg {
+  width: 12px;
+  height: 12px;
+}
+
+.add-icons .add-status {
+  min-height: 16px;
+  margin-bottom: 6px;
+}
+
+.add-icons button.primary[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
 /* The icon under the pointer while it is dragged onto the canvas. */
 .icon-drag {
   position: absolute;
@@ -2397,11 +2632,11 @@ body {
 }
 
 /* A dialog's backdrop and box fade in. */
-.dialog:not([hidden]) {
+:is(.dialog, .icon-dialog):not([hidden]) {
   animation: mdg-fade-in var(--mdg-motion) var(--mdg-ease);
 }
 
-.dialog:not([hidden]) .box {
+:is(.dialog, .icon-dialog):not([hidden]) .box {
   animation: mdg-rise-in var(--mdg-motion) var(--mdg-ease);
 }
 
@@ -2438,7 +2673,7 @@ body {
 .library-item,
 .library-section .category,
 .empty .empty-actions button,
-.dialog button {
+:is(.dialog, .icon-dialog) button {
   transition:
     background-color var(--mdg-motion-fast) var(--mdg-ease),
     border-color var(--mdg-motion-fast) var(--mdg-ease),
@@ -2490,7 +2725,8 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .icon-option .thumb.loading,
-  .panel .icon-thumb.loading {
+  .panel .icon-thumb.loading,
+  .add-icons .thumb.loading {
     animation: none;
   }
 }

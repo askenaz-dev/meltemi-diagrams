@@ -115,6 +115,18 @@ describe("assets in validate and export", () => {
     );
   });
 
+  it("warns about an icon file a reference cannot name, in validate and in assets list", async () => {
+    const project = "corpus/projects/invalid/asset.unusable-name";
+    const validate = await mdg(REPO_ROOT, "validate", project);
+    expect(validate.code).toBe(0);
+    expect(validate.stdout).toContain(
+      `${project}/assets/icons/brand/My Logo (1).svg:1:1: warning asset.unusable-name`,
+    );
+    const list = await mdg(REPO_ROOT, "assets", "list", project);
+    expect(list.stdout + list.stderr).toContain("asset.unusable-name");
+    expect(list.stdout + list.stderr).toContain("My-Logo-1.svg");
+  });
+
   it("exports icons and project fonts", async () => {
     const file = `${ASSETS}/diagrams/overview.meltemi`;
     const system = await mdg(REPO_ROOT, "export", file, "--stdout", "--fonts", "system");

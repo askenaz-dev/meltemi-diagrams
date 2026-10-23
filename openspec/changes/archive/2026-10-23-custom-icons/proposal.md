@@ -19,8 +19,8 @@ and `project-explorer`.
 ## What Changes
 
 - **Add icon… in the icon picker and the Libraries panel.** The picker's footer and the Project
-  group of the Libraries panel offer **Add icon…**, which asks the host for one or several `.svg`
-  files and opens a small dialog over the canvas: the pack's prefix (`project` by default,
+  group of the Libraries panel offer **Add icon…**, which opens the system's file chooser for one
+  or several `.svg` files and a small dialog over the canvas: the pack's prefix (`project` by default,
   remembered while the canvas is open; `tabler` refused), one editable name per file, slugified
   from the file name, the licence when the prefix is new ("Own work", the common SPDX identifiers,
   or a typed identifier), and a preview of each icon drawn through the sanitiser; a file the
@@ -31,10 +31,11 @@ and `project-explorer`.
   icon is found by the search, listed in the Libraries panel and licensed. With elements selected
   that take icons, the new icon is applied to them in the same step; without a selection the
   picker shows it, chosen.
-- **A new session request.** `addIcons { prefix, licence?, files: [{ name, svg }] }` joins
-  `pick` in the canvas protocol; the session sanitises, slugifies, checks the names against the
-  registry and answers the references, or the refusal per file; the playground and VS Code write
-  the files, rebuild the registry and apply the style edits.
+- **Two session requests.** `checkIcons` checks the dialog's prefix and files as they are typed
+  (the name offered, a preview, the problems) and `addIcons` adds them; the session sanitises,
+  slugifies, checks the names against the registry and answers the references, or the refusal per
+  file; the playground and VS Code write the files (`ProjectSessions.planAssetSteps`), rebuild the
+  registry and apply the style edits in one undo step.
 - **The project's packs in the picker.** An empty query shows Recent, then the project's packs,
   then the Technology library. The Libraries panel lists a Project library made of the project's
   SVG folder packs and `assets/libraries/project.json`.
@@ -77,19 +78,23 @@ and `project-explorer`.
 
 ## Impact
 
-- `packages/assets`: `src/packs.ts` (`SvgFolderPack` reporting unusable names, `slugifyIconName`),
-  `src/sanitize.ts` reused unchanged for previews; tests.
-- `packages/project`: `src/assets.ts` (`asset.unusable-name`, the hint), `src/files.ts`
-  (`iconFileName`), messages `en`/`es`; tests.
-- `packages/editor`: `src/canvas/protocol.ts` (`addIcons` request and answer), `src/session.ts`,
-  `src/icons.ts` (the project group, the Project library), `src/projects.ts` (the files to write
-  and the licence entry), messages `en`/`es`; tests.
-- `packages/canvas`: `src/icon-picker.ts` (Add icon…), `src/library.ts` (Project group), a new
-  `src/add-icons.ts` dialog, `canvas.css`, messages `en`/`es`; tests.
-- `packages/playground`: `src/canvas-host.ts`, `src/shell.ts`, `src/studio.ts` (`problems()` with
-  asset diagnostics, `addFiles` from the canvas), `src/explorer/` counts; browser tests.
-- `packages/vscode`: `src/extension/pickers.ts`, `src/extension/canvas.ts`,
-  `src/extension/documents.ts` (asset diagnostics in the collection); the webview suite.
+- `packages/assets`: `src/packs.ts` (`slugifyIconName`, `isIconName`), `src/sanitize.ts` reused
+  unchanged for previews; tests.
+- `packages/project`: `src/assets.ts` (`asset.unusable-name` and its hint, `iconFilePath`,
+  `PROJECT_LIBRARY_FILE`), messages `en`/`es`; tests and the corpus project
+  `corpus/projects/invalid/asset.unusable-name`; `docs/language/diagnostics.md` and its copy.
+- `packages/editor`: `src/canvas/protocol.ts` (`checkIcons` and `addIcons` with their answers,
+  `CanvasRender.project`), `src/add-icons.ts` (the checks and the plan), `src/asset-files.ts`
+  (the JSON files of the assets), `src/session.ts`, `src/icons.ts` (the project's packs first),
+  `src/projects.ts` (`planAssetSteps`), messages `en`/`es`; tests.
+- `packages/canvas`: `src/icon-picker.ts` (Add icon…), `src/library.ts` (Add icon…), a new
+  `src/add-icons.ts` dialog, `src/app.ts` (the file chooser, the flow), `src/view-only.ts`,
+  `canvas.css`, messages `en`/`es`; tests.
+- `packages/playground`: `src/studio.ts` (the files created in one step, `problems()` with asset
+  diagnostics), `src/history.ts` (`recordCreates`), `src/explorer/tree-model.ts` (a folder's own
+  problems); unit and browser tests.
+- `packages/vscode`: `src/extension/canvas.ts` (the files created), `src/extension/providers.ts`
+  and `asset-problems.ts` (asset diagnostics in a collection); unit tests and the webview suite.
 - Exporters, the player, the catalog and the cloud service need no change: icons are already
   inline paths in every scene, and `.svg` and `.json` are text files of a cloud project.
 - `docs/language/assets.md`, `docs/es/language/assets.md`, `docs/editor.md`, `docs/es/editor.md`,

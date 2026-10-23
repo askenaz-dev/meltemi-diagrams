@@ -75,6 +75,9 @@ archivos siguen siendo portables.
   más reciente del proveedor.
 - El `prefix` de un archivo de Iconify debe ser igual al nombre del archivo.
 - `"icons": { "cloud": "aws" }` en `project.json` agrega alias: `cloud:lambda` es `aws:lambda`.
+- Un archivo SVG cuyo nombre una referencia no puede escribir (`My Logo (1).svg`: un espacio,
+  paréntesis) queda fuera de su paquete con la advertencia `asset.unusable-name`, cuya sugerencia
+  dice el nombre que darle (`My-Logo-1.svg`); el paquete conserva sus otros iconos.
 
 Busca nombres de iconos con la línea de comandos, que compara los nombres, las palabras clave y las
 categorías:
@@ -82,6 +85,32 @@ categorías:
 ```bash
 pnpm mdg assets icons cloud upload
 ```
+
+### Agregar iconos desde el editor
+
+**Agregar icono…**, al pie del selector de iconos y del panel Bibliotecas, agrega al proyecto
+archivos SVG propios, en VS Code y en el playground, cuando el archivo pertenece a un proyecto.
+Elige uno o varios archivos `.svg`; un diálogo muestra cada uno dibujado como quedará, el nombre
+que recibe y el paquete:
+
+- **Paquete**: `project` por defecto, u otro prefijo; se rechaza un paquete integrado (`tabler`,
+  `aws`…), el de un plugin, un archivo de Iconify del proyecto o un alias.
+- **Licencia**, que solo se pide para un paquete nuevo: **Obra propia** (`LicenseRef-Project`),
+  `CC-BY-4.0`, `CC0-1.0`, `MIT`, `Apache-2.0`, u **Otra…** para otro identificador SPDX o nombre
+  `LicenseRef-`.
+- **Nombre**, hecho con el del archivo (`My Logo.svg` es `My-Logo`, y un nombre que el paquete ya
+  tiene recibe `-2`), que se edita en el sitio; se rechaza al escribirlo un nombre ocupado o uno
+  que una referencia no puede escribir.
+- Un archivo que el saneamiento rechaza (un `<script>`, un enlace externo), una imagen que no es
+  SVG (que se agrega como `image`) o un archivo de más de 256 KB queda fuera, con el motivo.
+
+Agregar escribe, en un solo paso de deshacer: `assets/icons/<prefix>/<name>.svg` por icono, la
+entrada del paquete en `assets/licenses.json` cuando es nuevo, y un elemento por icono en
+`assets/libraries/project.json` (la biblioteca Project, una categoría por paquete), así que el
+icono se encuentra, aparece en la lista y tiene licencia de inmediato. Con elementos
+seleccionados, reciben el primer icono en el mismo paso; sin ellos, la herramienta de icono queda
+armada con él. Una búsqueda vacía del selector muestra tus iconos recientes, luego los paquetes
+propios del proyecto y luego la biblioteca Tecnología.
 
 ### Iconos de proveedores
 

@@ -70,12 +70,37 @@ with gradients in `<defs>`. Nothing is referenced with `<use>` or `<image>`, so 
   newer vendor set.
 - An Iconify file's `prefix` must equal its file name.
 - `"icons": { "cloud": "aws" }` in `project.json` adds aliases: `cloud:lambda` is `aws:lambda`.
+- An SVG file whose name a reference cannot write (`My Logo (1).svg`: a space, brackets) is left
+  out of its pack with the warning `asset.unusable-name`, whose hint names the file to rename it
+  to (`My-Logo-1.svg`); the pack keeps its other icons.
 
 Find icon names with the command line, which matches names, tags and categories:
 
 ```bash
 pnpm mdg assets icons cloud upload
 ```
+
+### Adding icons from the editor
+
+**Add icon…** at the foot of the icon picker and of the Libraries panel adds SVG files of your own
+to the project, in VS Code and in the playground, when the file belongs to a project. Pick one or
+several `.svg` files; a dialog shows each one drawn as it will be, the name it gets and the pack:
+
+- **Pack**: `project` by default, or another prefix; a built-in pack (`tabler`, `aws`…), a
+  plugin's, an Iconify file of the project or an alias is refused.
+- **Licence**, asked for a new pack only: **Own work** (`LicenseRef-Project`), `CC-BY-4.0`,
+  `CC0-1.0`, `MIT`, `Apache-2.0`, or **Other…** for another SPDX identifier or `LicenseRef-` name.
+- **Name**, made of the file's (`My Logo.svg` is `My-Logo`, a name the pack has gets `-2`), and
+  edited in place; a name taken or one a reference cannot write is refused as it is typed.
+- A file the sanitiser refuses (a `<script>`, an external link), a picture that is not an SVG
+  (added as an `image` instead) or a file over 256 KB is left out, with the reason.
+
+Adding writes, in one undo step: `assets/icons/<prefix>/<name>.svg` per icon, the pack's entry in
+`assets/licenses.json` when it is new, and an item per icon in `assets/libraries/project.json`
+(the Project library, a category per pack), so the icon is found, listed and licensed at once.
+With elements selected, they take the first icon in the same step; without, the icon tool is
+armed with it. An empty search of the picker shows your recent icons, then the project's own
+packs, then the Technology library.
 
 ### Provider icons
 

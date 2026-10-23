@@ -168,6 +168,37 @@ describe("the person's edits reach the document", () => {
     expect(a.errors).toEqual([]);
   });
 
+  it("writes icons the canvas adds as text files of the document, as an editing guest may", () => {
+    const pin = '<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>';
+    const a = device("a", {
+      state: seeded({
+        "project.json": '{ "name": "p", "language": "0.2" }\n',
+        "d.meltemi": 'language "0.2"\n\ndiagram d: flow {\n  api["API"]\n}\n',
+      }),
+    });
+    a.studio.select("d.meltemi");
+    a.studio.analyzeNow();
+    a.studio.receive({
+      type: "addIcons",
+      token: 1,
+      prefix: "project",
+      licence: "MIT",
+      files: [{ file: "pin.svg", name: "pin", svg: pin }],
+      targets: [],
+    });
+    const texts = docTexts(a);
+    expect(texts["assets/icons/project/pin.svg"]).toBe(pin);
+    expect(JSON.parse(texts["assets/licenses.json"]!)).toEqual({
+      icons: { project: { license: "MIT" } },
+    });
+    expect(JSON.parse(texts["assets/libraries/project.json"]!).categories[0].items).toEqual([
+      { icon: "project:pin", label: "Pin" },
+    ]);
+    // Nothing is uploaded as a blob: the icon is text.
+    expect(cloudDoc(a.doc).binaries.size).toBe(0);
+    expect(a.errors).toEqual([]);
+  });
+
   it("keeps a file's id and history when an import replaces its text", () => {
     const a = device("a", { state: seeded({ "a.md": "old text" }) });
     const id = idOf(a, "a.md");

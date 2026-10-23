@@ -187,6 +187,7 @@ icono en un diagrama, una clase de tema o una regla ([assets.md](assets.md)).
 | `asset.unsafe-svg`        | error    | No se puede usar el icono `<ref>`: `<element or attribute>` no está permitido en los iconos.                                                                     |
 | `asset.too-large`         | error    | Un archivo o un icono supera un límite de tamaño o de complejidad.                                                                                               |
 | `asset.duplicate-pack`    | error    | El paquete `<prefix>` ya lo define `<file>` o los paquetes integrados.                                                                                           |
+| `asset.unusable-name`     | warning  | El nombre de un archivo de icono SVG lleva caracteres que una referencia no puede escribir; se deja fuera. (sugerencia: el nombre que darle)                     |
 | `asset.font-restricted`   | warning  | La licencia de `<family>` prohíbe incrustar la fuente; se usa solo para medir el texto.                                                                          |
 | `asset.lock-mismatch`     | warning  | Los recursos difieren de assets.lock.json: `<change>`. (pista: `assets lock`)                                                                                    |
 | `asset.outside-project`   | error    | La ruta de una imagen es una URL, es absoluta, usa barras invertidas o sale de la raíz del proyecto. (el modelo comprueba la forma)                              |

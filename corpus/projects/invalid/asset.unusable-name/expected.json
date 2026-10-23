@@ -1,0 +1,25 @@
+{
+  "assets/icons/brand/My Logo (1).svg": [
+    {
+      "code": "asset.unusable-name",
+      "severity": "warning",
+      "message": "`assets/icons/brand/My Logo (1).svg` is left out: an icon's name holds only letters, digits, `_`, `.` and `-`.",
+      "range": {
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        }
+      },
+      "hints": [
+        "Rename it to `My-Logo-1.svg`."
+      ],
+      "related": []
+    }
+  ]
+}

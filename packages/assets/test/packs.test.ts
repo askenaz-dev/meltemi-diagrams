@@ -11,9 +11,11 @@ import {
   folderIntegrity,
   formatLock,
   integrityOf,
+  isIconName,
   packRatio,
   searchIcons,
   sha256,
+  slugifyIconName,
   toHex,
   type AssetLock,
   type AssetMetadata,
@@ -76,6 +78,30 @@ describe("Tabler pack", () => {
     const found = new IconRegistry([tabler]).lookup("tabler:servr");
     expect(found.status).toBe("unknown-icon");
     if (found.status === "unknown-icon") expect(found.suggestions).toContain("tabler:server");
+  });
+});
+
+describe("icon names of files", () => {
+  it("turns a file name into one a reference can write", () => {
+    expect(slugifyIconName("My Logo (1).svg")).toBe("My-Logo-1");
+    expect(slugifyIconName("Café.svg")).toBe("Cafe");
+    expect(slugifyIconName("pin.svg")).toBe("pin");
+    expect(slugifyIconName("folder/sub/api_gateway.v2.svg")).toBe("api_gateway.v2");
+    expect(slugifyIconName("  --spaced  out--.svg")).toBe("spaced-out");
+    expect(slugifyIconName("Ünïcödé + ★.svg")).toBe("Unicode");
+  });
+
+  it("leaves nothing of a name with nothing a reference can hold", () => {
+    expect(slugifyIconName("★★.svg")).toBe("");
+    expect(slugifyIconName(".svg")).toBe("");
+  });
+
+  it("tells the names a reference can write", () => {
+    expect(isIconName("My-Logo-1")).toBe(true);
+    expect(isIconName("api_gateway.v2")).toBe(true);
+    expect(isIconName("My Logo")).toBe(false);
+    expect(isIconName("")).toBe(false);
+    expect(isIconName("a:b")).toBe(false);
   });
 });
 

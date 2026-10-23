@@ -96,6 +96,15 @@ with the project's switcher at its top, as VS Code lists a workspace
   copies of entities, without their relations. A combination without an id is named in the view
   for a style, an effect, a route or a label, and the C4 context menu's entry reads **Connect
   to…** ([decision 0053](docs/decisions/0053-c4-entities-and-routes.md)).
+- Icons of your own: **Add icon…** at the foot of the icon picker and of the Libraries panel, in a
+  file of a project, picks SVG files and shows a dialog with the pack (`project` by default), the
+  licence of a new pack and a row per file with its preview, its name and what is wrong. Adding
+  writes `assets/icons/<pack>/<name>.svg`, the pack's licence and the Project library in one undo
+  step; the selected elements take the first icon, or the icon tool is armed with it. An empty
+  search of the picker shows the project's own packs before the Technology library
+  ([decision 0054](docs/decisions/0054-custom-icons.md)).
+- The problems of the assets (a pack without licence, an icon the sanitiser refuses) show in the
+  playground's explorer, on the file and its folders, and in VS Code's Problems view.
 
 ### Command line
 
@@ -114,6 +123,8 @@ with the project's switcher at its top, as VS Code lists a workspace
   installed (`mdg validate`, `mdg preview`). The package ships the skill
   ([drawing with coding agents](docs/agents.md),
   [decision 0056](docs/decisions/0056-agent-skill-install.md)).
+- An SVG icon whose file name a reference cannot write (`My Logo (1).svg`) is left out of its pack
+  with the warning `asset.unusable-name`, which names the file to rename it to (`My-Logo-1.svg`).
 
 ### Fixed
 

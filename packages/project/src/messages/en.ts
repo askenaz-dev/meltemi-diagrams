@@ -272,6 +272,9 @@ export const en = {
       iconSetPrefix: (prefix: string) =>
         `The icon set's \`prefix\` must be ${code(prefix)}, the name of the file.`,
       emptyFolder: (path: string) => `${code(path)} holds no SVG icons.`,
+      /** `asset.unusable-name`: an SVG file whose name a reference cannot write. */
+      unusableName: (path: string) =>
+        `${code(path)} is left out: an icon's name holds only letters, digits, \`_\`, \`.\` and \`-\`.`,
       licensesObject: (file: string) => `${file} must hold an object.`,
       licensesKey: (key: string, file: string) =>
         `Unknown key ${code(key)}; ${file} holds \`icons\` and \`fonts\`.`,
@@ -363,6 +366,8 @@ export const en = {
       imagesInside: "Keep images inside the project folder, next to the diagrams that use them.",
       lookedFor: (path: string) => `Looked for ${code(path)} in the project.`,
       imageFormats: "Images are PNG, JPEG, GIF, WebP or SVG files of at most 8 MB.",
+      renameIcon: (file: string) => `Rename it to ${code(file)}.`,
+      nameIcon: "Rename it with letters or digits.",
       renamePack:
         "Rename the file or folder; the prefix is the name diagrams write before the colon.",
       packLicense: (prefix: string, file: string) =>

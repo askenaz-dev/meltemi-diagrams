@@ -50,14 +50,15 @@ export function undoRedoKey(event: {
 
 /**
  * Whether a message to the host would change the document, or open what changes it: an action
- * (every plan starts there), a new theme, a token of the theme and the theme panel's opening. A
- * read-only canvas sends none of them.
+ * (every plan starts there), a new theme, a token of the theme, the theme panel's opening and the
+ * icons added to the project. A read-only canvas sends none of them.
  */
 export function writesDocument(message: CanvasMessage): boolean {
   switch (message.type) {
     case "action":
     case "newTheme":
     case "themeToken":
+    case "addIcons":
       return true;
     case "editTheme":
       return message.open;

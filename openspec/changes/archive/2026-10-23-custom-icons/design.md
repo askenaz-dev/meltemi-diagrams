@@ -82,9 +82,13 @@ host hands back another kind.
 folded, every run of characters outside `[A-Za-z0-9_.-]` replaced by `-`, leading and trailing `-`
 trimmed, so `My Logo (1).svg` becomes `My-Logo-1`; a name taken in the pack is offered as
 `<name>-2`, `<name>-3`…; the person may edit it and the dialog refuses an invalid or taken name
-inline. The prefix defaults to `project`, matches `^[a-z0-9][a-z0-9-]*$`, refuses `tabler` and the
-prefixes of plugin packs (`asset.duplicate-pack` would follow), and is remembered while the canvas
-is open (`PersistedState` of the canvas, as the icon placement is). The same slug rule reports a
+inline. The prefix defaults to `project`, matches `^[a-z0-9][a-z0-9-]*$`, and refuses every
+built-in pack's prefix (`tabler`, whose replacement `asset.duplicate-pack` forbids, and the vendor
+packs, which a project may replace with a whole vendor set but not by adding one icon), the
+prefixes of plugin packs (`asset.duplicate-pack` would follow), the Iconify files of the project
+(the dialog writes SVG files, and a folder beside the file would be a second pack), and the
+aliases of `project.json`; it is remembered while the canvas
+is open (in the canvas's memory, as the icon placement is). The same slug rule reports a
 file already in a pack whose name cannot be referenced: `asset.unusable-name` (warning) on the
 file, hint "rename it to `<slug>.svg`", and the pack keeps its other icons. Alternative: widen the
 grammar to accept any file name quoted: references with spaces would break completion, the lock
@@ -100,35 +104,51 @@ shows no select. Alternatives: always write `LicenseRef-Project` silently (a per
 vendor's icons would mislabel them); require the licence file to be edited first (the friction
 this change removes). Decision: ask once per prefix, in the dialog.
 
-### The request: `addIcons`
+### The requests: `checkIcons` and `addIcons`
 
-`packages/editor/src/canvas/protocol.ts` gains the canvas message
-`addIcons { token, prefix, licence?: string, files: readonly { name: string, svg: string }[],
-targets: readonly string[] }` and the host answer
-`iconsAdded { token, added: readonly { file, reference }[], refused: readonly { file, reason }[] }`.
-The session (`session.ts`) validates the prefix and the names, sanitises each file
-(`sanitizeSvg`, the refusal reason in the interface language), and returns
-`SessionResult.project` as steps over files, the mechanism `c4-relations-and-effects` introduced:
-`{ kind: "files", steps }` with a `writeFile` step per icon (new operation kind for text files
-that are not `.meltemi`: `{ file, text }`), a `setJsonField` step for `licenses.json` when the
-prefix is new, a `setJsonField` step for `assets/libraries/project.json`, then the
-`setStyleProperty icon` steps on the selected targets. `ProjectSessions.planSteps` learns the
-`writeFile` kind (a new file's whole text, refused when the file exists). The playground's
-`applyProject` and VS Code's `applyProjectEdits` apply every file in one undo step, as the C4
-steps are; the playground then runs `addFiles` so the compiler restarts and the registry is
-rebuilt, and VS Code's watcher on `assets/**` invalidates the workspace. The host's part before
-the request is only the file picker: `canvas-host.ts` (`pickFiles({ kind: "svg", multiple })`,
-beside the image pick) and `extension/pickers.ts` (`showOpenDialog` with the SVG filter), reading
-each file as text. Alternatives: (a) the host writes the files itself and tells the session
-afterwards: two undo steps and two code paths; (b) a plain `pick` answer carrying the SVG text and
-the session planning the rest: this is that, with the dialog's fields added. Decision: one
-request, steps over files, one undo step.
+`packages/editor/src/canvas/protocol.ts` gains two canvas messages and their answers. The dialog
+sends `checkIcons { token, prefix, files: { file, name?, svg }[] }` as the prefix and the names
+are typed (debounced, the latest token kept) and the session answers `iconsChecked { token,
+prefix: { prefix, problem?, existing, licensed }, files: { file, name, problem?, svg }[] }`: the
+name offered when none is typed, a 48 px preview through the sanitiser, and the problem of each;
+the dialog is a view of that answer, so the rules live in one place (`packages/editor/src/
+add-icons.ts`, `checkIconPrefix`, `checkIconFiles`, `addIcons`), tested without a browser.
+Confirming sends `addIcons { token, prefix, licence?, files: { file, name, svg }[], targets }`;
+the session checks again and returns `iconsAdded { token, added, refused }` with
+`SessionResult.project` as `{ kind: "files", steps, assets }`: `assets` holds the new files
+(`assets/icons/<prefix>/<name>.svg`, the text as picked) and the changes of the JSON files of the
+assets (`AssetFileChange`: the pack's licence when it has none, the icons' items in the project's
+library), `steps` the `setStyleProperty icon` statements on the targets that take an icon. The
+hosts plan them with `ProjectSessions.planAssetSteps(document, assets, steps)`, beside
+`planSteps`, which it calls after setting the new files as overlays, so the statements are
+planned against a project that has the icons; it refuses a new file whose path is taken
+(`edit.id-conflict`) and a JSON file it cannot read, keeps the indentation of a JSON file it
+changes (`changedAssetFile`, `packages/editor/src/asset-files.ts`), and answers the edits of the
+files that exist and the files to create. `planSteps` itself stays as it was. Alternatives: (a) a
+`writeFile` kind of `ProjectStep` planned inside `planSteps`: every consumer of the steps (the C4
+paths, their tests) would have to tell the kinds apart; (b) the host writes the files itself and
+tells the session afterwards: two undo steps and two code paths; (c) the dialog checking names
+itself: the registry, the sanitiser and the pack rules would have to reach the webview. Decision:
+the two requests, the assets beside the steps, one undo step.
+
+### The file chooser is the page's
+
+The canvas opens the system's file chooser itself, with an `<input type="file" accept=".svg"
+multiple>`, and reads the files as text: the playground is a page, and VS Code's webview lets a
+page open the chooser, so no host request is needed and the two hosts behave alike; a file that is
+not an SVG, or larger than an icon may be (256 KB), is left out unread. Alternative: a host
+request beside `pick` (`showOpenDialog` in VS Code, a file input in the playground's shell): two
+implementations of the same chooser, and the files' texts going through the host for nothing.
 
 ### After the write
 
-The session's answer carries the references; the canvas marks them Recent, selects the first in
-the picker when nothing was selected (the armed tool then creates with it, as any chosen icon
-does), and the status line says "Added `project:my-logo` to the project". The Libraries panel's
+The session's answer carries the references with their thumbnails; the canvas marks them Recent
+and, when nothing was selected, chooses the first once the drawing that knows it arrives, as a
+click on it in the picker would: the icon tool is armed with it (or the inspector's Icon field
+written with it when the dialog was opened from there), and the status line says "Added
+`project:my-logo` to the project." before the tool's hint. In the playground the step is one of
+the project's undo stack (`History.recordCreates`): undo takes the files away and the texts back,
+from any file, as a move of files is undone; redo writes them again. The Libraries panel's
 Project group and the picker's empty-query groups refresh when the next `libraries`/`searchIcons`
 answer arrives after the registry is rebuilt. Elements that were selected take the icon through
 the `setStyleProperty` steps of the same plan.
@@ -175,3 +195,6 @@ icons are not. Decision: allowed when editing is; the image refusal stays.
   rename, and the CLI's `assets list` shows it too.
 - [VS Code undoes a `WorkspaceEdit` with new files file by file] → the same holds for Rename
   Symbol and the C4 steps; the message names the files written.
+- [The real-VS Code suite cannot run where VS Code is not installed for it] → the asset
+  diagnostics are published by a function tested without VS Code (`assetProblems`), and the
+  canvas's flow is covered by the webview suite with the same page.

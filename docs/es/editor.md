@@ -434,8 +434,16 @@ lectura, los diagramas de secuencia y el modo historia nunca lo abren.
   su nombre; una miniatura muestra un brillo animado mientras se carga su paquete, y los iconos que
   un paquete no puede dibujar no se ofrecen nunca. Un `pack:name`
   escrito que nombra un icono, como `aws:lambda`, va primero. Sin nada escrito, el selector muestra
-  los iconos elegidos mientras el lienzo está abierto (**Recientes**, diez como mucho) y luego la
-  primera categoría de la biblioteca Technology.
+  los iconos elegidos mientras el lienzo está abierto (**Recientes**, diez como mucho), luego los
+  paquetes propios del proyecto y luego la primera categoría de la biblioteca Technology.
+- **Agregar iconos.** En un archivo de un proyecto, **Agregar icono…**, al pie del selector (y al
+  del panel Bibliotecas), abre el selector de archivos del sistema para archivos SVG y un diálogo:
+  el paquete (`project` por defecto), la licencia de un paquete nuevo, y una fila por archivo con
+  su vista previa, el nombre que recibe y lo que falla; un archivo del que no puede salir un icono
+  queda fuera con su motivo. Agregar escribe los iconos, la licencia del paquete y la biblioteca
+  Project en un solo paso de deshacer; los elementos seleccionados reciben el primer icono, o sin
+  ellos la herramienta de icono queda armada con él
+  ([agregar iconos](language/assets.md#agregar-iconos-desde-el-editor)).
 - **Teclas.** Las flechas recorren los resultados mientras el campo conserva el foco; Entrar elige
   el resultado activo, o el primero de una búsqueda que aún no ha llegado, cuando llegue; Esc
   cierra el selector y devuelve el foco, y un clic fuera también lo cierra. Tab llega al control de
@@ -512,6 +520,9 @@ como estilo en la línea siguiente, y queda seleccionado sin abrir el editor de 
 lambda1["AWS Lambda"]
 style lambda1 { icon "aws:lambda"; shape icon }
 ```
+
+La biblioteca **Project** reúne los iconos agregados con **Agregar icono…**, una categoría por
+paquete, y el pie del panel también ofrece **Agregar icono…** en un archivo de un proyecto.
 
 **En una caja** lo escribe como un nodo o una caja de la forma actual con el icono junto a su
 etiqueta, así que solo `style lambda1 { icon "aws:lambda" }` para `rounded`; **Solo el icono**, en

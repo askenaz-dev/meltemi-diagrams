@@ -403,7 +403,15 @@ control. Read-only canvases, sequence diagrams and story mode never open it.
   thumbnail shimmers while its pack loads, and icons a pack cannot draw are never offered. A
   typed `pack:name` that names an icon, such as
   `aws:lambda`, comes first. With nothing typed, the picker shows the icons chosen while the
-  canvas is open (**Recent**, ten at most), then the first category of the Technology library.
+  canvas is open (**Recent**, ten at most), then the project's own packs, then the first category
+  of the Technology library.
+- **Adding icons.** In a file of a project, **Add icon…** at the picker's foot (and at the
+  Libraries panel's) opens the system's file chooser for SVG files and a dialog: the pack
+  (`project` by default), the licence of a new pack, and a row per file with its preview, the name
+  it gets and what is wrong; a file no icon can be made of is left out with its reason. Adding
+  writes the icons, the pack's licence and the Project library in one undo step; the selected
+  elements take the first icon, or with none the icon tool is armed with it
+  ([adding icons](language/assets.md#adding-icons-from-the-editor)).
 - **Keys.** The arrows move through the results while the field keeps the focus; Enter chooses
   the active result, or the first one of a search still on its way when it arrives; Escape closes
   the picker and gives the focus back, and a click outside closes it too. Tab reaches the
@@ -475,6 +483,9 @@ editor:
 lambda1["AWS Lambda"]
 style lambda1 { icon "aws:lambda"; shape icon }
 ```
+
+The **Project** library lists the icons added with **Add icon…**, a category per pack, and the
+panel's foot offers **Add icon…** too in a file of a project.
 
 **In a box** writes it as a node or a box of the current shape with the icon beside its label, so
 `style lambda1 { icon "aws:lambda" }` alone for `rounded`; **Only the icon**, in free

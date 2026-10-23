@@ -1567,6 +1567,147 @@ const tests: Test[] = [
     },
   },
   {
+    name: "icons: Add icon… writes the pack, its licence and library in one step, the node takes it, one undo takes it back",
+    async run({ page }) {
+      await openTemplate(page, "flow");
+      const pin =
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/></svg>';
+      type Studio = { text(path: string): string; session: { selected: readonly string[] } };
+      await page.locator('#app .content g[data-id="api"][data-role="element"]').first().click();
+      await until(page, "api selected", () =>
+        (
+          window as unknown as { meltemiPlayground: { studio: Studio } }
+        ).meltemiPlayground.studio.session.selected.includes("api"),
+      );
+      await page.keyboard.press("i");
+      const picker = page.locator("#app").getByRole("dialog", { name: "Icons", exact: true });
+      await picker.waitFor();
+      const chooser = page.waitForEvent("filechooser");
+      await picker.getByRole("button", { name: "Add icon…" }).click();
+      await (
+        await chooser
+      ).setFiles([{ name: "pin.svg", mimeType: "image/svg+xml", buffer: Buffer.from(pin) }]);
+      const dialog = page.locator("#app").getByRole("dialog", { name: "Add icons to the project" });
+      await dialog.waitFor();
+      const confirm = dialog.getByRole("button", { name: "Add 1 icon" });
+      await until(
+        page,
+        "the dialog ready to add",
+        () =>
+          !(
+            document.querySelector<HTMLButtonElement>(".add-icons button.primary")?.disabled ?? true
+          ),
+      );
+      // The picker has faded out and the dialog risen in.
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: join(output, "add-icons-playground.png") });
+      await confirm.click();
+      await until(page, "the icon written on api", () =>
+        (document.querySelector(".code-input") as HTMLTextAreaElement).value.includes(
+          'style api { icon "project:pin" }',
+        ),
+      );
+      const files = () =>
+        page.evaluate(() => {
+          const s = (window as unknown as { meltemiPlayground: { studio: Studio } })
+            .meltemiPlayground.studio;
+          return {
+            icon: s.text("assets/icons/project/pin.svg"),
+            licences: s.text("assets/licenses.json"),
+            library: s.text("assets/libraries/project.json"),
+          };
+        });
+      const written = await files();
+      assert.equal(written.icon, pin);
+      assert.deepEqual(JSON.parse(written.licences), {
+        icons: { project: { license: "LicenseRef-Project" } },
+      });
+      assert.deepEqual(JSON.parse(written.library).categories, [
+        { id: "project", title: "project", items: [{ icon: "project:pin", label: "Pin" }] },
+      ]);
+      await until(
+        page,
+        "the icon drawn on the canvas",
+        () =>
+          document.querySelector('#app .content g[data-id="project:pin"][data-role="icon"]') !==
+          null,
+      );
+      // The explorer lists the icon, with no problem.
+      await until(
+        page,
+        "the assets folder listed",
+        () => document.querySelector('.tree li[data-key="d:assets"]') !== null,
+      );
+      assert.equal(
+        await page.locator('.tree li[data-key="d:assets"] > .tree-row .tree-badge').isHidden(),
+        true,
+      );
+      // One undo takes the files and the statement back; redo brings them again.
+      await page.locator(".code-input").focus();
+      await page.keyboard.press("Control+z");
+      await until(
+        page,
+        "the icon taken back",
+        () =>
+          !(document.querySelector(".code-input") as HTMLTextAreaElement).value.includes(
+            "project:pin",
+          ),
+      );
+      assert.deepEqual(await files(), { icon: "", licences: "", library: "" });
+      await page.keyboard.press("Control+Shift+z");
+      await until(page, "the icon back", () =>
+        (document.querySelector(".code-input") as HTMLTextAreaElement).value.includes(
+          "project:pin",
+        ),
+      );
+      assert.equal((await files()).icon, pin);
+    },
+  },
+  {
+    name: "icons: the problems of the assets count on their folder, and go when they are fixed",
+    async run({ page }) {
+      await openTemplate(page, "flow");
+      const add = (files: [string, string][]) =>
+        page.evaluate((list) => {
+          (
+            window as unknown as {
+              meltemiPlayground: { studio: { addFiles(f: [string, string][]): void } };
+            }
+          ).meltemiPlayground.studio.addFiles(list);
+        }, files);
+      await add([
+        ["assets/icons/brand/logo.svg", '<svg viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/></svg>'],
+        ["assets/icons/brand/bad.svg", "<svg viewBox='0 0 1 1'><script/></svg>"],
+      ]);
+      const badge = page.locator('.tree li[data-key="d:assets"] > .tree-row .tree-badge');
+      await until(
+        page,
+        "the folder's problems counted",
+        () =>
+          (
+            document.querySelector(
+              '.tree li[data-key="d:assets"] > .tree-row .tree-badge',
+            ) as HTMLElement | null
+          )?.textContent === "2",
+      );
+      assert.match((await badge.getAttribute("class")) ?? "", /is-error/);
+      await add([
+        ["assets/licenses.json", '{ "icons": { "brand": { "license": "MIT" } } }\n'],
+        ["assets/icons/brand/bad.svg", '<svg viewBox="0 0 24 24"><path d="M2 2h20v20H2z"/></svg>'],
+      ]);
+      await until(
+        page,
+        "the problems gone",
+        () =>
+          (
+            document.querySelector(
+              '.tree li[data-key="d:assets"] > .tree-row .tree-badge',
+            ) as HTMLElement | null
+          )?.hidden !== false,
+      );
+    },
+  },
+  {
     name: "explorer: lists folders and diagrams, picks a view, marks problems and keeps project.json for Show all files",
     async run({ page }) {
       await openTemplate(page, "purchase");
@@ -3814,10 +3955,14 @@ async function main(): Promise<void> {
   let failed = 0;
   // Texts separated by `|`: the tests whose name holds any of them.
   const filters = (process.env["PLAYGROUND_TEST_FILTER"] ?? "").split("|").filter((f) => f !== "");
-  const chosen =
+  const named =
     filters.length > 0
       ? tests.filter((test) => filters.some((filter) => test.name.includes(filter)))
       : tests;
+  // PLAYGROUND_TEST_PART=k/n runs the k-th of n runs of consecutive tests, to split the suite.
+  const part = /^(\d+)\/(\d+)$/.exec(process.env["PLAYGROUND_TEST_PART"] ?? "");
+  const size = part ? Math.ceil(named.length / Number(part[2])) : named.length;
+  const chosen = part ? named.slice((Number(part[1]) - 1) * size, Number(part[1]) * size) : named;
   try {
     for (const test of chosen) {
       const context = await browser.newContext({

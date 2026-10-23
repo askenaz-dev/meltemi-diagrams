@@ -68,7 +68,15 @@ export {
   stepsRejected,
   type ProjectStep,
   type StepsResult,
+  type AssetSteps,
 } from "./projects.js";
+export {
+  changedAssetFile,
+  libraryCategoryId,
+  PROJECT_LIBRARY,
+  type AssetFileChange,
+} from "./asset-files.js";
+export { DEFAULT_ICON_PREFIX, addIcons, checkIconFiles, checkIconPrefix } from "./add-icons.js";
 export { importSpec, moveFileEdits, type FileMove, type MoveEdits } from "./move-file.js";
 export {
   MAX_PIXELS,
@@ -127,6 +135,10 @@ export type {
   FieldGlyphs,
   IconChoiceInfo,
   IconGroupInfo,
+  IconFileInput,
+  IconFileCheck,
+  IconPrefixCheck,
+  AddedIconInfo,
   InspectorField,
   InspectorModel,
   ThemePanelModel,

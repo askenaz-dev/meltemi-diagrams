@@ -43,6 +43,7 @@ import { carriedChildren } from "./canvas/selection.js";
 import {
   isCanvasMessage,
   type CanvasAction,
+  type CanvasMessage,
   type CanvasRender,
   type DependentInfo,
   type ElementInfo,
@@ -77,7 +78,8 @@ import {
   modelIsLocal,
   pasteEntities,
 } from "./c4.js";
-import type { ProjectStep } from "./projects.js";
+import type { AssetSteps, ProjectStep } from "./projects.js";
+import { addIcons, checkIconFiles, checkIconPrefix } from "./add-icons.js";
 import { storyChoices, storyPlayback } from "./story.js";
 
 /** What the host does after the session handled a message. */
@@ -106,6 +108,8 @@ export interface SessionResult {
     | {
         readonly kind: "files";
         readonly steps: readonly ProjectStep[];
+        /** Files of the assets written first, such as added icons (`planAssetSteps`). */
+        readonly assets?: AssetSteps;
         /** The action to send again with `cascade: true` when the steps are refused for dependents. */
         readonly retry?: CanvasAction;
       };
@@ -508,6 +512,7 @@ export class CanvasSession {
       scenario: scenario ?? null,
       effects,
       playing,
+      ...(this.inProject() ? { project: true } : {}),
       entities: diagram.type === "c4" ? entityChoices(diagram) : [],
       selection: this.selection,
       ...(view.layout?.theme
@@ -584,6 +589,44 @@ export class CanvasSession {
     return iconGroups(analysis, this.libraries(), query);
   }
 
+  /**
+   * Adds icons to the project (`addIcons`): the files of the assets and the statements that give
+   * the first icon to the targets, as one request of steps over files the host applies in one
+   * undo step; outside a project every file is refused.
+   */
+  private addIcons(message: CanvasMessage & { readonly type: "addIcons" }): SessionResult {
+    const words = wording().addIcons;
+    if (!this.inProject()) {
+      const reason = words.needsProject;
+      return {
+        messages: [
+          {
+            type: "iconsAdded",
+            token: message.token,
+            added: [],
+            refused: message.files.map((f) => ({ file: f.file, reason })),
+          },
+          { type: "rejected", code: "edit.unsafe-target", reason },
+        ],
+      };
+    }
+    const result = addIcons(this.analysis?.icons, this.view()?.diagram, message);
+    const answer: HostMessage = {
+      type: "iconsAdded",
+      token: message.token,
+      added: result.added,
+      refused: result.refused,
+    };
+    if (result.added.length === 0) return { messages: [answer] };
+    return {
+      messages: [
+        answer,
+        { type: "status", message: words.added(result.added.map((a) => a.reference)) },
+      ],
+      project: { kind: "files", steps: result.steps, assets: result.assets },
+    };
+  }
+
   /** Highlights the element or relation of the statement at a text offset. */
   selectAt(offset: number): HostMessage[] {
     if (!this.analysis) return [];
@@ -636,6 +679,19 @@ export class CanvasSession {
             { type: "icons", token: message.token, groups: this.searchIcons(message.query) },
           ],
         };
+      case "checkIcons":
+        return {
+          messages: [
+            {
+              type: "iconsChecked",
+              token: message.token,
+              prefix: checkIconPrefix(analysis.icons, message.prefix),
+              files: checkIconFiles(analysis.icons, message.prefix, message.files),
+            },
+          ],
+        };
+      case "addIcons":
+        return this.addIcons(message);
       case "editTheme":
         this.themeEditing = message.open;
         this.awaitedTheme = undefined;

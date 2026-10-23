@@ -102,6 +102,11 @@ diagrams, as an editor's explorer lists them.
   the menus; the page remembers the choice. A hidden file with a problem says so at the foot, with
   **Show**. **Project settings**, in the Projects panel, opens `project.json` whatever the toggle
   says, and makes it as `init` writes it when the project has none.
+- **The assets' problems.** An icon pack without licence, an icon the sanitiser refuses or a file
+  whose name a reference cannot write counts on the row of its file and on its folders, the pack's
+  folder included, as the problems of diagrams do; an asset file opened lists its own. They go as
+  soon as the file is fixed. Icons added with **Add icon…** come with their licence, so they add
+  none ([adding icons](language/assets.md#adding-icons-from-the-editor)).
 - **Its place.** The edge between the explorer and the code resizes it, from 180 to 480 pixels (the
   arrows on the focused edge, a double click to reset it), and Ctrl+B hides it to a rail and shows it
   again; the page remembers both. A first visit on a screen narrower than 1100 pixels starts with the

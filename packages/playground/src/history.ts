@@ -16,6 +16,8 @@ export interface FileChange {
 interface Entry {
   before: string;
   after: string;
+  /** The step made the file: undone, it goes; redone, it comes back. */
+  readonly created?: boolean;
   selectionBefore?: Selection;
   selectionAfter?: Selection;
   /** Steps that changed several files share a group, undone and redone together. */
@@ -40,12 +42,18 @@ export interface Move {
 export interface Restored {
   readonly moves?: readonly Move[];
   readonly texts: ReadonlyMap<string, string>;
+  /** Files an undo takes away: the step made them. */
+  readonly deletes?: readonly string[];
   readonly selection?: Selection;
 }
 
-/** The files a step moved, in the order they moved; the project's own stack holds it. */
+/**
+ * The files a step moved, in the order they moved, or made (`creates`); the project's own stack
+ * holds it, so an undo asked from any file takes it.
+ */
 interface Structure {
   readonly moves: readonly Move[];
+  readonly creates?: readonly string[];
   readonly group: number;
 }
 
@@ -101,6 +109,30 @@ export class History {
     this.structureRedo.length = 0;
   }
 
+  /**
+   * Records files a step made, with their texts and the texts the step changed in other files, as
+   * one step of the project's stack: undo takes the files away, redo writes them again.
+   */
+  recordCreates(
+    created: readonly { readonly path: string; readonly text: string }[],
+    changes: readonly FileChange[] = [],
+  ): void {
+    if (created.length === 0) {
+      this.record(changes);
+      return;
+    }
+    const group = this.push(
+      [
+        ...changes.filter((c) => c.before !== c.after),
+        ...created.map((c) => ({ path: c.path, before: "", after: c.text, created: true })),
+      ],
+      false,
+    );
+    this.structureUndo.push({ moves: [], creates: created.map((c) => c.path), group });
+    if (this.structureUndo.length > 500) this.structureUndo.shift();
+    this.structureRedo.length = 0;
+  }
+
   /** Records a step; `typing` steps may join the previous typing step of the same file. */
   record(changes: readonly FileChange[], typing = false): void {
     const real = changes.filter((c) => c.before !== c.after);
@@ -132,7 +164,10 @@ export class History {
   }
 
   /** Puts changes on their files' stacks as one new group; answers the group. */
-  private push(changes: readonly FileChange[], typing: boolean): number {
+  private push(
+    changes: readonly (FileChange & { readonly created?: boolean })[],
+    typing: boolean,
+  ): number {
     const group = ++this.groups;
     const time = this.now();
     for (const change of changes) {
@@ -140,6 +175,7 @@ export class History {
       stack.push({
         before: change.before,
         after: change.after,
+        ...(change.created ? { created: true } : {}),
         ...(change.selectionBefore ? { selectionBefore: change.selectionBefore } : {}),
         ...(change.selectionAfter ? { selectionAfter: change.selectionAfter } : {}),
         group,
@@ -196,17 +232,22 @@ export class History {
         : (top?.group ?? structure?.group);
     if (group === undefined) return undefined;
     const texts = new Map<string, string>();
+    const deletes: string[] = [];
     let selection: Selection | undefined;
     for (const [file, stack] of from) {
       const entry = stack.at(-1);
       if (!entry || entry.group !== group) continue;
-      const expected = undo ? entry.after : entry.before;
-      if (file !== path && current(file) !== expected) continue;
+      const now = current(file);
+      // A file the step made is not there before it: redo finds it gone.
+      const matches =
+        entry.created && !undo ? now === undefined : now === (undo ? entry.after : entry.before);
+      if (file !== path && !matches) continue;
       stack.pop();
       const target = to.get(file) ?? [];
       target.push(entry);
       to.set(file, target);
-      texts.set(file, undo ? entry.before : entry.after);
+      if (entry.created && undo) deletes.push(file);
+      else texts.set(file, undo ? entry.before : entry.after);
       if (file === path) selection = undo ? entry.selectionBefore : entry.selectionAfter;
     }
     let moves: Move[] = [];
@@ -229,8 +270,13 @@ export class History {
         }
       }
     }
-    if (texts.size === 0 && moves.length === 0) return undefined;
-    return { ...(moves.length > 0 ? { moves } : {}), texts, ...(selection ? { selection } : {}) };
+    if (texts.size === 0 && moves.length === 0 && deletes.length === 0) return undefined;
+    return {
+      ...(moves.length > 0 ? { moves } : {}),
+      texts,
+      ...(deletes.length > 0 ? { deletes } : {}),
+      ...(selection ? { selection } : {}),
+    };
   }
 }
 

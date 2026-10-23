@@ -713,15 +713,25 @@ export class Studio {
   private restore(restored: ReturnType<History["undo"]>): boolean {
     if (!restored) return false;
     const moves = restored.moves ?? [];
-    if (restored.texts.size === 0 && moves.length === 0) return false;
+    const deletes = restored.deletes ?? [];
+    if (restored.texts.size === 0 && moves.length === 0 && deletes.length === 0) return false;
+    // A redo makes again the files its step made: the project's files change.
+    const made = [...restored.texts.keys()].some((path) => !this.host.has(path));
     this.inStep(() => {
       // The history already moved its stacks with the files; the files follow.
       for (const move of moves) this.relocate(move.from, move.to, false, false);
+      // Files the step made go; their history stays, for redo to make them again.
+      for (const path of deletes) {
+        const before = this.host.get(path);
+        if (!this.host.delete(path)) continue;
+        this.emitChange({ kind: "delete", path, before });
+        this.revisions.delete(path);
+      }
       for (const [path, text] of restored.texts) {
         this.write(path, text);
         this.emit("text", path, text, path === this.openPath ? restored.selection : undefined);
       }
-      if (moves.length > 0) {
+      if (moves.length > 0 || deletes.length > 0 || made) {
         this.renew();
         this.current = undefined;
         this.filesChanged();
@@ -775,8 +785,13 @@ export class Studio {
       const document = this.sessions.analyze(absolute(path), undefined, revision);
       analysis = { path, revision, text, document, diagnostics: document.diagnostics };
     } else {
-      const diagnostics =
-        path === MANIFEST_NAME ? sortDiagnostics([...this.workspace.manifest().diagnostics]) : [];
+      // project.json has its own checks; an asset file, the problems the assets find in it.
+      const assets = this.workspace.assets().diagnostics.get(absolute(path)) ?? [];
+      const diagnostics = sortDiagnostics(
+        path === MANIFEST_NAME
+          ? [...this.workspace.manifest().diagnostics, ...assets]
+          : [...assets],
+      );
       analysis = { path, revision, text, document: undefined, diagnostics };
     }
     this.current = analysis;
@@ -816,6 +831,11 @@ export class Studio {
     add(MANIFEST_NAME, workspace.manifest().diagnostics);
     for (const [file, compilation] of workspace.compileProject().files) {
       add(this.relative(file), compilation.diagnostics);
+    }
+    // The assets' problems, on the file or folder they concern: a pack without licence, an
+    // icon the sanitiser refuses, a file whose name a reference cannot write.
+    for (const [file, diagnostics] of workspace.assets().diagnostics) {
+      add(this.relative(file), diagnostics);
     }
     return counts;
   }
@@ -936,17 +956,62 @@ export class Studio {
       this.status(messages().studio.themeCreated(request.theme));
       return;
     }
-    // Steps over files: the model of a view and the view's own statements, a theme's token.
-    const planned = this.sessions.planSteps(path, request.steps);
+    // Steps over files: the model of a view and the view's own statements, a theme's token, and
+    // the files of the assets written first (icons added to the project).
+    const planned = request.assets
+      ? this.sessions.planAssetSteps(path, request.assets, request.steps)
+      : this.sessions.planSteps(path, request.steps);
     if (!planned.ok) {
       this.emit("canvas", [stepsRejected(planned, request.retry)]);
       return;
     }
     const edits = relativeEdits(planned.edits);
+    const created = (planned.create ?? []).flatMap((file) => {
+      const relative = this.relative(file.path);
+      return relative === undefined ? [] : [{ path: relative, text: file.text }];
+    });
+    if (created.length > 0) {
+      this.createFiles(created, edits);
+      return;
+    }
     if (edits.size === 0) return;
     this.applyEdits(edits);
     const others = [...edits.keys()].filter((file) => file !== this.openPath);
     if (others.length > 0) this.status(messages().studio.filesChanged(others));
+  }
+
+  /**
+   * Makes new text files of the project and applies edits to others, as one step of the history
+   * (undone from any file: the files go, the texts come back); the compiler starts afresh so the
+   * new assets are read.
+   */
+  private createFiles(
+    created: readonly { readonly path: string; readonly text: string }[],
+    edits: ReadonlyMap<string, readonly TextEdit[]>,
+  ): void {
+    if (this.viewOnly) return;
+    const changes = [...edits]
+      .filter(([path, list]) => list.length > 0 && this.host.has(path))
+      .map(([path, list]) => {
+        const before = this.text(path);
+        return { path, before, after: applyTextEdits(before, list) };
+      });
+    const fresh = created.filter((file) => !this.host.has(file.path));
+    if (!this.bound) this.history.recordCreates(fresh, changes);
+    this.inStep(() => {
+      for (const file of fresh) {
+        this.host.write(file.path, file.text);
+        this.revisions.set(file.path, this.revision(file.path) + 1);
+        this.announce(file.path, undefined, file.text, {});
+      }
+      for (const change of changes) {
+        this.write(change.path, change.after);
+        this.emit("text", change.path, change.after, undefined);
+      }
+      this.renew();
+      this.current = undefined;
+      this.filesChanged();
+    });
   }
 
   /** Applies a plan made against the open file's current revision, with its story renames. */

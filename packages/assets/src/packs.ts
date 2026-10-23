@@ -26,6 +26,30 @@ export interface AssetMetadata {
 
 export const PACK_PREFIX = /^[a-z0-9][a-z0-9-]*$/;
 
+/** What an icon's name may hold, as references write it after the colon (`pack:name`). */
+export const ICON_NAME = /^[A-Za-z0-9_.-]+$/;
+
+/** Whether a name can be written as the icon of a reference, `pack:<name>`. */
+export function isIconName(name: string): boolean {
+  return ICON_NAME.test(name);
+}
+
+/**
+ * The icon name a file can be given so a reference can name it: its extension dropped, accents
+ * folded (`Café` is `Cafe`), every run of characters a reference cannot hold turned into one `-`,
+ * and the `-` and `.` at either end trimmed. `My Logo (1).svg` is `My-Logo-1`. Empty when nothing
+ * of the name is left.
+ */
+export function slugifyIconName(fileName: string): string {
+  const base = fileName.replace(/^.*[\\/]/, "").replace(/\.[A-Za-z0-9]+$/, "");
+  return base
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^A-Za-z0-9_.-]+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^[-.]+|[-.]+$/g, "");
+}
+
 export interface IconPack {
   readonly prefix: string;
   readonly metadata: AssetMetadata;

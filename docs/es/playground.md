@@ -109,6 +109,12 @@ diagramas, como los lista el explorador de un editor.
   con algún problema lo dice al pie, con **Mostrar**. **Configuración del proyecto**, en el panel
   Proyectos, abre `project.json` diga lo que diga el interruptor, y lo crea como lo escribe `init`
   cuando el proyecto no lo tiene.
+- **Los problemas de los recursos.** Un paquete de iconos sin licencia, un icono que el saneamiento
+  rechaza o un archivo cuyo nombre una referencia no puede escribir se cuentan en la fila de su
+  archivo y en sus carpetas, también la carpeta del paquete, como los problemas de los diagramas;
+  un archivo de recursos abierto muestra los suyos. Desaparecen en cuanto se corrige el archivo.
+  Los iconos agregados con **Agregar icono…** llegan con su licencia, así que no añaden ninguno
+  ([agregar iconos](language/assets.md#agregar-iconos-desde-el-editor)).
 - **Su lugar.** El borde entre el explorador y el código lo cambia de ancho, de 180 a 480 píxeles
   (las flechas sobre el borde enfocado, un doble clic para restablecerlo), y Ctrl+B lo oculta en un
   riel y lo vuelve a mostrar; la página recuerda ambas cosas. Una primera visita en una pantalla de

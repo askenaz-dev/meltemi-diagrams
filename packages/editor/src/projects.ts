@@ -41,6 +41,7 @@ import { messages } from "./messages/index.js";
 import { declarationOf, renameOperation } from "./services/navigation.js";
 import { referenceAt } from "./syntax.js";
 import { setJsonField } from "./json-edit.js";
+import { AssetFileError, changedAssetFile, type AssetFileChange } from "./asset-files.js";
 import { entityIn, type EntityAt } from "./services/entities.js";
 
 export interface ProjectSessionsOptions {
@@ -522,6 +523,64 @@ export class ProjectSessions {
   }
 
   /**
+   * Plans the files of the project's assets that a request writes (`assets`), then its steps over
+   * files, which see those files as written: the new files are refused when their path is taken, a
+   * JSON file is made when there is none and refused when it cannot be read. The result holds the
+   * edits of the files that exist and the files to create, with their text; planning leaves the
+   * project's files as they were.
+   */
+  planAssetSteps(
+    documentPath: string,
+    assets: AssetSteps,
+    steps: readonly ProjectStep[],
+  ): StepsResult {
+    const workspace = this.forFile(documentPath);
+    const words = messages().projects;
+    const created = new Map<string, string>();
+    const changed = new Map<string, { before: string; after: string }>();
+    const overlays = new Map<string, string | undefined>();
+    const write = (file: string, text: string) => {
+      if (!overlays.has(file)) overlays.set(file, workspace.overlay(file));
+      workspace.setOverlay(file, text);
+    };
+    try {
+      for (const file of assets.create) {
+        const path = joinPath(workspace.root, file.path);
+        if (created.has(path) || workspace.text(path) !== undefined) {
+          return { ok: false, code: "edit.id-conflict", reason: words.fileExists(file.path) };
+        }
+        created.set(path, file.text);
+        write(path, file.text);
+      }
+      for (const file of assets.json) {
+        const path = joinPath(workspace.root, file.path);
+        const before = created.get(path) ?? changed.get(path)?.after ?? workspace.text(path);
+        let after: string;
+        try {
+          after = changedAssetFile(before, file.change);
+        } catch (error) {
+          if (!(error instanceof AssetFileError)) throw error;
+          const reason = words.unreadableJson(file.path, error.message);
+          return { ok: false, code: "edit.unsafe-target", reason };
+        }
+        if (before === undefined || created.has(path)) created.set(path, after);
+        else changed.set(path, { before: changed.get(path)?.before ?? before, after });
+        write(path, after);
+      }
+      const planned = steps.length > 0 ? this.planSteps(documentPath, steps) : undefined;
+      if (planned && !planned.ok) return planned;
+      const edits = new Map(planned?.edits ?? []);
+      for (const [path, { before, after }] of changed) {
+        const edit = replacingEdit(before, after);
+        if (edit) edits.set(path, [edit]);
+      }
+      return { ok: true, edits, create: [...created].map(([path, text]) => ({ path, text })) };
+    } finally {
+      for (const [file, overlay] of overlays) workspace.setOverlay(file, overlay ?? null);
+    }
+  }
+
+  /**
    * Creates a theme for the project of a file: `themes/<id>.meltemi` with the block, and the
    * project's default theme in `project.json`, so every diagram without its own theme uses it.
    */
@@ -703,9 +762,26 @@ export interface ProjectStep {
   readonly operation: EditOperation;
 }
 
-/** What `planSteps` gives: the edits of every file touched, or the first refusal. */
+/**
+ * Files of the project's assets that a request writes before its steps (`planAssetSteps`): new
+ * text files, such as added icons, and JSON files changed or made, such as the licences and the
+ * project's library; paths are from the project's root.
+ */
+export interface AssetSteps {
+  readonly create: readonly { readonly path: string; readonly text: string }[];
+  readonly json: readonly { readonly path: string; readonly change: AssetFileChange }[];
+}
+
+/**
+ * What `planSteps` gives: the edits of every file touched (and, from `planAssetSteps`, the files
+ * to create with their text), or the first refusal.
+ */
 export type StepsResult =
-  | { readonly ok: true; readonly edits: ReadonlyMap<string, readonly TextEdit[]> }
+  | {
+      readonly ok: true;
+      readonly edits: ReadonlyMap<string, readonly TextEdit[]>;
+      readonly create?: readonly { readonly path: string; readonly text: string }[];
+    }
   | {
       readonly ok: false;
       readonly code: string;
