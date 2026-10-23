@@ -314,9 +314,11 @@ checked, and the latest results, are in [docs/quality.md](docs/quality.md) and
 
 ## For agents
 
-Coding agents draw with the `meltemi-diagrams` skill in `skills/` (workflow, template, rules,
-language and layout references, a complete example). It is copied to `.claude/skills/` and
-`.codex/skills/` by `pnpm skills:sync`; `AGENTS.md` points other agents to it.
+Coding agents draw with the `meltemi-diagrams` skill (workflow, template, rules, language and
+layout references, complete examples). In your project, `mdg skill install` gives it to Claude Code
+and Codex ([drawing with coding agents](docs/agents.md)). In this repository it lives in `skills/`,
+`pnpm skills:sync` copies it to `.claude/skills/`, `.codex/skills/` and the command line's package,
+and `AGENTS.md` points other agents to it.
 
 ## Branding
 

@@ -94,6 +94,12 @@ with the project's switcher at its top, as VS Code lists a workspace
 ### Command line
 
 - `init --list` prints each template's title, description and contents ("1 model, 2 views").
+- `skill install [folder]` gives a project's coding agents the skill that draws Meltemi diagrams:
+  it writes `.claude/skills/meltemi-diagrams/` and `.codex/skills/meltemi-diagrams/` (`--agent`,
+  `--user` for your own folders, `--force` to replace a copy), with the commands named as they are
+  installed (`mdg validate`, `mdg preview`). The package ships the skill
+  ([drawing with coding agents](docs/agents.md),
+  [decision 0056](docs/decisions/0056-agent-skill-install.md)).
 
 ### Fixed
 

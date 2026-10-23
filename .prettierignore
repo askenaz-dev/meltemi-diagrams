@@ -6,6 +6,8 @@ corpus/
 openspec/
 .claude/
 .codex/
+# Copies of skills/, written by pnpm skills:sync.
+packages/cli/skills/
 *.docx
 *.pdf
 

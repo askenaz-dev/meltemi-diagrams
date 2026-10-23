@@ -41,6 +41,7 @@ Commands:
   whoami                 Print the name and handle you are signed in as
   publish [folder]       Publish the catalog as a web page of the cloud service (--unpublish)
   projects               List your cloud projects: id, name, role, last change (--json)
+  skill install [folder] Give a project's coding agents the skill that draws Meltemi diagrams
 
 Every command takes --lang en|es: the language of its messages and of the words it adds to the
 files it writes (the project's "locale" otherwise; messages follow MELTEMI_LANG or LANG).
@@ -181,6 +182,18 @@ complete, 1 partial, 2 usage error, unsupported input or an existing sheet. For 
 commands: 3 not signed in, or the service refused the token (run login).
 `,
     /** `init --help`: the template names, joined. */
+    skill: `Usage: skill install [folder] [options]
+
+Writes the meltemi-diagrams skill, which teaches coding agents to draw, convert and export
+Meltemi diagrams, into the folder (the working folder by default) for Claude Code
+(.claude/skills/meltemi-diagrams) and Codex (.codex/skills/meltemi-diagrams). Its commands are
+written as this command line's (mdg validate, mdg preview). A copy already there is kept.
+
+Options:
+  --agent <name>     claude, codex or all (all by default)
+  --user             Install into your own folders (~/.claude, ~/.codex), for every project
+  --force            Replace a copy already there (only the skill's own folder)
+`,
     init: (templates: string) => `Usage: init [folder] [options]
 
 Creates a project in the folder (the working folder by default): project.json and the sheets of
@@ -560,6 +573,21 @@ token was refused.
     folderSummary: (check: boolean, files: number, folder: string, parts: readonly string[]) =>
       `${check ? "Would import" : "Imported"} ${count(files, "file")} from ${folder}: ${parts.join(", ")}`,
   },
+  /** `skill install`: what it wrote and why it refused. */
+  skill: {
+    wrote: (path: string) => `Wrote ${path}`,
+    subcommand: (given: string) =>
+      given === ""
+        ? "Name what to do: skill install [folder]."
+        : `There is no skill command \`${given}\`; the command is: skill install [folder].`,
+    tooMany: "Give one folder at most.",
+    userWithFolder: "--user installs into your own folders; give no folder with it.",
+    unknownAgent: (agent: string, agents: readonly string[]) =>
+      `There is no agent \`${agent}\`; the agents are ${agents.join(", ")}.`,
+    exists: (path: string) =>
+      `${path} already holds the skill; add --force to replace it (only that folder).`,
+  },
+
   init: {
     /** Each template's title and what it holds, as `init --list` prints them. */
     templates: {

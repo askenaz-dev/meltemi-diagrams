@@ -56,6 +56,7 @@ como código o en un lienzo, se animan y se exportan para documentos, diapositiv
 - [Importar Mermaid](import/mermaid.md) y [PlantUML](import/plantuml.md): en qué se convierte cada
   construcción.
 - [Asistencia de IA](assist.md), opcional.
+- [Dibujar con agentes de programación](agents.md): la skill y `skill install`.
 - [Plugins](plugins.md) y [seguridad](security.md).
 
 ## Calidad y proyecto

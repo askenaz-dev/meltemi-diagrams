@@ -28,8 +28,9 @@ absolute paths unless asked.
 | `pull [id] [folder]`        | Writes a cloud project's files into a folder                                                          |
 | `publish [folder]`          | Publishes the catalog as a web page of the cloud service                                              |
 | `projects`                  | Lists your cloud projects                                                                             |
+| `skill install [folder]`    | Gives a project's coding agents the skill that draws Meltemi diagrams ([agents](agents.md))           |
 
-The last five rows are [the cloud commands](#the-cloud-commands).
+The five rows before the last are [the cloud commands](#the-cloud-commands).
 
 Untrusted repositories are safe to process: nothing in a project runs, reads outside it or reaches
 the network, and sizes are bounded ([security](security.md)). The commands that use the network do
@@ -190,6 +191,15 @@ exit code 1. When nobody is signed in the exit code is 3.
 answer into a proposal you accept in part (`--save`, then `assist apply <proposal> --items 1,3`, or
 `--apply` at once). What is sent is printed first and needs your yes, or `--yes`; keys come only
 from the environment. See [assist.md](assist.md).
+
+## Agents' skill
+
+`skill install [folder]` writes the `meltemi-diagrams` skill into the folder (the working one by
+default) for Claude Code (`.claude/skills/meltemi-diagrams/`) and Codex
+(`.codex/skills/meltemi-diagrams/`): `--agent claude|codex|all` picks the agents, `--user` installs
+into your own folders instead, and `--force` replaces a copy already there (only the skill's own
+folder; without it the command refuses with exit code 2 and writes nothing). The installed text
+names this command line (`mdg validate`, `mdg preview`). See [agents.md](agents.md).
 
 ## The cloud commands
 

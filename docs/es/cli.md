@@ -28,8 +28,9 @@ nombra las rutas absolutas de la máquina, salvo que se pida.
 | `pull [id] [folder]`        | Escribe los archivos de un proyecto de la nube en una carpeta                                                            |
 | `publish [folder]`          | Publica el catálogo como una página web del servicio de la nube                                                          |
 | `projects`                  | Lista tus proyectos de la nube                                                                                           |
+| `skill install [carpeta]`   | Da a los agentes de programación de un proyecto la skill que dibuja diagramas de Meltemi ([agentes](agents.md))          |
 
-Las cinco últimas filas son [los comandos de la nube](#los-comandos-de-la-nube).
+Las cinco filas antes de la última son [los comandos de la nube](#los-comandos-de-la-nube).
 
 Procesar repositorios que no son de confianza es seguro: nada de un proyecto se ejecuta, lee fuera
 de él ni accede a la red, y los tamaños están acotados ([seguridad](security.md)). Los comandos que
@@ -201,6 +202,15 @@ convierten la respuesta en una propuesta que aceptas en parte (`--save` y luego
 `assist apply <proposal> --items 1,3`, o `--apply` de inmediato). Lo que se envía se imprime
 primero y necesita tu sí, o `--yes`; las claves solo vienen del entorno. Consulta
 [assist.md](assist.md).
+
+## Skill de agentes
+
+`skill install [carpeta]` escribe la skill `meltemi-diagrams` en la carpeta (la de trabajo por
+defecto) para Claude Code (`.claude/skills/meltemi-diagrams/`) y Codex
+(`.codex/skills/meltemi-diagrams/`): `--agent claude|codex|all` elige los agentes, `--user` la
+instala en tus propias carpetas, y `--force` reemplaza una copia que ya está (solo la carpeta de la
+skill; sin él, el comando se niega con el código de salida 2 y no escribe nada). El texto instalado
+nombra esta línea de comandos (`mdg validate`, `mdg preview`). Consulta [agents.md](agents.md).
 
 ## Los comandos de la nube
 

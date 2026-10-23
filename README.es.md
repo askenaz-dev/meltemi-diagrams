@@ -325,10 +325,12 @@ comprueba cada criterio de aceptación, y los últimos resultados, están en
 
 ## Para agentes
 
-Los agentes de programación dibujan con la skill `meltemi-diagrams` de `skills/` (flujo de trabajo,
-plantilla, reglas, referencias del lenguaje y de la disposición, un ejemplo completo).
-`pnpm skills:sync` la copia en `.claude/skills/` y `.codex/skills/`; `AGENTS.md` remite a ella a los
-demás agentes.
+Los agentes de programación dibujan con la skill `meltemi-diagrams` (flujo de trabajo, plantilla,
+reglas, referencias del lenguaje y de la disposición, ejemplos completos). En tu proyecto,
+`mdg skill install` se la da a Claude Code y a Codex
+([dibujar con agentes de programación](docs/es/agents.md)). En este repositorio vive en `skills/`,
+`pnpm skills:sync` la copia en `.claude/skills/`, `.codex/skills/` y el paquete de la línea de
+comandos, y `AGENTS.md` remite a ella a los demás agentes.
 
 ## Marca
 

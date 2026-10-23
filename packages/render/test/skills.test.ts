@@ -33,7 +33,8 @@ function tree(dir: string): string[] {
 
 const skillsRoot = join(REPO_ROOT, "skills");
 const syncScript = join(REPO_ROOT, "scripts", "sync-skills.mjs");
-const agentDirs = [".claude", ".codex"];
+// The agent folders, and the command line's package, which installs the skills elsewhere.
+const agentDirs = [".claude", ".codex", "packages/cli"];
 const skills = readdirSync(skillsRoot).filter((name) =>
   statSync(join(skillsRoot, name)).isDirectory(),
 );
@@ -47,23 +48,26 @@ describe("agent skills", () => {
     expect(text).not.toContain(".arch");
   });
 
-  it.each(skills)("%s is copied unchanged to .claude/skills and .codex/skills", (name) => {
-    const source = join(skillsRoot, name);
-    const files = tree(source);
-    expect(files.length).toBeGreaterThan(0);
-    for (const agentDir of agentDirs) {
-      const copy = join(REPO_ROOT, agentDir, "skills", name);
-      expect(tree(copy), `${agentDir}/skills/${name} file list (run pnpm skills:sync)`).toEqual(
-        files,
-      );
-      for (const file of files) {
-        expect(
-          readFileSync(join(copy, file), "utf8"),
-          `${agentDir}/skills/${name}/${file} (run pnpm skills:sync)`,
-        ).toBe(readFileSync(join(source, file), "utf8"));
+  it.each(skills)(
+    "%s is copied unchanged to .claude/skills, .codex/skills and the CLI package",
+    (name) => {
+      const source = join(skillsRoot, name);
+      const files = tree(source);
+      expect(files.length).toBeGreaterThan(0);
+      for (const agentDir of agentDirs) {
+        const copy = join(REPO_ROOT, agentDir, "skills", name);
+        expect(tree(copy), `${agentDir}/skills/${name} file list (run pnpm skills:sync)`).toEqual(
+          files,
+        );
+        for (const file of files) {
+          expect(
+            readFileSync(join(copy, file), "utf8"),
+            `${agentDir}/skills/${name}/${file} (run pnpm skills:sync)`,
+          ).toBe(readFileSync(join(source, file), "utf8"));
+        }
       }
-    }
-  });
+    },
+  );
 
   it.each(agentDirs)("%s/skills lists exactly the synced skills", (agentDir) => {
     const target = join(REPO_ROOT, agentDir, "skills");

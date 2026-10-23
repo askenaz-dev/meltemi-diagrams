@@ -45,6 +45,7 @@ import { catalogScript } from "@meltemi/diagrams-catalog/node";
 import { exportCommand, noDiagramDiagnostic } from "./export-command.js";
 import { importCommand } from "./import-command.js";
 import { initCommand } from "./init-command.js";
+import { skillCommand } from "./skill-command.js";
 import { argumentsError, messages } from "./messages/index.js";
 import { pluginsCommand } from "./plugins-command.js";
 import { previewCommand } from "./preview.js";
@@ -202,6 +203,15 @@ export function run(input: readonly string[], io: CliIo): number | Promise<numbe
       ...(contentLocale ? { locale: contentLocale } : {}),
       env: io.env ?? process.env,
       ...(io.ask ? { ask: io.ask } : {}),
+    });
+  }
+  if (command === "skill") {
+    return skillCommand(rest, {
+      name: CLI_NAME,
+      stdout: io.stdout,
+      stderr: io.stderr,
+      cwd: io.cwd,
+      display: (path) => displayPath(io.cwd, path),
     });
   }
   if (command === "init") {
