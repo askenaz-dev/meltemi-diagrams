@@ -189,7 +189,10 @@ export const en = {
       /** `edit.invalid-value`. */
       messagesNoPorts: "Sequence messages have no ports.",
       /** `edit.invalid-value`: a two-way arrow in a C4 view. */
-      oneWay: "Relations of C4 views go one way: `->` or `-->`.",
+      oneWay: "Relations of C4 views go one way: `->`.",
+      /** `edit.anonymous-relation`: a statement would name a relation that has no id. */
+      unnamed: (key: string) =>
+        `The relation \`${key}\` has no id for a statement to name; give it one first.`,
     },
 
     /** Statements of the `placement` block. */
@@ -494,6 +497,8 @@ export const en = {
       viewNoBody: (id: string) => `\`${id}\` has no body.`,
       /** `edit.unsafe-target`. */
       unresolved: "The view's model is not resolved.",
+      nameInModel: (key: string) =>
+        `\`${key}\` comes from the model; name it there with setModelRelationProperty.`,
       /** `edit.unsafe-target`. */
       noEntity: (model: string, path: string) =>
         `The model \`${model}\` has no entity \`${path}\`.`,
@@ -507,7 +512,6 @@ export const en = {
       notDrawn: (target: string, view: string) =>
         `\`${target}\` is not drawn in the view \`${view}\`.`,
       /** `edit.anonymous-relation`. */
-      nameRelation: "Name the relation in the model before giving it a local label.",
       /** `edit.unsafe-target`. */
       noModel: (id: string) => `There is no model \`${id}\` in this document.`,
       /** `edit.unsafe-target`. */

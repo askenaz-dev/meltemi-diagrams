@@ -12,12 +12,12 @@
 - **THEN** the statement reads `customer -> bank: "Compra" as visit` and the file compiles without errors
 
 #### Scenario: A routed relation keeps a valid route
-- **WHEN** the view `containers` has `route visit from customer.south to shop.web.north via [(200, 300)]` and `reconnectModelRelation` moves the `to` end of `visit` to `bank`
+- **WHEN** the view `containers` has `route visit from customer.south to shop.web via [(200, 300)]` and `reconnectModelRelation` moves the `to` end of `visit` to `bank`
 - **THEN** the route reads `route visit from customer.south to bank via [(200, 300)]`, the model statement ends at `bank`, and the file compiles without `placement.route-mismatch`
 
 #### Scenario: A pinned port is dropped, a compass port carries over
-- **WHEN** the view has `route visit from customer.east 25% to shop.web.in` where `in` is a named port of `web`, and the `to` end moves to `bank`
-- **THEN** the route reads `route visit from customer.east 25% to bank`, since a named port never carries over, and a route whose moved end was `shop.web.north` would read `bank.north`
+- **WHEN** the view has `route visit from customer.east 25% to shop.web.north 30%` and the `to` end moves to `bank`
+- **THEN** the route reads `route visit from customer.east 25% to bank.north`: the compass side carries over, the point of the old entity's side does not, and the other end keeps its point (C4 entities declare no named ports, so only compass sides can be written)
 
 #### Scenario: A route in a lifted view
 - **WHEN** the context view draws `visit` lifted as `customer -> shop` with `route visit from customer to shop` and the `to` end of the model relation moves from `shop.web` to `shop.api`

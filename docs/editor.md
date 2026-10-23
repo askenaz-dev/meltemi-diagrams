@@ -671,25 +671,40 @@ coordinates.
 
 ## C4 views
 
-A C4 view draws entities of a model; the canvas never declares entities
-([c4.md](language/c4.md)).
+A C4 view draws entities of a model ([c4.md](language/c4.md)); what the canvas creates is
+declared in that model, in this file or in the model's own file.
 
+- **Creating.** The palette offers the kinds the view's level draws: **Person** and **Software
+  system** on a context view, **Container** and **Data store** too on a container view,
+  **Component** on a component view. A click or a drop declares the entity in the model, inside
+  the view's scope for containers, data stores and components and at the model's root for
+  persons and systems, with an empty label that the label editor asks for at once; the view
+  includes it when it lists `include`, and places it where it was dropped.
 - **Adding.** **Add from the model…** (toolbar, A, context menu) lists the entities the view may
   draw and does not; the choice joins `include`.
+- **Copying.** Copy, paste and **Duplicate** declare copies of the selected entities in the model,
+  with their label, technology, description and `external`, under their id or `<id>_2`; their
+  relations are not copied.
 - **Removing.** Delete removes an entity from the view (out of `include`, or into `exclude`) with the
   view's statements that name it; the model keeps it.
 - **Relations.** The arrows are the model's, and the canvas writes them there. Dragging from a
   connection handle, the relation tool and **Connect to…** write `a -> b` into the model (`->` is
   the one kind a model accepts; Shift changes nothing here). Dragging an end of an arrow onto
-  another entity moves that end of the model relation; an arrow that combines several model
-  relations (C) keeps its ends. Delete removes the model relation with everything that names it,
+  another entity moves that end of the model relation, and its routes in every view of the
+  project follow: the moved end is rewritten, a compass side carries over, a point of the old
+  side does not, and the waypoints stay; a view that would stop drawing the relation loses its
+  route, and a move that would break a view of another file is refused. An arrow that combines
+  several model relations keeps its ends. Delete removes the model relation with everything that names it,
   asking first when another view draws it, a statement names it, or an entity the view drew only
   for that relation leaves with its statements. Styles, effects, routes, bends and label
-  positions on a relation the model did not name first name it there.
-- **Labels.** Editing a label writes `label <entity> "Text"` in this view only. On an arrow it fills
-  the model relation's label when it has none, and writes the view's local label otherwise.
-  Combinations (C) write a relation in the view that stands for the model relations between two
-  entities.
+  positions on a relation the model did not name first name it there; on a combination without
+  an id, they name it in the view (`as shop_web_shop_api_orders`).
+- **Labels.** Editing a label writes `label <entity> "Text"` in this view only, except on an entity
+  whose label the model leaves empty (one just created), where it is the model's label. On an
+  arrow it fills the model relation's label when it has none, and writes the view's local label
+  otherwise.
+- **Moving between systems.** An entity sits where the model declares it: moving it into another
+  system or container is done in the model's text.
 - **Moving.** Dragging, the layout modes and Arrange write the view's placement only.
 - **Inspector.** Elements show their path and kind, the label in this view, and the entity's label,
   description, technology and `external`, which are written into the model: in this file, or in

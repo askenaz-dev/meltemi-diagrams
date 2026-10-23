@@ -1,4 +1,5 @@
 import {
+  applyTextEdits,
   isIdentifierText,
   isToken,
   type Block,
@@ -15,16 +16,20 @@ import {
   isSafeUrl,
   type Compilation,
   type EntityReference,
+  compile,
+  singleIdent,
   type FlowDiagram,
   type ModelDefinition,
   type ModelEntity,
   type ModelRelation,
+  type Relation,
 } from "@meltemi/diagrams-model";
 import { insertStatement, reject, type EditContext, type TextContext } from "./context.js";
 import { deleteStatements } from "./delete.js";
 import { insertAfter, insertBefore, verifyNoNewErrors } from "./insert.js";
 import { messages, reasons } from "./messages/index.js";
 import { removeListItems, type OperationOf } from "./plan.js";
+import { endpointText, requireEndPosition, routeParts } from "./routes.js";
 import { storyDependents } from "./stories.js";
 import { quoteString } from "./text.js";
 import type { Dependent, DependentKind } from "./types.js";
@@ -49,6 +54,8 @@ const VIEW_OPERATIONS: ReadonlySet<string> = new Set([
   "excludeEntity",
   "setLocalLabel",
   "forgetModelRelation",
+  "rewriteRouteEnd",
+  "materializeRelationId",
 ]);
 
 /** Refuses an operation that does not apply to a C4 view, naming the ones that do. */
@@ -250,7 +257,7 @@ export function setLocalLabel(ctx: EditContext, op: OperationOf<"setLocalLabel">
   } else {
     const relation = ctx.diagram.relationsByKey.get(op.target);
     if (relation && relation.id === null) {
-      reject("edit.anonymous-relation", reasons().c4.nameRelation);
+      reject("edit.anonymous-relation", reasons().relations.unnamed(op.target));
     }
     edits = [
       insertViewStatement(ctx, `label ${op.target} ${quoteString(op.label)}`, [
@@ -664,9 +671,126 @@ export function reconnectModelRelation(
   if (ref.kind !== "QualifiedRef") {
     reject("edit.unsafe-target", reasons().c4.endUnreadable(relation.key));
   }
+  if (op.position !== undefined) requireEndPosition(op.port, op.position);
   // The path from the root resolves wherever the statement sits: the lookup from the enclosing
   // entity outwards ends at the root.
-  const edits: TextEdit[] = [{ start: ref.start, end: ref.end, newText: entity.path }];
+  const moved: TextEdit = { start: ref.start, end: ref.end, newText: entity.path };
+  const edits: TextEdit[] = [moved];
+  // The routes of the file's views follow the end the views now draw.
+  if (relation.id !== null) {
+    const after = compile(applyTextEdits(ctx.text, [moved]), ctx.compilation.options);
+    const removed: CstNode[] = [];
+    for (const diagram of ctx.compilation.document.diagrams) {
+      const c4 = diagram.c4;
+      if (!c4 || c4.resolved?.file !== null || c4.resolved.definition.id !== ctx.model.id) continue;
+      const routes = routeStatements(diagram, relation.id);
+      if (routes.length === 0) continue;
+      const now = after.document.diagrams.find((d) => d.id === diagram.id);
+      const drawn = now?.relations.find((r) => r.id === relation.id);
+      const pinned =
+        diagram.id === op.view && op.port !== undefined
+          ? { port: op.port, ...(op.position !== undefined ? { position: op.position } : {}) }
+          : undefined;
+      const followed = followRoutes(ctx.text, ctx.model, routes, drawn, op.end, pinned);
+      edits.push(...followed.edits);
+      removed.push(...followed.removed);
+    }
+    edits.push(...deleteStatements(ctx.text, ctx.compilation.parse.root, removed));
+  }
+  verifyNoNewErrors(ctx, edits);
+  return edits;
+}
+
+/** The `route <id>` statements of a view, whether the analyser took them or not. */
+function routeStatements(diagram: FlowDiagram, id: string): KeywordStatement[] {
+  const found: KeywordStatement[] = [];
+  for (const owner of diagram.placementBlocks) {
+    for (const stmt of owner.block?.statements ?? []) {
+      if (stmt.kind !== "KeywordStatement" || stmt.keyword.text !== "route") continue;
+      if (singleIdent(stmt.args[0])?.text === id) found.push(stmt);
+    }
+  }
+  return found;
+}
+
+/** The compass sides and `auto`: the ports every entity has, which carry over to another. */
+const COMPASS: ReadonlySet<string> = new Set(["north", "south", "east", "west", "auto"]);
+
+/** A route end as written: the entity it names, and the port after it when it has one. */
+function writtenEnd(
+  model: ModelDefinition,
+  text: string,
+): { element: string; port: string | null } {
+  if (model.entitiesByPath.has(text)) return { element: text, port: null };
+  const dot = text.lastIndexOf(".");
+  if (dot > 0 && model.entitiesByPath.has(text.slice(0, dot))) {
+    return { element: text.slice(0, dot), port: text.slice(dot + 1) };
+  }
+  return { element: text, port: null };
+}
+
+/**
+ * The edits that make a view's routes of a relation end where the view now draws its moved end:
+ * the end rewritten with the drawn entity, a compass port carried over, a named port and a point
+ * dropped (or `pinned`, the port and point of a drop on this view), the other end and the
+ * waypoints kept; a route the view no longer draws the relation for goes; a route whose end
+ * already meets the drawn one stays as it is.
+ */
+function followRoutes(
+  text: string,
+  model: ModelDefinition,
+  routes: readonly KeywordStatement[],
+  drawn: Relation | undefined,
+  end: "from" | "to",
+  pinned: { readonly port: string | null; readonly position?: number } | undefined,
+): { edits: TextEdit[]; removed: KeywordStatement[] } {
+  const edits: TextEdit[] = [];
+  const removed: KeywordStatement[] = [];
+  for (const route of routes) {
+    if (!drawn) {
+      removed.push(route);
+      continue;
+    }
+    const parts = routeParts(route);
+    const arg = end === "from" ? parts.fromRef : parts.toRef;
+    const at = end === "from" ? parts.fromAt : parts.toAt;
+    if (arg?.kind !== "QualifiedRef") {
+      reject("edit.unsafe-target", reasons().relations.routeUnreadable);
+    }
+    const target = end === "from" ? drawn.from : drawn.to;
+    const written = writtenEnd(model, text.slice(arg.start, arg.end));
+    let newText: string;
+    if (pinned) newText = endpointText(target, pinned.port, pinned.position);
+    else if (written.element === target) continue;
+    else {
+      const port = written.port !== null && COMPASS.has(written.port) ? written.port : null;
+      newText = endpointText(target, port);
+    }
+    const stop = (at ?? arg).end;
+    if (newText !== text.slice(arg.start, stop)) {
+      edits.push({ start: arg.start, end: stop, newText });
+    }
+  }
+  return { edits, removed };
+}
+
+/**
+ * The routes of a relation in a view of a file other than the model's, once the model moved one of
+ * its ends (the compilation already resolves the moved model): they follow the end the view
+ * draws now, as `reconnectModelRelation` makes them follow in the model's own file.
+ */
+export function rewriteRouteEnd(ctx: EditContext, op: OperationOf<"rewriteRouteEnd">): TextEdit[] {
+  const c4 = requireView(ctx);
+  const model = c4.resolved?.definition;
+  if (!model) reject("edit.unsafe-target", reasons().c4.unresolved);
+  const routes = routeStatements(ctx.diagram, op.relation);
+  if (routes.length === 0) return [];
+  const drawn = ctx.diagram.relations.find((r) => r.id === op.relation);
+  const followed = followRoutes(ctx.text, model, routes, drawn, op.end, undefined);
+  const edits = [
+    ...followed.edits,
+    ...deleteStatements(ctx.text, ctx.compilation.parse.root, followed.removed),
+  ];
   verifyNoNewErrors(ctx, edits);
   return edits;
 }

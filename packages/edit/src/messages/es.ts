@@ -199,7 +199,9 @@ export const es: typeof en = {
         `${code(relation)} es una relación del modelo; quítala allí con removeModelRelation, o deja de dibujar uno de sus extremos con excludeEntity.`,
       routeUnreadable: "No se puede leer la ruta.",
       messagesNoPorts: "Los mensajes de una secuencia no tienen puertos.",
-      oneWay: "Las relaciones de las vistas C4 van en un solo sentido: `->` o `-->`.",
+      oneWay: "Las relaciones de las vistas C4 van en un solo sentido: `->`.",
+      unnamed: (key) =>
+        `La relación \`${key}\` no tiene id con el que nombrarla; dale uno primero.`,
     },
 
     placement: {
@@ -390,12 +392,13 @@ export const es: typeof en = {
       notView: (id) => `${code(id)} no es una vista C4.`,
       viewNoBody: (id) => `${code(id)} no tiene cuerpo.`,
       unresolved: "No se encontró el modelo de la vista.",
+      nameInModel: (key) =>
+        `\`${key}\` viene del modelo; nómbrala allí con setModelRelationProperty.`,
       noEntity: (model, path) => `El modelo ${code(model)} no tiene ninguna entidad ${code(path)}.`,
       isScope: (id) => `${code(id)} es el ámbito de esta vista; cambia el ámbito.`,
       removingFromView: (id, n) =>
         `Quitar ${code(id)} de la vista también quita ${count(n, "instrucción", "instrucciones")}.`,
       notDrawn: (target, view) => `${code(target)} no está dibujado en la vista ${code(view)}.`,
-      nameRelation: "Nombra la relación en el modelo antes de darle una etiqueta local.",
       noModel: (id) => `No hay ningún modelo ${code(id)} en este documento.`,
       modelErrors: (id) =>
         `El modelo ${code(id)} tiene errores de sintaxis; corrígelos antes de editarlo.`,

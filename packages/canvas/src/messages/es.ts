@@ -410,7 +410,6 @@ export const es: typeof en = {
     showInText: "Mostrar en el texto",
     labelInView: "Etiquetar en esta vista",
     renameInModel: "Cambiar el nombre en el modelo",
-    combineRelations: "Combinar las relaciones con…",
     openModel: "Abrir el modelo",
     removeFromView: "Quitar de la vista",
     messageTo: "Mensaje a…",

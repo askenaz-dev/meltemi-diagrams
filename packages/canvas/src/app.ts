@@ -233,6 +233,12 @@ const LONG_PRESS_MS = 450;
 /** The steps of the rotation handle, in degrees; Alt turns them off. */
 const ROTATION_STEP = 15;
 
+/** The pictures of a C4 view's entity tools, by kind; the others draw a box. */
+const C4_TOOL_ICONS: Readonly<Record<string, string>> = {
+  person: ICONS.actor,
+  datastore: ICONS.database,
+};
+
 /** The pictures of the kinds of group the group tool creates. */
 const GROUP_ICONS = { group: ICONS.group, container: ICONS.plainContainer } as const;
 
@@ -3381,7 +3387,7 @@ export class CanvasApp {
     for (const button of this.toolbar.querySelectorAll<HTMLButtonElement>("[data-profile]")) {
       button.hidden = !forProfile(button.dataset.profile ?? "", r.profile);
     }
-    this.declaredTools(r.tools ?? []);
+    this.declaredTools(r.tools ?? [], r.profile);
     for (const button of this.toolbar.querySelectorAll<HTMLButtonElement>("[data-not-profile]")) {
       button.hidden = button.dataset.notProfile === r.profile;
     }
@@ -4960,16 +4966,23 @@ export class CanvasApp {
   }
 
   /** The palette of a declared type: one button per kind, after the free tools. */
-  private declaredTools(tools: readonly { kind: string; label: string }[]): void {
-    const key = tools.map((t) => `${t.kind}:${t.label}`).join("|");
+  private declaredTools(
+    tools: readonly { kind: string; label: string }[],
+    profile: CanvasRender["profile"],
+  ): void {
+    const key = `${profile}:${tools.map((t) => `${t.kind}:${t.label}`).join("|")}`;
     if (this.toolbar.dataset.declared === key) return;
     this.toolbar.dataset.declared = key;
     for (const old of this.toolbar.querySelectorAll("[data-declared]")) old.remove();
-    const anchor = this.toolbar.querySelector('[data-tool="group"]');
+    // After the group button's split, which C4 views hide with what it holds.
+    const group = this.toolbar.querySelector('[data-tool="group"]');
+    const anchor = group?.closest(".split") ?? group;
     let after: Element | null = anchor;
     const words = messages().palette;
     for (const tool of tools) {
-      const button = this.button(words.declared(tool.label), ICONS.box, () =>
+      // The entities of a C4 view keep their pictures: a figure, a cylinder, a box.
+      const glyph = profile === "c4" ? (C4_TOOL_ICONS[tool.kind] ?? ICONS.box) : ICONS.box;
+      const button = this.button(words.declared(tool.label), glyph, () =>
         this.arm(tool.kind as ElementKind),
       );
       button.setAttribute("data-tool", tool.kind);
@@ -5512,7 +5525,7 @@ export class CanvasApp {
       );
     }
     if (element && element.kind !== "group") {
-      items.push({ label: words.combineRelations, key: "C", run: run("connect") });
+      items.push({ label: words.connectTo, key: "C", run: run("connect") });
     }
     if (!relation) items.push(...this.belowItems(at));
     if (items.length > 0) items.push("-");

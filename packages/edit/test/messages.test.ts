@@ -300,7 +300,7 @@ describe("the reasons of refused edits", () => {
         line: "solid",
         twoWay: true,
       },
-      "Las relaciones de las vistas C4 van en un solo sentido: `->` o `-->`.",
+      "Las relaciones de las vistas C4 van en un solo sentido: `->`.",
     ],
     [
       "a new diagram with a taken id",

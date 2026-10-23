@@ -199,7 +199,7 @@ describe("creating", () => {
         },
         c4,
       ).reason,
-    ).toBe("Relations of C4 views go one way: `->` or `-->`.");
+    ).toBe("Relations of C4 views go one way: `->`.");
   });
 
   it("refuses unknown ports and taken ids", () => {

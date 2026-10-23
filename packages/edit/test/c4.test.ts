@@ -272,6 +272,119 @@ describe("model operations", () => {
     ).toMatch(/has no entity `nothing`/);
   });
 
+  describe("routes follow a moved end", () => {
+    // The container view draws the bank too, and pins two routes.
+    const routed = (routes: string) =>
+      commerce.replace(
+        "  include customer, shop.web, shop.api, shop.db\n",
+        `  include customer, shop.web, shop.api, shop.db, bank\n  placement {\n${routes}  }\n`,
+      );
+    const reconnect = (relation: string, end: "from" | "to", entity: string) =>
+      ({ kind: "reconnectModelRelation", model: "commerce", relation, end, entity }) as const;
+
+    it("rewrites the moved end of a route, keeping the other end and the waypoints", () => {
+      const text = routed("    route visit from customer.south to shop.web via [(200, 300)]\n");
+      const after = run(text, reconnect("visit", "to", "bank"));
+      expect(after).toContain('  customer -> bank: "Compra" as visit\n');
+      expect(after).toContain("    route visit from customer.south to bank via [(200, 300)]\n");
+    });
+
+    it("carries a compass side over and drops the old side's point", () => {
+      const text = routed("    route visit from customer.east 25% to shop.web.north 30%\n");
+      const after = run(text, reconnect("visit", "to", "bank"));
+      expect(after).toContain("    route visit from customer.east 25% to bank.north\n");
+    });
+
+    it("writes the port and point dropped on the edited view", () => {
+      const text = routed("    route visit from customer to shop.web.north\n");
+      const after = run(text, {
+        ...reconnect("visit", "to", "bank"),
+        view: "containers",
+        port: "west",
+        position: 40,
+      });
+      expect(after).toContain("    route visit from customer to bank.west 40%\n");
+    });
+
+    it("leaves a lifted view's route alone when its drawn end does not move", () => {
+      const text = commerce.replace(
+        '  title "Commerce en contexto"\n',
+        '  title "Commerce en contexto"\n  layout manual\n  placement {\n    place customer at (100, 100)\n    place shop at (400, 100)\n    place bank at (700, 100)\n    route request from shop.north to shop.south\n  }\n',
+      );
+      // `request` joins two containers of `shop`: the context view does not draw it, and its
+      // route there is already refused; moving its end inside `shop` changes nothing there.
+      const visit = commerce.replace(
+        '  title "Commerce en contexto"\n',
+        '  title "Commerce en contexto"\n  placement {\n    route visit from customer to shop via [(250, 40)]\n  }\n',
+      );
+      const after = run(visit, reconnect("visit", "to", "shop.api"));
+      expect(after).toContain('  customer -> shop.api: "Compra" as visit\n');
+      expect(after).toContain("    route visit from customer to shop via [(250, 40)]\n");
+      expect(text).toContain("route request");
+    });
+
+    it("removes a route whose relation the view no longer draws", () => {
+      // Without the bank in `include`, the container view stops drawing `visit` once it ends there.
+      const text = commerce.replace(
+        "  include customer, shop.web, shop.api, shop.db\n",
+        "  include customer, shop.web, shop.api, shop.db\n  placement {\n    route visit from customer to shop.web via [(200, 300)]\n  }\n",
+      );
+      const after = run(text, reconnect("visit", "to", "bank"));
+      expect(after).not.toContain("route visit");
+    });
+
+    it("repairs a route the last reconnect left behind, which made the view refuse every edit", () => {
+      // The state of today's bug: the model already ends at `bank`, the route still at `shop.web`.
+      const stale = routed(
+        "    route visit from customer.south to shop.web via [(200, 300)]\n",
+      ).replace(
+        '  customer -> shop.web: "Compra" as visit\n',
+        '  customer -> bank: "Compra" as visit\n',
+      );
+      expect(compile(stale).diagnostics.map((d) => d.code)).toContain("placement.route-mismatch");
+      const after = run(stale, reconnect("visit", "to", "shop.api"));
+      expect(after).toContain('  customer -> shop.api: "Compra" as visit\n');
+      expect(after).toContain("    route visit from customer.south to shop.api via [(200, 300)]\n");
+    });
+
+    it("refuses an unknown entity and rewrites no route", () => {
+      const text = routed("    route visit from customer.south to shop.web via [(200, 300)]\n");
+      expect(refused(text, reconnect("visit", "to", "warehouse"))).toMatch(/warehouse/);
+    });
+
+    it("rewrites a route of a view in another file through rewriteRouteEnd", () => {
+      // The view's own compilation already resolves the moved model: its route ends elsewhere.
+      const view = routed(
+        "    route visit from customer.south to shop.web via [(200, 300)]\n",
+      ).replace(
+        '  customer -> shop.web: "Compra" as visit\n',
+        '  customer -> bank: "Compra" as visit\n',
+      );
+      const after = run(view, {
+        kind: "rewriteRouteEnd",
+        diagram: "containers",
+        relation: "visit",
+        end: "to",
+      });
+      expect(after).toContain("    route visit from customer.south to bank via [(200, 300)]\n");
+      // A route of another relation stays as it was.
+      const other = routed(
+        "    route visit from customer.south to shop.web via [(200, 300)]\n    route persist from shop.api to shop.db.south\n",
+      ).replace(
+        '  customer -> shop.web: "Compra" as visit\n',
+        '  customer -> bank: "Compra" as visit\n',
+      );
+      expect(
+        run(other, {
+          kind: "rewriteRouteEnd",
+          diagram: "containers",
+          relation: "visit",
+          end: "to",
+        }),
+      ).toContain("    route persist from shop.api to shop.db.south\n");
+    });
+  });
+
   it("names an anonymous relation by its key, once", () => {
     const text = commerce.replace(" as persist", "");
     const named = run(text, {

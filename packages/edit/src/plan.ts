@@ -44,6 +44,7 @@ import {
   includeEntity,
   isCombination,
   reconnectModelRelation,
+  rewriteRouteEnd,
   refuseInView,
   removeEntity,
   removeModelRelation,
@@ -378,6 +379,8 @@ function run(
       return setLocalLabel(ctx, operation);
     case "forgetModelRelation":
       return forgetModelRelation(ctx, operation);
+    case "rewriteRouteEnd":
+      return rewriteRouteEnd(ctx, operation);
     case "renameEvent":
       return renameEvent(ctx, operation);
     case "toggleActivation":
@@ -846,6 +849,10 @@ function materializeRelationId(
     reject("edit.unsafe-target", reasons().relations.missing(op.relationKey, ctx.diagram.id));
   if (relation.id !== null)
     reject("edit.already-named", reasons().relations.alreadyNamed(relation.id));
+  // A C4 view names its own combinations; the relations it draws from the model are named there.
+  if (ctx.diagram.type === "c4" && !ctx.diagram.c4?.combined.includes(relation.key)) {
+    reject("edit.unsafe-target", reasons().c4.nameInModel(relation.key));
+  }
   requireNewId(ctx, op.id);
   const node = relation.node;
   const anchor = node.label && isToken(node.label) ? node.label.end : node.target.end;

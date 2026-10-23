@@ -83,6 +83,13 @@ with the project's switcher at its top, as VS Code lists a workspace
   position, a moved label, a dragged end or bend, a style) stays selected under its new id; a style
   on an unnamed note or fragment and the label position of an anonymous relation name it instead of
   refusing.
+- C4 views grow from the canvas: the palette offers the kinds the view's level draws (persons and
+  systems; containers and data stores in a container view; components in a component view), and a
+  click declares the entity in the model, inside the view's scope where it belongs, includes and
+  places it, and opens its label, which goes into the model. Copy, paste and Duplicate declare
+  copies of entities, without their relations. A combination without an id is named in the view
+  for a style, an effect, a route or a label, and the C4 context menu's entry reads **Connect
+  to…** ([decision 0053](docs/decisions/0053-c4-entities-and-routes.md)).
 
 ### Command line
 
@@ -91,6 +98,10 @@ with the project's switcher at its top, as VS Code lists a workspace
 ### Fixed
 
 - An empty sequence diagram drew with an unknown width (`NaN`) on the canvas.
+- Moving an end of a C4 relation left the views' `route` statements at the old entity, so the next
+  edit of a view laid out with Arrange answered "The `route` statement for `uses` … is invalid"
+  and the canvas refused every edit. The move now rewrites the routes of every view of the
+  project, and refuses when it would break a view of another file.
 - PNG, PDF and video exports give a browser that is starting two minutes to answer, not thirty
   seconds: a first start builds the browser's caches, which on a fresh or busy Linux machine took
   longer and failed the export with "The browser did not answer Browser.getVersion".

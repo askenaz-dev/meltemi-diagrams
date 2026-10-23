@@ -20,6 +20,7 @@ import {
   compile,
   type Compilation,
   type ElementKind,
+  type EntityKind,
   type FlowDiagram,
   type LabelEntry,
   type PlaceEntry,
@@ -67,7 +68,15 @@ import { baseName, themeLocation, themePanel, themeTokenOperation } from "./them
 import { renderDiagram, renderLayout } from "./render.js";
 import { selectionAt } from "./services/navigation.js";
 import { eventInfos, sequenceAction, sequenceMove } from "./sequence.js";
-import { entityChoices, modelIsLocal } from "./c4.js";
+import {
+  allowedKinds,
+  copiedEntities,
+  entityChoices,
+  entityParent,
+  freshEntityPath,
+  modelIsLocal,
+  pasteEntities,
+} from "./c4.js";
 import type { ProjectStep } from "./projects.js";
 import { storyChoices, storyPlayback } from "./story.js";
 
@@ -478,6 +487,14 @@ export class CanvasSession {
       diagram: view.id,
       profile: diagram.type,
       ...(diagram.definition ? { tools: diagram.definition.tools } : {}),
+      ...(diagram.c4
+        ? {
+            tools: allowedKinds(diagram.c4.level).map((kind) => ({
+              kind,
+              label: wording().c4.tools[kind],
+            })),
+          }
+        : {}),
       layers: diagram.properties.layers,
       mode: view.mode,
       svg: rendered.svg,
@@ -719,7 +736,29 @@ export class CanvasSession {
     const view = this.view();
     if (!view) return NONE;
     const where = at ? { at: this.snap(at) } : { shift: { x: 2 * this.grid, y: 2 * this.grid } };
+    if (view.diagram.type === "c4") return this.pasteEntities(view, text, where);
     const pasted = pasteOperations(this.analysis!, view.id, text, where);
+    if (!pasted.ok) return { messages: [{ type: "status", message: pasted.reason }] };
+    this.pendingSelection = [...pasted.ids];
+    return this.planned(view, "paste", pasted.operations);
+  }
+
+  /**
+   * Pastes entities copied from a C4 view into this one: copies declared in its model, included
+   * and placed; anything else on the clipboard says why it does not paste here.
+   */
+  private pasteEntities(
+    view: DiagramView,
+    text: string,
+    where: { readonly shift: Point } | { readonly at: Point },
+  ): SessionResult {
+    const compilation = compile(text);
+    const copied = copiedEntities(compilation.document.models, compilation.document.diagrams);
+    if (!copied || copied.length === 0) {
+      return { messages: [{ type: "status", message: wording().reasons.notFragment }] };
+    }
+    const placed = view.mode !== "auto" || view.layout?.boxes !== undefined;
+    const pasted = pasteEntities(view.diagram, placed, copied, where);
     if (!pasted.ok) return { messages: [{ type: "status", message: pasted.reason }] };
     this.pendingSelection = [...pasted.ids];
     return this.planned(view, "paste", pasted.operations);
@@ -962,6 +1001,64 @@ export class CanvasSession {
     }
     const model = diagram.c4?.resolved?.definition;
     switch (action.kind) {
+      case "create": {
+        // An entity of a kind the level draws, declared in the model where the level puts it,
+        // included in the view (nothing when the view draws it by default) and placed.
+        if (!model) return this.unresolved();
+        const kind = action.elementKind as EntityKind;
+        const kinds = allowedKinds(diagram.c4!.level);
+        if (!kinds.includes(kind)) {
+          return {
+            messages: [
+              {
+                type: "rejected",
+                code: "edit.invalid-value",
+                reason: wording().c4.kindNotDrawn(action.elementKind, kinds),
+              },
+            ],
+          };
+        }
+        const parent = entityParent(diagram, kind);
+        const path = freshEntityPath(model, parent, kind);
+        const ops: EditOperation[] = [
+          {
+            kind: "createEntity",
+            model: model.id,
+            entityKind: kind,
+            ...(parent !== null ? { parent } : {}),
+            id: path.slice(path.lastIndexOf(".") + 1),
+            label: "",
+          },
+          { kind: "includeEntity", diagram: d, entity: path },
+        ];
+        // Where it was dropped: an `auto` view writes its arrangement first, as for any creation.
+        if (view.mode !== "auto" || view.layout?.boxes) {
+          const at = this.snap(action.at);
+          ops.push({ kind: "setPosition", diagram: d, element: path, x: at.x, y: at.y });
+        }
+        this.pendingSelection = [path];
+        this.pendingEdit = path;
+        return this.planned(view, "create", ops);
+      }
+      case "duplicate": {
+        // Copies of the selected entities, declared beside them in the model and placed off them.
+        const fragment = copyFragment(this.analysis!, d, action.ids);
+        const copied = fragment
+          ? copiedEntities(compile(fragment).document.models, compile(fragment).document.diagrams)
+          : undefined;
+        if (!copied || copied.length === 0) return { messages: [] };
+        const placed = view.mode !== "auto" || view.layout?.boxes !== undefined;
+        const pasted = pasteEntities(diagram, placed, copied, {
+          shift: { x: 2 * this.grid, y: 2 * this.grid },
+        });
+        if (!pasted.ok) {
+          return {
+            messages: [{ type: "rejected", code: "edit.invalid-value", reason: pasted.reason }],
+          };
+        }
+        this.pendingSelection = [...pasted.ids];
+        return this.planned(view, "duplicate", pasted.operations);
+      }
       case "includeEntity": {
         const ops: EditOperation[] = [{ kind: "includeEntity", diagram: d, entity: action.entity }];
         if (action.at && view.mode !== "auto") {
@@ -1068,15 +1165,25 @@ export class CanvasSession {
               value: id,
             });
           }
-          // Once named, the relation goes by its id.
+          // Once named, the relation goes by its id. The move rewrites the relation's routes in
+          // the views of the model's file, with the dropped port in this one's; a route still to
+          // write (none here yet), or one in another file than the model's, is set after it.
           ops.push({
             kind: "reconnectModelRelation",
             model: model.id,
             relation: id ?? source.key,
             end: action.end,
             entity: action.element,
+            ...(id !== null && port !== undefined
+              ? {
+                  view: d,
+                  port,
+                  ...(action.position !== undefined ? { position: action.position } : {}),
+                }
+              : {}),
           });
-          if (port !== undefined && id !== null) ops.push(end(id, port));
+          const elsewhere = (diagram.c4?.resolved?.file ?? null) !== null;
+          if (port !== undefined && id !== null && (!route || elsewhere)) ops.push(end(id, port));
           // The relation keeps its place in the model's text, so its key counts the relations of
           // its new pair written before it.
           const before = model.relations.filter(
@@ -1094,7 +1201,7 @@ export class CanvasSession {
               {
                 type: "rejected",
                 code: "edit.invalid-value",
-                reason: wording().c4.nameCombination,
+                reason: wording().session.fixFirst,
               },
             ],
           };
@@ -1167,6 +1274,20 @@ export class CanvasSession {
         }
         const relation = diagram.relationsByKey.get(action.id);
         if (!relation) {
+          // A label typed on an entity the model left empty (one just created) is the model's;
+          // otherwise it is this view's local label.
+          const entity = model?.entitiesByPath.get(action.id);
+          if (entity && entity.label === "" && label !== null) {
+            return this.planned(view, "setLabel", [
+              {
+                kind: "setEntityProperty",
+                model: model!.id,
+                entity: entity.path,
+                property: "label",
+                value: label,
+              },
+            ]);
+          }
           return this.planned(view, "setLabel", [
             { kind: "setLocalLabel", diagram: d, target: action.id, label },
           ]);
@@ -1191,7 +1312,7 @@ export class CanvasSession {
               {
                 type: "rejected",
                 code: "edit.invalid-value",
-                reason: wording().c4.nameCombination,
+                reason: wording().session.fixFirst,
               },
             ],
           };

@@ -9,6 +9,7 @@ import {
   type SizeEntry,
 } from "@meltemi/diagrams-model";
 import { diagramView, type DocumentAnalysis } from "./analysis.js";
+import { entityClipboard } from "./c4.js";
 import { messages } from "./messages/index.js";
 
 const INDENT = "  ";
@@ -41,6 +42,8 @@ export function copyFragment(
   const view = diagramView(analysis, diagramId);
   if (!view) return undefined;
   const diagram = view.diagram;
+  // A C4 view copies the entities it draws, which a paste declares again in a model.
+  if (diagram.type === "c4") return entityClipboard(diagram, ids, view.layout?.boxes);
   const text = analysis.text;
   const selected = new Set(ids.filter((id) => diagram.elementsById.has(id)));
   const inSelectedGroup = (path: readonly string[]) => path.some((g) => selected.has(g));

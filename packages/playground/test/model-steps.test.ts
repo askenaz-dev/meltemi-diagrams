@@ -111,4 +111,16 @@ describe("the model of a view in another file, edited from the canvas", () => {
     expect(studio.text(MODEL_FILE)).toBe(MODEL);
     expect(studio.text(VIEW_FILE)).toBe(VIEW);
   });
+
+  it("declares a container from the palette in the model's file and places it, undone in one step", () => {
+    const { studio, act } = rig();
+    act({ kind: "create", elementKind: "container", at: { x: 420, y: 320 } });
+    expect(studio.text(MODEL_FILE)).toContain(
+      '    container api "API"\n    container container1 ""\n',
+    );
+    expect(studio.text(VIEW_FILE)).toMatch(/place shop\.container1 at \(\d+, \d+\)/);
+    expect(studio.undo()).toBe(true);
+    expect(studio.text(MODEL_FILE)).toBe(MODEL);
+    expect(studio.text(VIEW_FILE)).toBe(VIEW);
+  });
 });

@@ -65,3 +65,5 @@ and fragments an import leaves anonymous. The owner hit both on 2026-10-22.
 - `removeModelRelation` takes `cascade`; `forgetModelRelation` and `reconnectModelRelation` join
   the edit operations; `defaultEntities` joins the model package; `SessionResult.project` carries
   steps over files instead of a theme file.
+- Entities created from the view and routes that follow a moved end came with
+  [decision 0053](0053-c4-entities-and-routes.md).

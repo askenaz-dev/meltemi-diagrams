@@ -221,9 +221,17 @@ export const es: typeof en = {
       datastore: "contenedor externo",
       component: "componente externo",
     },
-    nameCombination: "Nombra la combinación en la vista (`as <id>`) antes de darle estilo.",
     reconnectCombination: (key, sources) =>
       `${code(key)} representa a ${sources.map(code).join(", ")}; cámbialas en el modelo.`,
+    tools: {
+      person: "Persona",
+      system: "Sistema de software",
+      container: "Contenedor",
+      datastore: "Almacén de datos",
+      component: "Componente",
+    },
+    kindNotDrawn: (kind, kinds) =>
+      `Esta vista no dibuja ${code(kind)}; dibuja ${kinds.map(code).join(", ")}.`,
   },
 
   reasons: {
@@ -277,8 +285,6 @@ export const es: typeof en = {
   },
 
   c4Refused: {
-    create:
-      "Las vistas dibujan las entidades del modelo: agrega una con “Agregar desde el modelo…” o declárala en el modelo.",
     group:
       "El límite de una vista es su ámbito; los grupos pertenecen a los sistemas y contenedores del modelo.",
     ungroup: "El límite de una vista es su ámbito; cambia el ámbito en las propiedades.",
@@ -289,10 +295,8 @@ export const es: typeof en = {
     removeLayer: "Las capas pertenecen a los diagramas de flujo y a las composiciones libres.",
     moveLayer: "Las capas pertenecen a los diagramas de flujo y a las composiciones libres.",
     setLayer: "Las capas pertenecen a los diagramas de flujo y a las composiciones libres.",
-    paste: "Copia las entidades en el texto del modelo; las vistas las listan en `include`.",
-    duplicate: "Las vistas dibujan cada entidad una sola vez.",
     "move.parent":
-      "Los elementos de una vista están donde sus entidades están en el modelo; muévelos allí entre sistemas y contenedores.",
+      "Los elementos de una vista están donde sus entidades están en el modelo; muévelos entre sistemas y contenedores en el texto del modelo.",
     "connect.twoWay": "Las relaciones de las vistas C4 van en un solo sentido: `->`.",
   },
 

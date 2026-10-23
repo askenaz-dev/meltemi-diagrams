@@ -360,7 +360,6 @@ export const en = {
     showInText: "Show in text",
     labelInView: "Label in this view",
     renameInModel: "Rename in the model",
-    combineRelations: "Combine relations to…",
     openModel: "Open the model",
     removeFromView: "Remove from the view",
     messageTo: "Message to…",

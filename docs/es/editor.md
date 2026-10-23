@@ -733,26 +733,42 @@ coordenadas.
 
 ## Vistas C4
 
-Una vista C4 dibuja entidades de un modelo; el lienzo nunca declara entidades
-([c4.md](language/c4.md)).
+Una vista C4 dibuja entidades de un modelo ([c4.md](language/c4.md)); lo que el lienzo crea se
+declara en ese modelo, en este archivo o en el archivo propio del modelo.
 
+- **Crear.** La paleta ofrece los tipos que dibuja el nivel de la vista: **Persona** y **Sistema
+  de software** en una vista de contexto, además **Contenedor** y **Almacén de datos** en una vista
+  de contenedores, **Componente** en una vista de componentes. Un clic o un arrastre declara la
+  entidad en el modelo, dentro del ámbito de la vista para contenedores, almacenes de datos y
+  componentes y en la raíz del modelo para personas y sistemas, con una etiqueta vacía que el
+  editor de etiquetas pide enseguida; la vista la incluye cuando lista `include`, y la coloca
+  donde se soltó.
 - **Agregar.** **Agregar desde el modelo…** (barra de herramientas, A, menú contextual) lista las
   entidades que la vista puede dibujar y no dibuja; la elegida se suma a `include`.
+- **Copiar.** Copiar, pegar y **Duplicar** declaran copias de las entidades seleccionadas en el
+  modelo, con su etiqueta, su tecnología, su descripción y `external`, con su id o `<id>_2`; sus
+  relaciones no se copian.
 - **Quitar.** Eliminar quita una entidad de la vista (la saca de `include` o la pone en `exclude`)
   junto con las instrucciones de la vista que la nombran; el modelo la conserva.
 - **Relaciones.** Las flechas son del modelo, y el lienzo las escribe allí. Arrastrar desde un
   asa de conexión, la herramienta de relación y **Conectar con…** escriben `a -> b` en el modelo
   (`->` es el único tipo que admite un modelo; Mayús no cambia nada aquí). Arrastrar un extremo
-  de una flecha hasta otra entidad mueve ese extremo de la relación del modelo; una flecha que
-  combina varias relaciones del modelo (C) conserva sus extremos. Eliminar quita la relación del
+  de una flecha hasta otra entidad mueve ese extremo de la relación del modelo, y sus rutas en
+  todas las vistas del proyecto lo siguen: el extremo movido se reescribe, un lado cardinal se
+  conserva, un punto del lado anterior no, y los puntos de paso quedan; una vista que dejaría de
+  dibujar la relación pierde su ruta, y un movimiento que rompería una vista de otro archivo se
+  rechaza. Una flecha que combina varias relaciones del modelo conserva sus extremos. Eliminar quita la relación del
   modelo con todo lo que la nombra, y pregunta antes cuando otra vista la dibuja, una instrucción
   la nombra o una entidad que la vista dibujaba solo por esa relación se va con sus
   instrucciones. Los estilos, los efectos, las rutas, los codos y las posiciones de etiqueta
-  sobre una relación que el modelo no nombró primero la nombran allí.
-- **Etiquetas.** Editar una etiqueta escribe `label <entity> "Text"` solo en esta vista. Sobre una
-  flecha, rellena la etiqueta de la relación del modelo cuando no tiene y escribe la etiqueta local
-  de la vista en caso contrario. Las combinaciones (C) escriben en la vista una relación que
-  representa las relaciones del modelo entre dos entidades.
+  sobre una relación que el modelo no nombró primero la nombran allí; sobre una combinación sin
+  id, la nombran en la vista (`as shop_web_shop_api_orders`).
+- **Etiquetas.** Editar una etiqueta escribe `label <entity> "Text"` solo en esta vista, salvo en
+  una entidad cuya etiqueta el modelo deja vacía (una recién creada), donde es la etiqueta del
+  modelo. Sobre una flecha, rellena la etiqueta de la relación del modelo cuando no tiene y
+  escribe la etiqueta local de la vista en caso contrario.
+- **Mover entre sistemas.** Una entidad está donde el modelo la declara: llevarla a otro sistema o
+  contenedor se hace en el texto del modelo.
 - **Mover.** Arrastrar, los modos de disposición y Organizar escriben solo las posiciones de la
   vista.
 - **Inspector.** Los elementos muestran su ruta y su tipo, la etiqueta en esta vista y la etiqueta,

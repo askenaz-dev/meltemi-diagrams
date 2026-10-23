@@ -1999,6 +1999,92 @@ const tests: {
     },
   },
   {
+    name: "C4: a container from the palette is declared in the model, drawn and labelled",
+    text: C4,
+    async run(h) {
+      const page = h.page;
+      // The palette offers the kinds a container view draws, with their pictures.
+      const kinds = await page
+        .locator(".toolbar button[data-declared]")
+        .evaluateAll((buttons) => buttons.map((b) => b.getAttribute("data-tool")));
+      assert.deepEqual(kinds, ["container", "datastore", "person", "system"]);
+      await page.locator('.toolbar button[data-tool="container"]').click();
+      // An empty corner of the stage, clear of the minimap.
+      const stage = await page.locator(".stage").boundingBox();
+      assert.ok(stage, "no stage");
+      await page.mouse.click(stage.x + 80, stage.y + stage.height - 80);
+      await h.settled();
+      assert.match(
+        h.text,
+        /datastore db "Orders" \{ technology "PostgreSQL" \}\n {4}container container1 ""\n/,
+      );
+      assert.match(h.text, /include customer, shop\.web, shop\.api, shop\.db, shop\.container1\n/);
+      assert.equal(
+        await page.locator('.content g[data-id="shop.container1"][data-role="element"]').count(),
+        1,
+        "the new container is drawn",
+      );
+      assert.deepEqual(h.session.selected, ["shop.container1"]);
+      // Its label is typed where it is drawn, and written in the model.
+      const inline = page.locator("textarea.inline");
+      await inline.waitFor({ state: "visible" });
+      await page.keyboard.type("Worker");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, / {4}container container1 "Worker"\n/);
+      assert.doesNotMatch(h.text, /label shop\.container1/);
+      await page.screenshot({ path: join(output, "canvas-c4-palette.png") });
+    },
+  },
+  {
+    name: "C4: an arrow with a route is reconnected twice and its route follows",
+    text: C4.replace(
+      "  include customer, shop.web, shop.api, shop.db\n",
+      "  include customer, shop.web, shop.api, shop.db\n  layout manual\n  placement {\n    place customer at (120, 80)\n    place shop.web at (120, 300)\n    place shop.api at (420, 300)\n    place shop.db at (720, 300)\n    route visit from customer.south to shop.web.north via [(120, 190)]\n  }\n",
+    ),
+    async run(h) {
+      const page = h.page;
+      const box = async (selector: string) => {
+        const found = await page.locator(selector).first().boundingBox();
+        assert.ok(found, `no ${selector}`);
+        return found;
+      };
+      const centre = (b: Rect) => ({ x: b.x + b.width / 2, y: b.y + b.height / 2 });
+      const dragEndTo = async (to: { x: number; y: number }) => {
+        const label = centre(
+          await box('.content g[data-id="visit"][data-role="relation"] [data-role="label"]'),
+        );
+        await page.mouse.click(label.x, label.y);
+        await h.settled();
+        const end = centre(await box('.overlay [data-handle="end:to"]'));
+        await page.mouse.move(end.x, end.y);
+        await page.mouse.down();
+        await page.mouse.move(to.x, to.y, { steps: 8 });
+        await page.mouse.up();
+        await h.settled();
+      };
+      const status = () => page.locator(".status").textContent();
+      // Onto the middle of the API: the route ends there, its compass side carried over.
+      await dragEndTo(await h.centre("shop.api"));
+      assert.match(h.text, /customer -> shop\.api: "Buys" as visit\n/);
+      assert.match(
+        h.text,
+        /route visit from customer\.south to shop\.api\.north via \[\(120, 190\)\]/,
+      );
+      assert.doesNotMatch((await status()) ?? "", /invalid/);
+      // Again, onto the database: what answered "The `route` statement for … is invalid".
+      await dragEndTo(await h.centre("shop.db"));
+      assert.match(h.text, /customer -> shop\.db: "Buys" as visit\n/);
+      assert.match(
+        h.text,
+        /route visit from customer\.south to shop\.db\.north via \[\(120, 190\)\]/,
+      );
+      assert.doesNotMatch((await status()) ?? "", /invalid|Fix the problems/);
+      assert.equal(await page.locator(".banner").isVisible(), false, "nothing stale");
+      await page.screenshot({ path: join(output, "canvas-c4-reconnect.png") });
+    },
+  },
+  {
     name: "plays the effects of a diagram from the start, and remembers a pause over a reload",
     text: SHEET.replace(
       "  placement {",

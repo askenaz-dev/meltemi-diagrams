@@ -155,6 +155,23 @@ describe("C4 canvas", () => {
     expect(render.profile).toBe("c4");
     expect(render.entities.map((e) => e.path)).toEqual(["bank"]);
     expect(render.elements.find((e) => e.id === "shop.api")!.label).toBe("API de pedidos");
+    // The palette offers the entity kinds the level draws.
+    const tools = (diagram: string) =>
+      open(commerce, diagram)
+        .render()
+        .tools?.map((t) => `${t.kind}:${t.label}`);
+    expect(tools("context")).toEqual(["person:Person", "system:Software system"]);
+    expect(tools("containers")).toEqual([
+      "container:Container",
+      "datastore:Data store",
+      "person:Person",
+      "system:Software system",
+    ]);
+    expect(tools("components")).toEqual([
+      "component:Component",
+      "person:Person",
+      "system:Software system",
+    ]);
   });
 
   it("adds from the model, removes by excluding, and labels locally", () => {
@@ -166,8 +183,77 @@ describe("C4 canvas", () => {
     expect(removed).toContain('datastore db "Pedidos"');
     const labelled = canvas.apply({ kind: "setLabel", id: "shop.web", label: "Tienda web" });
     expect(labelled).toContain('  label shop.web "Tienda web"');
-    const refused = canvas.act({ kind: "create", elementKind: "container", at: { x: 0, y: 0 } });
-    expect(refused.messages[0]).toMatchObject({ type: "rejected" });
+  });
+
+  it("declares a new entity in the model where the view's level puts it, and draws it", () => {
+    // A container inside the scope of a container view that lists what it draws.
+    const containers = open(commerce, "containers");
+    const created = containers.apply({
+      kind: "create",
+      elementKind: "container",
+      at: { x: 300, y: 420 },
+    });
+    expect(created).toContain(
+      '    datastore db "Pedidos" { technology "PostgreSQL" }\n    container container1 ""\n',
+    );
+    expect(created).toContain("  include customer, shop.web, shop.api, shop.db, shop.container1\n");
+    expect(created).toMatch(/place shop\.container1 at \(\d+, \d+\)/);
+    expect(containers.render().elements.map((e) => e.id)).toContain("shop.container1");
+    // The new element is selected and its label editor opens.
+    expect(containers.session.selected).toEqual(["shop.container1"]);
+    // A person on a context view, which draws every person: no `include` to write.
+    const context = open(commerce, "context");
+    const person = context.apply({ kind: "create", elementKind: "person", at: { x: 80, y: 80 } });
+    expect(person).toContain('  person person1 ""\n');
+    expect(person).not.toMatch(/diagram context[^}]*include/);
+    expect(context.render().elements.map((e) => e.id)).toContain("person1");
+    // A kind the level does not draw is refused, naming the ones it does.
+    const refused = context.act({ kind: "create", elementKind: "container", at: { x: 0, y: 0 } });
+    expect(refused.messages[0]).toMatchObject({
+      type: "rejected",
+      code: "edit.invalid-value",
+      reason: "This view draws no `container`; it draws `person`, `system`.",
+    });
+    // A component on a component view goes inside its container.
+    const components = open(commerce, "components");
+    const component = components.apply({
+      kind: "create",
+      elementKind: "component",
+      at: { x: 200, y: 200 },
+    });
+    expect(component).toContain('      component component1 ""\n');
+    expect(components.render().elements.map((e) => e.id)).toContain("shop.api.component1");
+  });
+
+  it("pastes and duplicates entities as copies declared in the model, without their relations", () => {
+    const canvas = open(commerce, "containers");
+    const copied = canvas.session.receive({ type: "copy", ids: ["shop.web"] });
+    // A container is declared in a system: the copy sits in a holder the paste leaves out.
+    expect(copied.clipboard).toContain(
+      'model clipboard {\n  system meltemi_clipboard "" {\n    container web "Web" { technology "React" }\n  }\n}',
+    );
+    const pasted = canvas.session.paste(copied.clipboard!, { x: 600, y: 400 });
+    expect(pasted.plan).toBeDefined();
+    const text = applyTextEdits(commerce, pasted.plan!.edits);
+    expect(text).toContain('    container web_2 "Web" { technology "React" }\n');
+    expect(text).toContain("  include customer, shop.web, shop.api, shop.db, shop.web_2\n");
+    expect(text).toMatch(/place shop\.web_2 at \(\d+, \d+\)/);
+    // No relation of `web` is copied.
+    expect(text).not.toMatch(/shop\.web_2 ->|-> shop\.web_2/);
+    expect(analyzeDocument({ text }).diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    // Duplicate on the context view: the person with its description, two grid steps off.
+    const context = open(commerce, "context");
+    const duplicated = context.apply({ kind: "duplicate", ids: ["customer"] });
+    expect(duplicated).toContain(
+      '  person customer_2 "Cliente" { description "Compra en línea" }\n',
+    );
+    expect(context.session.selected).toEqual(["customer_2"]);
+    // A flow fragment on the clipboard does not paste into a C4 view, and says why.
+    const flow = canvas.session.paste(
+      'language "0.2"\n\ndiagram clipboard: flow {\n  api["API"]\n}\n',
+    );
+    expect(flow.plan).toBeUndefined();
+    expect(flow.messages[0]).toMatchObject({ type: "status" });
   });
 
   it("moves in one view and writes entity fields into the model", () => {
@@ -306,6 +392,76 @@ describe("C4 canvas", () => {
     });
   });
 
+  it("names an anonymous combination in the view for a style or an effect", () => {
+    const anonymous = commerce.replace(" as uses", "");
+    const canvas = open(anonymous, "components");
+    const key = canvas
+      .render()
+      .relations.find((r) => r.key.startsWith("shop.web->shop.api.orders"))!.key;
+    const width: CanvasAction = { kind: "setField", ids: [key], field: "style.width", value: 2 };
+    expect(canvas.act(width).messages).toContainEqual({
+      type: "status",
+      message: "Named `shop_web_shop_api_orders`.",
+    });
+    const styled = canvas.apply(width);
+    expect(styled).toContain('  shop.web -> shop.api.orders: "Usa" as shop_web_shop_api_orders\n');
+    expect(styled).toContain("style shop_web_shop_api_orders { width 2 }");
+    expect(canvas.inspector().target.ids).toEqual(["shop_web_shop_api_orders"]);
+    // The fresh id stays clear of the model's relation ids.
+    const clash = open(anonymous.replace("as orders", "as shop_web_shop_api_orders"), "components");
+    const flowed = clash.apply({ kind: "setField", ids: [key], field: "effect.flow", value: "on" });
+    expect(flowed).toContain(
+      '  shop.web -> shop.api.orders: "Usa" as shop_web_shop_api_orders_2\n',
+    );
+    expect(flowed).toContain("animate shop_web_shop_api_orders_2 { effect flow }");
+    // Its ends still do not move: they stand for model relations.
+    const refused = open(anonymous, "components").act({
+      kind: "setEnd",
+      relation: key,
+      end: "to",
+      element: "shop.api.payments",
+      port: null,
+    });
+    expect(refused.messages[0]).toMatchObject({ type: "rejected" });
+  });
+
+  it("keeps a routed relation's route valid through two reconnects, and pins a dropped port", () => {
+    // The container view draws the bank too and routes `visit`; Arrange writes such routes.
+    const routed = commerce.replace(
+      "  include customer, shop.web, shop.api, shop.db\n",
+      "  include customer, shop.web, shop.api, shop.db, bank\n  placement {\n    route visit from customer.south to shop.web via [(200, 300)]\n  }\n",
+    );
+    const canvas = open(routed, "containers");
+    const mismatches = (text: string) =>
+      analyzeDocument({ text }).diagnostics.filter((d) => d.code === "placement.route-mismatch");
+    // Dropped in the middle of a box: the route follows, with no port.
+    const once = canvas.apply({
+      kind: "setEnd",
+      relation: "visit",
+      end: "to",
+      element: "shop.api",
+      port: null,
+    });
+    expect(once).toContain('  customer -> shop.api: "Compra" as visit\n');
+    expect(once).toContain("    route visit from customer.south to shop.api via [(200, 300)]\n");
+    expect(mismatches(once)).toEqual([]);
+    // Again, on a side of the bank: what failed with "The `route` statement … is invalid".
+    const twice = canvas.apply({
+      kind: "setEnd",
+      relation: "visit",
+      end: "to",
+      element: "bank",
+      port: "west",
+      position: 40,
+    });
+    expect(twice).toContain('  customer -> bank: "Compra" as visit\n');
+    expect(twice).toContain(
+      "    route visit from customer.south to bank.west 40% via [(200, 300)]\n",
+    );
+    expect(mismatches(twice)).toEqual([]);
+    expect(canvas.inspector().target.ids).toEqual(["visit"]);
+  });
+
   it("deletes a drawn relation from the model, asking when other views draw it", () => {
     const canvas = open(commerce, "containers");
     const asked = canvas.act({ kind: "remove", ids: ["visit"], cascade: false });
@@ -426,6 +582,34 @@ describe("a model in another file of the project", () => {
     expect(canvas.inspector().target.ids).toEqual(["shop_api_shop_db"]);
   });
 
+  it("declares a container in the model's file from the view, in one request", () => {
+    const canvas = openIn(containersFile, "containers");
+    const request = canvas.apply({
+      kind: "create",
+      elementKind: "container",
+      at: { x: 300, y: 420 },
+    });
+    expect(request.steps.map((s) => [s.file, s.operation.kind])).toEqual([
+      [modelFile, "createEntity"],
+      [null, "includeEntity"],
+      [null, "setPosition"],
+    ]);
+    expect(text(modelFile)).toContain('    container container1 ""\n');
+    // The view draws the scope's containers by default: nothing to include, a place to keep.
+    expect(text(containersFile)).not.toContain("include");
+    expect(text(containersFile)).toMatch(/place shop\.container1 at \(\d+, \d+\)/);
+    for (const file of [modelFile, containersFile, contextFile]) expect(errors(file)).toEqual([]);
+    expect(canvas.inspector().target.ids).toEqual(["shop.container1"]);
+    // Taken out again, so the tests below see the project as they expect.
+    writeFileSync(modelFile, text(modelFile).replace('    container container1 ""\n', ""));
+    writeFileSync(
+      containersFile,
+      text(containersFile).replace(/\n {4}place shop\.container1 at \(\d+, \d+\)/, ""),
+    );
+    sessions.forFile(modelFile).invalidate(modelFile);
+    sessions.forFile(containersFile).invalidate(containersFile);
+  });
+
   it("moves an end, writes a model field and renames an entity in every file", () => {
     const canvas = openIn(containersFile, "containers");
     canvas.apply({ kind: "setEnd", relation: "visit", end: "to", element: "shop.api", port: null });
@@ -466,6 +650,80 @@ describe("a model in another file of the project", () => {
     expect(text(contextFile)).not.toContain("as buys");
     expect(text(containersFile)).not.toContain("place customer");
     for (const file of [modelFile, containersFile, contextFile]) expect(errors(file)).toEqual([]);
+  });
+});
+
+describe("routes of a model in another file of the project", () => {
+  const root = mkdtempSync(join(tmpdir(), "mdg-c4-routes-"));
+  afterAll(() => rmSync(root, { recursive: true, force: true }));
+  cpSync(join(CORPUS_ROOT, "projects", "valid", "architecture"), root, { recursive: true });
+  const slash = (path: string) => path.split(sep).join("/");
+  const modelFile = slash(join(root, "models", "commerce.meltemi"));
+  const containersFile = slash(join(root, "diagrams", "containers.meltemi"));
+  const contextFile = slash(join(root, "diagrams", "context.meltemi"));
+  const text = (file: string) => readFileSync(file, "utf8");
+  // The container view lists what it draws and routes `visit`, as Arrange writes routes.
+  writeFileSync(
+    containersFile,
+    text(containersFile)
+      .replace(
+        '  label shop.api "API de pedidos"\n',
+        '  include customer, shop.web, shop.api, shop.db, bank\n  label shop.api "API de pedidos"\n',
+      )
+      .replace(
+        "    place bank at (218, 1107)\n",
+        "    place bank at (218, 1107)\n    route visit from customer.south to shop.web via [(141, 200)]\n",
+      ),
+  );
+  const sessions = new ProjectSessions({ toolVersion: "1.0.0" });
+  const errors = (file: string) =>
+    sessions.analyze(file).diagnostics.filter((d) => d.severity === "error");
+  const canvas = new CanvasSession({ path: containersFile, project: () => true });
+  canvas.update(sessions.analyze(containersFile));
+  canvas.receive({ type: "pickDiagram", diagram: "containers" });
+  const steps = (action: CanvasAction) => {
+    const result = canvas.receive({ type: "action", revision: 0, action });
+    if (result.project?.kind !== "files") throw new Error(JSON.stringify(result.messages));
+    return sessions.planSteps(containersFile, result.project.steps);
+  };
+  const apply = (action: CanvasAction) => {
+    const planned = steps(action);
+    if (!planned.ok) throw new Error(planned.reason);
+    for (const [path, edits] of planned.edits) {
+      writeFileSync(path, applyTextEdits(text(path), edits));
+      sessions.forFile(path).invalidate(path);
+    }
+    canvas.update(sessions.analyze(containersFile));
+  };
+
+  it("rewrites the route of the view's file when the end moves in the model's file", () => {
+    apply({ kind: "setEnd", relation: "visit", end: "to", element: "shop.api", port: null });
+    expect(text(modelFile)).toContain('  customer -> shop.api: "Compra" as visit\n');
+    expect(text(containersFile)).toContain(
+      "    route visit from customer.south to shop.api via [(141, 200)]\n",
+    );
+    apply({ kind: "setEnd", relation: "visit", end: "to", element: "shop.db", port: "west" });
+    expect(text(containersFile)).toContain(
+      "    route visit from customer.south to shop.db.west via [(141, 200)]\n",
+    );
+    for (const file of [modelFile, containersFile, contextFile]) expect(errors(file)).toEqual([]);
+  });
+
+  it("refuses a reconnect that would break a view of a file nobody wrote", () => {
+    // The context view combines `customer -> shop` for `visit` alone: at the bank, it would
+    // stand for nothing.
+    const before = [modelFile, containersFile, contextFile].map(text);
+    const planned = steps({
+      kind: "setEnd",
+      relation: "visit",
+      end: "to",
+      element: "bank",
+      port: null,
+    });
+    expect(planned.ok).toBe(false);
+    if (planned.ok) return;
+    expect(planned.reason).toMatch(/No relation of the model goes from `customer` to `shop`/);
+    expect([modelFile, containersFile, contextFile].map(text)).toEqual(before);
   });
 });
 

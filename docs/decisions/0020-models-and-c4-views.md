@@ -61,4 +61,6 @@ may link to model entities, reusing identity and metadata.
   `export` blocks remain parse-only until their changes.
 - The importers (change 12) map Mermaid `C4*` and C4-PlantUML onto models and views.
 - The canvas edits the model's relations from a view, naming anonymous ones on demand and reaching
-  a model in another file ([decision 0051](0051-c4-relations-from-the-canvas.md)).
+  a model in another file ([decision 0051](0051-c4-relations-from-the-canvas.md)); entities are
+  declared from the view's palette, and routes follow a moved end
+  ([decision 0053](0053-c4-entities-and-routes.md)).

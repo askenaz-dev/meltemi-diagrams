@@ -34,7 +34,7 @@ import {
   type ProjectHost,
 } from "@meltemi/diagrams-project";
 import { planEdit, type Dependent, type EditOperation } from "@meltemi/diagrams-edit";
-import type { FlowDiagram, TargetKind } from "@meltemi/diagrams-model";
+import { singleIdent, type FlowDiagram, type TargetKind } from "@meltemi/diagrams-model";
 import { analyzeDocument, type DocumentAnalysis, type ImportedViews } from "./analysis.js";
 import type { CanvasAction, HostMessage } from "./canvas/protocol.js";
 import { messages } from "./messages/index.js";
@@ -445,6 +445,8 @@ export class ProjectSessions {
       const last = groups[groups.length - 1];
       if (last?.kind === "plan" && last.file === file) last.operations.push(op);
       else groups.push({ kind: "plan", file, operations: [op] });
+      // A moved end reaches the routes of the views of other files, once the model has moved.
+      if (op.kind === "reconnectModelRelation") groups.push(...routeSteps(program, file, op));
     }
     const original = new Map<string, string>();
     const overlays = new Map<string, string | undefined>();
@@ -500,6 +502,12 @@ export class ProjectSessions {
         }
         if (refused) continue;
         stage(group.file, applyTextEdits(compiled.compilation.text, result.plan.edits));
+      }
+      // A model written here may break a view of a file nobody wrote: every file whose views
+      // resolve a model of a written file compiles without a new error, or nothing is written.
+      if (!refused) {
+        const broken = newErrorAcross(program, workspace, [...original.keys()]);
+        if (broken) return { ok: false, code: "edit.invalid-value", reason: broken };
       }
     } finally {
       for (const [file, overlay] of overlays) workspace.setOverlay(file, overlay ?? null);
@@ -785,6 +793,77 @@ function forgetSteps(
     }
   }
   return steps;
+}
+
+/**
+ * The steps that make the routes of a model relation in the views of other files follow an end
+ * the model moves: one `rewriteRouteEnd` per view that writes a route of the relation.
+ */
+function routeSteps(
+  program: Program,
+  modelFile: string,
+  op: Extract<EditOperation, { kind: "reconnectModelRelation" }>,
+): { kind: "plan"; file: string; operations: EditOperation[] }[] {
+  const steps: { kind: "plan"; file: string; operations: EditOperation[] }[] = [];
+  const definition = program.files
+    .get(modelFile)
+    ?.compilation.document.models.find((m) => m.id === op.model);
+  const id = definition?.relationsByKey.get(op.relation)?.id;
+  if (!id) return steps;
+  for (const other of program.files.values()) {
+    if (other.path === modelFile) continue;
+    const operations: EditOperation[] = [];
+    for (const diagram of other.compilation.document.diagrams) {
+      const c4 = diagram.c4;
+      if (!c4 || c4.resolved?.file !== modelFile || c4.resolved.definition.id !== op.model)
+        continue;
+      const routed = diagram.placementBlocks.some((owner) =>
+        (owner.block?.statements ?? []).some(
+          (stmt) =>
+            stmt.kind === "KeywordStatement" &&
+            stmt.keyword.text === "route" &&
+            singleIdent(stmt.args[0])?.text === id,
+        ),
+      );
+      if (routed) {
+        operations.push({
+          kind: "rewriteRouteEnd",
+          diagram: diagram.id,
+          relation: id,
+          end: op.end,
+        });
+      }
+    }
+    if (operations.length > 0) steps.push({ kind: "plan", file: other.path, operations });
+  }
+  return steps;
+}
+
+/**
+ * The first error that a file whose C4 views resolve a model of one of `written` gets with the
+ * planned texts and did not have before, or undefined.
+ */
+function newErrorAcross(
+  program: Program,
+  workspace: Workspace,
+  written: readonly string[],
+): string | undefined {
+  const writtenSet = new Set(written);
+  const key = (d: { code: string; message: string }) => `${d.code}:${d.message}`;
+  for (const other of program.files.values()) {
+    const resolves = other.compilation.document.diagrams.some((diagram) => {
+      const file = diagram.c4?.resolved?.file ?? null;
+      return file !== null && writtenSet.has(file);
+    });
+    if (!resolves) continue;
+    const before = new Set(
+      other.compilation.diagnostics.filter((d) => d.severity === "error").map(key),
+    );
+    const now = workspace.file(other.path)?.compilation;
+    const fresh = now?.diagnostics.find((d) => d.severity === "error" && !before.has(key(d)));
+    if (fresh) return fresh.message;
+  }
+  return undefined;
 }
 
 /** One edit that turns `before` into `after`: the span between their common prefix and suffix. */

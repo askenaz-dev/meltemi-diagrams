@@ -548,6 +548,26 @@ export type EditOperation =
       readonly relation: string;
       readonly end: "from" | "to";
       readonly entity: string;
+      /**
+       * The view the end was dropped on, with the port (null: the layout chooses) and the point
+       * written into its route of the relation, when it has one; the routes of the other views
+       * follow the moved end by the usual rule.
+       */
+      readonly view?: string;
+      readonly port?: string | null;
+      readonly position?: number;
+    }
+  | {
+      /**
+       * C4 views of a file other than the model's: rewrites the end of the relation's routes that
+       * no longer meets the drawn relation (the model moved it), or removes a route whose relation
+       * the view no longer draws.
+       */
+      readonly kind: "rewriteRouteEnd";
+      readonly diagram: string;
+      /** The model relation's id. */
+      readonly relation: string;
+      readonly end: "from" | "to";
     }
   | {
       /**

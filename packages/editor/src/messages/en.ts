@@ -249,10 +249,20 @@ export const en = {
       datastore: "external container",
       component: "external component",
     },
-    nameCombination: "Name the combination in the view (`as <id>`) before styling it.",
     /** A combination stands for several model relations: its ends cannot move. */
     reconnectCombination: (key: string, sources: readonly string[]) =>
       `${code(key)} stands for ${sources.map(code).join(", ")}; change them in the model.`,
+    /** The palette's tools of a C4 view, by entity kind. */
+    tools: {
+      person: "Person",
+      system: "Software system",
+      container: "Container",
+      datastore: "Data store",
+      component: "Component",
+    },
+    /** A kind the palette does not offer at the view's level. */
+    kindNotDrawn: (kind: string, kinds: readonly string[]) =>
+      `This view draws no ${code(kind)}; it draws ${kinds.map(code).join(", ")}.`,
   },
 
   /** Why an inspector field or a paste cannot be written. */
@@ -314,8 +324,6 @@ export const en = {
 
   /** Canvas actions that do not apply to C4 views, with the reason. */
   c4Refused: {
-    create:
-      "Views draw the entities of the model: add one with “Add from the model…”, or declare it in the model.",
     group:
       "The boundary of a view is its scope; groups belong to the model's systems and containers.",
     ungroup: "The boundary of a view is its scope; change the scope in the properties.",
@@ -326,10 +334,8 @@ export const en = {
     removeLayer: "Layers belong to flow diagrams and free compositions.",
     moveLayer: "Layers belong to flow diagrams and free compositions.",
     setLayer: "Layers belong to flow diagrams and free compositions.",
-    paste: "Copy entities in the model's text; views list them in `include`.",
-    duplicate: "Views draw each entity once.",
     "move.parent":
-      "The elements of a view sit where their entities are in the model; move them between systems and containers there.",
+      "The elements of a view sit where their entities are in the model; move them between systems and containers in the model's text.",
     "connect.twoWay": "Relations of C4 views go one way: `->`.",
   },
 

@@ -87,7 +87,14 @@ in the model, then `includeEntity` and `setPosition` offset as flow paste is; re
 copied (the model's relations belong to pairs of entities, and a copy of a container has none).
 Alternatives: keep refusing (today); copy the entity's relations too (a pasted container would at
 once relate to everything the original relates to, which surprises more than it helps).
-Recommendation: copies without relations; the person draws the ones the copy needs.
+Recommendation: copies without relations; the person draws the ones the copy needs. As built,
+the clipboard of a C4 view is a document of its own: a `model clipboard` block declaring the copies
+(containers and data stores inside a holder system, components inside a holder container, both
+`meltemi_clipboard`, so the block compiles and the holders are left out on paste) and a free
+diagram holding where each was drawn; `entityClipboard` writes it, `copiedEntities` reads it back,
+and `pasteEntities` plans the copies, so copy, cut, paste and Duplicate share one path. A label
+typed on an entity whose model label is empty (one just created) fills the model's label, as a
+label typed on an arrow fills an empty model relation label.
 
 ### `reconnectModelRelation` rewrites the routes of the file's views
 
@@ -96,7 +103,7 @@ file that draws the relation (`drawnIn`, the same walk `removeModelRelation` use
 and rewrites the moved end of its `route <id>` statement: the new end is the entity's path lifted
 to that view's allowed set (`liftTo` of the model package), the old port and position of that end
 are dropped (a compass port of the old end carries over as in the flow `reconnectRelation`; a
-named port or a point never does), the other end and `via` stay; a view whose lifted end does not
+point never does, and C4 entities declare no named ports), the other end and `via` stay; a view whose lifted end does not
 change keeps its route untouched; a route whose ends become the same element (a relation lifted
 onto itself is not drawn) is removed with its `via`. `verifyNoNewErrors` then covers the model
 and every view of the file. The session's `setEnd` stops planning `setRoute` after the reconnect:

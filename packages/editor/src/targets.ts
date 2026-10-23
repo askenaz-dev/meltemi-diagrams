@@ -79,8 +79,18 @@ export function namedRelation(
   if (diagram.type === "c4") {
     const model = diagram.c4?.resolved?.definition;
     const source = model?.relationsByKey.get(relation.key);
+    if (model && !source && diagram.c4?.combined.includes(relation.key)) {
+      // A combination is the view's own statement: it is named there, after its drawn ends.
+      const id = freshModelRelationId(diagram, relation, taken);
+      return {
+        id,
+        operations: [
+          { kind: "materializeRelationId", diagram: diagram.id, relationKey: relation.key, id },
+        ],
+      };
+    }
     if (!model || !source) {
-      // A combination without an id, or a model not resolved: nothing names it from here.
+      // A model not resolved: nothing names it from here.
       return { id: relation.key, operations: [] };
     }
     const id = freshModelRelationId(diagram, source, taken);
@@ -106,10 +116,17 @@ export function namedRelation(
   };
 }
 
-/** Whether a relation of a C4 view can be named from the view: it stands for a model relation. */
+/**
+ * Whether a relation of a C4 view can be named from the view: a combination in its own statement,
+ * a drawn relation in its model; neither while the model is not resolved.
+ */
 export function nameable(diagram: FlowDiagram, relation: Relation): boolean {
   if (relation.id !== null || diagram.type !== "c4") return true;
-  return diagram.c4?.resolved?.definition.relationsByKey.has(relation.key) ?? false;
+  const c4 = diagram.c4;
+  if (!c4?.resolved) return false;
+  return (
+    c4.combined.includes(relation.key) || c4.resolved.definition.relationsByKey.has(relation.key)
+  );
 }
 
 /**
@@ -139,7 +156,7 @@ export function styleTargets(
     const event = relation ? undefined : diagram.eventsByKey.get(id);
     if (relation) {
       if (!nameable(diagram, relation)) {
-        return { ok: false, reason: messages().c4.nameCombination };
+        return { ok: false, reason: messages().session.fixFirst };
       }
       const name = namedRelation(diagram, relation, taken);
       if (name.operations.length > 0) {
