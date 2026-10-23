@@ -8,22 +8,22 @@
   </defs>
   <rect x="0" y="0" width="828" height="1282" fill="#F7FBFF"/>
   <g data-id="customer" data-role="lifeline">
-    <polyline points="55,80 55,1210" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="55,80 55,1210" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
   </g>
   <g data-id="web" data-role="lifeline">
-    <polyline points="178,80 178,1210" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="178,80 178,1210" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
   </g>
   <g data-id="api" data-role="lifeline">
-    <polyline points="314,80 314,1210" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="314,80 314,1210" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
   </g>
   <g data-id="orders" data-role="lifeline">
-    <polyline points="450,80 450,1210" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="450,80 450,1210" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
   </g>
   <g data-id="payments" data-role="lifeline">
-    <polyline points="586,80 586,1210" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="586,80 586,1210" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
   </g>
   <g data-id="db" data-role="lifeline">
-    <polyline points="758.66,80 758.66,1210" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="758.66,80 758.66,1210" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
   </g>
   <g data-id="m1" data-role="relation">
     <polyline points="55,126 170,126" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
@@ -300,24 +300,24 @@
     <text x="55" y="74.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Customer</text>
   </g>
   <g data-id="web" data-role="element">
-    <rect x="130" y="40" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <rect x="130" y="40" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
     <text x="178" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Web</text>
   </g>
   <g data-id="api" data-role="element">
-    <rect x="266" y="40" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <rect x="266" y="40" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
     <text x="314" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">API</text>
   </g>
   <g data-id="orders" data-role="element">
-    <rect x="402" y="40" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <rect x="402" y="40" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
     <text x="450" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Orders</text>
   </g>
   <g data-id="payments" data-role="element">
-    <rect x="538" y="40" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <rect x="538" y="40" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
     <text x="586" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Payments</text>
   </g>
   <g data-id="db" data-role="element">
-    <path d="M710.16 46 L710.16 74 A48.5 6 0 0 0 807.16 74 L807.16 46 A48.5 6 0 0 1 710.16 46 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
-    <path d="M710.16 46 A48.5 6 0 0 1 807.16 46 A48.5 6 0 0 1 710.16 46 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M710.16 46 L710.16 74 A48.5 6 0 0 0 807.16 74 L807.16 46 A48.5 6 0 0 1 710.16 46 Z" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <path d="M710.16 46 A48.5 6 0 0 1 807.16 46 A48.5 6 0 0 1 710.16 46 Z" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
     <text x="758.66" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Orders DB</text>
   </g>
   <g data-id="frame" data-role="frame">

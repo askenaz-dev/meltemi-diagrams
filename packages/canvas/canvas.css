@@ -541,8 +541,11 @@ body {
   animation: mdg-fade-in var(--mdg-motion-fast) var(--mdg-ease);
 }
 
-/* An element turned by its rotation handle eases between the steps. */
-.content g.turning {
+/*
+ * An element turned by its rotation handle follows the pointer without easing (a transition here
+ * would ease the SVG transform the drag writes); on the drop it eases into the written angle.
+ */
+.content g.turned-release {
   transition: transform var(--mdg-motion-fast) var(--mdg-ease);
 }
 
@@ -1000,7 +1003,21 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin-bottom: 8px;
+}
+
+/* The Effects row: its name and what is on above the toggles, like a picture row. */
+.panel .effects-row {
+  gap: 4px;
+}
+
+.panel .effects-row .row-label {
+  flex-wrap: wrap;
+  row-gap: 0;
+}
+
+.panel .effects-row .row-label .value {
+  flex: 1 0 auto;
+  max-width: 100%;
 }
 
 .panel button.toggle,

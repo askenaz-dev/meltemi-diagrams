@@ -1192,12 +1192,6 @@ export function fieldOperations(
   if (field.startsWith("effect.")) return effectOperations(diagram, ids, field, value);
   if (field.startsWith("style.")) {
     const property = field.slice("style.".length);
-    for (const id of ids) {
-      const event = diagram.relationsByKey.has(id) ? undefined : diagram.eventsByKey.get(id);
-      if (event && event.id === null) {
-        return { ok: false, reason: reasons.nameToStyle(event.kind) };
-      }
-    }
     let written: string | number | null = text === "" ? null : text;
     // Numbers within the property's bounds, such as a corner radius from 0 to 64.
     const spec = STYLE_PROPERTIES[property];
@@ -1400,6 +1394,11 @@ export function fieldOperations(
   }
   if (relation) {
     const named = relation.id;
+    // What an edit that named the relation first says, and the selection that follows the id.
+    const naming = (target: string, operations: readonly EditOperation[]) => {
+      const notice = namedNotice(operations.length > 0 ? [target] : []);
+      return notice ? { notice, select: [target] } : {};
+    };
     switch (field) {
       case "id":
         if (!text) break;
@@ -1417,7 +1416,7 @@ export function fieldOperations(
           relation: target,
           label: text || null,
         });
-        break;
+        return { ok: true, operations: ops, ...naming(target, operations) };
       }
       case "description":
         ops.push({
@@ -1438,8 +1437,7 @@ export function fieldOperations(
           property: "layer",
           value: text || null,
         });
-        const notice = namedNotice(operations.length > 0 ? [target] : []);
-        return { ok: true, operations: ops, ...(notice ? { notice } : {}) };
+        return { ok: true, operations: ops, ...naming(target, operations) };
       }
       case "classes":
         ops.push({
@@ -1465,8 +1463,7 @@ export function fieldOperations(
             property: "line",
             value: "dotted",
           });
-          const notice = namedNotice(operations.length > 0 ? [target] : []);
-          return { ok: true, operations: ops, ...(notice ? { notice } : {}) };
+          return { ok: true, operations: ops, ...naming(target, operations) };
         }
         ops.push({
           kind: "setRelationLine",
@@ -1513,18 +1510,21 @@ export function fieldOperations(
       case "labelAt": {
         if (number === null || !Number.isFinite(number))
           return { ok: false, reason: reasons.percentage };
-        if (!named) return { ok: false, reason: reasons.nameToMoveLabel };
-        const entry = diagram.placement.find(
-          (p): p is LabelEntry => p.statement === "label" && p.target === named,
-        );
-        ops.push({
+        // An anonymous relation is named first: its label is placed by the relation's id.
+        const { id: target, operations } = namedRelation(diagram, relation);
+        const entry = named
+          ? diagram.placement.find(
+              (p): p is LabelEntry => p.statement === "label" && p.target === named,
+            )
+          : undefined;
+        ops.push(...operations, {
           kind: "setLabelAnchor",
           diagram: d,
-          relation: named,
+          relation: target,
           at: number,
           offset: entry?.offset ?? { x: 0, y: 0 },
         });
-        break;
+        return { ok: true, operations: ops, ...naming(target, operations) };
       }
       default:
         return { ok: false, reason: `Unknown field \`${field}\`.` };

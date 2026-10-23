@@ -66,6 +66,23 @@ with the project's switcher at its top, as VS Code lists a workspace
 - Effects on what an import leaves anonymous: the Effects section shows for every relation of a C4
   view and every message, note and fragment of a sequence diagram, and turning one on names the
   target first (`as customer_web`, `note1`, `alt1`), as it does for flow relations.
+- Effects play from the moment a diagram is shown. The toolbar's **Pause effects** shows the
+  static drawing and becomes **Play effects**; the choice is kept per diagram of the file, so a
+  pause holds over a reload, and reduced motion starts paused. The style strip heads the toggles
+  with an **Effects** row like the route kind's, saying "off" or the effects that are on
+  ([decision 0052](docs/decisions/0052-canvas-feel-and-naming.md)).
+- The rotation handle turns an element by as much as the pointer turns about its centre since the
+  press, after the pointer has moved a few pixels: a click on the handle no longer writes
+  `rotation 60`. The element, its outline and its connectors follow the pointer without easing,
+  agree at every frame, and keep their place in a diagram with `layout auto`.
+- Sequence diagrams: a participant, database, collections or queue beside an actor is selected,
+  pulsed, highlighted in stories and edited on the box it is drawn as, not on the empty row above
+  it. Heads, activation bars, notes and lifelines are drawn in the theme's `muted` colour (lifelines
+  at half opacity) instead of the faint `line`, so the diagram reads at a glance.
+- A relation, message, note or fragment named by an edit (a label, a layer, a dotted line, a label
+  position, a moved label, a dragged end or bend, a style) stays selected under its new id; a style
+  on an unnamed note or fragment and the label position of an anonymous relation name it instead of
+  refusing.
 
 ### Command line
 

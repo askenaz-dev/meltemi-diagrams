@@ -144,8 +144,11 @@ export class CanvasSession {
   private pendingEdit: string | undefined;
   /** The diagram to show once it exists, after a conversion. */
   private pendingDiagram: string | undefined;
-  /** True while the canvas shows the diagram's effects running. */
-  private playing = false;
+  /**
+   * True while the canvas shows the diagram's effects running: from the start, so a diagram with
+   * effects opens animated; the canvas pauses it from the choice it remembers per diagram.
+   */
+  private playing = true;
   /** The scenario of a sequence diagram previewed read-only, with its diagram. */
   private scenario: { readonly diagram: string; readonly id: string } | undefined;
   /** The story the canvas plays, read-only, in story mode. */
@@ -846,6 +849,17 @@ export class CanvasSession {
    * One plan for the operations, after the arrangement of an `auto` diagram when needed; undefined
    * without operations. It changes nothing in the session: previews plan with it too.
    */
+  /**
+   * After an edit names the relation `key` as `id` first, the selection holds `id` where it held
+   * the key, so the canvas and the inspector stay on the relation; a refusal drops it.
+   */
+  private followNaming(key: string, id: string, operations: readonly EditOperation[]): void {
+    if (operations.length === 0) return;
+    this.pendingSelection = this.selection.includes(key)
+      ? this.selection.map((s) => (s === key ? id : s))
+      : [id];
+  }
+
   private plan(
     view: DiagramView,
     kind: CanvasAction["kind"],
@@ -1086,6 +1100,7 @@ export class CanvasSession {
           };
         }
         const { id, operations } = namedRelation(diagram, relation);
+        this.followNaming(relation.key, id, operations);
         return this.planned(view, "setEnd", [...operations, end(id, action.port)]);
       }
       case "remove": {
@@ -1183,6 +1198,7 @@ export class CanvasSession {
         }
         if (relation.id === null && label === null) return { messages: [] };
         const { id, operations } = namedRelation(diagram, relation);
+        this.followNaming(relation.key, id, operations);
         return this.planned(view, "setLabel", [
           ...operations,
           { kind: "setLocalLabel", diagram: d, target: id, label },
@@ -1311,6 +1327,7 @@ export class CanvasSession {
         const relation = diagram.relationsByKey.get(action.relation);
         if (!relation) break;
         const { id, operations } = namedRelation(diagram, relation);
+        this.followNaming(relation.key, id, operations);
         const entry = relation.id
           ? diagram.placement.find(
               (p): p is LabelEntry => p.statement === "label" && p.target === relation.id,
@@ -1333,6 +1350,7 @@ export class CanvasSession {
         const relation = diagram.relationsByKey.get(action.relation);
         if (!relation) break;
         const { id, operations } = namedRelation(diagram, relation);
+        this.followNaming(relation.key, id, operations);
         ops.push(...operations, {
           kind: "setRoute",
           diagram: d,
@@ -1349,6 +1367,7 @@ export class CanvasSession {
           // An end handed back to the layout of a relation without a route changes nothing.
           if (action.port === null && relation.id === null) break;
           const { id, operations } = namedRelation(diagram, relation);
+          this.followNaming(relation.key, id, operations);
           ops.push(...operations, {
             kind: "setRoute",
             diagram: d,
@@ -1536,6 +1555,7 @@ export class CanvasSession {
         const relation = diagram.relationsByKey.get(action.id);
         if (!relation) break;
         const { id, operations } = namedRelation(diagram, relation);
+        this.followNaming(relation.key, id, operations);
         ops.push(...operations, {
           kind: "setRelationLabel",
           diagram: d,
@@ -1667,8 +1687,9 @@ export class CanvasSession {
         if ("select" in result && result.select) this.pendingSelection = [...result.select];
         // Moving into a group of a free diagram writes the place in the group's interior, and a
         // group left empty gets its place and size.
+        // A rotation turns a box in place: an `auto` diagram keeps its arrangement first.
         const geometric =
-          ["x", "y", "w", "h"].includes(action.field) ||
+          ["x", "y", "w", "h", "style.rotation"].includes(action.field) ||
           (action.field === "inside" &&
             (diagram.type === "free" ||
               result.operations.some((op) => op.kind === "setPosition" || op.kind === "setSize")));
@@ -1962,7 +1983,8 @@ export class CanvasSession {
       if (!field.ok) return none;
       operations = [...field.operations];
     }
-    const result = this.plan(view, action.kind, operations);
+    // A rotation previews as its release writes it: after the arrangement of an `auto` diagram.
+    const result = this.plan(view, action.kind === "setField" ? "move" : action.kind, operations);
     if (!result?.ok) return none;
     const compilation = compile(
       applyTextEdits(analysis.compilation.text, result.plan.edits),
@@ -1978,7 +2000,13 @@ export class CanvasSession {
     const drawn = renderLayout(copy, layout, analysis.fonts, playing ? { motion: "animated" } : {});
     if (!drawn) return none;
     const { width, height, offset } = drawn.geometry;
-    return { messages: [{ type: "preview", token, svg: drawn.svg, width, height, offset }] };
+    // The turned element's box in the drawing, which the canvas turns it and its outline about.
+    const box = action.kind === "setField" ? layout.boxes?.get(action.ids[0]!) : undefined;
+    return {
+      messages: [
+        { type: "preview", token, svg: drawn.svg, width, height, offset, ...(box ? { box } : {}) },
+      ],
+    };
   }
 }
 

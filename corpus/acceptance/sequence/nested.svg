@@ -29,17 +29,17 @@
     <rect x="163.5" y="494" width="229.5" height="154" rx="2" fill="none" stroke="#526579" stroke-width="1"/>
   </g>
   <g data-id="scheduler" data-role="lifeline">
-    <polyline points="68,92 68,706" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="68,92 68,706" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
   </g>
   <g data-id="settle" data-role="lifeline">
-    <polyline points="206.5,92 206.5,706" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
-    <rect x="201.5" y="138" width="10" height="524" rx="0" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <polyline points="206.5,92 206.5,706" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
+    <rect x="201.5" y="138" width="10" height="524" rx="0" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
   </g>
   <g data-id="ledger" data-role="lifeline">
-    <polyline points="345,92 345,706" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="345,92 345,706" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
   </g>
   <g data-id="bank" data-role="lifeline">
-    <polyline points="481,92 481,706" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="481,92 481,706" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
   </g>
   <g data-id="kind" data-role="label">
     <path d="M187.5 256 L218.74 256 L218.74 272 L212.74 278 L187.5 278 Z" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
@@ -130,20 +130,20 @@
     </g>
   </g>
   <g data-id="scheduler" data-role="element">
-    <rect x="20" y="52" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <rect x="20" y="52" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
     <text x="68" y="76.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Scheduler</text>
   </g>
   <g data-id="settle" data-role="element">
-    <rect x="156" y="52" width="101" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <rect x="156" y="52" width="101" height="40" rx="8" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
     <text x="206.5" y="76.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Settlement</text>
   </g>
   <g data-id="ledger" data-role="element">
-    <path d="M297 58 L297 86 A48 6 0 0 0 393 86 L393 58 A48 6 0 0 1 297 58 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
-    <path d="M297 58 A48 6 0 0 1 393 58 A48 6 0 0 1 297 58 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M297 58 L297 86 A48 6 0 0 0 393 86 L393 58 A48 6 0 0 1 297 58 Z" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <path d="M297 58 A48 6 0 0 1 393 58 A48 6 0 0 1 297 58 Z" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
     <text x="345" y="76.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Ledger</text>
   </g>
   <g data-id="bank" data-role="element">
-    <rect x="433" y="52" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <rect x="433" y="52" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
     <text x="481" y="76.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Bank</text>
   </g>
   <g data-id="frame" data-role="frame">

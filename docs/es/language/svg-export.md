@@ -185,6 +185,9 @@ logotipo. Temas integrados:
 | `stage.light`                      | `#FFFFFF` | `#FFFFFF`  | `#0A0F1A` | `#3D4A5C` | `#9AA8B8` | Inter         | header |
 | `stage.dark`                       | `#05080F` | `#0E1626`  | `#FFFFFF` | `#A9B8CC` | `#2B3B52` | Inter         | header |
 
+`Line` contornea las cajas de los diagramas de flujo, libres y C4; los diagramas de secuencia
+dibujan sus cabeceras, barras, notas y líneas de vida en `Muted` ([sequence.md](sequence.md#disposición)).
+
 - **Technical**, para la revisión de arquitectura: marcas azul Egeo (`#2563EB`, cian en el tema
   oscuro), el degradado de Meltemi para el símbolo (de `#1D4ED8` a `#0891B2` en el claro, de
   `#3B82F6` a `#22D3EE` en el oscuro) y los tamaños de las tablas de arriba.

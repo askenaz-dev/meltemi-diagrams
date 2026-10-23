@@ -220,13 +220,15 @@ rango se rechaza indicando el rango, y el texto queda como estaba.
 | Arrastrar un icono del selector o del panel Bibliotecas sobre una forma                          | `style <id> { icon … }` de ese nodo, decisión, almacén de datos o caja, y nada más; la forma se resalta mientras el puntero está encima                                            |
 | Doble clic en una caja o una relación, o presionar Entrar                                        | Su etiqueta, escrita donde se dibuja ([texto en su sitio](#formas-vacías-y-texto-en-su-sitio))                                                                                     |
 
-- **Nombrar relaciones.** Las acciones sobre una relación anónima, incluidos un estilo o un efecto,
-  primero la nombran `<from>_<to>` (`as api_db`), en la misma edición, y la línea de estado lo
-  indica. Las clases y desactivar un efecto no nombran nada. En las vistas C4 el nombre se escribe
-  en la relación del modelo (`as shop_api_db`, a partir de las rutas de las entidades), en el
-  archivo del modelo cuando es otro archivo del proyecto. Los mensajes, las notas y los fragmentos
-  anónimos de los diagramas de secuencia se nombran igual (`as web_api`, `note1`, `alt1`) cuando un
-  efecto o un estilo lo necesita.
+- **Nombrar relaciones.** Las acciones sobre una relación anónima, incluidos un estilo, un efecto,
+  una etiqueta, una capa, una línea punteada, una posición de etiqueta, una etiqueta movida, un
+  extremo o un codo arrastrados, primero la nombran `<from>_<to>` (`as api_db`), en la misma
+  edición, y la línea de estado lo indica; la relación sigue seleccionada con su id nuevo, y el
+  inspector sigue en ella. Las clases y desactivar un efecto no nombran nada. En las vistas C4 el
+  nombre se escribe en la relación del modelo (`as shop_api_db`, a partir de las rutas de las
+  entidades), en el archivo del modelo cuando es otro archivo del proyecto. Los mensajes, las notas
+  y los fragmentos anónimos de los diagramas de secuencia se nombran igual (`as web_api`, `note1`,
+  `alt1`) cuando un efecto o un estilo lo necesita: nada se rechaza por falta de un nombre.
 - **Diagramas libres.** Las posiciones de los objetos dentro de un grupo se escriben relativas al
   interior del grupo ([free.md](language/free.md)): mover un grupo escribe solo el `place` del
   grupo, y cambiar su tamaño desde el lado izquierdo o el superior desplaza las posiciones de sus
@@ -645,9 +647,14 @@ caja interior la convierte en un `layout.overlap`.
   número fuera de rango se rechaza y el texto queda como estaba.
 - **Giro.** Un elemento seleccionado de un diagrama de flujo o de una composición libre muestra un
   asa de giro, un círculo más allá de su esquina superior derecha. Arrástrala alrededor del
-  elemento: gira sobre el centro de su caja en pasos de 15°, con Alt a cualquier ángulo, con el
-  ángulo junto al puntero y en la línea de estado, y sus conectores lo siguen en vivo; al soltar se
-  escribe `style api { rotation 90 }` en un solo paso de deshacer, 0 lo quita y Escape cancela. La
+  elemento: nada gira hasta que el puntero se ha movido unos píxeles, así que un clic en el asa no
+  cambia nada; después el elemento gira tanto como el puntero ha girado alrededor del centro de su
+  caja desde que se presionó, en pasos de 15°, con Alt a cualquier ángulo, con el ángulo junto al
+  puntero y en la línea de estado. El elemento, su contorno y sus conectores siguen al puntero en
+  cada cuadro, sin suavizado; al soltar se escribe `style api { rotation 90 }` en un solo paso de
+  deshacer y el elemento se asienta en él, 0 lo quita y Escape cancela. En un diagrama con
+  `layout auto` el primer giro escribe antes la disposición, como el primer movimiento, así que el
+  elemento girado se queda donde está. La
   **Rotación** de la barra es un control deslizante con su número, de 0 a 359, en gris en 0 o con
   el ángulo de una regla, y el menú contextual tiene **Girar 90°** y **Quitar el giro**. Un
   elemento girado se selecciona y se alcanza por su contorno girado; su selección, sus asas de
@@ -694,6 +701,9 @@ coordenadas.
   fragmento (F, que pide el operador), separador y retraso, y grupo. Un participante se coloca donde
   se suelta entre los demás; las notas, los separadores y los retrasos van después del evento
   seleccionado, o al final.
+- **Cabeceras.** Un participante, una base de datos, una colección o una cola se seleccionan, se
+  resaltan, pulsan y editan sobre la caja con la que se dibujan, abajo en la fila de cabeceras,
+  haya o no un actor en el diagrama; un actor y las demás figuras, sobre su figura y su nombre.
 - **Arrastrar.** Arrastra una cabecera hacia un lado para reordenar el participante; ningún mensaje
   cambia. Arrastra un mensaje, una nota o un fragmento hacia abajo para agregar `space` encima, o
   hacia arriba para quitarlo; se detiene en su vecino, así que un arrastre nunca reordena eventos.
@@ -763,9 +773,10 @@ Una vista C4 dibuja entidades de un modelo; el lienzo nunca declara entidades
 - **La barra de estilo.** La parte superior del inspector da estilo a la selección: **Relleno**,
   **Borde** y **Color del texto** como filas de muestras, luego la línea y el ancho del borde; en
   los elementos que los admiten, el radio de las esquinas, la forma y la posición del icono; en las
-  relaciones, las puntas de ambos extremos, el tipo de ruta y las esquinas; y los efectos. Varios
-  elementos seleccionados reciben el estilo juntos en una sola edición; una fila muestra "mixto"
-  donde sus valores difieren.
+  relaciones, las puntas de ambos extremos, el tipo de ruta y las esquinas; y la fila
+  **Efectos**, que dice a su derecha "ninguno" o los efectos activos, con sus interruptores debajo.
+  Varios elementos seleccionados reciben el estilo juntos en una sola edición; una fila muestra
+  "mixto" donde sus valores difieren.
 - **Dibujos, no palabras.** La línea (continua, discontinua, punteada), el tipo de ruta
   (automática, recta, en codo, curva), las esquinas (en ángulo, redondeadas) y las formas son filas
   o cuadrículas de dibujos; **Predeterminado** vuelve a heredar. **Punta inicial** y **Punta final** son botones que muestran
@@ -805,8 +816,9 @@ Una vista C4 dibuja entidades de un modelo; el lienzo nunca declara entidades
 
 ## Efectos
 
-- **Inspector.** Un elemento, una relación, o una nota o un fragmento con nombre, cuando están
-  seleccionados, listan los efectos que admiten, como interruptores en la barra de estilo: **Partículas** (relaciones),
+- **Inspector.** Un elemento, una relación, un mensaje, una nota o un fragmento, cuando están
+  seleccionados, listan los efectos que admiten, como interruptores bajo la fila **Efectos** de la
+  barra de estilo: **Partículas** (relaciones),
   **Trazo en movimiento** (relaciones y cajas con contorno), **Pulso** y **Recorrido** (relaciones:
   un resaltado que llena la flecha desde su inicio hasta su final y vuelve a empezar). Activar uno
   escribe `animate <id> { effect … }`; su duración, repetición, retraso y, donde corresponden,
@@ -814,10 +826,14 @@ Una vista C4 dibuja entidades de un modelo; el lienzo nunca declara entidades
   el valor predeterminado del tema (`flowDuration`, `dashDuration`, `pulseDuration`,
   `traceDuration`, o los 1200, 1000, 1000 y 1500 ms del motor). Desactivarlo lo quita. Una
   instrucción compartida por varios destinos se divide cuando uno de ellos cambia.
-- **Reproducir los efectos.** El botón ▷ de la barra de herramientas aparece cuando el diagrama
-  tiene efectos. Al presionarlo, el lienzo los reproduce como lo haría la exportación SVG animada
-  (`docs/language/motion.md`); al presionarlo de nuevo, muestra el dibujo estático. La selección y
-  la edición siguen funcionando mientras se reproducen los efectos.
+- **Pausar y reproducir.** Un diagrama con efectos los reproduce en el lienzo desde que se
+  muestra, como lo haría la exportación SVG animada (`docs/language/motion.md`). **Pausar los
+  efectos** (❚❚) en la barra de herramientas muestra el dibujo estático y se convierte en
+  **Reproducir los efectos** (▷); la elección se guarda para ese diagrama del archivo, así que un
+  diagrama en pausa sigue en pausa al recargar. Con movimiento reducido un diagrama empieza en
+  pausa hasta que se presiona Reproducir. Sin efectos el botón está desactivado. Activar un efecto
+  mientras el diagrama está en pausa lo indica en la línea de estado. La selección, la edición y
+  las vistas previas en vivo siguen funcionando mientras se reproducen los efectos.
 
 ## Historias
 

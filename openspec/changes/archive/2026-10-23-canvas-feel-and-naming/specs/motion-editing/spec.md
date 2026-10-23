@@ -7,6 +7,10 @@ The canvas SHALL show the animated profile of a diagram that has effects from th
 - **WHEN** a file whose diagram has a pulse is opened on the canvas
 - **THEN** the canvas SVG contains the animated style sheet and the toolbar shows Pause effects
 
+#### Scenario: Play
+- **WHEN** Play effects is pressed on a paused diagram with a pulse
+- **THEN** the canvas SVG contains the animated style sheet and the toolbar shows Pause effects
+
 #### Scenario: Pause survives a reload
 - **WHEN** Pause effects is pressed and the canvas is reloaded
 - **THEN** the canvas shows the static drawing, the toolbar shows Play effects, and pressing it shows the animated style sheet again

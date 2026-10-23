@@ -177,7 +177,7 @@ export const es: typeof en = {
     libraries: "Bibliotecas",
     arrange: "Organizar",
     playEffects: "Reproducir los efectos",
-    stopEffects: "Detener los efectos",
+    pauseEffects: "Pausar los efectos",
   },
 
   commands: {
@@ -271,6 +271,7 @@ export const es: typeof en = {
 
   announcements: {
     fixFirst: "Corrige los problemas del texto antes de editar en el lienzo.",
+    effectsPaused: "Los efectos están en pausa; pulsa Reproducir los efectos para verlos.",
     nothingSelected: "No hay nada seleccionado.",
     selected: (count) =>
       `${count} ${plural("es", count, { one: "seleccionado", other: "seleccionados" })}.`,
@@ -430,6 +431,7 @@ export const es: typeof en = {
     label: "Propiedades",
     strip: "Estilo",
     effects: "Efectos",
+    effectsOff: "ninguno",
     mixed: "mixto",
     theme: "tema",
     defaultFromTheme: "predeterminado (tema)",

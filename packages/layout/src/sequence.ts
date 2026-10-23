@@ -24,6 +24,7 @@ import {
 } from "./layout.js";
 import type { TextMetrics } from "./measure.js";
 import { markGradient } from "./mark.js";
+import type { BoxShape } from "./shapes.js";
 import {
   strokeDash,
   type GroupItem,
@@ -50,6 +51,10 @@ export interface SequenceInput {
 const BOX_KINDS: ReadonlySet<string> = new Set(["participant", "database", "collections", "queue"]);
 /** The horizontal radius of a queue's ends. */
 const QUEUE_CAP = 8;
+/** How far the second box of a collections head stands up and to the right of the first. */
+const STACK = 4;
+/** The opacity of a lifeline's stroke: half of `muted`, behind the messages. */
+const LIFELINE_OPACITY = 0.5;
 const BAR = 10;
 const BAR_STEP = 5;
 const SELF_WIDTH = 34;
@@ -247,6 +252,23 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
     const i = column.get(p.id)!;
     const width = widths[i]!;
     return { x: xs[i]! - width / 2, y: top, width, height: headHeight };
+  };
+  /**
+   * The box a head is drawn in, within its row's cell: a box kind's box at the bottom of the cell
+   * (a collections head with its second box), a figure's whole cell. Editors select, halos pulse
+   * and highlights frame this box.
+   */
+  const drawnHead = (p: Element, cell: Box): Box => {
+    if (!BOX_KINDS.has(p.kind)) return cell;
+    const box = {
+      x: cell.x,
+      y: cell.y + cell.height - boxHeight,
+      width: cell.width,
+      height: boxHeight,
+    };
+    return p.kind === "collections"
+      ? { x: box.x, y: box.y - STACK, width: box.width + STACK, height: box.height + STACK }
+      : box;
   };
 
   const process = (list: readonly SequenceEvent[]) => {
@@ -563,7 +585,8 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
   for (const delay of delays) items.push(emit.delay(delay, left, right));
   for (const cross of crosses) items.push(emit.cross(cross));
   for (const p of participants) {
-    items.push(emit.head(p, heads.get(p.id)!, boxHeight, figureHeight, labelLine));
+    const cell = heads.get(p.id)!;
+    items.push(emit.head(p, cell, drawnHead(p, cell), boxHeight, figureHeight, labelLine));
   }
   const gradients: SceneGradient[] = [];
   if (framed) {
@@ -573,7 +596,19 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
   }
 
   const boxes = new Map<string, Box>();
-  for (const [id, box] of heads) boxes.set(id, box);
+  // Box kinds are drawn as rounded boxes and databases as cylinders; figures have no outline.
+  const shapes = new Map<string, BoxShape>();
+  const radii = new Map<string, number>();
+  for (const p of participants) {
+    boxes.set(p.id, drawnHead(p, heads.get(p.id)!));
+    if (!BOX_KINDS.has(p.kind)) continue;
+    if (p.kind === "database") {
+      shapes.set(p.id, "cylinder");
+    } else {
+      shapes.set(p.id, "rounded");
+      radii.set(p.id, theme.radius);
+    }
+  }
   for (const [id, box] of groupBoxes) boxes.set(id, box);
   for (const note of notes) boxes.set(note.key, note.box);
   for (const frame of frames) boxes.set(frame.key, frame.box);
@@ -612,6 +647,8 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
     origins: new Map(),
     theme,
     events: rows,
+    shapes,
+    radii,
   };
 }
 
@@ -738,16 +775,22 @@ class SequenceEmitter {
   lifeline(participant: Element, line: Lifeline, bars: readonly Bar[], x: number): GroupItem {
     const { theme } = this;
     const style = this.styles.element(participant);
+    // Lifelines, bars, heads and notes take `muted`: the quiet `line` of boxes is too pale for the
+    // long thin strokes a sequence diagram is made of (decision 0052). A lifeline is a guide, drawn
+    // at half strength so the messages that cross it stay in front.
     const items: SceneItem[] = [
-      this.line(
-        [
-          { x, y: line.top },
-          { x, y: line.bottom ?? line.top },
-        ],
-        style.stroke ?? theme.line,
-        theme.strokeWidth,
-        true,
-      ),
+      {
+        ...this.line(
+          [
+            { x, y: line.top },
+            { x, y: line.bottom ?? line.top },
+          ],
+          style.stroke ?? theme.muted,
+          theme.strokeWidth,
+          true,
+        ),
+        opacity: LIFELINE_OPACITY,
+      } as SceneItem,
     ];
     for (const bar of [...bars].sort((a, b) => a.depth - b.depth)) {
       items.push(
@@ -760,7 +803,7 @@ class SequenceEmitter {
           },
           0,
           style.fill ?? theme.surface,
-          style.stroke ?? theme.line,
+          style.stroke ?? theme.muted,
           theme.strokeWidth,
         ),
       );
@@ -768,9 +811,14 @@ class SequenceEmitter {
     return { kind: "group", id: participant.id, role: "lifeline", items };
   }
 
+  /**
+   * A participant's head in its row's cell `head`; `drawn` is the box it is drawn in, which the
+   * group carries as its bounds.
+   */
   head(
     participant: Element,
     head: Box,
+    drawn: Box,
     boxHeight: number,
     figureHeight: number,
     labelLine: number,
@@ -778,7 +826,7 @@ class SequenceEmitter {
     const { theme, scale } = this;
     const style = this.styles.element(participant);
     const fill = style.fill ?? theme.surface;
-    const stroke = style.stroke ?? theme.line;
+    const stroke = style.stroke ?? theme.muted;
     const strokeWidth = style.width ?? theme.strokeWidth;
     const dashed = strokeDash(style.line);
     const color = style.color ?? theme.ink;
@@ -801,7 +849,7 @@ class SequenceEmitter {
       } else if (participant.kind === "collections") {
         items.push(
           this.rect(
-            { ...box, x: box.x + 4, y: box.y - 4 },
+            { ...box, x: box.x + STACK, y: box.y - STACK },
             theme.radius,
             fill,
             stroke,
@@ -884,7 +932,7 @@ class SequenceEmitter {
       id: participant.id,
       role: "element",
       items,
-      bounds: this.bounds(head, theme.radius),
+      bounds: this.bounds(drawn, theme.radius),
       ...(participant.url ? { href: participant.url } : {}),
     };
   }
@@ -977,7 +1025,7 @@ class SequenceEmitter {
       this.path(
         d,
         style.fill ?? theme.surface,
-        style.stroke ?? theme.line,
+        style.stroke ?? theme.muted,
         style.width ?? theme.strokeWidth,
         strokeDash(style.line),
       ),

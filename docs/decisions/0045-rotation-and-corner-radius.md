@@ -64,3 +64,5 @@ Nothing turned: the language, the layout and the canvas knew only axis-aligned b
   `onPolygon`, `pointInPolygon`, `LayoutResult.rotations` and `radii`, `ElementInfo.rotation` and
   `radius`, `PreviewedAction`, the editor's `intoFrame`, `outOfFrame`, `turnedBounds` and `bearing`.
   The language stays 0.2.
+- The gesture is revised by [decision 0052](0052-canvas-feel-and-naming.md): the angle is the
+  turn since the grab, after a drag threshold, drawn without easing until the drop.

@@ -271,6 +271,12 @@ const ICON_SHEET = readFileSync(
   "utf8",
 );
 
+/** A Mermaid flowchart as the importer writes it: plain relations stay anonymous. */
+const IMPORTED_FLOWCHART = readFileSync(
+  join(here, "..", "..", "..", "..", "corpus", "import", "mermaid", "flowchart-checkout.meltemi"),
+  "utf8",
+);
+
 /** Two diagrams, `overview` first, which the canvas shows. */
 const TWO = `${SHEET.replace("diagram d: flow", "diagram overview: flow")}\n${SHEET}`;
 
@@ -455,15 +461,34 @@ class Harness {
     this.text = text;
   }
 
+  private opened: { theme: string; lang?: string } = { theme: "" };
+
   /** Opens the webview; `lang` is the interface language the extension writes in the page. */
   async start(theme = "", lang?: string): Promise<void> {
+    this.opened = { theme, ...(lang ? { lang } : {}) };
     await this.page.exposeFunction("__toHost", (message: unknown) => this.fromCanvas(message));
-    await this.page
-      .setContent(`<!DOCTYPE html><html${lang ? ` lang="${lang}"` : ""}><head><style>${css}${theme}</style></head><body>
-<div id="app"></div>
-<script>window.acquireVsCodeApi = () => ({ postMessage: (m) => window.__toHost(m), getState: () => window.__state, setState: (s) => { window.__state = s; } });</script>
-<script>${script}</script></body></html>`);
+    await this.page.setContent(this.html(undefined));
     await this.settled();
+  }
+
+  /**
+   * Opens the webview again over the state it kept, as VS Code does when a panel comes back, and
+   * with a new session, as after a restart of the extension.
+   */
+  async reload(): Promise<void> {
+    const state = await this.page.evaluate(() => (window as { __state?: unknown }).__state);
+    (this as { session: CanvasSession }).session = new CanvasSession({ grid: 14 });
+    await this.page.setContent(this.html(state));
+    await this.settled();
+  }
+
+  private html(state: unknown): string {
+    const { theme, lang } = this.opened;
+    const kept = state === undefined ? "" : `window.__state = ${JSON.stringify(state)};`;
+    return `<!DOCTYPE html><html${lang ? ` lang="${lang}"` : ""}><head><style>${css}${theme}</style></head><body>
+<div id="app"></div>
+<script>${kept}window.acquireVsCodeApi = () => ({ postMessage: (m) => window.__toHost(m), getState: () => window.__state, setState: (s) => { window.__state = s; } });</script>
+<script>${script}</script></body></html>`;
   }
 
   private async post(messages: readonly HostMessage[]): Promise<void> {
@@ -829,6 +854,58 @@ async function dragTo(
   await during?.();
   await page.mouse.up();
   await h.settled();
+}
+
+/** Where a point goes turned `degrees` clockwise about `centre`, on the screen. */
+function turnedFrom(
+  point: { x: number; y: number },
+  centre: { x: number; y: number },
+  degrees: number,
+): { x: number; y: number } {
+  const a = (degrees * Math.PI) / 180;
+  const dx = point.x - centre.x;
+  const dy = point.y - centre.y;
+  return {
+    x: centre.x + dx * Math.cos(a) - dy * Math.sin(a),
+    y: centre.y + dx * Math.sin(a) + dy * Math.cos(a),
+  };
+}
+
+/** The rotation handle of the one element selected, at its centre on the screen. */
+async function rotationHandle(h: Harness): Promise<{ x: number; y: number }> {
+  const handle = await h.page.locator(".overlay .handle.rotate").boundingBox();
+  assert.ok(handle, "no rotation handle");
+  return { x: handle.x + handle.width / 2, y: handle.y + handle.height / 2 };
+}
+
+/**
+ * The angle the drawing of `id` and its selection outline are turned by, and how far apart their
+ * centres are on the screen: one number and nothing apart when they agree.
+ */
+async function turnAgreement(
+  h: Harness,
+  id: string,
+): Promise<{ drawn: number | null; outline: number | null; apart: number }> {
+  // No named functions inside: the page has no `__name` helper for them.
+  const seen = await h.page.evaluate((id) => {
+    const g = document.querySelector(`.content g[data-id="${id}"][data-role="element"]`)!;
+    const outline = document.querySelector(".overlay rect.outline")!;
+    const a = g.getBoundingClientRect();
+    const b = outline.getBoundingClientRect();
+    return {
+      drawn: g.getAttribute("transform") ?? "",
+      outline: outline.getAttribute("transform") ?? "",
+      apart: Math.hypot(
+        a.x + a.width / 2 - b.x - b.width / 2,
+        a.y + a.height / 2 - b.y - b.height / 2,
+      ),
+    };
+  }, id);
+  const angle = (transform: string) => {
+    const m = /^rotate\(([-\d.]+)/.exec(transform);
+    return m ? Number(m[1]) : null;
+  };
+  return { drawn: angle(seen.drawn), outline: angle(seen.outline), apart: seen.apart };
 }
 
 const tests: {
@@ -1324,6 +1401,14 @@ const tests: {
       await page.mouse.click(label.x + label.width / 2, label.y + label.height / 2);
       await h.settled();
       assert.deepEqual(h.session.selected, ["save"]);
+      // The Effects row is headed like the route kind's and says what is on.
+      const row = page.locator('.strip [data-field="effects"]');
+      assert.equal(await row.locator(".row-label > span").first().textContent(), "Effects");
+      assert.equal(await row.locator(".value").textContent(), "off");
+      assert.equal(
+        await page.getByRole("group", { name: "Effects" }).getByRole("button").count(),
+        4,
+      );
       const dash = page.getByRole("button", { name: "Moving dash" });
       assert.equal(await dash.getAttribute("aria-pressed"), "false");
       await dash.click();
@@ -1333,6 +1418,8 @@ const tests: {
         await page.getByRole("button", { name: "Moving dash" }).getAttribute("aria-pressed"),
         "true",
       );
+      assert.equal(await row.locator(".value").textContent(), "Moving dash");
+      await page.locator(".strip").screenshot({ path: join(output, "inspector-effects-row.png") });
       assert.equal(
         await page.locator("#mdg-field-effect-dash-duration").getAttribute("placeholder"),
         "1000",
@@ -1345,6 +1432,43 @@ const tests: {
         await page.locator("#mdg-field-effect-trace-duration").getAttribute("placeholder"),
         "1500",
       );
+    },
+  },
+  {
+    name: "an imported relation named by a dotted line or a moved label stays selected",
+    text: IMPORTED_FLOWCHART,
+    async run(h) {
+      const page = h.page;
+      await h.focusStage();
+      const labelOf = async (id: string) => {
+        const box = await page
+          .locator(`.content g[data-id="${id}"][data-role="relation"] [data-role="label"]`)
+          .first()
+          .boundingBox();
+        assert.ok(box, `no label for ${id}`);
+        return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      };
+      const yes = await labelOf("pay->orders#1");
+      await page.mouse.click(yes.x, yes.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["pay->orders#1"]);
+      await page
+        .getByRole("radiogroup", { name: "Line" })
+        .getByRole("radio", { name: "dotted" })
+        .click();
+      await h.settled();
+      assert.match(h.text, /pay -> orders: "yes" as pay_orders/);
+      assert.match(h.text, /style pay_orders \{ line dotted \}/);
+      assert.deepEqual(h.session.selected, ["pay_orders"], "the dotted line keeps it selected");
+      assert.match((await page.locator(".inspector h2").textContent()) ?? "", /pay_orders/);
+      // Another anonymous relation, named by moving its label.
+      const no = await labelOf("pay->retry#1");
+      await page.mouse.click(no.x, no.y);
+      await h.settled();
+      await dragTo(h, no, { x: no.x + 30, y: no.y - 24 });
+      assert.match(h.text, /pay -> retry: "no" as pay_retry/);
+      assert.deepEqual(h.session.selected, ["pay_retry"], "the moved label keeps it selected");
+      assert.match((await page.locator(".inspector h2").textContent()) ?? "", /pay_retry/);
     },
   },
   {
@@ -1875,21 +1999,23 @@ const tests: {
     },
   },
   {
-    name: "plays the effects of a diagram and stops them",
+    name: "plays the effects of a diagram from the start, and remembers a pause over a reload",
     text: SHEET.replace(
       "  placement {",
       "  animate save { effect flow; particles 2 }\n  animate db { effect pulse }\n  placement {",
     ),
     async run(h) {
-      const play = h.page.getByRole("button", { name: "Play effects" });
-      await play.waitFor({ state: "visible" });
-      assert.equal(await play.getAttribute("aria-pressed"), "false");
-      await play.click();
-      await h.settled();
-      await h.page.waitForFunction(() =>
-        document.querySelector(".content svg style")?.textContent?.includes("@keyframes"),
-      );
-      assert.equal(await play.getAttribute("aria-pressed"), "true");
+      const animated = () =>
+        h.page.evaluate(
+          () =>
+            document.querySelector(".content svg style")?.textContent?.includes("@keyframes") ??
+            false,
+        );
+      // Animated from the start, with Pause offered.
+      const pause = h.page.getByRole("button", { name: "Pause effects" });
+      await pause.waitFor({ state: "visible" });
+      assert.equal(await animated(), true, "animated on opening");
+      assert.equal(await pause.getAttribute("aria-pressed"), "true");
       const running = await h.page.evaluate(
         () =>
           [...document.querySelectorAll(".content svg .mdg-m")].filter(
@@ -1898,10 +2024,59 @@ const tests: {
       );
       assert.equal(running, 3, "two particles and a halo run");
       await h.page.screenshot({ path: join(output, "canvas-effects.png") });
-      await play.click();
+      // Paused: the static drawing and Play offered.
+      await pause.click();
       await h.settled();
       await h.page.waitForFunction(() => !document.querySelector(".content svg style"));
+      const play = h.page.getByRole("button", { name: "Play effects" });
       assert.equal(await play.getAttribute("aria-pressed"), "false");
+      // The pause holds over a reload with a new session, which would play.
+      await h.reload();
+      await play.waitFor({ state: "visible" });
+      assert.equal(await animated(), false, "still paused after the reload");
+      await play.click();
+      await h.settled();
+      await h.page.waitForFunction(() =>
+        document.querySelector(".content svg style")?.textContent?.includes("@keyframes"),
+      );
+      assert.equal(await pause.getAttribute("aria-pressed"), "true");
+      // Turning an effect on while paused says why nothing moves.
+      await pause.click();
+      await h.settled();
+      const api = await h.centre("api");
+      await h.page.mouse.click(api.x, api.y);
+      await h.settled();
+      await h.page.getByRole("button", { name: "Pulse" }).click();
+      await h.settled();
+      assert.match(h.text, /animate api \{ effect pulse \}/);
+      assert.match((await h.page.locator(".status").textContent()) ?? "", /Effects paused/);
+      assert.equal(await animated(), false);
+    },
+  },
+  {
+    name: "a diagram without effects has the toggle disabled; reduced motion starts paused",
+    async run(h) {
+      const toggle = h.page.locator(
+        '.toolbar button[aria-label="Pause effects"], .toolbar button[aria-label="Play effects"]',
+      );
+      await toggle.waitFor({ state: "visible" });
+      assert.equal(await toggle.isDisabled(), true, "nothing to play");
+      await toggle.click({ force: true });
+      await h.settled();
+      assert.equal(
+        h.received.some((m) => (m as { type: string }).type === "playEffects"),
+        false,
+        "a press changes nothing",
+      );
+      // A diagram with effects shown under reduced motion, never paused or played here.
+      await h.page.emulateMedia({ reducedMotion: "reduce" });
+      h.text = SHEET.replace("  placement {", "  animate db { effect pulse }\n  placement {");
+      h.revision++;
+      await h.reload();
+      const play = h.page.getByRole("button", { name: "Play effects" });
+      await play.waitFor({ state: "visible" });
+      assert.equal(await play.isDisabled(), false);
+      assert.equal(await h.page.locator(".content svg style").count(), 0, "static");
     },
   },
   {
@@ -3932,22 +4107,30 @@ const tests: {
       const centre = await h.centre("api");
       await page.mouse.click(centre.x, centre.y);
       await h.settled();
-      const handle = await page.locator(".overlay .handle.rotate").boundingBox();
-      assert.ok(handle, "no rotation handle");
       const before = actions(h);
-      const from = { x: handle.x + handle.width / 2, y: handle.y + handle.height / 2 };
-      // A quarter turn: straight right of the centre.
-      await dragTo(h, from, { x: centre.x + 120, y: centre.y + 3 }, async () => {
+      const from = await rotationHandle(h);
+      // A quarter turn of the handle about the centre, wherever the handle sits.
+      await dragTo(h, from, turnedFrom(from, centre, 90), async () => {
         assert.equal(
           await page.locator(".status").textContent(),
           "Rotation 90°. Release to keep it; Escape cancels.",
         );
-        // Turned live: by the canvas until the session's preview, which draws it turned, comes.
-        const g = page.locator('.content g[data-id="api"][data-role="element"]');
-        const live = ((await g.getAttribute("class")) ?? "").includes("turning");
-        const previewed = ((await g.getAttribute("transform")) ?? "").startsWith("rotate(90 ");
-        assert.ok(live || previewed, "api is drawn turned while the handle is dragged");
         assert.equal(await page.locator(".overlay .rotation-badge").textContent(), "90°");
+        // The drawing and its outline: one angle about one centre, with no easing between them,
+        // also once the session's preview has answered.
+        await h.settled();
+        assert.ok(h.previews().length > 0, "a preview was asked for");
+        const agreement = await turnAgreement(h, "api");
+        assert.equal(agreement.drawn, 90);
+        assert.equal(agreement.outline, 90);
+        assert.ok(agreement.apart < 1.5, `centres ${agreement.apart.toFixed(2)} px apart`);
+        const easing = await page
+          .locator('.content g[data-id="api"][data-role="element"]')
+          .evaluate((g) => getComputedStyle(g).transitionDuration);
+        assert.ok(
+          easing.split(",").every((d) => parseFloat(d) === 0),
+          `no easing: ${easing}`,
+        );
         await page.screenshot({ path: join(output, "canvas-rotating.png") });
       });
       assert.equal(actions(h), before + 1, "one action, one undo step");
@@ -3968,29 +4151,118 @@ const tests: {
       const centre = await h.centre("api");
       await page.mouse.click(centre.x, centre.y);
       await h.settled();
-      const handle = (await page.locator(".overlay .handle.rotate").boundingBox())!;
-      const from = { x: handle.x + handle.width / 2, y: handle.y + handle.height / 2 };
-      const at = (degrees: number) => ({
-        x: centre.x + 120 * Math.sin((degrees * Math.PI) / 180),
-        y: centre.y - 120 * Math.cos((degrees * Math.PI) / 180),
-      });
+      const from = await rotationHandle(h);
       // Escape while the handle turns the element: nothing written, the drawing as it was.
       await page.mouse.move(from.x, from.y);
       await page.mouse.down();
-      await page.mouse.move(at(120).x, at(120).y, { steps: 6 });
+      const far = turnedFrom(from, centre, 120);
+      await page.mouse.move(far.x, far.y, { steps: 6 });
       await page.keyboard.press("Escape");
       await page.mouse.up();
       await h.settled();
       assert.doesNotMatch(h.text, /rotation/);
       assert.equal(await page.locator(".content g.turning").count(), 0);
-      // Alt turns the steps off.
+      assert.equal(
+        await page
+          .locator('.content g[data-id="api"][data-role="element"]')
+          .getAttribute("transform"),
+        null,
+      );
+      // Alt turns the steps off: 37 degrees of turn from the grab.
       await page.mouse.click(centre.x, centre.y);
       await h.settled();
-      const again = (await page.locator(".overlay .handle.rotate").boundingBox())!;
+      const again = await rotationHandle(h);
       await page.keyboard.down("Alt");
-      await dragTo(h, { x: again.x + again.width / 2, y: again.y + again.height / 2 }, at(37));
+      await dragTo(h, again, turnedFrom(again, centre, 37));
       await page.keyboard.up("Alt");
       assert.match(h.text, /style api \{ rotation 37 \}/);
+    },
+  },
+  {
+    name: "a press on the rotation handle with a little jitter turns nothing and writes nothing",
+    text: TURNABLE,
+    async run(h) {
+      const page = h.page;
+      const centre = await h.centre("api");
+      await page.mouse.click(centre.x, centre.y);
+      await h.settled();
+      const before = actions(h);
+      const from = await rotationHandle(h);
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(from.x + 1, from.y + 1);
+      await page.mouse.move(from.x + 2, from.y);
+      assert.equal(
+        await page
+          .locator('.content g[data-id="api"][data-role="element"]')
+          .getAttribute("transform"),
+        null,
+        "still upright while held",
+      );
+      assert.equal(await page.locator(".overlay .rotation-badge").count(), 0);
+      await page.mouse.up();
+      await h.settled();
+      assert.equal(actions(h), before, "nothing sent");
+      assert.doesNotMatch(h.text, /rotation/);
+      assert.equal(h.previews().length, 0, "nothing previewed");
+    },
+  },
+  {
+    name: "rotates a node of an automatic layout in place, writing the arrangement first",
+    text: `diagram d: flow {
+  api["API"]
+  db[("DB")]
+  cache["Cache"]
+  api -> db: "save" as save
+  api -> cache
+}
+`,
+    async run(h) {
+      const page = h.page;
+      const centre = await h.centre("api");
+      await page.mouse.click(centre.x, centre.y);
+      await h.settled();
+      const before = actions(h);
+      const from = await rotationHandle(h);
+      await dragTo(h, from, turnedFrom(from, centre, 30), async () => {
+        await h.settled();
+        assert.ok(h.previews().length > 0, "a preview was asked for");
+        const agreement = await turnAgreement(h, "api");
+        assert.equal(agreement.drawn, 30);
+        assert.equal(agreement.outline, 30);
+        assert.ok(agreement.apart < 1.5, `centres ${agreement.apart.toFixed(2)} px apart`);
+        const live = await h.centre("api");
+        assert.ok(
+          Math.hypot(live.x - centre.x, live.y - centre.y) < 2,
+          "api keeps its centre while it turns",
+        );
+      });
+      assert.equal(actions(h), before + 1, "one action, one undo step");
+      assert.match(h.text, /style api \{ rotation 30 \}/);
+      assert.match(h.text, /place api at/, "the arrangement was written");
+      const after = await h.centre("api");
+      assert.ok(Math.hypot(after.x - centre.x, after.y - centre.y) < 2, "api keeps its centre");
+    },
+  },
+  {
+    name: "keeps a node turned with its outline while previews are refused",
+    text: TURNABLE,
+    async run(h) {
+      const page = h.page;
+      h.refusePreviews = true;
+      const centre = await h.centre("api");
+      await page.mouse.click(centre.x, centre.y);
+      await h.settled();
+      const from = await rotationHandle(h);
+      await dragTo(h, from, turnedFrom(from, centre, 60), async () => {
+        await h.settled();
+        assert.ok(h.previews().length > 0, "a preview was asked for and refused");
+        const agreement = await turnAgreement(h, "api");
+        assert.equal(agreement.drawn, 60);
+        assert.equal(agreement.outline, 60);
+        assert.ok(agreement.apart < 1.5, `centres ${agreement.apart.toFixed(2)} px apart`);
+      });
+      assert.match(h.text, /style api \{ rotation 60 \}/);
     },
   },
   {
@@ -5088,25 +5360,29 @@ const tests: {
     },
   },
   {
-    name: "read-only: the effects of a diagram still play and stop",
+    name: "read-only: the effects of a diagram play, pause and play again",
     readOnly: true,
     text: SHEET.replace(
       "  placement {",
       "  animate save { effect flow; particles 2 }\n  animate db { effect pulse }\n  placement {",
     ),
     async run(h) {
+      const pause = h.page.getByRole("button", { name: "Pause effects" });
+      await pause.waitFor({ state: "visible" });
+      await h.page.waitForFunction(() =>
+        document.querySelector(".content svg style")?.textContent?.includes("@keyframes"),
+      );
+      await pause.click();
+      await h.settled();
+      await h.page.waitForFunction(() => !document.querySelector(".content svg style"));
       const play = h.page.getByRole("button", { name: "Play effects" });
-      await play.waitFor({ state: "visible" });
+      assert.equal(await play.getAttribute("aria-pressed"), "false");
       await play.click();
       await h.settled();
       await h.page.waitForFunction(() =>
         document.querySelector(".content svg style")?.textContent?.includes("@keyframes"),
       );
-      assert.equal(await play.getAttribute("aria-pressed"), "true");
-      await play.click();
-      await h.settled();
-      await h.page.waitForFunction(() => !document.querySelector(".content svg style"));
-      assert.equal(await play.getAttribute("aria-pressed"), "false");
+      assert.equal(await pause.getAttribute("aria-pressed"), "true");
     },
   },
   {
@@ -5846,6 +6122,53 @@ const tests: {
         `outline ${JSON.stringify(participant)}, head ${JSON.stringify(head)}`,
       );
       assert.ok(frame.width > head.width && frame.height > head.height, "the fragment is large");
+    },
+  },
+  {
+    name: "sequence: selects and pulses a participant beside an actor on its drawn box",
+    text: SEQUENCE.replace(
+      "  scenario happy",
+      "  animate api { effect pulse }\n\n  scenario happy",
+    ),
+    async run(h) {
+      const page = h.page;
+      const rect = page.locator('.content g[data-id="api"][data-role="element"] rect').first();
+      const drawnBox = await rect.boundingBox();
+      assert.ok(drawnBox, "no rectangle drawn for api");
+      await page.mouse.click(drawnBox.x + drawnBox.width / 2, drawnBox.y + drawnBox.height / 2);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["api"]);
+      const frame = await page.locator(".overlay rect.outline").boundingBox();
+      assert.ok(frame, "no selection outline");
+      // Each edge of the frame within a pixel of the drawn box's (it sits half its stroke out).
+      const edges = (b: Rect) => [b.x, b.y, b.x + b.width, b.y + b.height];
+      const drawnEdges = edges(drawnBox);
+      edges(frame).forEach((edge, i) =>
+        assert.ok(
+          Math.abs(edge - drawnEdges[i]!) <= 1,
+          `outline ${JSON.stringify(frame)} on the drawn box ${JSON.stringify(drawnBox)}`,
+        ),
+      );
+      // The pulse's halo is the drawn box, not the head row above it.
+      const boxes = await page.evaluate(() => {
+        const halo = document.querySelector<SVGGraphicsElement>(".content svg path.mdg-m")!;
+        const head = document.querySelector<SVGGraphicsElement>(
+          '.content g[data-id="api"][data-role="element"] rect',
+        )!;
+        const a = halo.getBBox();
+        const b = head.getBBox();
+        return [
+          { x: a.x, y: a.y, width: a.width, height: a.height },
+          { x: b.x, y: b.y, width: b.width, height: b.height },
+        ];
+      });
+      const [halo, head] = boxes as [Rect, Rect];
+      assert.ok(
+        Math.abs(halo.x + halo.width / 2 - (head.x + head.width / 2)) <= 1 &&
+          Math.abs(halo.y + halo.height / 2 - (head.y + head.height / 2)) <= 1,
+        `halo ${JSON.stringify(halo)} centred on ${JSON.stringify(head)}`,
+      );
+      await page.screenshot({ path: join(output, "canvas-sequence-head.png") });
     },
   },
   {

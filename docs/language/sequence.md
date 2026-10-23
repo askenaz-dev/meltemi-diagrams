@@ -180,10 +180,16 @@ Sequence diagrams are laid out without an engine, deterministically:
   taller, notes, fragment headers and branch separators, dividers and delays. `space` adds its
   amount above an event.
 - **Composition checks** do not apply: rows and columns cannot overlap.
+- **Drawing.** Heads, activation bars, notes and fragment frames are stroked with the theme's
+  `muted` colour on a `surface` fill, and lifelines are dashed in `muted` at half strength, so the
+  messages, drawn in `connector`, stay in front. A `stroke` written for a participant colours its
+  head and its lifeline. Boxes are 40 units tall, at the bottom of the head row when an actor or
+  another figure makes the row taller.
 
-`LayoutResult.boxes` holds the heads, the notes and the fragment frames (by event key);
-`connectors` and `labels` the messages; `events` the row of every event. Editors use them to drag
-and hit-test.
+`LayoutResult.boxes` holds the heads as drawn, the notes and the fragment frames (by event key);
+`shapes` and `radii` the outline of each head that is a box (`rounded` with the theme's radius, a
+database `cylinder`); `connectors` and `labels` the messages; `events` the row of every event.
+Editors use them to select, drag and hit-test.
 
 ## Editing
 

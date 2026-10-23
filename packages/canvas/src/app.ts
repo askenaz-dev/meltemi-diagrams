@@ -11,7 +11,7 @@ import {
   minimapViewport,
   nearestInDirection,
   attachEnd,
-  bearing,
+  turnedAngle,
   belowInStack,
   borderDistance,
   carriedChildren,
@@ -110,6 +110,11 @@ export interface PersistedState {
   readonly libraries?: boolean;
   /** The layers hidden on the canvas, by diagram id. */
   readonly hiddenLayers?: Record<string, readonly string[]>;
+  /**
+   * Whether a diagram's effects play, by diagram id, as the person last chose with the toolbar's
+   * Pause and Play; a diagram without a choice plays, unless the system asks for reduced motion.
+   */
+  readonly effectsPlaying?: Record<string, boolean>;
 }
 
 /**
@@ -167,7 +172,16 @@ type Drag =
     }
   | { kind: "resize"; id: string; handle: Handle; start: Point; box: Box; result: Box }
   /** A rotation handle dragged about the centre of the element's box (diagram coordinates). */
-  | { kind: "rotate"; id: string; centre: Point; from: number; angle: number; moving: boolean }
+  | {
+      kind: "rotate";
+      id: string;
+      centre: Point;
+      /** Where the handle was grabbed: the turn is the pointer's bearing change since. */
+      grab: Point;
+      from: number;
+      angle: number;
+      moving: boolean;
+    }
   | { kind: "label"; relation: string; start: Point; delta: Point; moving: boolean }
   | {
       kind: "bend" | "segment";
@@ -462,7 +476,13 @@ export class CanvasApp {
    * The stage shows a preview's drawing instead of the last render's: that of a move by `delta`
    * (zero for a resize). Undefined while it shows the last render.
    */
-  private previewShown: { readonly delta: Point; readonly offset: Point } | undefined;
+  private previewShown:
+    { readonly delta: Point; readonly offset: Point; readonly box?: Box } | undefined;
+  /**
+   * A rotation released and written, until the edit's render comes: the outline and the handles
+   * keep its angle meanwhile, as the drawing does.
+   */
+  private turnPending: { readonly id: string; readonly angle: number } | undefined;
   /** The main part of a split button whose held press opened its menu: its click arms nothing. */
   private held: HTMLButtonElement | undefined;
   private readonly main: HTMLElement;
@@ -654,6 +674,7 @@ export class CanvasApp {
         if (!this.inline) this.showDrawnText();
         this.queued = { x: 0, y: 0 };
         this.queuedSlide = undefined;
+        this.turnPending = undefined;
         this.resetPreview();
         if (message.code === "edit.has-dependents" && message.dependents && message.retry) {
           const retry = message.retry;
@@ -1296,11 +1317,30 @@ export class CanvasApp {
   // ------------------------------------------------------------------ render
 
   private applyRender(render: CanvasRender): void {
+    // A drawing that plays (or not) against the choice kept for its diagram is not shown: the
+    // canvas asks for the other one, which the session answers with at once.
+    if (
+      render.effects > 0 &&
+      !this.storyPanel.active &&
+      render.playing !== this.effectsWanted(render.diagram)
+    ) {
+      this.post({ type: "playEffects", on: !render.playing });
+      return;
+    }
     const previous = this.render;
+    // An effect turned on while the diagram is paused does not move: say why.
+    if (
+      previous?.diagram === render.diagram &&
+      render.effects > previous.effects &&
+      !render.playing
+    ) {
+      this.announce(messages().announcements.effectsPaused);
+    }
     // Another diagram is another picture: the host sends the others' selections again after it.
     if (previous && previous.diagram !== render.diagram) this.presence = [];
     this.render = render;
     this.revision = render.revision;
+    this.turnPending = undefined;
     this.noDiagram = false;
     this.stale = false;
     this.content.classList.remove("stale");
@@ -1830,6 +1870,7 @@ export class CanvasApp {
         box = { ...box, x: box.x + drag.delta.x, y: box.y + drag.delta.y };
       }
       if (drag?.kind === "resize" && drag.id === id) box = drag.result;
+      if (drag?.kind === "rotate" && drag.id === id) box = this.turnBox(id) ?? box;
       return { kind: "box", box };
     }
     const shift = drag?.kind === "event" && drag.moving && drag.key === id ? drag.delta : 0;
@@ -2156,7 +2197,7 @@ export class CanvasApp {
   private drawElementHandles(element: ElementInfo): void {
     const box = this.screenBox(element.box);
     // A turned element's handles are drawn in its own frame, turned with it.
-    const turn = this.turnAttributes(element.box, element.rotation);
+    const turn = this.turnAttributes(element.box, this.angleOf(element));
     const frame = turn.transform ? s("g", { class: "turned-handles", ...turn }) : undefined;
     if (frame) this.overlay.append(frame);
     const overlay = frame ?? this.overlay;
@@ -2398,6 +2439,7 @@ export class CanvasApp {
       if (this.previewShown) {
         this.restoreDrawing();
         this.followPointer();
+        this.followRotation();
       }
       return;
     }
@@ -2449,11 +2491,13 @@ export class CanvasApp {
           width: message.width ?? r.width,
           height: message.height ?? r.height,
           offset: message.offset ?? r.offset,
+          ...(message.box ? { box: message.box } : {}),
         },
         waiting.delta,
       );
     }
     this.followPointer();
+    this.followRotation();
     if (this.previewAgain) {
       this.previewAgain = false;
       this.requestPreview();
@@ -2471,6 +2515,7 @@ export class CanvasApp {
       readonly width: number;
       readonly height: number;
       readonly offset: Point;
+      readonly box?: Box;
     },
     delta: Point,
   ): void {
@@ -2480,7 +2525,11 @@ export class CanvasApp {
     const dy = r.offset.y - scene.offset.y;
     const root = this.content.querySelector("svg");
     if (root && (dx !== 0 || dy !== 0)) root.style.transform = `translate(${dx}px, ${dy}px)`;
-    this.previewShown = { delta, offset: scene.offset };
+    this.previewShown = {
+      delta,
+      offset: scene.offset,
+      ...(scene.box ? { box: scene.box } : {}),
+    };
     this.markTurns();
     this.hideLayers();
     this.styleSheetGrid();
@@ -2526,11 +2575,9 @@ export class CanvasApp {
         else g.removeAttribute("transform");
       }
     }
-    // A rotation under way is dropped.
+    // A rotation under way is dropped: its group took its own rotation back above.
     for (const g of this.content.querySelectorAll<SVGGElement>("g.turning")) {
-      g.classList.remove("turning");
-      g.style.transform = "";
-      g.style.transformOrigin = "";
+      g.classList.remove("turning", "turned-release");
     }
     this.drag = undefined;
     this.drawOverlay();
@@ -2587,15 +2634,42 @@ export class CanvasApp {
     return button;
   }
 
-  /** Plays the diagram's `animate` effects on the canvas, or shows the static drawing again. */
+  /**
+   * Pauses the diagram's `animate` effects, showing the static drawing, or plays them again; the
+   * choice is kept for the diagram, so it holds after a reload.
+   */
   private readonly playButton: HTMLButtonElement = (() => {
-    const button = this.button(messages().toolbar.playEffects, ICONS.play, () =>
-      this.post({ type: "playEffects", on: !(this.render?.playing ?? false) }),
-    );
-    button.setAttribute("aria-pressed", "false");
+    const button = this.button(messages().toolbar.pauseEffects, ICONS.pause, () => {
+      const r = this.render;
+      if (!r || r.effects === 0) return;
+      const on = !r.playing;
+      this.persist({ effectsPlaying: { ...this.local.effectsPlaying, [r.diagram]: on } });
+      this.post({ type: "playEffects", on });
+    });
+    button.setAttribute("aria-pressed", "true");
     button.hidden = true;
     return button;
   })();
+
+  /** Whether the effects of `diagram` should play: the person's choice, else the system's. */
+  private effectsWanted(diagram: string): boolean {
+    const chosen = this.local.effectsPlaying?.[diagram];
+    if (chosen !== undefined) return chosen;
+    return !(globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false);
+  }
+
+  /** The toolbar's toggle as the render says: Pause while playing, Play while paused. */
+  private showPlayButton(r: CanvasRender): void {
+    const words = messages().toolbar;
+    const label = r.playing ? words.pauseEffects : words.playEffects;
+    const button = this.playButton;
+    button.hidden = false;
+    button.disabled = r.effects === 0;
+    button.setAttribute("aria-pressed", String(r.playing));
+    button.setAttribute("aria-label", label);
+    button.title = label;
+    button.replaceChildren(icon(r.playing ? ICONS.pause : ICONS.play));
+  }
 
   private buildToolbar(): void {
     this.diagramSelect.addEventListener("change", () =>
@@ -3303,9 +3377,7 @@ export class CanvasApp {
       );
     }
     this.scenarioSelect.hidden = r.scenarios.length === 0;
-    this.playButton.hidden = r.effects === 0;
-    this.playButton.setAttribute("aria-pressed", String(r.playing));
-    this.playButton.title = r.playing ? words.toolbar.stopEffects : words.toolbar.playEffects;
+    this.showPlayButton(r);
     for (const button of this.toolbar.querySelectorAll<HTMLButtonElement>("[data-profile]")) {
       button.hidden = !forProfile(button.dataset.profile ?? "", r.profile);
     }
@@ -3543,6 +3615,7 @@ export class CanvasApp {
           kind: "rotate",
           id: hit.id,
           centre: centerOf(element.box),
+          grab: at,
           from: angle,
           angle,
           moving: false,
@@ -3771,8 +3844,12 @@ export class CanvasApp {
         break;
       }
       case "rotate": {
-        // Steps of 15 degrees; Alt turns them off.
-        const angle = bearing(drag.centre, at, free ? undefined : ROTATION_STEP);
+        // Nothing turns before the pointer leaves the press, as a move waits for it.
+        const away = Math.hypot(at.x - drag.grab.x, at.y - drag.grab.y) * this.viewport.zoom;
+        if (!drag.moving && away < DRAG_THRESHOLD) return;
+        // The turn since the grab, in steps of 15 degrees; Alt turns them off.
+        const step = free ? undefined : ROTATION_STEP;
+        const angle = turnedAngle(drag.from, drag.centre, drag.grab, at, step);
         if (angle === drag.angle && drag.moving) break;
         drag.angle = angle;
         drag.moving = true;
@@ -3917,6 +3994,8 @@ export class CanvasApp {
           this.resetPreview();
           return;
         }
+        this.turnPending = { id: drag.id, angle: drag.angle };
+        this.turnDrawing(drag.id, drag.angle, true);
         this.announce(messages().rotation.done(drag.id, drag.angle), false);
         break;
       }
@@ -4069,7 +4148,9 @@ export class CanvasApp {
   /** The angle an element is drawn at now: the rotation handle's while it turns it. */
   private angleOf(element: ElementInfo): number | undefined {
     const drag = this.drag;
-    return drag?.kind === "rotate" && drag.id === element.id ? drag.angle : element.rotation;
+    if (drag?.kind === "rotate" && drag.id === element.id) return drag.angle;
+    if (this.turnPending?.id === element.id) return this.turnPending.angle;
+    return element.rotation;
   }
 
   /** The shape options an element's outline is drawn with: its corner radius. */
@@ -4112,21 +4193,38 @@ export class CanvasApp {
   }
 
   /**
-   * Turns an element's drawing to `angle` while its rotation handle is dragged, about the centre
-   * of its box in the coordinates of the drawing shown, easing between steps.
+   * Turns an element's drawing to `angle` while its rotation handle is dragged: the SVG
+   * `transform` of its group about the centre of its box in the drawing shown, in that drawing's
+   * coordinates, as the layout turns it, so it follows the pointer without easing. `released`
+   * eases into the angle once, on the drop.
    */
-  private turnDrawing(id: string, angle: number): void {
-    const element = this.elements.get(id);
+  private turnDrawing(id: string, angle: number, released = false): void {
     const r = this.render;
+    const box = this.turnBox(id);
     const g = this.content.querySelector<SVGGElement>(
       `g[data-id="${cssEscape(id)}"][data-role="element"]`,
     );
-    if (!element || !r || !g) return;
+    if (!box || !r || !g) return;
     const offset = this.previewShown?.offset ?? r.offset;
-    const c = centerOf(element.box);
+    const c = centerOf(box);
     g.classList.add("turning");
-    g.style.transformOrigin = `${c.x + offset.x}px ${c.y + offset.y}px`;
-    g.style.transform = `rotate(${angle}deg)`;
+    g.classList.toggle("turned-release", released);
+    if (angle === 0) g.removeAttribute("transform");
+    else g.setAttribute("transform", `rotate(${angle} ${c.x + offset.x} ${c.y + offset.y})`);
+  }
+
+  /** The box an element turns about: the one the drawing shown has for it. */
+  private turnBox(id: string): Box | undefined {
+    const drag = this.drag;
+    const shown = this.previewShown?.box;
+    if (shown && drag?.kind === "rotate" && drag.id === id) return shown;
+    return this.elements.get(id)?.box;
+  }
+
+  /** Keeps the element of a rotation under way at the handle's angle over the drawing shown. */
+  private followRotation(): void {
+    const drag = this.drag;
+    if (drag?.kind === "rotate" && drag.moving) this.turnDrawing(drag.id, drag.angle);
   }
 
   private inBox(box: Box, point: Point): boolean {

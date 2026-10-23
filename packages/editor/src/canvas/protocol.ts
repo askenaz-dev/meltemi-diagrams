@@ -528,6 +528,8 @@ export type HostMessage =
       readonly width?: number;
       readonly height?: number;
       readonly offset?: Point;
+      /** For a rotation, the turned element's box in the drawing, in diagram coordinates. */
+      readonly box?: Box;
     }
   | {
       readonly type: "rejected";

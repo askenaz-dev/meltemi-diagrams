@@ -6,6 +6,7 @@ import {
   magnets,
   outOfFrame,
   stackAt,
+  turnedAngle,
   turnedBounds,
 } from "../src/canvas/index.js";
 
@@ -70,5 +71,36 @@ describe("turned elements on the canvas", () => {
     expect(bearing(centre, pointer)).toBe(37);
     expect(bearing(centre, pointer, 15)).toBe(30);
     expect(bearing(centre, { x: 100 - 1, y: 20 }, 15)).toBe(0);
+  });
+
+  describe("the angle of a turn from where the handle was grabbed", () => {
+    const centre = { x: 100, y: 100 };
+    const at = (degrees: number, radius = 80) => ({
+      x: centre.x + radius * Math.sin((degrees * Math.PI) / 180),
+      y: centre.y - radius * Math.cos((degrees * Math.PI) / 180),
+    });
+    // The handle of a default node sits about 66 degrees from the centre.
+    const grab = at(66);
+
+    it("gives the starting angle back when the pointer has not turned", () => {
+      expect(turnedAngle(0, centre, grab, grab, 15)).toBe(0);
+      expect(turnedAngle(30, centre, grab, at(68), 15)).toBe(30);
+    });
+
+    it("adds a quarter turn clockwise from the grab", () => {
+      expect(turnedAngle(0, centre, grab, at(156), 15)).toBe(90);
+      expect(turnedAngle(45, centre, grab, at(156), 15)).toBe(135);
+    });
+
+    it("snaps to the step, or keeps the whole degree without one", () => {
+      expect(turnedAngle(0, centre, grab, at(66 + 37), 15)).toBe(30);
+      expect(turnedAngle(0, centre, grab, at(66 + 37))).toBe(37);
+    });
+
+    it("wraps past 359 both ways", () => {
+      expect(turnedAngle(350, centre, grab, at(66 + 20))).toBe(10);
+      expect(turnedAngle(10, centre, grab, at(66 - 20))).toBe(350);
+      expect(turnedAngle(0, centre, at(350), at(10))).toBe(20);
+    });
   });
 });

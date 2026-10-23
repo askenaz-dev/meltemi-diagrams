@@ -114,6 +114,8 @@ export type {
   CreatableDiagram,
   MoveAction,
   ResizeAction,
+  RotationAction,
+  PreviewedAction,
   EventInfo,
   EventKind,
   FragmentOperator,

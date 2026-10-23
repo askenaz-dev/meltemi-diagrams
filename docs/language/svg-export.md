@@ -174,6 +174,9 @@ The theme decides palette, type, spacing, strokes, arrowheads and the brand fram
 | `stage.light`               | `#FFFFFF`  | `#FFFFFF` | `#0A0F1A` | `#3D4A5C` | `#9AA8B8` | Inter         | header |
 | `stage.dark`                | `#05080F`  | `#0E1626` | `#FFFFFF` | `#A9B8CC` | `#2B3B52` | Inter         | header |
 
+`Line` outlines the boxes of flow, free and C4 diagrams; sequence diagrams draw their heads, bars,
+notes and lifelines in `Muted` instead ([sequence.md](sequence.md#layout)).
+
 - **Technical**, for architecture review: Aegean blue tags (`#2563EB`, cyan in the dark theme), the
   Meltemi gradient for the mark (`#1D4ED8` to `#0891B2` on light, `#3B82F6` to `#22D3EE` on dark)
   and the sizes of the tables above.

@@ -66,3 +66,5 @@ destruction, notes, every fragment, dividers, delays and numbering.
 - `c4` is the only profile left parse-only, until the model and C4 change.
 - The importers map Mermaid `sequenceDiagram` and PlantUML sequences onto this vocabulary, and
   playback will animate a scenario's resolved events.
+- Heads are measured as drawn and the drawing takes the theme's `muted` colour since
+  [decision 0052](0052-canvas-feel-and-naming.md).

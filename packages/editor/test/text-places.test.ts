@@ -130,4 +130,20 @@ describe("where labels are drawn, for the inline editor", () => {
     const participant = sequence.elements.find((e) => e.id === "a")!;
     expect(participant.text!.lines).toBe(false);
   });
+
+  it("edits a participant beside an actor on its drawn box", () => {
+    const sequence = rendered(`diagram p: sequence {
+  actor c "Customer"
+  participant a "API"
+  c -> a: "hello"
+}
+`);
+    const participant = sequence.elements.find((e) => e.id === "a")!;
+    const area = participant.text!.area;
+    // The inline editor covers the drawn box, not the empty top of the head row.
+    expect(area.y).toBeCloseTo(participant.box.y, 1);
+    expect(area.height).toBeCloseTo(participant.box.height, 1);
+    expect(participant.box.height).toBe(40);
+    expect(participant.text!.anchor.y).toBeCloseTo(participant.box.y + 20, 0);
+  });
 });

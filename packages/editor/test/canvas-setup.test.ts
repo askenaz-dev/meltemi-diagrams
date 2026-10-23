@@ -10,8 +10,7 @@ import {
   type CanvasAction,
   type HostMessage,
   type InspectorField,
-  type MoveAction,
-  type ResizeAction,
+  type PreviewedAction,
 } from "../src/index.js";
 
 /**
@@ -35,8 +34,7 @@ function open(text: string, revision = 1) {
     return current;
   };
   /** Asks for the preview of a gesture, with the revision of the last update. */
-  const preview = (action: MoveAction | ResizeAction, token = 1) =>
-    act({ kind: "preview", token, action });
+  const preview = (action: PreviewedAction, token = 1) => act({ kind: "preview", token, action });
   return {
     session,
     act,
@@ -277,6 +275,52 @@ describe("live previews of moves and resizes", () => {
     expect(canvas.text()).toContain("layout assisted");
     expect(answer.svg).toBe(render(canvas.messages()).svg);
     expect(answer.svg).not.toBe(before.svg);
+  });
+
+  it("previews a rotation of an automatic diagram in place, and the drop writes it after the arrangement", () => {
+    const auto = `diagram d: flow {
+  client["Client"]
+  api["API"]
+  db[("DB")]
+  client -> api
+  api -> db
+}
+`;
+    const canvas = open(auto);
+    const before = render(canvas.messages());
+    const box = before.elements.find((e) => e.id === "api")!.box;
+    const turn = { kind: "setField", ids: ["api"], field: "style.rotation", value: 30 } as const;
+    const answer = canvas.preview(turn, 3).messages[0] as HostMessage & { type: "preview" };
+    expect(answer).toMatchObject({ type: "preview", token: 3 });
+    // The turned box stays where the arrangement has it: the engine does not move it away. The
+    // drawing grows past the top for the turned corners, so its offset says where that is.
+    expect(answer.box).toEqual(box);
+    const c = {
+      x: box.x + box.width / 2 + answer.offset!.x,
+      y: box.y + box.height / 2 + answer.offset!.y,
+    };
+    expect(answer.svg).toContain(`rotate(30 ${c.x} ${Math.round(c.y * 100) / 100})`);
+    const drop = canvas.act({ kind: "setField", ids: ["api"], field: "style.rotation", value: 30 });
+    expect(drop.plan).toBeDefined();
+    canvas.apply({ kind: "setField", ids: ["api"], field: "style.rotation", value: 30 });
+    // One plan: the arrangement, then the rotation.
+    expect(canvas.text()).toContain("layout assisted");
+    expect(canvas.text()).toContain("style api { rotation 30 }");
+    expect(canvas.text()).toMatch(/place api at/);
+    expect(render(canvas.messages()).elements.find((e) => e.id === "api")!.box).toEqual(box);
+    expect(answer.svg).toBe(render(canvas.messages()).svg);
+  });
+
+  it("has no drawing for a rotation the language refuses", () => {
+    const canvas = open(pair);
+    const answer = canvas.preview({
+      kind: "setField",
+      ids: ["api"],
+      field: "style.rotation",
+      value: 400,
+    }).messages[0] as HostMessage & { type: "preview" };
+    expect(answer.svg).toBeNull();
+    expect(answer.box).toBeUndefined();
   });
 
   it("grows an unsized free group with a resized child", () => {

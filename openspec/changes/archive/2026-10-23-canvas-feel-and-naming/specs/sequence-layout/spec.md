@@ -11,7 +11,7 @@ The scene SHALL draw:
 - dividers and delays;
 - the message number in a disc when `autonumber` is set.
 
-Heads, activation bars, notes, fragment frames and lifelines SHALL be stroked with the theme's `muted` token at `strokeWidth` (lifelines dashed), with `surface` as the fill of heads, bars and notes; messages SHALL keep `connector` at `connectorWidth`; a written `stroke` style on a participant SHALL replace `muted` on its head and lifeline.
+Heads, activation bars, notes, fragment frames and lifelines SHALL be stroked with the theme's `muted` token at `strokeWidth`, lifelines dashed and at half opacity so they stay below the messages, with `surface` as the fill of heads, bars and notes; messages SHALL keep `connector` at `connectorWidth`; a written `stroke` style on a participant SHALL replace `muted` on its head and lifeline.
 
 `LayoutResult` SHALL report `boxes` for heads, notes and fragments, `connectors` and `labels` for messages, and `events` with each event's row band. The box of a box-kind head SHALL be the box as drawn (the bottom 40 units of the head row; collections include their stack offset), and the box of a figure its cell; each head's scene group SHALL carry that same box as `bounds`. `LayoutResult` SHALL report `shapes` and `radii` for heads: `rounded` with the theme's `radius` for participants, collections, queues and the UML kinds drawn as boxes, `cylinder` for databases.
 
@@ -29,8 +29,8 @@ Heads, activation bars, notes, fragment frames and lifelines SHALL be stroked wi
 
 #### Scenario: Tokens of the drawing
 - **WHEN** the same diagram is laid out
-- **THEN** the head of `api`, its lifeline and the activation bars are stroked `#526579`, the lifeline is dashed, and the message connectors are stroked `#526579` at 1.3
+- **THEN** the head of `api`, its lifeline and the activation bars are stroked `#526579`, the lifeline is dashed at half opacity, and the message connectors are stroked `#526579` at 1.3
 
-#### Scenario: A participant the diagram does not declare
-- **WHEN** a message names `billing` and no participant `billing` is declared
-- **THEN** `ref.unknown-element` is reported on the message and no layout is produced for the diagram
+#### Scenario: An activation of a participant the diagram does not have
+- **WHEN** `activate billing` names no participant of the diagram (messages declare the participants they name, so only such a statement can)
+- **THEN** `ref.unknown-element` is reported on `billing` and no layout is produced for the diagram

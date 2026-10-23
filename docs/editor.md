@@ -205,12 +205,14 @@ the range, and the text stays as it was.
 | Drag an icon of the picker or the Libraries panel onto a shape            | `style <id> { icon … }` of that node, decision, data store or box, and nothing else; the shape is outlined while the pointer is over it                        |
 | Double-click a box or relation, or press Enter                            | Its label, typed where it is drawn ([text in place](#empty-shapes-and-text-in-place))                                                                          |
 
-- **Naming relations.** Actions on an anonymous relation, a style or an effect included, first
-  name it `<from>_<to>` (`as api_db`), in the same edit, and the status line says so. Classes and
-  turning an effect off name nothing. In C4 views the name goes into the model relation
-  (`as shop_api_db`, from the entity paths), in the model's file when that is another file of the
-  project. Anonymous messages, notes and fragments of sequence diagrams are named the same way
-  (`as web_api`, `note1`, `alt1`) when an effect or a style needs it.
+- **Naming relations.** Actions on an anonymous relation, a style, an effect, a label, a layer,
+  a dotted line, a label position, a moved label, a dragged end or bend included, first name it
+  `<from>_<to>` (`as api_db`), in the same edit, and the status line says so; the relation stays
+  selected under its new id, and the inspector stays on it. Classes and turning an effect off name
+  nothing. In C4 views the name goes into the model relation (`as shop_api_db`, from the entity
+  paths), in the model's file when that is another file of the project. Anonymous messages, notes
+  and fragments of sequence diagrams are named the same way (`as web_api`, `note1`, `alt1`) when an
+  effect or a style needs it: nothing is refused for want of a name.
 - **Free diagrams.** Positions of objects inside a group are written relative to the group's
   interior ([free.md](language/free.md)): moving a group writes only the group's `place`, and
   resizing it from the left or top edge shifts its children's places so they stay where they are.
@@ -594,10 +596,14 @@ alone; sending the inner box to the back turns it into a `layout.overlap`.
   `style g { radius 0 }` or `style h { shape hexagon; radius 10 }`; a number out of range is
   refused and the text stays as it was.
 - **Rotation.** A selected element of a flow diagram or a free composition shows a rotation handle,
-  a disc beyond its top-right corner. Drag it round the element: the element turns about the
-  centre of its box in 15° steps, Alt for any angle, with the angle beside the pointer and in the
-  status line, and its connectors follow live; the release writes `style api { rotation 90 }` in
-  one undo step, 0 removes it, and Escape cancels. The strip's **Rotation** is a slider with its
+  a disc beyond its top-right corner. Drag it round the element: nothing turns until the pointer
+  has moved a few pixels, so a click on the handle changes nothing; then the element turns by as
+  much as the pointer has turned about the centre of its box since the press, in 15° steps, Alt for
+  any angle, with the angle beside the pointer and in the status line. The element, its outline
+  and its connectors follow the pointer at every frame, without easing; the release writes
+  `style api { rotation 90 }` in one undo step and eases into it, 0 removes it, and Escape
+  cancels. In a diagram with `layout auto` the first rotation writes the arrangement first, as
+  the first move does, so the turned element stays where it is. The strip's **Rotation** is a slider with its
   number, from 0 to 359, greyed at 0 or a rule's angle, and the context menu has **Rotate 90°** and
   **Reset rotation**. A turned element is selected and hit by its turned outline; its selection,
   its resize and connection handles, its magnets and the text editor turn with it; resizing works
@@ -638,6 +644,9 @@ coordinates.
   message (C, or drag from a head's connection handle), note (O), fragment (F, which asks for the
   operator), divider and delay, and group. A participant goes where it is dropped among the
   others; notes, dividers and delays go after the selected event, or at the end.
+- **Heads.** A participant, database, collections or queue is selected, outlined, pulsed and
+  edited on the box it is drawn as, at the bottom of the row of heads, whether or not an actor
+  shares the diagram; an actor and the other figures on their figure and name.
 - **Dragging.** Drag a head sideways to reorder the participant; no message changes. Drag a
   message, note or fragment down to add `space` above it, or up to take it away; it stops at its
   neighbour, so a drag never reorders events. Alt drags without the grid.
@@ -699,8 +708,9 @@ A C4 view draws entities of a model; the canvas never declares entities
 - **The style strip.** The top of the inspector styles the selection: **Fill**, **Stroke** and
   **Text colour** as rows of chips, then line and stroke width; for elements that take them, the
   corner radius, the shape and the icon position; for relations, the heads at both ends, the
-  route kind and the corners; and the effects. Several selected items are styled together in one edit; a row shows
-  "mixed" where their values differ.
+  route kind and the corners; and the **Effects** row, which says at its right "off" or the effects
+  that are on, with their toggles beneath. Several selected items are styled together in one edit;
+  a row shows "mixed" where their values differ.
 - **Pictures, not words.** The line (solid, dashed, dotted), the route kind (automatic, straight,
   elbow, curved), the corners (sharp, rounded) and the shapes are rows or grids of pictures;
   **Default** inherits again.
@@ -738,17 +748,21 @@ A C4 view draws entities of a model; the canvas never declares entities
 
 ## Effects
 
-- **Inspector.** A selected element, relation, named note or fragment lists the effects it can
-  take, as toggles in the style strip: **Flow particles** (relations), **Moving dash** (relations
+- **Inspector.** A selected element, relation, message, note or fragment lists the effects it can
+  take, as toggles under the **Effects** row of the style strip: **Flow particles** (relations), **Moving dash** (relations
   and boxes with an outline), **Pulse** and **Trace** (relations: a highlight that fills the arrow
   from its start to its end, then starts again). Turning one on writes `animate <id> { effect … }`;
   its duration, repeat, delay and, where they apply, direction, particles and colour are written
   into the same statement. The speed shows, greyed, the theme's default (`flowDuration`,
   `dashDuration`, `pulseDuration`, `traceDuration`, or the engine's 1200, 1000, 1000 and 1500 ms). Turning it off removes it. A statement
   shared by several targets is split when one of them changes.
-- **Play effects.** The ▷ button on the toolbar appears when the diagram has effects. Pressed, the
-  canvas runs them as the animated SVG export would (`docs/language/motion.md`); pressed again, it
-  shows the static drawing. Selection and editing keep working while effects play.
+- **Pause and play.** A diagram with effects runs them on the canvas from the moment it is shown,
+  as the animated SVG export would (`docs/language/motion.md`). The toolbar's **Pause effects**
+  (❚❚) shows the static drawing and becomes **Play effects** (▷); the choice is kept for that
+  diagram of the file, so a paused diagram is still paused after a reload. Under reduced motion a
+  diagram starts paused until Play is pressed. Without effects the button is disabled. Turning an
+  effect on while the diagram is paused says so in the status line. Selection, editing and live
+  previews keep working while effects play.
 
 ## Stories
 

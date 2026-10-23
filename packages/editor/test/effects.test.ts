@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { applyTextEdits } from "@meltemi/diagrams-language";
 import {
@@ -8,6 +10,7 @@ import {
   type CanvasAction,
   type HostMessage,
 } from "../src/index.js";
+import { CORPUS_ROOT } from "../../../test-support/corpus.js";
 
 const SHEET = [
   'language "0.2"',
@@ -125,22 +128,28 @@ describe("effects in the inspector", () => {
 });
 
 describe("playing effects on the canvas", () => {
-  it("shows the animated profile while playing", () => {
-    const canvas = open(
-      SHEET.replace("  placement {", "  animate save { effect flow }\n  placement {"),
-      "checkout",
-    );
-    expect(canvas.render()).toMatchObject({ effects: 1, playing: false });
+  const animated = SHEET.replace("  placement {", "  animate save { effect flow }\n  placement {");
+
+  it("opens a diagram with effects animated", () => {
+    const canvas = open(animated, "checkout");
+    expect(canvas.render()).toMatchObject({ effects: 1, playing: true });
+    expect(canvas.render().svg).toContain("@keyframes mdg-flow");
+  });
+
+  it("shows the static drawing while paused, and the animated one again on play", () => {
+    const canvas = open(animated, "checkout");
+    canvas.send({ type: "playEffects", on: false });
+    expect(canvas.render().playing).toBe(false);
     expect(canvas.render().svg).not.toContain("@keyframes");
     canvas.send({ type: "playEffects", on: true });
     expect(canvas.render().playing).toBe(true);
     expect(canvas.render().svg).toContain("@keyframes mdg-flow");
-    canvas.send({ type: "playEffects", on: false });
-    expect(canvas.render().svg).not.toContain("@keyframes");
   });
 
   it("has nothing to play without effects", () => {
     const canvas = open(SHEET, "checkout");
+    expect(canvas.render()).toMatchObject({ effects: 0, playing: false });
+    expect(canvas.render().svg).not.toContain("@keyframes");
     canvas.send({ type: "playEffects", on: true });
     expect(canvas.render()).toMatchObject({ effects: 0, playing: false });
   });
@@ -263,6 +272,51 @@ describe("anonymous relations", () => {
     canvas.apply({ kind: "setField", ids: ["api->db#2"], field: "effect.dash", value: "on" });
     expect(canvas.text()).toContain("  api -> db\n  api -> db as api_db\n");
     expect(canvas.text()).toContain("animate api_db { effect dash }");
+  });
+
+  it("stay selected under their new id whatever named them", () => {
+    const cases: { field: string; value: string | number; text: RegExp }[] = [
+      { field: "style.stroke", value: "danger", text: /style api_db \{ stroke danger \}/ },
+      { field: "effect.flow", value: "on", text: /animate api_db \{ effect flow \}/ },
+      { field: "label", value: "saves", text: /api -> db: "saves" as api_db/ },
+      { field: "layer", value: "front", text: /api -> db as api_db \{ layer front \}/ },
+      { field: "line", value: "dotted", text: /style api_db \{ line dotted \}/ },
+      { field: "labelAt", value: 30, text: /label api_db at 30%/ },
+    ];
+    for (const { field: name, value, text } of cases) {
+      const layered = name === "layer";
+      const canvas = open(
+        layered
+          ? ANONYMOUS.replace("  layout manual", "  layout manual\n  layers main, front")
+          : ANONYMOUS,
+        "checkout",
+      );
+      canvas.send({ type: "select", ids: ["api->db#1"] });
+      canvas.apply({ kind: "setField", ids: ["api->db#1"], field: name, value });
+      expect(canvas.text(), name).toMatch(text);
+      expect(canvas.inspector().target.ids, name).toEqual(["api_db"]);
+    }
+  });
+
+  it("stay selected when a canvas gesture names them, on an imported flowchart", () => {
+    const imported = readFileSync(
+      join(CORPUS_ROOT, "import", "mermaid", "flowchart-checkout.meltemi"),
+      "utf8",
+    );
+    const key = "pay->orders#1";
+    const gestures: CanvasAction[] = [
+      { kind: "moveLabel", relation: key, delta: { x: 0, y: -20 } },
+      { kind: "setVia", relation: key, via: [{ x: 300, y: 40 }] },
+      { kind: "setEnd", relation: key, end: "to", element: "orders", port: "north" },
+      { kind: "setLabel", id: key, label: "paid" },
+    ];
+    for (const gesture of gestures) {
+      const canvas = open(imported, "checkout");
+      canvas.send({ type: "select", ids: [key] });
+      const text = canvas.apply(gesture);
+      expect(text, gesture.kind).toMatch(/pay -> orders: "(yes|paid)" as pay_orders/);
+      expect(canvas.inspector().target.ids, gesture.kind).toEqual(["pay_orders"]);
+    }
   });
 
   it("take classes in their own block, without a name", () => {

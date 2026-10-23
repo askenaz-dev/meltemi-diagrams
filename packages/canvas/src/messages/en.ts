@@ -109,7 +109,7 @@ export const en = {
     libraries: "Libraries",
     arrange: "Arrange",
     playEffects: "Play effects",
-    stopEffects: "Stop the effects",
+    pauseEffects: "Pause effects",
   },
 
   /** Commands that the toolbar and the context menus both offer. */
@@ -222,6 +222,8 @@ export const en = {
   /** What the status line says, which screen readers announce. */
   announcements: {
     fixFirst: "Fix the problems in the text before editing on the canvas.",
+    /** An effect was turned on while the diagram's effects are paused. */
+    effectsPaused: "Effects paused; press Play effects to see them.",
     nothingSelected: "Nothing selected.",
     selected: (count: number) => `${count} selected.`,
     /** An empty shape has no label to say. */
@@ -381,6 +383,8 @@ export const en = {
     label: "Properties",
     strip: "Style",
     effects: "Effects",
+    /** What the Effects row says when no effect is on. */
+    effectsOff: "off",
     /** The selected targets have different values. */
     mixed: "mixed",
     /** Without a written value the theme decides. */

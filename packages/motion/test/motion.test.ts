@@ -391,6 +391,38 @@ describe("other profiles", () => {
     expect(motionItems(sceneAt(scene, plan, 300))).toHaveLength(3);
   });
 
+  it("pulses a sequence participant on its drawn box beside an actor", () => {
+    const text = [
+      'language "0.2"',
+      "diagram s: sequence {",
+      '  actor a "A"',
+      '  participant b "B"',
+      '  a -> b: "Pay" as pay',
+      "  animate b { effect pulse }",
+      "}",
+    ].join("\n");
+    const compilation = compile(text);
+    expect(compilation.diagnostics).toEqual([]);
+    const diagram = compilation.document.diagrams[0]!;
+    const result = layoutDiagram(compilation, diagram, {});
+    const scene = result.scene!;
+    const plan = planMotion(diagram, scene);
+    const pulse = plan.effects.find((e) => e.target === "b")!;
+    // The head row is the actor's height; the box, and so the halo, is its bottom 40 units.
+    const head = scene.items.find(
+      (i): i is GroupItem => i.kind === "group" && i.role === "element" && i.id === "b",
+    )!;
+    const drawn = head.items.find((i) => i.kind === "rect")!;
+    expect(pulse.bounds).toMatchObject({
+      x: drawn.kind === "rect" ? drawn.x : NaN,
+      y: drawn.kind === "rect" ? drawn.y : NaN,
+      width: drawn.kind === "rect" ? drawn.width : NaN,
+      height: 40,
+    });
+    const box = result.boxes!.get("b")!;
+    expect(pulse.bounds!.y).toBe(box.y + result.offset!.y);
+  });
+
   it("animates C4 entities and model relations by path", () => {
     const text = [
       'language "0.2"',

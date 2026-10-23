@@ -190,10 +190,18 @@ Los diagramas de secuencia se disponen sin motor, de forma determinista:
   ramas, los separadores y los retrasos. `space` agrega su cantidad sobre un evento.
 - **Las comprobaciones de composición** no se aplican: las filas y las columnas no se pueden
   superponer.
+- **Dibujo.** Las cabeceras, las barras de activación, las notas y los marcos de los fragmentos se
+  trazan con el color `muted` del tema sobre un relleno `surface`, y las líneas de vida van
+  discontinuas en `muted` a media intensidad, para que los mensajes, dibujados en `connector`,
+  queden delante. Un `stroke` escrito para un participante colorea su cabecera y su línea de vida.
+  Las cajas miden 40 unidades de alto, al pie de la fila de cabeceras cuando un actor u otra figura
+  la hace más alta.
 
-`LayoutResult.boxes` contiene las cabeceras, las notas y los marcos de los fragmentos (por clave de
-evento); `connectors` y `labels`, los mensajes; `events`, la fila de cada evento. Los editores los
-usan para arrastrar y para saber qué hay bajo el puntero.
+`LayoutResult.boxes` contiene las cabeceras tal como se dibujan, las notas y los marcos de los
+fragmentos (por clave de evento); `shapes` y `radii`, el contorno de cada cabecera que es una caja
+(`rounded` con el radio del tema, `cylinder` para una base de datos); `connectors` y `labels`, los
+mensajes; `events`, la fila de cada evento. Los editores los usan para seleccionar, arrastrar y
+saber qué hay bajo el puntero.
 
 ## Edición
 

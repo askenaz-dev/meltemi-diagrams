@@ -39,8 +39,32 @@ export function turnedBounds(box: Box, rotation: number | undefined): Box {
  * degrees from 0 to 359, snapped to `step` degrees when `step` is given.
  */
 export function bearing(centre: Point, pointer: Point, step?: number): number {
-  const radians = Math.atan2(pointer.x - centre.x, centre.y - pointer.y);
-  const degrees = (radians * 180) / Math.PI;
-  const snapped = step ? Math.round(degrees / step) * step : Math.round(degrees);
+  const snapped = snap(exactBearing(centre, pointer), step);
   return ((snapped % 360) + 360) % 360;
 }
+
+/**
+ * The angle a rotation handle grabbed at `grab` and dragged to `pointer` gives an element that
+ * stood at `from` degrees about `centre`: `from` plus how far the pointer has turned about the
+ * centre since the grab, clockwise, in whole degrees from 0 to 359, snapped to `step` degrees when
+ * `step` is given. A grab released where it was pressed gives `from` back.
+ */
+export function turnedAngle(
+  from: number,
+  centre: Point,
+  grab: Point,
+  pointer: Point,
+  step?: number,
+): number {
+  const turned = exactBearing(centre, pointer) - exactBearing(centre, grab);
+  const snapped = snap(from + turned, step);
+  return ((snapped % 360) + 360) % 360;
+}
+
+/** The pointer's bearing from the centre in degrees, 0 straight up and growing clockwise. */
+function exactBearing(centre: Point, pointer: Point): number {
+  return (Math.atan2(pointer.x - centre.x, centre.y - pointer.y) * 180) / Math.PI;
+}
+
+const snap = (degrees: number, step?: number) =>
+  step ? Math.round(degrees / step) * step : Math.round(degrees);

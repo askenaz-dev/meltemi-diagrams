@@ -261,8 +261,6 @@ export const en = {
     notInDiagram: (id: string, diagram: string) =>
       `${code(id)} is not in diagram ${code(diagram)}.`,
     /** `kind` is the kind of an event: `note`, `fragment`, `message`… */
-    nameToStyle: (kind: string) => `Name the ${kind} (its id) before styling it.`,
-    nameToMoveLabel: "Name the relation (its id) before moving its label.",
     source: "Write the icon or the image path.",
     ports: "Write ports as `name side [n%]`, separated by commas.",
     number: "Write a number.",

@@ -85,10 +85,13 @@ accessible name.
 
 ### Play by default, pause remembered
 
-`CanvasSession.playing` starts `true`. The canvas keeps `PersistedState.pausedEffects?:
-Record<string, true>` keyed by diagram id, like `hiddenLayers`, and on `ready` and on
-`pickDiagram` posts `playEffects { on: !paused }` for the shown diagram, so the session's state
-follows the file's remembered choice; the toggle writes the record and posts the message. The
+`CanvasSession.playing` starts `true`. The canvas keeps `PersistedState.effectsPlaying?:
+Record<string, boolean>` keyed by diagram id, like `hiddenLayers`, holding the person's last
+choice either way. A render of a diagram with effects whose `playing` disagrees with what the
+canvas wants for it (the choice, else the media query) is not shown: the canvas posts
+`playEffects { on }` and draws the answer, so a paused diagram never flashes animated on a reload
+or a switch of diagram, whatever the session's state; the toggle writes the record and posts the
+message. The
 button shows the pause glyph and "Pause effects" while playing, the play glyph and "Play effects"
 while paused, `aria-pressed` as today, and is disabled when the diagram has no effects
 (`render.effects === 0`). A canvas opened under `prefers-reduced-motion: reduce`
@@ -153,17 +156,18 @@ box).
 ### Sequence contrast without new tokens
 
 The drawing takes `theme.muted` for the stroke of heads, activation bars, notes and fragment
-frames and for the dashed lifelines (`strokeWidth`, dash `5 4` as today); messages keep
+frames and for the dashed lifelines (`strokeWidth`, dash `5 4` as today, at half opacity: at full
+strength the dashed lifelines matched the dashed replies, which made them hard to tell apart);
+fragment frames already took `muted` and dividers keep `line`; messages keep
 `theme.connector` at `connectorWidth`, labels keep `ink`. Under `technical.light` that is
 `#526579` on `#F7FBFF` (about 5.8:1) for every line of the picture. Alternatives: (b) change
 `line` in `technical.light` (reaches every flow, free and C4 picture, their snapshots, the
 gallery and `docs/language/svg-export.md`, for a token whose job there is a quiet edge); (c) new
 tokens `lifeline` and `participantLine` in every theme family, the theme panel and the TextMate
 grammar (more surface for one picture); (d) `bandLine` for lifelines and `muted` for the rest
-(the lifelines stay the faintest element at about 1.5:1, which is the complaint). Recommendation:
-`muted` everywhere, reviewed on the acceptance pictures of `corpus/acceptance/visual/sequence`
-before the snapshots are regenerated; the token can be swapped in one place if the pictures say
-so.
+(`bandLine` is no stronger than `line` in `technical.dark` and weaker in `stage.light`).
+Decision: `muted` everywhere, the lifelines at half opacity, chosen on before-and-after pictures of
+the payment, constructs and passkey sheets in both light and dark.
 
 ### The selection follows every naming
 

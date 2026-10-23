@@ -184,7 +184,8 @@ export interface LayoutResult {
    * The drawn shape of every element box but groups', when there is a scene: the `shape` of a free
    * box or a flow node, a decision's diamond, a data store's cylinder, a C4 person's person, a
    * tag's pill, and `rounded` for the others. Hosts pass it with the box to `shapeOutline`,
-   * `onOutline`, `shapeMagnets` and `pointInShape`. Absent for sequence diagrams.
+   * `onOutline`, `shapeMagnets` and `pointInShape`. Sequence diagrams give their box-kind heads:
+   * `cylinder` for databases, `rounded` for the others; figures have none.
    */
   readonly shapes?: ReadonlyMap<string, BoxShape>;
   /**

@@ -92,7 +92,7 @@ None.
 ## Impact
 
 - `packages/canvas`: `src/inspector.ts` (the Effects row), `src/app.ts` (the Pause/Play toggle,
-  `PersistedState.pausedEffects`, the rotation drag, the overlay's angle, the preview
+  `PersistedState.effectsPlaying`, the rotation drag, the overlay's angle, the preview
   re-application), `canvas.css` (the drag transition removed, a release-only ease), messages
   `en`/`es`; unit tests under `test/`.
 - `packages/editor`: `src/session.ts` (`playing` true by default, rotation as geometry in `auto`

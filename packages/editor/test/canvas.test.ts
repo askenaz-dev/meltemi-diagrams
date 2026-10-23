@@ -701,7 +701,7 @@ describe("keys and messages", () => {
     ).toBe(false);
   });
 
-  it("accepts a new diagram of the kinds it creates and previews of moves and resizes", () => {
+  it("accepts a new diagram of the kinds it creates and previews of moves, resizes and rotations", () => {
     const action = (a: unknown) => isCanvasMessage({ type: "action", revision: 1, action: a });
     for (const type of ["flow", "free", "sequence"]) {
       expect(action({ kind: "createDiagram", type }), type).toBe(true);
@@ -713,7 +713,14 @@ describe("keys and messages", () => {
     expect(action({ kind: "preview", token: 3, action: move })).toBe(true);
     expect(action({ kind: "preview", token: 4, action: { ...move, parent: "g" } })).toBe(true);
     expect(action({ kind: "preview", token: 5, action: resize })).toBe(true);
-    // Only moves and resizes preview, well formed, under a numeric token.
+    const turn = { kind: "setField", ids: ["api"], field: "style.rotation", value: 30 };
+    expect(action({ kind: "preview", token: 6, action: turn })).toBe(true);
+    expect(action({ kind: "preview", token: 7, action: { ...turn, value: null } })).toBe(true);
+    expect(action({ kind: "preview", token: 8, action: { ...turn, field: "style.fill" } })).toBe(
+      false,
+    );
+    expect(action({ kind: "preview", token: 9, action: { ...turn, value: "30" } })).toBe(false);
+    // Only moves, resizes and rotations preview, well formed, under a numeric token.
     expect(action({ kind: "preview", action: move })).toBe(false);
     expect(action({ kind: "preview", token: "3", action: move })).toBe(false);
     expect(

@@ -38,28 +38,6 @@ const KINDS: typeof en.kinds = {
   delay: "retraso",
 };
 
-const FEMININE: ReadonlySet<string> = new Set([
-  "decisión",
-  "nota",
-  "marca",
-  "caja",
-  "imagen",
-  "entidad",
-  "base de datos",
-  "cola",
-  "persona",
-  "activación",
-  "desactivación",
-  "creación",
-  "destrucción",
-]);
-
-/** A kind of event with its article, for sentences: "la nota", "el fragmento". */
-function the(kind: string): string {
-  const noun = Object.hasOwn(KINDS, kind) ? KINDS[kind as keyof typeof KINDS] : code(kind);
-  return `${FEMININE.has(noun) ? "la" : "el"} ${noun}`;
-}
-
 const statements = (count: number) =>
   `${count} ${plural("es", count, { one: "instrucción", other: "instrucciones" })}`;
 
@@ -251,8 +229,6 @@ export const es: typeof en = {
   reasons: {
     noDiagram: (id) => `No hay ningún diagrama ${code(id)}.`,
     notInDiagram: (id, diagram) => `${code(id)} no está en el diagrama ${code(diagram)}.`,
-    nameToStyle: (kind) => `Nombra ${the(kind)} (su id) antes de darle estilo.`,
-    nameToMoveLabel: "Nombra la relación (su id) antes de mover su etiqueta.",
     source: "Escribe el icono o la ruta de la imagen.",
     ports: "Escribe los puertos como `name side [n%]`, separados por comas.",
     number: "Escribe un número.",

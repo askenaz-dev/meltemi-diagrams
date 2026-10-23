@@ -722,6 +722,43 @@ function effectToggle(field: InspectorField, send: Send): HTMLElement {
 }
 
 /**
+ * What the Effects row says at its right: "mixed" when the selection differs on an effect, the
+ * names of the effects that are on, or "off".
+ */
+export function effectsSummary(
+  toggles: readonly Pick<InspectorField, "label" | "value" | "mixed">[],
+): string {
+  const words = messages().inspector;
+  if (toggles.some((f) => f.value !== "on" && f.mixed === true)) return words.mixed;
+  const on = toggles.filter((f) => f.value === "on").map((f) => f.label);
+  return on.length > 0 ? on.join(", ") : words.effectsOff;
+}
+
+/**
+ * The effects as a row of the strip, headed like the route kind's and the corners': "Effects" and
+ * what is on at the top, the toggles beneath.
+ */
+function effectsRow(
+  toggles: readonly InspectorField[],
+  draw: (field: InspectorField) => HTMLElement,
+): HTMLElement {
+  const words = messages().inspector;
+  const labelId = "mdg-effects-label";
+  const label = h(
+    "div",
+    { class: "row-label" },
+    h("span", { id: labelId }, words.effects),
+    h("span", { class: "value", "data-value": "" }, effectsSummary(toggles)),
+  );
+  const group = h(
+    "div",
+    { class: "effects", role: "group", "aria-labelledby": labelId },
+    ...toggles.map(draw),
+  );
+  return h("div", { class: "field effects-row", "data-field": "effects" }, label, group);
+}
+
+/**
  * The property inspector: the style strip first (colour chips, line, width, arrowhead, effects and
  * their speed, the diagram's theme), then one control per field.
  */
@@ -796,13 +833,7 @@ export class Inspector {
         }
       }
       if (toggles.length > 0) {
-        section.append(
-          h(
-            "div",
-            { class: "effects", role: "group", "aria-label": words.effects },
-            ...toggles.map((f) => this.stripField(f)),
-          ),
-        );
+        section.append(effectsRow(toggles, (f) => this.stripField(f)));
       }
       for (const field of speeds) section.append(this.stripField(field));
       this.element.append(section);

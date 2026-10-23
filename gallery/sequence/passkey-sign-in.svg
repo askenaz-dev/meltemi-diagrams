@@ -17,18 +17,18 @@
     <polyline points="156.13,426 482.13,426" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
   </g>
   <g data-id="person" data-role="lifeline">
-    <polyline points="46.5,80 46.5,508" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="46.5,80 46.5,508" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
   </g>
   <g data-id="browser" data-role="lifeline">
-    <polyline points="180.13,80 180.13,508" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="180.13,80 180.13,508" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
   </g>
   <g data-id="app" data-role="lifeline">
-    <polyline points="319.13,80 319.13,508" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
-    <rect x="314.13" y="162" width="10" height="36" rx="0" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
-    <rect x="314.13" y="306" width="10" height="194" rx="0" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <polyline points="319.13,80 319.13,508" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
+    <rect x="314.13" y="162" width="10" height="36" rx="0" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <rect x="314.13" y="306" width="10" height="194" rx="0" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
   </g>
   <g data-id="sessions" data-role="lifeline">
-    <polyline points="458.13,80 458.13,508" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="458.13,80 458.13,508" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
   </g>
   <g data-id="check" data-role="label">
     <path d="M156.13 324 L187.37 324 L187.37 340 L181.37 346 L156.13 346 Z" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
@@ -106,16 +106,16 @@
     <text x="46.5" y="74.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Person</text>
   </g>
   <g data-id="browser" data-role="element">
-    <rect x="132.13" y="40" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <rect x="132.13" y="40" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
     <text x="180.13" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Browser</text>
   </g>
   <g data-id="app" data-role="element">
-    <rect x="268.13" y="40" width="102" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <rect x="268.13" y="40" width="102" height="40" rx="8" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
     <text x="319.13" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">App server</text>
   </g>
   <g data-id="sessions" data-role="element">
-    <path d="M410.13 46 L410.13 74 A48 6 0 0 0 506.13 74 L506.13 46 A48 6 0 0 1 410.13 46 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
-    <path d="M410.13 46 A48 6 0 0 1 506.13 46 A48 6 0 0 1 410.13 46 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M410.13 46 L410.13 74 A48 6 0 0 0 506.13 74 L506.13 46 A48 6 0 0 1 410.13 46 Z" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <path d="M410.13 46 A48 6 0 0 1 506.13 46 A48 6 0 0 1 410.13 46 Z" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
     <text x="458.13" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Sessions</text>
   </g>
   <g data-id="frame" data-role="frame">

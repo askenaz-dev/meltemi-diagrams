@@ -99,6 +99,18 @@ describe("sequence canvas", () => {
     expect(render.scenario).toBeNull();
   });
 
+  it("gives a participant beside an actor its drawn box, shape and radius", () => {
+    const render = open(payment).render();
+    const customer = render.elements.find((e) => e.id === "customer")!;
+    const api = render.elements.find((e) => e.id === "api")!;
+    // The actor's figure and label fill the head row; the box is drawn at its bottom.
+    expect(api.box.height).toBe(40);
+    expect(api.box.y).toBe(customer.box.y + customer.box.height - 40);
+    // The payment sheet uses `editorial.light`, whose boxes are rounded by 6.
+    expect(api).toMatchObject({ shape: "rounded", radius: 6 });
+    expect(customer.radius).toBeUndefined();
+  });
+
   it("drags a participant to reorder it, leaving the messages", () => {
     const canvas = open(payment);
     const [customer, , bank] = canvas.render().elements;
@@ -433,5 +445,25 @@ describe("effects on what an imported sequence diagram leaves anonymous", () => 
     });
     expect(off.plan).toBeUndefined();
     expect(off.messages.some((m) => m.type === "rejected")).toBe(false);
+  });
+
+  it("names a note for a fill instead of refusing it, and keeps it selected", () => {
+    const canvas = open(imported);
+    canvas.send({ type: "pickDiagram", diagram: "card_payment" });
+    canvas.send({ type: "select", ids: ["note#1"] });
+    const fill: CanvasAction = {
+      kind: "setField",
+      ids: ["note#1"],
+      field: "style.fill",
+      value: "accent",
+    };
+    expect(canvas.act(fill).messages).toContainEqual({
+      type: "status",
+      message: "Named `note1`.",
+    });
+    const text = canvas.apply(fill);
+    expect(text).toContain('  note note1 over Web, Api "The page never sees the card number"\n');
+    expect(text).toContain("style note1 { fill accent }");
+    expect(canvas.inspector().target.ids).toEqual(["note1"]);
   });
 });
