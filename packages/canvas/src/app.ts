@@ -76,6 +76,7 @@ import {
 import { ICONS, clear, h, icon, s } from "./dom.js";
 import { glyph, shapeIcon, type IconPlacement } from "./glyphs.js";
 import { IconPicker } from "./icon-picker.js";
+import { AddIconsDialog, pickedRefusal, type PickedIcon } from "./add-icons.js";
 import { InlineEditor, boxPlace, drawnLines } from "./inline.js";
 import { Inspector, ThemePanel } from "./inspector.js";
 import { LayersPanel } from "./layers.js";
@@ -509,6 +510,14 @@ export class CanvasApp {
   private readonly shapeButtons = new Map<string, HTMLButtonElement>();
   /** The icon picker of the I tool, the inspector's Icon field and the context menu's Icon…. */
   private readonly iconPicker: IconPicker;
+  /** The Add icon dialog, and what it adds to: the targets of the icon, then what follows. */
+  private readonly addIconsDialog: AddIconsDialog;
+  private addTargets: readonly string[] = [];
+  private addAfter: ((choice: IconChoiceInfo) => void) | undefined;
+  /** An icon just added, chosen once the drawing that knows it arrives. */
+  private afterIcons: { choice: IconChoiceInfo; run: (choice: IconChoiceInfo) => void } | undefined;
+  /** The prefix the Add icon dialog offers, the one used last while the canvas is open. */
+  private iconPrefix = "project";
   /**
    * How a new icon is put on the canvas, chosen in the placement control of the picker or of the
    * Libraries panel: the icon as the shape until another is chosen, kept while the canvas is open.
@@ -557,8 +566,15 @@ export class CanvasApp {
       create: (item) => this.placeIcon(choiceOf(item), this.centreCell(item), item),
       drag: (item, event) => this.startIconDrag(choiceOf(item), event, item),
       placement: (placement) => this.setPlacement(placement),
+      addIcons: () => this.startAddIcons([], (choice) => this.armIcon(choice)),
     });
     this.libraryPanel.setPlacement(this.placement, false);
+    this.addIconsDialog = new AddIconsDialog({
+      check: (prefix, files, token) => this.post({ type: "checkIcons", token, prefix, files }),
+      add: (request, token) =>
+        this.post({ type: "addIcons", token, ...request, targets: this.addTargets }),
+      closed: (added) => this.iconsAdded(added),
+    });
     this.iconPicker = new IconPicker({
       search: (query, token) => this.post({ type: "searchIcons", query, token }),
       placement: (placement) => this.setPlacement(placement),
@@ -591,6 +607,7 @@ export class CanvasApp {
       this.dialog.element,
       this.shapeGrid.element,
       this.iconPicker.element,
+      this.addIconsDialog.element,
     );
     this.main = main;
     this.storyPanel = new StoryPanel({
@@ -621,6 +638,12 @@ export class CanvasApp {
         break;
       case "icons":
         this.iconPicker.received(message.token, message.groups);
+        break;
+      case "iconsChecked":
+        this.addIconsDialog.checked(message.token, message);
+        break;
+      case "iconsAdded":
+        this.addIconsDialog.added(message.token, message.added, message.refused);
         break;
       case "render":
         this.applyRender(message);
@@ -670,6 +693,8 @@ export class CanvasApp {
         break;
       case "rejected":
         this.pending = false;
+        // Icons that were not written are not chosen.
+        this.afterIcons = undefined;
         // A label refused is drawn as it was.
         if (!this.inline) this.showDrawnText();
         this.queued = { x: 0, y: 0 };
@@ -923,6 +948,8 @@ export class CanvasApp {
         opener,
         targets,
         choose: (choice) => this.giveIcon(targets, choice),
+        // The icons added go to the targets in the same step.
+        ...(this.canAddIcons ? { add: () => this.startAddIcons(targets) } : {}),
       });
       return;
     }
@@ -939,7 +966,49 @@ export class CanvasApp {
           this.placeIcon(choice, this.centreCell());
         } else this.armIcon(choice);
       },
+      // The first icon added is chosen, as a click on it would choose it: the tool places it.
+      ...(this.canAddIcons
+        ? { add: () => this.startAddIcons([], (choice) => this.armIcon(choice)) }
+        : {}),
     });
+  }
+
+  /** Whether the canvas offers Add icon…: it edits a document of a project. */
+  private get canAddIcons(): boolean {
+    return !this.readOnly && this.render?.project === true;
+  }
+
+  /**
+   * Add icon…: asks for SVG files, then opens the dialog over them. The icons added go to
+   * `targets` in the same step, or, with `after`, the first is chosen once it is drawn.
+   */
+  private startAddIcons(
+    targets: readonly string[],
+    after?: (choice: IconChoiceInfo) => void,
+  ): void {
+    if (!this.canAddIcons) return;
+    void pickIconFiles(this.main).then((picked) => {
+      if (picked.length === 0 || !this.canAddIcons) return;
+      this.addTargets = targets;
+      this.addAfter = after;
+      this.addIconsDialog.open(picked, this.iconPrefix);
+    });
+  }
+
+  /** The dialog closed: the icons added join the recent ones, and the first is chosen. */
+  private iconsAdded(added: readonly IconChoiceInfo[]): void {
+    if (this.addIconsDialog.prefix !== "") this.iconPrefix = this.addIconsDialog.prefix;
+    for (const icon of [...added].reverse()) {
+      this.iconPicker.remember({
+        reference: icon.reference,
+        label: icon.label,
+        svg: icon.svg,
+      });
+    }
+    const after = this.addAfter;
+    this.addAfter = undefined;
+    this.addTargets = [];
+    if (added.length > 0 && after) this.afterIcons = { choice: added[0]!, run: after };
   }
 
   /** The inspector's Choose…: the picker under the button, for an icon field of its targets. */
@@ -969,6 +1038,17 @@ export class CanvasApp {
         this.iconPicker.remember(choice);
         this.announce(messages().announcements.iconSet(choice.label, ids));
       },
+      // An icon added is written in the field once it is drawn, as a choice would be.
+      ...(this.canAddIcons
+        ? {
+            add: () =>
+              this.startAddIcons([], (choice) => {
+                if (this.act({ kind: "setField", ids, field, value: choice.reference })) {
+                  this.announce(messages().announcements.iconSet(choice.label, ids));
+                }
+              }),
+          }
+        : {}),
     });
   }
 
@@ -1340,6 +1420,18 @@ export class CanvasApp {
     if (previous && previous.diagram !== render.diagram) this.presence = [];
     this.render = render;
     this.revision = render.revision;
+    this.libraryPanel.setAddable(this.canAddIcons);
+    const after = this.afterIcons;
+    this.afterIcons = undefined;
+    if (after) {
+      queueMicrotask(() => {
+        // What was added stays said, before what to do with it.
+        const added = this.status.textContent ?? "";
+        after.run(after.choice);
+        const next = this.status.textContent ?? "";
+        if (added !== "" && next !== added) this.announce(`${added} ${next}`);
+      });
+    }
     this.turnPending = undefined;
     this.noDiagram = false;
     this.stale = false;
@@ -5655,4 +5747,39 @@ function boxAround(points: readonly Point[]): Box {
 
 function cssEscape(value: string): string {
   return value.replace(/["\\]/g, "\\$&");
+}
+
+/**
+ * Asks for SVG files with the system's file chooser, from inside the page (the playground's, or
+ * the extension's webview), and reads them as text; a file that is no icon is answered refused,
+ * unread. Nothing when the chooser is cancelled.
+ */
+function pickIconFiles(container: HTMLElement): Promise<PickedIcon[]> {
+  return new Promise((resolve) => {
+    const input = h("input", {
+      type: "file",
+      accept: ".svg,image/svg+xml",
+      multiple: true,
+      hidden: true,
+      class: "icon-files",
+    });
+    const done = (picked: PickedIcon[]) => {
+      input.remove();
+      resolve(picked);
+    };
+    input.addEventListener("cancel", () => done([]));
+    input.addEventListener("change", () => {
+      const files = [...(input.files ?? [])];
+      void Promise.all(
+        files.map(async (file): Promise<PickedIcon> => {
+          const refused = pickedRefusal(file.name, file.type, file.size);
+          return refused !== undefined
+            ? { file: file.name, svg: "", refused }
+            : { file: file.name, svg: await file.text() };
+        }),
+      ).then(done);
+    });
+    container.append(input);
+    input.click();
+  });
 }

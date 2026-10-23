@@ -176,6 +176,11 @@ export interface IconPickerOptions {
   readonly placement?: { readonly current: IconPlacement; readonly free: boolean };
   /** The icon chosen: with a click on a result, or Enter on the active one. */
   readonly choose: (choice: IconChoiceInfo, via: "click" | "enter") => void;
+  /**
+   * Adds SVG files of one's own to the project (the footer's Add icon…), on a canvas that edits a
+   * project; the picker closes first.
+   */
+  readonly add?: () => void;
 }
 
 /**
@@ -352,7 +357,23 @@ export class IconPicker {
     const placing = targets.length === 0 && options.placement !== undefined;
     this.control.element.hidden = !placing;
     if (placing) this.control.set(options.placement!.current, options.placement!.free);
-    this.foot.textContent = placing ? words.hintPlace : words.hintApply;
+    clear(this.foot);
+    this.foot.append(h("span", { class: "hint" }, placing ? words.hintPlace : words.hintApply));
+    const add = options.add;
+    if (add) {
+      const button = h(
+        "button",
+        { type: "button", class: "add-icon", title: words.addTitle },
+        icon(ICONS.plus),
+        h("span", {}, words.add),
+      );
+      // A press keeps the focus in the search, as the rest of the picker does; the click adds.
+      button.addEventListener("click", () => {
+        this.close(false);
+        add();
+      });
+      this.foot.append(button);
+    }
     this.input.value = "";
     this.shownQuery = "";
     this.groups = [];

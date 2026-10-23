@@ -184,6 +184,7 @@ diagram, theme class or rule ([assets.md](assets.md)).
 | `asset.unsafe-svg`        | error    | Icon `<ref>` cannot be used: `<element or attribute>` is not allowed in icons.                              |
 | `asset.too-large`         | error    | A file or icon exceeds a size or complexity limit.                                                          |
 | `asset.duplicate-pack`    | error    | The pack `<prefix>` is already defined by `<file>` or the built-in packs.                                   |
+| `asset.unusable-name`     | warning  | An SVG icon file's name holds characters a reference cannot write; it is left out. (hint: the name to give) |
 | `asset.font-restricted`   | warning  | The licence of `<family>` forbids embedding; it is used to measure text only.                               |
 | `asset.lock-mismatch`     | warning  | The assets differ from assets.lock.json: `<change>`. (hint: `assets lock`)                                  |
 | `asset.outside-project`   | error    | An image path is a URL, absolute, uses backslashes, or leaves the project root. (the model checks the form) |

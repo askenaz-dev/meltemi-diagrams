@@ -1,3 +1,4 @@
+import { assetProblems } from "./asset-problems.js";
 import {
   SEMANTIC_TOKEN_MODIFIERS,
   SEMANTIC_TOKEN_TYPES,
@@ -83,6 +84,23 @@ function toSymbol(node: SymbolNode): vscode.DocumentSymbol {
  */
 export function registerLanguageProviders(analyses: Analyses): vscode.Disposable[] {
   const collection = vscode.languages.createDiagnosticCollection("meltemi");
+  // The problems of a project's assets, on the pack, licence or font files they concern.
+  const assets = vscode.languages.createDiagnosticCollection("meltemi-assets");
+  const shown = new Map<string, Set<string>>();
+  const publishAssets = (document: vscode.TextDocument) => {
+    if (document.uri.scheme !== "file") return;
+    const workspace = analyses.workspaceOf(document);
+    const found = assetProblems(workspace, shown.get(workspace.root) ?? new Set());
+    for (const path of found.clear) assets.delete(vscode.Uri.file(path));
+    for (const [path, list] of found.set) {
+      const uri = vscode.Uri.file(path);
+      assets.set(
+        uri,
+        list.map((d) => toDiagnostic({ uri }, d)),
+      );
+    }
+    shown.set(workspace.root, new Set(found.set.keys()));
+  };
   const publish = (document: vscode.TextDocument) => {
     if (!isMeltemi(document)) return;
     const analysis = analyses.get(document);
@@ -90,6 +108,7 @@ export function registerLanguageProviders(analyses: Analyses): vscode.Disposable
       document.uri,
       analysis.diagnostics.map((d) => toDiagnostic(document, d)),
     );
+    publishAssets(document);
   };
   for (const document of vscode.workspace.textDocuments) publish(document);
   const offset = (document: vscode.TextDocument, position: vscode.Position) =>
@@ -97,6 +116,7 @@ export function registerLanguageProviders(analyses: Analyses): vscode.Disposable
 
   return [
     collection,
+    assets,
     analyses.onDidAnalyze(publish),
     vscode.workspace.onDidOpenTextDocument(publish),
     vscode.workspace.onDidCloseTextDocument((document) => collection.delete(document.uri)),

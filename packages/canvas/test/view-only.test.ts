@@ -182,6 +182,25 @@ const MESSAGES = {
   libraryItems: [{ message: { type: "libraryItems", library: "l", category: "c" }, writes: false }],
   librarySearch: [{ message: { type: "librarySearch", query: "q" }, writes: false }],
   searchIcons: [{ message: { type: "searchIcons", query: "q", token: 1 }, writes: false }],
+  // Checking the Add icon dialog's files writes nothing; adding them writes the project's files.
+  checkIcons: [
+    {
+      message: { type: "checkIcons", token: 1, prefix: "p", files: [{ file: "a.svg", svg: "" }] },
+      writes: false,
+    },
+  ],
+  addIcons: [
+    {
+      message: {
+        type: "addIcons",
+        token: 1,
+        prefix: "p",
+        files: [{ file: "a.svg", svg: "" }],
+        targets: [],
+      },
+      writes: true,
+    },
+  ],
   newTheme: [{ message: { type: "newTheme", id: "t", scope: "file" }, writes: true }],
   editTheme: [
     { message: { type: "editTheme", open: true }, writes: true },

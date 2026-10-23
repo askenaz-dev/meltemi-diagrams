@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createNodeIconPacks } from "@meltemi/diagrams-assets/node";
 import { FontLibrary } from "@meltemi/diagrams-fonts";
 import { syntheticFont } from "../../../test-support/synthetic-font.js";
-import { Workspace, createMemoryHost, type FontInspection } from "../src/index.js";
+import { Workspace, createMemoryHost, iconFilePath, type FontInspection } from "../src/index.js";
 
 const builtInPacks = createNodeIconPacks();
 const ICON = '<svg viewBox="0 0 24 24"><path fill="currentColor" d="M4 4h16v16H4z"/></svg>';
@@ -82,6 +82,30 @@ describe("asset discovery", () => {
     expect(ws.assets().registry.resolve("aws:s3")).toBeUndefined();
     ws.setOverlay("/p/assets/icons/aws/s3.svg", ICON);
     expect(ws.assets().registry.resolve("aws:s3")?.name).toBe("s3");
+  });
+
+  it("leaves out an icon file whose name a reference cannot write, naming the one to give it", () => {
+    const ws = workspace({
+      "assets/icons/brand/My Logo (1).svg": ICON,
+      "assets/icons/brand/pin.svg": ICON,
+      "assets/icons/brand/★.svg": ICON,
+      "assets/licenses.json": JSON.stringify({ icons: { brand: { license: "CC0-1.0" } } }),
+    });
+    expect(codes(ws)).toEqual({
+      "/p/assets/icons/brand/My Logo (1).svg": ["asset.unusable-name"],
+      "/p/assets/icons/brand/★.svg": ["asset.unusable-name"],
+    });
+    const [warning] = ws.assets().diagnostics.get("/p/assets/icons/brand/My Logo (1).svg")!;
+    expect(warning!.severity).toBe("warning");
+    expect(warning!.message).toContain("assets/icons/brand/My Logo (1).svg");
+    expect(warning!.hints).toEqual(["Rename it to `My-Logo-1.svg`."]);
+    expect(ws.assets().diagnostics.get("/p/assets/icons/brand/★.svg")![0]!.hints).toEqual([
+      "Rename it with letters or digits.",
+    ]);
+    const registry = ws.assets().registry;
+    expect(registry.resolve("brand:pin")?.name).toBe("pin");
+    expect(registry.pack("brand")!.names()).toEqual(["pin"]);
+    expect(iconFilePath("brand", "pin")).toBe("assets/icons/brand/pin.svg");
   });
 
   it("requires licences and reports unusable icons on their files", () => {

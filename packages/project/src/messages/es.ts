@@ -208,6 +208,8 @@ export const es: typeof en = {
       iconSetPrefix: (prefix) =>
         `El \`prefix\` del conjunto de iconos debe ser ${code(prefix)}, el nombre del archivo.`,
       emptyFolder: (path) => `${code(path)} no contiene iconos SVG.`,
+      unusableName: (path) =>
+        `${code(path)} se deja fuera: el nombre de un icono solo lleva letras, dígitos, \`_\`, \`.\` y \`-\`.`,
       licensesObject: (file) => `${code(file)} debe contener un objeto.`,
       licensesKey: (key, file) =>
         `Clave desconocida ${code(key)}; ${code(file)} contiene \`icons\` y \`fonts\`.`,
@@ -294,6 +296,8 @@ export const es: typeof en = {
         "Guarda las imágenes dentro de la carpeta del proyecto, junto a los diagramas que las usan.",
       lookedFor: (path) => `Se buscó ${code(path)} en el proyecto.`,
       imageFormats: "Las imágenes son archivos PNG, JPEG, GIF, WebP o SVG de 8 MB como máximo.",
+      renameIcon: (file) => `Cámbiale el nombre a ${code(file)}.`,
+      nameIcon: "Cámbiale el nombre con letras o dígitos.",
       renamePack:
         "Cambia el nombre del archivo o de la carpeta; el prefijo es el nombre que los diagramas escriben antes de los dos puntos.",
       packLicense: (prefix, file) =>

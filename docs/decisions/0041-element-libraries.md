@@ -45,3 +45,5 @@ downloading the vendors' official sets and `@iconify-json/logos`.
 - `@meltemi/diagrams-assets` grows by about 3 MB of JSON and depends on `@iconify-json/logos`
   (7.8 MB); the extension and the playground bundle them, the playground fetching on demand.
 - A new vendor release is adopted by rerunning the script and reviewing the icons it leaves out.
+- The icons added from the editor are listed in a Project library, `assets/libraries/project.json`,
+  a category per pack ([decision 0054](0054-custom-icons.md)).

@@ -1,5 +1,5 @@
 import type { LibraryInfo, LibraryItemInfo } from "@meltemi/diagrams-editor/canvas";
-import { clear, h } from "./dom.js";
+import { ICONS, clear, h, icon } from "./dom.js";
 import type { IconPlacement } from "./glyphs.js";
 import { messages } from "./messages/index.js";
 import { PlacementControl } from "./placement.js";
@@ -17,6 +17,8 @@ export interface LibraryActions {
   drag(item: LibraryItemInfo, event: PointerEvent): void;
   /** A new placement chosen in the panel's placement control. */
   placement(placement: IconPlacement): void;
+  /** Adds SVG files of one's own to the project (Add icon…). */
+  addIcons(): void;
 }
 
 /** How far a pointer moves before an element is dragged instead of clicked, in screen pixels. */
@@ -43,6 +45,8 @@ export class LibraryPanel {
   private query = "";
   private searchResults: readonly LibraryItemInfo[] = [];
   private readonly control: PlacementControl;
+  /** Add icon…, shown on a canvas that edits a project. */
+  private readonly add: HTMLButtonElement;
 
   constructor(private readonly actions: LibraryActions) {
     const words = messages().library;
@@ -61,13 +65,27 @@ export class LibraryPanel {
     });
     this.input.addEventListener("keydown", (e) => e.stopPropagation());
     this.control = new PlacementControl((placement) => this.actions.placement(placement));
+    const picker = messages().iconPicker;
+    this.add = h(
+      "button",
+      { type: "button", class: "add-icon", title: picker.addTitle, hidden: true },
+      icon(ICONS.plus),
+      h("span", {}, picker.add),
+    );
+    this.add.addEventListener("click", () => this.actions.addIcons());
     this.element.append(
       h("h2", {}, words.title),
       this.input,
       this.control.element,
       this.results,
       this.list,
+      h("div", { class: "library-foot" }, this.add),
     );
+  }
+
+  /** Shows Add icon… on a canvas that edits a project, hides it elsewhere. */
+  setAddable(on: boolean): void {
+    this.add.hidden = !on;
   }
 
   /** Shows the current placement, among those of a free diagram or of a flow one. */

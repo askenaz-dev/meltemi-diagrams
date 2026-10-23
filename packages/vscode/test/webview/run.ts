@@ -20,7 +20,8 @@ import { compile, readDiagramType, type DiagramTypeDefinition } from "@meltemi/d
 import { applyTextEdits } from "@meltemi/diagrams-language";
 import { chromium, type Browser, type Locator, type Page } from "playwright-core";
 import { browserPath } from "../../scripts/browser.mjs";
-import { IconRegistry, librariesOf } from "@meltemi/diagrams-assets";
+import { IconRegistry, SvgFolderPack, librariesOf } from "@meltemi/diagrams-assets";
+import { planEdit } from "@meltemi/diagrams-edit";
 import { createNodeIconPacks, createNodeLibraries } from "@meltemi/diagrams-assets/node";
 
 /** The built-in packs and libraries, as the extension's host gives them to a session. */
@@ -271,6 +272,12 @@ const ICON_SHEET = readFileSync(
   "utf8",
 );
 
+/** An icon of one's own, and one the sanitiser refuses, for the Add icon dialog. */
+const PIN_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7z"/></svg>';
+const SCRIPT_SVG =
+  '<svg viewBox="0 0 24 24"><script>alert(1)</script><path d="M0 0h24v24H0z"/></svg>';
+
 /** A Mermaid flowchart as the importer writes it: plain relations stay anonymous. */
 const IMPORTED_FLOWCHART = readFileSync(
   join(here, "..", "..", "..", "..", "corpus", "import", "mermaid", "flowchart-checkout.meltemi"),
@@ -429,18 +436,24 @@ class Harness {
   revision = 1;
   types: DiagramTypeDefinition[] = [];
 
+  /** The icons: the built-in packs, and the packs of icons the canvas added to the project. */
+  icons = ICONS;
+  /** The icons added, by pack and name, as the host would write `assets/icons/<pack>/<name>.svg`. */
+  readonly added = new Map<string, Map<string, string>>();
+
   /** The analysis of a text, with the declared types of the test. */
   analyze(text: string, revision: number) {
     return analyzeDocument({
       text,
       revision,
       compilation: compile(text, { types: this.types }),
-      layout: { icons: ICONS },
-      icons: ICONS,
+      layout: { icons: this.icons },
+      icons: this.icons,
       libraries: LIBRARIES,
     });
   }
-  readonly session = new CanvasSession({ grid: 14 });
+  /** A scenario `project` swaps it for a session of a document in a project. */
+  session = new CanvasSession({ grid: 14 });
   readonly received: unknown[] = [];
   clipboard = "";
   /** The settings the host sends on `ready`; `readOnly` is absent, as VS Code never sends it. */
@@ -583,6 +596,40 @@ class Harness {
     if (result.plan) {
       this.text = applyTextEdits(this.text, result.plan.edits);
       this.revision++;
+      await this.post(this.session.update(this.analyze(this.text, this.revision)));
+    }
+    if (result.project?.kind === "files" && result.project.assets) {
+      // The host writes the icons and the project reads them: the packs grow, the statements
+      // that give the icon are applied, and the canvas gets the drawing that knows them.
+      for (const file of result.project.assets.create) {
+        const match = /^assets\/icons\/([^/]+)\/(.+)\.svg$/.exec(file.path);
+        if (!match) continue;
+        const files = this.added.get(match[1]!) ?? new Map<string, string>();
+        files.set(match[2]!, file.text);
+        this.added.set(match[1]!, files);
+      }
+      this.icons = new IconRegistry([
+        ...ICONS.list(),
+        ...[...this.added].map(
+          ([prefix, files]) =>
+            new SvgFolderPack(prefix, files, {
+              title: prefix,
+              version: null,
+              source: `assets/icons/${prefix}`,
+              license: "MIT",
+              author: null,
+              url: null,
+              redistribute: true,
+            }),
+        ),
+      ]);
+      for (const step of result.project.steps) {
+        if (!("operation" in step) || step.file !== null) continue;
+        const planned = planEdit(compile(this.text, { types: this.types }), step.operation);
+        if (!planned.ok) throw new Error(planned.rejection.reason);
+        this.text = applyTextEdits(this.text, planned.plan.edits);
+        this.revision++;
+      }
       await this.post(this.session.update(this.analyze(this.text, this.revision)));
     }
     if (result.readClipboard)
@@ -789,7 +836,7 @@ async function middleOf(locator: Locator): Promise<{ x: number; y: number }> {
 
 /** The icon picker, its search field and one of its results by reference. */
 function iconPicker(page: Page, name = "Icons") {
-  const picker = page.getByRole("dialog", { name });
+  const picker = page.getByRole("dialog", { name, exact: true });
   return {
     picker,
     search: picker.getByRole("combobox"),
@@ -918,6 +965,8 @@ const tests: {
   lang?: string;
   /** Starts the canvas read-only: the host's first `settings` message carries `readOnly: true`. */
   readOnly?: boolean;
+  /** The document belongs to a project: the canvas may add icons to it. */
+  project?: boolean;
 }[] = [
   {
     name: "renders the diagram, the toolbar, the inspector and the minimap",
@@ -2570,6 +2619,166 @@ const tests: {
       await picker.waitFor();
       await tool.click();
       assert.equal(await closed(picker), true);
+    },
+  },
+  {
+    name: "add icon: the dialog checks the files, leaves the unsafe and raster ones out, and places the new icon",
+    project: true,
+    async run(h) {
+      const page = h.page;
+      await h.focusStage();
+      await page.keyboard.press("i");
+      const { picker, option } = iconPicker(page);
+      await picker.waitFor();
+      const add = picker.getByRole("button", { name: "Add icon…" });
+      await add.waitFor();
+      const chooser = page.waitForEvent("filechooser");
+      await add.click();
+      await (
+        await chooser
+      ).setFiles([
+        { name: "pin.svg", mimeType: "image/svg+xml", buffer: Buffer.from(PIN_SVG) },
+        { name: "bad.svg", mimeType: "image/svg+xml", buffer: Buffer.from(SCRIPT_SVG) },
+        { name: "photo.png", mimeType: "image/png", buffer: Buffer.from([137, 80, 78, 71]) },
+      ]);
+      const dialog = page.getByRole("dialog", { name: "Add icons to the project" });
+      await dialog.waitFor();
+      assert.equal(await closed(picker), true, "the picker gives way to the dialog");
+      const confirm = dialog.getByRole("button", { name: "Add 1 icon" });
+      await confirm.waitFor();
+      await page.waitForFunction(
+        () =>
+          !(
+            document.querySelector<HTMLButtonElement>(".add-icons button.primary")?.disabled ?? true
+          ),
+      );
+      assert.equal(
+        await dialog.getByRole("textbox", { name: "Name of pin.svg" }).inputValue(),
+        "pin",
+      );
+      const rows = dialog.locator(".icon-row");
+      assert.equal(await rows.count(), 3);
+      assert.match(
+        (await rows.nth(1).locator(".problem").textContent()) ?? "",
+        /^Left out: .*script/,
+      );
+      assert.match((await rows.nth(2).locator(".problem").textContent()) ?? "", /added as images/);
+      assert.equal(await rows.nth(0).locator(".thumb svg").count(), 1, "the icon is previewed");
+      // A new pack: the licence is asked, own work first.
+      const licence = dialog.getByRole("combobox", { name: "Licence of the new pack" });
+      assert.equal(await licence.inputValue(), "LicenseRef-Project");
+      await page.screenshot({ path: join(output, "add-icons-dialog.png") });
+      // A prefix that is a built-in pack is refused inline, and nothing can be added.
+      const prefix = dialog.getByRole("textbox", { name: "Pack" });
+      await prefix.fill("tabler");
+      await page.waitForFunction(() =>
+        document
+          .querySelector(".add-icons #mdg-add-icons-prefix-hint")
+          ?.textContent?.includes("built-in"),
+      );
+      assert.equal(await dialog.locator("button.primary").isDisabled(), true);
+      await prefix.fill("project");
+      await page.waitForFunction(
+        () =>
+          !(
+            document.querySelector<HTMLButtonElement>(".add-icons button.primary")?.disabled ?? true
+          ),
+      );
+      await confirm.click();
+      await h.settled();
+      const sent = h.received.filter((m) => (m as { type: string }).type === "addIcons") as {
+        prefix: string;
+        licence?: string;
+        files: { file: string; name: string }[];
+        targets: string[];
+      }[];
+      assert.equal(sent.length, 1);
+      assert.deepEqual(
+        {
+          prefix: sent[0]!.prefix,
+          licence: sent[0]!.licence,
+          files: sent[0]!.files.map((f) => [f.file, f.name]),
+          targets: sent[0]!.targets,
+        },
+        {
+          prefix: "project",
+          licence: "LicenseRef-Project",
+          files: [["pin.svg", "pin"]],
+          targets: [],
+        },
+      );
+      assert.equal(await closed(dialog), true);
+      assert.match((await page.locator(".status").textContent()) ?? "", /project:pin/);
+      // The tool is armed with the new icon: a click on the stage places it.
+      const tool = page.locator('.toolbar button[data-tool="icon"]');
+      assert.equal(await tool.getAttribute("aria-pressed"), "true");
+      const at = await pageAt(h, "api", { x: 126, y: 112 }, 160, { x: 700, y: 260 });
+      await page.mouse.click(at.x, at.y);
+      await h.settled();
+      assert.match(h.text, /style node1 \{ icon "project:pin"; shape icon \}/);
+      // The picker lists it among the recent icons.
+      await h.focusStage();
+      await page.keyboard.press("Escape");
+      await page.keyboard.press("i");
+      await picker.waitFor();
+      await option("project:pin").waitFor();
+      await page.screenshot({ path: join(output, "add-icons-recent.png") });
+    },
+  },
+  {
+    name: "add icon: the icon added goes to the selected node in the same step; none outside a project",
+    project: true,
+    async run(h) {
+      const page = h.page;
+      const centre = await h.centre("api");
+      await page.mouse.click(centre.x, centre.y);
+      await h.settled();
+      await page.keyboard.press("i");
+      const { picker } = iconPicker(page);
+      await picker.waitFor();
+      const chooser = page.waitForEvent("filechooser");
+      await picker.getByRole("button", { name: "Add icon…" }).click();
+      await (
+        await chooser
+      ).setFiles([
+        { name: "My Logo (1).svg", mimeType: "image/svg+xml", buffer: Buffer.from(PIN_SVG) },
+      ]);
+      const dialog = page.getByRole("dialog", { name: "Add icons to the project" });
+      await dialog.waitFor();
+      const name = dialog.getByRole("textbox", { name: "Name of My Logo (1).svg" });
+      await page.waitForFunction(
+        () =>
+          !(
+            document.querySelector<HTMLButtonElement>(".add-icons button.primary")?.disabled ?? true
+          ),
+      );
+      assert.equal(await name.inputValue(), "My-Logo-1");
+      // A name a reference cannot write is refused as it is typed.
+      await name.fill("my logo");
+      await page.waitForFunction(() =>
+        document
+          .querySelector(".add-icons .icon-row .problem")
+          ?.textContent?.includes("cannot be written"),
+      );
+      assert.equal(await dialog.locator("button.primary").isDisabled(), true);
+      await name.fill("logo");
+      await page.waitForFunction(
+        () =>
+          !(
+            document.querySelector<HTMLButtonElement>(".add-icons button.primary")?.disabled ?? true
+          ),
+      );
+      await dialog.getByRole("button", { name: "Add 1 icon" }).click();
+      await h.settled();
+      assert.match(h.text, /style api \{ icon "project:logo" \}/);
+      assert.deepEqual(h.session.selected, ["api"]);
+      // Outside a project the picker offers no Add icon….
+      h.session = new CanvasSession({ grid: 14 });
+      await h.reload();
+      await h.focusStage();
+      await page.keyboard.press("i");
+      await picker.waitFor();
+      assert.equal(await picker.getByRole("button", { name: "Add icon…" }).count(), 0);
     },
   },
   {
@@ -6497,9 +6706,13 @@ async function main(): Promise<void> {
   // MDG_WEBVIEW_ONLY runs the tests whose name contains one of its `|`-separated parts, while
   // working on a few.
   const only = process.env.MDG_WEBVIEW_ONLY?.split("|").filter((part) => part !== "");
-  const chosen = only?.length
-    ? tests.filter((test) => only.some((part) => test.name.includes(part)))
+  // MDG_WEBVIEW_PART=k/n runs the k-th of n runs of consecutive tests, to split the suite.
+  const part = /^(\d+)\/(\d+)$/.exec(process.env.MDG_WEBVIEW_PART ?? "");
+  const named = only?.length
+    ? tests.filter((test) => only.some((piece) => test.name.includes(piece)))
     : tests;
+  const size = part ? Math.ceil(named.length / Number(part[2])) : named.length;
+  const chosen = part ? named.slice((Number(part[1]) - 1) * size, Number(part[1]) * size) : named;
   let failed = 0;
   try {
     for (const test of chosen) {
@@ -6513,6 +6726,7 @@ async function main(): Promise<void> {
       const harness = new Harness(page, test.text ?? SHEET);
       harness.types = test.types ?? [];
       if (test.readOnly) harness.config = { ...harness.config, readOnly: true };
+      if (test.project) harness.session = new CanvasSession({ grid: 14, project: () => true });
       try {
         await harness.start(test.theme ?? "", test.lang);
         await test.run(harness);

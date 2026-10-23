@@ -6,10 +6,12 @@ import {
   IconifyPack,
   IconRegistry,
   integrityOf,
+  isIconName,
   LOCK_NAME,
   LOCK_VERSION,
   PACK_PREFIX,
   parseLibrary,
+  slugifyIconName,
   SvgFolderPack,
   type AssetLock,
   type AssetMetadata,
@@ -40,6 +42,13 @@ import { joinPath, relativePath } from "./paths.js";
 export const ICONS_FOLDER = "assets/icons";
 export const FONTS_FOLDER = "assets/fonts";
 export const LICENSES_FILE = "assets/licenses.json";
+/** The library file that names the icons added from the editor. */
+export const PROJECT_LIBRARY_FILE = "assets/libraries/project.json";
+
+/** The project path of an icon of an SVG folder pack: `assets/icons/<prefix>/<name>.svg`. */
+export function iconFilePath(prefix: string, name: string): string {
+  return `${ICONS_FOLDER}/${prefix}/${name}.svg`;
+}
 const FONT_EXTENSIONS = [".woff2", ".woff", ".ttf", ".otf"];
 /** The owner of the prefixes of the built-in packs, which no project path can be. */
 const BUILT_IN = "built-in";
@@ -544,9 +553,23 @@ function folderPack(
   const bytes = new Map<string, Uint8Array>();
   for (const entry of listFolder(path)) {
     if (entry.kind !== "file" || !entry.name.toLowerCase().endsWith(".svg")) continue;
-    const text = readText(joinPath(path, entry.name));
+    const file = joinPath(path, entry.name);
+    const name = entry.name.slice(0, -".svg".length);
+    // A file whose name a reference cannot write is left out, with the name to give it.
+    if (!isIconName(name)) {
+      const slug = slugifyIconName(entry.name);
+      const words = messages();
+      report(file, undefined, {
+        code: "asset.unusable-name",
+        severity: "warning",
+        message: words.diagnostics.assets.unusableName(display(file)),
+        hints: [slug ? words.hints.assets.renameIcon(`${slug}.svg`) : words.hints.assets.nameIcon],
+      });
+      continue;
+    }
+    const text = readText(file);
     if (text === undefined) continue;
-    files.set(entry.name.slice(0, -".svg".length), text);
+    files.set(name, text);
     bytes.set(entry.name, new TextEncoder().encode(text));
   }
   if (files.size === 0) {

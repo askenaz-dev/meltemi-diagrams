@@ -536,6 +536,33 @@ export const en = {
     hintPlace: "Click, then place it · Enter puts it at the centre · Or drag it onto a shape",
     itemTitle: (label: string, reference: string) =>
       label === reference ? reference : `${label} · ${reference}`,
+    /** The picker's button that adds SVG files of one's own to the project. */
+    add: "Add icon…",
+    addTitle: "Add SVG icons of your own to the project",
+  },
+
+  /** The Add icon dialog: the pack, the licence of a new one, and a row per file. */
+  addIcons: {
+    title: "Add icons to the project",
+    prefix: "Pack",
+    prefixNew: (prefix: string) => `A new pack, in assets/icons/${prefix}/.`,
+    prefixExisting: (prefix: string) => `The icons join the pack ${prefix}.`,
+    licence: "Licence of the new pack",
+    own: "Own work",
+    other: "Other…",
+    otherPlaceholder: "SPDX id or LicenseRef-name",
+    otherInvalid: "An SPDX identifier, such as MIT, or a LicenseRef- name.",
+    files: "Icons",
+    name: (file: string) => `Name of ${file}`,
+    reference: (reference: string) => `Written as ${reference}`,
+    leftOut: "Left out",
+    raster: "Pictures are added as images, with the palette's Image tool.",
+    tooLarge: (kilobytes: number) => `Larger than ${kilobytes} KB, the most an icon may be.`,
+    remove: (file: string) => `Leave out ${file}`,
+    checking: "Checking…",
+    add: (count: number) => (count === 1 ? "Add 1 icon" : `Add ${count} icons`),
+    cancel: "Cancel",
+    none: "No file can be added: each one is left out.",
   },
 
   /**

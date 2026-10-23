@@ -257,6 +257,11 @@ export interface CanvasRender {
   readonly effects: number;
   /** True while the canvas shows the effects running. */
   readonly playing: boolean;
+  /**
+   * The document belongs to a project, whose assets the canvas may add to (the Add icon dialog);
+   * absent outside one.
+   */
+  readonly project?: boolean;
   /** C4 views: the entities of the model the view may draw and does not. */
   readonly entities: readonly {
     readonly path: string;
@@ -494,6 +499,42 @@ export interface IconGroupInfo {
   readonly items: readonly IconChoiceInfo[];
 }
 
+/** A file the Add icon dialog sends: its own name, the icon name it is to get, and its text. */
+export interface IconFileInput {
+  /** The file's name as the person picked it, such as `My Logo.svg`. */
+  readonly file: string;
+  /** The icon's name in the pack; without one, the session offers one made of the file's name. */
+  readonly name?: string;
+  readonly svg: string;
+}
+
+/** What the session says of a file of the Add icon dialog. */
+export interface IconFileCheck {
+  readonly file: string;
+  /** The name the icon gets: the one asked for, or the one offered. */
+  readonly name: string;
+  /** Why it cannot be added as it is (an unsafe SVG, a name taken or invalid); absent when it can. */
+  readonly problem?: string;
+  /** A 48 px preview of the icon as the sanitiser keeps it, or null when it refuses the file. */
+  readonly svg: string | null;
+}
+
+/** What the session says of the prefix of the Add icon dialog. */
+export interface IconPrefixCheck {
+  readonly prefix: string;
+  /** Why the icons cannot go into a pack of that prefix; absent when they can. */
+  readonly problem?: string;
+  /** A pack of the project has the prefix already: the icons join it. */
+  readonly existing: boolean;
+  /** The pack has a licence, so the dialog asks for none. */
+  readonly licensed: boolean;
+}
+
+/** An icon the Add icon dialog wrote, with the file it came from. */
+export interface AddedIconInfo extends IconChoiceInfo {
+  readonly file: string;
+}
+
 export type HostMessage =
   | ({ readonly type: "render" } & CanvasRender)
   | {
@@ -578,6 +619,26 @@ export type HostMessage =
       readonly type: "icons";
       readonly token: number;
       readonly groups: readonly IconGroupInfo[];
+    }
+  /**
+   * The answer to `checkIcons`, with its `token`: the prefix and each file as the Add icon dialog
+   * shows them, with a preview, the name offered and what is wrong, if anything.
+   */
+  | {
+      readonly type: "iconsChecked";
+      readonly token: number;
+      readonly prefix: IconPrefixCheck;
+      readonly files: readonly IconFileCheck[];
+    }
+  /**
+   * The answer to `addIcons`, with its `token`: the icons whose files the host is to write (the
+   * steps over files of the same result), and the files refused with the reason.
+   */
+  | {
+      readonly type: "iconsAdded";
+      readonly token: number;
+      readonly added: readonly AddedIconInfo[];
+      readonly refused: readonly { readonly file: string; readonly reason: string }[];
     }
   /**
    * The stories of the file for the picker, and the playback of the story the canvas plays, or
@@ -804,6 +865,29 @@ export type CanvasMessage =
    * libraries, the first icons of Tabler).
    */
   | { readonly type: "searchIcons"; readonly query: string; readonly token: number }
+  /**
+   * The Add icon dialog's files and prefix, checked as they are typed: answered by `iconsChecked`
+   * with the same `token`.
+   */
+  | {
+      readonly type: "checkIcons";
+      readonly token: number;
+      readonly prefix: string;
+      readonly files: readonly IconFileInput[];
+    }
+  /**
+   * Adds icons to the project: each file as `assets/icons/<prefix>/<name>.svg`, the pack's licence
+   * when it has none, the icons in the project's library, and the first icon on `targets`, in one
+   * step; answered by `iconsAdded`.
+   */
+  | {
+      readonly type: "addIcons";
+      readonly token: number;
+      readonly prefix: string;
+      readonly licence?: string;
+      readonly files: readonly IconFileInput[];
+      readonly targets: readonly string[];
+    }
   /**
    * Creates a theme that extends the diagram's: in the file, used by the diagram, or for the
    * project, as its default theme in `themes/<id>.meltemi`.
@@ -1033,6 +1117,29 @@ function isAction(a: unknown): a is CanvasAction {
   }
 }
 
+/** How many files the Add icon dialog sends at once, and the longest SVG text it sends. */
+export const ADD_ICON_LIMITS = { files: 50, svg: 300_000 } as const;
+
+const isPrefix = (v: unknown): v is string => typeof v === "string" && v.length <= 64;
+
+/** The files of `checkIcons` and `addIcons`: a few, each with a name and an SVG text of bounded size. */
+function isIconFiles(v: unknown): v is readonly IconFileInput[] {
+  return (
+    Array.isArray(v) &&
+    v.length >= 1 &&
+    v.length <= ADD_ICON_LIMITS.files &&
+    v.every(
+      (f) =>
+        isObject(f) &&
+        typeof f.file === "string" &&
+        f.file.length <= 300 &&
+        (f.name === undefined || (typeof f.name === "string" && f.name.length <= 200)) &&
+        typeof f.svg === "string" &&
+        f.svg.length <= ADD_ICON_LIMITS.svg,
+    )
+  );
+}
+
 /** Whether a value from the webview is a well-formed canvas message. */
 export function isCanvasMessage(m: unknown): m is CanvasMessage {
   if (!isObject(m)) return false;
@@ -1061,6 +1168,16 @@ export function isCanvasMessage(m: unknown): m is CanvasMessage {
       return isString(m.query);
     case "searchIcons":
       return typeof m.query === "string" && m.query.length <= 200 && isNumber(m.token);
+    case "checkIcons":
+      return isNumber(m.token) && isPrefix(m.prefix) && isIconFiles(m.files);
+    case "addIcons":
+      return (
+        isNumber(m.token) &&
+        isPrefix(m.prefix) &&
+        (m.licence === undefined || (typeof m.licence === "string" && m.licence.length <= 100)) &&
+        isIconFiles(m.files) &&
+        isStrings(m.targets)
+      );
     case "newTheme":
       return isString(m.id) && oneOf(m.scope, ["file", "project"]);
     case "editTheme":

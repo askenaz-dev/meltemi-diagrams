@@ -390,6 +390,34 @@ export const en = {
   },
 
   /** Why a theme cannot be created for the project, or a file of it edited. */
+  /** The Add icon dialog: what is wrong with a prefix, a name, a file or a licence. */
+  addIcons: {
+    prefixEmpty: "Give the pack a prefix.",
+    prefixInvalid: (prefix: string) =>
+      `${code(prefix)} is not a pack prefix: use lower-case letters, digits and hyphens.`,
+    prefixBuiltIn: (prefix: string) => `${code(prefix)} is a built-in pack; choose another prefix.`,
+    prefixAlias: (prefix: string, target: string) =>
+      `${code(prefix)} is an alias of ${code(target)} in project.json; choose another prefix.`,
+    prefixPlugin: (prefix: string) =>
+      `${code(prefix)} is the pack of a plugin; choose another prefix.`,
+    prefixIconify: (prefix: string, file: string) =>
+      `${code(prefix)} is the Iconify file ${code(file)}; add icons to it there, or choose another prefix.`,
+    nameEmpty: "Give the icon a name of letters or digits.",
+    nameInvalid: (name: string) =>
+      `${code(name)} cannot be written in a reference: use letters, digits, \`_\`, \`.\` and \`-\`.`,
+    nameTaken: (reference: string) => `${code(reference)} exists already; choose another name.`,
+    nameTwice: (name: string) => `Two icons are named ${code(name)}.`,
+    notSvg: "This file is not an SVG icon.",
+    /** The sanitiser's reason, such as "`<script>` is not allowed in icons." */
+    unsafe: (reason: string) => `Refused: ${reason}`,
+    licenceMissing: "Choose the licence of the new pack.",
+    licenceInvalid: (licence: string) =>
+      `${code(licence)} is not an SPDX identifier or a \`LicenseRef-\` name.`,
+    needsProject: "Icons are added to a project: open the file in its project's folder.",
+    added: (references: readonly string[]) =>
+      `Added ${references.map(code).join(", ")} to the project.`,
+  },
+
   projects: {
     noManifest: "This file is not in a project: there is no project.json.",
     themeExists: (id: string) =>
@@ -398,5 +426,10 @@ export const en = {
     notAFile: (path: string) => `${code(path)} is not a file of the project.`,
     /** Steps that would edit a file twice from texts that no longer hold. */
     staleStep: "The steps change a file twice; ask again.",
+    /** A file a step was to create is there already. */
+    fileExists: (path: string) => `${code(path)} exists already; nothing was written.`,
+    /** A JSON file of the assets that a step was to change cannot be read. */
+    unreadableJson: (path: string, reason: string) =>
+      `${code(path)} cannot be changed (${reason}); fix it first.`,
   },
 };

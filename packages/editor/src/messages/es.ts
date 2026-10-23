@@ -349,11 +349,39 @@ export const es: typeof en = {
       `${story} muestra ${view}, que está excluido; la historia lo dibuja de todos modos.`,
   },
 
+  addIcons: {
+    prefixEmpty: "Dale un prefijo al paquete.",
+    prefixInvalid: (prefix) =>
+      `${code(prefix)} no es un prefijo de paquete: usa minúsculas, dígitos y guiones.`,
+    prefixBuiltIn: (prefix) => `${code(prefix)} es un paquete integrado; elige otro prefijo.`,
+    prefixAlias: (prefix, target) =>
+      `${code(prefix)} es un alias de ${code(target)} en project.json; elige otro prefijo.`,
+    prefixPlugin: (prefix) => `${code(prefix)} es el paquete de un plugin; elige otro prefijo.`,
+    prefixIconify: (prefix, file) =>
+      `${code(prefix)} es el archivo de Iconify ${code(file)}; agrega los iconos allí, o elige otro prefijo.`,
+    nameEmpty: "Dale al icono un nombre de letras o dígitos.",
+    nameInvalid: (name) =>
+      `${code(name)} no se puede escribir en una referencia: usa letras, dígitos, \`_\`, \`.\` y \`-\`.`,
+    nameTaken: (reference) => `${code(reference)} ya existe; elige otro nombre.`,
+    nameTwice: (name) => `Dos iconos se llaman ${code(name)}.`,
+    notSvg: "Este archivo no es un icono SVG.",
+    unsafe: (reason) => `Rechazado: ${reason}`,
+    licenceMissing: "Elige la licencia del paquete nuevo.",
+    licenceInvalid: (licence) =>
+      `${code(licence)} no es un identificador SPDX ni un nombre \`LicenseRef-\`.`,
+    needsProject:
+      "Los iconos se agregan a un proyecto: abre el archivo en la carpeta de su proyecto.",
+    added: (references) => `Se agregó ${references.map(code).join(", ")} al proyecto.`,
+  },
+
   projects: {
     noManifest: "Este archivo no está en un proyecto: no hay project.json.",
     themeExists: (id) => `${code(`themes/${id}.meltemi`)} ya existe; elige otro id.`,
     unreadableManifest: "No se puede leer project.json; corrígelo primero.",
     notAFile: (path) => `${code(path)} no es un archivo del proyecto.`,
     staleStep: "Los pasos cambian dos veces un archivo; pídelo otra vez.",
+    fileExists: (path) => `${code(path)} ya existe; no se escribió nada.`,
+    unreadableJson: (path, reason) =>
+      `No se puede cambiar ${code(path)} (${reason}); corrígelo primero.`,
   },
 };

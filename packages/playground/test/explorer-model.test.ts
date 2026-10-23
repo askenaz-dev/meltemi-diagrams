@@ -116,6 +116,22 @@ describe("the explorer's tree", () => {
     expect(tree[1]).toMatchObject({ name: "models", errors: 0, warnings: 0 });
   });
 
+  it("counts the problems of a folder itself, such as an icon pack without licence", () => {
+    const tree = buildTree({
+      ...PURCHASE,
+      paths: [...PURCHASE.paths, "assets/icons/brand/logo.svg", "assets/icons/brand/bad.svg"],
+      problems: new Map([
+        ["assets/icons/brand", { errors: 1, warnings: 0 }],
+        ["assets/icons/brand/bad.svg", { errors: 1, warnings: 0 }],
+      ]),
+    });
+    const assets = tree.find((n) => n.path === "assets")!;
+    expect(assets).toMatchObject({ errors: 2, warnings: 0 });
+    const brand = assets.children[0]!.children[0]!;
+    expect(brand).toMatchObject({ path: "assets/icons/brand", errors: 2 });
+    expect(brand.children.find((n) => n.name === "logo.svg")).toMatchObject({ errors: 0 });
+  });
+
   it("names the hidden files that have problems, and none when all are shown", () => {
     const input = {
       ...PURCHASE,

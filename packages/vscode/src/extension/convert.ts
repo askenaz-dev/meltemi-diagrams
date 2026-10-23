@@ -74,7 +74,7 @@ export function diagnosticMessage(diagnostic: Diagnostic): string {
 }
 
 export function toDiagnostic(
-  document: vscode.TextDocument,
+  document: { readonly uri: vscode.Uri },
   diagnostic: Diagnostic,
 ): vscode.Diagnostic {
   const result = new vscode.Diagnostic(

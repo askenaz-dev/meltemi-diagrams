@@ -180,6 +180,8 @@ export function buildTree(input: TreeInput): TreeNode[] {
     const folders = [...folder.folders].map(([name, inner]): TreeNode => {
       const at = within(path, name);
       const children = build(inner, at);
+      // A folder has problems of its own too: an icon pack without licence.
+      const own = input.problems.get(at) ?? { errors: 0, warnings: 0 };
       return {
         key: `d:${at}`,
         kind: "folder",
@@ -187,8 +189,8 @@ export function buildTree(input: TreeInput): TreeNode[] {
         name,
         icon: "folder",
         children,
-        errors: children.reduce((n, c) => n + c.errors, 0),
-        warnings: children.reduce((n, c) => n + c.warnings, 0),
+        errors: children.reduce((n, c) => n + c.errors, own.errors),
+        warnings: children.reduce((n, c) => n + c.warnings, own.warnings),
       };
     });
     const made = new Set(input.folders ?? []);
