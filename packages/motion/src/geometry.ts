@@ -69,7 +69,10 @@ export function roundedRectPath(bounds: SceneBounds, scale = 1): string {
   ].join(" ");
 }
 
-/** The radius of a flow particle on a line of `width`. */
+/**
+ * The radius of a flow particle on a line of `width`: wide enough to be seen on its line in a
+ * 960 × 540 GIF, the same in the CSS and the frame profiles.
+ */
 export function particleRadius(width: number): number {
-  return Math.max(3, width + 1.5);
+  return Math.max(4, 1.5 * width);
 }

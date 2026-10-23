@@ -47,3 +47,6 @@ parsed and validated but never evaluated.
 - Stories (change 14) suspend a relation's local effect while they trace it, on the same clock.
 - Video exports (change 17) evaluate `sceneAt` per frame and will need an explicit length for
   effects that repeat forever.
+- Particles and halos take the theme's accent and particles ride under their label since
+  [decision 0055](0055-export-defaults-and-visible-effects.md), which also gives endless effects a
+  default length.

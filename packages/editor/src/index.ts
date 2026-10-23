@@ -77,6 +77,7 @@ export {
   produceExport,
   profileRequest,
   type ExportContext,
+  type ExportOutput,
   type ExportRequest,
   type WritableFormat,
 } from "./exports.js";

@@ -68,13 +68,17 @@ has no moving effects; the video lasts 1 s".
 
 `produceExport` computes `duration = request.durationMs ?? motionDuration(plan) ??
 defaultMotionDuration(plan)` (with `0` treated as absent) and reports the chosen default in a new
-`ExportOutput.notices: readonly string[]` beside the existing fields, in the interface language.
-The command line prints each notice on stderr after `Wrote`; VS Code shows them in the message
-after the export and stops asking (`durationPrompt` and `durationInvalid` go from its catalogue;
-`exportVideo(host, document, format, target, durationMs?)` keeps its optional argument for
-profiles and callers); the playground's dialog shows the default as the Duration field's greyed
-placeholder, computed by the same function from the dialog's document ("6s, one cycle of the
-effects"), and shows the notices under the success message. Export profiles: `analyzeExport` in
+`ExportOutput.notices: readonly string[]` beside the existing fields, in the interface language;
+`motionLoop(plan)` (the common multiple, or null past the cap) tells a seamless loop from the
+longest-cycle fallback, which gets its own notice, so the text never claims a loop it is not.
+The command line prints each notice on stderr after `Wrote`, as `<file>: <notice>`; VS Code
+appends them to the message after the export (`writtenMessage` in `extension/written.ts`, a module
+without `vscode` so a unit test reads it) and stops asking (`durationPrompt` and `durationInvalid`
+go from its catalogue; `exportVideo(host, document, format, target, durationMs?)` keeps its
+optional argument for profiles and callers); the playground's dialog shows the default as the
+Duration field's greyed placeholder, computed by the same functions from the dialog's analysis
+("6s, one loop of the effects", "2.3s, the longest cycle of the effects", "1s, no moving effects",
+the story's length from `storyTimeline`), and appends the notices to its status message. Export profiles: `analyzeExport` in
 `packages/model/src/export.ts` stops reporting `export.missing-duration`, and `effectsEnd` stays as
 the profile's own duration when written. Alternatives: each host picking its own default (three
 rules to keep equal); a default written into the profile by the editor (compiling never modifies
@@ -84,16 +88,21 @@ the file). Recommendation: one function, one notice.
 
 When `format` is `mp4` and `background` is `transparent`, `produceExport` uses the theme's
 background (the `background` token of the layout's theme, as `decorate` resolves it) and adds the
-notice "MP4 has no transparency; the theme's background was used". The playground's dialog stops
-refusing in `check` and sends the request. Alternatives: switch the format to WebM, which changes
+notice "MP4 has no transparency: the theme's background was used". The command line's usage
+refusal, the playground dialog's refusal and the profile diagnostic (`mp4Transparency` under
+`export.invalid-option`) go with it, so a profile asking for it compiles and runs the same way.
+The browser's WebCodecs encoders have no alpha either, so the playground draws a transparent WebM
+over the theme's background too, with a notice that the command line keeps it transparent; the
+command line's WebM stays transparent. Alternatives: switch the format to WebM, which changes
 the file the person asked for; keep refusing. Recommendation: the theme's background, since it is
 what the person sees on the canvas.
 
 ### Sizes over the limit are clamped, typed values are still validated
 
-For PNG and PDF, when `width × scale` or `height × scale` would exceed `MAX_PIXELS`, the scale
-becomes the largest value, with two decimals, that fits, and a notice names the pixel size used;
-with a fixed `size`, the size is scaled down keeping its proportions. For videos, a `size` whose
+For PNG, when `width × scale` or `height × scale` would exceed `MAX_PIXELS`, the scale becomes
+the exact largest value that fits (16384 / 9000 for a 9000-wide picture, so the long side is the
+limit), and a notice names the pixel size used; a PDF, captured at scale 1, gets a page scaled down
+keeping its proportions, into which the picture is fitted. For videos, a `size` whose
 side exceeds the limit is scaled down the same way (MP4 keeps even sides). The option ranges stay:
 `--scale` 1 to 8, `--size` from 16 to the limit, `--fps` 1 to 60, a duration up to 600 s; a value
 outside them is a usage error, as a mistyped number is. Alternatives: refuse as today; silently
@@ -105,7 +114,10 @@ In `planMotion` the colour of a `flow` or `pulse` effect without `color` becomes
 (`options.colors.accent`, else `#1f6feb`), as a trace's already is; `dash` keeps the line's own
 stroke, since it animates the line itself. `particleRadius(width)` becomes
 `Math.max(4, 1.5 * width)`, used by `css.ts` and `frames.ts` alike; the halo keeps `HALO`
-(width 2, scale 0.15, opacity 0.7). The `color` property, a token or a quoted colour, still
+(width 2, scale 0.15, opacity 0.7). A larger, saturated particle crossing its own label covered its
+letters in the first pictures, so particles move from the overlay group into their relation's
+group, before its label (`beforeLabel`, as traces already were), in both profiles; their class
+takes `pointer-events: none` as the overlay group does. The `color` property, a token or a quoted colour, still
 overrides. Alternatives: (a) a minimum size in output pixels, rejected as a non-goal; (b) a
 contrast rule choosing between stroke and accent per theme, which would make one diagram's
 particles change colour with its theme's palette; (c) keep the stroke and widen the particle only,
@@ -115,8 +127,8 @@ corpus, gallery and acceptance picture with effects is regenerated.
 ### The notices are strings of the interface language
 
 `ExportOutput.notices` carries sentences built from the editor's catalogue (`exports.notices`:
-`defaultDuration(id, seconds)`, `stillDuration(id)`, `mp4Background`, `clamped(width, height)`),
-not codes: the hosts show them as they are. Alternative: a structured `{ code, data }` per notice
+`defaultDuration(id, ms)`, `longestDuration(id, ms)`, `stillDuration(id, ms)`, `mp4Background`,
+`clamped(width, height, limit)`), not codes; the playground's own `webmBackground` joins them: the hosts show them as they are. Alternative: a structured `{ code, data }` per notice
 for the hosts to word; nothing needs to react to them. Recommendation: strings.
 
 ## Risks / Trade-offs

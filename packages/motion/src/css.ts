@@ -89,6 +89,7 @@ export function animatedScene(scene: Scene, plan: MotionPlan): Scene {
   const overlays: SceneItem[] = [];
   const halos: SceneItem[] = [];
   const traces = new Map<string, SceneItem[]>();
+  const particles = new Map<string, SceneItem[]>();
 
   for (const effect of plan.effects) {
     const own = `mdg-e${effect.index}`;
@@ -172,9 +173,13 @@ export function animatedScene(scene: Scene, plan: MotionPlan): Scene {
       }
       continue;
     }
-    // Flow: one particle per class, moved along the track by a motion path.
+    // Flow: one particle per class, moved along the track by a motion path, in the relation's
+    // group under its label, as in frames.
     const path = trackPath(effect.track!);
     const r = particleRadius(effect.width);
+    const key = targetKey(effect.role, effect.target);
+    const dots = particles.get(key) ?? [];
+    particles.set(key, dots);
     for (let i = 0; i < effect.particles; i++) {
       // The first particle's keyframes do not depend on how many particles there are.
       const name = `mdg-flow${effect.reverse ? "-reverse" : ""}${i === 0 ? "" : `-${effect.particles}-${i}`}`;
@@ -183,7 +188,7 @@ export function animatedScene(scene: Scene, plan: MotionPlan): Scene {
       particleRules.push(
         `.${particle} { offset-path: path("${path}"); offset-rotate: 0deg; ${animation(name, effect)} }`,
       );
-      overlays.push({
+      dots.push({
         kind: "path",
         d: circlePath(0, 0, r),
         fill: effect.color,
@@ -200,7 +205,8 @@ export function animatedScene(scene: Scene, plan: MotionPlan): Scene {
     const key = targetKey(group.role, group.id);
     const effect = dashes.get(key);
     const trace = traces.get(key);
-    if (!effect && !trace) return null;
+    const flow = particles.get(key);
+    if (!effect && !trace && !flow) return null;
     let list: readonly SceneItem[] = group.items;
     const index = effect ? outlineIndex(list) : -1;
     if (effect && index >= 0) {
@@ -211,6 +217,7 @@ export function animatedScene(scene: Scene, plan: MotionPlan): Scene {
       );
     }
     if (trace) list = beforeLabel(list, trace);
+    if (flow) list = beforeLabel(list, flow);
     return list === group.items ? null : [...list];
   });
   const motion = [...halos, ...overlays];
@@ -223,8 +230,8 @@ export function animatedScene(scene: Scene, plan: MotionPlan): Scene {
     ...(particleRules.length > 0
       ? [`@supports (offset-path: path("M0 0")) {`, ...particleRules.map((r) => `  ${r}`), "}"]
       : []),
-    // Overlays never take pointer events, so a canvas can still be clicked through them.
-    `[data-role="motion"] { pointer-events: none; }`,
+    // Overlays and particles never take pointer events, so a canvas can be clicked through them.
+    `[data-role="motion"], .${MOTION_CLASS} { pointer-events: none; }`,
     `@media (prefers-reduced-motion: reduce) { .${MOTION_CLASS} { animation: none !important; } }`,
   ];
   return { ...scene, items, styleSheet: sheet.join("\n") };

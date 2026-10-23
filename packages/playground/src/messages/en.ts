@@ -360,6 +360,14 @@ export const en = {
     sizePlaceholder: "the picture's own, such as 1920x1080",
     backgroundPlaceholder: "the theme's; transparent, a token or a colour",
     durationPlaceholder: "the story's or the effects' length",
+    /** What an empty Duration field gives, as its placeholder: "6s, one loop of the effects". */
+    durationStory: (time: string) => `${time}, the story's length`,
+    durationFinite: (time: string) => `${time}, when the effects end`,
+    durationLoop: (time: string) => `${time}, one loop of the effects`,
+    webmBackground:
+      "This browser records WebM without transparency: the theme's background was used; the command line keeps it (meltemi-diagrams export --format webm --background transparent).",
+    durationLongest: (time: string) => `${time}, the longest cycle of the effects`,
+    durationStill: (time: string) => `${time}, no moving effects`,
     scenario: "Scenario",
     fonts: "Fonts",
     effects: "Effects",
@@ -407,7 +415,6 @@ export const en = {
     badScale: "The scale takes 1 to 8.",
     badSize: (most: number) => `The size takes WIDTHxHEIGHT from 16 to ${most}, such as 1920x1080.`,
     badBackground: "The background takes transparent, a colour token or a CSS colour.",
-    mp4Transparent: "MP4 has no transparency; choose a colour, or WebM.",
     badLink: "The link takes an https:, http: or mailto: address, or a relative one.",
     badFps: "Frames per second takes a whole number from 1 to 60.",
     badDuration: "The duration takes a time up to 600s, such as 5s.",

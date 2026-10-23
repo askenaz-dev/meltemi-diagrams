@@ -56,6 +56,12 @@ with the project's switcher at its top, as VS Code lists a workspace
 
 ### Canvas (VS Code and the playground)
 
+- Effects that can be seen: flow particles and pulse halos take the theme's `accent`, as traces
+  did, instead of the target's own stroke (a grey dot on a grey line, a halo the colour of a pale
+  border), and a particle grows to `max(4, 1.5 × width)` and rides under its relation's label. The
+  canvas, the animated SVG, the players and the videos change with it; a written `color` still wins
+  and a moving dash keeps its line's colour
+  ([decision 0055](docs/decisions/0055-export-defaults-and-visible-effects.md)).
 - The relations of a C4 view are edited in its model from the canvas: a connection writes `a -> b`
   into the model, dragging an end of an arrow onto another entity moves that end of the model
   relation, and Delete removes the model relation with what names it, asking first when another
@@ -86,6 +92,14 @@ with the project's switcher at its top, as VS Code lists a workspace
 
 ### Command line
 
+- Exports take a default instead of asking: a video of effects that repeat forever lasts one loop
+  of their cycles (6 s with the engine's defaults; the longest cycle when the loop would pass 10 s),
+  a diagram without moving effects lasts 1 s, a transparent MP4 is drawn over the theme's
+  background, and a picture or video over 16384 pixels a side is made as large as fits. Each export
+  says what it chose after `Wrote`, on stderr; VS Code says it after Export Video, which no longer
+  asks for a length, and the playground shows the length greyed in its Duration field. Profiles
+  without `duration`, and MP4 profiles with `background transparent`, are no longer errors:
+  `export.missing-duration` is gone.
 - `init --list` prints each template's title, description and contents ("1 model, 2 views").
 
 ### Fixed

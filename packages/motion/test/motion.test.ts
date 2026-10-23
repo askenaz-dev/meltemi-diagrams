@@ -12,7 +12,9 @@ import { compile } from "@meltemi/diagrams-model";
 import { renderSvg } from "@meltemi/diagrams-render";
 import {
   animatedScene,
+  defaultMotionDuration,
   motionDuration,
+  motionLoop,
   motionOptions,
   parseTime,
   planMotion,
@@ -56,6 +58,12 @@ const motionItems = (scene: Scene): SceneItem[] => [
   ...(scene.items.find((i): i is GroupItem => i.kind === "group" && i.role === "motion")?.items ??
     []),
 ];
+
+/** The particles a relation's group holds under its label: the circle paths `circlePath` writes. */
+const particleItems = (scene: Scene, id = "r"): SceneItem[] =>
+  sceneGroups(scene.items)
+    .find((g) => g.role === "relation" && g.id === id)!
+    .items.filter((i) => i.kind === "path" && / a[\d.]+ /.test(i.d));
 
 /** The centre of a circle path written by `circlePath`. */
 function circleCentre(item: SceneItem): { x: number; y: number } {
@@ -126,10 +134,102 @@ describe("motion plan", () => {
     expect(motionDuration({ effects: [] })).toBe(0);
   });
 
+  describe("the default length of a video", () => {
+    /** A plan of effects with these cycles and delays, as `planMotion` would give them. */
+    const plan = (...effects: { cycle: number; delay?: number; repeat?: number }[]): MotionPlan => {
+      const base = straight("effect flow").plan.effects[0]!;
+      return {
+        effects: effects.map((e, index) => ({
+          ...base,
+          index,
+          durationMs: e.cycle,
+          delayMs: e.delay ?? 0,
+          repeat: e.repeat ?? "forever",
+        })),
+      };
+    };
+
+    it("is one loop of every cycle: 6 s for the engine's defaults", () => {
+      expect(defaultMotionDuration(plan({ cycle: 1200 }, { cycle: 1000 }))).toBe(6000);
+      expect(defaultMotionDuration(plan({ cycle: 1200 }, { cycle: 1000 }, { cycle: 1500 }))).toBe(
+        6000,
+      );
+      expect(defaultMotionDuration(plan({ cycle: 700 }, { cycle: 1000 }))).toBe(7000);
+      expect(defaultMotionDuration(plan({ cycle: 1200 }))).toBe(1200);
+    });
+
+    it("takes the longest cycle when the common multiple passes 10 s", () => {
+      expect(defaultMotionDuration(plan({ cycle: 1100 }, { cycle: 1300 }))).toBe(1300);
+      expect(motionLoop(plan({ cycle: 1100 }, { cycle: 1300 }))).toBeNull();
+      expect(motionLoop(plan({ cycle: 1200 }, { cycle: 1000 }))).toBe(6000);
+      expect(motionLoop({ effects: [] })).toBeNull();
+    });
+
+    it("starts the loop after the longest delay", () => {
+      expect(defaultMotionDuration(plan({ cycle: 1200, delay: 500 }, { cycle: 1000 }))).toBe(6500);
+    });
+
+    it("lasts a second without effects, and leaves a finite plan to its own length", () => {
+      expect(defaultMotionDuration({ effects: [] })).toBe(1000);
+      const finite = plan({ cycle: 1000, repeat: 2, delay: 500 });
+      expect(motionDuration(finite)).toBe(2500);
+    });
+
+    it("is what the plans of real diagrams give", () => {
+      const { plan: drawn } = draw(
+        [
+          "  node a",
+          "  node b",
+          "  a -> b as r",
+          "  animate r { effect flow }",
+          "  animate a { effect pulse }",
+          "  placement {",
+          "    place a at (100, 100)",
+          "    place b at (500, 100)",
+          "  }",
+        ].join("\n"),
+      );
+      expect(motionDuration(drawn)).toBeNull();
+      expect(defaultMotionDuration(drawn)).toBe(6000);
+    });
+  });
+
   it("resolves colour tokens and written colours", () => {
     const token = straight("effect flow; color danger").plan.effects[0]!.color;
-    expect(token).toMatch(/^#/);
+    expect(token).toBe(resolveTheme("technical.light").theme.danger);
     expect(straight('effect flow; color "#123456"').plan.effects[0]!.color).toBe("#123456");
+  });
+
+  it("colours particles, halos and traces with the accent, and a moving dash with its line", () => {
+    const theme = resolveTheme("technical.light").theme;
+    const { plan } = draw(
+      [
+        "  node a",
+        "  node b",
+        "  node c",
+        "  a -> b as r",
+        "  b -> c as s",
+        "  a -> c as t",
+        "  animate r { effect flow }",
+        "  animate s { effect trace }",
+        "  animate t { effect dash }",
+        "  animate a { effect pulse }",
+        "  placement {",
+        "    place a at (100, 100)",
+        "    place b at (400, 100)",
+        "    place c at (400, 300)",
+        "  }",
+      ].join("\n"),
+    );
+    const colour = (target: string) => plan.effects.find((e) => e.target === target)!.color;
+    expect(theme.accent).not.toBe(theme.connector);
+    expect([colour("r"), colour("s"), colour("a")]).toEqual([
+      theme.accent,
+      theme.accent,
+      theme.accent,
+    ]);
+    // The line's own colour, not the box's pale border.
+    expect(colour("t")).toBe(theme.connector);
   });
 
   it("carries tracks and bounds in the scene", () => {
@@ -148,17 +248,61 @@ describe("scene at time t", () => {
     const { scene, plan } = straight("effect flow; duration 1s");
     const track = plan.effects[0]!.track!;
     const frame = sceneAt(scene, plan, 250);
-    const [particle] = motionItems(frame);
+    const [particle] = particleItems(frame);
     const expected = pointAlong(track, 0.25);
     const at = circleCentre(particle!);
     expect(at.x).toBeCloseTo(expected.x, 1);
     expect(at.y).toBeCloseTo(expected.y, 1);
   });
 
+  it("draws particles of `max(4, 1.5 × width)`, the same in frames and in the animated SVG", () => {
+    /** The radius of the circle paths `circlePath` writes. */
+    const radius = (item: SceneItem) => Number(/ a([\d.]+) /.exec((item as PathItem).d)![1]);
+    for (const [width, expected] of [
+      [1, 4],
+      [1.3, 4],
+      [4, 6],
+    ] as const) {
+      const { scene, plan } = straight(`effect flow`);
+      const wide = { ...plan, effects: plan.effects.map((e) => ({ ...e, width })) };
+      const [particle] = particleItems(sceneAt(scene, wide, 300));
+      expect(radius(particle!), `width ${width}`).toBe(expected);
+      const [css] = particleItems(animatedScene(scene, wide));
+      expect(radius(css!), `width ${width}`).toBe(expected);
+    }
+    // The connector of the default theme is 1.3 wide: the particle is 4, in the accent.
+    const { scene, plan } = straight("effect flow");
+    expect(plan.effects[0]!.width).toBe(1.3);
+    const [drawn] = particleItems(sceneAt(scene, plan, 300)) as PathItem[];
+    // Under the relation's label, which stays readable as it passes, in both profiles.
+    const labelled = draw(
+      [
+        "  node a",
+        "  node b",
+        '  a -> b: "Pay" as r',
+        "  animate r { effect flow }",
+        "  placement {",
+        "    place a at (100, 100)",
+        "    place b at (500, 100)",
+        "  }",
+      ].join("\n"),
+    );
+    for (const drawnScene of [
+      sceneAt(labelled.scene, labelled.plan, 600),
+      animatedScene(labelled.scene, labelled.plan),
+    ]) {
+      const relation = sceneGroups(drawnScene.items).find((g) => g.id === "r")!;
+      const label = relation.items.findIndex((i) => i.kind === "group" && i.role === "label");
+      expect(label).toBeGreaterThan(0);
+      expect(relation.items.indexOf(particleItems(drawnScene)[0]!)).toBeLessThan(label);
+    }
+    expect(drawn!.fill).toBe(resolveTheme("technical.light").theme.accent);
+  });
+
   it("reverses and spaces several particles", () => {
     const { scene, plan } = straight("effect flow; duration 1s; particles 2; direction reverse");
     const track = plan.effects[0]!.track!;
-    const items = motionItems(sceneAt(scene, plan, 100));
+    const items = particleItems(sceneAt(scene, plan, 100));
     expect(items).toHaveLength(2);
     expect(circleCentre(items[0]!).x).toBeCloseTo(pointAlong(track, 0.9).x, 1);
     expect(circleCentre(items[1]!).x).toBeCloseTo(pointAlong(track, 0.4).x, 1);
@@ -240,14 +384,14 @@ describe("animated SVG", () => {
     expect(sheet).toContain(
       "@keyframes mdg-flow-2-1 {\n  0% { offset-distance: 50%; opacity: 1; }",
     );
-    const second = motionItems(sceneAt(scene, plan, 0))[1]!;
+    const second = particleItems(sceneAt(scene, plan, 0))[1]!;
     expect(circleCentre(second).x).toBeCloseTo(pointAlong(plan.effects[0]!.track!, 0.5).x, 1);
   });
 
   it("matches frames at the instant a particle turns", () => {
     const { scene, plan } = straight("effect flow; duration 1s; particles 2");
     // Phase 0.5: the second particle is at the end in CSS (keyframe 50%), and in the frame.
-    const second = motionItems(sceneAt(scene, plan, 500))[1]!;
+    const second = particleItems(sceneAt(scene, plan, 500))[1]!;
     const track = plan.effects[0]!.track!;
     expect(circleCentre(second).x).toBeCloseTo(track[track.length - 1]!.x, 1);
   });
@@ -388,7 +532,10 @@ describe("other profiles", () => {
       ["b", "element"],
       ["n", "event"],
     ]);
-    expect(motionItems(sceneAt(scene, plan, 300))).toHaveLength(3);
+    // Two halos above the drawing, the message's particle on its line.
+    const frame = sceneAt(scene, plan, 300);
+    expect(motionItems(frame)).toHaveLength(2);
+    expect(particleItems(frame, "pay")).toHaveLength(1);
   });
 
   it("pulses a sequence participant on its drawn box beside an actor", () => {
@@ -421,6 +568,9 @@ describe("other profiles", () => {
     });
     const box = result.boxes!.get("b")!;
     expect(pulse.bounds!.y).toBe(box.y + result.offset!.y);
+    // Its border is the pale `line` token: the halo takes the accent, so it shows.
+    const themed = planMotion(diagram, scene, motionOptions(result.theme));
+    expect(themed.effects.find((e) => e.target === "b")!.color).toBe(result.theme!.accent);
   });
 
   it("animates C4 entities and model relations by path", () => {

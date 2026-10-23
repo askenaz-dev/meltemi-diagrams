@@ -181,16 +181,9 @@ describe("the words of compilation", () => {
   });
 
   it("tell export profile errors in Spanish", () => {
-    const { spanish } = both(
-      `${flow("  a -> b")}export p for d {\n  format mp4\n  background transparent\n}\n`,
-    );
-    expect(find(spanish, "export.invalid-option").message).toBe(
-      "MP4 no admite transparencia; elige un color, o WebM para un video transparente.",
-    );
-    expect(find(spanish, "export.missing-duration")).toMatchObject({
-      message: "`d` no tiene efectos que medir; una exportación mp4 necesita una `duration`.",
-      hints: ["Agrega `duration 5s` o da a cada efecto un número de `repeat`."],
-    });
+    const { spanish } = both(`${flow("  a -> b")}export p for d {\n  format svg\n  fps 30\n}\n`);
+    expect(find(spanish, "export.invalid-option").message).toMatch(/^`fps` /);
+    expect(find(spanish, "export.invalid-option").message).not.toMatch(/\bapplies\b/);
   });
 
   it("tell theme block errors in Spanish", () => {

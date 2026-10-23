@@ -33,15 +33,19 @@ diagram checkout: flow {
 | `delay`     | tiempo antes del primer ciclo, de `0ms` a `60s`        | ninguno                                                                                                                                              | todos              |
 | `direction` | `forward` (del origen al destino) o `reverse`          | `forward`                                                                                                                                            | flow, dash, trace  |
 | `particles` | de 1 a 8, espaciadas uniformemente                     | 1                                                                                                                                                    | flow               |
-| `color`     | un color entre comillas o un token de color (`accent`) | la línea o el contorno del destino; el `accent` del tema en un recorrido                                                                             | flow, pulse, trace |
+| `color`     | un color entre comillas o un token de color (`accent`) | el `accent` del tema, que se ve sobre cualquier línea o contorno                                                                                     | flow, pulse, trace |
 
 Una propiedad que no se aplica al efecto del bloque es `prop.invalid-value`.
+
+Una partícula del flujo es un disco de radio `max(4, 1,5 × ancho)` sobre una línea de ese ancho (4
+en el conector predeterminado de 1,3), así que se ve en un GIF de 960 × 540; un trazo en movimiento
+conserva el color de su línea, porque anima la línea misma.
 
 ## Destinos y canales
 
 | Efecto  | Dibuja                                                                               | Destinos                                                          |
 | ------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| `flow`  | partículas a lo largo del conector, encima de todas las relaciones                   | relaciones con nombre, mensajes de secuencia y relaciones C4      |
+| `flow`  | partículas a lo largo del conector, bajo su etiqueta                                 | relaciones con nombre, mensajes de secuencia y relaciones C4      |
 | `dash`  | un trazo de 8 y un hueco de 6 que se mueven a lo largo de la línea o del contorno    | relaciones con nombre y elementos con contorno                    |
 | `pulse` | un halo que crece un 15 % y se desvanece, o un resplandor a lo largo de una relación | elementos, relaciones con nombre, y notas y fragmentos con nombre |
 | `trace` | un resaltado que llena el conector desde su inicio y luego se desvanece              | relaciones con nombre, mensajes de secuencia y relaciones C4      |

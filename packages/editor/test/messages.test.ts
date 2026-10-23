@@ -414,15 +414,16 @@ describe("exports from a Spanish interface", () => {
     return produceExport(context, request);
   }
 
-  it("says why an export cannot be made in Spanish", () => {
+  it("says what an export chose, and why one cannot be made, in Spanish", () => {
     const png = exportOf("png", { scale: 100 });
-    expect("problem" in png && png.problem).toMatch(
-      /^El PNG tendría \d+ × \d+ píxeles; el límite es 16384 por lado\. Reduce la escala o el tamaño\.$/,
+    expect("job" in png && png.notices?.[0]).toMatch(
+      /^Hecho a \d+ × \d+ píxeles, lo más grande que cabe en el límite de 16384 por lado\.$/,
     );
-    const video = exportOf("mp4");
-    expect("problem" in video && video.problem).toBe(
-      "Los efectos de `containers` no se mueven; dale una duración al video.",
-    );
+    const video = exportOf("mp4", { out: "out.mp4", background: "transparent" });
+    expect("video" in video && video.notices).toEqual([
+      "`containers` no tiene efectos que se muevan: el video dura 1 s.",
+      "MP4 no admite transparencia: se usó el fondo del tema.",
+    ]);
     const context = contextOf(project("profiles.meltemi"));
     const profile = context.file.compilation.document.exports.find((p) => p.id === "bad")!;
     expect(profileRequest(context, profile, "profiles", (name) => name)).toBe(

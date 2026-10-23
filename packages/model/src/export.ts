@@ -14,7 +14,6 @@ import {
   EXPORT_FORMATS,
   EXPORT_OPTIONS,
   THEME_COLOR_TOKENS,
-  VIDEO_FORMATS,
 } from "./schema.js";
 import { checkArg, headerHasError, singleIdent, spanOf } from "./style-values.js";
 import type {
@@ -235,9 +234,6 @@ export function analyzeExport(
       const formats = EXPORT_OPTIONS[name]!.formats as readonly string[];
       if (!formats.includes(format)) invalid(name, m.notForFormat(name, format, formats));
     }
-    if (format === "mp4" && values.background === "transparent") {
-      invalid("background", m.mp4Transparency);
-    }
     if (format === "svg" && values.motion === "animated" && written.has("at")) {
       invalid("at", m.atWithMotion);
     }
@@ -269,26 +265,6 @@ export function analyzeExport(
       );
     }
   }
-  if (
-    format !== null &&
-    (VIDEO_FORMATS as readonly string[]).includes(format) &&
-    target.kind === "diagram" &&
-    !written.has("duration")
-  ) {
-    const end = effectsEnd(target.diagram!);
-    if (end === null || end === 0) {
-      const m = messages();
-      error(
-        "export.missing-duration",
-        end === null
-          ? m.diagnostics.export.endless(target.name, format)
-          : m.diagnostics.export.noEffects(target.name, format),
-        spanOf(id),
-        [m.hints.export.duration],
-      );
-    }
-  }
-
   const range = (s: Span) => lines.range(s);
   return {
     id: id.text,

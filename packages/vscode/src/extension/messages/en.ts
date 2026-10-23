@@ -63,8 +63,6 @@ export const en = {
     storyDescription: "story",
     diagramEffects: (type: string) => `${type} diagram and its effects`,
     videoPlaceholder: "The story or diagram",
-    durationPrompt: "The effects repeat forever (or there are none); how long is the video?",
-    durationInvalid: "A time such as 5s or 2500ms",
     noProfile: "The file has no export profile; write `export <id> for <diagram> { format png }`.",
     allProfiles: "All profiles",
     profileOf: (format: string, target: string) => `${format} of ${target}`,

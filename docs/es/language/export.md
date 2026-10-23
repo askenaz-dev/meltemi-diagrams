@@ -21,7 +21,8 @@ con las mismas herramientas (decisión 0025).
 | `pnpm mdg export sheet.meltemi --format html --story tour`                      | el reproductor de la historia ([player.md](../player.md)) |
 | `pnpm mdg export sheet.meltemi --diagram context --format html`                 | `sheet.context.html`, con todas las vistas que abre       |
 | `pnpm mdg export sheet.meltemi --story tour --format mp4`                       | `sheet.tour.mp4`, 1920 × 1080 a 30 fps                    |
-| `pnpm mdg export sheet.meltemi --format gif --duration 4s`                      | un GIF en bucle con los efectos del diagrama              |
+| `pnpm mdg export sheet.meltemi --format gif`                                    | un GIF de una vuelta de los efectos del diagrama          |
+| `pnpm mdg export sheet.meltemi --format gif --duration 4s`                      | el mismo GIF, de 4 s                                      |
 | `pnpm mdg export sheet.meltemi --profile slide`                                 | lo que describe el perfil `slide`                         |
 | `pnpm mdg export sheet.meltemi --profiles`                                      | todos los perfiles del archivo                            |
 
@@ -40,8 +41,11 @@ un entorno con versiones fijas, no entre navegadores.
 
 - **PNG.** El SVG con las fuentes incrustadas se dibuja una vez cargadas las fuentes y las imágenes,
   a una escala de píxeles (2 de forma predeterminada, de 1 a 8) o con un `size` fijo, con el fondo
-  del tema, otro color o un fondo transparente (con canal alfa). Ningún lado puede superar los 16384
-  píxeles.
+  del tema, otro color o un fondo transparente (con canal alfa). Cada lado tiene como mucho 16384
+  píxeles: una escala o un tamaño que lo superaría se reduce a lo más grande que cabe, con las
+  mismas proporciones, y un aviso nombra los píxeles usados (`Hecho a 16384 × 3641 píxeles, lo más
+grande que cabe en el límite de 16384 por lado.`). Una página PDF que supera el límite se reduce
+  igual.
 - **PDF.** Una página del tamaño del dibujo (o de `size`), impresa como vectores: con las fuentes
   incrustadas, el texto seleccionable y etiquetado, los enlaces `url` como anotaciones de enlace y
   el fondo, salvo que sea transparente.
@@ -62,10 +66,22 @@ nombra el navegador, la versión de FFmpeg y el número de fotogramas.
 | WebM    | 1920 × 1080, 30 fps | VP9 (libvpx-vp9), CRF 32; con canal alfa cuando `--background transparent` |
 | GIF     | 960 × 540, 15 fps   | una paleta hecha para el clip, tramado de Bayer, en bucle                  |
 
-`--size`, `--fps` (de 1 a 60) y `--background` los cambian. Una historia mantiene su propia duración;
-los efectos de un diagrama duran hasta que termina el último, o `--duration` indica cuánto cuando
-uno se repite indefinidamente (lo predeterminado en los efectos). `--at`, `--motion animated` y
-`--link` no se aplican.
+`--size`, `--fps` (de 1 a 60) y `--background` los cambian; un `size` con un lado de más de 16384
+píxeles se reduce con las mismas proporciones. Una historia mantiene su propia duración; los efectos
+de un diagrama duran hasta que termina el último, o `--duration` indica cuánto. Sin él, los efectos
+que se repiten indefinidamente (lo predeterminado) duran una vuelta sin cortes de todos sus ciclos:
+el mínimo común múltiplo de sus duraciones después del retraso más largo, 6 s con los valores del
+motor (flujo 1,2 s, trazo y pulso 1 s, recorrido 1,5 s); cuando pasaría de 10 s, el ciclo más largo.
+Un diagrama sin efectos que se muevan dura 1 s. La exportación dice lo que eligió después de la
+línea `Wrote`, en stderr:
+
+```text
+Wrote sheet.gif (Edg/155.0.4283.62, FFmpeg 6.1.1, 90 frames)
+sheet.gif: The effects of `checkout` repeat forever: the video lasts 6 s, one loop of them.
+```
+
+MP4 no admite transparencia: `--background transparent` lo dibuja sobre el fondo del tema y lo
+dice. `--at`, `--motion animated` y `--link` no se aplican.
 
 ## Perfiles
 
@@ -95,7 +111,7 @@ export presentation for purchase {
 | `format`                    | todos                    | `svg`, `png`, `pdf`, `html`, `mp4`, `webm`, `gif`; obligatorio                                                               |
 | `size`                      | png, pdf, mp4, webm, gif | `(w, h)`, de 16 a 16384; el dibujo se ajusta y se centra                                                                     |
 | `scale`                     | png                      | de 1 a 8; 2 de forma predeterminada                                                                                          |
-| `background`                | svg, png, pdf, webm, gif | `transparent`, un color entre comillas o un token de color; MP4 no admite transparencia                                      |
+| `background`                | todos menos html         | `transparent`, un color entre comillas o un token de color; un MP4 toma el fondo del tema en lugar de transparente           |
 | `at`                        | svg, png, pdf            | un tiempo; sin él, la vista estática de un diagrama o el final de una historia                                               |
 | `motion`                    | svg                      | `static` o `animated`; solo diagramas                                                                                        |
 | `theme`                     | todos                    | un nombre de tema                                                                                                            |
@@ -103,20 +119,19 @@ export presentation for purchase {
 | `scenario`                  | todos                    | un escenario del diagrama de secuencia                                                                                       |
 | `link`                      | svg, pdf                 | una URL `https:`, `http:` o `mailto:`, o una relativa                                                                        |
 | `fps`                       | mp4, webm, gif           | de 1 a 60; 30 de forma predeterminada                                                                                        |
-| `duration`                  | mp4, webm, gif           | un tiempo; obligatorio cuando los efectos del diagrama se repiten indefinidamente                                            |
+| `duration`                  | mp4, webm, gif           | un tiempo; sin él, una vuelta de los efectos (o 1 s sin efectos que se muevan)                                               |
 | `file`                      | todos                    | una ruta relativa al archivo, sin `..`, que termina en la extensión del formato; `<stem>.<id>.<ext>` de forma predeterminada |
 | `autoplay`, `loop`, `embed` | html                     | opciones del reproductor ([player.md](../player.md))                                                                         |
 
 El destino es un diagrama del archivo, un diagrama importado o una historia del archivo. Los ids de
 los perfiles comparten el espacio de nombres del archivo.
 
-| Código                    | Cuándo                                                                                                                                                       |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `export.unknown-target`   | el destino no es un diagrama ni una historia del archivo ni de una importación                                                                               |
-| `export.missing-format`   | el perfil no tiene `format`                                                                                                                                  |
-| `export.invalid-option`   | una opción de otro formato; transparencia en MP4; `motion` o `scenario` en una historia; `at` después del final de la historia; un `file` con otra extensión |
-| `export.missing-duration` | un video de un diagrama cuyos efectos se repiten indefinidamente, o que no tiene ninguno, sin `duration`                                                     |
-| `prop.invalid-value`      | un valor mal formado, un enlace inseguro o un `file` fuera de la carpeta                                                                                     |
+| Código                  | Cuándo                                                                                                                                 |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `export.unknown-target` | el destino no es un diagrama ni una historia del archivo ni de una importación                                                         |
+| `export.missing-format` | el perfil no tiene `format`                                                                                                            |
+| `export.invalid-option` | una opción de otro formato; `motion` o `scenario` en una historia; `at` después del final de la historia; un `file` con otra extensión |
+| `prop.invalid-value`    | un valor mal formado, un enlace inseguro o un `file` fuera de la carpeta                                                               |
 
 ## Enlaces
 

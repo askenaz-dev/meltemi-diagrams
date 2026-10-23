@@ -191,7 +191,12 @@ neither a headless browser nor FFmpeg:
 | Profiles  | Each `export` block of the file, named as it says.                                                                                                   |
 
 Video sizes, frame rates and durations follow the CLI's defaults (1080p at 30 fps; GIF 960 × 540 at
-15 fps). Transparent video is made by the CLI (`--format webm --background transparent`). The
+15 fps). An empty **Duration** field shows, greyed, the length the video takes: the story's, the end
+of finite effects, one loop of endless ones (`6s, one loop of the effects`), or 1 s without moving
+effects; the message after the download names it. An MP4 asked transparent is drawn over the
+theme's background, as MP4 has no transparency, and so is a WebM here, since the browser's encoders
+have no alpha: the message says so, and that the CLI keeps a WebM transparent
+(`--format webm --background transparent`). A size over 16,384 pixels a side is scaled down. The
 frames are the CLI's frames; the encoders differ, so files differ in bytes, not in content.
 
 The dialog's **Language** sets the words the tool adds to the export: the type lines of C4 entities,

@@ -1,4 +1,4 @@
-import { list, plural } from "@meltemi/diagrams-i18n";
+import { list, plural, seconds } from "@meltemi/diagrams-i18n";
 import type { en } from "./en.js";
 
 /** Code inside a sentence, as the canvas shows it: `id`. */
@@ -330,13 +330,17 @@ export const es: typeof en = {
     storyNotDrawn: (id) => `${code(id)} muestra un diagrama que no se puede dibujar.`,
     nothingToDraw: (id) => `${code(id)} no tiene nada que dibujar.`,
     cannotDraw: (id) => `No se puede dibujar ${code(id)}.`,
-    tooLarge: (format, width, height, limit) =>
-      `El ${format} tendría ${width} × ${height} píxeles; el límite es ${limit} por lado. Reduce la escala o el tamaño.`,
-    endless: (id) =>
-      `Los efectos de ${code(id)} se repiten indefinidamente; dale una duración al video.`,
-    still: (id) => `Los efectos de ${code(id)} no se mueven; dale una duración al video.`,
-    transparentMp4: "MP4 no admite transparencia; elige un color o WebM.",
-    videoSide: (limit) => `Un lado del video no puede superar los ${limit} píxeles.`,
+    notices: {
+      defaultDuration: (id, ms) =>
+        `Los efectos de ${code(id)} se repiten indefinidamente: el video dura ${seconds("es", ms)}, una vuelta de todos ellos.`,
+      longestDuration: (id, ms) =>
+        `Los efectos de ${code(id)} se repiten indefinidamente: el video dura ${seconds("es", ms)}, su ciclo más largo.`,
+      stillDuration: (id, ms) =>
+        `${code(id)} no tiene efectos que se muevan: el video dura ${seconds("es", ms)}.`,
+      mp4Background: "MP4 no admite transparencia: se usó el fondo del tema.",
+      clamped: (width, height, limit) =>
+        `Hecho a ${width} × ${height} píxeles, lo más grande que cabe en el límite de ${limit} por lado.`,
+    },
     profileProblems: "el perfil tiene problemas; corrígelos primero.",
     notExportable: (name) => `${code(name)} no es un diagrama ni una historia que exportar.`,
   },

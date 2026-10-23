@@ -31,15 +31,19 @@ diagram checkout: flow {
 | `delay`     | time before the first cycle, `0ms` to `60s`  | none                                                                                                                                    | all                |
 | `direction` | `forward` (source to target) or `reverse`    | `forward`                                                                                                                               | flow, dash, trace  |
 | `particles` | 1 to 8, evenly spaced                        | 1                                                                                                                                       | flow               |
-| `color`     | a quoted colour or a colour token (`accent`) | the target's line or outline; the theme's `accent` for a trace                                                                          | flow, pulse, trace |
+| `color`     | a quoted colour or a colour token (`accent`) | the theme's `accent`, which shows on any line or outline                                                                                | flow, pulse, trace |
 
 A property that does not apply to the block's effect is `prop.invalid-value`.
+
+A flow particle is a disc of radius `max(4, 1.5 × width)` on a line of `width` (4 on the default
+1.3-wide connector), so it shows in a 960 × 540 GIF; a moving dash keeps the line's own colour,
+since it animates the line itself.
 
 ## Targets and channels
 
 | Effect  | Draws                                                               | Targets                                              |
 | ------- | ------------------------------------------------------------------- | ---------------------------------------------------- |
-| `flow`  | particles along the connector, above every relation                 | named relations, sequence messages and C4 relations  |
+| `flow`  | particles along the connector, under its label                      | named relations, sequence messages and C4 relations  |
 | `dash`  | a dash of 8 and a gap of 6 moving along the line or outline         | named relations and elements with an outline         |
 | `pulse` | a halo that grows by 15 % and fades out, or a glow along a relation | elements, named relations, named notes and fragments |
 | `trace` | a highlight that fills the connector from its start, then fades out | named relations, sequence messages and C4 relations  |

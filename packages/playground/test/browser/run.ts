@@ -7,11 +7,12 @@
  * the account's requests are answered by the test, at the page's own origin) and no request
  * outside the page's origin. Tests run in an English browser unless they say otherwise.
  * Usage: pnpm playground:test-browser (builds the site first). PLAYGROUND_TEST_FILTER=text runs
- * only the tests whose name holds the text.
+ * only the tests whose name holds the text, or one of several texts separated by `|`.
  */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, extname, join, normalize, sep } from "node:path";
@@ -282,6 +283,38 @@ function probe(path: string, entries: string): Record<string, string | number> {
     { encoding: "utf8" },
   );
   return (JSON.parse(out) as { streams: Record<string, string | number>[] }).streams[0]!;
+}
+
+/** A diagram whose effects repeat forever: a flow (1.2 s) and a pulse (1 s), one loop in 6 s. */
+const ENDLESS = `language "0.2"
+
+diagram checkout: flow {
+  layout manual
+  web["Web"]
+  api["API"]
+  web -> api: "Pay" as pay
+  animate pay { effect flow }
+  animate api { effect pulse }
+  placement {
+    place web at (120, 100)
+    place api at (420, 100)
+  }
+}
+`;
+
+/** The hashes of the frames FFmpeg decodes from a video, in order. */
+function frameHashes(path: string): string[] {
+  const folder = `${path}.frames`;
+  rmSync(folder, { recursive: true, force: true });
+  mkdirSync(folder, { recursive: true });
+  execFileSync(ffmpeg!, ["-v", "error", "-i", path, join(folder, "%03d.png")]);
+  return readdirSync(folder)
+    .sort()
+    .map((name) =>
+      createHash("sha1")
+        .update(readFileSync(join(folder, name)))
+        .digest("hex"),
+    );
 }
 
 /** The SVG the CLI's export writes for a template's file, with embedded fonts. */
@@ -2105,6 +2138,72 @@ const tests: Test[] = [
     },
   },
   {
+    name: "records a GIF of endless effects for one loop when the Duration is left empty",
+    async run({ page }) {
+      await page.locator(".code-input").fill(ENDLESS);
+      await analysed(page);
+      await page.locator(".topbar").getByRole("button", { name: "Export" }).click();
+      const dialog = page.locator("dialog[open]");
+      await dialog.getByLabel("Format").selectOption("gif");
+      // The empty field says what it gives.
+      assert.equal(
+        await dialog.getByLabel("Duration", { exact: true }).getAttribute("placeholder"),
+        "6s, one loop of the effects",
+      );
+      const gif = await download(page, () =>
+        dialog.getByRole("button", { name: "Export", exact: true }).click(),
+      );
+      assert.equal(readFileSync(gif).toString("latin1", 0, 6), "GIF89a");
+      await page.waitForFunction(() =>
+        /the video lasts 6 s, one loop of them/.test(
+          document.querySelector(".status-text")?.textContent ?? "",
+        ),
+      );
+      if (ffprobe && ffmpeg) {
+        const stream = probe(gif, "stream=codec_name,width,height,nb_read_frames");
+        assert.deepEqual(
+          [stream.codec_name, stream.width, stream.height, Number(stream.nb_read_frames)],
+          ["gif", 960, 540, 90],
+        );
+        // The effects move: frames a third of the loop apart are different pictures.
+        const hashes = frameHashes(gif);
+        const picked = [hashes[0], hashes[30], hashes[60]];
+        assert.equal(new Set(picked).size, 3, "three distinct frames");
+      }
+    },
+  },
+  {
+    name: "draws a transparent MP4 over the theme's background and says so",
+    async run({ page }) {
+      await page.locator(".code-input").fill(ENDLESS);
+      await analysed(page);
+      const mp4 = await exportWith(page, {
+        format: "mp4",
+        fields: { Duration: "1s", Background: "transparent", Size: "320x180" },
+      });
+      await page.waitForFunction(() =>
+        /MP4 has no transparency: the theme's background was used/.test(
+          document.querySelector(".status-text")?.textContent ?? "",
+        ),
+      );
+      if (ffprobe) {
+        const stream = probe(mp4, "stream=codec_name,width,nb_read_frames");
+        assert.deepEqual([stream.codec_name, stream.width], ["h264", 320]);
+        assert.equal(Number(stream.nb_read_frames), 30);
+      }
+      // The browser's WebM has no alpha either: the theme's background, and where to get it.
+      await exportWith(page, {
+        format: "webm",
+        fields: { Duration: "1s", Background: "transparent", Size: "320x180" },
+      });
+      await page.waitForFunction(() =>
+        /records WebM without transparency.*--format webm --background transparent/.test(
+          document.querySelector(".status-text")?.textContent ?? "",
+        ),
+      );
+    },
+  },
+  {
     name: "runs the file's export profiles and downloads the model JSON and the catalog",
     async run({ page }) {
       await openTemplate(page, "purchase");
@@ -3713,8 +3812,12 @@ async function main(): Promise<void> {
   const url = `${origin}/index.html`;
   const browser: Browser = await chromium.launch({ executablePath: browserPath(), headless: true });
   let failed = 0;
-  const filter = process.env["PLAYGROUND_TEST_FILTER"];
-  const chosen = filter ? tests.filter((test) => test.name.includes(filter)) : tests;
+  // Texts separated by `|`: the tests whose name holds any of them.
+  const filters = (process.env["PLAYGROUND_TEST_FILTER"] ?? "").split("|").filter((f) => f !== "");
+  const chosen =
+    filters.length > 0
+      ? tests.filter((test) => filters.some((filter) => test.name.includes(filter)))
+      : tests;
   try {
     for (const test of chosen) {
       const context = await browser.newContext({

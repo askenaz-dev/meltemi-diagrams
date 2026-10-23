@@ -509,7 +509,6 @@ token was refused.
     backgroundHtml: "--background does not apply to HTML players.",
     background: (background: string) =>
       `--background takes transparent, a colour token or a CSS colour, not "${background}".`,
-    mp4Transparent: "MP4 has no transparency; choose a colour, or --format webm.",
     linkFormats: "--link applies to SVG and PDF exports.",
     link: (link: string) =>
       `--link takes an https:, http: or mailto: URL, or a relative one, not "${link}".`,
