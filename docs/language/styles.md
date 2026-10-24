@@ -10,12 +10,12 @@ every export format. There is no CSS.
 
 A theme is a set of design tokens. Eight themes are built in:
 
-| Theme                                         | For                            | Character                                                                                   |
-| --------------------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------- |
-| `technical.light` (default), `technical.dark` | architecture review            | Inter, the Meltemi palette, a footer frame with the mark                                    |
-| `editorial.light`, `editorial.dark`           | documents and long reading     | IBM Plex Sans, quiet greys, open arrowheads, no frame                                       |
-| `stage.light`, `stage.dark`                   | presentations and video        | Inter, high contrast, larger type and strokes, wide margins, a header frame                 |
-| `sketch.light`, `sketch.dark`                 | whiteboards and early thinking | the technical themes with strokes painted by hand (`sketch light`) and rounded bends; Inter |
+| Theme                                         | For                            | Character                                                                                          |
+| --------------------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------- |
+| `technical.light` (default), `technical.dark` | architecture review            | Inter, the Meltemi palette, a footer frame with the mark                                           |
+| `editorial.light`, `editorial.dark`           | documents and long reading     | IBM Plex Sans, quiet greys, open arrowheads, no frame                                              |
+| `stage.light`, `stage.dark`                   | presentations and video        | Inter, high contrast, larger type and strokes, wide margins, a header frame                        |
+| `sketch.light`, `sketch.dark`                 | whiteboards and early thinking | the technical themes with strokes painted by hand (`sketch light`) and rounded bends; Patrick Hand |
 
 A diagram picks a theme with `theme "<name>"`. Without one it uses the project's default theme
 (`"theme"` in `project.json`, see [projects.md](projects.md)) or `technical.light`. `meltemi-diagrams

@@ -15,7 +15,7 @@ Un tema es un conjunto de tokens de diseño. Hay ocho temas integrados:
 | `technical.light` (predeterminado), `technical.dark` | revisión de arquitectura   | Inter, la paleta de Meltemi, un marco al pie con el símbolo                                                    |
 | `editorial.light`, `editorial.dark`                  | documentos y lectura larga | IBM Plex Sans, grises discretos, puntas abiertas, sin marco                                                    |
 | `stage.light`, `stage.dark`                          | presentaciones y video     | Inter, alto contraste, tipografía más grande y bordes más gruesos, márgenes amplios, un marco en el encabezado |
-| `sketch.light`, `sketch.dark`                        | pizarras y primeras ideas  | los temas técnicos con los trazos pintados a mano (`sketch light`) y los codos redondeados; Inter              |
+| `sketch.light`, `sketch.dark`                        | pizarras y primeras ideas  | los temas técnicos con los trazos pintados a mano (`sketch light`) y los codos redondeados; Patrick Hand       |
 
 Un diagrama elige un tema con `theme "<name>"`. Sin él, usa el tema predeterminado del proyecto
 (`"theme"` en `project.json`; consulta [projects.md](projects.md)) o `technical.light`.

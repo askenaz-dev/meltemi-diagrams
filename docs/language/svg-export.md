@@ -190,8 +190,8 @@ notes and lifelines in `Muted` instead ([sequence.md](sequence.md#layout)).
 - **Stage**, for presentations and video: higher contrast, 16 px labels, 13 px descriptions and
   relation labels, 2 px connectors, 10 px arrowheads, 48 px margins and a header frame.
 - **Sketch**, for whiteboards and early thinking: the technical palettes, sizes and frame, with
-  rounded bends (`corners rounded`) and strokes painted by hand (`sketch light`, below). They use
-  Inter until a hand font is bundled.
+  rounded bends (`corners rounded`) and strokes painted by hand (`sketch light`, below). Their text
+  is in Patrick Hand, a hand font, with Inter for the characters it lacks.
 
 Every built-in theme has the signal colours `success`, `warning`, `danger` and `info`, and the
 built-in classes ([styles.md](styles.md)).

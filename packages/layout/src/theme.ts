@@ -113,6 +113,8 @@ export interface Theme {
 
 const FONT_INTER = '"Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 const FONT_PLEX = '"IBM Plex Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+// Patrick Hand has one weight and the Latin scripts: Inter takes the characters it lacks.
+const FONT_HAND = '"Patrick Hand", "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 const FONT_MONO = 'ui-monospace, "Cascadia Mono", Consolas, "Liberation Mono", Menlo, monospace';
 
 export const DEFAULT_THEME_NAME: string = DEFAULT_THEME;
@@ -208,11 +210,12 @@ const STAGE = {
 } as const;
 
 /**
- * Sketch: whiteboards and early thinking, the technical palettes and sizes with rounded corners
- * and strokes painted in two light passes. Inter until a hand font is bundled.
+ * Sketch: whiteboards and early thinking, the technical palettes and sizes with rounded corners,
+ * strokes painted in two light passes and Patrick Hand, a hand font, for the text.
  */
 const SKETCH = {
   ...TECHNICAL,
+  font: FONT_HAND,
   corners: "rounded",
   sketch: "light",
 } as const;

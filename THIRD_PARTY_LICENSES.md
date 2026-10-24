@@ -12,6 +12,7 @@ or glyph outlines), which the SIL Open Font License 1.1 permits.
 | @fontsource/cascadia-mono | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/cascadia-mono |
 | @fontsource/ibm-plex-sans | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/ibm-plex-sans |
 | @fontsource/inter | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/inter |
+| @fontsource/patrick-hand | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/patrick-hand |
 | @ibm/plex-sans | 1.1.0 | OFL-1.1 | embedded | https://github.com/ibm/plex#readme |
 | @ibm/telemetry-js | 1.12.0 | Apache-2.0 |  | https://github.com/ibm-telemetry/telemetry-js#readme |
 | @iconify-json/logos | 1.2.16 | CC0-1.0 |  | https://icon-sets.iconify.design/logos/ |

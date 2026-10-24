@@ -88,3 +88,33 @@ describe("font policies", () => {
     expect(renderSvg(annotations, { fonts: "outlined", provider: library })).toBe(outlined);
   });
 });
+
+describe("a hand font for sketch themes", () => {
+  const HAND = scene(
+    'diagram d: free {\n  layout manual\n  theme "sketch.light"\n  box a "Pay"\n  box b "Ledger"\n  a -> b: "charge" as pay\n  placement {\n    place a at (100, 60)\n    place b at (400, 60)\n  }\n}\n',
+  );
+
+  it("measures with it and reports no unmeasured font", () => {
+    expect(HAND.fonts.body.startsWith('"Patrick Hand"')).toBe(true);
+    expect(library.unmeasured()).not.toContain("Patrick Hand");
+  });
+
+  it("embeds one rule for the family, covering 400 to 700, limited to the characters used", () => {
+    const svg = renderSvg(HAND, { fonts: "embedded", provider: library });
+    const rules = svg.match(/@font-face\{font-family:"Patrick Hand"[^}]*\}/g) ?? [];
+    expect(rules).toHaveLength(1);
+    expect(rules[0]).toContain("font-weight:400 700;src:url(data:font/woff2;base64,");
+    expect(rules[0]).toMatch(/unicode-range:(U\+[0-9A-F-]+,?)+\}$/);
+    // Labels of 600 and descriptions of 400 are one file, and Inter's own weights are untouched.
+    expect(svg).toContain('font-weight="600"');
+    expect(svg.match(/font-family:"Inter"[^}]*font-weight:(\d+)/g) ?? []).toEqual([]);
+  });
+
+  it("outlines every label as a path as wide as it is measured", () => {
+    const svg = renderSvg(HAND, { fonts: "outlined", provider: library });
+    expect(svg).not.toContain("<text");
+    expect(svg).toContain('aria-label="Ledger"');
+    const measured = library.outline("Ledger", "Patrick Hand", 600, 13).width;
+    expect(measured).toBeCloseTo(library.width("Ledger", HAND.fonts.body, 600, 13), 0);
+  });
+});

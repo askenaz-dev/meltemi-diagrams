@@ -96,3 +96,49 @@ describe("subsets and outlines", () => {
     expect(outline.width).toBeCloseTo(library.width("API Gateway", INTER, 600, 13), 1);
   });
 });
+
+describe("a hand font for the sketch themes", () => {
+  const HAND = '"Patrick Hand", "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
+  it("is a bundled family that a stack resolves to, with one weight", () => {
+    expect(resolveFontStack(HAND)).toBe("Patrick Hand");
+    const fresh = createNodeFontLibrary();
+    expect(fresh.width("Checkout API", HAND, 600, 14)).toBeGreaterThan(0);
+    expect(fresh.unmeasured()).toEqual([]);
+  });
+
+  it("measures every weight with its one, and differently from Inter", () => {
+    const fresh = createNodeFontLibrary();
+    const regular = library.width("Checkout API", HAND, 400, 14);
+    expect(regular).toBeGreaterThan(0);
+    for (const weight of [500, 600, 700]) {
+      expect(library.width("Checkout API", HAND, weight, 14)).toBe(regular);
+    }
+    expect(regular).not.toBe(library.width("Checkout API", INTER, 400, 14));
+    // The characters it lacks are measured with Inter, not guessed.
+    expect(fresh.width("Ελλάδα", HAND, 400, 14)).toBeGreaterThan(0);
+    expect(fresh.outline("Ελλάδα", "Patrick Hand", 400, 14).d.startsWith("M")).toBe(true);
+    expect(fresh.unmeasured()).toEqual([]);
+  });
+
+  it("embeds its subset with a unicode-range, one rule that covers the heavier weights", () => {
+    const faces = library.faces("Patrick Hand", 600, "Pay Ñ");
+    expect(faces.map((f) => [f.weight, f.weightTo, f.subset, f.format])).toEqual([
+      [400, 700, "latin", "woff2"],
+    ]);
+    expect(faces[0]!.unicodeRange).toMatch(/^U\+/);
+    expect(new TextDecoder().decode(faces[0]!.data.slice(0, 4))).toBe("wOF2");
+    // The same file for 400 and 600: the rule of the first asks for both through the range.
+    expect(library.faces("Patrick Hand", 400, "Pay")[0]!.data).toEqual(faces[0]!.data);
+    // Inter, with a bold of its own, writes no range.
+    expect(library.faces("Inter", 700, "A")[0]!.weightTo).toBeUndefined();
+  });
+
+  it("outlines text as wide as it measures, within half a pixel", () => {
+    const outline = library.outline("Checkout API", "Patrick Hand", 600, 13);
+    expect(outline.d.startsWith("M")).toBe(true);
+    expect(Math.abs(outline.width - library.width("Checkout API", HAND, 600, 13))).toBeLessThan(
+      0.5,
+    );
+  });
+});

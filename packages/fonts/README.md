@@ -1,7 +1,7 @@
 # @meltemi/diagrams-fonts
 
-The bundled open fonts (Inter, IBM Plex Sans and Cascadia Mono, under the SIL Open Font
-Licence), text measurement for layout, subsetting for embedded SVG fonts and text outlines. The
+The bundled open fonts (Inter, IBM Plex Sans, Cascadia Mono and Patrick Hand, under the SIL
+Open Font Licence), text measurement for layout, subsetting for embedded SVG fonts and text outlines. The
 `./node` entry reads the font files from the installed font packages.
 
 It is part of [Meltemi Diagrams](https://github.com/askenaz-dev/meltemi-diagrams#readme), diagrams as code with a canvas, motion and

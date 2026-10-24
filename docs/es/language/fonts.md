@@ -7,18 +7,25 @@ se ajustan a sus etiquetas y el archivo exportado se ve igual en todas las máqu
 
 ## Fuentes incluidas
 
-| Familia       | La usan                                                               | Se mide con                              | Se incrusta desde                        |
-| ------------- | --------------------------------------------------------------------- | ---------------------------------------- | ---------------------------------------- |
-| Inter         | el texto principal de los temas `technical.*`, `stage.*` y `sketch.*` | la fuente completa (`inter-ui`)          | subconjuntos por escritura de Fontsource |
-| IBM Plex Sans | el texto principal de los temas `editorial.*`                         | la fuente completa (`@ibm/plex-sans`)    | subconjuntos por escritura de Fontsource |
-| Cascadia Mono | las marcas y el texto monoespaciado de todos los temas                | subconjuntos por escritura de Fontsource | subconjuntos por escritura de Fontsource |
+| Familia       | La usan                                                   | Se mide con                              | Se incrusta desde                        |
+| ------------- | --------------------------------------------------------- | ---------------------------------------- | ---------------------------------------- |
+| Inter         | el texto principal de los temas `technical.*` y `stage.*` | la fuente completa (`inter-ui`)          | subconjuntos por escritura de Fontsource |
+| IBM Plex Sans | el texto principal de los temas `editorial.*`             | la fuente completa (`@ibm/plex-sans`)    | subconjuntos por escritura de Fontsource |
+| Patrick Hand  | el texto principal de los temas `sketch.*`                | subconjuntos por escritura de Fontsource | subconjuntos por escritura de Fontsource |
+| Cascadia Mono | las marcas y el texto monoespaciado de todos los temas    | subconjuntos por escritura de Fontsource | subconjuntos por escritura de Fontsource |
 
-Se incluyen los pesos 400, 500, 600 y 700. Todas las fuentes usan la SIL Open Font License 1.1, que
-permite incluirlas e incrustarlas en documentos (`THIRD_PARTY_LICENSES.md`).
+Inter, IBM Plex Sans y Cascadia Mono se incluyen en los pesos 400, 500, 600 y 700. Patrick Hand,
+una fuente manuscrita, tiene un solo peso (400) y las escrituras latina, latina extendida y
+vietnamita: todos los pesos se miden, se pasan a contornos y se incrustan con ella, y la regla
+incrustada cubre de 400 a 700 para que el navegador dibuje una etiqueta más gruesa con el mismo
+archivo, sin fabricar una negrita. Todas las fuentes usan la SIL Open Font License 1.1, que permite
+incluirlas e incrustarlas en documentos (`THIRD_PARTY_LICENSES.md`).
 
-Los temas `sketch.*` pintan sus trazos a mano, pero escriben su texto en Inter, que se mide y se
-incrusta como en los temas technical, hasta que se incluya una fuente manuscrita; su texto nunca
-se dibuja con los trazos a mano, así que se sigue leyendo bien al tamaño de las etiquetas.
+Los temas `sketch.*` pintan sus trazos a mano y escriben su texto en Patrick Hand, con Inter detrás
+en la pila: un carácter que Patrick Hand no tiene, como el griego o el cirílico, se mide con
+Inter y, en las exportaciones `outlined`, se dibuja con sus contornos (una exportación
+incrustada lo deja al reemplazo del visor). Su texto nunca se dibuja con los trazos a mano, así que se sigue leyendo bien
+al tamaño de las etiquetas.
 
 Los tokens `font` y `mono` de un tema son pilas de fuentes CSS. Para medir se usa la primera familia
 de la pila que está incluida (`"Inter", "Segoe UI", sans-serif` mide con Inter). Un carácter que le

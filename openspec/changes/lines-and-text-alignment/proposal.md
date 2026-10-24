@@ -60,8 +60,8 @@ Post-1.0 change, outside the roadmap (`docs/roadmap-1.0.md`); it builds on `free
   untouched, and the layout's geometry (`track`, `bounds`, hit tests, handles, magnets) stays the
   clean one. Two built-in themes, `sketch.light` and `sketch.dark`, extend the technical pair with
   `sketch light`; any theme or diagram may set `sketch`; the theme panel gets the field with
-  pictures. A hand font for the two themes is an owner approval (Open Questions of the design):
-  until it lands they use Inter with sketched strokes.
+  pictures. A hand font for the two themes was an owner approval (Open Questions of the design), given
+  on 2026-10-24: they use Patrick Hand.
 - **Vertical alignment.** `verticalAlign top|middle|bottom` on free boxes, `middle` by default,
   free diagrams only like `textAlign` (decision 0043): the label and description block moves to
   the top or the bottom of the shape's text band where the shape has one (`rounded`, `rectangle`,

@@ -76,9 +76,17 @@ drawing.
   dash offset, class, opacity and transform are copied to both passes. Text, images, icons, the
   mark, gradients and patterns are untouched, and the layout's scene, tracks, bounds, hit tests and
   canvas overlays stay clean. The theme panel shows `sketch` as a row of pictures.
-- **Inter until a hand font is approved.** The sketch themes use Inter, measured and embedded as
-  the technical themes, so no sketch picture carries `layout.unmeasured-font`; a hand font waits
-  for the owner's approval of its download, and the pictures are regenerated once when it lands.
+- **Patrick Hand for the sketch text.** The owner approved the download on 2026-10-24, and
+  `@fontsource/patrick-hand` 5.3.0 (OFL-1.1) is the fourth bundled family: one weight (400) in the
+  Latin, Latin Extended and Vietnamese subsets, measured, outlined and embedded like Cascadia Mono
+  (no complete file). The sketch themes name `"Patrick Hand", "Inter", …`, so the characters it
+  lacks (Greek, Cyrillic) are measured with Inter, outlined with it, and left to the viewer's
+  fallback when embedded, and no sketch picture carries
+  `layout.unmeasured-font`. Every weight takes the one file; the embedded `@font-face` rule declares
+  `font-weight:400 700` (`EmbeddableFace.weightTo`) so a browser draws a bold label with the same
+  outlines as the layout measured and the outlined export draws, not a synthesized bold; a face
+  that several weights ask for is embedded once, limited to the characters of them all. The
+  licence inventory gains its row.
 - **`verticalAlign` within the shape's text band.** `top`, `middle` (default) or `bottom`, a free
   style property beside `textAlign`, refused in flow diagrams as decision 0043 refuses the text
   properties. The text block keeps its height; `top` searches the shape's text band from its top
@@ -149,16 +157,17 @@ drawing.
 - Sketched pictures are larger, since each stroked item becomes up to three. Measured on
   2026-10-24:
 
-  | Picture                                                   | Clean         | Sketched      |
-  | --------------------------------------------------------- | ------------- | ------------- |
-  | `gallery/free/sketch` (embedded fonts, the gallery's SVG) | 136,282 bytes | 165,309 bytes |
-  | `gallery/free/sketch` with `--fonts system`               | 6,540 bytes   | 35,567 bytes  |
-  | `corpus/acceptance/free/shapes` and `free/sketch`         | 17,282 bytes  | 77,629 bytes  |
+  | Picture                                                   | Clean         | Sketched     |
+  | --------------------------------------------------------- | ------------- | ------------ |
+  | `gallery/free/sketch` (embedded fonts, the gallery's SVG) | 136,282 bytes | 67,756 bytes |
+  | `gallery/free/sketch` with `--fonts system`               | 6,540 bytes   | 35,567 bytes |
+  | `corpus/acceptance/free/shapes` and `free/sketch`         | 17,282 bytes  | 77,695 bytes |
 
   The clean whiteboard is the same sheet rendered with `theme "technical.light"`; the acceptance
-  pair differs only in its theme, title and heading, and is rendered with `system` fonts. The fonts dominate an embedded export, so the
-  sketched gallery file is 21 % larger, while the strokes alone grow about five times. Nothing but
+  pair differs only in its theme, title and heading, and is rendered with `system` fonts. The fonts dominate an embedded export: Inter in
+  four weights makes the clean file 136 KB, one weight of Patrick Hand makes the sketched file
+  half of it, while the strokes alone grow about five times (the `system` rows). Nothing but
   `renderSvg` reads the sketched paths, and the sketch themes are opt-in.
 
-- A hand font for the sketch themes remains open: its download needs the owner's approval, and
-  the sketch pictures are regenerated once when it lands.
+- The sketch pictures were regenerated when the hand font landed (the corpus and acceptance
+  SVGs, the gallery sheet and the `free/sketch` visual reference).

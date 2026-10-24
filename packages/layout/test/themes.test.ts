@@ -84,7 +84,10 @@ describe("built-in themes", () => {
     const light = scene(sheet('  theme "sketch.light"\n'));
     expect(light.background).toBe(THEMES["technical.light"]!.background);
     expect(light.sketch).toBe("light");
-    expect(light.fonts.body).toBe(THEMES["technical.light"]!.font);
+    // The text is in the hand font, with Inter after it for what it lacks.
+    expect(light.fonts.body).toBe(THEMES["sketch.light"]!.font);
+    expect(light.fonts.body.startsWith('"Patrick Hand", "Inter"')).toBe(true);
+    expect(light.fonts.body).not.toBe(THEMES["technical.light"]!.font);
     expect(THEMES["sketch.light"]!.corners).toBe("rounded");
     expect(scene(sheet('  theme "sketch.dark"\n')).background).toBe(
       THEMES["technical.dark"]!.background,

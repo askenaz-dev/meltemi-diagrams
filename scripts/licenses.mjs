@@ -14,6 +14,7 @@ const EMBEDDED = new Set([
   "@fontsource/inter",
   "@fontsource/ibm-plex-sans",
   "@fontsource/cascadia-mono",
+  "@fontsource/patrick-hand",
   "inter-ui",
   "@ibm/plex-sans",
 ]);

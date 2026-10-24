@@ -16,6 +16,12 @@ export type FontPolicy = "system" | "embedded" | "outlined";
 export interface EmbeddableFace {
   readonly family: string;
   readonly weight: number;
+  /**
+   * The heaviest weight this file stands for, when the family has no heavier face: the rule then
+   * covers `weight` to `weightTo`, so a browser draws heavier text with this file as it is
+   * measured and outlined, not in a synthesized bold.
+   */
+  readonly weightTo?: number;
   readonly subset: string;
   readonly format: "woff2" | "woff" | "truetype" | "opentype";
   readonly data: Uint8Array;
@@ -228,9 +234,28 @@ export function embeddableFaces(
       texts.set(key, entry);
     }
   }
-  const faces = [...texts.values()].flatMap((entry) =>
+  // A family without the weight asked for gives the same file for several weights: it is embedded
+  // once, limited to the characters of them all.
+  const merged = new Map<string, EmbeddableFace>();
+  for (const face of [...texts.values()].flatMap((entry) =>
     provider.faces(entry.family, entry.weight, entry.text),
-  );
+  )) {
+    const key = `${face.family}|${face.weight}|${face.subset}`;
+    const known = merged.get(key);
+    merged.set(
+      key,
+      known
+        ? {
+            ...known,
+            unicodeRange:
+              known.unicodeRange === "" || face.unicodeRange === ""
+                ? ""
+                : `${known.unicodeRange},${face.unicodeRange}`,
+          }
+        : face,
+    );
+  }
+  const faces = [...merged.values()];
   return faces.sort(
     (a, b) =>
       (a.family < b.family ? -1 : a.family > b.family ? 1 : 0) ||
@@ -242,7 +267,11 @@ export function embeddableFaces(
 /** The `@font-face` rule of a face, with its file inline. */
 export function fontFaceRule(face: EmbeddableFace): string {
   const range = face.unicodeRange === "" ? "" : `;unicode-range:${face.unicodeRange}`;
-  return `@font-face{font-family:"${face.family}";font-weight:${face.weight};src:url(data:${FONT_MIME[face.format]};base64,${base64(face.data)}) format("${face.format}")${range}}`;
+  const weight =
+    face.weightTo !== undefined && face.weightTo > face.weight
+      ? `${face.weight} ${face.weightTo}`
+      : String(face.weight);
+  return `@font-face{font-family:"${face.family}";font-weight:${weight};src:url(data:${FONT_MIME[face.format]};base64,${base64(face.data)}) format("${face.format}")${range}}`;
 }
 
 /** `@font-face` rules for the faces the scene's text needs, ordered by family, weight, subset. */

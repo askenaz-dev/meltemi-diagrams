@@ -27,6 +27,8 @@ export type FontFormat = "woff2" | "woff" | "truetype" | "opentype";
 export interface EmbeddedFace {
   readonly family: string;
   readonly weight: number;
+  /** The heaviest weight the file stands for when the family has no heavier face. */
+  readonly weightTo?: number;
   readonly subset: string;
   readonly format: FontFormat;
   readonly data: Uint8Array;
@@ -310,9 +312,12 @@ export class FontLibrary {
     for (const [subset, codePoints] of [...bySubset].sort(([a], [b]) => (a < b ? -1 : 1))) {
       const data = this.read(subsetPath(spec, w, subset));
       if (!data) continue;
+      // The heaviest face of a family that stops short of bold stands for the weights above it.
+      const heaviest = spec.weights[spec.weights.length - 1]!;
       faces.push({
         family,
         weight: w,
+        ...(w === heaviest && heaviest < 700 ? { weightTo: 700 } : {}),
         subset,
         format: "woff2",
         data,

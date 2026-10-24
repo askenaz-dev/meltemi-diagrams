@@ -70,7 +70,7 @@ The layout SHALL provide eight built-in themes with every token set:
 - `technical.light` and `technical.dark` for architecture review, with Inter, a footer frame with the Meltemi mark, and the brand `Meltemi Diagrams`;
 - `editorial.light` and `editorial.dark` for documents and long reading, with IBM Plex Sans, no frame, `radius` 6, `connectorWidth` 1, `groupTitleSize` 12 and `open` arrowheads;
 - `stage.light` and `stage.dark` for presentations and video, with Inter, a header frame, `labelSize` 16, `descriptionSize` 13, `relationLabelSize` 13, `strokeWidth` 1.5, `connectorWidth` 2, `arrowSize` 10 and `margin` 48;
-- `sketch.light` and `sketch.dark` for whiteboards and early thinking, the technical pair with `sketch light`, `corners rounded` and, once the hand font is bundled, that font as `font` (Inter until then).
+- `sketch.light` and `sketch.dark` for whiteboards and early thinking, the technical pair with `sketch light`, `corners rounded` and Patrick Hand, the bundled hand font, as `font` (Inter after it in the stack, for the characters it lacks).
 
 `technical.light` SHALL be the default theme. Every built-in theme SHALL use Cascadia Mono for `mono`. `BUILT_IN_THEMES` SHALL list the eight names, and the first segments `technical`, `editorial`, `stage` and `sketch` SHALL be reserved import names.
 

@@ -36,7 +36,8 @@ language stays 0.2: the line tokens, `line`, `sketch` and `verticalAlign` are ad
   group band and the frame as a clean fill and two stroke passes with a small seeded wobble; text,
   icons and images stay crisp, the layout is unchanged, the same text renders the same bytes, and
   every export and the canvas show it. Two built-in themes, `sketch.light` and `sketch.dark`, are
-  the technical pair with `sketch light` and `corners rounded`, in Inter: eight built-in themes in
+  the technical pair with `sketch light` and `corners rounded`, with Patrick Hand, a bundled hand
+  font, for the text: eight built-in themes in
   all, and `sketch` is a reserved import name.
 - `verticalAlign top|middle|bottom`, a free style property beside `textAlign`, puts a box's text
   block at the top or the bottom of its shape's text band, the theme's padding from its edge; in a

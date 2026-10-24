@@ -41,6 +41,13 @@ export const BUNDLED_FAMILIES: readonly BundledFamily[] = [
     complete: null,
     weights: [400, 500, 600, 700],
   },
+  {
+    // The hand of the sketch themes: one weight, so every weight is measured and embedded with 400.
+    family: "Patrick Hand",
+    subsets: { package: "@fontsource/patrick-hand", prefix: "patrick-hand" },
+    complete: null,
+    weights: [400],
+  },
 ];
 
 /** Families tried, in order, for characters the requested family does not have. */
@@ -51,6 +58,7 @@ export const FONT_PACKAGES = [
   "@fontsource/inter",
   "@fontsource/ibm-plex-sans",
   "@fontsource/cascadia-mono",
+  "@fontsource/patrick-hand",
   "inter-ui",
   "@ibm/plex-sans",
 ] as const;

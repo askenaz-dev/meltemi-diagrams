@@ -204,7 +204,8 @@ dibujan sus cabeceras, barras, notas y líneas de vida en `Muted` ([sequence.md]
   en el encabezado.
 - **Sketch**, para pizarras y primeras ideas: las paletas, los tamaños y el marco de los temas
   technical, con los codos redondeados (`corners rounded`) y los trazos pintados a mano
-  (`sketch light`, más abajo). Usan Inter hasta que se incluya una fuente manuscrita.
+  (`sketch light`, más abajo). Su texto va en Patrick Hand, una fuente manuscrita, con Inter para
+  los caracteres que no tiene.
 
 Todos los temas integrados tienen los colores de señal `success`, `warning`, `danger` e `info`, y
 las clases integradas ([styles.md](styles.md)).

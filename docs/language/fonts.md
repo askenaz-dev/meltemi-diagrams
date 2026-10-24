@@ -7,18 +7,25 @@ labels and the exported file looks the same on every machine.
 
 ## Bundled fonts
 
-| Family        | Used by                                                         | Measured with                    | Embedded from             |
-| ------------- | --------------------------------------------------------------- | -------------------------------- | ------------------------- |
-| Inter         | body text of the `technical.*`, `stage.*` and `sketch.*` themes | complete font (`inter-ui`)       | Fontsource script subsets |
-| IBM Plex Sans | body text of the `editorial.*` themes                           | complete font (`@ibm/plex-sans`) | Fontsource script subsets |
-| Cascadia Mono | tags and monospace text of every theme                          | Fontsource script subsets        | Fontsource script subsets |
+| Family        | Used by                                             | Measured with                    | Embedded from             |
+| ------------- | --------------------------------------------------- | -------------------------------- | ------------------------- |
+| Inter         | body text of the `technical.*` and `stage.*` themes | complete font (`inter-ui`)       | Fontsource script subsets |
+| IBM Plex Sans | body text of the `editorial.*` themes               | complete font (`@ibm/plex-sans`) | Fontsource script subsets |
+| Patrick Hand  | body text of the `sketch.*` themes                  | Fontsource script subsets        | Fontsource script subsets |
+| Cascadia Mono | tags and monospace text of every theme              | Fontsource script subsets        | Fontsource script subsets |
 
-Weights 400, 500, 600 and 700 are bundled. All fonts use the SIL Open Font License 1.1, which allows
-bundling them and embedding them in documents (`THIRD_PARTY_LICENSES.md`).
+Inter, IBM Plex Sans and Cascadia Mono are bundled in weights 400, 500, 600 and 700. Patrick Hand,
+a hand font, has one weight (400) and the Latin, Latin Extended and Vietnamese scripts: every
+weight is measured, outlined and embedded with it, and an embedded rule covers 400 to 700 so that
+a browser draws a heavier label with the same file, not in a synthesized bold. All fonts use the
+SIL Open Font License 1.1, which allows bundling them and embedding them in documents
+(`THIRD_PARTY_LICENSES.md`).
 
-The `sketch.*` themes paint their strokes by hand but write their text in Inter, measured and
-embedded as in the technical themes, until a hand font is bundled; their text is never drawn with
-the sketched strokes, so it stays readable at label size.
+The `sketch.*` themes paint their strokes by hand and write their text in Patrick Hand, with Inter
+after it in the stack: a character that Patrick Hand lacks, such as Greek or Cyrillic, is measured
+with Inter, and outlined with it in `outlined` exports (an embedded export leaves it to the
+viewer's fallback). Their text is never drawn with the sketched strokes, so it stays readable at
+label size.
 
 A theme's `font` and `mono` tokens are CSS font stacks. The first family of the stack that is bundled
 is used for measuring (`"Inter", "Segoe UI", sans-serif` measures with Inter). A character the

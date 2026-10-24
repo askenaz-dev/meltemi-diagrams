@@ -480,8 +480,8 @@ relation table 122-139, the element table 102-120), `diagnostics.md` (the hint a
   the moving dash moves on both; `outlineIndex` finds the first stroked item in the clean scene.
 - [Anonymous keys move the wobble when statements are reordered] → stated in `svg-export.md`;
   named targets are stable, and the determinism acceptance renders each sheet twice.
-- [The hand font is not approved] → every task of this change runs without it; the sketch themes
-  use Inter until it lands and are regenerated once when it does.
+- [The hand font is not approved] → resolved on 2026-10-24: the owner approved Patrick Hand; the
+  sketch pictures were regenerated when it landed.
 - [A top-aligned label in a narrowing shape is cut] → the band search clamps the block back
   towards the middle when no band holds it, the audit measures the block where it is, and the
   layout free tests cover an ellipse with a wide top label.
@@ -505,5 +505,6 @@ relation table 122-139, the element table 102-120), `diagnostics.md` (the hint a
 - The hand font for `sketch.light` and `sketch.dark`: the owner approves the download of
   `@fontsource/patrick-hand` (OFL-1.1; or Caveat, Gloria Hallelujah or Architects Daughter, all
   OFL on Fontsource; Virgil and Excalifont have no Fontsource package and Excalifont's licence
-  must be read first). Until then the two themes use Inter with sketched strokes, and task group
-  7 waits.
+  must be read first). Resolved 2026-10-24: the owner approved Patrick Hand, which is bundled with
+  weight 400 only, a `400 700` range in its embedded rule and Inter after it in the sketch themes'
+  stack for the characters it lacks.

@@ -46,10 +46,10 @@
 - [x] 6.6 `packages/canvas/src/inspector.ts` (`alignField`: the 3 × 3 grid pairing the two fields, the three-cell row for texts, the pressed and the greyed cells, arrows in both directions, Enter and Space, "mixed", the "theme" chip removing both, `setField` for the properties that change as one batch) and `src/glyphs.ts` (the nine pictures and the three), `canvas.css` (the grid, the sliding highlight over `--mdg-motion-fast`, the 0.98 press); `test/alignment-picker.test.ts`: the `quick-styling` "Text alignment picker" scenarios (top left, one property changing, a text's row, keyboard with the Spanish name, mixed); `test/messages.test.ts` parity
 - [x] 6.7 `packages/vscode/test/webview/run.ts` and `packages/playground/test/browser/run.ts`: the picker on a free box writes `textAlign left; verticalAlign top`, the drawing moves the label to the top band, and a screenshot of the strip with the grid is looked at
 
-## 7. The hand font (after the owner approves the download)
+## 7. The hand font (approved by the owner on 2026-10-24)
 
-- [ ] 7.1 `packages/fonts/package.json` (`@fontsource/patrick-hand`), `src/` (the family registered for measurement and embedding, weight 400 for every weight), `README.md`; `pnpm licenses:inventory` regenerates `THIRD_PARTY_LICENSES.md`; `test/bundled-files.test.ts`, `test/library.test.ts`: the "A hand font for sketch themes" scenarios (embedded with `unicode-range`, outlined within 0.5 px, the inventory check)
-- [ ] 7.2 `packages/layout/src/theme.ts`: `sketch.light` and `sketch.dark` name `"Patrick Hand"` first in `font`; the sketched snapshots, gallery and acceptance pictures regenerated once more and looked at; `docs/language/fonts.md` and `docs/es/language/fonts.md` list the family
+- [x] 7.1 `packages/fonts/package.json` (`@fontsource/patrick-hand`), `src/` (the family registered for measurement and embedding, weight 400 for every weight), `README.md`; `pnpm licenses:inventory` regenerates `THIRD_PARTY_LICENSES.md`; `test/bundled-files.test.ts`, `test/library.test.ts`: the "A hand font for sketch themes" scenarios (embedded with `unicode-range`, outlined within 0.5 px, the inventory check)
+- [x] 7.2 `packages/layout/src/theme.ts`: `sketch.light` and `sketch.dark` name `"Patrick Hand"` first in `font`; the sketched snapshots, gallery and acceptance pictures regenerated once more and looked at; `docs/language/fonts.md` and `docs/es/language/fonts.md` list the family
 
 ## 8. Documentation and decision
 
