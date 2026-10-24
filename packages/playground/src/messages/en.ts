@@ -209,6 +209,9 @@ export const en = {
   code: {
     help: "Tab indents; press Escape, then Tab, to move on. Ctrl+Space suggests, Ctrl+Period offers fixes, Shift+Alt+F formats, F2 renames and F12 goes to the definition.",
     width: "Width of the code",
+    /** The rail's button, which unfolds the code pane, and the bar's, which folds it. */
+    show: "Show the code (Ctrl+J)",
+    hide: "Hide the code (Ctrl+J)",
     source: "Source",
     sourceOf: (file: string) => `Source of ${file}`,
     suggestions: "Suggestions",

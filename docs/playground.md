@@ -42,7 +42,7 @@ builds the site, serves it on `127.0.0.1` and drives it in the installed Edge or
 | Area     | In the playground                                                                                                                                                                                                                                                                                                                                  |
 | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Projects | The explorer lists the project's folders and diagrams and makes, renames, moves and deletes them, with the imports that follow a move ([the explorer](#the-explorer)); **New project** starts from the `init` templates, shown as cards; a project `.zip` is imported and exported as a whole. The project compiler is the CLI's and the editor's. |
-| Code     | Highlighting, line numbers, diagnostics underlined and listed with their lines and quick fixes, completion, hover, formatting, rename and go to definition across files.                                                                                                                                                                           |
+| Code     | Highlighting, line numbers, diagnostics underlined and listed with their lines and quick fixes, completion, hover, formatting, rename and go to definition across files; the pane folds to a rail to give the canvas the width ([the code pane](#the-code-pane)).                                                                                  |
 | Canvas   | The canvas of VS Code: palette and relation tool, selection, moves, routes, labels, the style strip and inspector, the theme panel, minimap, grid and snapping, layout actions, sequence and C4 tools, effects and stories with their timeline. Every gesture is an edit of the text.                                                              |
 | Undo     | One history per file for typing, canvas edits, fixes, formatting and renames, and moves of files with the imports that follow them; Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y anywhere in the page. In a cloud project it covers your own edits only.                                                                                                        |
 | Import   | Mermaid, PlantUML and Markdown, pasted or from a file, into a new `.meltemi` file, with the importer's findings and its report.                                                                                                                                                                                                                    |
@@ -68,9 +68,32 @@ builds the site, serves it on `127.0.0.1` and drives it in the installed Edge or
 | Tab, Shift+Tab               | Indent, unindent; Escape then Tab moves to the next control              |
 | Ctrl+Z, Ctrl+Shift+Z, Ctrl+Y | Undo and redo, in the code and on the canvas                             |
 | Ctrl+S                       | Keep the project in the browser now; in a cloud project, send what waits |
+| Ctrl+J                       | Fold the code pane to a rail, or unfold it, from anywhere in the page    |
 
 On Apple systems, Cmd takes the place of Ctrl. The canvas keeps its own keys (`docs/editor.md`),
 and the explorer its own ([the explorer](#the-explorer)).
+
+### The code pane
+
+The code sits between the explorer and the canvas, with the open file's place in the project above
+it and its problems beneath. The divider resizes it (the arrows on the focused divider move it by
+five percent), and the page remembers the share.
+
+- **Folding it.** The button at the right end of the file's path, a double click on the divider or
+  Ctrl+J (Cmd+J) fold the pane to a 36 px rail, as Ctrl+B folds the explorer, and the canvas takes
+  the width without changing its zoom or its place; the rail's button, or Ctrl+J again, unfolds it
+  at the share it had. The page remembers the fold. Ctrl+J works from the code itself; in the
+  browser it would open the downloads, which the page keeps it from, as it keeps Ctrl+S from saving
+  the page.
+- **What the rail shows.** Under its button, the number of errors in the open file, with the
+  problems' summary as its tooltip, and nothing when there are none; the problems are still
+  announced to screen readers.
+- **What unfolds it.** Anything that shows a place in the text and asks for the focus: **Show in
+  text** in the canvas's menus, going to a definition, a problem's line, a quick fix and **Project
+  settings**. Opening a file from the explorer and selecting on the canvas leave it folded; the
+  selection is in the code when the pane unfolds.
+- **Narrow screens.** The code is the **Code** tab, whole, whatever is remembered; there Ctrl+J
+  shows the Code tab, or the Canvas tab when the code is shown.
 
 ## The explorer
 
@@ -124,6 +147,7 @@ diagrams, as an editor's explorer lists them.
 | Delete              | Delete, after a question                                        |
 | Shift+F10           | The row's menu                                                  |
 | Ctrl+B              | Hide or show the explorer, from anywhere in the page            |
+| Ctrl+J              | Fold or unfold the code pane, from anywhere in the page         |
 | Ctrl+Shift+E        | Go to the explorer, from anywhere in the page                   |
 
 ### The project switcher

@@ -314,6 +314,11 @@ export interface InspectorField {
   readonly readonly?: boolean;
   /** Fields of the style strip, which the inspector shows first and draws compactly. */
   readonly section?: "strip";
+  /**
+   * Strip fields that belong to a card: the name of the toggle field whose card holds this one
+   * (`effect.trace` for `effect.trace.color`), so a canvas groups them without knowing the effects.
+   */
+  readonly group?: string;
   /** Colour fields: the effective theme's colour tokens with the colours they resolve to. */
   readonly swatches?: readonly ColorSwatch[];
   /** Values offered in one click beside the control, such as a theme's dark counterpart. */

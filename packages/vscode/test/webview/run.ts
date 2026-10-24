@@ -1458,29 +1458,171 @@ const tests: {
         await page.getByRole("group", { name: "Effects" }).getByRole("button").count(),
         4,
       );
-      const dash = page.getByRole("button", { name: "Moving dash" });
+      // The toggle by its exact name: the card's button is "Moving dash: settings".
+      const dash = page.getByRole("button", { name: "Moving dash", exact: true });
       assert.equal(await dash.getAttribute("aria-pressed"), "false");
       await dash.click();
       await h.settled();
       assert.match(h.text, /animate save \{ effect dash \}/);
-      assert.equal(
-        await page.getByRole("button", { name: "Moving dash" }).getAttribute("aria-pressed"),
-        "true",
-      );
+      assert.equal(await dash.getAttribute("aria-pressed"), "true");
       assert.equal(await row.locator(".value").textContent(), "Moving dash");
       await page.locator(".strip").screenshot({ path: join(output, "inspector-effects-row.png") });
       assert.equal(
         await page.locator("#mdg-field-effect-dash-duration").getAttribute("placeholder"),
         "1000",
       );
-      // A trace combines with the dash; its speed defaults to 1500 ms.
-      await page.getByRole("button", { name: "Trace" }).click();
+      // The effect just turned on has one open card under the row: its name and speed in the
+      // header, repeat, delay and direction inside; nothing of it anywhere else.
+      const dashCard = page.locator('.strip .effect-card[data-effect="effect.dash"]');
+      assert.equal(await dashCard.getAttribute("data-open"), "true");
+      const dashHead = dashCard.getByRole("button", { name: "Moving dash: settings" });
+      assert.equal(await dashHead.getAttribute("aria-expanded"), "true");
+      assert.equal(await dashHead.getAttribute("aria-controls"), "mdg-card-effect-dash");
+      assert.equal(await dashHead.locator(".card-name").textContent(), "Moving dash");
+      assert.equal(
+        await dashCard.locator(".card-header #mdg-field-effect-dash-duration").count(),
+        1,
+        "the speed in the header",
+      );
+      for (const setting of ["repeat", "delay", "direction"]) {
+        const field = dashCard.locator(
+          `#mdg-card-effect-dash [data-field="effect.dash.${setting}"]`,
+        );
+        assert.equal(await field.isVisible(), true, setting);
+        // The label without the effect's name, which the header shows once ("delay (ms)").
+        const label = (await field.locator("label").textContent()) ?? "";
+        assert.ok(label.startsWith(setting) && !label.includes("Moving dash"), label);
+      }
+      assert.match(
+        (await page.locator("#mdg-field-effect-dash-delay").getAttribute("aria-label")) ?? "",
+        /^Moving dash: delay/,
+      );
+      assert.equal(await page.locator(".strip .effect-card").count(), 1);
+      assert.equal(
+        await page.locator('.inspector > .field label[for^="mdg-field-effect-"]').count(),
+        0,
+        "no effect field after the strip",
+      );
+      // A trace combines with the dash; its speed defaults to 1500 ms. Its card opens and the
+      // dash's closes, keeping its speed in its header.
+      await page.getByRole("button", { name: "Trace", exact: true }).click();
       await h.settled();
       assert.match(h.text, /animate save \{ effect trace \}/);
       assert.equal(
         await page.locator("#mdg-field-effect-trace-duration").getAttribute("placeholder"),
         "1500",
       );
+      const traceCard = page.locator('.strip .effect-card[data-effect="effect.trace"]');
+      assert.equal(await traceCard.getAttribute("data-open"), "true");
+      assert.equal(await dashCard.getAttribute("data-open"), "false");
+      assert.equal(await page.locator("#mdg-field-effect-dash-duration").isVisible(), true);
+      assert.equal(await page.locator("#mdg-field-effect-dash-delay").isVisible(), false);
+      // The trace colour is a row of chips: Theme, the sixteen tokens and the picker, with the
+      // accent as what applies.
+      const colour = traceCard.locator('[data-field="effect.trace.color"]');
+      assert.equal(await colour.getByRole("radio").count(), 17);
+      assert.equal(await colour.locator(".row-label > span").first().textContent(), "colour");
+      assert.equal(
+        await colour.getByRole("radiogroup").getAttribute("aria-label"),
+        "Trace: colour",
+      );
+      assert.equal(await colour.locator(".value").textContent(), "accent (inherited)");
+      const accent = await colour
+        .locator('[data-token="accent"]')
+        .evaluate((chip) => getComputedStyle(chip).getPropertyValue("--chip").trim());
+      assert.match(accent, /^#[0-9a-fA-F]{6}$/);
+      assert.equal(await colour.locator('input[type="color"]').inputValue(), accent.toLowerCase());
+      await colour.locator('[data-token="danger"]').click();
+      await h.settled();
+      assert.match(h.text, /animate save \{ effect trace; color danger \}/);
+      assert.equal(
+        await colour.locator('[data-token="danger"]').getAttribute("aria-checked"),
+        "true",
+      );
+      await colour.locator('input[type="color"]').fill("#e8a33d");
+      await h.settled();
+      assert.match(h.text, /animate save \{ effect trace; color "#E8A33D" \}/);
+      await colour.locator('[data-token=""]').click();
+      await h.settled();
+      assert.match(h.text, /animate save \{ effect trace \}/);
+      assert.doesNotMatch(h.text, /color/);
+      // A speed below the language's range is refused, the text unchanged.
+      const before = h.text;
+      await page.locator("#mdg-field-effect-trace-duration").fill("50");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.equal(h.text, before);
+      await page.locator(".strip").screenshot({ path: join(output, "inspector-effect-cards.png") });
+    },
+  },
+  {
+    name: "effect cards keep their open state for the session, start closed after a reload, and a selection has none",
+    text: SHEET.replace(
+      "  placement {",
+      "  animate save { effect dash }\n  animate save { effect trace }\n  animate api { effect pulse }\n  placement {",
+    ),
+    async run(h) {
+      const page = h.page;
+      await h.focusStage();
+      const selectSave = async () => {
+        const label = await page
+          .locator('.content g[data-id="save"][data-role="relation"] [data-role="label"]')
+          .first()
+          .boundingBox();
+        assert.ok(label);
+        await page.mouse.click(label.x + label.width / 2, label.y + label.height / 2);
+        await h.settled();
+        assert.deepEqual(h.session.selected, ["save"]);
+      };
+      await selectSave();
+      // Effects on from the start: their cards start closed.
+      const dashCard = page.locator('.strip .effect-card[data-effect="effect.dash"]');
+      const traceCard = page.locator('.strip .effect-card[data-effect="effect.trace"]');
+      assert.equal(await page.locator(".strip .effect-card").count(), 2);
+      assert.equal(await dashCard.getAttribute("data-open"), "false");
+      assert.equal(await traceCard.getAttribute("data-open"), "false");
+      // The body moves on the canvas's tokens: its height over 160 ms, its opacity over 120 ms.
+      const body = dashCard.locator(".card-body");
+      const transition = () =>
+        body.evaluate((element) => {
+          const style = getComputedStyle(element);
+          return { property: style.transitionProperty, duration: style.transitionDuration };
+        });
+      assert.match((await transition()).property, /^grid-template-rows, opacity/);
+      assert.match((await transition()).duration, /^0\.16s, 0\.12s/);
+      // Opened by its header, the card stays open for the target while the canvas lasts.
+      const head = dashCard.getByRole("button", { name: "Moving dash: settings" });
+      await head.click();
+      assert.equal(await dashCard.getAttribute("data-open"), "true");
+      assert.equal(await head.getAttribute("aria-expanded"), "true");
+      await page.waitForTimeout(250);
+      assert.equal(await page.locator("#mdg-field-effect-dash-delay").isVisible(), true);
+      const api = await h.centre("api");
+      await page.mouse.click(api.x, api.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["api"]);
+      assert.equal(await page.locator(".strip .effect-card").count(), 1, "the pulse's card");
+      await selectSave();
+      assert.equal(await dashCard.getAttribute("data-open"), "true");
+      assert.equal(await traceCard.getAttribute("data-open"), "false");
+      // Several targets: the toggles only, mixed where they differ, and no card.
+      await h.focusStage();
+      await page.keyboard.press("Control+a");
+      await h.settled();
+      assert.ok(h.session.selected.length >= 3, h.session.selected.join());
+      assert.equal(await page.locator(".strip .effect-card").count(), 0);
+      assert.equal(
+        await page.locator('.strip [data-field="effects"] .value').textContent(),
+        "mixed",
+      );
+      // After a reload every card starts closed.
+      await h.reload();
+      await h.focusStage();
+      await selectSave();
+      assert.equal(await dashCard.getAttribute("data-open"), "false");
+      // Under reduced motion nothing moves.
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      assert.match((await transition()).duration, /^0s, 0s/);
     },
   },
   {
@@ -5313,6 +5455,20 @@ const tests: {
       await inline.press("Enter");
       await h.settled();
       assert.match(h.text, /node1\["Cola"\]/);
+      // A pulse turned on: its card speaks Spanish, the effect's name shown once in the header.
+      await page.getByRole("button", { name: "Pulso", exact: true }).click();
+      await h.settled();
+      assert.match(h.text, /animate node1 \{ effect pulse \}/);
+      const card = page.locator('.strip .effect-card[data-effect="effect.pulse"]');
+      assert.equal(await card.locator(".card-name").textContent(), "Pulso");
+      assert.equal(
+        await card.getByRole("button", { name: "Pulso: ajustes" }).getAttribute("aria-expanded"),
+        "true",
+      );
+      const colour = card.locator('[data-field="effect.pulse.color"]');
+      assert.equal(await colour.locator(".row-label > span").first().textContent(), "color");
+      assert.equal(await colour.getByRole("radiogroup").getAttribute("aria-label"), "Pulso: color");
+      assert.equal(await colour.locator('[data-token=""]').textContent(), "Tema");
       await page.screenshot({ path: join(output, "canvas-es.png") });
     },
   },

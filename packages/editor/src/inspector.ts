@@ -861,7 +861,23 @@ export function counterpartTheme(name: string): string | undefined {
   return `${match[1]}.${match[2] === "light" ? "dark" : "light"}`;
 }
 
-/** The strip's fields, in the order it shows them; the first `line` is the relation's arrow. */
+/** The effects in the order of the strip's toggles. */
+const EFFECT_ORDER: readonly AnimationEffect[] = ["flow", "dash", "pulse", "trace"];
+
+/** The fields of an effect that is on, in the order of its card. */
+const EFFECT_PROPERTIES = [
+  "duration",
+  "repeat",
+  "delay",
+  "direction",
+  "particles",
+  "color",
+] as const;
+
+/**
+ * The strip's fields, in the order it shows them; the first `line` is the relation's arrow. The
+ * style fields come first, then each effect's toggle with the fields of its card.
+ */
 const STRIP = [
   "theme",
   "style.fill",
@@ -879,21 +895,18 @@ const STRIP = [
   "style.shape",
   // For elements with an icon only.
   "style.iconPosition",
-  "effect.flow",
-  "effect.flow.duration",
-  "effect.dash",
-  "effect.dash.duration",
-  "effect.pulse",
-  "effect.pulse.duration",
-  "effect.trace",
-  "effect.trace.duration",
+  ...EFFECT_ORDER.flatMap((effect) => [
+    `effect.${effect}`,
+    ...EFFECT_PROPERTIES.map((property) => `effect.${effect}.${property}`),
+  ]),
 ];
 
 /**
  * Marks the fields of the style strip and puts them first: colours with the theme's swatches, the
  * line, width and arrowhead, the shape and, for elements with an icon (`iconed`), the icon's
- * position, the effects with their speed (the theme's default as placeholder), and, for the
- * diagram, the theme with its light or dark counterpart.
+ * position, the effects as toggles with every field of an effect that is on grouped under its
+ * toggle (`group`; the speed with the theme's default as placeholder, the colour with the
+ * swatches), and, for the diagram, the theme with its light or dark counterpart.
  */
 function withStrip(
   model: InspectorModel,
@@ -912,14 +925,15 @@ function withStrip(
     !(name === "style.iconPosition" && !iconed);
   const fields = model.fields.map((field): InspectorField => {
     if (!inStrip(field.name)) return field;
-    const duration = /^effect\.(flow|dash|pulse|trace)\.duration$/.exec(field.name);
-    if (duration) {
-      const effect = duration[1] as AnimationEffect;
-      return {
-        ...field,
-        section: "strip",
-        placeholder: String(durations[effect] ?? DEFAULT_DURATIONS[effect]),
-      };
+    // A field of an effect that is on belongs to the card of its toggle.
+    const grouped = /^(effect\.(flow|dash|pulse|trace))\.(\w+)$/.exec(field.name);
+    if (grouped) {
+      const effect = grouped[2] as AnimationEffect;
+      const placed = { ...field, section: "strip" as const, group: grouped[1]! };
+      if (grouped[3] === "duration") {
+        return { ...placed, placeholder: String(durations[effect] ?? DEFAULT_DURATIONS[effect]) };
+      }
+      return field.type === "color" ? { ...placed, swatches } : placed;
     }
     if (field.type === "color") return { ...field, section: "strip", swatches };
     if (field.name === "theme") {

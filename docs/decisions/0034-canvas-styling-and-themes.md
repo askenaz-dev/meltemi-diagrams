@@ -1,6 +1,8 @@
 # 0034. Styling on the canvas and custom themes
 
-Status: accepted (canvas-styling-and-themes change, 12 October 2026)
+Status: accepted (canvas-styling-and-themes change, 12 October 2026). Effect colours take the
+strip's chip rows and the settings of an effect sit in a card under its toggle by
+[decision 0057](0057-panel-and-effects-polish.md).
 
 ## Context
 

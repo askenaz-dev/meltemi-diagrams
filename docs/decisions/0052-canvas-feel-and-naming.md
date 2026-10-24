@@ -1,7 +1,8 @@
 # 0052. Effects play by default, a rotation starts where it was grabbed, sequence heads are measured as drawn
 
 Status: accepted (canvas-feel-and-naming change, 22 October 2026). Extends decisions 0019, 0022
-and 0045.
+and 0045. The Effects row gains a card per effect that is on by
+[decision 0057](0057-panel-and-effects-polish.md).
 
 ## Context
 

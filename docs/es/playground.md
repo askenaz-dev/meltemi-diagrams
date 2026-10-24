@@ -45,7 +45,7 @@ compila el sitio, lo sirve en `127.0.0.1` y lo maneja en el Edge o el Chrome ins
 | Área      | En el playground                                                                                                                                                                                                                                                                                                                                                                                                         |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | Proyectos | El explorador lista las carpetas y los diagramas del proyecto y los crea, les cambia el nombre, los mueve y los elimina, con las importaciones que siguen a un movimiento ([el explorador](#el-explorador)); **Nuevo proyecto** parte de las plantillas de `init`, mostradas como tarjetas; el `.zip` de un proyecto se importa y se exporta entero. El compilador de proyectos es el mismo que usan la CLI y el editor. |
-| Código    | Resaltado, números de línea, diagnósticos subrayados y listados con sus líneas y correcciones rápidas, autocompletado, información al pasar el puntero, formato, cambio de nombre e ir a la definición entre archivos.                                                                                                                                                                                                   |
+| Código    | Resaltado, números de línea, diagnósticos subrayados y listados con sus líneas y correcciones rápidas, autocompletado, información al pasar el puntero, formato, cambio de nombre e ir a la definición entre archivos; el panel se pliega en un riel para darle el ancho al lienzo ([el panel del código](#el-panel-del-código)).                                                                                        |
 | Lienzo    | El lienzo de VS Code: paleta y herramienta de relación, selección, movimientos, rutas, etiquetas, la barra de estilo y el inspector, el panel del tema, minimapa, cuadrícula y ajuste a la cuadrícula, acciones de disposición, herramientas de secuencia y C4, efectos e historias con su línea de tiempo. Cada gesto es una edición del texto.                                                                         |
 | Deshacer  | Un historial por archivo para lo que escribes, las ediciones del lienzo, las correcciones, el formato y los cambios de nombre, y los movimientos de archivos con las importaciones que los siguen; Ctrl+Z, Ctrl+Mayús+Z y Ctrl+Y en cualquier parte de la página. En un proyecto en la nube cubre solo tus propias ediciones.                                                                                            |
 | Importar  | Mermaid, PlantUML y Markdown, pegados o desde un archivo, a un nuevo archivo `.meltemi`, con los hallazgos del importador y su informe.                                                                                                                                                                                                                                                                                  |
@@ -71,9 +71,33 @@ compila el sitio, lo sirve en `127.0.0.1` y lo maneja en el Edge o el Chrome ins
 | Tab, Mayús+Tab               | Aplicar sangría, quitar sangría; Esc y luego Tab pasa al siguiente control                 |
 | Ctrl+Z, Ctrl+Mayús+Z, Ctrl+Y | Deshacer y rehacer, en el código y en el lienzo                                            |
 | Ctrl+S                       | Guardar ahora el proyecto en el navegador; en un proyecto en la nube, enviar lo que espera |
+| Ctrl+J                       | Plegar el panel del código en un riel, o desplegarlo, desde cualquier parte de la página   |
 
 En los sistemas de Apple, Cmd sustituye a Ctrl. El lienzo conserva sus propias teclas
 (`docs/editor.md`), y el explorador las suyas ([el explorador](#el-explorador)).
+
+### El panel del código
+
+El código está entre el explorador y el lienzo, con el lugar del archivo abierto en el proyecto
+encima y sus problemas debajo. El divisor cambia su ancho (las flechas sobre el divisor enfocado lo
+mueven un cinco por ciento), y la página recuerda la proporción.
+
+- **Plegarlo.** El botón al final de la ruta del archivo, un doble clic en el divisor o Ctrl+J
+  (Cmd+J) pliegan el panel en un riel de 36 px, como Ctrl+B pliega el explorador, y el lienzo toma
+  el ancho sin cambiar su zoom ni su posición; el botón del riel, o Ctrl+J otra vez, lo despliega
+  con la proporción que tenía. La página recuerda el pliegue. Ctrl+J funciona desde el propio
+  código; en el navegador abriría las descargas, cosa que la página evita, como evita que Ctrl+S
+  guarde la página.
+- **Lo que muestra el riel.** Bajo su botón, el número de errores del archivo abierto, con el
+  resumen de los problemas como descripción emergente, y nada cuando no hay ninguno; los problemas
+  siguen anunciándose a los lectores de pantalla.
+- **Lo que lo despliega.** Todo lo que muestra un lugar del texto y pide el foco: **Mostrar en el
+  texto** en los menús del lienzo, ir a una definición, la línea de un problema, una corrección
+  rápida y **Configuración del proyecto**. Abrir un archivo desde el explorador y seleccionar en el
+  lienzo lo dejan plegado; la selección está en el código cuando el panel se despliega.
+- **Pantallas estrechas.** El código es la pestaña **Código**, entera, se recuerde lo que se
+  recuerde; allí Ctrl+J muestra la pestaña Código, o la pestaña Lienzo cuando el código está a la
+  vista.
 
 ## El explorador
 
@@ -121,18 +145,19 @@ diagramas, como los lista el explorador de un editor.
   menos de 1100 píxeles empieza con el riel. En una pantalla estrecha el explorador es la primera de
   tres pestañas, **Archivos**, **Código** y **Lienzo**, y abrir un archivo muestra el código.
 
-| Tecla (en el árbol)        | Hace                                                                    |
-| -------------------------- | ----------------------------------------------------------------------- |
-| Arriba, Abajo, Inicio, Fin | Moverse entre filas; con Mayús, ampliar la selección                    |
-| Derecha, Izquierda         | Abrir una carpeta o entrar en ella; cerrarla o ir a la carpeta padre    |
-| Intro, Espacio             | Abrir el archivo, el diagrama o la historia; abrir o cerrar una carpeta |
-| Una letra                  | Ir a la siguiente fila cuyo nombre empieza por ella                     |
-| F2                         | Cambiar el nombre en la fila: Intro lo guarda, Escape deja el anterior  |
-| Ctrl+D                     | Duplicar el archivo a su lado                                           |
-| Supr                       | Eliminar, después de una pregunta                                       |
-| Mayús+F10                  | El menú de la fila                                                      |
-| Ctrl+B                     | Ocultar o mostrar el explorador, desde cualquier parte de la página     |
-| Ctrl+Mayús+E               | Ir al explorador, desde cualquier parte de la página                    |
+| Tecla (en el árbol)        | Hace                                                                       |
+| -------------------------- | -------------------------------------------------------------------------- |
+| Arriba, Abajo, Inicio, Fin | Moverse entre filas; con Mayús, ampliar la selección                       |
+| Derecha, Izquierda         | Abrir una carpeta o entrar en ella; cerrarla o ir a la carpeta padre       |
+| Intro, Espacio             | Abrir el archivo, el diagrama o la historia; abrir o cerrar una carpeta    |
+| Una letra                  | Ir a la siguiente fila cuyo nombre empieza por ella                        |
+| F2                         | Cambiar el nombre en la fila: Intro lo guarda, Escape deja el anterior     |
+| Ctrl+D                     | Duplicar el archivo a su lado                                              |
+| Supr                       | Eliminar, después de una pregunta                                          |
+| Mayús+F10                  | El menú de la fila                                                         |
+| Ctrl+B                     | Ocultar o mostrar el explorador, desde cualquier parte de la página        |
+| Ctrl+J                     | Plegar o desplegar el panel del código, desde cualquier parte de la página |
+| Ctrl+Mayús+E               | Ir al explorador, desde cualquier parte de la página                       |
 
 ### El selector de proyectos
 

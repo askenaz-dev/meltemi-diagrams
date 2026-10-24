@@ -37,9 +37,9 @@ extensiones sobre `examples/`.
     organizar y exportar;
   - la insignia muestra el modo de disposición.
 - **Inspector**: primero la barra de estilo (colores, línea, ancho, radio de las esquinas, forma,
-  posición del icono, punta, efectos y el tema del diagrama), luego las propiedades del diagrama,
-  del elemento o la relación seleccionados, o el estilo común de varios elementos. Mientras se
-  edita un tema, el panel del tema ocupa su lugar.
+  posición del icono, punta, los efectos con una tarjeta de ajustes por cada uno activo, y el tema
+  del diagrama), luego las propiedades del diagrama, del elemento o la relación seleccionados, o
+  el estilo común de varios elementos. Mientras se edita un tema, el panel del tema ocupa su lugar.
 
 - **Bibliotecas** (botón de la barra de herramientas, U): elementos prearmados por categoría, de
   AWS, Azure, Google Cloud, Kubernetes, Tabler y los logos de tecnologías, con un cuadro de búsqueda
@@ -801,9 +801,10 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
   **Borde** y **Color del texto** como filas de muestras, luego la línea y el ancho del borde; en
   los elementos que los admiten, el radio de las esquinas, la forma y la posición del icono; en las
   relaciones, las puntas de ambos extremos, el tipo de ruta y las esquinas; y la fila
-  **Efectos**, que dice a su derecha "ninguno" o los efectos activos, con sus interruptores debajo.
-  Varios elementos seleccionados reciben el estilo juntos en una sola edición; una fila muestra
-  "mixto" donde sus valores difieren.
+  **Efectos**, que dice a su derecha "ninguno" o los efectos activos, con sus interruptores debajo
+  y, bajo ellos, una tarjeta por cada efecto activo ([efectos](#efectos)). Varios elementos
+  seleccionados reciben el estilo juntos en una sola edición; una fila muestra "mixto" donde sus
+  valores difieren, y los efectos conservan solo sus interruptores.
 - **Dibujos, no palabras.** La línea (continua, discontinua, punteada), el tipo de ruta
   (automática, recta, en codo, curva), las esquinas (en ángulo, redondeadas) y las formas son filas
   o cuadrículas de dibujos; **Predeterminado** vuelve a heredar. **Punta inicial** y **Punta final** son botones que muestran
@@ -816,7 +817,9 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
   Una muestra escribe el token (`style api { fill accent }`), que sigue al tema cuando este cambia;
   el selector de color junto a la fila escribe un color fijo (`stroke "#E8A33D"`); **Tema** quita la
   propiedad para que el elemento vuelva a heredar. Las flechas del teclado se mueven entre las
-  muestras; Espacio o Entrar elige.
+  muestras; Espacio o Entrar elige. El color de las partículas, de un pulso y de un recorrido es la
+  misma fila, dentro de la tarjeta del efecto, con `accent` como lo que se aplica sin un color
+  escrito.
 - **Iconos.** **Elegir…** en el campo **Icono** abre el selector de iconos del lienzo debajo de
   él, para los elementos y las relaciones de los diagramas de flujo, las composiciones libres y las
   vistas C4, y escribe `style <id> { icon "tabler:server" }`; **Quitar** quita el icono. Los
@@ -848,11 +851,16 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
   barra de estilo: **Partículas** (relaciones),
   **Trazo en movimiento** (relaciones y cajas con contorno), **Pulso** y **Recorrido** (relaciones:
   un resaltado que llena la flecha desde su inicio hasta su final y vuelve a empezar). Activar uno
-  escribe `animate <id> { effect … }`; su duración, repetición, retraso y, donde corresponden,
-  dirección, partículas y color se escriben en la misma instrucción. La velocidad muestra, en gris,
-  el valor predeterminado del tema (`flowDuration`, `dashDuration`, `pulseDuration`,
-  `traceDuration`, o los 1200, 1000, 1000 y 1500 ms del motor). Desactivarlo lo quita. Una
-  instrucción compartida por varios destinos se divide cuando uno de ellos cambia.
+  escribe `animate <id> { effect … }` y abre la tarjeta del efecto justo bajo la fila: su nombre y
+  su duración en la cabecera y, dentro, repetición, retraso y, donde corresponden, dirección,
+  partículas y la fila de color (**Tema**, los tokens del tema y el selector, con `accent` como
+  valor predeterminado), todo escrito en la misma instrucción. La duración muestra, en gris, el
+  valor predeterminado del tema (`flowDuration`, `dashDuration`, `pulseDuration`, `traceDuration`,
+  o los 1200, 1000, 1000 y 1500 ms del motor). Activar un efecto abre su tarjeta y cierra las
+  demás; el botón de la cabecera abre y cierra una tarjeta a mano, que se queda así para ese
+  elemento o relación mientras dura el lienzo; por lo demás todas empiezan cerradas, y varios
+  elementos seleccionados muestran solo los interruptores. Desactivar un efecto quita su instrucción y su tarjeta. Una instrucción compartida
+  por varios destinos se divide cuando uno de ellos cambia.
 - **Pausar y reproducir.** Un diagrama con efectos los reproduce en el lienzo desde que se
   muestra, como lo haría la exportación SVG animada (`docs/language/motion.md`). **Pausar los
   efectos** (❚❚) en la barra de herramientas muestra el dibujo estático y se convierte en

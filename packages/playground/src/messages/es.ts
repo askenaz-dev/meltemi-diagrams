@@ -197,6 +197,8 @@ export const es: typeof en = {
   code: {
     help: "Tab aplica sangría; presiona Escape y luego Tab para salir. Ctrl+Espacio sugiere, Ctrl+Punto ofrece correcciones, Mayús+Alt+F da formato, F2 cambia el nombre y F12 va a la definición.",
     width: "Ancho del código",
+    show: "Mostrar el código (Ctrl+J)",
+    hide: "Ocultar el código (Ctrl+J)",
     source: "Código fuente",
     sourceOf: (file) => `Código fuente de ${file}`,
     suggestions: "Sugerencias",

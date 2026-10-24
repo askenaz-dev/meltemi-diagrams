@@ -29,6 +29,8 @@ export interface Settings {
   canvas?: unknown;
   /** The explorer: its width in pixels, whether it is a rail, and whether every file is listed. */
   explorer?: { width?: number; collapsed?: boolean; showAll?: boolean };
+  /** The code pane: whether it is folded to a rail (its share stays in `split`). */
+  code?: { collapsed?: boolean };
 }
 
 function storage(): Storage | undefined {

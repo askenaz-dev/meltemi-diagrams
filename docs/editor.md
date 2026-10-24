@@ -34,9 +34,9 @@ Uninstall it from the Extensions view to roll back. To work on the extension its
     snapping, minimap and inspector toggles, arrange and export;
   - the badge shows the layout mode.
 - **Inspector**: the style strip first (colours, line, width, corner radius, shape, icon
-  position, arrowhead, effects, and the diagram's theme), then the properties of the diagram, the
-  selected element or relation, or the shared style of several items. While a theme is edited,
-  the theme panel takes its place.
+  position, arrowhead, the effects with a card of settings for each one that is on, and the
+  diagram's theme), then the properties of the diagram, the selected element or relation, or the
+  shared style of several items. While a theme is edited, the theme panel takes its place.
 - **Libraries** (toolbar toggle, U): ready-made elements by category, from AWS, Azure, Google
   Cloud, Kubernetes, Tabler and the technology logos, with a search box and the placement control
   of the icon picker ([element libraries](#element-libraries)).
@@ -735,8 +735,9 @@ declared in that model, in this file or in the model's own file.
   **Text colour** as rows of chips, then line and stroke width; for elements that take them, the
   corner radius, the shape and the icon position; for relations, the heads at both ends, the
   route kind and the corners; and the **Effects** row, which says at its right "off" or the effects
-  that are on, with their toggles beneath. Several selected items are styled together in one edit;
-  a row shows "mixed" where their values differ.
+  that are on, with their toggles beneath and, under them, a card for each effect that is on
+  ([effects](#effects)). Several selected items are styled together in one edit; a row shows
+  "mixed" where their values differ, and the effects keep their toggles only.
 - **Pictures, not words.** The line (solid, dashed, dotted), the route kind (automatic, straight,
   elbow, curved), the corners (sharp, rounded) and the shapes are rows or grids of pictures;
   **Default** inherits again.
@@ -749,7 +750,9 @@ declared in that model, in this file or in the model's own file.
   colours the diagram's theme gives them, so a custom theme shows its own. A chip writes the
   token (`style api { fill accent }`), which follows the theme when it changes; the colour picker
   beside the row writes a fixed colour (`stroke "#E8A33D"`); **Theme** removes the property so the
-  item inherits again. Arrows move between the chips, Space or Enter chooses.
+  item inherits again. Arrows move between the chips, Space or Enter chooses. The colour of flow
+  particles, a pulse and a trace is the same row, inside the effect's card, with `accent` as what
+  applies without a written colour.
 - **Icons.** **Choose…** on the **Icon** field opens the canvas's icon picker under it, for the
   elements and relations of flow diagrams, free compositions and C4 views, and writes
   `style <id> { icon "tabler:server" }`; **Remove** takes the icon away. Sequence diagrams, whose
@@ -777,11 +780,16 @@ declared in that model, in this file or in the model's own file.
 - **Inspector.** A selected element, relation, message, note or fragment lists the effects it can
   take, as toggles under the **Effects** row of the style strip: **Flow particles** (relations), **Moving dash** (relations
   and boxes with an outline), **Pulse** and **Trace** (relations: a highlight that fills the arrow
-  from its start to its end, then starts again). Turning one on writes `animate <id> { effect … }`;
-  its duration, repeat, delay and, where they apply, direction, particles and colour are written
-  into the same statement. The speed shows, greyed, the theme's default (`flowDuration`,
-  `dashDuration`, `pulseDuration`, `traceDuration`, or the engine's 1200, 1000, 1000 and 1500 ms). Turning it off removes it. A statement
-  shared by several targets is split when one of them changes.
+  from its start to its end, then starts again). Turning one on writes `animate <id> { effect … }`
+  and opens the effect's card right under the row: its name and its duration in the header, and
+  inside repeat, delay and, where they apply, direction, particles and the colour row (**Theme**,
+  the theme's tokens and the picker, with `accent` as the default), all written into the same
+  statement. The duration shows, greyed, the theme's default (`flowDuration`, `dashDuration`,
+  `pulseDuration`, `traceDuration`, or the engine's 1200, 1000, 1000 and 1500 ms). Turning an
+  effect on opens its card and closes the others; the header's button opens and closes a card by
+  hand, which stays so for that element or relation while the canvas lasts; every card starts
+  closed otherwise, and several selected items show the toggles only. Turning an effect off removes its statement and its card. A statement shared
+  by several targets is split when one of them changes.
 - **Pause and play.** A diagram with effects runs them on the canvas from the moment it is shown,
   as the animated SVG export would (`docs/language/motion.md`). The toolbar's **Pause effects**
   (❚❚) shows the static drawing and becomes **Play effects** (▷); the choice is kept for that

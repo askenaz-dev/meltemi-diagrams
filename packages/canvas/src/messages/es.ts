@@ -431,6 +431,8 @@ export const es: typeof en = {
     strip: "Estilo",
     effects: "Efectos",
     effectsOff: "ninguno",
+    effectSettings: (effect) => `${effect}: ajustes`,
+    milliseconds: "ms",
     mixed: "mixto",
     theme: "tema",
     defaultFromTheme: "predeterminado (tema)",

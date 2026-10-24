@@ -1,6 +1,7 @@
 # 0048. The project explorer: one place for the project and its files
 
-Status: accepted (project-explorer change, 21 October 2026)
+Status: accepted (project-explorer change, 21 October 2026). The code pane folds to a rail of
+the same make by [decision 0057](0057-panel-and-effects-polish.md).
 
 ## Context
 

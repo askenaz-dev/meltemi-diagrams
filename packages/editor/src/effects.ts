@@ -115,6 +115,7 @@ export function effectFields(
       });
     }
     if (extra.includes("color")) {
+      // Without a written colour the engine draws the theme's accent (decision 0055).
       fields.push({
         name: `${prefix}.color`,
         label: label("colour"),
@@ -125,7 +126,8 @@ export function effectFields(
             : entry.color.startsWith("@")
               ? entry.color.slice(1)
               : entry.color,
-        placeholder: words.placeholders.linesColour,
+        placeholder: "accent",
+        fromTheme: true,
       });
     }
   }

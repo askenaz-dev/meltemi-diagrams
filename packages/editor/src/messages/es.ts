@@ -101,7 +101,6 @@ export const es: typeof en = {
 
   placeholders: {
     none: "ninguno",
-    linesColour: "el de la línea",
   },
 
   quick: {

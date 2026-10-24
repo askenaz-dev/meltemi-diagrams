@@ -55,6 +55,9 @@ export interface InspectorActions {
 
 const keyOf = (name: string) => `mdg-field-${name.replace(/\W/g, "-")}`;
 
+/** The chevron of a card's disclosure button: it points right when closed, down when open. */
+const CHEVRON = "M6 4l4 4-4 4";
+
 /**
  * Whether a render must wait for the field being typed in: the focused text holds something not
  * written yet, which a redraw would lose. A field whose value was just written is redrawn.
@@ -611,11 +614,14 @@ function glyphField(field: InspectorField, send: Send): HTMLElement {
 /**
  * A row of colour chips: "theme" (inherit), then the theme's tokens with their colours; arrows move
  * between them, Enter or Space chooses. A native picker beside the row writes a colour of one's own.
+ * Inside a card the row shows `text` (the label without the effect's name the header shows) while
+ * the group keeps the field's full label as its accessible name.
  */
 function colorRow(
   field: InspectorField,
   send: Send,
   inherit = messages().inspector.themeChip,
+  text?: string,
 ): HTMLElement {
   const id = keyOf(field.name);
   const words = messages().inspector;
@@ -630,7 +636,7 @@ function colorRow(
   const group = h("div", {
     class: "chips",
     role: "radiogroup",
-    "aria-labelledby": labelId,
+    ...(text === undefined ? { "aria-labelledby": labelId } : { "aria-label": field.label }),
   });
   const options: { value: string | null; label: string; color?: string }[] = [
     { value: null, label: inherit },
@@ -694,11 +700,65 @@ function colorRow(
   const label = h(
     "div",
     { class: "row-label" },
-    h("span", { id: labelId }, field.label),
+    h("span", { id: labelId }, text ?? field.label),
     h("span", { class: "value", "data-value": "" }, shown),
     picker,
   );
   return h("div", { class: "field colors", "data-field": field.name }, label, group);
+}
+
+/** A toggle of the Effects row: an `effect.*` field of the strip that belongs to no card. */
+const isToggle = (field: Pick<InspectorField, "name" | "group">): boolean =>
+  field.name.startsWith("effect.") && field.group === undefined;
+
+/** An effect's card in the strip: its toggle, its duration (shown in the header) and the rest. */
+export interface EffectCard {
+  readonly toggle: InspectorField;
+  readonly duration: InspectorField | undefined;
+  readonly fields: readonly InspectorField[];
+}
+
+/**
+ * The cards of the strip: the toggles in their order, each with the fields whose `group` names it,
+ * the duration apart since it goes in the card's header. A toggle without fields (an effect that
+ * is off, or the toggles of a selection) draws no card.
+ */
+export function effectCards(strip: readonly InspectorField[]): EffectCard[] {
+  return strip.filter(isToggle).map((toggle) => {
+    const grouped = strip.filter((f) => f.group === toggle.name);
+    const speed = `${toggle.name}.duration`;
+    return {
+      toggle,
+      duration: grouped.find((f) => f.name === speed),
+      fields: grouped.filter((f) => f.name !== speed),
+    };
+  });
+}
+
+/** What a card's control shows: its label without the effect's name, which the header shows once. */
+export function cardLabel(header: string, label: string): string {
+  const prefix = `${header}: `;
+  return label.startsWith(prefix) ? label.slice(prefix.length) : label;
+}
+
+/**
+ * The cards open for the next model of a target: the effects whose toggle was off (or absent) in
+ * `previous` and is on in `next`, alone, when there are any (the card of an effect just turned on
+ * opens and the others close); else its kept set minus the effects that are off. A target seen for
+ * the first time (`previous` undefined) starts from its kept set, empty at first.
+ */
+export function openCards(
+  previous: readonly Pick<InspectorField, "name" | "value" | "group">[] | undefined,
+  next: readonly Pick<InspectorField, "name" | "value" | "group">[],
+  kept: ReadonlySet<string>,
+): Set<string> {
+  const toggles = next.filter(isToggle);
+  const wasOn = (name: string) => previous?.some((f) => f.name === name && f.value === "on");
+  const turnedOn = toggles.filter((t) => t.value === "on" && previous && !wasOn(t.name));
+  if (turnedOn.length > 0) return new Set(turnedOn.map((t) => t.name));
+  const open = new Set(kept);
+  for (const toggle of toggles) if (toggle.value !== "on") open.delete(toggle.name);
+  return open;
 }
 
 /** An effect as a toggle: pressed when on, "mixed" when only some of the selection have it. */
@@ -759,8 +819,8 @@ function effectsRow(
 }
 
 /**
- * The property inspector: the style strip first (colour chips, line, width, arrowhead, effects and
- * their speed, the diagram's theme), then one control per field.
+ * The property inspector: the style strip first (colour chips, line, width, arrowhead, the effects
+ * with a card of settings for each one that is on, the diagram's theme), then one control per field.
  */
 export class Inspector {
   readonly element = h("aside", {
@@ -771,6 +831,11 @@ export class Inspector {
   private model: InspectorModel | undefined;
   /** A canvas that only shows: every field is drawn disabled and nothing is committed. */
   private readOnly = false;
+  /**
+   * The effects whose cards are open, by target (its kind and ids): the card of an effect just
+   * turned on opens, a card opened or closed by hand stays so while the canvas lasts; never kept.
+   */
+  private readonly cards = new Map<string, Set<string>>();
 
   constructor(private readonly actions: InspectorActions) {
     this.element.append(
@@ -803,11 +868,14 @@ export class Inspector {
     // Keep the field being typed in: a render while typing must not steal focus.
     const focused = document.activeElement as HTMLElement | null;
     const inside = !!focused && this.element.contains(focused);
-    if (
-      this.model &&
-      sameTarget(this.model, model) &&
-      holdsTyping(focused, this.element, model.fields)
-    ) {
+    const same = this.model !== undefined && sameTarget(this.model, model);
+    // The cards open for this target: the card of an effect just turned on joins the kept ones.
+    const targetKey = `${model.target.kind}|${model.target.ids.join()}`;
+    const kept = this.cards.get(targetKey) ?? new Set<string>();
+    const open = openCards(same ? this.model!.fields : undefined, model.fields, kept);
+    const grown = [...open].filter((effect) => !kept.has(effect));
+    this.cards.set(targetKey, open);
+    if (same && holdsTyping(focused, this.element, model.fields)) {
       this.model = model;
       return;
     }
@@ -822,20 +890,23 @@ export class Inspector {
       : model.fields;
     const strip = fields.filter((f) => f.section === "strip");
     if (strip.length > 0) {
-      // The effects side by side as toggles, then the speed of each one that is on.
-      const toggles = strip.filter((f) => /^effect\.(flow|dash|pulse|trace)$/.test(f.name));
-      const speeds = strip.filter((f) => /^effect\.\w+\.duration$/.test(f.name));
+      // The style fields, then the effects side by side as toggles, then one card per effect that
+      // is on with its settings.
+      const cards = effectCards(strip);
+      const toggles = cards.map((card) => card.toggle);
       const words = messages().inspector;
       const section = h("section", { class: "strip", "aria-label": words.strip });
       for (const field of strip) {
-        if (!toggles.includes(field) && !speeds.includes(field)) {
-          section.append(this.stripField(field));
-        }
+        if (!isToggle(field) && field.group === undefined) section.append(this.stripField(field));
       }
       if (toggles.length > 0) {
         section.append(effectsRow(toggles, (f) => this.stripField(f)));
       }
-      for (const field of speeds) section.append(this.stripField(field));
+      for (const card of cards) {
+        if (card.duration || card.fields.length > 0) {
+          section.append(this.effectCard(card, open, grown, targetKey));
+        }
+      }
       this.element.append(section);
     }
     for (const field of fields) {
@@ -847,9 +918,96 @@ export class Inspector {
   /** Shows no properties: what a file without diagrams has. The next model draws them again. */
   clear(): void {
     this.model = undefined;
+    this.cards.clear();
     const datalist = this.element.querySelector("datalist")!;
     clear(this.element);
     this.element.append(datalist);
+  }
+
+  /**
+   * An effect's card under the Effects row: a header with the disclosure button (the effect's
+   * name, named "<effect>: settings" so it never shares the toggle's name) and the duration beside
+   * it, then the body with the other settings. Opening and closing by hand changes the card in
+   * place, so it moves on the canvas's motion tokens, and is remembered for the target; a card that
+   * appears because its effect was just turned on grows in (`data-grow`).
+   */
+  private effectCard(
+    card: EffectCard,
+    open: ReadonlySet<string>,
+    grown: readonly string[],
+    targetKey: string,
+  ): HTMLElement {
+    const words = messages().inspector;
+    const effect = card.toggle.name;
+    const name = card.toggle.label;
+    const bodyId = `mdg-card-${effect.replace(/\W/g, "-")}`;
+    const isOpen = open.has(effect);
+    const head = h(
+      "button",
+      {
+        type: "button",
+        class: "card-head",
+        "data-key": `${effect}:card`,
+        "aria-expanded": String(isOpen),
+        "aria-controls": bodyId,
+        "aria-label": words.effectSettings(name),
+      },
+      icon(CHEVRON),
+      h("span", { class: "card-name" }, name),
+    );
+    const element = h("div", {
+      class: "effect-card",
+      "data-effect": effect,
+      "data-open": String(isOpen),
+      "data-grow": grown.includes(effect) ? "true" : undefined,
+    });
+    head.addEventListener("click", () => {
+      const now = element.dataset.open !== "true";
+      element.dataset.open = String(now);
+      delete element.dataset.grow;
+      head.setAttribute("aria-expanded", String(now));
+      const set = this.cards.get(targetKey);
+      if (now) set?.add(effect);
+      else set?.delete(effect);
+    });
+    head.addEventListener("keydown", (e) => e.stopPropagation());
+    const header = h("div", { class: "card-header" }, head);
+    if (card.duration) {
+      const duration = card.duration;
+      const input = fieldControl(duration, keyOf(duration.name), this.send(duration));
+      input.setAttribute("aria-label", duration.label);
+      header.append(
+        h(
+          "span",
+          { class: "card-duration" },
+          input,
+          h("span", { class: "unit", "aria-hidden": "true" }, words.milliseconds),
+        ),
+      );
+    }
+    const body = h(
+      "div",
+      { class: "card-body", id: bodyId },
+      h("div", { class: "card-fields" }, ...card.fields.map((f) => this.cardRow(name, f))),
+    );
+    element.append(header, body);
+    return element;
+  }
+
+  /** A setting inside a card: the label without the effect's name, then its control. */
+  private cardRow(header: string, field: InspectorField): HTMLElement {
+    const send = this.send(field);
+    const text = cardLabel(header, field.label);
+    if (field.type === "color" && field.swatches) return colorRow(field, send, undefined, text);
+    const id = keyOf(field.name);
+    const control = fieldControl(field, id, send);
+    control.setAttribute("aria-label", field.label);
+    return h(
+      "div",
+      { class: "field card-row", "data-field": field.name },
+      h("label", { for: id }, text),
+      control,
+    );
   }
 
   private send(field: InspectorField): Send {

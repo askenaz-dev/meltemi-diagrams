@@ -12,6 +12,12 @@ with the project's switcher at its top, as VS Code lists a workspace
 
 ### Playground
 
+- The code pane folds to a rail: the button at the end of the file's path, a double click on the
+  divider or Ctrl+J fold it to 36 px and the canvas takes the width, keeping its zoom and its
+  place; the rail's button or Ctrl+J unfold it at the share it had, which the page remembers with
+  the fold. The rail counts the open file's errors. Show in text, a definition, a problem's line and
+  a quick fix unfold it; opening a file and selecting on the canvas do not. On a phone the code
+  stays a tab ([decision 0057](docs/decisions/0057-panel-and-effects-polish.md)).
 - The explorer: a tree of the project's folders, diagrams and images; a file with several diagrams
   or stories lists them, and a click shows one on the canvas. Errors and warnings are counted on each
   file, and summed on a closed folder. The keys of a tree (arrows, Home, End, Enter, a letter, F2,
@@ -56,6 +62,14 @@ with the project's switcher at its top, as VS Code lists a workspace
 
 ### Canvas (VS Code and the playground)
 
+- The settings of an effect sit with its toggle: under the strip's Effects row, one card per
+  effect that is on, headed by its name and its duration, holding repeat, delay, direction,
+  particles and colour as they apply; the card of an effect just turned on opens, the others start
+  closed, and a card opened or closed by hand stays so while the canvas lasts. Nothing of an effect
+  is listed after the element's other fields any more. The colour of flow particles, a pulse and a
+  trace is a row of the theme's chips with the picker, as fill and stroke are, and says that
+  `accent` applies without a written colour
+  ([decision 0057](docs/decisions/0057-panel-and-effects-polish.md)).
 - Effects that can be seen: flow particles and pulse halos take the theme's `accent`, as traces
   did, instead of the target's own stroke (a grey dot on a grey line, a halo the colour of a pale
   border), and a particle grows to `max(4, 1.5 × width)` and rides under its relation's label. The

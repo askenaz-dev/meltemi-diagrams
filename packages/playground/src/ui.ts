@@ -25,6 +25,8 @@ export const ICONS = {
   problems: "M8 2.5l6 10.5H2z|M8 6.5v3|M8 11.3h.01",
   chevron: "M4.5 6.5L8 10l3.5-3.5",
   code: "M5.5 4.5L2 8l3.5 3.5|M10.5 4.5L14 8l-3.5 3.5",
+  /** The explorer's sidebar glyph mirrored: the code pane folds towards the explorer. */
+  codePane: "M2.5 3h11v10h-11z|M9.8 3v10",
   canvas: "M2.5 3.5h11v9h-11z|M5 6h3v2.5H5z|M9.5 8h1.5v2H9.5z",
   link: "M7 9a2.5 2.5 0 0 0 3.5 0l2-2a2.5 2.5 0 0 0-3.5-3.5L8 4.5|M9 7a2.5 2.5 0 0 0-3.5 0l-2 2A2.5 2.5 0 0 0 7 12.5L8 11.5",
   restore: "M3 8a5 5 0 1 0 1.5-3.5|M3 2.5v2.5h2.5",

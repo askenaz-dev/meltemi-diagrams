@@ -22,7 +22,14 @@ describe("the canvas catalog", () => {
   it("has every English entry in Spanish", () => {
     // Words that are rightly the same in both languages.
     expect(
-      untranslated(en, es, ["Zoom", "Actor", "Control", "Id", "inspector.options.no"]),
+      untranslated(en, es, [
+        "Zoom",
+        "Actor",
+        "Control",
+        "Id",
+        "inspector.options.no",
+        "inspector.milliseconds",
+      ]),
     ).toEqual([]);
   });
 

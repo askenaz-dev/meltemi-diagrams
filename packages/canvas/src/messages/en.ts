@@ -384,6 +384,10 @@ export const en = {
     effects: "Effects",
     /** What the Effects row says when no effect is on. */
     effectsOff: "off",
+    /** The disclosure button of an effect's card, named so that it never shares the toggle's name. */
+    effectSettings: (effect: string) => `${effect}: settings`,
+    /** The unit after the duration in a card's header. */
+    milliseconds: "ms",
     /** The selected targets have different values. */
     mixed: "mixed",
     /** Without a written value the theme decides. */

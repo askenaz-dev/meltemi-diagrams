@@ -74,8 +74,6 @@ export const en = {
   placeholders: {
     /** No scope, no group around an element. */
     none: "none",
-    /** The colour of an effect without one: the colour of the relation's line. */
-    linesColour: "the line's",
   },
 
   /**

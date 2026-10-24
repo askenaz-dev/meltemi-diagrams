@@ -171,7 +171,9 @@ boolean, else `false`. The shell never calls `split()` while folded, so `setting
 the last open share and unfolding restores it; the divider's pointer and key handlers return while
 `data-collapsed` is `true` (the column is hidden, but a key on a focused hidden separator must not
 write a share), and a double click on the divider restores the share recorded at its first
-pointerdown before folding, so the two tiny moves of the clicks do not change it. Alternatives: a
+pointerdown before folding, so the two tiny moves of the clicks do not change it (the share is recorded on the `mousedown` whose
+`detail` is 1, the first click of a double click, so a drag just before the double click leaves
+its own share in place). Alternatives: a
 `split` of 0 standing for folded (every reader of `split` would need the special case, and the
 kept share would be lost); a key under `explorer` (dropped by its spread); no memory (the
 explorer's rail is remembered, and a fold made to work on the canvas should survive a reload).
@@ -199,7 +201,8 @@ range)` for a definition in another file (`1340-1344`), `definition` for a local
 and a problem item's click (`1461-1464`); each calls `code.reveal(…, true)` and then `show("code")`
 for the narrow screen. A focus into a `visibility: hidden` textarea is lost, so these four call one
 helper, `revealCode(start, end)`, which calls `setCodeCollapsed(false)` before the reveal and the
-`show("code")`; `show()` itself never changes the fold, so the constructor's `show("code")`
+`show("code")`, and **Project settings** (`projectSettings`, which focuses the code as well)
+unfolds the same way; `show()` itself never changes the fold, so the constructor's `show("code")`
 (`558`), `openFile` (`933-936`), the rename paths (`911`, `928`) and Ctrl+B's Files-tab fallback
 (`1560`) leave a folded pane folded. Of the four, only **Show in text** is reachable while the pane
 is folded on a wide screen: F12, Ctrl+click and the problems list live inside the pane and fire
@@ -283,9 +286,11 @@ The inspector rebuilds its DOM on every render (`clear(this.element)`, `817`), s
 cannot live in the DOM. `Inspector` keeps `cards: Map<string, Set<string>>` keyed by the target
 (`target.kind` plus `target.ids.join()`) holding the effects whose cards are open, cleared by
 `clear()` (a file without diagrams) and never persisted. The exported pure helper
-`openCards(previous, next, kept)` returns the set for the next model: the kept set for the same
-target, plus every effect whose toggle was off (or absent) in `previous` and is on in `next`,
-minus the effects turned off; a different target starts from its kept set, empty on first sight.
+`openCards(previous, next, kept)` returns the set for the next model: the effects whose toggle was
+off (or absent) in `previous` and is on in `next`, alone, when there are any (the card of an
+effect just turned on opens and the others close, as the quick-styling scenarios say); else the
+kept set of the same target minus the effects turned off; a different target starts from its kept
+set, empty on first sight.
 The header button toggles the effect in the set and redraws the strip; its `data-key` lets
 `refocus` return the focus after a redraw, and it stops `keydown` propagation as every control
 does. The duration stays visible in the header whether the card is open or closed, so the strip
@@ -332,9 +337,9 @@ for the session.
   input keeps its id and placeholder in the card's header, and the toggles' row is untouched;
   the scenario's screenshot `inspector-effects-row.png` is looked at.
 - [Two buttons named after one effect] → the header button's accessible name is
-  `inspector.effectSettings(name)` ("Moving dash: settings"), so `getByRole("button", { name:
-  "Moving dash" })` still finds the toggle alone; the Spanish words are added and the three
-  parity tests cover them.
+  `inspector.effectSettings(name)` ("Moving dash: settings"), so the toggle is found alone by its
+  exact name (`getByRole("button", { name: "Moving dash", exact: true })`; Playwright's default
+  match is by substring); the Spanish words are added and the three parity tests cover them.
 - [`holdsTyping` finds a field by id] → the duration input in the header keeps `keyOf(name)` as
   its id, and the card's body controls keep theirs, so a render while typing a delay still waits.
 - [The card's colour row inherits `#000000` when the theme has no `accent`] → every theme family

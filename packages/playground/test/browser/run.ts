@@ -2168,6 +2168,248 @@ const tests: Test[] = [
     },
   },
   {
+    name: "code: folds to a rail from the bar, keeps it, unfolds with Ctrl+J and folds from a double click on the divider",
+    async run({ page }) {
+      const transform = () =>
+        page.evaluate(() => getComputedStyle(document.querySelector("#app .content")!).transform);
+      const folded = (state: boolean) =>
+        until(
+          page,
+          state ? "the rail" : "the code open",
+          (want) => document.querySelector("#code-pane")?.getAttribute("data-collapsed") === want,
+          String(state),
+        );
+      const kept = () =>
+        page.evaluate(
+          () =>
+            JSON.parse(localStorage.getItem("meltemi-playground:settings:v1") ?? "{}") as {
+              split?: number;
+              code?: { collapsed?: boolean };
+            },
+        );
+      const before = await transform();
+      const share = await page.locator(".divider").getAttribute("aria-valuenow");
+      // The grid's columns move on the page's transition, and not under reduced motion.
+      const columns = () =>
+        page.evaluate(() => getComputedStyle(document.querySelector(".panes")!).transitionDuration);
+      assert.equal(await columns(), "0.18s");
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      assert.equal(await columns(), "0s");
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+      // The bar's button folds the pane; the canvas keeps its viewport.
+      const hide = page.getByRole("button", { name: "Hide the code (Ctrl+J)" });
+      assert.equal(await hide.getAttribute("aria-expanded"), "true");
+      await hide.click();
+      await folded(true);
+      await page.waitForTimeout(250);
+      assert.equal(Math.round((await page.locator("#code-pane").boundingBox())!.width), 36);
+      const show = page.getByRole("button", { name: "Show the code (Ctrl+J)" });
+      assert.equal(await show.isVisible(), true);
+      assert.equal(await show.getAttribute("aria-expanded"), "false");
+      assert.equal(await show.getAttribute("aria-controls"), "code-pane");
+      assert.equal(await page.locator(".code-input").isVisible(), false);
+      assert.equal(await page.locator(".divider").isVisible(), false);
+      assert.equal(await transform(), before, "the canvas keeps its viewport");
+      assert.equal((await kept()).code?.collapsed, true);
+      await page.screenshot({ path: join(output, "code-rail-light.png") });
+      // The fold survives a reload.
+      await page.reload();
+      await ready(page);
+      assert.equal(await page.locator("#code-pane").getAttribute("data-collapsed"), "true");
+      // Ctrl+J unfolds it at its kept share and puts the focus in the code.
+      await page.keyboard.press("Control+j");
+      await folded(false);
+      await page.waitForTimeout(250);
+      assert.equal(await page.locator(".divider").getAttribute("aria-valuenow"), share);
+      assert.equal(await page.evaluate(() => document.activeElement?.className), "code-input");
+      assert.equal((await kept()).code?.collapsed, false);
+      // Ctrl+J from the code folds it and moves the focus to the rail's button.
+      await page.keyboard.press("Control+j");
+      await folded(true);
+      assert.equal(
+        await page.evaluate(() => document.activeElement?.getAttribute("aria-label")),
+        "Show the code (Ctrl+J)",
+      );
+      await show.click();
+      await folded(false);
+      // The columns move for 180 ms: the divider is measured once it stays where it is.
+      const divider = page.locator(".divider");
+      let grip = (await divider.boundingBox())!;
+      for (let tries = 0; tries < 20; tries++) {
+        await page.waitForTimeout(80);
+        const next = (await divider.boundingBox())!;
+        if (next.x === grip.x) break;
+        grip = next;
+      }
+      // The divider dragged to 60 %, then double-clicked: the pane folds and the share stays.
+      const target = await page.evaluate(() => {
+        const code = document.querySelector(".code-pane")!.getBoundingClientRect();
+        const right = document.querySelector(".panes")!.getBoundingClientRect().right;
+        return code.left + 0.6 * (right - code.left - 6);
+      });
+      await page.mouse.move(grip.x + 3, grip.y + 200);
+      await page.mouse.down();
+      await page.mouse.move(target, grip.y + 200, { steps: 6 });
+      await page.mouse.up();
+      await until(
+        page,
+        "the share at 60 %",
+        () => document.querySelector(".divider")?.getAttribute("aria-valuenow") === "60",
+      );
+      await divider.dblclick();
+      await folded(true);
+      assert.equal(await divider.getAttribute("aria-valuenow"), "60");
+      assert.equal(Math.round(((await kept()).split ?? 0) * 100), 60);
+      await show.click();
+      await folded(false);
+      await page.waitForTimeout(250);
+      assert.equal(await divider.getAttribute("aria-valuenow"), "60");
+      const width = (await page.locator("#code-pane").boundingBox())!.width;
+      const room = await page.evaluate(() => {
+        const explorer = document.querySelector("#explorer")!.getBoundingClientRect().width;
+        return document.querySelector(".panes")!.getBoundingClientRect().width - explorer - 7;
+      });
+      assert.equal(Math.round((width / room) * 100), 60);
+    },
+  },
+  {
+    name: "code: the rail counts the file's errors, Show in text unfolds the pane, a file and a canvas selection leave it folded",
+    async run({ page }) {
+      const folded = (state: boolean) =>
+        until(
+          page,
+          state ? "the rail" : "the code open",
+          (want) => document.querySelector("#code-pane")?.getAttribute("data-collapsed") === want,
+          String(state),
+        );
+      const badge = page.locator(".code-rail-problems");
+      // An error typed in the file shows as a count on the rail once the pane is folded.
+      await caretAfter(page, "direction LR");
+      await page.keyboard.type('\n  style missing { fill "#fff" }');
+      await analysed(page);
+      await page.keyboard.press("Control+j");
+      await folded(true);
+      await until(page, "the badge", () => {
+        const span = document.querySelector(".code-rail-problems");
+        return span !== null && !span.hasAttribute("hidden") && span.textContent === "1";
+      });
+      assert.match((await badge.getAttribute("title")) ?? "", /^Problems: 1 error/);
+      assert.match(
+        (await page.locator('.sr-only[role="status"]').textContent()) ?? "",
+        /overview\.meltemi: Problems: 1 error/,
+      );
+      // Fixing the line (commented out) removes the number.
+      await page.keyboard.press("Control+j");
+      await folded(false);
+      await selectText(page, "style missing");
+      await page.keyboard.type("// style missing");
+      await analysed(page);
+      assert.equal(await badge.isHidden(), true);
+      // Show in text from the canvas's menu unfolds the pane and selects the element with the focus.
+      await page.keyboard.press("Control+j");
+      await folded(true);
+      const api = page.locator('#app .content g[data-id="api"][data-role="element"]').first();
+      await api.click({ button: "right" });
+      await page.getByRole("menuitem", { name: "Show in text" }).click();
+      await folded(false);
+      await until(
+        page,
+        "the declaration selected",
+        () =>
+          document.activeElement?.className === "code-input" &&
+          (document.activeElement as HTMLTextAreaElement).value
+            .slice(
+              (document.activeElement as HTMLTextAreaElement).selectionStart,
+              (document.activeElement as HTMLTextAreaElement).selectionEnd,
+            )
+            .includes("api"),
+      );
+      // Opening a file from the tree and selecting on the canvas leave a folded pane folded.
+      await page.keyboard.press("Control+j");
+      await folded(true);
+      await page
+        .locator('.tree li[data-key="f:diagrams/overview.meltemi"] > .tree-row .tree-name')
+        .click();
+      await page.waitForTimeout(250);
+      assert.equal(await page.locator("#code-pane").getAttribute("data-collapsed"), "true");
+      const db = page.locator('#app .content g[data-id="db"][data-role="element"]').first();
+      await db.click();
+      await page.waitForTimeout(250);
+      assert.equal(await page.locator("#code-pane").getAttribute("data-collapsed"), "true");
+      // Its text is selected in the code when the pane unfolds.
+      await page.getByRole("button", { name: "Show the code (Ctrl+J)" }).click();
+      await folded(false);
+      const selected = await page.evaluate(() => {
+        const area = document.querySelector(".code-input") as HTMLTextAreaElement;
+        return area.value.slice(area.selectionStart, area.selectionEnd);
+      });
+      assert.match(selected, /db/);
+    },
+  },
+  {
+    name: "code: the rail in the dark",
+    dark: true,
+    init: () => {
+      localStorage.setItem(
+        "meltemi-playground:settings:v1",
+        JSON.stringify({ theme: "dark", code: { collapsed: true } }),
+      );
+    },
+    async run({ page }) {
+      assert.equal(await page.locator("#code-pane").getAttribute("data-collapsed"), "true");
+      await page.waitForTimeout(250);
+      await page.screenshot({ path: join(output, "code-rail-dark.png") });
+    },
+  },
+  {
+    name: "code: a kept fold is ignored on a narrow screen, where Ctrl+J switches between the Code and Canvas tabs",
+    viewport: { width: 375, height: 812 },
+    init: () => {
+      localStorage.setItem(
+        "meltemi-playground:settings:v1",
+        JSON.stringify({ code: { collapsed: true } }),
+      );
+    },
+    async run({ page }) {
+      assert.equal(await page.locator(".view-tabs").isVisible(), true);
+      assert.equal(await page.locator("#tab-code").getAttribute("aria-selected"), "true");
+      assert.equal(await page.locator(".code-input").isVisible(), true);
+      assert.equal(await page.locator(".code-rail").isVisible(), false);
+      assert.equal(
+        await page.getByRole("button", { name: "Hide the code (Ctrl+J)" }).isVisible(),
+        false,
+      );
+      const wide = await page.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth,
+      );
+      assert.equal(wide, false, "no sideways scrolling");
+      await page.keyboard.press("Control+j");
+      assert.equal(await page.locator("#tab-canvas").getAttribute("aria-selected"), "true");
+      assert.equal(await page.locator(".canvas-pane").isVisible(), true);
+      await page.keyboard.press("Control+j");
+      assert.equal(await page.locator("#tab-code").getAttribute("aria-selected"), "true");
+    },
+  },
+  {
+    name: "code: a kept value that is not a boolean opens the code",
+    init: () => {
+      localStorage.setItem(
+        "meltemi-playground:settings:v1",
+        JSON.stringify({ code: { collapsed: "yes" } }),
+      );
+    },
+    async run({ page }) {
+      assert.equal(await page.locator("#code-pane").getAttribute("data-collapsed"), "false");
+      assert.equal(await page.locator(".code-input").isVisible(), true);
+      await page.keyboard.press("Control+j");
+      await until(
+        page,
+        "the rail",
+        () => document.querySelector("#code-pane")?.getAttribute("data-collapsed") === "true",
+      );
+    },
+  },
+  {
     name: "explorer: on a narrow screen it is the Files tab, and opening a diagram shows the code",
     viewport: { width: 375, height: 812 },
     async run({ page }) {
@@ -2604,6 +2846,19 @@ const tests: Test[] = [
         ),
       );
       assert.match(await code(page), /not kept/);
+      // The code pane folds and unfolds without anything kept.
+      await page.keyboard.press("Control+j");
+      await until(
+        page,
+        "the rail",
+        () => document.querySelector("#code-pane")?.getAttribute("data-collapsed") === "true",
+      );
+      await page.keyboard.press("Control+j");
+      await until(
+        page,
+        "the code open",
+        () => document.querySelector("#code-pane")?.getAttribute("data-collapsed") === "false",
+      );
     },
   },
   {

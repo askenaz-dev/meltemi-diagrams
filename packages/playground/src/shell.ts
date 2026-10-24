@@ -132,6 +132,14 @@ export class Playground {
   /** The open file's place in the project, above the code. */
   private readonly codePath = h("div", { class: "code-path", "aria-live": "off" });
   private readonly codeHost = h("div", { class: "code-host" });
+  /** The code pane, which folds to a rail; its divider, hidden and inert while it is folded. */
+  private codePane!: HTMLElement;
+  private divider!: HTMLElement;
+  /** The bar's button, which folds the code pane, and the rail's, which unfolds it. */
+  private readonly codeBarButton = iconButton("codePane", messages().code.hide);
+  private readonly codeRailButton = iconButton("codePane", messages().code.show);
+  /** The open file's error count on the rail; hidden at zero. */
+  private readonly codeRailProblems = h("span", { class: "code-rail-problems", hidden: true });
   private readonly preview = h("figure", { class: "image-preview", hidden: true });
   private readonly problemsTitle = h("h2", { id: "problems-title" }, messages().problems.title);
   private readonly problemList = h("ul", { class: "problem-list" });
@@ -282,8 +290,10 @@ export class Playground {
       changed: () => this.scheduleKeep(),
       analysis: (analysis) => this.showAnalysis(analysis),
       reveal: (range) => {
-        this.code.reveal(range.start, range.end, range.focus);
-        if (range.focus) this.show("code");
+        // A reveal that asks for the focus (Show in text) unfolds the pane; a canvas selection
+        // reveals quietly and leaves a folded pane folded.
+        if (range.focus) this.revealCode(range.start, range.end);
+        else this.code.reveal(range.start, range.end, false);
       },
       status: (message) => this.status(message),
     });
@@ -474,14 +484,24 @@ export class Playground {
       this.problemList,
       this.others,
     );
+    // The rail a folded code pane leaves: one button that unfolds it, and the file's error count.
+    this.codeBarButton.setAttribute("aria-expanded", "true");
+    this.codeBarButton.setAttribute("aria-controls", "code-pane");
+    this.codeBarButton.addEventListener("click", () => this.setCodeCollapsed(true));
+    this.codeRailButton.setAttribute("aria-expanded", "false");
+    this.codeRailButton.setAttribute("aria-controls", "code-pane");
+    this.codeRailButton.addEventListener("click", () => this.setCodeCollapsed(false));
+    const codeRail = h("div", { class: "code-rail" }, this.codeRailButton, this.codeRailProblems);
     const codePane = h(
       "section",
       { id: "code-pane", class: "pane code-pane", role: "tabpanel", "aria-labelledby": "tab-code" },
+      codeRail,
       this.codePath,
       this.codeHost,
       help,
       problems,
     );
+    this.codePane = codePane;
     const divider = h("div", {
       class: "divider",
       role: "separator",
@@ -492,6 +512,7 @@ export class Playground {
       "aria-valuemin": "20",
       "aria-valuemax": "80",
     });
+    this.divider = divider;
     this.dividerBehaviour(divider);
     const canvasRoot = h("div", { id: "app" });
     const canvasPane = h(
@@ -507,6 +528,7 @@ export class Playground {
     this.explorer = new Explorer(this.explorerHost());
     this.panes.append(this.explorer.element, this.explorer.edge, codePane, divider, canvasPane);
     this.split(this.settings.split ?? 0.42);
+    this.applyCodeLayout();
 
     this.privacy = h("span", { class: "privacy" }, m.status.privacy);
     const status = h(
@@ -580,8 +602,54 @@ export class Playground {
     this.settings.split = value;
   }
 
+  /** Whether the code pane is folded to its rail: kept only as a boolean `true`. */
+  private codeFolded(): boolean {
+    return this.settings.code?.collapsed === true;
+  }
+
+  /**
+   * Folds the code pane to a 36 px rail or unfolds it to its kept share, remembered with the
+   * settings. Folding from inside the pane moves the focus to the rail's button; unfolding puts
+   * it in the code. The stylesheet moves the columns and hides the divider, kept inert meanwhile.
+   */
+  setCodeCollapsed(collapsed: boolean): void {
+    if (collapsed === this.codeFolded()) return;
+    const hadFocus = this.codePane.contains(document.activeElement);
+    this.settings.code = { ...this.settings.code, collapsed };
+    saveSettings(this.settings);
+    this.applyCodeLayout();
+    if (collapsed && hadFocus) this.codeRailButton.focus();
+    if (!collapsed) this.code.focus();
+  }
+
+  private applyCodeLayout(): void {
+    const collapsed = this.codeFolded();
+    this.root.dataset.code = collapsed ? "rail" : "open";
+    this.codePane.dataset.collapsed = String(collapsed);
+    this.divider.dataset.collapsed = String(collapsed);
+    this.codeBarButton.setAttribute("aria-expanded", String(!collapsed));
+    this.codeRailButton.setAttribute("aria-expanded", String(!collapsed));
+  }
+
+  /**
+   * Shows a range of the open file with the focus: the pane unfolds when it was a rail, and on a
+   * narrow screen the Code tab comes up.
+   */
+  private revealCode(start: number, end: number): void {
+    this.setCodeCollapsed(false);
+    this.code.reveal(start, end, true);
+    this.show("code");
+  }
+
   private dividerBehaviour(divider: HTMLElement): void {
+    // The share before the first click of a double click (`detail` counts the clicks), so that the
+    // two tiny moves of the clicks leave it as it was.
+    let shareBefore = this.settings.split ?? 0.42;
+    divider.addEventListener("mousedown", (e) => {
+      if (e.detail <= 1) shareBefore = this.settings.split ?? 0.42;
+    });
     divider.addEventListener("pointerdown", (e) => {
+      if (this.codeFolded()) return;
       divider.setPointerCapture(e.pointerId);
       // The code starts after the explorer; the divider shares what is left with the canvas.
       const code = this.panes.querySelector(".code-pane")!.getBoundingClientRect();
@@ -598,8 +666,15 @@ export class Playground {
       divider.addEventListener("pointermove", move);
       divider.addEventListener("pointerup", up);
     });
+    // A double click folds the pane; the share goes back to what it was before the first click.
+    divider.addEventListener("dblclick", () => {
+      if (this.codeFolded()) return;
+      this.split(shareBefore);
+      saveSettings(this.settings);
+      this.setCodeCollapsed(true);
+    });
     divider.addEventListener("keydown", (e) => {
-      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (this.codeFolded() || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
       e.preventDefault();
       this.split((this.settings.split ?? 0.42) + (e.key === "ArrowLeft" ? -0.05 : 0.05));
       saveSettings(this.settings);
@@ -925,6 +1000,8 @@ export class Playground {
       this.keepNow();
       this.status(messages().explorer.switcher.settingsMissing);
     } else this.studio.select(MANIFEST_NAME);
+    // The settings are asked for with the focus: a folded pane unfolds, as every reveal with focus.
+    this.setCodeCollapsed(false);
     this.show("code");
     this.code.focus();
   }
@@ -1170,6 +1247,8 @@ export class Playground {
           ? [part]
           : [h("span", { class: "code-path-sep", "aria-hidden": "true" }, "/"), part];
       }),
+      // The button that folds the pane keeps the bar's right end.
+      this.codeBarButton,
     );
     this.codePath.title = open || m.noFile;
     if (this.previewUrl) URL.revokeObjectURL(this.previewUrl);
@@ -1336,11 +1415,10 @@ export class Playground {
     this.reveal(path, resolved.definition.idRange);
   }
 
-  /** Opens a file and selects a range of it. */
+  /** Opens a file and selects a range of it, with the focus. */
   reveal(path: string, range: Range): void {
     if (path !== this.studio.open) this.studio.select(path);
-    this.code.reveal(range.start.offset, range.end.offset, true);
-    this.show("code");
+    this.revealCode(range.start.offset, range.end.offset);
   }
 
   // Code services -----------------------------------------------------------------------------
@@ -1408,7 +1486,7 @@ export class Playground {
     if (!analysis) return;
     const local = definition(analysis, offset);
     if (local) {
-      this.code.reveal(local.start.offset, local.end.offset, true);
+      this.revealCode(local.start.offset, local.end.offset);
       return;
     }
     const absolute = this.studio.absolute(this.studio.open);
@@ -1436,6 +1514,10 @@ export class Playground {
       ...analysis.diagnostics.slice(0, 200).map((d) => this.problemItem(d)),
     );
     this.root.dataset.problems = String(errors);
+    // The rail says how many errors the file has, or nothing; its title has the summary.
+    this.codeRailProblems.textContent = String(errors);
+    this.codeRailProblems.title = this.problemsTitle.textContent ?? "";
+    this.codeRailProblems.hidden = errors === 0;
     const summary = `${analysis.path}: ${this.problemsTitle.textContent}`;
     if (summary !== this.announced) {
       this.announced = summary;
@@ -1458,10 +1540,7 @@ export class Playground {
         messages().problems.where(d.code, d.range.start.line, d.range.start.column),
       ),
     );
-    go.addEventListener("click", () => {
-      this.code.reveal(d.range.start.offset, d.range.end.offset, true);
-      this.show("code");
-    });
+    go.addEventListener("click", () => this.revealCode(d.range.start.offset, d.range.end.offset));
     const item = h("li", {}, go);
     const fixes = this.code
       .fixesAt(d.range.start.offset, d.range.end.offset)
@@ -1564,6 +1643,17 @@ export class Playground {
       e.preventDefault();
       if (this.root.classList.contains("narrow")) this.show("files");
       this.explorer.focusTree();
+      return;
+    }
+    // Ctrl+J folds or unfolds the code, as VS Code's panel; the browser's Downloads give way, as
+    // Save page does to Ctrl+S. On a narrow screen the code is a tab: the key shows it, or the canvas.
+    if (key === "j" && !e.shiftKey && !e.altKey) {
+      e.preventDefault();
+      if (this.root.classList.contains("narrow")) {
+        this.show(this.view === "code" ? "canvas" : "code");
+        return;
+      }
+      this.setCodeCollapsed(!this.codeFolded());
       return;
     }
     if (key === "z" && !e.shiftKey && !e.altKey) {

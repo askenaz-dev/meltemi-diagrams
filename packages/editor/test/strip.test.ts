@@ -120,11 +120,22 @@ describe("style strip", () => {
       "effect.flow",
       "effect.dash",
       "effect.dash.duration",
+      "effect.dash.repeat",
+      "effect.dash.delay",
+      "effect.dash.direction",
       "effect.pulse",
       "effect.trace",
     ]);
     const speed = model.fields.find((f) => f.name === "effect.dash.duration")!;
-    expect(speed).toMatchObject({ value: null, placeholder: "600" });
+    expect(speed).toMatchObject({ value: null, placeholder: "600", group: "effect.dash" });
+    // Every field of the dash belongs to its card; the toggles belong to none.
+    for (const name of ["effect.dash.repeat", "effect.dash.delay", "effect.dash.direction"]) {
+      expect(model.fields.find((f) => f.name === name)).toMatchObject({ group: "effect.dash" });
+    }
+    expect(model.fields.find((f) => f.name === "effect.dash")!.group).toBeUndefined();
+    expect(model.fields.some((f) => f.section !== "strip" && f.name.startsWith("effect."))).toBe(
+      false,
+    );
     // Pictures, with what applies without a written value.
     const field = (name: string) => model.fields.find((f) => f.name === name)!;
     expect(field("line")).toMatchObject({ value: "solid", glyphs: "line" });
@@ -134,6 +145,19 @@ describe("style strip", () => {
     expect(field("style.routing")).toMatchObject({ placeholder: "auto", glyphs: "route" });
     expect(field("style.corners")).toMatchObject({ placeholder: "sharp", glyphs: "corners" });
     expect(model.fields.some((f) => f.name === "style.line")).toBe(false);
+  });
+
+  it("gives a selection of several targets the toggles only, with no grouped field", () => {
+    const canvas = open(SHEET);
+    canvas.send({ type: "select", ids: ["api", "db", "cache"] });
+    const model = canvas.inspector();
+    expect(model.fields.find((f) => f.name === "effect.pulse")).toMatchObject({
+      value: null,
+      mixed: true,
+      section: "strip",
+    });
+    expect(model.fields.some((f) => f.group !== undefined)).toBe(false);
+    expect(model.fields.some((f) => /^effect\.\w+\./.test(f.name))).toBe(false);
   });
 
   it("writes the line as the arrow or a dotted style, and keeps a two-way arrow two-way", () => {

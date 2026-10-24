@@ -111,6 +111,74 @@ describe("effects in the inspector", () => {
     expect(canvas.text()).toContain("animate save { effect trace; direction reverse }");
   });
 
+  it("colours an effect with the theme's swatches, the accent as what applies", () => {
+    const canvas = open(SHEET, "checkout");
+    canvas.send({ type: "select", ids: ["save"] });
+    canvas.apply({ kind: "setField", ids: ["save"], field: "effect.trace", value: "on" });
+    canvas.send({ type: "select", ids: ["save"] });
+    const colour = field(canvas, "effect.trace.color")!;
+    expect(colour).toMatchObject({
+      value: null,
+      placeholder: "accent",
+      fromTheme: true,
+      section: "strip",
+      group: "effect.trace",
+    });
+    expect(colour.swatches).toHaveLength(16);
+    expect(colour.swatches!.find((s) => s.token === "accent")!.color).toMatch(/^#/);
+    // A chip writes the token, the picker a quoted colour, and Theme takes the colour away.
+    canvas.apply({ kind: "setField", ids: ["save"], field: "effect.trace.color", value: "accent" });
+    expect(canvas.text()).toContain("animate save { effect trace; color accent }");
+    canvas.apply({
+      kind: "setField",
+      ids: ["save"],
+      field: "effect.trace.color",
+      value: "#E8A33D",
+    });
+    expect(canvas.text()).toContain('animate save { effect trace; color "#E8A33D" }');
+    canvas.apply({ kind: "setField", ids: ["save"], field: "effect.trace.color", value: null });
+    expect(canvas.text()).toContain("animate save { effect trace }\n");
+    // A written token, which the model holds as `@info`, is the value `info`.
+    canvas.apply({ kind: "setField", ids: ["save"], field: "effect.trace.color", value: "info" });
+    canvas.send({ type: "select", ids: ["save"] });
+    expect(field(canvas, "effect.trace.color")).toMatchObject({ value: "info" });
+  });
+
+  it("refuses a direction the language lacks, and a colour on a diagram with errors", () => {
+    const traced = SHEET.replace(
+      "  api -> db as save",
+      "  api -> db as save\n  animate save { effect trace }",
+    );
+    const canvas = open(traced, "checkout");
+    const sideways = canvas.send({
+      type: "action",
+      revision: 1,
+      action: {
+        kind: "setField",
+        ids: ["save"],
+        field: "effect.trace.direction",
+        value: "sideways",
+      },
+    });
+    expect(sideways.plan).toBeUndefined();
+    expect(sideways.messages[0]).toMatchObject({ type: "rejected" });
+    expect(canvas.text()).toBe(traced);
+    // A syntax error elsewhere in the diagram: nothing is written until it is fixed.
+    const broken = traced.replace("  node db", "  node db\n  style {");
+    const stale = open(broken, "checkout");
+    const refused = stale.send({
+      type: "action",
+      revision: 1,
+      action: { kind: "setField", ids: ["save"], field: "effect.trace.color", value: "danger" },
+    });
+    expect(refused.plan).toBeUndefined();
+    expect(refused.messages[0]).toMatchObject({
+      type: "rejected",
+      reason: expect.stringMatching(/^Fix the problems of the diagram/),
+    });
+    expect(stale.text()).toBe(broken);
+  });
+
   it("offers boxes a pulse and a dash, but no flow", () => {
     const canvas = open(SHEET, "checkout");
     canvas.send({ type: "select", ids: ["db"] });

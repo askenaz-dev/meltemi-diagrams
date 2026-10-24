@@ -784,6 +784,78 @@ a.pg-menu-item {
   text-overflow: ellipsis;
 }
 
+/* The bar's button, which folds the code pane, keeps its right end. */
+.code-path > .button {
+  flex: none;
+  margin-left: auto;
+}
+
+/*
+ * The code pane folded to a rail, as the explorer folds: its column shrinks to the rail's width
+ * with the grid's transition, the divider keeps its column unseen so the canvas's column stays
+ * the last, the bar, the code and the problems fade out and the rail fades in after them.
+ */
+.shell[data-code="rail"]:not(.narrow) .panes {
+  grid-template-columns: var(--explorer) 1px 36px 6px minmax(0, 1fr);
+}
+
+.code-pane[data-collapsed="true"] {
+  overflow: hidden;
+}
+
+.code-pane > :not(.code-rail) {
+  transition: opacity var(--pg-motion-fast) var(--pg-ease);
+}
+
+.code-pane[data-collapsed="true"] > :not(.code-rail) {
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity var(--pg-motion-fast) var(--pg-ease),
+    visibility 0s linear var(--pg-motion-fast);
+}
+
+.code-rail {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-top: 8px;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity var(--pg-motion-fast) var(--pg-ease);
+}
+
+.code-pane[data-collapsed="true"] .code-rail {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity var(--pg-motion) var(--pg-ease) var(--pg-motion-fast);
+}
+
+/* The open file's error count under the rail's button, as the explorer's badges count errors. */
+.code-rail-problems {
+  min-width: 16px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pg-error) 16%, transparent);
+  color: var(--pg-error);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 16px;
+  text-align: center;
+}
+
+.code-rail-problems[hidden] {
+  display: none;
+}
+
+.divider[data-collapsed="true"] {
+  visibility: hidden;
+}
+
 /* Explorer ------------------------------------------------------------------------------------ */
 
 .explorer {
@@ -1471,6 +1543,21 @@ a.pg-menu-item {
 .shell.narrow .explorer .explorer-rail,
 .shell.narrow .explorer-head > .button {
   display: none;
+}
+
+/* Narrow screens: the code is the Code tab, whole, never a rail. */
+.shell.narrow .code-rail,
+.shell.narrow .code-path > .button {
+  display: none;
+}
+
+.shell.narrow .code-pane[data-collapsed="true"] {
+  overflow: visible;
+}
+
+.shell.narrow .code-pane[data-collapsed="true"] > :not(.code-rail) {
+  visibility: visible;
+  opacity: 1;
 }
 
 /* The switcher's panel ------------------------------------------------------------------------ */
