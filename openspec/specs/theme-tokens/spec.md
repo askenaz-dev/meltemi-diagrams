@@ -17,7 +17,8 @@ Theme blocks SHALL accept the following tokens. An unknown token SHALL be `prop.
 | `strokeWidth`, `connectorWidth` | a number from 0 to 8 |
 | `arrowSize` | a number from 0 to 32 |
 | `arrowhead` | a head: `none`, `triangle`, `triangleOutline`, `open`, `diamond`, `diamondOutline`, `circle`, `circleOutline`, `bar`, `cross`, `many`, `oneOrMany`, `zeroOrMany`, `zeroOrOne` or `onlyOne` |
-| `corners` | `sharp` or `rounded` (built-in themes `sharp`) |
+| `corners` | `sharp` or `rounded` (built-in themes `sharp`; `sketch.*` `rounded`) |
+| `sketch` | `none`, `light` or `rough`: how strokes are painted (built-in themes `none`; `sketch.*` `light`) |
 | `iconSize` | a number from 8 to 64 (technical 18, editorial 16, stage 24) |
 | `iconPosition` | `left`, `right`, `top`, `bottom` or `center` (stage `top`, the others `left`), the default of the style property of the same name |
 | `frame` | `none`, `footer` or `header` |
@@ -62,14 +63,19 @@ Numbers SHALL be written without a unit or with `px`, and SHALL be stored as num
 - **THEN** the theme definition has those two colours, no diagnostic is reported, and an export
   drawn with the theme is the same as without them
 
+#### Scenario: Sketch token
+- **WHEN** a theme block contains `sketch rough`, and another contains `sketch wobbly`
+- **THEN** the first has `sketch` `rough`, so every stroke of a diagram drawn with it is painted in two jittered passes, and `prop.invalid-value` is reported on `wobbly` listing `none, light, rough`
+
 ### Requirement: Built-in themes
-The layout SHALL provide six built-in themes with every token set:
+The layout SHALL provide eight built-in themes with every token set:
 
 - `technical.light` and `technical.dark` for architecture review, with Inter, a footer frame with the Meltemi mark, and the brand `Meltemi Diagrams`;
 - `editorial.light` and `editorial.dark` for documents and long reading, with IBM Plex Sans, no frame, `radius` 6, `connectorWidth` 1, `groupTitleSize` 12 and `open` arrowheads;
-- `stage.light` and `stage.dark` for presentations and video, with Inter, a header frame, `labelSize` 16, `descriptionSize` 13, `relationLabelSize` 13, `strokeWidth` 1.5, `connectorWidth` 2, `arrowSize` 10 and `margin` 48.
+- `stage.light` and `stage.dark` for presentations and video, with Inter, a header frame, `labelSize` 16, `descriptionSize` 13, `relationLabelSize` 13, `strokeWidth` 1.5, `connectorWidth` 2, `arrowSize` 10 and `margin` 48;
+- `sketch.light` and `sketch.dark` for whiteboards and early thinking, the technical pair with `sketch light`, `corners rounded` and Patrick Hand, the bundled hand font, as `font` (Inter after it in the stack, for the characters it lacks).
 
-`technical.light` SHALL be the default theme. Every built-in theme SHALL use Cascadia Mono for `mono`. `BUILT_IN_THEMES` SHALL list the six names, and the first segments `technical`, `editorial` and `stage` SHALL be reserved import names.
+`technical.light` SHALL be the default theme. Every built-in theme SHALL use Cascadia Mono for `mono`. `BUILT_IN_THEMES` SHALL list the eight names, and the first segments `technical`, `editorial`, `stage` and `sketch` SHALL be reserved import names.
 
 #### Scenario: Default theme
 - **WHEN** a diagram without `theme` is laid out outside a project
@@ -81,11 +87,15 @@ The layout SHALL provide six built-in themes with every token set:
 
 #### Scenario: Unknown variant of a built-in family
 - **WHEN** a diagram sets `theme "technical.sepia"`
-- **THEN** `layout.unknown-theme` is reported as a warning, with the six built-in names in the hint
+- **THEN** `layout.unknown-theme` is reported as a warning, with the eight built-in names in the hint
 
 #### Scenario: Reserved import name
 - **WHEN** a file contains `import "./brand.meltemi" as stage`
-- **THEN** `module.reserved-name` is reported on `stage`
+- **THEN** `module.reserved-name` is reported on `stage`, as it is for `as sketch`
+
+#### Scenario: Sketch theme
+- **WHEN** a diagram sets `theme "sketch.light"`
+- **THEN** the scene has the technical light palette, `corners` `rounded`, `sketch` `light`, its strokes are painted in two passes, and the strip's light/dark switch offers `sketch.dark`
 
 ### Requirement: Token-driven geometry
 The layout SHALL take every visual measure from the resolved theme:
@@ -134,4 +144,31 @@ Colour properties of styles, classes and rules (`fill`, `stroke`, `color`) SHALL
 #### Scenario: Unknown colour word
 - **WHEN** a style block contains `fill red`
 - **THEN** `prop.invalid-value` is reported on `red`, with a hint listing the colour tokens and the quoted form `fill "red"`
+
+### Requirement: Sketched strokes
+When the resolved theme's `sketch` is `light` or `rough`, the scene SHALL carry `sketch` with that level and `renderSvg` SHALL paint every stroked `rect`, `path` and `polyline` of the groups with roles `element`, `relation`, `label`, `frame`, `lifeline` and `event`, heads and label pills included, as a clean fill item without stroke (when it has a fill) followed by two stroke-only paths: the outline (a `rect` converted to four sides with quarter arcs for its radius) resampled into pieces of 16 px (`light`) or 12 px (`rough`), each sample moved along the outline's normal by at most 0.6 px (`light`) or 1.4 px (`rough`) from a pseudo-random sequence seeded by a hash of the group's id and the pass index, with the item's width, dash pattern, dash offset, class, opacity and transform on both passes. Text, images, icons, the brand mark, gradients and patterns SHALL be untouched, fills SHALL stay clean, and the scene the layout returns, its `track` and `bounds`, `LayoutResult`, the canvas overlays, hit tests, magnets and text places SHALL be the clean geometry. The same text SHALL render the same bytes; an anonymous relation's key or a generated id that changes when statements are reordered changes its jitter, and the documentation SHALL say so. Exports (SVG, PNG, PDF, the players, video) SHALL take the sketched drawing through the same `renderSvg`.
+
+#### Scenario: Two passes on a box
+- **WHEN** `box a "A"` is rendered with `theme "sketch.light"`
+- **THEN** the SVG holds, for `a`, one `<rect>` or `<path>` with its fill and `stroke="none"`, then two `<path fill="none">` strokes, no `<rect>` with a stroke, and its `<text>` unchanged
+
+#### Scenario: Deterministic
+- **WHEN** the same sheet is rendered twice with `sketch.light`, and once more after an unrelated box is added
+- **THEN** the first two outputs are identical, and the paths of the original boxes and named relations are unchanged in the third
+
+#### Scenario: Clean geometry
+- **WHEN** a free composition with `sketch rough` is laid out and shown on the canvas
+- **THEN** `LayoutResult.boxes`, the groups' `track` and `bounds` and the selection outline are the same as under `technical.light`, and a flow particle runs along the clean track
+
+#### Scenario: Dash on a sketched relation
+- **WHEN** `animate pay { effect dash }` is rendered with `sketch.light` at 300 ms
+- **THEN** both stroke passes of `pay` carry the same dash array and offset
+
+#### Scenario: Not sketched by default
+- **WHEN** the corpus is rendered with the six other built-in themes
+- **THEN** every snapshot is byte-identical to the stored one
+
+#### Scenario: Sketch is a theme token
+- **WHEN** a free diagram writes `style a { sketch rough }`
+- **THEN** `prop.unknown` is reported on `sketch` with the accepted style properties in the hint, and the drawing is not sketched
 

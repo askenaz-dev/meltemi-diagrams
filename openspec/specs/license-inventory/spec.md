@@ -9,7 +9,7 @@ The generated inventory of third-party licenses and its freshness check.
 
 #### Scenario: Fonts listed
 - **WHEN** the inventory is generated
-- **THEN** it lists `@fontsource/inter`, `@fontsource/ibm-plex-sans`, `@fontsource/cascadia-mono` with `OFL-1.1` and the embedding note, and `fontkit` with `MIT`
+- **THEN** it lists `@fontsource/inter`, `@fontsource/ibm-plex-sans`, `@fontsource/cascadia-mono`, `@fontsource/patrick-hand` with `OFL-1.1` and the embedding note, and `fontkit` with `MIT`
 
 #### Scenario: Stale inventory
 - **WHEN** a production dependency is added and `--check` runs before regenerating

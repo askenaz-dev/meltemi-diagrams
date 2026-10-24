@@ -24,15 +24,16 @@ Host-neutral language services on a `.meltemi` document analysed inside its proj
 
 - top-level words;
 - the statements of the flow body and the element ids that start a relation;
-- element ids after `->` and `-->`;
+- element ids after `->`, `-->`, `--`, `---`, `<->` and `<-->`;
 - the statements of element blocks;
 - the enumerated values of diagram properties;
 - the themes in scope inside `theme "`;
 - placement statements, then element or relation ids by argument;
 - the ports of an element after `<element>.`;
-- style properties and their values: enums, colour token names, classes in scope;
+- style properties and their values: enums, colour token names, classes in scope, `verticalAlign` with `top`, `middle` and `bottom` in free diagrams;
 - icon references matching the typed prefix, at most 200;
-- animation properties and their values.
+- animation properties and their values;
+- theme tokens and their values, `sketch` with `none`, `light` and `rough`.
 
 Each item SHALL carry a kind and a short detail.
 
@@ -47,6 +48,14 @@ Each item SHALL carry a kind and a short detail.
 #### Scenario: Relation targets
 - **WHEN** completion runs after `api -> ` in a diagram that declares `api`, `db` and `cache`
 - **THEN** the items include `db` and `cache`
+
+#### Scenario: Targets after a line token
+- **WHEN** completion runs after `api -- ` and after `api --- ` in the same diagram
+- **THEN** the items include `db` and `cache` both times
+
+#### Scenario: Sketch token values
+- **WHEN** completion runs after `sketch ` inside a `theme` block
+- **THEN** the items are `none`, `light` and `rough`, and `sketch` itself is offered among the tokens at the start of a theme statement
 
 ### Requirement: Hover
 `hover(analysis, offset)` SHALL describe the token under the cursor in Markdown:
@@ -144,4 +153,19 @@ Hover descriptions and keyword documentation, completion details and documentati
 #### Scenario: Spanish refusal
 - **WHEN** the interface language is Spanish and a rename to an id already in use is refused
 - **THEN** the reason is in Spanish and names both ids in backticks
+
+### Requirement: Hover and symbols name the written token
+The hover of a relation and its entry in the document symbols SHALL print the relation with the token as written (`->`, `-->`, `--`, `---`, `<->` or `<-->`), not a token derived from its line alone, and the hover of a `--` or `---` relation SHALL say it is a line without heads unless styled.
+
+#### Scenario: Hover on a line relation
+- **WHEN** the cursor is on `link` in `api -- cache as link`
+- **THEN** the hover's first line is **relation** `api -- cache` as `link`
+
+#### Scenario: Symbol of a two-way relation
+- **WHEN** `documentSymbols` runs on a diagram with `api <-> cache`
+- **THEN** the relation's symbol is named `api <-> cache`
+
+#### Scenario: Hover on a relation with a missing target
+- **WHEN** the cursor is on `--` in `api --` with no target
+- **THEN** no relation hover is returned, and the diagnostic for the missing target stands
 

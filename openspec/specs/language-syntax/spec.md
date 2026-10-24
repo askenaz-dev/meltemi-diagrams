@@ -4,7 +4,7 @@
 Lexical and syntactic rules of `.meltemi` sources: file structure, statement forms, the lossless concrete syntax tree, error recovery, diagnostics and encodings.
 ## Requirements
 ### Requirement: Lexical structure
-The lexer SHALL tokenize `.meltemi` text into identifiers (`[A-Za-z_][A-Za-z0-9_]*`), double-quoted strings with the escapes `\"`, `\\`, `\n` and `\t`, numbers (integer or decimal, optional leading `-`) with an optional unit suffix (`ms`, `s`, `%`), the arrows `->`, `-->`, `<->` and `<-->`, the punctuation `{ } ( ) [ ] : ; , .`, and line breaks. Spaces, tabs, line comments (`//` to end of line) and block comments (`/* ... */`) SHALL be kept as trivia attached to the next token. A character that starts no token SHALL produce the diagnostic `syntax.unexpected-character` covering that character, and lexing SHALL continue with the next character.
+The lexer SHALL tokenize `.meltemi` text into identifiers (`[A-Za-z_][A-Za-z0-9_]*`), double-quoted strings with the escapes `\"`, `\\`, `\n` and `\t`, numbers (integer or decimal, optional leading `-`) with an optional unit suffix (`ms`, `s`, `%`), the relation tokens `->`, `-->`, `--`, `---`, `<->` and `<-->`, the punctuation `{ } ( ) [ ] : ; , .`, and line breaks. A run of `-` and `>` SHALL take the longest token it starts with (`---` before `-->` before `--` before `->`), and `-` before a digit SHALL start a number; `--->` is therefore `---` followed by an unexpected `>`. Spaces, tabs, line comments (`//` to end of line) and block comments (`/* ... */`) SHALL be kept as trivia attached to the next token. A character that starts no token SHALL produce the diagnostic `syntax.unexpected-character` covering that character, with the hint that the relation tokens are `->`, `-->`, `--`, `---`, `<->` and `<-->` when it holds `=`, `<` or `>`, and lexing SHALL continue with the next character or the next token start, `--` included.
 
 #### Scenario: Statement with every token class
 - **WHEN** the text `route create from api.east to orders.west via [(520, -16.5)] // bend` is tokenized
@@ -20,11 +20,23 @@ The lexer SHALL tokenize `.meltemi` text into identifiers (`[A-Za-z_][A-Za-z0-9_
 
 #### Scenario: Unsupported arrow
 - **WHEN** a line contains `a => b`
-- **THEN** the lexer reports `syntax.unexpected-character` at `=` with the hint that the supported arrows are `->`, `-->`, `<->` and `<-->`
+- **THEN** the lexer reports `syntax.unexpected-character` at `=` with the hint that the relation tokens are `->`, `-->`, `--`, `---`, `<->` and `<-->`
 
 #### Scenario: Two-way arrows
 - **WHEN** `a <-> b` and `c <--> d` are tokenized
 - **THEN** each line has an identifier, one arrow token (`<->`, then `<-->`) and an identifier
+
+#### Scenario: Line tokens
+- **WHEN** `a -- b` and `c --- d` are tokenized
+- **THEN** each line has an identifier, one token (`--` of kind `Line`, then `---` of kind `DashedLine`) and an identifier, and `toText` of the parse equals the input
+
+#### Scenario: Longest match
+- **WHEN** `a --> b`, `a ---> b`, `a --5` and `a --b` are tokenized
+- **THEN** the first has one `-->` token; the second has a `---` token and reports `syntax.unexpected-character` at `>` with the six-token hint; the third has a `--` token followed by the number `5`; and the fourth has a `--` token followed by the identifier `b`
+
+#### Scenario: Minus hint
+- **WHEN** a line contains `a -x b`
+- **THEN** `syntax.unexpected-character` is reported at `-` with the hint that a minus sign must be followed by a digit, `-` or `>`
 
 ### Requirement: Source file structure
 A source file SHALL consist of an optional header `language "<version>"` that, when present, MUST be the first statement, followed by `import` statements and top-level blocks `model <id> { }`, `diagram <id>: <type> [using <ref>] { }`, `story <id> for <ref> { }`, `export <id> for <ref> { }` and `theme <id> { }`. An unrecognised top-level statement SHALL produce `syntax.unexpected-top-level` and parsing SHALL continue after it. A header that is not the first statement SHALL produce `syntax.header-not-first`.

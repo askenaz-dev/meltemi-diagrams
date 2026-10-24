@@ -6,8 +6,8 @@ The free profile: `diagram <id>: free { }` objects (box, text, icon, image, grou
 ### Requirement: Free diagrams compile
 `diagram <id>: free { }` SHALL compile into the same diagram model as flow, with `type` set to `free`. It SHALL accept:
 
-- the declarations `box`, `text`, `icon`, `image` and `group`, and the shorthand `id["Label"]` (a box) and `id[("Label")]` (a box with `shape cylinder`);
-- relations `->` and `-->` with labels, ids and blocks;
+- the declarations `box`, `text`, `icon`, `image`, `line` and `group`, and the shorthand `id["Label"]` (a box) and `id[("Label")]` (a box with `shape cylinder`);
+- relations `->`, `-->`, `<->` and `<-->`, and the headless `--` and `---`, with labels, ids and blocks;
 - `placement` with `place`, `size`, `route`, `label` and the constraints;
 - `style`, `class`, `rule` and `animate`;
 - the diagram properties of flow and `layers`, with `layout manual` as the default.
@@ -20,7 +20,7 @@ Flow kinds (`node`, `decision`, `data`, `note`, `tag`) SHALL be `prop.unknown` i
 
 #### Scenario: Flow kinds in free
 - **WHEN** a free diagram declares `decision ok "OK?"`
-- **THEN** `prop.unknown` is reported with the hint "Free diagrams declare `box`, `text`, `icon`, `image` and `group`."
+- **THEN** `prop.unknown` is reported with a hint that lists the free kinds, `line` among them
 
 ### Requirement: Free objects
 - **`text <id> "Text"`** SHALL require its text.
@@ -82,4 +82,46 @@ Elements SHALL expose `source` (the icon reference or image path). The style pro
 #### Scenario: Unknown link
 - **WHEN** a box writes `link checkout.ghost`
 - **THEN** `ref.unknown-link` is reported on `ghost`
+
+### Requirement: Free lines
+A free diagram SHALL accept the declaration `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), ...]] [{ ... }]`: an object of kind `line` whose label is the optional second argument, empty by default, and whose points are two tuples of numbers without units after `from` and `to` and an optional list of such tuples after `via`, in the interior coordinates of its innermost group, as `place` is. The element SHALL expose `line` (`{ from, to, via }`; null on every other kind). A statement whose points are missing, not tuples, or followed by anything else SHALL be `prop.invalid-value` with the form in the hint. `line` SHALL be `prop.unknown` in flow, sequence and C4 diagrams, and the hint of `prop.unknown` for a flow kind in a free diagram SHALL list `line` among the free kinds. A line SHALL take no `place`, `size` or `rotation` (`prop.invalid-value`, with the hint that its points are written in its statement) and SHALL refuse `shape`, `radius`, `pattern`, `iconPosition`, `labelPosition`, `iconSize`, `fontSize`, `fontWeight`, `textAlign` and `verticalAlign` with `prop.invalid-value`; it SHALL accept `stroke`, `width`, `line`, `arrowhead`, `arrowtail`, `routing`, `corners`, `color`, `fill`, `icon` and `class` in `style` statements, classes and `rule line { }`, and `description`, `class`, `layer` and `url` in its block. `label <id> at <n>% [offset (dx, dy)]` SHALL accept a line as it accepts a named relation. The free profile's `ruleKinds` SHALL include `line`.
+
+#### Scenario: A line with bends and a label
+- **WHEN** a free diagram contains `line divider "Phase 2" from (40, 200) to (520, 200) via [(280, 180)]` and `style divider { line dashed; arrowhead triangle }`
+- **THEN** the element `divider` has kind `line`, label `Phase 2`, `line.from` (40, 200), `line.to` (520, 200), `line.via` [(280, 180)], and the style entry has `line` `dashed` and `arrowhead` `triangle`, without diagnostics
+
+#### Scenario: A line inside a group
+- **WHEN** `group g "G"` placed at (300, 200) holds `line l from (0, 0) to (100, 0)`
+- **THEN** `l`'s group path is `g` and its points are kept as written, relative to `g`'s interior origin
+
+#### Scenario: A line in a flow diagram
+- **WHEN** a flow diagram contains `line l from (0, 0) to (100, 0)`
+- **THEN** `prop.unknown` is reported on `line` with the hint listing the flow kinds, and a free diagram that declares `decision ok "OK?"` reports `prop.unknown` with a hint that lists `line` among the free kinds
+
+#### Scenario: Malformed points
+- **WHEN** a free diagram contains `line l from (0, 0) to 100`
+- **THEN** `prop.invalid-value` is reported on `100` with the hint `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), ...]]`
+
+#### Scenario: A placed line
+- **WHEN** a free diagram contains `line l from (0, 0) to (100, 0)` and `place l at (50, 50)`
+- **THEN** `prop.invalid-value` is reported on `l` in the `place` statement with the hint that a line's points are written in its statement, and `style l { shape pill }` reports `prop.invalid-value` on `shape`
+
+#### Scenario: Label on a line
+- **WHEN** a free diagram contains `line l "Step" from (0, 0) to (200, 0)` and `label l at 30% offset (0, -16)`
+- **THEN** the placement records a `label` entry for `l` at 30 % with offset (0, −16), and no diagnostic is reported
+
+### Requirement: Vertical text alignment
+`verticalAlign` (`top`, `middle` or `bottom`) SHALL be accepted in free diagrams on boxes, in `style` statements, classes and rules, and refused in flow diagrams with `prop.invalid-value` naming free diagrams, as `fontSize`, `fontWeight` and `textAlign` are; a value outside the three SHALL be `prop.invalid-value` listing them. The style entry SHALL keep the word, the model JSON SHALL carry it in `styles`, and declared diagram types SHALL validate it like `textAlign`.
+
+#### Scenario: Vertical alignment on a box
+- **WHEN** a free diagram contains `box a "A"` and `style a { verticalAlign top; textAlign left }`
+- **THEN** it compiles without diagnostics and the style entry of `a` has `verticalAlign` `top` and `textAlign` `left`
+
+#### Scenario: Vertical alignment in a flow diagram
+- **WHEN** a flow diagram writes `style api { verticalAlign bottom }`
+- **THEN** `prop.invalid-value` is reported on `verticalAlign` with the message that it applies to free diagrams only
+
+#### Scenario: Unknown value
+- **WHEN** a free diagram writes `style a { verticalAlign center }`
+- **THEN** `prop.invalid-value` is reported on `center` listing `top, middle, bottom`
 
