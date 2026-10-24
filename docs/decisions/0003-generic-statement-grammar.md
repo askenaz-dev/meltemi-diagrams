@@ -1,6 +1,8 @@
 # 0003. Generic statement grammar with profile vocabularies
 
-Status: accepted (language 0.2)
+Status: accepted (language 0.2). The relation tokens gain the lines without heads `--` and
+`---`, lexed by the longest match, and free diagrams the keyword statement `line`, by
+[decision 0058](0058-lines-sketch-and-text-alignment.md).
 
 ## Context
 

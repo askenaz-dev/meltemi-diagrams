@@ -1,11 +1,12 @@
 import { planEdit, type EditOperation, type PlanResult } from "@meltemi/diagrams-edit";
 import type { Range } from "@meltemi/diagrams-language";
-import type {
-  Element,
-  FlowDiagram,
-  Reference,
-  SequenceEvent,
-  TargetKind,
+import {
+  arrowToken,
+  type Element,
+  type FlowDiagram,
+  type Reference,
+  type SequenceEvent,
+  type TargetKind,
 } from "@meltemi/diagrams-model";
 import type { DocumentAnalysis } from "../analysis.js";
 import { kindWord, serviceMessages } from "../messages/services.js";
@@ -97,7 +98,7 @@ export function documentSymbols(analysis: DocumentAnalysis): SymbolNode[] {
       .filter((e) => e.groupPath.length === 0)
       .map((e) => elementSymbol(diagram, e));
     const relations = diagram.relations.map((r): SymbolNode => ({
-      name: r.id ?? `${r.from} ${r.line === "dashed" ? "-->" : "->"} ${r.to}`,
+      name: r.id ?? `${r.from} ${arrowToken(r.line, r.heads)} ${r.to}`,
       detail: r.label ?? "",
       kind: "relation",
       range: r.range,

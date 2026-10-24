@@ -87,7 +87,8 @@ export type ChangedPart =
   | "transition"
   | "actions"
   | "assumption"
-  | "ends";
+  | "ends"
+  | "heads";
 
 /** States a change can leave something in. */
 export type ChangeState =
@@ -301,6 +302,9 @@ function relationDetails(b: FlowDiagram, br: Relation, a: FlowDiagram, ar: Relat
   value(details, "line", br.line, ar.line);
   if (br.twoWay !== ar.twoWay) {
     details.push({ fact: "state", state: ar.twoWay ? "twoWay" : "oneWay" });
+  } else if (br.heads !== ar.heads) {
+    // An arrow written as a line, or a line as an arrow.
+    details.push({ fact: "changed", part: "heads" });
   }
   if (br.async !== ar.async) details.push({ fact: "state", state: ar.async ? "async" : "sync" });
   if (br.description !== ar.description) details.push({ fact: "changed", part: "description" });

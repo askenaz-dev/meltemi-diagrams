@@ -15,6 +15,8 @@ overrides both.
 | `editorial.dark`            | documents, dark           | dark neutral sheet, IBM Plex, no frame                              |
 | `stage.light`               | slides and video          | high contrast, 16 px labels, 2 px connectors, 48 px margins, header |
 | `stage.dark`                | slides and video, dark    | the same on a near-black background                                 |
+| `sketch.light`              | whiteboards, early ideas  | technical light with strokes painted by hand and rounded bends      |
+| `sketch.dark`               | whiteboards, dark         | the same on the technical dark palette                              |
 
 Explicit quoted colours in styles are kept in every theme, so category colours of a sheet survive
 a theme change. Colour token names (`stroke danger`, `fill surface`) follow the theme instead.
@@ -55,6 +57,7 @@ Tokens (numbers without a unit or with `px`):
 | `radius`, `groupRadius`                                                                                                   | 0 to 64 (technical: 8, 14); defaults of `radius`  |
 | `strokeWidth`, `connectorWidth`                                                                                           | 0 to 8 (technical: 1, 1.3)                        |
 | `arrowhead`, `arrowSize`, `corners`                                                                                       | a head (language.md); 0 to 32; `sharp`, `rounded` |
+| `sketch`                                                                                                                  | `none`, `light`, `rough`: strokes painted by hand |
 | `frame`, `brand`, `mark`                                                                                                  | `none`/`footer`/`header`; text; `meltemi`/`none`  |
 | `flowDuration`, `dashDuration`, `pulseDuration`, `traceDuration`                                                          | `100ms` to `60s`; default speed of each effect    |
 | `selection`, `guide`                                                                                                      | colour of the canvas's selection and guides only  |
@@ -73,6 +76,13 @@ Company wordmark without the Meltemi mark:
 ```text
 theme acme { frame header; mark none; brand "Acme Architecture"; font "Georgia, serif" }
 ```
+
+A whiteboard look: `theme "sketch.light"`, or `sketch rough` in a theme block
+(`theme hand { extends "technical.light"; sketch rough }`). Every outline, connector, head, pill
+and band is drawn twice with a small seeded wobble; text, icons and images stay crisp, the layout
+is unchanged and the same file always renders the same bytes. `sketch` is a theme token only:
+`style a { sketch rough }` is `prop.unknown`. Name relations whose wobble must not move when
+statements are reordered (anonymous keys change with the order).
 
 ## Classes, rules and patterns
 

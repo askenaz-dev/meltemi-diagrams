@@ -277,6 +277,12 @@ export interface ElementJson {
   source: string | null;
   /** The shape the declaration implies, such as `cylinder` for `id[("…")]`; styles keep theirs. */
   shape: string | null;
+  /** Free `line` objects: their points as written; null on every other kind. */
+  line: {
+    from: { x: number; y: number };
+    to: { x: number; y: number };
+    via: { x: number; y: number }[];
+  } | null;
   entity: { model: string; path: string; file: string | null } | null;
   technology: string | null;
   external: boolean;
@@ -301,6 +307,8 @@ export interface RelationJson {
   to: string;
   line: string;
   twoWay: boolean;
+  /** Where the written token puts heads: `end`, `both` or `none`. */
+  heads: "end" | "both" | "none";
   async: boolean;
   technology: string | null;
   sources: string[];
@@ -716,6 +724,13 @@ function elementJson(element: Element): ElementJson {
       : null,
     source: element.source,
     shape: element.shape,
+    line: element.line
+      ? {
+          from: { x: element.line.from.x, y: element.line.from.y },
+          to: { x: element.line.to.x, y: element.line.to.y },
+          via: element.line.via.map((p) => ({ x: p.x, y: p.y })),
+        }
+      : null,
     entity: element.entity
       ? { model: element.entity.model, path: element.entity.path, file: element.entity.file }
       : null,
@@ -735,6 +750,7 @@ function relationJson(relation: Relation): RelationJson {
     to: relation.to,
     line: relation.line,
     twoWay: relation.twoWay,
+    heads: relation.heads,
     async: relation.async,
     technology: relation.technology,
     sources: [...relation.sources],

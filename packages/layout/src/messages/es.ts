@@ -58,6 +58,8 @@ export const es: typeof en = {
             ? `a la caja de ${code(other.owner)}`
             : `al conector de ${code(other.owner)}`
       }.`,
+    degenerateLine: (id) =>
+      `La línea \`${id}\` no tiene largo: sus puntos coinciden, así que se dibuja como un punto.`,
     unknownTheme: (written, fallback) =>
       `Tema desconocido "${written}"; se dibuja con ${fallback}.`,
     groupWithoutPlace: (group) =>
@@ -78,6 +80,10 @@ export const es: typeof en = {
       `${code(element)} se dibuja como su icono, pero no tiene \`icon\`; en su lugar se dibuja un marcador de posición.`,
     labelPositionIgnored: (element) =>
       `El \`labelPosition\` de ${code(element)} no tiene efecto: su icono no ocupa el centro.`,
+    verticalAlignIgnored: (element) =>
+      `El \`verticalAlign\` de ${code(element)} no tiene efecto: nada mueve su texto hacia arriba o hacia abajo.`,
+    verticalAlignIgnoredByTheme: (element) =>
+      `El \`verticalAlign\` que el tema da a ${code(element)} y a los elementos con su mismo estilo no tiene efecto: ninguno tiene una franja de texto donde moverlo.`,
     labelPositionIgnoredByTheme: (element) =>
       `El \`labelPosition\` que el tema da a ${code(element)} y a los elementos con su mismo estilo no tiene efecto: en ninguno el icono ocupa el centro.`,
     iconTooSmall: (element, width, height, needsWidth, needsHeight) =>
@@ -125,6 +131,7 @@ export const es: typeof en = {
     themes: (builtIn, inScope) =>
       `Temas integrados: ${builtIn.join(", ")}${inScope.length > 0 ? `; temas disponibles: ${inScope.join(", ")}` : ""}.`,
     addPlace: (id) => `Agrega \`place ${id} at (x, y)\` a un bloque \`placement\`.`,
+    lineEnds: "Mueve uno de sus extremos, o dale un quiebre con `via`.",
     addPlaceAndSize: (id) => `Agrega \`place ${id} at (x, y)\` y \`size ${id} (w, h)\`.`,
     engine:
       "Las aplicaciones anfitrionas pasan un motor en `LayoutOptions.engine`; la línea de comandos usa ELK. O coloca cada elemento.",
@@ -137,6 +144,12 @@ export const es: typeof en = {
       `Dale un icono a ${code(element)} con \`style ${element} { icon "<pack>:<name>" }\`, o elige otra forma.`,
     labelPositionIgnored:
       "Pon `iconPosition center` o `shape icon` para llevar la etiqueta a un borde, o quita `labelPosition`.",
+    verticalAlignFixedShape:
+      "Esta forma dibuja su texto en un sitio fijo: elige una forma con franja de texto, como `rectangle`, `ellipse` o `cylinder`, o quita `verticalAlign`.",
+    verticalAlignCentredIcon:
+      "Con `iconPosition center` la franja de la etiqueta está en `labelPosition`: usa `labelPosition`, o quita `verticalAlign`.",
+    verticalAlignNeverUsed:
+      "Quita `verticalAlign`: solo mueve el texto de una caja libre dentro de su forma.",
     labelPositionNeverUsed:
       "Quita `labelPosition`: solo coloca la etiqueta de un nodo, una decisión, un almacén de datos o una caja cuyo icono ocupa el centro.",
     labelPositionIgnoredByTheme:

@@ -80,6 +80,27 @@ describe("built-in themes", () => {
     );
   });
 
+  it("sketch with the technical palettes, rounded corners and a light hand", () => {
+    const light = scene(sheet('  theme "sketch.light"\n'));
+    expect(light.background).toBe(THEMES["technical.light"]!.background);
+    expect(light.sketch).toBe("light");
+    expect(light.fonts.body).toBe(THEMES["technical.light"]!.font);
+    expect(THEMES["sketch.light"]!.corners).toBe("rounded");
+    expect(scene(sheet('  theme "sketch.dark"\n')).background).toBe(
+      THEMES["technical.dark"]!.background,
+    );
+    // The other themes paint clean strokes and say nothing about it.
+    for (const name of BUILT_IN_THEMES.filter((n) => !n.startsWith("sketch."))) {
+      expect(THEMES[name]!.sketch, name).toBe("none");
+      expect(scene(sheet(`  theme "${name}"\n`)).sketch, name).toBeUndefined();
+    }
+    // A file theme sets the level.
+    const rough = scene(
+      `theme hand { extends "technical.light"; sketch rough }\n${sheet('  theme "hand"\n')}`,
+    );
+    expect(rough.sketch).toBe("rough");
+  });
+
   it("warn on an unknown override and use the default", () => {
     const compilation = compile(sheet());
     const result = layoutDiagram(compilation, compilation.document.diagrams[0]!, {
@@ -123,7 +144,8 @@ describe("file themes", () => {
         "  labelSize 14; descriptionSize 12; groupTitleSize 15; noteSize 10; tagSize 9",
         "  relationLabelSize 12; frameSize 13; labelWeight 700; padding 18px; groupPadding 12",
         "  groupHeader 36; margin 30; radius 0; groupRadius 4; strokeWidth 2; connectorWidth 3",
-        "  arrowhead open; corners rounded; arrowSize 12; iconSize 20; iconPosition top",
+        "  arrowhead open; corners rounded; sketch rough; arrowSize 12; iconSize 20",
+        "  iconPosition top",
         '  frame header; brand "B"; mark none',
         "}",
         "",
@@ -169,6 +191,7 @@ describe("file themes", () => {
       connectorWidth: 3,
       arrowhead: "open",
       corners: "rounded",
+      sketch: "rough",
       arrowSize: 12,
       iconSize: 20,
       iconPosition: "top",

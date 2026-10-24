@@ -15,7 +15,7 @@ export const EXAMPLE = join(REPO_ROOT, "examples", "purchase");
 export const EXAMPLE_EXPORTS = join(EXAMPLE, "exports");
 export const TEMPLATE = join(REPO_ROOT, "packages", "cli", "templates", "purchase");
 
-/** The gallery's sheets, one per profile, in the order the README shows them. */
+/** The gallery's sheets, one per profile and a sketch, in the order the README shows them. */
 export const GALLERY_SHEETS = [
   {
     profile: "flow",
@@ -44,6 +44,13 @@ export const GALLERY_SHEETS = [
     title: "Free: a roadmap slide",
     about:
       "A 16:9 slide composed freely: measured text, groups placed by their interiors, icons and connectors between columns.",
+  },
+  {
+    profile: "free",
+    file: "free/sketch.meltemi",
+    title: "Free: a whiteboard sketch",
+    about:
+      "The `sketch.light` theme paints every stroke by hand in two passes while the text stays crisp; a dashed free line divides what runs today from what comes next.",
   },
 ] as const;
 

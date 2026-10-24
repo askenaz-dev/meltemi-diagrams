@@ -28,12 +28,10 @@ diagram deployment: flow {
   api -> auth as e1
   api -> mailer
   Internet -> srv
-  note1 --> api as e2
-  N1 --> db as e3
+  note1 --- api
+  N1 --- db
 
   style db { fill "lightblue"; stroke "navy"; color "black" }
   style Internet { shape cloud }
   style e1 { stroke "red"; width 2 }
-  style e2 { arrowhead none }
-  style e3 { arrowhead none }
 }

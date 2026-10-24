@@ -53,6 +53,7 @@ it to an element of another diagram.
 | `note id "Line one\nLine two"`                               | free text, left-aligned, no border                                                            |
 | `tag id "PKCE"`                                              | small pill with mono text                                                                     |
 | `a -> b`, `a --> b`, `a <-> b`, `a <--> b`                   | solid or dashed relation, one way or two-way; undeclared ids become nodes                     |
+| `a -- b`, `a --- b`                                          | a solid or dashed line without heads between two elements                                     |
 | `a -> b: "Label" as id`                                      | relation with label and id                                                                    |
 | `{ description "..." }` after an element or relation         | second text line of a box; description of a relation                                          |
 | `{ assumption "why" }` after a relation                      | an inferred relation, drawn dashed and muted until someone confirms it                        |
@@ -121,14 +122,21 @@ Heads (`arrowhead` at the target, `arrowtail` at the source): `triangle`, `open`
 `triangleOutline` (UML generalisation), `diamond` and `diamondOutline` (composition and
 aggregation), `circle`, `circleOutline`, `bar`, `cross`, and the ER crow's feet `many`,
 `oneOrMany`, `onlyOne`, `zeroOrOne`, `zeroOrMany`. A relation has no start head unless it is
-written `<->`/`<-->` (the end's head at both ends) or has `arrowtail`:
+written `<->`/`<-->` (the end's head at both ends) or has `arrowtail`. A line `--` (dashed `---`)
+has no head at either end unless `arrowhead` or `arrowtail` is written; write it for an
+association, a link to a note or a plain connection, instead of `arrowhead none`:
 
 ```text
 customer -> order as places
 style places { arrowtail onlyOne; arrowhead zeroOrMany }   // one customer places zero or more orders
 api <-> cache                                              // two-way
+api -- db                                                  // a line, no heads
+note1 --- api                                              // a dashed line, no heads
 style slow { line dotted; corners rounded }                // dotted, rounded bends
 ```
+
+The six tokens are `->`, `-->`, `--`, `---`, `<->`, `<-->`; `--->` is a syntax error. Sequence
+diagrams take the four arrows and C4 views `->` and `-->`: another token is `prop.invalid-value`.
 
 Setting the same property twice for a target across statements is `prop.duplicate`; different
 properties in different statements are fine.
@@ -146,8 +154,8 @@ animate r1 { effect trace }                           // a highlight that fills 
 `pulseDuration` or `traceDuration`, else 1200 ms for flow, 1500 ms for trace and 1 s otherwise),
 `repeat` `forever` (default) or 1 to 1000, `delay`, `direction forward|reverse` (flow, dash and
 trace), `particles 1..8` (flow), `color` (flow, pulse and trace; a trace defaults to `accent`).
-Flow and trace run on relations only; dash on relations and boxes with an outline; pulse on
-elements, relations, notes and fragments. One effect of each
+Flow and trace run on relations (and free lines) only; dash on relations, free lines and boxes
+with an outline; pulse on elements, relations, notes and fragments. One effect of each
 kind per target (`animate.conflict`). Exports are static unless you ask:
 `pnpm mdg export sheet.meltemi --motion animated` writes an animated SVG (CSS keyframes, static
 fallback), `--at 1.5s` the frame at that time. Use the static export for documents and slides.
@@ -195,41 +203,41 @@ the optional cloud service, which `project.json` records in `cloud`, and
 
 ## Diagnostics and fixes
 
-| Code                                                             | Cause and fix                                                                                         |
-| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `syntax.expected-token`, `syntax.unexpected-token`               | malformed statement; check quotes, `->`, parentheses, one statement per line                          |
-| `syntax.unterminated-string`                                     | a string reached the end of the line; close it, use `\n` for line breaks                              |
-| `syntax.unexpected-character`                                    | characters such as `=>` or `#` outside strings; arrows are `->`, `-->`, `<->`, `<-->`                 |
-| `ref.duplicate-id`                                               | the id is already an element, relation or top-level block; rename one                                 |
-| `ref.unknown-element`                                            | target of `place`, `size`, `style` or a qualified endpoint does not exist; declare it                 |
-| `ref.unknown-relation`                                           | `route`/`label` on an unnamed relation; add `as <id>`                                                 |
-| `placement.route-mismatch`                                       | `route` endpoints are reversed or wrong; use the relation's source then target                        |
-| `placement.duplicate`                                            | second `place`/`size` for an element or `route`/`label` for a relation; delete one                    |
-| `placement.unknown-port`                                         | the route names a port the element does not declare; the hint lists its ports                         |
-| `prop.unknown`                                                   | unknown word; the hint lists what the block accepts                                                   |
-| `prop.invalid-value`                                             | wrong value shape; the message names the expected form; `shape` only on `node` and `box`              |
-| `prop.duplicate`                                                 | property set twice for the same target; keep one                                                      |
-| `layout.missing-placement`                                       | manual layout and an element without `place`, or a group with only one of `place`/`size`              |
-| `layout.mode-unsupported`                                        | a host without a layout engine met unplaced boxes; the command line always has ELK                    |
-| `layout.placement-ignored`                                       | `place` or waypoints in `layout auto`; write `layout assisted` or `manual`                            |
-| `layout.constraint-conflict`                                     | placed boxes break a constraint; move a `place` or change the constraint                              |
-| `layout.overlap`                                                 | two boxes overlap, or a box crosses a group edge; move it or add `distance`; a stack goes outer first |
-| `layout.label-under-connector`                                   | a label sits on another arrow; move it with `label r at <n>% offset (dx, dy)`                         |
-| `layout.container-margin`                                        | a box touches the edge or title band of its sized group; enlarge the group or move it                 |
-| `layout.connector-overlap`                                       | two arrows run along each other; use other ports, a waypoint or `routing bezier`                      |
-| `layout.connector-crossing`                                      | an arrow runs through a box it does not join; move the box or add a waypoint                          |
-| `layout.unknown-theme`                                           | theme name is neither built in nor in the file; warning, renders with the default                     |
-| `theme.unknown-base`, `theme.cycle`                              | `extends` names a missing theme or loops; point it at a built-in theme                                |
-| `theme.unknown-class`                                            | a class is not in the diagram, its theme or the built-in ones; declare it or fix the name             |
-| `asset.unknown-icon`, `asset.unknown-pack`                       | the icon name or pack does not exist; search with `pnpm mdg assets icons <words>`                     |
-| `layout.too-large`                                               | the sheet exceeds its `preset` or `canvas`; split it into views instead of shrinking                  |
-| `layout.text-overflow`                                           | an explicit `size` is too narrow for its text; use the width in the hint                              |
-| `layout.icon-missing`                                            | `shape icon` without an `icon`: a dashed placeholder is drawn; add the icon or change the shape       |
-| `layout.label-position-ignored`                                  | `labelPosition` without `iconPosition center` or `shape icon`; add one of them or remove it           |
-| `animate.missing-effect`, `animate.invalid-target`               | write `effect`; flow and trace on named relations, dash on lines and boxes, pulse anywhere            |
-| `animate.conflict`                                               | one effect of each kind per target; merge the two statements                                          |
-| `story.*`                                                        | stories; see [stories.md](stories.md)                                                                 |
-| `export.*`                                                       | export profiles: a known target, a `format`, options of that format, a video `duration`               |
-| `ref.unknown-link`                                               | a `link` names a diagram or element that does not exist; fix it or remove the link                    |
-| `ref.unknown-layer`, `asset.*-image`, `layout.image-unavailable` | free compositions; see [free.md](free.md)                                                             |
-| `export.no-diagram`                                              | no flow or free diagram in the file                                                                   |
+| Code                                                             | Cause and fix                                                                                                                                       |
+| ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `syntax.expected-token`, `syntax.unexpected-token`               | malformed statement; check quotes, `->`, parentheses, one statement per line                                                                        |
+| `syntax.unterminated-string`                                     | a string reached the end of the line; close it, use `\n` for line breaks                                                                            |
+| `syntax.unexpected-character`                                    | characters such as `=>`, `--->` or `#` outside strings; the relation tokens are `->`, `-->`, `--`, `---`, `<->`, `<-->`                             |
+| `ref.duplicate-id`                                               | the id is already an element, relation or top-level block; rename one                                                                               |
+| `ref.unknown-element`                                            | target of `place`, `size`, `style` or a qualified endpoint does not exist; declare it                                                               |
+| `ref.unknown-relation`                                           | `route`/`label` on an unnamed relation; add `as <id>`                                                                                               |
+| `placement.route-mismatch`                                       | `route` endpoints are reversed or wrong; use the relation's source then target                                                                      |
+| `placement.duplicate`                                            | second `place`/`size` for an element or `route`/`label` for a relation; delete one                                                                  |
+| `placement.unknown-port`                                         | the route names a port the element does not declare; the hint lists its ports                                                                       |
+| `prop.unknown`                                                   | unknown word; the hint lists what the block accepts                                                                                                 |
+| `prop.invalid-value`                                             | wrong value shape; the message names the expected form; `shape` only on `node` and `box`; a relation token the profile refuses (`--` in a sequence) |
+| `prop.duplicate`                                                 | property set twice for the same target; keep one                                                                                                    |
+| `layout.missing-placement`                                       | manual layout and an element without `place`, or a group with only one of `place`/`size`                                                            |
+| `layout.mode-unsupported`                                        | a host without a layout engine met unplaced boxes; the command line always has ELK                                                                  |
+| `layout.placement-ignored`                                       | `place` or waypoints in `layout auto`; write `layout assisted` or `manual`                                                                          |
+| `layout.constraint-conflict`                                     | placed boxes break a constraint; move a `place` or change the constraint                                                                            |
+| `layout.overlap`                                                 | two boxes overlap, or a box crosses a group edge; move it or add `distance`; a stack goes outer first                                               |
+| `layout.label-under-connector`                                   | a label sits on another arrow; move it with `label r at <n>% offset (dx, dy)`                                                                       |
+| `layout.container-margin`                                        | a box touches the edge or title band of its sized group; enlarge the group or move it                                                               |
+| `layout.connector-overlap`                                       | two arrows run along each other; use other ports, a waypoint or `routing bezier`                                                                    |
+| `layout.connector-crossing`                                      | an arrow runs through a box it does not join; move the box or add a waypoint                                                                        |
+| `layout.unknown-theme`                                           | theme name is neither built in nor in the file; warning, renders with the default                                                                   |
+| `theme.unknown-base`, `theme.cycle`                              | `extends` names a missing theme or loops; point it at a built-in theme                                                                              |
+| `theme.unknown-class`                                            | a class is not in the diagram, its theme or the built-in ones; declare it or fix the name                                                           |
+| `asset.unknown-icon`, `asset.unknown-pack`                       | the icon name or pack does not exist; search with `pnpm mdg assets icons <words>`                                                                   |
+| `layout.too-large`                                               | the sheet exceeds its `preset` or `canvas`; split it into views instead of shrinking                                                                |
+| `layout.text-overflow`                                           | an explicit `size` is too narrow for its text; use the width in the hint                                                                            |
+| `layout.icon-missing`                                            | `shape icon` without an `icon`: a dashed placeholder is drawn; add the icon or change the shape                                                     |
+| `layout.label-position-ignored`                                  | `labelPosition` without `iconPosition center` or `shape icon`; add one of them or remove it                                                         |
+| `animate.missing-effect`, `animate.invalid-target`               | write `effect`; flow and trace on named relations and free lines, dash on lines and boxes, pulse anywhere                                           |
+| `animate.conflict`                                               | one effect of each kind per target; merge the two statements                                                                                        |
+| `story.*`                                                        | stories; see [stories.md](stories.md)                                                                                                               |
+| `export.*`                                                       | export profiles: a known target, a `format`, options of that format, a video `duration`                                                             |
+| `ref.unknown-link`                                               | a `link` names a diagram or element that does not exist; fix it or remove the link                                                                  |
+| `ref.unknown-layer`, `asset.*-image`, `layout.image-unavailable` | free compositions; see [free.md](free.md)                                                                                                           |
+| `export.no-diagram`                                              | no flow or free diagram in the file                                                                                                                 |

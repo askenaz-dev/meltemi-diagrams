@@ -74,7 +74,9 @@ a <-> c: "Sync"                 // bidireccional: la misma punta en ambos extrem
 ```
 
 Los estilos `arrowhead` y `arrowtail` dan a un mensaje cualquier punta en cualquiera de sus extremos
-([styles.md](styles.md#puntas-de-flecha)).
+([styles.md](styles.md#puntas-de-flecha)). Un mensaje es una llamada o una respuesta, así que las
+líneas sin puntas, `--` y `---`, no son mensajes: `prop.invalid-value` sobre el símbolo nombra las
+cuatro flechas.
 
 `kind sync` es el valor predeterminado y nunca se escribe. Los mensajes aceptan `description`,
 `class` y `kind`; `label <message> at 50% offset (dx, dy)` en `placement` mueve una etiqueta a lo

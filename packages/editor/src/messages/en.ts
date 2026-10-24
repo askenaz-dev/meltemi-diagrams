@@ -65,6 +65,7 @@ export const en = {
     fontSize: "Text size",
     fontWeight: "Text weight",
     textAlign: "Text alignment",
+    verticalAlign: "Vertical alignment",
   },
 
   /**
@@ -177,6 +178,7 @@ export const en = {
       traceDuration: "Trace (ms)",
       selection: "Selection",
       guide: "Guides",
+      sketch: "Sketch",
     },
   },
 

@@ -339,7 +339,7 @@ export const MERMAID_COVERAGE: readonly CoverageEntry[] = [
     "flowchart.link.open",
     "`---`, `-.-`, `===`",
     "mapped",
-    "a relation with `arrowhead none`",
+    "the line `--` for `---` and `===` (with `width 3`), the dashed line `---` for `-.-`",
   ),
   e("flowchart", "flowchart.link.dotted", "`-.->`", "mapped", "`-->`"),
   e("flowchart", "flowchart.link.thick", "`==>`", "mapped", "`->` with `width 3`"),
@@ -585,7 +585,7 @@ export const MERMAID_COVERAGE: readonly CoverageEntry[] = [
     "architecture.edge",
     "`a:R -- L:b`",
     "mapped",
-    "a named relation with `arrowhead none`",
+    "the named line `a -- b` with its route",
   ),
   e(
     "architecture-beta",
@@ -903,7 +903,7 @@ export const PLANTUML_COVERAGE: readonly CoverageEntry[] = [
     "description.arrow",
     "`-->`, `->`, `..>`, `--`, `<--`, `-[#red]->`, `-[bold]->`, `-[thickness=n]->`",
     "mapped",
-    "relations; dotted is `-->`; no head is `arrowhead none`; colours and widths become styles",
+    "relations; dotted is `-->`; no head is the line `--` (`---` when dotted); colours and widths become styles",
   ),
   e(
     "Component, deployment and use case",
@@ -953,7 +953,7 @@ export const PLANTUML_COVERAGE: readonly CoverageEntry[] = [
     "description.note",
     '`note left|right|top|bottom of x : text`, `note … end note`, `note "text" as N`',
     "mapped",
-    "`note` with a dashed relation without arrowhead to its element",
+    "`note` joined to its element by the dashed line `---`",
   ),
   e(
     "Component, deployment and use case",

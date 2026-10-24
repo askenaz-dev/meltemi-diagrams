@@ -15,11 +15,12 @@ referencias.
 - Proyectos: `project.json`, importaciones relativas con espacios de nombres, temas compartidos entre
   archivos, un tema predeterminado para todo el proyecto y validación
   ([proyectos](language/projects.md)).
-- Temas y estilos: seis temas integrados (Technical, Editorial y Stage, claros y oscuros), temas
-  personalizados que los extienden, un conjunto completo de tokens (incluida la velocidad
-  predeterminada de los efectos), clases reutilizables, reglas por tipo, patrones, quince puntas de
-  flecha en cualquiera de los dos extremos y flechas de doble sentido, líneas punteadas, esquinas
-  redondeadas y preajustes de documento y de diapositiva ([estilos](language/styles.md)); en el
+- Temas y estilos: ocho temas integrados (Technical, Editorial, Stage y Sketch, claros y
+  oscuros), temas personalizados que los extienden, un conjunto completo de tokens (incluida la
+  velocidad predeterminada de los efectos), trazos pintados a mano (`sketch`), clases
+  reutilizables, reglas por tipo, patrones, quince puntas de flecha en cualquiera de los dos
+  extremos, flechas de doble sentido y líneas sin puntas, líneas punteadas, esquinas redondeadas y
+  preajustes de documento y de diapositiva ([estilos](language/styles.md)); en el
   lienzo, una barra de estilo con los tokens de color del tema, un selector de color y el panel del
   tema, que crea un tema en el archivo o para el proyecto y edita sus tokens.
 - Iconos y recursos: el paquete Tabler integrado, paquetes de Iconify y de SVG del proyecto con sus
@@ -36,8 +37,9 @@ referencias.
   de datos, rombos de decisión, bandas de grupo y etiquetas de paso, composiciones libres, diagramas
   de secuencia y vistas C4.
 - Composiciones libres ([libre](language/free.md)): cajas con veinticuatro formas en las que
-  terminan los conectores y cabe el texto (también las admiten los nodos de flujo), radios de
-  esquina, contenedores simples y pilas, texto medido, iconos e imágenes del proyecto, grupos
+  terminan los conectores y cabe el texto (también las admiten los nodos de flujo), con su texto
+  arriba, en medio o abajo, radios de esquina, contenedores simples y pilas, texto medido, iconos e
+  imágenes del proyecto, líneas que no unen ningún elemento, grupos
   colocados por su interior, capas, enlaces de identidad a otros diagramas y
   `meltemi-diagrams convert --to free`, que copia un diagrama de flujo, tal como está dibujado, en
   uno libre.

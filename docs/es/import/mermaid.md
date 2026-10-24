@@ -83,7 +83,7 @@ esencial (un elemento, una relación, un mensaje, una entidad o una línea que n
 | `subgraph id [title] … end`, anidados | `group` | convertido | Un nodo pertenece al subgrafo más interno que lo menciona. |
 | `direction` dentro de un subgrafo | — | descartado |  |
 | `-->`, `--->` | `->` | convertido |  |
-| `---`, `-.-`, `===` | una relación con `arrowhead none` | convertido |  |
+| `---`, `-.-`, `===` | la línea `--` para `---` y `===` (con `width 3`), la línea discontinua `---` para `-.-` | convertido |  |
 | `-.->` | `-->` | convertido |  |
 | `==>` | `->` con `width 3` | convertido |  |
 | `-->\|text\|`, `-- text -->` | la etiqueta de la relación | convertido |  |
@@ -262,7 +262,7 @@ esencial (un elemento, una relación, un mensaje, una entidad o una línea que n
 | `service id(icon)[Label] [in group]` | `node` con un estilo `icon` | convertido |  |
 | `junction id [in group]` | un `node` sin texto | aproximado |  |
 | `cloud`, `database`, `disk`, `internet`, `server`, `pack:name` | `tabler:cloud`, `tabler:database`, `tabler:device-floppy`, `tabler:world`, `tabler:server`; `pack:name` cuando el proyecto tiene el paquete | convertido | Los iconos de paquetes que el proyecto no tiene se descartan. |
-| `a:R -- L:b` | una relación con nombre y `arrowhead none` | convertido |  |
+| `a:R -- L:b` | la línea con nombre `a -- b` con su ruta | convertido |  |
 | `a:R --> L:b`, `a:R <-- L:b` | una relación en el sentido de la flecha | convertido |  |
 | `a:R <--> L:b` | `a <-> b` | convertido |  |
 | los lados `L`, `R`, `T`, `B` | `route e<n> from a.east to b.west` | convertido | Las posiciones quedan a cargo de ELK; los lados se conservan como puertos. |

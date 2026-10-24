@@ -157,6 +157,29 @@ describe("relation ends in the scene", () => {
     expect(off.items.filter((i) => i.kind === "path")).toHaveLength(1);
   });
 
+  it("draws a line with no head at either end, reaching both boxes", () => {
+    const plain = relation(scene(flow("  a -- b as l")), "l");
+    expect(plain.items.filter((i) => i.kind === "path")).toHaveLength(0);
+    const lineItem = plain.items[0] as PolylineItem;
+    // Not pulled back for a head: the line reaches the box an arrow's head would touch.
+    const arrow = relation(scene(flow("  a -> b as l")), "l").items[0] as PolylineItem;
+    expect(lineItem.points[0]!.x).toBeCloseTo(arrow.points[0]!.x, 3);
+    expect(lineItem.points.at(-1)!.x - arrow.points.at(-1)!.x).toBeGreaterThan(L / 2);
+    const dashed = relation(scene(flow("  a --- b as l")), "l");
+    expect(dashed.items.filter((i) => i.kind === "path")).toHaveLength(0);
+    expect((dashed.items[0] as PolylineItem).dashed).toBeTruthy();
+  });
+
+  it("draws a written head on a line, and nothing at its start", () => {
+    const end = relation(scene(flow("  a -- b as l\n  style l { arrowhead circle }")), "l");
+    expect(end.items.filter((i) => i.kind === "path")).toHaveLength(1);
+    const both = relation(
+      scene(flow("  a -- b as l\n  style l { arrowhead circle; arrowtail diamond }")),
+      "l",
+    );
+    expect(both.items.filter((i) => i.kind === "path")).toHaveLength(2);
+  });
+
   it("draws dotted lines with round dots", () => {
     const s = scene(flow("  a -> b as r\n  style r { line dotted }"));
     const lineItem = relation(s, "r").items[0] as PolylineItem;

@@ -426,6 +426,9 @@ describe("every operation on the valid corpus", () => {
         const result = planEdit(compilation, operation);
         // A move that would break the order of events is refused by design.
         if (!result.ok && operation.kind === "moveEvent") continue;
+        // A free line's points are in its statement: it takes no place or size.
+        if (!result.ok && /is a line: its points are written/.test(result.rejection.reason))
+          continue;
         // Views refuse operations that write declarations, and model relations stay in the model.
         if (
           !result.ok &&

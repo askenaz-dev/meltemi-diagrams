@@ -91,8 +91,9 @@ Reglas:
 - Una ruta que sale de la raíz del proyecto es `module.outside-project`. Un archivo que no existe es
   `module.not-found`, que nombra un archivo que solo difiere en mayúsculas y minúsculas.
 - Los nombres vinculados comparten el espacio de nombres de nivel superior del archivo con sus
-  diagramas y temas (`ref.duplicate-id`). `technical`, `editorial` y `stage` están reservados porque
-  los nombres de los temas integrados empiezan por ellos (`module.reserved-name`).
+  diagramas y temas (`ref.duplicate-id`). `technical`, `editorial`, `stage` y `sketch` están
+  reservados porque los nombres de los temas integrados empiezan por ellos
+  (`module.reserved-name`).
 - Importar un id que el módulo no define es `module.unknown-member`. Importar el mismo archivo dos
   veces es `module.duplicate-import`. Un nombre que nunca se usa es `module.unused-import`
   (información).

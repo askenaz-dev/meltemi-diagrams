@@ -37,6 +37,9 @@ import {
   withBendInserted,
   withBendMoved,
   withBendRemoved,
+  withLinePoint,
+  lineEnd,
+  linePointsOf,
   zoomAt,
   zoomStep,
   arrowKindIn,
@@ -211,6 +214,34 @@ type Drag =
       point: Point;
       target?: { element: string; attachment: EndAttachment };
     }
+  /**
+   * A free line drawn by the relation tool from a press on empty canvas of a free diagram: its
+   * start snapped where the press was, its end at the pointer. Released before the threshold, it
+   * is the tool's click on what was pressed (`pressed`, at `press`).
+   */
+  | {
+      kind: "lineDraw";
+      press: Point;
+      pressed: ReturnType<CanvasApp["hit"]>;
+      start: Point;
+      point: Point;
+      moving: boolean;
+      parent?: string;
+    }
+  /**
+   * A point of a selected free line dragged: an end or a bend (`index` in its points, from first
+   * to last), or the middle of a stretch (`segment`: the stretch after point `index`), which
+   * inserts a bend there.
+   */
+  | {
+      kind: "linePoint";
+      id: string;
+      part: "point" | "segment";
+      index: number;
+      start: Point;
+      point: Point;
+      moving: boolean;
+    }
   /** Sequence diagrams: a message, note or fragment dragged up or down, never above its space. */
   | { kind: "event"; key: string; start: Point; delta: number; min: number; moving: boolean }
   | { kind: "minimap" };
@@ -317,6 +348,8 @@ const DEFAULT_SIZES: Record<ElementKind, { width: number; height: number }> = {
   text: { width: 120, height: 28 },
   icon: { width: 48, height: 48 },
   image: { width: 160, height: 120 },
+  // A line is drawn by dragging, from point to point; this is the ghost of a click.
+  line: { width: 120, height: 1 },
   person: { width: 160, height: 104 },
   system: { width: 180, height: 80 },
   container: { width: 170, height: 76 },
@@ -341,6 +374,8 @@ const Z_ORDER = {
 
 const HANDLES: readonly Handle[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 const DRAG_THRESHOLD = 3;
+/** How long the ghost of a line just drawn takes to fade out: `--mdg-motion` in `canvas.css`. */
+const LINE_FADE_MS = 160;
 
 /** Whether a toolbar element shows on a profile: its `data-profile` lists the profiles it is for. */
 const forProfile = (profiles: string, profile: CanvasProfile): boolean =>
@@ -789,6 +824,11 @@ export class CanvasApp {
   private lastHandlePress:
     | { readonly id: string; readonly handle: string; readonly time: number; readonly point: Point }
     | undefined;
+
+  /** The ghost of a line just drawn, fading out while its edit is drawn (`since`: the release). */
+  private lineFading:
+    { readonly from: Point; readonly to: Point; readonly since: number } | undefined;
+  private lineFadeTimer: ReturnType<typeof setTimeout> | undefined;
 
   /** Sends an action for the current revision; returns whether it was sent. */
   private act(action: CanvasAction): boolean {
@@ -1818,6 +1858,23 @@ export class CanvasApp {
         // An element drawn as its icon (an icon shape, an icon object) is pressed anywhere on its
         // square, between the strokes of an outline icon too: an area of the canvas's own, under
         // the icon, which exports never have.
+        if (g && element.line) {
+          // A free line is pressed within a few units of its stroke, not only on its pixels.
+          g.prepend(
+            s("polyline", {
+              class: "mdg-hit",
+              points: outlineOf(this.lineShape(element))
+                .map((p) => `${p.x + render.offset.x},${p.y + render.offset.y}`)
+                .join(" "),
+              fill: "none",
+              stroke: "transparent",
+              "stroke-width": 10,
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "pointer-events": "stroke",
+            }),
+          );
+        }
         if (g && (element.shape === "icon" || element.kind === "icon")) {
           const { x, y, width, height } = element.box;
           g.prepend(
@@ -1912,11 +1969,14 @@ export class CanvasApp {
     );
   }
 
-  /** The elements that can be seen (hidden layers left out), back to front as they are painted. */
+  /**
+   * The shapes that can be seen (hidden layers left out), back to front as they are painted. Free
+   * lines are no shapes: they are hit by their stroke, and offer no border or inside.
+   */
   private painted(): ElementInfo[] {
     const order = (e: ElementInfo) => this.paint.get(e.id) ?? -1;
     return [...this.elements.values()]
-      .filter((e) => !this.isHidden(e.layer))
+      .filter((e) => !this.isHidden(e.layer) && !e.line)
       .sort((a, b) => order(a) - order(b));
   }
 
@@ -1962,6 +2022,19 @@ export class CanvasApp {
   private shapeOf(id: string): PresenceShape | undefined {
     const drag = this.drag;
     const element = this.elements.get(id);
+    if (element?.line) {
+      // A free line is outlined along its stroke: the dragged points while a handle moves one,
+      // shifted while the whole line moves.
+      const points =
+        drag?.kind === "linePoint" && drag.id === id && drag.moving
+          ? this.draggedLine(drag, element)
+          : outlineOf(this.lineShape(element));
+      const shift = drag?.kind === "move" && this.isMoving(id) ? drag.delta : { x: 0, y: 0 };
+      return {
+        kind: "line",
+        points: points.map((p) => ({ x: p.x + shift.x, y: p.y + shift.y })),
+      };
+    }
     if (element) {
       let box = element.box;
       if (drag?.kind === "move" && this.isMoving(id)) {
@@ -2112,9 +2185,31 @@ export class CanvasApp {
       const element = this.elements.get(this.selection[0]!);
       const relation = this.relations.get(this.selection[0]!);
       const sequence = r.profile === "sequence";
-      if (element && !this.stale) this.drawElementHandles(element);
+      // A free line has the handles of its points instead of a frame's.
+      if (element?.line && !this.stale) this.drawLineHandles(element);
+      else if (element && !this.stale) this.drawElementHandles(element);
       if (relation && !this.stale && !sequence) this.drawRouteHandles(relation);
     }
+    if (drag?.kind === "linePoint" && drag.moving) {
+      // The line as the drop will write it, its points as handles that follow the pointer.
+      const element = this.elements.get(drag.id);
+      if (element?.line) {
+        const points = this.draggedLine(drag, element).map((p) => this.screenOf(p));
+        add(
+          s("polyline", {
+            class: "wire",
+            fill: "none",
+            points: points.map((p) => `${p.x},${p.y}`).join(" "),
+          }),
+        );
+        for (const p of points) {
+          add(s("circle", { class: "handle line-point", cx: p.x, cy: p.y, r: 4 }));
+        }
+      }
+    }
+    if (drag?.kind === "lineDraw" && drag.moving) this.drawLineGhost(drag.start, drag.point);
+    const fading = this.lineFading;
+    if (fading && !drag) this.drawLineGhost(fading.from, fading.to, fading.since);
     if (drag?.kind === "move") {
       // The group the selection would land in, outlined as a connection's target is.
       const target = drag.moving && drag.target ? this.elements.get(drag.target) : undefined;
@@ -2412,6 +2507,131 @@ export class CanvasApp {
         );
       }
     }
+  }
+
+  /** A free line as a connector: its points, the polyline it is drawn with and its bends. */
+  private lineShape(element: ElementInfo): {
+    points: readonly Point[];
+    drawn: readonly Point[];
+    via: readonly Point[];
+    fromSide: "east";
+    toSide: "west";
+  } {
+    const line = element.line!;
+    return { ...line, fromSide: "east", toSide: "west" };
+  }
+
+  /** The points of a line whose handle is dragged, as the drop will write them. */
+  private draggedLine(
+    drag: { part: "point" | "segment"; index: number; point: Point },
+    element: ElementInfo,
+  ): Point[] {
+    return withLinePoint(element.line!.points, drag.part, drag.index, drag.point);
+  }
+
+  /**
+   * The handles of a selected free line: a circle at each end, a square at each bend and a small
+   * circle at the middle of each stretch, which a drag turns into a bend. No frame, resize,
+   * rotation or connection handle: a line's ends are points.
+   */
+  private drawLineHandles(element: ElementInfo): void {
+    const last = element.line!.points.length - 1;
+    for (const handle of routeHandles(this.lineShape(element))) {
+      const p = this.screenOf(handle.point);
+      if (handle.kind === "end") {
+        this.overlay.append(
+          s("circle", {
+            class: "handle end line-end",
+            cx: p.x,
+            cy: p.y,
+            r: 5,
+            "data-handle": `linePoint:${handle.end === "from" ? 0 : last}`,
+            "data-id": element.id,
+          }),
+        );
+      } else if (handle.kind === "bend") {
+        this.overlay.append(
+          s("rect", {
+            class: "handle line-bend",
+            x: p.x - 4,
+            y: p.y - 4,
+            width: 8,
+            height: 8,
+            "data-handle": `linePoint:${handle.index + 1}`,
+            "data-id": element.id,
+          }),
+        );
+      } else {
+        this.overlay.append(
+          s("circle", {
+            class: "handle segment",
+            cx: p.x,
+            cy: p.y,
+            r: 4,
+            "data-handle": `lineSegment:${handle.index}`,
+            "data-id": element.id,
+          }),
+        );
+      }
+    }
+  }
+
+  /**
+   * The ghost of a line being drawn, from `from` to `to` in diagram coordinates: the current
+   * kind's dashes and heads, a dot at each end. With `since` it is the ghost of a line just
+   * written, fading out from that time (the delay keeps the fade where it was when the overlay
+   * is drawn again).
+   */
+  private drawLineGhost(from: Point, to: Point, since?: number): void {
+    const a = this.screenOf(from);
+    const b = this.screenOf(to);
+    const kind = this.currentArrowKind();
+    const { line, heads } = kind
+      ? arrowKindLine(kind, false)
+      : { line: "solid" as const, heads: "end" as const };
+    const parts: SVGElement[] = [
+      s("line", {
+        class: line === "dashed" ? "line-ghost-stroke dashed" : "line-ghost-stroke",
+        x1: a.x,
+        y1: a.y,
+        x2: b.x,
+        y2: b.y,
+      }),
+    ];
+    const length = Math.hypot(b.x - a.x, b.y - a.y);
+    const head = (tip: Point, tail: Point) => {
+      const ux = (tip.x - tail.x) / length;
+      const uy = (tip.y - tail.y) / length;
+      const base = { x: tip.x - ux * 10, y: tip.y - uy * 10 };
+      const points = [
+        tip,
+        { x: base.x - uy * 5, y: base.y + ux * 5 },
+        { x: base.x + uy * 5, y: base.y - ux * 5 },
+      ];
+      parts.push(
+        s("polygon", {
+          class: "line-ghost-head",
+          points: points.map((p) => `${p.x},${p.y}`).join(" "),
+        }),
+      );
+    };
+    if (length > 12 && heads !== "none") head(b, a);
+    if (length > 12 && heads === "both") head(a, b);
+    for (const p of [a, b])
+      parts.push(s("circle", { class: "line-ghost-end", cx: p.x, cy: p.y, r: 3.5 }));
+    const fading = since !== undefined;
+    this.overlay.append(
+      s(
+        "g",
+        {
+          class: fading ? "line-ghost fading" : "line-ghost",
+          ...(fading
+            ? { style: `animation-delay: -${Math.round(performance.now() - since)}ms` }
+            : {}),
+        },
+        ...parts,
+      ),
+    );
   }
 
   private drawMinimap(): void {
@@ -3631,6 +3851,9 @@ export class CanvasApp {
       if (relation && this.render?.profile !== "sequence") {
         return { kind: "label", id: relation.getAttribute("data-id")! };
       }
+      // A free line's pill moves as a relation's label does.
+      const owner = label.closest('[data-role="element"]')?.getAttribute("data-id");
+      if (owner && this.elements.get(owner)?.line) return { kind: "label", id: owner };
       // The header of a fragment.
       const key = label.getAttribute("data-id")!;
       if (!relation && this.events.has(key)) return { kind: "event", id: key };
@@ -3667,7 +3890,23 @@ export class CanvasApp {
     if (e.button !== 0 || !this.render) return;
     const at = this.diagramOf(point);
     if (this.tool === "relation") {
-      this.relationClick(this.hit(e.target), at, e.shiftKey);
+      const pressed = this.hit(e.target);
+      if (this.drawsLine(pressed)) {
+        // Empty canvas of a free diagram: a drag draws a line, a click keeps the tool's prompt.
+        const start = this.snapPoint(at);
+        const group = this.stackAt(at).find((el) => el.kind === "group");
+        this.drag = {
+          kind: "lineDraw",
+          press: at,
+          pressed,
+          start,
+          point: start,
+          moving: false,
+          ...(group ? { parent: group.id } : {}),
+        };
+        return;
+      }
+      this.relationClick(pressed, at, e.shiftKey);
       return;
     }
     const armed = this.tool === "icon" ? this.armedIcon : undefined;
@@ -3706,6 +3945,19 @@ export class CanvasApp {
         return;
       }
       const [kind, arg] = hit.handle.split(":") as [string, string];
+      if (kind === "linePoint" || kind === "lineSegment") {
+        if (!this.elements.get(hit.id)?.line) return;
+        this.drag = {
+          kind: "linePoint",
+          id: hit.id,
+          part: kind === "lineSegment" ? "segment" : "point",
+          index: Number(arg),
+          start: at,
+          point: at,
+          moving: false,
+        };
+        return;
+      }
       if (kind === "rotate") {
         const element = this.elements.get(hit.id)!;
         const angle = element.rotation ?? 0;
@@ -3879,6 +4131,19 @@ export class CanvasApp {
           this.followPointer();
           break;
         }
+        if (this.elements.get(drag.primary)?.line) {
+          // A free line moves by whole steps of the grid, so points drawn on it stay on it.
+          const grid = this.settings.grid;
+          const step = (value: number) =>
+            free || !this.snap ? Math.round(value) : Math.round(value / grid) * grid;
+          drag.delta = { x: step(raw.x), y: step(raw.y) };
+          drag.guides = [];
+          drag.target = undefined;
+          drag.free = free;
+          this.followPointer();
+          this.requestPreview();
+          break;
+        }
         const primary = this.elements.get(drag.primary)!.box;
         const others = [...this.elements.values()]
           .filter((el) => !drag.ids.includes(el.id) && el.kind !== "group")
@@ -3965,12 +4230,29 @@ export class CanvasApp {
         break;
       case "bend":
       case "segment":
+      case "linePoint":
         drag.point = free ? { x: Math.round(at.x), y: Math.round(at.y) } : this.snapPoint(at);
         drag.moving =
           drag.moving ||
           Math.hypot(at.x - drag.start.x, at.y - drag.start.y) * this.viewport.zoom >=
             DRAG_THRESHOLD;
         break;
+      case "lineDraw": {
+        // On the grid unless Alt is held; Shift keeps the line at a multiple of 45°.
+        const grid = this.settings.grid;
+        const round = (value: number) =>
+          free || !this.snap ? Math.round(value) : Math.round(value / grid) * grid;
+        drag.point = lineEnd(drag.start, at, e.shiftKey, round);
+        if (
+          !drag.moving &&
+          Math.hypot(at.x - drag.press.x, at.y - drag.press.y) * this.viewport.zoom >=
+            DRAG_THRESHOLD
+        ) {
+          drag.moving = true;
+          this.announce(messages().announcements.drawingLine, false);
+        }
+        break;
+      }
       case "end":
       case "connect": {
         const element = this.attachTarget(at, drag.kind === "connect" ? drag.from : undefined);
@@ -4109,6 +4391,54 @@ export class CanvasApp {
         else if (relation && drag.edit) this.editLabel(drag.relation);
         break;
       }
+      case "linePoint": {
+        const element = this.elements.get(drag.id);
+        if (!element?.line || !drag.moving) break;
+        const points = this.draggedLine(drag, element);
+        if (this.act({ kind: "setLinePoints", element: drag.id, ...linePointsOf(points) })) {
+          const words = messages().announcements;
+          this.announce(
+            drag.part === "segment" ? words.lineBendAdded(drag.id) : words.lineReshaped(drag.id),
+          );
+        }
+        break;
+      }
+      case "lineDraw": {
+        this.drag = undefined;
+        if (!drag.moving) {
+          // A click: the tool's prompt, as on any empty canvas.
+          this.relationClick(drag.pressed, drag.press, e.shiftKey);
+          this.drawOverlay();
+          return;
+        }
+        const { start: from, point: to } = drag;
+        const words = messages().announcements;
+        if (from.x === to.x && from.y === to.y) {
+          this.announce(words.lineTooShort);
+          this.drawOverlay();
+          return;
+        }
+        const kind = this.currentArrowKind();
+        const { line, heads } = kind
+          ? arrowKindLine(kind, false)
+          : { line: "solid" as const, heads: "end" as const };
+        const sent = this.act({
+          kind: "createLine",
+          from,
+          to,
+          ...(drag.parent ? { parent: drag.parent } : {}),
+          line,
+          heads,
+        });
+        if (sent) {
+          // The tool is done, as after a relation; the ghost fades while the line is drawn.
+          this.arm(undefined);
+          this.announce(words.lineDrawn(from, to));
+          this.fadeLineGhost(from, to);
+        }
+        this.drawOverlay();
+        return;
+      }
       case "end":
         if (drag.target) {
           const { attachment, element } = drag.target;
@@ -4188,8 +4518,9 @@ export class CanvasApp {
 
   private previewLabel(relation: string, delta: Point): void {
     const svg = this.content.querySelector("svg");
+    const id = cssEscape(relation);
     const g = svg?.querySelector(
-      `g[data-id="${cssEscape(relation)}"][data-role="relation"] [data-role="label"]`,
+      `g[data-id="${id}"][data-role="relation"] [data-role="label"], g[data-id="${id}"][data-role="element"] [data-role="label"]`,
     );
     g?.setAttribute("transform", `translate(${delta.x} ${delta.y})`);
   }
@@ -4369,8 +4700,12 @@ export class CanvasApp {
   private dropTargetOf(ids: readonly string[], delta: Point): string | null | undefined {
     const profile = this.render?.profile;
     if (profile !== "flow" && profile !== "free") return undefined;
+    // A free line keeps its group when it moves.
     const union = unionBox(
-      ids.map((id) => this.elements.get(id)?.box).filter((b): b is Box => b !== undefined),
+      ids
+        .map((id) => this.elements.get(id))
+        .filter((e): e is ElementInfo => e !== undefined && !e.line)
+        .map((e) => e.box),
     );
     if (!union) return undefined;
     const centre = {
@@ -4466,6 +4801,10 @@ export class CanvasApp {
     // a double click there edits the label, as on the rest of the line.
     if (hit.kind === "handle") {
       if (hit.handle?.startsWith("segment:") && this.relations.has(hit.id)) this.editLabel(hit.id);
+      // The middle of a free line, where its pill goes, edits its label as well.
+      if (hit.handle?.startsWith("lineSegment:") && this.elements.get(hit.id)?.line) {
+        this.editLabel(hit.id);
+      }
       return;
     }
     if (
@@ -4482,6 +4821,19 @@ export class CanvasApp {
    * the handle has one.
    */
   private handleDoubleClick(id: string, handle: string): boolean {
+    const line = this.elements.get(id)?.line;
+    if (line && handle.startsWith("linePoint:")) {
+      // A bend of a free line goes; its ends stay.
+      const index = Number(handle.slice("linePoint:".length));
+      if (index <= 0 || index >= line.points.length - 1) return false;
+      this.act({
+        kind: "setLinePoints",
+        element: id,
+        ...linePointsOf(line.points.filter((_, i) => i !== index)),
+      });
+      this.announce(messages().announcements.lineBendRemoved(id));
+      return true;
+    }
     const relation = this.relations.get(id);
     if (!relation) return false;
     if (handle.startsWith("end:")) {
@@ -4579,7 +4931,12 @@ export class CanvasApp {
         this.select(order);
         return;
       case "clearSelection":
-        if (this.drag) this.resetPreview();
+        if (this.drag?.kind === "lineDraw") {
+          // The ghost goes and nothing is written; the tool stays armed.
+          this.drag = undefined;
+          this.announce(messages().announcements.lineCancelled);
+          this.drawOverlay();
+        } else if (this.drag) this.resetPreview();
         else if (this.tool) this.arm(undefined);
         else this.select([]);
         return;
@@ -5017,6 +5374,8 @@ export class CanvasApp {
    */
   private relationClick(hit: ReturnType<CanvasApp["hit"]>, at: Point, dashed: boolean): void {
     const sequence = this.render?.profile === "sequence";
+    // A free line is no end of a relation: a press on it is a press on empty canvas.
+    if (hit && this.elements.get(hit.id)?.line) hit = undefined;
     // On a sequence diagram, a click anywhere on a lifeline, fragments included, is its participant.
     const lifeline = sequence
       ? [...this.elements.values()].find(
@@ -5050,11 +5409,35 @@ export class CanvasApp {
     // a C4 view, whose model writes `->` alone.
     const kind = this.currentArrowKind();
     const flip = dashed && this.render?.profile !== "c4";
-    const { line, twoWay } = kind
+    const { line, heads } = kind
       ? arrowKindLine(kind, flip)
-      : { line: flip ? ("dashed" as const) : ("solid" as const), twoWay: false };
-    this.announce(words.connected(from, id, line === "dashed", twoWay));
-    this.act({ kind: "connect", from, to: id, line, ...(twoWay ? { twoWay } : {}) });
+      : { line: flip ? ("dashed" as const) : ("solid" as const), heads: "end" as const };
+    this.announce(words.connected(from, id, line === "dashed", heads));
+    this.act({ kind: "connect", from, to: id, line, ...(heads !== "end" ? { heads } : {}) });
+  }
+
+  /**
+   * Whether a press of the relation tool on `pressed` starts drawing a free line: on a free
+   * diagram that edits, before a source is chosen, on empty canvas, a group's background or
+   * another line.
+   */
+  private drawsLine(pressed: ReturnType<CanvasApp["hit"]>): boolean {
+    if (this.render?.profile !== "free" || this.readOnly || this.stale) return false;
+    if (this.relationFrom) return false;
+    if (!pressed) return true;
+    const element = pressed.kind === "element" ? this.elements.get(pressed.id) : undefined;
+    return element !== undefined && (element.kind === "group" || element.line !== undefined);
+  }
+
+  /** Keeps the ghost of a line just drawn on the overlay while it fades out. */
+  private fadeLineGhost(from: Point, to: Point): void {
+    this.lineFading = { from, to, since: performance.now() };
+    if (this.lineFadeTimer !== undefined) clearTimeout(this.lineFadeTimer);
+    this.lineFadeTimer = setTimeout(() => {
+      this.lineFadeTimer = undefined;
+      this.lineFading = undefined;
+      this.drawOverlay();
+    }, LINE_FADE_MS);
   }
 
   /** The palette of a declared type: one button per kind, after the free tools. */

@@ -50,6 +50,7 @@
           "link": null,
           "source": null,
           "shape": null,
+          "line": null,
           "entity": {
             "model": "commerce",
             "path": "customer",
@@ -96,6 +97,7 @@
           "link": null,
           "source": null,
           "shape": null,
+          "line": null,
           "entity": {
             "model": "commerce",
             "path": "shop",
@@ -142,6 +144,7 @@
           "link": null,
           "source": null,
           "shape": null,
+          "line": null,
           "entity": {
             "model": "commerce",
             "path": "bank",
@@ -184,6 +187,7 @@
           "to": "shop",
           "line": "solid",
           "twoWay": false,
+          "heads": "end",
           "async": false,
           "technology": null,
           "sources": [
@@ -228,6 +232,7 @@
           "to": "bank",
           "line": "solid",
           "twoWay": false,
+          "heads": "end",
           "async": false,
           "technology": null,
           "sources": [
@@ -327,6 +332,7 @@
           "link": null,
           "source": null,
           "shape": null,
+          "line": null,
           "entity": {
             "model": "commerce",
             "path": "shop",
@@ -373,6 +379,7 @@
           "link": null,
           "source": null,
           "shape": null,
+          "line": null,
           "entity": {
             "model": "commerce",
             "path": "customer",
@@ -419,6 +426,7 @@
           "link": null,
           "source": null,
           "shape": null,
+          "line": null,
           "entity": {
             "model": "commerce",
             "path": "shop.web",
@@ -467,6 +475,7 @@
           "link": null,
           "source": null,
           "shape": null,
+          "line": null,
           "entity": {
             "model": "commerce",
             "path": "shop.api",
@@ -515,6 +524,7 @@
           "link": null,
           "source": null,
           "shape": null,
+          "line": null,
           "entity": {
             "model": "commerce",
             "path": "shop.db",
@@ -559,6 +569,7 @@
           "to": "shop.db",
           "line": "solid",
           "twoWay": false,
+          "heads": "end",
           "async": false,
           "technology": null,
           "sources": [
@@ -603,6 +614,7 @@
           "to": "shop.web",
           "line": "solid",
           "twoWay": false,
+          "heads": "end",
           "async": false,
           "technology": null,
           "sources": [
@@ -647,6 +659,7 @@
           "to": "shop.api",
           "line": "solid",
           "twoWay": false,
+          "heads": "end",
           "async": false,
           "technology": "JSON/HTTPS",
           "sources": [
@@ -691,6 +704,7 @@
           "to": "shop.db",
           "line": "solid",
           "twoWay": false,
+          "heads": "end",
           "async": false,
           "technology": null,
           "sources": [
@@ -735,6 +749,7 @@
           "to": "shop.api",
           "line": "solid",
           "twoWay": false,
+          "heads": "end",
           "async": false,
           "technology": null,
           "sources": [
@@ -857,6 +872,7 @@
           "link": null,
           "source": null,
           "shape": null,
+          "line": null,
           "entity": {
             "model": "commerce",
             "path": "shop.api",
@@ -903,6 +919,7 @@
           "link": null,
           "source": null,
           "shape": null,
+          "line": null,
           "entity": {
             "model": "commerce",
             "path": "shop.web",
@@ -949,6 +966,7 @@
           "link": null,
           "source": null,
           "shape": null,
+          "line": null,
           "entity": {
             "model": "commerce",
             "path": "shop.api.orders",
@@ -997,6 +1015,7 @@
           "link": null,
           "source": null,
           "shape": null,
+          "line": null,
           "entity": {
             "model": "commerce",
             "path": "shop.api.payments",
@@ -1045,6 +1064,7 @@
           "link": null,
           "source": null,
           "shape": null,
+          "line": null,
           "entity": {
             "model": "commerce",
             "path": "shop.db",
@@ -1091,6 +1111,7 @@
           "link": null,
           "source": null,
           "shape": null,
+          "line": null,
           "entity": {
             "model": "commerce",
             "path": "bank",
@@ -1133,6 +1154,7 @@
           "to": "shop.db",
           "line": "solid",
           "twoWay": false,
+          "heads": "end",
           "async": false,
           "technology": null,
           "sources": [
@@ -1177,6 +1199,7 @@
           "to": "bank",
           "line": "solid",
           "twoWay": false,
+          "heads": "end",
           "async": false,
           "technology": null,
           "sources": [
@@ -1221,6 +1244,7 @@
           "to": "shop.api.orders",
           "line": "solid",
           "twoWay": false,
+          "heads": "end",
           "async": false,
           "technology": null,
           "sources": [

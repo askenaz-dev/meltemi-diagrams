@@ -44,6 +44,8 @@ export interface ResolvedStyle {
   readonly fontSize?: number;
   readonly fontWeight?: number;
   readonly textAlign?: "left" | "center" | "right";
+  /** Free boxes: where the text block sits within the shape's text band; `middle` by default. */
+  readonly verticalAlign?: "top" | "middle" | "bottom";
 }
 
 const COLOR_PROPERTIES = new Set(["fill", "stroke", "color", "iconColor"]);
@@ -103,6 +105,10 @@ export class StyleResolver {
   }
 
   element(element: Element): ResolvedStyle {
+    // A free line takes a relation's properties (heads, route kind, corners) and none of a box's.
+    if (element.kind === "line") {
+      return this.resolve(element.id, "line", element.classes, ELEMENT_ONLY_PROPERTIES);
+    }
     // A kind of a declared type: the type's style first, and rules of the kind (decision 0030).
     const declared = element.typeKind ? this.declared?.elements[element.typeKind] : undefined;
     return this.resolve(

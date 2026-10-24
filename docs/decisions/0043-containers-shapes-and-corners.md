@@ -1,6 +1,8 @@
 # 0043. Plain containers, stacks, shapes and corner radii
 
-Status: accepted (containers-shapes-and-corners change, 16 October 2026)
+Status: accepted (containers-shapes-and-corners change, 16 October 2026). The free-only text
+properties gain `verticalAlign`, the text placed within each shape's text band, by
+[decision 0058](0058-lines-sketch-and-text-alignment.md).
 
 ## Context
 

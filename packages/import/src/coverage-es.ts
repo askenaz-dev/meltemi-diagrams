@@ -98,7 +98,8 @@ export const COVERAGE_ES: Readonly<Record<string, string>> = {
   "plain text": "texto sin formato",
   "the text without the icon": "el texto sin el icono",
   "a flow diagram": "un diagrama de flujo",
-  "a relation with `arrowhead none`": "una relación con `arrowhead none`",
+  "the line `--` for `---` and `===` (with `width 3`), the dashed line `---` for `-.-`":
+    "la línea `--` para `---` y `===` (con `width 3`), la línea discontinua `---` para `-.-`",
   "`->` with `width 3`": "`->` con `width 3`",
   "the relation's label": "la etiqueta de la relación",
   "`arrowhead circle`; `<->` with it for `o--o`": "`arrowhead circle`; `<->` con ella para `o--o`",
@@ -137,7 +138,7 @@ export const COVERAGE_ES: Readonly<Record<string, string>> = {
   "a `node` without text": "un `node` sin texto",
   "`tabler:cloud`, `tabler:database`, `tabler:device-floppy`, `tabler:world`, `tabler:server`; `pack:name` when the project has the pack":
     "`tabler:cloud`, `tabler:database`, `tabler:device-floppy`, `tabler:world`, `tabler:server`; `pack:name` cuando el proyecto tiene el paquete",
-  "a named relation with `arrowhead none`": "una relación con nombre y `arrowhead none`",
+  "the named line `a -- b` with its route": "la línea con nombre `a -- b` con su ruta",
   "a relation in the arrow's direction": "una relación en el sentido de la flecha",
   "a relation from `a`'s group": "una relación desde el grupo de `a`",
   "a grid of 168 × 84 cells": "una cuadrícula de celdas de 168 × 84",
@@ -162,15 +163,15 @@ export const COVERAGE_ES: Readonly<Record<string, string>> = {
   "as their keywords": "como sus palabras clave",
   "id and label": "id y etiqueta",
   "description `«stereotype»`": "descripción `«stereotype»`",
-  "relations; dotted is `-->`; no head is `arrowhead none`; colours and widths become styles":
-    "relaciones; la punteada es `-->`; sin punta es `arrowhead none`; los colores y anchos pasan a ser estilos",
+  "relations; dotted is `-->`; no head is the line `--` (`---` when dotted); colours and widths become styles":
+    "relaciones; la punteada es `-->`; sin punta es la línea `--` (`---` si es punteada); los colores y anchos pasan a ser estilos",
   "`triangleOutline`, `diamond`, `diamondOutline`, `cross` and the crow's-foot heads at their end":
     "`triangleOutline`, `diamond`, `diamondOutline`, `cross` y las puntas de pata de gallo en su extremo",
   "plain arrowheads": "puntas simples",
   "`<->`, `<-->`, with the head at both ends": "`<->`, `<-->`, con la punta en ambos extremos",
   "a relation without end labels": "una relación sin etiquetas en los extremos",
-  "`note` with a dashed relation without arrowhead to its element":
-    "`note` con una relación discontinua sin punta hacia su elemento",
+  "`note` joined to its element by the dashed line `---`":
+    "`note` unida a su elemento por la línea discontinua `---`",
   "plain messages": "mensajes simples",
   "`<->`, `<-->`; two different heads are approximated as one way":
     "`<->`, `<-->`; dos puntas distintas se aproximan como un solo sentido",

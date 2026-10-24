@@ -69,6 +69,223 @@ const grouped = `${PLAIN}diagram s: free {
 }
 `;
 
+describe("free lines on the canvas", () => {
+  const sheet = (theme = "technical.light", body = "  box a") =>
+    `diagram s: free {\n  theme "${theme}"\n${body}\n  placement { place a at (600, 400) }\n}\n`;
+
+  it("draws a line with the armed kind's styles and the theme's head, and selects it", () => {
+    const canvas = open(sheet());
+    const text = canvas.apply({
+      kind: "createLine",
+      from: { x: 98, y: 98 },
+      to: { x: 294, y: 98 },
+      line: "solid",
+      heads: "end",
+    });
+    expect(text).toContain("  line line1 from (98, 98) to (294, 98)\n");
+    expect(text).toContain("  style line1 { arrowhead triangle }\n");
+    expect(canvas.session.selected).toEqual(["line1"]);
+  });
+
+  it("writes a dashed line without heads, a plain line with no style, two heads by the theme", () => {
+    const dashed = open(sheet()).apply({
+      kind: "createLine",
+      from: { x: 0, y: 0 },
+      to: { x: 98, y: 0 },
+      line: "dashed",
+      heads: "none",
+    });
+    expect(dashed).toContain("style line1 { line dashed }");
+    const plain = open(sheet()).apply({
+      kind: "createLine",
+      from: { x: 0, y: 0 },
+      to: { x: 98, y: 0 },
+      line: "solid",
+      heads: "none",
+    });
+    expect(plain).toContain("line line1 from (0, 0) to (98, 0)");
+    expect(plain).not.toContain("style line1");
+    const editorial = open(sheet("editorial.light")).apply({
+      kind: "createLine",
+      from: { x: 0, y: 0 },
+      to: { x: 98, y: 0 },
+      line: "solid",
+      heads: "both",
+    });
+    expect(editorial).toContain("style line1 { arrowtail open; arrowhead open }");
+  });
+
+  it("declares a line drawn in a group inside it, in its interior coordinates", () => {
+    const canvas = open(grouped);
+    const a = render(canvas.messages).elements.find((e) => e.id === "a")!;
+    // `a` is placed at (80, 30) in the interior: its centre gives the interior origin.
+    const origin = { x: a.box.x + a.box.width / 2 - 80, y: a.box.y + a.box.height / 2 - 30 };
+    const text = canvas.apply({
+      kind: "createLine",
+      from: { x: origin.x + 14, y: origin.y + 98 },
+      to: { x: origin.x + 154, y: origin.y + 98 },
+      parent: "g",
+      line: "solid",
+      heads: "none",
+    });
+    // Snapped on the canvas's grid, then written in the group's interior.
+    const written =
+      / {4}box b "B"\n {4}line line1 from \((-?\d+), (-?\d+)\) to \((-?\d+), (-?\d+)\)\n {2}\}/.exec(
+        text,
+      );
+    expect(written).not.toBeNull();
+    const [fx, fy, tx, ty] = written!.slice(1).map(Number);
+    expect([tx! - fx!, ty! - fy!]).toEqual([140, 0]);
+    expect(Math.abs(fx! - 14)).toBeLessThanOrEqual(7);
+  });
+
+  it("gives a line's points to the canvas, moves an end, adds a bend and takes it away", () => {
+    const canvas = open(sheet("technical.light", "  box a\n  line l from (98, 98) to (294, 98)"));
+    const info = render(canvas.messages).elements.find((e) => e.id === "l")!;
+    expect(info.kind).toBe("line");
+    expect(info.line!.points).toEqual([
+      { x: 98, y: 98 },
+      { x: 294, y: 98 },
+    ]);
+    let text = canvas.apply({
+      kind: "setLinePoints",
+      element: "l",
+      from: { x: 98, y: 98 },
+      to: { x: 350, y: 168 },
+      via: [],
+    });
+    expect(text).toContain("line l from (98, 98) to (350, 168)\n");
+    text = canvas.apply({
+      kind: "setLinePoints",
+      element: "l",
+      from: { x: 98, y: 98 },
+      to: { x: 350, y: 168 },
+      via: [{ x: 224, y: 189 }],
+    });
+    expect(text).toContain("line l from (98, 98) to (350, 168) via [(224, 189)]\n");
+    text = canvas.apply({
+      kind: "setLinePoints",
+      element: "l",
+      from: { x: 126, y: 112 },
+      to: { x: 378, y: 182 },
+      via: [],
+    });
+    expect(text).toContain("line l from (126, 112) to (378, 182)\n");
+  });
+
+  it("writes a moved point of a line in a group in the group's interior", () => {
+    const text = grouped.replace(
+      '    box b "B"\n',
+      '    box b "B"\n    line l from (20, 40) to (120, 40)\n',
+    );
+    const canvas = open(text);
+    const l = render(canvas.messages).elements.find((e) => e.id === "l")!;
+    const start = l.line!.points[0]!;
+    const after = canvas.apply({
+      kind: "setLinePoints",
+      element: "l",
+      from: { x: start.x + 14, y: start.y },
+      to: l.line!.points[1]!,
+      via: [],
+    });
+    expect(after).toContain("line l from (34, 40) to (120, 40)\n");
+  });
+
+  it("copies a line with its label statement and pastes it shifted", () => {
+    const text = sheet(
+      "technical.light",
+      '  box a\n  line l "Step" from (98, 98) to (294, 98) via [(196, 140)]',
+    ).replace(
+      "  placement { place a at (600, 400) }",
+      "  placement {\n    place a at (600, 400)\n    label l at 30%\n  }",
+    );
+    const analysis = analyzeDocument({ text });
+    const fragment = copyFragment(analysis, "s", ["l"])!;
+    expect(fragment).toContain('line l "Step" from (98, 98) to (294, 98) via [(196, 140)]');
+    expect(fragment).toContain("label l at 30%");
+    expect(fragment).not.toContain("place l");
+    const pasted = pasteOperations(analysis, "s", fragment, { shift: { x: 28, y: 14 } });
+    if (!pasted.ok) throw new Error(pasted.reason);
+    const inserted = (pasted.operations[0] as { fragment: string }).fragment;
+    expect(inserted).toContain('line l_2 "Step" from (126, 112) to (322, 112) via [(224, 154)]');
+    expect(inserted).toContain("label l_2 at 30%");
+  });
+
+  it("moves a whole line, and a line with boxes, by its points", () => {
+    const canvas = open(
+      sheet("technical.light", "  box a\n  line l from (98, 98) to (294, 98) via [(196, 140)]"),
+    );
+    const text = canvas.apply({ kind: "move", ids: ["l", "a"], delta: { x: 28, y: 14 } });
+    expect(text).toContain("line l from (126, 112) to (322, 112) via [(224, 154)]");
+    expect(text).toContain("place a at (628, 414)");
+  });
+
+  it("leaves lines out of alignment", () => {
+    const canvas = open(
+      sheet("technical.light", "  box a\n  box b\n  line l from (0, 0) to (98, 0)").replace(
+        "  placement { place a at (600, 400) }",
+        "  placement {\n    place a at (600, 400)\n    place b at (300, 200)\n  }",
+      ),
+    );
+    const text = canvas.apply({ kind: "align", ids: ["a", "b", "l"], edge: "left" });
+    expect(text).toContain("line l from (0, 0) to (98, 0)");
+  });
+
+  it("edits a line's label in place on its pill", () => {
+    const canvas = open(
+      sheet("technical.light", '  box a\n  line l "Step" from (0, 0) to (300, 0)'),
+    );
+    const info = render(canvas.messages).elements.find((e) => e.id === "l")!;
+    expect(info.text).toBeDefined();
+    // The editor opens on the pill, at the middle of the line.
+    expect(info.text!.anchor.x).toBeCloseTo(150, 0);
+    const text = canvas.apply({ kind: "setLabel", id: "l", label: "Done" });
+    expect(text).toContain('line l "Done" from (0, 0) to (300, 0)');
+    const unlabelled = open(sheet("technical.light", "  box a\n  line l from (0, 0) to (300, 0)"));
+    expect(unlabelled.apply({ kind: "setLabel", id: "l", label: "Go" })).toContain(
+      'line l "Go" from (0, 0) to (300, 0)',
+    );
+  });
+
+  it("moves a line's label pill, and shows a line with a relation's strip", () => {
+    const canvas = open(
+      sheet("technical.light", '  box a\n  line l "Step" from (0, 0) to (300, 0)'),
+    );
+    const text = canvas.apply({ kind: "moveLabel", relation: "l", delta: { x: 0, y: -16 } });
+    expect(text).toContain("label l at 50% offset (0, -16)");
+    canvas.session.receive({ type: "select", ids: ["l"] });
+    const model = inspect(analyzeDocument({ text }), "s", ["l"])!;
+    const names = model.fields.map((f) => f.name);
+    for (const name of [
+      "style.stroke",
+      "style.line",
+      "style.width",
+      "style.arrowhead",
+      "style.arrowtail",
+      "style.routing",
+      "style.corners",
+    ]) {
+      expect(names, name).toContain(name);
+    }
+    for (const name of [
+      "style.shape",
+      "style.radius",
+      "style.rotation",
+      "style.iconPosition",
+      "x",
+      "w",
+      "ports",
+      "inside",
+    ]) {
+      expect(names, name).not.toContain(name);
+    }
+    const field = (name: string) => model.fields.find((f) => f.name === name)!;
+    expect(field("style.arrowhead")).toMatchObject({ value: null, placeholder: "none" });
+    expect(field("style.routing")).toMatchObject({ value: null, placeholder: "polyline" });
+    expect(names).toContain("effect.flow");
+  });
+});
+
 describe("free diagrams on the canvas", () => {
   it("renders with the free profile and its layers", () => {
     const r = render(open(grouped).messages);

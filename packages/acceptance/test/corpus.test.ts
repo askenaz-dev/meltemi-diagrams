@@ -10,14 +10,16 @@ const sessions = projectSessions();
 const fonts = createNodeFontLibrary();
 
 describe("acceptance corpus", () => {
-  it("covers the four profiles with long labels, cycles, nested containers, parallel relations and 30 elements, and flow and free with stacks, shapes and icons", () => {
+  it("covers the four profiles with long labels, cycles, nested containers, parallel relations and 30 elements, flow and free with stacks, shapes and icons, and free with lines and a sketch", () => {
     const common = ["cycles", "long-labels", "nested", "parallel", "thirty"];
     for (const profile of PROFILES) {
       const names = sheets.filter((s) => s.profile === profile).map((s) => s.name.split("/")[1]);
       const expected =
-        profile === "flow" || profile === "free"
-          ? [...common, "icons", "shapes", "stacked"].sort()
-          : common;
+        profile === "free"
+          ? [...common, "icons", "lines", "shapes", "sketch", "stacked"].sort()
+          : profile === "flow"
+            ? [...common, "icons", "shapes", "stacked"].sort()
+            : common;
       expect(names, profile).toEqual(expected);
     }
   });

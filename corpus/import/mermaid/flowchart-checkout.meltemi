@@ -26,11 +26,10 @@ diagram checkout: flow {
   pay -> retry: "no"
   retry --> cart
   order_api -> orders as e2
-  orders -> mailer as e3
+  orders -- mailer
 
   style retry { shape hexagon; fill "#eee" }
   style mailer { shape pill }
   style e2 { width 3 }
-  style e3 { arrowhead none }
   style e1 { stroke "#d33" }
 }

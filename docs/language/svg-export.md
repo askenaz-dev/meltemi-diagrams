@@ -99,11 +99,14 @@ A relation is a `connectorWidth` polyline (1.3 px in `technical.*`) ending in th
 
 `arrowhead` and `arrowtail` styles choose any of the heads of [styles.md](styles.md#arrow-heads)
 at the target and at the source; a two-way relation (`<->`, `<-->`) draws the target's head at
-both ends. Heads are drawn after the line and before the label, in the connector's colour and
+both ends. A line (`--`, `---`) draws no head at either end, whatever the theme's `arrowhead`, and
+reaches both boxes; a written `arrowhead` or `arrowtail` still draws, so `a -- b` with
+`arrowhead circle` ends in a circle. A free `line` is drawn by the same code from its points, with
+no head unless one is written ([free.md](free.md#lines)). Heads are drawn after the line and before the label, in the connector's colour and
 width; filled shapes stop the line at their base, hollow ones at their back. A Bézier connector
 is trimmed at both ends.
 
-`-->` and `line dashed` use a `5 4` dash pattern; `line dotted` draws round dots, a dash of 0 and
+`-->`, `---` and `line dashed` use a `5 4` dash pattern; `line dotted` draws round dots, a dash of 0 and
 a gap of `1.5 × width + 3` with round caps.
 
 The anchor on each box follows decision 0006:
@@ -173,6 +176,8 @@ The theme decides palette, type, spacing, strokes, arrowheads and the brand fram
 | `editorial.dark`            | `#13161a`  | `#1b1f24` | `#e5e8eb` | `#9aa4ad` | `#3b434b` | IBM Plex Sans | none   |
 | `stage.light`               | `#FFFFFF`  | `#FFFFFF` | `#0A0F1A` | `#3D4A5C` | `#9AA8B8` | Inter         | header |
 | `stage.dark`                | `#05080F`  | `#0E1626` | `#FFFFFF` | `#A9B8CC` | `#2B3B52` | Inter         | header |
+| `sketch.light`              | `#F7FBFF`  | `#FFFFFF` | `#0B1830` | `#526579` | `#DCE5ED` | Inter         | footer |
+| `sketch.dark`               | `#07111F`  | `#0F1B2D` | `#F7FBFF` | `#88A0B9` | `#183149` | Inter         | footer |
 
 `Line` outlines the boxes of flow, free and C4 diagrams; sequence diagrams draw their heads, bars,
 notes and lifelines in `Muted` instead ([sequence.md](sequence.md#layout)).
@@ -184,6 +189,9 @@ notes and lifelines in `Muted` instead ([sequence.md](sequence.md#layout)).
   1 px connectors with open arrowheads and no frame.
 - **Stage**, for presentations and video: higher contrast, 16 px labels, 13 px descriptions and
   relation labels, 2 px connectors, 10 px arrowheads, 48 px margins and a header frame.
+- **Sketch**, for whiteboards and early thinking: the technical palettes, sizes and frame, with
+  rounded bends (`corners rounded`) and strokes painted by hand (`sketch light`, below). They use
+  Inter until a hand font is bundled.
 
 Every built-in theme has the signal colours `success`, `warning`, `danger` and `info`, and the
 built-in classes ([styles.md](styles.md)).
@@ -206,6 +214,29 @@ strip, which is how the editorial themes behave. The strip spans the whole canva
 with role `frame`, outside the diagram's elements, and the canvas grows to fit the wordmark and
 title.
 
+### Sketched strokes
+
+When the theme's `sketch` is `light` or `rough` (the `sketch.*` themes are `light`), `renderSvg`
+paints every stroked rectangle, path and polyline of the element, relation, label, frame, lifeline
+and event groups, heads and label pills included, in three items:
+
+- the fill alone, clean, with `stroke="none"` (when the shape has a fill);
+- two stroke-only `<path fill="none">` passes over it, at the item's width, dash pattern, dash
+  offset, class, opacity and transform. A rectangle is first turned into four sides joined by
+  quarter arcs for its radius; the outline is then sampled every 16 px (`light`) or 12 px
+  (`rough`), and each sample is moved along the outline's normal by at most 0.6 px or 1.4 px.
+
+The offsets come from a pseudo-random sequence seeded by the group's id and the pass, so the same
+text always renders the same bytes, and an edit elsewhere leaves a shape's wobble alone. An
+anonymous relation's key (`a->b#1`) and a generated id change when statements are reordered, and
+their wobble changes with them; name what must stay put. Text, images, icons, the brand mark,
+gradients and patterns are untouched, and fills stay clean. Only the painting changes: the
+layout's boxes, tracks and bounds, hit tests, the canvas's selection outlines and handles and the
+text editor use the clean geometry. Every export (SVG, PNG, PDF, the players, video) and the
+canvas draw through `renderSvg`, so they all show the same strokes; a moving dash moves on both
+passes. A sketched picture is larger: the whiteboard of the gallery is 6.5 KB clean and 35.6 KB
+sketched with `--fonts system` (decision 0058).
+
 ### Presets and canvas
 
 `preset document` warns (`layout.too-large`) when the canvas is wider than 1,200 px. `preset slide`
@@ -224,7 +255,8 @@ exceeds grows, with the same warning. Text is never shrunk: split dense diagrams
 - Elements with a `url` draw inside an `<a href>` in their group; a picture `link` wraps everything
   drawn in one `<a href>`.
 - Every element and relation is a `<g data-id="..." data-role="element|relation">`; relation labels
-  are a nested `<g data-role="label">`. Editors can map clicks back to ids with these attributes.
+  are a nested `<g data-role="label">`. A free line is an element group whose label is nested the
+  same way. Editors can map clicks back to ids with these attributes.
   A group on a layer other than `main` also carries `data-layer="<name>"`.
 - Images of free diagrams are `<image href="data:…" preserveAspectRatio="xMidYMid meet">` inside
   their element group, with the description as a `<title>` child. No file or URL is referenced.

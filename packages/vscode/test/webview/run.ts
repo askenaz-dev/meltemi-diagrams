@@ -103,6 +103,21 @@ const FREE = `diagram s: free {
 }
 `;
 
+/** Two boxes in a row and one far below, with room for lines between them (y 168 to 440). */
+const LINES = `diagram s: free {
+  title "Lines"
+  layout manual
+  box a "A"
+  box b "B"
+  box far "Far"
+  placement {
+    place a at (126, 112)
+    place b at (546, 112)
+    place far at (700, 476)
+  }
+}
+`;
+
 /** A placed group `g` whose interior starts at (116, 120), holding `a`, and `c` beside it. */
 const NESTED = `diagram s: free {
   title "Nested"
@@ -4401,21 +4416,216 @@ const tests: {
       await page.mouse.click(cache.x, cache.y);
       await h.settled();
       assert.match(h.text, /\n {2}api --> cache\n/);
-      // The menu lists the four kinds with pictures, the current one checked.
+      // The menu lists the six kinds with pictures, the current one checked.
       await page.locator(".toolbar .split-arrow[data-arrow-kinds]").click();
       const kinds = page.locator(".menu [role=menuitemradio]");
       assert.deepEqual(
         await kinds.evaluateAll((items) => items.map((i) => i.getAttribute("data-kind"))),
-        ["->", "-->", "<->", "<-->"],
+        ["->", "-->", "--", "---", "<->", "<-->"],
       );
       assert.equal(await kinds.nth(1).getAttribute("aria-checked"), "true");
       assert.equal(await page.locator('.menu svg[data-glyph="arrow:<->"]').count(), 1);
+      assert.equal(await page.locator('.menu svg[data-glyph="arrow:--"]').count(), 1);
+      assert.equal(await page.locator('.menu svg[data-glyph="arrow:---"]').count(), 1);
+      // The lines are drawn without heads: one stroke, nothing filled.
+      assert.equal(await page.locator('.menu svg[data-glyph="arrow:--"] path').count(), 1);
+      await page.locator(".menu").screenshot({ path: join(output, "canvas-arrow-kinds.png") });
       await page.locator('.menu [data-kind="<->"]').click();
       await page.mouse.click(cache.x, cache.y);
       await h.settled();
       await page.mouse.click(api.x, api.y);
       await h.settled();
       assert.match(h.text, /\n {2}cache <-> api\n/);
+      // The line: a click on each end writes `--`, and Shift on the second click `---`.
+      await page.locator(".toolbar .split-arrow[data-arrow-kinds]").click();
+      await page.locator('.menu [data-kind="--"]').click();
+      await page.mouse.click(api.x, api.y);
+      await h.settled();
+      await page.mouse.click(cache.x, cache.y);
+      await h.settled();
+      assert.match(h.text, /\n {2}api -- cache\n/);
+      // R arms the tool with the current kind, then six more presses go round the six kinds.
+      for (let i = 0; i < 7; i++) await page.keyboard.press("r");
+      assert.equal(
+        await page.locator(".status").textContent(),
+        "Line (--). Click the element the relation starts from. Escape cancels.",
+      );
+      await page.mouse.click(cache.x, cache.y);
+      await h.settled();
+      await page.keyboard.down("Shift");
+      await page.mouse.click(api.x, api.y);
+      await page.keyboard.up("Shift");
+      await h.settled();
+      assert.match(h.text, /\n {2}cache --- api\n/);
+    },
+  },
+  {
+    name: "free lines: drawn with the arrow tool, reshaped by their handles and moved by their stroke",
+    text: LINES,
+    async run(h) {
+      const page = h.page;
+      const at = (point: { x: number; y: number }) =>
+        pageAt(h, "a", { x: 126, y: 112 }, 160, point);
+      await h.focusStage();
+      // R arms the tool with `->`; a drag on empty canvas draws the ghost, then the line.
+      await page.keyboard.press("r");
+      const ghost = page.locator(".overlay .line-ghost:not(.fading)");
+      await dragTo(h, await at({ x: 98, y: 280 }), await at({ x: 294, y: 280 }), async () => {
+        assert.equal(await ghost.count(), 1);
+        assert.equal(await ghost.locator(".line-ghost-head").count(), 1);
+      });
+      assert.match(h.text, /\n {2}line line1 from \(98, 280\) to \(294, 280\)\n/);
+      assert.match(h.text, /\n {2}style line1 \{ arrowhead triangle \}\n/);
+      assert.deepEqual(h.session.selected, ["line1"]);
+      assert.equal(
+        await page.locator(".status").textContent(),
+        "Drew a line from (98, 280) to (294, 280).",
+      );
+      // Selected: an outline along it, its two ends and its middle; no frame or connection handle.
+      assert.equal(await page.locator(".overlay polyline.outline").count(), 1);
+      assert.equal(await page.locator('.overlay [data-handle^="linePoint:"]').count(), 2);
+      assert.equal(await page.locator('.overlay [data-handle^="lineSegment:"]').count(), 1);
+      assert.equal(await page.locator('.overlay [data-handle^="resize:"]').count(), 0);
+      assert.equal(await page.locator('.overlay [data-handle^="connect:"]').count(), 0);
+      assert.equal(await page.locator('.overlay [data-handle^="rotate:"]').count(), 0);
+      // The middle dragged 56 down inserts a bend.
+      await dragTo(h, await at({ x: 196, y: 280 }), await at({ x: 196, y: 336 }));
+      assert.match(
+        h.text,
+        /\n {2}line line1 from \(98, 280\) to \(294, 280\) via \[\(196, 336\)\]\n/,
+      );
+      await page.locator(".main").screenshot({ path: join(output, "canvas-line-selected.png") });
+      // The end dragged, snapped to the grid.
+      await dragTo(h, await at({ x: 294, y: 280 }), await at({ x: 352, y: 296 }));
+      assert.match(
+        h.text,
+        /\n {2}line line1 from \(98, 280\) to \(350, 294\) via \[\(196, 336\)\]\n/,
+      );
+      // A double click on the bend removes it, in its own edit.
+      const bend = await at({ x: 196, y: 336 });
+      await page.mouse.dblclick(bend.x, bend.y);
+      await h.settled();
+      assert.match(h.text, /\n {2}line line1 from \(98, 280\) to \(350, 294\)\n/);
+      // A press on empty canvas clears the selection; a press near the stroke selects the line,
+      // and a drag of it moves every point by the same amount.
+      const empty = await at({ x: 400, y: 420 });
+      await page.mouse.click(empty.x, empty.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, []);
+      const stroke = await at({ x: 161, y: 286 });
+      await page.mouse.click(stroke.x, stroke.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["line1"]);
+      await dragTo(h, stroke, await at({ x: 189, y: 300 }));
+      assert.match(h.text, /\n {2}line line1 from \(126, 294\) to \(378, 308\)\n/);
+      // Escape while drawing: the ghost goes and nothing is written.
+      const before = actions(h);
+      await page.keyboard.press("r");
+      await dragTo(h, await at({ x: 98, y: 392 }), await at({ x: 294, y: 392 }), async () => {
+        assert.equal(await ghost.count(), 1);
+        await page.keyboard.press("Escape");
+        assert.equal(await ghost.count(), 0);
+      });
+      assert.equal(actions(h), before);
+      assert.equal(await page.locator(".status").textContent(), "No line drawn.");
+      assert.doesNotMatch(h.text, /line2/);
+      // A press on a box still starts a relation, even dragged: no line, `a` is the source.
+      await dragTo(h, await h.centre("a"), await at({ x: 126, y: 152 }));
+      assert.doesNotMatch(h.text, /line2/);
+      const b = await h.centre("b");
+      await page.mouse.click(b.x, b.y);
+      await h.settled();
+      assert.match(h.text, /\n {2}a -> b\n/);
+    },
+  },
+  {
+    name: "alignment picker: a cell writes both alignments in one edit and moves the label to the top band",
+    text: LINES,
+    async run(h) {
+      const page = h.page;
+      const a = await h.centre("a");
+      await page.mouse.click(a.x, a.y);
+      await h.settled();
+      const picker = page.locator('.strip [data-field="style.textAlign"]');
+      const cells = picker.locator('[role="radio"]');
+      assert.equal(await cells.count(), 9);
+      // Nothing written: the centre greyed as the default, nothing pressed.
+      assert.equal(
+        await picker.locator(".align-cell.inherit").getAttribute("aria-label"),
+        "centre, middle",
+      );
+      assert.equal(await picker.locator('[aria-checked="true"]').count(), 0);
+      const label = () =>
+        page.evaluate(() => {
+          const g = document.querySelector('.content g[data-id="a"][data-role="element"]')!;
+          const text = g.querySelector("text")!.getBoundingClientRect();
+          const box = g.getBoundingClientRect();
+          return { top: text.top - box.top, bottom: box.bottom - text.bottom, height: box.height };
+        });
+      const before = await label();
+      const edits = actions(h);
+      await picker.locator('[data-across="left"][data-down="top"]').click();
+      await h.settled();
+      assert.equal(actions(h), edits + 1, "one edit");
+      assert.match(h.text, /\n {2}style a \{ textAlign left; verticalAlign top \}\n/);
+      const top = await label();
+      assert.ok(top.top < before.top - 4, `the label went up: ${top.top} < ${before.top}`);
+      assert.equal(
+        await picker.locator('[aria-checked="true"]').getAttribute("aria-label"),
+        "left, top",
+      );
+      await page
+        .locator(".strip")
+        .screenshot({ path: join(output, "canvas-alignment-picker.png") });
+      // The keyboard: Down from the pressed cell and Enter writes the middle, the default.
+      await picker.locator('[aria-checked="true"]').focus();
+      await page.keyboard.press("ArrowDown");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /\n {2}style a \{ textAlign left \}\n/);
+      // The chip takes the alignment away.
+      await picker.getByRole("button", { name: /Inherit the alignment/ }).click();
+      await h.settled();
+      assert.doesNotMatch(h.text, /textAlign/);
+    },
+  },
+  {
+    name: "sketch theme: a switch paints two passes, keeps the clean selection outline and goes dark",
+    text: LINES,
+    async run(h) {
+      const page = h.page;
+      const outline = async () => {
+        const a = await h.centre("a");
+        await page.mouse.click(a.x, a.y);
+        await h.settled();
+        const box = await page.locator(".overlay rect.outline").first().boundingBox();
+        assert.ok(box, "no outline");
+        await page.keyboard.press("Escape");
+        await h.settled();
+        return box;
+      };
+      const passes = () =>
+        page.locator('.content g[data-id="a"][data-role="element"] > path[fill="none"]').count();
+      const clean = await outline();
+      assert.equal(await passes(), 0);
+      await page.getByRole("combobox", { name: "Theme" }).selectOption("sketch.light");
+      await h.settled();
+      assert.match(h.text, /\n {2}theme "sketch.light"\n/);
+      assert.equal(await passes(), 2);
+      assert.equal(
+        await page
+          .locator('.content g[data-id="a"][data-role="element"] > rect:not([stroke="none"])')
+          .count(),
+        0,
+      );
+      // The overlay is drawn from the clean geometry.
+      near(await outline(), clean, 0.5, "selection outline");
+      await page.locator(".main").screenshot({ path: join(output, "canvas-sketch.png") });
+      // The light and dark switch works on the family.
+      await page.getByRole("button", { name: "Dark" }).click();
+      await h.settled();
+      assert.match(h.text, /\n {2}theme "sketch.dark"\n/);
+      assert.equal(await passes(), 2);
     },
   },
   {
@@ -4997,7 +5207,7 @@ const tests: {
       const relation = page.locator('.toolbar button[data-tool="relation"]');
       const tool = (await relation.boundingBox())!;
       await hold(tool.x + tool.width / 2, tool.y + tool.height / 2);
-      assert.equal(await page.locator(".menu [role=menuitemradio]").count(), 4);
+      assert.equal(await page.locator(".menu [role=menuitemradio]").count(), 6);
       assert.equal(await relation.getAttribute("aria-pressed"), "false");
       await page.keyboard.press("Escape");
       await relation.click();

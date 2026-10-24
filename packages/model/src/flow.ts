@@ -27,6 +27,7 @@ import {
   MAIN_LAYER,
   PORTS,
   PORT_SIDES,
+  RELATION_ARROWS,
   RELATION_ONLY_PROPERTIES,
   diagramStatements,
   profileTakesShape,
@@ -614,6 +615,7 @@ export class FlowAnalyzer {
         technology: null,
         external: false,
         shape: data ? "cylinder" : null,
+        line: null,
         typeKind: null,
         data: {},
         groupPath,
@@ -643,6 +645,7 @@ export class FlowAnalyzer {
       this.invalid(messages().diagnostics.common.singleBlock(kind), stmt.chain.clauses[1]!.keyword);
       return;
     }
+    if (kind === "line" && !declaredKind) return this.declareLine(stmt, groupPath);
     const [idArg, labelArg, ...extra] = stmt.args;
     const idToken = singleIdent(idArg);
     if (!idToken) {
@@ -722,6 +725,7 @@ export class FlowAnalyzer {
       technology: null,
       external: false,
       shape: null,
+      line: null,
       typeKind,
       data: declaredKind ? dataOf(blockValues, declaredKind.properties) : {},
       groupPath,
@@ -733,6 +737,74 @@ export class FlowAnalyzer {
     if (!added || source === null || !sourceRange) return;
     if (kind === "icon") this.icons.push({ reference: source, range: sourceRange });
     else this.images.push({ element: idToken.text, path: source, range: sourceRange });
+  }
+
+  /**
+   * `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), ...]] [{ ... }]`: a free line that
+   * joins no element, its points in the interior coordinates of its innermost group. The label is
+   * empty unless written: a line has no name to show.
+   */
+  protected declareLine(stmt: KeywordStatement, groupPath: string[]): void {
+    const form = '`line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), ...]]`';
+    const m = messages();
+    const [idArg, ...rest] = stmt.args;
+    const idToken = singleIdent(idArg);
+    if (!idToken) {
+      this.invalid(m.diagnostics.common.expected(form), idArg ?? stmt.keyword, [
+        m.hints.example("line divider from (40, 200) to (520, 200)"),
+      ]);
+      return;
+    }
+    const refuse = (at: Arg | undefined) =>
+      this.invalid(m.diagnostics.flow.linePoints, at ?? stmt, [m.hints.flow.form(form)]);
+    const labelArg = rest[0]?.kind === "StringLiteral" ? rest[0] : undefined;
+    const [fromWord, fromArg, toWord, toArg, viaWord, viaList, extra] = labelArg
+      ? rest.slice(1)
+      : rest;
+    if (!isWord(fromWord, "from")) return refuse(fromWord);
+    const from = readPoint(fromArg);
+    if (!from) return refuse(fromArg);
+    if (!isWord(toWord, "to")) return refuse(toWord);
+    const to = readPoint(toArg);
+    if (!to) return refuse(toArg);
+    const via: Point[] = [];
+    if (viaWord) {
+      if (!isWord(viaWord, "via") || viaList?.kind !== "List") return refuse(viaList ?? viaWord);
+      for (const item of viaList.items) {
+        const point = readPoint(item);
+        if (!point) return refuse(item);
+        via.push(point);
+      }
+      if (extra) return refuse(extra);
+    }
+    const { values: _values, ...blockFields } = this.elementBlock(
+      stmt.block,
+      this.profile.elementProperties,
+      "Element",
+      idToken,
+    );
+    this.addElement({
+      id: idToken.text,
+      kind: "line",
+      label: labelArg?.kind === "StringLiteral" ? labelArg.value : "",
+      implicit: false,
+      ...blockFields,
+      source: null,
+      sourceRange: null,
+      labelWritten: labelArg !== undefined,
+      entity: null,
+      technology: null,
+      external: false,
+      shape: null,
+      line: { from, to, via },
+      typeKind: null,
+      data: {},
+      groupPath,
+      range: this.range(stmt),
+      idRange: this.range(idToken),
+      idToken,
+      node: stmt,
+    });
   }
 
   protected addElement(element: Element): boolean {
@@ -1029,7 +1101,8 @@ export class FlowAnalyzer {
       from,
       to,
       line: this.profile.arrows[stmt.arrow.text] ?? "solid",
-      twoWay: stmt.arrow.text.startsWith("<"),
+      heads: RELATION_ARROWS[stmt.arrow.text]?.heads ?? "end",
+      twoWay: RELATION_ARROWS[stmt.arrow.text]?.heads === "both",
       async: values.kind === "async",
       technology: null,
       sources: [],
@@ -1097,6 +1170,7 @@ export class FlowAnalyzer {
       technology: null,
       external: false,
       shape: null,
+      line: null,
       typeKind: null,
       data: {},
       groupPath,
@@ -1363,7 +1437,8 @@ export class FlowAnalyzer {
     if (!point) return this.invalid(messages().diagnostics.flow.position, position ?? stmt);
     if (extra) return this.shapeError(stmt, form, extra);
     const element = this.resolveElement(targetToken, "place", stmt);
-    if (!element || this.duplicatePlacement(stmt, element)) return;
+    if (!element || this.lineRefused(element, "place", targetToken)) return;
+    if (this.duplicatePlacement(stmt, element)) return;
     this.placement.push({
       statement: "place",
       target: element,
@@ -1387,7 +1462,8 @@ export class FlowAnalyzer {
     }
     if (extra) return this.shapeError(stmt, form, extra);
     const element = this.resolveElement(targetToken, "size", stmt);
-    if (!element || this.duplicatePlacement(stmt, element)) return;
+    if (!element || this.lineRefused(element, "size", targetToken)) return;
+    if (this.duplicatePlacement(stmt, element)) return;
     this.placement.push({
       statement: "size",
       target: element,
@@ -1635,17 +1711,32 @@ export class FlowAnalyzer {
       point = p;
       if (extra) return this.shapeError(stmt, form, extra);
     }
-    const relation = this.resolveRelation(targetToken, "label", stmt);
-    if (!relation || this.duplicatePlacement(stmt, relation.key)) return;
+    // A free line's label pill moves as a relation's does.
+    const line = this.elementsById.get(targetToken.text);
+    if (line?.kind === "line") this.reference(targetToken, line.id, "element", "label", stmt);
+    const relation =
+      line?.kind === "line" ? undefined : this.resolveRelation(targetToken, "label", stmt);
+    const labelled = line?.kind === "line" ? line.id : relation?.key;
+    if (labelled === undefined || this.duplicatePlacement(stmt, labelled)) return;
     this.placement.push({
       statement: "label",
-      target: relation.key,
+      target: labelled,
       at: at.value,
       offset: point,
       range: this.range(stmt),
       targetRange: this.range(targetToken),
       node: stmt,
     });
+  }
+
+  /** A free line takes no `place` or `size`: its points are in its statement. Reports it. */
+  protected lineRefused(id: string, statement: "place" | "size", token: Token): boolean {
+    if (this.elementsById.get(id)?.kind !== "line") return false;
+    const m = messages();
+    this.invalid(m.diagnostics.flow.lineHasPoints(id, statement), token, [
+      m.hints.flow.linePointsWritten,
+    ]);
+    return true;
   }
 
   protected resolveElement(
@@ -1750,9 +1841,12 @@ export class FlowAnalyzer {
     for (const targetToken of targetTokens) {
       const resolved = this.resolveStyleTarget(targetToken, kind, stmt);
       if (!resolved) continue;
+      // A free line takes a relation's properties, and none of a box's.
+      const line =
+        resolved.kind === "element" && this.elementsById.get(resolved.name)?.kind === "line";
       const misfit =
         kind === "style"
-          ? resolved.kind === "relation"
+          ? resolved.kind === "relation" || line
             ? ELEMENT_ONLY_PROPERTIES
             : RELATION_ONLY_PROPERTIES
           : [];
@@ -1762,13 +1856,15 @@ export class FlowAnalyzer {
         if (!token || name === "shape" || misplaced.has(name)) continue;
         misplaced.add(name);
         this.invalid(
-          messages().diagnostics.flow.notForTargets(
-            name,
-            resolved.kind === "relation",
-            resolved.name,
-          ),
+          line
+            ? messages().diagnostics.flow.notForLines(name, resolved.name)
+            : messages().diagnostics.flow.notForTargets(
+                name,
+                resolved.kind === "relation",
+                resolved.name,
+              ),
           token,
-          [targetHint(name)],
+          line ? [] : [targetHint(name)],
         );
       }
       // `shape` is refused per target: a block may list a node and a decision.
@@ -1944,9 +2040,11 @@ export class FlowAnalyzer {
     const element = resolved.kind === "element" ? this.elementsById.get(resolved.name) : undefined;
     const m = messages().diagnostics.flow;
     let reason: string | null = null;
-    if (effect === "flow" && resolved.kind !== "relation") {
+    // A free line runs effects as a relation does: it is a connector without ends.
+    const connector = resolved.kind === "relation" || element?.kind === "line";
+    if (effect === "flow" && !connector) {
       reason = m.flowTarget;
-    } else if (effect === "trace" && resolved.kind !== "relation") {
+    } else if (effect === "trace" && !connector) {
       reason = m.traceTarget;
     } else if (effect === "dash") {
       if (resolved.kind === "event") reason = m.dashOnEvent;
@@ -1993,7 +2091,7 @@ export class FlowAnalyzer {
 
 /** The declarations and statements of flow and free diagrams, as their hints list them. */
 const FLOW_DECLARATIONS: readonly string[] = ["node", "decision", "data", "group", "note", "tag"];
-const FREE_DECLARATIONS: readonly string[] = ["box", "text", "icon", "image", "group"];
+const FREE_DECLARATIONS: readonly string[] = ["box", "text", "icon", "image", "line", "group"];
 const FLOW_STATEMENTS: readonly string[] = [
   "direction",
   "layout",
@@ -2021,6 +2119,7 @@ const FREE_PROFILE_ONLY: Readonly<Record<string, true>> = {
   fontSize: true,
   fontWeight: true,
   textAlign: true,
+  verticalAlign: true,
 };
 
 function isWord(arg: Arg | undefined, word: string): boolean {

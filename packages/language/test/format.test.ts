@@ -37,6 +37,30 @@ describe("formatter layout", () => {
     );
   });
 
+  it("lays out the line tokens as arrows and a line object as a keyword statement", () => {
+    const input =
+      'diagram d:free{\n  a--b\n  c---d\n  line l "L" from (0,0) to (100,0) via [(50,20),(60,20)]\n}';
+    expect(format(input)).toBe(
+      'diagram d: free {\n  a -- b\n  c --- d\n  line l "L" from (0, 0) to (100, 0) via [(50, 20), (60, 20)]\n}\n',
+    );
+  });
+
+  it("puts one bend per line in a multi-line via of a line object", () => {
+    const input =
+      "diagram d: free {\n  line l from (0, 0) to (100, 0) via [(50, 20),\n(60, 20)]\n}\n";
+    expect(format(input)).toBe(
+      "diagram d: free {\n  line l from (0, 0) to (100, 0) via [\n    (50, 20),\n    (60, 20)\n  ]\n}\n",
+    );
+  });
+
+  it("refuses a broken line token and leaves the text alone", () => {
+    const result = formatSource("diagram d: flow {\n  a ---> b\n}\n");
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.diagnostics.map((d) => d.code)).toContain("syntax.unexpected-character");
+    }
+  });
+
   it("separates top-level blocks by exactly one blank line", () => {
     const input =
       'theme a { ink "#000000" }\ntheme b { ink "#111111" }\n\n\n\ndiagram d: flow { x -> y }\n';

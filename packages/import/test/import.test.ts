@@ -274,10 +274,19 @@ describe("mermaid import", () => {
     expect(text).toContain('c -> d: "done"');
   });
 
-  it("names and styles open links", () => {
-    const text = imported("flowchart LR\n  a --- b", "x.mmd");
-    expect(text).toContain("a -> b as e1");
-    expect(text).toContain("style e1 { arrowhead none }");
+  it("writes open links as lines, unnamed and unstyled", () => {
+    const text = imported("flowchart LR\n  a --- b\n  c -.- d", "x.mmd");
+    expect(text).toContain("a -- b\n");
+    expect(text).toContain("c --- d\n");
+    expect(text).not.toContain("as e1");
+    expect(text).not.toContain("arrowhead");
+  });
+
+  it("writes a thick open link as a line with width 3", () => {
+    const text = imported("flowchart LR\n  a === b", "x.mmd");
+    expect(text).toContain("a -- b as e1");
+    expect(text).toContain("style e1 { width 3 }");
+    expect(text).not.toContain("arrowhead");
   });
 
   it("maps class definitions", () => {
@@ -310,9 +319,9 @@ describe("mermaid import", () => {
       "architecture-beta\n  service db(database)[DB]\n  service server(server)[Server]\n  db:L -- R:server",
       "x.mmd",
     );
-    expect(text).toContain("db -> server as e1");
+    expect(text).toContain("db -- server as e1");
     expect(text).toContain("route e1 from db.west to server.east");
-    expect(text).toContain("style e1 { arrowhead none }");
+    expect(text).not.toContain("style e1");
     expect(text).toContain('style db { icon "tabler:database" }');
   });
 
@@ -478,8 +487,23 @@ describe("plantuml import", () => {
       "x.puml",
     );
     expect(text).toContain('note note1 "Rate limited"');
-    expect(text).toContain("note1 --> api as e1");
-    expect(text).toContain("style e1 { arrowhead none }");
+    expect(text).toContain("note1 --- api\n");
+    expect(text).not.toContain("as e1");
+    expect(text).not.toContain("arrowhead");
+  });
+
+  it("writes headless arrows as lines, a left diamond as a tail on a line", () => {
+    const text = imported(
+      "@startuml\ncomponent a\ncomponent b\ncomponent c\ncomponent d\na -- b\nc .. d\nb *-- c\na --|> d\n@enduml",
+      "x.puml",
+    );
+    expect(text).toContain("a -- b\n");
+    expect(text).toContain("c --- d\n");
+    expect(text).toMatch(/b -- c as (e\d+)/);
+    const tail = /b -- c as (e\d+)/.exec(text)![1]!;
+    expect(text).toContain(`style ${tail} { arrowtail diamond }`);
+    expect(text).toMatch(/a -> d as e\d+/);
+    expect(text).toContain("arrowhead triangleOutline");
   });
 
   it("maps return to a reply", () => {

@@ -232,6 +232,8 @@ export class ArchitectureReader {
         to,
         dashed: false,
         ...(edge.left && edge.right ? { twoWay: true } : {}),
+        // An edge with no arrow at either side is the line token `--`; it keeps its id for its route.
+        ...(!edge.left && !edge.right ? { heads: "none" as const } : {}),
         id,
         ...(edge.label !== undefined && edge.label !== "" ? { label: edge.label } : {}),
         classes: [],
@@ -239,7 +241,6 @@ export class ArchitectureReader {
       });
       this.sheet.routes.push({ relation: id, from: `${from}.${fromSide}`, to: `${to}.${toSide}` });
       if (!edge.left && !edge.right) {
-        this.sheet.styles.push({ targets: [id], props: [["arrowhead", "none"]] });
         this.reporter.mapped("architecture.edge");
       } else if (edge.left && edge.right) {
         this.reporter.mapped("architecture.edge.both");

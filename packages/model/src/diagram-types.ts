@@ -20,6 +20,7 @@ import {
   STYLE_PROPERTIES,
   THEME_COLOR_TOKENS,
   TEXT_ALIGNS,
+  VERTICAL_ALIGNS,
 } from "./schema.js";
 import type { Direction, LayoutMode, StyleProperties } from "./types.js";
 
@@ -176,6 +177,9 @@ function readStyle(value: unknown, where: string, problems: string[]): StyleProp
         break;
       case "textAlign":
         word(name, v, TEXT_ALIGNS);
+        break;
+      case "verticalAlign":
+        word(name, v, VERTICAL_ALIGNS);
         break;
       case "fontWeight":
         word(name, v, FONT_WEIGHTS);

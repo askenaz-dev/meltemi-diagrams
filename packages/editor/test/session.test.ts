@@ -506,15 +506,19 @@ describe("creating, editing and deleting", () => {
     expect(text).toContain("as persist");
   });
 
-  it("connects with the four arrow kinds", () => {
+  it("connects with the six arrow kinds", () => {
     const { session, apply } = open(manual);
-    let text = apply({ kind: "connect", from: "api", to: "cache", line: "solid", twoWay: true });
+    let text = apply({ kind: "connect", from: "api", to: "cache", line: "solid", heads: "both" });
     expect(text).toContain("  api <-> cache\n");
     expect(session.selected).toEqual(["api->cache#1"]);
-    text = apply({ kind: "connect", from: "cache", to: "db", line: "dashed", twoWay: true });
+    text = apply({ kind: "connect", from: "cache", to: "db", line: "dashed", heads: "both" });
     expect(text).toContain("  cache <--> db\n");
-    text = apply({ kind: "connect", from: "db", to: "cache", line: "dashed", twoWay: false });
+    text = apply({ kind: "connect", from: "db", to: "cache", line: "dashed" });
     expect(text).toContain("  db --> cache\n");
+    text = apply({ kind: "connect", from: "api", to: "db", line: "solid", heads: "none" });
+    expect(text).toContain("  api -- db\n");
+    text = apply({ kind: "connect", from: "db", to: "api", line: "dashed", heads: "none" });
+    expect(text).toContain("  db --- api\n");
   });
 
   it("moves a flow node into a group and out, keeping its place", () => {
@@ -702,7 +706,7 @@ describe("what sequence diagrams and C4 views refuse", () => {
     session.receive({ type: "pickDiagram", diagram: "context" });
     const view = render(session.state());
     const [from, to] = view.elements.filter((e) => e.kind !== "group").map((e) => e.id);
-    const result = act({ kind: "connect", from: from!, to: to!, line: "solid", twoWay: true });
+    const result = act({ kind: "connect", from: from!, to: to!, line: "solid", heads: "both" });
     expect(result.plan).toBeUndefined();
     expect(result.messages[0]).toMatchObject({
       type: "rejected",

@@ -104,11 +104,15 @@ punta `arrowhead` del tema, de largo `arrowSize` y de ancho siete octavos de ese
 
 Los estilos `arrowhead` y `arrowtail` eligen cualquiera de las puntas de
 [styles.md](styles.md#puntas-de-flecha) en el destino y en el origen; una relación bidireccional (`<->`,
-`<-->`) dibuja la punta del destino en ambos extremos. Las puntas se dibujan después de la línea y
+`<-->`) dibuja la punta del destino en ambos extremos. Una línea (`--`, `---`) no dibuja punta en
+ningún extremo, sea cual sea el `arrowhead` del tema, y llega hasta las dos cajas; un `arrowhead` o
+un `arrowtail` escrito se sigue dibujando, así que `a -- b` con `arrowhead circle` termina en un
+círculo. Una `line` libre se dibuja con el mismo código a partir de sus puntos, sin punta salvo
+que se escriba una ([free.md](free.md#líneas)). Las puntas se dibujan después de la línea y
 antes de la etiqueta, con el color y el ancho del conector; las formas rellenas detienen la línea en
 su base, y las huecas, en su parte trasera. Un conector Bézier se recorta en ambos extremos.
 
-`-->` y `line dashed` usan un patrón de guiones `5 4`; `line dotted` dibuja puntos redondos: un
+`-->`, `---` y `line dashed` usan un patrón de guiones `5 4`; `line dotted` dibuja puntos redondos: un
 guion de 0 y un hueco de `1.5 × width + 3` con extremos redondeados.
 
 El anclaje en cada caja sigue la decisión 0006:
@@ -184,6 +188,8 @@ logotipo. Temas integrados:
 | `editorial.dark`                   | `#13161a` | `#1b1f24`  | `#e5e8eb` | `#9aa4ad` | `#3b434b` | IBM Plex Sans | none   |
 | `stage.light`                      | `#FFFFFF` | `#FFFFFF`  | `#0A0F1A` | `#3D4A5C` | `#9AA8B8` | Inter         | header |
 | `stage.dark`                       | `#05080F` | `#0E1626`  | `#FFFFFF` | `#A9B8CC` | `#2B3B52` | Inter         | header |
+| `sketch.light`                     | `#F7FBFF` | `#FFFFFF`  | `#0B1830` | `#526579` | `#DCE5ED` | Inter         | footer |
+| `sketch.dark`                      | `#07111F` | `#0F1B2D`  | `#F7FBFF` | `#88A0B9` | `#183149` | Inter         | footer |
 
 `Line` contornea las cajas de los diagramas de flujo, libres y C4; los diagramas de secuencia
 dibujan sus cabeceras, barras, notas y líneas de vida en `Muted` ([sequence.md](sequence.md#disposición)).
@@ -196,6 +202,9 @@ dibujan sus cabeceras, barras, notas y líneas de vida en `Muted` ([sequence.md]
 - **Stage**, para presentaciones y video: más contraste, etiquetas de 16 px, descripciones y
   etiquetas de relación de 13 px, conectores de 2 px, puntas de 10 px, márgenes de 48 px y un marco
   en el encabezado.
+- **Sketch**, para pizarras y primeras ideas: las paletas, los tamaños y el marco de los temas
+  technical, con los codos redondeados (`corners rounded`) y los trazos pintados a mano
+  (`sketch light`, más abajo). Usan Inter hasta que se incluya una fuente manuscrita.
 
 Todos los temas integrados tienen los colores de señal `success`, `warning`, `danger` e `info`, y
 las clases integradas ([styles.md](styles.md)).
@@ -219,6 +228,33 @@ título 11 px. `frame header` (los temas stage) pone la franja arriba. `mark non
 editorial. La franja ocupa todo el lienzo, es un grupo de la escena con el rol `frame`, fuera de los
 elementos del diagrama, y el lienzo crece para que quepan el logotipo y el título.
 
+### Trazos a mano
+
+Cuando el `sketch` del tema es `light` o `rough` (los temas `sketch.*` son `light`), `renderSvg`
+pinta cada rectángulo, trazado y polilínea con borde de los grupos de elementos, relaciones,
+etiquetas, el marco, las líneas de vida y los eventos, incluidas las puntas y las píldoras de las
+etiquetas, en tres piezas:
+
+- solo el relleno, limpio, con `stroke="none"` (cuando la forma tiene relleno);
+- encima, dos pasadas `<path fill="none">` que solo llevan el borde, con el ancho, el patrón de
+  guiones, el desplazamiento de los guiones, la clase, la opacidad y la transformación de la pieza.
+  Un rectángulo se convierte antes en cuatro lados unidos por cuartos de arco según su radio;
+  después el contorno se muestrea cada 16 px (`light`) o 12 px (`rough`), y cada muestra se mueve
+  a lo largo de la normal del contorno como mucho 0,6 px o 1,4 px.
+
+Los desplazamientos salen de una secuencia pseudoaleatoria cuya semilla son el id del grupo y la
+pasada, así que el mismo texto siempre produce los mismos bytes, y una edición en otro sitio no
+cambia el temblor de una forma. La clave de una relación anónima (`a->b#1`) y un id generado
+cambian cuando se reordenan las instrucciones, y su temblor cambia con ellos; nombra lo que deba
+quedarse quieto. El texto, las imágenes, los iconos, el símbolo de la marca, los degradados y los
+patrones no se tocan, y los rellenos siguen limpios. Solo cambia la pintura: las cajas, los
+recorridos y los límites de la disposición, la detección de clics, los contornos de selección y
+los tiradores del lienzo y el editor de texto usan la geometría limpia. Todas las exportaciones
+(SVG, PNG, PDF, los reproductores, el video) y el lienzo dibujan con `renderSvg`, así que todos
+muestran los mismos trazos; un guion en movimiento se mueve en las dos pasadas. Una imagen
+dibujada a mano pesa más: la pizarra de la galería ocupa 6,5 KB limpia y 35,6 KB a mano con
+`--fonts system` (decisión 0058).
+
 ### Preajustes y lienzo
 
 `preset document` advierte (`layout.too-large`) cuando el lienzo es más ancho que 1200 px.
@@ -239,7 +275,8 @@ densos en vistas.
   dibujo envuelve todo lo dibujado en un único `<a href>`.
 - Cada elemento y cada relación es un `<g data-id="..." data-role="element|relation">`; las
   etiquetas de relación son un `<g data-role="label">` anidado. Los editores pueden relacionar los
-  clics con los ids gracias a estos atributos. Un grupo en una capa distinta de `main` lleva además
+  clics con los ids gracias a estos atributos. Una línea libre es un grupo de elemento cuya
+  etiqueta se anida del mismo modo. Un grupo en una capa distinta de `main` lleva además
   `data-layer="<nombre>"`.
 - Las imágenes de las composiciones libres son
   `<image href="data:…" preserveAspectRatio="xMidYMid meet">` dentro del grupo de su elemento, con

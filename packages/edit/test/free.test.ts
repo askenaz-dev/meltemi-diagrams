@@ -25,6 +25,136 @@ function refused(text: string, operation: EditOperation): string {
 
 const free = (body: string) => `diagram s: free {\n${body}\n}\n`;
 
+describe("free lines", () => {
+  it("declares a line with a generated id and the styles of its kind in one edit", () => {
+    const after = run(free("  box a"), {
+      kind: "createLine",
+      diagram: "s",
+      from: { x: 98, y: 98 },
+      to: { x: 294, y: 98 },
+      styles: [{ property: "arrowhead", value: "triangle" }],
+    });
+    expect(after).toBe(
+      free(
+        "  box a\n  line line1 from (98, 98) to (294, 98)\n  style line1 { arrowhead triangle }",
+      ),
+    );
+    const plain = run(free("  box a"), {
+      kind: "createLine",
+      diagram: "s",
+      from: { x: 0, y: 0 },
+      to: { x: 10, y: 0 },
+    });
+    expect(plain).toBe(free("  box a\n  line line1 from (0, 0) to (10, 0)"));
+  });
+
+  it("declares a line inside a group, its styles with the diagram's", () => {
+    const text = free(
+      '  group g "G" {\n    box a\n  }\n  style a { fill accent }\n  placement {\n    place g at (300, 200)\n    place a at (60, 40)\n  }',
+    );
+    const after = run(text, {
+      kind: "createLine",
+      diagram: "s",
+      parent: "g",
+      from: { x: 20, y: 40 },
+      to: { x: 120, y: 40 },
+      styles: [{ property: "line", value: "dashed" }],
+    });
+    expect(after).toContain("    box a\n    line line1 from (20, 40) to (120, 40)\n  }");
+    expect(after).toContain("  style a { fill accent }\n  style line1 { line dashed }\n");
+  });
+
+  it("refuses a line in a flow diagram", () => {
+    expect(
+      refused("diagram f: flow {\n  a\n}\n", {
+        kind: "createLine",
+        diagram: "f",
+        from: { x: 0, y: 0 },
+        to: { x: 1, y: 1 },
+      }),
+    ).toBe("edit.invalid-value: Lines that join no element belong to free diagrams.");
+  });
+
+  it("moves points number by number, keeping comments and the label", () => {
+    const text = free('  line l "Step" from (98, 98) to (294, 98) // the divider');
+    const after = run(text, {
+      kind: "setLinePoints",
+      diagram: "s",
+      element: "l",
+      from: { x: 98, y: 98 },
+      to: { x: 350, y: 168 },
+      via: [],
+    });
+    expect(after).toBe(free('  line l "Step" from (98, 98) to (350, 168) // the divider'));
+  });
+
+  it("inserts a via list when a bend appears and removes it when none is left", () => {
+    const text = free("  line l from (98, 98) to (294, 98)");
+    const bent = run(text, {
+      kind: "setLinePoints",
+      diagram: "s",
+      element: "l",
+      from: { x: 98, y: 98 },
+      to: { x: 294, y: 98 },
+      via: [{ x: 196, y: 154 }],
+    });
+    expect(bent).toBe(free("  line l from (98, 98) to (294, 98) via [(196, 154)]"));
+    const moved = run(bent, {
+      kind: "setLinePoints",
+      diagram: "s",
+      element: "l",
+      from: { x: 126, y: 112 },
+      to: { x: 322, y: 112 },
+      via: [{ x: 224, y: 168 }],
+    });
+    expect(moved).toBe(free("  line l from (126, 112) to (322, 112) via [(224, 168)]"));
+    const straight = run(bent, {
+      kind: "setLinePoints",
+      diagram: "s",
+      element: "l",
+      from: { x: 98, y: 98 },
+      to: { x: 294, y: 98 },
+      via: [],
+    });
+    expect(straight).toBe(text);
+    const two = run(bent, {
+      kind: "setLinePoints",
+      diagram: "s",
+      element: "l",
+      from: { x: 98, y: 98 },
+      to: { x: 294, y: 98 },
+      via: [
+        { x: 150, y: 140 },
+        { x: 250, y: 140 },
+      ],
+    });
+    expect(two).toBe(free("  line l from (98, 98) to (294, 98) via [(150, 140), (250, 140)]"));
+  });
+
+  it("refuses to move the points of something that is not a line", () => {
+    expect(
+      refused(free("  box a"), {
+        kind: "setLinePoints",
+        diagram: "s",
+        element: "a",
+        from: { x: 0, y: 0 },
+        to: { x: 1, y: 1 },
+        via: [],
+      }),
+    ).toBe("edit.invalid-value: `a` is not a line.");
+  });
+
+  it("removes a line with its label statement", () => {
+    const text = free(
+      '  line l "Step" from (0, 0) to (300, 0)\n  box a\n  placement {\n    label l at 30%\n    place a at (0, 100)\n  }',
+    );
+    const after = run(text, { kind: "removeElement", diagram: "s", element: "l", cascade: true });
+    expect(after).not.toContain("line l");
+    expect(after).not.toContain("label l");
+    expect(after).toContain("place a at (0, 100)");
+  });
+});
+
 describe("creating free objects", () => {
   it("writes an icon with its source and place", () => {
     const text = free(

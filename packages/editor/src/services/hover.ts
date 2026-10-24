@@ -2,6 +2,7 @@ import { isToken, type Range } from "@meltemi/diagrams-language";
 import { THEMES } from "@meltemi/diagrams-layout";
 import {
   PORTS,
+  arrowToken,
   type Element,
   type ElementLink,
   type FlowDiagram,
@@ -64,7 +65,8 @@ export function elementHover(
 
 export function relationHover(diagram: FlowDiagram, relation: Relation): string {
   const t = serviceMessages().hover;
-  const arrow = relation.line === "dashed" ? "-->" : "->";
+  // The token as written: `->`, `-->`, `<->`, `<-->`, or the lines `--` and `---`.
+  const arrow = arrowToken(relation.line, relation.heads);
   const what =
     diagram.type === "sequence"
       ? relation.async

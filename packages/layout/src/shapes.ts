@@ -1065,6 +1065,43 @@ export function shapeTextCenter(shape: BoxShape, box: Box, options: ShapeOptions
   }
 }
 
+/**
+ * The top and bottom of a shape's text band, where `verticalAlign` places a box's text: the box,
+ * the body between the rims of a cylinder, the page above a document's wave and the body above a
+ * callout's tail. The rows inside it are read with `shapeTextSpanner`, which keeps an ellipse's
+ * text inside its curve and an arrow's in its shaft.
+ */
+export function shapeTextBand(
+  shape: BoxShape,
+  box: Box,
+  options: ShapeOptions = {},
+): { readonly top: number; readonly bottom: number } {
+  void options;
+  const bottom = box.y + box.height;
+  switch (shape) {
+    case "cylinder": {
+      const ry = cylinderRy(box);
+      return { top: box.y + 2 * ry, bottom: bottom - ry };
+    }
+    case "document":
+      return { top: box.y, bottom: bottom - documentWave(box) };
+    case "callout":
+      return { top: box.y, bottom: bottom - calloutTail(box) };
+    default:
+      return { top: box.y, bottom };
+  }
+}
+
+/** Shapes whose text sits at a fixed spot, which `verticalAlign` does not move. */
+export const FIXED_TEXT_SHAPES: ReadonlySet<BoxShape> = new Set<BoxShape>([
+  "triangle",
+  "pentagon",
+  "star",
+  "person",
+  "agent",
+  "icon",
+]);
+
 const ascending = (a: number, b: number) => a - b;
 
 /** The span of a polygon's row at height `y` that holds `x`, or undefined. */

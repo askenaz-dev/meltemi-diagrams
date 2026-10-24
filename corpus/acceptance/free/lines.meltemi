@@ -1,0 +1,43 @@
+language "0.2"
+
+// Lines that join no element: straight, bent, elbowed, curved, labelled, with heads, dashed and
+// dotted, one inside a group that it moves with, beside boxes joined by headless relations.
+diagram lines: free {
+  title "Lines"
+  layout manual
+
+  text heading "Lines"
+
+  box client "Client"
+  box api "API"
+  box store "Store"
+  client -- api: "line" as plain
+  api --- store: "dashed line" as dashed
+
+  line divider "Phase 2" from (40, 150) to (760, 150)
+  line bent from (40, 210) to (360, 210) via [(200, 260)]
+  line elbow "elbow" from (420, 200) to (760, 290) via [(600, 240)]
+  line curve "curve" from (40, 330) to (360, 330) via [(200, 400)]
+  line both from (420, 340) to (760, 340)
+  line dotted from (40, 450) to (360, 450)
+
+  group note "Note" {
+    text remark "Underlined"
+    line underline from (0, 22) to (120, 22)
+  }
+
+  style divider { line dashed; stroke muted }
+  style elbow { routing orthogonal; corners rounded; arrowhead triangle }
+  style curve { routing bezier; arrowhead open }
+  style both { arrowtail circle; arrowhead triangle; width 2; stroke accent }
+  style dotted { line dotted }
+
+  placement {
+    place heading at (100, 30)
+    place client at (120, 90)
+    place api at (400, 90)
+    place store at (680, 90)
+    place note at (560, 450)
+    place remark at (60, 6)
+  }
+}

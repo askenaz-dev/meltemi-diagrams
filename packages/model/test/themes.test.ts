@@ -113,6 +113,23 @@ describe("theme blocks", () => {
     ).toEqual(["flowDuration", "dashDuration", "pulseDuration", "traceDuration"]);
   });
 
+  it("takes the sketch level, which styles cannot name", () => {
+    const theme = compile("theme t { sketch rough }\n");
+    expect(theme.diagnostics).toEqual([]);
+    expect(theme.document.themes[0]!.tokens).toEqual({ sketch: "rough" });
+    const wobbly = compile("theme t { sketch wobbly }\n").diagnostics;
+    expect(wobbly.map((d) => d.code)).toEqual(["prop.invalid-value"]);
+    expect(wobbly[0]!.message).toContain("none, light, rough");
+    // A theme token, not a style property.
+    const styled = compile(
+      'diagram d: free {\n  box a "A"\n  style a { sketch rough }\n}\n',
+    ).diagnostics;
+    expect(styled.map((d) => d.code)).toEqual(["prop.unknown"]);
+    expect(BUILT_IN_THEMES).toContain("sketch.light");
+    expect(BUILT_IN_THEMES).toContain("sketch.dark");
+    expect(BUILT_IN_THEMES).toHaveLength(8);
+  });
+
   it("takes the canvas colours, which styles cannot name", () => {
     const theme = compile('theme t { selection "#0B6BCB"; guide "#16A34A" }\n');
     expect(theme.diagnostics).toEqual([]);

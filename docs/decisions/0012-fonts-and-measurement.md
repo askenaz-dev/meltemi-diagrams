@@ -1,6 +1,8 @@
 # 0012. Bundled fonts, real measurement and font policies
 
-Status: accepted (text-measurement-and-fonts change, 10 October 2026)
+Status: accepted (text-measurement-and-fonts change, 10 October 2026). The `sketch.*` themes use
+Inter until a hand font is approved and bundled, by
+[decision 0058](0058-lines-sketch-and-text-alignment.md).
 
 ## Context
 

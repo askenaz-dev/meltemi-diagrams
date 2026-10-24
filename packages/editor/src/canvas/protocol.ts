@@ -14,6 +14,7 @@ export type ElementKind =
   | "text"
   | "icon"
   | "image"
+  | "line"
   | "participant"
   | "actor"
   | "boundary"
@@ -178,6 +179,17 @@ export interface ElementInfo {
    * it connects to the element, whose connector ends on the square).
    */
   readonly labelBox?: Box;
+  /**
+   * A free `line`: its points in diagram coordinates (`from`, its bends, `to`), the polyline it
+   * is drawn with (rounded corners, a curve's samples, heads cut out), and its bends alone. Its
+   * `box` is the bounding box of its points; it has no frame, resize, rotation or connection
+   * handles, but a handle at each point and at the middle of each stretch.
+   */
+  readonly line?: {
+    readonly points: readonly Point[];
+    readonly drawn: readonly Point[];
+    readonly via: readonly Point[];
+  };
 }
 
 /** What the canvas knows about a relation. */
@@ -364,7 +376,10 @@ export type FieldGlyphs =
   | "arrowEnd"
   | "shape"
   | "iconPosition"
-  | "labelPosition";
+  | "labelPosition"
+  | "sketch"
+  | "textAlign"
+  | "verticalAlign";
 
 /** The panel that edits a theme block: its tokens by group, written or inherited. */
 export interface ThemePanelModel {
@@ -689,6 +704,27 @@ export type CanvasAction =
   | { readonly kind: "moveLabel"; readonly relation: string; readonly delta: Point }
   | { readonly kind: "setVia"; readonly relation: string; readonly via: readonly Point[] }
   | {
+      /**
+       * Draws a free line from `from` to `to`, in diagram coordinates, inside `parent` when given;
+       * `line` and `heads` are the armed kind's, which the session writes as styles with the
+       * effective theme's head.
+       */
+      readonly kind: "createLine";
+      readonly from: Point;
+      readonly to: Point;
+      readonly parent?: string;
+      readonly line: "solid" | "dashed";
+      readonly heads: "end" | "both" | "none";
+    }
+  | {
+      /** Moves the points of a free line, in diagram coordinates. */
+      readonly kind: "setLinePoints";
+      readonly element: string;
+      readonly from: Point;
+      readonly to: Point;
+      readonly via: readonly Point[];
+    }
+  | {
       readonly kind: "setEnd";
       readonly relation: string;
       readonly end: "from" | "to";
@@ -727,8 +763,11 @@ export type CanvasAction =
       readonly from: string;
       readonly to: string;
       readonly line: "solid" | "dashed";
-      /** A head at both ends: `<->`, or `<-->` when dashed. Not in C4 views. */
-      readonly twoWay?: boolean;
+      /**
+       * `both` for a head at both ends (`<->`, `<-->`), `none` for a line without heads (`--`,
+       * `---`); a head at the end otherwise. Neither in C4 views.
+       */
+      readonly heads?: "none" | "both";
       /**
        * The ends pinned to a port or a point of a side, each on its own: the start when the line
        * was dragged from a border or a handle, the end when it was dropped on the target's border.
@@ -759,6 +798,18 @@ export type CanvasAction =
       readonly ids: readonly string[];
       readonly field: string;
       readonly value: string | number | null;
+    }
+  /**
+   * Several fields of the same targets written in one edit, one undo step: the alignment
+   * picker's `style.textAlign` and `style.verticalAlign` when both change.
+   */
+  | {
+      readonly kind: "setFields";
+      readonly ids: readonly string[];
+      readonly fields: readonly {
+        readonly field: string;
+        readonly value: string | number | null;
+      }[];
     }
   /**
    * Writes `style <id> { icon "<icon>" }` on each of `ids` that takes an icon
@@ -1017,6 +1068,23 @@ function isAction(a: unknown): a is CanvasAction {
       return (
         isString(a.relation) && Array.isArray(a.via) && a.via.length <= 1000 && a.via.every(isPoint)
       );
+    case "createLine":
+      return (
+        isPoint(a.from) &&
+        isPoint(a.to) &&
+        (a.parent === undefined || isString(a.parent)) &&
+        oneOf(a.line, ["solid", "dashed"]) &&
+        oneOf(a.heads, ["end", "both", "none"])
+      );
+    case "setLinePoints":
+      return (
+        isString(a.element) &&
+        isPoint(a.from) &&
+        isPoint(a.to) &&
+        Array.isArray(a.via) &&
+        a.via.length <= 1000 &&
+        a.via.every(isPoint)
+      );
     case "setEnd":
       return (
         isString(a.relation) &&
@@ -1049,7 +1117,7 @@ function isAction(a: unknown): a is CanvasAction {
         isString(a.from) &&
         isString(a.to) &&
         oneOf(a.line, ["solid", "dashed"]) &&
-        (a.twoWay === undefined || typeof a.twoWay === "boolean") &&
+        (a.heads === undefined || oneOf(a.heads, ["none", "both"])) &&
         (a.pinned === undefined || isPinned(a.pinned))
       );
     case "remove":
@@ -1074,6 +1142,21 @@ function isAction(a: unknown): a is CanvasAction {
         isStrings(a.ids) &&
         isString(a.field) &&
         (a.value === null || isString(a.value) || isNumber(a.value))
+      );
+    case "setFields":
+      return (
+        isStrings(a.ids) &&
+        Array.isArray(a.fields) &&
+        a.fields.length > 0 &&
+        (a.fields as unknown[]).every((f) => {
+          const one = f as { field?: unknown; value?: unknown };
+          return (
+            typeof one === "object" &&
+            one !== null &&
+            isString(one.field) &&
+            (one.value === null || isString(one.value) || isNumber(one.value))
+          );
+        })
       );
     case "paste":
       return a.at === undefined || isPoint(a.at);

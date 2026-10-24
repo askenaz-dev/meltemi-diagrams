@@ -1,6 +1,6 @@
 language "0.2"
 
-// Every head at both ends, two-way arrows, dotted lines and rounded corners.
+// Every head at both ends, two-way arrows, lines without heads, dotted lines and rounded corners.
 diagram arrows: flow {
   title "Arrow ends"
   layout manual
@@ -21,6 +21,10 @@ diagram arrows: flow {
   l2["Line"]
   s1["Start"]
   e1["End"]
+  p1["Plain"]
+  q1["Line"]
+  p2["Plain"]
+  q2["Dashed"]
 
   a1 <-> b1: "two-way" as both
   a2 <--> b2: "two-way, dashed" as dashedBoth
@@ -30,6 +34,8 @@ diagram arrows: flow {
   c1 -> o1: "places" as places
   c2 -> l2: "contains" as contains
   s1 -> e1: "rounded, dotted" as rounded
+  p1 -- q1: "line" as plain
+  p2 --- q2: "dashed line" as dashedPlain
 
   placement {
     place a1 at (100, 60)
@@ -48,6 +54,10 @@ diagram arrows: flow {
     place l2 at (960, 150)
     place s1 at (640, 330)
     place e1 at (960, 420)
+    place p1 at (640, 240)
+    place q1 at (960, 240)
+    place p2 at (100, 510)
+    place q2 at (420, 510)
     route rounded from s1.south to e1.west via [(640, 420)]
   }
 

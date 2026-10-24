@@ -178,8 +178,24 @@ anchors directly.
 
 **Rounded corners.** `corners rounded` (a relation style, or the theme token for every relation)
 replaces each bend of an `auto`, `orthogonal` or `polyline` connector by a curve that starts 10 px
-from the bend, or half the shorter segment when that is less. Built-in themes keep `sharp`
-corners; `bezier` connectors are smooth already.
+from the bend, or half the shorter segment when that is less. The built-in themes keep `sharp`
+corners, but for the `sketch.*` pair, which rounds them; `bezier` connectors are smooth already.
+
+**Lines without heads.** A relation written `--` or `---` is routed exactly as an arrow: the anchor
+rules, the lanes, the detours and the gaps under group titles apply, and the line reaches both
+boxes, since there is no head to stop at.
+
+**Free lines.** A `line` of a free diagram ([free.md](free.md#lines)) is a connector whose anchors
+and waypoints are its written points, moved by its parent's interior origin. It is `polyline` by
+default, and for `auto` too, since it has no box to anchor to: straight segments through its
+points. `routing orthogonal` puts one elbow between two consecutive points that differ on both
+axes, the first segment along the axis of the longer step (`from (0, 0) to (200, 100)` goes
+through (200, 0)); `routing bezier` curves through every point; `corners rounded` rounds its
+bends. Its heads are `arrowtail` and `arrowhead`, none by default, cut from the line as a
+relation's are. A line takes no lane, no detour and no gap under a group title, and the
+composition checks between boxes leave it out: its points are where you wrote them. A line whose
+points coincide is drawn as a dot of its width and reported as `layout.degenerate-line`
+(warning).
 
 **Turned elements.** A connector meets an element turned by `rotation` on its turned outline. A
 free end is routed to the turned drawing's bounding box, like any box, and slides from that box's

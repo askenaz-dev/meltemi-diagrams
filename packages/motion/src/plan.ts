@@ -116,9 +116,11 @@ export function planMotion(
     const role = entry.targetKind;
     const group = find(role, entry.target);
     if (!group) continue;
-    const track = role === "relation" ? (group.track ?? null) : null;
-    const bounds = role !== "relation" ? (group.bounds ?? null) : null;
-    if (role === "relation" ? !track || track.length < 2 : !bounds) continue;
+    // A group drawn as a connector (a relation, a free line) runs its effects along its track,
+    // whatever its role; the others pulse and dash about their bounds.
+    const track = group.track && group.track.length >= 2 ? group.track : null;
+    const bounds = track ? null : (group.bounds ?? null);
+    if (role === "relation" ? !track : !track && !bounds) continue;
     const drawn = strokeOf(group);
     const accent = typeof options.colors?.accent === "string" ? options.colors.accent : "#1f6feb";
     // Particles, halos and traces in the target's own colour would not show on it: they take the

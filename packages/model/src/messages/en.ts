@@ -218,6 +218,15 @@ export const en = {
       offset: "Expected an offset `(dx, dy)` with two plain numbers.",
       relationNotElement: (name: string, statement: string) =>
         `\`${name}\` is a relation; \`${statement}\` needs an element.`,
+      /** A `place` or `size` of a free line. */
+      lineHasPoints: (name: string, statement: string) =>
+        `\`${name}\` is a line; \`${statement}\` does not apply to it.`,
+      /** A free line whose points are missing, are not tuples, or are followed by something else. */
+      linePoints:
+        "A line takes a point `(x, y)` after `from` and after `to`, and its bends in a list after `via`.",
+      /** A style property a free line does not take. */
+      notForLines: (name: string, target: string) =>
+        `\`${name}\` does not apply to lines such as \`${target}\`.`,
       /** `ref.unknown-relation`. */
       elementNotRelation: (name: string, statement: string) =>
         `\`${name}\` is an element; \`${statement}\` needs a relation.`,
@@ -235,9 +244,9 @@ export const en = {
         `\`${name}\` applies to ${effects.map(code).join(" and ")} effects, not to \`${effect}\`.`,
       /** `animate.invalid-target`. */
       flowTarget:
-        "Flow particles run along relations; name the relation (`a -> b as r`) and animate it.",
+        "Flow particles run along relations and lines; name the relation (`a -> b as r`) and animate it.",
       traceTarget:
-        "A trace runs along relations; name the relation (`a -> b as r`) and animate it.",
+        "A trace runs along relations and lines; name the relation (`a -> b as r`) and animate it.",
       dashOnEvent: "A moving dash runs along relations and the outlines of boxes.",
       /** An element kind drawn without an outline, such as `note`. */
       dashWithoutOutline: (target: string, kind: string) =>
@@ -532,10 +541,10 @@ export const en = {
       declareElement: (keyword: string, box: string) =>
         `Declare an element with \`${keyword}["Label"]\` or \`${box} ${keyword}\`.`,
       freeStatements:
-        "Free diagrams accept `box`, `text`, `icon`, `image` and `group` declarations, relations, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `layers`, `placement`, `style`, `animate`, `class` and `rule`.",
+        "Free diagrams accept `box`, `text`, `icon`, `image`, `line` and `group` declarations, relations, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `layers`, `placement`, `style`, `animate`, `class` and `rule`.",
       flowStatements:
         "Flow diagrams accept element declarations, relations, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `placement`, `style`, `animate`, `class` and `rule`.",
-      freeDeclarations: "Free diagrams declare `box`, `text`, `icon`, `image` and `group`.",
+      freeDeclarations: "Free diagrams declare `box`, `text`, `icon`, `image`, `line` and `group`.",
       flowDeclarations: (keyword: string) =>
         `Flow diagrams declare \`node\`, \`decision\`, \`data\`, \`group\`, \`note\` and \`tag\`; \`${keyword}\` belongs to free diagrams.`,
       sharedNamespace: "Elements and relations share one namespace per diagram.",
@@ -556,6 +565,9 @@ export const en = {
         `Ports of \`${element}\`: ${ports.join(", ")}.`,
       constraintElements: "Constraints apply to elements declared in this diagram.",
       form: (form: string) => `Form: ${form}.`,
+      /** A `place`, `size` or `rotation` of a free line. */
+      linePointsWritten:
+        "A line's points are written in its statement: `line <id> from (x, y) to (x, y)`.",
       declareFirst: (name: string) => `Declare it first, for example \`${name}["Label"]\`.`,
       nameRelation:
         "Anonymous relations need `as <id>` before they can be referenced, for example `a -> b as save`.",

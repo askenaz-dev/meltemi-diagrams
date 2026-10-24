@@ -18,13 +18,13 @@ diagram storage_service: flow {
   node fn "Function"
   node junctionCenter ""
 
-  db -> server as e1
-  disk1 -> server as e2
+  db -- server as e1
+  disk1 -- server as e2
   disk2 -> db as e3
   server -> gateway as e4
   fn -> gateway as e5
   fn <-> junctionCenter as e6
-  api -> fn: "calls" as e7
+  api -- fn: "calls" as e7
 
   placement {
     route e1 from db.west to server.east
@@ -43,7 +43,4 @@ diagram storage_service: flow {
   style disk2 { icon "tabler:device-floppy" }
   style server { icon "tabler:server" }
   style gateway { icon "tabler:world" }
-  style e1 { arrowhead none }
-  style e2 { arrowhead none }
-  style e7 { arrowhead none }
 }

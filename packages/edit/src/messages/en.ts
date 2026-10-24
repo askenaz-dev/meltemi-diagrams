@@ -44,6 +44,7 @@ export const en = {
     text: "Text",
     icon: "Icon",
     image: "Image",
+    line: "Line",
     person: "Person",
     system: "System",
     container: "Container",
@@ -169,6 +170,14 @@ export const en = {
     },
 
     /** Relations and their ids. */
+    lines: {
+      /** `edit.invalid-value`: a free line in a flow, sequence or C4 diagram. */
+      freeOnly: "Lines that join no element belong to free diagrams.",
+      /** `edit.invalid-value`: `setLinePoints` on something that is not a free line. */
+      notALine: (id: string) => `\`${id}\` is not a line.`,
+      /** `edit.invalid-value`: a `place` or `size` of a free line. */
+      points: (id: string) => `\`${id}\` is a line: its points are written in its statement.`,
+    },
     relations: {
       /** `edit.unsafe-target`. */
       missing: (name: string, diagram: string) =>

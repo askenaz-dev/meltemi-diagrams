@@ -182,6 +182,14 @@ export function textPlaces(
       const inner = bounds.inner ?? box;
       const padding = Math.min(theme.padding, inner.width / 2);
       area = { ...inner, x: inner.x + padding, width: inner.width - 2 * padding };
+      // Text moved up or down by `verticalAlign` is typed in the band it is drawn in.
+      const vertical = owner.kind === "box" ? styles.element(owner).verticalAlign : undefined;
+      if (!bounds.inner && (vertical === "top" || vertical === "bottom")) {
+        const first = lines[0]!;
+        const last = lines[lines.length - 1]!;
+        const top = first.y - first.size / 2;
+        area = { ...area, y: top, height: last.y + last.size / 2 - top };
+      }
     }
     elements.set(
       owner.id,
@@ -207,6 +215,39 @@ export function textPlaces(
       align: "center" as const,
       ...(sequence ? {} : { background: style.fill ?? theme.surface }),
     };
+  };
+
+  /** A free line's pill: its label, edited as a relation's, in the line's own style. */
+  const lineStyle = (id: string) => {
+    const line = diagram.elementsById.get(id);
+    const style = line ? styles.element(line) : {};
+    return {
+      font: scene.fonts.body,
+      size: scale.relationLabel,
+      weight: 500,
+      color: style.color ?? theme.ink,
+      line: Math.round(scale.relationLabel * 1.25),
+      lines: false,
+      align: "center" as const,
+      background: style.fill ?? theme.surface,
+    };
+  };
+
+  const lineLabel = (group: GroupItem) => {
+    if (elements.has(group.id)) return;
+    const pill = group.items.find((item): item is RectItem => item.kind === "rect");
+    const [first] = textsOf(group);
+    if (first) {
+      const drawn = place([first], pill ?? boxAt(first), false);
+      elements.set(group.id, pill ? { ...drawn, background: pill.fill } : drawn);
+      return;
+    }
+    if (!pill) return;
+    elements.set(group.id, {
+      ...lineStyle(group.id),
+      anchor: { x: pill.x + pill.width / 2 - offset.x, y: pill.y + pill.height / 2 - offset.y },
+      area: toDiagram(pill),
+    });
   };
 
   const relationLabel = (group: GroupItem) => {
@@ -308,6 +349,9 @@ export function textPlaces(
       if (item.kind !== "group") continue;
       if (item.role === "element") element(item);
       else if (item.role === "label" && diagram.relationsByKey.has(item.id)) relationLabel(item);
+      else if (item.role === "label" && diagram.elementsById.get(item.id)?.kind === "line") {
+        lineLabel(item);
+      }
       if ((item.role === "event" || item.role === "label") && diagram.eventsByKey.has(item.id)) {
         event(item);
       }
@@ -318,9 +362,19 @@ export function textPlaces(
 
   // A relation without a label: a new one goes at the middle of its line.
   for (const [key, connector] of connectors) {
-    if (relations.has(key)) continue;
+    const line = diagram.elementsById.get(key)?.kind === "line";
+    if (line ? elements.has(key) : relations.has(key)) continue;
     const middle = halfway(connector.line.length > 1 ? connector.line : connector.points);
     if (!middle) continue;
+    // A free line without a label: a new one goes at its middle too.
+    if (line) {
+      elements.set(key, {
+        ...lineStyle(key),
+        anchor: middle,
+        area: { x: middle.x, y: middle.y, width: 0, height: 0 },
+      });
+      continue;
+    }
     relations.set(key, {
       ...relationStyle(key),
       anchor: middle,

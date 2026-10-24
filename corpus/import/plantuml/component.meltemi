@@ -23,10 +23,10 @@ diagram components: flow {
   node Report
 
   web -> rest
-  rest -> api as e1
+  rest -- api
   api -> billing: "charge"
   api --> events: "publish"
-  api -> billing as e2
+  api -> billing as e1
   api -> files
   gw -> api
   api -> Legacy
@@ -35,6 +35,5 @@ diagram components: flow {
   style rest { shape circle }
   style gw { shape hexagon }
   style Legacy { fill "#ffcccc" }
-  style e1 { arrowhead none }
-  style e2 { arrowhead triangleOutline }
+  style e1 { arrowhead triangleOutline }
 }

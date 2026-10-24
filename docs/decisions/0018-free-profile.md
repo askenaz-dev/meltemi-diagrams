@@ -1,6 +1,7 @@
 # 0018. The free profile
 
-Status: accepted (free-profile change, 10 October 2026)
+Status: accepted (free-profile change, 10 October 2026). The free kinds gain `line`, a line
+that joins no element, by [decision 0058](0058-lines-sketch-and-text-alignment.md).
 
 ## Context
 

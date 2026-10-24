@@ -7,6 +7,7 @@ import {
   type ARROWHEADS,
   type CORNERS,
   type ICON_POSITIONS,
+  type SKETCH_LEVELS,
   type LABEL_POSITIONS,
   type RuleKind,
   type StyleProperties,
@@ -17,6 +18,8 @@ export type FrameMode = "none" | "footer" | "header";
 export type MarkMode = "meltemi" | "none";
 export type ArrowheadKind = (typeof ARROWHEADS)[number];
 export type CornerKind = (typeof CORNERS)[number];
+/** How strokes are painted: clean, or in two jittered passes (`light`, `rough`). */
+export type SketchLevel = (typeof SKETCH_LEVELS)[number];
 export type IconPosition = (typeof ICON_POSITIONS)[number];
 /** Where the label sits when the icon is the centre piece of an element. */
 export type LabelPosition = (typeof LABEL_POSITIONS)[number];
@@ -78,6 +81,11 @@ export interface Theme {
   readonly arrowhead: ArrowheadKind;
   /** Corners of straight and elbow connectors; built-in themes keep them sharp. */
   readonly corners: CornerKind;
+  /**
+   * How strokes are painted: `none` for clean lines, `light` or `rough` for two jittered passes
+   * that the renderer paints over the clean scene; built-in themes `none`, `sketch.*` `light`.
+   */
+  readonly sketch: SketchLevel;
   readonly arrowSize: number;
   /** Side of the square icons are drawn in. */
   readonly iconSize: number;
@@ -152,6 +160,7 @@ const TECHNICAL = {
   connectorWidth: 1.3,
   arrowhead: "triangle",
   corners: "sharp",
+  sketch: "none",
   arrowSize: 8,
   iconSize: 18,
   iconPosition: "left",
@@ -198,6 +207,16 @@ const STAGE = {
   frame: "header",
 } as const;
 
+/**
+ * Sketch: whiteboards and early thinking, the technical palettes and sizes with rounded corners
+ * and strokes painted in two light passes. Inter until a hand font is bundled.
+ */
+const SKETCH = {
+  ...TECHNICAL,
+  corners: "rounded",
+  sketch: "light",
+} as const;
+
 const LIGHT_SIGNALS = {
   success: "#15803D",
   warning: "#B45309",
@@ -211,37 +230,41 @@ const DARK_SIGNALS = {
   info: "#38BDF8",
 } as const;
 
+/** The technical palettes, which the sketch themes share. */
+const TECHNICAL_LIGHT: Palette = {
+  background: "#F7FBFF",
+  surface: "#FFFFFF",
+  ink: "#0B1830",
+  muted: "#526579",
+  line: "#DCE5ED",
+  connector: "#526579",
+  band: "#EAF1F8",
+  bandLine: "#C9D6E3",
+  tag: "#2563EB",
+  tagText: "#FFFFFF",
+  accent: "#1D4ED8",
+  accentEnd: "#0891B2",
+  ...LIGHT_SIGNALS,
+};
+const TECHNICAL_DARK: Palette = {
+  background: "#07111F",
+  surface: "#0F1B2D",
+  ink: "#F7FBFF",
+  muted: "#88A0B9",
+  line: "#183149",
+  connector: "#88A0B9",
+  band: "#0B1830",
+  bandLine: "#183149",
+  tag: "#22D3EE",
+  tagText: "#07111F",
+  accent: "#3B82F6",
+  accentEnd: "#22D3EE",
+  ...DARK_SIGNALS,
+};
+
 const PALETTES: Readonly<Record<(typeof BUILT_IN_THEMES)[number], Palette>> = {
-  "technical.light": {
-    background: "#F7FBFF",
-    surface: "#FFFFFF",
-    ink: "#0B1830",
-    muted: "#526579",
-    line: "#DCE5ED",
-    connector: "#526579",
-    band: "#EAF1F8",
-    bandLine: "#C9D6E3",
-    tag: "#2563EB",
-    tagText: "#FFFFFF",
-    accent: "#1D4ED8",
-    accentEnd: "#0891B2",
-    ...LIGHT_SIGNALS,
-  },
-  "technical.dark": {
-    background: "#07111F",
-    surface: "#0F1B2D",
-    ink: "#F7FBFF",
-    muted: "#88A0B9",
-    line: "#183149",
-    connector: "#88A0B9",
-    band: "#0B1830",
-    bandLine: "#183149",
-    tag: "#22D3EE",
-    tagText: "#07111F",
-    accent: "#3B82F6",
-    accentEnd: "#22D3EE",
-    ...DARK_SIGNALS,
-  },
+  "technical.light": TECHNICAL_LIGHT,
+  "technical.dark": TECHNICAL_DARK,
   "editorial.light": {
     background: "#ffffff",
     surface: "#ffffff",
@@ -308,12 +331,15 @@ const PALETTES: Readonly<Record<(typeof BUILT_IN_THEMES)[number], Palette>> = {
     accentEnd: "#22D3EE",
     ...DARK_SIGNALS,
   },
+  "sketch.light": TECHNICAL_LIGHT,
+  "sketch.dark": TECHNICAL_DARK,
 };
 
 const FAMILIES = {
   technical: TECHNICAL,
   editorial: EDITORIAL,
   stage: STAGE,
+  sketch: SKETCH,
 } as const;
 
 export const THEMES: Readonly<Record<string, Theme>> = Object.fromEntries(

@@ -143,6 +143,25 @@ describe("relations", () => {
     expect(d!.range.start).toMatchObject({ line: 4, column: 29 });
   });
 
+  it("records where the token puts heads: lines have none, two-way arrows both", () => {
+    const { diagram, codes } = flow(
+      "  api -- cache as link\n  api <--> db\n  api -> web\n  web --- db",
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.relations.map((r) => [r.key, r.line, r.heads, r.twoWay])).toEqual([
+      ["link", "solid", "none", false],
+      ["api->db#1", "dashed", "both", true],
+      ["api->web#1", "solid", "end", false],
+      ["web->db#1", "dashed", "none", false],
+    ]);
+  });
+
+  it("keeps a written head on a line", () => {
+    const { diagram, codes } = flow("  a -- b as l\n  style l { arrowhead circle }");
+    expect(codes).toEqual([]);
+    expect(diagram.relations[0]).toMatchObject({ key: "l", heads: "none", twoWay: false });
+  });
+
   it("reports relation ids used as endpoints", () => {
     const { codes } = flow("  a -> b as r\n  r -> c");
     expect(codes).toEqual(["ref.unknown-element"]);

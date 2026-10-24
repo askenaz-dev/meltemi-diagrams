@@ -82,7 +82,7 @@ different drawing; **dropped** ones are left out. An import that drops an essent
 | `subgraph id [title] … end`, nested | `group` | mapped | A node belongs to the innermost subgraph that mentions it. |
 | `direction` inside a subgraph | — | dropped |  |
 | `-->`, `--->` | `->` | mapped |  |
-| `---`, `-.-`, `===` | a relation with `arrowhead none` | mapped |  |
+| `---`, `-.-`, `===` | the line `--` for `---` and `===` (with `width 3`), the dashed line `---` for `-.-` | mapped |  |
 | `-.->` | `-->` | mapped |  |
 | `==>` | `->` with `width 3` | mapped |  |
 | `-->\|text\|`, `-- text -->` | the relation's label | mapped |  |
@@ -261,7 +261,7 @@ different drawing; **dropped** ones are left out. An import that drops an essent
 | `service id(icon)[Label] [in group]` | `node` with an `icon` style | mapped |  |
 | `junction id [in group]` | a `node` without text | approximated |  |
 | `cloud`, `database`, `disk`, `internet`, `server`, `pack:name` | `tabler:cloud`, `tabler:database`, `tabler:device-floppy`, `tabler:world`, `tabler:server`; `pack:name` when the project has the pack | mapped | Icons of packs the project lacks are dropped. |
-| `a:R -- L:b` | a named relation with `arrowhead none` | mapped |  |
+| `a:R -- L:b` | the named line `a -- b` with its route | mapped |  |
 | `a:R --> L:b`, `a:R <-- L:b` | a relation in the arrow's direction | mapped |  |
 | `a:R <--> L:b` | `a <-> b` | mapped |  |
 | the sides `L`, `R`, `T`, `B` | `route e<n> from a.east to b.west` | mapped | Positions are left to ELK; the sides are kept as ports. |

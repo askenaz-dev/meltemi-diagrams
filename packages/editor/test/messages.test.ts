@@ -343,7 +343,7 @@ describe("a Spanish interface", () => {
       "Los participantes de una secuencia dibujan su propia forma; las formas son para las cajas libres y los nodos de flujo.",
     );
     const context = open(commerce, "context");
-    context.act({ kind: "connect", from: "customer", to: "shop", line: "solid", twoWay: true });
+    context.act({ kind: "connect", from: "customer", to: "shop", line: "solid", heads: "both" });
     expect(context.rejected()).toBe(
       "Las relaciones de las vistas C4 van en un solo sentido: `->`.",
     );

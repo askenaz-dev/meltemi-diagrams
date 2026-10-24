@@ -287,6 +287,11 @@ export const es: typeof en = {
       offset: "Se esperaba un desplazamiento `(dx, dy)` con dos números sin unidad.",
       relationNotElement: (name, statement) =>
         `${code(name)} es una relación; ${code(statement)} necesita un elemento.`,
+      lineHasPoints: (name, statement) =>
+        `${code(name)} es una línea; ${code(statement)} no se aplica a ella.`,
+      linePoints:
+        "Una línea lleva un punto `(x, y)` tras `from` y tras `to`, y sus quiebres en una lista tras `via`.",
+      notForLines: (name, target) => `${code(name)} no se aplica a líneas como ${code(target)}.`,
       elementNotRelation: (name, statement) =>
         `${code(name)} es un elemento; ${code(statement)} necesita una relación.`,
       unknownRelation: (name) => `Relación desconocida ${code(name)}.`,
@@ -299,9 +304,9 @@ export const es: typeof en = {
       effectProperty: (name, effects, effect) =>
         `${code(name)} se aplica a los efectos ${list("es", effects.map(code))}, no a ${code(effect)}.`,
       flowTarget:
-        "Las partículas recorren relaciones; nombra la relación (`a -> b as r`) y anímala.",
+        "Las partículas recorren relaciones y líneas; nombra la relación (`a -> b as r`) y anímala.",
       traceTarget:
-        "Un recorrido avanza por relaciones; nombra la relación (`a -> b as r`) y anímala.",
+        "Un recorrido avanza por relaciones y líneas; nombra la relación (`a -> b as r`) y anímala.",
       dashOnEvent: "Un trazo en movimiento recorre relaciones y los contornos de las cajas.",
       dashWithoutOutline: (target, kind) =>
         `${code(target)} es ${pick(UNOUTLINED, kind)} sin contorno; un trazo en movimiento necesita una línea o una caja.`,
@@ -547,11 +552,11 @@ export const es: typeof en = {
       declareElement: (keyword, box) =>
         `Declara un elemento con \`${keyword}["Label"]\` o \`${box} ${keyword}\`.`,
       freeStatements:
-        "Las composiciones libres aceptan declaraciones `box`, `text`, `icon`, `image` y `group`, relaciones, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `layers`, `placement`, `style`, `animate`, `class` y `rule`.",
+        "Las composiciones libres aceptan declaraciones `box`, `text`, `icon`, `image`, `line` y `group`, relaciones, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `layers`, `placement`, `style`, `animate`, `class` y `rule`.",
       flowStatements:
         "Los diagramas de flujo aceptan declaraciones de elementos, relaciones, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `placement`, `style`, `animate`, `class` y `rule`.",
       freeDeclarations:
-        "Las composiciones libres declaran `box`, `text`, `icon`, `image` y `group`.",
+        "Las composiciones libres declaran `box`, `text`, `icon`, `image`, `line` y `group`.",
       flowDeclarations: (keyword) =>
         `Los diagramas de flujo declaran \`node\`, \`decision\`, \`data\`, \`group\`, \`note\` y \`tag\`; ${code(keyword)} pertenece a las composiciones libres.`,
       sharedNamespace:
@@ -570,6 +575,8 @@ export const es: typeof en = {
       ports: (element, ports) => `Puertos de ${code(element)}: ${ports.join(", ")}.`,
       constraintElements: "Las restricciones se aplican a elementos declarados en este diagrama.",
       form: (form) => `Forma: ${form}.`,
+      linePointsWritten:
+        "Los puntos de una línea se escriben en su instrucción: `line <id> from (x, y) to (x, y)`.",
       declareFirst: (name) => `Decláralo primero, por ejemplo \`${name}["Label"]\`.`,
       nameRelation:
         "Las relaciones anónimas necesitan `as <id>` para poder nombrarlas, por ejemplo `a -> b as save`.",

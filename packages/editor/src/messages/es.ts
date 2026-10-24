@@ -97,6 +97,7 @@ export const es: typeof en = {
     fontSize: "Tamaño del texto",
     fontWeight: "Grosor del texto",
     textAlign: "Alineación del texto",
+    verticalAlign: "Alineación vertical",
   },
 
   placeholders: {
@@ -160,6 +161,7 @@ export const es: typeof en = {
       traceDuration: "Recorrido (ms)",
       selection: "Selección",
       guide: "Guías",
+      sketch: "Boceto",
     },
   },
 

@@ -638,6 +638,7 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
       gradients: [...gradients, ...emit.gradients],
       patterns: [],
       items,
+      ...(theme.sketch !== "none" ? { sketch: theme.sketch } : {}),
     },
     diagnostics,
     boxes,
@@ -947,8 +948,13 @@ class SequenceEmitter {
     // Calls take a filled head, replies and async calls an open one; two-way messages take it at
     // both ends; styles replace either.
     const endKind =
-      style.arrowhead ?? (relation.line === "dashed" || relation.async ? "open" : "triangle");
-    const startKind = style.arrowtail ?? (relation.twoWay ? endKind : "none");
+      style.arrowhead ??
+      (relation.heads === "none"
+        ? "none"
+        : relation.line === "dashed" || relation.async
+          ? "open"
+          : "triangle");
+    const startKind = style.arrowtail ?? (relation.heads === "both" ? endKind : "none");
     const arrow = relationEnds(
       message.points,
       startKind,

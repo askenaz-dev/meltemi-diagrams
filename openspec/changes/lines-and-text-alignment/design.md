@@ -245,7 +245,7 @@ has `role: "element"`, `id` the line's id, both `track` (the clean drawn polylin
 (the bounding box of its drawn points, 1 px tall or wide for an axis-aligned line), and its
 `layer`. `LayoutResult.boxes` holds that bounding box (marquees, derived group sizes, composition
 checks, the content size), `connectors` holds its geometry keyed by the line's id (`points`,
-`line`, `via`, `fromSide` and `toSide` as `auto`) and `labels` its pill. A line whose points
+`line`, `via`, and `fromSide` and `toSide` from the directions of its first and last segments, since the type has no `auto` side) and `labels` its pill. A line whose points
 coincide is `layout.degenerate-line` (warning) and is drawn as a point of its width, so a sheet
 with a line dragged onto itself still renders and says why it shows nothing. It is painted where
 `paintOrder` puts a non-group element (source order within its layer), so a line declared after a

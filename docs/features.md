@@ -12,10 +12,11 @@ walks through the common path, and the [documentation index](README.md) lists ev
   affected tokens and keep comments and formatting.
 - Projects: `project.json`, relative imports with namespaces, themes shared between files, a
   project-wide default theme and validation ([projects](language/projects.md)).
-- Themes and styles: six built-in themes (Technical, Editorial and Stage, light and dark), custom
-  themes that extend them, a complete token set (the default speed of effects included), reusable
-  classes, kind rules, patterns, fifteen arrow heads at either end and two-way arrows, dotted
-  lines, rounded corners, and document and slide presets
+- Themes and styles: eight built-in themes (Technical, Editorial, Stage and Sketch, light and
+  dark), custom themes that extend them, a complete token set (the default speed of effects
+  included), strokes painted by hand (`sketch`), reusable classes, kind rules, patterns, fifteen
+  arrow heads at either end, two-way arrows and lines without heads, dotted lines, rounded
+  corners, and document and slide presets
   ([styles](language/styles.md)); on the canvas, a style strip of the theme's colour tokens, a
   colour picker and the theme panel, which creates a theme in the file or for the project and
   edits its tokens.
@@ -30,8 +31,9 @@ walks through the common path, and the [documentation index](README.md) lists ev
   SVG export of every compiled profile: `flow` diagrams with notes, tags, data cylinders, decision
   diamonds, group bands and step labels, free compositions, sequence diagrams and C4 views.
 - Free compositions ([free](language/free.md)): boxes in twenty-four shapes that connectors meet
-  and text fits (flow nodes take them too), corner radii, plain containers and stacks, measured
-  text, icons and project images, groups placed by their interiors, layers, identity links to
+  and text fits (flow nodes take them too), their text at the top, middle or bottom, corner radii,
+  plain containers and stacks, measured text, icons and project images, lines that join no
+  element, groups placed by their interiors, layers, identity links to
   other diagrams, and `meltemi-diagrams convert --to free`, which copies a flow diagram as drawn
   into a free one.
 - Sequence diagrams ([sequence](language/sequence.md)): eight participant kinds and participant boxes,

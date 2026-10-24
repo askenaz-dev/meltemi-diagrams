@@ -1270,6 +1270,77 @@ const tests: Test[] = [
     },
   },
   {
+    name: "draws a free line with the arrow tool and selects it",
+    async run({ page }) {
+      await page
+        .locator(".code-input")
+        .fill(
+          'language "0.2"\n\ndiagram s: free {\n  layout manual\n  box a "A"\n  placement {\n    place a at (126, 112)\n  }\n}\n',
+        );
+      await analysed(page);
+      const a = page.locator('#app .content g[data-id="a"][data-role="element"]').first();
+      await a.waitFor();
+      const box = (await a.boundingBox())!;
+      await page.locator("#app .stage").focus();
+      await page.keyboard.press("r");
+      // Below the box, on empty canvas: a press, a drag past the threshold and a release.
+      const from = { x: box.x + 10, y: box.y + box.height + 120 };
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(from.x + 100, from.y, { steps: 4 });
+      await page.mouse.move(from.x + 220, from.y, { steps: 4 });
+      assert.equal(await page.locator("#app .overlay .line-ghost").count(), 1);
+      await page.mouse.up();
+      await until(page, "the line written into the code", () =>
+        /\n {2}line line1 from \(\d+, \d+\) to \(\d+, \d+\)\n {2}style line1 \{ arrowhead triangle \}\n/.test(
+          (document.querySelector(".code-input") as HTMLTextAreaElement).value,
+        ),
+      );
+      // Selected: its outline and the handles of its points, no frame.
+      await until(
+        page,
+        "the line's handles",
+        () => document.querySelectorAll('#app .overlay [data-handle^="linePoint:"]').length === 2,
+      );
+      assert.equal(await page.locator('#app .overlay [data-handle^="resize:"]').count(), 0);
+      assert.match((await page.locator("#app .inspector h2").textContent()) ?? "", /line1/i);
+      await page.screenshot({ path: join(output, "line-drawn.png") });
+    },
+  },
+  {
+    name: "aligns a box's text to the top left with the strip's alignment picker",
+    async run({ page }) {
+      await page
+        .locator(".code-input")
+        .fill(
+          'language "0.2"\n\ndiagram s: free {\n  layout manual\n  box a "A"\n  placement {\n    place a at (126, 112)\n    size a (200, 120)\n  }\n}\n',
+        );
+      await analysed(page);
+      const a = page.locator('#app .content g[data-id="a"][data-role="element"]').first();
+      await a.waitFor();
+      const box = (await a.boundingBox())!;
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      const cell = page.locator(
+        '#app .strip [data-field="style.textAlign"] [data-across="left"][data-down="top"]',
+      );
+      await cell.waitFor();
+      await cell.click();
+      await until(page, "both alignments written into the code", () =>
+        /\n {2}style a \{ textAlign left; verticalAlign top \}\n/.test(
+          (document.querySelector(".code-input") as HTMLTextAreaElement).value,
+        ),
+      );
+      // The label is drawn in the top band, near the box's top-left corner.
+      await until(page, "the label at the top", () => {
+        const g = document.querySelector('#app .content g[data-id="a"][data-role="element"]');
+        const text = g?.querySelector("text")?.getBoundingClientRect();
+        const outline = g?.getBoundingClientRect();
+        return !!text && !!outline && text.top - outline.top < outline.height / 3;
+      });
+      await page.locator("#app .strip").screenshot({ path: join(output, "alignment-picker.png") });
+    },
+  },
+  {
     name: "starts a diagram in an emptied file from the canvas's button, and adds another from New diagram",
     async run({ page }) {
       const app = page.locator("#app");

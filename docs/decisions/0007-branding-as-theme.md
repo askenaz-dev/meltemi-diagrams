@@ -1,6 +1,8 @@
 # 0007. Branding is a theme of the language
 
-Status: accepted (brand-themes change, October 2026); theme names and tokens updated by 0013
+Status: accepted (brand-themes change, October 2026); theme names and tokens updated by 0013. A
+hand-drawn look is a theme token too, `sketch`, by
+[decision 0058](0058-lines-sketch-and-text-alignment.md).
 
 ## Context
 

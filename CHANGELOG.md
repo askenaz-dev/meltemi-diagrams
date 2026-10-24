@@ -10,6 +10,41 @@ The playground's project in one place: an explorer of folders and diagrams in th
 with the project's switcher at its top, as VS Code lists a workspace
 ([decision 0048](docs/decisions/0048-project-explorer.md)).
 
+Lines that are only lines, between two boxes or joining nothing, a hand-drawn look for whiteboards,
+and text at the top or the bottom of a shape, drawn from the canvas with the arrow tool and one
+alignment picker ([decision 0058](docs/decisions/0058-lines-sketch-and-text-alignment.md)). The
+language stays 0.2: the line tokens, `line`, `sketch` and `verticalAlign` are additive.
+
+### Language
+
+- Two relation tokens draw lines without heads: `a -- b` (solid) and `a --- b` (dashed), beside
+  `->`, `-->`, `<->` and `<-->`. The lexer takes the longest match, so `--->` is an error whose hint
+  names the six tokens. A line draws no head unless `arrowhead` or `arrowtail` is written. Flow and
+  free diagrams take the six; sequence diagrams the four arrows and C4 views `->` and `-->`, and
+  the others are `prop.invalid-value` naming the tokens they take. Relations record `heads`
+  (`end`, `both` or `none`), written to the model JSON after `twoWay`; completion, hover (which
+  now prints the token as written), the outline, the formatter and the VS Code grammar know them.
+- Free lines: `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), ...]]` draws a line that
+  joins no element (a divider, a bracket, an underline), its points in its group's interior like
+  `place`. It takes a relation's styles (`stroke`, `line`, `width`, `arrowhead` and `arrowtail`,
+  none by default, `routing`, `polyline` by default, `corners`, and the label pill's `color`,
+  `fill` and `icon`) and refuses a box's, `place`, `size` and `rotation`; `label <id> at …` moves
+  its pill, `rule line { }` styles every line, and `flow`, `dash`, `pulse` and `trace` run along
+  it. A line whose points coincide is drawn as a dot and reported as `layout.degenerate-line`
+  (warning). The model JSON gives every element `line` after `shape`.
+- `sketch none|light|rough`, a theme token, paints every outline, connector, head, label pill,
+  group band and the frame as a clean fill and two stroke passes with a small seeded wobble; text,
+  icons and images stay crisp, the layout is unchanged, the same text renders the same bytes, and
+  every export and the canvas show it. Two built-in themes, `sketch.light` and `sketch.dark`, are
+  the technical pair with `sketch light` and `corners rounded`, in Inter: eight built-in themes in
+  all, and `sketch` is a reserved import name.
+- `verticalAlign top|middle|bottom`, a free style property beside `textAlign`, puts a box's text
+  block at the top or the bottom of its shape's text band, the theme's padding from its edge; in a
+  narrowing shape a wide block moves back towards the middle until it fits. Flow diagrams refuse
+  it. Where it moves nothing (the triangle, pentagon, star, person, agent and icon shapes, a centred
+  icon, texts, icons, images, groups and lines) it is `layout.vertical-align-ignored` (warning),
+  once per statement.
+
 ### Playground
 
 - The code pane folds to a rail: the button at the end of the file's path, a double click on the
@@ -62,6 +97,27 @@ with the project's switcher at its top, as VS Code lists a workspace
 
 ### Canvas (VS Code and the playground)
 
+- Six arrow kinds: the arrow button's menu lists `->`, `-->`, `--` (line), `---` (dashed line),
+  `<->` and `<-->` with their pictures, the lines drawn without heads; R cycles the six and Shift
+  on the second click flips `--` and `---` as it flips `->` and `-->`. The strip shows the heads of
+  a line greyed as `none`, and its line row rewrites the token keeping the heads
+  ([decision 0058](docs/decisions/0058-lines-sketch-and-text-alignment.md)).
+- Drawing a line: on a free diagram, the armed relation tool dragged on empty canvas draws a line,
+  a ghost with the kind's dashes and heads snapped to the grid, Shift for 45°, Escape to cancel.
+  The release writes `line line1 from … to …` inside the group under the press, with the kind's
+  styles (`line dashed`, and the theme's arrowhead for the heads) in one edit, and selects it. A
+  press on an element still starts a relation.
+- Editing a line: a selected line shows its outline and a handle at each end, bend and middle of a
+  stretch. Dragging an end or a bend moves it, a middle adds a bend, a double click removes one,
+  and dragging the stroke or the arrow keys move the whole line, each drop rewriting the statement
+  in one undo step. Its label is typed in place and its pill dragged; the strip shows a relation's
+  rows.
+- The alignment picker: free boxes get a 3 × 3 **Text alignment** grid after **Shape**, free texts
+  a row of three, the written pair pressed and the default greyed. A cell writes `textAlign` and
+  `verticalAlign` in one step, the **Theme** chip removes both, and the arrows, Enter and Space
+  work it from the keyboard.
+- The theme panel's shapes and lines group gains **Sketch**, three pictures from a straight to a
+  rough line, and the strip's light and dark switch works on the sketch themes.
 - The settings of an effect sit with its toggle: under the strip's Effects row, one card per
   effect that is on, headed by its name and its duration, holding repeat, delay, direction,
   particles and colour as they apply; the card of an effect just turned on opens, the others start
@@ -139,6 +195,15 @@ with the project's switcher at its top, as VS Code lists a workspace
   [decision 0056](docs/decisions/0056-agent-skill-install.md)).
 - An SVG icon whose file name a reference cannot write (`My Logo (1).svg`) is left out of its pack
   with the warning `asset.unusable-name`, which names the file to rename it to (`My-Logo-1.svg`).
+
+### Import
+
+- Links without heads become the line tokens instead of relations styled `arrowhead none`: Mermaid
+  `---` and `===` (with `width 3`) become `--`, `-.-` becomes `---`, architecture edges `a:R -- L:b`
+  become named `--` lines with their routes, and block-beta open links become lines; PlantUML
+  headless arrows become `--` (`---` when dotted), `*--` and the other UML heads on the left alone
+  become `--` with `arrowtail`, and note links `---`. Relations that were named only for that style
+  are anonymous now.
 
 ### Fixed
 

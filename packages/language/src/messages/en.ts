@@ -95,9 +95,9 @@ export const en = {
     lineEndings: "Use one line ending style per file; edits follow the first one.",
     escapes: 'Supported escapes are \\", \\\\, \\n and \\t.',
     multilineString: "Strings cannot span lines; use \\n for a line break inside a label.",
-    arrows: "The supported arrows are `->`, `-->`, `<->` and `<-->`.",
+    arrows: "The relation tokens are `->`, `-->`, `--`, `---`, `<->` and `<-->`.",
     identifiers: "Identifiers use ASCII letters, digits and `_`; put other text in a quoted label.",
-    minus: "A minus sign must be followed by a digit or `>`.",
+    minus: "A minus sign must be followed by a digit, `-` or `>`.",
     separateStatements: "Separate statements with a line break or `;`.",
     topLevel:
       "Top-level statements are `language`, `import`, `model`, `diagram`, `story`, `export` and `theme`.",

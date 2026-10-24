@@ -150,14 +150,14 @@ different drawing; **dropped** ones are left out. An import that drops an essent
 | `"Label" as a`, `a as "Label"`, `[Label] as a` | id and label | mapped |  |
 | `<<stereotype>>` | description `«stereotype»` | approximated |  |
 | `#colour`, `#line:c`, `#line.dashed`, `#text:c` | `fill`, `stroke`, `line dashed`, `color` | mapped |  |
-| `-->`, `->`, `..>`, `--`, `<--`, `-[#red]->`, `-[bold]->`, `-[thickness=n]->` | relations; dotted is `-->`; no head is `arrowhead none`; colours and widths become styles | mapped |  |
+| `-->`, `->`, `..>`, `--`, `<--`, `-[#red]->`, `-[bold]->`, `-[thickness=n]->` | relations; dotted is `-->`; no head is the line `--` (`---` when dotted); colours and widths become styles | mapped |  |
 | `--\|>`, `<\|--`, `*--`, `o--`, `--x`, `}\|--\|\|`, `}o--o\|` | `triangleOutline`, `diamond`, `diamondOutline`, `cross` and the crow's-foot heads at their end | mapped |  |
 | `--#`, `--+`, `--^`, `-(0-` | plain arrowheads | approximated |  |
 | `<-->`, `<..>`, `*--*` | `<->`, `<-->`, with the head at both ends | mapped |  |
 | `-left->`, `-up->`, `-l->` and other direction hints | a relation | approximated | Directions are left to the layout. |
 | `a "1" --> "*" b` | a relation without end labels | approximated |  |
 | `-[hidden]->` | — | dropped |  |
-| `note left\|right\|top\|bottom of x : text`, `note … end note`, `note "text" as N` | `note` with a dashed relation without arrowhead to its element | mapped |  |
+| `note left\|right\|top\|bottom of x : text`, `note … end note`, `note "text" as N` | `note` joined to its element by the dashed line `---` | mapped |  |
 | `note on link` | — | dropped |  |
 | `left to right direction`, `top to bottom direction` | `direction LR`, `direction TB` | mapped |  |
 | `together { … }` | — | dropped | Its elements are kept. |

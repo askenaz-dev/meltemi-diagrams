@@ -105,6 +105,7 @@ export const es: typeof en = {
     text: "Texto",
     icon: "Icono",
     image: "Imagen",
+    line: "Línea",
     person: "Persona",
     system: "Sistema",
     container: "Contenedor",
@@ -187,6 +188,11 @@ export const es: typeof en = {
       sourceUnreadable: "No se puede leer el icono o la ruta de la imagen.",
     },
 
+    lines: {
+      freeOnly: "Las líneas que no unen elementos pertenecen a las composiciones libres.",
+      notALine: (id) => `\`${id}\` no es una línea.`,
+      points: (id) => `\`${id}\` es una línea: sus puntos se escriben en su instrucción.`,
+    },
     relations: {
       missing: (name, diagram) =>
         `La relación ${code(name)} no existe en el diagrama ${code(diagram)}.`,

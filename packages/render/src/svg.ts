@@ -5,6 +5,7 @@ import type {
   ScenePattern,
   TextItem,
 } from "@meltemi/diagrams-layout";
+import { sketchItems } from "./sketch.js";
 
 const DASH = "5 4";
 
@@ -103,13 +104,15 @@ export function renderSvg(scene: Scene, options: RenderOptions = {}): string {
     `  <rect x="0" y="0" width="${w}" height="${h}" fill="${escapeXml(scene.background)}"/>`,
   );
   const outline = fonts?.policy === "outlined" ? fonts.provider : null;
+  // A sketch theme's strokes are painted by hand here, over the clean scene everyone else reads.
+  const items = scene.sketch ? sketchItems(scene.items, scene.sketch) : scene.items;
   // A picture that links somewhere is one link around everything drawn.
   if (scene.link) {
     out.push(`  <a href="${escapeXml(scene.link)}">`);
-    for (const item of scene.items) emit(item, out, "    ", scene, outline);
+    for (const item of items) emit(item, out, "    ", scene, outline);
     out.push("  </a>");
   } else {
-    for (const item of scene.items) emit(item, out, "  ", scene, outline);
+    for (const item of items) emit(item, out, "  ", scene, outline);
   }
   out.push("</svg>");
   return `${out.join("\n")}\n`;

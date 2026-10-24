@@ -35,8 +35,14 @@ const files = (folder: string): string[] =>
     .sort();
 
 describe("gallery", () => {
-  it("has one sheet for each profile", () => {
-    expect(GALLERY_SHEETS.map((s) => s.profile)).toEqual(["flow", "sequence", "c4", "free"]);
+  it("has one sheet for each profile, and a sketch", () => {
+    expect(GALLERY_SHEETS.map((s) => s.profile)).toEqual([
+      "flow",
+      "sequence",
+      "c4",
+      "free",
+      "free",
+    ]);
   });
 
   it.each(GALLERY_SHEETS.map((s) => [s.file, s] as const))(

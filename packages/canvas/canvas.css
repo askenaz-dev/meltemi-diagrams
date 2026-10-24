@@ -559,6 +559,44 @@ body {
   stroke-width: 1;
 }
 
+/*
+ * A free line drawn with the relation tool: its ghost from the press to the pointer, with the
+ * current kind's dashes and heads and a dot at each end, fading out on the release while the edit
+ * is drawn. The points of a line whose handle is dragged follow the pointer without hit tests.
+ */
+.overlay .line-ghost {
+  pointer-events: none;
+  animation: mdg-fade-in var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.overlay .line-ghost.fading {
+  animation: mdg-fade-out var(--mdg-motion) var(--mdg-ease-in) forwards;
+}
+
+.overlay .line-ghost-stroke {
+  stroke: var(--mdg-select);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.overlay .line-ghost-stroke.dashed {
+  stroke-dasharray: 6 4;
+}
+
+.overlay .line-ghost-head {
+  fill: var(--mdg-select);
+}
+
+.overlay .line-ghost-end {
+  fill: var(--vscode-editor-background, #fff);
+  stroke: var(--mdg-select);
+  stroke-width: 1.5;
+}
+
+.overlay .handle.line-point {
+  pointer-events: none;
+}
+
 .overlay .band {
   fill: color-mix(in srgb, var(--mdg-select) 12%, transparent);
   stroke: var(--mdg-select);
@@ -2810,8 +2848,106 @@ body {
     opacity var(--mdg-motion-fast) var(--mdg-ease);
 }
 
+/*
+ * The alignment picker: nine cells (a text's row of three) of a text block's place in a box, the
+ * pressed cell over a highlight that slides from the one pressed before, the default greyed in a
+ * dashed cell, and the chip that takes both alignments away beside the grid.
+ */
+.inspector .align-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.panel .align-row button.chip.align-inherit {
+  height: 24px;
+  margin-top: 2px;
+}
+
+.inspector .align-grid {
+  --cell-width: 30px;
+  --cell-height: 24px;
+  --cell-gap: 2px;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--columns, 3), var(--cell-width));
+  gap: var(--cell-gap);
+  padding: 2px;
+  border: 1px solid var(--mdg-border);
+  border-radius: 6px;
+}
+
+.inspector .align-cell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: var(--cell-width);
+  height: var(--cell-height);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: none;
+  color: var(--mdg-muted);
+  cursor: pointer;
+  transition:
+    color var(--mdg-motion-fast) var(--mdg-ease),
+    background-color var(--mdg-motion-fast) var(--mdg-ease),
+    transform var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.inspector .align-cell:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--mdg-select) 10%, transparent);
+  color: inherit;
+}
+
+.inspector .align-cell:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.inspector .align-cell[aria-checked="true"] {
+  color: var(--vscode-button-foreground, #fff);
+}
+
+.inspector .align-cell.inherit {
+  border-style: dashed;
+  border-color: color-mix(in srgb, currentColor 45%, transparent);
+  opacity: 0.75;
+}
+
+.inspector .align-cell:focus-visible {
+  outline: 2px solid var(--mdg-select);
+  outline-offset: 1px;
+}
+
+.inspector .align-cell:disabled {
+  cursor: default;
+}
+
+.inspector .align-highlight {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: var(--cell-width);
+  height: var(--cell-height);
+  border-radius: 4px;
+  background: var(--mdg-select);
+  transform: translate(
+    calc(var(--column, 0) * (var(--cell-width) + var(--cell-gap))),
+    calc(var(--row, 0) * (var(--cell-height) + var(--cell-gap)))
+  );
+  transition: transform var(--mdg-motion-fast) var(--mdg-ease);
+  pointer-events: none;
+}
+
 @keyframes mdg-fade-in {
   from {
+    opacity: 0;
+  }
+}
+
+@keyframes mdg-fade-out {
+  to {
     opacity: 0;
   }
 }

@@ -117,17 +117,17 @@ el mismo proyecto exporta los mismos archivos sea cual sea el idioma del editor.
 
 ## Funciones del lenguaje
 
-| Función                                            | Qué hace                                                                                                                                                                                                                                                                     |
-| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Diagnósticos                                       | Problemas de compilación, de proyecto y de disposición, mientras escribes, con sus pistas                                                                                                                                                                                    |
-| Autocompletado                                     | Instrucciones según el bloque, ids de elementos y de relaciones, puertos después de `element.`, valores de propiedades, temas, clases, tokens de color e iconos dentro de `icon "…"`; en las historias, acciones, transiciones, diagramas y los ids de la vista de la escena |
-| Información al pasar el puntero                    | Elementos (tipo, etiqueta, posición, tamaño, puertos), relaciones (extremos, etiqueta, ruta), puertos, palabras clave, temas e iconos con una vista previa y su licencia; acciones de las historias con su lugar en el reloj, escenas e historias con sus tiempos            |
-| Esquema y rutas de navegación                      | Diagramas, grupos, elementos y relaciones, anidados como están escritos; historias y sus escenas                                                                                                                                                                             |
-| Ir a la definición, buscar referencias, resaltados | Para los ids de elementos y de relaciones, en todos los lugares donde se usan, también en las historias y en las historias de otros archivos que importan el diagrama                                                                                                        |
-| Cambiar el nombre (F2)                             | Ids de elementos e ids de relaciones con nombre, con todas sus referencias, desde el diagrama o desde una historia, en todos los archivos del proyecto                                                                                                                       |
-| Dar formato al documento                           | El formato canónico de `meltemi-diagrams format`                                                                                                                                                                                                                             |
-| Colores semánticos                                 | Elementos, grupos, relaciones, puertos, clases y temas                                                                                                                                                                                                                       |
-| Correcciones rápidas                               | Consulta la tabla siguiente                                                                                                                                                                                                                                                  |
+| Función                                            | Qué hace                                                                                                                                                                                                                                                                                                                                                                                                         |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Diagnósticos                                       | Problemas de compilación, de proyecto y de disposición, mientras escribes, con sus pistas                                                                                                                                                                                                                                                                                                                        |
+| Autocompletado                                     | Instrucciones según el bloque, ids de elementos y de relaciones, puertos después de `element.`, valores de propiedades, temas, clases, tokens de color e iconos dentro de `icon "…"`; en las historias, acciones, transiciones, diagramas y los ids de la vista de la escena                                                                                                                                     |
+| Información al pasar el puntero                    | Elementos (tipo, etiqueta, posición, tamaño, puertos), relaciones (tal como están escritas, con `--` y `---` descritas como líneas sin puntas; extremos, etiqueta, ruta), líneas libres (etiqueta, puntos en el interior de su grupo, capa), puertos, palabras clave, temas e iconos con una vista previa y su licencia; acciones de las historias con su lugar en el reloj, escenas e historias con sus tiempos |
+| Esquema y rutas de navegación                      | Diagramas, grupos, elementos y relaciones, anidados como están escritos; historias y sus escenas                                                                                                                                                                                                                                                                                                                 |
+| Ir a la definición, buscar referencias, resaltados | Para los ids de elementos y de relaciones, en todos los lugares donde se usan, también en las historias y en las historias de otros archivos que importan el diagrama                                                                                                                                                                                                                                            |
+| Cambiar el nombre (F2)                             | Ids de elementos e ids de relaciones con nombre, con todas sus referencias, desde el diagrama o desde una historia, en todos los archivos del proyecto                                                                                                                                                                                                                                                           |
+| Dar formato al documento                           | El formato canónico de `meltemi-diagrams format`                                                                                                                                                                                                                                                                                                                                                                 |
+| Colores semánticos                                 | Elementos, grupos, relaciones, puertos, clases y temas                                                                                                                                                                                                                                                                                                                                                           |
+| Correcciones rápidas                               | Consulta la tabla siguiente                                                                                                                                                                                                                                                                                                                                                                                      |
 
 | Problema                                                                            | Correcciones rápidas                                                      |
 | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
@@ -201,24 +201,28 @@ rango se rechaza indicando el rango, y el texto queda como estaba.
 
 ## Los gestos y lo que escriben
 
-| Gesto                                                                                            | Cambio en el texto                                                                                                                                                                 |
-| ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Arrastrar una caja (o varias, o un grupo)                                                        | `place` de cada caja; con Alt se mueve libremente; si no, se ajusta primero a las guías y luego a la cuadrícula                                                                    |
-| Arrastrar una caja dentro de un grupo, o fuera de su grupo                                       | Su declaración pasa al bloque de ese grupo, o al nivel superior, con su `place` en el nuevo interior; Alt conserva el grupo                                                        |
-| Arrastrar un tirador de tamaño                                                                   | `size` y `place`; los lados opuestos se quedan donde están, los tamaños se ajustan a la cuadrícula, como mínimo 24                                                                 |
-| Arrastrar la etiqueta de una relación                                                            | `label <id> at <n>% offset (dx, dy)`                                                                                                                                               |
-| Arrastrar un punto de paso de una ruta, o el centro de un tramo                                  | `route … via [...]`; arrastrar un centro agrega un punto de paso                                                                                                                   |
-| Doble clic en un punto de paso                                                                   | Lo quita de `via`; una ruta que queda sin nada más desaparece                                                                                                                      |
-| Arrastrar un extremo de la ruta sobre su caja, o justo fuera de ella                             | El punto del borde que toma, en la `route` (más abajo); dentro de la caja, `auto`                                                                                                  |
-| Arrastrar un extremo de la ruta sobre otra caja                                                  | El extremo de la relación y su `route` con el punto                                                                                                                                |
-| Doble clic en un extremo de la ruta                                                              | La disposición vuelve a elegir ese extremo                                                                                                                                         |
-| Arrastrar desde un tirador de conexión (los puntos junto a una caja seleccionada) hasta una caja | `a -> b`; Mayús para `-->`; sobre su borde, además fija ambos extremos                                                                                                             |
-| Presionar justo fuera del borde de una caja y arrastrar hasta otra caja                          | `a -> b` con el inicio fijado en ese punto; sobre el borde, también el final                                                                                                       |
-| Herramienta de relación (R): clic en el origen y luego en el destino                             | `a -> b`, o el tipo de flecha elegido, seleccionada; Mayús en el segundo clic alterna continua y discontinua; Esc cancela                                                          |
-| Elegir una herramienta de la paleta y hacer clic, o arrastrar un botón de la paleta al lienzo    | Una declaración y su `place`, dentro del grupo que está bajo el puntero (también un grupo se anida); una caja o un nodo con la forma actual recibe además `style <id> { shape … }` |
-| Elegir un icono en el selector de iconos y hacer clic en el lienzo, o arrastrarlo hasta allí     | El elemento que dice el control de colocación, vacío, con `style <id> { icon … }` y su `place` ([iconos](#iconos))                                                                 |
-| Arrastrar un icono del selector o del panel Bibliotecas sobre una forma                          | `style <id> { icon … }` de ese nodo, decisión, almacén de datos o caja, y nada más; la forma se resalta mientras el puntero está encima                                            |
-| Doble clic en una caja o una relación, o presionar Entrar                                        | Su etiqueta, escrita donde se dibuja ([texto en su sitio](#formas-vacías-y-texto-en-su-sitio))                                                                                     |
+| Gesto                                                                                            | Cambio en el texto                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Arrastrar una caja (o varias, o un grupo)                                                        | `place` de cada caja; con Alt se mueve libremente; si no, se ajusta primero a las guías y luego a la cuadrícula                                                                                                                           |
+| Arrastrar una caja dentro de un grupo, o fuera de su grupo                                       | Su declaración pasa al bloque de ese grupo, o al nivel superior, con su `place` en el nuevo interior; Alt conserva el grupo                                                                                                               |
+| Arrastrar un tirador de tamaño                                                                   | `size` y `place`; los lados opuestos se quedan donde están, los tamaños se ajustan a la cuadrícula, como mínimo 24                                                                                                                        |
+| Arrastrar la etiqueta de una relación                                                            | `label <id> at <n>% offset (dx, dy)`                                                                                                                                                                                                      |
+| Arrastrar un punto de paso de una ruta, o el centro de un tramo                                  | `route … via [...]`; arrastrar un centro agrega un punto de paso                                                                                                                                                                          |
+| Doble clic en un punto de paso                                                                   | Lo quita de `via`; una ruta que queda sin nada más desaparece                                                                                                                                                                             |
+| Arrastrar un extremo de la ruta sobre su caja, o justo fuera de ella                             | El punto del borde que toma, en la `route` (más abajo); dentro de la caja, `auto`                                                                                                                                                         |
+| Arrastrar un extremo de la ruta sobre otra caja                                                  | El extremo de la relación y su `route` con el punto                                                                                                                                                                                       |
+| Doble clic en un extremo de la ruta                                                              | La disposición vuelve a elegir ese extremo                                                                                                                                                                                                |
+| Arrastrar desde un tirador de conexión (los puntos junto a una caja seleccionada) hasta una caja | `a -> b`; Mayús para `-->`; sobre su borde, además fija ambos extremos                                                                                                                                                                    |
+| Presionar justo fuera del borde de una caja y arrastrar hasta otra caja                          | `a -> b` con el inicio fijado en ese punto; sobre el borde, también el final                                                                                                                                                              |
+| Herramienta de relación (R): clic en el origen y luego en el destino                             | `a -> b`, o el tipo de flecha elegido (`->`, `-->`, `--`, `---`, `<->`, `<-->`), seleccionada; Mayús en el segundo clic alterna continua y discontinua; Esc cancela                                                                       |
+| Herramienta de relación (R) en un diagrama libre: arrastrar sobre el lienzo vacío                | `line line1 from (x, y) to (x, y)` y los estilos del tipo actual, dentro del grupo que está bajo el punto donde presionas, seleccionada; ajustada a la cuadrícula, Mayús para pasos de 45°, Esc cancela ([líneas](#composiciones-libres)) |
+| Arrastrar un extremo o un codo de una línea seleccionada, o el centro de un tramo                | Ese punto de la instrucción `line`, ajustado a la cuadrícula; arrastrar un centro agrega un codo a `via`                                                                                                                                  |
+| Doble clic en un codo de una línea                                                               | Lo quita de `via`; el último se lleva `via` con él                                                                                                                                                                                        |
+| Arrastrar una línea por su trazo                                                                 | Todos los puntos de la instrucción `line`, la misma distancia                                                                                                                                                                             |
+| Elegir una herramienta de la paleta y hacer clic, o arrastrar un botón de la paleta al lienzo    | Una declaración y su `place`, dentro del grupo que está bajo el puntero (también un grupo se anida); una caja o un nodo con la forma actual recibe además `style <id> { shape … }`                                                        |
+| Elegir un icono en el selector de iconos y hacer clic en el lienzo, o arrastrarlo hasta allí     | El elemento que dice el control de colocación, vacío, con `style <id> { icon … }` y su `place` ([iconos](#iconos))                                                                                                                        |
+| Arrastrar un icono del selector o del panel Bibliotecas sobre una forma                          | `style <id> { icon … }` de ese nodo, decisión, almacén de datos o caja, y nada más; la forma se resalta mientras el puntero está encima                                                                                                   |
+| Doble clic en una caja, una relación o una línea, o presionar Entrar                             | Su etiqueta, escrita donde se dibuja ([texto en su sitio](#formas-vacías-y-texto-en-su-sitio))                                                                                                                                            |
 
 - **Nombrar relaciones.** Las acciones sobre una relación anónima, incluidos un estilo, un efecto,
   una etiqueta, una capa, una línea punteada, una posición de etiqueta, una etiqueta movida, un
@@ -362,7 +366,7 @@ como en todas partes. Tab después del último elemento sale del lienzo.
 | Ctrl+Izquierda, Ctrl+Derecha, Ctrl+Arriba, Ctrl+Abajo                     | Seleccionar el elemento más cercano en esa dirección; de dos con el mismo centro, el anidado                                                             |
 | Ctrl+A                                                                    | Seleccionar todos los elementos                                                                                                                          |
 | Esc                                                                       | Quitar la selección o cancelar un arrastre                                                                                                               |
-| Izquierda, Derecha, Arriba, Abajo                                         | Mover la selección 1 px                                                                                                                                  |
+| Izquierda, Derecha, Arriba, Abajo                                         | Mover la selección 1 px, también los puntos de una línea libre                                                                                           |
 | Mayús+Izquierda, Mayús+Derecha, Mayús+Arriba, Mayús+Abajo                 | Mover la selección un paso de la cuadrícula                                                                                                              |
 | Alt+Mayús+Izquierda, Alt+Mayús+Derecha, Alt+Mayús+Arriba, Alt+Mayús+Abajo | Hacer la caja un paso de la cuadrícula más estrecha, más ancha, más baja o más alta                                                                      |
 | Entrar, F2                                                                | Editar la etiqueta en su sitio                                                                                                                           |
@@ -374,7 +378,7 @@ como en todas partes. Tab después del último elemento sale del lienzo.
 | Ctrl+Alt+H, Ctrl+Alt+V                                                    | Distribuir horizontal o verticalmente                                                                                                                    |
 | C                                                                         | Conectar el elemento seleccionado con… (escribe para filtrar, Entrar para elegir)                                                                        |
 | R                                                                         | Herramienta de relación (Mensaje en los diagramas de secuencia): clic en el origen y luego en el destino                                                 |
-| R con la herramienta de relación activa                                   | El tipo de flecha siguiente: `->`, `-->`, `<->`, `<-->`                                                                                                  |
+| R con la herramienta de relación activa                                   | El tipo de flecha siguiente: `->`, `-->`, `--`, `---`, `<->`, `<-->`                                                                                     |
 | N, D, S, O, T, G                                                          | Flujo: crear un nodo (de la forma actual), una decisión, un almacén de datos, una nota, una marca o un grupo (del tipo actual) cerca del centro          |
 | B, T, M, G                                                                | Libre: crear una caja (de la forma actual), un texto, una imagen o un grupo (del tipo actual) cerca del centro                                           |
 | F                                                                         | Flujo y libre: abrir la cuadrícula de formas (escribe para filtrar, flechas para moverte, Entrar para crear, Esc para cerrar)                            |
@@ -413,6 +417,11 @@ estilo (`--mdg-motion-fast` 120 ms, `--mdg-motion` 160 ms, `--mdg-motion-slow` 2
 - **Contornos.** El contorno de un destino al soltar o al conectar y el contorno del editor en su
   sitio aparecen con un fundido; los resultados del selector de iconos aparecen uno tras otro.
 - **Controles.** Los botones, las muestras y los campos cambian de color en 120 ms.
+- **Líneas.** La silueta de una línea que se dibuja aparece pasado el umbral de arrastre, sigue al
+  puntero sin suavizado y se desvanece en 160 ms al soltar, mientras aparece la línea dibujada. Los
+  tiradores de una línea que se edita también siguen al puntero sin suavizado.
+- **Alineación del texto.** El resaltado de la celda presionada se desliza hasta la celda elegida
+  en 120 ms, y una celda se reduce al 98 % mientras se presiona, como las muestras.
 
 Cuando el sistema pide movimiento reducido (`prefers-reduced-motion: reduce`), todas las duraciones
 son cero y nada sube, se desliza ni cambia de escala.
@@ -587,12 +596,17 @@ caja interior la convierte en un `layout.overlap`.
   cierra. Cada forma tiene un camino con el teclado, como F, `hex`, Entrar, y luego B o N para la
   siguiente, o F, `agen`, Entrar para un agente. Los diagramas de secuencia conservan F para los
   fragmentos.
-- **Tipos de flecha.** El botón de flecha se divide igual: su menú lista `->`, `-->`, `<->` y
-  `<-->` con sus dibujos, y lo que eliges activa la herramienta de relación con ese tipo. R activa
-  la herramienta con el tipo actual; mientras está activa, R de nuevo pasa al tipo siguiente, que
-  nombran la línea de estado y la insignia junto al puntero. Mayús en el segundo clic sigue
-  alternando continua y discontinua, y los tiradores de conexión siguen escribiendo `->` (`-->` con
-  Mayús). Las vistas C4 ofrecen los tipos de un solo sentido.
+- **Tipos de flecha.** El botón de flecha se divide igual: su menú lista seis tipos con sus dibujos
+  y sus nombres, `->` (flecha), `-->` (flecha discontinua), `--` (línea), `---` (línea
+  discontinua), `<->` (flecha doble) y `<-->` (flecha doble discontinua), con las dos líneas
+  dibujadas sin puntas, y lo que eliges activa la herramienta de relación con ese tipo. R activa la
+  herramienta con el tipo actual; mientras está activa, R de nuevo pasa al tipo siguiente en ese
+  orden, que nombran la línea de estado y la insignia junto al puntero. Mayús en el segundo clic
+  sigue alternando continua y discontinua (`--` y `---`), y los tiradores de conexión siguen
+  escribiendo `->` (`-->` con Mayús). Las vistas C4 ofrecen solo `->`, y la herramienta Mensaje de
+  los diagramas de secuencia, ningún tipo. En un diagrama libre, la herramienta activa arrastrada
+  sobre el lienzo vacío dibuja una línea del tipo actual
+  ([composiciones libres](#composiciones-libres)).
 - **Contenedores.** El botón **Grupo** también está dividido: su menú ofrece **Grupo**, una banda
   con título, y **Contenedor**, un rectángulo sin título. Lo que eliges pasa a ser el tipo actual y
   activa la herramienta, y G crea el tipo actual cerca del centro; Alt+G sigue agrupando la
@@ -680,8 +694,38 @@ caja interior la convierte en un `layout.overlap`.
 ## Composiciones libres
 
 La paleta depende del diagrama: los diagramas de flujo ofrecen nodo, decisión, almacén de datos,
-nota, marca, grupo e icono; los diagramas libres ofrecen caja, texto, icono, imagen y grupo. Los
-botones de caja y de nodo abren las formas ([formas y contenedores](#formas-y-contenedores)).
+nota, marca, grupo e icono; los diagramas libres ofrecen caja, texto, icono, imagen y grupo, y la
+herramienta de flecha también dibuja líneas. Los botones de caja y de nodo abren las formas
+([formas y contenedores](#formas-y-contenedores)).
+
+- **Dibujar una línea.** Activa la herramienta de relación (R, o un tipo del menú del botón de
+  flecha), presiona sobre el lienzo vacío, sobre el fondo de un grupo o sobre otra línea, y
+  arrastra: pasado el umbral de arrastre, una silueta de línea sigue al puntero con los guiones y
+  las puntas del tipo, con los dos extremos ajustados a la cuadrícula, Mayús la mantiene en pasos de
+  45° y Esc la cancela. Al soltar se escribe `line line1 from (98, 98) to (294, 98)`, dentro del
+  grupo que está bajo el punto donde presionaste y con sus puntos en el interior de ese grupo, y en
+  la misma edición los estilos del tipo: nada para `--`, `line dashed` para `---`,
+  `arrowhead <head>` para `->`, `line dashed; arrowhead <head>` para `-->`,
+  `arrowtail <head>; arrowhead <head>` para `<->` y lo mismo con `line dashed` para `<-->`, donde
+  `<head>` es la punta del tema (`triangle` en los temas technical, `open` en los editorial). La
+  línea nueva queda seleccionada, la herramienta se desactiva y la línea de estado dice qué se
+  dibujó. Presionar sobre un elemento sigue empezando una relación (clic en el origen y luego en el
+  destino), y presionar y soltar antes del umbral pide el elemento desde el que empezar; en un
+  diagrama de flujo, arrastrar sobre el lienzo vacío no dibuja nada.
+- **Editar una línea.** Una línea seleccionada muestra su contorno tal como se dibuja, un tirador
+  en cada extremo, un cuadrado en cada codo y un tirador pequeño en el centro de cada tramo, y no
+  tiene marco, tiradores de tamaño, asa de giro ni tiradores de conexión. Arrastrar un extremo o un
+  codo mueve ese punto, ajustado a la cuadrícula; arrastrar un centro agrega un codo; doble clic en
+  un codo lo quita; arrastrar la línea por su trazo, o las flechas del teclado, mueven todos los
+  puntos. El contorno y los tiradores siguen al puntero en cada cuadro, y al soltar se reescriben
+  los puntos de la instrucción en el interior del grupo, conservando sus comentarios, agregando
+  `via [...]` después de `to` cuando aparece el primer codo y quitándolo con el último, en un solo
+  paso de deshacer. Los extremos de una línea son puntos: no tienen imanes y nunca se unen a una
+  caja. Entrar o un doble clic escriben su etiqueta sobre su píldora, y la píldora se arrastra como
+  la etiqueta de una relación (`label line1 at 30%`). La barra muestra las filas de una relación:
+  borde, línea, ancho, las dos puntas con `none` en gris, el tipo de ruta con `polyline` en gris y
+  las esquinas. Una línea se alcanza por su trazo y con un rectángulo de selección que la rodee;
+  copiarla desplaza sus puntos, eliminarla quita su `label`, y alinear o distribuir la dejan fuera.
 
 - **Iconos.** El botón de icono e I abren el selector de iconos ([iconos](#iconos)). Con **Solo el
   icono**, lo que eliges y colocas con Entrar se convierte en `icon icon1 "tabler:server"` cerca
@@ -690,8 +734,9 @@ botones de caja y de nodo abren las formas ([formas y contenedores](#formas-y-co
 - **Imágenes.** Colocar una imagen abre un diálogo de archivos; el archivo debe estar dentro del
   proyecto, y su ruta se escribe relativa al archivo `.meltemi`. Las rutas de las imágenes también
   se autocompletan en el código.
-- **Texto.** El inspector tiene los campos **Tamaño del texto**, **Grosor del texto** y
-  **Alineación del texto**; los iconos y las imágenes tienen su campo **Icono** o
+- **Texto.** La barra tiene el selector **Alineación del texto** para las cajas y los textos
+  ([estilos y temas](#estilos-y-temas)), y el inspector, los campos **Tamaño del texto** y
+  **Grosor del texto**; los iconos y las imágenes tienen su campo **Icono** o
   **Archivo de imagen** en lugar de una etiqueta.
 - **Enlaces.** **Enlazado a** escribe `link <diagram>.<element>`. Ir a la definición sobre un enlace
   abre el elemento enlazado, en este archivo o en uno importado. **URL** escribe `url "…"`, un
@@ -799,8 +844,9 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
 
 - **La barra de estilo.** La parte superior del inspector da estilo a la selección: **Relleno**,
   **Borde** y **Color del texto** como filas de muestras, luego la línea y el ancho del borde; en
-  los elementos que los admiten, el radio de las esquinas, la forma y la posición del icono; en las
-  relaciones, las puntas de ambos extremos, el tipo de ruta y las esquinas; y la fila
+  los elementos que los admiten, el radio de las esquinas, la forma, la alineación del texto y la
+  posición del icono; en las relaciones y las líneas libres, las puntas de ambos extremos, el tipo
+  de ruta y las esquinas; y la fila
   **Efectos**, que dice a su derecha "ninguno" o los efectos activos, con sus interruptores debajo
   y, bajo ellos, una tarjeta por cada efecto activo ([efectos](#efectos)). Varios elementos
   seleccionados reciben el estilo juntos en una sola edición; una fila muestra "mixto" donde sus
@@ -811,7 +857,24 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
   la punta actual; cada uno abre una cuadrícula con todas las puntas (triángulos, rombos, círculos,
   barras, cruces y las patas de gallo de los diagramas ER). Las flechas del teclado recorren una fila
   o la cuadrícula, Entrar elige, Esc cierra. En una relación, continua y discontinua reescriben su
-  flecha (`->`, `-->`, o `<->`, `<-->` cuando es bidireccional) y punteada escribe `line dotted`.
+  flecha conservando sus puntas (`->` y `-->`, `<->` y `<-->` cuando es bidireccional, `--` y
+  `---` en una línea) y punteada escribe `line dotted`. Las puntas de una relación `--` o `---` y
+  de una línea libre muestran `none` en gris en ambos extremos; elegir `triangle` para el final
+  escribe `style link { arrowhead triangle }`.
+- **Alineación del texto.** En una caja libre, la barra muestra un control **Alineación del
+  texto** después de **Forma**: una cuadrícula de 3 × 3 dibujos de un bloque de texto en una caja,
+  a lo ancho (`textAlign` izquierda, centro, derecha) y a lo alto (`verticalAlign` arriba, en
+  medio, abajo). El par escrito aparece presionado, y el que se aplica sin escribir ninguno (centro,
+  en medio) aparece en gris en una celda discontinua. Un texto libre muestra las tres celdas de una
+  fila, con la izquierda en gris. Una celda escribe las propiedades que cambian, las dos en un solo
+  paso de deshacer: la celda de arriba a la izquierda escribe
+  `style a { textAlign left; verticalAlign top }`, y luego la de en medio a la izquierda deja
+  `style a { textAlign left }`, porque `middle` es el valor predeterminado. La muestra **Tema** de
+  la fila quita las dos. Las celdas son un grupo de opciones: las flechas se mueven en las dos
+  direcciones, Entrar o Espacio elige, y cada celda se nombra por su par ("centro, abajo"). Varias
+  cajas seleccionadas con valores distintos muestran "mixto" sin ninguna celda presionada; los
+  nodos de flujo y los demás tipos no tienen selector, y un lienzo de solo lectura lo dibuja
+  desactivado.
 - **Tokens, colores y el tema.** Las muestras son los dieciséis tokens de color del tema, dibujados
   con los colores que les da el tema del diagrama, así que un tema personalizado muestra los suyos.
   Una muestra escribe el token (`style api { fill accent }`), que sigue al tema cuando este cambia;
@@ -827,8 +890,8 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
   **Icono** ni **Color del icono**. La posición del icono, la posición de la etiqueta y el tamaño
   del icono se describen en [iconos](#iconos).
 - **El tema del diagrama.** Sin nada seleccionado, la barra empieza con el campo **Tema**. Un tema
-  integrado ofrece su contraparte con un clic (**Oscuro** para `technical.light`), que escribe
-  `theme "technical.dark"`.
+  integrado ofrece su contraparte con un clic (**Oscuro** para `technical.light`, **Claro** para
+  `sketch.dark`), que escribe `theme "technical.dark"` o `theme "sketch.light"`.
 - **Nuevo tema a partir de este…** pide un id y dónde se guarda el tema. **Este archivo** agrega
   `theme <id> { extends "<current>" }` después de los demás temas del archivo y hace que el diagrama
   lo use. **El proyecto** (un archivo guardado en un proyecto) escribe `themes/<id>.meltemi` y pone
@@ -838,6 +901,10 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
 - **El panel del tema.** **Editar el tema…** (cuando el tema es un bloque del archivo o del
   proyecto) lista los tokens del tema por grupo: colores, fuentes, tipografía, espaciado, formas y
   líneas, iconos, marco, movimiento y lienzo. Cada uno muestra el valor escrito o, en gris, el del tema base.
+  **Boceto**, en formas y líneas, es una fila de tres dibujos, una línea recta, una que tiembla un
+  poco y una áspera, para `none`, `light` y `rough`; elegir la que tiembla escribe `sketch light`
+  en el tema, y el lienzo se vuelve a dibujar con los trazos a mano, mientras que las selecciones y
+  los tiradores conservan los contornos limpios.
   Un cambio escribe el token en el bloque, en el archivo que lo contiene (la línea de estado lo
   nombra); **Heredar** o un valor vacío lo quita. **Fuente del texto** y **Fuente del código**
   ofrecen las familias incluidas y las de `assets/fonts/` del proyecto, que las exportaciones
@@ -848,9 +915,9 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
 
 - **Inspector.** Un elemento, una relación, un mensaje, una nota o un fragmento, cuando están
   seleccionados, listan los efectos que admiten, como interruptores bajo la fila **Efectos** de la
-  barra de estilo: **Partículas** (relaciones),
-  **Trazo en movimiento** (relaciones y cajas con contorno), **Pulso** y **Recorrido** (relaciones:
-  un resaltado que llena la flecha desde su inicio hasta su final y vuelve a empezar). Activar uno
+  barra de estilo: **Partículas** (relaciones y líneas libres), **Trazo en movimiento**
+  (relaciones, líneas libres y cajas con contorno), **Pulso** y **Recorrido** (relaciones y líneas
+  libres: un resaltado que llena la flecha desde su inicio hasta su final y vuelve a empezar). Activar uno
   escribe `animate <id> { effect … }` y abre la tarjeta del efecto justo bajo la fila: su nombre y
   su duración en la cabecera y, dentro, repetición, retraso y, donde corresponden, dirección,
   partículas y la fila de color (**Tema**, los tokens del tema y el selector, con `accent` como

@@ -134,6 +134,25 @@ describe("completion", () => {
     expect(labels(checkout.replace("  layout manual", '  theme "|"'))).toContain("technical.dark");
   });
 
+  it("offers verticalAlign and its values in a free style, and neither on a flow node", () => {
+    const free = (style: string) => `diagram s: free {\n  box a "A"\n  style a { ${style} }\n}\n`;
+    expect(labels(free("|"))).toEqual(expect.arrayContaining(["verticalAlign", "textAlign"]));
+    expect(labels(free("verticalAlign |"))).toEqual(["top", "middle", "bottom"]);
+    const flow = labels(checkout.replace("fill accent", "|"));
+    expect(flow).not.toContain("verticalAlign");
+    expect(flow).not.toContain("textAlign");
+    const word = at(free("vertical|Align top"));
+    expect(hover(word.analysis, word.offset)!.markdown).toContain("text band");
+  });
+
+  it("offers the sketch token and its levels in a theme block, and the sketch themes", () => {
+    expect(labels(`theme t {\n  |\n}\n`)).toContain("sketch");
+    expect(labels(`theme t {\n  sketch |\n}\n`)).toEqual(["none", "light", "rough"]);
+    expect(labels(checkout.replace("  layout manual", '  theme "|"'))).toEqual(
+      expect.arrayContaining(["sketch.light", "sketch.dark"]),
+    );
+  });
+
   it("completes icons in quotes", () => {
     const icons = sessions.analyze(
       join(REPO_ROOT, "corpus/valid/checkout.meltemi").replace(/\\/g, "/"),
@@ -186,6 +205,35 @@ describe("hover and navigation", () => {
       ["ab", "relation"],
     ]);
     expect(diagram!.children[0]!.children.map((c) => c.name)).toEqual(["a"]);
+  });
+
+  it("names relations by the token as written: lines and two-way arrows", () => {
+    const line = at(checkout.replace("  api -> bus", "  api -- cache as |link\n  api -> bus"));
+    expect(hover(line.analysis, line.offset)!.markdown.split("\n")[0]).toBe(
+      "**relation** `api -- cache` as `link`",
+    );
+    const { analysis } = at(`diagram d: flow {\n  api <-> cache\n  a --- b\n}\n|`);
+    const [diagram] = documentSymbols(analysis);
+    expect(diagram!.children.filter((c) => c.kind === "relation").map((c) => c.name)).toEqual([
+      "api <-> cache",
+      "a --- b",
+    ]);
+    // A relation with no target is no relation: no hover for it, and the missing target stands.
+    const broken = at(`diagram d: flow {\n  api -|-\n}\n`);
+    const shown = hover(broken.analysis, broken.offset);
+    expect(shown?.markdown ?? "").not.toContain("**relation**");
+    expect(broken.analysis.compilation.diagnostics.some((d) => d.severity === "error")).toBe(true);
+  });
+
+  it("offers the elements after every relation token", () => {
+    for (const token of ["->", "-->", "<->", "<-->", "--", "---"]) {
+      const { analysis, offset } = at(
+        checkout.replace("  api -> bus", `  api ${token} |\n  api -> bus`),
+      );
+      const labels = completions(analysis, offset).map((i) => i.label);
+      expect(labels, token).toContain("db");
+      expect(labels, token).toContain("cache");
+    }
   });
 
   it("renames relations and refuses anonymous ones", () => {

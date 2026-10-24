@@ -8,6 +8,8 @@ export type TokenKind =
   | "DashedArrow"
   | "BothArrow"
   | "DashedBothArrow"
+  | "Line"
+  | "DashedLine"
   | "LBrace"
   | "RBrace"
   | "LParen"
@@ -55,6 +57,8 @@ const PUNCTUATION_TEXT: Partial<Record<TokenKind, string>> = {
   DashedArrow: "-->",
   BothArrow: "<->",
   DashedBothArrow: "<-->",
+  Line: "--",
+  DashedLine: "---",
   LBrace: "{",
   RBrace: "}",
   LParen: "(",
@@ -87,10 +91,18 @@ export function describeToken(token: Token): string {
   }
 }
 
-/** The four relation arrows: `->`, `-->`, and the two-way `<->` and `<-->`. */
+/**
+ * The six relation tokens: `->`, `-->`, the two-way `<->` and `<-->`, and the lines without heads
+ * `--` and `---`.
+ */
 export function isArrowKind(kind: TokenKind): boolean {
   return (
-    kind === "Arrow" || kind === "DashedArrow" || kind === "BothArrow" || kind === "DashedBothArrow"
+    kind === "Arrow" ||
+    kind === "DashedArrow" ||
+    kind === "BothArrow" ||
+    kind === "DashedBothArrow" ||
+    kind === "Line" ||
+    kind === "DashedLine"
   );
 }
 

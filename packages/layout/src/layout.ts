@@ -20,6 +20,7 @@ import type {
   FlowDiagram,
   LabelEntry,
   LayoutMode,
+  LinePoints,
   Point,
   PortSide,
   Relation,
@@ -95,6 +96,7 @@ import {
 import { MIN_TEXT_MARGIN, TextMetrics, estimateMeasurer, type TextMeasurer } from "./measure.js";
 import {
   CORNERED_SHAPES,
+  FIXED_TEXT_SHAPES,
   SHAPE_SIZES,
   agentHeight,
   framedLines,
@@ -103,6 +105,7 @@ import {
   onPolygon,
   shapeOutline,
   shapeTextCenter,
+  shapeTextBand,
   shapeTextSpan,
   shapeTextSpanner,
   turnPoint,
@@ -245,6 +248,8 @@ export const DEFAULT_SIZES: Readonly<
   text: null,
   icon: { width: 48, height: 48 },
   image: null,
+  // A free line is the bounding box of its points.
+  line: null,
   // Sequence heads are measured by the sequence layout.
   participant: null,
   actor: null,
@@ -420,6 +425,17 @@ interface RelationGeometry {
   readonly connector: ConnectorGeometry;
 }
 
+/** A free line drawn as a connector: its drawn line, heads, pill and curve, and its route. */
+interface LineGeometry {
+  readonly element: Element;
+  readonly line: readonly Point[];
+  readonly start: readonly MarkerPart[];
+  readonly end: readonly MarkerPart[];
+  readonly label: { box: Box; text: string } | undefined;
+  readonly curve: string | undefined;
+  readonly connector: ConnectorGeometry;
+}
+
 /** Room kept between a group's title and the connectors that pass under it. */
 const TITLE_GAP = 3;
 
@@ -544,6 +560,52 @@ function boundsOf(points: readonly Point[]): Box {
   }
   // A straight horizontal or vertical line still has an area to meet.
   return { x: x0 - 1, y: y0 - 1, width: x1 - x0 + 2, height: y1 - y0 + 2 };
+}
+
+/** A free line's points in order: `from`, its bends, `to`. */
+function linePointsOf(line: LinePoints): Point[] {
+  return [line.from, ...line.via, line.to];
+}
+
+/** The box of a free line: the bounding box of its points, at least 1 wide and 1 tall. */
+function lineBox(points: readonly Point[]): Box {
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  const x = Math.min(...xs);
+  const y = Math.min(...ys);
+  return {
+    x,
+    y,
+    width: Math.max(1, Math.max(...xs) - x),
+    height: Math.max(1, Math.max(...ys) - y),
+  };
+}
+
+/** The side whose normal points most nearly from `from` towards `to`. */
+function sideToward(from: Point, to: Point): Side {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? "east" : "west";
+  return dy >= 0 ? "south" : "north";
+}
+
+/**
+ * A free line's points with an elbow between consecutive points that differ on both axes, each
+ * leg leaving along the axis of the longer displacement: every segment horizontal or vertical.
+ */
+function orthogonalThrough(points: readonly Point[]): Point[] {
+  const out: Point[] = [points[0]!];
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]!;
+    const b = points[i]!;
+    if (a.x !== b.x && a.y !== b.y) {
+      out.push(
+        Math.abs(b.x - a.x) >= Math.abs(b.y - a.y) ? { x: b.x, y: a.y } : { x: a.x, y: b.y },
+      );
+    }
+    out.push(b);
+  }
+  return out;
 }
 
 const SIDES: readonly Side[] = ["north", "east", "south", "west"];
@@ -828,6 +890,7 @@ function iconDiagnostics(
       }
     }
   }
+  out.push(...verticalAlignDiagnostics(diagram, styles, sizing, lines, words, themeRange));
   for (const { range, element, used, placed, inherited } of labels.values()) {
     if (used) continue;
     out.push({
@@ -843,6 +906,76 @@ function iconDiagnostics(
           : inherited
             ? words.hints.labelPositionIgnoredByTheme
             : words.hints.labelPositionIgnored,
+      ],
+      data: { ids: [element] },
+    });
+  }
+  return out;
+}
+
+/**
+ * `layout.vertical-align-ignored` for a `verticalAlign` that no element it styles uses: a box whose
+ * shape draws its text at a fixed spot, a box whose icon is the centre piece (its label band is at
+ * `labelPosition`), or an element that is no box. Once per statement that writes the property, or
+ * once for a theme rule or class, on the diagram's `theme` (`themeRange`).
+ */
+function verticalAlignDiagnostics(
+  diagram: FlowDiagram,
+  styles: StyleResolver,
+  sizing: Sizing,
+  lines: LineIndex,
+  words: LayoutWords,
+  themeRange: Range,
+): Diagnostic[] {
+  type Why = "fixed" | "centred" | "notBox";
+  const sources = new Map<
+    string,
+    { range: Range; element: string; used: boolean; why: Set<Why>; inherited: boolean }
+  >();
+  for (const element of diagram.elements) {
+    if (styles.element(element).verticalAlign === undefined) continue;
+    const source = styleSource(diagram, element, "verticalAlign", lines, styles);
+    const box = element.kind === "box";
+    const fixed = box && FIXED_TEXT_SHAPES.has(sizing.shapeOf(element));
+    const centred = box && !fixed && sizing.centred(element);
+    const used = box && !fixed && !centred;
+    const why: Why | undefined = used
+      ? undefined
+      : fixed
+        ? "fixed"
+        : centred
+          ? "centred"
+          : "notBox";
+    const known = sources.get(source.key);
+    if (known) {
+      known.used ||= used;
+      if (why) known.why.add(why);
+    } else {
+      sources.set(source.key, {
+        range: source.inherited ? themeRange : source.range,
+        element: element.id,
+        used,
+        why: new Set(why ? [why] : []),
+        inherited: source.inherited,
+      });
+    }
+  }
+  const out: Diagnostic[] = [];
+  for (const { range, element, used, why, inherited } of sources.values()) {
+    if (used) continue;
+    out.push({
+      code: "layout.vertical-align-ignored",
+      severity: "warning",
+      message: inherited
+        ? words.diagnostics.verticalAlignIgnoredByTheme(element)
+        : words.diagnostics.verticalAlignIgnored(element),
+      range,
+      hints: [
+        why.has("fixed")
+          ? words.hints.verticalAlignFixedShape
+          : why.has("centred")
+            ? words.hints.verticalAlignCentredIcon
+            : words.hints.verticalAlignNeverUsed,
       ],
       data: { ids: [element] },
     });
@@ -910,6 +1043,18 @@ function layoutDrawing(
         labels.set(entry.target, entry);
         break;
     }
+  }
+
+  // Free lines: the bounding box of the points written in their statement is their place and
+  // size, in their parent's interior coordinates, so a group derives its size from them as from
+  // its boxes; the drawn points are found once the groups are placed.
+  const freeLines = diagram.elements.filter(
+    (e): e is Element & { readonly line: LinePoints } => e.kind === "line" && e.line !== null,
+  );
+  for (const line of freeLines) {
+    const box = lineBox(linePointsOf(line.line));
+    places.set(line.id, boxCenter(box));
+    sizes.set(line.id, { width: box.width, height: box.height });
   }
 
   const mode = options.layout ?? diagram.properties.layout;
@@ -1038,8 +1183,8 @@ function layoutDrawing(
     if (element.kind === "group") continue;
     const explicit = sizes.get(element.id);
     const size = explicit ?? sizing.defaultSize(element);
-    if (explicit)
-      sizing.checkOverflow(element, explicit, sizeEntries.get(element.id)!, diagnostics);
+    const entry = sizeEntries.get(element.id);
+    if (explicit && entry) sizing.checkOverflow(element, explicit, entry, diagnostics);
     elementSizes.set(element.id, size);
   }
   // Turned elements: their angle, clockwise; 0 and 360 draw upright.
@@ -1335,6 +1480,24 @@ function layoutDrawing(
       }
     }
   }
+  // Free lines: their written points moved by their parent's interior origin, in diagram
+  // coordinates; their box is the bounding box of those points.
+  const lineAnchors = new Map<string, Point[]>();
+  for (const line of freeLines) {
+    const origin = origins.get(line.id) ?? { x: 0, y: 0 };
+    const points = linePointsOf(line.line).map((p) => ({ x: p.x + origin.x, y: p.y + origin.y }));
+    lineAnchors.set(line.id, points);
+    boxes.set(line.id, lineBox(points));
+    if (points.every((p) => p.x === points[0]!.x && p.y === points[0]!.y)) {
+      diagnostics.push({
+        code: "layout.degenerate-line",
+        severity: "warning",
+        message: words.diagnostics.degenerateLine(line.id),
+        range: line.range,
+        hints: [words.hints.lineEnds],
+      });
+    }
+  }
   // The drawn shape of every element box, and the outline of those that are not their box; a
   // turned element's outline is turned, and its drawn box is the bounding box of that outline.
   const shapes = new Map<string, BoxShape>();
@@ -1342,7 +1505,7 @@ function layoutDrawing(
   const turnedBoxes = new Map<string, Box>();
   for (const element of diagram.elements) {
     const box = boxes.get(element.id);
-    if (element.kind === "group" || !box) continue;
+    if (element.kind === "group" || element.kind === "line" || !box) continue;
     const shape = element.kind === "tag" ? "pill" : sizing.shapeOf(element);
     shapes.set(element.id, shape);
     if (rotations.has(element.id)) {
@@ -1374,7 +1537,9 @@ function layoutDrawing(
    * The boxes a connector should not cross: the other shapes of its layer, but not its ends, the
    * groups that hold them, nor a shape that contains an end box (a box it is stacked inside).
    */
-  const shapeIds = diagram.elements.filter((e) => e.kind !== "group" && e.kind !== "tag");
+  const shapeIds = diagram.elements.filter(
+    (e) => e.kind !== "group" && e.kind !== "tag" && e.kind !== "line",
+  );
   const obstaclesFor = (relation: Relation): Box[] => {
     const ends = [relation.from, relation.to];
     const holders = new Set(
@@ -1523,10 +1688,10 @@ function layoutDrawing(
         anchors.toSide,
       );
     }
-    // The target's head is the style's or the theme's; the source's is the style's, else the
-    // target's for a two-way arrow, else none.
-    const endKind = style.arrowhead ?? theme.arrowhead;
-    const startKind = style.arrowtail ?? (relation.twoWay ? endKind : "none");
+    // The target's head is the style's, else none for a line (`--`, `---`), else the theme's; the
+    // source's is the style's, else the target's for a two-way arrow, else none.
+    const endKind = style.arrowhead ?? (relation.heads === "none" ? "none" : theme.arrowhead);
+    const startKind = style.arrowtail ?? (relation.heads === "both" ? endKind : "none");
     const headWidth = (theme.arrowSize * 7) / 8;
     // The labels icon shapes draw beside their ends: a connector passes under its own end's label
     // only straight from the icon and on beyond it, far enough for its head; elsewhere the label
@@ -1689,9 +1854,94 @@ function layoutDrawing(
     return { relation, line, start: startHead, end: endHead, label, curve, connector };
   });
 
+  // Free lines: connectors without ends, routed through their own points (`polyline` unless a
+  // route kind is written; `auto` is `polyline`, there being no box to anchor to), with no lanes,
+  // detours or gaps, their heads `none` unless written, and a pill as a relation's.
+  const lineGeometry = new Map<string, LineGeometry>();
+  for (const element of freeLines) {
+    const anchors = lineAnchors.get(element.id)!;
+    const style = styles.element(element);
+    const written = style.routing ?? "polyline";
+    const kind = written === "auto" ? "polyline" : written;
+    const points = kind === "orthogonal" ? orthogonalThrough(anchors) : [...anchors];
+    const last = points.length - 1;
+    const fromSide = sideToward(points[0]!, points[Math.min(1, last)]!);
+    const toSide = sideToward(points[last]!, points[Math.max(0, last - 1)]!);
+    const endKind = style.arrowhead ?? "none";
+    const startKind = style.arrowtail ?? "none";
+    const headWidth = (theme.arrowSize * 7) / 8;
+    let line: Point[];
+    let start: MarkerPart[];
+    let end: MarkerPart[];
+    let curve: string | undefined;
+    if (kind === "bezier" && points.length > 1) {
+      const approach = (tip: Point, side: Side): Point[] => {
+        const normal = sideNormal(side);
+        return [{ x: tip.x + normal.x * 10, y: tip.y + normal.y * 10 }, tip];
+      };
+      const atEnd = endMarker(approach(points[last]!, toSide), endKind, theme.arrowSize, headWidth);
+      const atStart = endMarker(
+        approach(points[0]!, fromSide),
+        startKind,
+        theme.arrowSize,
+        headWidth,
+      );
+      const bezier = bezierThrough(
+        points,
+        fromSide,
+        toSide,
+        atEnd.line[atEnd.line.length - 1]!,
+        atStart.line[atStart.line.length - 1]!,
+      );
+      line = bezier.samples;
+      start = atStart.parts;
+      end = atEnd.parts;
+      curve = bezier.d;
+    } else {
+      const ends = relationEnds(points, startKind, endKind, theme.arrowSize, headWidth);
+      line =
+        (style.corners ?? theme.corners) === "rounded"
+          ? roundCorners(ends.line, CORNER_RADIUS)
+          : ends.line;
+      start = ends.start;
+      end = ends.end;
+    }
+    let label: LineGeometry["label"];
+    const icon = sizing.lineIcon(element);
+    if (element.label !== "" || icon) {
+      const entry = labels.get(element.id);
+      const at = entry ? entry.at / 100 : 0.5;
+      const offset = entry ? entry.offset : { x: 0, y: 0 };
+      const center = pointAlong(curve ? line : points, at);
+      const text = element.label;
+      const textWidth = text === "" ? 0 : metrics.width(text, "body", 500, scale.relationLabel);
+      const iconWidth = icon ? icon.size + (text === "" ? 0 : icon.gap) : 0;
+      const width = textWidth + iconWidth + scale.relationLabelPadding;
+      label = {
+        box: boxFromCenter(
+          { x: center.x + offset.x, y: center.y + offset.y },
+          Math.max(width, scale.relationLabelHeight),
+          scale.relationLabelHeight,
+        ),
+        text,
+      };
+    }
+    lineGeometry.set(element.id, {
+      element,
+      line,
+      start,
+      end,
+      label,
+      curve,
+      connector: { points, line, fromSide, toSide, via: anchors.slice(1, -1) },
+    });
+  }
+
   // Every element's box with the label it draws outside it, in diagram coordinates.
   const extents = new Map([...boxes].map(([id, box]) => [id, extentAt(id, box)]));
-  placeLabels(relationGeometry, movable, labelObstacles(diagram, extents, sizing));
+  // A line's box is no obstacle: labels may sit beside it as beside any connector.
+  const shapeExtents = new Map([...extents].filter(([id]) => !lineGeometry.has(id)));
+  placeLabels(relationGeometry, movable, labelObstacles(diagram, shapeExtents, sizing));
   const elementLabels = new Map<string, Box>();
   for (const [id, box] of boxes) {
     const label = labelAt(id, box);
@@ -1702,6 +1952,8 @@ function layoutDrawing(
   // Turned elements are checked by their drawn box.
   const checked = new Map([...boxes].map(([id, box]) => [id, extentAt(id, box)]));
   for (const [id, box] of boxes) if (!rotations.has(id)) checked.set(id, box);
+  // Lines cross boxes by design: they take no part in the composition checks.
+  for (const id of lineGeometry.keys()) checked.delete(id);
   diagnostics.push(
     ...checkComposition(
       diagram,
@@ -1727,6 +1979,11 @@ function layoutDrawing(
       ...markerPoints(geometry.start),
       ...markerPoints(geometry.end),
     ])
+      everything.push({ x: p.x, y: p.y, width: 0, height: 0 });
+    if (geometry.label) everything.push(geometry.label.box);
+  }
+  for (const geometry of lineGeometry.values()) {
+    for (const p of [...markerPoints(geometry.start), ...markerPoints(geometry.end)])
       everything.push({ x: p.x, y: p.y, width: 0, height: 0 });
     if (geometry.label) everything.push(geometry.label.box);
   }
@@ -1792,6 +2049,24 @@ function layoutDrawing(
         continue;
       }
       const box = shift(boxes.get(paintable.element.id)!);
+      const line = lineGeometry.get(paintable.element.id);
+      if (line) {
+        items.push(
+          onLayer(
+            emitter.line(
+              line.element,
+              box,
+              line.line.map(shiftPoint),
+              shiftMarker(line.start, shiftPoint),
+              shiftMarker(line.end, shiftPoint),
+              line.label ? { box: shift(line.label.box), text: line.label.text } : undefined,
+              line.curve ? translatePath(line.curve, dx, dy) : undefined,
+            ),
+            paintable.element.layer,
+          ),
+        );
+        continue;
+      }
       items.push(
         onLayer(
           paintable.kind === "group"
@@ -1859,12 +2134,18 @@ function layoutDrawing(
     gradients: [...gradients, ...emitter.painter.gradients],
     patterns: emitter.patterns,
     items,
+    ...(theme.sketch !== "none" ? { sketch: theme.sketch } : {}),
   };
   const labelBoxes = new Map<string, Box>();
   const connectors = new Map<string, ConnectorGeometry>();
   for (const geometry of relationGeometry) {
     if (geometry.label) labelBoxes.set(geometry.relation.key, geometry.label.box);
     connectors.set(geometry.relation.key, geometry.connector);
+  }
+  // Free lines by their id, beside the relations: their pill and their route.
+  for (const [id, geometry] of lineGeometry) {
+    if (geometry.label) labelBoxes.set(id, geometry.label.box);
+    connectors.set(id, geometry.connector);
   }
   return {
     scene,
@@ -1982,6 +2263,16 @@ function ownLabelCrossings(
 ): number {
   const route = beyondOwnLabels(points, labels, rooms, straight);
   return labels.filter((label) => label && crossedBoxes(route, [label.box]).length > 0).length;
+}
+
+/** Points rounded as the scene writes them. */
+function roundedPoints(list: readonly Point[]): Point[] {
+  return list.map((p) => ({ x: round(p.x), y: round(p.y) }));
+}
+
+/** A circle of radius `r` about (`cx`, `cy`), as path data. */
+function circlePath(cx: number, cy: number, r: number): string {
+  return `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0Z`;
 }
 
 function round(value: number): number {
@@ -2156,8 +2447,9 @@ function arrangeRequest(
       },
     ];
   });
+  // Free lines are drawn where their points are written: the engine never moves them.
   const nodes = diagram.elements
-    .filter((e) => e.kind !== "group")
+    .filter((e) => e.kind !== "group" && e.kind !== "line")
     .map((element) => {
       const ports: ArrangePort[] = element.ports.map((p) => ({
         id: p.name,
@@ -2645,6 +2937,8 @@ class Sizing {
   private readonly centredSizes = new Map<string, ShapeSize>();
   private readonly centredLayouts = new Map<string, CentredLayout>();
   private readonly centredLays = new Map<string, (content: Box) => CentredLayout>();
+  /** The centre of each aligned text block, by element and box. */
+  private readonly textCenters = new Map<string, Point>();
 
   constructor(
     private readonly theme: Theme,
@@ -2712,6 +3006,60 @@ class Sizing {
   }
 
   /**
+   * Where `verticalAlign` moves the text block of an element: `top` or `bottom` on a free box whose
+   * shape has a text band and whose icon is not centred (its band sits at `labelPosition`), else
+   * undefined, and the block stays at the shape's text centre.
+   */
+  verticalAlignOf(element: Element): "top" | "bottom" | undefined {
+    if (element.kind !== "box") return undefined;
+    const written = this.styles.element(element).verticalAlign;
+    if (written !== "top" && written !== "bottom") return undefined;
+    if (FIXED_TEXT_SHAPES.has(this.shapeOf(element)) || this.centred(element)) return undefined;
+    return written;
+  }
+
+  /**
+   * The centre of an element's text block drawn in `box`: the shape's text centre, or with
+   * `verticalAlign top` the first row band of the shape's text band, `padding` below its top edge,
+   * whose span about the centre holds the block with the padding on each side (or as much as the
+   * middle does), searched pixel by pixel towards the middle; `bottom` the same from the bottom
+   * edge. A block that no band holds before the middle stays at the middle.
+   */
+  textCenter(element: Element, box: Box): Point {
+    const shape = this.shapeOf(element);
+    const options = this.shapeOptions(element);
+    const center = shapeTextCenter(shape, box, options);
+    const align = this.verticalAlignOf(element);
+    if (!align) return center;
+    const key = `${element.id}\u0000${box.x}\u0000${box.y}\u0000${box.width}\u0000${box.height}`;
+    const known = this.textCenters.get(key);
+    if (known) return known;
+    const column = this.textColumn(element);
+    const spanOf = shapeTextSpanner(shape, box, options);
+    const band = shapeTextBand(shape, box, options);
+    const padding = this.theme.padding;
+    const widthAt = (y: number) => {
+      const span = spanOf(y + column.slots.top, y + column.slots.bottom, center.x);
+      return span ? 2 * Math.max(0, Math.min(center.x - span[0], span[1] - center.x)) : -1;
+    };
+    const need = Math.min(column.width + 2 * padding, Math.max(0, widthAt(center.y)));
+    const direction = align === "top" ? 1 : -1;
+    const start =
+      align === "top"
+        ? band.top + padding - column.slots.top
+        : band.bottom - padding - column.slots.bottom;
+    let found = center;
+    for (let y = start; (center.y - y) * direction > 1e-9; y += direction) {
+      if (widthAt(y) >= need - 1e-9) {
+        found = { x: center.x, y };
+        break;
+      }
+    }
+    this.textCenters.set(key, found);
+    return found;
+  }
+
+  /**
    * The rows the text column of a box-like element covers, from its text centre: the slots of its
    * lines and icon, and the same rows with room for the glyphs' descenders. `width` is the widest
    * line, or the icon row.
@@ -2767,11 +3115,13 @@ class Sizing {
     rows: "slots" | "glyphs",
     column: TextColumn = this.textColumn(element),
     centred = true,
+    aligned = true,
   ): Box {
     const shape = this.shapeOf(element);
     if (FULL_WIDTH_TEXT.has(shape)) return box;
     const options = this.shapeOptions(element);
-    const center = shapeTextCenter(shape, box, options);
+    // Where the block is drawn; the sizes of boxes are found about the middle.
+    const center = aligned ? this.textCenter(element, box) : shapeTextCenter(shape, box, options);
     const top = center.y + column[rows].top;
     const bottom = center.y + column[rows].bottom;
     const inset = rows === "glyphs" ? Math.min(ROW_TOLERANCE, (bottom - top) / 2) : 0;
@@ -2815,7 +3165,8 @@ class Sizing {
     const column = this.textColumn(element);
     const need = column.width + 2 * margin;
     const fits = (width: number) =>
-      this.textArea(element, { x: 0, y: 0, width, height }, rows, column).width >= need - 1e-9;
+      this.textArea(element, { x: 0, y: 0, width, height }, rows, column, true, false).width >=
+      need - 1e-9;
     let low = Math.max(1, need);
     if (fits(low)) return Math.ceil(low - ROUNDING);
     let high = low * 2;
@@ -2984,7 +3335,7 @@ class Sizing {
     if (slots.bottom - slots.top > size.height + 1e-9) return false;
     const box = { x: 0, y: 0, ...size };
     if (!this.rowsFit(element, box, slots)) return false;
-    const area = this.textArea(element, box, "slots", { ...column, slots });
+    const area = this.textArea(element, box, "slots", { ...column, slots }, true, false);
     return area.width >= column.width + 2 * margin - 1e-9;
   }
 
@@ -3326,6 +3677,15 @@ class Sizing {
   relationIcon(relation: Relation): PlacedIcon | undefined {
     return this.place(
       this.styles.relation(relation).icon,
+      Math.round(this.scale.relationLabel * 1.3),
+      "left",
+    );
+  }
+
+  /** The icon of a free line's pill, as a relation's pill takes it. */
+  lineIcon(line: Element): PlacedIcon | undefined {
+    return this.place(
+      this.styles.element(line).icon,
       Math.round(this.scale.relationLabel * 1.3),
       "left",
     );
@@ -4140,7 +4500,8 @@ class Emitter {
       );
       return { kind: "group", id: element.id, role: "element", items };
     }
-    const textCenter = shapeTextCenter(shape, box, this.sizing.shapeOptions(element));
+    // At the shape's text centre, or where `verticalAlign` moves the block.
+    const textCenter = this.sizing.textCenter(element, box);
     const block = this.sizing.textBlock(element);
     // Aligned text keeps the padding inside the shape's text area.
     const area = this.sizing.textArea(element, box, "slots");
@@ -4350,25 +4711,104 @@ class Emitter {
     label: { box: Box; text: string; technology: string | null } | undefined,
     curve?: string,
   ): GroupItem {
-    const { theme, scale } = this;
     const style = this.styles.relation(relation);
     // An assumption is drawn dashed in the muted colour until a style says otherwise.
     const assumed = relation.assumption !== null;
-    const stroke = style.stroke ?? (assumed ? theme.muted : theme.connector);
-    const strokeWidth = style.width ?? theme.connectorWidth;
-    const dashed = strokeDash(style.line ?? (assumed ? "dashed" : relation.line));
-    const points = (list: readonly Point[]) => list.map((p) => ({ x: round(p.x), y: round(p.y) }));
     // A straight connector passes under the titles of groups it crosses (not its own ends'). It
     // is drawn from beyond the labels its own ends draw outside their boxes (see `underLabel`).
     const holes = this.titles
       .filter((t) => t.id !== relation.from && t.id !== relation.to)
       .map((t) => t.box);
+    const items = this.connectorItems(
+      relation.key,
+      style,
+      style.stroke ?? (assumed ? this.theme.muted : this.theme.connector),
+      strokeDash(style.line ?? (assumed ? "dashed" : relation.line)),
+      holes,
+      line,
+      start,
+      end,
+      label,
+      this.sizing.relationIcon(relation),
+      curve,
+    );
+    return { kind: "group", id: relation.key, role: "relation", items, track: roundedPoints(line) };
+  }
+
+  /**
+   * A free line: a connector without ends, drawn as a relation is (its line, its heads, its pill),
+   * as an element group whose `track` is its drawn line and whose `bounds` is its box. A line whose
+   * points coincide is a dot of its width.
+   */
+  line(
+    element: Element,
+    box: Box,
+    line: readonly Point[],
+    start: readonly MarkerPart[],
+    end: readonly MarkerPart[],
+    label: { box: Box; text: string } | undefined,
+    curve?: string,
+  ): GroupItem {
+    const style = this.styles.element(element);
+    const stroke = style.stroke ?? this.theme.connector;
+    const strokeWidth = style.width ?? this.theme.connectorWidth;
+    const first = line[0];
+    const dot = first !== undefined && line.every((p) => p.x === first.x && p.y === first.y);
+    const items: SceneItem[] = dot
+      ? [
+          {
+            kind: "path",
+            d: circlePath(round(first.x), round(first.y), Math.max(1, strokeWidth)),
+            fill: stroke,
+            stroke: "none",
+            strokeWidth: 0,
+            dashed: false,
+          },
+        ]
+      : this.connectorItems(
+          element.id,
+          style,
+          stroke,
+          strokeDash(style.line ?? "solid"),
+          [],
+          line,
+          start,
+          end,
+          label && { ...label, technology: null },
+          this.sizing.lineIcon(element),
+          curve,
+        );
+    return withBounds(
+      { kind: "group", id: element.id, role: "element", items, track: roundedPoints(line) },
+      box,
+    );
+  }
+
+  /**
+   * The items of a connector, in the order motion and hit tests expect: its line (pieces around
+   * `holes`, or one curve), its heads, then its label pill with its icon and text.
+   */
+  private connectorItems(
+    id: string,
+    style: ResolvedStyle,
+    stroke: string,
+    dashed: StrokeDash,
+    holes: readonly Box[],
+    line: readonly Point[],
+    start: readonly MarkerPart[],
+    end: readonly MarkerPart[],
+    label: { box: Box; text: string; technology: string | null } | undefined,
+    icon: PlacedIcon | undefined,
+    curve: string | undefined,
+  ): SceneItem[] {
+    const { theme, scale } = this;
+    const strokeWidth = style.width ?? theme.connectorWidth;
     const pieces = curve ? [] : splitAround(line, holes);
     const items: SceneItem[] = curve
       ? [{ kind: "path", d: curve, fill: "none", stroke, strokeWidth, dashed }]
       : pieces.map((piece): SceneItem => ({
           kind: "polyline",
-          points: points(piece),
+          points: roundedPoints(piece),
           stroke,
           strokeWidth,
           dashed,
@@ -4396,7 +4836,6 @@ class Emitter {
           false,
         ),
       ];
-      const icon = this.sizing.relationIcon(relation);
       if (icon && label.text === "") {
         pill.push(this.icon(icon, center.x, center.y, style.iconColor ?? color));
       } else if (icon) {
@@ -4423,9 +4862,9 @@ class Emitter {
           this.text(center.x, y, label.technology, techSize, 400, style.color ?? theme.muted),
         );
       }
-      items.push({ kind: "group", id: relation.key, role: "label", items: pill });
+      items.push({ kind: "group", id, role: "label", items: pill });
     }
-    return { kind: "group", id: relation.key, role: "relation", items, track: points(line) };
+    return items;
   }
 
   /** The brand strip: hairline, mark, wordmark and diagram title, spanning the canvas. */

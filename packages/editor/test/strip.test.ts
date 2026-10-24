@@ -147,6 +147,19 @@ describe("style strip", () => {
     expect(model.fields.some((f) => f.name === "style.line")).toBe(false);
   });
 
+  it("shows a line's heads as none greyed, writes a head, and keeps it a line when dashed", () => {
+    const canvas = open(SHEET.replace("  api -> db as save", "  api -- db as save"));
+    canvas.send({ type: "select", ids: ["save"] });
+    const field = (name: string) => canvas.inspector().fields.find((f) => f.name === name)!;
+    expect(field("style.arrowhead")).toMatchObject({ value: null, placeholder: "none" });
+    expect(field("style.arrowtail")).toMatchObject({ value: null, placeholder: "none" });
+    canvas.apply({ kind: "setField", ids: ["save"], field: "style.arrowhead", value: "triangle" });
+    expect(canvas.text()).toContain("style save { arrowhead triangle }");
+    canvas.send({ type: "select", ids: ["save"] });
+    canvas.apply({ kind: "setField", ids: ["save"], field: "line", value: "dashed" });
+    expect(canvas.text()).toContain("  api --- db as save\n");
+  });
+
   it("gives a selection of several targets the toggles only, with no grouped field", () => {
     const canvas = open(SHEET);
     canvas.send({ type: "select", ids: ["api", "db", "cache"] });
@@ -208,6 +221,13 @@ describe("style strip", () => {
     expect(canvas.inspector().fields[0]!.quick).toEqual([
       { label: "Light", value: "technical.light" },
     ]);
+    // The sketch family switches the same way, and the theme field offers it.
+    canvas.apply({ kind: "setField", ids: [], field: "theme", value: "sketch.light" });
+    canvas.send({ type: "select", ids: [] });
+    expect(canvas.inspector().fields[0]!.quick).toEqual([{ label: "Dark", value: "sketch.dark" }]);
+    expect(canvas.inspector().fields[0]!.options).toEqual(
+      expect.arrayContaining(["sketch.light", "sketch.dark"]),
+    );
   });
 
   it("styles a selection in one step and shows shared effects as mixed", () => {
@@ -424,6 +444,70 @@ describe("corner radius and shape", () => {
     canvas.apply({ kind: "setField", ids: ["a"], field: "style.shape", value: null });
     canvas.send({ type: "select", ids: ["a"] });
     expect(field(canvas.inspector(), "style.radius")).toMatchObject({ placeholder: "8" });
+  });
+
+  it("shows the text alignment after the shape: both for a box, across for a text, none on a node", () => {
+    const canvas = board();
+    canvas.send({ type: "select", ids: ["a"] });
+    const box = canvas.inspector();
+    const names = strip(box);
+    expect(names.slice(names.indexOf("style.shape"), names.indexOf("style.shape") + 3)).toEqual([
+      "style.shape",
+      "style.textAlign",
+      "style.verticalAlign",
+    ]);
+    expect(field(box, "style.textAlign")).toMatchObject({
+      label: "Text alignment",
+      type: "enum",
+      value: null,
+      placeholder: "center",
+      options: ["left", "center", "right"],
+      glyphs: "textAlign",
+    });
+    expect(field(box, "style.verticalAlign")).toMatchObject({
+      label: "Vertical alignment",
+      value: null,
+      placeholder: "middle",
+      options: ["top", "middle", "bottom"],
+      glyphs: "verticalAlign",
+    });
+    canvas.send({ type: "select", ids: ["t"] });
+    const text = canvas.inspector();
+    expect(field(text, "style.textAlign")).toMatchObject({ placeholder: "left", section: "strip" });
+    expect(field(text, "style.verticalAlign")).toBeUndefined();
+    const node = open(SHEET);
+    node.send({ type: "select", ids: ["api"] });
+    expect(field(node.inspector(), "style.textAlign")).toBeUndefined();
+    expect(field(node.inspector(), "style.verticalAlign")).toBeUndefined();
+  });
+
+  it("writes both alignments in one edit, and greys what a rule gives, not what is written", () => {
+    const canvas = board();
+    canvas.apply({
+      kind: "setFields",
+      ids: ["a"],
+      fields: [
+        { field: "style.textAlign", value: "left" },
+        { field: "style.verticalAlign", value: "top" },
+      ],
+    });
+    expect(canvas.text()).toContain("style a { textAlign left; verticalAlign top }");
+    canvas.send({ type: "select", ids: ["a"] });
+    expect(field(canvas.inspector(), "style.textAlign")).toMatchObject({
+      value: "left",
+      placeholder: "center",
+    });
+    canvas.apply({ kind: "setField", ids: ["a"], field: "style.verticalAlign", value: null });
+    expect(canvas.text()).toContain("style a { textAlign left }");
+    const ruled = open(
+      FREE.replace('  group g "G" {\n', '  rule box { verticalAlign top }\n  group g "G" {\n'),
+    );
+    ruled.send({ type: "pickDiagram", diagram: "board" });
+    ruled.send({ type: "select", ids: ["a"] });
+    expect(field(ruled.inspector(), "style.verticalAlign")).toMatchObject({
+      value: null,
+      placeholder: "top",
+    });
   });
 });
 

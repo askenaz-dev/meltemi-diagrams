@@ -1,0 +1,1140 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "lines",
+      "type": "free",
+      "range": {
+        "start": {
+          "offset": 206,
+          "line": 5,
+          "column": 1
+        },
+        "end": {
+          "offset": 1324,
+          "line": 43,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": null,
+        "title": "Lines",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "heading",
+          "kind": "text",
+          "label": "Lines",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 263,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 283,
+              "line": 9,
+              "column": 23
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 268,
+              "line": 9,
+              "column": 8
+            },
+            "end": {
+              "offset": 275,
+              "line": 9,
+              "column": 15
+            }
+          }
+        },
+        {
+          "id": "client",
+          "kind": "box",
+          "label": "Client",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 287,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 306,
+              "line": 11,
+              "column": 22
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 291,
+              "line": 11,
+              "column": 7
+            },
+            "end": {
+              "offset": 297,
+              "line": 11,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "api",
+          "kind": "box",
+          "label": "API",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 309,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 322,
+              "line": 12,
+              "column": 16
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 313,
+              "line": 12,
+              "column": 7
+            },
+            "end": {
+              "offset": 316,
+              "line": 12,
+              "column": 10
+            }
+          }
+        },
+        {
+          "id": "store",
+          "kind": "box",
+          "label": "Store",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 325,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 342,
+              "line": 13,
+              "column": 20
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 329,
+              "line": 13,
+              "column": 7
+            },
+            "end": {
+              "offset": 334,
+              "line": 13,
+              "column": 12
+            }
+          }
+        },
+        {
+          "id": "divider",
+          "kind": "line",
+          "label": "Phase 2",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": {
+            "from": {
+              "x": 40,
+              "y": 150
+            },
+            "to": {
+              "x": 760,
+              "y": 150
+            },
+            "via": []
+          },
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 420,
+              "line": 17,
+              "column": 3
+            },
+            "end": {
+              "offset": 471,
+              "line": 17,
+              "column": 54
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 425,
+              "line": 17,
+              "column": 8
+            },
+            "end": {
+              "offset": 432,
+              "line": 17,
+              "column": 15
+            }
+          }
+        },
+        {
+          "id": "bent",
+          "kind": "line",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": {
+            "from": {
+              "x": 40,
+              "y": 210
+            },
+            "to": {
+              "x": 360,
+              "y": 210
+            },
+            "via": [
+              {
+                "x": 200,
+                "y": 260
+              }
+            ]
+          },
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 474,
+              "line": 18,
+              "column": 3
+            },
+            "end": {
+              "offset": 529,
+              "line": 18,
+              "column": 58
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 479,
+              "line": 18,
+              "column": 8
+            },
+            "end": {
+              "offset": 483,
+              "line": 18,
+              "column": 12
+            }
+          }
+        },
+        {
+          "id": "elbow",
+          "kind": "line",
+          "label": "elbow",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": {
+            "from": {
+              "x": 420,
+              "y": 200
+            },
+            "to": {
+              "x": 760,
+              "y": 290
+            },
+            "via": [
+              {
+                "x": 600,
+                "y": 240
+              }
+            ]
+          },
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 532,
+              "line": 19,
+              "column": 3
+            },
+            "end": {
+              "offset": 597,
+              "line": 19,
+              "column": 68
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 537,
+              "line": 19,
+              "column": 8
+            },
+            "end": {
+              "offset": 542,
+              "line": 19,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "curve",
+          "kind": "line",
+          "label": "curve",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": {
+            "from": {
+              "x": 40,
+              "y": 330
+            },
+            "to": {
+              "x": 360,
+              "y": 330
+            },
+            "via": [
+              {
+                "x": 200,
+                "y": 400
+              }
+            ]
+          },
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 600,
+              "line": 20,
+              "column": 3
+            },
+            "end": {
+              "offset": 664,
+              "line": 20,
+              "column": 67
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 605,
+              "line": 20,
+              "column": 8
+            },
+            "end": {
+              "offset": 610,
+              "line": 20,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "both",
+          "kind": "line",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": {
+            "from": {
+              "x": 420,
+              "y": 340
+            },
+            "to": {
+              "x": 760,
+              "y": 340
+            },
+            "via": []
+          },
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 667,
+              "line": 21,
+              "column": 3
+            },
+            "end": {
+              "offset": 706,
+              "line": 21,
+              "column": 42
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 672,
+              "line": 21,
+              "column": 8
+            },
+            "end": {
+              "offset": 676,
+              "line": 21,
+              "column": 12
+            }
+          }
+        },
+        {
+          "id": "dotted",
+          "kind": "line",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": {
+            "from": {
+              "x": 40,
+              "y": 450
+            },
+            "to": {
+              "x": 360,
+              "y": 450
+            },
+            "via": []
+          },
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 709,
+              "line": 22,
+              "column": 3
+            },
+            "end": {
+              "offset": 749,
+              "line": 22,
+              "column": 43
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 714,
+              "line": 22,
+              "column": 8
+            },
+            "end": {
+              "offset": 720,
+              "line": 22,
+              "column": 14
+            }
+          }
+        },
+        {
+          "id": "note",
+          "kind": "group",
+          "label": "Note",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 753,
+              "line": 24,
+              "column": 3
+            },
+            "end": {
+              "offset": 850,
+              "line": 27,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 759,
+              "line": 24,
+              "column": 9
+            },
+            "end": {
+              "offset": 763,
+              "line": 24,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "remark",
+          "kind": "text",
+          "label": "Underlined",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "note"
+          ],
+          "range": {
+            "start": {
+              "offset": 777,
+              "line": 25,
+              "column": 5
+            },
+            "end": {
+              "offset": 801,
+              "line": 25,
+              "column": 29
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 782,
+              "line": 25,
+              "column": 10
+            },
+            "end": {
+              "offset": 788,
+              "line": 25,
+              "column": 16
+            }
+          }
+        },
+        {
+          "id": "underline",
+          "kind": "line",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": {
+            "from": {
+              "x": 0,
+              "y": 22
+            },
+            "to": {
+              "x": 120,
+              "y": 22
+            },
+            "via": []
+          },
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "note"
+          ],
+          "range": {
+            "start": {
+              "offset": 806,
+              "line": 26,
+              "column": 5
+            },
+            "end": {
+              "offset": 846,
+              "line": 26,
+              "column": 45
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 811,
+              "line": 26,
+              "column": 10
+            },
+            "end": {
+              "offset": 820,
+              "line": 26,
+              "column": 19
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "plain",
+          "id": "plain",
+          "from": "client",
+          "to": "api",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "none",
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "line",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 345,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 375,
+              "line": 14,
+              "column": 33
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 370,
+              "line": 14,
+              "column": 28
+            },
+            "end": {
+              "offset": 375,
+              "line": 14,
+              "column": 33
+            }
+          }
+        },
+        {
+          "key": "dashed",
+          "id": "dashed",
+          "from": "api",
+          "to": "store",
+          "line": "dashed",
+          "twoWay": false,
+          "heads": "none",
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "dashed line",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 378,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 416,
+              "line": 15,
+              "column": 41
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 410,
+              "line": 15,
+              "column": 35
+            },
+            "end": {
+              "offset": 416,
+              "line": 15,
+              "column": 41
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "heading",
+          "x": 100,
+          "y": 30,
+          "range": {
+            "start": {
+              "offset": 1149,
+              "line": 36,
+              "column": 5
+            },
+            "end": {
+              "offset": 1175,
+              "line": 36,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1155,
+              "line": 36,
+              "column": 11
+            },
+            "end": {
+              "offset": 1162,
+              "line": 36,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "client",
+          "x": 120,
+          "y": 90,
+          "range": {
+            "start": {
+              "offset": 1180,
+              "line": 37,
+              "column": 5
+            },
+            "end": {
+              "offset": 1205,
+              "line": 37,
+              "column": 30
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1186,
+              "line": 37,
+              "column": 11
+            },
+            "end": {
+              "offset": 1192,
+              "line": 37,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "api",
+          "x": 400,
+          "y": 90,
+          "range": {
+            "start": {
+              "offset": 1210,
+              "line": 38,
+              "column": 5
+            },
+            "end": {
+              "offset": 1232,
+              "line": 38,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1216,
+              "line": 38,
+              "column": 11
+            },
+            "end": {
+              "offset": 1219,
+              "line": 38,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "store",
+          "x": 680,
+          "y": 90,
+          "range": {
+            "start": {
+              "offset": 1237,
+              "line": 39,
+              "column": 5
+            },
+            "end": {
+              "offset": 1261,
+              "line": 39,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1243,
+              "line": 39,
+              "column": 11
+            },
+            "end": {
+              "offset": 1248,
+              "line": 39,
+              "column": 16
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "note",
+          "x": 560,
+          "y": 450,
+          "range": {
+            "start": {
+              "offset": 1266,
+              "line": 40,
+              "column": 5
+            },
+            "end": {
+              "offset": 1290,
+              "line": 40,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1272,
+              "line": 40,
+              "column": 11
+            },
+            "end": {
+              "offset": 1276,
+              "line": 40,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "remark",
+          "x": 60,
+          "y": 6,
+          "range": {
+            "start": {
+              "offset": 1295,
+              "line": 41,
+              "column": 5
+            },
+            "end": {
+              "offset": 1318,
+              "line": 41,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1301,
+              "line": 41,
+              "column": 11
+            },
+            "end": {
+              "offset": 1307,
+              "line": 41,
+              "column": 17
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [
+        {
+          "target": "divider",
+          "targetKind": "element",
+          "properties": {
+            "line": "dashed",
+            "stroke": "@muted"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 854,
+              "line": 29,
+              "column": 3
+            },
+            "end": {
+              "offset": 897,
+              "line": 29,
+              "column": 46
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 860,
+              "line": 29,
+              "column": 9
+            },
+            "end": {
+              "offset": 867,
+              "line": 29,
+              "column": 16
+            }
+          }
+        },
+        {
+          "target": "elbow",
+          "targetKind": "element",
+          "properties": {
+            "arrowhead": "triangle",
+            "corners": "rounded",
+            "routing": "orthogonal"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 900,
+              "line": 30,
+              "column": 3
+            },
+            "end": {
+              "offset": 971,
+              "line": 30,
+              "column": 74
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 906,
+              "line": 30,
+              "column": 9
+            },
+            "end": {
+              "offset": 911,
+              "line": 30,
+              "column": 14
+            }
+          }
+        },
+        {
+          "target": "curve",
+          "targetKind": "element",
+          "properties": {
+            "arrowhead": "open",
+            "routing": "bezier"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 974,
+              "line": 31,
+              "column": 3
+            },
+            "end": {
+              "offset": 1020,
+              "line": 31,
+              "column": 49
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 980,
+              "line": 31,
+              "column": 9
+            },
+            "end": {
+              "offset": 985,
+              "line": 31,
+              "column": 14
+            }
+          }
+        },
+        {
+          "target": "both",
+          "targetKind": "element",
+          "properties": {
+            "arrowhead": "triangle",
+            "arrowtail": "circle",
+            "stroke": "@accent",
+            "width": 2
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1023,
+              "line": 32,
+              "column": 3
+            },
+            "end": {
+              "offset": 1098,
+              "line": 32,
+              "column": 78
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1029,
+              "line": 32,
+              "column": 9
+            },
+            "end": {
+              "offset": 1033,
+              "line": 32,
+              "column": 13
+            }
+          }
+        },
+        {
+          "target": "dotted",
+          "targetKind": "element",
+          "properties": {
+            "line": "dotted"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1101,
+              "line": 33,
+              "column": 3
+            },
+            "end": {
+              "offset": 1129,
+              "line": 33,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1107,
+              "line": 33,
+              "column": 9
+            },
+            "end": {
+              "offset": 1113,
+              "line": 33,
+              "column": 15
+            }
+          }
+        }
+      ],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

@@ -73,7 +73,8 @@ a <-> c: "Sync"                 // two-way: the same head at both ends
 ```
 
 `arrowhead` and `arrowtail` styles give a message any head at either end
-([styles.md](styles.md#arrow-heads)).
+([styles.md](styles.md#arrow-heads)). A message is a call or a reply, so the lines without heads,
+`--` and `---`, are not messages: `prop.invalid-value` on the token names the four arrows.
 
 `kind sync` is the default and is never written. Messages take `description`, `class` and
 `kind`; `label <message> at 50% offset (dx, dy)` in `placement` moves a label along its arrow.

@@ -1,6 +1,7 @@
 import { drawableNames, searchIcons } from "@meltemi/diagrams-assets";
 import {
   ALIGN_EDGES,
+  arrowToken,
   ANIMATION_DIRECTIONS,
   ANIMATION_EFFECT_PROPERTIES,
   ANIMATION_EFFECTS,
@@ -382,7 +383,12 @@ function relationItems(
 ): CompletionItem[] {
   return (diagram?.relations ?? [])
     .filter((r) => r.id !== null)
-    .map((r) => ({ label: r.id!, kind: "relation", detail: `${r.from} -> ${r.to}`, range }));
+    .map((r) => ({
+      label: r.id!,
+      kind: "relation",
+      detail: `${r.from} ${arrowToken(r.line, r.heads)} ${r.to}`,
+      range,
+    }));
 }
 
 function words(
@@ -623,7 +629,8 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
           return [];
         }
       }
-      const relation = match(prefix, `${ID}\\s*--?>\\s*\\w*`);
+      // After any of the six relation tokens: `->`, `-->`, `<->`, `<-->`, `--` and `---`.
+      const relation = match(prefix, `${ID}\\s*(?:<?--?>|---?)\\s*\\w*`);
       if (relation) return elementItems(diagram, range);
       const property = match(prefix, `(direction|layout|routing|preset)\\s+\\w*`);
       if (property) {
@@ -830,6 +837,12 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
       if (prefix === "" || match(prefix, ID)) {
         return words([...Object.keys(THEME_TOKENS), "extends", "class", "rule"], "property", range);
       }
+      // The values of a token that takes words: `sketch light`, `corners rounded`, `frame none`.
+      const token = new RegExp(`^(${ID})\\s+(${ID})?$`).exec(prefix);
+      const spec = token ? THEME_TOKENS[token[1]!] : undefined;
+      if (spec?.kind === "enum") return words([...spec.values], "value", range);
+      if (spec?.kind === "number" && spec.values)
+        return words(spec.values.map(String), "value", range);
       return [];
     }
     default:

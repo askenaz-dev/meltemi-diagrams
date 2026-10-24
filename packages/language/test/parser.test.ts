@@ -121,6 +121,19 @@ describe("parser: statement forms", () => {
     expect(relation.block?.statements).toHaveLength(1);
   });
 
+  it("parses relations written as lines, and gives the text back as written", () => {
+    const text = 'diagram d: flow {\n  api -- cache as link\n  web --- db: "reads"\n}\n';
+    const { block, result } = diagramBlock(text);
+    expect(result.diagnostics).toEqual([]);
+    const [line, dashed] = block.statements as RelationStatement[];
+    expect(line!.kind).toBe("RelationStatement");
+    expect(line!.arrow).toMatchObject({ kind: "Line", text: "--" });
+    expect(line!.id).toMatchObject({ text: "link" });
+    expect(dashed!.arrow).toMatchObject({ kind: "DashedLine", text: "---" });
+    expect(dashed!.label).toMatchObject({ value: "reads" });
+    expect(toText(result.root)).toBe(text);
+  });
+
   it("splits statements joined by semicolons", () => {
     const { block, result } = diagramBlock(
       "diagram d: flow {\n  animate r { effect flow; duration 1200ms; repeat forever }\n}\n",

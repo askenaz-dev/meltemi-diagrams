@@ -68,6 +68,9 @@ export const en = {
             ? `the box of \`${other.owner}\``
             : `the connector of \`${other.owner}\``
       }.`,
+    /** `layout.degenerate-line`: a free line whose points coincide. */
+    degenerateLine: (id: string) =>
+      `Line \`${id}\` has no length: its points coincide, so it is drawn as a point.`,
     /** `layout.unknown-theme`: the name written and the theme drawn instead. */
     unknownTheme: (written: string, fallback: string) =>
       `Unknown theme "${written}"; rendering with ${fallback}.`,
@@ -102,6 +105,12 @@ export const en = {
      * `layout.label-position-ignored` of a `labelPosition` the theme gives: the first element it
      * styles. Reported once, when no element it styles has its icon as the centre piece.
      */
+    /** `layout.vertical-align-ignored` of a statement that writes `verticalAlign`. */
+    verticalAlignIgnored: (element: string) =>
+      `The \`verticalAlign\` of \`${element}\` has no effect: nothing moves its text up or down.`,
+    /** `layout.vertical-align-ignored` of a `verticalAlign` the theme gives. */
+    verticalAlignIgnoredByTheme: (element: string) =>
+      `The \`verticalAlign\` the theme gives \`${element}\` and the elements styled like it has no effect: none has a text band to move it in.`,
     labelPositionIgnoredByTheme: (element: string) =>
       `The \`labelPosition\` the theme gives \`${element}\` and the elements styled like it has no effect: none has its icon as the centre piece.`,
     /**
@@ -202,6 +211,8 @@ export const en = {
       `Built-in themes: ${builtIn.join(", ")}${inScope.length > 0 ? `; themes in scope: ${inScope.join(", ")}` : ""}.`,
     /** `layout.missing-placement`. */
     addPlace: (id: string) => `Add \`place ${id} at (x, y)\` to a placement block.`,
+    /** `layout.degenerate-line`. */
+    lineEnds: "Move one of its ends, or give it a bend with `via`.",
     /** `layout.missing-placement` of a group without placed children. */
     addPlaceAndSize: (id: string) => `Add \`place ${id} at (x, y)\` and \`size ${id} (w, h)\`.`,
     /** `layout.mode-unsupported`. */
@@ -225,6 +236,15 @@ export const en = {
      * `layout.label-position-ignored` on kinds whose icon is never the centre piece: groups, tags,
      * notes, free texts, icons and images, sequence and C4 kinds.
      */
+    /** `layout.vertical-align-ignored`: a shape whose text sits at a fixed spot. */
+    verticalAlignFixedShape:
+      "This shape draws its text at a fixed spot: choose a shape with a text band, such as `rectangle`, `ellipse` or `cylinder`, or remove `verticalAlign`.",
+    /** `layout.vertical-align-ignored`: an icon in the centre, whose label band is at an edge. */
+    verticalAlignCentredIcon:
+      "With `iconPosition center` the label's band is at `labelPosition`: set `labelPosition` instead, or remove `verticalAlign`.",
+    /** `layout.vertical-align-ignored`: an element that is no box. */
+    verticalAlignNeverUsed:
+      "Remove `verticalAlign`: it only moves the text of a free box within its shape.",
     labelPositionNeverUsed:
       "Remove `labelPosition`: it only places the label of a node, decision, data store or box whose icon is the centre piece.",
     /** `layout.label-position-ignored` of a `labelPosition` the theme gives. */

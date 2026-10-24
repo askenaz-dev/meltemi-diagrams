@@ -298,7 +298,7 @@ describe("the reasons of refused edits", () => {
         from: "customer",
         to: "bank",
         line: "solid",
-        twoWay: true,
+        heads: "both",
       },
       "Las relaciones de las vistas C4 van en un solo sentido: `->`.",
     ],

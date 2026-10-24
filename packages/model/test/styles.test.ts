@@ -44,7 +44,7 @@ describe("theme tokens", () => {
     expect(Object.keys(theme!.tokens)).toEqual(["success", "warning", "danger", "info"]);
   });
 
-  it("lists six built-in themes", () => {
+  it("lists eight built-in themes", () => {
     expect(BUILT_IN_THEMES).toEqual([
       "technical.light",
       "technical.dark",
@@ -52,6 +52,8 @@ describe("theme tokens", () => {
       "editorial.dark",
       "stage.light",
       "stage.dark",
+      "sketch.light",
+      "sketch.dark",
     ]);
   });
 });

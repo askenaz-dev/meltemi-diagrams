@@ -5,6 +5,7 @@ import {
   PORTS,
   PROFILES,
   SHAPE_KINDS,
+  arrowToken,
   declaredProfile,
   type DiagramType,
   type ElementKind,
@@ -199,10 +200,10 @@ export function createRelation(ctx: EditContext, op: OperationOf<"createRelation
   if (id !== undefined) requireNewId(ctx, id);
   const declared = ctx.diagram.definition;
   const profile = declared ? declaredProfile(declared) : PROFILES[ctx.diagram.type];
-  if (op.twoWay && !Object.hasOwn(profile.arrows, "<->")) {
+  const arrow = arrowToken(op.line, op.heads ?? "end");
+  if (!Object.hasOwn(profile.arrows, arrow)) {
     reject("edit.invalid-value", reasons().relations.oneWay);
   }
-  const arrow = `${op.twoWay ? "<" : ""}${op.line === "dashed" ? "-->" : "->"}`;
   const text =
     `${op.from} ${arrow} ${op.to}` +
     (op.label !== undefined ? `: ${quoteString(op.label)}` : "") +

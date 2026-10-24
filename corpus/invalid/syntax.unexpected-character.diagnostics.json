@@ -16,7 +16,7 @@
       }
     },
     "hints": [
-      "The supported arrows are `->`, `-->`, `<->` and `<-->`."
+      "The relation tokens are `->`, `-->`, `--`, `---`, `<->` and `<-->`."
     ],
     "related": []
   }

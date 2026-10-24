@@ -3,9 +3,9 @@
 [English](../../language/free.md)
 
 Una composición libre es una diapositiva o una explicación que no encaja en una notación estricta.
-Colocas cajas, textos, iconos, imágenes y grupos donde quieras, los conectas y los ordenas en capas.
-Cada ajuste es código, y las mismas reglas se aplican en la línea de comandos, en el editor y en
-cada exportación.
+Colocas cajas, textos, iconos, imágenes, líneas y grupos donde quieras, los conectas y los ordenas
+en capas. Cada ajuste es código, y las mismas reglas se aplican en la línea de comandos, en el
+editor y en cada exportación.
 
 ```text
 language "0.2"
@@ -44,33 +44,37 @@ predeterminado: cada objeto tiene un `place`.
 
 ## Objetos
 
-| Declaración                    | Objeto                                                                                                                                              | Tamaño predeterminado                                                           |
-| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `box <id> ["Label"] [{ … }]`   | una forma (más abajo) con una etiqueta y una descripción opcional                                                                                   | el de su forma, ampliado hasta que cabe el texto medido                         |
-| `id["Label"]`, `id[("Label")]` | una caja; la segunda variante tiene la forma `cylinder`                                                                                             | como arriba                                                                     |
-| `text <id> "Text"`             | texto medido sin recuadro; `\n` parte las líneas                                                                                                    | lo que ocupa el texto                                                           |
-| `icon <id> "<pack>:<name>"`    | un icono de los paquetes ([assets.md](assets.md)), sin texto; un icono con etiqueta es una caja con `shape icon` ([más abajo](#iconos-como-formas)) | 48 × 48                                                                         |
-| `image <id> "<path>"`          | un archivo de imagen del proyecto; `description` es su texto alternativo                                                                            | su tamaño en píxeles, con un ancho máximo de 640; 160 × 120 cuando no se conoce |
-| `group <id> ["Label"] { … }`   | una banda con un título, o un contenedor simple si no tiene título, que contiene hijos                                                              | escrito, o derivado de sus hijos (más abajo)                                    |
+| Declaración                                                   | Objeto                                                                                                                                              | Tamaño predeterminado                                                           |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `box <id> ["Label"] [{ … }]`                                  | una forma (más abajo) con una etiqueta y una descripción opcional                                                                                   | el de su forma, ampliado hasta que cabe el texto medido                         |
+| `id["Label"]`, `id[("Label")]`                                | una caja; la segunda variante tiene la forma `cylinder`                                                                                             | como arriba                                                                     |
+| `text <id> "Text"`                                            | texto medido sin recuadro; `\n` parte las líneas                                                                                                    | lo que ocupa el texto                                                           |
+| `icon <id> "<pack>:<name>"`                                   | un icono de los paquetes ([assets.md](assets.md)), sin texto; un icono con etiqueta es una caja con `shape icon` ([más abajo](#iconos-como-formas)) | 48 × 48                                                                         |
+| `image <id> "<path>"`                                         | un archivo de imagen del proyecto; `description` es su texto alternativo                                                                            | su tamaño en píxeles, con un ancho máximo de 640; 160 × 120 cuando no se conoce |
+| `group <id> ["Label"] { … }`                                  | una banda con un título, o un contenedor simple si no tiene título, que contiene hijos                                                              | escrito, o derivado de sus hijos (más abajo)                                    |
+| `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), …]]` | una línea que no une ningún elemento: un separador, un corchete, un subrayado ([más abajo](#líneas))                                                | el rectángulo que envuelve sus puntos                                           |
 
 `node`, `decision`, `data`, `note` y `tag` pertenecen a los diagramas de flujo; en una composición
-libre son `prop.unknown`. Un elemento que solo menciona una relación es una caja.
+libre son `prop.unknown`, con una pista que lista los tipos libres. Un elemento que solo menciona
+una relación es una caja. Las relaciones aceptan los seis símbolos de los diagramas de flujo, entre
+ellos las líneas sin puntas `--` y `---` ([gramática](grammar-0.2.md#reglas-léxicas)).
 
 ### Texto y formas
 
-`shape` se aplica a las cajas y a los nodos de los diagramas de flujo; los textos, los iconos y las
-imágenes la rechazan con `prop.invalid-value`. `radius` se aplica a los elementos y los grupos de
-ambos perfiles ([styles.md](styles.md)); `fontSize`, `fontWeight` y `textAlign`, solo a las
-composiciones libres, y los diagramas de flujo los rechazan con `prop.invalid-value` (decisión
-0043).
+`shape` se aplica a las cajas y a los nodos de los diagramas de flujo; los textos, los iconos, las
+imágenes y las líneas la rechazan con `prop.invalid-value`. `radius` se aplica a los elementos y
+los grupos de ambos perfiles ([styles.md](styles.md)); `fontSize`, `fontWeight`, `textAlign` y
+`verticalAlign`, solo a las composiciones libres, y los diagramas de flujo los rechazan con
+`prop.invalid-value` (decisiones 0043 y 0058).
 
-| Propiedad    | Valores                                 | Predeterminado                                                   |
-| ------------ | --------------------------------------- | ---------------------------------------------------------------- |
-| `shape`      | una de las veinticuatro formas de abajo | `rounded`                                                        |
-| `radius`     | de 0 a 64, el radio de las esquinas     | el `radius` del tema; `groupRadius` para los grupos (8 y 14)     |
-| `fontSize`   | de 6 a 160                              | el tamaño de etiqueta del tema; 1,6 veces ese tamaño para `text` |
-| `fontWeight` | 400, 500, 600, 700                      | el grosor de etiqueta del tema                                   |
-| `textAlign`  | `left`, `center`, `right`               | `center` para las cajas, `left` para el texto                    |
+| Propiedad       | Valores                                 | Predeterminado                                                   |
+| --------------- | --------------------------------------- | ---------------------------------------------------------------- |
+| `shape`         | una de las veinticuatro formas de abajo | `rounded`                                                        |
+| `radius`        | de 0 a 64, el radio de las esquinas     | el `radius` del tema; `groupRadius` para los grupos (8 y 14)     |
+| `fontSize`      | de 6 a 160                              | el tamaño de etiqueta del tema; 1,6 veces ese tamaño para `text` |
+| `fontWeight`    | 400, 500, 600, 700                      | el grosor de etiqueta del tema                                   |
+| `textAlign`     | `left`, `center`, `right`               | `center` para las cajas, `left` para el texto                    |
+| `verticalAlign` | `top`, `middle`, `bottom`               | `middle`; solo cajas                                             |
 
 | Forma           | Tamaño predeterminado               | Texto                                        | Los conectores terminan en        |
 | --------------- | ----------------------------------- | -------------------------------------------- | --------------------------------- |
@@ -131,6 +135,34 @@ composiciones libres, y los diagramas de flujo los rechazan con `prop.invalid-va
   conserva su lado y su porcentaje en el texto y se
   dibuja sobre el contorno. `layout.connector-crossing` y la auditoría de etiquetas miden las
   formas por su contorno y su área de texto, no por su rectángulo.
+- **Alineación vertical.** `verticalAlign` sube o baja el bloque de texto de una caja (su
+  etiqueta, su descripción y un icono junto a ellas, encima o debajo) dentro de la franja de texto
+  de la forma. `middle` es el sitio de la tabla de arriba. `top` pone el bloque en la primera
+  franja, desde el borde superior de la franja de texto más el `padding` del tema, cuyo ancho lo
+  contiene; `bottom`, en la última, desde el borde inferior menos el `padding`. En una forma que se
+  estrecha hacia su borde, como una elipse, un bloque ancho vuelve hacia el centro hasta que una
+  franja lo contiene, y un bloque más alto que la forma se queda en el centro. La franja de texto
+  es la caja en `rounded`, `rectangle`, `square`, `framed`, `pill`, `hexagon`, `octagon`,
+  `parallelogram` y `trapezoid`; el interior de la curva en `ellipse` y `circle`; el interior de
+  los lados en `diamond` y de las ondas en `cloud`; el espacio entre los bordes en `cylinder`; lo
+  que queda por encima de la onda en `document` y por encima del rabillo en `callout`; el cuerpo de
+  la flecha en `arrow`; lo que queda lejos de la muesca en `flag`. `textAlign` conserva su sentido
+  a lo ancho de la franja, así que `textAlign left; verticalAlign top` pone el texto en la esquina
+  superior izquierda. La auditoría de etiquetas y `layout.text-overflow` miden el bloque donde se
+  dibuja, y el editor lo escribe ahí.
+- **Alineación que no mueve nada.** `triangle`, `pentagon`, `star`, `person`, `agent` e `icon`
+  dibujan su texto en un sitio fijo, y una caja con `iconPosition center` mantiene la franja de su
+  etiqueta en `labelPosition`; en ellas, y en los textos, los iconos, las imágenes, los grupos y
+  las líneas, `verticalAlign` es `layout.vertical-align-ignored` (advertencia), una vez por cada
+  instrucción que lo escribe, con la pista de elegir una forma con franja de texto, de fijar
+  `labelPosition` o de quitarlo. Una regla o una clase se informa solo cuando ninguno de los
+  elementos a los que da estilo usa el valor, y la de un tema, una sola vez, sobre el `theme` del
+  diagrama.
+
+```text
+box card "Orders" { description "Top left" }
+style card { shape rectangle; textAlign left; verticalAlign top }
+```
 
 Las líneas de texto están separadas 1,25 veces el tamaño de la fuente, y `\n` empieza una línea
 nueva en un texto y en la etiqueta de una caja o de un nodo de flujo. Un texto, un icono o una
@@ -257,6 +289,77 @@ Los diagramas de flujo dibujan igual los grupos sin título, en todos los modos 
 motor deja `groupPadding` encima de sus hijos. Una etiqueta vacía con una `description` o un icono
 conserva la banda, que entonces los contiene.
 
+## Líneas
+
+Una `line` es una línea que no une ningún elemento: un separador entre fases, un corchete, un
+subrayado, un trazo en una diapositiva. Sus puntos están en la instrucción, después de `from`, `to`
+y una lista opcional de codos tras `via`, así que no necesita `place`:
+
+```text
+diagram phases: free {
+  box web "Web"
+  box api "API"
+  web -> api
+
+  line divider "Phase 2" from (40, 160) to (520, 160)
+  line bracket from (40, 220) to (520, 280) via [(280, 220)]
+
+  group notes "Notes" {
+    text remark "Read first"
+    line underline from (0, 22) to (120, 22)
+  }
+
+  placement {
+    place web at (120, 80)
+    place api at (440, 80)
+    place notes at (280, 400)
+    size notes (240, 120)
+    place remark at (60, 6)
+    label divider at 20% offset (0, -14)
+  }
+
+  style divider { line dashed; stroke muted }
+  style bracket { routing orthogonal; corners rounded; arrowhead triangle }
+  animate bracket { effect flow }
+}
+```
+
+- **Puntos.** Dos tuplas de números sin unidades después de `from` y de `to`, y una lista de
+  tuplas después de `via`, que continúa en varias líneas como la de una ruta. Están en las
+  coordenadas interiores del grupo de la línea, igual que `place`
+  ([más arriba](#grupos-y-coordenadas-interiores)): `underline` se dibuja bajo `remark` y se mueve
+  con `notes`. Una instrucción a la que le faltan los puntos o cuyos puntos no son tuplas es
+  `prop.invalid-value`, con la forma en la pista. `place`, `size` y `rotation` se rechazan en una
+  línea, con la pista de que sus puntos se escriben en su instrucción.
+- **Etiqueta.** El segundo argumento, vacío de forma predeterminada. Se dibuja como la etiqueta de
+  una relación, en una píldora en el centro de la línea, y `label <id> at <n>% [offset (dx, dy)]`
+  la mueve.
+- **Estilos.** Una línea acepta las propiedades de una relación: `stroke` (el `connector` del tema
+  de forma predeterminada), `width` (`connectorWidth`), `line` (`dashed`, `dotted`), `arrowhead` y
+  `arrowtail` (ninguna de forma predeterminada), `routing` (`polyline` de forma predeterminada,
+  `orthogonal`, `bezier`), `corners`, y `color`, `fill` e `icon` para su píldora. Las propiedades
+  de una caja (`shape`, `radius`, `pattern`, `iconPosition`, `labelPosition`, `iconSize`, las
+  propiedades del texto) son `prop.invalid-value`. `rule line { … }` da estilo a todas las líneas;
+  su bloque acepta `description`, `class`, `layer` y `url`.
+- **Trazado.** Los puntos son los anclajes y los puntos de paso de la línea; cómo pasan
+  `orthogonal` y `bezier` por ellos se explica en [layout.md](layout.md#conectores). Una línea no
+  tiene carriles ni desvíos y no participa en las comprobaciones de composición entre cajas.
+- **Orden.** Una línea es un objeto: en su capa se pinta en el orden del código fuente con las
+  cajas, así que una línea declarada después de una caja se dibuja encima. Su caja, el rectángulo
+  que envuelve sus puntos dibujados, cuenta para la selección con un rectángulo, para un grupo que
+  se deriva de sus hijos y para el tamaño del lienzo.
+- **Efectos.** `flow`, `dash`, `pulse` y `trace` recorren una línea igual que una relación
+  ([motion.md](motion.md)).
+- **Puntos que coinciden.** Una línea sin longitud se dibuja como un punto de su ancho y se informa
+  como `layout.degenerate-line` (advertencia), con la pista de mover un extremo o darle un codo.
+- **En el editor.** La herramienta de relación arrastrada sobre el lienzo vacío dibuja una línea;
+  una línea seleccionada muestra un tirador en cada extremo y en cada codo y en el centro de cada
+  tramo, y arrastrarlos reescribe los puntos, ajustados a la cuadrícula
+  ([el editor](../editor.md#composiciones-libres)).
+
+Los diagramas de flujo, de secuencia y C4 rechazan `line` con `prop.unknown`; ahí, una línea entre
+dos cajas es una relación escrita `--` o `---`.
+
 ## Capas y orden
 
 ```text
@@ -268,8 +371,8 @@ text label "Front" { layer front }
 `layers` enumera las capas de atrás hacia adelante. `main` siempre existe y va la última cuando no
 se lista; los objetos y las relaciones sin `layer` están en ella. Una capa no declarada es
 `ref.unknown-layer`. La escena se pinta capa por capa; dentro de una capa, primero los grupos (los
-exteriores antes que los interiores), luego los demás objetos en el orden del código fuente y luego
-las relaciones. Las cajas y los grupos de capas distintas no se comprueban entre sí, y un conector
+exteriores antes que los interiores), luego los demás objetos en el orden del código fuente, también
+las líneas, y luego las relaciones. Las cajas y los grupos de capas distintas no se comprueban entre sí, y un conector
 ni rodea ni se informa como que atraviesa una caja de una capa distinta de la suya. En el editor,
 Traer al frente y Enviar al fondo mueven la declaración dentro de su bloque, y el panel Capas
 agrega, renombra, oculta y quita capas. Los diagramas de flujo admiten `layers` y `layer` con las

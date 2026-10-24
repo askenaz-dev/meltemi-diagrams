@@ -212,6 +212,23 @@ describe("views", () => {
   });
 });
 
+describe("relation tokens in a view", () => {
+  it("refuses a line token as it refuses a two-way arrow, naming `->` and `-->`", () => {
+    for (const [token, column] of [
+      ["---", 12],
+      ["<->", 12],
+    ] as const) {
+      const { compilation } = compileView(
+        `  level container\n  scope shop\n  shop.web ${token} shop.api`,
+      );
+      const refused = compilation.diagnostics.find((d) => d.message.startsWith(`\`${token}\``));
+      expect(refused, token).toBeDefined();
+      expect(refused!.range.start.column).toBe(column);
+      expect(refused!.message).toBe(`\`${token}\` is not available here; write \`->\` or \`-->\`.`);
+    }
+  });
+});
+
 describe("child views of an entity", () => {
   const compilation = compile(commerce);
   const model = compilation.document.models[0]!;

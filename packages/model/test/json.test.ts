@@ -6,6 +6,22 @@ import { compile, diagnosticsToJson, stringifyJson, toJson } from "../src/index.
 
 const checkout = readFileSync(join(CORPUS_ROOT, "valid", "checkout.meltemi"), "utf8");
 
+describe("heads in JSON", () => {
+  it("writes heads after twoWay: none for a line, both for a two-way arrow", () => {
+    const json = toJson(compile("diagram d: flow {\n  api -- cache as link\n  api <--> db\n}\n"));
+    const relations = json.diagrams[0]!.relations;
+    expect(relations.map((r) => [r.key, r.line, r.twoWay, r.heads])).toEqual([
+      ["link", "solid", false, "none"],
+      ["api->db#1", "dashed", true, "both"],
+    ]);
+    const keys = Object.keys(relations[0]!);
+    expect(keys.indexOf("heads")).toBe(keys.indexOf("twoWay") + 1);
+    // The same compilation gives the same string twice.
+    const text = "diagram d: flow {\n  a --- b\n}\n";
+    expect(stringifyJson(toJson(compile(text)))).toBe(stringifyJson(toJson(compile(text))));
+  });
+});
+
 describe("model JSON", () => {
   it("describes the checkout diagram", () => {
     const json = toJson(compile(checkout));

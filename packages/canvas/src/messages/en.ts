@@ -44,6 +44,8 @@ const shapeName = (shape: string): string =>
 const ARROW_NAMES = {
   "->": "arrow",
   "-->": "dashed arrow",
+  "--": "line",
+  "---": "dashed line",
   "<->": "two-way arrow",
   "<-->": "dashed two-way arrow",
 } satisfies Record<ArrowKind, string>;
@@ -283,8 +285,13 @@ export const en = {
     fromSource: (id: string, dashed = false) =>
       `From ${id}: click the target. Shift makes it ${dashed ? "solid" : "dashed"}.`,
     anotherElement: "Click another element: a relation joins two.",
-    connected: (from: string, to: string, dashed: boolean, twoWay = false) =>
-      `Connected ${from} to ${to}${twoWay ? ", both ways" : ""}${dashed ? ", dashed" : ""}.`,
+    connected: (
+      from: string,
+      to: string,
+      dashed: boolean,
+      heads: "end" | "both" | "none" = "end",
+    ) =>
+      `Connected ${from} to ${to}${heads === "both" ? ", both ways" : heads === "none" ? " with a line" : ""}${dashed ? ", dashed" : ""}.`,
     /** An icon or an image, which have no label to edit in place. */
     noLabel: (kind: string) => `An ${kind} has no label; change it in the properties.`,
     nothingToEdit: (kind: string) => `A ${kind} has nothing to edit here; see the properties.`,
@@ -295,6 +302,16 @@ export const en = {
         : `${relation} now ends at ${element}, ${port} side at ${position}%.`,
     /** A connector's end handed back to the layout. */
     endFree: (relation: string) => `The layout places this end of ${relation}.`,
+    /** The relation tool dragged on empty canvas of a free diagram: a line is being drawn. */
+    drawingLine: "Drawing a line: release to place it. Shift keeps it at 45°, Escape cancels.",
+    /** A free line drawn, from its first point to its last, in diagram units. */
+    lineDrawn: (from: { x: number; y: number }, to: { x: number; y: number }) =>
+      `Drew a line from (${from.x}, ${from.y}) to (${to.x}, ${to.y}).`,
+    lineTooShort: "A line needs two different points: drag further.",
+    lineCancelled: "No line drawn.",
+    lineReshaped: (id: string) => `Moved a point of ${id}.`,
+    lineBendAdded: (id: string) => `Added a bend to ${id}.`,
+    lineBendRemoved: (id: string) => `Removed a bend of ${id}.`,
     /** The icon picker armed the icon tool with an icon, named by its label. */
     placeIcon: (label: string) =>
       `Click on the canvas to place ${label}, or on a shape to give it the icon. Escape cancels.`,
@@ -412,6 +429,10 @@ export const en = {
     use: (value: string) => `Use ${value}`,
     /** The slider beside a number with bounds, such as the corner radius. */
     slider: (label: string) => `${label}, slider`,
+    /** A cell of the alignment picker: where the text goes across, and down for a box. */
+    alignCell: (across: string, down?: string) => (down ? `${across}, ${down}` : across),
+    /** The alignment picker's chip that takes both written alignments away. */
+    alignInherit: "Inherit the alignment: remove both",
     newTheme: "New theme from this one…",
     editTheme: "Edit theme…",
     chooseIcon: "Choose an icon",
@@ -461,6 +482,8 @@ export const en = {
     sharp: "sharp",
     rounded: "rounded",
     none: "none",
+    light: "light",
+    rough: "rough",
     triangle: "triangle",
     triangleOutline: "triangle outline",
     open: "open",
@@ -487,6 +510,7 @@ export const en = {
     top: "top",
     bottom: "bottom",
     center: "centre",
+    middle: "middle",
   } as Readonly<Record<string, string>>,
 
   /**

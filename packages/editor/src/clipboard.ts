@@ -55,6 +55,17 @@ export function copyFragment(
   const free = diagram.type === "free";
   for (const element of copied) {
     if (inSelectedGroup(element.groupPath)) continue; // inside a copied group's text
+    // A free line copied without its group takes the points it is drawn at.
+    const drawn = element.kind === "line" ? view.layout?.connectors?.get(element.id) : undefined;
+    if (drawn && element.groupPath.length > 0) {
+      const points = [drawn.points[0]!, ...drawn.via, drawn.points.at(-1)!].map(
+        (p) => `(${fmt(p.x)}, ${fmt(p.y)})`,
+      );
+      const label = element.label === "" ? "" : ` ${JSON.stringify(element.label)}`;
+      const via = points.length > 2 ? ` via [${points.slice(1, -1).join(", ")}]` : "";
+      lines.push(`${INDENT}line ${element.id}${label} from ${points[0]} to ${points.at(-1)}${via}`);
+      continue;
+    }
     lines.push(
       element.node
         ? copyStatement(text, element.node.start, element.node.end, INDENT)
@@ -79,6 +90,16 @@ export function copyFragment(
     const box = view.layout?.boxes?.get(element.id);
     // In free diagrams a child copied without its group takes the position it is drawn at.
     const detached = free && element.groupPath.length > 0 && !inSelectedGroup(element.groupPath);
+    // A line has its points in its statement, and its pill may be placed as a relation's.
+    if (element.kind === "line") {
+      const label = diagram.placement.find(
+        (p) => p.statement === "label" && p.target === element.id,
+      );
+      if (label) {
+        placement.push(copyStatement(text, label.node.start, label.node.end, INDENT + INDENT));
+      }
+      continue;
+    }
     if (place && !detached)
       placement.push(copyStatement(text, place.node.start, place.node.end, INDENT + INDENT));
     else if (box && (element.kind !== "group" || free)) {
@@ -220,10 +241,13 @@ export function pasteOperations(
   const places = diagram!.placement.filter(
     (p): p is PlaceEntry => p.statement === "place" && topLevel(p.target),
   );
+  // Free lines at the top level move by their points.
+  const lines = diagram!.elements.filter((e) => e.kind === "line" && e.line && topLevel(e.id));
+  const linePoints = lines.flatMap((e) => [e.line!.from, ...e.line!.via, e.line!.to]);
   let shift = "shift" in where ? where.shift : { x: 0, y: 0 };
-  if ("at" in where && places.length > 0) {
-    const xs = places.map((p) => p.x);
-    const ys = places.map((p) => p.y);
+  if ("at" in where && places.length + linePoints.length > 0) {
+    const xs = [...places.map((p) => p.x), ...linePoints.map((p) => p.x)];
+    const ys = [...places.map((p) => p.y), ...linePoints.map((p) => p.y)];
     shift = {
       x: Math.round(where.at.x - (Math.min(...xs) + Math.max(...xs)) / 2),
       y: Math.round(where.at.y - (Math.min(...ys) + Math.max(...ys)) / 2),
@@ -237,6 +261,18 @@ export function pasteOperations(
         element: place.target,
         x: place.x + shift.x,
         y: place.y + shift.y,
+      });
+      if (error) return { ok: false, reason: error };
+    }
+    for (const line of lines) {
+      const by = (p: Point) => ({ x: p.x + shift.x, y: p.y + shift.y });
+      const error = apply({
+        kind: "setLinePoints",
+        diagram: diagram!.id,
+        element: line.id,
+        from: by(line.line!.from),
+        to: by(line.line!.to),
+        via: line.line!.via.map(by),
       });
       if (error) return { ok: false, reason: error };
     }

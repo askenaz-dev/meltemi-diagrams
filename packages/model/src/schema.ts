@@ -77,7 +77,7 @@ export const ANIMATION_DEFAULT_DURATIONS = {
 /** Element kinds of flow diagrams. */
 export const ELEMENT_KINDS = ["node", "decision", "data", "group", "note", "tag"] as const;
 /** Object kinds of free diagrams. */
-export const FREE_ELEMENT_KINDS = ["box", "text", "icon", "image", "group"] as const;
+export const FREE_ELEMENT_KINDS = ["box", "text", "icon", "image", "line", "group"] as const;
 /** Participant kinds of sequence diagrams. */
 export const PARTICIPANT_KINDS = [
   "participant",
@@ -158,6 +158,34 @@ export const SEQUENCE_EVENTS = [
 /** Statements of a `scenario` block. */
 export const SCENARIO_STATEMENTS = ["choose", "repeat", "skip", "take"] as const;
 export const LINE_STYLES = ["solid", "dashed", "dotted"] as const;
+
+/** Where a relation's token puts its heads: at the end, at both ends, or at neither. */
+export type RelationHeads = "end" | "both" | "none";
+
+/**
+ * What each relation token draws: its line and its heads. One dash more is dashed; `<` adds the
+ * head at the start; the lines `--` and `---` drop the head glyph. A profile's `arrows` table says
+ * which of them it takes.
+ */
+export const RELATION_ARROWS: Readonly<
+  Record<string, { readonly line: "solid" | "dashed"; readonly heads: RelationHeads }>
+> = {
+  "->": { line: "solid", heads: "end" },
+  "-->": { line: "dashed", heads: "end" },
+  "--": { line: "solid", heads: "none" },
+  "---": { line: "dashed", heads: "none" },
+  "<->": { line: "solid", heads: "both" },
+  "<-->": { line: "dashed", heads: "both" },
+};
+
+/** The token that writes a relation of this line and these heads: `arrowToken("dashed", "none")` is `---`. */
+export function arrowToken(line: "solid" | "dashed", heads: RelationHeads): string {
+  const dashed = line === "dashed";
+  if (heads === "none") return dashed ? "---" : "--";
+  if (heads === "both") return dashed ? "<-->" : "<->";
+  return dashed ? "-->" : "->";
+}
+
 export const DIAGRAM_TYPES = ["flow", "sequence", "c4", "free"] as const;
 export const MESSAGE_KINDS = ["sync", "async"] as const;
 export const PATTERNS = ["none", "hatch", "dots", "cross"] as const;
@@ -184,6 +212,8 @@ export const ARROWHEADS = [
 ] as const;
 /** Corners of straight and elbow connectors. */
 export const CORNERS = ["sharp", "rounded"] as const;
+/** How a theme paints strokes: clean, or in two jittered passes of a hand-drawn look. */
+export const SKETCH_LEVELS = ["none", "light", "rough"] as const;
 /** Targets of `rule <kind> { }`: the element kinds of every profile, `relation` and `fragment`. */
 export const RULE_KINDS = [...ALL_ELEMENT_KINDS, "relation", "fragment"] as const;
 export const PRESETS = ["document", "slide"] as const;
@@ -243,10 +273,10 @@ export const ROTATION_RANGE = { min: 0, max: 360 } as const;
 
 /**
  * The element kinds `rotation` turns: every element of flow diagrams and free compositions but
- * groups, which hold other elements.
+ * groups, which hold other elements, and lines, whose points are written as they are drawn.
  */
 export function takesRotation(kind: string): boolean {
-  return kind !== "group";
+  return kind !== "group" && kind !== "line";
 }
 
 /** Whether a profile's elements take `rotation`: sequence diagrams and C4 views do not. */
@@ -254,6 +284,8 @@ export function profileTakesRotation(profile: { readonly name: string }): boolea
   return profile.name !== "sequence" && profile.name !== "c4";
 }
 export const TEXT_ALIGNS = ["left", "center", "right"] as const;
+/** Where a free box's text block sits within the shape's text band, top to bottom. */
+export const VERTICAL_ALIGNS = ["top", "middle", "bottom"] as const;
 export const FONT_WEIGHTS = [400, 500, 600, 700] as const;
 /** The layer every free diagram has; listed last when `layers` does not name it. */
 export const MAIN_LAYER = "main";
@@ -269,6 +301,8 @@ export const BUILT_IN_THEMES = [
   "editorial.dark",
   "stage.light",
   "stage.dark",
+  "sketch.light",
+  "sketch.dark",
 ] as const;
 export const DEFAULT_THEME = "technical.light";
 
@@ -348,6 +382,7 @@ export const THEME_TOKENS: PropertyTable = {
   ...THEME_NUMBER_TOKENS,
   arrowhead: { kind: "enum", values: ARROWHEADS },
   corners: { kind: "enum", values: CORNERS },
+  sketch: { kind: "enum", values: SKETCH_LEVELS },
   iconPosition: { kind: "enum", values: ICON_POSITIONS },
   frame: { kind: "enum", values: FRAME_MODES },
   brand: { kind: "string" },
@@ -364,11 +399,15 @@ export const THEME_TOKENS: PropertyTable = {
   ),
 };
 
-/** Style properties that only free diagrams accept: the size, weight and alignment of text. */
+/**
+ * Style properties that only free diagrams accept: the size and weight of text, and where it sits
+ * across (`textAlign`) and down (`verticalAlign`) its box.
+ */
 export const FREE_STYLE_PROPERTIES: PropertyTable = {
   fontSize: { kind: "number", min: 6, max: 160 },
   fontWeight: { kind: "number", min: 400, max: 700, values: FONT_WEIGHTS },
   textAlign: { kind: "enum", values: TEXT_ALIGNS },
+  verticalAlign: { kind: "enum", values: VERTICAL_ALIGNS },
 };
 
 /**
@@ -524,7 +563,14 @@ export const FLOW_PROFILE: ProfileSchema = {
     assumption: { kind: "string" },
     class: { kind: "classes" },
   },
-  arrows: { "->": "solid", "-->": "dashed", "<->": "solid", "<-->": "dashed" },
+  arrows: {
+    "->": "solid",
+    "-->": "dashed",
+    "--": "solid",
+    "---": "dashed",
+    "<->": "solid",
+    "<-->": "dashed",
+  },
   diagramBlocks: ["placement", "style", "animate", "class", "rule"],
   placementStatements: ["place", "size", "route", "label", ...CONSTRAINTS],
   ports: PORTS,
@@ -566,7 +612,14 @@ export const FREE_PROFILE: ProfileSchema = {
     class: { kind: "classes" },
     layer: { kind: "name" },
   },
-  arrows: { "->": "solid", "-->": "dashed", "<->": "solid", "<-->": "dashed" },
+  arrows: {
+    "->": "solid",
+    "-->": "dashed",
+    "--": "solid",
+    "---": "dashed",
+    "<->": "solid",
+    "<-->": "dashed",
+  },
   diagramBlocks: ["placement", "style", "animate", "class", "rule"],
   placementStatements: ["place", "size", "route", "label", ...CONSTRAINTS],
   ports: PORTS,

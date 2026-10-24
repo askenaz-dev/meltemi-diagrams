@@ -27,19 +27,24 @@ diagram example: flow {
 
 ## Lexical rules
 
-| Element     | Rule                                                                             |
-| ----------- | -------------------------------------------------------------------------------- |
-| Identifier  | `[A-Za-z_][A-Za-z0-9_]*`. Hyphens are not allowed.                               |
-| String      | `"..."` on one line. Escapes: `\"`, `\\`, `\n`, `\t`. Other escapes are errors.  |
-| Number      | Optional `-`, digits, optional `.digits`, then an optional unit suffix.          |
-| Unit        | Letters directly after a number (`1200ms`, `1s`) or `%` (`50%`).                 |
-| Arrows      | `->` (solid or call), `-->` (dashed or reply), and the two-way `<->` and `<-->`. |
-| Punctuation | `{ } ( ) [ ] : ; , .`                                                            |
-| Line break  | `\n` or `\r\n`. A token, because it ends statements.                             |
-| Trivia      | Spaces, tabs, `// line comments`, `/* block comments */`, byte order mark.       |
+| Element         | Rule                                                                                                                                      |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Identifier      | `[A-Za-z_][A-Za-z0-9_]*`. Hyphens are not allowed.                                                                                        |
+| String          | `"..."` on one line. Escapes: `\"`, `\\`, `\n`, `\t`. Other escapes are errors.                                                           |
+| Number          | Optional `-`, digits, optional `.digits`, then an optional unit suffix.                                                                   |
+| Unit            | Letters directly after a number (`1200ms`, `1s`) or `%` (`50%`).                                                                          |
+| Relation tokens | `->` (solid or call), `-->` (dashed or reply), the two-way `<->` and `<-->`, and the lines without heads `--` (solid) and `---` (dashed). |
+| Punctuation     | `{ } ( ) [ ] : ; , .`                                                                                                                     |
+| Line break      | `\n` or `\r\n`. A token, because it ends statements.                                                                                      |
+| Trivia          | Spaces, tabs, `// line comments`, `/* block comments */`, byte order mark.                                                                |
 
 Trivia is attached to the following token, so the tree keeps every character. A run of characters
 that starts no token (for example `=>` or `#`) is one `syntax.unexpected-character` error.
+
+A run of `-` and `>` takes the longest token it starts with: `---`, then `-->`, then `--`, then
+`->`; `-` before a digit starts a number. One dash more is dashed, and the lines drop the head:
+`a -- b` and `a --- b` are lines, `a --5` is `--` followed by the number `5`, and `a ---> b` is
+`---` followed by an unexpected `>`, whose hint names the six relation tokens.
 
 ## Grammar
 
@@ -62,7 +67,7 @@ block         = "{" { separator | statement } "}" ;
 statement     = relation | shorthand | keyword-stmt ;
 
 relation      = ref arrow ref [ ":" STRING ] [ "as" IDENT ] [ block ] ;
-arrow         = "->" | "-->" | "<->" | "<-->" ;
+arrow         = "->" | "-->" | "--" | "---" | "<->" | "<-->" ;
 shorthand     = IDENT "[" ( STRING | "(" STRING ")" ) "]" [ block ] ;
 keyword-stmt  = IDENT args [ block { IDENT args block } ] ;   (* chained clauses stay on one line *)
 args          = { arg | "," } ;
@@ -115,8 +120,8 @@ import corporate as corp, base from "./themes.meltemi" // corp, base
 
 Imports come after the `language` header and before the first block. Paths are relative to the
 importing file, start with `./` or `../`, use `/` and end in `.meltemi`. Bound names share the
-file's top-level namespace. A namespace may not be `technical`, `editorial` or `stage`, the
-prefixes of the built-in themes. Imported themes are used by name: `theme "corp"`, `theme "company.corporate"`,
+file's top-level namespace. A namespace may not be `technical`, `editorial`, `stage` or `sketch`,
+the prefixes of the built-in themes. Imported themes are used by name: `theme "corp"`, `theme "company.corporate"`,
 `extends "company.base"`. Resolution, cycles and project roots are described in
 [projects.md](projects.md).
 
@@ -124,33 +129,38 @@ prefixes of the built-in themes. Imported themes are used by name: `theme "corp"
 
 ### Diagram statements
 
-| Statement     | Form                                                               | Notes                                                                                  |
-| ------------- | ------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
-| shorthand     | `id["Label"]`, `id[("Label")]`                                     | kinds `node` and `data`                                                                |
-| `node`        | `node <id> ["Label"] [{ ... }]`                                    |                                                                                        |
-| `decision`    | `decision <id> ["Label"] [{ ... }]`                                |                                                                                        |
-| `data`        | `data <id> ["Label"] [{ ... }]`                                    |                                                                                        |
-| `group`       | `group <id> ["Label"] [{ ... }]`                                   | holds declarations and relations; with `""`, a plain container without a title band    |
-| `note`        | `note <id> "Text\nmore text"`                                      | free text; `\n` starts a new line                                                      |
-| `tag`         | `tag <id> "PKCE"`                                                  | small pill, placed on or beside a box                                                  |
-| relation      | `a -> b`, `a --> b`, `a <-> b`, `a <--> b`, `: "Label"`, `as <id>` | solid or dashed, one way or two-way; endpoints are elements                            |
-| `direction`   | `direction LR`                                                     | `LR` (default), `RL`, `TB`, `BT`                                                       |
-| `layout`      | `layout assisted`                                                  | `auto` (default), `assisted`, `manual`                                                 |
-| `routing`     | `routing orthogonal`                                               | `auto` (default), `orthogonal`, `polyline`, `bezier`                                   |
-| `layers`      | `layers back, main, front`                                         | paint order, back to front; `main` always exists ([free.md](free.md#layers-and-order)) |
-| `theme`       | `theme "editorial.light"`                                          |                                                                                        |
-| `title`       | `title "Checkout"`                                                 |                                                                                        |
-| `description` | `description "..."`                                                |                                                                                        |
-| `preset`      | `preset slide`                                                     | `document` or `slide`                                                                  |
-| `canvas`      | `canvas (1280, 720)`                                               | 100 to 10,000 px; not with `preset`                                                    |
-| `placement`   | `placement { ... }`                                                | may appear more than once                                                              |
-| `style`       | `style <target>[, <target>...] { ... }`                            | targets: elements or named relations                                                   |
-| `animate`     | `animate <target>[, <target>...] { ... }`                          | targets: elements, named relations, notes, fragments                                   |
-| `class`       | `class <id> { ... }`                                               | reusable style properties                                                              |
-| `rule`        | `rule <kind> { ... }`                                              | styles every element of a kind                                                         |
+| Statement     | Form                                                                                    | Notes                                                                                  |
+| ------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| shorthand     | `id["Label"]`, `id[("Label")]`                                                          | kinds `node` and `data`                                                                |
+| `node`        | `node <id> ["Label"] [{ ... }]`                                                         |                                                                                        |
+| `decision`    | `decision <id> ["Label"] [{ ... }]`                                                     |                                                                                        |
+| `data`        | `data <id> ["Label"] [{ ... }]`                                                         |                                                                                        |
+| `group`       | `group <id> ["Label"] [{ ... }]`                                                        | holds declarations and relations; with `""`, a plain container without a title band    |
+| `note`        | `note <id> "Text\nmore text"`                                                           | free text; `\n` starts a new line                                                      |
+| `tag`         | `tag <id> "PKCE"`                                                                       | small pill, placed on or beside a box                                                  |
+| relation      | `a -> b`, `a --> b`, `a <-> b`, `a <--> b`, `a -- b`, `a --- b`, `: "Label"`, `as <id>` | solid or dashed, one way, two-way or a line without heads; endpoints are elements      |
+| `direction`   | `direction LR`                                                                          | `LR` (default), `RL`, `TB`, `BT`                                                       |
+| `layout`      | `layout assisted`                                                                       | `auto` (default), `assisted`, `manual`                                                 |
+| `routing`     | `routing orthogonal`                                                                    | `auto` (default), `orthogonal`, `polyline`, `bezier`                                   |
+| `layers`      | `layers back, main, front`                                                              | paint order, back to front; `main` always exists ([free.md](free.md#layers-and-order)) |
+| `theme`       | `theme "editorial.light"`                                                               |                                                                                        |
+| `title`       | `title "Checkout"`                                                                      |                                                                                        |
+| `description` | `description "..."`                                                                     |                                                                                        |
+| `preset`      | `preset slide`                                                                          | `document` or `slide`                                                                  |
+| `canvas`      | `canvas (1280, 720)`                                                                    | 100 to 10,000 px; not with `preset`                                                    |
+| `placement`   | `placement { ... }`                                                                     | may appear more than once                                                              |
+| `style`       | `style <target>[, <target>...] { ... }`                                                 | targets: elements or named relations                                                   |
+| `animate`     | `animate <target>[, <target>...] { ... }`                                               | targets: elements, named relations, notes, fragments                                   |
+| `class`       | `class <id> { ... }`                                                                    | reusable style properties                                                              |
+| `rule`        | `rule <kind> { ... }`                                                                   | styles every element of a kind                                                         |
 
 An identifier used as a relation endpoint without a declaration declares a `node` whose label is
-its id. Labels default to the id. `note` and `tag` are annotations: they take part in placement and
+its id. Labels default to the id. A relation records its `line` (`solid` or `dashed`) and its
+`heads`: `end` for `->` and `-->`, `both` for `<->` and `<-->`, `none` for `--` and `---`. A line
+draws no head at either end unless `arrowhead` or `arrowtail` is written, as the theme's
+`arrowhead` is only the default of `->` ([styles.md](styles.md#arrow-heads)). Sequence diagrams
+take the four arrows and C4 views `->` and `-->`; another token is `prop.invalid-value` on the
+token, naming the ones the profile takes. `note` and `tag` are annotations: they take part in placement and
 rendering like any element (see [svg-export.md](svg-export.md)) and are rarely relation endpoints.
 A `style` or `animate` block with several targets applies to each of them; setting the same style
 property again for a target in a later statement is `prop.duplicate`, and a second effect of the
@@ -171,25 +181,25 @@ constraints and route kinds are described in [layout.md](layout.md).
 | `rule`         | the style properties below                                                                                                                           |
 | `animate`      | `effect`, `duration`, `repeat`, `delay`, `direction`, `particles`, `color` ([motion.md](motion.md))                                                  |
 
-| Style property  | Value                                                                                                                                                                                                                                                                                                 |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `icon`          | `"<pack>:<name>"`, drawn from the built-in or project packs ([assets.md](assets.md))                                                                                                                                                                                                                  |
-| `iconColor`     | a quoted colour or a colour token name; the colour of monochrome icons                                                                                                                                                                                                                                |
-| `iconPosition`  | `left`, `right`, `top`, `bottom` or `center`; nodes, decisions, data stores and boxes only                                                                                                                                                                                                            |
-| `labelPosition` | `top`, `bottom`, `left` or `right`, the edge of the label when the icon is the centre piece (`iconPosition center`, `shape icon`); nodes, decisions, data stores and boxes only                                                                                                                       |
-| `iconSize`      | `auto` or a number from 8 to 128, with or without `px`; nodes, decisions, data stores and boxes only                                                                                                                                                                                                  |
-| `fill`          | a quoted colour (`"none"` draws no background) or a colour token name such as `surface`                                                                                                                                                                                                               |
-| `stroke`        | a quoted colour or a colour token name such as `danger`                                                                                                                                                                                                                                               |
-| `color`         | a quoted colour or a colour token name; the text colour                                                                                                                                                                                                                                               |
-| `line`          | `solid`, `dashed` or `dotted`                                                                                                                                                                                                                                                                         |
-| `width`         | outline or connector width, 0 to 16                                                                                                                                                                                                                                                                   |
-| `radius`        | corner radius, 0 to 64, with or without `px`, over the theme's `radius` or `groupRadius`; elements and groups only                                                                                                                                                                                    |
-| `shape`         | `rounded`, `rectangle`, `square`, `ellipse`, `circle`, `diamond`, `cylinder`, `pill`, `triangle`, `parallelogram`, `trapezoid`, `pentagon`, `hexagon`, `octagon`, `star`, `cloud`, `document`, `callout`, `arrow`, `framed`, `flag`, `person`, `agent` or `icon`; `node` (flow) and `box` (free) only |
-| `pattern`       | `none`, `hatch`, `dots` or `cross`; elements only                                                                                                                                                                                                                                                     |
-| `arrowhead`     | the head at the target: `triangle`, `open`, `none`, `triangleOutline`, `diamond`, `diamondOutline`, `circle`, `circleOutline`, `bar`, `cross`, `many`, `oneOrMany`, `onlyOne`, `zeroOrOne` or `zeroOrMany`; relations only                                                                            |
-| `arrowtail`     | the head at the source, with the same values; none by default, or the end's head for `<->`; relations only                                                                                                                                                                                            |
-| `routing`       | `auto`, `orthogonal`, `polyline` or `bezier`; relations only                                                                                                                                                                                                                                          |
-| `corners`       | `sharp` or `rounded` bends of straight and elbow routes; relations only                                                                                                                                                                                                                               |
+| Style property  | Value                                                                                                                                                                                                                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `icon`          | `"<pack>:<name>"`, drawn from the built-in or project packs ([assets.md](assets.md))                                                                                                                                                                                                                   |
+| `iconColor`     | a quoted colour or a colour token name; the colour of monochrome icons                                                                                                                                                                                                                                 |
+| `iconPosition`  | `left`, `right`, `top`, `bottom` or `center`; nodes, decisions, data stores and boxes only                                                                                                                                                                                                             |
+| `labelPosition` | `top`, `bottom`, `left` or `right`, the edge of the label when the icon is the centre piece (`iconPosition center`, `shape icon`); nodes, decisions, data stores and boxes only                                                                                                                        |
+| `iconSize`      | `auto` or a number from 8 to 128, with or without `px`; nodes, decisions, data stores and boxes only                                                                                                                                                                                                   |
+| `fill`          | a quoted colour (`"none"` draws no background) or a colour token name such as `surface`                                                                                                                                                                                                                |
+| `stroke`        | a quoted colour or a colour token name such as `danger`                                                                                                                                                                                                                                                |
+| `color`         | a quoted colour or a colour token name; the text colour                                                                                                                                                                                                                                                |
+| `line`          | `solid`, `dashed` or `dotted`                                                                                                                                                                                                                                                                          |
+| `width`         | outline or connector width, 0 to 16                                                                                                                                                                                                                                                                    |
+| `radius`        | corner radius, 0 to 64, with or without `px`, over the theme's `radius` or `groupRadius`; elements and groups only                                                                                                                                                                                     |
+| `shape`         | `rounded`, `rectangle`, `square`, `ellipse`, `circle`, `diamond`, `cylinder`, `pill`, `triangle`, `parallelogram`, `trapezoid`, `pentagon`, `hexagon`, `octagon`, `star`, `cloud`, `document`, `callout`, `arrow`, `framed`, `flag`, `person`, `agent` or `icon`; `node` (flow) and `box` (free) only  |
+| `pattern`       | `none`, `hatch`, `dots` or `cross`; elements only                                                                                                                                                                                                                                                      |
+| `arrowhead`     | the head at the target: `triangle`, `open`, `none`, `triangleOutline`, `diamond`, `diamondOutline`, `circle`, `circleOutline`, `bar`, `cross`, `many`, `oneOrMany`, `onlyOne`, `zeroOrOne` or `zeroOrMany`; the theme's by default, none for `--`, `---` and free lines; relations and free lines only |
+| `arrowtail`     | the head at the source, with the same values; none by default, or the end's head for `<->`; relations and free lines only                                                                                                                                                                              |
+| `routing`       | `auto`, `orthogonal`, `polyline` or `bezier`; relations and free lines only (`polyline` by default on a line)                                                                                                                                                                                          |
+| `corners`       | `sharp` or `rounded` bends of straight and elbow routes; relations and free lines only                                                                                                                                                                                                                 |
 
 ### Placement
 
@@ -223,22 +233,30 @@ element of another diagram: of the same file, or through an import as `link <mem
 A free diagram places objects by hand ([free.md](free.md)). It shares relations, `placement`,
 `style`, `class`, `rule` and `animate` with flow diagrams, and `layout manual` is its default.
 
-| Statement  | Form                                     | Notes                                                 |
-| ---------- | ---------------------------------------- | ----------------------------------------------------- |
-| `box`      | `box <id> ["Label"] [{ ... }]`           | also `id["Label"]`; `id[("Label")]` is a cylinder box |
-| `text`     | `text <id> "Text\nmore text"`            | measured text without a frame                         |
-| `icon`     | `icon <id> "<pack>:<name>"`              | an icon of the packs, 48 × 48 by default              |
-| `image`    | `image <id> "<path>"`                    | a PNG, JPEG, GIF, WebP or SVG file of the project     |
-| `group`    | `group <id> ["Label"] { ... }`           | children are placed inside its interior               |
-| `layers`   | `layers back, main, front`               | back to front; `main` is last unless listed           |
-| relation   | as in flow                               |                                                       |
-| properties | as in flow, with `layout manual` default |                                                       |
+| Statement  | Form                                                                      | Notes                                                                                        |
+| ---------- | ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `box`      | `box <id> ["Label"] [{ ... }]`                                            | also `id["Label"]`; `id[("Label")]` is a cylinder box                                        |
+| `text`     | `text <id> "Text\nmore text"`                                             | measured text without a frame                                                                |
+| `icon`     | `icon <id> "<pack>:<name>"`                                               | an icon of the packs, 48 × 48 by default                                                     |
+| `image`    | `image <id> "<path>"`                                                     | a PNG, JPEG, GIF, WebP or SVG file of the project                                            |
+| `group`    | `group <id> ["Label"] { ... }`                                            | children are placed inside its interior                                                      |
+| `line`     | `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), ...]] [{ ... }]` | a line that joins no element, its points in the parent's interior ([free.md](free.md#lines)) |
+| `layers`   | `layers back, main, front`                                                | back to front; `main` is last unless listed                                                  |
+| relation   | as in flow, `--` and `---` included                                       |                                                                                              |
+| properties | as in flow, with `layout manual` default                                  |                                                                                              |
 
 Element, group and relation blocks also take `layer <name>`. The free style properties are
-`fontSize` (6 to 160), `fontWeight` (400, 500, 600, 700) and `textAlign` (`left`, `center`,
-`right`); flow diagrams refuse them. `shape` takes the twenty-four shapes on boxes as on flow
-nodes ([free.md](free.md#text-and-shapes)); texts, icons and images refuse it. Rules take the free
-kinds: `rule box { ... }`.
+`fontSize` (6 to 160), `fontWeight` (400, 500, 600, 700), `textAlign` (`left`, `center`,
+`right`) and `verticalAlign` (`top`, `middle`, `bottom`); flow diagrams refuse them. `shape` takes
+the twenty-four shapes on boxes as on flow nodes ([free.md](free.md#text-and-shapes)); texts,
+icons, images and lines refuse it. Rules take the free kinds: `rule box { ... }`,
+`rule line { ... }`.
+
+A `line` takes no `place`, `size` or `rotation`: its points are written in its statement. It takes
+the styles of a relation (`stroke`, `line`, `width`, `color`, `fill` and `icon` for its label
+pill, `arrowhead`, `arrowtail`, `routing`, `corners`) and refuses those of a box; `label <id> at
+<n>% [offset (dx, dy)]` moves its label as it moves a named relation's. Flow, sequence and C4
+diagrams refuse `line` with `prop.unknown`.
 
 The `place` of a child of a group is relative to the group's interior: its top-left corner plus
 `groupPadding` across and, down, `groupHeader` for a titled group or `groupPadding` for an
@@ -294,8 +312,8 @@ Views also take `title`, `description`, `direction`, `layout`, `routing`, `theme
 `theme <id> { }` defines design tokens at the top level of a file. Tokens are flat `name value`
 statements; a diagram selects a theme with `theme "<id>"`, a project may set a default theme in
 `project.json`, and `meltemi-diagrams export --theme <name>` overrides both. Built-in themes:
-`technical.light` (default), `technical.dark`, `editorial.light`, `editorial.dark`, `stage.light`
-and `stage.dark`.
+`technical.light` (default), `technical.dark`, `editorial.light`, `editorial.dark`, `stage.light`,
+`stage.dark`, `sketch.light` and `sketch.dark`.
 
 ```text
 theme konfio {
@@ -323,7 +341,8 @@ theme konfio {
 | `radius`, `groupRadius`                                                                                                                                           | number, 0 to 64                                                                                                                                                                            |
 | `strokeWidth`, `connectorWidth`                                                                                                                                   | number, 0 to 8                                                                                                                                                                             |
 | `arrowhead`                                                                                                                                                       | a head: `triangle`, `open`, `none`, `triangleOutline`, `diamond`, `diamondOutline`, `circle`, `circleOutline`, `bar`, `cross`, `many`, `oneOrMany`, `onlyOne`, `zeroOrOne` or `zeroOrMany` |
-| `corners`                                                                                                                                                         | `sharp` (built-in themes) or `rounded`                                                                                                                                                     |
+| `corners`                                                                                                                                                         | `sharp` (built-in themes but `sketch.*`) or `rounded` (`sketch.*`)                                                                                                                         |
+| `sketch`                                                                                                                                                          | `none` (built-in themes but `sketch.*`), `light` (`sketch.*`) or `rough`: how strokes are painted ([svg-export.md](svg-export.md#sketched-strokes))                                        |
 | `arrowSize`                                                                                                                                                       | number, 0 to 32                                                                                                                                                                            |
 | `frame`                                                                                                                                                           | `none`, `footer` or `header`                                                                                                                                                               |
 | `brand`                                                                                                                                                           | quoted wordmark text                                                                                                                                                                       |

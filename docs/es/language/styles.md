@@ -8,13 +8,14 @@ editor y en cada formato de exportación. No hay CSS.
 
 ## Temas
 
-Un tema es un conjunto de tokens de diseño. Hay seis temas integrados:
+Un tema es un conjunto de tokens de diseño. Hay ocho temas integrados:
 
 | Tema                                                 | Para                       | Carácter                                                                                                       |
 | ---------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `technical.light` (predeterminado), `technical.dark` | revisión de arquitectura   | Inter, la paleta de Meltemi, un marco al pie con el símbolo                                                    |
 | `editorial.light`, `editorial.dark`                  | documentos y lectura larga | IBM Plex Sans, grises discretos, puntas abiertas, sin marco                                                    |
 | `stage.light`, `stage.dark`                          | presentaciones y video     | Inter, alto contraste, tipografía más grande y bordes más gruesos, márgenes amplios, un marco en el encabezado |
+| `sketch.light`, `sketch.dark`                        | pizarras y primeras ideas  | los temas técnicos con los trazos pintados a mano (`sketch light`) y los codos redondeados; Inter              |
 
 Un diagrama elige un tema con `theme "<name>"`. Sin él, usa el tema predeterminado del proyecto
 (`"theme"` en `project.json`; consulta [projects.md](projects.md)) o `technical.light`.
@@ -52,7 +53,8 @@ Un tema sin `extends` extiende `technical.light`. Los temas se importan como cua
 | Espaciado  | `padding` (del texto al borde de la caja), `groupPadding`, `groupHeader` (banda del título del grupo), `margin` (alrededor del lienzo) | número, de 0 a 200                                                    | 16, 16, 40, 20                                                                      |
 | Forma      | `radius` (cajas, notas), `groupRadius`: valores predeterminados que el `radius` de un elemento sustituye                               | número, de 0 a 64                                                     | 8, 14                                                                               |
 | Bordes     | `strokeWidth` (contornos), `connectorWidth`                                                                                            | número, de 0 a 8                                                      | 1; 1,3                                                                              |
-| Flechas    | `arrowhead`, `arrowSize`, `corners`                                                                                                    | una punta (más abajo); número, de 0 a 32; `sharp` o `rounded`         | `triangle`, 8, `sharp`                                                              |
+| Flechas    | `arrowhead`, `arrowSize`, `corners`                                                                                                    | una punta (más abajo); número, de 0 a 32; `sharp` o `rounded`         | `triangle`, 8, `sharp` (`sketch.*`: `rounded`)                                      |
+| Boceto     | `sketch`                                                                                                                               | `none`, `light` o `rough`                                             | `none` (`sketch.*`: `light`)                                                        |
 | Iconos     | `iconSize`, `iconPosition`                                                                                                             | número, de 8 a 64; `left`, `right`, `top`, `bottom` o `center`        | 18, `left` (stage: 24, `top`)                                                       |
 | Marco      | `frame`, `brand`, `mark`                                                                                                               | `none`, `footer` o `header`; texto entre comillas; `meltemi` o `none` | `footer`, `Meltemi Diagrams`, `meltemi`                                             |
 | Movimiento | `flowDuration`, `dashDuration`, `pulseDuration`, `traceDuration`                                                                       | un tiempo, de `100ms` a `60s`                                         | ninguno: 1200 ms para las partículas, 1500 ms para el recorrido, 1 s para los demás |
@@ -62,6 +64,22 @@ Los tokens del lienzo solo dan color al editor: `selection` a su selección, a s
 punto que toma el extremo de un conector, y `guide` a sus guías de alineación y al contorno y los
 imanes de la caja sobre la que se arrastra un extremo. Las exportaciones nunca los usan, y los
 estilos no pueden nombrarlos.
+
+`sketch` pinta cada trazo como si estuviera dibujado a mano: los contornos, los conectores, las
+puntas, las píldoras de las etiquetas, las bandas de los grupos y el marco se dibujan dos veces
+sobre un relleno limpio, y cada pasada tiembla un poco (`light`) o más (`rough`), mientras que el
+texto, los iconos y las imágenes siguen nítidos. La disposición no cambia, y todas las
+exportaciones y el lienzo muestran el mismo temblor para el mismo texto
+([svg-export.md](svg-export.md#trazos-a-mano)). Es un token del tema, no una propiedad de estilo:
+un diagrama se dibuja a mano entero o no se dibuja así, y `style a { sketch rough }` es
+`prop.unknown`.
+
+```text
+theme whiteboard {
+  extends "technical.light"
+  sketch rough
+}
+```
 
 Los números se escriben sin unidad o con `px`; las duraciones, con `ms` o `s`, como en `animate`. Un
 token de duración es la velocidad predeterminada de su efecto en todos los diagramas que usan el
@@ -87,27 +105,30 @@ diagram checkout: flow {
 }
 ```
 
-| Propiedad       | Valor                                                                                      | Se aplica a                                  |
-| --------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------- |
-| `fill`          | color entre comillas (`"none"` para no tener fondo) o nombre de un token de color          | elementos, etiquetas de relación             |
-| `stroke`        | color entre comillas o nombre de un token de color                                         | contornos y conectores                       |
-| `color`         | color entre comillas o nombre de un token de color                                         | texto                                        |
-| `line`          | `solid`, `dashed` o `dotted`                                                               | contornos y conectores                       |
-| `width`         | número, de 0 a 16                                                                          | contornos y conectores                       |
-| `radius`        | número, de 0 a 64: el radio de las esquinas, sobre el `radius` o el `groupRadius` del tema | solo elementos y grupos                      |
-| `rotation`      | número, de 0 a 360: los grados que gira el elemento, en el sentido del reloj               | elementos de flujo y libres                  |
-| `shape`         | una de las veinticuatro formas de [free.md](free.md#texto-y-formas)                        | nodos de flujo y cajas libres                |
-| `pattern`       | `none`, `hatch`, `dots` o `cross`                                                          | solo elementos                               |
-| `arrowhead`     | la punta en el destino (más abajo)                                                         | solo relaciones                              |
-| `arrowtail`     | la punta en el origen (más abajo)                                                          | solo relaciones                              |
-| `routing`       | `auto`, `orthogonal`, `polyline` o `bezier` ([disposición](layout.md))                     | solo relaciones                              |
-| `corners`       | codos `sharp` o `rounded` de las rutas rectas y en codo                                    | solo relaciones                              |
-| `icon`          | `"<pack>:<name>"` ([assets.md](assets.md))                                                 | elementos y relaciones                       |
-| `iconColor`     | color entre comillas o nombre de un token de color                                         | iconos monocromos                            |
-| `iconPosition`  | `left`, `right`, `top`, `bottom` o `center` ([iconos en las cajas](#iconos-en-las-cajas))  | nodos, decisiones, almacenes de datos, cajas |
-| `labelPosition` | `top`, `bottom`, `left` o `right`: el borde de la etiqueta alrededor de un icono centrado  | nodos, decisiones, almacenes de datos, cajas |
-| `iconSize`      | `auto`, o un número de 8 a 128: el lado del icono                                          | nodos, decisiones, almacenes de datos, cajas |
-| `class`         | uno o más ids de clase, en instrucciones `style` y en bloques de declaración               | elementos y relaciones                       |
+| Propiedad                | Valor                                                                                                 | Se aplica a                                  |
+| ------------------------ | ----------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `fill`                   | color entre comillas (`"none"` para no tener fondo) o nombre de un token de color                     | elementos, etiquetas de relación             |
+| `stroke`                 | color entre comillas o nombre de un token de color                                                    | contornos y conectores                       |
+| `color`                  | color entre comillas o nombre de un token de color                                                    | texto                                        |
+| `line`                   | `solid`, `dashed` o `dotted`                                                                          | contornos y conectores                       |
+| `width`                  | número, de 0 a 16                                                                                     | contornos y conectores                       |
+| `radius`                 | número, de 0 a 64: el radio de las esquinas, sobre el `radius` o el `groupRadius` del tema            | solo elementos y grupos                      |
+| `rotation`               | número, de 0 a 360: los grados que gira el elemento, en el sentido del reloj                          | elementos de flujo y libres                  |
+| `shape`                  | una de las veinticuatro formas de [free.md](free.md#texto-y-formas)                                   | nodos de flujo y cajas libres                |
+| `pattern`                | `none`, `hatch`, `dots` o `cross`                                                                     | solo elementos                               |
+| `arrowhead`              | la punta en el destino (más abajo)                                                                    | relaciones y líneas libres                   |
+| `arrowtail`              | la punta en el origen (más abajo)                                                                     | relaciones y líneas libres                   |
+| `routing`                | `auto`, `orthogonal`, `polyline` o `bezier` ([disposición](layout.md))                                | relaciones y líneas libres                   |
+| `corners`                | codos `sharp` o `rounded` de las rutas rectas y en codo                                               | relaciones y líneas libres                   |
+| `icon`                   | `"<pack>:<name>"` ([assets.md](assets.md))                                                            | elementos y relaciones                       |
+| `iconColor`              | color entre comillas o nombre de un token de color                                                    | iconos monocromos                            |
+| `iconPosition`           | `left`, `right`, `top`, `bottom` o `center` ([iconos en las cajas](#iconos-en-las-cajas))             | nodos, decisiones, almacenes de datos, cajas |
+| `labelPosition`          | `top`, `bottom`, `left` o `right`: el borde de la etiqueta alrededor de un icono centrado             | nodos, decisiones, almacenes de datos, cajas |
+| `iconSize`               | `auto`, o un número de 8 a 128: el lado del icono                                                     | nodos, decisiones, almacenes de datos, cajas |
+| `fontSize`, `fontWeight` | el tamaño del texto, de 6 a 160, y su grosor, 400, 500, 600 o 700 ([free.md](free.md#texto-y-formas)) | cajas y textos libres                        |
+| `textAlign`              | `left`, `center` o `right`: dónde va el texto a lo ancho de su caja                                   | cajas y textos libres                        |
+| `verticalAlign`          | `top`, `middle` o `bottom`: dónde va el texto a lo alto de su forma                                   | cajas libres                                 |
+| `class`                  | uno o más ids de clase, en instrucciones `style` y en bloques de declaración                          | elementos y relaciones                       |
 
 - Un nombre de token de color (`danger`, `accent`, `muted`, …) sigue al tema: `stroke danger` es rojo
   en todos los temas, con el rojo de cada tema. Una palabra sin comillas que no es un token de color
@@ -115,10 +136,13 @@ diagram checkout: flow {
 - `pattern` superpone a la forma un rayado, puntos o una cuadrícula en el color del borde del
   elemento (o en `muted`) con un 35 % de opacidad, así que el significado nunca depende solo del
   color.
-- `pattern`, `iconPosition`, `labelPosition`, `iconSize`, `radius` y `rotation` en una relación, `arrowhead`,
-  `arrowtail`, `routing` o `corners` en un elemento, y `shape` en algo que no sea un `node` de
-  flujo o una `box` libre, son `prop.invalid-value` en las instrucciones `style` y en las reglas.
-  Una clase puede contenerlos todos; cada destino toma lo que se le aplica.
+- `pattern`, `iconPosition`, `labelPosition`, `iconSize`, `radius` y `rotation` en una relación,
+  `arrowhead`, `arrowtail`, `routing` o `corners` en un elemento que no sea una línea libre, y
+  `shape` en algo que no sea un `node` de flujo o una `box` libre, son `prop.invalid-value` en las
+  instrucciones `style` y en las reglas. Una línea libre acepta las propiedades de una relación y
+  rechaza las de una caja ([free.md](free.md#líneas)). `fontSize`, `fontWeight`, `textAlign` y
+  `verticalAlign` son solo de las composiciones libres: los diagramas de flujo las rechazan. Una
+  clase puede contenerlos todos; cada destino toma lo que se le aplica.
 - `radius` redondea las esquinas de todas las formas que las tienen, limitado a la mitad del lado
   más corto: los nodos y las cajas `rounded` (con el `radius` del tema por defecto), las cajas y
   los nodos `rectangle`, `square` y `framed` (rectos por defecto), los vértices de los polígonos y
@@ -147,17 +171,21 @@ diagram checkout: flow {
   decisiones, los almacenes de datos, las notas, las marcas, los grupos, los textos, iconos e
   imágenes libres, los participantes de secuencia y las entidades C4 la rechazan, porque su tipo
   decide su dibujo.
-- `line dotted` dibuja puntos redondos separados según el ancho de la línea; `-->` y `line dashed`
-  dibujan guiones.
+- `line dotted` dibuja puntos redondos separados según el ancho de la línea; `-->`, `---` y
+  `line dashed` dibujan guiones.
 
 ### Puntas de flecha
 
 Una relación tiene una punta en su destino (`arrowhead` o, si no, la del tema) y, opcionalmente, en
 su origen (`arrowtail`). Sin `arrowtail`, el origen no tiene punta, o tiene la del destino cuando la
-relación se escribe `<->` o `<-->`:
+relación se escribe `<->` o `<-->`. Una relación escrita `--` (una línea) o `---` (una línea
+discontinua) no tiene punta en ningún extremo salvo que se escriba `arrowhead` o `arrowtail`: la
+punta del tema es solo el valor predeterminado de las flechas.
 
 ```text
 api <-> cache                                  // la punta del tema en ambos extremos
+api -- db as link                              // una línea: sin punta en ningún extremo
+style link { arrowhead circle }                // salvo que un estilo la escriba
 customer -> order as places
 style places { arrowtail onlyOne; arrowhead zeroOrMany }
 ```
@@ -272,7 +300,9 @@ se ignora.
 ### Reglas
 
 `rule <kind> { <properties> }` da estilo a todos los elementos de un tipo (`node`, `decision`,
-`data`, `group`, `note`, `tag`) o a todas las relaciones (`relation`). Las reglas se escriben en los
+`data`, `group`, `note`, `tag`; en las composiciones libres `box`, `text`, `icon`, `image`, `group`
+y `line`) o a todas las relaciones (`relation`). `rule line { line dashed }` se lee raro, pero es
+correcto: primero el tipo, luego la propiedad. Las reglas se escriben en los
 diagramas y en los bloques de tema, donde llegan a todos los diagramas que usan el tema; por eso,
 una regla para todo el proyecto vive en el tema predeterminado del proyecto. Una propiedad asignada
 dos veces para el mismo tipo es `prop.duplicate`. Solo `rule node` y `rule box` pueden fijar

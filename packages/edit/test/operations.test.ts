@@ -168,12 +168,14 @@ describe("creating", () => {
     expect(routed).toContain("    route api_db from api.south to db.south\n");
   });
 
-  it("writes the four arrows", () => {
-    const cases: [Pick<EditOperation & { kind: "createRelation" }, "line" | "twoWay">, string][] = [
+  it("writes the six relation tokens", () => {
+    const cases: [Pick<EditOperation & { kind: "createRelation" }, "line" | "heads">, string][] = [
       [{ line: "solid" }, "->"],
       [{ line: "dashed" }, "-->"],
-      [{ line: "solid", twoWay: true }, "<->"],
-      [{ line: "dashed", twoWay: true }, "<-->"],
+      [{ line: "solid", heads: "none" }, "--"],
+      [{ line: "dashed", heads: "none" }, "---"],
+      [{ line: "solid", heads: "both" }, "<->"],
+      [{ line: "dashed", heads: "both" }, "<-->"],
     ];
     for (const [arrow, written] of cases) {
       const after = apply(
@@ -182,7 +184,7 @@ describe("creating", () => {
       );
       expect(after).toContain(`  api -> db: "save" as save\n  db ${written} api\n`);
       const relation = compile(after).document.diagrams[0]!.relations[1]!;
-      expect([relation.line, relation.twoWay]).toEqual([arrow.line, arrow.twoWay === true]);
+      expect([relation.line, relation.heads]).toEqual([arrow.line, arrow.heads ?? "end"]);
     }
     const c4 = readFileSync(join(CORPUS_ROOT, "valid", "c4", "commerce.meltemi"), "utf8");
     const view = compile(c4).document.diagrams.find((d) => d.type === "c4")!;
@@ -195,7 +197,7 @@ describe("creating", () => {
           from: from!.id,
           to: to!.id,
           line: "solid",
-          twoWay: true,
+          heads: "both",
         },
         c4,
       ).reason,
@@ -295,6 +297,39 @@ describe("relations", () => {
       sheet,
     );
     expect(after).toContain('api --> db: "save" as save');
+  });
+
+  it("switches the line of a line and keeps it without heads", () => {
+    const lined = sheet.replace('api -> db: "save" as save', 'api -- db: "save" as save');
+    const dashed = apply(
+      { kind: "setRelationLine", diagram: "d", relation: "save", line: "dashed" },
+      lined,
+    );
+    expect(dashed).toContain('api --- db: "save" as save');
+    const solid = apply(
+      { kind: "setRelationLine", diagram: "d", relation: "save", line: "solid" },
+      dashed,
+    );
+    expect(solid).toContain('api -- db: "save" as save');
+  });
+
+  it("refuses a line where the profile takes none", () => {
+    const c4 = readFileSync(join(CORPUS_ROOT, "valid", "c4", "commerce.meltemi"), "utf8");
+    const view = compile(c4).document.diagrams.find((d) => d.type === "c4")!;
+    const [from, to] = view.elements.filter((e) => e.kind !== "group");
+    expect(
+      refused(
+        {
+          kind: "createRelation",
+          diagram: view.id,
+          from: from!.id,
+          to: to!.id,
+          line: "solid",
+          heads: "none",
+        },
+        c4,
+      ).reason,
+    ).toBe("Relations of C4 views go one way: `->`.");
   });
 });
 

@@ -180,9 +180,19 @@ class Lexer {
           this.pushToken("Arrow", start);
           continue;
         }
-        if (c1 === CH_MINUS && text.charCodeAt(start + 2) === CH_GT) {
-          this.pos += 3;
-          this.pushToken("DashedArrow", start);
+        if (c1 === CH_MINUS) {
+          // The longest match: `-->`, then `---` (so `--->` is `---` and an unexpected `>`), then `--`.
+          const c2 = text.charCodeAt(start + 2);
+          if (c2 === CH_GT) {
+            this.pos += 3;
+            this.pushToken("DashedArrow", start);
+          } else if (c2 === CH_MINUS) {
+            this.pos += 3;
+            this.pushToken("DashedLine", start);
+          } else {
+            this.pos += 2;
+            this.pushToken("Line", start);
+          }
           continue;
         }
         if (isDigit(c1)) {
@@ -353,7 +363,7 @@ class Lexer {
     }
     if (c === CH_MINUS) {
       const c1 = text.charCodeAt(i + 1);
-      return c1 === CH_GT || isDigit(c1) || (c1 === CH_MINUS && text.charCodeAt(i + 2) === CH_GT);
+      return c1 === CH_GT || c1 === CH_MINUS || isDigit(c1);
     }
     if (c === CH_LT) return twoWayArrowLength(text, i) > 0;
     return false;

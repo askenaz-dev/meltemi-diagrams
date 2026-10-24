@@ -427,6 +427,13 @@ export class CanvasSession {
       const labelBox = geometry.elementLabels.get(element.id);
       const rotation = geometry.rotations.get(element.id);
       const radius = geometry.radii.get(element.id);
+      // A free line: its written points (ends and bends) and the polyline it is drawn with.
+      const connector = element.kind === "line" ? geometry.connectors.get(element.id) : undefined;
+      const line = connector && {
+        points: [connector.points[0]!, ...connector.via, connector.points.at(-1)!],
+        drawn: connector.line,
+        via: connector.via,
+      };
       elements.push({
         id: element.id,
         kind: element.kind,
@@ -444,6 +451,7 @@ export class CanvasSession {
         takesIcon: takesIcon(diagram, element),
         icon: writtenIcon(diagram, element.id, "element"),
         ...(labelBox ? { labelBox } : {}),
+        ...(line ? { line } : {}),
       });
     }
     const relations: RelationInfo[] = [];
@@ -1501,6 +1509,25 @@ export class CanvasSession {
         ops.push(...this.resizeOperations(view, action));
         break;
       case "moveLabel": {
+        // A free line's pill moves as a relation's does, by the line's id.
+        const line = diagram.elementsById.get(action.relation);
+        if (line?.kind === "line") {
+          const entry = diagram.placement.find(
+            (p): p is LabelEntry => p.statement === "label" && p.target === line.id,
+          );
+          const offset = entry?.offset ?? { x: 0, y: 0 };
+          ops.push({
+            kind: "setLabelAnchor",
+            diagram: d,
+            relation: line.id,
+            at: entry?.at ?? 50,
+            offset: {
+              x: Math.round(offset.x + action.delta.x),
+              y: Math.round(offset.y + action.delta.y),
+            },
+          });
+          break;
+        }
         const relation = diagram.relationsByKey.get(action.relation);
         if (!relation) break;
         const { id, operations } = namedRelation(diagram, relation);
@@ -1520,6 +1547,51 @@ export class CanvasSession {
             x: Math.round(offset.x + action.delta.x),
             y: Math.round(offset.y + action.delta.y),
           },
+        });
+        break;
+      }
+      case "createLine": {
+        // In the group under the press, its points in that group's interior; the armed kind's
+        // dashes and heads as styles, with the effective theme's head.
+        const id = freeElementId(this.analysis!, diagram, "line");
+        const origin = interiorOf(view, action.parent ?? null);
+        const at = (p: { x: number; y: number }) => {
+          const snapped = this.snap(p);
+          return { x: snapped.x - origin.x, y: snapped.y - origin.y };
+        };
+        const head = view.layout?.theme?.arrowhead ?? "triangle";
+        const styles = [
+          ...(action.line === "dashed" ? [{ property: "line", value: "dashed" }] : []),
+          ...(action.heads === "both" ? [{ property: "arrowtail", value: head }] : []),
+          ...(action.heads !== "none" ? [{ property: "arrowhead", value: head }] : []),
+        ];
+        ops.push({
+          kind: "createLine",
+          diagram: d,
+          id,
+          from: at(action.from),
+          to: at(action.to),
+          ...(action.parent ? { parent: action.parent } : {}),
+          ...(styles.length > 0 ? { styles } : {}),
+        });
+        this.pendingSelection = [id];
+        break;
+      }
+      case "setLinePoints": {
+        const element = diagram.elementsById.get(action.element);
+        if (element?.kind !== "line") break;
+        const origin = interiorOf(view, element.groupPath[element.groupPath.length - 1] ?? null);
+        const at = (p: { x: number; y: number }) => ({
+          x: Math.round(p.x - origin.x),
+          y: Math.round(p.y - origin.y),
+        });
+        ops.push({
+          kind: "setLinePoints",
+          diagram: d,
+          element: element.id,
+          from: at(action.from),
+          to: at(action.to),
+          via: action.via.map(at),
         });
         break;
       }
@@ -1635,7 +1707,7 @@ export class CanvasSession {
           from: action.from,
           to: action.to,
           line: action.line,
-          ...(action.twoWay ? { twoWay: true } : {}),
+          ...(action.heads ? { heads: action.heads } : {}),
           ...(pinned
             ? {
                 id,
@@ -1805,7 +1877,10 @@ export class CanvasSession {
         for (const id of action.ids) {
           const element = diagram.elementsById.get(id);
           const box = boxes.get(id);
-          if (element && element.kind !== "group" && box) selected.set(id, box);
+          // Lines have no edges to align: they keep their points.
+          if (element && element.kind !== "group" && element.kind !== "line" && box) {
+            selected.set(id, box);
+          }
         }
         const centres =
           action.kind === "align"
@@ -1878,6 +1953,20 @@ export class CanvasSession {
               messages: [...planned.messages, { type: "status", message: result.notice }],
             }
           : planned;
+      }
+      case "setFields": {
+        // The fields of one control written together: one plan, one undo step.
+        const operations: EditOperation[] = [];
+        for (const { field, value } of action.fields) {
+          const result = fieldOperations(this.analysis!, d, action.ids, field, value);
+          if (!result.ok) {
+            return {
+              messages: [{ type: "rejected", code: "edit.invalid-value", reason: result.reason }],
+            };
+          }
+          operations.push(...result.operations);
+        }
+        return this.planned(view, "setField", operations);
       }
       case "setIcon": {
         const targets = action.ids.filter((id) => {
@@ -2024,6 +2113,8 @@ export class CanvasSession {
       for (const id of moved) {
         const element = diagram.elementsById.get(id)!;
         const parent = element.groupPath[element.groupPath.length - 1] ?? null;
+        // A free line stays in its group: its points are written there.
+        if (element.kind === "line") continue;
         if (parent === target || carried.has(id) || element.groupPath.some((g) => moved.has(g)))
           continue;
         reparented.add(id);
@@ -2048,6 +2139,22 @@ export class CanvasSession {
       for (const id of moved) {
         const element = diagram.elementsById.get(id)!;
         if (reparented.has(id) || element.groupPath.some((g) => moved.has(g))) continue;
+        // A free line moves every point by the same amount, in its own coordinates.
+        if (element.kind === "line" && element.line) {
+          const by = (p: Point) => ({
+            x: Math.round(p.x + action.delta.x),
+            y: Math.round(p.y + action.delta.y),
+          });
+          ops.push({
+            kind: "setLinePoints",
+            diagram: d,
+            element: id,
+            from: by(element.line.from),
+            to: by(element.line.to),
+            via: element.line.via.map(by),
+          });
+          continue;
+        }
         const to = landed(id);
         if (!to) continue;
         const at = this.written(view, id, to);
@@ -2214,7 +2321,8 @@ function refusal(
     if (changes) keys.push("move.parent");
   }
   if (action.kind === "create" && action.shape !== undefined) keys.push("create.shape");
-  if (action.kind === "connect" && action.twoWay) keys.push("connect.twoWay");
+  // A view's relations go one way with a head: no two-way arrow, no line.
+  if (action.kind === "connect" && action.heads) keys.push("connect.twoWay");
   const key = keys.find((k) => Object.hasOwn(refused, k));
   return key === undefined ? undefined : refused[key];
 }

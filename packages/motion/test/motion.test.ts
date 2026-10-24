@@ -508,6 +508,88 @@ describe("traces", () => {
   });
 });
 
+describe("free lines", () => {
+  function free(body: string) {
+    const compilation = compile(`language "0.2"\ndiagram d: free {\n${body}\n}\n`);
+    expect(compilation.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const diagram = compilation.document.diagrams[0]!;
+    const scene = layoutDiagram(compilation, diagram, {}).scene!;
+    return { scene, plan: planMotion(diagram, scene) };
+  }
+  const lineGroup = (scene: Scene) =>
+    sceneGroups(scene.items).find((g) => g.role === "element" && g.id === "l")!;
+
+  it("runs flow particles along a line, as along a relation", () => {
+    const { scene, plan } = free("  line l from (0, 0) to (300, 0)\n  animate l { effect flow }");
+    expect(plan.effects).toHaveLength(1);
+    expect(plan.effects[0]).toMatchObject({ target: "l", role: "element", bounds: null });
+    expect(plan.effects[0]!.track).toHaveLength(2);
+    const frame = sceneAt(scene, plan, 600);
+    const particles = lineGroup(frame).items.filter(
+      (i) => i.kind === "path" && / a[\d.]+ /.test(i.d),
+    );
+    expect(particles).toHaveLength(1);
+  });
+
+  it("dashes a line's stroke and glows along it for a pulse, with no halo", () => {
+    const { scene, plan } = free(
+      "  line l from (0, 0) to (300, 0)\n  animate l { effect dash }\n  animate l { effect pulse }",
+    );
+    expect(plan.effects.map((e) => [e.effect, e.bounds])).toEqual([
+      ["dash", null],
+      ["pulse", null],
+    ]);
+    const frame = sceneAt(scene, plan, 300);
+    const [line] = lineGroup(frame).items.filter((i): i is PolylineItem => i.kind === "polyline");
+    expect(line!.dash).toBeDefined();
+    // No rounded-rectangle halo above the drawing: the glow follows the line.
+    expect(
+      motionItems(frame).some((i) => i.kind === "path" && /^M[\d.]+ [\d.]+[hHvV]/.test(i.d)),
+    ).toBe(false);
+  });
+});
+
+describe("sketched strokes", () => {
+  it("move the dash on both passes of a sketched relation, along the clean track", () => {
+    const text = [
+      'language "0.2"',
+      "diagram d: free {",
+      '  theme "sketch.light"',
+      "  layout manual",
+      '  box a "A"',
+      '  box b "B"',
+      "  a -> b as pay",
+      "  animate pay { effect dash }",
+      "  animate pay { effect flow }",
+      "  placement {",
+      "    place a at (100, 100)",
+      "    place b at (400, 100)",
+      "  }",
+      "}",
+    ].join("\n");
+    const compilation = compile(text);
+    expect(compilation.diagnostics).toEqual([]);
+    const diagram = compilation.document.diagrams[0]!;
+    const scene = layoutDiagram(compilation, diagram, {}).scene!;
+    expect(scene.sketch).toBe("light");
+    const plan = planMotion(diagram, scene);
+    // The particles run on the clean track the layout drew.
+    const pay = sceneGroups(scene.items).find((g) => g.id === "pay" && g.role === "relation")!;
+    expect(plan.effects.find((e) => e.effect === "flow")!.track).toEqual(pay.track);
+    const frame = sceneAt(scene, plan, 300);
+    expect(frame.sketch).toBe("light");
+    const svg = renderSvg(frame);
+    const start = svg.indexOf('<g data-id="pay" data-role="relation"');
+    const group = svg.slice(start, svg.indexOf("</g>", start));
+    const passes = group.match(/<path d="M[^"]+" fill="none"[^>]*stroke-dasharray[^>]*>/g)!;
+    expect(passes).toHaveLength(2);
+    const dash = (pass: string) =>
+      /stroke-dasharray="[^"]+" stroke-dashoffset="[^"]+"/.exec(pass)![0];
+    expect(dash(passes[0]!)).toBe(dash(passes[1]!));
+    expect(dash(passes[0]!)).not.toContain('stroke-dashoffset="0"');
+  });
+});
+
 describe("other profiles", () => {
   it("animates sequence messages, participants and notes", () => {
     const text = [

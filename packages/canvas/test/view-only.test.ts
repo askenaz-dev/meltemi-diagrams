@@ -122,6 +122,19 @@ const ACTIONS: readonly CanvasAction[] = [
   { kind: "resize", id: "a", box: { x: 0, y: 0, width: 10, height: 10 } },
   { kind: "moveLabel", relation: "r", delta: { x: 1, y: 0 } },
   { kind: "setVia", relation: "r", via: [] },
+  { kind: "createLine", from: { x: 0, y: 0 }, to: { x: 10, y: 0 }, line: "solid", heads: "none" },
+  {
+    kind: "setFields",
+    ids: ["a"],
+    fields: [{ field: "style.textAlign", value: "left" }],
+  },
+  {
+    kind: "setLinePoints",
+    element: "l",
+    from: { x: 0, y: 0 },
+    to: { x: 10, y: 0 },
+    via: [],
+  },
   { kind: "setEnd", relation: "r", end: "to", element: "a", port: null },
   { kind: "create", elementKind: "node", at: { x: 0, y: 0 } },
   { kind: "connect", from: "a", to: "b", line: "solid" },
@@ -269,6 +282,9 @@ describe("the messages of a read-only canvas", () => {
       insertScene: 1,
       createDiagram: 1,
       preview: 1,
+      createLine: 1,
+      setLinePoints: 1,
+      setFields: 1,
     } as const satisfies Record<CanvasAction["kind"], 1>;
     expect(ACTIONS.map((a) => a.kind).sort()).toEqual(Object.keys(every).sort());
     for (const action of ACTIONS) {

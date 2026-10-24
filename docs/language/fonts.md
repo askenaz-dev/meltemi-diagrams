@@ -7,14 +7,18 @@ labels and the exported file looks the same on every machine.
 
 ## Bundled fonts
 
-| Family        | Used by                                             | Measured with                    | Embedded from             |
-| ------------- | --------------------------------------------------- | -------------------------------- | ------------------------- |
-| Inter         | body text of the `technical.*` and `stage.*` themes | complete font (`inter-ui`)       | Fontsource script subsets |
-| IBM Plex Sans | body text of the `editorial.*` themes               | complete font (`@ibm/plex-sans`) | Fontsource script subsets |
-| Cascadia Mono | tags and monospace text of every theme              | Fontsource script subsets        | Fontsource script subsets |
+| Family        | Used by                                                         | Measured with                    | Embedded from             |
+| ------------- | --------------------------------------------------------------- | -------------------------------- | ------------------------- |
+| Inter         | body text of the `technical.*`, `stage.*` and `sketch.*` themes | complete font (`inter-ui`)       | Fontsource script subsets |
+| IBM Plex Sans | body text of the `editorial.*` themes                           | complete font (`@ibm/plex-sans`) | Fontsource script subsets |
+| Cascadia Mono | tags and monospace text of every theme                          | Fontsource script subsets        | Fontsource script subsets |
 
 Weights 400, 500, 600 and 700 are bundled. All fonts use the SIL Open Font License 1.1, which allows
 bundling them and embedding them in documents (`THIRD_PARTY_LICENSES.md`).
+
+The `sketch.*` themes paint their strokes by hand but write their text in Inter, measured and
+embedded as in the technical themes, until a hand font is bundled; their text is never drawn with
+the sketched strokes, so it stays readable at label size.
 
 A theme's `font` and `mono` tokens are CSS font stacks. The first family of the stack that is bundled
 is used for measuring (`"Inter", "Segoe UI", sans-serif` measures with Inter). A character the

@@ -43,14 +43,17 @@ conserva el color de su línea, porque anima la línea misma.
 
 ## Destinos y canales
 
-| Efecto  | Dibuja                                                                               | Destinos                                                          |
-| ------- | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------- |
-| `flow`  | partículas a lo largo del conector, bajo su etiqueta                                 | relaciones con nombre, mensajes de secuencia y relaciones C4      |
-| `dash`  | un trazo de 8 y un hueco de 6 que se mueven a lo largo de la línea o del contorno    | relaciones con nombre y elementos con contorno                    |
-| `pulse` | un halo que crece un 15 % y se desvanece, o un resplandor a lo largo de una relación | elementos, relaciones con nombre, y notas y fragmentos con nombre |
-| `trace` | un resaltado que llena el conector desde su inicio y luego se desvanece              | relaciones con nombre, mensajes de secuencia y relaciones C4      |
+| Efecto  | Dibuja                                                                                              | Destinos                                                                         |
+| ------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `flow`  | partículas a lo largo del conector, bajo su etiqueta                                                | relaciones con nombre, líneas libres, mensajes de secuencia y relaciones C4      |
+| `dash`  | un trazo de 8 y un hueco de 6 que se mueven a lo largo de la línea o del contorno                   | relaciones con nombre, líneas libres y elementos con contorno                    |
+| `pulse` | un halo que crece un 15 % y se desvanece, o un resplandor a lo largo de una relación o de una línea | elementos, relaciones con nombre, líneas libres, y notas y fragmentos con nombre |
+| `trace` | un resaltado que llena el conector desde su inicio y luego se desvanece                             | relaciones con nombre, líneas libres, mensajes de secuencia y relaciones C4      |
 
-Cualquier otro destino es `animate.invalid-target`: partículas o un recorrido en una caja, un trazo
+Una `line` libre ([free.md](free.md#líneas)) se anima como una relación: las partículas, el trazo,
+el resplandor y el recorrido avanzan por su línea dibujada, desde su punto `from` hasta su punto
+`to` (al revés con `direction reverse`). Cualquier otro destino es `animate.invalid-target`:
+partículas o un recorrido en una caja, cuyo mensaje dice que recorren relaciones y líneas, un trazo
 en movimiento en una nota o en un icono. Cada efecto controla un canal, así que un destino puede
 tener a la vez partículas, un trazo en movimiento, un pulso y un recorrido, pero un segundo
 efecto del mismo tipo en el mismo destino es `animate.conflict`, dondequiera que esté escrito. Las

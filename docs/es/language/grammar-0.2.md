@@ -30,20 +30,25 @@ diagram example: flow {
 
 ## Reglas léxicas
 
-| Elemento       | Regla                                                                                                                |
-| -------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Identificador  | `[A-Za-z_][A-Za-z0-9_]*`. No se admiten guiones.                                                                     |
-| Cadena         | `"..."` en una sola línea. Secuencias de escape: `\"`, `\\`, `\n`, `\t`. Las demás secuencias de escape son errores. |
-| Número         | `-` opcional, dígitos, `.digits` opcional y, después, un sufijo de unidad opcional.                                  |
-| Unidad         | Letras justo después de un número (`1200ms`, `1s`) o `%` (`50%`).                                                    |
-| Flechas        | `->` (continua o llamada), `-->` (discontinua o respuesta), y las bidireccionales `<->` y `<-->`.                    |
-| Puntuación     | `{ } ( ) [ ] : ; , .`                                                                                                |
-| Salto de línea | `\n` o `\r\n`. Es un token, porque termina las instrucciones.                                                        |
-| Trivia         | Espacios, tabulaciones, `// line comments`, `/* block comments */`, marca de orden de bytes.                         |
+| Elemento             | Regla                                                                                                                                                          |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Identificador        | `[A-Za-z_][A-Za-z0-9_]*`. No se admiten guiones.                                                                                                               |
+| Cadena               | `"..."` en una sola línea. Secuencias de escape: `\"`, `\\`, `\n`, `\t`. Las demás secuencias de escape son errores.                                           |
+| Número               | `-` opcional, dígitos, `.digits` opcional y, después, un sufijo de unidad opcional.                                                                            |
+| Unidad               | Letras justo después de un número (`1200ms`, `1s`) o `%` (`50%`).                                                                                              |
+| Símbolos de relación | `->` (continua o llamada), `-->` (discontinua o respuesta), las bidireccionales `<->` y `<-->`, y las líneas sin puntas `--` (continua) y `---` (discontinua). |
+| Puntuación           | `{ } ( ) [ ] : ; , .`                                                                                                                                          |
+| Salto de línea       | `\n` o `\r\n`. Es un token, porque termina las instrucciones.                                                                                                  |
+| Trivia               | Espacios, tabulaciones, `// line comments`, `/* block comments */`, marca de orden de bytes.                                                                   |
 
 La trivia se adjunta al token siguiente, así que el árbol conserva cada carácter. Una secuencia de
 caracteres que no inicia ningún token (por ejemplo `=>` o `#`) es un único error
 `syntax.unexpected-character`.
+
+Una secuencia de `-` y `>` toma el token más largo con el que empieza: `---`, luego `-->`, luego
+`--` y luego `->`; `-` delante de un dígito empieza un número. Un guion más es discontinuo, y las
+líneas dejan la punta: `a -- b` y `a --- b` son líneas, `a --5` es `--` seguido del número `5`, y
+`a ---> b` es `---` seguido de un `>` inesperado, cuya pista nombra los seis símbolos de relación.
 
 ## Gramática
 
@@ -66,7 +71,7 @@ block         = "{" { separator | statement } "}" ;
 statement     = relation | shorthand | keyword-stmt ;
 
 relation      = ref arrow ref [ ":" STRING ] [ "as" IDENT ] [ block ] ;
-arrow         = "->" | "-->" | "<->" | "<-->" ;
+arrow         = "->" | "-->" | "--" | "---" | "<->" | "<-->" ;
 shorthand     = IDENT "[" ( STRING | "(" STRING ")" ) "]" [ block ] ;
 keyword-stmt  = IDENT args [ block { IDENT args block } ] ;   (* chained clauses stay on one line *)
 args          = { arg | "," } ;
@@ -123,7 +128,8 @@ import corporate as corp, base from "./themes.meltemi" // corp, base
 Las importaciones van después del encabezado `language` y antes del primer bloque. Las rutas son
 relativas al archivo que importa, empiezan con `./` o `../`, usan `/` y terminan en `.meltemi`. Los
 nombres vinculados comparten el espacio de nombres de nivel superior del archivo. Un espacio de
-nombres no puede ser `technical`, `editorial` ni `stage`, los prefijos de los temas integrados. Los
+nombres no puede ser `technical`, `editorial`, `stage` ni `sketch`, los prefijos de los temas
+integrados. Los
 temas importados se usan por su nombre: `theme "corp"`, `theme "company.corporate"`,
 `extends "company.base"`. La resolución, los ciclos y las raíces de proyecto se describen en
 [projects.md](projects.md).
@@ -132,33 +138,39 @@ temas importados se usan por su nombre: `theme "corp"`, `theme "company.corporat
 
 ### Instrucciones del diagrama
 
-| Instrucción     | Forma                                                              | Notas                                                                                               |
-| --------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| forma abreviada | `id["Label"]`, `id[("Label")]`                                     | tipos `node` y `data`                                                                               |
-| `node`          | `node <id> ["Label"] [{ ... }]`                                    |                                                                                                     |
-| `decision`      | `decision <id> ["Label"] [{ ... }]`                                |                                                                                                     |
-| `data`          | `data <id> ["Label"] [{ ... }]`                                    |                                                                                                     |
-| `group`         | `group <id> ["Label"] [{ ... }]`                                   | contiene declaraciones y relaciones; con `""`, un contenedor simple sin banda del título            |
-| `note`          | `note <id> "Text\nmore text"`                                      | texto libre; `\n` empieza una línea nueva                                                           |
-| `tag`           | `tag <id> "PKCE"`                                                  | una píldora pequeña, colocada sobre una caja o junto a ella                                         |
-| relación        | `a -> b`, `a --> b`, `a <-> b`, `a <--> b`, `: "Label"`, `as <id>` | continua o discontinua, en un sentido o bidireccional; los extremos son elementos                   |
-| `direction`     | `direction LR`                                                     | `LR` (predeterminado), `RL`, `TB`, `BT`                                                             |
-| `layout`        | `layout assisted`                                                  | `auto` (predeterminado), `assisted`, `manual`                                                       |
-| `routing`       | `routing orthogonal`                                               | `auto` (predeterminado), `orthogonal`, `polyline`, `bezier`                                         |
-| `layers`        | `layers back, main, front`                                         | orden de pintado, de atrás hacia adelante; `main` siempre existe ([free.md](free.md#capas-y-orden)) |
-| `theme`         | `theme "editorial.light"`                                          |                                                                                                     |
-| `title`         | `title "Checkout"`                                                 |                                                                                                     |
-| `description`   | `description "..."`                                                |                                                                                                     |
-| `preset`        | `preset slide`                                                     | `document` o `slide`                                                                                |
-| `canvas`        | `canvas (1280, 720)`                                               | de 100 a 10 000 px; no va con `preset`                                                              |
-| `placement`     | `placement { ... }`                                                | puede aparecer más de una vez                                                                       |
-| `style`         | `style <target>[, <target>...] { ... }`                            | destinos: elementos o relaciones con nombre                                                         |
-| `animate`       | `animate <target>[, <target>...] { ... }`                          | destinos: elementos, relaciones con nombre, notas, fragmentos                                       |
-| `class`         | `class <id> { ... }`                                               | propiedades de estilo reutilizables                                                                 |
-| `rule`          | `rule <kind> { ... }`                                              | da estilo a todos los elementos de un tipo                                                          |
+| Instrucción     | Forma                                                                                   | Notas                                                                                                   |
+| --------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| forma abreviada | `id["Label"]`, `id[("Label")]`                                                          | tipos `node` y `data`                                                                                   |
+| `node`          | `node <id> ["Label"] [{ ... }]`                                                         |                                                                                                         |
+| `decision`      | `decision <id> ["Label"] [{ ... }]`                                                     |                                                                                                         |
+| `data`          | `data <id> ["Label"] [{ ... }]`                                                         |                                                                                                         |
+| `group`         | `group <id> ["Label"] [{ ... }]`                                                        | contiene declaraciones y relaciones; con `""`, un contenedor simple sin banda del título                |
+| `note`          | `note <id> "Text\nmore text"`                                                           | texto libre; `\n` empieza una línea nueva                                                               |
+| `tag`           | `tag <id> "PKCE"`                                                                       | una píldora pequeña, colocada sobre una caja o junto a ella                                             |
+| relación        | `a -> b`, `a --> b`, `a <-> b`, `a <--> b`, `a -- b`, `a --- b`, `: "Label"`, `as <id>` | continua o discontinua, en un sentido, bidireccional o una línea sin puntas; los extremos son elementos |
+| `direction`     | `direction LR`                                                                          | `LR` (predeterminado), `RL`, `TB`, `BT`                                                                 |
+| `layout`        | `layout assisted`                                                                       | `auto` (predeterminado), `assisted`, `manual`                                                           |
+| `routing`       | `routing orthogonal`                                                                    | `auto` (predeterminado), `orthogonal`, `polyline`, `bezier`                                             |
+| `layers`        | `layers back, main, front`                                                              | orden de pintado, de atrás hacia adelante; `main` siempre existe ([free.md](free.md#capas-y-orden))     |
+| `theme`         | `theme "editorial.light"`                                                               |                                                                                                         |
+| `title`         | `title "Checkout"`                                                                      |                                                                                                         |
+| `description`   | `description "..."`                                                                     |                                                                                                         |
+| `preset`        | `preset slide`                                                                          | `document` o `slide`                                                                                    |
+| `canvas`        | `canvas (1280, 720)`                                                                    | de 100 a 10 000 px; no va con `preset`                                                                  |
+| `placement`     | `placement { ... }`                                                                     | puede aparecer más de una vez                                                                           |
+| `style`         | `style <target>[, <target>...] { ... }`                                                 | destinos: elementos o relaciones con nombre                                                             |
+| `animate`       | `animate <target>[, <target>...] { ... }`                                               | destinos: elementos, relaciones con nombre, notas, fragmentos                                           |
+| `class`         | `class <id> { ... }`                                                                    | propiedades de estilo reutilizables                                                                     |
+| `rule`          | `rule <kind> { ... }`                                                                   | da estilo a todos los elementos de un tipo                                                              |
 
 Un identificador usado como extremo de una relación sin declaración declara un `node` cuya etiqueta
-es su id. De forma predeterminada, la etiqueta es el id. `note` y `tag` son anotaciones: participan
+es su id. De forma predeterminada, la etiqueta es el id. Una relación registra su `line`
+(`solid` o `dashed`) y sus `heads`: `end` para `->` y `-->`, `both` para `<->` y `<-->`, `none`
+para `--` y `---`. Una línea no dibuja punta en ningún extremo salvo que se escriba `arrowhead` o
+`arrowtail`, igual que el `arrowhead` del tema es solo el valor predeterminado de `->`
+([styles.md](styles.md#puntas-de-flecha)). Los diagramas de secuencia aceptan las cuatro flechas y
+las vistas C4, `->` y `-->`; otro símbolo es `prop.invalid-value` sobre el símbolo, que nombra los
+que acepta el perfil. `note` y `tag` son anotaciones: participan
 en la colocación y en el dibujo como cualquier elemento (consulta [svg-export.md](svg-export.md)) y
 rara vez son extremos de relaciones. Un bloque `style` o `animate` con varios destinos se aplica a
 cada uno de ellos; volver a asignar la misma propiedad de estilo a un destino en una instrucción
@@ -180,25 +192,25 @@ puertos, las restricciones y los tipos de ruta se describen en [layout.md](layou
 | `rule`             | las propiedades de estilo de más abajo                                                                                                                                      |
 | `animate`          | `effect`, `duration`, `repeat`, `delay`, `direction`, `particles`, `color` ([motion.md](motion.md))                                                                         |
 
-| Propiedad de estilo | Valor                                                                                                                                                                                                                                                                                                |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `icon`              | `"<pack>:<name>"`, tomado de los paquetes integrados o de los del proyecto ([assets.md](assets.md))                                                                                                                                                                                                  |
-| `iconColor`         | un color entre comillas o el nombre de un token de color; el color de los iconos monocromos                                                                                                                                                                                                          |
-| `iconPosition`      | `left`, `right`, `top`, `bottom` o `center`; solo nodos, decisiones, almacenes de datos y cajas                                                                                                                                                                                                      |
-| `labelPosition`     | `top`, `bottom`, `left` o `right`, el borde de la etiqueta cuando el icono ocupa el centro (`iconPosition center`, `shape icon`); solo nodos, decisiones, almacenes de datos y cajas                                                                                                                 |
-| `iconSize`          | `auto` o un número de 8 a 128, con o sin `px`; solo nodos, decisiones, almacenes de datos y cajas                                                                                                                                                                                                    |
-| `fill`              | un color entre comillas (`"none"` no dibuja fondo) o el nombre de un token de color, como `surface`                                                                                                                                                                                                  |
-| `stroke`            | un color entre comillas o el nombre de un token de color, como `danger`                                                                                                                                                                                                                              |
-| `color`             | un color entre comillas o el nombre de un token de color; el color del texto                                                                                                                                                                                                                         |
-| `line`              | `solid`, `dashed` o `dotted`                                                                                                                                                                                                                                                                         |
-| `width`             | ancho del contorno o del conector, de 0 a 16                                                                                                                                                                                                                                                         |
-| `radius`            | radio de las esquinas, de 0 a 64, con o sin `px`, sobre el `radius` o el `groupRadius` del tema; solo elementos y grupos                                                                                                                                                                             |
-| `shape`             | `rounded`, `rectangle`, `square`, `ellipse`, `circle`, `diamond`, `cylinder`, `pill`, `triangle`, `parallelogram`, `trapezoid`, `pentagon`, `hexagon`, `octagon`, `star`, `cloud`, `document`, `callout`, `arrow`, `framed`, `flag`, `person`, `agent` o `icon`; solo `node` (flujo) y `box` (libre) |
-| `pattern`           | `none`, `hatch`, `dots` o `cross`; solo elementos                                                                                                                                                                                                                                                    |
-| `arrowhead`         | la punta en el destino: `triangle`, `open`, `none`, `triangleOutline`, `diamond`, `diamondOutline`, `circle`, `circleOutline`, `bar`, `cross`, `many`, `oneOrMany`, `onlyOne`, `zeroOrOne` o `zeroOrMany`; solo relaciones                                                                           |
-| `arrowtail`         | la punta en el origen, con los mismos valores; ninguna de forma predeterminada, o la del destino en `<->`; solo relaciones                                                                                                                                                                           |
-| `routing`           | `auto`, `orthogonal`, `polyline` o `bezier`; solo relaciones                                                                                                                                                                                                                                         |
-| `corners`           | codos `sharp` o `rounded` de las rutas rectas y en codo; solo relaciones                                                                                                                                                                                                                             |
+| Propiedad de estilo | Valor                                                                                                                                                                                                                                                                                                                       |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `icon`              | `"<pack>:<name>"`, tomado de los paquetes integrados o de los del proyecto ([assets.md](assets.md))                                                                                                                                                                                                                         |
+| `iconColor`         | un color entre comillas o el nombre de un token de color; el color de los iconos monocromos                                                                                                                                                                                                                                 |
+| `iconPosition`      | `left`, `right`, `top`, `bottom` o `center`; solo nodos, decisiones, almacenes de datos y cajas                                                                                                                                                                                                                             |
+| `labelPosition`     | `top`, `bottom`, `left` o `right`, el borde de la etiqueta cuando el icono ocupa el centro (`iconPosition center`, `shape icon`); solo nodos, decisiones, almacenes de datos y cajas                                                                                                                                        |
+| `iconSize`          | `auto` o un número de 8 a 128, con o sin `px`; solo nodos, decisiones, almacenes de datos y cajas                                                                                                                                                                                                                           |
+| `fill`              | un color entre comillas (`"none"` no dibuja fondo) o el nombre de un token de color, como `surface`                                                                                                                                                                                                                         |
+| `stroke`            | un color entre comillas o el nombre de un token de color, como `danger`                                                                                                                                                                                                                                                     |
+| `color`             | un color entre comillas o el nombre de un token de color; el color del texto                                                                                                                                                                                                                                                |
+| `line`              | `solid`, `dashed` o `dotted`                                                                                                                                                                                                                                                                                                |
+| `width`             | ancho del contorno o del conector, de 0 a 16                                                                                                                                                                                                                                                                                |
+| `radius`            | radio de las esquinas, de 0 a 64, con o sin `px`, sobre el `radius` o el `groupRadius` del tema; solo elementos y grupos                                                                                                                                                                                                    |
+| `shape`             | `rounded`, `rectangle`, `square`, `ellipse`, `circle`, `diamond`, `cylinder`, `pill`, `triangle`, `parallelogram`, `trapezoid`, `pentagon`, `hexagon`, `octagon`, `star`, `cloud`, `document`, `callout`, `arrow`, `framed`, `flag`, `person`, `agent` o `icon`; solo `node` (flujo) y `box` (libre)                        |
+| `pattern`           | `none`, `hatch`, `dots` o `cross`; solo elementos                                                                                                                                                                                                                                                                           |
+| `arrowhead`         | la punta en el destino: `triangle`, `open`, `none`, `triangleOutline`, `diamond`, `diamondOutline`, `circle`, `circleOutline`, `bar`, `cross`, `many`, `oneOrMany`, `onlyOne`, `zeroOrOne` o `zeroOrMany`; la del tema de forma predeterminada, ninguna en `--`, `---` y las líneas libres; solo relaciones y líneas libres |
+| `arrowtail`         | la punta en el origen, con los mismos valores; ninguna de forma predeterminada, o la del destino en `<->`; solo relaciones y líneas libres                                                                                                                                                                                  |
+| `routing`           | `auto`, `orthogonal`, `polyline` o `bezier`; solo relaciones y líneas libres (`polyline` de forma predeterminada en una línea)                                                                                                                                                                                              |
+| `corners`           | codos `sharp` o `rounded` de las rutas rectas y en codo; solo relaciones y líneas libres                                                                                                                                                                                                                                    |
 
 ### Colocación
 
@@ -236,23 +248,31 @@ Una composición libre coloca los objetos a mano ([free.md](free.md)). Comparte 
 flujo las relaciones, `placement`, `style`, `class`, `rule` y `animate`, y `layout manual` es su
 valor predeterminado.
 
-| Instrucción | Forma                                                                         | Notas                                                                    |
-| ----------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `box`       | `box <id> ["Label"] [{ ... }]`                                                | también `id["Label"]`; `id[("Label")]` es una caja con forma de cilindro |
-| `text`      | `text <id> "Text\nmore text"`                                                 | texto medido sin recuadro                                                |
-| `icon`      | `icon <id> "<pack>:<name>"`                                                   | un icono de los paquetes, de 48 × 48 de forma predeterminada             |
-| `image`     | `image <id> "<path>"`                                                         | un archivo PNG, JPEG, GIF, WebP o SVG del proyecto                       |
-| `group`     | `group <id> ["Label"] { ... }`                                                | sus hijos se colocan dentro de su interior                               |
-| `layers`    | `layers back, main, front`                                                    | de atrás hacia adelante; `main` es la última si no se lista              |
-| relación    | como en los diagramas de flujo                                                |                                                                          |
-| propiedades | como en los diagramas de flujo, con `layout manual` como valor predeterminado |                                                                          |
+| Instrucción | Forma                                                                         | Notas                                                                                                       |
+| ----------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `box`       | `box <id> ["Label"] [{ ... }]`                                                | también `id["Label"]`; `id[("Label")]` es una caja con forma de cilindro                                    |
+| `text`      | `text <id> "Text\nmore text"`                                                 | texto medido sin recuadro                                                                                   |
+| `icon`      | `icon <id> "<pack>:<name>"`                                                   | un icono de los paquetes, de 48 × 48 de forma predeterminada                                                |
+| `image`     | `image <id> "<path>"`                                                         | un archivo PNG, JPEG, GIF, WebP o SVG del proyecto                                                          |
+| `group`     | `group <id> ["Label"] { ... }`                                                | sus hijos se colocan dentro de su interior                                                                  |
+| `line`      | `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), ...]] [{ ... }]`     | una línea que no une ningún elemento, con sus puntos en el interior de su padre ([free.md](free.md#líneas)) |
+| `layers`    | `layers back, main, front`                                                    | de atrás hacia adelante; `main` es la última si no se lista                                                 |
+| relación    | como en los diagramas de flujo, incluidos `--` y `---`                        |                                                                                                             |
+| propiedades | como en los diagramas de flujo, con `layout manual` como valor predeterminado |                                                                                                             |
 
 Los bloques de elemento, de grupo y de relación también aceptan `layer <name>`. Las propiedades de
-estilo de las composiciones libres son `fontSize` (de 6 a 160), `fontWeight` (400, 500, 600, 700) y
-`textAlign` (`left`, `center`, `right`); los diagramas de flujo las rechazan. `shape` admite las
-veinticuatro formas en las cajas igual que en los nodos de flujo
-([free.md](free.md#texto-y-formas)); los textos, los iconos y las imágenes la rechazan. Las reglas aceptan los tipos de las
-composiciones libres: `rule box { ... }`.
+estilo de las composiciones libres son `fontSize` (de 6 a 160), `fontWeight` (400, 500, 600, 700),
+`textAlign` (`left`, `center`, `right`) y `verticalAlign` (`top`, `middle`, `bottom`); los
+diagramas de flujo las rechazan. `shape` admite las veinticuatro formas en las cajas igual que en
+los nodos de flujo ([free.md](free.md#texto-y-formas)); los textos, los iconos, las imágenes y las
+líneas la rechazan. Las reglas aceptan los tipos de las composiciones libres: `rule box { ... }`,
+`rule line { ... }`.
+
+Una `line` no acepta `place`, `size` ni `rotation`: sus puntos se escriben en su instrucción.
+Acepta los estilos de una relación (`stroke`, `line`, `width`, `color`, `fill` e `icon` para la
+píldora de su etiqueta, `arrowhead`, `arrowtail`, `routing`, `corners`) y rechaza los de una caja;
+`label <id> at <n>% [offset (dx, dy)]` mueve su etiqueta igual que la de una relación con nombre.
+Los diagramas de flujo, de secuencia y C4 rechazan `line` con `prop.unknown`.
 
 El `place` de un hijo de un grupo es relativo al interior del grupo: su esquina superior izquierda
 más `groupPadding` en horizontal y, en vertical, `groupHeader` en un grupo con título o
@@ -309,7 +329,7 @@ entidades (`place shop.api at (…)`, `route request from shop.web.east to shop.
 instrucciones planas `name value`; un diagrama elige un tema con `theme "<id>"`, un proyecto puede
 fijar un tema predeterminado en `project.json`, y `meltemi-diagrams export --theme <name>` se impone
 a ambos. Temas integrados: `technical.light` (predeterminado), `technical.dark`, `editorial.light`,
-`editorial.dark`, `stage.light` y `stage.dark`.
+`editorial.dark`, `stage.light`, `stage.dark`, `sketch.light` y `sketch.dark`.
 
 ```text
 theme konfio {
@@ -337,7 +357,8 @@ theme konfio {
 | `radius`, `groupRadius`                                                                                                                                           | número, de 0 a 64                                                                                                                                                                            |
 | `strokeWidth`, `connectorWidth`                                                                                                                                   | número, de 0 a 8                                                                                                                                                                             |
 | `arrowhead`                                                                                                                                                       | una punta: `triangle`, `open`, `none`, `triangleOutline`, `diamond`, `diamondOutline`, `circle`, `circleOutline`, `bar`, `cross`, `many`, `oneOrMany`, `onlyOne`, `zeroOrOne` o `zeroOrMany` |
-| `corners`                                                                                                                                                         | `sharp` (temas integrados) o `rounded`                                                                                                                                                       |
+| `corners`                                                                                                                                                         | `sharp` (temas integrados salvo `sketch.*`) o `rounded` (`sketch.*`)                                                                                                                         |
+| `sketch`                                                                                                                                                          | `none` (temas integrados salvo `sketch.*`), `light` (`sketch.*`) o `rough`: cómo se pintan los trazos ([svg-export.md](svg-export.md#trazos-a-mano))                                         |
 | `arrowSize`                                                                                                                                                       | número, de 0 a 32                                                                                                                                                                            |
 | `frame`                                                                                                                                                           | `none`, `footer` o `header`                                                                                                                                                                  |
 | `brand`                                                                                                                                                           | texto del logotipo entre comillas                                                                                                                                                            |

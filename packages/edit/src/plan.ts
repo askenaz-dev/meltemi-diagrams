@@ -1,3 +1,4 @@
+import { createLine, setLinePoints } from "./lines.js";
 import {
   applyTextEdits,
   invertTextEdits,
@@ -15,6 +16,7 @@ import {
   compile,
   singleIdent,
   type Compilation,
+  type Element,
   type LabelEntry,
   type PlaceEntry,
   type PlacementEntry,
@@ -305,6 +307,10 @@ function run(
       return createElement(ctx, operation);
     case "createRelation":
       return createRelation(ctx, operation);
+    case "createLine":
+      return createLine(ctx, operation);
+    case "setLinePoints":
+      return setLinePoints(ctx, operation);
     case "renameRelation":
       return renameRelation(ctx, operation);
     case "removeRelation":
@@ -465,7 +471,7 @@ function pointEdits(tuple: Arg | undefined, point: Point): TextEdit[] {
 
 export function setPosition(ctx: EditContext, op: OperationOf<"setPosition">): TextEdit[] {
   requireNumbers(op.x, op.y);
-  requireElement(ctx, op.element);
+  refuseLine(requireElement(ctx, op.element));
   // Dragging a box in an automatic view switches it to `assisted` (decision 0015).
   const mode = assistedMode(ctx);
   const entry = findEntry<PlaceEntry>(ctx, "place", op.element);
@@ -475,6 +481,11 @@ export function setPosition(ctx: EditContext, op: OperationOf<"setPosition">): T
     ...mode,
     insertPlacement(ctx, `place ${op.element} at ${formatPoint({ x: op.x, y: op.y })}`),
   ];
+}
+
+/** A free line takes no `place` or `size`: its points are written in its statement. */
+function refuseLine(element: Element): void {
+  if (element.kind === "line") reject("edit.invalid-value", reasons().lines.points(element.id));
 }
 
 /** Edits that turn `layout auto`, written or implied, into `layout assisted`. */
@@ -686,7 +697,7 @@ export function insertPlacements(ctx: EditContext, statements: readonly string[]
 export function setSize(ctx: EditContext, op: OperationOf<"setSize">): TextEdit[] {
   requireNumbers(op.width, op.height);
   if (op.width <= 0 || op.height <= 0) reject("edit.invalid-value", reasons().values.positiveSize);
-  requireElement(ctx, op.element);
+  refuseLine(requireElement(ctx, op.element));
   const entry = findEntry<SizeEntry>(ctx, "size", op.element);
   if (entry) return pointEdits(entry.node.args[1], { x: op.width, y: op.height });
   guardInvalidStatement(ctx, "size", op.element);
@@ -784,7 +795,10 @@ function setRoute(ctx: EditContext, op: OperationOf<"setRoute">): TextEdit[] {
 }
 
 function setLabelAnchor(ctx: EditContext, op: OperationOf<"setLabelAnchor">): TextEdit[] {
-  const relation = requireNamedRelation(ctx, op.relation);
+  // A free line's pill is placed as a relation's, by the line's id.
+  const line = ctx.diagram.elementsById.get(op.relation);
+  const relation =
+    line?.kind === "line" ? { key: line.id } : requireNamedRelation(ctx, op.relation);
   requireNumbers(op.at, op.offset.x, op.offset.y);
   if (op.at < 0 || op.at > 100) reject("edit.invalid-value", reasons().placement.labelPosition);
   const hasOffset = !sameNumber(op.offset.x, 0) || !sameNumber(op.offset.y, 0);
@@ -963,7 +977,9 @@ function removeElement(ctx: EditContext, op: OperationOf<"removeElement">): Text
       entry.statement === "place" || entry.statement === "size" || entry.statement === "gap"
         ? removedElements
         : removedRelationIds;
-    if (target.has(entry.target)) depend(entry.statement, entry.target, entry.node);
+    // A free line's label pill is placed by a `label` statement as a relation's is.
+    const lineLabel = entry.statement === "label" && removedElements.has(entry.target);
+    if (target.has(entry.target) || lineLabel) depend(entry.statement, entry.target, entry.node);
   }
   const removedEvents = participantEvents(ctx, removedElements);
   const removedEventIds = eventIdsOf(removedEvents);

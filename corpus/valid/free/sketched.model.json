@@ -1,0 +1,865 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "sketched",
+      "type": "free",
+      "range": {
+        "start": {
+          "offset": 263,
+          "line": 10,
+          "column": 1
+        },
+        "end": {
+          "offset": 882,
+          "line": 42,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": "rough",
+        "title": "Sketched",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "a",
+          "kind": "box",
+          "label": "Rounded",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 342,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 357,
+              "line": 15,
+              "column": 18
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 346,
+              "line": 15,
+              "column": 7
+            },
+            "end": {
+              "offset": 347,
+              "line": 15,
+              "column": 8
+            }
+          }
+        },
+        {
+          "id": "b",
+          "kind": "box",
+          "label": "Ellipse",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 360,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 375,
+              "line": 16,
+              "column": 18
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 364,
+              "line": 16,
+              "column": 7
+            },
+            "end": {
+              "offset": 365,
+              "line": 16,
+              "column": 8
+            }
+          }
+        },
+        {
+          "id": "c",
+          "kind": "box",
+          "label": "Diamond",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 378,
+              "line": 17,
+              "column": 3
+            },
+            "end": {
+              "offset": 393,
+              "line": 17,
+              "column": 18
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 382,
+              "line": 17,
+              "column": 7
+            },
+            "end": {
+              "offset": 383,
+              "line": 17,
+              "column": 8
+            }
+          }
+        },
+        {
+          "id": "d",
+          "kind": "box",
+          "label": "Cylinder",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 396,
+              "line": 18,
+              "column": 3
+            },
+            "end": {
+              "offset": 412,
+              "line": 18,
+              "column": 19
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 400,
+              "line": 18,
+              "column": 7
+            },
+            "end": {
+              "offset": 401,
+              "line": 18,
+              "column": 8
+            }
+          }
+        },
+        {
+          "id": "g",
+          "kind": "group",
+          "label": "Group",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 415,
+              "line": 19,
+              "column": 3
+            },
+            "end": {
+              "offset": 455,
+              "line": 21,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 421,
+              "line": 19,
+              "column": 9
+            },
+            "end": {
+              "offset": 422,
+              "line": 19,
+              "column": 10
+            }
+          }
+        },
+        {
+          "id": "e",
+          "kind": "box",
+          "label": "Inside",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "g"
+          ],
+          "range": {
+            "start": {
+              "offset": 437,
+              "line": 20,
+              "column": 5
+            },
+            "end": {
+              "offset": 451,
+              "line": 20,
+              "column": 19
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 441,
+              "line": 20,
+              "column": 9
+            },
+            "end": {
+              "offset": 442,
+              "line": 20,
+              "column": 10
+            }
+          }
+        },
+        {
+          "id": "rule",
+          "kind": "line",
+          "label": "Line",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": {
+            "from": {
+              "x": 40,
+              "y": 230
+            },
+            "to": {
+              "x": 840,
+              "y": 230
+            },
+            "via": []
+          },
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 521,
+              "line": 25,
+              "column": 3
+            },
+            "end": {
+              "offset": 566,
+              "line": 25,
+              "column": 48
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 526,
+              "line": 25,
+              "column": 8
+            },
+            "end": {
+              "offset": 530,
+              "line": 25,
+              "column": 12
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "call",
+          "id": "call",
+          "from": "a",
+          "to": "b",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "calls",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 458,
+              "line": 22,
+              "column": 3
+            },
+            "end": {
+              "offset": 481,
+              "line": 22,
+              "column": 26
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 477,
+              "line": 22,
+              "column": 22
+            },
+            "end": {
+              "offset": 481,
+              "line": 22,
+              "column": 26
+            }
+          }
+        },
+        {
+          "key": "later",
+          "id": "later",
+          "from": "b",
+          "to": "c",
+          "line": "dashed",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 484,
+              "line": 23,
+              "column": 3
+            },
+            "end": {
+              "offset": 500,
+              "line": 23,
+              "column": 19
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 495,
+              "line": 23,
+              "column": 14
+            },
+            "end": {
+              "offset": 500,
+              "line": 23,
+              "column": 19
+            }
+          }
+        },
+        {
+          "key": "store",
+          "id": "store",
+          "from": "c",
+          "to": "d",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 503,
+              "line": 24,
+              "column": 3
+            },
+            "end": {
+              "offset": 518,
+              "line": 24,
+              "column": 18
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 513,
+              "line": 24,
+              "column": 13
+            },
+            "end": {
+              "offset": 518,
+              "line": 24,
+              "column": 18
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "a",
+          "x": 100,
+          "y": 100,
+          "range": {
+            "start": {
+              "offset": 618,
+              "line": 30,
+              "column": 5
+            },
+            "end": {
+              "offset": 639,
+              "line": 30,
+              "column": 26
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 624,
+              "line": 30,
+              "column": 11
+            },
+            "end": {
+              "offset": 625,
+              "line": 30,
+              "column": 12
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "b",
+          "x": 320,
+          "y": 100,
+          "range": {
+            "start": {
+              "offset": 644,
+              "line": 31,
+              "column": 5
+            },
+            "end": {
+              "offset": 665,
+              "line": 31,
+              "column": 26
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 650,
+              "line": 31,
+              "column": 11
+            },
+            "end": {
+              "offset": 651,
+              "line": 31,
+              "column": 12
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "c",
+          "x": 540,
+          "y": 100,
+          "range": {
+            "start": {
+              "offset": 670,
+              "line": 32,
+              "column": 5
+            },
+            "end": {
+              "offset": 691,
+              "line": 32,
+              "column": 26
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 676,
+              "line": 32,
+              "column": 11
+            },
+            "end": {
+              "offset": 677,
+              "line": 32,
+              "column": 12
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "d",
+          "x": 760,
+          "y": 100,
+          "range": {
+            "start": {
+              "offset": 696,
+              "line": 33,
+              "column": 5
+            },
+            "end": {
+              "offset": 717,
+              "line": 33,
+              "column": 26
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 702,
+              "line": 33,
+              "column": 11
+            },
+            "end": {
+              "offset": 703,
+              "line": 33,
+              "column": 12
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "g",
+          "x": 440,
+          "y": 370,
+          "range": {
+            "start": {
+              "offset": 722,
+              "line": 34,
+              "column": 5
+            },
+            "end": {
+              "offset": 743,
+              "line": 34,
+              "column": 26
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 728,
+              "line": 34,
+              "column": 11
+            },
+            "end": {
+              "offset": 729,
+              "line": 34,
+              "column": 12
+            }
+          }
+        },
+        {
+          "statement": "size",
+          "target": "g",
+          "width": 240,
+          "height": 150,
+          "range": {
+            "start": {
+              "offset": 748,
+              "line": 35,
+              "column": 5
+            },
+            "end": {
+              "offset": 765,
+              "line": 35,
+              "column": 22
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 753,
+              "line": 35,
+              "column": 10
+            },
+            "end": {
+              "offset": 754,
+              "line": 35,
+              "column": 11
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "e",
+          "x": 120,
+          "y": 60,
+          "range": {
+            "start": {
+              "offset": 770,
+              "line": 36,
+              "column": 5
+            },
+            "end": {
+              "offset": 790,
+              "line": 36,
+              "column": 25
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 776,
+              "line": 36,
+              "column": 11
+            },
+            "end": {
+              "offset": 777,
+              "line": 36,
+              "column": 12
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [
+        {
+          "target": "b",
+          "targetKind": "element",
+          "properties": {
+            "shape": "ellipse"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 798,
+              "line": 39,
+              "column": 3
+            },
+            "end": {
+              "offset": 823,
+              "line": 39,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 804,
+              "line": 39,
+              "column": 9
+            },
+            "end": {
+              "offset": 805,
+              "line": 39,
+              "column": 10
+            }
+          }
+        },
+        {
+          "target": "c",
+          "targetKind": "element",
+          "properties": {
+            "shape": "diamond"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 826,
+              "line": 40,
+              "column": 3
+            },
+            "end": {
+              "offset": 851,
+              "line": 40,
+              "column": 28
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 832,
+              "line": 40,
+              "column": 9
+            },
+            "end": {
+              "offset": 833,
+              "line": 40,
+              "column": 10
+            }
+          }
+        },
+        {
+          "target": "d",
+          "targetKind": "element",
+          "properties": {
+            "shape": "cylinder"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 854,
+              "line": 41,
+              "column": 3
+            },
+            "end": {
+              "offset": 880,
+              "line": 41,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 860,
+              "line": 41,
+              "column": 9
+            },
+            "end": {
+              "offset": 861,
+              "line": 41,
+              "column": 10
+            }
+          }
+        }
+      ],
+      "animations": [
+        {
+          "target": "call",
+          "targetKind": "relation",
+          "effect": "dash",
+          "durationMs": null,
+          "repeat": null,
+          "delayMs": null,
+          "direction": null,
+          "particles": null,
+          "color": null,
+          "range": {
+            "start": {
+              "offset": 570,
+              "line": 27,
+              "column": 3
+            },
+            "end": {
+              "offset": 598,
+              "line": 27,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 578,
+              "line": 27,
+              "column": 11
+            },
+            "end": {
+              "offset": 582,
+              "line": 27,
+              "column": 15
+            }
+          }
+        }
+      ],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [
+    {
+      "id": "rough",
+      "extends": "sketch.light",
+      "tokens": {
+        "sketch": "rough"
+      },
+      "classes": [],
+      "rules": [],
+      "range": {
+        "start": {
+          "offset": 206,
+          "line": 5,
+          "column": 1
+        },
+        "end": {
+          "offset": 261,
+          "line": 8,
+          "column": 2
+        }
+      }
+    }
+  ],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

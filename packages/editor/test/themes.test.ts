@@ -139,6 +139,18 @@ describe("theme panel", () => {
     expect(font.type).toBe("enum");
     expect(font.options).toContain("Inter");
     expect(field(panel, "labelWeight").options).toContain("600");
+    // How strokes are painted, drawn as pictures, inherited as `none` from the technical base.
+    expect(field(panel, "sketch")).toMatchObject({
+      label: "Sketch",
+      type: "enum",
+      value: null,
+      placeholder: "none",
+      options: ["none", "light", "rough"],
+      glyphs: "sketch",
+    });
+    expect(
+      panel.groups.find((g) => g.title === "Shapes and lines")!.fields.map((f) => f.name),
+    ).toContain("sketch");
   });
 
   it("says there is nothing to edit for a built-in theme", () => {

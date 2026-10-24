@@ -699,6 +699,7 @@ class C4Analyzer extends FlowAnalyzer {
         technology: entity.technology,
         external: entity.external,
         shape: null,
+        line: null,
         typeKind: null,
         data: {},
         groupPath,
@@ -732,6 +733,16 @@ class C4Analyzer extends FlowAnalyzer {
     const ids = new Map<string, Token>();
     for (const stmt of statements) {
       if (stmt.target.kind !== "QualifiedRef") continue;
+      // A view draws its relations one way, with a head: `->` and `-->` only.
+      if (this.profile.arrows[stmt.arrow.text] === undefined) {
+        this.invalid(
+          messages().diagnostics.flow.arrowUnavailable(
+            stmt.arrow.text,
+            Object.keys(this.profile.arrows),
+          ),
+          stmt.arrow,
+        );
+      }
       const ends: string[] = [];
       for (const ref of [stmt.source, stmt.target]) {
         const path = ref.parts.map((p) => p.text).join(".");
@@ -785,6 +796,7 @@ class C4Analyzer extends FlowAnalyzer {
         from,
         to,
         line: "solid",
+        heads: "end",
         twoWay: false,
         async: false,
         technology: typeof values.technology === "string" ? values.technology : null,
@@ -823,6 +835,7 @@ class C4Analyzer extends FlowAnalyzer {
         from: a,
         to: b,
         line: "solid",
+        heads: "end",
         twoWay: false,
         async: false,
         technology: relation.technology,

@@ -7,16 +7,18 @@ as in flow diagrams.
 
 ## Objects
 
-| Declaration                   | Object                                                                  | Default size                          |
-| ----------------------------- | ----------------------------------------------------------------------- | ------------------------------------- |
-| `box <id> "Label"`, `id["L"]` | a shape with a label and an optional `description`                      | its shape's size, widened to its text |
-| `id[("Label")]`               | a box with the `cylinder` shape                                         | 160 × 64                              |
-| `text <id> "Text\nmore"`      | measured text without a frame                                           | its extent                            |
-| `icon <id> "tabler:server"`   | an icon of the packs; find names with `pnpm mdg assets icons <w>`       | 48 × 48                               |
-| `image <id> "img/logo.png"`   | a PNG, JPEG, GIF, WebP or SVG file of the project, relative to the file | its pixel size, at most 640 wide      |
-| `group <id> "Label" { ... }`  | a band holding objects and relations; `group <id> "" { }` is plain      | written, or fitted to children        |
+| Declaration                       | Object                                                                   | Default size                          |
+| --------------------------------- | ------------------------------------------------------------------------ | ------------------------------------- |
+| `box <id> "Label"`, `id["L"]`     | a shape with a label and an optional `description`                       | its shape's size, widened to its text |
+| `id[("Label")]`                   | a box with the `cylinder` shape                                          | 160 × 64                              |
+| `text <id> "Text\nmore"`          | measured text without a frame                                            | its extent                            |
+| `icon <id> "tabler:server"`       | an icon of the packs; find names with `pnpm mdg assets icons <w>`        | 48 × 48                               |
+| `image <id> "img/logo.png"`       | a PNG, JPEG, GIF, WebP or SVG file of the project, relative to the file  | its pixel size, at most 640 wide      |
+| `group <id> "Label" { ... }`      | a band holding objects and relations; `group <id> "" { }` is plain       | written, or fitted to children        |
+| `line <id> from (x, y) to (x, y)` | a line that joins no element: a divider, a bracket, an underline (below) | the bounding box of its points        |
 
-`node`, `decision`, `data`, `note` and `tag` are flow kinds and are refused here.
+`node`, `decision`, `data`, `note` and `tag` are flow kinds and are refused here. Relations take
+the lines without heads `a -- b` and `a --- b` too.
 
 ## Shapes and corners
 
@@ -55,7 +57,41 @@ Free-only text properties (refused in flow diagrams):
 
 - `fontSize 6..160`, `fontWeight 400|500|600|700`, `textAlign left|center|right` on boxes and
   text (text defaults to 1.6 × the label size, left aligned);
+- `verticalAlign top|middle|bottom` on boxes (`middle` by default) moves the label, description
+  and icon to the top or bottom of the shape's text band, the theme's padding from its edge:
+  `style card { shape rectangle; textAlign left; verticalAlign top }` is draw.io's top-left text.
+  Ellipses and other narrowing shapes move a wide block back towards the middle until it fits;
+  cylinders keep it between the rims, documents above the wave, callouts above the tail. On
+  `triangle`, `pentagon`, `star`, `person`, `agent` and `icon` shapes, with `iconPosition center`,
+  and on texts, icons, images, groups and lines it moves nothing (`layout.vertical-align-ignored`);
 - a text, icon or image with `fill`, `stroke` or `pattern` gets a frame.
+
+## Lines
+
+```text
+line divider "Phase 2" from (40, 160) to (520, 160)          // a labelled divider
+line bracket from (40, 220) to (520, 280) via [(280, 220)]   // bends in a via list
+group notes "Notes" {
+  text remark "Read first"
+  line underline from (0, 22) to (120, 22)                   // in the group's interior
+}
+style divider { line dashed; stroke muted }
+style bracket { routing orthogonal; corners rounded; arrowhead triangle }
+```
+
+- A `line` joins nothing: use it for dividers, brackets, underlines and strokes; between two
+  boxes write a relation (`a -- b`) so it follows them.
+- Its points are written in the statement, in the parent group's interior like `place`; it takes
+  no `place`, `size` or `rotation` (`prop.invalid-value`).
+- It takes a relation's styles: `stroke`, `width`, `line`, `arrowhead` and `arrowtail` (none by
+  default), `routing` (`polyline` by default, `orthogonal`, `bezier`), `corners`, and `color`,
+  `fill`, `icon` for its label pill; a box's properties (`shape`, `radius`, the text properties)
+  are `prop.invalid-value`. `rule line { }` styles every line.
+- The label is the optional second argument, on a pill at 50 %;
+  `label divider at 20% offset (0, -14)` in `placement` moves it. `flow`, `dash`, `pulse` and
+  `trace` run along a line.
+- A line whose points coincide is drawn as a dot: `layout.degenerate-line`. Flow, sequence and C4
+  diagrams refuse `line` (`prop.unknown`).
 
 ## Icons in boxes and as shapes
 
@@ -141,8 +177,8 @@ style band { fill "#f5f5f5"; radius 0 }
 
 - `layers back, main, front` lists layers back to front; `main` is the default and comes last
   when unlisted. Put `layer front` in an object's or relation's block.
-- Within a layer, groups paint first, then objects in source order, then relations: declare what
-  must be on top later.
+- Within a layer, groups paint first, then objects (lines included) in source order, then
+  relations: declare what must be on top later.
 - `link checkout.api` in a block records that the object stands for element `api` of `diagram
 checkout` (same file), `link co.api` through `import checkout as co from "..."`, or `link
 views.checkout.api` through `import "..." as views`. Identity only; nothing is kept in step.
@@ -157,16 +193,18 @@ Edit the copy freely; the flow diagram is unchanged.
 
 ## Diagnostics
 
-| Code                            | Fix                                                                                          |
-| ------------------------------- | -------------------------------------------------------------------------------------------- |
-| `ref.unknown-layer`             | add the layer to `layers` (the hint gives the statement) or fix its name                     |
-| `ref.unknown-link`              | the diagram or element does not exist; fix the name or remove the `link`                     |
-| `asset.outside-project`         | image paths are relative, use `/`, no URLs, and stay inside the project                      |
-| `asset.unknown-image`           | the file does not exist next to the path written                                             |
-| `asset.unsupported-image`       | not a PNG, JPEG, GIF, WebP or SVG image, broken, or over 8 MB                                |
-| `layout.image-unavailable`      | the host could not read the image; a placeholder is drawn                                    |
-| `layout.missing-placement`      | an object or a group has no `place`                                                          |
-| `layout.overlap`                | boxes overlap partly, or a stack is declared inner first: declare the outer box first        |
-| `layout.icon-missing`           | `shape icon` without an `icon` style: add `icon "pack:name"` or choose another shape         |
-| `layout.label-position-ignored` | `labelPosition` only moves the label of `iconPosition center` and `shape icon` elements      |
-| `prop.invalid-value`            | `fontSize`, `fontWeight` and `textAlign` are free-only; `shape` is for `node` and `box` only |
+| Code                            | Fix                                                                                                                                                                              |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ref.unknown-layer`             | add the layer to `layers` (the hint gives the statement) or fix its name                                                                                                         |
+| `ref.unknown-link`              | the diagram or element does not exist; fix the name or remove the `link`                                                                                                         |
+| `asset.outside-project`         | image paths are relative, use `/`, no URLs, and stay inside the project                                                                                                          |
+| `asset.unknown-image`           | the file does not exist next to the path written                                                                                                                                 |
+| `asset.unsupported-image`       | not a PNG, JPEG, GIF, WebP or SVG image, broken, or over 8 MB                                                                                                                    |
+| `layout.image-unavailable`      | the host could not read the image; a placeholder is drawn                                                                                                                        |
+| `layout.missing-placement`      | an object or a group has no `place`                                                                                                                                              |
+| `layout.overlap`                | boxes overlap partly, or a stack is declared inner first: declare the outer box first                                                                                            |
+| `layout.icon-missing`           | `shape icon` without an `icon` style: add `icon "pack:name"` or choose another shape                                                                                             |
+| `layout.label-position-ignored` | `labelPosition` only moves the label of `iconPosition center` and `shape icon` elements                                                                                          |
+| `layout.vertical-align-ignored` | `verticalAlign` moves nothing on this shape or kind: choose a shape with a text band (`rectangle`, `ellipse`, `cylinder`), set `labelPosition` with a centred icon, or remove it |
+| `layout.degenerate-line`        | a line's points coincide: move an end or add a bend with `via`                                                                                                                   |
+| `prop.invalid-value`            | `fontSize`, `fontWeight`, `textAlign` and `verticalAlign` are free-only; `shape` is for `node` and `box` only; a line takes no `place` or `size`                                 |

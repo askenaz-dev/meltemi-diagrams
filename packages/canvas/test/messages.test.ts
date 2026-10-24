@@ -155,6 +155,8 @@ describe("the canvas catalog", () => {
     expect(ARROW_KINDS.map((kind) => glyphName(kind, "arrow"))).toEqual([
       "arrow",
       "dashed arrow",
+      "line",
+      "dashed line",
       "two-way arrow",
       "dashed two-way arrow",
     ]);
@@ -162,6 +164,8 @@ describe("the canvas catalog", () => {
     expect(ARROW_KINDS.map((kind) => glyphName(kind, "arrow"))).toEqual([
       "flecha",
       "flecha discontinua",
+      "línea",
+      "línea discontinua",
       "flecha doble",
       "flecha doble discontinua",
     ]);
@@ -176,8 +180,13 @@ describe("the canvas catalog", () => {
     );
     expect(en.announcements.arrowKind("-->")).toBe("Dashed arrow (-->).");
     expect(en.announcements.arrowKind("<->")).toBe("Two-way arrow (<->).");
-    expect(en.announcements.connected("api", "db", true, true)).toBe(
+    expect(en.announcements.connected("api", "db", true, "both")).toBe(
       "Connected api to db, both ways, dashed.",
+    );
+    expect(en.announcements.arrowKind("--")).toBe("Line (--).");
+    expect(en.announcements.arrowKind("---")).toBe("Dashed line (---).");
+    expect(en.announcements.connected("api", "db", true, "none")).toBe(
+      "Connected api to db with a line, dashed.",
     );
     expect(en.announcements.connected("api", "db", false)).toBe("Connected api to db.");
     expect(en.palette.shaped("Box", "hexagon", "B")).toBe(
@@ -205,8 +214,12 @@ describe("the canvas catalog", () => {
     );
     expect(es.announcements.arrowKind("-->")).toBe("Flecha discontinua (-->).");
     expect(es.announcements.arrowKind("<-->")).toBe("Flecha doble discontinua (<-->).");
-    expect(es.announcements.connected("api", "db", false, true)).toBe(
+    expect(es.announcements.connected("api", "db", false, "both")).toBe(
       "Se conectó api con db en ambos sentidos.",
+    );
+    expect(es.announcements.arrowKind("---")).toBe("Línea discontinua (---).");
+    expect(es.announcements.connected("api", "db", false, "none")).toBe(
+      "Se conectó api con db con una línea.",
     );
     expect(es.palette.shaped("Caja", "diamond", "B")).toBe(
       "Caja, rombo: haz clic en el lienzo o presiona B",

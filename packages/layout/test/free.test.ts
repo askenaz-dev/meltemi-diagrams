@@ -46,6 +46,134 @@ function element(scene: Scene, id: string): GroupItem {
 const of = <K extends SceneItem["kind"]>(g: GroupItem, kind: K) =>
   g.items.filter((i): i is Extract<SceneItem, { kind: K }> => i.kind === kind);
 
+describe("free lines", () => {
+  /** The scene point of a diagram point: the scene is moved by the layout's offset. */
+  const at = (result: ReturnType<typeof run>, x: number, y: number) => ({
+    x: x + result.offset!.x,
+    y: y + result.offset!.y,
+  });
+
+  it("draws a straight line as a connector of its own, with no head", () => {
+    const result = run("  line l from (40, 200) to (520, 200)");
+    const group = element(result.scene!, "l");
+    const [line] = of(group, "polyline");
+    expect(line!.points).toEqual([at(result, 40, 200), at(result, 520, 200)]);
+    expect(line).toMatchObject({ stroke: "#526579", strokeWidth: 1.3 });
+    expect(of(group, "path")).toEqual([]);
+    expect(group.track).toEqual(line!.points);
+    expect(result.boxes!.get("l")).toEqual({ x: 40, y: 200, width: 480, height: 1 });
+    expect(result.connectors!.get("l")).toMatchObject({
+      points: [
+        { x: 40, y: 200 },
+        { x: 520, y: 200 },
+      ],
+      via: [],
+    });
+  });
+
+  it("rounds a bend, cuts a head and stops the line at its base", () => {
+    const result = run(
+      "  line l from (0, 0) to (200, 100) via [(200, 0)]\n  style l { routing orthogonal; corners rounded; arrowhead triangle }",
+    );
+    const drawn = result.connectors!.get("l")!.line;
+    expect(drawn).toContainEqual({ x: 190, y: 0 });
+    expect(drawn).toContainEqual({ x: 200, y: 10 });
+    expect(drawn).not.toContainEqual({ x: 200, y: 0 });
+    // The head points down at (200, 100); the line stops above it.
+    expect(drawn.at(-1)!.x).toBe(200);
+    expect(drawn.at(-1)!.y).toBeLessThan(100);
+    const [head] = of(element(result.scene!, "l"), "path");
+    expect(head!.fill).toBe("#526579");
+  });
+
+  it("routes a line as written: straight by default, elbows when orthogonal, a curve with bezier", () => {
+    const plain = run(
+      "  routing orthogonal\n  line l from (100, 100) to (300, 100) via [(200, 150)]",
+    );
+    expect(plain.connectors!.get("l")!.points).toEqual([
+      { x: 100, y: 100 },
+      { x: 200, y: 150 },
+      { x: 300, y: 100 },
+    ]);
+    const elbow = run("  line l from (0, 0) to (200, 100)\n  style l { routing orthogonal }");
+    expect(elbow.connectors!.get("l")!.points).toEqual([
+      { x: 0, y: 0 },
+      { x: 200, y: 0 },
+      { x: 200, y: 100 },
+    ]);
+    const curved = run(
+      "  line l from (0, 0) to (200, 0) via [(100, 60)]\n  style l { routing bezier }",
+    );
+    const group = element(curved.scene!, "l");
+    const [path] = of(group, "path");
+    expect(path!.d).toMatch(/C/);
+    expect(path!.fill).toBe("none");
+    expect(group.track!.length).toBeGreaterThan(3);
+  });
+
+  it("moves a line with its group, which keeps its statement", () => {
+    const body = (x: number) =>
+      `  group g "G" {\n    line l from (20, 40) to (120, 40)\n  }\n  placement {\n    place g at (${x}, 200)\n    size g (400, 240)\n  }`;
+    const left = run(body(300));
+    const right = run(body(500));
+    expect(right.boxes!.get("l")!.x - left.boxes!.get("l")!.x).toBe(200);
+    expect(left.origins!.get("l")).toEqual({ x: 116, y: 120 });
+    expect(left.boxes!.get("l")).toMatchObject({ x: 136, y: 160 });
+  });
+
+  it("draws a label pill at the middle, or where its label statement puts it", () => {
+    const middle = run('  line l "Step" from (0, 0) to (300, 0)');
+    const pill = middle.labels!.get("l")!;
+    expect(pill.x + pill.width / 2).toBeCloseTo(150, 5);
+    const label = element(middle.scene!, "l").items.find(
+      (i) => i.kind === "group" && i.role === "label",
+    );
+    expect(label).toBeDefined();
+    const moved = run('  line l "Step" from (0, 0) to (300, 0)\n  placement { label l at 20% }');
+    const box = moved.labels!.get("l")!;
+    expect(box.x + box.width / 2).toBeCloseTo(60, 5);
+  });
+
+  it("paints a line in source order and leaves it out of the composition checks", () => {
+    const result = run(
+      '  box a "A"\n  line l from (0, 20) to (200, 20)\n  box b "B"\n  placement {\n    place a at (60, 20)\n    place b at (300, 20)\n  }',
+    );
+    const order = result
+      .scene!.items.filter((i): i is GroupItem => i.kind === "group" && i.role === "element")
+      .map((i) => i.id);
+    expect(order).toEqual(["a", "l", "b"]);
+    expect(result.codes).not.toContain("layout.overlap");
+  });
+
+  it("draws a line with no length as a point, and says so", () => {
+    const result = run("  line l from (10, 10) to (10, 10)");
+    const warning = result.diagnostics.find((d) => d.code === "layout.degenerate-line");
+    expect(warning).toMatchObject({ severity: "warning" });
+    const [dot] = of(element(result.scene!, "l"), "path");
+    expect(dot!.fill).toBe("#526579");
+  });
+
+  it("draws the heads written on a line, shorter by their lengths", () => {
+    const result = run(
+      "  line l from (0, 0) to (200, 0)\n  style l { arrowtail circle; arrowhead triangle }",
+    );
+    const drawn = result.connectors!.get("l")!.line;
+    expect(drawn[0]!.x).toBeGreaterThan(0);
+    expect(drawn.at(-1)!.x).toBeLessThan(200);
+    expect(of(element(result.scene!, "l"), "path")).toHaveLength(2);
+  });
+
+  it("derives a group's size from the line it holds", () => {
+    const result = run(
+      '  group g "G" {\n    box a "A"\n    line l from (0, 120) to (400, 120)\n  }\n  placement {\n    place g at (300, 200)\n    place a at (80, 28)\n  }',
+    );
+    const group = result.boxes!.get("g")!;
+    const line = result.boxes!.get("l")!;
+    expect(group.x).toBeLessThanOrEqual(line.x);
+    expect(group.x + group.width).toBeGreaterThanOrEqual(line.x + line.width);
+  });
+});
+
 describe("interior coordinates", () => {
   const sheet = (x: number) =>
     `  group g "G" {\n    box a "A"\n  }\n  placement {\n    place g at (${x}, 200)\n    size g (400, 240)\n    place a at (60, 40)\n  }`;

@@ -20,7 +20,7 @@ diagram usecase: flow {
   User -> UC2
   Admin -> Manage_stock
   Admin -> User as e1
-  note1 --> UC2 as e2
+  note1 --- UC2
 
   style User { shape person }
   style Admin { shape person }
@@ -29,5 +29,4 @@ diagram usecase: flow {
   style UC2 { shape ellipse }
   style Manage_stock { shape ellipse }
   style e1 { arrowhead triangleOutline }
-  style e2 { arrowhead none }
 }

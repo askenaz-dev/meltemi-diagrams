@@ -78,10 +78,10 @@ export const es: typeof en = {
     escapes: 'Las secuencias de escape admitidas son \\", \\\\, \\n y \\t.',
     multilineString:
       "Las cadenas no pueden ocupar varias líneas; usa \\n para un salto de línea dentro de una etiqueta.",
-    arrows: "Las flechas admitidas son `->`, `-->`, `<->` y `<-->`.",
+    arrows: "Los símbolos de relación son `->`, `-->`, `--`, `---`, `<->` y `<-->`.",
     identifiers:
       "Los identificadores usan letras ASCII, dígitos y `_`; escribe otros textos en una etiqueta entre comillas.",
-    minus: "Un signo menos debe ir seguido de un dígito o de `>`.",
+    minus: "Un signo menos debe ir seguido de un dígito, de `-` o de `>`.",
     separateStatements: "Separa las instrucciones con un salto de línea o `;`.",
     topLevel:
       "Las instrucciones de nivel superior son `language`, `import`, `model`, `diagram`, `story`, `export` y `theme`.",

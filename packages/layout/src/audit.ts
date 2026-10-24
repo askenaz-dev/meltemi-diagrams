@@ -136,6 +136,8 @@ interface Owner {
   readonly texts: PlacedText[];
   /** Relations: the lines as drawn (a connector passing under a title is drawn in pieces). */
   readonly lines: (readonly Point[])[];
+  /** Free lines: elements drawn as connectors, whose lines are checked as relations' are. */
+  readonly line?: boolean;
 }
 
 /**
@@ -206,10 +208,13 @@ export function auditLabels(
       if (item.kind === "group") {
         // The brand mark is drawn in its own units; its text sits beside it.
         if (item.transform) continue;
+        // A free line is an element drawn as a connector: its box is no shape to overlap.
+        const line = item.role === "element" && item.track !== undefined;
         const next: Owner = {
           id: item.id,
           role: item.role,
-          ...(item.bounds
+          ...(line ? { line } : {}),
+          ...(item.bounds && !line
             ? {
                 box: {
                   x: item.bounds.x,
@@ -227,7 +232,7 @@ export function auditLabels(
         owners.push(next);
         walk(item.items, next);
         background = undefined;
-      } else if (item.kind === "polyline" && owner?.role === "relation") {
+      } else if (item.kind === "polyline" && (owner?.role === "relation" || owner?.line)) {
         owner.lines.push(item.points);
         background = undefined;
       } else if (item.kind === "rect") {
@@ -290,7 +295,7 @@ export function auditLabels(
   }
   // Labels against connectors other than their own (a relation's label group has its id).
   const relations = owners
-    .filter((o) => o.role === "relation" && o.lines.length > 0)
+    .filter((o) => (o.role === "relation" || o.line) && o.lines.length > 0)
     .map((o) => ({ owner: o, extent: extentOf(o.lines) }));
   for (const text of texts) {
     for (const { owner: relation, extent } of relations) {

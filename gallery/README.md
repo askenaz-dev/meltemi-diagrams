@@ -38,3 +38,11 @@ A 16:9 slide composed freely: measured text, groups placed by their interiors, i
 ![Free: a roadmap slide](free/roadmap.svg)
 
 [Source](free/roadmap.meltemi) · [SVG](free/roadmap.svg) · [PNG](free/roadmap.png) · [PDF](free/roadmap.pdf)
+
+## Free: a whiteboard sketch
+
+The `sketch.light` theme paints every stroke by hand in two passes while the text stays crisp; a dashed free line divides what runs today from what comes next.
+
+![Free: a whiteboard sketch](free/sketch.svg)
+
+[Source](free/sketch.meltemi) · [SVG](free/sketch.svg) · [PNG](free/sketch.png) · [PDF](free/sketch.pdf)

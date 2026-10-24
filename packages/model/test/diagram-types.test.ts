@@ -99,6 +99,18 @@ describe("declared diagram types", () => {
     expect(definition!.elements.event!.style).toEqual({ shape: "circle", radius: 64 });
   });
 
+  it("take the vertical alignment in kind styles, as the text alignment", () => {
+    const read = (verticalAlign: string) =>
+      readDiagramType(
+        { type: "notes", elements: { card: { style: { verticalAlign, textAlign: "left" } } } },
+        null,
+      );
+    const { definition, problems } = read("top");
+    expect(problems).toEqual([]);
+    expect(definition!.elements.card!.style).toEqual({ verticalAlign: "top", textAlign: "left" });
+    expect(read("center").problems).toHaveLength(1);
+  });
+
   it("compile kinds as boxes with their data, on the free profile", () => {
     const text = `diagram s: erd {
   entity customer "Customer" { owner "Sales"; archived true }

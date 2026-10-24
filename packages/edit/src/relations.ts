@@ -5,7 +5,7 @@ import {
   type TextEdit,
   type Token,
 } from "@meltemi/diagrams-language";
-import type { Relation, RouteEntry } from "@meltemi/diagrams-model";
+import { arrowToken, type Relation, type RouteEntry } from "@meltemi/diagrams-model";
 import { reject, requireElement, requireNamedRelation, type EditContext } from "./context.js";
 import { freeId, requirePortOf } from "./create.js";
 import { deleteStatements } from "./delete.js";
@@ -115,8 +115,8 @@ export function removeRelation(ctx: EditContext, op: OperationOf<"removeRelation
 
 export function setRelationLine(ctx: EditContext, op: OperationOf<"setRelationLine">): TextEdit[] {
   const relation = requireRelation(ctx, op.relation);
-  // A two-way arrow stays two-way.
-  const arrow = `${relation.twoWay ? "<" : ""}${op.line === "dashed" ? "-->" : "->"}`;
+  // The heads stay: a two-way arrow stays two-way, a line stays a line.
+  const arrow = arrowToken(op.line, relation.heads);
   if (relation.node.arrow.text === arrow) return [];
   return [{ start: relation.node.arrow.start, end: relation.node.arrow.end, newText: arrow }];
 }

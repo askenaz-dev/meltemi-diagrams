@@ -113,13 +113,13 @@ describe("the shapes of the palette", () => {
 });
 
 describe("the kinds of arrow of the relation tool", () => {
-  it("are the four arrows, cycled in order by R", () => {
-    expect(ARROW_KINDS).toEqual(["->", "-->", "<->", "<-->"]);
+  it("are the six kinds, cycled in order by R", () => {
+    expect(ARROW_KINDS).toEqual(["->", "-->", "--", "---", "<->", "<-->"]);
     expect(arrowKinds("flow")).toEqual(ARROW_KINDS);
     expect(arrowKinds("free")).toEqual(ARROW_KINDS);
     const cycle = ["->"] as (typeof ARROW_KINDS)[number][];
-    for (let i = 0; i < 4; i++) cycle.push(nextArrowKind(cycle[cycle.length - 1]!, "free"));
-    expect(cycle).toEqual(["->", "-->", "<->", "<-->", "->"]);
+    for (let i = 0; i < 6; i++) cycle.push(nextArrowKind(cycle[cycle.length - 1]!, "free"));
+    expect(cycle).toEqual(["->", "-->", "--", "---", "<->", "<-->", "->"]);
   });
 
   it("are `->` alone in C4 views, whose models write no other, and none in sequence diagrams", () => {
@@ -129,19 +129,26 @@ describe("the kinds of arrow of the relation tool", () => {
     expect(arrowKindIn("<->", "c4")).toBe("->");
     expect(arrowKindIn("<-->", "c4")).toBe("->");
     expect(arrowKindIn("-->", "c4")).toBe("->");
+    expect(arrowKindIn("--", "c4")).toBe("->");
+    expect(arrowKindIn("---", "c4")).toBe("->");
     expect(nextArrowKind("<->", "c4")).toBe("->");
     expect(arrowKindIn("<->", "flow")).toBe("<->");
     expect(arrowKinds("sequence")).toEqual([]);
     expect(nextArrowKind("-->", "sequence")).toBe("-->");
   });
 
-  it("are written with a line and heads at one end or both; Shift swaps the line", () => {
-    expect(arrowKindLine("->")).toEqual({ line: "solid", twoWay: false });
-    expect(arrowKindLine("-->")).toEqual({ line: "dashed", twoWay: false });
-    expect(arrowKindLine("<->")).toEqual({ line: "solid", twoWay: true });
-    expect(arrowKindLine("<-->")).toEqual({ line: "dashed", twoWay: true });
-    expect(arrowKindLine("->", true)).toEqual({ line: "dashed", twoWay: false });
-    expect(arrowKindLine("-->", true)).toEqual({ line: "solid", twoWay: false });
-    expect(arrowKindLine("<-->", true)).toEqual({ line: "solid", twoWay: true });
+  it("are written with a line and heads at the end, both ends or none; Shift swaps the line", () => {
+    expect(arrowKindLine("->")).toEqual({ line: "solid", heads: "end" });
+    expect(arrowKindLine("-->")).toEqual({ line: "dashed", heads: "end" });
+    expect(arrowKindLine("--")).toEqual({ line: "solid", heads: "none" });
+    expect(arrowKindLine("---")).toEqual({ line: "dashed", heads: "none" });
+    expect(arrowKindLine("<->")).toEqual({ line: "solid", heads: "both" });
+    expect(arrowKindLine("<-->")).toEqual({ line: "dashed", heads: "both" });
+    expect(arrowKindLine("->", true)).toEqual({ line: "dashed", heads: "end" });
+    expect(arrowKindLine("-->", true)).toEqual({ line: "solid", heads: "end" });
+    // Shift flips the dashes only: a line stays a line.
+    expect(arrowKindLine("--", true)).toEqual({ line: "dashed", heads: "none" });
+    expect(arrowKindLine("---", true)).toEqual({ line: "solid", heads: "none" });
+    expect(arrowKindLine("<-->", true)).toEqual({ line: "solid", heads: "both" });
   });
 });

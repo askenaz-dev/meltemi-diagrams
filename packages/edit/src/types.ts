@@ -132,16 +132,44 @@ export type EditOperation =
     }
   | {
       /**
-       * Adds a relation; with ports it is named and routed. `line` and `twoWay` choose the arrow:
-       * `->`, `-->`, `<->` or `<-->`.
+       * Declares a free line, `line <id> from (x, y) to (x, y) [via [...]]`, with a generated
+       * `line<n>` id when `id` is absent, in the diagram body or in `parent`'s block; its points are
+       * in that parent's interior coordinates. `styles` go in one `style` statement in the same edit.
+       */
+      readonly kind: "createLine";
+      readonly diagram: string;
+      readonly from: Point;
+      readonly to: Point;
+      readonly via?: readonly Point[];
+      readonly parent?: string;
+      readonly id?: string;
+      readonly label?: string;
+      readonly styles?: readonly { readonly property: string; readonly value: string }[];
+    }
+  | {
+      /**
+       * Moves the points of a free line, in its parent's interior coordinates: the `from` and `to`
+       * tuples, and a `via` list after `to`, inserted or removed as bends appear or go.
+       */
+      readonly kind: "setLinePoints";
+      readonly diagram: string;
+      readonly element: string;
+      readonly from: Point;
+      readonly to: Point;
+      readonly via: readonly Point[];
+    }
+  | {
+      /**
+       * Adds a relation; with ports it is named and routed. `line` and `heads` choose the token:
+       * `->`, `-->`, `<->`, `<-->`, or the lines `--` and `---`.
        */
       readonly kind: "createRelation";
       readonly diagram: string;
       readonly from: string;
       readonly to: string;
       readonly line: LineStyle;
-      /** A head at both ends: `<->` or `<-->`. */
-      readonly twoWay?: boolean;
+      /** `both` for `<->` or `<-->`, `none` for the lines `--` or `---`; a head at the end otherwise. */
+      readonly heads?: "none" | "both";
       readonly label?: string;
       readonly id?: string;
       readonly fromPort?: string;

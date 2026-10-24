@@ -197,7 +197,24 @@ unen sus anclajes directamente.
 **Esquinas redondeadas.** `corners rounded` (un estilo de relación, o el token del tema para todas
 las relaciones) reemplaza cada codo de un conector `auto`, `orthogonal` o `polyline` por una curva
 que empieza a 10 px del codo, o a la mitad del segmento más corto cuando eso es menos. Los temas
-integrados mantienen las esquinas `sharp`; los conectores `bezier` ya son suaves.
+integrados mantienen las esquinas `sharp`, salvo el par `sketch.*`, que las redondea; los
+conectores `bezier` ya son suaves.
+
+**Líneas sin puntas.** Una relación escrita `--` o `---` se traza exactamente como una flecha: se
+aplican las reglas de anclaje, los carriles, los desvíos y los huecos bajo los títulos de grupo, y
+la línea llega a las dos cajas, porque no hay punta en la que detenerse.
+
+**Líneas libres.** Una `line` de un diagrama libre ([free.md](free.md#líneas)) es un conector
+cuyos anclajes y puntos de paso son los puntos escritos, desplazados por el origen del interior de
+su padre. Es `polyline` de forma predeterminada, y también con `auto`, porque no tiene ninguna caja
+a la que anclarse: segmentos rectos entre sus puntos. `routing orthogonal` pone un codo entre dos
+puntos consecutivos que difieren en los dos ejes, con el primer segmento en el eje del paso más
+largo (`from (0, 0) to (200, 100)` pasa por (200, 0)); `routing bezier` traza una curva que pasa por
+todos los puntos; `corners rounded` redondea sus codos. Sus puntas son `arrowtail` y `arrowhead`,
+ninguna de forma predeterminada, recortadas de la línea como las de una relación. Una línea no
+toma carriles, desvíos ni huecos bajo el título de un grupo, y las comprobaciones de composición
+entre cajas la dejan fuera: sus puntos están donde los escribiste. Una línea cuyos puntos coinciden
+se dibuja como un punto de su ancho y se informa como `layout.degenerate-line` (advertencia).
 
 **Elementos girados.** Un conector llega a un elemento girado con `rotation` por su contorno
 girado. Un extremo libre se dirige al rectángulo que envuelve el dibujo girado, como a cualquier

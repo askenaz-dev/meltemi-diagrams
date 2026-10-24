@@ -151,14 +151,14 @@ esencial (un elemento, una relación, un mensaje, una entidad o una línea que n
 | `"Label" as a`, `a as "Label"`, `[Label] as a` | id y etiqueta | convertido |  |
 | `<<stereotype>>` | descripción `«stereotype»` | aproximado |  |
 | `#colour`, `#line:c`, `#line.dashed`, `#text:c` | `fill`, `stroke`, `line dashed`, `color` | convertido |  |
-| `-->`, `->`, `..>`, `--`, `<--`, `-[#red]->`, `-[bold]->`, `-[thickness=n]->` | relaciones; la punteada es `-->`; sin punta es `arrowhead none`; los colores y anchos pasan a ser estilos | convertido |  |
+| `-->`, `->`, `..>`, `--`, `<--`, `-[#red]->`, `-[bold]->`, `-[thickness=n]->` | relaciones; la punteada es `-->`; sin punta es la línea `--` (`---` si es punteada); los colores y anchos pasan a ser estilos | convertido |  |
 | `--\|>`, `<\|--`, `*--`, `o--`, `--x`, `}\|--\|\|`, `}o--o\|` | `triangleOutline`, `diamond`, `diamondOutline`, `cross` y las puntas de pata de gallo en su extremo | convertido |  |
 | `--#`, `--+`, `--^`, `-(0-` | puntas simples | aproximado |  |
 | `<-->`, `<..>`, `*--*` | `<->`, `<-->`, con la punta en ambos extremos | convertido |  |
 | `-left->`, `-up->`, `-l->` y otras indicaciones de dirección | una relación | aproximado | Las direcciones quedan a cargo de la disposición. |
 | `a "1" --> "*" b` | una relación sin etiquetas en los extremos | aproximado |  |
 | `-[hidden]->` | — | descartado |  |
-| `note left\|right\|top\|bottom of x : text`, `note … end note`, `note "text" as N` | `note` con una relación discontinua sin punta hacia su elemento | convertido |  |
+| `note left\|right\|top\|bottom of x : text`, `note … end note`, `note "text" as N` | `note` unida a su elemento por la línea discontinua `---` | convertido |  |
 | `note on link` | — | descartado |  |
 | `left to right direction`, `top to bottom direction` | `direction LR`, `direction TB` | convertido |  |
 | `together { … }` | — | descartado | Sus elementos se conservan. |

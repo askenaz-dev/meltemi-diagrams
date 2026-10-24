@@ -183,3 +183,108 @@ describe("layers", () => {
     );
   });
 });
+
+describe("sketched strokes", () => {
+  const free = (theme: string, extra = "") =>
+    `diagram s: free {\n  layout manual\n  theme "${theme}"\n  box a "A"\n  box b "B"\n${extra}  a -> b as pay\n  placement {\n    place a at (100, 100)\n    place b at (400, 100)\n  }\n}\n`;
+  /** The markup of the group of `id` with `role`, up to its closing tag. */
+  const groupOf = (svg: string, id: string, role: string) => {
+    const start = svg.indexOf(`<g data-id="${id}" data-role="${role}"`);
+    expect(start, `${role} ${id}`).toBeGreaterThanOrEqual(0);
+    const indent = /\n( *)$/.exec(svg.slice(0, start))![1]!;
+    const end = svg.indexOf(`\n${indent}</g>`, start);
+    return svg.slice(start, end);
+  };
+
+  it("paint a box's fill once and its outline in two passes, text unchanged", () => {
+    const sketched = render(free("sketch.light"));
+    const clean = render(free("technical.light"));
+    const box = groupOf(sketched, "a", "element");
+    const lines = box.split("\n").slice(1);
+    // The fill alone, then two stroke-only paths, then the label.
+    expect(lines[0]).toMatch(/^ *<(rect|path) [^>]*stroke="none"/);
+    expect(lines[1]).toMatch(/^ *<path d="M[^"]+" fill="none" stroke="#[0-9A-F]{6}"/);
+    expect(lines[2]).toMatch(/^ *<path d="M[^"]+" fill="none" stroke="#[0-9A-F]{6}"/);
+    expect(lines[1]).not.toBe(lines[2]);
+    expect(box).not.toMatch(/<rect [^>]*stroke="(?!none)/);
+    const texts = (svg: string) => groupOf(svg, "a", "element").match(/<text[^]*?<\/text>/g);
+    expect(texts(sketched)).toEqual(texts(clean));
+    // The relation and its head too; the frame's hairline as well, the mark untouched.
+    const relation = groupOf(sketched, "pay", "relation");
+    expect(relation).not.toContain("<polyline");
+    expect(relation.match(/fill="none" stroke=/g)!.length).toBeGreaterThanOrEqual(2);
+    expect(groupOf(sketched, "mark", "frame")).toBe(groupOf(clean, "mark", "frame"));
+  });
+
+  it("are the same bytes every time, and keep a shape's wobble after an unrelated edit", () => {
+    const first = render(free("sketch.light"));
+    expect(render(free("sketch.light"))).toBe(first);
+    const edited = render(
+      free("sketch.light", '  box c "C"\n').replace(
+        "    place b at (400, 100)\n",
+        "    place b at (400, 100)\n    place c at (100, 300)\n",
+      ),
+    );
+    for (const [id, role] of [
+      ["a", "element"],
+      ["b", "element"],
+      ["pay", "relation"],
+    ] as const) {
+      expect(groupOf(edited, id, role)).toBe(groupOf(first, id, role));
+    }
+  });
+
+  it("move further from the outline when rough, and not at all under the other themes", () => {
+    const rough = render(`theme hand { extends "sketch.light"; sketch rough }\n${free("hand")}`);
+    expect(groupOf(rough, "a", "element")).not.toBe(
+      groupOf(render(free("sketch.light")), "a", "element"),
+    );
+    for (const theme of ["technical.light", "editorial.dark", "stage.light"]) {
+      const svg = render(free(theme));
+      expect(groupOf(svg, "a", "element").match(/fill="none" stroke=/g), theme).toBeNull();
+    }
+  });
+
+  it("carry the dash pattern, its offset and the class on both passes", () => {
+    const compilation = compile(free("sketch.light"));
+    const result = layoutDiagram(compilation, compilation.document.diagrams[0]!);
+    const scene = result.scene!;
+    // A dash effect's frame: the outline of `a` with a pattern, an offset and a class.
+    const dashed: Scene = {
+      ...scene,
+      items: scene.items.map((item) =>
+        item.kind === "group" && item.id === "a"
+          ? {
+              ...item,
+              items: item.items.map((child, i) =>
+                i === 0 && child.kind !== "group" && child.kind !== "text" && child.kind !== "image"
+                  ? { ...child, dash: { array: [6, 4], offset: 3 }, className: "mdg-m mdg-e0" }
+                  : child,
+              ),
+            }
+          : item,
+      ),
+    };
+    const passes = groupOf(renderSvg(dashed), "a", "element").match(
+      /<path d="M[^"]+" fill="none"[^>]*>/g,
+    )!;
+    expect(passes).toHaveLength(2);
+    for (const pass of passes) {
+      expect(pass).toContain('stroke-dasharray="6 4" stroke-dashoffset="3"');
+      expect(pass).toContain('class="mdg-m mdg-e0"');
+    }
+  });
+
+  it("leave the scene the layout returns clean", () => {
+    const compilation = compile(free("sketch.light"));
+    const result = layoutDiagram(compilation, compilation.document.diagrams[0]!);
+    const before = JSON.stringify(result.scene);
+    renderSvg(result.scene!);
+    expect(JSON.stringify(result.scene)).toBe(before);
+    const clean = layoutDiagram(
+      compile(free("technical.light")),
+      compile(free("technical.light")).document.diagrams[0]!,
+    );
+    expect(result.boxes).toEqual(clean.boxes);
+  });
+});

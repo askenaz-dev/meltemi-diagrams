@@ -3,8 +3,9 @@
 [Español](../es/language/free.md)
 
 A free diagram is a slide or an explanation that does not fit a strict notation. You place boxes,
-text, icons, images and groups where you want them, connect them, and order them in layers. Every
-adjustment is code, and the same rules apply in the command line, the editor and every export.
+text, icons, images, lines and groups where you want them, connect them, and order them in layers.
+Every adjustment is code, and the same rules apply in the command line, the editor and every
+export.
 
 ```text
 language "0.2"
@@ -42,32 +43,36 @@ diagrams. `layout manual` is the default: every object has a `place`.
 
 ## Objects
 
-| Declaration                    | Object                                                                                                                              | Default size                                             |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `box <id> ["Label"] [{ … }]`   | a shape (below) with a label and an optional description                                                                            | its shape's size, grown to fit the measured text         |
-| `id["Label"]`, `id[("Label")]` | a box; the second form has the `cylinder` shape                                                                                     | as above                                                 |
-| `text <id> "Text"`             | measured text without a frame; `\n` breaks lines                                                                                    | the text's extent                                        |
-| `icon <id> "<pack>:<name>"`    | an icon of the packs ([assets.md](assets.md)), without text; a labelled icon is a box with `shape icon` ([below](#icons-as-shapes)) | 48 × 48                                                  |
-| `image <id> "<path>"`          | an image file of the project; `description` is its alt text                                                                         | its pixel size, at most 640 wide; 160 × 120 when unknown |
-| `group <id> ["Label"] { … }`   | a band with a title, or a plain container when untitled, holding children                                                           | written, or derived from its children (below)            |
+| Declaration                                                   | Object                                                                                                                              | Default size                                             |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `box <id> ["Label"] [{ … }]`                                  | a shape (below) with a label and an optional description                                                                            | its shape's size, grown to fit the measured text         |
+| `id["Label"]`, `id[("Label")]`                                | a box; the second form has the `cylinder` shape                                                                                     | as above                                                 |
+| `text <id> "Text"`                                            | measured text without a frame; `\n` breaks lines                                                                                    | the text's extent                                        |
+| `icon <id> "<pack>:<name>"`                                   | an icon of the packs ([assets.md](assets.md)), without text; a labelled icon is a box with `shape icon` ([below](#icons-as-shapes)) | 48 × 48                                                  |
+| `image <id> "<path>"`                                         | an image file of the project; `description` is its alt text                                                                         | its pixel size, at most 640 wide; 160 × 120 when unknown |
+| `group <id> ["Label"] { … }`                                  | a band with a title, or a plain container when untitled, holding children                                                           | written, or derived from its children (below)            |
+| `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), …]]` | a line that joins no element: a divider, a bracket, an underline ([below](#lines))                                                  | the bounding box of its points                           |
 
 `node`, `decision`, `data`, `note` and `tag` belong to flow diagrams; in a free diagram they are
-`prop.unknown`. An element that only a relation mentions is a box.
+`prop.unknown`, with a hint that lists the free kinds. An element that only a relation mentions is
+a box. Relations take the six tokens of flow diagrams, the lines without heads `--` and `---`
+among them ([grammar](grammar-0.2.md#lexical-rules)).
 
 ### Text and shapes
 
-`shape` applies to boxes and to the nodes of flow diagrams; texts, icons and images refuse it with
-`prop.invalid-value`. `radius` applies to the elements and groups of both profiles
-([styles.md](styles.md)); `fontSize`, `fontWeight` and `textAlign` to free diagrams only, and flow
-diagrams refuse them with `prop.invalid-value` (decision 0043).
+`shape` applies to boxes and to the nodes of flow diagrams; texts, icons, images and lines refuse
+it with `prop.invalid-value`. `radius` applies to the elements and groups of both profiles
+([styles.md](styles.md)); `fontSize`, `fontWeight`, `textAlign` and `verticalAlign` to free
+diagrams only, and flow diagrams refuse them with `prop.invalid-value` (decisions 0043 and 0058).
 
-| Property     | Values                              | Default                                                |
-| ------------ | ----------------------------------- | ------------------------------------------------------ |
-| `shape`      | one of the twenty-four shapes below | `rounded`                                              |
-| `radius`     | 0 to 64, the corner radius          | the theme's `radius`; `groupRadius` for groups (8, 14) |
-| `fontSize`   | 6 to 160                            | the theme's label size; 1.6 times it for `text`        |
-| `fontWeight` | 400, 500, 600, 700                  | the theme's label weight                               |
-| `textAlign`  | `left`, `center`, `right`           | `center` for boxes, `left` for text                    |
+| Property        | Values                              | Default                                                |
+| --------------- | ----------------------------------- | ------------------------------------------------------ |
+| `shape`         | one of the twenty-four shapes below | `rounded`                                              |
+| `radius`        | 0 to 64, the corner radius          | the theme's `radius`; `groupRadius` for groups (8, 14) |
+| `fontSize`      | 6 to 160                            | the theme's label size; 1.6 times it for `text`        |
+| `fontWeight`    | 400, 500, 600, 700                  | the theme's label weight                               |
+| `textAlign`     | `left`, `center`, `right`           | `center` for boxes, `left` for text                    |
+| `verticalAlign` | `top`, `middle`, `bottom`           | `middle`; boxes only                                   |
 
 | Shape           | Default size                         | Text                                 | Connectors end on             |
 | --------------- | ------------------------------------ | ------------------------------------ | ----------------------------- |
@@ -124,6 +129,31 @@ diagrams refuse them with `prop.invalid-value` (decision 0043).
   `d.north 5%` keeps its side and percentage in the
   text and is drawn on the outline. `layout.connector-crossing` and the label audit measure shapes
   by their outline and their text area, not by their rectangle.
+- **Vertical alignment.** `verticalAlign` moves a box's text block (its label, its description and
+  an icon beside, above or below them) up or down within the shape's text band. `middle` is the
+  spot of the table above. `top` puts the block in the first band from the top edge of the text
+  band plus the theme's `padding` whose width holds it; `bottom` in the last one, from the bottom
+  edge minus `padding`. In a shape that narrows towards its edge, such as an ellipse, a wide block
+  moves back towards the middle until a band holds it, and a block taller than the shape stays at
+  the middle. The text band is the box for `rounded`, `rectangle`, `square`, `framed`, `pill`,
+  `hexagon`, `octagon`, `parallelogram` and `trapezoid`; inside the curve for `ellipse` and
+  `circle`; inside the edges for `diamond` and the bumps for `cloud`; between the rims for
+  `cylinder`; above the wave for `document`; above the tail for `callout`; the shaft for `arrow`;
+  away from the notch for `flag`. `textAlign` keeps its meaning across the band, so
+  `textAlign left; verticalAlign top` puts the text in the top left corner. The label audit and
+  `layout.text-overflow` measure the block where it is drawn, and the editor types it there.
+- **Alignment that moves nothing.** `triangle`, `pentagon`, `star`, `person`, `agent` and `icon`
+  draw their text at a fixed spot, and a box with `iconPosition center` keeps its label band at
+  `labelPosition`; on them, and on texts, icons, images, groups and lines, `verticalAlign` is
+  `layout.vertical-align-ignored` (warning), once per statement that writes it, with a hint to
+  choose a shape with a text band, to set `labelPosition`, or to remove it. A rule or a class is
+  reported only when none of the elements it styles uses the value, and a theme's once, on the
+  diagram's `theme`.
+
+```text
+box card "Orders" { description "Top left" }
+style card { shape rectangle; textAlign left; verticalAlign top }
+```
 
 Lines of text are 1.25 times the font size apart, and `\n` starts a new line in a text and in the
 label of a box or a flow node. A text, icon or image with `fill`, `stroke` or `pattern` gets a
@@ -245,6 +275,72 @@ Flow diagrams draw untitled groups the same way, in every layout mode; the engin
 `groupPadding` above their children. An empty label with a `description` or an icon keeps the
 band, which then holds them.
 
+## Lines
+
+A `line` is a line that joins no element: a divider between phases, a bracket, an underline, a
+stroke on a slide. Its points are in the statement, after `from`, `to` and an optional `via` list
+of bends, so it needs no `place`:
+
+```text
+diagram phases: free {
+  box web "Web"
+  box api "API"
+  web -> api
+
+  line divider "Phase 2" from (40, 160) to (520, 160)
+  line bracket from (40, 220) to (520, 280) via [(280, 220)]
+
+  group notes "Notes" {
+    text remark "Read first"
+    line underline from (0, 22) to (120, 22)
+  }
+
+  placement {
+    place web at (120, 80)
+    place api at (440, 80)
+    place notes at (280, 400)
+    size notes (240, 120)
+    place remark at (60, 6)
+    label divider at 20% offset (0, -14)
+  }
+
+  style divider { line dashed; stroke muted }
+  style bracket { routing orthogonal; corners rounded; arrowhead triangle }
+  animate bracket { effect flow }
+}
+```
+
+- **Points.** Two tuples of numbers without units after `from` and `to`, and a list of tuples after
+  `via`, which continues across lines as a route's does. They are in the interior coordinates of
+  the line's group, as `place` is ([above](#groups-and-interior-coordinates)): `underline` above
+  is drawn under `remark`, and moves with `notes`. A statement whose points are missing or are not
+  tuples is `prop.invalid-value`, with the form in the hint. `place`, `size` and `rotation` are
+  refused on a line, with the hint that its points are written in its statement.
+- **Label.** The second argument, empty by default. It is drawn as a relation's label, on a pill
+  at the middle of the line, and `label <id> at <n>% [offset (dx, dy)]` moves it.
+- **Styles.** A line takes the properties of a relation: `stroke` (the theme's `connector` by
+  default), `width` (`connectorWidth`), `line` (`dashed`, `dotted`), `arrowhead` and `arrowtail`
+  (none by default), `routing` (`polyline` by default, `orthogonal`, `bezier`), `corners`, and
+  `color`, `fill` and `icon` for its pill. A box's properties (`shape`, `radius`, `pattern`,
+  `iconPosition`, `labelPosition`, `iconSize`, the text properties) are `prop.invalid-value`.
+  `rule line { … }` styles every line; its block takes `description`, `class`, `layer` and `url`.
+- **Routing.** The points are the line's anchors and waypoints; how `orthogonal` and `bezier` go
+  through them is in [layout.md](layout.md#connectors). A line has no lanes or detours and takes
+  no part in the composition checks between boxes.
+- **Order.** A line is an object: on its layer, it is painted in source order with the boxes, so a
+  line declared after a box is drawn over it. Its box, the bounding box of its drawn points, counts
+  for marquee selection, a group derived from its children and the canvas size.
+- **Effects.** `flow`, `dash`, `pulse` and `trace` run along a line as along a relation
+  ([motion.md](motion.md)).
+- **Points that coincide.** A line with no length is drawn as a dot of its width and reported as
+  `layout.degenerate-line` (warning), with the hint to move an end or give it a bend.
+- **In the editor.** The relation tool dragged on empty canvas draws a line; a selected line shows
+  a handle at each end and bend and in the middle of each stretch, and dragging them rewrites the
+  points, snapped to the grid ([the editor](../editor.md#free-compositions)).
+
+Flow, sequence and C4 diagrams refuse `line` with `prop.unknown`; there, a line between two boxes
+is a relation written `--` or `---`.
+
 ## Layers and order
 
 ```text
@@ -256,7 +352,7 @@ text label "Front" { layer front }
 `layers` lists layers from back to front. `main` always exists and comes last when it is not
 listed; objects and relations without `layer` are on it. An undeclared layer is
 `ref.unknown-layer`. The scene is painted layer by layer; within a layer, groups first (outer
-before inner), then the other objects in source order, then relations. Boxes and groups on
+before inner), then the other objects in source order, lines included, then relations. Boxes and groups on
 different layers are not checked against each other, and a connector neither goes around nor is
 reported crossing a box on another layer than its own. In the editor, bring to front and send to
 back move the declaration within its block, and the Layers panel adds, renames, hides and removes

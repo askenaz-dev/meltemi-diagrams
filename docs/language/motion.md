@@ -41,16 +41,18 @@ since it animates the line itself.
 
 ## Targets and channels
 
-| Effect  | Draws                                                               | Targets                                              |
-| ------- | ------------------------------------------------------------------- | ---------------------------------------------------- |
-| `flow`  | particles along the connector, under its label                      | named relations, sequence messages and C4 relations  |
-| `dash`  | a dash of 8 and a gap of 6 moving along the line or outline         | named relations and elements with an outline         |
-| `pulse` | a halo that grows by 15 % and fades out, or a glow along a relation | elements, named relations, named notes and fragments |
-| `trace` | a highlight that fills the connector from its start, then fades out | named relations, sequence messages and C4 relations  |
+| Effect  | Draws                                                                         | Targets                                                          |
+| ------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `flow`  | particles along the connector, under its label                                | named relations, free lines, sequence messages and C4 relations  |
+| `dash`  | a dash of 8 and a gap of 6 moving along the line or outline                   | named relations, free lines and elements with an outline         |
+| `pulse` | a halo that grows by 15 % and fades out, or a glow along a relation or a line | elements, named relations, free lines, named notes and fragments |
+| `trace` | a highlight that fills the connector from its start, then fades out           | named relations, free lines, sequence messages and C4 relations  |
 
-Any other target is `animate.invalid-target`: flow or a trace on a box, a dash on a note or an
-icon. Each effect drives one channel, so a target can have a flow, a dash, a pulse and a trace at
-once, but a second
+A free `line` ([free.md](free.md#lines)) is animated as a relation is: particles, a dash, a glow and
+a trace run along its drawn line, from its `from` point to its `to` point (`direction reverse`
+the other way). Any other target is `animate.invalid-target`: flow or a trace on a box, whose
+message says they run along relations and lines, a dash on a note or an icon. Each effect drives
+one channel, so a target can have a flow, a dash, a pulse and a trace at once, but a second
 effect of the same kind on the same target is `animate.conflict`, wherever it is written. Notes,
 text, icons, images and the stick figures of sequence diagrams have no outline for a dash.
 

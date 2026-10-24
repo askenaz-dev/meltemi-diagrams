@@ -39,6 +39,8 @@ export function effectsFor(
   if (kind === "relation") return ["flow", "dash", "pulse", "trace"];
   if (kind === "event") return ["pulse"];
   const element = diagram.elementsById.get(id);
+  // A free line runs every effect a relation does.
+  if (element?.kind === "line") return ["flow", "dash", "pulse", "trace"];
   return element && NO_OUTLINE.has(element.kind) ? ["pulse"] : ["pulse", "dash"];
 }
 

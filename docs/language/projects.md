@@ -88,8 +88,8 @@ Rules:
 - A path that leaves the project root is `module.outside-project`. A missing file is
   `module.not-found`, which names a file that differs only in letter case.
 - Bound names share the file's top-level namespace with its diagrams and themes
-  (`ref.duplicate-id`). `technical`, `editorial` and `stage` are reserved because built-in theme
-  names start with them (`module.reserved-name`).
+  (`ref.duplicate-id`). `technical`, `editorial`, `stage` and `sketch` are reserved because
+  built-in theme names start with them (`module.reserved-name`).
 - Importing an id the module does not define is `module.unknown-member`. Importing the same file
   twice is `module.duplicate-import`. A name never used is `module.unused-import` (info).
 - Every top-level block is importable. There is no export list.

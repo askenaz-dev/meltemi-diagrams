@@ -33,6 +33,9 @@ import {
   toDiagram,
   toScreen,
   withBendInserted,
+  withLinePoint,
+  lineEnd,
+  linePointsOf,
   withBendMoved,
   withBendRemoved,
   zoomAt,
@@ -236,6 +239,37 @@ describe("routes", () => {
     ]);
     expect(withBendMoved(via, 0, { x: 5, y: 5 })).toEqual([{ x: 5, y: 5 }]);
     expect(withBendRemoved(via, 0)).toEqual([]);
+  });
+
+  it("moves, inserts and writes the points of a free line", () => {
+    const points = [
+      { x: 98, y: 98 },
+      { x: 294, y: 98 },
+    ];
+    expect(withLinePoint(points, "point", 1, { x: 350, y: 168 })).toEqual([
+      { x: 98, y: 98 },
+      { x: 350, y: 168 },
+    ]);
+    const bent = withLinePoint(points, "segment", 0, { x: 196, y: 154 });
+    expect(linePointsOf(bent)).toEqual({
+      from: { x: 98, y: 98 },
+      to: { x: 294, y: 98 },
+      via: [{ x: 196, y: 154 }],
+    });
+    expect(linePointsOf(points).via).toEqual([]);
+  });
+
+  it("draws a line's end on the grid, at 45° steps with Shift", () => {
+    const grid = (value: number) => Math.round(value / 14) * 14;
+    const start = { x: 98, y: 98 };
+    expect(lineEnd(start, { x: 300, y: 101 }, false, grid)).toEqual({ x: 294, y: 98 });
+    // Nearly horizontal: the line stays on the start's row.
+    expect(lineEnd(start, { x: 300, y: 120 }, true, grid)).toEqual({ x: 294, y: 98 });
+    // Nearly vertical, upwards.
+    expect(lineEnd(start, { x: 104, y: 10 }, true, grid)).toEqual({ x: 98, y: 14 });
+    // A diagonal keeps both legs equal, on the grid.
+    expect(lineEnd(start, { x: 200, y: 190 }, true, grid)).toEqual({ x: 196, y: 196 });
+    expect(lineEnd(start, { x: 0, y: 200 }, true, Math.round)).toEqual({ x: -2, y: 198 });
   });
 
   it("follows the drawn line of a curved connector", () => {
@@ -640,8 +674,10 @@ describe("keys and messages", () => {
     expect(action({ kind: "move", ids: ["a"], delta, parent: null })).toBe(true);
     expect(action({ kind: "move", ids: ["a"], delta, parent: 1 })).toBe(false);
     const line = "dashed";
-    expect(action({ kind: "connect", from: "a", to: "b", line, twoWay: true })).toBe(true);
-    expect(action({ kind: "connect", from: "a", to: "b", line, twoWay: "yes" })).toBe(false);
+    expect(action({ kind: "connect", from: "a", to: "b", line, heads: "both" })).toBe(true);
+    expect(action({ kind: "connect", from: "a", to: "b", line, heads: "none" })).toBe(true);
+    expect(action({ kind: "connect", from: "a", to: "b", line, heads: "end" })).toBe(false);
+    expect(action({ kind: "connect", from: "a", to: "b", line, heads: true })).toBe(false);
   });
 
   it("maps the creation keys by profile and the order keys", () => {

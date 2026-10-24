@@ -123,6 +123,53 @@ export const withBendInserted = (via: readonly Point[], index: number, point: Po
 export const withBendRemoved = (via: readonly Point[], index: number): Point[] =>
   via.filter((_, i) => i !== index);
 
+/** The points of a free line, first to last, as its statement writes them. */
+export function linePointsOf(points: readonly Point[]): { from: Point; to: Point; via: Point[] } {
+  return {
+    from: points[0]!,
+    to: points[points.length - 1]!,
+    via: points.slice(1, -1),
+  };
+}
+
+/**
+ * The points of a free line (first to last) once a handle is dragged to `point`: point `index`
+ * moved (`point`), or a bend inserted on the stretch after point `index` (`segment`).
+ */
+export function withLinePoint(
+  points: readonly Point[],
+  part: "point" | "segment",
+  index: number,
+  point: Point,
+): Point[] {
+  return part === "segment"
+    ? [...points.slice(0, index + 1), point, ...points.slice(index + 1)]
+    : points.map((p, i) => (i === index ? point : p));
+}
+
+/**
+ * The end of a line drawn from `start` towards `pointer`: `pointer` itself, or, with `steps`, the
+ * nearest point at a multiple of 45° from `start`, a diagonal's two legs equal; `round` puts the
+ * result on the grid (lengths along a diagonal stay multiples of it).
+ */
+export function lineEnd(
+  start: Point,
+  pointer: Point,
+  steps: boolean,
+  round: (value: number) => number,
+): Point {
+  if (!steps) return { x: round(pointer.x), y: round(pointer.y) };
+  const dx = pointer.x - start.x;
+  const dy = pointer.y - start.y;
+  const angle = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * (Math.PI / 4);
+  const ux = Math.round(Math.cos(angle));
+  const uy = Math.round(Math.sin(angle));
+  if (uy === 0) return { x: start.x + round(dx), y: start.y };
+  if (ux === 0) return { x: start.x, y: start.y + round(dy) };
+  const leg = Math.abs(round((Math.abs(dx) + Math.abs(dy)) / 2));
+  return { x: start.x + ux * leg, y: start.y + uy * leg };
+}
+
 /** The side of a box closest to a point. */
 export function nearestSide(box: Box, point: Point): Side {
   const distances: [Side, number][] = [

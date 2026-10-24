@@ -135,6 +135,10 @@ const en = {
     fontSize: "Text size of a free box or text, 6 to 160.",
     fontWeight: "Text weight of a free box or text: 400, 500, 600 or 700.",
     textAlign: "`left`, `center` or `right` alignment of a free box or text.",
+    verticalAlign:
+      "`top`, `middle` (default) or `bottom`: where a free box's text sits within its shape's text band.",
+    sketch:
+      "A theme token: `none`, `light` or `rough` strokes, painted by hand in two passes (`sketch.light` and `sketch.dark` use `light`).",
     iconColor: "Colour of a monochrome icon.",
     iconPosition: "`left` or `top`; boxes only.",
     fill: 'Background colour; `"none"` draws no background.',
@@ -573,6 +577,10 @@ const es: typeof en = {
     fontSize: "El tamaño del texto de una caja libre o de un texto, de 6 a 160.",
     fontWeight: "El grosor del texto de una caja libre o de un texto: 400, 500, 600 o 700.",
     textAlign: "Alineación `left`, `center` o `right` de una caja libre o de un texto.",
+    verticalAlign:
+      "`top`, `middle` (predeterminada) o `bottom`: dónde va el texto de una caja libre dentro de la franja de texto de su forma.",
+    sketch:
+      "Un token de tema: trazos `none`, `light` o `rough`, pintados a mano en dos pasadas (`sketch.light` y `sketch.dark` usan `light`).",
     iconColor: "El color de un icono monocromo.",
     iconPosition: "`left` o `top`; solo cajas.",
     fill: 'El color de fondo; `"none"` no dibuja fondo.',

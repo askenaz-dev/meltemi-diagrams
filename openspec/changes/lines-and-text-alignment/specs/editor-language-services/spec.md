@@ -44,8 +44,8 @@ Each item SHALL carry a kind and a short detail.
 The hover of a relation and its entry in the document symbols SHALL print the relation with the token as written (`->`, `-->`, `--`, `---`, `<->` or `<-->`), not a token derived from its line alone, and the hover of a `--` or `---` relation SHALL say it is a line without heads unless styled.
 
 #### Scenario: Hover on a line relation
-- **WHEN** the cursor is on `cache` in `api -- cache as link`
-- **THEN** the hover's first line is **Relation** `api -- cache`, named `link`
+- **WHEN** the cursor is on `link` in `api -- cache as link`
+- **THEN** the hover's first line is **relation** `api -- cache` as `link`
 
 #### Scenario: Symbol of a two-way relation
 - **WHEN** `documentSymbols` runs on a diagram with `api <-> cache`

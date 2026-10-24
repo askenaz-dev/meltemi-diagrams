@@ -6,7 +6,7 @@ import type {
   ThemePanelModel,
 } from "@meltemi/diagrams-editor/canvas";
 import { ICONS, clear, h, icon } from "./dom.js";
-import { glyph, glyphName, type GlyphFamily } from "./glyphs.js";
+import { alignGlyph, glyph, glyphName, type GlyphFamily } from "./glyphs.js";
 import { messages } from "./messages/index.js";
 
 const COLOR_TOKENS = [
@@ -604,6 +604,210 @@ function headPicker(field: InspectorField, send: Send): HTMLElement {
   return wrapper;
 }
 
+// ------------------------------------------------------------------ text alignment
+
+/** One cell of the alignment picker: a pair of alignments, its name, and how it is drawn. */
+export interface AlignCell {
+  /** `style.textAlign`'s value. */
+  readonly across: string;
+  /** `style.verticalAlign`'s value; absent in a free text's row. */
+  readonly down: string | undefined;
+  /** The pair in the interface language: "centre, bottom". */
+  readonly name: string;
+  /** The written pair (what applies standing in for a part not written). */
+  readonly pressed: boolean;
+  /** What applies when nothing is written: greyed in a dashed cell. */
+  readonly inherited: boolean;
+}
+
+const ACROSS = ["left", "center", "right"];
+const DOWN = ["top", "middle", "bottom"];
+
+const positionName = (value: string): string => {
+  const names: Readonly<Record<string, string>> = messages().positions;
+  return Object.hasOwn(names, value) ? names[value]! : value;
+};
+
+/**
+ * The cells of the alignment picker of a free box (`across` is `style.textAlign`, `down`
+ * `style.verticalAlign`), row by row, or of a free text (`down` absent): three cells in a row.
+ * The written pair is pressed, what applies stands in for a part that is not written, the pair
+ * that applies is marked inherited when nothing is written, and a mixed selection has neither.
+ */
+export function alignCells(across: InspectorField, down: InspectorField | undefined): AlignCell[] {
+  const words = messages().inspector;
+  const mixed = across.mixed === true || down?.mixed === true;
+  const written = across.value !== null || (down !== undefined && down.value !== null);
+  const shownAcross =
+    across.value !== null ? String(across.value) : (across.placeholder ?? "center");
+  const shownDown =
+    down === undefined
+      ? undefined
+      : down.value !== null
+        ? String(down.value)
+        : (down.placeholder ?? "middle");
+  const rows: (string | undefined)[] = down ? [...(down.options ?? DOWN)] : [undefined];
+  const columns = across.options ?? ACROSS;
+  return rows.flatMap((row) =>
+    columns.map((column) => {
+      const matches = column === shownAcross && row === shownDown;
+      return {
+        across: column,
+        down: row,
+        name: words.alignCell(
+          positionName(column),
+          row === undefined ? undefined : positionName(row),
+        ),
+        pressed: !mixed && written && matches,
+        inherited: !mixed && !written && matches,
+      };
+    }),
+  );
+}
+
+/**
+ * The fields a chosen cell writes: each alignment whose value changes, the one that applies
+ * without a written value (the field's placeholder) written as nothing. Both may change, one, or
+ * none; on a mixed selection every alignment of the cell is written.
+ */
+export function alignChanges(
+  across: InspectorField,
+  down: InspectorField | undefined,
+  cell: Pick<AlignCell, "across" | "down">,
+): { field: string; value: string | null }[] {
+  const changes: { field: string; value: string | null }[] = [];
+  const add = (field: InspectorField, chosen: string) => {
+    const value = chosen === field.placeholder ? null : chosen;
+    const current = field.value === null ? null : String(field.value);
+    if (field.mixed === true || value !== current) changes.push({ field: field.name, value });
+  };
+  add(across, cell.across);
+  if (down && cell.down !== undefined) add(down, cell.down);
+  return changes;
+}
+
+/**
+ * The fields the alignment picker's chip writes: every alignment written (or mixed) taken away,
+ * so what applies is drawn again.
+ */
+export function alignCleared(
+  across: InspectorField,
+  down: InspectorField | undefined,
+): { field: string; value: null }[] {
+  return [across, ...(down ? [down] : [])]
+    .filter((f) => f.value !== null || f.mixed === true)
+    .map((f) => ({ field: f.name, value: null }));
+}
+
+/**
+ * The alignment picker: "Text alignment" over a 3 × 3 grid of cells (a free text's row of three),
+ * each a radio with the picture of its pair, the written pair pressed and what applies greyed in a
+ * dashed cell; arrows move through the grid, Enter or Space chooses; the chip beside the heading
+ * takes both alignments away. `write` gets the fields that change, `from` the cell the highlight
+ * slides from (the one pressed before this drawing), if any.
+ */
+function alignField(
+  across: InspectorField,
+  down: InspectorField | undefined,
+  write: (changes: readonly { field: string; value: string | null }[]) => void,
+  from: number | undefined,
+): { element: HTMLElement; pressed: number } {
+  const words = messages().inspector;
+  const id = keyOf(across.name);
+  const labelId = `${id}-label`;
+  const cells = alignCells(across, down);
+  const mixed = across.mixed === true || down?.mixed === true;
+  const pressed = cells.findIndex((c) => c.pressed);
+  const marked = pressed >= 0 ? pressed : cells.findIndex((c) => c.inherited);
+  const readonly = across.readonly === true || down?.readonly === true;
+  const columns = (across.options ?? ACROSS).length;
+  const buttons = cells.map((cell, i) => {
+    const button = h(
+      "button",
+      {
+        type: "button",
+        role: "radio",
+        class: cell.inherited ? "align-cell inherit" : "align-cell",
+        "aria-checked": String(cell.pressed),
+        "aria-label": cell.name,
+        title: cell.inherited ? words.byDefault(cell.name) : cell.name,
+        tabindex: i === (marked >= 0 ? marked : 0) ? 0 : -1,
+        "data-key": `${id}:${cell.across}-${cell.down ?? ""}`,
+        "data-across": cell.across,
+        ...(cell.down !== undefined ? { "data-down": cell.down } : {}),
+        disabled: readonly,
+      },
+      alignGlyph(cell.across, cell.down),
+    );
+    button.addEventListener("click", () => {
+      const changes = alignChanges(across, down, cell);
+      if (changes.length > 0) write(changes);
+    });
+    return button;
+  });
+  // The pressed cell's highlight, which slides from the cell pressed before.
+  const highlight = h("span", { class: "align-highlight", "aria-hidden": "true" });
+  const place = (index: number) => {
+    highlight.style.setProperty("--column", String(index % columns));
+    highlight.style.setProperty("--row", String(Math.floor(index / columns)));
+  };
+  if (pressed >= 0) {
+    place(from !== undefined && from >= 0 && from !== pressed ? from : pressed);
+    if (from !== undefined && from >= 0 && from !== pressed) {
+      requestAnimationFrame(() => requestAnimationFrame(() => place(pressed)));
+    }
+  } else highlight.hidden = true;
+  const grid = h(
+    "div",
+    {
+      class: down ? "align-grid" : "align-grid row",
+      role: "radiogroup",
+      "aria-labelledby": labelId,
+      style: `--columns: ${columns}`,
+    },
+    highlight,
+    ...buttons,
+  );
+  roving(grid, buttons, columns);
+  const cleared = alignCleared(across, down);
+  const inherit = h(
+    "button",
+    {
+      type: "button",
+      class: "chip inherit align-inherit",
+      title: words.alignInherit,
+      "aria-label": words.alignInherit,
+      "data-key": `${id}:inherit`,
+      disabled: readonly || cleared.length === 0,
+    },
+    words.themeChip,
+  );
+  inherit.addEventListener("click", () => {
+    if (cleared.length > 0) write(cleared);
+  });
+  inherit.addEventListener("keydown", (e) => e.stopPropagation());
+  const shown = cells[pressed >= 0 ? pressed : marked];
+  const label = h(
+    "div",
+    { class: "row-label" },
+    h("span", { id: labelId }, across.label),
+    h(
+      "span",
+      { class: "value", "data-value": "" },
+      mixed ? words.mixed : shown ? shownName(shown.name, shown.pressed) : words.defaultValue,
+    ),
+  );
+  return {
+    element: h(
+      "div",
+      { class: "field align-field", "data-field": across.name },
+      label,
+      h("div", { class: "align-row" }, grid, inherit),
+    ),
+    pressed,
+  };
+}
+
 /** A field with pictures: a grid for heads and shapes, a row for the others. */
 function glyphField(field: InspectorField, send: Send): HTMLElement {
   return field.glyphs === "arrowStart" || field.glyphs === "arrowEnd" || field.glyphs === "shape"
@@ -897,6 +1101,22 @@ export class Inspector {
       const words = messages().inspector;
       const section = h("section", { class: "strip", "aria-label": words.strip });
       for (const field of strip) {
+        // The two alignments are one control, drawn where the text alignment is.
+        if (
+          field.name === "style.verticalAlign" &&
+          strip.some((f) => f.name === "style.textAlign")
+        ) {
+          continue;
+        }
+        if (field.name === "style.textAlign") {
+          section.append(
+            this.alignment(
+              field,
+              strip.find((f) => f.name === "style.verticalAlign"),
+            ),
+          );
+          continue;
+        }
         if (!isToggle(field) && field.group === undefined) section.append(this.stripField(field));
       }
       if (toggles.length > 0) {
@@ -1147,6 +1367,31 @@ export class Inspector {
       ),
       h("div", { class: "row icon-row" }, value),
     );
+  }
+
+  /** The cell of the alignment picker pressed in the last drawing, by target. */
+  private alignPressed: { readonly target: string; readonly index: number } | undefined;
+
+  /**
+   * The alignment picker of the selection: a cell writes the alignments that change, both in one
+   * edit (one undo step) when both do; the highlight slides from the cell pressed before.
+   */
+  private alignment(across: InspectorField, down: InspectorField | undefined): HTMLElement {
+    const ids = this.model!.target.ids;
+    const target = `${this.model!.target.kind}:${ids.join()}`;
+    const from = this.alignPressed?.target === target ? this.alignPressed.index : undefined;
+    const { element, pressed } = alignField(
+      across,
+      down,
+      (changes) => {
+        if (this.readOnly) return;
+        if (changes.length === 1) this.actions.commit(ids, changes[0]!.field, changes[0]!.value);
+        else this.actions.act({ kind: "setFields", ids, fields: changes });
+      },
+      from,
+    );
+    this.alignPressed = { target, index: pressed };
+    return element;
   }
 
   private stripField(field: InspectorField): HTMLElement {

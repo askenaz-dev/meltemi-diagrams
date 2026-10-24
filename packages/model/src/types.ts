@@ -24,8 +24,8 @@ import type {
  * usually are not.
  */
 export type FlowElementKind = "node" | "decision" | "data" | "group" | "note" | "tag";
-/** Free kinds: shapes, text, icons, images and groups. */
-export type FreeElementKind = "box" | "text" | "icon" | "image" | "group";
+/** Free kinds: shapes, text, icons, images, lines and groups. */
+export type FreeElementKind = "box" | "text" | "icon" | "image" | "line" | "group";
 /** Sequence kinds: the participants, and groups of participants. */
 export type ParticipantKind =
   | "participant"
@@ -137,6 +137,13 @@ export interface ImageUse {
   readonly range: Range;
 }
 
+/** The points of a free `line`: `from (x, y) to (x, y) via [(x, y), ...]`. */
+export interface LinePoints {
+  readonly from: Point;
+  readonly to: Point;
+  readonly via: readonly Point[];
+}
+
 /** A box, decision, data store or group of a flow diagram. */
 export interface Element {
   readonly id: string;
@@ -169,6 +176,11 @@ export interface Element {
   readonly external: boolean;
   /** The shape the declaration implies: `cylinder` for `id[("Label")]`; a style's `shape` is apart. */
   readonly shape: string | null;
+  /**
+   * Free `line` objects: the points written in the statement, in the interior coordinates of the
+   * innermost group; null on every other kind.
+   */
+  readonly line: LinePoints | null;
   /** Declared diagram types: the element's kind there (it is drawn as a `box`); null elsewhere. */
   readonly typeKind: string | null;
   /** Declared diagram types: the values of the kind's own properties. */
@@ -190,7 +202,12 @@ export interface Relation {
   readonly from: string;
   readonly to: string;
   readonly line: LineStyle;
-  /** Written `<->` or `<-->`: a head at both ends, unless styles say otherwise. */
+  /**
+   * Where the written token puts heads: `end` for `->` and `-->`, `both` for `<->` and `<-->`,
+   * `none` for the lines `--` and `---`. The default of the drawn heads; styles still apply.
+   */
+  readonly heads: "end" | "both" | "none";
+  /** Written `<->` or `<-->` (`heads` is `both`): a head at both ends, unless styles say otherwise. */
   readonly twoWay: boolean;
   /** Sequence diagrams: `kind async` in the block. */
   readonly async: boolean;

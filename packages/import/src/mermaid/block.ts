@@ -495,11 +495,9 @@ export class BlockReader {
     }
     const relationStyles = new Map<string, Map<string, string>>();
     this.sheet.relations = this.links.map((link) => {
-      const styled =
-        link.noHead || link.thick || link.head !== undefined || link.tail !== undefined;
+      const styled = link.thick || link.head !== undefined || link.tail !== undefined;
       const id = styled ? ids.fresh("e") : undefined;
       if (id !== undefined) {
-        if (link.noHead) mergeProps(relationStyles, id, [["arrowhead", "none"]]);
         if (link.thick) mergeProps(relationStyles, id, [["width", "3"]]);
         if (link.head !== undefined) mergeProps(relationStyles, id, [["arrowhead", link.head]]);
         if (link.tail !== undefined) mergeProps(relationStyles, id, [["arrowtail", link.tail]]);
@@ -509,6 +507,8 @@ export class BlockReader {
         to: ids.id(link.to),
         dashed: link.dashed,
         ...(link.twoWay ? { twoWay: true } : {}),
+        // An open link is a line, as in flowcharts.
+        ...(link.noHead ? { heads: "none" as const } : {}),
         ...(link.label !== undefined && link.label !== "" ? { label: link.label } : {}),
         ...(id !== undefined ? { id } : {}),
         classes: [],

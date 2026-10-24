@@ -41,6 +41,8 @@ const SHAPE_NAMES = {
 const ARROW_NAMES = {
   "->": "flecha",
   "-->": "flecha discontinua",
+  "--": "línea",
+  "---": "línea discontinua",
   "<->": "flecha doble",
   "<-->": "flecha doble discontinua",
 } satisfies Record<ArrowKind, string>;
@@ -341,8 +343,8 @@ export const es: typeof en = {
     fromSource: (id, dashed = false) =>
       `Desde ${id}: haz clic en el destino. Con Mayús es ${dashed ? "continua" : "discontinua"}.`,
     anotherElement: "Haz clic en otro elemento: una relación une dos.",
-    connected: (from, to, dashed, twoWay = false) =>
-      `Se conectó ${from} con ${to}${twoWay ? " en ambos sentidos" : ""}${dashed ? ", con línea discontinua" : ""}.`,
+    connected: (from, to, dashed, heads = "end") =>
+      `Se conectó ${from} con ${to}${heads === "both" ? " en ambos sentidos" : heads === "none" ? " con una línea" : ""}${dashed ? ", con línea discontinua" : ""}.`,
     noLabel: (kind) =>
       `${capital(indefinite(kind))} no tiene etiqueta; cámbia${noun(kind).feminine ? "la" : "lo"} en las propiedades.`,
     nothingToEdit: (kind) =>
@@ -352,6 +354,14 @@ export const es: typeof en = {
         ? `${relation} ahora termina en ${element}.${port}.`
         : `${relation} ahora termina en ${element}, lado ${port} al ${position} %.`,
     endFree: (relation) => `La disposición coloca este extremo de ${relation}.`,
+    drawingLine:
+      "Dibujando una línea: suelta para colocarla. Mayús la mantiene a 45°, Esc cancela.",
+    lineDrawn: (from, to) => `Se dibujó una línea de (${from.x}, ${from.y}) a (${to.x}, ${to.y}).`,
+    lineTooShort: "Una línea necesita dos puntos distintos: arrastra más lejos.",
+    lineCancelled: "No se dibujó ninguna línea.",
+    lineReshaped: (id) => `Se movió un punto de ${id}.`,
+    lineBendAdded: (id) => `Se añadió un codo a ${id}.`,
+    lineBendRemoved: (id) => `Se quitó un codo de ${id}.`,
     placeIcon: (label) =>
       `Haz clic en el lienzo para colocar ${label}, o en una forma para darle el icono. Esc cancela.`,
     iconSet: (label, ids) =>
@@ -449,6 +459,8 @@ export const es: typeof en = {
     byDefault: (name) => `${name} (predeterminado)`,
     use: (value) => `Usar ${value}`,
     slider: (label) => `${label}, control deslizante`,
+    alignCell: (across, down) => (down ? `${across}, ${down}` : across),
+    alignInherit: "Heredar la alineación: quitar las dos",
     newTheme: "Nuevo tema a partir de este…",
     editTheme: "Editar el tema…",
     chooseIcon: "Elegir un icono",
@@ -485,6 +497,8 @@ export const es: typeof en = {
     sharp: "en ángulo",
     rounded: "redondeadas",
     none: "ninguna",
+    light: "ligero",
+    rough: "áspero",
     triangle: "triángulo",
     triangleOutline: "triángulo hueco",
     open: "abierta",
@@ -507,6 +521,7 @@ export const es: typeof en = {
     top: "arriba",
     bottom: "abajo",
     center: "centro",
+    middle: "en medio",
   },
 
   shapes: SHAPE_NAMES,

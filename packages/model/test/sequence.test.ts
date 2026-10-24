@@ -81,6 +81,13 @@ describe("sequence diagrams compile", () => {
     expect(diagram.properties.autonumber).toBe(10);
     expect(sequence("  autonumber\n  a -> b").diagram.properties.autonumber).toBe(1);
   });
+  it("refuses the line tokens, naming the four arrows a message takes", () => {
+    const { compilation } = sequence('  customer -- api: "Hello"');
+    const [d] = compilation.diagnostics;
+    expect(d!.code).toBe("prop.invalid-value");
+    expect(d!.range.start.column).toBe(12);
+    expect(d!.message).toBe("`--` is not available here; write `->`, `-->`, `<->` or `<-->`.");
+  });
 });
 
 describe("events", () => {

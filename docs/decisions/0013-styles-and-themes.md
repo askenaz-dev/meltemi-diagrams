@@ -1,6 +1,8 @@
 # 0013. Design tokens, style classes and presets
 
-Status: accepted (styles-and-themes change, 10 October 2026)
+Status: accepted (styles-and-themes change, 10 October 2026). The token table gains `sketch`,
+the built-in themes `sketch.light` and `sketch.dark`, and `sketch` is a reserved import name by
+[decision 0058](0058-lines-sketch-and-text-alignment.md).
 
 ## Context
 

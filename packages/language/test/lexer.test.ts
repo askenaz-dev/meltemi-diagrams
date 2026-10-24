@@ -108,7 +108,9 @@ describe("lexer: diagnostics", () => {
     const d = diagnostics[0]!;
     expect(d.code).toBe("syntax.unexpected-character");
     expect(d.range.start.column).toBe(3);
-    expect(d.hints).toContain("The supported arrows are `->`, `-->`, `<->` and `<-->`.");
+    expect(d.hints).toContain(
+      "The relation tokens are `->`, `-->`, `--`, `---`, `<->` and `<-->`.",
+    );
     expect(kinds(tokens)).toEqual(["Identifier", "Unknown", "Identifier", "EOF"]);
   });
 
@@ -127,6 +129,50 @@ describe("lexer: diagnostics", () => {
     ]);
     const reverse = tokenize("a <- b");
     expect(reverse.diagnostics.map((d) => d.code)).toEqual(["syntax.unexpected-character"]);
+  });
+
+  it("reads the line tokens, taking the longest match", () => {
+    expect(kinds(tokenize("a -- b").tokens)).toEqual(["Identifier", "Line", "Identifier", "EOF"]);
+    expect(kinds(tokenize("c --- d").tokens)).toEqual([
+      "Identifier",
+      "DashedLine",
+      "Identifier",
+      "EOF",
+    ]);
+    expect(kinds(tokenize("a --> b").tokens)).toEqual([
+      "Identifier",
+      "DashedArrow",
+      "Identifier",
+      "EOF",
+    ]);
+    // `--->` is `---` and an unexpected `>`, with the six tokens in the hint.
+    const long = tokenize("a ---> b");
+    expect(kinds(long.tokens)).toEqual([
+      "Identifier",
+      "DashedLine",
+      "Unknown",
+      "Identifier",
+      "EOF",
+    ]);
+    expect(long.diagnostics.map((d) => d.code)).toEqual(["syntax.unexpected-character"]);
+    expect(long.diagnostics[0]!.range.start.column).toBe(6);
+    expect(long.diagnostics[0]!.hints).toContain(
+      "The relation tokens are `->`, `-->`, `--`, `---`, `<->` and `<-->`.",
+    );
+    // `--5` is the line token and a number; `--b` recovers at the token.
+    const number = tokenize("a --5").tokens;
+    expect(kinds(number)).toEqual(["Identifier", "Line", "Number", "EOF"]);
+    expect(number[2]!.value).toBe(5);
+    expect(kinds(tokenize("a --b").tokens)).toEqual(["Identifier", "Line", "Identifier", "EOF"]);
+  });
+
+  it("says what a minus sign is followed by", () => {
+    const { diagnostics } = tokenize("a -x b");
+    expect(diagnostics.map((d) => d.code)).toEqual(["syntax.unexpected-character"]);
+    expect(diagnostics[0]!.range.start.column).toBe(3);
+    expect(diagnostics[0]!.hints).toContain(
+      "A minus sign must be followed by a digit, `-` or `>`.",
+    );
   });
 
   it("reports one diagnostic per run of unexpected characters", () => {

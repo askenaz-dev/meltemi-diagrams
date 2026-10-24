@@ -98,7 +98,15 @@ const GROUPS: readonly {
   { group: "spacing", tokens: ["padding", "groupPadding", "groupHeader", "margin"] },
   {
     group: "shapes",
-    tokens: ["radius", "groupRadius", "strokeWidth", "connectorWidth", "arrowhead", "arrowSize"],
+    tokens: [
+      "radius",
+      "groupRadius",
+      "strokeWidth",
+      "connectorWidth",
+      "arrowhead",
+      "arrowSize",
+      "sketch",
+    ],
   },
   { group: "icons", tokens: ["iconSize", "iconPosition"] },
   { group: "frame", tokens: ["frame", "brand", "mark"] },
@@ -171,6 +179,8 @@ function tokenField(
         value,
         ...(placeholder ? { placeholder } : {}),
         options: spec.values,
+        // How strokes are painted is shown, not named: a straight, a wobbly and a rough line.
+        ...(token === "sketch" ? { glyphs: "sketch" as const } : {}),
       };
     case "number":
       if (spec.values) {

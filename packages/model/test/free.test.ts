@@ -53,7 +53,9 @@ describe("free diagrams compile", () => {
     const { compilation } = free('  decision ok "OK?"');
     const [d] = compilation.diagnostics;
     expect(d!.code).toBe("prop.unknown");
-    expect(d!.hints).toEqual(["Free diagrams declare `box`, `text`, `icon`, `image` and `group`."]);
+    expect(d!.hints).toEqual([
+      "Free diagrams declare `box`, `text`, `icon`, `image`, `line` and `group`.",
+    ]);
   });
 
   it("refuses free kinds in flow diagrams", () => {
@@ -71,6 +73,118 @@ describe("free diagrams compile", () => {
     expect(diagram.elementsById.get("a")).toMatchObject({ groupPath: ["g"], description: "Box" });
     expect(diagram.elementsById.get("g")).toMatchObject({ kind: "group", description: "Inside" });
     expect(diagram.relations[0]!.groupPath).toEqual(["g"]);
+  });
+});
+
+describe("headless relations", () => {
+  it("takes the line tokens: a dashed line has no heads", () => {
+    const { diagram, codes } = free('  a["A"]\n  b["B"]\n  a --- b\n  a -- b as plain');
+    expect(codes).toEqual([]);
+    expect(diagram.relations.map((r) => [r.key, r.line, r.heads, r.twoWay])).toEqual([
+      ["a->b#1", "dashed", "none", false],
+      ["plain", "solid", "none", false],
+    ]);
+  });
+});
+
+describe("free lines", () => {
+  it("reads a line with bends, a label and its styles", () => {
+    const { diagram, codes } = free(
+      '  line divider "Phase 2" from (40, 200) to (520, 200) via [(280, 180)]\n  style divider { line dashed; arrowhead triangle }',
+    );
+    expect(codes).toEqual([]);
+    const line = diagram.elementsById.get("divider")!;
+    expect(line).toMatchObject({ kind: "line", label: "Phase 2", labelWritten: true });
+    expect(line.line).toEqual({
+      from: { x: 40, y: 200 },
+      to: { x: 520, y: 200 },
+      via: [{ x: 280, y: 180 }],
+    });
+    expect(diagram.styles.find((s) => s.target === "divider")!.properties).toMatchObject({
+      line: "dashed",
+      arrowhead: "triangle",
+    });
+  });
+
+  it("keeps a line's points as written inside a group, with no label by default", () => {
+    const { diagram, codes } = free(
+      '  group g "G" {\n    line l from (0, 0) to (100, 0)\n  }\n  placement { place g at (300, 200) }',
+    );
+    expect(codes).toEqual([]);
+    const line = diagram.elementsById.get("l")!;
+    expect(line.groupPath).toEqual(["g"]);
+    expect(line.label).toBe("");
+    expect(line.line).toEqual({ from: { x: 0, y: 0 }, to: { x: 100, y: 0 }, via: [] });
+  });
+
+  it("refuses a line in a flow diagram and lists it among the free kinds", () => {
+    const { compilation } = flow("  line l from (0, 0) to (100, 0)");
+    const [d] = compilation.diagnostics;
+    expect(d!.code).toBe("prop.unknown");
+    expect(d!.hints?.join(" ")).toMatch(/node/);
+    const decision = free('  decision ok "OK?"');
+    expect(decision.codes).toContain("prop.unknown");
+    expect(decision.compilation.diagnostics[0]!.hints?.join(" ")).toMatch(/`line`/);
+  });
+
+  it("refuses malformed points with the form", () => {
+    const { compilation } = free("  line l from (0, 0) to 100");
+    const [d] = compilation.diagnostics;
+    expect(d!.code).toBe("prop.invalid-value");
+    expect(d!.range.start.column).toBe(25);
+    expect(d!.hints).toContain(
+      'Form: `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), ...]]`.',
+    );
+    expect(free("  line l from (0, 0)").codes).toEqual(["prop.invalid-value"]);
+    expect(free("  line l from (0, 0) to (9, 9) via [(1, 2)] extra").codes).toEqual([
+      "prop.invalid-value",
+    ]);
+  });
+
+  it("refuses a place, a size and a box's properties on a line", () => {
+    const { compilation } = free(
+      "  line l from (0, 0) to (100, 0)\n  placement { place l at (50, 50) }\n  style l { shape pill }",
+    );
+    const refusals = compilation.diagnostics.map((d) => [d.code, d.message]);
+    expect(refusals).toContainEqual([
+      "prop.invalid-value",
+      "`l` is a line; `place` does not apply to it.",
+    ]);
+    expect(
+      compilation.diagnostics.find((d) => d.message.startsWith("`l` is a line"))!.hints,
+    ).toEqual(["A line's points are written in its statement: `line <id> from (x, y) to (x, y)`."]);
+    expect(
+      refusals.some(([code, message]) => code === "prop.invalid-value" && /shape/.test(message!)),
+    ).toBe(true);
+    const radius = free("  line l from (0, 0) to (100, 0)\n  style l { radius 4; rotation 30 }");
+    expect(radius.compilation.diagnostics.map((d) => d.message)).toContain(
+      "`radius` does not apply to lines such as `l`.",
+    );
+    expect(radius.codes).toHaveLength(2);
+  });
+
+  it("takes every effect, and a text refuses flow naming relations and lines", () => {
+    const line = free(
+      "  line l from (0, 0) to (300, 0)\n  animate l { effect flow }\n  animate l { effect dash }\n  animate l { effect pulse }\n  animate l { effect trace }",
+    );
+    expect(line.codes).toEqual([]);
+    const text = free('  text t "Note"\n  animate t { effect flow }');
+    expect(text.codes).toEqual(["animate.invalid-target"]);
+    expect(text.compilation.diagnostics[0]!.message).toBe(
+      "Flow particles run along relations and lines; name the relation (`a -> b as r`) and animate it.",
+    );
+  });
+
+  it("takes a relation's properties, a rule for lines and a label placement", () => {
+    const { diagram, codes } = free(
+      '  line l "Step" from (0, 0) to (200, 0)\n  rule line { line dashed }\n  style l { routing orthogonal; corners rounded; arrowtail circle; stroke accent; width 2 }\n  placement { label l at 30% offset (0, -16) }',
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.placement.find((p) => p.statement === "label")).toMatchObject({
+      target: "l",
+      at: 30,
+      offset: { x: 0, y: -16 },
+    });
   });
 });
 
@@ -148,6 +262,20 @@ describe("free objects", () => {
     expect(free('  box a "A"\n  rule node { fill "#fff" }').codes).toEqual(["prop.invalid-value"]);
     expect(free('  box a "A"\n  rule box { fill "#fff" }').codes).toEqual([]);
     expect(flow('  a -> b\n  rule text { fill "#fff" }').codes).toEqual(["prop.invalid-value"]);
+  });
+
+  it("accepts the vertical alignment of a box, refuses it in flow and lists its values", () => {
+    const { diagram, codes } = free('  box a "A"\n  style a { verticalAlign top; textAlign left }');
+    expect(codes).toEqual([]);
+    expect(diagram.styles[0]!.properties).toEqual({ verticalAlign: "top", textAlign: "left" });
+    const refused = flow('  api["API"]\n  style api { verticalAlign bottom }').compilation
+      .diagnostics;
+    expect(refused.map((d) => [d.code, d.message])).toEqual([
+      ["prop.invalid-value", "`verticalAlign` applies to free diagrams only."],
+    ]);
+    const unknown = free('  box a "A"\n  style a { verticalAlign center }').compilation.diagnostics;
+    expect(unknown.map((d) => d.code)).toEqual(["prop.invalid-value"]);
+    expect(unknown[0]!.message).toContain("top, middle, bottom");
   });
 
   it("checks font sizes and weights", () => {

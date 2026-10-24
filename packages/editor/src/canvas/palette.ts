@@ -3,9 +3,10 @@ import { SHAPES, type CanvasProfile, type ShapeName } from "./protocol.js";
 
 /**
  * The relation kinds of the palette's arrow button, in the order its menu lists them and R cycles
- * through them: `->`, `-->`, then the two-way `<->` and `<-->`.
+ * through them: `->`, `-->`, the lines without heads `--` and `---`, then the two-way `<->` and
+ * `<-->`.
  */
-export const ARROW_KINDS = ["->", "-->", "<->", "<-->"] as const;
+export const ARROW_KINDS = ["->", "-->", "--", "---", "<->", "<-->"] as const;
 export type ArrowKind = (typeof ARROW_KINDS)[number];
 
 /**
@@ -19,8 +20,9 @@ export function arrowKinds(profile: CanvasProfile): readonly ArrowKind[] {
   return ARROW_KINDS;
 }
 
-const twoWay = (kind: ArrowKind) => kind.startsWith("<");
-const dashed = (kind: ArrowKind) => kind.endsWith("-->");
+const dashed = (kind: ArrowKind) => kind.endsWith("-->") || kind === "---";
+const heads = (kind: ArrowKind): "end" | "both" | "none" =>
+  kind.startsWith("<") ? "both" : kind.endsWith(">") ? "end" : "none";
 
 /**
  * The kind a canvas keeps on a profile: a two-way kind becomes the one-way kind with its line in a
@@ -41,14 +43,15 @@ export function nextArrowKind(kind: ArrowKind, profile: CanvasProfile): ArrowKin
 }
 
 /**
- * How a relation of a kind is written, as the `connect` action carries it: its line and whether it
- * has a head at both ends. `flip` (Shift on the second click) swaps solid and dashed.
+ * How a relation of a kind is written, as the `connect` action carries it: its line and where its
+ * heads go (`end`, `both`, or `none` for a line). `flip` (Shift on the second click) swaps solid
+ * and dashed only: `--` becomes `---`.
  */
 export function arrowKindLine(
   kind: ArrowKind,
   flip = false,
-): { readonly line: "solid" | "dashed"; readonly twoWay: boolean } {
-  return { line: dashed(kind) !== flip ? "dashed" : "solid", twoWay: twoWay(kind) };
+): { readonly line: "solid" | "dashed"; readonly heads: "end" | "both" | "none" } {
+  return { line: dashed(kind) !== flip ? "dashed" : "solid", heads: heads(kind) };
 }
 
 /**

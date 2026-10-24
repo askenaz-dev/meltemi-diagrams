@@ -214,6 +214,11 @@ export interface Scene {
   readonly gradients: readonly SceneGradient[];
   readonly patterns: readonly ScenePattern[];
   readonly items: readonly SceneItem[];
+  /**
+   * The theme's sketch level when it paints strokes by hand: the renderer draws each stroke of the
+   * diagram's groups in two jittered passes. The items stay the clean geometry; absent for `none`.
+   */
+  readonly sketch?: "light" | "rough";
   /** CSS of the animated profile, written in one `<style>` element; absent for static scenes. */
   readonly styleSheet?: string;
   /** A URL the whole picture links to, such as a story's player. */

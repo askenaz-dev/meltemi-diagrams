@@ -96,6 +96,21 @@ describe("grammar", () => {
     expect(missing).toEqual([]);
   });
 
+  it("colours the line tokens as arrows and `line` as a kind only where it declares a line", () => {
+    const arrows = new RegExp(grammar.repository["arrows"]!.match!, "g");
+    expect("a -- b".match(arrows)).toEqual(["--"]);
+    expect("c --- d".match(arrows)).toEqual(["---"]);
+    expect("e <--> f -> g".match(arrows)).toEqual(["<-->", "->"]);
+    const kind = (grammar.repository["keywords"]!.patterns ?? []).find((p) =>
+      p.match?.startsWith("\\b(line)"),
+    );
+    expect(kind).toBeDefined();
+    const declares = new RegExp(kind!.match!);
+    expect(declares.test("line l1 from (0, 0) to (100, 0)")).toBe(true);
+    expect(declares.test('line l2 "Edge" from (0, 0) to (10, 10)')).toBe(true);
+    expect(declares.test("style a { line dashed }")).toBe(false);
+  });
+
   it("is referenced by the manifest with the language configuration and snippets", () => {
     const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
     const contributes = manifest.contributes;

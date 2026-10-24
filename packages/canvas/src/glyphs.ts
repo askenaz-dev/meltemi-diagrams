@@ -24,6 +24,9 @@ export type GlyphFamily =
   | "shape"
   | "iconPosition"
   | "labelPosition"
+  | "sketch"
+  | "textAlign"
+  | "verticalAlign"
   | "arrow";
 
 /**
@@ -155,6 +158,18 @@ function routeShapes(kind: string): Shape[] {
         filled("M26 2 L27.2 5 L30 6 L27.2 7 L26 10 L24.8 7 L22 6 L24.8 5 Z"),
       ];
   }
+}
+
+/** How a theme paints strokes: a straight line, a lightly wobbly one, a rough double one. */
+function sketchShapes(level: string): Shape[] {
+  if (level === "light") return [stroked("M4 9 Q10 6.6 16 8.2 T28 7.4")];
+  if (level === "rough") {
+    return [
+      stroked("M4 9.6 Q9 5.4 15 8.6 T28 6.8"),
+      stroked("M4.6 8 Q10 10.6 16 7.4 T27.4 8.8", { "stroke-width": 1 }),
+    ];
+  }
+  return [stroked(`M4 ${MID} H28`)];
 }
 
 function cornerShapes(kind: string): Shape[] {
@@ -312,16 +327,22 @@ export function placementGlyph(placement: IconPlacement): SVGSVGElement {
   return svg;
 }
 
-/** A relation of a kind: a line, dashed for `-->` and `<-->`, with a head at one end or both. */
+/**
+ * A relation of a kind: a line, dashed for `-->`, `---` and `<-->`, with a head at one end, both,
+ * or neither for the lines `--` and `---`, drawn with the same stroke so the six read as one family.
+ */
 function arrowShapes(kind: string): Shape[] {
   const known = isArrowKind(kind) ? kind : "->";
-  const dashed = known === "-->" || known === "<-->";
+  const dashed = known === "-->" || known === "<-->" || known === "---";
   const twoWay = known.startsWith("<");
+  const headless = known === "--" || known === "---";
   const L = 7;
   const W = 6;
   const tip = 29;
+  const dash: Record<string, string> = dashed ? { "stroke-dasharray": "4 3" } : {};
+  if (headless) return [stroked(`M3 ${MID} H${tip}`, dash)];
   const start = twoWay ? 3 + L : 3;
-  const line = stroked(`M${start} ${MID} H${tip - L}`, dashed ? { "stroke-dasharray": "4 3" } : {});
+  const line = stroked(`M${start} ${MID} H${tip - L}`, dash);
   const end = filled(`M${tip} ${MID} L${tip - L} ${MID - W / 2} L${tip - L} ${MID + W / 2} Z`);
   if (!twoWay) return [line, end];
   const begin = filled(`M3 ${MID} L${3 + L} ${MID - W / 2} L${3 + L} ${MID + W / 2} Z`);
@@ -333,6 +354,9 @@ function arrowShapes(kind: string): Shape[] {
  * icon and label positions.
  */
 export function glyph(family: GlyphFamily, value: string): SVGSVGElement {
+  // The alignments are drawn as the alignment picker draws its cells.
+  if (family === "textAlign") return alignGlyph(value);
+  if (family === "verticalAlign") return alignGlyph("center", value);
   const width = narrow(family) ? NARROW : WIDTH;
   const svg = s("svg", {
     viewBox: `0 0 ${width} ${HEIGHT}`,
@@ -349,19 +373,74 @@ export function glyph(family: GlyphFamily, value: string): SVGSVGElement {
         ? routeShapes(value)
         : family === "corners"
           ? cornerShapes(value)
-          : family === "shape"
-            ? shapeShapes(value)
-            : family === "arrow"
-              ? arrowShapes(value)
-              : family === "iconPosition"
-                ? iconPositionShapes(value)
-                : family === "labelPosition"
-                  ? labelPositionShapes(value)
-                  : head(value);
+          : family === "sketch"
+            ? sketchShapes(value)
+            : family === "shape"
+              ? shapeShapes(value)
+              : family === "arrow"
+                ? arrowShapes(value)
+                : family === "iconPosition"
+                  ? iconPositionShapes(value)
+                  : family === "labelPosition"
+                    ? labelPositionShapes(value)
+                    : head(value);
   if (family === "arrowStart") {
     // The start's head points left: the end's picture mirrored.
     svg.append(s("g", { transform: `translate(${WIDTH} 0) scale(-1 1)` }, ...shapes));
   } else svg.append(...shapes);
+  return svg;
+}
+
+/** Where the text block of an alignment picture starts across, and where its lines sit down. */
+const ALIGN_ACROSS: Readonly<Record<string, (width: number) => number>> = {
+  left: () => 5,
+  center: (width) => (22 - width) / 2,
+  right: (width) => 17 - width,
+};
+const ALIGN_DOWN: Readonly<Record<string, number>> = { top: 5, middle: 8, bottom: 11 };
+
+/**
+ * A picture of a text alignment, 22 by 16: two lines of text in a box at `horizontal` across and
+ * `vertical` down the box, or, without `vertical` (a free text), three lines aligned on their own.
+ */
+export function alignGlyph(horizontal: string, vertical?: string): SVGSVGElement {
+  const svg = s("svg", {
+    viewBox: "0 0 22 16",
+    width: 22,
+    height: 16,
+    "aria-hidden": "true",
+    focusable: "false",
+    "data-glyph": vertical ? `align:${horizontal}-${vertical}` : `align:${horizontal}`,
+  });
+  const across = ALIGN_ACROSS[horizontal] ?? ALIGN_ACROSS.center!;
+  const bar = (x: number, y: number, width: number) =>
+    stroked(`M${x} ${y} H${x + width}`, { "stroke-width": 1.6 });
+  if (vertical === undefined) {
+    // Lines of three lengths, aligned the way the text is.
+    const lines = [12, 8, 10].map((width, i) => {
+      const start =
+        horizontal === "left" ? 3 : horizontal === "right" ? 19 - width : (22 - width) / 2;
+      return bar(start, 4 + i * 4, width);
+    });
+    svg.append(...lines);
+    return svg;
+  }
+  const top = ALIGN_DOWN[vertical] ?? ALIGN_DOWN.middle!;
+  svg.append(
+    s("rect", {
+      x: 1.75,
+      y: 1.75,
+      width: 18.5,
+      height: 12.5,
+      rx: 2,
+      fill: "none",
+      stroke: "currentColor",
+      "stroke-width": 1,
+      opacity: 0.5,
+    }),
+    bar(across(10), top, 10),
+    bar(across(6), top + 2.5, 6),
+  );
   return svg;
 }
 
@@ -406,7 +485,8 @@ export function glyphName(value: string, family?: GlyphFamily): string {
       ? words.shapes
       : family === "arrow"
         ? words.arrowKinds
-        : family !== undefined && narrow(family)
+        : family !== undefined &&
+            (narrow(family) || family === "textAlign" || family === "verticalAlign")
           ? words.positions
           : words.glyphs;
   return Object.hasOwn(names, value) ? names[value]! : value;

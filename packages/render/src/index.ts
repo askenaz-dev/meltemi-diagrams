@@ -11,3 +11,4 @@ export {
   type FontProvider,
   type RenderOptions,
 } from "./svg.js";
+export { sketchItems, type SketchLevel } from "./sketch.js";

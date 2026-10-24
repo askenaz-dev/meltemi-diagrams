@@ -105,17 +105,17 @@ the same project exports the same files whatever language the editor speaks.
 
 ## Language features
 
-| Feature                                       | What it does                                                                                                                                                                                                                         |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Diagnostics                                   | Compile, project and layout problems, as you type, with their hints                                                                                                                                                                  |
-| Completion                                    | Statements by block, element and relation ids, ports after `element.`, property values, themes, classes, colour tokens and icons inside `icon "…"`; in stories, actions, transitions, diagrams and the ids of the scene's view       |
-| Hover                                         | Elements (kind, label, position, size, ports), relations (ends, label, route), ports, keywords, themes, and icons with a preview and their licence; story actions with their place on the clock, scenes and stories with their times |
-| Outline and breadcrumbs                       | Diagrams, groups, elements and relations, nested as written; stories and their scenes                                                                                                                                                |
-| Go to definition, find references, highlights | For element and relation ids, everywhere they are used, also in stories and in the stories of other files that import the diagram                                                                                                    |
-| Rename (F2)                                   | Element ids and named relation ids, with every reference, from the diagram or from a story, across the files of the project                                                                                                          |
-| Format document                               | The canonical layout of `meltemi-diagrams format`                                                                                                                                                                                    |
-| Semantic colours                              | Elements, groups, relations, ports, classes and themes                                                                                                                                                                               |
-| Quick fixes                                   | See the table below                                                                                                                                                                                                                  |
+| Feature                                       | What it does                                                                                                                                                                                                                                                                                                                                                 |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Diagnostics                                   | Compile, project and layout problems, as you type, with their hints                                                                                                                                                                                                                                                                                          |
+| Completion                                    | Statements by block, element and relation ids, ports after `element.`, property values, themes, classes, colour tokens and icons inside `icon "…"`; in stories, actions, transitions, diagrams and the ids of the scene's view                                                                                                                               |
+| Hover                                         | Elements (kind, label, position, size, ports), relations (as written, `--` and `---` said to be lines without heads; ends, label, route), free lines (label, points in their group's interior, layer), ports, keywords, themes, and icons with a preview and their licence; story actions with their place on the clock, scenes and stories with their times |
+| Outline and breadcrumbs                       | Diagrams, groups, elements and relations, nested as written; stories and their scenes                                                                                                                                                                                                                                                                        |
+| Go to definition, find references, highlights | For element and relation ids, everywhere they are used, also in stories and in the stories of other files that import the diagram                                                                                                                                                                                                                            |
+| Rename (F2)                                   | Element ids and named relation ids, with every reference, from the diagram or from a story, across the files of the project                                                                                                                                                                                                                                  |
+| Format document                               | The canonical layout of `meltemi-diagrams format`                                                                                                                                                                                                                                                                                                            |
+| Semantic colours                              | Elements, groups, relations, ports, classes and themes                                                                                                                                                                                                                                                                                                       |
+| Quick fixes                                   | See the table below                                                                                                                                                                                                                                                                                                                                          |
 
 | Problem                                                                             | Quick fixes                                               |
 | ----------------------------------------------------------------------------------- | --------------------------------------------------------- |
@@ -186,24 +186,28 @@ the range, and the text stays as it was.
 
 ## Gestures and what they write
 
-| Gesture                                                                   | Text change                                                                                                                                                    |
-| ------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Drag a box (or several, or a group)                                       | `place` of each box; Alt moves freely, otherwise guides first, then the grid                                                                                   |
-| Drag a box into a group, or out of its group                              | Its declaration moves into that group's block, or to the top level, with its `place` in the new interior; Alt keeps the group                                  |
-| Drag a resize handle                                                      | `size` and `place`; the opposite edges stay, sizes snap to the grid, at least 24                                                                               |
-| Drag a relation label                                                     | `label <id> at <n>% offset (dx, dy)`                                                                                                                           |
-| Drag a route bend, or the middle of a stretch                             | `route … via [...]`, adding a bend when you drag a middle                                                                                                      |
-| Double-click a bend                                                       | Removes it from `via`; a route left with nothing else goes                                                                                                     |
-| Drag a route end over its box, or just outside it                         | The point of the border it takes, in the `route` (below); inside the box, `auto`                                                                               |
-| Drag a route end onto another box                                         | The relation's end, and its `route` with the point                                                                                                             |
-| Double-click a route end                                                  | The layout chooses that end again                                                                                                                              |
-| Drag from a connection handle (the dots beside a selected box) onto a box | `a -> b`; Shift for `-->`; onto its border, both ends pinned too                                                                                               |
-| Press just outside a box's border and drag onto another box               | `a -> b` with its start pinned to that point; onto the border, its end too                                                                                     |
-| Relation tool (R): click the source, then the target                      | `a -> b`, or the arrow kind chosen, selected; Shift on the second click flips solid and dashed; Escape cancels                                                 |
-| Choose a palette tool and click, or drag a palette button onto the canvas | A declaration and its `place`, inside the group under the pointer (a group nests too); a box or node with the current shape also gets `style <id> { shape … }` |
-| Choose an icon in the icon picker and click the canvas, or drag it there  | The element the placement control says, empty, with `style <id> { icon … }` and its `place` ([icons](#icons))                                                  |
-| Drag an icon of the picker or the Libraries panel onto a shape            | `style <id> { icon … }` of that node, decision, data store or box, and nothing else; the shape is outlined while the pointer is over it                        |
-| Double-click a box or relation, or press Enter                            | Its label, typed where it is drawn ([text in place](#empty-shapes-and-text-in-place))                                                                          |
+| Gesture                                                                   | Text change                                                                                                                                                                                          |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Drag a box (or several, or a group)                                       | `place` of each box; Alt moves freely, otherwise guides first, then the grid                                                                                                                         |
+| Drag a box into a group, or out of its group                              | Its declaration moves into that group's block, or to the top level, with its `place` in the new interior; Alt keeps the group                                                                        |
+| Drag a resize handle                                                      | `size` and `place`; the opposite edges stay, sizes snap to the grid, at least 24                                                                                                                     |
+| Drag a relation label                                                     | `label <id> at <n>% offset (dx, dy)`                                                                                                                                                                 |
+| Drag a route bend, or the middle of a stretch                             | `route … via [...]`, adding a bend when you drag a middle                                                                                                                                            |
+| Double-click a bend                                                       | Removes it from `via`; a route left with nothing else goes                                                                                                                                           |
+| Drag a route end over its box, or just outside it                         | The point of the border it takes, in the `route` (below); inside the box, `auto`                                                                                                                     |
+| Drag a route end onto another box                                         | The relation's end, and its `route` with the point                                                                                                                                                   |
+| Double-click a route end                                                  | The layout chooses that end again                                                                                                                                                                    |
+| Drag from a connection handle (the dots beside a selected box) onto a box | `a -> b`; Shift for `-->`; onto its border, both ends pinned too                                                                                                                                     |
+| Press just outside a box's border and drag onto another box               | `a -> b` with its start pinned to that point; onto the border, its end too                                                                                                                           |
+| Relation tool (R): click the source, then the target                      | `a -> b`, or the arrow kind chosen (`->`, `-->`, `--`, `---`, `<->`, `<-->`), selected; Shift on the second click flips solid and dashed; Escape cancels                                             |
+| Relation tool (R) on a free diagram: drag on empty canvas                 | `line line1 from (x, y) to (x, y)` and the current kind's styles, inside the group under the press, selected; snapped to the grid, Shift for 45° steps, Escape cancels ([lines](#free-compositions)) |
+| Drag an end or a bend of a selected line, or the middle of a stretch      | That point of the `line` statement, snapped to the grid; dragging a middle adds a bend to `via`                                                                                                      |
+| Double-click a bend of a line                                             | Removes it from `via`; the last one takes `via` with it                                                                                                                                              |
+| Drag a line by its stroke                                                 | Every point of the `line` statement, by the same amount                                                                                                                                              |
+| Choose a palette tool and click, or drag a palette button onto the canvas | A declaration and its `place`, inside the group under the pointer (a group nests too); a box or node with the current shape also gets `style <id> { shape … }`                                       |
+| Choose an icon in the icon picker and click the canvas, or drag it there  | The element the placement control says, empty, with `style <id> { icon … }` and its `place` ([icons](#icons))                                                                                        |
+| Drag an icon of the picker or the Libraries panel onto a shape            | `style <id> { icon … }` of that node, decision, data store or box, and nothing else; the shape is outlined while the pointer is over it                                                              |
+| Double-click a box, a relation or a line, or press Enter                  | Its label, typed where it is drawn ([text in place](#empty-shapes-and-text-in-place))                                                                                                                |
 
 - **Naming relations.** Actions on an anonymous relation, a style, an effect, a label, a layer,
   a dotted line, a label position, a moved label, a dragged end or bend included, first name it
@@ -335,7 +339,7 @@ canvas.
 | Ctrl+Left, Ctrl+Right, Ctrl+Up, Ctrl+Down                     | Select the nearest element in that direction; of two at one centre, the nested one                                                    |
 | Ctrl+A                                                        | Select every element                                                                                                                  |
 | Escape                                                        | Clear the selection or cancel a drag                                                                                                  |
-| Left, Right, Up, Down                                         | Move the selection 1 px                                                                                                               |
+| Left, Right, Up, Down                                         | Move the selection 1 px, a free line's points included                                                                                |
 | Shift+Left, Shift+Right, Shift+Up, Shift+Down                 | Move the selection one grid step                                                                                                      |
 | Alt+Shift+Left, Alt+Shift+Right, Alt+Shift+Up, Alt+Shift+Down | Make the box one grid step narrower, wider, shorter or taller                                                                         |
 | Enter, F2                                                     | Edit the label in place                                                                                                               |
@@ -347,7 +351,7 @@ canvas.
 | Ctrl+Alt+H, Ctrl+Alt+V                                        | Distribute horizontally or vertically                                                                                                 |
 | C                                                             | Connect the selected element to… (type to filter, Enter to choose)                                                                    |
 | R                                                             | Relation tool (Message on sequence diagrams): click the source, then target                                                           |
-| R while the relation tool is armed                            | The next arrow kind: `->`, `-->`, `<->`, `<-->`                                                                                       |
+| R while the relation tool is armed                            | The next arrow kind: `->`, `-->`, `--`, `---`, `<->`, `<-->`                                                                          |
 | N, D, S, O, T, G                                              | Flow: create a node (of the current shape), decision, data store, note, tag or group (of the current kind) near the centre            |
 | B, T, M, G                                                    | Free: create a box (of the current shape), text, image or group (of the current kind) near the centre                                 |
 | F                                                             | Flow and free: open the shapes grid (type to filter, arrows to move, Enter to create, Escape to close)                                |
@@ -383,6 +387,11 @@ The canvas moves briefly and always the same way, on the motion tokens of its st
 - **Outlines.** The outline of a drop or connection target and the inline editor's outline fade
   in; the results of the icon picker fade in one after the other.
 - **Controls.** Buttons, chips and fields change colour over 120 ms.
+- **Lines.** The ghost of a line being drawn fades in past the drag threshold, follows the pointer
+  without easing and fades out over 160 ms on release, as the drawn line appears. The handles of a
+  line being edited follow the pointer without easing too.
+- **Text alignment.** The pressed cell's highlight slides to the chosen cell over 120 ms, and a
+  cell scales to 98 % while it is pressed, as chips do.
 
 When the system asks for reduced motion (`prefers-reduced-motion: reduce`), every duration is
 zero and nothing rises, slides or scales.
@@ -545,11 +554,15 @@ alone; sending the inner box to the back turns it into a `layout.overlap`.
   the highlighted shape near the centre and makes it current, and Escape closes. Every shape has a
   keyboard path, such as F, `hex`, Enter, then B or N for the next one, or F, `agen`, Enter for an
   agent. Sequence diagrams keep F for fragments.
-- **Arrow kinds.** The arrow button is split the same way: its menu lists `->`, `-->`, `<->` and
-  `<-->` with their pictures, and a choice arms the relation tool with that kind. R arms the tool
-  with the current kind; while it is armed, R again moves to the next kind, which the status line
-  and the badge beside the pointer name. Shift on the second click still flips solid and dashed,
-  and connection handles keep writing `->` (`-->` with Shift). C4 views offer the one-way kinds.
+- **Arrow kinds.** The arrow button is split the same way: its menu lists six kinds with their
+  pictures and names, `->` (arrow), `-->` (dashed arrow), `--` (line), `---` (dashed line), `<->`
+  (two-way arrow) and `<-->` (dashed two-way arrow), the two lines drawn without heads, and a
+  choice arms the relation tool with that kind. R arms the tool with the current kind; while it is
+  armed, R again moves to the next kind in that order, which the status line and the badge beside
+  the pointer name. Shift on the second click still flips solid and dashed (`--` to `---`), and
+  connection handles keep writing `->` (`-->` with Shift). C4 views offer `->` alone, and the
+  Message tool of sequence diagrams no kinds. On a free diagram, the armed tool dragged on empty
+  canvas draws a line of the current kind ([free compositions](#free-compositions)).
 - **Containers.** The **Group** button is split too: its menu offers **Group**, a band with a
   title, and **Container**, a plain rectangle without one. A choice becomes the current kind and
   arms the tool, and G creates the current kind near the centre; Alt+G still groups the selection
@@ -627,16 +640,44 @@ alone; sending the inner box to the back turns it into a `layout.overlap`.
 ## Free compositions
 
 The palette follows the diagram: flow diagrams offer node, decision, data store, note, tag, group
-and icon; free diagrams offer box, text, icon, image and group. The box and node buttons open the
-shapes ([shapes and containers](#shapes-and-containers)).
+and icon; free diagrams offer box, text, icon, image and group, and the arrow tool also draws lines.
+The box and node buttons open the shapes ([shapes and containers](#shapes-and-containers)).
+
+- **Drawing a line.** Arm the relation tool (R, or a kind from the arrow button's menu), press on
+  empty canvas, on a group's background or on another line, and drag: past the drag threshold a
+  ghost line follows the pointer with the kind's dashes and heads, both ends snapped to the grid,
+  Shift keeping it at 45° steps, and Escape cancels it. The release writes
+  `line line1 from (98, 98) to (294, 98)`, inside the group under the press with its points in
+  that group's interior, and the kind's styles in the same edit: nothing for `--`, `line dashed`
+  for `---`, `arrowhead <head>` for `->`, `line dashed; arrowhead <head>` for `-->`,
+  `arrowtail <head>; arrowhead <head>` for `<->` and the same with `line dashed` for `<-->`, where
+  `<head>` is the theme's arrowhead (`triangle` in the technical themes, `open` in the editorial
+  ones). The new line is selected, the tool disarms, and the status line says what was drawn. A
+  press on an element still starts a relation (click the source, then the target), and a press
+  released before the threshold asks for the element to start from; on a flow diagram, dragging
+  on empty canvas draws nothing.
+- **Editing a line.** A selected line shows its outline as drawn, a handle at each end, a square
+  at each bend and a small handle in the middle of each stretch, and no frame, resize, rotation or
+  connection handles. Dragging an end or a bend moves that point, snapped to the grid; dragging a
+  middle adds a bend; double-clicking a bend removes it; dragging the line by its stroke, or the
+  arrow keys, move every point. The outline and the handles follow the pointer at every frame, and
+  the drop rewrites the statement's points in the group's interior, keeping its comments, adding
+  `via [...]` after `to` when the first bend appears and removing it with the last one, in one undo
+  step. A line's ends are points: they have no magnets and never join a box. Enter or a double
+  click types its label on its pill, and the pill is dragged like a relation's label (`label line1
+at 30%`). The strip shows a relation's rows: stroke, line, width, both heads with `none` greyed,
+  the route kind with `polyline` greyed and the corners. A line is caught by its stroke and by a
+  selection rectangle around it; copying it shifts its points, deleting it removes its `label`,
+  and aligning or distributing leaves it out.
 
 - **Icons.** The icon button and I open the icon picker ([icons](#icons)). With **Only the icon**,
   a choice placed with Enter becomes `icon icon1 "tabler:server"` near the centre; **Icon** and
   **In a box** write a box with the icon, as flow diagrams write a node.
 - **Images.** Placing an image opens a file dialog; the file must be inside the project, and its
   path is written relative to the `.meltemi` file. Image paths also complete in the code.
-- **Text.** The inspector has **Text size**, **Text weight** and **Text alignment** fields; icons
-  and images have their **Icon** or **Image file** field instead of a label.
+- **Text.** The strip has the **Text alignment** picker for boxes and texts
+  ([styling and themes](#styling-and-themes)), and the inspector **Text size** and **Text weight**
+  fields; icons and images have their **Icon** or **Image file** field instead of a label.
 - **Links.** **Linked to** writes `link <diagram>.<element>`. Go to definition on a link opens the
   linked element, in this file or an imported one. **URL** writes `url "…"`, a hyperlink that SVG,
   PDF and HTML exports keep (every profile, and the model's entities in C4 views); the canvas never
@@ -733,8 +774,8 @@ declared in that model, in this file or in the model's own file.
 
 - **The style strip.** The top of the inspector styles the selection: **Fill**, **Stroke** and
   **Text colour** as rows of chips, then line and stroke width; for elements that take them, the
-  corner radius, the shape and the icon position; for relations, the heads at both ends, the
-  route kind and the corners; and the **Effects** row, which says at its right "off" or the effects
+  corner radius, the shape, the text alignment and the icon position; for relations and free
+  lines, the heads at both ends, the route kind and the corners; and the **Effects** row, which says at its right "off" or the effects
   that are on, with their toggles beneath and, under them, a card for each effect that is on
   ([effects](#effects)). Several selected items are styled together in one edit; a row shows
   "mixed" where their values differ, and the effects keep their toggles only.
@@ -744,8 +785,21 @@ declared in that model, in this file or in the model's own file.
   **Start arrowhead** and **End arrowhead** are buttons showing the current head; each opens a
   grid of every head (triangles, diamonds, circles, bars, crosses and the crow's feet of ER
   diagrams). Arrows move in a row or the grid, Enter chooses, Escape closes. For a relation, solid
-  and dashed rewrite its arrow (`->`, `-->`, or `<->`, `<-->` when it is two-way) and dotted
-  writes `line dotted`.
+  and dashed rewrite its arrow, keeping its heads (`->` and `-->`, `<->` and `<-->` when it is
+  two-way, `--` and `---` for a line), and dotted writes `line dotted`. The heads of a `--` or
+  `---` relation and of a free line show `none` greyed at both ends; choosing `triangle` for the
+  end writes `style link { arrowhead triangle }`.
+- **Text alignment.** For a free box, the strip shows one **Text alignment** control after
+  **Shape**: a 3 × 3 grid of pictures of a text block in a box, across (`textAlign` left, centre,
+  right) and down (`verticalAlign` top, middle, bottom). The written pair is pressed, and the pair
+  that applies without one (centre, middle) is greyed in a dashed cell. A free text shows the
+  three cells of a row, with left greyed. A cell writes the properties that change, both in one
+  undo step: the top-left cell writes `style a { textAlign left; verticalAlign top }`, and
+  middle-left then leaves `style a { textAlign left }`, since `middle` is the default. The row's
+  **Theme** chip removes both. The cells are a radio group: the arrows move in both directions,
+  Enter or Space chooses, and each cell is named by its pair ("centre, bottom"). Several selected
+  boxes whose values differ show "mixed" with no cell pressed; flow nodes and other kinds have no
+  picker, and a read-only canvas draws it disabled.
 - **Tokens, colours and the theme.** The chips are the theme's sixteen colour tokens, drawn in the
   colours the diagram's theme gives them, so a custom theme shows its own. A chip writes the
   token (`style api { fill accent }`), which follows the theme when it changes; the colour picker
@@ -759,8 +813,8 @@ declared in that model, in this file or in the model's own file.
   participants and messages draw no icons, have no **Icon** or **Icon colour** field. Icon
   position, Label position and Icon size are described under [icons](#icons).
 - **The diagram's theme.** With nothing selected, the strip starts with the **Theme** field. A
-  built-in theme offers its counterpart in one click (**Dark** for `technical.light`), which writes
-  `theme "technical.dark"`.
+  built-in theme offers its counterpart in one click (**Dark** for `technical.light`, **Light** for
+  `sketch.dark`), which writes `theme "technical.dark"` or `theme "sketch.light"`.
 - **New theme from this one…** asks an id and where the theme lives. **This file** adds
   `theme <id> { extends "<current>" }` after the file's other themes and points the diagram at it.
   **The project** (a saved file in a project) writes `themes/<id>.meltemi` and sets
@@ -769,7 +823,11 @@ declared in that model, in this file or in the model's own file.
   panel opens on the new theme.
 - **The theme panel.** **Edit theme…** (when the theme is a block of the file or the project)
   lists the theme's tokens by group: colours, fonts, type, spacing, shapes and lines, icons, frame,
-  motion and canvas. Each shows the written value, or the base theme's greyed. A change writes the token
+  motion and canvas. Each shows the written value, or the base theme's greyed. **Sketch**, in
+  shapes and lines, is a row of three pictures, a straight, a lightly wobbly and a rough line, for
+  `none`, `light` and `rough`; choosing the wobbly one writes `sketch light` into the theme, and
+  the canvas redraws with the hand-drawn strokes while selections and handles keep the clean
+  outlines. A change writes the token
   into the block, in the file that holds it (the status line names it); **Inherit** or an empty
   value removes it. **Text font** and **Code font** offer the bundled families and the project's
   `assets/fonts/`, which exports embed; a stack written by hand shows as "custom" and stays.
@@ -778,9 +836,10 @@ declared in that model, in this file or in the model's own file.
 ## Effects
 
 - **Inspector.** A selected element, relation, message, note or fragment lists the effects it can
-  take, as toggles under the **Effects** row of the style strip: **Flow particles** (relations), **Moving dash** (relations
-  and boxes with an outline), **Pulse** and **Trace** (relations: a highlight that fills the arrow
-  from its start to its end, then starts again). Turning one on writes `animate <id> { effect … }`
+  take, as toggles under the **Effects** row of the style strip: **Flow particles** (relations and
+  free lines), **Moving dash** (relations, free lines and boxes with an outline), **Pulse** and
+  **Trace** (relations and free lines: a highlight that fills the arrow from its start to its end,
+  then starts again). Turning one on writes `animate <id> { effect … }`
   and opens the effect's card right under the row: its name and its duration in the header, and
   inside repeat, delay and, where they apply, direction, particles and the colour row (**Theme**,
   the theme's tokens and the picker, with `accent` as the default), all written into the same

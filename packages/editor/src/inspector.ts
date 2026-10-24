@@ -8,6 +8,7 @@ import {
   DEFAULT_THEME,
   FONT_WEIGHTS,
   TEXT_ALIGNS,
+  VERTICAL_ALIGNS,
   DIRECTIONS,
   ELEMENT_ONLY_PROPERTIES,
   ICON_POSITIONS,
@@ -174,13 +175,28 @@ const STYLE_FIELDS: readonly StyleField[] = [
     glyphs: "shape",
     elements: (kind) => takesShape(kind),
   },
+  // Free boxes and texts: where the text sits across; boxes also where it sits down the shape.
+  // The canvas draws the two as one grid of cells.
+  {
+    name: "textAlign",
+    type: "enum",
+    options: TEXT_ALIGNS,
+    glyphs: "textAlign",
+    elements: (kind, diagram) => diagram.type === "free" && (kind === "box" || kind === "text"),
+  },
+  {
+    name: "verticalAlign",
+    type: "enum",
+    options: VERTICAL_ALIGNS,
+    glyphs: "verticalAlign",
+    elements: (kind, diagram) => diagram.type === "free" && kind === "box",
+  },
 ];
 
 /** Style fields of free diagrams: text. */
 const FREE_STYLE_FIELDS: readonly StyleField[] = [
   { name: "fontSize", type: "number" },
   { name: "fontWeight", type: "enum", options: FONT_WEIGHTS.map(String) },
-  { name: "textAlign", type: "enum", options: TEXT_ALIGNS },
 ];
 
 /** The word for a kind in titles: the interface's, or the kind itself for declared types. */
@@ -212,7 +228,11 @@ const shown = (value: string | number | undefined): string | number | null =>
       : value;
 
 function styleFields(diagram: FlowDiagram, targets: readonly StyleTarget[]): InspectorField[] {
-  const kinds = new Set(targets.map((t) => t.kind));
+  // Free lines take a relation's properties and none of a box's.
+  const isLine = (t: StyleTarget) =>
+    t.kind === "element" && diagram.elementsById.get(t.id)?.kind === "line";
+  const lines = targets.length > 0 && targets.every(isLine);
+  const kinds = new Set(targets.map((t) => (isLine(t) ? "relation" : t.kind)));
   const styles = targets.map((t) => writtenStyle(diagram, t.id, t.kind));
   const fields = diagram.type === "free" ? [...STYLE_FIELDS, ...FREE_STYLE_FIELDS] : STYLE_FIELDS;
   const labels = messages().style;
@@ -226,10 +246,11 @@ function styleFields(diagram: FlowDiagram, targets: readonly StyleTarget[]): Ins
         !(kinds.has("relation") && ELEMENT_ONLY_PROPERTIES.includes(f.name)) &&
         !(diagram.type === "sequence" && NOT_IN_SEQUENCES.has(f.name)) &&
         (f.elements === undefined ||
-          targets.every((t) => {
-            const element = t.kind === "element" ? diagram.elementsById.get(t.id) : undefined;
-            return element !== undefined && f.elements!(element.kind, diagram);
-          })),
+          (!lines &&
+            targets.every((t) => {
+              const element = t.kind === "element" ? diagram.elementsById.get(t.id) : undefined;
+              return element !== undefined && f.elements!(element.kind, diagram);
+            }))),
     )
     .map((f) => {
       const values = styles.map((s) => shown(s[f.name]));
@@ -267,6 +288,11 @@ function withElementDefaults(
   const shared = (values: readonly string[]) =>
     values.length > 0 && values.every((v) => v === values[0]) ? values[0] : undefined;
   const styles = new StyleResolver(theme, view.diagram);
+  // The styles the targets would take without their own `style` statements.
+  const inherited = new StyleResolver(theme, {
+    ...view.diagram,
+    styles: view.diagram.styles.filter((entry) => !ids.includes(entry.target)),
+  });
   const shapeOf = (e: Element) =>
     view.layout?.shapes?.get(e.id) ?? styles.element(e).shape ?? e.shape ?? "rounded";
   // The radius drawn without one written: the theme's on rounded boxes, notes and frames, the
@@ -298,8 +324,29 @@ function withElementDefaults(
     iconKind(e.kind, view.diagram) && (iconShaped(e) || position(e) === "center");
   const some = elements.length > 0;
   const icon = shared(elements.map((e) => styles.element(e).icon ?? ""));
+  // Free lines: no head unless written, straight segments, the theme's corners.
+  const lines = some && elements.every((e) => e.kind === "line");
   const defaults: Readonly<Record<string, string | undefined>> = {
+    ...(lines
+      ? {
+          "style.arrowhead": "none",
+          "style.arrowtail": "none",
+          "style.routing": "polyline",
+          "style.corners": theme.corners,
+        }
+      : {}),
     "style.shape": shared(elements.map((e) => view.layout?.shapes?.get(e.id) ?? "rounded")),
+    // What applies without the targets' own statements (classes, rules), else a box's text
+    // centred in the middle of its shape and a free text's starting on the left: the alignment
+    // picker writes a cell's value only where it differs from this.
+    "style.textAlign": shared(
+      elements.map(
+        (e) => inherited.element(e).textAlign ?? (e.kind === "text" ? "left" : "center"),
+      ),
+    ),
+    "style.verticalAlign": shared(
+      elements.map((e) => inherited.element(e).verticalAlign ?? "middle"),
+    ),
     "style.radius": shared(elements.map((e) => String(radius(e)))),
     // A rule's or a class's angle, else upright.
     "style.rotation": shared(elements.map((e) => String(styles.element(e).rotation ?? 0))),
@@ -362,8 +409,8 @@ function withIcons(
 
 /**
  * The relation's style fields with what applies without a written value: the theme's head at the
- * end (calls and replies in sequence diagrams), the end's head at the start of a two-way arrow,
- * the diagram's route kind and the theme's corners.
+ * end (calls and replies in sequence diagrams; none for a line), the end's head at the start of a
+ * two-way arrow, the diagram's route kind and the theme's corners.
  */
 function withRelationDefaults(
   fields: readonly InspectorField[],
@@ -372,16 +419,19 @@ function withRelationDefaults(
   theme: Theme,
 ): InspectorField[] {
   const written = writtenStyle(diagram, relation.id ?? relation.key, "relation");
+  // A line (`--`, `---`) has no head at either end unless one is written.
   const endDefault =
-    diagram.type === "sequence"
-      ? relation.line === "dashed" || relation.async
-        ? "open"
-        : "triangle"
-      : theme.arrowhead;
+    relation.heads === "none"
+      ? "none"
+      : diagram.type === "sequence"
+        ? relation.line === "dashed" || relation.async
+          ? "open"
+          : "triangle"
+        : theme.arrowhead;
   const end = typeof written.arrowhead === "string" ? written.arrowhead : endDefault;
   const defaults: Readonly<Record<string, string>> = {
     "style.arrowhead": endDefault,
-    "style.arrowtail": relation.twoWay ? end : "none",
+    "style.arrowtail": relation.heads === "both" ? end : "none",
     "style.routing": diagram.properties.routing,
     "style.corners": theme.corners,
   };
@@ -392,7 +442,12 @@ function withRelationDefaults(
 
 /** Kinds an element of a profile can become; icons, images and groups keep theirs. */
 function kindOptions(diagram: FlowDiagram, element: Element): readonly string[] {
-  if (element.kind === "group" || element.kind === "icon" || element.kind === "image") {
+  if (
+    element.kind === "group" ||
+    element.kind === "icon" ||
+    element.kind === "image" ||
+    element.kind === "line"
+  ) {
     return [element.kind];
   }
   return diagram.type === "free" ? ["box", "text"] : ["node", "decision", "data", "note", "tag"];
@@ -415,7 +470,7 @@ function identityFields(diagram: FlowDiagram, element: Element | undefined): Ins
       placeholder: "main",
       options: diagram.properties.layers,
     });
-    if (element) {
+    if (element && element.kind !== "line") {
       // A group cannot go into itself or into a group it holds.
       const groups = diagram.elements.filter(
         (e) => e.kind === "group" && e.id !== element.id && !e.groupPath.includes(element.id),
@@ -514,6 +569,10 @@ function elementFields(view: DiagramView, element: Element): InspectorField[] {
     },
   ];
   fields.push(...identityFields(diagram, element));
+  // A free line is its points: no ports, no place, no size.
+  if (element.kind === "line") {
+    return [...fields, ...styleFields(diagram, [{ id: element.id, kind: "element" }])];
+  }
   if (element.kind !== "group")
     fields.push({
       name: "ports",
@@ -856,7 +915,7 @@ export function themeSwatches(theme: Theme): ColorSwatch[] {
 
 /** The built-in theme of the same family in the other scheme: `technical.dark` for `technical.light`. */
 export function counterpartTheme(name: string): string | undefined {
-  const match = /^(technical|editorial|stage)\.(light|dark)$/.exec(name);
+  const match = /^(technical|editorial|stage|sketch)\.(light|dark)$/.exec(name);
   if (!match) return undefined;
   return `${match[1]}.${match[2] === "light" ? "dark" : "light"}`;
 }
@@ -893,6 +952,9 @@ const STRIP = [
   "style.radius",
   "style.rotation",
   "style.shape",
+  // Free boxes and texts: one grid of cells for the two.
+  "style.textAlign",
+  "style.verticalAlign",
   // For elements with an icon only.
   "style.iconPosition",
   ...EFFECT_ORDER.flatMap((effect) => [

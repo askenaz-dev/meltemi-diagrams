@@ -1,6 +1,7 @@
 import { formatNumber, quoteString } from "@meltemi/diagrams-edit";
 import { DEFAULT_LOCALE, type Locale } from "@meltemi/diagrams-i18n";
 import { formatSource } from "@meltemi/diagrams-language";
+import { arrowToken, type RelationHeads } from "@meltemi/diagrams-model";
 import { messages } from "./messages/index.js";
 
 /** Style properties in written order, with values already in source form (`"#fff"`, `3`). */
@@ -38,6 +39,8 @@ export interface SheetRelation {
   dashed: boolean;
   /** Written `<->` or `<-->`: the same head at both ends. */
   twoWay?: boolean;
+  /** `none` writes a line without heads, `--` or `---`; absent, the heads follow `twoWay`. */
+  heads?: RelationHeads;
   label?: string;
   id?: string;
   classes: string[];
@@ -291,7 +294,8 @@ function printElement(out: Out, el: SheetElement): void {
 
 function printRelation(out: Out, rel: SheetRelation): void {
   out.comments(rel.comments);
-  let text = `${rel.from} ${rel.twoWay ? "<" : ""}${rel.dashed ? "-->" : "->"} ${rel.to}`;
+  const heads = rel.heads ?? (rel.twoWay ? "both" : "end");
+  let text = `${rel.from} ${arrowToken(rel.dashed ? "dashed" : "solid", heads)} ${rel.to}`;
   if (rel.label !== undefined) text += `: ${quoteString(rel.label)}`;
   if (rel.id !== undefined) text += ` as ${rel.id}`;
   const inner = [...(rel.block ?? [])];

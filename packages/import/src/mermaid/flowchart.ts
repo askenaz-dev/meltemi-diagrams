@@ -666,7 +666,6 @@ export class FlowchartReader {
     const needsId = (i: number, edge: Edge) =>
       edge.source !== undefined ||
       edge.thick ||
-      edge.noHead ||
       edge.head !== undefined ||
       edge.tail !== undefined ||
       edge.routing !== undefined ||
@@ -683,7 +682,6 @@ export class FlowchartReader {
         : undefined;
       if (id !== undefined) {
         if (edge.thick) mergeProps(relationStyles, id, [["width", "3"]]);
-        if (edge.noHead) mergeProps(relationStyles, id, [["arrowhead", "none"]]);
         if (edge.head !== undefined) mergeProps(relationStyles, id, [["arrowhead", edge.head]]);
         if (edge.tail !== undefined) mergeProps(relationStyles, id, [["arrowtail", edge.tail]]);
         if (edge.routing !== undefined) {
@@ -705,6 +703,8 @@ export class FlowchartReader {
         to,
         dashed: edge.dashed,
         ...(edge.twoWay ? { twoWay: true } : {}),
+        // An open link is a line: `---` is `--`, `-.-` is `---`, `===` is `--` with width 3.
+        ...(edge.noHead ? { heads: "none" as const } : {}),
         ...(edge.label !== undefined && edge.label !== "" ? { label: edge.label } : {}),
         ...(id !== undefined ? { id } : {}),
         classes: [],

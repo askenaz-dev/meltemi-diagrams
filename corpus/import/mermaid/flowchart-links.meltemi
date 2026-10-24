@@ -37,18 +37,18 @@ diagram flowchart_links: flow {
   node aa
 
   a -> b
-  a -> c as e3
+  a -- c as e3
   a --> d as e4
-  a --> e as e5
-  a -> f as e6
-  a -> g as e7
-  a -> h as e8
-  a -> i as e9
+  a --- e
+  a -> f as e5
+  a -- g as e6
+  a -> h as e7
+  a -> i as e8
   a <-> j
   a -> l: "pipe label"
   a -> m: "text label"
   a --> n: "dotted label"
-  a -> o: "thick label" as e10
+  a -> o: "thick label" as e9
   p -> q
   q -> r
   s -> u
@@ -59,14 +59,13 @@ diagram flowchart_links: flow {
   y -> z as e2
   aa -> a
 
-  style e3 { arrowhead none; stroke "#0a0"; width 2 }
-  style e5 { arrowhead none }
+  style e5 { width 3 }
   style e6 { width 3 }
-  style e7 { width 3; arrowhead none }
-  style e8 { arrowhead circle }
-  style e9 { arrowhead cross }
-  style e10 { width 3 }
+  style e7 { arrowhead circle }
+  style e8 { arrowhead cross }
+  style e9 { width 3 }
   style e2 { routing polyline }
+  style e3 { stroke "#0a0"; width 2 }
   style e4 { stroke "#0a0"; width 2 }
 
   animate e1 { effect flow; duration 1s; repeat forever }

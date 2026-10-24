@@ -623,8 +623,9 @@ export class DescriptionReader {
     const relationStyles: { targets: string[]; props: [string, string][] }[] = [];
     this.sheet.relations = this.edges.map((edge) => {
       const props: [string, string][] = [];
-      if (edge.noHead) props.push(["arrowhead", "none"]);
-      if (edge.head !== undefined) props.push(["arrowhead", edge.head]);
+      // No head at the target is a line (`--`, `---` for a dotted body), whatever the left end has.
+      const headless = edge.noHead || edge.head === "none";
+      if (edge.head !== undefined && edge.head !== "none") props.push(["arrowhead", edge.head]);
       if (edge.tail !== undefined) props.push(["arrowtail", edge.tail]);
       if (edge.stroke) props.push(["stroke", cssValue(edge.stroke)]);
       if (edge.width !== undefined) props.push(["width", String(Math.min(16, edge.width))]);
@@ -636,6 +637,7 @@ export class DescriptionReader {
         to: ids.id(edge.to),
         dashed: edge.dashed,
         ...(edge.twoWay ? { twoWay: true } : {}),
+        ...(headless ? { heads: "none" as const } : {}),
         ...(edge.label !== undefined && edge.label !== "" ? { label: edge.label } : {}),
         ...(id !== undefined ? { id } : {}),
         classes: [],

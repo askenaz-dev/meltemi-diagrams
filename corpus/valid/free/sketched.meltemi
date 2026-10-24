@@ -1,0 +1,42 @@
+language "0.2"
+
+// Strokes painted by hand: a theme that sketches roughly, over boxes of four shapes, a group,
+// relations with heads (one dashed, one with a moving dash), a labelled free line and a pill.
+theme rough {
+  extends "sketch.light"
+  sketch rough
+}
+
+diagram sketched: free {
+  title "Sketched"
+  theme "rough"
+  layout manual
+
+  box a "Rounded"
+  box b "Ellipse"
+  box c "Diamond"
+  box d "Cylinder"
+  group g "Group" {
+    box e "Inside"
+  }
+  a -> b: "calls" as call
+  b --> c as later
+  c -> d as store
+  line rule "Line" from (40, 230) to (840, 230)
+
+  animate call { effect dash }
+
+  placement {
+    place a at (100, 100)
+    place b at (320, 100)
+    place c at (540, 100)
+    place d at (760, 100)
+    place g at (440, 370)
+    size g (240, 150)
+    place e at (120, 60)
+  }
+
+  style b { shape ellipse }
+  style c { shape diamond }
+  style d { shape cylinder }
+}

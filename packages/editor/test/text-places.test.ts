@@ -90,6 +90,38 @@ describe("where labels are drawn, for the inline editor", () => {
     expect(group.anchor.y).toBeLessThan(element("g").box.y + 30);
   });
 
+  it("types top and bottom aligned text in the band it is drawn in", () => {
+    const aligned = rendered(`${PLAIN}diagram s: free {
+  theme "plain"
+  box up "Up"
+  box down "Down"
+  box oval "Oval"
+  style up { verticalAlign top }
+  style down { verticalAlign bottom }
+  style oval { shape ellipse; verticalAlign bottom }
+  placement {
+    place up at (120, 100)
+    size up (200, 120)
+    place down at (420, 100)
+    size down (200, 120)
+    place oval at (720, 100)
+    size oval (240, 120)
+  }
+}
+`);
+    for (const id of ["up", "down", "oval"]) {
+      const shape = aligned.elements.find((e) => e.id === id)!;
+      const text = shape.text!;
+      const middle = shape.box.y + shape.box.height / 2;
+      // The anchor is the drawn label; the area is the label's band, not the whole box.
+      if (id === "up") expect(text.anchor.y).toBeCloseTo(shape.box.y + 16 + 6.5, 1);
+      else expect(text.anchor.y).toBeGreaterThan(middle + 10);
+      expect(text.area.height).toBeLessThan(shape.box.height / 2);
+      expect(text.area.y).toBeLessThanOrEqual(text.anchor.y);
+      expect(text.area.y + text.area.height).toBeGreaterThanOrEqual(text.anchor.y);
+    }
+  });
+
   it("puts an agent's text in its body, below the head", () => {
     const agent = element("agent");
     const text = agent.text!;
