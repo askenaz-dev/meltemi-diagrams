@@ -57,6 +57,7 @@ import {
   type ModelContext,
 } from "./c4.js";
 import { composeEdits, planBatch } from "./batch.js";
+import { attachmentDependent, attachNote } from "./attachments.js";
 import { createElement, createRelation, requirePortOf, usedIds } from "./create.js";
 import { deleteStatements } from "./delete.js";
 import { createDiagram } from "./diagrams.js";
@@ -268,7 +269,7 @@ function run(
   }
   // A move between groups and a conversion to a container explain their own refusal in C4 views.
   if (operation.kind !== "moveElement" && operation.kind !== "convertToContainer") {
-    refuseInView(ctx, operation.kind);
+    refuseInView(ctx, operation);
   }
   if (
     operation.kind === "setRelationLabel" &&
@@ -305,6 +306,8 @@ function run(
       return arrange(ctx, operation);
     case "createElement":
       return createElement(ctx, operation);
+    case "attachNote":
+      return attachNote(ctx, operation);
     case "createRelation":
       return createRelation(ctx, operation);
     case "createLine":
@@ -971,6 +974,16 @@ function removeElement(ctx: EditContext, op: OperationOf<"removeElement">): Text
     if (other.id !== element.id && removedElements.has(other.id) && other.node)
       depend("element", other.id, other.node);
   }
+  // A note attached to what goes stays, without its clause: its text is the person's words.
+  const attachmentEdits: TextEdit[] = [];
+  for (const other of diagram.elements) {
+    if (other.attachedTo === null || removedElements.has(other.id)) continue;
+    if (!removedElements.has(other.attachedTo)) continue;
+    const attached = attachmentDependent(ctx, other);
+    if (!attached) continue;
+    dependents.push(attached.dependent);
+    attachmentEdits.push(attached.edit);
+  }
   for (const relation of removedRelations) depend("relation", relation.key, relation.node);
   for (const entry of diagram.placement) {
     const target =
@@ -1086,6 +1099,7 @@ function removeElement(ctx: EditContext, op: OperationOf<"removeElement">): Text
   );
   for (const [node, indices] of partial) edits.push(...removeListItems(node.args, indices));
   edits.push(...constraintEdits);
+  edits.push(...attachmentEdits);
   edits.push(...links.edits);
   edits.push(...deleteStatements(ctx.text, ctx.compilation.parse.root, stories.statements));
   edits.push(...stories.edits);

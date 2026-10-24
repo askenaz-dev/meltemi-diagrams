@@ -82,14 +82,15 @@ hiding and showing layers, copying, stories with their timeline, and effects wor
 **Other people's selections.** A host that shares the diagram can tell the canvas who else is in it
 with a `presence` message, `{ type: "presence", people }`, where each person has a `name`, a
 `colour`, the ids they have selected (elements, relations and events) and, while it moves, the
-`pointer` over their canvas. The playground does it
+`pointer` over their canvas and the points of their Pointer `laser` trail. The playground does it
 for a cloud project that several people have open
 ([working together](playground.md#working-together)); the extension never sends it, so VS Code
 sees no change. The canvas outlines each of those ids in the person's colour and tags it with their
 name, and draws each pointer as a cursor in the person's colour with the name at its tail, gliding
 from one point to the next, on a layer above the scene that is never selected, copied or exported:
 a press on an outline or a cursor reaches the element under it. The canvas tells such a host where
-its own pointer is (`presencePointer`), and nothing else of the layer. Each message is the whole picture
+its own pointer is (`presencePointer`) and the points of its Pointer strokes (`presenceLaser`), and
+nothing else of the layer; `me: { colour }` on the message names the person's own colour. Each message is the whole picture
 and replaces the last; a message with nobody, an empty canvas or another diagram clears it. Ids the
 diagram does not have are ignored, as is anything on a hidden layer, and while a story plays
 nothing is drawn (the people are kept for when it ends). A name is always shown as text, never as
@@ -143,6 +144,17 @@ diagram.
   ([covered shapes](#shapes-and-containers)). Dragging on empty space draws a rectangle that
   selects the boxes and the connectors fully inside it. Ctrl+A selects everything and Escape
   clears.
+- **Pointer**: the **Pointer** toggle (K) points at the diagram without editing it, for explaining
+  it to others. While it is on, a press and drag draws a trail that fades 800 ms after each of its
+  points, in the theme's accent (3 px, tapering to 1 px), and the cursor is a dot in that colour;
+  nothing is selected, moved, created, connected, edited or opened (a double click, the right
+  button and Shift+F10 included), and turning it on lets go of the selection. Wheel zoom, Space+drag
+  and the middle button still work. Escape, K or the button put it away, and so does arming any
+  creation or relation tool or pressing a creation key. It works on a read-only canvas, writes
+  nothing, is never part of an export, of the HTML views or of the project, and is not kept between
+  visits. Under `prefers-reduced-motion` the stroke does not fade while it is drawn and goes at once
+  when the pointer lifts. In a cloud project the others see the trail in your presence colour, in
+  the same messages as your pointer ([working together](playground.md#working-together)).
 - **Two-way selection**: selecting on the canvas shows the id in the code without taking focus.
   Moving the text cursor highlights the element of the statement under it.
 
@@ -338,7 +350,8 @@ canvas.
 | Tab, Shift+Tab                                                | Select the next or previous element in source order                                                                                   |
 | Ctrl+Left, Ctrl+Right, Ctrl+Up, Ctrl+Down                     | Select the nearest element in that direction; of two at one centre, the nested one                                                    |
 | Ctrl+A                                                        | Select every element                                                                                                                  |
-| Escape                                                        | Clear the selection or cancel a drag                                                                                                  |
+| Escape                                                        | Cancel a drag, put the Pointer away, disarm a tool or clear the selection, in that order                                              |
+| K                                                             | Turn the Pointer tool on or off, on every diagram and on a read-only canvas                                                           |
 | Left, Right, Up, Down                                         | Move the selection 1 px, a free line's points included                                                                                |
 | Shift+Left, Shift+Right, Shift+Up, Shift+Down                 | Move the selection one grid step                                                                                                      |
 | Alt+Shift+Left, Alt+Shift+Right, Alt+Shift+Up, Alt+Shift+Down | Make the box one grid step narrower, wider, shorter or taller                                                                         |
@@ -353,11 +366,11 @@ canvas.
 | R                                                             | Relation tool (Message on sequence diagrams): click the source, then target                                                           |
 | R while the relation tool is armed                            | The next arrow kind: `->`, `-->`, `--`, `---`, `<->`, `<-->`                                                                          |
 | N, D, S, O, T, G                                              | Flow: create a node (of the current shape), decision, data store, note, tag or group (of the current kind) near the centre            |
-| B, T, M, G                                                    | Free: create a box (of the current shape), text, image or group (of the current kind) near the centre                                 |
+| B, T, M, O, G                                                 | Free: create a box (of the current shape), text, image, note or group (of the current kind) near the centre                           |
+| A, O                                                          | C4: add an entity of the model to the view; create a note in the view                                                                 |
 | F                                                             | Flow and free: open the shapes grid (type to filter, arrows to move, Enter to create, Escape to close)                                |
 | I                                                             | Flow and free: open or close the icon picker, for the selection or to place an icon; in its search field I is typed ([icons](#icons)) |
 | P, A, G                                                       | Sequence: create a participant or an actor at the right, or a group                                                                   |
-| A                                                             | C4: add an entity of the model to the view                                                                                            |
 | O, F                                                          | Sequence: a note over the selection; a fragment around the selected events                                                            |
 | Alt+Up, Alt+Down                                              | Sequence: move the selected event before or after its neighbour                                                                       |
 | Alt+A                                                         | Sequence: activate the receiver after the selected message, or undo that                                                              |
@@ -384,8 +397,11 @@ The canvas moves briefly and always the same way, on the motion tokens of its st
 - **Panels.** Libraries and Layers slide in from the left, the inspector and the theme panel from
   the right, over 220 ms.
 - **Tooltips** appear after 400 ms over a control and fade in.
-- **Outlines.** The outline of a drop or connection target and the inline editor's outline fade
-  in; the results of the icon picker fade in one after the other.
+- **Outlines.** The outline of a drop or connection target (the element under a note tool, too)
+  and the inline editor's outline fade in; the results of the icon picker fade in one after the other.
+- **The Pointer's trail.** Each segment fades linearly over 800 ms from its own point and the width
+  tapers from 3 px to 1 px over the last 16 points; the frame loop runs only while a point is alive.
+  The dot cursor replaces the arrow the moment the tool turns on.
 - **Controls.** Buttons, chips and fields change colour over 120 ms.
 - **Lines.** The ghost of a line being drawn fades in past the drag threshold, follows the pointer
   without easing and fades out over 160 ms on release, as the drawn line appears. The handles of a
@@ -640,7 +656,8 @@ alone; sending the inner box to the back turns it into a `layout.overlap`.
 ## Free compositions
 
 The palette follows the diagram: flow diagrams offer node, decision, data store, note, tag, group
-and icon; free diagrams offer box, text, icon, image and group, and the arrow tool also draws lines.
+and icon; free diagrams offer box, text, icon, image, note and group, and the arrow tool also draws
+lines.
 The box and node buttons open the shapes ([shapes and containers](#shapes-and-containers)).
 
 - **Drawing a line.** Arm the relation tool (R, or a kind from the arrow button's menu), press on
@@ -670,6 +687,20 @@ at 30%`). The strip shows a relation's rows: stroke, line, width, both heads wit
   selection rectangle around it; copying it shifts its points, deleting it removes its `label`,
   and aligning or distributing leaves it out.
 
+- **Notes.** The note button and O make `note note1 "Note"` near the centre with its text editor
+  open, on flow diagrams, free compositions and C4 views (on a sequence diagram O still writes a note
+  over the selection). A note is drawn as text with no frame until a style gives it a fill or a
+  stroke; it takes the strip's colours, the **Text size** and **Text weight** fields and the text
+  alignment picker. **Attached to** (after **Label**) picks the element the note points at,
+  which writes `note note1 "Note" on api`; the empty choice removes the clause. Dropping the note
+  tool on an element, or clicking with it armed on one, creates the note at the element's east edge
+  plus the theme's `groupPadding`, level with its top, already attached, outlines the element while
+  the tool is over it and says in the status line what it attached to; on empty canvas it makes a
+  free note. A dotted leader joins the note to its element and follows both while either is
+  dragged. Delete on an element lists the notes attached to it with its other dependents, and
+  confirming keeps them without the clause. Copy, paste and Duplicate keep a note's attachment when
+  its element is copied with it, and drop it otherwise; **Convert to Free Composition** keeps notes
+  as notes.
 - **Icons.** The icon button and I open the icon picker ([icons](#icons)). With **Only the icon**,
   a choice placed with Enter becomes `icon icon1 "tabler:server"` near the centre; **Icon** and
   **In a box** write a box with the icon, as flow diagrams write a node.
@@ -732,6 +763,11 @@ declared in that model, in this file or in the model's own file.
   the view's scope for containers, data stores and components and at the model's root for
   persons and systems, with an empty label that the label editor asks for at once; the view
   includes it when it lists `include`, and places it where it was dropped.
+- **Notes.** The note button and O write `note note1 "Note"` in the view, placed where it was
+  dropped; the model is never touched. Dropped on an entity it is attached to it
+  (`on shop.api`). Its inspector shows its label, **Attached to** (the entities the view draws), its
+  style and effects, and none of an entity's fields. Delete on an entity lists the notes attached
+  to it and, confirmed, leaves them in the view without the clause.
 - **Adding.** **Add from the model…** (toolbar, A, context menu) lists the entities the view may
   draw and does not; the choice joins `include`.
 - **Copying.** Copy, paste and **Duplicate** declare copies of the selected entities in the model,

@@ -223,6 +223,8 @@ class C4Analyzer extends FlowAnalyzer {
   private scope: ModelEntity | null = null;
   private readonly labels: LocalLabel[] = [];
   private readonly labelStatements: KeywordStatement[] = [];
+  /** The view's own notes, declared once its elements are built. */
+  private readonly noteStatements: KeywordStatement[] = [];
   private includes: ViewListEntry[] | null = null;
   private readonly excludes: ViewListEntry[] = [];
   private includeNode: KeywordStatement | null = null;
@@ -279,6 +281,53 @@ class C4Analyzer extends FlowAnalyzer {
       );
     });
     return entity;
+  }
+
+  /** A view's note must write its text; an entity path may follow `on`. */
+  protected override get notesNeedText(): boolean {
+    return true;
+  }
+
+  protected override attachmentOf(
+    extra: readonly Arg[],
+    form: string,
+  ): { readonly arg: Arg; readonly target: string } | undefined {
+    if (extra[0]?.kind !== "QualifiedRef" || extra[0].text !== "on") return undefined;
+    const arg = extra[1];
+    if (arg?.kind !== "QualifiedRef" || extra.length > 2) {
+      this.invalid(messages().diagnostics.common.expected(form), extra[1] ?? extra[0]);
+      return undefined;
+    }
+    return { arg, target: arg.parts.map((p) => p.text).join(".") };
+  }
+
+  /** The target of a note's `on`: an entity path the view draws, never the note itself. */
+  protected override resolveAttachments(): void {
+    const m = messages();
+    for (const { note, arg, target, stmt } of this.attachments) {
+      if (arg.kind !== "QualifiedRef") continue;
+      const token = arg.parts.length === 1 ? arg.parts[0]! : wholeToken(arg);
+      if (target === note) {
+        this.invalid(m.diagnostics.flow.attachSelf(note), arg);
+      } else if (this.elementsById.has(target)) {
+        this.entity(arg, "attachment", false);
+        this.reference(token, target, "element", "attachment", stmt);
+      } else {
+        const known = this.definition!.entitiesByPath.has(target);
+        this.error(
+          "ref.unknown-element",
+          known ? m.diagnostics.c4.notDrawn(target) : m.diagnostics.common.unknownElement(target),
+          arg,
+          {
+            data: {
+              ids: [target],
+              candidates: this.elements.filter((e) => e.entity).map((e) => e.id),
+            },
+            hints: [known ? this.notDrawnHint(target) : m.hints.c4.entityPath],
+          },
+        );
+      }
+    }
   }
 
   protected override targetToken(
@@ -519,6 +568,7 @@ class C4Analyzer extends FlowAnalyzer {
         } else scopeStmt = stmt;
       } else if (keyword === "include" || keyword === "exclude") lists.push(stmt);
       else if (keyword === "label") this.labelStatements.push(stmt);
+      else if (keyword === "note") this.noteStatements.push(stmt);
       else if (keyword in this.profile.diagramProperties) properties.push(stmt);
       else if (this.profile.diagramBlocks.includes(keyword)) blocks.push(stmt);
       else {
@@ -552,6 +602,9 @@ class C4Analyzer extends FlowAnalyzer {
         : this.defaults(allowed);
       for (const entry of this.excludes) visible.delete(entry.path);
       this.buildElements(visible);
+      // The notes after the entities they may be attached to, and the clash of an id with a path.
+      for (const stmt of this.noteStatements) this.declare(stmt, []);
+      this.resolveAttachments();
       this.buildRelations(relationStatements);
       this.readLabels();
     }
@@ -565,6 +618,7 @@ class C4Analyzer extends FlowAnalyzer {
       else if (keyword === "rule") this.definitions.addRule(stmt);
       else this.styleOrAnimate(stmt, keyword as "style" | "animate");
     }
+    this.checkOutlinedDashes();
 
     const base = this.diagram(block);
     return {
@@ -700,6 +754,8 @@ class C4Analyzer extends FlowAnalyzer {
         external: entity.external,
         shape: null,
         line: null,
+        attachedTo: null,
+        attachedToRange: null,
         typeKind: null,
         data: {},
         groupPath,
@@ -727,7 +783,10 @@ class C4Analyzer extends FlowAnalyzer {
   private buildRelations(statements: readonly RelationStatement[]): void {
     const model = this.definition!;
     // The boundary stands for its children; relations land on drawn entities only.
-    const visible = new Set(this.elements.filter((e) => e.kind !== "group").map((e) => e.id));
+    // A note is no entity: relations land on drawn entities only.
+    const visible = new Set(
+      this.elements.filter((e) => e.kind !== "group" && e.entity !== null).map((e) => e.id),
+    );
     // Explicit combinations first: they claim their pairs.
     const claims = new Map<string, Mutable<Relation>>();
     const ids = new Map<string, Token>();
@@ -900,7 +959,9 @@ class C4Analyzer extends FlowAnalyzer {
       }
       const path = target.parts.map((p) => p.text).join(".");
       const token = target.parts.length === 1 ? target.parts[0]! : wholeToken(target);
-      const element = this.elementsById.get(path);
+      // A label renames an entity or a relation of the view; a note carries its own text.
+      const found = this.elementsById.get(path);
+      const element = found?.entity ? found : undefined;
       const relation = element ? undefined : this.relationsByKey.get(path);
       if (!element && !relation) {
         const known =

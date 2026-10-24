@@ -187,16 +187,18 @@ describe("render and state", () => {
     expect(none).toEqual({ type: "libraries", libraries: [] });
   });
 
-  it("sends the theme's canvas colours: its accent, or its selection and guide", () => {
+  it("sends the theme's canvas colours: its accent, or its selection and guide, and the accent", () => {
     // technical.light's accent.
     expect(render(open(manual).messages).colors).toEqual({
       selection: "#1D4ED8",
       guide: "#1D4ED8",
+      accent: "#1D4ED8",
     });
     const themed = `theme mine {\n  extends "technical.light"\n  selection "#0B6BCB"\n  guide "#16A34A"\n}\n\n${manual.replace("  layout manual", '  layout manual\n  theme "mine"')}`;
     expect(render(open(themed).messages).colors).toEqual({
       selection: "#0B6BCB",
       guide: "#16A34A",
+      accent: "#1D4ED8",
     });
   });
 

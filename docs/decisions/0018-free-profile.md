@@ -61,3 +61,5 @@ layout with ELK, rendering, edits, language services and the canvas.
 - Converted copies differ from their sources only in documented details: tag font, tag order
   under connectors, file-theme rules for flow kinds, and re-routed connectors.
 - Sequence and C4 profiles can reuse the profile table and links when they arrive.
+- `note` is a free kind too, and **Convert to Free Composition** keeps notes as notes
+  ([decision 0059](0059-pointer-and-notes.md)).

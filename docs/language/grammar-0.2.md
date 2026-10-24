@@ -136,7 +136,7 @@ the prefixes of the built-in themes. Imported themes are used by name: `theme "c
 | `decision`    | `decision <id> ["Label"] [{ ... }]`                                                     |                                                                                        |
 | `data`        | `data <id> ["Label"] [{ ... }]`                                                         |                                                                                        |
 | `group`       | `group <id> ["Label"] [{ ... }]`                                                        | holds declarations and relations; with `""`, a plain container without a title band    |
-| `note`        | `note <id> "Text\nmore text"`                                                           | free text; `\n` starts a new line                                                      |
+| `note`        | `note <id> "Text\nmore text" [on <element>]`                                            | free text; `\n` starts a new line; `on` attaches it to an element (a dotted leader)    |
 | `tag`         | `tag <id> "PKCE"`                                                                       | small pill, placed on or beside a box                                                  |
 | relation      | `a -> b`, `a --> b`, `a <-> b`, `a <--> b`, `a -- b`, `a --- b`, `: "Label"`, `as <id>` | solid or dashed, one way, two-way or a line without heads; endpoints are elements      |
 | `direction`   | `direction LR`                                                                          | `LR` (default), `RL`, `TB`, `BT`                                                       |
@@ -161,7 +161,11 @@ draws no head at either end unless `arrowhead` or `arrowtail` is written, as the
 `arrowhead` is only the default of `->` ([styles.md](styles.md#arrow-heads)). Sequence diagrams
 take the four arrows and C4 views `->` and `-->`; another token is `prop.invalid-value` on the
 token, naming the ones the profile takes. `note` and `tag` are annotations: they take part in placement and
-rendering like any element (see [svg-export.md](svg-export.md)) and are rarely relation endpoints.
+rendering like any element (see [svg-export.md](svg-export.md)) and are rarely relation endpoints. A
+note's `on <element>` clause attaches it to an element of the diagram (the entity path in a C4 view):
+the model records it as `attachedTo`, draws a dotted leader from the note to the element, and makes
+the arrangement of `layout auto` keep them near each other. `note` is a declaration of free
+diagrams and of C4 views too ([free.md](free.md#notes), [c4.md](c4.md#notes-in-views)).
 A `style` or `animate` block with several targets applies to each of them; setting the same style
 property again for a target in a later statement is `prop.duplicate`, and a second effect of the
 same kind on a target is `animate.conflict` ([motion.md](motion.md)). Classes, rules, presets and

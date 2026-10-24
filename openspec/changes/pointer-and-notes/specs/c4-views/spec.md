@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Notes in views
-A C4 view SHALL accept `note <id> "Text" [on <entity path>]`, the one declaration a view holds: a view-local annotation that is never written to the model and never an entity. It SHALL compile into an element of kind `note` with `entity` null, at the top level of the view (never inside the boundary), with the flow note's drawing, and SHALL accept `class` and `url` in its block (`description`, `layer` and `link` are `prop.unknown` in a view, as every other property). The target of `on` SHALL be an entity path the view draws; a path the model has that the view does not draw SHALL be `ref.unknown-element` with the hint that names how to include it, an unknown path `ref.unknown-element` as well, and the note itself `prop.invalid-value`. A note's id SHALL share the view's namespace with the drawn paths (`ref.duplicate-id` on a clash). Entity kinds and the shorthand SHALL stay refused in a view; `include`, `exclude`, `label` and relation statements naming a note SHALL be `ref.unknown-entity`. Styles, classes, rules and effects of the view SHALL apply to notes as to any element; the catalog and the HTML views SHALL draw them as the flow pipeline does.
+A C4 view SHALL accept `note <id> "Text" [on <entity path>]`, the one declaration a view holds: a view-local annotation that is never written to the model and never an entity. It SHALL compile into an element of kind `note` with `entity` null, at the top level of the view (never inside the boundary), with the flow note's drawing, and SHALL accept `class` and `url` in its block (`description`, `layer` and `link` are `prop.unknown` in a view, as every other property). The target of `on` SHALL be an entity path the view draws; a path the model has that the view does not draw SHALL be `ref.unknown-element` with the hint that names how to include it, an unknown path `ref.unknown-element` as well, and the note itself `prop.invalid-value`. A note's id SHALL share the view's namespace with the drawn paths (`ref.duplicate-id` on a clash). Entity kinds and the shorthand SHALL stay refused in a view; A note SHALL be no entity: `include` and `exclude` naming it SHALL be `ref.unknown-entity`, and `label` and relation statements naming it SHALL be `ref.unknown-element`, as for any path the view does not draw. Styles, classes, rules and effects of the view SHALL apply to notes as to any element; the catalog and the HTML views SHALL draw them as the flow pipeline does.
 
 #### Scenario: A note in a container view
 - **WHEN** the view `containers` of the commerce file declares `note cache "Cached 5 min" on shop.api`
@@ -17,7 +17,7 @@ A C4 view SHALL accept `note <id> "Text" [on <entity path>]`, the one declaratio
 
 #### Scenario: A note in a list
 - **WHEN** a view declares `note n "Text"` and `include n`
-- **THEN** `ref.unknown-entity` is reported on `n` in the `include`
+- **THEN** `ref.unknown-entity` is reported on `n` in the `include`, and a relation or a `label` naming `n` reports `ref.unknown-element`
 
 #### Scenario: A style on a note of a view
 - **WHEN** the view writes `style cache { fill "#fff3bf"; stroke "#e8a600" }` and `animate cache { effect pulse }`

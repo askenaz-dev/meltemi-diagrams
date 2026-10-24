@@ -283,6 +283,8 @@ export interface ElementJson {
     to: { x: number; y: number };
     via: { x: number; y: number }[];
   } | null;
+  /** Notes: the id of the element (the entity path in a C4 view) the note is attached to. */
+  attachedTo: string | null;
   entity: { model: string; path: string; file: string | null } | null;
   technology: string | null;
   external: boolean;
@@ -731,6 +733,7 @@ function elementJson(element: Element): ElementJson {
           via: element.line.via.map((p) => ({ x: p.x, y: p.y })),
         }
       : null,
+    attachedTo: element.attachedTo,
     entity: element.entity
       ? { model: element.entity.model, path: element.entity.path, file: element.entity.file }
       : null,

@@ -95,7 +95,7 @@
         },
         {
           "name": "keyword.other.placement.meltemi",
-          "match": "\\b(place|size|route|label|at|to|via|offset|align|row|column|order|distance)\\b"
+          "match": "\\b(place|size|route|label|at|to|via|on|offset|align|row|column|order|distance)\\b"
         },
         {
           "name": "support.type.property-name.diagram.meltemi",

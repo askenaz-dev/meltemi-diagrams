@@ -1,5 +1,6 @@
 import { setLocale } from "@meltemi/diagrams-i18n";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { laserOf, presenceMessage } from "../src/canvas-host.js";
 import { LISTED, presenceBar } from "../src/cloud/presence-bar.js";
 import { FLAG_FADE_MS, PresenceOverlay, type OverlayHost } from "../src/cloud/presence-overlay.js";
 import type { TextMetrics } from "../src/cloud/presence-geometry.js";
@@ -367,5 +368,41 @@ describe("other people's carets over the code", () => {
     view.destroy();
     expect(layer.children).toEqual([]);
     expect(timers.waiting).toBe(0);
+  });
+});
+
+// What the canvas is told ---------------------------------------------------------------------------
+
+describe("the presence message of the canvas", () => {
+  it("names the colour of the person at this canvas when it is known, and no more", () => {
+    expect(presenceMessage([], { colour: "#e03131" })).toEqual({
+      type: "presence",
+      people: [],
+      me: { colour: "#e03131" },
+    });
+    // Without a colour of their own the canvas draws the trail in the theme's accent.
+    expect(presenceMessage([])).toEqual({ type: "presence", people: [] });
+    expect("me" in presenceMessage([])).toBe(false);
+  });
+
+  it("carries a person's batch to the canvas as it came", () => {
+    const people = [
+      {
+        name: "Ben",
+        colour: "#1c7ed6",
+        selection: [],
+        laser: { batch: 3, points: [{ x: 1, y: 2, t: 0 }] },
+      },
+    ];
+    expect(presenceMessage(people)).toEqual({ type: "presence", people });
+  });
+
+  it("reads the points a canvas posted, and the diagram they are over", () => {
+    const points = [{ x: 1, y: 2, t: 0 }];
+    expect(laserOf({ type: "presenceLaser", points, diagram: "d" })).toEqual({
+      points,
+      diagram: "d",
+    });
+    expect(laserOf({ type: "presenceLaser", points })).toEqual({ points });
   });
 });

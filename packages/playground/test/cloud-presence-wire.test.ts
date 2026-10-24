@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import * as Y from "yjs";
 import {
   MAX_ID_LENGTH,
+  MAX_LASER_MS,
+  MAX_LASER_POINTS,
   MAX_NAME_LENGTH,
   MAX_SELECTED,
   decodeAwareness,
@@ -9,6 +11,7 @@ import {
   encodeLocal,
   fromBase64,
   positionIn,
+  readLaser,
   readState,
   toBase64,
 } from "../src/cloud/presence-wire.js";
@@ -263,5 +266,70 @@ describe("encoded positions", () => {
     expect(positionIn(encoded.anchor, doc, kept)).toBe(2);
     files.delete("f");
     expect(positionIn(encoded.anchor, doc, kept)).toBeUndefined();
+  });
+});
+
+describe("a Pointer trail batch", () => {
+  const points = Array.from({ length: 10 }, (_, i) => ({ x: 120 + i * 11, y: 80, t: i * 22 }));
+
+  it("goes out in the canvas part, and comes back as the peer's batch", () => {
+    const sent = JSON.parse(
+      new TextDecoder().decode(
+        encodeLocal("c7", {
+          file: FILE,
+          canvas: { selection: [], laser: { diagram: "d", points } },
+        }),
+      ),
+    ) as { c7: { canvas: { laser: unknown } } };
+    expect(sent.c7.canvas.laser).toEqual({ diagram: "d", points });
+    const state = readState(
+      { file: FILE, canvas: { selection: [], laser: { diagram: "d", points } }, user: user() },
+      PAGE,
+    );
+    expect(state?.laser).toEqual({ diagram: "d", points });
+    expect(
+      readState({ file: FILE, canvas: { selection: ["api"] }, user: user() }, PAGE)?.laser,
+    ).toBeUndefined();
+  });
+
+  it("holds at most 64 points of at most a second, and no more", () => {
+    const edge = Array.from({ length: MAX_LASER_POINTS }, (_, i) => ({ x: i, y: 0, t: 0 }));
+    expect(readLaser({ points: edge })?.points).toHaveLength(MAX_LASER_POINTS);
+    expect(readLaser({ points: [...edge, { x: 0, y: 0, t: 0 }] })).toBeUndefined();
+    expect(readLaser({ points: [{ x: 0, y: 0, t: MAX_LASER_MS }] })).toBeDefined();
+    expect(readLaser({ points: [{ x: 0, y: 0, t: MAX_LASER_MS + 1 }] })).toBeUndefined();
+  });
+
+  it("is dropped, and the rest of the state read, when a point does not fit", () => {
+    for (const bad of [
+      { x: 2_000_000, y: 0, t: 0 },
+      { x: 0, y: Number.NaN, t: 0 },
+      { x: "1", y: 0, t: 0 },
+      { x: 0, y: 0, t: 5000 },
+      { x: 0, y: 0, t: -1 },
+      { x: 0, y: 0, t: 1.5 },
+      { x: 0, y: 0 },
+      null,
+    ]) {
+      const state = readState(
+        {
+          file: FILE,
+          canvas: { selection: ["api"], laser: { points: [points[0], bad] } },
+          user: user(),
+        },
+        PAGE,
+      );
+      expect(state?.laser, JSON.stringify(bad)).toBeUndefined();
+      expect(state?.selection).toEqual(["api"]);
+    }
+    expect(readLaser({ points: "none" })).toBeUndefined();
+    expect(readLaser(null)).toBeUndefined();
+  });
+
+  it("keeps the diagram only when it is a reasonable id", () => {
+    expect(readLaser({ points, diagram: "d" })?.diagram).toBe("d");
+    expect(readLaser({ points, diagram: "" })).toEqual({ points });
+    expect(readLaser({ points, diagram: "x".repeat(MAX_ID_LENGTH + 1) })).toEqual({ points });
+    expect(readLaser({ points, diagram: 5 })).toEqual({ points });
   });
 });

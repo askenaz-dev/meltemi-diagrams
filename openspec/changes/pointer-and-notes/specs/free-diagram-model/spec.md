@@ -28,8 +28,8 @@
 ### Requirement: Free diagrams compile
 `diagram <id>: free { }` SHALL compile into the same diagram model as flow, with `type` set to `free`. It SHALL accept:
 
-- the declarations `box`, `text`, `icon`, `image`, `note` and `group`, and the shorthand `id["Label"]` (a box) and `id[("Label")]` (a box with `shape cylinder`);
-- relations `->` and `-->` with labels, ids and blocks;
+- the declarations `box`, `text`, `icon`, `image`, `note`, `line` and `group`, and the shorthand `id["Label"]` (a box) and `id[("Label")]` (a box with `shape cylinder`);
+- relations `->`, `-->`, `<->` and `<-->`, and the headless `--` and `---`, with labels, ids and blocks;
 - `placement` with `place`, `size`, `route`, `label` and the constraints;
 - `style`, `class`, `rule` and `animate`;
 - the diagram properties of flow and `layers`, with `layout manual` as the default.
@@ -42,4 +42,4 @@ Flow kinds (`node`, `decision`, `data`, `tag`) SHALL be `prop.unknown` in a free
 
 #### Scenario: Flow kinds in free
 - **WHEN** a free diagram declares `decision ok "OK?"`
-- **THEN** `prop.unknown` is reported with a hint that lists the free kinds, `note` among them
+- **THEN** `prop.unknown` is reported with a hint that lists the free kinds, `line` and `note` among them

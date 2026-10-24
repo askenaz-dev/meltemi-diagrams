@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CORPUS_ROOT } from "../../../test-support/corpus.js";
-import { compile, type FlowDiagram } from "../src/index.js";
+import { compile, outlined, type FlowDiagram } from "../src/index.js";
 
 function flow(body: string, header = 'language "0.2"\n') {
   const compilation = compile(`${header}diagram d: flow {\n${body}\n}\n`);
@@ -430,5 +430,111 @@ describe("profile gating and top level", () => {
       hasErrors: true,
     });
     expect(compilation.document.diagrams[0]!.relations).toHaveLength(1);
+  });
+});
+
+describe("note attachments", () => {
+  it("records the target, its range and a reference with the role attachment", () => {
+    const { diagram, codes } = flow('  api["API"]\n  note limits "500 rps" on api');
+    expect(codes).toEqual([]);
+    const limits = diagram.elementsById.get("limits")!;
+    expect(limits).toMatchObject({ kind: "note", label: "500 rps", attachedTo: "api" });
+    expect(limits.attachedToRange?.start.line).toBe(4);
+    expect(diagram.elementsById.get("api")!.attachedTo).toBeNull();
+    const reference = diagram.references.find((r) => r.role === "attachment")!;
+    expect([reference.token.text, reference.target, reference.targetKind]).toEqual([
+      "api",
+      "api",
+      "element",
+    ]);
+  });
+
+  it("reaches into a group, an element a relation declares and one declared later", () => {
+    const outside = flow('  group backend { api["API"] }\n  note n "Scales" on api');
+    expect(outside.codes).toEqual([]);
+    const implicit = flow('  note n "Scales" on db\n  api -> db');
+    expect(implicit.codes).toEqual([]);
+    expect(implicit.diagram.elementsById.get("n")!.attachedTo).toBe("db");
+  });
+
+  it("reports an unknown target with the diagram's ids as candidates, and the note on itself", () => {
+    const unknown = flow('  api["API"]\n  note n "Text" on ghost').compilation.diagnostics;
+    expect(unknown.map((d) => d.code)).toEqual(["ref.unknown-element"]);
+    expect(unknown[0]!.range.start.column).toBe(20);
+    expect(unknown[0]!.data?.candidates).toEqual(["api"]);
+    const own = flow('  note n "Text" on n').compilation.diagnostics;
+    expect(own.map((d) => d.code)).toEqual(["prop.invalid-value"]);
+    expect(own[0]!.message).toContain("itself");
+  });
+
+  it("refuses another word after the text, a lone on, and on elsewhere", () => {
+    const other = flow('  api["API"]\n  note n "Text" at api').compilation.diagnostics;
+    expect(other).toHaveLength(1);
+    expect(other[0]!.message).toBe(
+      'Unexpected value after the text; expected `note <id> "Text" [on <element>]`.',
+    );
+    expect(flow('  api["API"]\n  note n "Text" on').codes).toEqual(["prop.invalid-value"]);
+    expect(flow('  api["API"]\n  note n "Text" on api extra').codes).toEqual([
+      "prop.invalid-value",
+    ]);
+    expect(flow('  api["API"]\n  node b "B" on api').codes).toEqual(["prop.invalid-value"]);
+  });
+});
+
+describe("dash on notes and texts", () => {
+  const dash = (body: string, kind: "flow" | "free" = "flow") => {
+    const compilation = compile(`language "0.2"\ndiagram d: ${kind} {\n${body}\n}\n`);
+    return {
+      compilation,
+      diagram: compilation.document.diagrams[0] as FlowDiagram,
+      codes: compilation.diagnostics.map((d) => d.code),
+    };
+  };
+
+  it("follows a style, a class, a rule and a style that comes after the animation", () => {
+    const styled = dash(
+      '  note n "T"\n  style n { stroke "#e8a600" }\n  animate n { effect dash }',
+    );
+    expect(styled.codes).toEqual([]);
+    expect(styled.diagram.animations).toHaveLength(1);
+    const later = dash('  note n "T"\n  animate n { effect dash }\n  style n { fill "#fff3bf" }');
+    expect(later.codes).toEqual([]);
+    const byClass = dash(
+      '  note n "T" { class soft }\n  class soft { pattern hatch }\n  animate n { effect dash }',
+    );
+    expect(byClass.codes).toEqual([]);
+    const byRule = dash(
+      '  note n "T"\n  rule note { fill "#fff3bf" }\n  animate n { effect dash }',
+    );
+    expect(byRule.codes).toEqual([]);
+    const text = dash(
+      '  text t "T"\n  style t { stroke "#e8a600" }\n  animate t { effect dash }',
+      "free",
+    );
+    expect(text.codes).toEqual([]);
+  });
+
+  it("refuses a note and a text without an outline, and drops the effect", () => {
+    const bare = dash('  note limits "T"\n  animate limits { effect dash }');
+    expect(bare.codes).toEqual(["animate.invalid-target"]);
+    expect(bare.compilation.diagnostics[0]!.message).toBe(
+      "`limits` is a note without an outline; a moving dash follows a line or a box.",
+    );
+    expect(bare.compilation.diagnostics[0]!.hints![0]).toContain("`fill`");
+    expect(bare.diagram.animations).toHaveLength(0);
+    const text = dash('  text t "T"\n  animate t { effect dash }', "free");
+    expect(text.compilation.diagnostics[0]!.message).toContain("a text without an outline");
+    // The icon and the stick figures keep the refusal by kind, and a pulse is always fine.
+    expect(dash('  icon i "tabler:server"\n  animate i { effect dash }', "free").codes).toEqual([
+      "animate.invalid-target",
+    ]);
+    expect(dash('  note n "T"\n  animate n { effect pulse }').codes).toEqual([]);
+    expect(dash('  note n "T"\n  animate n { effect pulse }', "free").codes).toEqual([]);
+  });
+
+  it("is exposed as a predicate for the editor", () => {
+    const { diagram } = dash('  note a "T"\n  note b "T"\n  style a { stroke "#e8a600" }');
+    expect(outlined(diagram, diagram.elementsById.get("a")!)).toBe(true);
+    expect(outlined(diagram, diagram.elementsById.get("b")!)).toBe(false);
   });
 });

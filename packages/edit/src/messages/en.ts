@@ -169,6 +169,18 @@ export const en = {
       sourceUnreadable: "The source cannot be read.",
     },
 
+    /** Notes and what they are attached to. */
+    attach: {
+      /** `edit.invalid-value`: `attachNote` on something that is not a note. */
+      onlyNotes: (id: string, kind: string) => `\`${id}\` is a ${kind}: only notes attach.`,
+      /** `edit.invalid-value`: a note on itself. */
+      self: (id: string) => `A note cannot be attached to itself: \`${id}\`.`,
+      /** `edit.unsafe-target`: a path the view does not draw. */
+      notDrawn: (path: string, view: string) =>
+        `\`${path}\` is not drawn in the view \`${view}\`; include it first.`,
+      /** `edit.invalid-value`: an attachment on a kind that is not a note. */
+      kinds: (kind: string) => `Only a note takes an attachment, not a ${kind}.`,
+    },
     /** Relations and their ids. */
     lines: {
       /** `edit.invalid-value`: a free line in a flow, sequence or C4 diagram. */
@@ -497,6 +509,9 @@ export const en = {
 
     /** C4 views and models. */
     c4: {
+      /** `edit.invalid-value`: a view declares notes, never entities. */
+      onlyNotes: (kind: string, model: string) =>
+        `A view of \`${model}\` declares notes only, not a ${kind}: create entities with createEntity in the model, and draw them with includeEntity.`,
       /** `edit.invalid-value`: an operation a view does not take, and the view's model. */
       notInView: (operation: string, model: string) =>
         `\`${operation}\` does not apply to C4 views, which draw the entities of the model \`${model}\`; change the model with the entity operations, and the view with includeEntity, excludeEntity, setLocalLabel, placement and styles.`,
@@ -619,6 +634,9 @@ export const en = {
      * `style`, `constraint`…) or the kind of a nested entity (`container`).
      */
     statement: (kind: string, name: string, line: number) => `${kind} \`${name}\` on line ${line}`,
+    /** A note attached to the element; it stays, without its `on` clause. */
+    attachment: (note: string, line: number) =>
+      `note \`${note}\` is attached to it, on line ${line}`,
     /** The `include` or `exclude` list of a C4 view. */
     viewList: (keyword: string, view: string, line: number) =>
       `${keyword} in \`${view}\` on line ${line}`,

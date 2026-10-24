@@ -33,6 +33,7 @@ export {
   CORNERED_POLYGONS,
   CORNERED_SHAPES,
   SHAPE_SIZES,
+  boundaryToward,
   onOutline,
   onPolygon,
   pointInPolygon,

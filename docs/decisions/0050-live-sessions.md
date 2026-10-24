@@ -75,3 +75,5 @@ checking who asks, as few D1 rows as possible, and sockets on the page's own ori
   working day of the free plan; the page's 250 ms throttle and the twenty places hold for guests.
 - `docs/cloud.md`, `docs/playground.md` and `docs/security.md` describe the sessions, the guests and
   their bounds.
+- A Pointer stroke's trail rides in the same presence message as the pointer, in the same bounds
+  ([decision 0059](0059-pointer-and-notes.md)).

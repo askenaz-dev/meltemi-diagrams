@@ -665,3 +665,90 @@ describe("the page's address", () => {
     expect(pageOf("not an address")).toBe("not an address");
   });
 });
+
+describe("the Pointer trail", () => {
+  /** Points of a stroke 10 ms apart, along x. */
+  const stroke = (count: number, from = 0) =>
+    Array.from({ length: count }, (_, i) => ({ x: from + i * 4, y: 10, t: i * 10 }));
+  const laserOf = (p: Page) =>
+    (states(p).at(-1)!["c-me"].canvas as { laser?: { diagram?: string; points: unknown[] } }).laser;
+
+  it("leaves in the next state, and a heartbeat carries none", () => {
+    const p = page();
+    hello(p);
+    p.presence.laser(stroke(5), "flow");
+    // The window of the hello's send is still open: the stroke waits for it to end.
+    expect(p.sent).toHaveLength(1);
+    p.timers.advance(THROTTLE_MS);
+    expect(p.sent).toHaveLength(2);
+    expect(laserOf(p)).toEqual({ diagram: "flow", points: stroke(5) });
+    p.timers.advance(HEARTBEAT_MS);
+    const heartbeat = states(p).at(-1)!["c-me"];
+    expect(heartbeat.canvas).toBeUndefined();
+    expect(p.sent.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("makes a canvas part on its own, with an empty selection", () => {
+    const p = page();
+    hello(p);
+    p.presence.laser(stroke(2));
+    p.timers.advance(THROTTLE_MS);
+    expect(states(p).at(-1)!["c-me"].canvas).toEqual({
+      selection: [],
+      laser: { points: stroke(2) },
+    });
+  });
+
+  it("keeps the most recent 64 points of a long stroke, from 0", () => {
+    const p = page();
+    hello(p);
+    p.presence.laser(Array.from({ length: 100 }, (_, i) => ({ x: i, y: 0, t: i * 5 })));
+    p.timers.advance(THROTTLE_MS);
+    const points = laserOf(p)!.points as { x: number; t: number }[];
+    expect(points).toHaveLength(64);
+    expect(points[0]).toMatchObject({ x: 36, t: 0 });
+    expect(points[63]).toMatchObject({ x: 99 });
+    for (let i = 1; i < points.length; i++) expect(points[i]!.t).toBeGreaterThan(points[i - 1]!.t);
+  });
+
+  it("joins the strokes of one window, the later ones where their time puts them", () => {
+    const p = page();
+    hello(p);
+    p.presence.laser(stroke(5));
+    p.timers.advance(100);
+    p.presence.laser(stroke(3, 200));
+    p.timers.advance(THROTTLE_MS);
+    const points = laserOf(p)!.points as { x: number; t: number }[];
+    expect(points).toHaveLength(8);
+    expect(points[0]!.t).toBe(0);
+    // The first began 40 ms before it was posted; the second 20 ms before 100 ms later: 120 apart.
+    expect(points[5]).toMatchObject({ x: 200, t: 120 });
+  });
+
+  it("sends no stale stroke: one made before the hello, or while the socket was closed", () => {
+    const p = page();
+    p.presence.laser(stroke(3));
+    hello(p);
+    expect((states(p)[0]!["c-me"] as { canvas?: unknown }).canvas).toBeUndefined();
+    p.presence.laser(stroke(3));
+    p.presence.phase("idle");
+    p.presence.phase("open");
+    p.timers.advance(THROTTLE_MS);
+    expect(p.sent).toHaveLength(1);
+  });
+
+  it("is not published for an empty stroke", () => {
+    const p = page();
+    hello(p);
+    p.presence.laser([]);
+    p.timers.advance(THROTTLE_MS);
+    expect(p.sent).toHaveLength(1);
+  });
+
+  it("names the colour the others see: the account's, once the room said who this is", () => {
+    const p = page();
+    expect(p.presence.colour).toBeUndefined();
+    hello(p);
+    expect(p.presence.colour).toBe(presenceColour("u_ana"));
+  });
+});

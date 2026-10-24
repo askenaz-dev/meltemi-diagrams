@@ -72,6 +72,7 @@ import { eventInfos, sequenceAction, sequenceMove } from "./sequence.js";
 import {
   allowedKinds,
   copiedEntities,
+  copiedNotes,
   entityChoices,
   entityParent,
   freshEntityPath,
@@ -123,6 +124,14 @@ export interface SessionResult {
 const NONE: SessionResult = { messages: [] };
 
 /** Default sizes of groups created from the palette, on the 14 px grid. */
+/** A note of a C4 view: a declaration of the view, not an entity of the model. */
+function isViewNote(element: { readonly kind: string; readonly entity: unknown }): boolean {
+  return element.kind === "note" && element.entity === null;
+}
+
+/** What a new note measures before its text is typed: "Note" at the note size. */
+const NEW_NOTE_SIZE = { width: 36, height: 22 } as const;
+
 const NEW_GROUP_SIZE = { width: 280, height: 168 };
 
 /**
@@ -155,6 +164,8 @@ export class CanvasSession {
   private readonly rendered = new Map<string, HostMessage>();
   private pendingSelection: string[] | undefined;
   private pendingEdit: string | undefined;
+  /** A status line to show after the next render and the selection it brings. */
+  private pendingStatus: string | undefined;
   /** The diagram to show once it exists, after a conversion. */
   private pendingDiagram: string | undefined;
   /**
@@ -310,6 +321,11 @@ export class CanvasSession {
     if (render && this.pendingEdit) {
       messages.push({ type: "select", ids: [this.pendingEdit] });
       this.pendingEdit = undefined;
+    }
+    // After the selection, whose own announcement it would otherwise lose to.
+    if (this.pendingStatus !== undefined) {
+      if (render) messages.push({ type: "status", message: this.pendingStatus });
+      this.pendingStatus = undefined;
     }
     const model = this.inspect(view.id);
     if (model) messages.push({ type: "inspector", model });
@@ -528,6 +544,7 @@ export class CanvasSession {
             colors: {
               selection: view.layout.theme.selection ?? view.layout.theme.accent,
               guide: view.layout.theme.guide ?? view.layout.theme.accent,
+              accent: view.layout.theme.accent,
             },
           }
         : {}),
@@ -790,6 +807,7 @@ export class CanvasSession {
         }
         return this.act(message.action);
       case "presencePointer":
+      case "presenceLaser":
         // The host's to share; the document has nothing to do with it.
         return NONE;
     }
@@ -818,11 +836,12 @@ export class CanvasSession {
   ): SessionResult {
     const compilation = compile(text);
     const copied = copiedEntities(compilation.document.models, compilation.document.diagrams);
-    if (!copied || copied.length === 0) {
+    const notes = copiedNotes(compilation.document.diagrams);
+    if (!copied || (copied.length === 0 && notes.length === 0)) {
       return { messages: [{ type: "status", message: wording().reasons.notFragment }] };
     }
     const placed = view.mode !== "auto" || view.layout?.boxes !== undefined;
-    const pasted = pasteEntities(view.diagram, placed, copied, where);
+    const pasted = pasteEntities(view.diagram, placed, copied, where, notes);
     if (!pasted.ok) return { messages: [{ type: "status", message: pasted.reason }] };
     this.pendingSelection = [...pasted.ids];
     return this.planned(view, "paste", pasted.operations);
@@ -1000,6 +1019,7 @@ export class CanvasSession {
     if (!result.ok) {
       this.pendingSelection = undefined;
       this.pendingEdit = undefined;
+      this.pendingStatus = undefined;
       this.pendingDiagram = undefined;
       return {
         messages: [
@@ -1041,6 +1061,22 @@ export class CanvasSession {
     };
   }
 
+  /**
+   * Where a new note's centre goes: where the tool was dropped, or, dropped on an element it is
+   * attached to, at the element's east edge plus the theme's `groupPadding`, aligned to its top,
+   * as a note of the size the text "Note" gives it, snapped to the grid.
+   */
+  private notePlace(view: DiagramView, action: CanvasAction & { kind: "create" }): Point {
+    const target =
+      action.attachedTo !== undefined ? view.layout?.boxes?.get(action.attachedTo) : undefined;
+    if (!target) return this.snap(action.at);
+    const padding = view.layout?.theme?.groupPadding ?? 16;
+    return this.snap({
+      x: target.x + target.width + padding + NEW_NOTE_SIZE.width / 2,
+      y: target.y + NEW_NOTE_SIZE.height / 2,
+    });
+  }
+
   /** A view whose model is not resolved cannot write it. */
   private unresolved(): SessionResult {
     return {
@@ -1066,6 +1102,40 @@ export class CanvasSession {
     const model = diagram.c4?.resolved?.definition;
     switch (action.kind) {
       case "create": {
+        // A note, the one declaration a view holds: written in the view, never in the model.
+        if (action.elementKind === "note") {
+          if (!diagram.c4?.resolved) return this.unresolved();
+          const id = freeElementId(this.analysis!, diagram, "note");
+          const placed = view.mode !== "auto" || view.layout?.boxes !== undefined;
+          const at = this.notePlace(view, action);
+          this.pendingSelection = [id];
+          this.pendingEdit = id;
+          if (action.attachedTo !== undefined) {
+            this.pendingStatus = wording().session.noteAttached(action.attachedTo);
+          }
+          return this.planned(view, "create", [
+            {
+              kind: "createElement",
+              diagram: d,
+              elementKind: "note",
+              id,
+              label: "Note",
+              ...(placed ? { at } : {}),
+              ...(action.attachedTo !== undefined ? { attachedTo: action.attachedTo } : {}),
+            },
+          ]);
+        }
+        if (action.attachedTo !== undefined) {
+          return {
+            messages: [
+              {
+                type: "rejected",
+                code: "edit.invalid-value",
+                reason: wording().session.attachNotesOnly(action.elementKind),
+              },
+            ],
+          };
+        }
         // An entity of a kind the level draws, declared in the model where the level puts it,
         // included in the view (nothing when the view draws it by default) and placed.
         if (!model) return this.unresolved();
@@ -1107,14 +1177,20 @@ export class CanvasSession {
       case "duplicate": {
         // Copies of the selected entities, declared beside them in the model and placed off them.
         const fragment = copyFragment(this.analysis!, d, action.ids);
-        const copied = fragment
-          ? copiedEntities(compile(fragment).document.models, compile(fragment).document.diagrams)
+        const read = fragment ? compile(fragment) : undefined;
+        const copied = read
+          ? copiedEntities(read.document.models, read.document.diagrams)
           : undefined;
-        if (!copied || copied.length === 0) return { messages: [] };
+        const notes = read ? copiedNotes(read.document.diagrams) : [];
+        if (!copied || (copied.length === 0 && notes.length === 0)) return { messages: [] };
         const placed = view.mode !== "auto" || view.layout?.boxes !== undefined;
-        const pasted = pasteEntities(diagram, placed, copied, {
-          shift: { x: 2 * this.grid, y: 2 * this.grid },
-        });
+        const pasted = pasteEntities(
+          diagram,
+          placed,
+          copied,
+          { shift: { x: 2 * this.grid, y: 2 * this.grid } },
+          notes,
+        );
         if (!pasted.ok) {
           return {
             messages: [{ type: "rejected", code: "edit.invalid-value", reason: pasted.reason }],
@@ -1280,8 +1356,14 @@ export class CanvasSession {
           (id) => diagram.elementsById.get(id)?.kind !== undefined,
         );
         for (const id of elements) {
-          if (diagram.elementsById.get(id)!.kind === "group") continue;
-          ops.push({ kind: "excludeEntity", diagram: d, entity: id, cascade: action.cascade });
+          const element = diagram.elementsById.get(id)!;
+          if (element.kind === "group") continue;
+          // A note is the view's own declaration; an entity is left out of the view.
+          ops.push(
+            isViewNote(element)
+              ? { kind: "removeElement", diagram: d, element: id, cascade: action.cascade }
+              : { kind: "excludeEntity", diagram: d, entity: id, cascade: action.cascade },
+          );
         }
         for (const key of action.ids) {
           if (diagram.c4?.combined.includes(key))
@@ -1302,7 +1384,11 @@ export class CanvasSession {
         if (!action.cascade) {
           const dependents: DependentInfo[] = [];
           for (const operation of ops) {
-            if (operation.kind !== "excludeEntity" && operation.kind !== "removeModelRelation")
+            if (
+              operation.kind !== "excludeEntity" &&
+              operation.kind !== "removeElement" &&
+              operation.kind !== "removeModelRelation"
+            )
               continue;
             // A model in another file is asked through the host's steps.
             if (operation.kind === "removeModelRelation" && !modelIsLocal(diagram)) continue;
@@ -1337,6 +1423,12 @@ export class CanvasSession {
           ]);
         }
         const relation = diagram.relationsByKey.get(action.id);
+        const note = diagram.elementsById.get(action.id);
+        if (note && isViewNote(note)) {
+          return this.planned(view, "setLabel", [
+            { kind: "setElementLabel", diagram: d, element: action.id, label: action.label },
+          ]);
+        }
         if (!relation) {
           // A label typed on an entity the model left empty (one just created) is the model's;
           // otherwise it is this view's local label.
@@ -1390,6 +1482,13 @@ export class CanvasSession {
         ]);
       }
       case "renameId": {
+        const note = diagram.elementsById.get(action.id);
+        if (note && isViewNote(note)) {
+          this.pendingSelection = this.selection.map((s) => (s === action.id ? action.newId : s));
+          return this.planned(view, "renameId", [
+            { kind: "renameElement", diagram: d, element: action.id, newId: action.newId },
+          ]);
+        }
         if (!model) return this.unresolved();
         const entity = model.entitiesByPath.get(action.id);
         const relation = model.relationsByKey.get(action.id);
@@ -1675,7 +1774,8 @@ export class CanvasSession {
           this.pendingEdit = id;
           break;
         }
-        const snapped = this.snap(action.at);
+        // A note dropped on an element goes beside it; anything else where it was dropped.
+        const snapped = kind === "note" ? this.notePlace(view, action) : this.snap(action.at);
         // Groups too go inside the group under the point, so groups nest.
         const origin = interiorOf(view, action.parent ?? null);
         // A library element keeps its label; a shape from the palette, the keys or the grid is empty.
@@ -1692,9 +1792,19 @@ export class CanvasSession {
           ...(label !== undefined ? { label } : {}),
           ...(action.icon !== undefined ? { icon: action.icon } : {}),
           ...(action.shape !== undefined ? { shape: action.shape } : {}),
+          ...(action.attachedTo !== undefined ? { attachedTo: action.attachedTo } : {}),
         });
         this.pendingSelection = [id];
         this.pendingEdit = id;
+        // The selection is announced too; the status line ends on the attachment.
+        if (action.attachedTo !== undefined) {
+          this.pendingStatus = words.session.noteAttached(action.attachedTo);
+        }
+        break;
+      }
+      case "attachNote": {
+        ops.push({ kind: "attachNote", diagram: d, note: action.note, element: action.element });
+        this.pendingSelection = [action.note];
         break;
       }
       case "connect": {

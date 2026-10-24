@@ -25,7 +25,7 @@ import type {
  */
 export type FlowElementKind = "node" | "decision" | "data" | "group" | "note" | "tag";
 /** Free kinds: shapes, text, icons, images, lines and groups. */
-export type FreeElementKind = "box" | "text" | "icon" | "image" | "line" | "group";
+export type FreeElementKind = "box" | "text" | "icon" | "image" | "note" | "line" | "group";
 /** Sequence kinds: the participants, and groups of participants. */
 export type ParticipantKind =
   | "participant"
@@ -181,6 +181,12 @@ export interface Element {
    * innermost group; null on every other kind.
    */
   readonly line: LinePoints | null;
+  /**
+   * Notes: the id of the element the note is attached to (`note <id> "Text" on <element>`), or
+   * the entity path in a C4 view; null without the clause and on every other kind.
+   */
+  readonly attachedTo: string | null;
+  readonly attachedToRange: Range | null;
   /** Declared diagram types: the element's kind there (it is drawn as a `box`); null elsewhere. */
   readonly typeKind: string | null;
   /** Declared diagram types: the values of the kind's own properties. */
@@ -380,7 +386,9 @@ export type ReferenceRole =
   | "event"
   | "space"
   | "gap"
-  | "scenario";
+  | "scenario"
+  /** The target of a note's `on <element>`. */
+  | "attachment";
 /** An identifier token in the source that resolves to an element or a named relation. */
 export interface Reference {
   readonly token: Token;
@@ -718,7 +726,9 @@ export type EntityReferenceRole =
   | "animate"
   | "link"
   /** A target of a story action in a C4 view. */
-  | "story";
+  | "story"
+  /** The target of a view note's `on <entity path>`. */
+  | "attachment";
 
 /** A token that names an entity: one part of a qualified reference such as `shop.api`. */
 export interface EntityReference {

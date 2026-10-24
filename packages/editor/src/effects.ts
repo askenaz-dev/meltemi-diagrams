@@ -6,6 +6,7 @@ import {
   type AnimationEffect,
   type AnimationEntry,
   type FlowDiagram,
+  outlined,
 } from "@meltemi/diagrams-model";
 import type { InspectorField } from "./canvas/protocol.js";
 import { messages } from "./messages/index.js";
@@ -19,16 +20,7 @@ export function effectLabel(effect: AnimationEffect): string {
 const DEFAULT_DURATION: Readonly<Record<AnimationEffect, number>> = ANIMATION_DEFAULT_DURATIONS;
 
 /** Element kinds without an outline, which take no moving dash. */
-const NO_OUTLINE = new Set([
-  "note",
-  "text",
-  "icon",
-  "image",
-  "actor",
-  "boundary",
-  "control",
-  "entity",
-]);
+const NO_OUTLINE = new Set(["icon", "image", "actor", "boundary", "control", "entity"]);
 
 /** The effects a target can take, in the order the inspector lists them. */
 export function effectsFor(
@@ -41,7 +33,12 @@ export function effectsFor(
   const element = diagram.elementsById.get(id);
   // A free line runs every effect a relation does.
   if (element?.kind === "line") return ["flow", "dash", "pulse", "trace"];
-  return element && NO_OUTLINE.has(element.kind) ? ["pulse"] : ["pulse", "dash"];
+  if (element && NO_OUTLINE.has(element.kind)) return ["pulse"];
+  // A note or a text has an outline to follow only when its styles give it one.
+  if (element && (element.kind === "note" || element.kind === "text")) {
+    return outlined(diagram, element) ? ["pulse", "dash"] : ["pulse"];
+  }
+  return ["pulse", "dash"];
 }
 
 /**

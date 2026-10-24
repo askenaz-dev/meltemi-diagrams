@@ -36,6 +36,7 @@
     <text x="373.5" y="481.84" text-anchor="start" font-size="11" font-weight="400" fill="#5b6570">Limits to confirm</text>
     <text x="373.5" y="499.84" text-anchor="start" font-size="11" font-weight="400" fill="#5b6570">500 rps per tenant</text>
     <text x="373.5" y="517.84" text-anchor="start" font-size="11" font-weight="400" fill="#5b6570">Retention: 90 days</text>
+    <polyline points="388.36,469 334.06,419.22" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="0 4.5" class="leader"/>
   </g>
   <g data-id="client" data-role="element">
     <rect x="20" y="60" width="160" height="56" rx="6" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>

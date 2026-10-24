@@ -11,6 +11,8 @@ import {
   AWARENESS_MESSAGE_BYTES,
   AWARENESS_TIMEOUT_MS,
   AwarenessRate,
+  MAX_LASER_MS,
+  MAX_LASER_POINTS,
   attachmentBytes,
   fitRecord,
   parseAwareness,
@@ -274,5 +276,99 @@ describe("AwarenessRate", () => {
     expect(first).toEqual({ ok: 20, drop: 30, close: 0 });
     expect(second.ok).toBe(20);
     expect(second.close).toBeGreaterThan(0);
+  });
+});
+
+describe("parseAwareness: the Pointer trail", () => {
+  const point = (i: number) => ({ x: 120 + i, y: 80, t: i * 20 });
+  const points = Array.from({ length: 10 }, (_, i) => point(i));
+
+  it("reads a laser alone, with a selection, and keeps its diagram", () => {
+    expect(parseAwareness(encode({ k: { canvas: { laser: { points } } } }))).toEqual({
+      state: { canvas: { selection: [], laser: { points } } },
+    });
+    expect(
+      parseAwareness(
+        encode({ k: { canvas: { selection: ["n1"], laser: { points, diagram: "flow" } } } }),
+      ),
+    ).toEqual({
+      state: { canvas: { selection: ["n1"], laser: { points, diagram: "flow" } } },
+    });
+  });
+
+  it("reads it beside a pointer, in the same message", () => {
+    const parsed = parseAwareness(
+      encode({ k: { canvas: { selection: [], pointer: { x: 1.4, y: 2 }, laser: { points } } } }),
+    );
+    expect(parsed).toEqual({
+      state: { canvas: { selection: [], pointer: { x: 1, y: 2 }, laser: { points } } },
+    });
+  });
+
+  it("takes the longest batch and the longest moment, and no more", () => {
+    const edge = Array.from({ length: MAX_LASER_POINTS }, (_, i) => ({ x: i, y: 0, t: 0 }));
+    expect(parseAwareness(encode({ k: { canvas: { laser: { points: edge } } } }))).toBeDefined();
+    expect(
+      parseAwareness(encode({ k: { canvas: { laser: { points: [...edge, edge[0]] } } } })),
+    ).toBeUndefined();
+    const last = { x: 0, y: 0, t: MAX_LASER_MS };
+    expect(parseAwareness(encode({ k: { canvas: { laser: { points: [last] } } } }))).toBeDefined();
+    const over = { x: 0, y: 0, t: MAX_LASER_MS + 1 };
+    expect(
+      parseAwareness(encode({ k: { canvas: { laser: { points: [over] } } } })),
+    ).toBeUndefined();
+  });
+
+  it("is invalid, whole, for a point or a batch of the wrong shape", () => {
+    for (const laser of [
+      { points: [{ x: 2_000_000, y: 0, t: 0 }] },
+      { points: [{ x: 0, y: 0, t: 5000 }] },
+      { points: [{ x: 0, y: 0, t: -1 }] },
+      { points: [{ x: 0, y: 0, t: 1.5 }] },
+      { points: [{ x: "1", y: 0, t: 0 }] },
+      { points: [{ x: 0, y: 0 }] },
+      { points: [null] },
+      { points: "none" },
+      { points: [], diagram: 5 },
+      { points: [], diagram: "" },
+      { points: [], diagram: "d".repeat(257) },
+      "points",
+      [],
+    ]) {
+      const parsed = parseAwareness(encode({ k: { canvas: { laser } } }));
+      expect(parsed, JSON.stringify(laser)).toBeUndefined();
+    }
+  });
+
+  it("is no part when it is null, and a canvas with nothing in it is still no part", () => {
+    expect(parseAwareness(encode({ k: { canvas: { laser: null } } }))).toBeUndefined();
+    expect(parseAwareness(encode({ k: { canvas: { selection: [], laser: null } } }))).toEqual({
+      state: { canvas: { selection: [] } },
+    });
+  });
+
+  it("rounds to a tenth and keeps no other field of a point", () => {
+    const parsed = parseAwareness(
+      encode({ k: { canvas: { laser: { points: [{ x: 1.26, y: -2.04, t: 3, user: "Ana" }] } } } }),
+    );
+    expect(parsed).toEqual({
+      state: { canvas: { selection: [], laser: { points: [{ x: 1.3, y: -2, t: 3 }] } } },
+    });
+  });
+
+  it("is never kept in the record of the attachment: it is relayed once", () => {
+    const record: AwarenessRecord = { colour: "#e03131", file: FILE, seen: 1 };
+    expect(fitRecord({ sub: "u", name: "Ana", picture: "" }, record)).toEqual(record);
+    expect(Object.keys(fitRecord({}, record))).not.toContain("canvas");
+  });
+
+  it("fits a full batch in a message, far under the cap", () => {
+    const edge = Array.from({ length: MAX_LASER_POINTS }, (_, i) => ({
+      x: 999_999.9 - i,
+      y: -999_999.9 + i,
+      t: 999,
+    }));
+    const bytes = encode({ k: { file: FILE, canvas: { selection: [], laser: { points: edge } } } });
+    expect(bytes.length).toBeLessThan(AWARENESS_MESSAGE_BYTES / 2);
   });
 });

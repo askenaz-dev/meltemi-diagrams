@@ -10,6 +10,7 @@
 // room tells the page about everyone again when the connection returns, and the page tells the
 // room about itself.
 
+import { presenceColour } from "@meltemi/diagrams-project";
 import type * as Y from "yjs";
 import type { Timers } from "./binding.js";
 import { cloudDoc, resolveFiles, type DocFile } from "./doc.js";
@@ -25,10 +26,13 @@ import {
 } from "./presence-model.js";
 import {
   MAX_ID_LENGTH,
+  MAX_LASER_MS,
+  MAX_LASER_POINTS,
   MAX_SELECTED,
   decodeAwareness,
   encodeCaret,
   encodeLocal,
+  type LaserPoint,
   type LocalState,
   type PointerPosition,
 } from "./presence-wire.js";
@@ -146,6 +150,16 @@ export class Presence {
   /** Where the person's pointer is over the canvas, while it moves there. */
   private pointerAt: PointerPosition | undefined;
   private pointerTimer: unknown;
+  /**
+   * The points of the Pointer trail not yet sent: the most recent 64, `t` since the first. A state
+   * carries them once and clears them; a heartbeat never carries one.
+   */
+  private laserPoints: LaserPoint[] = [];
+  /** When the first of `laserPoints` was made, by the page's clock, and the diagram it is on. */
+  private laserFirst = 0;
+  private laserDiagram: string | undefined;
+  /** How many batches the person made: a batch is a change of the state. */
+  private laserCount = 0;
 
   constructor(private readonly options: PresenceOptions) {
     this.book = new PeerBook(options.page);
@@ -201,6 +215,39 @@ export class Presence {
     this.moved();
   }
 
+  /**
+   * The person's Pointer made `points` (diagram units, `t` since the first of them) over `diagram`.
+   * They wait with the ones not yet sent, rebased to the first of all, the most recent 64 kept and
+   * none older than a second than the newest, and go out with the next state, which they bring
+   * forward: a stroke is a change, at the same pace as the rest.
+   */
+  laser(points: readonly LaserPoint[], diagram?: string): void {
+    if (this.destroyed || points.length === 0) return;
+    const now = this.options.now();
+    const span = Math.max(...points.map((p) => p.t));
+    // The batch ended now: its first point was `span` ago.
+    const start = now - span;
+    if (this.laserPoints.length === 0 || diagram !== this.laserDiagram) {
+      this.laserPoints = [];
+      this.laserFirst = start;
+      this.laserDiagram = diagram;
+    }
+    for (const p of points) {
+      this.laserPoints.push({ x: p.x, y: p.y, t: Math.round(start + p.t - this.laserFirst) });
+    }
+    if (this.laserPoints.length > MAX_LASER_POINTS) {
+      this.laserPoints = this.laserPoints.slice(-MAX_LASER_POINTS);
+    }
+    // Rebased to the first point kept, and none lasting past `MAX_LASER_MS`.
+    const newest = this.laserPoints[this.laserPoints.length - 1]!.t;
+    this.laserPoints = this.laserPoints.filter((p) => newest - p.t <= MAX_LASER_MS);
+    const base = this.laserPoints[0]!.t;
+    this.laserFirst += base;
+    this.laserPoints = this.laserPoints.map((p) => ({ x: p.x, y: p.y, t: p.t - base }));
+    this.laserCount++;
+    this.moved();
+  }
+
   /** The cheapest description of what the state would be made of. */
   private inputs(source: PresenceSource): string {
     const selection = source.selection();
@@ -209,7 +256,7 @@ export class Presence {
       : "-";
     const pointer = this.pointerAt;
     const at = pointer ? `${pointer.x},${pointer.y},${pointer.diagram ?? ""}` : "-";
-    return `${source.open()}\n${caret}\n${at}\n${source.canvas().join("\n")}`;
+    return `${source.open()}\n${caret}\n${at}\n${this.laserCount}\n${source.canvas().join("\n")}`;
   }
 
   /** The state of the person now, in the format of the room; undefined when nothing is attached. */
@@ -231,11 +278,25 @@ export class Presence {
     }
     const ids = fitSelection(source.canvas());
     const pointer = this.pointerAt;
+    const laser = this.laserPoints.length > 0;
     return {
       file: file.id,
       ...(caret ? { caret } : {}),
-      ...(ids.length > 0 || pointer
-        ? { canvas: { selection: ids, ...(pointer ? { pointer } : {}) } }
+      ...(ids.length > 0 || pointer || laser
+        ? {
+            canvas: {
+              selection: ids,
+              ...(pointer ? { pointer } : {}),
+              ...(laser
+                ? {
+                    laser: {
+                      ...(this.laserDiagram !== undefined ? { diagram: this.laserDiagram } : {}),
+                      points: this.laserPoints,
+                    },
+                  }
+                : {}),
+            },
+          }
         : {}),
     };
   }
@@ -247,6 +308,8 @@ export class Presence {
     if (!state) return;
     const text = JSON.stringify(state);
     this.dirty = false;
+    // A batch leaves once, in this state or not at all: a stale trail is of no use to anyone.
+    this.laserPoints = [];
     if (!force && text === this.lastSent) return;
     if (!this.options.send(encodeLocal(this.clientId, state))) {
       // The socket cannot carry it: the next hello sends it.
@@ -293,6 +356,7 @@ export class Presence {
     timers.clear(this.heartbeatTimer);
     this.windowTimer = this.heartbeatTimer = undefined;
     this.windowOpen = false;
+    this.laserPoints = [];
     if (this.book.clear()) this.notify();
     this.stopSweep();
   }
@@ -305,6 +369,8 @@ export class Presence {
     this.clientId = id ?? "self";
     this.ownSub = sub;
     this.book.setOwn(id);
+    // A stroke made while the socket was closed is stale: it is not sent.
+    this.laserPoints = [];
     // A room that knows nothing of this connection yet: the state it had is not its state.
     this.lastSent = undefined;
     this.windowOpen = false;
@@ -354,6 +420,7 @@ export class Presence {
     this.stopSweep();
     this.windowTimer = this.heartbeatTimer = this.pointerTimer = undefined;
     this.pointerAt = undefined;
+    this.laserPoints = [];
     this.source = undefined;
     this.book.clear();
     this.listeners.clear();
@@ -383,6 +450,14 @@ export class Presence {
       if (file.shown === path) return file;
     }
     return undefined;
+  }
+
+  /**
+   * The colour the others see this person in (`presenceColour` of their `sub`, the room's own
+   * word), for the Pointer's trail and cursor; undefined until the room has said who this is.
+   */
+  get colour(): string | undefined {
+    return this.ownSub === undefined ? undefined : presenceColour(this.ownSub);
   }
 
   /** The people of the header: see `whoIsHere`. */

@@ -15,6 +15,7 @@ export {
   type PropertyDefinition,
 } from "./diagram-types.js";
 export { declaredProfile } from "./flow.js";
+export { outlined, type OutlineSource } from "./outline.js";
 export { allowedEntities, childLevel, defaultEntities, isChildView } from "./c4.js";
 export { closePaths } from "./model.js";
 export { readPoint } from "./flow.js";

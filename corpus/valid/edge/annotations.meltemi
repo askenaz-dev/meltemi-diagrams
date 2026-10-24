@@ -16,7 +16,7 @@ diagram annotations: flow {
       data orders "Orders DB" { description "PostgreSQL" }
       data cache "Cache" { description "Redis · TTL" }
     }
-    note limits "Limits to confirm\n500 rps per tenant\nRetention: 90 days"
+    note limits "Limits to confirm\n500 rps per tenant\nRetention: 90 days" on orders
   }
   client["Client app"] { description "web & mobile <beta>" }
   node audit "Audit log" { description "append only\nproposed" }

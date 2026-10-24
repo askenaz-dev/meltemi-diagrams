@@ -7,6 +7,17 @@ function format(text: string, indent?: number | "tab"): string {
   return result.text;
 }
 
+describe("formatter and a note's attachment", () => {
+  it("keeps the `on` clause as one word and one space on each side", () => {
+    expect(format('diagram d: flow {\n  note   n   "Text"   on   api\n}\n')).toBe(
+      'diagram d: flow {\n  note n "Text" on api\n}\n',
+    );
+    expect(format('diagram d: free {\n  note n "Text" on api { layer front }\n}\n')).toContain(
+      'note n "Text" on api {',
+    );
+  });
+});
+
 describe("formatter layout", () => {
   it("lays out a messy flow diagram", () => {
     const input =

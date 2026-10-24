@@ -44,18 +44,19 @@ predeterminado: cada objeto tiene un `place`.
 
 ## Objetos
 
-| Declaración                                                   | Objeto                                                                                                                                              | Tamaño predeterminado                                                           |
-| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `box <id> ["Label"] [{ … }]`                                  | una forma (más abajo) con una etiqueta y una descripción opcional                                                                                   | el de su forma, ampliado hasta que cabe el texto medido                         |
-| `id["Label"]`, `id[("Label")]`                                | una caja; la segunda variante tiene la forma `cylinder`                                                                                             | como arriba                                                                     |
-| `text <id> "Text"`                                            | texto medido sin recuadro; `\n` parte las líneas                                                                                                    | lo que ocupa el texto                                                           |
-| `icon <id> "<pack>:<name>"`                                   | un icono de los paquetes ([assets.md](assets.md)), sin texto; un icono con etiqueta es una caja con `shape icon` ([más abajo](#iconos-como-formas)) | 48 × 48                                                                         |
-| `image <id> "<path>"`                                         | un archivo de imagen del proyecto; `description` es su texto alternativo                                                                            | su tamaño en píxeles, con un ancho máximo de 640; 160 × 120 cuando no se conoce |
-| `group <id> ["Label"] { … }`                                  | una banda con un título, o un contenedor simple si no tiene título, que contiene hijos                                                              | escrito, o derivado de sus hijos (más abajo)                                    |
-| `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), …]]` | una línea que no une ningún elemento: un separador, un corchete, un subrayado ([más abajo](#líneas))                                                | el rectángulo que envuelve sus puntos                                           |
+| Declaración                                                   | Objeto                                                                                                                                                         | Tamaño predeterminado                                                           |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `box <id> ["Label"] [{ … }]`                                  | una forma (más abajo) con una etiqueta y una descripción opcional                                                                                              | el de su forma, ampliado hasta que cabe el texto medido                         |
+| `id["Label"]`, `id[("Label")]`                                | una caja; la segunda variante tiene la forma `cylinder`                                                                                                        | como arriba                                                                     |
+| `text <id> "Text"`                                            | texto medido sin recuadro; `\n` parte las líneas                                                                                                               | lo que ocupa el texto                                                           |
+| `icon <id> "<pack>:<name>"`                                   | un icono de los paquetes ([assets.md](assets.md)), sin texto; un icono con etiqueta es una caja con `shape icon` ([más abajo](#iconos-como-formas))            | 48 × 48                                                                         |
+| `image <id> "<path>"`                                         | un archivo de imagen del proyecto; `description` es su texto alternativo                                                                                       | su tamaño en píxeles, con un ancho máximo de 640; 160 × 120 cuando no se conoce |
+| `note <id> "Text" [on <element>] [{ … }]`                     | una anotación: unas líneas de texto, con contorno solo cuando se le da estilo, y una guía punteada hasta el elemento al que está adjunta ([más abajo](#notas)) | la extensión de su texto                                                        |
+| `group <id> ["Label"] { … }`                                  | una banda con un título, o un contenedor simple si no tiene título, que contiene hijos                                                                         | escrito, o derivado de sus hijos (más abajo)                                    |
+| `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), …]]` | una línea que no une ningún elemento: un separador, un corchete, un subrayado ([más abajo](#líneas))                                                           | el rectángulo que envuelve sus puntos                                           |
 
-`node`, `decision`, `data`, `note` y `tag` pertenecen a los diagramas de flujo; en una composición
-libre son `prop.unknown`, con una pista que lista los tipos libres. Un elemento que solo menciona
+`node`, `decision`, `data` y `tag` pertenecen a los diagramas de flujo; en una composición
+libre son `prop.unknown`, con una pista que lista los tipos libres, `note` entre ellos. Un elemento que solo menciona
 una relación es una caja. Las relaciones aceptan los seis símbolos de los diagramas de flujo, entre
 ellos las líneas sin puntas `--` y `---` ([gramática](grammar-0.2.md#reglas-léxicas)).
 
@@ -222,6 +223,34 @@ diagram serverless: free {
 - **Iconos centrados.** Para conservar la caja alrededor del icono, escribe `iconPosition center` en
   lugar de `shape icon`: el icono es el dibujo de la caja y la etiqueta va dentro, en el borde de
   `labelPosition` ([styles.md](styles.md#iconos-en-las-cajas)).
+
+### Notas
+
+`note <id> "Text" [on <element>] [{ … }]` es una anotación. Su texto es obligatorio y `\n` parte las
+líneas. Se dibuja como una nota de flujo: alineada a la izquierda, con el `noteSize` del tema, peso
+400 y el color `muted`, sin marco; solo tiene contorno (`radius`, `fill`, `stroke`, `width`, `line`)
+cuando un estilo, una clase o una regla fija `fill`, `stroke` o `pattern`, y un icono antes de la
+primera línea cuando se le da `icon`. Su tamaño predeterminado es su línea más larga por su número de
+líneas por la altura de línea de las notas más 4; un `size` más estrecho que la línea más larga es
+`layout.text-overflow`. El bloque acepta `description`, `class`, `layer`, `link` y `url`; las
+propiedades de estilo son `fill`, `stroke`, `pattern`, `line`, `width`, `color`, `radius`, `icon`,
+`iconColor`, `iconSize`, `rotation`, `fontSize`, `fontWeight` y `textAlign`; `shape` es
+`prop.invalid-value`, igual que en un texto. Una nota se pinta en su capa en el orden del código y
+participa en `place`, en el orden z, en la selección y en el giro como cualquier objeto.
+
+```text
+note remark "Checked at the gateway" on gateway { layer front }
+style remark { fill "#fff7d6"; stroke warning; line dashed }
+```
+
+La cláusula `on` adjunta la nota a otro elemento del diagrama, de cualquier tipo y dentro o fuera de
+cualquier grupo; el elemento es una referencia, así que renombrarlo reescribe la cláusula. La
+adjunción es un dibujo: una guía punteada va del borde de la nota al del elemento, y nada más depende
+de ella (una nota se queda donde se coloca). `on` con un id desconocido es `ref.unknown-element`; una
+nota sobre sí misma es `prop.invalid-value`. Borrar el elemento pregunta antes, lista las adjunciones
+y conserva las notas. En `layout auto`, y para una nota sin `place` en `layout assisted`, la
+disposición mantiene la nota cerca de su elemento. Una nota con contorno acepta un trazo en movimiento
+(`animate remark { effect dash }`); una sin contorno solo acepta un pulso.
 
 ## Grupos y coordenadas interiores
 
@@ -520,7 +549,7 @@ comandos) hace lo mismo y muestra la copia. La copia contiene:
 | nodo             | caja  | solo cuando el diagrama tiene `rule node`                                                           |
 | decisión         | caja  | `from_decision { shape diamond }`                                                                   |
 | almacén de datos | caja  | `from_data { shape cylinder }`                                                                      |
-| nota             | texto | `from_note { textAlign left; fontSize <note size>; fontWeight 400; color muted }`                   |
+| nota             | nota  | — (una nota sigue siendo nota, con su cláusula `on`)                                                |
 | marca            | caja  | `from_tag { shape pill; fill tag; stroke tag; color tagText; fontSize <tag size>; fontWeight 500 }` |
 | grupo            | grupo | —                                                                                                   |
 

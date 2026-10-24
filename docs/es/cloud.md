@@ -833,7 +833,7 @@ cuando los 20 son personas con cuenta que pueden escribir.
 
 La presencia es lo que cada página cuenta a las demás sobre su persona: el archivo que tiene
 abierto, dónde está su cursor o su selección en él, qué ha seleccionado en el lienzo y dónde está
-su puntero sobre él. Viaja en
+su puntero sobre él y los puntos de un trazo del Puntero. Viaja en
 mensajes de tipo 2, y la sala solo los retransmite: nada de ello se escribe en el almacenamiento de
 la sala, y no cambia ni el documento ni su revisión. [El playground](playground.md#trabajar-juntos)
 la muestra. El formato es pequeño y propio de la página: un objeto con una clave por conexión, como
@@ -848,7 +848,17 @@ parte de un estado es opcional (una persona sin ningún archivo abierto envía `
   "9f3c2a71d04be856": {
     "file": "k7h2m4n9p3q5r8s2",
     "caret": { "anchor": "AQID", "head": "AQIE" },
-    "canvas": { "selection": ["api", "db"], "pointer": { "x": 312, "y": 148, "diagram": "flow" } }
+    "canvas": {
+      "selection": ["api", "db"],
+      "pointer": { "x": 312, "y": 148, "diagram": "flow" },
+      "laser": {
+        "diagram": "flow",
+        "points": [
+          { "x": 312.4, "y": 148, "t": 0 },
+          { "x": 320, "y": 151.5, "t": 24 }
+        ]
+      }
+    }
   }
 }
 ```
@@ -862,8 +872,16 @@ parte de un estado es opcional (una persona sin ningún archivo abierto envía `
   máximo.
 - `canvas.pointer` es dónde está el puntero de la persona sobre su lienzo, mientras se mueve por
   él: dos números en unidades del diagrama, finitos y a menos de un millón del origen, que la sala
-  redondea a enteros, y el id del diagrama sobre el que está. Una parte del lienzo lleva una
-  selección, un puntero o ambos.
+  redondea a enteros, y el id del diagrama sobre el que está.
+- `canvas.laser` es la estela de la herramienta Puntero (K en el lienzo): los puntos que un trazo ha
+  hecho desde el último estado del cliente, 64 como máximo, cada `x` e `y` en unidades del diagrama
+  (finitos, a menos de un millón del origen y con una décima de precisión) y `t` un número entero de
+  milisegundos desde el primer punto, de 0 a 1000, y el id del diagrama sobre el que están los
+  puntos. Una tanda que pasa de esos límites, o un punto de forma incorrecta, invalida todo el
+  mensaje. Una estela va en el mismo mensaje que el puntero y se retransmite una sola vez: la sala
+  nunca la guarda, y un estado que retransmita después no la lleva.
+
+Una parte del lienzo lleva una selección, un puntero, una estela o cualquiera de ellos.
 
 La clave de la entrada se ignora (la página usa el id de su conexión), y la sala no lee nada más del
 estado: un `user`, un nombre o cualquier otro campo no se retransmite nunca. Un mensaje de otra
@@ -944,8 +962,9 @@ construida de nuevo cuenta desde cero.
   las dos pestañas de una persona cuentan por separado.
 - Una página envía como máximo cuatro estados por segundo y recorta una selección del lienzo a 200
   ids y 12 000 bytes, así que solo un cliente que no sea la página llega a alguno de estos límites.
-  Un puntero en movimiento va en el mismo mensaje que el cursor y la selección: no añade ningún
-  mensaje propio.
+  Un puntero en movimiento, y los puntos de un trazo del Puntero, van en el mismo mensaje que el
+  cursor y la selección: no añaden ningún mensaje propio (64 puntos en cuatro tandas por segundo son
+  menos de 2 KiB por segundo, muy por debajo de los 16 KiB que admite un mensaje).
 - La presencia es igual para todos los que pueden conectarse: un lector la envía y la recibe como un
   editor, y solo se rechazan las actualizaciones de un lector ([El socket](#el-socket)).
 

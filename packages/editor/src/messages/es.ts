@@ -52,6 +52,7 @@ export const es: typeof en = {
     imageFile: "Archivo de imagen",
     layer: "Capa",
     linkedTo: "Enlazado a",
+    attachedTo: "Adjunta a",
     url: "URL",
     ports: "Puertos",
     x: "X",
@@ -260,6 +261,8 @@ export const es: typeof en = {
     cannotDraw: "No se puede dibujar el diagrama.",
     copied: "Copiado.",
     invalidId: (id) => `${code(id)} no es un id válido.`,
+    noteAttached: (target) => `Se creó una nota adjunta a ${code(target)}.`,
+    attachNotesOnly: (kind) => `Solo una nota se puede adjuntar a un elemento; ${code(kind)} no.`,
     notInProject:
       "Este archivo no está en un proyecto: crea el tema en el archivo o agrega un project.json.",
     builtInTheme:

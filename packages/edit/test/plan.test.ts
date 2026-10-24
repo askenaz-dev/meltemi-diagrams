@@ -413,9 +413,24 @@ describe("every operation on the valid corpus", () => {
           },
         );
       }
+      // A note attaches to another element and detaches again (a view's, to an entity it draws).
+      for (const note of diagram.elements.filter((e) => e.kind === "note")) {
+        const target = diagram.elements.find(
+          (e) => e.id !== note.id && e.kind !== "line" && (diagram.type !== "c4" || e.entity),
+        );
+        if (target) {
+          operations.push({
+            kind: "attachNote",
+            diagram: diagram.id,
+            note: note.id,
+            element: target.id,
+          });
+        }
+        operations.push({ kind: "attachNote", diagram: diagram.id, note: note.id, element: null });
+      }
       if (diagram.type === "c4") {
         for (const element of diagram.elements) {
-          if (element.kind === "group") continue;
+          if (element.kind === "group" || element.kind === "note") continue;
           operations.push(
             { kind: "excludeEntity", diagram: diagram.id, entity: element.id, cascade: true },
             { kind: "setLocalLabel", diagram: diagram.id, target: element.id, label: "Local" },
@@ -433,7 +448,7 @@ describe("every operation on the valid corpus", () => {
         if (
           !result.ok &&
           diagram.type === "c4" &&
-          /does not apply to C4 views|relation of the model|Name the relation in the model|already combined|No relation of the model goes/.test(
+          /does not apply to C4 views|declares notes only|relation of the model|Name the relation in the model|already combined|No relation of the model goes/.test(
             result.rejection.reason,
           )
         ) {

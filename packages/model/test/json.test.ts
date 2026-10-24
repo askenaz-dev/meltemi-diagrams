@@ -112,3 +112,41 @@ describe("model JSON", () => {
     expect(Object.keys(d!.range.start)).toEqual(["offset", "line", "column"]);
   });
 });
+
+describe("note attachments in JSON", () => {
+  const COMMERCE = readFileSync(join(CORPUS_ROOT, "valid", "c4", "commerce.meltemi"), "utf8");
+  const element = (json: ReturnType<typeof toJson>, diagram: string, id: string) =>
+    json.diagrams.find((d) => d.id === diagram)!.elements.find((e) => e.id === id)!;
+
+  it("writes attachedTo on every element, after shape and line and before entity", () => {
+    const json = toJson(
+      compile('diagram d: flow {\n  api["API"]\n  note limits "500 rps" on api\n}\n'),
+    );
+    expect(element(json, "d", "limits")).toMatchObject({ kind: "note", attachedTo: "api" });
+    expect(element(json, "d", "api").attachedTo).toBeNull();
+    for (const id of ["limits", "api"]) {
+      const keys = Object.keys(element(json, "d", id));
+      expect(keys.indexOf("attachedTo")).toBeGreaterThan(keys.indexOf("shape"));
+      expect(keys.indexOf("attachedTo")).toBeLessThan(keys.indexOf("entity"));
+    }
+  });
+
+  it("writes free and C4 notes, and the same string twice", () => {
+    const free = toJson(compile('diagram d: free {\n  note hint "Draft"\n}\n'));
+    expect(element(free, "d", "hint")).toMatchObject({ kind: "note", attachedTo: null });
+    const c4 = toJson(compile(COMMERCE));
+    expect(element(c4, "containers", "cache")).toMatchObject({
+      kind: "note",
+      entity: null,
+      attachedTo: "shop.api",
+    });
+    expect(stringifyJson(toJson(compile(COMMERCE)))).toBe(stringifyJson(c4));
+  });
+
+  it("reports an unknown target as ref.unknown-element", () => {
+    const json = toJson(compile('diagram d: flow {\n  note n "Text" on ghost\n}\n'));
+    expect(json.ok).toBe(false);
+    expect(json.diagnostics.map((d) => d.code)).toEqual(["ref.unknown-element"]);
+    expect(json.diagnostics[0]!.range.start).toMatchObject({ line: 2, column: 20 });
+  });
+});

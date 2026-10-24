@@ -129,6 +129,21 @@ export type EditOperation =
        * statement as `icon` (`style <id> { shape hexagon }`); `rounded`, the default, writes none.
        */
       readonly shape?: string;
+      /**
+       * A note's attachment, written as `on <element>` after its text: the id of an element of the
+       * diagram, or an entity path the view draws. Only notes take it.
+       */
+      readonly attachedTo?: string;
+    }
+  | {
+      /**
+       * Writes the `on <element>` clause of a note after its text, replaces the target of an
+       * existing one, or removes it when `element` is null, in the same declaration.
+       */
+      readonly kind: "attachNote";
+      readonly diagram: string;
+      readonly note: string;
+      readonly element: string | null;
     }
   | {
       /**
@@ -707,14 +722,13 @@ export type EditOperation =
         { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
       >;
       /**
-       * Group padding and title band, note and tag text sizes. A titled group's interior starts
+       * Group padding and title band and the tag text size. A titled group's interior starts
        * `groupHeader` below its top edge; an untitled one's (label `""`, no description, no icon),
        * `groupPadding`.
        */
       readonly metrics: {
         readonly groupPadding: number;
         readonly groupHeader: number;
-        readonly noteSize: number;
         readonly tagSize: number;
       };
     };
@@ -750,7 +764,9 @@ export type DependentKind =
   | "event"
   | "space"
   | "gap"
-  | "story";
+  | "story"
+  /** A note attached to the element: removing the element leaves the note without its clause. */
+  | "attachment";
 
 /** A statement that depends on the target of an operation. */
 export interface Dependent {

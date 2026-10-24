@@ -54,7 +54,7 @@ describe("free diagrams compile", () => {
     const [d] = compilation.diagnostics;
     expect(d!.code).toBe("prop.unknown");
     expect(d!.hints).toEqual([
-      "Free diagrams declare `box`, `text`, `icon`, `image`, `line` and `group`.",
+      "Free diagrams declare `box`, `text`, `icon`, `image`, `note`, `line` and `group`.",
     ]);
   });
 
@@ -422,5 +422,50 @@ describe("profile gating", () => {
     );
     expect(compilation.document.diagrams.map((d) => d.type)).toEqual(["free", "c4"]);
     expect(compilation.diagnostics.map((d) => d.code)).toEqual([]);
+  });
+});
+
+describe("notes in free compositions", () => {
+  it("declares a note with its text, layer and style", () => {
+    const { diagram, codes } = free(
+      '  layers main, front\n  note hint "Draft\\nnot final" { layer front }\n  style hint { fill "#fff3bf"; stroke "#e8a600"; textAlign center }',
+    );
+    expect(codes).toEqual([]);
+    const hint = diagram.elementsById.get("hint")!;
+    expect(hint.kind).toBe("note");
+    expect(hint.label).toBe("Draft\nnot final");
+    expect(hint.layer).toBe("front");
+    expect(hint.attachedTo).toBeNull();
+    expect(Object.keys(diagram.styles[0]!.properties)).toEqual(["fill", "stroke", "textAlign"]);
+  });
+
+  it("takes rules, links and the text properties, and refuses a shape", () => {
+    expect(free('  note n "T"\n  rule note { fill "#fff3bf"; fontSize 12 }').codes).toEqual([]);
+    const refused = free('  note n "T"\n  style n { shape pill }').compilation.diagnostics;
+    expect(refused.map((d) => d.code)).toEqual(["prop.invalid-value"]);
+    expect(refused[0]!.message).toMatch(/node/);
+    expect(refused[0]!.message).toMatch(/box/);
+  });
+
+  it("needs its text, and keeps the other flow kinds out", () => {
+    const missing = free("  note n").compilation.diagnostics;
+    expect(missing.map((d) => d.code)).toEqual(["prop.invalid-value"]);
+    expect(missing[0]!.message).toContain("needs its text");
+    expect(missing[0]!.message).toContain('`note <id> "Text" [on <element>]`');
+    expect(free('  tag t "T"').codes).toEqual(["prop.unknown"]);
+    expect(free('  decision d "D"').codes).toEqual(["prop.unknown"]);
+  });
+
+  it("attaches a note to any element, and the text properties stay refused in flow", () => {
+    const attached = free(
+      '  box api "API"\n  group g "G" { box inner "I" }\n  note n "Scales" on inner',
+    );
+    expect(attached.codes).toEqual([]);
+    expect(attached.diagram.elementsById.get("n")!.attachedTo).toBe("inner");
+    const { compilation } = flow(
+      '  api["API"]\n  note limits "T"\n  style limits { textAlign center }',
+    );
+    expect(compilation.diagnostics.map((d) => d.code)).toEqual(["prop.invalid-value"]);
+    expect(compilation.diagnostics[0]!.message).toMatch(/free diagrams only/);
   });
 });

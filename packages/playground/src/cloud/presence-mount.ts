@@ -14,6 +14,9 @@ import { studioSource, type Presence } from "./presence.js";
 import { presenceBar } from "./presence-bar.js";
 import { PresenceOverlay } from "./presence-overlay.js";
 
+/** What `told` is when the canvas has been told nothing: nobody, and no colour of its own. */
+const EMPTY = "[[],null]";
+
 /** Puts the "who is here" list in the cloud slot and follows the open project's presence. */
 export function mountPresence(playground: Playground, controller: CloudController): void {
   const studio = playground.studio;
@@ -40,7 +43,7 @@ export function mountPresence(playground: Playground, controller: CloudControlle
   /** What the header was last drawn with: it is drawn again only when it differs (focus stays). */
   let listed = "[]";
   /** What the canvas was last told, or knows it has lost: it is told again only when it differs. */
-  let told = "[]";
+  let told = EMPTY;
   /** The file and the diagram the canvas shows, to know when it has cleared what it was told. */
   let shownFile = studio.open;
   let shownDiagram: string | undefined;
@@ -59,10 +62,12 @@ export function mountPresence(playground: Playground, controller: CloudControlle
     // A pointer is drawn over the diagram it was over: the canvas shows one diagram of the file.
     const diagram = studio.open === "" ? undefined : studio.session.current;
     const selections = presence ? presence.canvas(studio.open, m.unnamed, diagram) : [];
-    const key = JSON.stringify(selections);
+    // The person's own colour, as the others see it: the Pointer's trail and cursor are drawn in it.
+    const colour = presence?.colour;
+    const key = JSON.stringify([selections, colour]);
     if (key !== told) {
       told = key;
-      playground.canvas.receive(presenceMessage(selections));
+      playground.canvas.receive(presenceMessage(selections, colour ? { colour } : undefined));
     }
   };
 
@@ -79,13 +84,15 @@ export function mountPresence(playground: Playground, controller: CloudControlle
       stop = presence.listen(later);
       presence.attach(source);
       // The canvas reports the pointer to a host that shares presence: this says it does.
-      if (told === "[]") playground.canvas.receive(presenceMessage([]));
+      if (told === EMPTY) playground.canvas.receive(presenceMessage([]));
     }
     later();
   };
   controller.subscribe((project) => follow(project ? controller.presence : undefined));
   // Where the person's pointer is over the canvas goes out with the rest of their state.
   playground.onCanvasPointer((at) => current?.pointer(at));
+  // So do the points of a stroke of the Pointer tool, in the same message.
+  playground.onCanvasLaser((batch) => current?.laser(batch.points, batch.diagram));
 
   studio.listen({
     // Another file was opened (or this one renamed): the person is somewhere else. What the canvas
@@ -95,8 +102,8 @@ export function mountPresence(playground: Playground, controller: CloudControlle
       current?.moved();
       if (studio.open !== shownFile) {
         shownFile = studio.open;
-        if (told !== "[]") playground.canvas.receive(presenceMessage([]));
-        told = "[]";
+        if (told !== EMPTY) playground.canvas.receive(presenceMessage([]));
+        told = EMPTY;
       }
       later();
     },
@@ -110,13 +117,13 @@ export function mountPresence(playground: Playground, controller: CloudControlle
       current?.moved();
       for (const message of batch) {
         if (message.type === "empty") {
-          told = "[]";
+          told = EMPTY;
           shownDiagram = undefined;
           later();
         } else if (message.type === "render") {
           if (message.diagram !== shownDiagram) {
             shownDiagram = message.diagram;
-            told = "[]";
+            told = EMPTY;
           }
           later();
         }

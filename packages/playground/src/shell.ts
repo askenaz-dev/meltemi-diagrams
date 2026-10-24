@@ -9,7 +9,7 @@ import {
   type TextEdit,
 } from "@meltemi/diagrams-language";
 import { MANIFEST_NAME, templateManifest } from "@meltemi/diagrams-project";
-import { mountCanvas, type CanvasPointer } from "./canvas-host.js";
+import { mountCanvas, type CanvasLaser, type CanvasPointer } from "./canvas-host.js";
 import { accountControl, type AccountControl } from "./cloud/account.js";
 import {
   ACCOUNT_PARAMETER,
@@ -163,6 +163,8 @@ export class Playground {
   readonly live = new LiveSessions();
   /** Who hears where the person's pointer is over the canvas (presence). */
   private canvasPointer: ((at: CanvasPointer | undefined) => void) | undefined;
+  /** Who hears the points of a Pointer stroke (presence). */
+  private canvasLaser: ((batch: CanvasLaser) => void) | undefined;
   /**
    * Where the header shows what only a cloud project has (the versions panel's button, say): beside
    * the Projects button, and hidden while no cloud project is open. Another module appends its
@@ -327,6 +329,11 @@ export class Playground {
   /** Hears where the person's pointer is over the canvas (presence shares it); one listener. */
   onCanvasPointer(listener: (at: CanvasPointer | undefined) => void): void {
     this.canvasPointer = listener;
+  }
+
+  /** Hears the points a stroke of the canvas's Pointer tool made (presence shares them); one listener. */
+  onCanvasLaser(listener: (batch: CanvasLaser) => void): void {
+    this.canvasLaser = listener;
   }
 
   /** How many guests are in the open project now, from presence, and how to hear it change. */
@@ -552,6 +559,7 @@ export class Playground {
         exportPlayer: (story) => void writePlayer(this, story),
         openModel: () => this.openModel(),
         pointer: (at) => this.canvasPointer?.(at),
+        laser: (batch) => this.canvasLaser?.(batch),
       },
       {
         get: () => this.settings.canvas as never,

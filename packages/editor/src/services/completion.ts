@@ -191,6 +191,8 @@ function viewCompletions(
     const allowed = model ? allowedEntities(model, c4.level, c4.scope) : new Set<string>();
     return entityItems(model, range, (p) => allowed.has(p) && !listed.has(p));
   }
+  const attached = noteAttachment(diagram, prefix, range, true);
+  if (attached) return attached;
   if (match(prefix, `label\\s+[\\w.]*`)) {
     return [
       ...elementItems(diagram, range).filter((i) => i.kind === "element"),
@@ -205,7 +207,11 @@ function viewCompletions(
   }
   if (prefix === "" || match(prefix, ID)) {
     return [
-      ...words(["level", "scope", ...VIEW_STATEMENTS], "keyword", range),
+      ...words(
+        ["level", "scope", ...VIEW_STATEMENTS, ...C4_PROFILE.elementKinds],
+        "keyword",
+        range,
+      ),
       ...words(
         Object.keys(C4_PROFILE.diagramProperties).filter((p) => p !== "level" && p !== "scope"),
         "keyword",
@@ -216,6 +222,31 @@ function viewCompletions(
     ];
   }
   return undefined;
+}
+
+/**
+ * What may follow a note's text: `on`, and after `on ` an element of the diagram it can be attached
+ * to (the entities a view draws, in a C4 view), never the note itself or a free line.
+ */
+function noteAttachment(
+  diagram: FlowDiagram | undefined,
+  prefix: string,
+  range: CompletionItem["range"],
+  entities: boolean,
+): CompletionItem[] | undefined {
+  const head = `note\\s+(${ID})\\s+"(?:[^"\\\\]|\\\\.)*"\\s+`;
+  if (match(prefix, `${head}\\w*`)) return words(["on"], "keyword", range);
+  const target = match(prefix, `${head}on\\s+[\\w.]*`);
+  if (!target) return undefined;
+  return elementItems(diagram, range).filter((item) => {
+    const element = diagram?.elementsById.get(item.label);
+    return (
+      element !== undefined &&
+      element.id !== target[1] &&
+      element.kind !== "line" &&
+      (!entities || element.entity !== null)
+    );
+  });
 }
 
 /** Statements that start a line in a diagram body or a group of a profile. */
@@ -463,8 +494,10 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
   const pathed = diagram?.type === "c4" || scope === "model" || scope === "entity";
   const range = { start: pathed ? linkStart(text, offset) : start, end: offset };
 
-  // Inside quotes: themes and icons.
-  const quoted = /"([^"\\]*)$/.exec(prefix);
+  // Inside quotes: themes and icons. A closed string before the cursor is no quote to be in:
+  // only an odd number of quotes leaves one open.
+  const quoted =
+    (prefix.match(/(?<!\\)"/g) ?? []).length % 2 === 1 ? /"([^"\\]*)$/.exec(prefix) : null;
   if (quoted) {
     const inner = { start: offset - quoted[1]!.length, end: offset };
     if (/^theme\s+"[^"]*$/.test(prefix) || /^extends\s+"[^"]*$/.test(prefix)) {
@@ -629,6 +662,9 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
           return [];
         }
       }
+      // `note <id> "Text" on <element>`.
+      const attached = noteAttachment(diagram, prefix, range, false);
+      if (attached) return attached;
       // After any of the six relation tokens: `->`, `-->`, `<->`, `<-->`, `--` and `---`.
       const relation = match(prefix, `${ID}\\s*(?:<?--?>|---?)\\s*\\w*`);
       if (relation) return elementItems(diagram, range);

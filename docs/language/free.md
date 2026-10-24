@@ -43,18 +43,19 @@ diagrams. `layout manual` is the default: every object has a `place`.
 
 ## Objects
 
-| Declaration                                                   | Object                                                                                                                              | Default size                                             |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
-| `box <id> ["Label"] [{ … }]`                                  | a shape (below) with a label and an optional description                                                                            | its shape's size, grown to fit the measured text         |
-| `id["Label"]`, `id[("Label")]`                                | a box; the second form has the `cylinder` shape                                                                                     | as above                                                 |
-| `text <id> "Text"`                                            | measured text without a frame; `\n` breaks lines                                                                                    | the text's extent                                        |
-| `icon <id> "<pack>:<name>"`                                   | an icon of the packs ([assets.md](assets.md)), without text; a labelled icon is a box with `shape icon` ([below](#icons-as-shapes)) | 48 × 48                                                  |
-| `image <id> "<path>"`                                         | an image file of the project; `description` is its alt text                                                                         | its pixel size, at most 640 wide; 160 × 120 when unknown |
-| `group <id> ["Label"] { … }`                                  | a band with a title, or a plain container when untitled, holding children                                                           | written, or derived from its children (below)            |
-| `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), …]]` | a line that joins no element: a divider, a bracket, an underline ([below](#lines))                                                  | the bounding box of its points                           |
+| Declaration                                                   | Object                                                                                                                                       | Default size                                             |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| `box <id> ["Label"] [{ … }]`                                  | a shape (below) with a label and an optional description                                                                                     | its shape's size, grown to fit the measured text         |
+| `id["Label"]`, `id[("Label")]`                                | a box; the second form has the `cylinder` shape                                                                                              | as above                                                 |
+| `text <id> "Text"`                                            | measured text without a frame; `\n` breaks lines                                                                                             | the text's extent                                        |
+| `icon <id> "<pack>:<name>"`                                   | an icon of the packs ([assets.md](assets.md)), without text; a labelled icon is a box with `shape icon` ([below](#icons-as-shapes))          | 48 × 48                                                  |
+| `image <id> "<path>"`                                         | an image file of the project; `description` is its alt text                                                                                  | its pixel size, at most 640 wide; 160 × 120 when unknown |
+| `note <id> "Text" [on <element>] [{ … }]`                     | an annotation: a few lines of text, with an outline only when styled, and a dotted leader to the element it is attached to ([below](#notes)) | its text's extent                                        |
+| `group <id> ["Label"] { … }`                                  | a band with a title, or a plain container when untitled, holding children                                                                    | written, or derived from its children (below)            |
+| `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), …]]` | a line that joins no element: a divider, a bracket, an underline ([below](#lines))                                                           | the bounding box of its points                           |
 
-`node`, `decision`, `data`, `note` and `tag` belong to flow diagrams; in a free diagram they are
-`prop.unknown`, with a hint that lists the free kinds. An element that only a relation mentions is
+`node`, `decision`, `data` and `tag` belong to flow diagrams; in a free diagram they are
+`prop.unknown`, with a hint that lists the free kinds, `note` among them. An element that only a relation mentions is
 a box. Relations take the six tokens of flow diagrams, the lines without heads `--` and `---`
 among them ([grammar](grammar-0.2.md#lexical-rules)).
 
@@ -210,6 +211,34 @@ diagram serverless: free {
 - **Centred icons.** To keep the box around the icon, write `iconPosition center` instead of
   `shape icon`: the icon is the picture of the box and the label sits inside it, at the
   `labelPosition` edge ([styles.md](styles.md#icons-in-boxes)).
+
+### Notes
+
+`note <id> "Text" [on <element>] [{ … }]` is an annotation. Its text is required and `\n` breaks
+lines. It is drawn as a flow note is: left-aligned, at the theme's `noteSize`, weight 400 and in the
+`muted` colour, with no frame; it gets an outline (`radius`, `fill`, `stroke`, `width`, `line`) only
+when a style, class or rule sets `fill`, `stroke` or `pattern`, and an icon before the first line
+when `icon` is styled. Its default size is its longest line by its line count times the note line
+height plus 4; a `size` narrower than the longest line is `layout.text-overflow`. The block takes
+`description`, `class`, `layer`, `link` and `url`; the style properties are `fill`, `stroke`,
+`pattern`, `line`, `width`, `color`, `radius`, `icon`, `iconColor`, `iconSize`, `rotation`,
+`fontSize`, `fontWeight` and `textAlign`; `shape` is `prop.invalid-value`, as on a text. A note is
+painted on its layer in source order and takes part in `place`, z-order, selection and rotation
+like any object.
+
+```text
+note remark "Checked at the gateway" on gateway { layer front }
+style remark { fill "#fff7d6"; stroke warning; line dashed }
+```
+
+The `on` clause attaches the note to another element of the diagram, of any kind and inside or
+outside any group; the element is a reference, so renaming it rewrites the clause. The attachment
+is a drawing: a dotted leader runs from the note's border to the element's, and nothing else
+depends on it (a note stays where it is placed). `on` with an unknown id is `ref.unknown-element`,
+a note on itself is `prop.invalid-value`. Delete on the element asks first, listing the
+attachments, and keeps the notes. In `layout auto` and for a note without a `place` in `layout
+assisted`, the arrangement keeps the note near its element. An outlined note takes a moving dash
+(`animate remark { effect dash }`); one without an outline takes only a pulse.
 
 ## Groups and interior coordinates
 
@@ -494,7 +523,7 @@ does the same and shows the copy. The copy holds:
 | node     | box   | only when the diagram has `rule node`                                                               |
 | decision | box   | `from_decision { shape diamond }`                                                                   |
 | data     | box   | `from_data { shape cylinder }`                                                                      |
-| note     | text  | `from_note { textAlign left; fontSize <note size>; fontWeight 400; color muted }`                   |
+| note     | note  | — (a note stays a note, with its `on` clause)                                                       |
 | tag      | box   | `from_tag { shape pill; fill tag; stroke tag; color tagText; fontSize <tag size>; fontWeight 500 }` |
 | group    | group | —                                                                                                   |
 

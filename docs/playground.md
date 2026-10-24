@@ -684,8 +684,17 @@ is on the same place of the diagram at every zoom, and it keeps its size on the 
 three seconds after the person's pointer stops, or as soon as it leaves their canvas. A click goes
 through it; it is not drawn while a story plays, and no export carries it.
 
+**Pointer trails.** When another person presses K and draws on their canvas
+([the Pointer tool](editor.md#navigating-the-canvas)), you see the trail on yours, in their colour,
+point by point at the pace they drew it, each point fading 800 milliseconds after it was made. It is
+drawn over the diagram they were over, never over another diagram of the file, and it is not drawn
+while a story plays. Your own stroke is drawn in your own colour, the one the others see you in
+(your account's, or your guest's). The points go out in the same message as the pointer, at most four
+batches of 64 points a second, so a stroke adds no message of its own; a batch that does not fit
+those bounds is not drawn. No export carries a trail, and nothing of it is saved.
+
 **What is shared.** Four things: the file you have open, where your caret or selection is in it,
-what you have selected on the canvas, and where your pointer is over it while it moves there. Never who you are: the room attaches your account's name
+what you have selected on the canvas, and where your pointer is over it while it moves there, with the points of a Pointer stroke while you draw one. Never who you are: the room attaches your account's name
 and picture to what it relays ([awareness](cloud.md#awareness)), so nobody can appear as somebody
 else, and a person with no name is shown as "Someone". Names are always shown as the characters they
 are: a person called `<b>Ben</b>` appears as exactly that. The page sends your state when it changes,

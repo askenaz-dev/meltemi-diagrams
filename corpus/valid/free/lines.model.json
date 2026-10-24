@@ -51,6 +51,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": null,
           "technology": null,
           "external": false,
@@ -94,6 +95,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": null,
           "technology": null,
           "external": false,
@@ -137,6 +139,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": null,
           "technology": null,
           "external": false,
@@ -180,6 +183,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": null,
           "technology": null,
           "external": false,
@@ -233,6 +237,7 @@
             },
             "via": []
           },
+          "attachedTo": null,
           "entity": null,
           "technology": null,
           "external": false,
@@ -291,6 +296,7 @@
               }
             ]
           },
+          "attachedTo": null,
           "entity": null,
           "technology": null,
           "external": false,
@@ -349,6 +355,7 @@
               }
             ]
           },
+          "attachedTo": null,
           "entity": null,
           "technology": null,
           "external": false,
@@ -407,6 +414,7 @@
               }
             ]
           },
+          "attachedTo": null,
           "entity": null,
           "technology": null,
           "external": false,
@@ -460,6 +468,7 @@
             },
             "via": []
           },
+          "attachedTo": null,
           "entity": null,
           "technology": null,
           "external": false,
@@ -513,6 +522,7 @@
             },
             "via": []
           },
+          "attachedTo": null,
           "entity": null,
           "technology": null,
           "external": false,
@@ -556,6 +566,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": null,
           "technology": null,
           "external": false,
@@ -599,6 +610,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": null,
           "technology": null,
           "external": false,
@@ -654,6 +666,7 @@
             },
             "via": []
           },
+          "attachedTo": null,
           "entity": null,
           "technology": null,
           "external": false,

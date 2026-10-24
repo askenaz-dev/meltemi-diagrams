@@ -15,6 +15,8 @@ export const en = {
     imageFile: "Image file",
     layer: "Layer",
     linkedTo: "Linked to",
+    /** The element a note is attached to. */
+    attachedTo: "Attached to",
     url: "URL",
     ports: "Ports",
     x: "X",
@@ -297,6 +299,9 @@ export const en = {
     cannotDraw: "The diagram cannot be drawn.",
     copied: "Copied.",
     invalidId: (id: string) => `${code(id)} is not a valid id.`,
+    noteAttached: (target: string) => `Created a note attached to ${code(target)}.`,
+    attachNotesOnly: (kind: string) =>
+      `Only a note can be attached to an element; a ${code(kind)} cannot.`,
     notInProject:
       "This file is not in a project: create the theme in the file, or add a project.json.",
     builtInTheme: "The diagram uses a built-in theme; create a theme from it to change its tokens.",

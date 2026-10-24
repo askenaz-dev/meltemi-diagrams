@@ -147,7 +147,9 @@ export const en = {
         `The ${source} of \`${id}\` must be a quoted string.`,
       /** `text`, `icon` or `image` without what it shows. */
       needsSource: (kind: string, id: string, form: string) =>
-        `\`${kind} ${id}\` needs ${kind === "text" ? "its text" : kind === "icon" ? "an icon" : "an image path"}; expected ${form}.`,
+        `\`${kind} ${id}\` needs ${kind === "text" || kind === "note" ? "its text" : kind === "icon" ? "an icon" : "an image path"}; expected ${form}.`,
+      /** `prop.invalid-value`: a note on itself. */
+      attachSelf: (id: string) => `A note cannot be attached to itself: \`${id}\`.`,
       /** After the `text`, `icon`, `image` or `label` of a declaration. */
       valueAfter: (after: string, form: string) =>
         `Unexpected value after the ${after}; expected ${form}.`,
@@ -248,7 +250,10 @@ export const en = {
       traceTarget:
         "A trace runs along relations and lines; name the relation (`a -> b as r`) and animate it.",
       dashOnEvent: "A moving dash runs along relations and the outlines of boxes.",
-      /** An element kind drawn without an outline, such as `note`. */
+      /** A note or a free text that no style of the diagram gives an outline. */
+      dashNeedsOutline: (target: string, kind: string) =>
+        `\`${target}\` is ${kind === "note" ? "a note" : "a text"} without an outline; a moving dash follows a line or a box.`,
+      /** An element kind drawn without an outline, such as `icon`. */
       dashWithoutOutline: (target: string, kind: string) =>
         `\`${target}\` is a ${kind} without an outline; a moving dash needs a line or a box.`,
       unknownTarget: (name: string) => `Unknown element or relation \`${name}\`.`,
@@ -544,7 +549,11 @@ export const en = {
         "Free diagrams accept `box`, `text`, `icon`, `image`, `line` and `group` declarations, relations, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `layers`, `placement`, `style`, `animate`, `class` and `rule`.",
       flowStatements:
         "Flow diagrams accept element declarations, relations, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `placement`, `style`, `animate`, `class` and `rule`.",
-      freeDeclarations: "Free diagrams declare `box`, `text`, `icon`, `image`, `line` and `group`.",
+      freeDeclarations:
+        "Free diagrams declare `box`, `text`, `icon`, `image`, `note`, `line` and `group`.",
+      /** `ref.unknown-element` on a note's `on <element>`. */
+      attachTarget: (note: string) =>
+        `Attach \`${note}\` to an element of this diagram: \`note ${note} "Text" on <element>\`.`,
       flowDeclarations: (keyword: string) =>
         `Flow diagrams declare \`node\`, \`decision\`, \`data\`, \`group\`, \`note\` and \`tag\`; \`${keyword}\` belongs to free diagrams.`,
       sharedNamespace: "Elements and relations share one namespace per diagram.",
@@ -564,6 +573,8 @@ export const en = {
       ports: (element: string, ports: readonly string[]) =>
         `Ports of \`${element}\`: ${ports.join(", ")}.`,
       constraintElements: "Constraints apply to elements declared in this diagram.",
+      dashOutline:
+        "Give it a `fill`, a `stroke` or a `pattern` in a `style`, a class or a `rule` of this diagram, or use a pulse.",
       form: (form: string) => `Form: ${form}.`,
       /** A `place`, `size` or `rotation` of a free line. */
       linePointsWritten:

@@ -25,6 +25,8 @@ const VIEW_COMMANDS: ReadonlySet<CanvasCommand> = new Set<CanvasCommand>([
   "zoomSelection",
   // Layers are shown and hidden on the canvas (nothing is written); the menu is cut down.
   "toggleLayers",
+  // The Pointer tool draws a trail that is no part of the document.
+  "togglePointer",
   "contextMenu",
 ]);
 

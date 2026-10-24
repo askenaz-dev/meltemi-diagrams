@@ -41,6 +41,7 @@ diagram containers: c4 using commerce {
   layout assisted
   theme "editorial.light"
   label shop.api "API de pedidos"
+  note cache "Cached 5 min" on shop.api
 }
 
 diagram components: c4 using commerce {

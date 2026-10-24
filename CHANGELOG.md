@@ -15,6 +15,12 @@ and text at the top or the bottom of a shape, drawn from the canvas with the arr
 alignment picker ([decision 0058](docs/decisions/0058-lines-sketch-and-text-alignment.md)). The
 language stays 0.2: the line tokens, `line`, `sketch` and `verticalAlign` are additive.
 
+A pointer for explaining a diagram, and notes that point at what they are about: K turns on a laser
+that draws a fading trail and edits nothing, and a `note` joins free compositions and C4 views with
+an `on <element>` clause that attaches it with a dotted leader
+([decision 0059](docs/decisions/0059-pointer-and-notes.md)). The language stays 0.2: `note` in free
+diagrams and views and the `on` clause are additive.
+
 ### Language
 
 - Two relation tokens draw lines without heads: `a -- b` (solid) and `a --- b` (dashed), beside
@@ -45,6 +51,17 @@ language stays 0.2: the line tokens, `line`, `sketch` and `verticalAlign` are ad
   it. Where it moves nothing (the triangle, pentagon, star, person, agent and icon shapes, a centred
   icon, texts, icons, images, groups and lines) it is `layout.vertical-align-ignored` (warning),
   once per statement.
+- Notes: `note <id> "Text" [on <element>]` is a free kind and the one declaration a C4 view holds
+  (`on` takes the entity path the view draws). A free note is text at the theme's note size with no
+  frame until a style gives it a `fill`, `stroke` or `pattern`, and takes `fontSize`, `fontWeight`,
+  `textAlign`, `radius`, `color`, `icon` and `rotation`, and `description`, `class`, `layer`, `link`
+  and `url` in its block; `shape` is refused as on a text. `on` attaches the note to any other
+  element: the model records `attachedTo` (after `line` in the model JSON, null on every other
+  kind), renames rewrite the clause, a leader of dots joins the note to its element, and in
+  `layout auto` the arrangement keeps them near each other. An unknown target is
+  `ref.unknown-element`, a note on itself `prop.invalid-value`.
+- A moving dash runs on a note or a text that has an outline (a `fill`, `stroke` or `pattern` from
+  its styles, classes or a `rule`), and `animate.invalid-target` says so for one that has none.
 
 ### Playground
 
@@ -78,6 +95,11 @@ language stays 0.2: the line tokens, `line`, `sketch` and `verticalAlign` are ad
   this browser, or the files of the open cloud project.
 - The path of the open file above the code; menus and dialogs fade in, folders open by their height,
   rows made or moved flash once, and none of it moves with reduced motion.
+- Pointer trails in a room: the points of a Pointer stroke ride in the same presence message as the
+  pointer (`canvas.laser`, at most 64 points of at most a second, relayed once and never kept by
+  the room), and the others see the trail in the person's colour, point by point at the pace it was
+  drawn. The canvas is told the person's own colour (`me`) so the stroke and the dot cursor match
+  what the others see.
 
 ### Account
 
@@ -176,6 +198,21 @@ language stays 0.2: the line tokens, `line`, `sketch` and `verticalAlign` are ad
   ([decision 0054](docs/decisions/0054-custom-icons.md)).
 - The problems of the assets (a pack without licence, an icon the sanitiser refuses) show in the
   playground's explorer, on the file and its folders, and in VS Code's Problems view.
+- The Pointer tool: a toggle before the grid's, the key K and the status line announce it. While it
+  is on, a press and drag draws a trail 3 px wide tapering to 1 px that fades 800 ms after each
+  point, in the theme's accent, with a dot for a cursor; nothing is selected, moved, created,
+  connected, edited or opened, and Space-drag and the wheel still pan and zoom. It works on a
+  read-only canvas, is no part of the document, an export or the HTML views, and under reduced
+  motion the stroke holds until the pointer lifts.
+- Notes on flow, free and C4 canvases: the note button and O make a note with its editor open (on a
+  sequence diagram O still writes a note over the selection). Dropping the note tool on an element,
+  or clicking with it armed on one, attaches the note at the element's east edge, outlining the
+  element while the tool is over it; **Attached to** in the inspector writes or removes the
+  clause; Delete on an element lists the attached notes and keeps them; Copy, Paste and Duplicate
+  keep the attachment when the element is copied with the note; **Convert to Free Composition**
+  keeps notes as notes. A C4 note's inspector shows its own fields and none of an entity's, and
+  its text, id and removal are edited in the view.
+- The dash toggle appears on a note or a text that has an outline.
 
 ### Command line
 
@@ -196,6 +233,8 @@ language stays 0.2: the line tokens, `line`, `sketch` and `verticalAlign` are ad
   [decision 0056](docs/decisions/0056-agent-skill-install.md)).
 - An SVG icon whose file name a reference cannot write (`My Logo (1).svg`) is left out of its pack
   with the warning `asset.unusable-name`, which names the file to rename it to (`My-Logo-1.svg`).
+- `convert --to free` keeps notes as notes, with their `on` clause, instead of turning them into
+  texts with a `from_note` class, and the model JSON gives every element `attachedTo`.
 
 ### Import
 

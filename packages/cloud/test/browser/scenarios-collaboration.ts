@@ -283,8 +283,9 @@ export const collaborationScenarios: Scenario[] = [
                     "svg",
                     "rect",
                     "polyline",
-                    // A pointer's cursor is an arrow drawn as a path.
+                    // A pointer's cursor is an arrow drawn as a path, and its trail a canvas.
                     "path",
+                    "CANVAS",
                     "BUTTON",
                     "LI",
                     "UL",

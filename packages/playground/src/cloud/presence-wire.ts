@@ -6,14 +6,17 @@
 // whose value is that client's state, or `null` when the client is gone.
 //
 //   page to room   { "<my client id>": { file?, caret?: { anchor, head },
-//                                         canvas?: { selection, pointer?: { x, y, diagram? } } } }
+//                                         canvas?: { selection, pointer?: { x, y, diagram? },
+//                                                    laser?: { diagram?, points: [{ x, y, t }] } } } }
 //   room to page   { "<client id>": { file?, caret?, canvas?,
 //                                     user: { sub, name, picture, colour, guest } } }
 //                  { "<client id>": null }                     (that client left or fell silent)
 //
 // `file` is a file id of the document, `anchor` and `head` are base64 of Yjs relative positions
 // in that file's text, `selection` the ids selected on the canvas, `pointer` where the person's
-// pointer is over the canvas, in diagram units, and over which diagram. `guest` marks a person
+// pointer is over the canvas, in diagram units, and over which diagram, and `laser` the points
+// of the Pointer tool's trail made since the last message (at most `MAX_LASER_POINTS`, `t` the
+// milliseconds since the first, 0 to `MAX_LASER_MS`). `guest` marks a person
 // without an account (`live-sessions`), set by the room alone. The identity is the room's: it
 // replaces `user` on everything it relays, so the page never sends one and never reads a person's
 // identity from anywhere else. Everything read here comes from a peer through the room and is
@@ -33,6 +36,9 @@ export const MAX_NAME_LENGTH = 100;
 const MAX_ENTRIES = 64;
 /** How far from the origin a pointer read from a peer may be, in diagram units: the room's bound. */
 export const MAX_POINTER = 1_000_000;
+/** The most points of a Pointer trail one state carries, and the longest it lasts in milliseconds. */
+export const MAX_LASER_POINTS = 64;
+export const MAX_LASER_MS = 1000;
 /** The longest client id or `sub` read from a message. */
 const MAX_KEY_LENGTH = 200;
 /** The longest encoded relative position read from a peer. */
@@ -52,12 +58,29 @@ export interface PointerPosition {
   readonly diagram?: string;
 }
 
+/** One point of a Pointer trail: diagram units, and the milliseconds since the batch's first. */
+export interface LaserPoint {
+  readonly x: number;
+  readonly y: number;
+  readonly t: number;
+}
+
+/** The points a stroke of the Pointer tool made since the last state, and the diagram they are on. */
+export interface LaserBatch {
+  readonly diagram?: string;
+  readonly points: readonly LaserPoint[];
+}
+
 /** What the page publishes about the person: where they are, never who they are. */
 export interface LocalState {
   /** The id of the file the person has open (ids never change, so a rename keeps presence). */
   readonly file?: string;
   readonly caret?: EncodedCaret;
-  readonly canvas?: { readonly selection: readonly string[]; readonly pointer?: PointerPosition };
+  readonly canvas?: {
+    readonly selection: readonly string[];
+    readonly pointer?: PointerPosition;
+    readonly laser?: LaserBatch;
+  };
 }
 
 /** Who a person is, as the room says: never taken from the peer's own payload. */
@@ -80,6 +103,8 @@ export interface RemoteState {
   readonly selection: readonly string[];
   /** Where the person's pointer is over their canvas, while it moves there. */
   readonly pointer: PointerPosition | undefined;
+  /** The points of the person's Pointer trail in this message, when it carries a batch. */
+  readonly laser: LaserBatch | undefined;
 }
 
 /** One client of a message: its id, and its state (`null`: it is gone). */
@@ -180,6 +205,32 @@ export function readPointer(value: unknown): PointerPosition | undefined {
     : { x, y };
 }
 
+/**
+ * A peer's Pointer trail batch: at most `MAX_LASER_POINTS` points, each `x` and `y` finite within
+ * the pointer bound and `t` an integer 0 to `MAX_LASER_MS`, and maybe the diagram. A batch that does
+ * not fit is no batch at all: the rest of the state is still read.
+ */
+export function readLaser(value: unknown): LaserBatch | undefined {
+  if (!isObject(value) || !Array.isArray(value["points"])) return undefined;
+  const given = value["points"] as unknown[];
+  if (given.length > MAX_LASER_POINTS) return undefined;
+  const points: LaserPoint[] = [];
+  for (const entry of given) {
+    if (!isObject(entry)) return undefined;
+    const { x, y, t } = entry;
+    const fits = (n: unknown): n is number =>
+      typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= MAX_POINTER;
+    if (!fits(x) || !fits(y)) return undefined;
+    if (typeof t !== "number" || !Number.isInteger(t) || t < 0 || t > MAX_LASER_MS)
+      return undefined;
+    points.push({ x, y, t });
+  }
+  const diagram = value["diagram"];
+  return typeof diagram === "string" && diagram !== "" && diagram.length <= MAX_ID_LENGTH
+    ? { diagram, points }
+    : { points };
+}
+
 function readSelection(value: unknown): string[] {
   if (!isObject(value) || !Array.isArray(value["selection"])) return [];
   const ids: string[] = [];
@@ -207,6 +258,7 @@ export function readState(value: unknown, page: string): RemoteState | undefined
     caret: readCaret(value["caret"]),
     selection: readSelection(value["canvas"]),
     pointer: isObject(value["canvas"]) ? readPointer(value["canvas"]["pointer"]) : undefined,
+    laser: isObject(value["canvas"]) ? readLaser(value["canvas"]["laser"]) : undefined,
   };
 }
 

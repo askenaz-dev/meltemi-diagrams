@@ -26,6 +26,7 @@ import {
 } from "@meltemi/diagrams-model";
 import { insertStatement, reject, type EditContext, type TextContext } from "./context.js";
 import { deleteStatements } from "./delete.js";
+import { attachmentDependent } from "./attachments.js";
 import { insertAfter, insertBefore, verifyNoNewErrors } from "./insert.js";
 import { messages, reasons } from "./messages/index.js";
 import { removeListItems, type OperationOf } from "./plan.js";
@@ -38,6 +39,9 @@ import type { Dependent, DependentKind } from "./types.js";
 
 /** Operations a C4 view accepts; the others write declarations the view does not have. */
 const VIEW_OPERATIONS: ReadonlySet<string> = new Set([
+  // A view declares notes: `createElement` refuses every other kind there.
+  "createElement",
+  "attachNote",
   "setPosition",
   "setSize",
   "setRoute",
@@ -58,9 +62,35 @@ const VIEW_OPERATIONS: ReadonlySet<string> = new Set([
   "materializeRelationId",
 ]);
 
+/**
+ * Operations a note of a view takes as any element does, since the note is a declaration of the
+ * view: its text, id, classes and url, and its removal with the placement and styles it has.
+ */
+const NOTE_OPERATIONS: ReadonlySet<string> = new Set([
+  "renameElement",
+  "removeElement",
+  "setElementLabel",
+  "setClasses",
+  "setElementProperty",
+]);
+
+/** The operation fields that name the element it acts on. */
+interface ElementTarget {
+  readonly kind: string;
+  readonly element?: string | null;
+  readonly target?: string;
+  readonly targetKind?: string;
+}
+
 /** Refuses an operation that does not apply to a C4 view, naming the ones that do. */
-export function refuseInView(ctx: EditContext, kind: string): void {
+export function refuseInView(ctx: EditContext, operation: ElementTarget): void {
+  const { kind } = operation;
   if (ctx.diagram.type !== "c4" || VIEW_OPERATIONS.has(kind)) return;
+  if (NOTE_OPERATIONS.has(kind) && operation.targetKind !== "relation") {
+    const id = operation.element ?? operation.target;
+    const element = id === undefined ? undefined : ctx.diagram.elementsById.get(id);
+    if (element?.kind === "note" && element.entity === null) return;
+  }
   reject("edit.invalid-value", reasons().c4.notInView(kind, ctx.diagram.c4?.model ?? ""));
 }
 
@@ -100,6 +130,14 @@ function insertViewStatement(ctx: EditContext, text: string, after: readonly str
   return first
     ? insertBefore(ctx, first, () => text)
     : insertStatement(ctx, body, ctx.diagram.node.start, () => text);
+}
+
+/**
+ * Declares a note in a view: after its last note, else after the lists and labels and before the
+ * blocks, where the language keeps what a view says about what it draws.
+ */
+export function insertViewNote(ctx: EditContext, text: string): TextEdit {
+  return insertViewStatement(ctx, text, ["level", "scope", "include", "exclude", "label", "note"]);
 }
 
 function requireEntity(ctx: EditContext, path: string): ModelEntity {
@@ -157,6 +195,14 @@ function viewDependents(
   const gone = new Set(
     diagram.relations.filter((r) => r.from === id || r.to === id).map((r) => r.key),
   );
+  // A note of the view attached to the entity stays, without its `on` clause.
+  for (const note of diagram.elements) {
+    if (note.attachedTo !== id) continue;
+    const attached = attachmentDependent(ctx, note);
+    if (!attached) continue;
+    dependents.push(attached.dependent);
+    edits.push(attached.edit);
+  }
   for (const entry of diagram.placement) {
     if (entry.target === id || gone.has(entry.target))
       depend(entry.statement as DependentKind, entry.target, entry.node);
@@ -425,6 +471,14 @@ export function removeEntity(ctx: ModelContext, op: OperationOf<"removeEntity">)
     for (const label of c4.labels) {
       if (removed.has(label.target) || relationKeys.has(label.target))
         depend("label", label.target, label.node);
+    }
+    // The notes of the view attached to a removed entity stay, without their clause.
+    for (const note of diagram.elements) {
+      if (note.attachedTo === null || !removed.has(note.attachedTo)) continue;
+      const attached = attachmentDependent(ctx, note);
+      if (!attached) continue;
+      dependents.push(attached.dependent);
+      edits.push(attached.edit);
     }
     for (const entry of diagram.placement) {
       const target = entry.target;

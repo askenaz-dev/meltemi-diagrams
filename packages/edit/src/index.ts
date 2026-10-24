@@ -2,6 +2,7 @@ export const PACKAGE_NAME = "@meltemi/diagrams-edit";
 
 export type * from "./types.js";
 export { applyEdits, inversePlan, planEdit, removeListItems } from "./plan.js";
+export { attachmentArgs, stripAttachment } from "./attachments.js";
 export { renameEntity, entityReferences } from "./c4.js";
 export { DEFAULT_LABELS, declarationText, defaultLabel } from "./create.js";
 export { formatStyleValue } from "./styles.js";

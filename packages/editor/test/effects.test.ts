@@ -195,6 +195,47 @@ describe("effects in the inspector", () => {
   });
 });
 
+describe("effects of notes and texts", () => {
+  const FREE = [
+    'language "0.2"',
+    "",
+    "diagram sheet: free {",
+    "  box api",
+    '  note bare "Bare" on api',
+    '  note framed "Framed" on api',
+    '  text label "Label"',
+    '  style framed { stroke "#7a5af8" }',
+    "  placement {",
+    "    place api at (100, 100)",
+    "    place bare at (300, 100)",
+    "    place framed at (300, 200)",
+    "    place label at (100, 300)",
+    "  }",
+    "}",
+    "",
+  ].join("\n");
+  const effects = (canvas: ReturnType<typeof open>, id: string) => {
+    canvas.send({ type: "select", ids: [id] });
+    return canvas
+      .inspector()
+      .fields.filter((f) => f.name.startsWith("effect.") && f.name.split(".").length === 2)
+      .map((f) => f.name);
+  };
+
+  it("offers the dash to a note with an outline and not to a bare one, nor to a bare text", () => {
+    const canvas = open(FREE, "sheet");
+    expect(effects(canvas, "framed")).toEqual(["effect.dash", "effect.pulse"]);
+    expect(effects(canvas, "bare")).toEqual(["effect.pulse"]);
+    expect(effects(canvas, "label")).toEqual(["effect.pulse"]);
+  });
+
+  it("offers it once a style gives the note an outline", () => {
+    const canvas = open(FREE, "sheet");
+    canvas.apply({ kind: "setField", ids: ["bare"], field: "style.stroke", value: "#d92d20" });
+    expect(effects(canvas, "bare")).toEqual(["effect.dash", "effect.pulse"]);
+  });
+});
+
 describe("playing effects on the canvas", () => {
   const animated = SHEET.replace("  placement {", "  animate save { effect flow }\n  placement {");
 

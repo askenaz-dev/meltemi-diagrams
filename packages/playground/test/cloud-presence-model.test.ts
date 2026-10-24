@@ -430,3 +430,61 @@ describe("what the canvas is told", () => {
     expect(canvasPeople(book.list(), API, "Someone")[0]?.name).toBe("<img src=x>");
   });
 });
+
+describe("a person's Pointer trail", () => {
+  const points = [
+    { x: 1, y: 2, t: 0 },
+    { x: 3, y: 4, t: 30 },
+  ];
+  /** A state with a batch over `diagram`, as the room relays it. */
+  const trail = (
+    sub: string,
+    over: Record<string, unknown> = {},
+    laser = { diagram: "d", points },
+  ) =>
+    ({
+      ...state(sub, "Ben", { file: API }),
+      canvas: { selection: [], laser, ...over },
+    }) as Record<string, unknown>;
+
+  it("counts the batches the page has received from a person, one for each message that has one", () => {
+    const book = new PeerBook(PAGE);
+    expect(book.apply([{ id: "c1", state: trail("u_ben") }], 0)).toBe(true);
+    expect(book.list()[0]!.laser).toEqual({ seq: 1, diagram: "d", points });
+    expect(book.apply([{ id: "c1", state: trail("u_ben") }], 10)).toBe(true);
+    expect(book.list()[0]!.laser?.seq).toBe(2);
+    // A message without a batch changes nothing about what the canvas was told.
+    expect(
+      book.apply([{ id: "c1", state: state("u_ben", "Ben", { file: API, selection: ["a"] }) }], 20),
+    ).toBe(true);
+    expect(book.list()[0]!.laser?.seq).toBe(2);
+    expect(
+      book.apply([{ id: "c1", state: state("u_ben", "Ben", { file: API, selection: ["a"] }) }], 30),
+    ).toBe(false);
+  });
+
+  it("is told to the canvas of the diagram it was made on, with the batch's count", () => {
+    const book = new PeerBook(PAGE);
+    book.apply([{ id: "c1", state: trail("u_ben") }], 0);
+    book.apply([{ id: "c1", state: trail("u_ben") }], 1);
+    expect(canvasPeople(book.list(), API, "Someone", "d")).toEqual([
+      {
+        name: "Ben",
+        colour: presenceColour("u_ben"),
+        selection: [],
+        laser: { batch: 2, points },
+      },
+    ]);
+    // Another diagram of the file: the coordinates are not this one's.
+    expect(canvasPeople(book.list(), API, "Someone", "other")).toEqual([]);
+    // A canvas that does not say which diagram it shows draws it, as it does a pointer.
+    expect(canvasPeople(book.list(), API, "Someone")).toHaveLength(1);
+  });
+
+  it("is a person of the canvas on its own, with no selection and no pointer", () => {
+    const book = new PeerBook(PAGE);
+    book.apply([{ id: "c1", state: trail("u_ben") }], 0);
+    expect(canvasPeople(book.list(), API, "Someone", "d")[0]).toMatchObject({ selection: [] });
+    expect(canvasPeople(book.list(), WEB, "Someone", "d")).toEqual([]);
+  });
+});

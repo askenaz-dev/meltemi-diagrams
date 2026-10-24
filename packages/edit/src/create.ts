@@ -28,6 +28,7 @@ import {
 } from "./insert.js";
 import { en } from "./messages/en.js";
 import { messages, reasons } from "./messages/index.js";
+import { insertViewNote } from "./c4.js";
 import { insertPlacements, requireNewId, type OperationOf } from "./plan.js";
 import { endpointText, requireEndPosition } from "./routes.js";
 import { isEventStatement } from "./sequence.js";
@@ -96,6 +97,22 @@ export function createElement(ctx: EditContext, op: OperationOf<"createElement">
   const kind = op.elementKind;
   const declared = ctx.diagram.definition;
   const profile = declared ? declaredProfile(declared) : PROFILES[ctx.diagram.type];
+  // A view declares notes and nothing else: its entities belong to the model.
+  if (ctx.diagram.type === "c4" && kind !== "note") {
+    reject("edit.invalid-value", reasons().c4.onlyNotes(kind, ctx.diagram.c4?.model ?? ""));
+  }
+  if (op.attachedTo !== undefined) {
+    if (kind !== "note") reject("edit.invalid-value", reasons().attach.kinds(kind));
+    // A flow or free diagram attaches to an element it declares, a view to an entity it draws.
+    const target = ctx.diagram.elementsById.get(op.attachedTo);
+    if (ctx.diagram.type === "c4") {
+      if (!target?.entity) {
+        reject("edit.unsafe-target", reasons().attach.notDrawn(op.attachedTo, ctx.diagram.id));
+      }
+    } else if (!target) {
+      requireElement(ctx, op.attachedTo);
+    }
+  }
   if (!profile.elementKinds.includes(kind)) {
     reject(
       "edit.invalid-value",
@@ -118,7 +135,9 @@ export function createElement(ctx: EditContext, op: OperationOf<"createElement">
   const label = sourced
     ? op.source!
     : (op.label ?? defaultLabel(kind) ?? declared?.elements[kind]?.label ?? kind);
-  const text = declarationText(kind, id, label, ctx.diagram.type);
+  const text =
+    declarationText(kind, id, label, ctx.diagram.type) +
+    (op.attachedTo !== undefined ? ` on ${op.attachedTo}` : "");
   const { block, owner } = op.parent
     ? groupBlock(ctx, op.parent)
     : { block: diagramBody(ctx), owner: ctx.diagram.node.start };
@@ -143,13 +162,15 @@ export function createElement(ctx: EditContext, op: OperationOf<"createElement">
   const styled = properties.length > 0 ? `style ${id} { ${properties.join("; ")} }` : undefined;
   const beside = styled !== undefined && !op.parent ? styled : undefined;
   const edits: TextEdit[] = [
-    insertDeclaration(ctx, block, owner, (indent) =>
-      beside === undefined
-        ? text
-        : indent === null
-          ? `${text}; ${beside}`
-          : `${text}${ctx.eol}${indent}${beside}`,
-    ),
+    ctx.diagram.type === "c4"
+      ? insertViewNote(ctx, text)
+      : insertDeclaration(ctx, block, owner, (indent) =>
+          beside === undefined
+            ? text
+            : indent === null
+              ? `${text}; ${beside}`
+              : `${text}${ctx.eol}${indent}${beside}`,
+        ),
   ];
   const placement: string[] = [];
   if (op.at) {

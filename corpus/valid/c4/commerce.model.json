@@ -51,6 +51,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": {
             "model": "commerce",
             "path": "customer",
@@ -98,6 +99,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": {
             "model": "commerce",
             "path": "shop",
@@ -145,6 +147,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": {
             "model": "commerce",
             "path": "bank",
@@ -297,8 +300,8 @@
           "column": 1
         },
         "end": {
-          "offset": 1274,
-          "line": 44,
+          "offset": 1314,
+          "line": 45,
           "column": 2
         }
       },
@@ -333,6 +336,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": {
             "model": "commerce",
             "path": "shop",
@@ -380,6 +384,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": {
             "model": "commerce",
             "path": "customer",
@@ -427,6 +432,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": {
             "model": "commerce",
             "path": "shop.web",
@@ -476,6 +482,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": {
             "model": "commerce",
             "path": "shop.api",
@@ -525,6 +532,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": {
             "model": "commerce",
             "path": "shop.db",
@@ -557,6 +565,50 @@
               "offset": 1179,
               "line": 39,
               "column": 48
+            }
+          }
+        },
+        {
+          "id": "cache",
+          "kind": "note",
+          "label": "Cached 5 min",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "attachedTo": "shop.api",
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1275,
+              "line": 44,
+              "column": 3
+            },
+            "end": {
+              "offset": 1312,
+              "line": 44,
+              "column": 40
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1280,
+              "line": 44,
+              "column": 8
+            },
+            "end": {
+              "offset": 1285,
+              "line": 44,
+              "column": 13
             }
           }
         }
@@ -832,13 +884,13 @@
       "type": "c4",
       "range": {
         "start": {
-          "offset": 1276,
-          "line": 46,
+          "offset": 1316,
+          "line": 47,
           "column": 1
         },
         "end": {
-          "offset": 1397,
-          "line": 50,
+          "offset": 1437,
+          "line": 51,
           "column": 2
         }
       },
@@ -873,6 +925,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": {
             "model": "commerce",
             "path": "shop.api",
@@ -920,6 +973,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": {
             "model": "commerce",
             "path": "shop.web",
@@ -967,6 +1021,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": {
             "model": "commerce",
             "path": "shop.api.orders",
@@ -1016,6 +1071,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": {
             "model": "commerce",
             "path": "shop.api.payments",
@@ -1065,6 +1121,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": {
             "model": "commerce",
             "path": "shop.db",
@@ -1112,6 +1169,7 @@
           "source": null,
           "shape": null,
           "line": null,
+          "attachedTo": null,
           "entity": {
             "model": "commerce",
             "path": "bank",
@@ -1259,25 +1317,25 @@
           "groupPath": [],
           "range": {
             "start": {
-              "offset": 1353,
-              "line": 49,
+              "offset": 1393,
+              "line": 50,
               "column": 3
             },
             "end": {
-              "offset": 1395,
-              "line": 49,
+              "offset": 1435,
+              "line": 50,
               "column": 45
             }
           },
           "idRange": {
             "start": {
-              "offset": 1391,
-              "line": 49,
+              "offset": 1431,
+              "line": 50,
               "column": 41
             },
             "end": {
-              "offset": 1395,
-              "line": 49,
+              "offset": 1435,
+              "line": 50,
               "column": 45
             }
           }

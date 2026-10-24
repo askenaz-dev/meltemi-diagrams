@@ -7,7 +7,9 @@ import {
   type EntityKind,
   type FlowDiagram,
   type ModelDefinition,
+  type PlaceEntry,
   type Relation,
+  type SizeEntry,
 } from "@meltemi/diagrams-model";
 import type { InspectorField } from "./canvas/protocol.js";
 import { messages } from "./messages/index.js";
@@ -79,10 +81,26 @@ export interface CopiedEntity {
 const quote = (text: string) => JSON.stringify(text);
 
 /**
- * The clipboard text of entities copied from a C4 view: a `model clipboard` block declaring each
- * (kind, id, label, technology, description, external; not its children or relations) and a free
- * diagram holding where each was drawn. It is a document of its own, which other editors read as
- * text and a C4 view reads back with `copiedEntities`.
+ * A note of a view on the clipboard: the text, where it was drawn and how large, and what it was
+ * attached to: `on`, the clipboard id of an entity copied with it, or `path`, the path of an
+ * entity the view draws (which rides in the note's `description`, since the clipboard's free
+ * diagram has no entity paths).
+ */
+export interface CopiedNote {
+  readonly id: string;
+  readonly label: string;
+  readonly at: { readonly x: number; readonly y: number } | null;
+  readonly size: { readonly width: number; readonly height: number } | null;
+  readonly on: string | null;
+  readonly path: string | null;
+}
+
+/**
+ * The clipboard text of entities and notes copied from a C4 view: a `model clipboard` block
+ * declaring each entity (kind, id, label, technology, description, external; not its children or
+ * relations) and a free diagram holding where each was drawn and the notes. It is a document of
+ * its own, which other editors read as text and a C4 view reads back with `copiedEntities` and
+ * `copiedNotes`.
  */
 export function entityClipboard(
   diagram: FlowDiagram,
@@ -95,7 +113,11 @@ export function entityClipboard(
     const entity = model.entitiesByPath.get(id);
     return entity && diagram.elementsById.has(id) ? [entity] : [];
   });
-  if (entities.length === 0) return undefined;
+  const notes = ids.flatMap((id) => {
+    const note = diagram.elementsById.get(id);
+    return note && note.kind === "note" && note.entity === null ? [note] : [];
+  });
+  if (entities.length === 0 && notes.length === 0) return undefined;
   // Containers and data stores are declared in a system, components in a container: the
   // copies sit in holders of those kinds, which a paste leaves out.
   const lines: Record<"root" | "system" | "container", string[]> = {
@@ -105,10 +127,13 @@ export function entityClipboard(
   };
   const places: string[] = [];
   const taken = new Set<string>([HOLDER]);
+  // The clipboard id of each copied entity, by path, which a note copied with it is attached to.
+  const copiedAs = new Map<string, string>();
   for (const entity of entities) {
     let id = entity.id;
     for (let n = 2; taken.has(id); n++) id = `${entity.id}_${n}`;
     taken.add(id);
+    copiedAs.set(entity.path, id);
     const block = [
       entity.technology !== null ? `technology ${quote(entity.technology)}` : "",
       entity.description !== null ? `description ${quote(entity.description)}` : "",
@@ -147,12 +172,29 @@ export function entityClipboard(
         ]
       : []),
   ];
-  const boxesText = [...taken]
-    .filter((id) => id !== HOLDER)
-    .map((id) => `  box ${id} ""`)
-    .join("\n");
+  const boxesText = [...taken].filter((id) => id !== HOLDER).map((id) => `  box ${id} ""`);
+  // The notes, after the boxes: attached to a box of the sheet when its entity is copied with it,
+  // else carrying the path of the entity it is attached to in its description.
+  for (const note of notes) {
+    let id = note.id;
+    for (let n = 2; taken.has(id); n++) id = `${note.id}_${n}`;
+    taken.add(id);
+    const target = note.attachedTo;
+    const copiedTarget = target === null ? undefined : copiedAs.get(target);
+    const on = copiedTarget !== undefined ? ` on ${copiedTarget}` : "";
+    const path =
+      target !== null && copiedTarget === undefined ? ` { description ${quote(target)} }` : "";
+    boxesText.push(`  note ${id} ${quote(note.label)}${on}${path}`);
+    const box = boxes?.get(note.id);
+    if (box) {
+      places.push(
+        `    place ${id} at (${Math.round(box.x + box.width / 2)}, ${Math.round(box.y + box.height / 2)})`,
+        `    size ${id} (${Math.round(box.width)}, ${Math.round(box.height)})`,
+      );
+    }
+  }
   const placement = places.length > 0 ? `\n  placement {\n${places.join("\n")}\n  }` : "";
-  return `language "0.2"\n\nmodel clipboard {\n${body.join("\n")}\n}\n\ndiagram clipboard: free {\n  layout manual\n${boxesText}${placement}\n}\n`;
+  return `language "0.2"\n\nmodel clipboard {\n${body.join("\n")}\n}\n\ndiagram clipboard: free {\n  layout manual\n${boxesText.join("\n")}${placement}\n}\n`;
 }
 
 /** The id of the entities that hold copied containers and components on the clipboard. */
@@ -183,6 +225,30 @@ export function copiedEntities(
     }));
 }
 
+/** The notes of a C4 clipboard text, in the order written. */
+export function copiedNotes(diagrams: readonly FlowDiagram[]): CopiedNote[] {
+  const sheet = diagrams.find((d) => d.id === "clipboard");
+  if (!sheet) return [];
+  const place = (id: string) =>
+    sheet.placement.find((p): p is PlaceEntry => p.statement === "place" && p.target === id);
+  const size = (id: string) =>
+    sheet.placement.find((p): p is SizeEntry => p.statement === "size" && p.target === id);
+  return sheet.elements
+    .filter((e) => e.kind === "note")
+    .map((note) => {
+      const at = place(note.id);
+      const extent = size(note.id);
+      return {
+        id: note.id,
+        label: note.label,
+        at: at ? { x: at.x, y: at.y } : null,
+        size: extent ? { width: extent.width, height: extent.height } : null,
+        on: note.attachedTo,
+        path: note.description,
+      };
+    });
+}
+
 /**
  * The operations that paste copied entities into a C4 view: each entity of a kind the view's level
  * draws is declared again in the model, where the level puts it, under its id or `<id>_2`, `_3`…,
@@ -195,6 +261,7 @@ export function pasteEntities(
   placed: boolean,
   copied: readonly CopiedEntity[],
   where: { readonly shift: { x: number; y: number } } | { readonly at: { x: number; y: number } },
+  notes: readonly CopiedNote[] = [],
 ):
   | { readonly ok: true; readonly operations: EditOperation[]; readonly ids: string[] }
   | { readonly ok: false; readonly reason: string } {
@@ -203,10 +270,11 @@ export function pasteEntities(
   if (!c4 || !model) return { ok: false, reason: messages().session.fixFirst };
   const kinds = allowedKinds(c4.level);
   const drawn = copied.filter((e) => kinds.includes(e.kind));
-  if (drawn.length === 0) {
+  if (drawn.length === 0 && notes.length === 0) {
     return { ok: false, reason: messages().c4.kindNotDrawn(copied[0]?.kind ?? "", kinds) };
   }
-  const located = drawn.filter((e) => e.at !== null);
+  // The centre of what was copied, notes included, so that the whole moves as one.
+  const located = [...drawn, ...notes].filter((e) => e.at !== null);
   const centre =
     located.length > 0
       ? {
@@ -217,6 +285,8 @@ export function pasteEntities(
   const taken = new Set(model.entitiesByPath.keys());
   const operations: EditOperation[] = [];
   const ids: string[] = [];
+  // The path each copied entity got, by its clipboard id: what a copied note is attached to.
+  const pasted = new Map<string, string>();
   drawn.forEach((entity, index) => {
     const parent = entityParent(diagram, entity.kind);
     let id = entity.id;
@@ -224,6 +294,7 @@ export function pasteEntities(
     const path = parent ? `${parent}.${id}` : id;
     taken.add(path);
     ids.push(path);
+    pasted.set(entity.id, path);
     operations.push({
       kind: "createEntity",
       model: model.id,
@@ -264,6 +335,46 @@ export function pasteEntities(
       element: path,
       x: Math.round(to.x),
       y: Math.round(to.y),
+    });
+  });
+  // The notes, after the entities they may be attached to: a note keeps `on` when its entity was
+  // copied with it (to the copy) or the view draws it, and loses it otherwise.
+  const used = new Set(diagram.elementsById.keys());
+  notes.forEach((note, index) => {
+    let id = note.id;
+    for (let n = 2; used.has(id); n++) id = `${note.id}_${n}`;
+    used.add(id);
+    ids.push(id);
+    const target =
+      note.on !== null
+        ? pasted.get(note.on)
+        : note.path !== null && diagram.elementsById.get(note.path)?.entity
+          ? note.path
+          : undefined;
+    const from = note.at ?? {
+      x: (centre?.x ?? 0) + 40 * (drawn.length + index),
+      y: centre?.y ?? 0,
+    };
+    const to =
+      "shift" in where
+        ? { x: from.x + where.shift.x, y: from.y + where.shift.y }
+        : {
+            x: where.at.x + from.x - (centre?.x ?? from.x),
+            y: where.at.y + from.y - (centre?.y ?? from.y),
+          };
+    operations.push({
+      kind: "createElement",
+      diagram: diagram.id,
+      elementKind: "note",
+      id,
+      label: note.label,
+      ...(target !== undefined ? { attachedTo: target } : {}),
+      ...(placed
+        ? {
+            at: { x: Math.round(to.x), y: Math.round(to.y) },
+            ...(note.size ? { size: note.size } : {}),
+          }
+        : {}),
     });
   });
   return { ok: true, operations, ids };
@@ -439,6 +550,9 @@ export function c4FieldOperations(
   const model = c4?.resolved?.definition;
   if (!c4 || !model) return undefined;
   const text = value === null ? null : String(value);
+  // A note of a view is its own declaration: its fields are written as any element's.
+  const note = diagram.elementsById.get(id);
+  if (note?.kind === "note" && note.entity === null) return undefined;
   if (field === "label") {
     const relation = diagram.relationsByKey.get(id);
     if (relation && c4.combined.includes(id)) {

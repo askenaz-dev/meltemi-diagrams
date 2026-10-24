@@ -227,7 +227,8 @@ export const es: typeof en = {
       quotedSource: (source, id) =>
         `${SOURCES[source] ?? code(source)} de ${code(id)} debe ser una cadena entre comillas.`,
       needsSource: (kind, id, form) =>
-        `\`${kind} ${id}\` necesita ${kind === "text" ? "su texto" : kind === "icon" ? "un icono" : "la ruta de una imagen"}; se esperaba ${form}.`,
+        `\`${kind} ${id}\` necesita ${kind === "text" || kind === "note" ? "su texto" : kind === "icon" ? "un icono" : "la ruta de una imagen"}; se esperaba ${form}.`,
+      attachSelf: (id) => `Una nota no puede estar unida a sí misma: ${code(id)}.`,
       valueAfter: (after, form) =>
         `Valor inesperado después ${AFTER[after] ?? `de ${code(after)}`}; se esperaba ${form}.`,
       duplicateElement: (id) => `${code(id)} ya está declarado en este diagrama.`,
@@ -308,6 +309,8 @@ export const es: typeof en = {
       traceTarget:
         "Un recorrido avanza por relaciones y líneas; nombra la relación (`a -> b as r`) y anímala.",
       dashOnEvent: "Un trazo en movimiento recorre relaciones y los contornos de las cajas.",
+      dashNeedsOutline: (target, kind) =>
+        `${code(target)} es ${kind === "note" ? "una nota" : "un texto"} sin contorno; un trazo en movimiento sigue una línea o una caja.`,
       dashWithoutOutline: (target, kind) =>
         `${code(target)} es ${pick(UNOUTLINED, kind)} sin contorno; un trazo en movimiento necesita una línea o una caja.`,
       unknownTarget: (name) => `Elemento o relación desconocidos ${code(name)}.`,
@@ -556,7 +559,9 @@ export const es: typeof en = {
       flowStatements:
         "Los diagramas de flujo aceptan declaraciones de elementos, relaciones, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `placement`, `style`, `animate`, `class` y `rule`.",
       freeDeclarations:
-        "Las composiciones libres declaran `box`, `text`, `icon`, `image`, `line` y `group`.",
+        "Las composiciones libres declaran `box`, `text`, `icon`, `image`, `note`, `line` y `group`.",
+      attachTarget: (note) =>
+        `Une ${code(note)} a un elemento de este diagrama: \`note ${note} "Texto" on <element>\`.`,
       flowDeclarations: (keyword) =>
         `Los diagramas de flujo declaran \`node\`, \`decision\`, \`data\`, \`group\`, \`note\` y \`tag\`; ${code(keyword)} pertenece a las composiciones libres.`,
       sharedNamespace:
@@ -574,6 +579,8 @@ export const es: typeof en = {
         `Un bloque \`placement\` acepta ${statements.map(code).join(", ")}.`,
       ports: (element, ports) => `Puertos de ${code(element)}: ${ports.join(", ")}.`,
       constraintElements: "Las restricciones se aplican a elementos declarados en este diagrama.",
+      dashOutline:
+        "Dale un `fill`, un `stroke` o un `pattern` en un `style`, una clase o una `rule` de este diagrama, o usa un pulso.",
       form: (form) => `Forma: ${form}.`,
       linePointsWritten:
         "Los puntos de una línea se escriben en su instrucción: `line <id> from (x, y) to (x, y)`.",

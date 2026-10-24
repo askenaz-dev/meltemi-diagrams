@@ -187,6 +187,23 @@ function fixes(analysis: DocumentAnalysis, diagnostic: Diagnostic): CodeAction[]
       if (!diagram || !id || diagram.elementsById.has(id)) break;
       const kind =
         diagram.type === "free" ? "box" : diagram.type === "sequence" ? "participant" : "node";
+      // The target of a note's `on` lists the diagram's elements: the closest are offered first.
+      const written = analysis.text.slice(
+        diagnostic.range.start.offset,
+        diagnostic.range.end.offset,
+      );
+      const close = candidatesOf(diagnostic)
+        .filter((w) => w !== written)
+        .map((w) => ({ w, distance: editDistance(w, written) }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 3);
+      for (const [i, { w }] of close.entries()) {
+        add(
+          t.changeTo(w),
+          [{ start: diagnostic.range.start.offset, end: diagnostic.range.end.offset, newText: w }],
+          i === 0,
+        );
+      }
       add(
         t.declareElement(id, kind),
         plan(analysis, {
@@ -196,7 +213,7 @@ function fixes(analysis: DocumentAnalysis, diagnostic: Diagnostic): CodeAction[]
           id,
           label: id,
         }),
-        true,
+        close.length === 0,
       );
       break;
     }

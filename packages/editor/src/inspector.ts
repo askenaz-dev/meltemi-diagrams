@@ -450,7 +450,30 @@ function kindOptions(diagram: FlowDiagram, element: Element): readonly string[] 
   ) {
     return [element.kind];
   }
+  if (element.kind === "note" && diagram.type !== "flow") return [element.kind];
   return diagram.type === "free" ? ["box", "text"] : ["node", "decision", "data", "note", "tag"];
+}
+
+/**
+ * The element a note is attached to, as a picker of the diagram's other elements (the drawn
+ * entity paths in a C4 view), empty for none.
+ */
+function attachmentField(diagram: FlowDiagram, note: Element): InspectorField {
+  const targets = diagram.elements.filter(
+    (e) =>
+      e.id !== note.id &&
+      e.kind !== "line" &&
+      // A view attaches to the entities it draws.
+      (diagram.type !== "c4" || e.entity !== null),
+  );
+  return {
+    name: "attachedTo",
+    label: messages().fields.attachedTo,
+    type: "enum",
+    value: note.attachedTo,
+    placeholder: messages().placeholders.none,
+    options: targets.map((e) => e.id),
+  };
 }
 
 /**
@@ -516,7 +539,8 @@ function identityFields(diagram: FlowDiagram, element: Element | undefined): Ins
   return fields;
 }
 
-function elementFields(view: DiagramView, element: Element): InspectorField[] {
+/** The place and the size of an element, written as `place` and `size` statements. */
+function geometryFields(view: DiagramView, element: Element): InspectorField[] {
   const diagram = view.diagram;
   const place = diagram.placement.find(
     (p): p is PlaceEntry => p.statement === "place" && p.target === element.id,
@@ -533,55 +557,8 @@ function elementFields(view: DiagramView, element: Element): InspectorField[] {
         y: round(box.y + box.height / 2 - (origin?.y ?? 0)),
       }
     : null;
-  const ports = element.ports
-    .map(
-      (p) =>
-        `${p.name} ${p.side}${Math.round(p.position * 100) === 50 ? "" : ` ${Math.round(p.position * 100)}%`}`,
-    )
-    .join(", ");
   const words = messages().fields;
-  const fields: InspectorField[] = [
-    { name: "id", label: words.id, type: "id", value: element.id },
-    {
-      name: "kind",
-      label: words.kind,
-      type: "enum",
-      value: element.kind,
-      options: kindOptions(diagram, element),
-      ...(kindOptions(diagram, element).length === 1 ? { readonly: true } : {}),
-    },
-    element.kind === "icon"
-      ? { name: "source", label: words.icon, type: "icon", value: element.source }
-      : element.kind === "image"
-        ? { name: "source", label: words.imageFile, type: "text", value: element.source }
-        : { name: "label", label: words.label, type: "text", value: element.label },
-    {
-      name: "description",
-      label: words.description,
-      type: "multiline",
-      value: element.description,
-    },
-    {
-      name: "classes",
-      label: words.classes,
-      type: "classes",
-      value: element.classes.map((c) => c.name).join(", ") || null,
-    },
-  ];
-  fields.push(...identityFields(diagram, element));
-  // A free line is its points: no ports, no place, no size.
-  if (element.kind === "line") {
-    return [...fields, ...styleFields(diagram, [{ id: element.id, kind: "element" }])];
-  }
-  if (element.kind !== "group")
-    fields.push({
-      name: "ports",
-      label: words.ports,
-      type: "ports",
-      value: ports || null,
-      placeholder: "in west 30%, out east",
-    });
-  fields.push(
+  return [
     {
       name: "x",
       label: words.x,
@@ -610,7 +587,93 @@ function elementFields(view: DiagramView, element: Element): InspectorField[] {
       value: size ? size.height : null,
       ...(box ? { placeholder: String(round(box.height)) } : {}),
     },
-  );
+  ];
+}
+
+/** The fields of a note of a C4 view: its own, and none of an entity's. */
+function viewNoteFields(view: DiagramView, element: Element): InspectorField[] {
+  const words = messages().fields;
+  return [
+    { name: "id", label: words.id, type: "id", value: element.id },
+    {
+      name: "kind",
+      label: words.kind,
+      type: "enum",
+      value: element.kind,
+      options: [element.kind],
+      readonly: true,
+    },
+    { name: "label", label: words.label, type: "text", value: element.label },
+    attachmentField(view.diagram, element),
+    {
+      name: "classes",
+      label: words.classes,
+      type: "classes",
+      value: element.classes.map((c) => c.name).join(", ") || null,
+    },
+    {
+      name: "url",
+      label: words.url,
+      type: "text",
+      value: element.url,
+      placeholder: "https://…",
+    },
+    ...geometryFields(view, element),
+  ];
+}
+
+function elementFields(view: DiagramView, element: Element): InspectorField[] {
+  const diagram = view.diagram;
+  const ports = element.ports
+    .map(
+      (p) =>
+        `${p.name} ${p.side}${Math.round(p.position * 100) === 50 ? "" : ` ${Math.round(p.position * 100)}%`}`,
+    )
+    .join(", ");
+  const words = messages().fields;
+  const fields: InspectorField[] = [
+    { name: "id", label: words.id, type: "id", value: element.id },
+    {
+      name: "kind",
+      label: words.kind,
+      type: "enum",
+      value: element.kind,
+      options: kindOptions(diagram, element),
+      ...(kindOptions(diagram, element).length === 1 ? { readonly: true } : {}),
+    },
+    element.kind === "icon"
+      ? { name: "source", label: words.icon, type: "icon", value: element.source }
+      : element.kind === "image"
+        ? { name: "source", label: words.imageFile, type: "text", value: element.source }
+        : { name: "label", label: words.label, type: "text", value: element.label },
+    ...(element.kind === "note" ? [attachmentField(diagram, element)] : []),
+    {
+      name: "description",
+      label: words.description,
+      type: "multiline",
+      value: element.description,
+    },
+    {
+      name: "classes",
+      label: words.classes,
+      type: "classes",
+      value: element.classes.map((c) => c.name).join(", ") || null,
+    },
+  ];
+  fields.push(...identityFields(diagram, element));
+  // A free line is its points: no ports, no place, no size.
+  if (element.kind === "line") {
+    return [...fields, ...styleFields(diagram, [{ id: element.id, kind: "element" }])];
+  }
+  if (element.kind !== "group")
+    fields.push({
+      name: "ports",
+      label: words.ports,
+      type: "ports",
+      value: ports || null,
+      placeholder: "in west 30%, out east",
+    });
+  fields.push(...geometryFields(view, element));
   return [...fields, ...styleFields(diagram, [{ id: element.id, kind: "element" }])];
 }
 
@@ -1087,7 +1150,9 @@ function inspectFields(
         title: titles.target(kindName(element.kind === "group" ? "boundary" : element.kind), id),
         target: { kind: "element", ids: [id] },
         fields: [
-          ...c4ElementFields(diagram, element),
+          ...(element.kind === "note" && element.entity === null
+            ? viewNoteFields(view, element)
+            : c4ElementFields(diagram, element)),
           ...withElementDefaults(
             styleFields(diagram, [{ id, kind: "element" }]),
             view,
@@ -1363,6 +1428,9 @@ export function fieldOperations(
         ops.push(...steadyGroups(view, [id], parent));
         break;
       }
+      case "attachedTo":
+        ops.push({ kind: "attachNote", diagram: d, note: id, element: text || null });
+        break;
       case "kind":
         if (text && text !== "group")
           ops.push({

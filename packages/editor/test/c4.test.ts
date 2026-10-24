@@ -621,10 +621,27 @@ describe("a model in another file of the project", () => {
       value: "gRPC",
     });
     expect(text(modelFile)).toContain('as request { technology "gRPC" }');
-    canvas.apply({ kind: "renameId", id: "shop.api", newId: "orders" });
+    // A note of the view attached to the entity follows the rename, in the view's own file.
+    writeFileSync(
+      containersFile,
+      text(containersFile).replace(
+        '  label shop.api "API de pedidos"\n',
+        '  label shop.api "API de pedidos"\n  note why "Why" on shop.api\n',
+      ),
+    );
+    sessions.forFile(containersFile).invalidate(containersFile);
+    const renamer = openIn(containersFile, "containers");
+    renamer.apply({ kind: "renameId", id: "shop.api", newId: "orders" });
     expect(text(modelFile)).toContain('    container orders "API"');
     expect(text(modelFile)).toContain("  shop.web -> shop.orders:");
     expect(text(containersFile)).toContain('  label shop.orders "API de pedidos"');
+    expect(text(containersFile)).toContain('  note why "Why" on shop.orders\n');
+    // Taken out again, so the tests below see the project as they expect.
+    writeFileSync(
+      containersFile,
+      text(containersFile).replace('  note why "Why" on shop.orders\n', ""),
+    );
+    sessions.forFile(containersFile).invalidate(containersFile);
     for (const file of [modelFile, containersFile, contextFile]) expect(errors(file)).toEqual([]);
   });
 

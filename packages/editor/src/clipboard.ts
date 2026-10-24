@@ -1,4 +1,9 @@
-import { formatStyleValue, planEdit, type EditOperation } from "@meltemi/diagrams-edit";
+import {
+  formatStyleValue,
+  planEdit,
+  stripAttachment,
+  type EditOperation,
+} from "@meltemi/diagrams-edit";
 import { applyTextEdits } from "@meltemi/diagrams-language";
 import {
   compile,
@@ -14,12 +19,27 @@ import { messages } from "./messages/index.js";
 
 const INDENT = "  ";
 
-/** Re-indents a statement copied from the source to `indent`. */
-function copyStatement(text: string, start: number, end: number, indent: string): string {
+/**
+ * Re-indents a statement copied from the source to `indent`, without the `cuts` that lie inside
+ * it: the ` on <element>` of the notes whose element is not copied with them.
+ */
+function copyStatement(
+  text: string,
+  start: number,
+  end: number,
+  indent: string,
+  cuts: readonly { readonly start: number; readonly end: number }[] = [],
+): string {
   const lineStart = text.lastIndexOf("\n", start - 1) + 1;
   const base = /^[ \t]*/.exec(text.slice(lineStart, start))![0];
-  return text
-    .slice(start, end)
+  let copied = "";
+  let from = start;
+  for (const cut of cuts.filter((c) => c.start >= start && c.end <= end)) {
+    copied += text.slice(from, cut.start);
+    from = cut.end;
+  }
+  copied += text.slice(from, end);
+  return copied
     .split(/\r?\n/)
     .map((line, i) =>
       i === 0 ? indent + line : line.startsWith(base) ? indent + line.slice(base.length) : line,
@@ -51,6 +71,13 @@ export function copyFragment(
   if (copied.length === 0) return undefined;
   const copiedIds = new Set(copied.map((e) => e.id));
   const lines: string[] = [];
+  // A note keeps `on <element>` when the element is copied with it, and loses it otherwise.
+  const cuts = copied.flatMap((note) => {
+    const loose =
+      note.kind === "note" && note.attachedTo !== null && !copiedIds.has(note.attachedTo);
+    const cut = loose ? stripAttachment(note) : undefined;
+    return cut ? [cut] : [];
+  });
 
   const free = diagram.type === "free";
   for (const element of copied) {
@@ -68,7 +95,7 @@ export function copyFragment(
     }
     lines.push(
       element.node
-        ? copyStatement(text, element.node.start, element.node.end, INDENT)
+        ? copyStatement(text, element.node.start, element.node.end, INDENT, cuts)
         : `${INDENT}${free ? "box" : "node"} ${element.id} ${JSON.stringify(element.label)}`,
     );
   }

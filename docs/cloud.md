@@ -801,7 +801,7 @@ with an account who can write.
 
 Awareness is what each page tells the others about its person: the file they have open, where their
 caret or selection is in it, what they have selected on the canvas and where their pointer is over
-it. It travels in kind 2
+it, and the points of a Pointer stroke. It travels in kind 2
 messages, and the room only relays it: nothing of it is written to the room's storage, and it
 changes neither the document nor its revision. [The playground](playground.md#working-together)
 shows it. The format is small and the page's own: an object keyed by connection, as Yjs's awareness
@@ -816,7 +816,17 @@ person with no file open sends `{}`):
   "9f3c2a71d04be856": {
     "file": "k7h2m4n9p3q5r8s2",
     "caret": { "anchor": "AQID", "head": "AQIE" },
-    "canvas": { "selection": ["api", "db"], "pointer": { "x": 312, "y": 148, "diagram": "flow" } }
+    "canvas": {
+      "selection": ["api", "db"],
+      "pointer": { "x": 312, "y": 148, "diagram": "flow" },
+      "laser": {
+        "diagram": "flow",
+        "points": [
+          { "x": 312.4, "y": 148, "t": 0 },
+          { "x": 320, "y": 151.5, "t": 24 }
+        ]
+      }
+    }
   }
 }
 ```
@@ -829,8 +839,15 @@ person with no file open sends `{}`):
 - `canvas.selection` lists the ids selected on the canvas, each at most 256 characters.
 - `canvas.pointer` is where the person's pointer is over their canvas, while it moves there: two
   numbers in diagram units, finite and within a million of the origin, which the room rounds to
-  integers, and the id of the diagram it is over. A canvas part holds a selection, a pointer or
-  both.
+  integers, and the id of the diagram it is over.
+- `canvas.laser` is the trail of the Pointer tool (K on the canvas): the points a stroke made since
+  the client's last state, at most 64, each `x` and `y` in diagram units (finite, within a million of
+  the origin, kept to a tenth) and `t` an integer number of milliseconds since the first point, 0 to
+  1000, and the id of the diagram the points are over. A batch over those bounds, or a point of the
+  wrong shape, makes the whole message invalid. A laser rides in the same message as the pointer
+  and is relayed once: the room never keeps it, and a state it relays later has none.
+
+A canvas part holds a selection, a pointer, a laser or any of them.
 
 The key of the entry is ignored (the page uses its connection id), and the room reads nothing else
 of the state: a `user`, a name or any other field is never relayed. A message of another shape (not
@@ -906,8 +923,10 @@ in the last second: a room built again counts from nothing.
   closes the socket with `awareness.rate` (`4429`). The window is per connection: a person's two
   tabs count apart.
 - A page sends at most four states a second and cuts a canvas selection to 200 ids and 12,000 bytes,
-  so only a client that is not the page reaches any of these limits. A moving pointer rides in the
-  same message as the caret and the selection: it adds no message of its own.
+  so only a client that is not the page reaches any of these limits. A moving pointer, and the
+  points of a Pointer stroke, ride in the same message as the caret and the selection: they add no
+  message of their own (64 points at four batches a second are under 2 KiB a second, far inside the
+  16 KiB a message may take).
 - Awareness is the same for everyone who may connect: a viewer sends and receives it like an
   editor, and only a viewer's updates are refused ([The socket](#the-socket)).
 

@@ -32,8 +32,8 @@ The canvas SHALL offer a Pointer tool as a toolbar toggle (tooltip "Pointer (K)"
 - **THEN** the whole stroke stays drawn until the pointer lifts, and then nothing of it remains on the next frame
 
 #### Scenario: Arming a tool puts the pointer away
-- **WHEN** the pointer is on and N is pressed on a flow canvas
-- **THEN** the pointer is off, the node tool is armed, and a click creates a node
+- **WHEN** the pointer is on and N is pressed on a flow canvas, or a palette button is pressed to arm a tool
+- **THEN** the pointer is off, N creates a node and an armed tool is waiting for its click
 
 #### Scenario: K while typing a label
 - **WHEN** the inline label editor of `api` is open and `k` is typed

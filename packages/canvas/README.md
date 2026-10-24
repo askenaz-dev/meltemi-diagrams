@@ -55,6 +55,14 @@ have, and pointers that are not two finite numbers, are ignored. Once a host has
 the canvas tells it where the person's own pointer is with `presencePointer` messages (diagram
 units and the diagram's id, `null` when it leaves), at most every 50 ms.
 
+The Pointer tool (K, or its toggle before the grid's) draws a trail that fades in 800 ms and edits
+nothing, on every canvas, read-only ones included; the trail is no part of the document or of any
+export. In the colour of the person: the `me: { colour }` of the last `presence` message, else the
+render's `colors.accent`. A person's `laser` (`{ batch, points }`, at most 64 points `{ x, y, t }`,
+`t` in milliseconds since the batch's first point) is drawn once per `batch` as that person's trail,
+and the canvas posts the points of the person's own strokes with `presenceLaser` messages to a host
+that has sent `presence`, at most every 50 ms.
+
 Popovers, menus, side panels, tooltips and target outlines open and close with short transitions
 on the motion tokens of `canvas.css` (`--mdg-motion-fast`, `--mdg-motion`, `--mdg-motion-slow`,
 `--mdg-ease`). When the system asks for reduced motion they are zero and nothing moves.

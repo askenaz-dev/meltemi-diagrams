@@ -244,6 +244,36 @@ export const liveScenarios: Scenario[] = [
         name,
       );
       await shot(ana, "live-owner-cursor");
+      // The guest presses K and draws on their canvas: the owner's presence canvas draws a trail
+      // within half a second, in the same messages as the pointer's, so the room hears no more
+      // than the states it already takes.
+      const statsBefore = await roomStats(t.me, project.id);
+      await guest.locator("#app .stage").focus();
+      await guest.keyboard.press("k");
+      await guest.mouse.move(stage.x + 120, stage.y + 120);
+      await guest.mouse.down();
+      for (let i = 1; i <= 12; i++) {
+        await guest.mouse.move(stage.x + 120 + i * 10, stage.y + 120 + i * 4);
+        await guest.waitForTimeout(40);
+      }
+      await ana.waitForFunction(
+        () => {
+          const canvas = document.querySelector<HTMLCanvasElement>("#app .presence-trails");
+          const data = canvas?.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height);
+          return data !== undefined && data.data.some((value, i) => i % 4 === 3 && value > 0);
+        },
+        undefined,
+        { timeout: 2_000 },
+      );
+      await shot(ana, "live-owner-trail");
+      await guest.mouse.up();
+      await guest.keyboard.press("k");
+      const statsAfter = await roomStats(t.me, project.id);
+      assert.ok(
+        statsAfter.messages - statsBefore.messages <= 10,
+        `${statsAfter.messages - statsBefore.messages} messages for one stroke`,
+      );
+      assert.equal(statsAfter.awarenessDropped, statsBefore.awarenessDropped);
       // It goes once the guest's pointer leaves the canvas.
       await guest.mouse.move(2, 2);
       await until(

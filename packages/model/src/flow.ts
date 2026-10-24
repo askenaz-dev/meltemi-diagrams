@@ -59,6 +59,7 @@ import {
   type ReportOptions,
   type Value,
 } from "./style-values.js";
+import { outlined } from "./outline.js";
 import type {
   AlignEdge,
   AnimationDirection,
@@ -238,6 +239,19 @@ export class FlowAnalyzer {
   protected readonly layerUses: { name: string; token: Token }[] = [];
   protected readonly layerRanges = new Map<string, Range>();
   protected readonly animations: AnimationEntry[] = [];
+  /** Dashes on notes and texts, whose outline is checked once every style is read. */
+  protected readonly pendingDashes: {
+    readonly name: string;
+    readonly token: Token;
+    readonly stmt: KeywordStatement;
+  }[] = [];
+  /** The `on <element>` clauses of notes, resolved once every element is declared. */
+  protected readonly attachments: {
+    readonly note: string;
+    readonly arg: Arg;
+    readonly target: string;
+    readonly stmt: KeywordStatement;
+  }[] = [];
   protected readonly references: Reference[] = [];
   protected readonly entityReferences: EntityReference[] = [];
   protected readonly placementBlocks: KeywordStatement[] = [];
@@ -352,6 +366,8 @@ export class FlowAnalyzer {
     }
     for (const decl of classified.declarations) this.declare(decl.stmt, decl.groupPath);
     for (const rel of classified.relations) this.relation(rel.stmt, rel.groupPath);
+    // After the relations, which may declare elements that only they mention.
+    this.resolveAttachments();
     this.assignKeys();
     this.afterRelations(classified);
     for (const stmt of classified.properties) this.diagramProperty(stmt);
@@ -364,6 +380,7 @@ export class FlowAnalyzer {
       else this.styleOrAnimate(stmt, keyword as "style" | "animate");
     }
     this.checkLayers();
+    this.checkOutlinedDashes();
     this.finish();
     if (this.declared) this.checkDeclared(this.declared);
 
@@ -403,6 +420,32 @@ export class FlowAnalyzer {
       hasSyntaxErrors: this.node.hasError,
       hasErrors: this.node.hasError || this.errors > 0,
     };
+  }
+
+  /**
+   * A dash follows an outline: a note or a free text that no style statement, class or rule of the
+   * diagram gives a `fill`, `stroke` or `pattern` has none, and the dash is refused and dropped.
+   */
+  protected checkOutlinedDashes(): void {
+    const source = {
+      styles: this.styles,
+      classes: this.definitions.classes,
+      rules: this.definitions.rules,
+    };
+    for (const { name, token, stmt } of this.pendingDashes) {
+      const element = this.elementsById.get(name);
+      if (!element || outlined(source, element)) continue;
+      this.error(
+        "animate.invalid-target",
+        messages().diagnostics.flow.dashNeedsOutline(name, element.kind),
+        token,
+        { hints: [messages().hints.flow.dashOutline] },
+      );
+      const at = this.animations.findIndex(
+        (a) => a.node === stmt && a.target === name && a.effect === "dash",
+      );
+      if (at >= 0) this.animations.splice(at, 1);
+    }
   }
 
   /** A declared type's rules: required properties, and the kinds relations may join. */
@@ -616,6 +659,8 @@ export class FlowAnalyzer {
         external: false,
         shape: data ? "cylinder" : null,
         line: null,
+        attachedTo: null,
+        attachedToRange: null,
         typeKind: null,
         data: {},
         groupPath,
@@ -632,14 +677,18 @@ export class FlowAnalyzer {
     const typeKind = declaredKind ? stmt.keyword.text : null;
     const kind = (declaredKind ? "box" : stmt.keyword.text) as ElementKind;
     const sourced = kind === "text" || kind === "icon" || kind === "image";
+    const note = kind === "note" && !declaredKind;
     const second = { text: '"Text"', icon: '"<pack>:<name>"', image: '"<path>"' }[kind as string];
-    const form = sourced
-      ? `\`${kind} <id> ${second}\``
-      : `\`${kind} <id> ["Label"]${kind === "group" ? " { ... }" : ""}\``;
+    const form = note
+      ? '`note <id> "Text" [on <element>]`'
+      : sourced
+        ? `\`${kind} <id> ${second}\``
+        : `\`${kind} <id> ["Label"]${kind === "group" ? " { ... }" : ""}\``;
     const example = {
       text: 'text heading "Architecture"',
       icon: 'icon server "tabler:server"',
       image: 'image logo "logo.png"',
+      note: 'note limits "500 rps" on api',
     }[kind as string];
     if (stmt.chain) {
       this.invalid(messages().diagnostics.common.singleBlock(kind), stmt.chain.clauses[1]!.keyword);
@@ -687,18 +736,25 @@ export class FlowAnalyzer {
         source = labelArg.value;
         sourceRange = this.range(labelArg);
       }
-    } else if (sourced) {
+    } else if (sourced || (note && this.notesNeedText)) {
       const m = messages();
       this.invalid(m.diagnostics.flow.needsSource(kind, idToken.text, form), stmt, [
         m.hints.example(example!),
       ]);
     }
+    // A note may end with `on <element>`; nothing else follows a label.
+    let attachment: { readonly arg: Arg; readonly target: string } | undefined;
     if (extra.length > 0) {
-      this.invalid(
-        messages().diagnostics.flow.valueAfter(sourced ? kind : "label", form),
-        extra[0]!,
-      );
-      return;
+      attachment = note ? this.attachmentOf(extra, form) : undefined;
+      if (!attachment) {
+        if (!note || !isWord(extra[0], "on")) {
+          this.invalid(
+            messages().diagnostics.flow.valueAfter(note ? "text" : sourced ? kind : "label", form),
+            extra[0]!,
+          );
+        }
+        return;
+      }
     }
     const block =
       kind === "group"
@@ -726,6 +782,8 @@ export class FlowAnalyzer {
       external: false,
       shape: null,
       line: null,
+      attachedTo: attachment?.target ?? null,
+      attachedToRange: attachment ? this.range(attachment.arg) : null,
       typeKind,
       data: declaredKind ? dataOf(blockValues, declaredKind.properties) : {},
       groupPath,
@@ -734,6 +792,7 @@ export class FlowAnalyzer {
       idToken,
       node: stmt,
     });
+    if (added && attachment) this.attachments.push({ note: idToken.text, ...attachment, stmt });
     if (!added || source === null || !sourceRange) return;
     if (kind === "icon") this.icons.push({ reference: source, range: sourceRange });
     else this.images.push({ element: idToken.text, path: source, range: sourceRange });
@@ -797,6 +856,8 @@ export class FlowAnalyzer {
       external: false,
       shape: null,
       line: { from, to, via },
+      attachedTo: null,
+      attachedToRange: null,
       typeKind: null,
       data: {},
       groupPath,
@@ -805,6 +866,56 @@ export class FlowAnalyzer {
       idToken,
       node: stmt,
     });
+  }
+
+  /** Whether a note must write its text: free compositions and views, where a note is no node. */
+  protected get notesNeedText(): boolean {
+    return this.free;
+  }
+
+  /**
+   * The target of a note's `on <element>`: `extra` holds the word `on` and one identifier (C4
+   * views read an entity path), nothing else. Undefined when it does not; a lone `on` is reported
+   * here, as the form is wanted.
+   */
+  protected attachmentOf(
+    extra: readonly Arg[],
+    form: string,
+  ): { readonly arg: Arg; readonly target: string } | undefined {
+    if (!isWord(extra[0], "on")) return undefined;
+    const arg = extra[1];
+    const token = singleIdent(arg);
+    if (!token || extra.length > 2) {
+      this.invalid(messages().diagnostics.common.expected(form), extra[1] ?? extra[0]!);
+      return undefined;
+    }
+    return { arg: arg!, target: token.text };
+  }
+
+  /**
+   * Resolves the targets of the notes' `on <element>`: an element of the diagram other than the
+   * note itself, of any kind. Renames follow the reference this records.
+   */
+  protected resolveAttachments(): void {
+    const m = messages();
+    for (const { note, arg, target, stmt } of this.attachments) {
+      const token = singleIdent(arg)!;
+      if (target === note) {
+        this.invalid(m.diagnostics.flow.attachSelf(note), token);
+      } else if (this.elementsById.has(target)) {
+        this.reference(token, target, "element", "attachment", stmt);
+      } else {
+        this.error("ref.unknown-element", m.diagnostics.common.unknownElement(target), token, {
+          hints: [m.hints.flow.attachTarget(note)],
+          data: {
+            ids: [target],
+            candidates: this.elements
+              .filter((e) => e.id !== note && e.kind !== "line")
+              .map((e) => e.id),
+          },
+        });
+      }
+    }
   }
 
   protected addElement(element: Element): boolean {
@@ -1171,6 +1282,8 @@ export class FlowAnalyzer {
       external: false,
       shape: null,
       line: null,
+      attachedTo: null,
+      attachedToRange: null,
       typeKind: null,
       data: {},
       groupPath,
@@ -1895,7 +2008,7 @@ export class FlowAnalyzer {
       if (kind === "animate") {
         // One effect per channel and target; different channels may share a target.
         const effect = values.effect as AnimationEffect | undefined;
-        if (effect && !this.animationTargetFits(effect, resolved, targetToken)) continue;
+        if (effect && !this.animationTargetFits(effect, resolved, targetToken, stmt)) continue;
         if (effect) {
           const key = `${resolved.name}:${effect}`;
           const first = this.animationSeen.get(key);
@@ -2036,6 +2149,7 @@ export class FlowAnalyzer {
     effect: AnimationEffect,
     resolved: { name: string; kind: TargetKind },
     token: Token,
+    stmt?: KeywordStatement,
   ): boolean {
     const element = resolved.kind === "element" ? this.elementsById.get(resolved.name) : undefined;
     const m = messages().diagnostics.flow;
@@ -2048,7 +2162,11 @@ export class FlowAnalyzer {
       reason = m.traceTarget;
     } else if (effect === "dash") {
       if (resolved.kind === "event") reason = m.dashOnEvent;
-      else if (element && NO_OUTLINE_KINDS.has(element.kind)) {
+      else if (element && (element.kind === "note" || element.kind === "text")) {
+        // A note or a text draws an outline when its styles say so, which a later statement may
+        // write: checked once every block is read (`checkOutlinedDashes`).
+        if (stmt) this.pendingDashes.push({ name: resolved.name, token, stmt });
+      } else if (element && NO_OUTLINE_KINDS.has(element.kind)) {
         reason = m.dashWithoutOutline(resolved.name, element.kind);
       }
     }
@@ -2091,7 +2209,15 @@ export class FlowAnalyzer {
 
 /** The declarations and statements of flow and free diagrams, as their hints list them. */
 const FLOW_DECLARATIONS: readonly string[] = ["node", "decision", "data", "group", "note", "tag"];
-const FREE_DECLARATIONS: readonly string[] = ["box", "text", "icon", "image", "line", "group"];
+const FREE_DECLARATIONS: readonly string[] = [
+  "box",
+  "text",
+  "icon",
+  "image",
+  "note",
+  "line",
+  "group",
+];
 const FLOW_STATEMENTS: readonly string[] = [
   "direction",
   "layout",

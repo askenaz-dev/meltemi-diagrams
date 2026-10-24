@@ -503,7 +503,7 @@ describe("view operations", () => {
         elementKind: "container",
         at: { x: 0, y: 0 },
       }),
-    ).toMatch(/does not apply to C4 views/);
+    ).toMatch(/declares notes only.*createEntity.*includeEntity/);
     expect(
       refused(commerce, { kind: "removeRelation", diagram: "containers", relation: "visit" }),
     ).toMatch(/relation of the model/);

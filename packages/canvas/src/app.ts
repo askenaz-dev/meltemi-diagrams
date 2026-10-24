@@ -86,14 +86,21 @@ import { LayersPanel } from "./layers.js";
 import { LibraryPanel } from "./library.js";
 import { messages, type CanvasMessages } from "./messages/index.js";
 import { Dialog, Menu, Picker, type MenuItem } from "./panels.js";
-import { PresenceLayer } from "./presence-layer.js";
+import { PresenceLayer, type DrawnTrail } from "./presence-layer.js";
 import {
+  FALLBACK_COLOUR,
+  MAX_LASER_MS,
+  MAX_LASER_POINTS,
   cursorMarks,
+  parseColour,
   presenceMarks,
+  readMe,
   readPeople,
+  toHex,
   type PersonView,
   type PresenceShape,
 } from "./presence.js";
+import { TRAIL_FADE_MS, Trail, thin } from "./trail.js";
 
 /** The pointer goes to the host at most this often while it moves (it shares it as presence). */
 const POINTER_EVERY_MS = 50;
@@ -153,6 +160,8 @@ const ID_FONT = 'ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace';
 
 type Drag =
   | { kind: "pan"; start: Point; viewport: Viewport }
+  /** A Pointer stroke: it draws a trail and nothing else. */
+  | { kind: "laser" }
   | { kind: "band"; start: Point; current: Point; additive: boolean; base: readonly string[] }
   | {
       kind: "move";
@@ -299,7 +308,7 @@ const PALETTE: readonly {
   { kind: "node", key: "N", profile: "flow" },
   { kind: "decision", key: "D", profile: "flow" },
   { kind: "data", key: "S", profile: "flow" },
-  { kind: "note", key: "O", profile: "flow" },
+  { kind: "note", key: "O", profile: "flow free c4" },
   { kind: "tag", key: "T", profile: "flow" },
   { kind: "box", key: "B", profile: "free" },
   { kind: "text", key: "T", profile: "free" },
@@ -433,6 +442,24 @@ export class CanvasApp {
   private pointerNext: CanvasMessage | undefined;
   private pointerSent: string | undefined;
   private pointerTimer: ReturnType<typeof setTimeout> | undefined;
+  /**
+   * The Pointer tool is on: a press draws a trail on the presence layer and selects, moves, creates,
+   * connects, edits and opens nothing. It is nobody's setting: it is not kept and not sent.
+   */
+  private pointing = false;
+  /** The person's own trail, and one per other person (by cursor key). */
+  private readonly ownTrail = new Trail("#2563eb");
+  private readonly peerTrails = new Map<string, Trail>();
+  /** The last batch drawn for each person: a batch the host repeats is not drawn again. */
+  private readonly peerBatches = new Map<string, number>();
+  /** Under reduced motion a person's batch stays whole until this moment. */
+  private readonly peerHolds = new Map<string, number>();
+  /** The colour the host names for the person at this canvas, from `presence.me`. */
+  private personColour: string | undefined;
+  private trailFrame: number | undefined;
+  /** The points of the stroke the host has not been sent, with `t` as `performance.now()`. */
+  private laserQueue: { x: number; y: number; t: number }[] = [];
+  private laserTimer: ReturnType<typeof setTimeout> | undefined;
   private stale = false;
   private drag: Drag | undefined;
   private tool: ElementKind | "relation" | undefined;
@@ -568,6 +595,8 @@ export class CanvasApp {
   private armedIcon: IconChoiceInfo | undefined;
   /** An icon dragged from the picker or the Libraries panel. */
   private iconDrag: IconDrag | undefined;
+  /** The element the note tool, dragged from the palette, is over: it would take the note. */
+  private noteDrop: string | undefined;
   /** The thumbnails drawn in the overlay's ghosts, read once per icon. */
   private readonly ghostIcons = new Map<string, SVGSVGElement>();
   /** The target outlines of the last overlay: kept ones do not fade in again. */
@@ -758,6 +787,10 @@ export class CanvasApp {
         // draws; nothing of it is sent back, saved or part of what is exported.
         this.presence = readPeople(message.people);
         this.sharesPointer = true;
+        this.personColour = readMe(message.me);
+        this.takeLasers();
+        this.ownTrail.colour = this.trailColour();
+        this.syncPointerCursor();
         this.drawPresence();
         break;
       case "select":
@@ -1754,6 +1787,7 @@ export class CanvasApp {
       this.shapeGrid.close(false);
       this.iconPicker.close(false);
       this.endIconDrag();
+      this.setPointing(false);
     }
   }
 
@@ -2066,6 +2100,7 @@ export class CanvasApp {
   private drawPresence(): void {
     if (!this.render || this.storyPanel.active || this.presence.length === 0) {
       this.presenceLayer.clear();
+      this.clearPeerTrails();
       return;
     }
     this.presenceLayer.draw(
@@ -2104,6 +2139,202 @@ export class CanvasApp {
       this.pointerTimer = undefined;
       this.sendPointer();
     }, POINTER_EVERY_MS);
+  }
+
+  // ------------------------------------------------------------------ the Pointer tool
+
+  /** The colour the Pointer draws in: the person's own in a room, else the theme's accent. */
+  private trailColour(): string {
+    if (this.personColour) return this.personColour;
+    return toHex(parseColour(this.render?.colors?.accent ?? "") ?? parseColour(FALLBACK_COLOUR)!);
+  }
+
+  private reducedMotion(): boolean {
+    return globalThis.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  }
+
+  /**
+   * Turns the Pointer on or off. On, it lets go of everything half done (an armed tool, the editor
+   * in place, a menu, a picker) and of the selection, so nothing lingers while pointing; its cursor
+   * is a dot in the trail's colour.
+   */
+  private setPointing(on: boolean): void {
+    if (on === this.pointing) return;
+    this.pointing = on;
+    if (on) {
+      this.arm(undefined);
+      this.armedIcon = undefined;
+      if (this.inline) this.commitInline();
+      this.menu.close();
+      this.picker.close();
+      this.shapeGrid.close(false);
+      this.iconPicker.close(false);
+      this.borderStart = undefined;
+      this.stage.classList.remove("connecting");
+      if (this.selection.length > 0) this.select([]);
+    } else if (this.drag?.kind === "laser") {
+      this.endLaser();
+      this.drag = undefined;
+    }
+    this.stage.classList.toggle("pointing", on);
+    this.syncPointerCursor();
+    this.syncToggles();
+    const words = messages().announcements;
+    this.announce(on ? words.pointerOn : words.pointerOff);
+    this.drawOverlay();
+  }
+
+  /** The stage's cursor while pointing: a 16 px dot in the trail's colour with a white ring. */
+  private syncPointerCursor(): void {
+    if (!this.pointing) {
+      this.stage.style.removeProperty("--mdg-pointer-cursor");
+      return;
+    }
+    const dot =
+      '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">' +
+      `<circle cx="8" cy="8" r="5.5" fill="${this.trailColour()}" stroke="#ffffff" stroke-width="1.5"/>` +
+      "</svg>";
+    this.stage.style.setProperty(
+      "--mdg-pointer-cursor",
+      `url("data:image/svg+xml,${encodeURIComponent(dot)}") 8 8, crosshair`,
+    );
+  }
+
+  /** A press while pointing: the stroke starts, and draws nothing but its trail. */
+  private startLaser(at: Point): void {
+    this.drag = { kind: "laser" };
+    this.ownTrail.colour = this.trailColour();
+    this.laserPoint(at);
+  }
+
+  private laserPoint(at: Point): void {
+    const now = performance.now();
+    if (!this.ownTrail.add(at, now)) return;
+    this.queueLaser(at, now);
+    this.runTrails();
+  }
+
+  /**
+   * The stroke ends. Under reduced motion the points did not fade while it was drawn, and nothing
+   * of it remains now; otherwise they fade out on their own. What the host was not yet sent goes
+   * with the next turn.
+   */
+  private endLaser(): void {
+    if (!this.reducedMotion()) return;
+    this.ownTrail.clear();
+    this.runTrails();
+  }
+
+  /** Queues a point of the stroke for a host that shares presence. */
+  private queueLaser(at: Point, now: number): void {
+    if (!this.sharesPointer) return;
+    this.laserQueue.push({ x: Math.round(at.x * 10) / 10, y: Math.round(at.y * 10) / 10, t: now });
+    if (this.laserTimer === undefined) this.sendLaser();
+  }
+
+  /**
+   * Posts the queued points as one batch whose first point is at 0, at most every
+   * `POINTER_EVERY_MS` (the same beat as the pointer's), and keeps the beat while points arrive.
+   */
+  private sendLaser(): void {
+    const queued = thin(this.laserQueue, MAX_LASER_POINTS);
+    this.laserQueue = [];
+    const diagram = this.render?.diagram;
+    if (queued.length > 0 && diagram !== undefined) {
+      const first = queued[0]!.t;
+      this.post({
+        type: "presenceLaser",
+        points: queued.map((p) => ({
+          x: p.x,
+          y: p.y,
+          t: Math.min(MAX_LASER_MS, Math.max(0, Math.round(p.t - first))),
+        })),
+        diagram,
+      });
+    }
+    this.laserTimer = setTimeout(() => {
+      this.laserTimer = undefined;
+      if (this.laserQueue.length > 0) this.sendLaser();
+    }, POINTER_EVERY_MS);
+  }
+
+  /**
+   * Takes the batches of the host's last `presence` message that were not drawn yet, into the
+   * trail of the person they are of: each point `t` ms from now, in the person's colour. People
+   * who are no longer there, or have no pointer, lose their trail.
+   */
+  private takeLasers(): void {
+    const now = performance.now();
+    const reduced = this.reducedMotion();
+    const present = new Set<string>();
+    for (const mark of cursorMarks(this.presence, (point) => point)) {
+      present.add(mark.key);
+      const laser = mark.person.laser;
+      if (!laser || this.peerBatches.get(mark.key) === laser.batch) continue;
+      this.peerBatches.set(mark.key, laser.batch);
+      let trail = this.peerTrails.get(mark.key);
+      if (!trail) {
+        trail = new Trail(mark.person.colour);
+        this.peerTrails.set(mark.key, trail);
+      }
+      trail.colour = mark.person.colour;
+      // Under reduced motion a batch is drawn whole and stays until the next, or 250 ms.
+      if (reduced) {
+        trail.clear();
+        this.peerHolds.set(mark.key, now + 250);
+      }
+      for (const point of laser.points) {
+        trail.add({ x: point.x, y: point.y }, reduced ? now : now + point.t);
+      }
+      this.runTrails();
+    }
+    for (const map of [this.peerTrails, this.peerBatches, this.peerHolds]) {
+      for (const key of [...map.keys()]) if (!present.has(key)) map.delete(key);
+    }
+  }
+
+  /** Other people's trails go with the presence layer: another file, nobody here, a story. */
+  private clearPeerTrails(): void {
+    if (this.peerTrails.size === 0 && this.peerBatches.size === 0) return;
+    this.peerTrails.clear();
+    this.peerBatches.clear();
+    this.peerHolds.clear();
+    this.runTrails();
+  }
+
+  /** Draws the trails at the next frame, and keeps drawing a frame at a time while a point lives. */
+  private runTrails(): void {
+    if (this.trailFrame !== undefined) return;
+    this.trailFrame = requestAnimationFrame(() => {
+      this.trailFrame = undefined;
+      if (this.stepTrails()) this.runTrails();
+    });
+  }
+
+  /** One frame of the trails: ages them, strokes them, and says whether any point is left. */
+  private stepTrails(): boolean {
+    const now = performance.now();
+    const reduced = this.reducedMotion();
+    // The stroke in the hand does not fade under reduced motion; it is cleared when it ends.
+    const ownFade = reduced && this.drag?.kind === "laser" ? 0 : TRAIL_FADE_MS;
+    this.ownTrail.prune(now, ownFade);
+    const drawn: DrawnTrail[] = [
+      { points: this.ownTrail.points, colour: this.ownTrail.colour, fade: ownFade },
+    ];
+    let alive = this.ownTrail.alive;
+    for (const [key, trail] of this.peerTrails) {
+      const hold = this.peerHolds.get(key);
+      if (reduced && hold !== undefined) {
+        if (now >= hold) {
+          trail.clear();
+          this.peerHolds.delete(key);
+        }
+      } else trail.prune(now);
+      drawn.push({ points: trail.points, colour: trail.colour, fade: reduced ? 0 : TRAIL_FADE_MS });
+      alive = alive || trail.alive;
+    }
+    this.presenceLayer.drawTrails(drawn, (point) => this.screenOf(point), now);
+    return alive;
   }
 
   /** The shape of an id in screen pixels, for the presence layer. */
@@ -2353,6 +2584,16 @@ export class CanvasApp {
       const onto = this.stackAt(this.diagramOf(this.pointer)).find((el) => el.takesIcon);
       if (onto) outline(onto, "highlight drop");
       else this.drawIconGhost(armed, this.pointer);
+    } else if (this.noteDrop !== undefined && this.elements.has(this.noteDrop)) {
+      // The note tool dragged from the palette is over an element that would take the note.
+      outline(this.elements.get(this.noteDrop)!, "highlight drop");
+    } else if (
+      this.tool === "note" &&
+      !iconDrag &&
+      this.stage.matches(":hover") &&
+      this.noteTargetAt(this.diagramOf(this.pointer))
+    ) {
+      outline(this.noteTargetAt(this.diagramOf(this.pointer))!, "highlight drop");
     } else if (
       this.tool &&
       this.tool !== "relation" &&
@@ -2876,6 +3117,7 @@ export class CanvasApp {
 
   /** Ends a drag without its drop: the last render's drawing is shown as it was. */
   private resetPreview(): void {
+    if (this.drag?.kind === "laser") this.endLaser();
     this.endPreview();
     if (this.previewShown) this.restoreDrawing();
     for (const g of this.content.querySelectorAll("g[transform]")) {
@@ -3172,6 +3414,13 @@ export class CanvasApp {
         `${words.keys.shift}+1`,
       ),
       separator(),
+      this.toggle(
+        "pointer",
+        words.toolbar.pointer,
+        ICONS.pointer,
+        () => this.command("togglePointer"),
+        "K",
+      ),
       this.toggle("grid", words.toolbar.grid, ICONS.grid, () => {
         this.persist({ showGrid: !this.showGrid });
         this.syncToggles();
@@ -3265,6 +3514,7 @@ export class CanvasApp {
       arrange,
       this.playButton,
       exportButton,
+      this.toggles.get("pointer")!,
     ]) {
       element.setAttribute("data-drawing", "");
     }
@@ -3651,6 +3901,7 @@ export class CanvasApp {
       inspector: this.showInspector,
       layers: this.showLayers,
       libraries: this.showLibraries,
+      pointer: this.pointing,
     };
     for (const [name, button] of this.toggles)
       button.setAttribute("aria-pressed", String(states[name]));
@@ -3763,7 +4014,7 @@ export class CanvasApp {
     stage.addEventListener("wheel", (e) => this.wheel(e), { passive: false });
     stage.addEventListener("contextmenu", (e) => {
       e.preventDefault();
-      if (this.storyPanel.active) return;
+      if (this.storyPanel.active || this.pointing) return;
       const hit = this.hit(e.target);
       if (hit?.id && !this.selection.includes(hit.id)) this.select([hit.id]);
       this.openMenu(this.pointOf(e));
@@ -3888,6 +4139,12 @@ export class CanvasApp {
       return;
     }
     if (e.button !== 0 || !this.render) return;
+    // Pointing: the stroke is a trail, and nothing is pressed.
+    if (this.pointing) {
+      this.startLaser(this.diagramOf(point));
+      e.preventDefault();
+      return;
+    }
     const at = this.diagramOf(point);
     if (this.tool === "relation") {
       const pressed = this.hit(e.target);
@@ -3921,7 +4178,15 @@ export class CanvasApp {
     if (this.tool) {
       const kind = this.tool;
       this.arm(undefined);
-      this.create(kind, at, SHAPED_TOOLS.has(kind) ? { shape: this.shape } : {});
+      this.create(
+        kind,
+        at,
+        SHAPED_TOOLS.has(kind)
+          ? { shape: this.shape }
+          : kind === "note"
+            ? this.attachment(this.noteTargetAt(at))
+            : {},
+      );
       return;
     }
     const hit = this.hit(e.target);
@@ -4097,6 +4362,8 @@ export class CanvasApp {
     this.pointer = point;
     const drag = this.drag;
     if (!drag) {
+      // Pointing shows no connection handle and no border outline: nothing is about to be pressed.
+      if (this.pointing) return;
       if (this.tool) this.drawOverlay();
       else this.hoverBorder(this.diagramOf(point), e.altKey, this.hit(e.target) !== undefined);
       return;
@@ -4104,6 +4371,9 @@ export class CanvasApp {
     const at = this.diagramOf(point);
     const free = e.altKey;
     switch (drag.kind) {
+      case "laser":
+        this.laserPoint(at);
+        return;
       case "pan":
         this.setViewport({
           ...drag.viewport,
@@ -4289,6 +4559,9 @@ export class CanvasApp {
     if (this.stage.hasPointerCapture(e.pointerId)) this.stage.releasePointerCapture(e.pointerId);
     if (!drag) return;
     switch (drag.kind) {
+      case "laser":
+        this.endLaser();
+        break;
       case "band": {
         const a = this.diagramOf(drag.start);
         const b = this.diagramOf(drag.current);
@@ -4791,8 +5064,8 @@ export class CanvasApp {
   }
 
   private doubleClick(e: MouseEvent): void {
-    // Alt+clicks in a row go down a stack; they edit no label.
-    if (this.storyPanel.active || e.altKey) return;
+    // Alt+clicks in a row go down a stack; they edit no label. Pointing opens nothing.
+    if (this.storyPanel.active || e.altKey || this.pointing) return;
     // Pointer capture sends the double click to the stage; what is under the pointer counts.
     const hit = this.hit(document.elementFromPoint(e.clientX, e.clientY) ?? e.target);
     if (!hit) return;
@@ -4936,9 +5209,17 @@ export class CanvasApp {
           this.drag = undefined;
           this.announce(messages().announcements.lineCancelled);
           this.drawOverlay();
+        } else if (this.pointing) {
+          // The stroke in the air goes with the tool.
+          if (this.drag?.kind === "laser") this.endLaser();
+          this.drag = undefined;
+          this.setPointing(false);
         } else if (this.drag) this.resetPreview();
         else if (this.tool) this.arm(undefined);
         else this.select([]);
+        return;
+      case "togglePointer":
+        this.setPointing(!this.pointing);
         return;
       case "selectNext":
       case "selectPrevious": {
@@ -5143,6 +5424,7 @@ export class CanvasApp {
         return;
       case "createIcon":
         // I opens the icon picker, and closes it again.
+        this.setPointing(false);
         this.toggleIconPicker();
         return;
       case "createNode":
@@ -5167,6 +5449,8 @@ export class CanvasApp {
             createImage: "image",
           } as const
         )[command];
+        // Creating something is no pointing.
+        this.setPointing(false);
         // B and N place the current shape.
         if (SHAPED_TOOLS.has(kind)) {
           this.createShape(kind);
@@ -5203,6 +5487,7 @@ export class CanvasApp {
         return;
       }
       case "contextMenu": {
+        if (this.pointing) return;
         const element = primary ? this.elements.get(primary) : undefined;
         this.openMenu(element ? this.screenOf(centerOf(element.box)) : this.centre());
         return;
@@ -5310,13 +5595,19 @@ export class CanvasApp {
       readonly shape?: ShapeName;
       /** The reference of an icon object. */
       readonly source?: string;
+      /** A note attached to this element, which holds it beside it rather than inside. */
+      readonly attachedTo?: string;
     } = {},
   ): boolean {
     if (this.readOnly) return false;
     // `rounded` is the shape without a style: the action carries no shape for it.
     const shape = extra.shape !== undefined && extra.shape !== "rounded" ? extra.shape : undefined;
-    // The innermost group under the point holds the new element; groups nest too.
-    const group = this.stackAt(at).find((e) => e.kind === "group");
+    // The innermost group under the point holds the new element; groups nest too. A note put
+    // beside an element goes in the group of that element, which may be the one under the point.
+    const parent =
+      extra.attachedTo !== undefined
+        ? this.elements.get(extra.attachedTo)?.parent
+        : this.stackAt(at).find((e) => e.kind === "group")?.id;
     // A container is a group without a title.
     const container =
       kind === "group" &&
@@ -5328,16 +5619,49 @@ export class CanvasApp {
       kind: "create",
       elementKind: kind,
       at,
-      ...(group ? { parent: group.id } : {}),
+      ...(parent ? { parent } : {}),
       ...(label !== undefined ? { label } : {}),
       ...(extra.icon !== undefined ? { icon: extra.icon } : {}),
       ...(shape !== undefined ? { shape } : {}),
       ...(extra.source !== undefined ? { source: extra.source } : {}),
+      ...(extra.attachedTo !== undefined ? { attachedTo: extra.attachedTo } : {}),
     });
     if (!sent) return false;
     const words = messages().announcements;
     this.announce(shape !== undefined ? words.createdShape(kind, shape) : words.created(kind));
     return true;
+  }
+
+  /**
+   * The element a note dropped at a point would be attached to: the topmost one under it, groups
+   * included, never a free line. A sequence diagram's notes are events and attach to nothing.
+   */
+  private noteTargetAt(at: Point): ElementInfo | undefined {
+    if (!this.render || this.render.profile === "sequence") return undefined;
+    return this.stackAt(at).find((el) => !el.line);
+  }
+
+  /** The element under a pointer event, when the pointer is over the canvas. */
+  private noteTargetAtEvent(event: PointerEvent): ElementInfo | undefined {
+    const rect = this.stage.getBoundingClientRect();
+    const inside =
+      event.clientX >= rect.left &&
+      event.clientX <= rect.right &&
+      event.clientY >= rect.top &&
+      event.clientY <= rect.bottom;
+    return inside ? this.noteTargetAt(this.diagramOf(this.pointOf(event))) : undefined;
+  }
+
+  /** What `create` is given to attach a note to an element, if there is one. */
+  private attachment(target: ElementInfo | undefined): { readonly attachedTo?: string } {
+    return target ? { attachedTo: target.id } : {};
+  }
+
+  /** The element the dragged note tool is over, outlined as a drop until it moves off. */
+  private dropNoteOn(target: ElementInfo | undefined): void {
+    if (this.noteDrop === target?.id) return;
+    this.noteDrop = target?.id;
+    this.drawOverlay();
   }
 
   private snapPoint(point: Point): Point {
@@ -5350,6 +5674,8 @@ export class CanvasApp {
   private arm(tool: ElementKind | "relation" | undefined): void {
     // No tool places or connects anything on a canvas that only shows.
     if (this.readOnly && tool !== undefined) return;
+    // The pointer and a tool never hold together.
+    if (tool !== undefined) this.setPointing(false);
     this.tool = this.tool === tool ? undefined : tool;
     this.relationFrom = undefined;
     if (this.tool !== "icon") this.armedIcon = undefined;
@@ -5483,9 +5809,16 @@ export class CanvasApp {
     const pointer = e.pointerId;
     const button = e.currentTarget;
     const stop = () => {
+      document.removeEventListener("pointermove", move, true);
       document.removeEventListener("pointerup", up, true);
       document.removeEventListener("pointercancel", cancel, true);
       window.removeEventListener("blur", stop);
+      this.dropNoteOn(undefined);
+    };
+    // The note tool shows the element it would be attached to while it is over the canvas.
+    const move = (event: PointerEvent) => {
+      if (event.pointerId !== pointer || kind !== "note") return;
+      this.dropNoteOn(this.noteTargetAtEvent(event));
     };
     const cancel = (event: PointerEvent) => {
       if (event.pointerId === pointer) stop();
@@ -5503,13 +5836,19 @@ export class CanvasApp {
         event.clientY <= rect.bottom;
       if (inside) {
         this.arm(undefined);
+        const at = this.snapPoint(this.diagramOf(this.pointOf(event)));
         this.create(
           kind,
-          this.snapPoint(this.diagramOf(this.pointOf(event))),
-          SHAPED_TOOLS.has(kind) ? { shape: this.shape } : {},
+          at,
+          SHAPED_TOOLS.has(kind)
+            ? { shape: this.shape }
+            : kind === "note"
+              ? this.attachment(this.noteTargetAt(this.diagramOf(this.pointOf(event))))
+              : {},
         );
       }
     };
+    document.addEventListener("pointermove", move, true);
     document.addEventListener("pointerup", up, true);
     document.addEventListener("pointercancel", cancel, true);
     window.addEventListener("blur", stop);

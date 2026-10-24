@@ -102,6 +102,8 @@ export const en = {
     selection: "Selection",
     /** A zoom factor as a percentage: `1.5` is "150%". */
     percent: (zoom: number) => `${Math.round(zoom * 100)}%`,
+    /** The Pointer tool's toggle: a trail that points at the diagram and edits nothing. */
+    pointer: "Pointer",
     grid: "Show the grid",
     snap: "Snap to the grid and guides",
     minimap: "Show the minimap",
@@ -309,6 +311,8 @@ export const en = {
       `Drew a line from (${from.x}, ${from.y}) to (${to.x}, ${to.y}).`,
     lineTooShort: "A line needs two different points: drag further.",
     lineCancelled: "No line drawn.",
+    pointerOn: "Pointer on: drag to point at the diagram. Escape or K puts it away.",
+    pointerOff: "Pointer off.",
     lineReshaped: (id: string) => `Moved a point of ${id}.`,
     lineBendAdded: (id: string) => `Added a bend to ${id}.`,
     lineBendRemoved: (id: string) => `Removed a bend of ${id}.`,

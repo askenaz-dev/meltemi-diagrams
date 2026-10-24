@@ -16,8 +16,11 @@ export { CANVAS_SETTINGS };
  * (`live-collaboration`): never part of the project or of an export, and empty when nobody else has
  * anything selected or a pointer here.
  */
-export function presenceMessage(people: readonly PresencePerson[]): HostMessage {
-  return { type: "presence", people };
+export function presenceMessage(
+  people: readonly PresencePerson[],
+  me?: { readonly colour: string },
+): HostMessage {
+  return me ? { type: "presence", people, me } : { type: "presence", people };
 }
 
 /** Where the person's pointer is over the canvas, as presence publishes it. */
@@ -39,6 +42,18 @@ export function pointerOf(
   return diagram === undefined ? { x: point.x, y: point.y } : { x: point.x, y: point.y, diagram };
 }
 
+/** The points a stroke of the Pointer tool made, as presence publishes them. */
+export interface CanvasLaser {
+  readonly points: readonly { readonly x: number; readonly y: number; readonly t: number }[];
+  readonly diagram?: string;
+}
+
+/** What a canvas's `presenceLaser` message says: the points, and the diagram they are over. */
+export function laserOf(message: Extract<CanvasMessage, { type: "presenceLaser" }>): CanvasLaser {
+  const { points, diagram } = message;
+  return diagram === undefined ? { points } : { points, diagram };
+}
+
 /** What the canvas asks of the page beyond the session. */
 export interface CanvasRequests {
   copy(text: string): void;
@@ -53,6 +68,11 @@ export interface CanvasRequests {
    * Studio never hears of it; nothing of the document changes.
    */
   pointer?(at: CanvasPointer | undefined): void;
+  /**
+   * The points a stroke of the Pointer tool made: for presence to share in the same message as the
+   * pointer. The Studio never hears of it.
+   */
+  laser?(batch: CanvasLaser): void;
 }
 
 /**
@@ -73,6 +93,10 @@ export function mountCanvas(
         // Where the pointer is goes to presence, at once and never through the Studio.
         if (message.type === "presencePointer") {
           requests.pointer?.(pointerOf(message));
+          return;
+        }
+        if (message.type === "presenceLaser") {
+          requests.laser?.(laserOf(message));
           return;
         }
         setTimeout(() => studio.receive(message), 0);

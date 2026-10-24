@@ -283,9 +283,14 @@ export interface CanvasRender {
   readonly selection: readonly string[];
   /**
    * The colours of the canvas's selection and of its guides, from the diagram's theme: its
-   * `selection` and `guide`, else its `accent`.
+   * `selection` and `guide`, else its `accent`; and the `accent` itself, the colour of the Pointer
+   * tool's trail when the host names no colour of the person's own.
    */
-  readonly colors?: { readonly selection: string; readonly guide: string };
+  readonly colors?: {
+    readonly selection: string;
+    readonly guide: string;
+    readonly accent: string;
+  };
 }
 
 export interface CanvasSettings {
@@ -475,6 +480,17 @@ export interface PresencePerson {
    * gliding to the next point in 200 ms. Ignored unless it is two finite numbers.
    */
   readonly pointer?: { readonly x: number; readonly y: number };
+  /**
+   * The points of the person's Pointer trail since their last batch (`live-collaboration`): `batch`
+   * grows by one with each batch of that person, so the canvas draws a batch once, and `points` are
+   * at most 64 entries, `x` and `y` in diagram units and `t` the milliseconds since the batch's
+   * first point, 0 to 1000. The trail is drawn in `colour`, point by point at its own pace, and
+   * fades as the person's own does. A batch that does not fit those bounds is not drawn.
+   */
+  readonly laser?: {
+    readonly batch: number;
+    readonly points: readonly { readonly x: number; readonly y: number; readonly t: number }[];
+  };
 }
 
 /** An element of a library with its thumbnail, null while its pack is still loading. */
@@ -609,7 +625,15 @@ export type HostMessage =
    * that switches file sends the new file's presence after its render (or `people: []` when the
    * diagram id may be the same). While a story plays the canvas keeps the people and draws none.
    */
-  | { readonly type: "presence"; readonly people: readonly PresencePerson[] }
+  | {
+      readonly type: "presence";
+      readonly people: readonly PresencePerson[];
+      /**
+       * The colour of the person at this canvas, as the others see them: the Pointer tool's trail
+       * and cursor are drawn in it while it is set, and in the theme's accent when it is not.
+       */
+      readonly me?: { readonly colour: string };
+    }
   | { readonly type: "settings"; readonly settings: CanvasSettings }
   | { readonly type: "inspector"; readonly model: InspectorModel }
   | { readonly type: "status"; readonly message: string }
@@ -757,6 +781,23 @@ export type CanvasAction =
        * icon the shape (the picker's **Icon**) and any other shape puts it in a box.
        */
       readonly shape?: ShapeName;
+      /**
+       * A new note attached to an element, written as `on <element>` after its text: the id of an
+       * element of the diagram, or the entity path a C4 view draws. With it `at` is the point the
+       * note's centre is put at when the tool was dropped on the element; the session places the
+       * note beside the element instead, at its east edge plus the theme's `groupPadding`, aligned
+       * to its top.
+       */
+      readonly attachedTo?: string;
+    }
+  | {
+      /**
+       * Writes, changes or removes the `on <element>` clause of a note (the inspector's **Attached
+       * to** field): `element` is an element id (the entity path in a view), null for none.
+       */
+      readonly kind: "attachNote";
+      readonly note: string;
+      readonly element: string | null;
     }
   | {
       readonly kind: "connect";
@@ -967,6 +1008,17 @@ export type CanvasMessage =
       readonly type: "presencePointer";
       readonly point: Point | null;
       readonly diagram?: string;
+    }
+  /**
+   * The points a Pointer stroke added since the last batch, for the host to share in the same
+   * presence message as the pointer (`live-collaboration`): `t` is the milliseconds since the
+   * batch's first point, so a batch starts at 0. Sent only to a host that has sent `presence`, at
+   * most every 50 ms while a stroke is drawn. It changes nothing of the document.
+   */
+  | {
+      readonly type: "presenceLaser";
+      readonly points: readonly { readonly x: number; readonly y: number; readonly t: number }[];
+      readonly diagram?: string;
     };
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
@@ -1104,10 +1156,13 @@ function isAction(a: unknown): a is CanvasAction {
         (a.icon === undefined || isString(a.icon)) &&
         (a.source === undefined || isString(a.source)) &&
         (a.shape === undefined || oneOf(a.shape, SHAPES)) &&
+        (a.attachedTo === undefined || isString(a.attachedTo)) &&
         // An icon object is its icon: it comes with one, and takes no icon style or shape.
         (a.elementKind !== "icon" ||
           (isReference(a.source) && a.icon === undefined && a.shape === undefined))
       );
+    case "attachNote":
+      return isString(a.note) && (a.element === null || isString(a.element));
     case "setIcon":
       return isStrings(a.ids) && isReference(a.icon);
     case "removeIcon":
@@ -1277,6 +1332,13 @@ export function isCanvasMessage(m: unknown): m is CanvasMessage {
     case "presencePointer":
       return (
         (m.point === null || isPoint(m.point)) && (m.diagram === undefined || isString(m.diagram))
+      );
+    case "presenceLaser":
+      return (
+        Array.isArray(m.points) &&
+        m.points.length <= 64 &&
+        m.points.every((p) => isPoint(p) && isNumber((p as { t?: unknown }).t)) &&
+        (m.diagram === undefined || isString(m.diagram))
       );
     case "action":
       return isNumber(m.revision) && isAction(m.action);

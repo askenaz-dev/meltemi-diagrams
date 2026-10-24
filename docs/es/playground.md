@@ -733,6 +733,16 @@ en la pantalla. Se va tres segundos después de que el puntero de la persona se 
 sale de su lienzo. Un clic lo atraviesa; no se dibuja mientras se reproduce una historia, y ninguna
 exportación lo lleva.
 
+**Estelas del Puntero.** Cuando otra persona pulsa K y dibuja en su lienzo
+([la herramienta Puntero](editor.md#moverse-por-el-lienzo)), ves la estela en el tuyo, de su color,
+punto a punto al ritmo con que la dibujó, y cada punto se desvanece 800 milisegundos después de
+hacerse. Se dibuja sobre el diagrama en que estaba, nunca sobre otro diagrama del archivo, y no se
+dibuja mientras se reproduce una historia. Tu propio trazo se dibuja de tu color, el mismo con que te
+ven los demás (el de tu cuenta, o el de tu invitado). Los puntos salen en el mismo mensaje que el
+puntero, como máximo cuatro tandas de 64 puntos por segundo, así que un trazo no añade ningún mensaje
+propio; una tanda que no cabe en esos límites no se dibuja. Ninguna exportación lleva una estela, y
+nada de ella se guarda.
+
 **Qué se comparte.** Cuatro cosas: el archivo que tienes abierto, dónde está tu cursor o tu
 selección en él, qué has seleccionado en el lienzo y dónde está tu puntero sobre él mientras se
 mueve por él. Nunca quién eres: la sala añade el nombre y la imagen de

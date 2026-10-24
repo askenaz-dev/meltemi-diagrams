@@ -345,7 +345,7 @@ const CONVERTED: Readonly<Record<string, string>> = {
   node: "box",
   decision: "box",
   data: "box",
-  note: "text",
+  note: "note",
   tag: "box",
   group: "group",
 };
@@ -479,7 +479,6 @@ class FreeCopy {
     const defaults: Record<string, Record<string, string | number>> = {
       decision: { shape: "diamond" },
       data: { shape: "cylinder" },
-      note: { textAlign: "left", fontSize: m.noteSize, fontWeight: 400, color: "@muted" },
       tag: {
         shape: "pill",
         fill: "@tag",
@@ -491,7 +490,8 @@ class FreeCopy {
     };
     const used = new Set(this.source.classes.map((c) => c.id));
     for (const kind of ELEMENT_KINDS) {
-      if (kind === "group") continue;
+      // Groups copy as written, and a free note draws as a flow note does: no class for either.
+      if (kind === "group" || kind === "note") continue;
       if (!this.source.elements.some((e) => e.kind === kind)) continue;
       const properties: Record<string, string | number> = { ...(defaults[kind] ?? {}) };
       for (const rule of this.source.rules) {
@@ -509,10 +509,10 @@ class FreeCopy {
     }
   }
 
-  /** The rules the copy keeps: those for groups and relations, which free diagrams accept. */
+  /** The rules the copy keeps: those for notes, groups and relations, which free diagrams accept. */
   private copiedRules(): string[] {
     return this.source.rules
-      .filter((rule) => rule.kind === "group" || rule.kind === "relation")
+      .filter((rule) => rule.kind === "note" || rule.kind === "group" || rule.kind === "relation")
       .map((rule) => this.slice(rule.node));
   }
 
@@ -555,7 +555,10 @@ class FreeCopy {
 
   private declaration(element: Element, indent: string): string[] {
     const kind = CONVERTED[element.kind] ?? "box";
-    const head = `${kind} ${element.id} ${quoteString(element.label)}`;
+    // A note keeps what it is attached to: the copy declares every element with its id.
+    const attached =
+      element.kind === "note" && element.attachedTo !== null ? ` on ${element.attachedTo}` : "";
+    const head = `${kind} ${element.id} ${quoteString(element.label)}${attached}`;
     const statements: string[] = [];
     if (element.description !== null) {
       statements.push(`description ${quoteString(element.description)}`);

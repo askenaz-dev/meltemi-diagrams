@@ -734,6 +734,40 @@ export function onPolygon(polygon: readonly Point[], point: Point, side: Side): 
     : { x: point.x + normal.x * t, y: point.y + normal.y * t };
 }
 
+/**
+ * Where the ray from the centre of a box towards `toward` meets the outline of the shape drawn in
+ * it, turned by `degrees` about the centre: the shape's silhouette, or the box's corners for the
+ * shapes drawn as their box. The centre when `toward` is the centre or the ray meets nothing.
+ * Notes draw their leaders from and to these points.
+ */
+export function boundaryToward(
+  shape: BoxShape,
+  box: Box,
+  degrees: number,
+  toward: Point,
+  options: ShapeOptions = {},
+): Point {
+  const center = boxCenter(box);
+  const dx = toward.x - center.x;
+  const dy = toward.y - center.y;
+  const length = Math.hypot(dx, dy);
+  if (length < 1e-9) return center;
+  const polygon =
+    degrees !== 0
+      ? turnedOutline(shape, box, degrees, options)
+      : isOutlined(shape)
+        ? silhouette(shape, box, options)
+        : [
+            { x: box.x, y: box.y },
+            { x: box.x + box.width, y: box.y },
+            { x: box.x + box.width, y: box.y + box.height },
+            { x: box.x, y: box.y + box.height },
+          ];
+  const unit = { x: dx / length, y: dy / length };
+  const t = rayHit(polygon, center, unit);
+  return t === undefined ? center : { x: center.x + unit.x * t, y: center.y + unit.y * t };
+}
+
 /** Whether a point lies inside a polygon or on its outline. */
 export function pointInPolygon(polygon: readonly Point[], point: Point): boolean {
   return insidePolygon(polygon, point) || nearestOnOutline(polygon, point).distance < 1e-6;

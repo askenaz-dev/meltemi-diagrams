@@ -150,6 +150,18 @@ cualquier diagrama de flujo.
   **Selección**.
 - **Desplazamiento**: la rueda, Mayús y la rueda, Espacio y arrastrar, o el botón central.
 - **Minimapa**: muestra toda la hoja y la zona visible. Haz clic o arrastra en él para ir allí.
+- **Puntero**: el interruptor **Puntero** (K) señala el diagrama sin editarlo, para explicarlo a
+  otras personas. Mientras está activo, pulsar y arrastrar dibuja una estela que se desvanece 800 ms
+  después de cada uno de sus puntos, con el acento del tema (3 px, que se afina hasta 1 px), y el
+  cursor es un punto de ese color; no se selecciona, mueve, crea, conecta, edita ni abre nada (ni un
+  doble clic, ni el botón derecho, ni Mayús+F10), y al activarlo se suelta la selección. El zoom con
+  la rueda, Espacio y arrastrar y el botón central siguen funcionando. Esc, K o el botón lo guardan,
+  y también lo hace armar una herramienta de creación o de relación o pulsar una tecla de creación.
+  Funciona en un lienzo de solo lectura, no escribe nada, nunca forma parte de una exportación, de
+  las vistas HTML ni del proyecto, y no se conserva entre visitas. Con `prefers-reduced-motion` el
+  trazo no se desvanece mientras se dibuja y desaparece de golpe al soltar. En un proyecto en la nube
+  las demás personas ven la estela con tu color de presencia, en los mismos mensajes que tu puntero
+  ([trabajar juntos](playground.md#trabajar-juntos)).
 - **Selección en ambos sentidos**: seleccionar en el lienzo muestra el id en el código sin tomar el
   foco. Mover el cursor de texto resalta el elemento de la instrucción que está debajo.
 - **Seleccionar**: haz clic en una caja o en un conector; Mayús o Ctrl agrega o quita uno. El clic
@@ -365,7 +377,8 @@ como en todas partes. Tab después del último elemento sale del lienzo.
 | Tab, Mayús+Tab                                                            | Seleccionar el elemento siguiente o el anterior en el orden del texto                                                                                    |
 | Ctrl+Izquierda, Ctrl+Derecha, Ctrl+Arriba, Ctrl+Abajo                     | Seleccionar el elemento más cercano en esa dirección; de dos con el mismo centro, el anidado                                                             |
 | Ctrl+A                                                                    | Seleccionar todos los elementos                                                                                                                          |
-| Esc                                                                       | Quitar la selección o cancelar un arrastre                                                                                                               |
+| K                                                                         | Activar o desactivar la herramienta Puntero, en todos los diagramas y en un lienzo de solo lectura                                                       |
+| Esc                                                                       | Cancelar un arrastre, guardar el Puntero, desarmar una herramienta o quitar la selección, en ese orden                                                   |
 | Izquierda, Derecha, Arriba, Abajo                                         | Mover la selección 1 px, también los puntos de una línea libre                                                                                           |
 | Mayús+Izquierda, Mayús+Derecha, Mayús+Arriba, Mayús+Abajo                 | Mover la selección un paso de la cuadrícula                                                                                                              |
 | Alt+Mayús+Izquierda, Alt+Mayús+Derecha, Alt+Mayús+Arriba, Alt+Mayús+Abajo | Hacer la caja un paso de la cuadrícula más estrecha, más ancha, más baja o más alta                                                                      |
@@ -380,11 +393,11 @@ como en todas partes. Tab después del último elemento sale del lienzo.
 | R                                                                         | Herramienta de relación (Mensaje en los diagramas de secuencia): clic en el origen y luego en el destino                                                 |
 | R con la herramienta de relación activa                                   | El tipo de flecha siguiente: `->`, `-->`, `--`, `---`, `<->`, `<-->`                                                                                     |
 | N, D, S, O, T, G                                                          | Flujo: crear un nodo (de la forma actual), una decisión, un almacén de datos, una nota, una marca o un grupo (del tipo actual) cerca del centro          |
-| B, T, M, G                                                                | Libre: crear una caja (de la forma actual), un texto, una imagen o un grupo (del tipo actual) cerca del centro                                           |
+| B, T, M, O, G                                                             | Libre: crear una caja (de la forma actual), un texto, una imagen, una nota o un grupo (del tipo actual) cerca del centro                                 |
+| A, O                                                                      | C4: agregar a la vista una entidad del modelo; crear una nota en la vista                                                                                |
 | F                                                                         | Flujo y libre: abrir la cuadrícula de formas (escribe para filtrar, flechas para moverte, Entrar para crear, Esc para cerrar)                            |
 | I                                                                         | Flujo y libre: abrir o cerrar el selector de iconos, para la selección o para colocar un icono; en su campo de búsqueda I se escribe ([iconos](#iconos)) |
 | P, A, G                                                                   | Secuencia: crear un participante o un actor a la derecha, o un grupo                                                                                     |
-| A                                                                         | C4: agregar a la vista una entidad del modelo                                                                                                            |
 | O, F                                                                      | Secuencia: una nota sobre la selección; un fragmento alrededor de los eventos seleccionados                                                              |
 | Alt+Arriba, Alt+Abajo                                                     | Secuencia: mover el evento seleccionado antes o después de su vecino                                                                                     |
 | Alt+A                                                                     | Secuencia: activar el receptor después del mensaje seleccionado, o deshacerlo                                                                            |
@@ -414,8 +427,13 @@ estilo (`--mdg-motion-fast` 120 ms, `--mdg-motion` 160 ms, `--mdg-motion-slow` 2
 - **Paneles.** Bibliotecas y Capas entran deslizándose desde la izquierda, y el inspector y el
   panel del tema desde la derecha, en 220 ms.
 - **Descripciones emergentes**: aparecen con un fundido tras 400 ms sobre un control.
-- **Contornos.** El contorno de un destino al soltar o al conectar y el contorno del editor en su
-  sitio aparecen con un fundido; los resultados del selector de iconos aparecen uno tras otro.
+- **Contornos.** El contorno de un destino al soltar o al conectar (también el elemento bajo la
+  herramienta de nota) y el contorno del editor en su sitio aparecen con un fundido; los resultados
+  del selector de iconos aparecen uno tras otro.
+- **La estela del Puntero.** Cada segmento se desvanece linealmente en 800 ms desde su propio punto,
+  y el grosor se afina de 3 px a 1 px en los últimos 16 puntos; el bucle de fotogramas solo corre
+  mientras queda algún punto vivo. El cursor de punto sustituye a la flecha en cuanto se activa la
+  herramienta.
 - **Controles.** Los botones, las muestras y los campos cambian de color en 120 ms.
 - **Líneas.** La silueta de una línea que se dibuja aparece pasado el umbral de arrastre, sigue al
   puntero sin suavizado y se desvanece en 160 ms al soltar, mientras aparece la línea dibujada. Los
@@ -694,8 +712,8 @@ caja interior la convierte en un `layout.overlap`.
 ## Composiciones libres
 
 La paleta depende del diagrama: los diagramas de flujo ofrecen nodo, decisión, almacén de datos,
-nota, marca, grupo e icono; los diagramas libres ofrecen caja, texto, icono, imagen y grupo, y la
-herramienta de flecha también dibuja líneas. Los botones de caja y de nodo abren las formas
+nota, marca, grupo e icono; los diagramas libres ofrecen caja, texto, icono, imagen, nota y grupo, y
+la herramienta de flecha también dibuja líneas. Los botones de caja y de nodo abren las formas
 ([formas y contenedores](#formas-y-contenedores)).
 
 - **Dibujar una línea.** Activa la herramienta de relación (R, o un tipo del menú del botón de
@@ -727,6 +745,21 @@ herramienta de flecha también dibuja líneas. Los botones de caja y de nodo abr
   las esquinas. Una línea se alcanza por su trazo y con un rectángulo de selección que la rodee;
   copiarla desplaza sus puntos, eliminarla quita su `label`, y alinear o distribuir la dejan fuera.
 
+- **Notas.** El botón de nota y O crean `note note1 "Note"` cerca del centro con su editor de texto
+  abierto, en los diagramas de flujo, en las composiciones libres y en las vistas C4 (en un diagrama
+  de secuencia, O sigue escribiendo una nota sobre la selección). Una nota se dibuja como texto sin
+  marco hasta que un estilo le da relleno o borde; acepta los colores de la barra de estilo, los
+  campos **Tamaño del texto** y **Grosor del texto** y el selector de alineación. **Adjunta a**
+  (tras **Etiqueta**) elige el elemento al que señala la nota, lo que escribe
+  `note note1 "Note" on api`; la opción vacía quita la cláusula. Soltar la herramienta de nota sobre
+  un elemento, o hacer clic con ella armada sobre uno, crea la nota en el borde este del elemento
+  más el `groupPadding` del tema, a la altura de su borde superior, ya adjunta; mientras la
+  herramienta está encima se perfila el elemento, y la línea de estado dice a qué se adjuntó; sobre
+  el lienzo vacío crea una nota libre. Una guía punteada une la nota con su elemento y sigue a
+  ambos mientras se arrastra cualquiera. Eliminar un elemento lista las notas adjuntas a él con sus
+  demás dependientes, y al confirmar las deja sin la cláusula. Copiar, pegar y Duplicar conservan la
+  adjunción de una nota cuando se copia con ella su elemento, y la pierden en otro caso; **Convertir
+  en composición libre** conserva las notas como notas.
 - **Iconos.** El botón de icono e I abren el selector de iconos ([iconos](#iconos)). Con **Solo el
   icono**, lo que eliges y colocas con Entrar se convierte en `icon icon1 "tabler:server"` cerca
   del centro; **Icono** y **En una caja** escriben una caja con el icono, como los diagramas de
@@ -799,6 +832,11 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
   componentes y en la raíz del modelo para personas y sistemas, con una etiqueta vacía que el
   editor de etiquetas pide enseguida; la vista la incluye cuando lista `include`, y la coloca
   donde se soltó.
+- **Notas.** El botón de nota y O escriben `note note1 "Note"` en la vista, colocada donde se
+  soltó; el modelo no se toca nunca. Soltada sobre una entidad, se adjunta a ella
+  (`on shop.api`). Su inspector muestra su etiqueta, **Adjunta a** (las entidades que dibuja la
+  vista), su estilo y sus efectos, y ninguno de los campos de una entidad. Eliminar una entidad lista
+  las notas adjuntas a ella y, al confirmar, las deja en la vista sin la cláusula.
 - **Agregar.** **Agregar desde el modelo…** (barra de herramientas, A, menú contextual) lista las
   entidades que la vista puede dibujar y no dibuja; la elegida se suma a `include`.
 - **Copiar.** Copiar, pegar y **Duplicar** declaran copias de las entidades seleccionadas en el

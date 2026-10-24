@@ -325,7 +325,6 @@ export function convertOperation(
     metrics: {
       groupPadding: layout.theme.groupPadding,
       groupHeader: layout.theme.groupHeader,
-      noteSize: scale.note,
       tagSize: scale.tag,
     },
   };

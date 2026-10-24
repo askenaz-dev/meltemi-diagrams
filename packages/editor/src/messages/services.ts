@@ -36,7 +36,8 @@ const en = {
     data: 'A data store cylinder: `data <id> "Label"`, or `<id>[("Label")]`.',
     group:
       "A band holding declarations, relations and nested groups; in a sequence diagram, a box around participants.",
-    note: 'Free text without a border: `note <id> "Line one\\nLine two"`; in a sequence diagram, a note on lifelines: `note [<id>] over a, b "Text"`, `left of a` or `right of a`.',
+    note: 'Free text without a border: `note <id> "Line one\\nLine two" [on <element>]`; in a sequence diagram, a note on lifelines: `note [<id>] over a, b "Text"`, `left of a` or `right of a`.',
+    on: 'Attaches a note to an element: `note <id> "Text" on <element>` draws a dotted leader from the note to the element and keeps them near each other in an automatic layout.',
     tag: 'A small pill, often placed on a box corner: `tag <id> "PKCE"`.',
     box: 'A shape with a label in a free diagram: `box <id> "Label"`, or `<id>["Label"]`.',
     text: 'Measured text without a frame in a free diagram: `text <id> "Line one\\nLine two"`.',
@@ -470,7 +471,8 @@ const es: typeof en = {
     data: 'Un cilindro de almacén de datos: `data <id> "Label"`, o `<id>[("Label")]`.',
     group:
       "Una banda que contiene declaraciones, relaciones y grupos anidados; en un diagrama de secuencia, una caja alrededor de participantes.",
-    note: 'Texto libre sin borde: `note <id> "Line one\\nLine two"`; en un diagrama de secuencia, una nota sobre líneas de vida: `note [<id>] over a, b "Text"`, `left of a` o `right of a`.',
+    note: 'Texto libre sin borde: `note <id> "Line one\\nLine two" [on <element>]`; en un diagrama de secuencia, una nota sobre líneas de vida: `note [<id>] over a, b "Text"`, `left of a` o `right of a`.',
+    on: 'Adjunta una nota a un elemento: `note <id> "Text" on <element>` dibuja una guía punteada de la nota al elemento y los mantiene cerca en una disposición automática.',
     tag: 'Una pequeña píldora, a menudo colocada en la esquina de una caja: `tag <id> "PKCE"`.',
     box: 'Una forma con una etiqueta en un diagrama libre: `box <id> "Label"`, o `<id>["Label"]`.',
     text: 'Texto medido sin marco en un diagrama libre: `text <id> "Line one\\nLine two"`.',

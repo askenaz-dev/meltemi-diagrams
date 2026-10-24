@@ -12,6 +12,7 @@ import {
   readState,
   type AwarenessEntry,
   type EncodedCaret,
+  type LaserPoint,
   type PointerPosition,
 } from "./presence-wire.js";
 
@@ -38,12 +39,24 @@ export interface Peer {
   readonly selection: readonly string[];
   /** Where the client's pointer is over its canvas, while it moves there. */
   readonly pointer: PointerPosition | undefined;
+  /**
+   * The client's last Pointer trail batch, with this page's own count of the batches it has
+   * received from the client (`seq`): it grows with each, so the canvas draws a batch once.
+   */
+  readonly laser?: PeerLaser | undefined;
   /** When the caret last moved, or the client appeared, by the page's clock. */
   readonly movedAt: number;
   /** When the room last spoke of the client. */
   readonly heardAt: number;
   /** When the client first appeared: the order of the header. */
   readonly joinedAt: number;
+}
+
+/** A peer's last Pointer trail batch, and which of the batches of the peer it is. */
+export interface PeerLaser {
+  readonly seq: number;
+  readonly diagram: string | undefined;
+  readonly points: readonly LaserPoint[];
 }
 
 const sameCaret = (a: EncodedCaret | undefined, b: EncodedCaret | undefined): boolean =>
@@ -108,6 +121,14 @@ export class PeerBook {
         caret: read.caret,
         selection: read.selection,
         pointer: read.pointer,
+        // A message with a batch is a new batch; one without keeps the last, which the canvas has.
+        laser: read.laser
+          ? {
+              seq: (before?.laser?.seq ?? 0) + 1,
+              diagram: read.laser.diagram,
+              points: read.laser.points,
+            }
+          : before?.laser,
         movedAt:
           before && before.file === read.file && sameCaret(before.caret, read.caret)
             ? before.movedAt
@@ -125,7 +146,8 @@ export class PeerBook {
         before.file !== next.file ||
         !sameCaret(before.caret, next.caret) ||
         !sameList(before.selection, next.selection) ||
-        !samePointer(before.pointer, next.pointer)
+        !samePointer(before.pointer, next.pointer) ||
+        before.laser?.seq !== next.laser?.seq
       ) {
         changed = true;
       }
@@ -272,6 +294,8 @@ export interface CanvasPerson {
   readonly selection: readonly string[];
   /** Where the person's pointer is over the same diagram, in diagram units. */
   readonly pointer?: { readonly x: number; readonly y: number };
+  /** The person's last Pointer trail batch over the same diagram: `batch` grows with each one. */
+  readonly laser?: { readonly batch: number; readonly points: readonly LaserPoint[] };
 }
 
 /**
@@ -294,12 +318,18 @@ export function canvasPeople(
     const here =
       pointer !== undefined &&
       (pointer.diagram === undefined || diagram === undefined || pointer.diagram === diagram);
-    if (peer.selection.length === 0 && !here) continue;
+    // A trail over another diagram of the file than the one shown is not drawn either.
+    const laser = peer.laser;
+    const trail =
+      laser !== undefined &&
+      (laser.diagram === undefined || diagram === undefined || laser.diagram === diagram);
+    if (peer.selection.length === 0 && !here && !trail) continue;
     people.push({
       name: peer.name === "" ? fallbackName : peer.name,
       colour: peer.colour,
       selection: peer.selection,
       ...(here ? { pointer: { x: pointer.x, y: pointer.y } } : {}),
+      ...(trail ? { laser: { batch: laser.seq, points: laser.points } } : {}),
     });
   }
   return people;

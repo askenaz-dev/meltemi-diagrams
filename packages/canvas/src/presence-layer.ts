@@ -1,4 +1,6 @@
+import type { Point } from "@meltemi/diagrams-editor/canvas";
 import { clear, h, s } from "./dom.js";
+import { trailSegments, type TrailPoint } from "./trail.js";
 import {
   TAG_HEIGHT,
   lineWidth,
@@ -13,6 +15,14 @@ const TAG_MAX_WIDTH = 180;
 
 /** The cursor's arrow, as in a pointer: its tip at (1, 1) of a 16 by 20 box. */
 const ARROW = "M1 1 L1 16.5 L5.2 12.6 L8 18.8 L10.9 17.5 L8.2 11.4 L13.8 11.4 Z";
+
+/** A trail to stroke: its points in diagram units, its colour, and how long a point lives. */
+export interface DrawnTrail {
+  readonly points: readonly TrailPoint[];
+  readonly colour: string;
+  /** Milliseconds a point lives; 0 draws the whole stroke (reduced motion). */
+  readonly fade: number;
+}
 
 /** A cursor drawn, and the diagram point it was last drawn at. */
 interface Drawn {
@@ -44,14 +54,69 @@ export class PresenceLayer {
     "aria-hidden": "true",
     focusable: "false",
   });
+  /** The Pointer trails, strokes at the device's resolution; between the outlines and the cursors. */
+  private readonly trails = h("canvas", { class: "presence-trails", "aria-hidden": "true" });
   private readonly cursorLayer = h("div", { class: "presence-cursors" });
   private readonly cursors = new Map<string, Drawn>();
+  /** Whether the trails canvas holds anything: cleared once when the last point is gone. */
+  private trailsDrawn = false;
 
   /** How many marks are drawn: the canvas clears on every redraw, which is free when it is none. */
   private drawn = 0;
 
   constructor() {
-    this.element.append(this.outlines, this.cursorLayer);
+    this.element.append(this.outlines, this.trails, this.cursorLayer);
+    // The canvas follows the stage's size at the device's resolution; a resize clears it.
+    if (typeof ResizeObserver !== "undefined") {
+      new ResizeObserver(() => this.sizeTrails()).observe(this.element);
+    }
+  }
+
+  private sizeTrails(): void {
+    const ratio = globalThis.devicePixelRatio || 1;
+    const width = Math.max(1, Math.round(this.element.clientWidth * ratio));
+    const height = Math.max(1, Math.round(this.element.clientHeight * ratio));
+    if (this.trails.width !== width) this.trails.width = width;
+    if (this.trails.height !== height) this.trails.height = height;
+  }
+
+  /**
+   * Strokes the Pointer trails at `now`, replacing what was drawn: each segment with round caps and
+   * joins in its trail's colour, at its own opacity and width. `toScreen` puts a point of the
+   * diagram on the stage, so a pan or a zoom keeps a trail on the diagram.
+   */
+  drawTrails(trails: readonly DrawnTrail[], toScreen: (point: Point) => Point, now: number): void {
+    const context = this.trails.getContext("2d");
+    if (!context) return;
+    this.sizeTrails();
+    const ratio = globalThis.devicePixelRatio || 1;
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.clearRect(0, 0, this.trails.width, this.trails.height);
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    let drew = false;
+    for (const trail of trails) {
+      context.strokeStyle = trail.colour;
+      for (const segment of trailSegments(trail.points, now, trail.fade)) {
+        const from = toScreen(segment.from);
+        const to = toScreen(segment.to);
+        context.globalAlpha = segment.opacity;
+        context.lineWidth = segment.width;
+        context.beginPath();
+        context.moveTo(from.x, from.y);
+        context.lineTo(to.x, to.y);
+        context.stroke();
+        drew = true;
+      }
+    }
+    context.globalAlpha = 1;
+    this.trailsDrawn = drew;
+  }
+
+  /** Whether the trails canvas holds a stroke now. */
+  get hasTrails(): boolean {
+    return this.trailsDrawn;
   }
 
   /** Removes every outline, tag and cursor. */

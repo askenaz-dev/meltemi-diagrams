@@ -360,6 +360,22 @@ const SEQUENCE = `diagram payment: sequence {
 }
 `;
 
+/** A note with an outline, one without, and a text, each attached to a box. */
+const FREE_NOTES = `diagram s: free {
+  box api "API"
+  note bare "Bare" on api
+  note framed "Framed" on api
+  text label "Label"
+  style framed { stroke "#7a5af8" }
+  placement {
+    place api at (126, 112)
+    place bare at (400, 112)
+    place framed at (400, 220)
+    place label at (126, 300)
+  }
+}
+`;
+
 const C4 = `model commerce {
   person customer "Customer"
   system shop "Shop" {
@@ -470,6 +486,8 @@ class Harness {
   /** A scenario `project` swaps it for a session of a document in a project. */
   session = new CanvasSession({ grid: 14 });
   readonly received: unknown[] = [];
+  /** When each of `received` arrived, in milliseconds, for the ones that are about timing. */
+  readonly receivedAt: number[] = [];
   clipboard = "";
   /** The settings the host sends on `ready`; `readOnly` is absent, as VS Code never sends it. */
   config: CanvasSettings = {
@@ -590,6 +608,7 @@ class Harness {
     this.busy++;
     try {
       this.received.push(message);
+      this.receivedAt.push(Date.now());
       if ((message as { type: string }).type === "ready") {
         await this.post([{ type: "settings", settings: this.config }]);
         await this.post(this.session.update(this.analyze(this.text, this.revision)));
@@ -786,6 +805,52 @@ async function editorOf(h: Harness): Promise<{
       border: style.borderTopWidth,
       textAlign: style.textAlign,
     };
+  });
+}
+
+/**
+ * The centre of what an element draws of its own, in page pixels: a note's group holds its leader
+ * too, which reaches the element it is attached to, so the group's box is no place to press.
+ */
+async function bodyCentre(h: Harness, id: string): Promise<{ x: number; y: number }> {
+  const box = await h.page
+    .locator(`.content g[data-id="${id}"][data-role="element"]`)
+    .first()
+    .evaluate((group) => {
+      const own = [...group.children].filter((child) => !child.classList.contains("leader"));
+      const rects = own.map((child) => child.getBoundingClientRect());
+      const left = Math.min(...rects.map((r) => r.left));
+      const top = Math.min(...rects.map((r) => r.top));
+      const right = Math.max(...rects.map((r) => r.right));
+      const bottom = Math.max(...rects.map((r) => r.bottom));
+      return { x: (left + right) / 2, y: (top + bottom) / 2 };
+    });
+  return box;
+}
+
+/**
+ * What the presence layer's trails canvas holds: how many pixels are drawn, and the colour of the
+ * most opaque one.
+ */
+async function trailPixels(h: Harness): Promise<{
+  count: number;
+  colour: [number, number, number] | null;
+}> {
+  return h.page.locator(".presence-trails").evaluate((canvas: HTMLCanvasElement) => {
+    const context = canvas.getContext("2d")!;
+    const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+    let count = 0;
+    let best = 0;
+    let colour: [number, number, number] | null = null;
+    for (let i = 0; i < data.length; i += 4) {
+      const alpha = data[i + 3]!;
+      if (alpha > 0) count++;
+      if (alpha > best) {
+        best = alpha;
+        colour = [data[i]!, data[i + 1]!, data[i + 2]!];
+      }
+    }
+    return { count, colour };
   });
 }
 
@@ -6488,8 +6553,8 @@ const tests: {
         await page
           .locator(".presence, .presence *")
           .evaluateAll((els) => els.map((e) => getComputedStyle(e).pointerEvents)),
-        Array(7).fill("none"),
-        "the layer, its svg, the cursors' layer, two outlines and two tags",
+        Array(8).fill("none"),
+        "the layer, its svg, the trails' canvas, the cursors' layer, two outlines and two tags",
       );
       await page.mouse.click(edge.x, edge.y);
       await h.settled();
@@ -6578,12 +6643,13 @@ const tests: {
         names,
         "every tag shows its name's characters",
       );
-      // No element was made from a name: the layer holds a div, the svg, rects and spans only.
+      // No element was made from a name: the layer holds a div, the svg, the trails' canvas, rects
+      // and spans only.
       assert.deepEqual(
         await page
           .locator(".presence, .presence *")
           .evaluateAll((els) => [...new Set(els.map((e) => e.tagName.toLowerCase()))].sort()),
-        ["div", "rect", "span", "svg"],
+        ["canvas", "div", "rect", "span", "svg"],
       );
       assert.equal(await page.locator(".presence img, .presence b, .presence i").count(), 0);
       // Each tag is one element holding one text node.
@@ -7149,6 +7215,586 @@ const tests: {
         (await drawn(h)).tags.map((t) => [t.target, t.text]),
         [["db", "Li"]],
       );
+    },
+  },
+  {
+    name: "notes: O makes a note on a free diagram, with its text editor open",
+    text: FREE,
+    async run(h) {
+      const page = h.page;
+      assert.equal(await page.locator('.toolbar button[data-tool="note"]').isVisible(), true);
+      await h.focusStage();
+      await page.keyboard.press("o");
+      await h.settled();
+      assert.match(h.text, /\n {2}note note1 "Note"\n/);
+      assert.ok(h.place("note1"), "a place near the centre");
+      assert.deepEqual(h.session.selected, ["note1"]);
+      assert.equal(await page.locator("textarea.inline").inputValue(), "Note");
+      await page.keyboard.press("Escape");
+      assert.equal(await page.locator(".inline").count(), 0);
+    },
+  },
+  {
+    name: "notes: O makes a note in a C4 view, and its inspector shows the note's fields and none of an entity's",
+    text: C4,
+    async run(h) {
+      const page = h.page;
+      assert.equal(await page.locator('.toolbar button[data-tool="note"]').isVisible(), true);
+      await h.focusStage();
+      await page.keyboard.press("o");
+      await h.settled();
+      // In the view; the model is untouched.
+      assert.match(
+        h.text,
+        /level container\n {2}scope shop\n {2}include [^\n]*\n {2}note note1 "Note"\n/,
+      );
+      assert.ok(h.text.startsWith("model commerce {"), "the model comes first, as it was");
+      assert.equal(
+        h.text.split("model commerce")[1]!.split("diagram containers")[0]!.includes("note"),
+        false,
+      );
+      assert.deepEqual(h.session.selected, ["note1"]);
+      await page.keyboard.press("Escape");
+      await h.settled();
+      await page.locator("#mdg-field-attachedTo").waitFor();
+      const fields = await page
+        .locator('.inspector [id^="mdg-field-"]')
+        .evaluateAll((nodes) => nodes.map((n) => n.id));
+      assert.ok(
+        fields.includes("mdg-field-label") && fields.includes("mdg-field-attachedTo"),
+        String(fields),
+      );
+      assert.deepEqual(
+        fields.filter((f) => f.startsWith("mdg-field-entity")),
+        [],
+      );
+      await page.locator("#mdg-field-attachedTo").selectOption("shop.api");
+      await h.settled();
+      assert.match(h.text, /note note1 "Note" on shop\.api\n/);
+      assert.equal(await page.locator(".content polyline.leader").count(), 1);
+      await page.screenshot({ path: join(output, "note-c4.png") });
+    },
+  },
+  {
+    name: "notes: O on a sequence diagram still writes a note over the selection",
+    text: SEQUENCE,
+    async run(h) {
+      const page = h.page;
+      const api = await h.centre("api");
+      await page.mouse.click(api.x, api.y);
+      await h.settled();
+      await page.keyboard.press("o");
+      await h.settled();
+      assert.match(h.text, /note note1 over api "Note"/);
+      assert.equal(await page.locator('.toolbar button[data-tool="note"]').isVisible(), false);
+    },
+  },
+  {
+    name: "notes: dragging the note tool onto a box attaches the note, outlines the drop and draws the leader",
+    async run(h) {
+      const page = h.page;
+      const tool = await middleOf(page.locator('.toolbar button[data-tool="note"]'));
+      const api = await h.centre("api");
+      await page.mouse.move(tool.x, tool.y);
+      await page.mouse.down();
+      await page.mouse.move(api.x, api.y, { steps: 8 });
+      // The box that would take the note is outlined as a drop while the tool is over it.
+      await page.waitForSelector(".overlay .highlight.drop");
+      assert.equal(await page.locator(".overlay .highlight.drop").count(), 1);
+      // Over empty canvas the outline goes away.
+      await page.mouse.move(api.x + 300, api.y + 260, { steps: 6 });
+      assert.equal(await page.locator(".overlay .highlight.drop").count(), 0);
+      await page.mouse.move(api.x, api.y, { steps: 6 });
+      await page.mouse.up();
+      await h.settled();
+      assert.match(h.text, /\n {2}note note1 "Note" on api\n/);
+      // East of `api`, level with its top, on the grid.
+      const note = h.place("note1");
+      const west = h.place("api");
+      assert.ok(note.x > west.x + 100, `east of api: ${JSON.stringify([note, west])}`);
+      assert.equal(await page.locator(".content polyline.leader").count(), 1);
+      assert.match((await page.locator(".status").textContent()) ?? "", /note attached to `api`/);
+      assert.equal(await page.locator("textarea.inline").inputValue(), "Note");
+      await page.keyboard.press("Escape");
+      await h.settled();
+      assert.equal(await page.locator(".overlay .highlight.drop").count(), 0);
+      await page.screenshot({ path: join(output, "note-attached.png") });
+    },
+  },
+  {
+    name: "notes: the armed note tool attaches on a click on an element and creates a free note on empty canvas",
+    async run(h) {
+      const page = h.page;
+      await page.locator('.toolbar button[data-tool="note"]').click();
+      const db = await h.centre("db");
+      await page.mouse.move(db.x, db.y);
+      await h.settled();
+      await page.waitForSelector(".overlay .highlight.drop");
+      await page.mouse.click(db.x, db.y);
+      await h.settled();
+      assert.match(h.text, /\n {2}note note1 "Note" on db\n/);
+      await page.keyboard.press("Escape");
+      await h.settled();
+      await page.locator('.toolbar button[data-tool="note"]').click();
+      const empty = { x: db.x + 200, y: db.y + 220 };
+      await page.mouse.click(empty.x, empty.y);
+      await h.settled();
+      assert.match(h.text, /\n {2}note note2 "Note"\n/);
+    },
+  },
+  {
+    name: "notes: Attached to writes and removes the clause",
+    text: `diagram d: flow {
+  layout manual
+  api["API"]
+  db[("DB")]
+  note why "Idempotent"
+  placement {
+    place api at (126, 112)
+    place db at (420, 112)
+    place why at (126, 300)
+  }
+}
+`,
+    async run(h) {
+      const page = h.page;
+      const why = await h.centre("why");
+      await page.mouse.click(why.x, why.y);
+      await h.settled();
+      const field = page.locator("#mdg-field-attachedTo");
+      assert.equal(await field.inputValue(), "");
+      await field.selectOption("db");
+      await h.settled();
+      assert.match(h.text, /\n {2}note why "Idempotent" on db\n/);
+      assert.equal(await page.locator(".content polyline.leader").count(), 1);
+      await page.locator("#mdg-field-attachedTo").selectOption("");
+      await h.settled();
+      assert.match(h.text, /\n {2}note why "Idempotent"\n/);
+      assert.equal(await page.locator(".content polyline.leader").count(), 0);
+    },
+  },
+  {
+    name: "notes: Delete on an element lists the attachment, and confirming keeps the note",
+    text: `diagram d: flow {
+  layout manual
+  api["API"]
+  db[("DB")]
+  api -> db as save
+  note why "Idempotent" on api
+  placement {
+    place api at (126, 112)
+    place db at (420, 112)
+    place why at (126, 300)
+  }
+}
+`,
+    async run(h) {
+      const page = h.page;
+      const api = await h.centre("api");
+      await page.mouse.click(api.x, api.y);
+      await h.settled();
+      await page.keyboard.press("Delete");
+      await h.settled();
+      const dialog = page.locator(".dialog");
+      assert.equal(await dialog.isVisible(), true);
+      // The relation, the note attached to it and the place of the box.
+      assert.equal(await dialog.locator("li").count(), 3, await dialog.innerText());
+      assert.match(await dialog.innerText(), /note `why` is attached to it/);
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.doesNotMatch(h.text, /\bapi\b/);
+      assert.match(h.text, /\n {2}note why "Idempotent"\n/);
+      assert.equal((await page.locator('.content g[data-id="why"]').count()) > 0, true);
+    },
+  },
+  {
+    name: "notes: moving the note redraws the leader with the live preview",
+    text: `diagram d: flow {
+  layout manual
+  api["API"]
+  note why "Idempotent" on api
+  placement {
+    place api at (126, 112)
+    place why at (420, 112)
+  }
+}
+`,
+    async run(h) {
+      const page = h.page;
+      const leader = () => page.locator(".content polyline.leader").first().getAttribute("points");
+      const before = await leader();
+      assert.ok(before, "the leader is drawn");
+      const why = await bodyCentre(h, "why");
+      await page.mouse.move(why.x, why.y);
+      await page.mouse.down();
+      await page.mouse.move(why.x, why.y + 120, { steps: 8 });
+      await h.settled();
+      // Under the pointer, before the release: the leader follows the note.
+      const during = await leader();
+      assert.notEqual(
+        during,
+        before,
+        `the leader moved with the preview: ${JSON.stringify(h.previews())}`,
+      );
+      await page.mouse.up();
+      await h.settled();
+      assert.notEqual(await leader(), before);
+      assert.match(h.text, /on api/);
+    },
+  },
+  {
+    name: "notes: a note with an outline is offered the moving dash, a bare one only the pulse",
+    text: FREE_NOTES,
+    async run(h) {
+      const page = h.page;
+      const toggles = page.getByRole("group", { name: "Effects" }).getByRole("button");
+      const dash = page.getByRole("button", { name: "Moving dash", exact: true });
+      const bare = await bodyCentre(h, "bare");
+      await page.mouse.click(bare.x, bare.y);
+      await h.settled();
+      assert.equal(await toggles.count(), 1);
+      assert.equal(await dash.count(), 0);
+      const framed = await bodyCentre(h, "framed");
+      await page.mouse.click(framed.x, framed.y);
+      await h.settled();
+      assert.equal(await toggles.count(), 2);
+      assert.equal(await dash.count(), 1);
+    },
+  },
+  {
+    name: "pointer: K points with a trail that selects and writes nothing, and the trail fades within a second",
+    async run(h) {
+      const page = h.page;
+      const before = h.text;
+      // The trails canvas sits between the outlines and the cursors, and is hidden from readers.
+      assert.deepEqual(
+        await page
+          .locator(".presence")
+          .evaluate((layer) =>
+            [...layer.children].map(
+              (child) => `${child.tagName.toLowerCase()}.${child.getAttribute("class")}`,
+            ),
+          ),
+        ["svg.presence-outlines", "canvas.presence-trails", "div.presence-cursors"],
+      );
+      assert.equal(await page.locator(".presence-trails").getAttribute("aria-hidden"), "true");
+      await h.focusStage();
+      await page.keyboard.press("k");
+      await h.settled();
+      const toggle = page.locator('.toolbar button[aria-label="Pointer"]');
+      assert.equal(await toggle.getAttribute("aria-pressed"), "true");
+      assert.match((await page.locator(".status").textContent()) ?? "", /^Pointer on/);
+      assert.match(
+        await page.locator(".stage").evaluate((stage) => getComputedStyle(stage).cursor),
+        /data:image\/svg\+xml/,
+      );
+      await page.locator(".toolbar").screenshot({ path: join(output, "pointer-cursor.png") });
+      const api = await h.centre("api");
+      await page.mouse.move(api.x, api.y);
+      await page.mouse.down();
+      await page.mouse.move(api.x + 80, api.y, { steps: 10 });
+      await page.waitForTimeout(80);
+      const during = await trailPixels(h);
+      assert.ok(during.count > 150, `a trail is drawn: ${during.count} pixels`);
+      assert.deepEqual(h.session.selected, []);
+      assert.equal(await page.locator("textarea.inline").count(), 0);
+      await page.screenshot({ path: join(output, "pointer-trail.png") });
+      await page.mouse.up();
+      await h.settled();
+      assert.equal(h.text, before);
+      assert.deepEqual(h.writes(), []);
+      // No host that shares presence: nothing of the stroke is sent.
+      assert.equal(
+        h.received.filter((m) => (m as { type: string }).type === "presenceLaser").length,
+        0,
+      );
+      // Gone within a second, and no part of what is exported.
+      await page.waitForTimeout(1000);
+      assert.equal((await trailPixels(h)).count, 0);
+      const svg = renderDiagram(h.analyze(h.text, h.revision), "d")!.svg;
+      assert.ok(!svg.includes("canvas") && !svg.includes("trail") && !svg.includes("presence"));
+    },
+  },
+  {
+    name: "pointer: a double click, a right click and Shift+F10 open nothing while pointing",
+    async run(h) {
+      const page = h.page;
+      const before = h.text;
+      await h.focusStage();
+      await page.keyboard.press("k");
+      const api = await h.centre("api");
+      await page.mouse.dblclick(api.x, api.y);
+      await h.settled();
+      assert.equal(await page.locator("textarea.inline").count(), 0);
+      await page.mouse.click(api.x, api.y, { button: "right" });
+      await h.settled();
+      assert.equal(await page.locator(".menu").isVisible(), false);
+      await page.keyboard.press("Shift+F10");
+      await h.settled();
+      assert.equal(await page.locator(".menu").isVisible(), false);
+      assert.equal(h.text, before);
+      assert.deepEqual(h.session.selected, []);
+    },
+  },
+  {
+    name: "pointer: Escape and K put it away, and a press then selects",
+    async run(h) {
+      const page = h.page;
+      const toggle = page.locator('.toolbar button[aria-label="Pointer"]');
+      await h.focusStage();
+      await page.keyboard.press("k");
+      assert.equal(await toggle.getAttribute("aria-pressed"), "true");
+      await page.keyboard.press("Escape");
+      await h.settled();
+      assert.equal(await toggle.getAttribute("aria-pressed"), "false");
+      const api = await h.centre("api");
+      await page.mouse.click(api.x, api.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["api"]);
+      await page.keyboard.press("k");
+      assert.equal(await toggle.getAttribute("aria-pressed"), "true");
+      // Turning it on lets go of the selection, so Delete cannot reach what the pointer shows.
+      assert.deepEqual(h.session.selected, []);
+      await page.keyboard.press("k");
+      assert.equal(await toggle.getAttribute("aria-pressed"), "false");
+      await toggle.click();
+      assert.equal(await toggle.getAttribute("aria-pressed"), "true");
+      await toggle.click();
+      assert.equal(await toggle.getAttribute("aria-pressed"), "false");
+      assert.match((await page.locator(".status").textContent()) ?? "", /^Pointer off/);
+    },
+  },
+  {
+    name: "pointer: Space-drag pans and Ctrl+wheel zooms while pointing, and the pan draws no trail",
+    async run(h) {
+      const page = h.page;
+      await h.focusStage();
+      await page.keyboard.press("k");
+      const transform = () =>
+        page.locator(".content").evaluate((e: HTMLElement) => e.style.transform);
+      const before = await transform();
+      await page.keyboard.down(" ");
+      await page.mouse.move(600, 600);
+      await page.mouse.down();
+      await page.mouse.move(660, 640, { steps: 6 });
+      await page.waitForTimeout(60);
+      assert.equal((await trailPixels(h)).count, 0, "a pan draws no trail");
+      await page.mouse.up();
+      await page.keyboard.up(" ");
+      await h.settled();
+      assert.notEqual(await transform(), before, "the view panned");
+      const zoom = await zoomOf(h);
+      await page.keyboard.down("Control");
+      await page.mouse.move(600, 400);
+      await page.mouse.wheel(0, -200);
+      await page.keyboard.up("Control");
+      await h.settled();
+      assert.notEqual(await zoomOf(h), zoom, "the view zoomed");
+    },
+  },
+  {
+    name: "pointer: N puts the pointer away and creates, and the node tool of the palette does the same",
+    async run(h) {
+      const page = h.page;
+      const toggle = page.locator('.toolbar button[aria-label="Pointer"]');
+      await h.focusStage();
+      await page.keyboard.press("k");
+      await page.keyboard.press("n");
+      await h.settled();
+      assert.equal(await toggle.getAttribute("aria-pressed"), "false");
+      assert.match(h.text, /\n {2}node1\[""\]\n/);
+      await page.keyboard.press("Escape");
+      await h.focusStage();
+      await page.keyboard.press("k");
+      assert.equal(await toggle.getAttribute("aria-pressed"), "true");
+      await page.locator('.toolbar button[data-tool="node"]').first().click();
+      assert.equal(await toggle.getAttribute("aria-pressed"), "false");
+      const empty = await h.centre("cache");
+      await page.mouse.click(empty.x + 200, empty.y + 20);
+      await h.settled();
+      assert.match(h.text, /node2/);
+    },
+  },
+  {
+    name: "pointer: a read-only canvas points, and the status line does not refuse",
+    readOnly: true,
+    async run(h) {
+      const page = h.page;
+      const toggle = page.locator('.toolbar button[aria-label="Pointer"]');
+      assert.equal(await toggle.isVisible(), true);
+      await h.focusStage();
+      await page.keyboard.press("k");
+      await h.settled();
+      assert.equal(await toggle.getAttribute("aria-pressed"), "true");
+      assert.doesNotMatch(
+        (await page.locator(".status").textContent()) ?? "",
+        /view only|only shows/i,
+      );
+      const api = await h.centre("api");
+      await page.mouse.move(api.x, api.y);
+      await page.mouse.down();
+      await page.mouse.move(api.x + 80, api.y + 20, { steps: 8 });
+      await page.waitForTimeout(80);
+      assert.ok((await trailPixels(h)).count > 100);
+      await page.mouse.up();
+      assert.deepEqual(h.writes(), []);
+    },
+  },
+  {
+    name: "pointer: k typed in the label editor stays text and does not turn the pointer on",
+    async run(h) {
+      const page = h.page;
+      const api = await h.centre("api");
+      await page.mouse.dblclick(api.x, api.y);
+      const editor = page.locator("textarea.inline");
+      await editor.waitFor();
+      await page.keyboard.type("k");
+      assert.match(await editor.inputValue(), /k/);
+      assert.equal(
+        await page.locator('.toolbar button[aria-label="Pointer"]').getAttribute("aria-pressed"),
+        "false",
+      );
+      await page.keyboard.press("Escape");
+      assert.equal((await trailPixels(h)).count, 0);
+    },
+  },
+  {
+    name: "pointer: under reduced motion the stroke stays whole until the pointer lifts, then goes at once",
+    async run(h) {
+      const page = h.page;
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await h.focusStage();
+      await page.keyboard.press("k");
+      const api = await h.centre("api");
+      await page.mouse.move(api.x, api.y);
+      await page.mouse.down();
+      await page.mouse.move(api.x + 80, api.y, { steps: 8 });
+      await page.waitForTimeout(1300);
+      assert.ok((await trailPixels(h)).count > 150, "the stroke has not faded");
+      await page.mouse.up();
+      await page.waitForTimeout(100);
+      assert.equal((await trailPixels(h)).count, 0, "nothing of it remains");
+    },
+  },
+  {
+    name: "pointer trails of others: a batch is drawn point by point in the person's colour, once, and a batch that does not fit is not drawn",
+    async run(h) {
+      const page = h.page;
+      const points = Array.from({ length: 10 }, (_, i) => ({ x: 120 + i * 11, y: 80, t: i * 22 }));
+      const ben: PresencePerson = {
+        ...BEN,
+        selection: [],
+        pointer: { x: 120, y: 80 },
+        laser: { batch: 7, points },
+      };
+      await h.presence([ben]);
+      await page.waitForTimeout(70);
+      const early = await trailPixels(h);
+      await page.waitForTimeout(260);
+      const late = await trailPixels(h);
+      assert.ok(late.count > early.count, `drawn over time: ${early.count} then ${late.count}`);
+      // Ben's colour, #1c7ed6.
+      assert.ok(
+        late.colour?.every((channel, i) => Math.abs(channel - [28, 126, 214][i]!) <= 2),
+        String(late.colour),
+      );
+      await page.waitForTimeout(1000);
+      assert.equal((await trailPixels(h)).count, 0, "faded within 800 ms of its last point");
+      // The same batch again draws nothing.
+      await h.presence([ben]);
+      await page.waitForTimeout(300);
+      assert.equal((await trailPixels(h)).count, 0);
+      // A batch of 65 points, a moment of 5000 ms and a point that is not a number are not drawn,
+      // and the person's cursor is.
+      const many = Array.from({ length: 65 }, (_, i) => ({ x: 100 + i, y: 100, t: 0 }));
+      for (const [batch, bad] of [
+        [8, many],
+        [
+          9,
+          [
+            { x: 100, y: 100, t: 0 },
+            { x: 140, y: 100, t: 5000 },
+          ],
+        ],
+        [
+          10,
+          [
+            { x: 100, y: 100, t: 0 },
+            { x: null, y: 100, t: 10 },
+          ],
+        ],
+      ] as const) {
+        // Points the wire would never carry (a null coordinate): the canvas must refuse them.
+        const points = bad as unknown as readonly { x: number; y: number; t: number }[];
+        await h.presence([{ ...ben, laser: { batch, points } }]);
+        await page.waitForTimeout(300);
+        assert.equal((await trailPixels(h)).count, 0, `batch ${batch}`);
+      }
+      assert.equal(await page.locator(".presence-cursor").count(), 1);
+      assert.deepEqual(h.writes(), []);
+    },
+  },
+  {
+    name: "pointer trails of others: the person's own colour paints the stroke and the cursor, and goes with the next message",
+    async run(h) {
+      const page = h.page;
+      await h.postRaw({ type: "presence", people: [], me: { colour: "#e03131" } });
+      await h.focusStage();
+      await page.keyboard.press("k");
+      const cursor = () =>
+        page
+          .locator(".stage")
+          .evaluate((stage) =>
+            (stage as HTMLElement).style.getPropertyValue("--mdg-pointer-cursor"),
+          );
+      assert.match(await cursor(), /%23e03131/);
+      const api = await h.centre("api");
+      await page.mouse.move(api.x, api.y);
+      await page.mouse.down();
+      await page.mouse.move(api.x + 80, api.y, { steps: 8 });
+      await page.waitForTimeout(80);
+      assert.deepEqual((await trailPixels(h)).colour, [224, 49, 49]);
+      await page.mouse.up();
+      await h.postRaw({ type: "presence", people: [] });
+      assert.doesNotMatch(await cursor(), /%23e03131/);
+    },
+  },
+  {
+    name: "pointer trails of others: a stroke is posted to a host that shares presence in batches from 0, and to no other",
+    async run(h) {
+      const page = h.page;
+      await h.presence([]);
+      await h.focusStage();
+      await page.keyboard.press("k");
+      const api = await h.centre("api");
+      await page.mouse.move(api.x, api.y);
+      await page.mouse.down();
+      for (let i = 1; i <= 15; i++) {
+        await page.mouse.move(api.x + i * 6, api.y + i * 2);
+        await page.waitForTimeout(20);
+      }
+      await page.mouse.up();
+      await page.waitForTimeout(160);
+      const posted = h.received
+        .map((m, i) => ({ m: m as { type: string }, at: h.receivedAt[i]! }))
+        .filter(({ m }) => m.type === "presenceLaser");
+      const batches = posted.map(({ m }) => m) as unknown as {
+        points: { x: number; y: number; t: number }[];
+        diagram?: string;
+      }[];
+      assert.ok(batches.length >= 3, `${batches.length} batches`);
+      // At most one batch every 50 ms (a few milliseconds of slack for the clock).
+      for (let i = 1; i < posted.length; i++) {
+        assert.ok(posted[i]!.at - posted[i - 1]!.at >= 40, `batches ${i - 1} and ${i} too close`);
+      }
+      for (const batch of batches) {
+        assert.equal(batch.points[0]!.t, 0, "each batch starts at 0");
+        assert.ok(batch.points.length <= 64);
+        assert.equal(batch.diagram, "d");
+      }
+      const total = batches.reduce((sum, batch) => sum + batch.points.length, 0);
+      assert.ok(total >= 12, `${total} points together`);
+      assert.deepEqual(h.writes(), []);
     },
   },
 ];

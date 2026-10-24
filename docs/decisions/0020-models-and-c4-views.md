@@ -64,3 +64,5 @@ may link to model entities, reusing identity and metadata.
   a model in another file ([decision 0051](0051-c4-relations-from-the-canvas.md)); entities are
   declared from the view's palette, and routes follow a moved end
   ([decision 0053](0053-c4-entities-and-routes.md)).
+- A view holds one declaration of its own, `note`, attached to an entity the view draws and never
+  written to the model ([decision 0059](0059-pointer-and-notes.md)).

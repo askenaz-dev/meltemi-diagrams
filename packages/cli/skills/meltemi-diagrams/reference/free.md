@@ -7,18 +7,31 @@ as in flow diagrams.
 
 ## Objects
 
-| Declaration                       | Object                                                                   | Default size                          |
-| --------------------------------- | ------------------------------------------------------------------------ | ------------------------------------- |
-| `box <id> "Label"`, `id["L"]`     | a shape with a label and an optional `description`                       | its shape's size, widened to its text |
-| `id[("Label")]`                   | a box with the `cylinder` shape                                          | 160 × 64                              |
-| `text <id> "Text\nmore"`          | measured text without a frame                                            | its extent                            |
-| `icon <id> "tabler:server"`       | an icon of the packs; find names with `pnpm mdg assets icons <w>`        | 48 × 48                               |
-| `image <id> "img/logo.png"`       | a PNG, JPEG, GIF, WebP or SVG file of the project, relative to the file  | its pixel size, at most 640 wide      |
-| `group <id> "Label" { ... }`      | a band holding objects and relations; `group <id> "" { }` is plain       | written, or fitted to children        |
-| `line <id> from (x, y) to (x, y)` | a line that joins no element: a divider, a bracket, an underline (below) | the bounding box of its points        |
+| Declaration                       | Object                                                                                                       | Default size                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| `box <id> "Label"`, `id["L"]`     | a shape with a label and an optional `description`                                                           | its shape's size, widened to its text |
+| `id[("Label")]`                   | a box with the `cylinder` shape                                                                              | 160 × 64                              |
+| `text <id> "Text\nmore"`          | measured text without a frame                                                                                | its extent                            |
+| `icon <id> "tabler:server"`       | an icon of the packs; find names with `pnpm mdg assets icons <w>`                                            | 48 × 48                               |
+| `image <id> "img/logo.png"`       | a PNG, JPEG, GIF, WebP or SVG file of the project, relative to the file                                      | its pixel size, at most 640 wide      |
+| `note <id> "Text" [on <element>]` | an annotation: text with no frame until styled, and a dotted leader to the element it is attached to (below) | its text's extent                     |
+| `group <id> "Label" { ... }`      | a band holding objects and relations; `group <id> "" { }` is plain                                           | written, or fitted to children        |
+| `line <id> from (x, y) to (x, y)` | a line that joins no element: a divider, a bracket, an underline (below)                                     | the bounding box of its points        |
 
-`node`, `decision`, `data`, `note` and `tag` are flow kinds and are refused here. Relations take
-the lines without heads `a -- b` and `a --- b` too.
+`node`, `decision`, `data` and `tag` are flow kinds and are refused here; `note` is a free kind.
+Relations take the lines without heads `a -- b` and `a --- b` too.
+
+## Notes
+
+`note remark "Checked at the gateway" on gateway { layer front }` is text at the theme's note size in
+the muted colour, left-aligned and without a frame. `style remark { fill "#fff7d6"; stroke warning;
+line dashed }` gives it an outline (any of `fill`, `stroke` or `pattern` does); `fontSize`,
+`fontWeight`, `textAlign`, `radius`, `color`, `icon` and `rotation` apply, `shape` does not. The
+block takes `description`, `class`, `layer`, `link` and `url`. `on <element>` attaches the note to
+any other element of the diagram: a dotted leader joins them, `layout auto` keeps them near each
+other, renaming the element rewrites the clause, and deleting the element leaves the note. An
+unknown target is `ref.unknown-element`; a note on itself, `prop.invalid-value`. A note with an
+outline can take `animate remark { effect dash }`; without one, only a pulse.
 
 ## Shapes and corners
 
@@ -188,7 +201,8 @@ views.checkout.api` through `import "..." as views`. Identity only; nothing is k
 `pnpm mdg convert sheet.meltemi --to free [--diagram <id>] [--id <new>]` adds a free copy of the
 flow diagram as drawn: every box with `place` and `size`, children inside their copied groups,
 layers, routes, labels, styles and animations, a `link` from each object to its source, and
-classes `from_decision`, `from_data`, `from_note`, `from_tag` for the drawing of the flow kinds.
+classes `from_decision`, `from_data`, `from_tag` for the drawing of the flow kinds; notes stay notes,
+with their `on` clause.
 Edit the copy freely; the flow diagram is unchanged.
 
 ## Diagnostics

@@ -28,6 +28,7 @@ const COMMANDS = {
   zoomFit: true,
   zoomSelection: true,
   toggleLayers: true,
+  togglePointer: true,
   contextMenu: true,
   nudgeLeft: false,
   nudgeRight: false,
@@ -123,6 +124,7 @@ const ACTIONS: readonly CanvasAction[] = [
   { kind: "moveLabel", relation: "r", delta: { x: 1, y: 0 } },
   { kind: "setVia", relation: "r", via: [] },
   { kind: "createLine", from: { x: 0, y: 0 }, to: { x: 10, y: 0 }, line: "solid", heads: "none" },
+  { kind: "attachNote", note: "n", element: "a" },
   {
     kind: "setFields",
     ids: ["a"],
@@ -221,6 +223,19 @@ const MESSAGES = {
   ],
   themeToken: [{ message: { type: "themeToken", token: "accent", value: "#fff" }, writes: true }],
   // Where a viewer's pointer is, they share as anybody does: it changes nothing.
+  presenceLaser: [
+    {
+      message: {
+        type: "presenceLaser",
+        points: [
+          { x: 1, y: 2, t: 0 },
+          { x: 3, y: 4, t: 50 },
+        ],
+        diagram: "d",
+      },
+      writes: false,
+    },
+  ],
   presencePointer: [
     { message: { type: "presencePointer", point: { x: 1, y: 2 }, diagram: "d" }, writes: false },
     { message: { type: "presencePointer", point: null }, writes: false },
@@ -285,6 +300,7 @@ describe("the messages of a read-only canvas", () => {
       createLine: 1,
       setLinePoints: 1,
       setFields: 1,
+      attachNote: 1,
     } as const satisfies Record<CanvasAction["kind"], 1>;
     expect(ACTIONS.map((a) => a.kind).sort()).toEqual(Object.keys(every).sort());
     for (const action of ACTIONS) {

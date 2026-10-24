@@ -76,6 +76,7 @@ const en: Readonly<Record<KeyCommand, string>> = {
   zoomSelection: "Fit the selection",
   toggleLayers: "Show or hide the layers panel",
   toggleLibraries: "Show or hide the element libraries",
+  togglePointer: "Pointer: point at the diagram without editing it",
   contextMenu: "Open the context menu",
 };
 
@@ -148,6 +149,7 @@ const es: typeof en = {
   zoomSelection: "Ajustar la selección a la vista",
   toggleLayers: "Mostrar u ocultar el panel de capas",
   toggleLibraries: "Mostrar u ocultar las bibliotecas de elementos",
+  togglePointer: "Puntero: señalar el diagrama sin editarlo",
   contextMenu: "Abrir el menú contextual",
 };
 

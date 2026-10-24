@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   FALLBACK_COLOUR,
   LINE_WIDTH,
+  MAX_LASER_MS,
+  MAX_LASER_POINTS,
   MAX_MARKS,
   MAX_NAME,
   MAX_PEOPLE,
@@ -16,6 +18,8 @@ import {
   outlineBox,
   parseColour,
   presenceMarks,
+  readLaser,
+  readMe,
   readPeople,
   tagPlacement,
   tagTextColour,
@@ -343,5 +347,87 @@ describe("where the outlines and the tags go", () => {
     const at = tagPlacement(stack(1, line)[0]!);
     expect(at.y + TAG_HEIGHT).toBeLessThanOrEqual(200);
     expect(at.x).toBeLessThanOrEqual(40);
+  });
+});
+
+describe("the trail batch of a person", () => {
+  const batch = (points: unknown, extra: Record<string, unknown> = {}) => ({
+    batch: 7,
+    points,
+    ...extra,
+  });
+  const ten = Array.from({ length: 10 }, (_, i) => ({ x: 120 + i * 10, y: 80, t: i * 20 }));
+
+  it("reads a batch that fits", () => {
+    expect(readLaser(batch(ten))).toEqual({ batch: 7, points: ten });
+    expect(readLaser(batch([]))).toEqual({ batch: 7, points: [] });
+  });
+
+  it("takes the longest batch, and not one more", () => {
+    const edge = Array.from({ length: MAX_LASER_POINTS }, (_, i) => ({ x: i, y: 0, t: 0 }));
+    expect(readLaser(batch(edge))?.points).toHaveLength(MAX_LASER_POINTS);
+    expect(readLaser(batch([...edge, { x: 0, y: 0, t: 0 }]))).toBeUndefined();
+  });
+
+  it("refuses a point that is not two finite coordinates and an integer moment in range", () => {
+    const point = { x: 1, y: 2, t: 3 };
+    for (const bad of [
+      { ...point, x: Number.NaN },
+      { ...point, y: Infinity },
+      { ...point, x: "1" },
+      { ...point, x: 2_000_000 },
+      { ...point, t: MAX_LASER_MS + 1 },
+      { ...point, t: 5000 },
+      { ...point, t: -1 },
+      { ...point, t: 1.5 },
+      { x: 1, y: 2 },
+      null,
+      "point",
+    ]) {
+      expect(readLaser(batch([point, bad])), JSON.stringify(bad)).toBeUndefined();
+    }
+  });
+
+  it("refuses a batch number that is not an integer, and anything that is not a batch", () => {
+    expect(readLaser({ batch: 1.5, points: [] })).toBeUndefined();
+    expect(readLaser({ batch: "7", points: [] })).toBeUndefined();
+    expect(readLaser({ batch: 7, points: "none" })).toBeUndefined();
+    expect(readLaser(null)).toBeUndefined();
+    expect(readLaser([])).toBeUndefined();
+  });
+
+  it("rides on the person, and a batch that does not fit leaves the person and their pointer", () => {
+    const [ben, eve] = readPeople([
+      {
+        name: "Ben",
+        colour: "#e03131",
+        selection: [],
+        pointer: { x: 120, y: 80 },
+        laser: batch(ten),
+      },
+      {
+        name: "Eve",
+        colour: "#1971c2",
+        selection: [],
+        pointer: { x: 5, y: 6 },
+        laser: batch([{ x: Number.NaN, y: 0, t: 0 }]),
+      },
+    ]);
+    expect(ben!.laser).toEqual({ batch: 7, points: ten });
+    expect(eve!.laser).toBeUndefined();
+    expect(eve!.pointer).toEqual({ x: 5, y: 6 });
+  });
+});
+
+describe("the colour the host names for the person at this canvas", () => {
+  it("reads a colour as #rrggbb", () => {
+    expect(readMe({ colour: "#E03131" })).toBe("#e03131");
+    expect(readMe({ colour: "rgb(224, 49, 49)" })).toBe("#e03131");
+  });
+
+  it("is none for anything that is not a colour", () => {
+    for (const bad of [undefined, null, {}, { colour: "red" }, { colour: 5 }, "#e03131"]) {
+      expect(readMe(bad), String(bad)).toBeUndefined();
+    }
   });
 });

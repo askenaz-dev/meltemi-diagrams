@@ -1,7 +1,7 @@
 language "0.2"
 
 // A slide: nested groups placed by their interiors, three layers, six box shapes, text styles,
-// icons drawn from the packs and a routed connector.
+// icons drawn from the packs, a routed connector and an outlined note attached to a box.
 diagram composition: free {
   title "Event platform"
   preset slide
@@ -29,6 +29,7 @@ diagram composition: free {
   box warehouse "Warehouse"
   icon cloud "tabler:cloud" { layer front }
   text note "Retention: 7 days" { layer front }
+  note remark "Checked at the gateway" on gateway { layer front }
 
   web -> gateway as fromWeb
   mobile -> gateway as fromMobile
@@ -52,6 +53,7 @@ diagram composition: free {
     place warehouse at (1640, 940)
     place cloud at (1640, 380)
     place note at (1640, 460)
+    place remark at (330, 230)
     route load from archive.south to warehouse.west via [(1220, 940)]
     route fromMobile from mobile.east to gateway.west
     route publish from gateway.east to topics.north
@@ -69,6 +71,7 @@ diagram composition: free {
   style mobile { shape ellipse }
   style warehouse { shape cylinder }
   style note { fill "#fff7d6"; stroke warning }
+  style remark { fill "#fff7d6"; stroke warning; line dashed }
   style cloud { iconColor accent }
   animate publish { effect flow; duration 1600ms; repeat forever }
 }

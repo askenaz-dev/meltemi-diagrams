@@ -121,7 +121,19 @@ export interface PersonView {
   readonly selection: readonly string[];
   /** Where the person's pointer is, in diagram units; undefined when the host sent none that will do. */
   readonly pointer: Point | undefined;
+  /** The person's newest Pointer trail batch, when the host sent one that fits the bounds. */
+  readonly laser?: LaserBatch;
 }
+
+/** A batch of points of a Pointer trail: `t` is milliseconds since the batch's first point. */
+export interface LaserBatch {
+  readonly batch: number;
+  readonly points: readonly { readonly x: number; readonly y: number; readonly t: number }[];
+}
+
+/** At most this many points in a batch, and this long a batch lasts, in milliseconds. */
+export const MAX_LASER_POINTS = 64;
+export const MAX_LASER_MS = 1000;
 
 /** Bounds on what a host may send, so that a hostile or broken message cannot flood the page. */
 export const MAX_PEOPLE = 50;
@@ -141,6 +153,38 @@ export function readPointer(value: unknown): Point | undefined {
 }
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
+
+/**
+ * A Pointer trail batch the host sent: an integer `batch` and at most `MAX_LASER_POINTS` points, each
+ * `x` and `y` two finite numbers within the pointer bound and `t` an integer from 0 to
+ * `MAX_LASER_MS`. A batch that does not fit in any point is none: it is not drawn, and the person's
+ * cursor is.
+ */
+export function readLaser(value: unknown): LaserBatch | undefined {
+  if (!isObject(value)) return undefined;
+  const { batch, points } = value;
+  if (typeof batch !== "number" || !Number.isInteger(batch)) return undefined;
+  if (!Array.isArray(points) || points.length > MAX_LASER_POINTS) return undefined;
+  const read: { x: number; y: number; t: number }[] = [];
+  for (const entry of points) {
+    if (!isObject(entry)) return undefined;
+    const { x, y, t } = entry;
+    const fits = (n: unknown): n is number =>
+      typeof n === "number" && Number.isFinite(n) && Math.abs(n) <= MAX_POINTER;
+    if (!fits(x) || !fits(y)) return undefined;
+    if (typeof t !== "number" || !Number.isInteger(t) || t < 0 || t > MAX_LASER_MS)
+      return undefined;
+    read.push({ x, y, t });
+  }
+  return { batch, points: read };
+}
+
+/** The colour the host names for the person at this canvas: `#rrggbb`, or none. */
+export function readMe(value: unknown): string | undefined {
+  if (!isObject(value) || typeof value.colour !== "string") return undefined;
+  const rgb = parseColour(value.colour);
+  return rgb ? toHex(rgb) : undefined;
+}
 
 /**
  * Reads the `people` of a `presence` message, which crossed a message channel and is not trusted:
@@ -163,12 +207,14 @@ export function readPeople(value: unknown): PersonView[] {
       if (selection.length >= MAX_SELECTED) break;
       if (typeof id === "string" && id.length <= MAX_ID) selection.push(id);
     }
+    const laser = readLaser(entry.laser);
     people.push({
       name: entry.name.slice(0, MAX_NAME),
       colour: toHex(rgb),
       text: tagTextColour(rgb),
       selection,
       pointer: readPointer(entry.pointer),
+      ...(laser ? { laser } : {}),
     });
   }
   return people;

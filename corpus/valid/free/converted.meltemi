@@ -12,6 +12,7 @@ diagram grouped: flow {
     api --> cache as warm
   }
   web["Web"]
+  note why "Cached for five minutes" on api
   web -> api: "HTTPS" as call
   decision approved "Approved?"
   node notify "Notify" {
@@ -35,27 +36,30 @@ diagram grouped_free: free {
     api --> cache as warm
   }
   box web "Web" { link grouped.web }
+  note why "Cached for five minutes" on api { link grouped.why }
   box approved "Approved?" { class from_decision; link grouped.approved }
   box notify "Notify" { description "Sends emails"; link grouped.notify }
   web -> api: "HTTPS" as call
   approved -> notify: "yes"
 
   placement {
-    place backend at (452, 142)
-    size backend (409, 260)
-    place api at (80, 81)
+    place backend at (600, 152)
+    size backend (462, 280)
+    place api at (80, 86)
     size api (160, 56)
-    place data at (281, 102)
-    size data (192, 204)
+    place data at (334, 112)
+    size data (192, 224)
     place db at (80, 32)
     size db (160, 64)
-    place cache at (80, 116)
+    place cache at (80, 136)
     size cache (160, 64)
-    place web at (92, 133)
+    place web at (92, 138)
     size web (160, 56)
-    place approved at (92, 340)
+    place why at (972, 296)
+    size why (125, 22)
+    place approved at (92, 381)
     size approved (160, 80)
-    place notify at (327, 340)
+    place notify at (449, 381)
     size notify (160, 56)
   }
 

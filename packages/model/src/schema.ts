@@ -77,7 +77,15 @@ export const ANIMATION_DEFAULT_DURATIONS = {
 /** Element kinds of flow diagrams. */
 export const ELEMENT_KINDS = ["node", "decision", "data", "group", "note", "tag"] as const;
 /** Object kinds of free diagrams. */
-export const FREE_ELEMENT_KINDS = ["box", "text", "icon", "image", "line", "group"] as const;
+export const FREE_ELEMENT_KINDS = [
+  "box",
+  "text",
+  "icon",
+  "image",
+  "note",
+  "line",
+  "group",
+] as const;
 /** Participant kinds of sequence diagrams. */
 export const PARTICIPANT_KINDS = [
   "participant",
@@ -679,11 +687,12 @@ export const C4_PROFILE: ProfileSchema = {
     level: { kind: "enum", values: C4_LEVELS },
     scope: { kind: "name" },
   },
-  // Elements come from the model; views declare none.
-  elementKinds: [],
+  // Elements come from the model; views declare notes, never entities.
+  elementKinds: ["note"],
   shorthand: { box: "container", data: "datastore" },
   implicitKind: "container",
-  elementProperties: {},
+  // A view's note takes `class` and `url`; `description`, `layer` and `link` stay refused.
+  elementProperties: { class: { kind: "classes" }, url: { kind: "url" } },
   groupProperties: {},
   relationProperties: {
     description: { kind: "string" },
@@ -696,7 +705,7 @@ export const C4_PROFILE: ProfileSchema = {
   ports: PORTS,
   styleProperties: { ...STYLE_PROPERTIES, class: { kind: "classes" } },
   animateProperties: ANIMATE_PROPERTIES,
-  ruleKinds: [...C4_ELEMENT_KINDS, "relation"],
+  ruleKinds: [...C4_ELEMENT_KINDS, "note", "relation"],
   events: [],
 };
 

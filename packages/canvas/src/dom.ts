@@ -81,6 +81,9 @@ export const ICONS = {
   zoomOut: "M7 3.5a3.5 3.5 0 1 1 0 7 3.5 3.5 0 0 1 0-7z|M9.6 9.6L13 13|M5.5 7h3",
   fit: "M2.5 5.5v-3h3|M10.5 2.5h3v3|M13.5 10.5v3h-3|M5.5 13.5h-3v-3",
   grid: "M2.5 2.5h11v11h-11z|M6.2 2.5v11|M9.8 2.5v11|M2.5 6.2h11|M2.5 9.8h11",
+  /** The Pointer tool: a dot with the trail it leaves. */
+  pointer:
+    "M2.5 12.5c1.7-.3 3.2-1.4 4.4-3.2|M12.8 6a2.1 2.1 0 1 1-4.2 0 2.1 2.1 0 0 1 4.2 0z|M6.9 9.3L8.9 7.6",
   snap: "M4 2.5v5a4 4 0 0 0 8 0v-5|M4 5h2.5|M9.5 5H12",
   minimap: "M2.5 3.5h11v9h-11z|M8 8h4v3H8z",
   inspector: "M2.5 3.5h11v9h-11z|M10 3.5v9",

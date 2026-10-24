@@ -145,7 +145,7 @@ temas importados se usan por su nombre: `theme "corp"`, `theme "company.corporat
 | `decision`      | `decision <id> ["Label"] [{ ... }]`                                                     |                                                                                                         |
 | `data`          | `data <id> ["Label"] [{ ... }]`                                                         |                                                                                                         |
 | `group`         | `group <id> ["Label"] [{ ... }]`                                                        | contiene declaraciones y relaciones; con `""`, un contenedor simple sin banda del título                |
-| `note`          | `note <id> "Text\nmore text"`                                                           | texto libre; `\n` empieza una línea nueva                                                               |
+| `note`          | `note <id> "Text\nmore text" [on <element>]`                                            | texto libre; `\n` empieza una línea nueva; `on` la adjunta a un elemento (una guía punteada)            |
 | `tag`           | `tag <id> "PKCE"`                                                                       | una píldora pequeña, colocada sobre una caja o junto a ella                                             |
 | relación        | `a -> b`, `a --> b`, `a <-> b`, `a <--> b`, `a -- b`, `a --- b`, `: "Label"`, `as <id>` | continua o discontinua, en un sentido, bidireccional o una línea sin puntas; los extremos son elementos |
 | `direction`     | `direction LR`                                                                          | `LR` (predeterminado), `RL`, `TB`, `BT`                                                                 |
@@ -172,7 +172,11 @@ para `--` y `---`. Una línea no dibuja punta en ningún extremo salvo que se es
 las vistas C4, `->` y `-->`; otro símbolo es `prop.invalid-value` sobre el símbolo, que nombra los
 que acepta el perfil. `note` y `tag` son anotaciones: participan
 en la colocación y en el dibujo como cualquier elemento (consulta [svg-export.md](svg-export.md)) y
-rara vez son extremos de relaciones. Un bloque `style` o `animate` con varios destinos se aplica a
+rara vez son extremos de relaciones. La cláusula `on <element>` de una nota la adjunta a un elemento
+del diagrama (la ruta de la entidad en una vista C4): el modelo la registra como `attachedTo`, dibuja
+una guía punteada de la nota al elemento y hace que la disposición de `layout auto` los mantenga
+cerca. `note` es también una declaración de los diagramas libres y de las vistas C4
+([free.md](free.md#notas), [c4.md](c4.md#notas-en-las-vistas)). Un bloque `style` o `animate` con varios destinos se aplica a
 cada uno de ellos; volver a asignar la misma propiedad de estilo a un destino en una instrucción
 posterior es `prop.duplicate`, y un segundo efecto del mismo tipo sobre un destino es
 `animate.conflict` ([motion.md](motion.md)). Las clases, las reglas, los preajustes y el orden en

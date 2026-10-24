@@ -188,6 +188,13 @@ export const es: typeof en = {
       sourceUnreadable: "No se puede leer el icono o la ruta de la imagen.",
     },
 
+    attach: {
+      onlyNotes: (id, kind) => `${code(id)} es ${kind}: solo las notas se unen.`,
+      self: (id) => `Una nota no puede estar unida a sí misma: ${code(id)}.`,
+      notDrawn: (path, view) =>
+        `${code(path)} no se dibuja en la vista ${code(view)}; inclúyelo primero.`,
+      kinds: (kind) => `Solo una nota admite una unión, no ${kind}.`,
+    },
     lines: {
       freeOnly: "Las líneas que no unen elementos pertenecen a las composiciones libres.",
       notALine: (id) => `\`${id}\` no es una línea.`,
@@ -393,6 +400,8 @@ export const es: typeof en = {
     },
 
     c4: {
+      onlyNotes: (kind, model) =>
+        `Una vista de ${code(model)} declara solo notas, no ${kind}: crea entidades con createEntity en el modelo y dibújalas con includeEntity.`,
       notInView: (operation, model) =>
         `${code(operation)} no se aplica a las vistas C4, que dibujan las entidades del modelo ${code(model)}; cambia el modelo con las operaciones de entidades, y la vista con includeEntity, excludeEntity, setLocalLabel, la colocación y los estilos.`,
       notView: (id) => `${code(id)} no es una vista C4.`,
@@ -465,6 +474,7 @@ export const es: typeof en = {
       Object.hasOwn(DEPENDENTS, kind)
         ? `${DEPENDENTS[kind]!} ${code(name)} en la línea ${line}`
         : `${code(kind)} de ${code(name)} en la línea ${line}`,
+    attachment: (note, line) => `la nota ${code(note)} está unida a él, en la línea ${line}`,
     viewList: (keyword, view, line) =>
       `${code(keyword)} de la vista ${code(view)} en la línea ${line}`,
     drawnIn: (relation, view, line) =>

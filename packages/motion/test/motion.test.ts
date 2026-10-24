@@ -5,6 +5,7 @@ import {
   type GroupItem,
   type PathItem,
   type PolylineItem,
+  type RectItem,
   type Scene,
   type SceneItem,
 } from "@meltemi/diagrams-layout";
@@ -587,6 +588,44 @@ describe("sketched strokes", () => {
       /stroke-dasharray="[^"]+" stroke-dashoffset="[^"]+"/.exec(pass)![0];
     expect(dash(passes[0]!)).toBe(dash(passes[1]!));
     expect(dash(passes[0]!)).not.toContain('stroke-dashoffset="0"');
+  });
+});
+
+describe("effects on notes", () => {
+  const NOTE = [
+    "  node api",
+    '  note limits "500 rps" on api',
+    '  style limits { stroke "#e8a600" }',
+    "  animate limits { effect dash }",
+    "  animate limits { effect pulse }",
+    "  placement {",
+    "    place api at (100, 100)",
+    "    place limits at (100, 300)",
+    "  }",
+  ].join("\n");
+
+  it("moves the dash of an outlined note along its rect, not its leader", () => {
+    const { scene, plan } = draw(NOTE);
+    const effect = plan.effects.find((e) => e.effect === "dash")!;
+    expect(effect.target).toBe("limits");
+    const frame = sceneAt(scene, plan, 400);
+    const note = sceneGroups(frame.items).find((g) => g.role === "element" && g.id === "limits")!;
+    const outline = note.items.find((i): i is RectItem => i.kind === "rect")!;
+    expect(outline.dash).toBeDefined();
+    const leader = note.items.find(
+      (i): i is PolylineItem => i.kind === "polyline" && i.className === "leader",
+    )!;
+    expect(leader).toBeDefined();
+    expect(leader.dash).toBeUndefined();
+    // The leader is the last item of the group, after the outline and the text.
+    expect(note.items[note.items.length - 1]).toBe(leader);
+  });
+
+  it("pulses a note on its box, and the halo is planned on it", () => {
+    const { plan } = draw(NOTE);
+    const pulse = plan.effects.find((e) => e.effect === "pulse")!;
+    expect(pulse.target).toBe("limits");
+    expect(pulse.bounds).not.toBeNull();
   });
 });
 

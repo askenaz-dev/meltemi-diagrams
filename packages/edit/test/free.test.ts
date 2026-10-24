@@ -620,7 +620,6 @@ describe("converting to free", () => {
       metrics: {
         groupPadding: theme.groupPadding,
         groupHeader: theme.groupHeader,
-        noteSize: scale.note,
         tagSize: scale.tag,
       },
     });
@@ -666,7 +665,9 @@ describe("converting to free", () => {
       '  group backend "Backend" {\n    link d.backend\n    box api "API" { link d.api }',
     );
     expect(after).toContain("    api -> db\n  }");
-    expect(after).toContain('  text n "Remember" { class from_note; link d.n }');
+    // A note stays a note, with no class of its own.
+    expect(after).toContain('  note n "Remember" { link d.n }');
+    expect(after).not.toContain("from_note");
     expectSameBoxes(after, "d_free", source);
   });
 
@@ -740,7 +741,7 @@ describe("converting to free", () => {
         kind: "convertToFree",
         diagram: "d",
         boxes: new Map(),
-        metrics: { groupPadding: 16, groupHeader: 40, noteSize: 11, tagSize: 10.5 },
+        metrics: { groupPadding: 16, groupHeader: 40, tagSize: 10.5 },
       }),
     ).toMatch(/has no drawn box/);
   });

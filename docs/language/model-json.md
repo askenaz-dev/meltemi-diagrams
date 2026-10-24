@@ -103,24 +103,25 @@ exclusive.
 
 ### Element
 
-| Key           | Type           | Meaning                                                                                                                                                                          |
-| ------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`          | string         | Element id.                                                                                                                                                                      |
-| `kind`        | string         | `node`, `decision`, `data`, `group`, `note` or `tag`; in free diagrams `box`, `text`, `icon`, `image`, `line` or `group`; in sequence diagrams the participant kinds or `group`. |
-| `label`       | string         | Visible text; defaults to the id.                                                                                                                                                |
-| `implicit`    | boolean        | True when only a relation mentions the element.                                                                                                                                  |
-| `description` | string or null | From an element or group block.                                                                                                                                                  |
-| `url`         | string or null | The `url` of the block, or of the entity in C4 views.                                                                                                                            |
-| `classes`     | array          | Class names applied in the declaration block, in order.                                                                                                                          |
-| `ports`       | array          | Named ports: `{ "name", "side", "position" }`.                                                                                                                                   |
-| `layer`       | string or null | The `layer` of the block (free diagrams).                                                                                                                                        |
-| `link`        | object or null | `{ "binding", "diagram", "element" }`; `binding` is null for links in the same file.                                                                                             |
-| `source`      | string or null | The icon reference or image path of `icon` and `image` objects.                                                                                                                  |
-| `shape`       | string or null | The shape the declaration implies: `cylinder` for `id[("…")]`, null otherwise. A `shape` written in a style stays in `styles`.                                                   |
-| `line`        | object or null | The points of a free `line` object, in its group's interior: `{ "from": { "x", "y" }, "to": { "x", "y" }, "via": [ { "x", "y" }, … ] }`; null on every other kind.               |
-| `groupPath`   | array          | Ids of the enclosing groups, outermost first.                                                                                                                                    |
-| `range`       | range          | Declaring statement, or the first mention for implicit elements.                                                                                                                 |
-| `idRange`     | range          | The identifier token.                                                                                                                                                            |
+| Key           | Type           | Meaning                                                                                                                                                                                  |
+| ------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | string         | Element id.                                                                                                                                                                              |
+| `kind`        | string         | `node`, `decision`, `data`, `group`, `note` or `tag`; in free diagrams `box`, `text`, `icon`, `image`, `line`, `note` or `group`; in sequence diagrams the participant kinds or `group`. |
+| `label`       | string         | Visible text; defaults to the id.                                                                                                                                                        |
+| `implicit`    | boolean        | True when only a relation mentions the element.                                                                                                                                          |
+| `description` | string or null | From an element or group block.                                                                                                                                                          |
+| `url`         | string or null | The `url` of the block, or of the entity in C4 views.                                                                                                                                    |
+| `classes`     | array          | Class names applied in the declaration block, in order.                                                                                                                                  |
+| `ports`       | array          | Named ports: `{ "name", "side", "position" }`.                                                                                                                                           |
+| `layer`       | string or null | The `layer` of the block (free diagrams).                                                                                                                                                |
+| `link`        | object or null | `{ "binding", "diagram", "element" }`; `binding` is null for links in the same file.                                                                                                     |
+| `source`      | string or null | The icon reference or image path of `icon` and `image` objects.                                                                                                                          |
+| `shape`       | string or null | The shape the declaration implies: `cylinder` for `id[("…")]`, null otherwise. A `shape` written in a style stays in `styles`.                                                           |
+| `line`        | object or null | The points of a free `line` object, in its group's interior: `{ "from": { "x", "y" }, "to": { "x", "y" }, "via": [ { "x", "y" }, … ] }`; null on every other kind.                       |
+| `attachedTo`  | string or null | The element a `note` is attached to (`on <element>`; the entity path in a C4 view); null on every other kind and on a note with no `on`.                                                 |
+| `groupPath`   | array          | Ids of the enclosing groups, outermost first.                                                                                                                                            |
+| `range`       | range          | Declaring statement, or the first mention for implicit elements.                                                                                                                         |
+| `idRange`     | range          | The identifier token.                                                                                                                                                                    |
 
 ### Relation
 

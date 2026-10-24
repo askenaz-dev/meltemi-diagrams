@@ -8,8 +8,8 @@
 //   client to room   { "<any key>": <state> | null }
 //   room to client   { "<connection id>": <peer> | null, ... }
 //
-// `<state>` is `{ file?, caret?, canvas? }` (`parseAwareness`), `canvas` holding the selection and
-// the pointer, `<peer>` is the same with the room's `user` on it (`guest` included, so that every
+// `<state>` is `{ file?, caret?, canvas? }` (`parseAwareness`), `canvas` holding the selection, the
+// pointer and the points of the Pointer tool's trail, `<peer>` is the same with the room's `user` on it (`guest` included, so that every
 // page badges a person without an account from the room's word alone). From a client the map holds
 // exactly ONE entry, which is the client's own state; the
 // key the client gives it is ignored, because the room keys what it relays by the sender's
@@ -32,6 +32,10 @@ export const AWARENESS_CLOSE_ABOVE = 100;
 export const AWARENESS_WINDOW_MS = 1_000;
 /** What a socket's attachment may hold, as the platform caps it (2 KiB serialised). */
 export const ATTACHMENT_BYTES = 2 * 1024;
+
+/** The most points of a Pointer trail one state carries, and the longest it lasts in milliseconds. */
+export const MAX_LASER_POINTS = 64;
+export const MAX_LASER_MS = 1000;
 
 /** The longest encoded relative position of a caret (the page's own encoding, opaque to the room). */
 const MAX_POSITION = 256;
@@ -56,18 +60,30 @@ export interface AwarenessPointer {
   readonly diagram?: string;
 }
 
+/**
+ * The points a stroke of the Pointer tool made since the client's last state (`live-collaboration`,
+ * "Pointer trails"): at most `MAX_LASER_POINTS`, `x` and `y` in diagram units to a tenth, `t` the
+ * milliseconds since the first, 0 to `MAX_LASER_MS`, and the diagram they are over when the page said.
+ * It rides in the same message as the pointer, is relayed once and never kept.
+ */
+export interface AwarenessLaser {
+  readonly points: readonly { readonly x: number; readonly y: number; readonly t: number }[];
+  readonly diagram?: string;
+}
+
 /** What a client publishes. Every part is optional: a client with no file open publishes `{}`. */
 export interface AwarenessState {
   /** The id of the file the person has open (`FILE_ID`), so that presence survives a rename. */
   readonly file?: string;
   readonly caret?: AwarenessCaret;
   /**
-   * The ids of the elements selected on the canvas, and the pointer while it moves over it. Never
-   * kept by the room, only relayed.
+   * The ids of the elements selected on the canvas, the pointer while it moves over it and the
+   * points of a Pointer stroke. Never kept by the room, only relayed.
    */
   readonly canvas?: {
     readonly selection: readonly string[];
     readonly pointer?: AwarenessPointer;
+    readonly laser?: AwarenessLaser;
   };
 }
 
@@ -139,7 +155,7 @@ export function parseAwareness(payload: Uint8Array): ParsedAwareness | undefined
   const state: {
     file?: string;
     caret?: AwarenessCaret;
-    canvas?: { selection: string[]; pointer?: AwarenessPointer };
+    canvas?: { selection: string[]; pointer?: AwarenessPointer; laser?: AwarenessLaser };
   } = {};
   const file = entry["file"];
   if (file !== undefined && file !== null) {
@@ -157,7 +173,7 @@ export function parseAwareness(payload: Uint8Array): ParsedAwareness | undefined
   const canvas = entry["canvas"];
   if (canvas !== undefined && canvas !== null) {
     if (!isRecord(canvas)) return undefined;
-    // A canvas part holds a selection, a pointer or both; one without either is not a part.
+    // A canvas part holds a selection, a pointer, a laser or any of them; one without is not a part.
     const listed = canvas["selection"];
     if (listed !== undefined && !Array.isArray(listed)) return undefined;
     const selection: string[] = [];
@@ -172,8 +188,18 @@ export function parseAwareness(payload: Uint8Array): ParsedAwareness | undefined
       pointer = parsePointer(given);
       if (!pointer) return undefined;
     }
-    if (listed === undefined && !pointer) return undefined;
-    state.canvas = pointer ? { selection, pointer } : { selection };
+    const stroke = canvas["laser"];
+    let laser: AwarenessLaser | undefined;
+    if (stroke !== undefined && stroke !== null) {
+      laser = parseLaser(stroke);
+      if (!laser) return undefined;
+    }
+    if (listed === undefined && !pointer && !laser) return undefined;
+    state.canvas = {
+      selection,
+      ...(pointer ? { pointer } : {}),
+      ...(laser ? { laser } : {}),
+    };
   }
   return { state };
 }
@@ -197,6 +223,40 @@ function parsePointer(value: unknown): AwarenessPointer | undefined {
   if (diagram === undefined || diagram === null) return { x, y };
   const id = bounded(diagram, MAX_ELEMENT);
   return id === undefined ? undefined : { x, y, diagram: id };
+}
+
+/**
+ * A Pointer stroke from a client: at most `MAX_LASER_POINTS` points, each with `x` and `y` finite
+ * within `MAX_POINTER` (kept to a tenth) and `t` an integer from 0 to `MAX_LASER_MS`, and maybe the
+ * diagram. Anything else is undefined, and the whole message is invalid.
+ */
+function parseLaser(value: unknown): AwarenessLaser | undefined {
+  if (!isRecord(value)) return undefined;
+  const given = value["points"];
+  if (!Array.isArray(given) || given.length > MAX_LASER_POINTS) return undefined;
+  const points: { x: number; y: number; t: number }[] = [];
+  for (const entry of given as unknown[]) {
+    if (!isRecord(entry)) return undefined;
+    const x = tenths(entry["x"]);
+    const y = tenths(entry["y"]);
+    const t = entry["t"];
+    if (x === undefined || y === undefined) return undefined;
+    if (typeof t !== "number" || !Number.isInteger(t) || t < 0 || t > MAX_LASER_MS)
+      return undefined;
+    points.push({ x, y, t });
+  }
+  const diagram = value["diagram"];
+  if (diagram === undefined || diagram === null) return { points };
+  const id = bounded(diagram, MAX_ELEMENT);
+  return id === undefined ? undefined : { points, diagram: id };
+}
+
+/** A coordinate of a laser point: finite, within `MAX_POINTER`, to a tenth of a diagram unit. */
+function tenths(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || Math.abs(value) > MAX_POINTER) {
+    return undefined;
+  }
+  return Math.round(value * 10) / 10 || 0;
 }
 
 /** The identity of a person as the room attaches it to what it relays. */

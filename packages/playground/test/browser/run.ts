@@ -1308,6 +1308,85 @@ const tests: Test[] = [
     },
   },
   {
+    name: "points with K on the canvas: a trail is drawn, nothing is selected and the code is untouched",
+    async run({ page }) {
+      const code = () =>
+        page.locator(".code-input").evaluate((area: HTMLTextAreaElement) => area.value);
+      const before = await code();
+      const api = page.locator('#app .content g[data-id="api"][data-role="element"]').first();
+      await api.waitFor();
+      const box = (await api.boundingBox())!;
+      await page.locator("#app .stage").focus();
+      await page.keyboard.press("k");
+      assert.equal(
+        await page
+          .locator('#app .toolbar button[aria-label="Pointer"]')
+          .getAttribute("aria-pressed"),
+        "true",
+      );
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width / 2 + 90, box.y + box.height / 2 + 20, { steps: 8 });
+      await until(page, "a trail drawn on the presence canvas", () => {
+        const canvas = document.querySelector<HTMLCanvasElement>("#app .presence-trails");
+        const data = canvas?.getContext("2d")?.getImageData(0, 0, canvas.width, canvas.height);
+        return data !== undefined && data.data.some((value, i) => i % 4 === 3 && value > 0);
+      });
+      await page.screenshot({ path: join(output, "pointer-playground.png") });
+      await page.mouse.up();
+      // Nothing was pressed: no selection, no inspector for an element, the code as it was.
+      assert.match((await page.locator("#app .inspector h2").textContent()) ?? "", /Diagram/i);
+      assert.equal(await code(), before);
+      await page.keyboard.press("Escape");
+      assert.equal(
+        await page
+          .locator('#app .toolbar button[aria-label="Pointer"]')
+          .getAttribute("aria-pressed"),
+        "false",
+      );
+    },
+  },
+  {
+    name: "creates a note with O on a free diagram, and attaches it by dropping the tool on a box",
+    async run({ page }) {
+      await page
+        .locator(".code-input")
+        .fill(
+          'language "0.2"\n\ndiagram s: free {\n  layout manual\n  box a "A"\n  placement {\n    place a at (126, 112)\n  }\n}\n',
+        );
+      await analysed(page);
+      const a = page.locator('#app .content g[data-id="a"][data-role="element"]').first();
+      await a.waitFor();
+      await page.locator("#app .stage").focus();
+      await page.keyboard.press("o");
+      await until(page, "the note written into the code", () =>
+        /\n {2}note note1 "Note"\n/.test(
+          (document.querySelector(".code-input") as HTMLTextAreaElement).value,
+        ),
+      );
+      assert.equal(await page.locator("#app textarea.inline").inputValue(), "Note");
+      await page.keyboard.press("Escape");
+      // Dropping the palette's note tool on the box attaches the new note to it.
+      const tool = (await page.locator('#app .toolbar button[data-tool="note"]').boundingBox())!;
+      const box = (await a.boundingBox())!;
+      await page.mouse.move(tool.x + tool.width / 2, tool.y + tool.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 8 });
+      await page.mouse.up();
+      await until(page, "the attached note written into the code", () =>
+        /\n {2}note note2 "Note" on a\n/.test(
+          (document.querySelector(".code-input") as HTMLTextAreaElement).value,
+        ),
+      );
+      await until(
+        page,
+        "the leader drawn",
+        () => document.querySelectorAll("#app .content polyline.leader").length === 1,
+      );
+      await page.screenshot({ path: join(output, "note-playground.png") });
+    },
+  },
+  {
     name: "aligns a box's text to the top left with the strip's alignment picker",
     async run({ page }) {
       await page

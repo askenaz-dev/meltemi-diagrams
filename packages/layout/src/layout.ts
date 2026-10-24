@@ -85,6 +85,7 @@ import { markGradient } from "./mark.js";
 import {
   strokeDash,
   type GroupItem,
+  type PolylineItem,
   type RectItem,
   type Scene,
   type SceneGradient,
@@ -97,6 +98,7 @@ import { MIN_TEXT_MARGIN, TextMetrics, estimateMeasurer, type TextMeasurer } fro
 import {
   CORNERED_SHAPES,
   FIXED_TEXT_SHAPES,
+  boundaryToward,
   SHAPE_SIZES,
   agentHeight,
   framedLines,
@@ -2040,6 +2042,55 @@ function layoutDrawing(
     const c = boxCenter(box);
     return { ...group, transform: `rotate(${round(degrees)} ${round(c.x)} ${round(c.y)})` };
   };
+  /**
+   * An attached note's leader: a dotted polyline from where the segment between the two boxes'
+   * centres leaves the note to where it enters its element's outline (turned with the element),
+   * the last item of the note's group. None when the target is not drawn or the boxes overlap. A
+   * turned note's group turns its items, so the leader is written in the note's own frame.
+   */
+  const withLeader = (group: GroupItem, element: Element, box: Box): GroupItem => {
+    const targetId = element.attachedTo;
+    const target = targetId === null ? undefined : diagram.elementsById.get(targetId);
+    const placed = target && target.id !== element.id ? boxes.get(target.id) : undefined;
+    if (!target || !placed) return group;
+    const targetBox = shift(placed);
+    const overlaps =
+      box.x < targetBox.x + targetBox.width &&
+      targetBox.x < box.x + box.width &&
+      box.y < targetBox.y + targetBox.height &&
+      targetBox.y < box.y + box.height;
+    if (overlaps) return group;
+    const own = rotations.get(element.id) ?? 0;
+    const turnedTarget = rotations.get(target.id) ?? 0;
+    const shapeOf = (e: Element): BoxShape =>
+      e.kind === "tag" ? "pill" : e.kind === "group" ? "rectangle" : sizing.shapeOf(e);
+    const centres = { note: boxCenter(box), target: boxCenter(targetBox) };
+    const from = boundaryToward("rectangle", box, own, centres.target);
+    const to = boundaryToward(
+      shapeOf(target),
+      targetBox,
+      turnedTarget,
+      centres.note,
+      sizing.shapeOptions(target),
+    );
+    const local = (p: Point): Point => (own === 0 ? p : turnPoint(p, centres.note, -own));
+    const leader: PolylineItem = {
+      kind: "polyline",
+      points: [from, to].map(local).map((p) => ({ x: round(p.x), y: round(p.y) })),
+      stroke: theme.muted,
+      strokeWidth: theme.strokeWidth,
+      dashed: "dotted",
+      className: "leader",
+    };
+    return { ...group, items: [...group.items, leader] };
+  };
+  /** An element's drawing, turned when it is, with the leader of a note attached to something. */
+  const elementGroup = (element: Element, box: Box): GroupItem => {
+    const drawn = turn(emitter.element(element, box), box);
+    return element.kind === "note" && element.attachedTo !== null
+      ? withLeader(drawn, element, box)
+      : drawn;
+  };
   if (free) {
     const byKey = new Map(relationGeometry.map((g) => [g.relation.key, g]));
     for (const paintable of paintOrder(diagram)) {
@@ -2071,7 +2122,7 @@ function layoutDrawing(
         onLayer(
           paintable.kind === "group"
             ? emitter.group(paintable.element, box)
-            : turn(emitter.element(paintable.element, box), box),
+            : elementGroup(paintable.element, box),
           paintable.element.layer,
         ),
       );
@@ -2095,7 +2146,7 @@ function layoutDrawing(
         if (element.kind === "group" || element.kind === "tag" || indexOf(element.layer) !== layer)
           continue;
         const box = shift(boxes.get(element.id)!);
-        items.push(onLayer(turn(emitter.element(element, box), box), element.layer));
+        items.push(onLayer(elementGroup(element, box), element.layer));
       }
       for (const geometry of relationGeometry) {
         if (indexOf(geometry.relation.layer) !== layer) continue;
@@ -2447,6 +2498,31 @@ function arrangeRequest(
       },
     ];
   });
+  // An attached note is arranged beside its element as a dashed relation from the element would
+  // be (the element first, so the note follows it in the flow's direction): in `auto`, and for a
+  // note that has no place in `assisted`. The leader is no relation, so the route the engine
+  // answers for this edge is never read.
+  const attached = diagram.elements.flatMap((note) => {
+    const target = note.attachedTo;
+    if (note.kind !== "note" || target === null || target === note.id) return [];
+    if (fixedPlaces.has(note.id) || leftOut.has(note.id) || leftOut.has(target)) return [];
+    const element = diagram.elementsById.get(target);
+    if (!element || element.kind === "line" || !sizes.has(target) || !sizes.has(note.id)) {
+      return [];
+    }
+    return [
+      {
+        id: `attach${note.id}`,
+        source: target,
+        target: note.id,
+        sourcePort: null,
+        targetPort: null,
+        primary: false,
+        label: null,
+      },
+    ];
+  });
+  edges.push(...attached);
   // Free lines are drawn where their points are written: the engine never moves them.
   const nodes = diagram.elements
     .filter((e) => e.kind !== "group" && e.kind !== "line")
@@ -3193,8 +3269,24 @@ class Sizing {
   }
 
   /** Horizontal alignment of a box or text label. */
+  /**
+   * A note's font: the theme's note size at weight 400, or a free note's `fontSize` and
+   * `fontWeight`; its lines are as far apart as the note scale's ratio of line to size.
+   */
+  noteFont(element: Element): LabelFont {
+    const style = this.styles.element(element);
+    const size = style.fontSize ?? this.scale.note;
+    return {
+      size,
+      weight: style.fontWeight ?? 400,
+      line: Math.round((size * this.scale.noteLine) / this.scale.note),
+    };
+  }
+
   alignOf(element: Element): "left" | "center" | "right" {
-    if (element.kind === "text") return this.styles.element(element).textAlign ?? "left";
+    if (element.kind === "text" || element.kind === "note") {
+      return this.styles.element(element).textAlign ?? "left";
+    }
     if (element.kind === "box") return this.styles.element(element).textAlign ?? "center";
     return "center";
   }
@@ -3252,7 +3344,7 @@ class Sizing {
       case "tag":
         return this.place(style.icon, Math.round(scale.tag * 1.3), "left");
       case "note":
-        return this.place(style.icon, Math.round(scale.note * 1.3), "left");
+        return this.place(style.icon, Math.round(this.noteFont(element).size * 1.3), "left");
     }
     const icon = this.elementIcon(element);
     if (!icon) return undefined;
@@ -3796,10 +3888,11 @@ class Sizing {
         };
       }
       case "note": {
+        const font = this.noteFont(element);
         const best = widest(
           splitLines(element.label).map((line) => ({
             text: line,
-            width: metrics.width(line, "body", 400, scale.note),
+            width: metrics.width(line, "body", font.weight, font.size),
           })),
         );
         const width = Math.ceil(Math.max(best.width + beside, 1));
@@ -3869,7 +3962,7 @@ class Sizing {
       case "note":
         return {
           width: needs.width,
-          height: splitLines(element.label).length * scale.noteLine + 4,
+          height: splitLines(element.label).length * this.noteFont(element).line + 4,
         };
       case "text":
         return {
@@ -4619,7 +4712,7 @@ class Emitter {
   }
 
   private note(element: Element, box: Box): GroupItem {
-    const { theme, scale } = this;
+    const { theme } = this;
     const style = this.styles.element(element);
     const items: SceneItem[] = [];
     if (style.fill || style.stroke || style.pattern) {
@@ -4634,28 +4727,34 @@ class Emitter {
       items.push(outline, ...this.overlay(style, outline));
     }
     const color = style.color ?? theme.muted;
+    const font = this.sizing.noteFont(element);
     const icon = this.sizing.iconOf(element);
     const indent = icon ? icon.size + icon.gap : 0;
     if (icon) {
       items.push(
-        this.icon(
-          icon,
-          box.x + icon.size / 2,
-          box.y + scale.noteLine / 2,
-          style.iconColor ?? color,
-        ),
+        this.icon(icon, box.x + icon.size / 2, box.y + font.line / 2, style.iconColor ?? color),
       );
     }
+    // The lines are aligned in the room right of the icon: at its edge, its middle or the box's.
+    const align = this.sizing.alignOf(element);
+    const x =
+      align === "left"
+        ? box.x + indent
+        : align === "right"
+          ? box.x + box.width
+          : box.x + indent + (box.width - indent) / 2;
+    const anchor: TextItem["anchor"] =
+      align === "left" ? "start" : align === "right" ? "end" : "middle";
     splitLines(element.label).forEach((line, i) => {
       items.push(
         this.text(
-          box.x + indent,
-          box.y + scale.noteLine / 2 + i * scale.noteLine,
+          x,
+          box.y + font.line / 2 + i * font.line,
           line,
-          scale.note,
-          400,
+          font.size,
+          font.weight,
           color,
-          "start",
+          anchor,
         ),
       );
     });

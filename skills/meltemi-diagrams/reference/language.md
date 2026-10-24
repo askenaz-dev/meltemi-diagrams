@@ -50,7 +50,7 @@ it to an element of another diagram.
 | `node id "Label"`, `decision id "Label?"`, `data id "Label"` | typed declarations; label defaults to the id                                                  |
 | `group id "Label" { ... }`                                   | band holding declarations, relations and nested groups                                        |
 | `group id "" { ... }`                                        | a plain container: no title band, padding 16 px all round (free.md)                           |
-| `note id "Line one\nLine two"`                               | free text, left-aligned, no border                                                            |
+| `note id "Line one\nLine two" [on element]`                  | free text, left-aligned, no border; `on` attaches it to an element with a dotted leader       |
 | `tag id "PKCE"`                                              | small pill with mono text                                                                     |
 | `a -> b`, `a --> b`, `a <-> b`, `a <--> b`                   | solid or dashed relation, one way or two-way; undeclared ids become nodes                     |
 | `a -- b`, `a --- b`                                          | a solid or dashed line without heads between two elements                                     |
@@ -154,8 +154,9 @@ animate r1 { effect trace }                           // a highlight that fills 
 `pulseDuration` or `traceDuration`, else 1200 ms for flow, 1500 ms for trace and 1 s otherwise),
 `repeat` `forever` (default) or 1 to 1000, `delay`, `direction forward|reverse` (flow, dash and
 trace), `particles 1..8` (flow), `color` (flow, pulse and trace; a trace defaults to `accent`).
-Flow and trace run on relations (and free lines) only; dash on relations, free lines and boxes
-with an outline; pulse on elements, relations, notes and fragments. One effect of each
+Flow and trace run on relations (and free lines) only; dash on relations, free lines, boxes with
+an outline and notes or texts that style an outline (`fill`, `stroke` or `pattern`); pulse on
+elements, relations, notes and fragments. One effect of each
 kind per target (`animate.conflict`). Exports are static unless you ask:
 `pnpm mdg export sheet.meltemi --motion animated` writes an animated SVG (CSS keyframes, static
 fallback), `--at 1.5s` the frame at that time. Use the static export for documents and slides.

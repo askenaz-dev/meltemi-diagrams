@@ -103,7 +103,9 @@ describe("views", () => {
   it("draws the proposal's container view with its boundary", () => {
     const view = compile(commerce).document.diagrams.find((d) => d.id === "containers")!;
     expect(view.type).toBe("c4");
-    expect(ids(view)).toEqual(["shop", "customer", "shop.web", "shop.api", "shop.db"]);
+    // The entities first, then the view's own note.
+    expect(ids(view)).toEqual(["shop", "customer", "shop.web", "shop.api", "shop.db", "cache"]);
+    expect(view.elementsById.get("cache")).toMatchObject({ kind: "note", attachedTo: "shop.api" });
     expect(view.elementsById.get("shop")!.kind).toBe("group");
     expect(view.elementsById.get("shop.web")!.groupPath).toEqual(["shop"]);
     expect(view.relations.map((r) => r.key)).toEqual(
@@ -304,5 +306,76 @@ describe("links to model entities", () => {
     );
     expect(diagnostics[0]).toMatchObject({ code: "ref.unknown-link" });
     expect(diagnostics[0]!.hints![0]).toMatch(/shop\.api/);
+  });
+});
+
+describe("notes in views", () => {
+  it("declares a view-local note attached to a drawn entity", () => {
+    const { view, codes, compilation } = compileView(
+      '  level container\n  scope shop\n  note cache "Cached 5 min" on shop.api',
+    );
+    expect(codes).toEqual([]);
+    const note = view.elementsById.get("cache")!;
+    expect(note).toMatchObject({
+      kind: "note",
+      label: "Cached 5 min",
+      entity: null,
+      attachedTo: "shop.api",
+      groupPath: [],
+    });
+    expect(ids(view)).toContain("shop.api");
+    // The model is the view's alone to read: the note adds nothing to it.
+    expect(compilation.document.models[0]!.entities.map((e) => e.path)).not.toContain("cache");
+    expect(
+      view.entityReferences.some((r) => r.role === "attachment" && r.path === "shop.api"),
+    ).toBe(true);
+    expect(view.references.some((r) => r.role === "attachment")).toBe(true);
+  });
+
+  it("reports a path the view does not draw, an unknown path and a clash of ids", () => {
+    const context = compileView('  level context\n  note n "Text" on shop.api').compilation
+      .diagnostics;
+    expect(context.map((d) => d.code)).toEqual(["ref.unknown-element"]);
+    expect(context[0]!.message).toContain("not drawn");
+    const unknown = compileView('  level context\n  note n "Text" on nowhere').compilation
+      .diagnostics;
+    expect(unknown.map((d) => d.code)).toEqual(["ref.unknown-element"]);
+    const clash = compileView('  level context\n  note customer "Text"').compilation.diagnostics;
+    expect(clash.map((d) => d.code)).toEqual(["ref.duplicate-id"]);
+    const own = compileView('  level context\n  note n "Text" on n').compilation.diagnostics;
+    expect(own.map((d) => d.code)).toEqual(["prop.invalid-value"]);
+  });
+
+  it("keeps entities and the shorthand out, and notes out of lists and relations", () => {
+    const entity = compileView('  level container\n  scope shop\n  container worker "Worker"');
+    expect(entity.codes).toEqual(["prop.unknown"]);
+    const listed = compileView('  level context\n  note n "Text"\n  include n').codes;
+    expect(listed).toEqual(["ref.unknown-entity"]);
+    const related = compileView('  level context\n  note n "Text"\n  n -> customer').codes;
+    expect(related).toEqual(["ref.unknown-element"]);
+    const labelled = compileView('  level context\n  note n "Text"\n  label n "Other"').codes;
+    expect(labelled).toContain("ref.unknown-element");
+  });
+
+  it("takes class and url in its block and refuses the other properties", () => {
+    const ok = compileView(
+      '  level context\n  note n "Text" { class soft; url "https://example.com" }\n  class soft { fill "#fff3bf" }',
+    );
+    expect(ok.codes).toEqual([]);
+    expect(ok.view.elementsById.get("n")!.url).toBe("https://example.com");
+    const refused = compileView('  level context\n  note n "Text" { layer front }').codes;
+    expect(refused).toEqual(["prop.unknown"]);
+  });
+
+  it("styles and animates a note like any element, and needs its text", () => {
+    const styled = compileView(
+      '  level context\n  note n "Text" on customer\n  style n { fill "#fff3bf"; stroke "#e8a600" }\n  animate n { effect pulse }\n  animate n { effect dash }',
+    );
+    expect(styled.codes).toEqual([]);
+    expect(compileView("  level context\n  note n").compilation.diagnostics[0]!.message).toContain(
+      "needs its text",
+    );
+    const bare = compileView('  level context\n  note n "Text"\n  animate n { effect dash }');
+    expect(bare.codes).toEqual(["animate.invalid-target"]);
   });
 });

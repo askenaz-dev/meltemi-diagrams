@@ -75,6 +75,8 @@ export type CanvasCommand =
   | "zoomSelection"
   | "toggleLayers"
   | "toggleLibraries"
+  /** The Pointer tool: a trail that points at the diagram and edits nothing. */
+  | "togglePointer"
   | "contextMenu";
 
 export interface KeyBinding {
@@ -152,6 +154,8 @@ export const KEY_BINDINGS: readonly KeyBinding[] = [
   bind({ key: "d", command: "createDecision", profile: "flow" }),
   bind({ key: "s", command: "createData", profile: "flow" }),
   bind({ key: "o", command: "createNote", profile: "flow" }),
+  bind({ key: "o", command: "createNote", profile: "free" }),
+  bind({ key: "o", command: "createNote", profile: "c4" }),
   bind({ key: "t", command: "createTag", profile: "flow" }),
   // The icon picker, on flow and free diagrams: I again closes it.
   bind({ key: "i", command: "createIcon", profile: "flow" }),
@@ -173,6 +177,8 @@ export const KEY_BINDINGS: readonly KeyBinding[] = [
   bind({ key: "g", command: "createGroup" }),
   bind({ key: "l", command: "toggleLayers" }),
   bind({ key: "u", command: "toggleLibraries" }),
+  // Points at the diagram: on every profile, and on a read-only canvas too.
+  bind({ key: "k", command: "togglePointer" }),
   bind({ key: "+", command: "zoomIn" }),
   bind({ key: "=", command: "zoomIn" }),
   bind({ key: "-", command: "zoomOut" }),

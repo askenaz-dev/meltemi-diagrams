@@ -111,6 +111,16 @@ describe("grammar", () => {
     expect(declares.test("style a { line dashed }")).toBe(false);
   });
 
+  it("colours the `on` of a note's attachment as a placement word", () => {
+    const placement = (grammar.repository["keywords"]!.patterns ?? []).find((p) =>
+      p.match?.startsWith("\\b(place|size|route"),
+    );
+    expect(placement).toBeDefined();
+    const words = new RegExp(placement!.match!);
+    expect(words.test(' note n "Text" on api')).toBe(true);
+    expect(words.test("only")).toBe(false);
+  });
+
   it("is referenced by the manifest with the language configuration and snippets", () => {
     const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
     const contributes = manifest.contributes;

@@ -688,6 +688,16 @@ describe("keys and messages", () => {
     expect(commandFor(key("m"), false, "free")).toBe("createImage");
     expect(commandFor(key("n"), false, "free")).toBeUndefined();
     expect(commandFor(key("b"))).toBeUndefined();
+    // O makes a note on every diagram that has notes of its own, and a note over the selection on
+    // a sequence diagram.
+    expect(commandFor(key("o"))).toBe("createNote");
+    expect(commandFor(key("o"), false, "free")).toBe("createNote");
+    expect(commandFor(key("o"), false, "c4")).toBe("createNote");
+    expect(commandFor(key("o"), false, "sequence")).toBe("createSequenceNote");
+    // K points at the diagram on every profile.
+    for (const profile of ["flow", "free", "sequence", "c4"] as const) {
+      expect(commandFor(key("k"), false, profile), profile).toBe("togglePointer");
+    }
     const bracket = (shiftKey: boolean, code: string) =>
       key(shiftKey ? "}" : "]", { ctrlKey: true, shiftKey, code });
     expect(commandFor(bracket(true, "BracketRight"))).toBe("bringToFront");
