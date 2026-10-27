@@ -76,6 +76,8 @@ import {
   assertBase32IsTheRfcs,
   assertError,
   bearer,
+  describeLogged,
+  downloaded,
   expectOpen,
   expectedCheck,
   listen,
@@ -1034,13 +1036,20 @@ async function runScenario(
   const allowed = [worker.origin];
   const devices: Device[] = [];
   const pages: Page[] = [];
-  /** What every browser of the scenario logged, minus what the scenario provokes on purpose. */
-  const logged = (): string[] =>
-    [seen, ...devices.map((device) => device.seen)]
-      .flatMap((watched) => withoutDownloads(watched.errors, watched.downloads.count))
+  /** What each browser of the scenario saw. */
+  const browsers = () => [seen, ...devices.map((device) => device.seen)];
+  /** The downloads of every browser of the scenario, once they have ended. */
+  const files = () => downloaded(browsers().flatMap((watched) => watched.downloads));
+  /** What every browser of the scenario logged, minus its downloads and what it provokes on purpose. */
+  const logged = async (): Promise<string[]> => {
+    const saved = await files();
+    return browsers()
+      .flatMap((watched) => withoutDownloads(watched.errors, saved))
       .filter(
-        (message) => !(scenario.allowedErrors ?? []).some((pattern) => pattern.test(message)),
-      );
+        (error) => !(scenario.allowedErrors ?? []).some((pattern) => pattern.test(error.text)),
+      )
+      .map(describeLogged);
+  };
   try {
     let cookie: Record<string, string> = {};
     let token: string | undefined;
@@ -1099,7 +1108,7 @@ async function runScenario(
       },
     };
     await scenario.run(run);
-    assert.deepEqual(logged(), [], "no console error");
+    assert.deepEqual(await logged(), [], "no console error");
     for (const watched of [seen, ...devices.map((device) => device.seen)]) {
       assert.deepEqual(
         outside(watched.requests, allowed),
@@ -1120,9 +1129,11 @@ async function runScenario(
         .catch(() => undefined);
     }
     // What the pages logged is often the reason, and a timeout would not say so.
-    const reasons = logged();
+    const reasons = await logged();
     if (error instanceof Error && reasons.length > 0) {
       error.message += `\n\nThe pages logged:\n${reasons.join("\n")}`;
+      const saved = (await files()).map((one) => `${one.url}, saved as ${one.file ?? "nothing"}`);
+      if (saved.length > 0) error.message += `\n\nThe downloads:\n${saved.join("\n")}`;
     }
     throw error;
   } finally {

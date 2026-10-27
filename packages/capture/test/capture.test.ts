@@ -107,6 +107,9 @@ describe("pages", () => {
   });
 });
 
+// Each test here starts the browser, so each may take three minutes: a first start on the machine
+// builds the browser's caches (fonts, profile), which `started` allows `STARTUP_TIMEOUT` for, and
+// then the captures. The session's own limits report a browser that hangs.
 describe.skipIf(!browser)("captures with the installed browser", () => {
   it("writes PNG at a pixel scale, transparent or on a background", async () => {
     const { browser: product, results } = await capture([
@@ -119,7 +122,7 @@ describe.skipIf(!browser)("captures with the installed browser", () => {
     expect(pixel(transparent, 2, 2)[3]).toBe(0);
     expect(pixel(transparent, 300, 200)).toEqual([255, 0, 0, 255]);
     expect(pixel(green, 2, 2)).toEqual([0, 255, 0, 255]);
-  }, 60_000);
+  }, 180_000);
 
   it("prints vector PDF on a page of the picture's size, with text and links", async () => {
     const { results } = await capture([
@@ -133,7 +136,7 @@ describe.skipIf(!browser)("captures with the installed browser", () => {
     expect(Number(box[2])).toBeCloseTo(150, 0);
     expect(pdf).toContain("/URI (https://example.com/docs)");
     expect(pdf).toMatch(/\/FontFile[23]?/);
-  }, 60_000);
+  }, 180_000);
 
   it("runs synchronously in a child process for the command line", () => {
     const out = join(scratch, "sync.png");
@@ -142,5 +145,5 @@ describe.skipIf(!browser)("captures with the installed browser", () => {
     ]);
     expect(product.length).toBeGreaterThan(0);
     expect(pngInfo(readFileSync(out))).toMatchObject({ width: 300, height: 200 });
-  }, 60_000);
+  }, 180_000);
 });

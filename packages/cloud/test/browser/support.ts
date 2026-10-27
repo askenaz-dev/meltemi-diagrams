@@ -13,7 +13,7 @@ import {
 } from "node:http";
 import type { AddressInfo } from "node:net";
 import { signSessionToken, type TestKeys } from "@meltemi/identity/testing";
-import type { BrowserContext, Page } from "playwright-core";
+import type { BrowserContext, Download, Page } from "playwright-core";
 import type { Person } from "./scenario.js";
 import { IDENTITY, type RunningWorker } from "./worker.js";
 
@@ -283,56 +283,103 @@ export function listen(): Promise<Listener> {
 // ---------------------------------------------------------------------------------------------
 // Watching the browser
 
+/** A console error or an uncaught exception a page logged. */
+export interface Logged {
+  readonly text: string;
+  /**
+   * The address the console names as the message's source: for a load that failed, the resource's.
+   * Empty for an uncaught exception.
+   */
+  readonly url: string;
+}
+
 /** What a browser context did: every request it made and every error the pages logged. */
 export interface Watch {
   /** The address of every `http`, `https`, `ws` and `wss` request, in order. */
   readonly requests: string[];
   /** Console errors and uncaught exceptions, whatever page logged them. */
-  readonly errors: string[];
+  readonly errors: Logged[];
   /** The address of every WebSocket a page opened, in order (a context's requests do not list them). */
   readonly sockets: string[];
-  /** How many downloads the context's pages started. */
-  readonly downloads: { count: number };
+  /** Every download the context's pages started, in order. */
+  readonly downloads: Download[];
+}
+
+/** A download a page started: the address it came from and the file the browser saved. */
+export interface Downloaded {
+  readonly url: string;
+  /** Null for a download that failed, or that had not ended five seconds after it was asked. */
+  readonly file: string | null;
+}
+
+/** Each download, once it has ended, with the file the browser saved it in. */
+export function downloaded(downloads: readonly Download[]): Promise<Downloaded[]> {
+  return Promise.all(
+    downloads.map(async (download) => {
+      const late = new Promise<null>((done) => setTimeout(() => done(null), 5_000).unref());
+      const file = await Promise.race([download.path().catch(() => null), late]);
+      return { url: download.url(), file };
+    }),
+  );
 }
 
 /**
- * What Chrome on Linux logs, once, when a navigation or a link becomes a download: the page's own
- * load of that resource "fails" because the browser takes it as a file instead. One such message per
- * download is the download, not an error of the page.
+ * What Edge on Linux logs for each download: its list of downloads asks the browser for the icon of
+ * the saved file (`edge://fileicon/?path=<file>`), which a headless browser on Linux cannot draw,
+ * and the page's console reports that load as failed. A message for the icon of a file a download
+ * saved is the download, not an error of the page, however often the browser asks for it.
  */
 export const DOWNLOAD_CONSOLE_ERROR = "Failed to load resource: net::ERR_FAILED";
 
-/** `errors` without one download message per download the context started. */
-export function withoutDownloads(errors: readonly string[], downloads: number): string[] {
-  let left = downloads;
-  return errors.filter((message) => {
-    if (left > 0 && message === DOWNLOAD_CONSOLE_ERROR) {
-      left--;
-      return false;
-    }
-    return true;
+/** The file a browser's file icon address (`edge://fileicon/?path=…`) is for; null for any other. */
+export function fileIconOf(address: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(address);
+  } catch {
+    return null;
+  }
+  const browser = url.protocol === "edge:" || url.protocol === "chrome:";
+  return browser && url.hostname === "fileicon" ? url.searchParams.get("path") : null;
+}
+
+/** `errors` without the download messages: those for the icon of a file one of `downloads` saved. */
+export function withoutDownloads(
+  errors: readonly Logged[],
+  downloads: readonly Downloaded[],
+): Logged[] {
+  const files = new Set(downloads.map((download) => download.file));
+  return errors.filter((error) => {
+    if (error.text !== DOWNLOAD_CONSOLE_ERROR) return true;
+    const file = fileIconOf(error.url);
+    return file === null || !files.has(file);
   });
+}
+
+/** A logged error as the suite reports it: its text, and the address it names, if any. */
+export function describeLogged(error: Logged): string {
+  return error.url === "" ? error.text : `${error.text} (${error.url})`;
 }
 
 export function watch(context: BrowserContext): Watch {
   const requests: string[] = [];
-  const errors: string[] = [];
+  const errors: Logged[] = [];
   const sockets: string[] = [];
-  const downloads = { count: 0 };
+  const downloads: Download[] = [];
   context.on("request", (request) => {
     const address = request.url();
     // The browser's own pages (data:, blob:, about:) are not the page's requests.
     if (/^(https?|wss?|ftp):/.test(address)) requests.push(address);
   });
   context.on("page", (page) => {
-    page.on("pageerror", (error) => errors.push(`uncaught: ${error.message}`));
+    page.on("pageerror", (error) => errors.push({ text: `uncaught: ${error.message}`, url: "" }));
     page.on("console", (message) => {
-      if (message.type() === "error") errors.push(message.text());
+      if (message.type() === "error") {
+        errors.push({ text: message.text(), url: message.location().url });
+      }
     });
     page.on("websocket", (socket) => sockets.push(socket.url()));
-    page.on("download", () => {
-      downloads.count++;
-    });
+    page.on("download", (download) => downloads.push(download));
   });
   return { requests, errors, sockets, downloads };
 }

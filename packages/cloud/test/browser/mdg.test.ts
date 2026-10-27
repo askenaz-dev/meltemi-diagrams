@@ -102,8 +102,10 @@ describe("a command", () => {
 
   it("is ended with its tree when it does not finish in time, and says so", async () => {
     const one = cli();
-    // A sign-in nobody approves waits for five minutes; here it is given two seconds.
-    const login = one.start(["login", "--no-browser"], { timeoutMs: 2_000 });
+    // A sign-in nobody approves waits for five minutes; here it is given ten seconds, which leaves it
+    // the time to start from its sources and print the check (up to three seconds on a busy Windows
+    // runner) before it is ended.
+    const login = one.start(["login", "--no-browser"], { timeoutMs: 10_000 });
     const check = await login.waitFor(/^check: ([A-Z2-7]{6})$/m, "the check line");
     expect(check[1]).toMatch(/^[A-Z2-7]{6}$/);
     const done = await login.finished;

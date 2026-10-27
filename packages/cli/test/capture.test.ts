@@ -96,14 +96,20 @@ describe("export usage", () => {
   });
 });
 
+// Each test here starts the browser, so each may take three minutes: a first start on the machine
+// builds the browser's caches (fonts, profile), which the capture allows two minutes for
+// (`STARTUP_TIMEOUT`), and then the captures. The capture's own limits report a browser that hangs.
 describe.skipIf(!findBrowser())("PNG and PDF with the installed browser", () => {
-  it("writes PNG at a scale, a size and a transparent background", () => {
+  it("writes PNG with the system's fonts, at the default scale of 2", () => {
     const plain = mdg("export", "sheet.meltemi", "--format", "png", "--fonts", "system");
     expect(plain.code, plain.stderr).toBe(0);
     expect(plain.stdout).toMatch(
       /^Wrote sheet\.png \((Edg|Chrome|HeadlessChrome|Chromium)\/[\d.]+\)\n$/,
     );
-    const info = pngInfo(readFileSync(join(scratch, "sheet.png")));
+    expect(pngInfo(readFileSync(join(scratch, "sheet.png"))).width % 2).toBe(0);
+  }, 180_000);
+
+  it("writes PNG at a scale, a size and a transparent background", () => {
     const sized = mdg(
       "export",
       "sheet.meltemi",
@@ -124,9 +130,7 @@ describe.skipIf(!findBrowser())("PNG and PDF with the installed browser", () => 
       height: 600,
       alpha: true,
     });
-    // The default scale is 2.
-    expect(info.width % 2).toBe(0);
-  }, 60_000);
+  }, 180_000);
 
   it("writes PDF with the links of elements and of the picture", () => {
     const { code } = mdg(
@@ -142,7 +146,7 @@ describe.skipIf(!findBrowser())("PNG and PDF with the installed browser", () => 
     expect(pdf.startsWith("%PDF-")).toBe(true);
     expect(pdf).toContain("/URI (https://docs.example.com/api)");
     expect(pdf).toContain("/URI (https://example.com/all)");
-  }, 60_000);
+  }, 180_000);
 
   it("runs every profile of the file, into their files or a folder", () => {
     const { code, stdout } = mdg("export", "sheet.meltemi", "--profiles");
@@ -157,7 +161,7 @@ describe.skipIf(!findBrowser())("PNG and PDF with the installed browser", () => 
     mkdirSync(join(scratch, "delivery"));
     expect(mdg("export", "sheet.meltemi", "--profile", "sheet", "--out", "delivery").code).toBe(0);
     expect(existsSync(join(scratch, "delivery", "sheet.sheet.pdf"))).toBe(true);
-  }, 120_000);
+  }, 180_000);
 });
 
 const ffmpeg = findFfmpeg();

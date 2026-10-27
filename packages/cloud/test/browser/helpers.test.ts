@@ -8,13 +8,17 @@ import { verifyEventSignature } from "@meltemi/identity";
 import { testJwks, testKeys } from "@meltemi/identity/testing";
 import { describe, expect, it } from "vitest";
 import {
+  DOWNLOAD_CONSOLE_ERROR,
   TOKEN_SHAPE,
   assertBase32IsTheRfcs,
   base32,
+  describeLogged,
   expectedCheck,
+  fileIconOf,
   outside,
   signedEvent,
   socketsOutside,
+  withoutDownloads,
 } from "./support.js";
 import { ADMIN_SUB, CLOUD, IDENTITY, devVars, parseJsonc, testConfig } from "./worker.js";
 
@@ -234,5 +238,51 @@ describe("tokens, events and origins", () => {
       "wss://evil.example/rooms/abc",
     ]);
     expect(socketsOutside([], "http://localhost:8788")).toEqual([]);
+  });
+});
+
+describe("the download messages", () => {
+  // What Edge 155 on ubuntu-latest logged for an export of the panel, as the suite reported it.
+  const saved = "/tmp/playwright-artifacts-mXdLaW/af3f7c22-f1ce-487a-9703-10ee72afe767";
+  const icon = `edge://fileicon/?path=${encodeURIComponent(saved)}`;
+  const blob = "blob:http://localhost:40157/b0598ab0-9f4c-40c2-9de7-1300a5e66a4f";
+  const failed = (url: string) => ({ text: DOWNLOAD_CONSOLE_ERROR, url });
+
+  it("reads the file of a browser's file icon address, and of no other", () => {
+    expect(fileIconOf(icon)).toBe(saved);
+    expect(fileIconOf(`chrome://fileicon/?path=${encodeURIComponent(saved)}&scale=2x`)).toBe(saved);
+    expect(fileIconOf("edge://fileicon/")).toBeNull();
+    expect(fileIconOf(`edge://favicon/?path=${encodeURIComponent(saved)}`)).toBeNull();
+    expect(fileIconOf(`http://fileicon/?path=${encodeURIComponent(saved)}`)).toBeNull();
+    expect(fileIconOf(blob)).toBeNull();
+    expect(fileIconOf("")).toBeNull();
+  });
+
+  it("drops every message for the icon of a file a download saved, however often it comes", () => {
+    const errors = [failed(icon), failed(icon)];
+    expect(withoutDownloads(errors, [{ url: blob, file: saved }])).toEqual([]);
+  });
+
+  it("keeps the icon of a file no download saved, the downloaded address itself and other errors", () => {
+    const other = `edge://fileicon/?path=${encodeURIComponent("/tmp/elsewhere")}`;
+    const thrown = { text: "uncaught: boom", url: "" };
+    const refused = {
+      text: "Failed to load resource: the server responded with a status of 404",
+      url: icon,
+    };
+    const errors = [failed(icon), failed(other), failed(blob), thrown, refused];
+    expect(withoutDownloads(errors, [{ url: blob, file: saved }])).toEqual([
+      failed(other),
+      failed(blob),
+      thrown,
+      refused,
+    ]);
+    // A download that saved nothing accounts for no message.
+    expect(withoutDownloads([failed(icon)], [{ url: blob, file: null }])).toEqual([failed(icon)]);
+  });
+
+  it("reports a message with the address it names", () => {
+    expect(describeLogged(failed(icon))).toBe(`${DOWNLOAD_CONSOLE_ERROR} (${icon})`);
+    expect(describeLogged({ text: "uncaught: boom", url: "" })).toBe("uncaught: boom");
   });
 });
