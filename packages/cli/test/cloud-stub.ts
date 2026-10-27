@@ -104,6 +104,10 @@ export class CloudStub {
         response.end();
       });
     });
+    // Idle connections stay open until `stop`. The command line runs in this process and its fetch
+    // reuses them; a server that closes one after five idle seconds races the next request, and a
+    // test that spends that long without one (2001 files written on Windows) got ECONNRESET.
+    this.server.keepAliveTimeout = 0;
     await new Promise<void>((resolve) => this.server!.listen(0, "127.0.0.1", resolve));
     const address = this.server.address();
     this.port = typeof address === "object" && address ? address.port : 0;
