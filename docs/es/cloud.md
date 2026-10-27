@@ -2079,7 +2079,7 @@ define `DEV`, el origen del Worker es `ORIGIN` y toda solicitud en `localhost` e
 
 ### Con el servicio de identidad
 
-1. Ejecuta el servicio de identidad desde el repositorio de Meltemi Web (`C:\meltemi` en la máquina
+1. Ejecuta el servicio de identidad desde el repositorio de Meltemi Web (`C:\meltemi\web` en la máquina
    del propietario). Su README, en "Signing in with GitHub and Google on this machine" (en inglés),
    tiene la configuración completa: las aplicaciones OAuth de desarrollo, `pnpm identity:keys` y
    `pnpm identity:migrate --local`. Después:

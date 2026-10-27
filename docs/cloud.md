@@ -1990,7 +1990,7 @@ Worker's origin is `ORIGIN`, and every request on `localhost` is `404`.
 
 ### With the identity service
 
-1. Run the identity service from the Meltemi Web repository (`C:\meltemi` on the owner's machine).
+1. Run the identity service from the Meltemi Web repository (`C:\meltemi\web` on the owner's machine).
    Its README, under "Signing in with GitHub and Google on this machine", has the full setup: the
    development OAuth apps, `pnpm identity:keys` and `pnpm identity:migrate --local`. Then:
 

@@ -8,7 +8,7 @@
 # passes. Never set DEV or IDENTITY_JWKS in wrangler.jsonc.
 DEV=true
 
-# The identity service of Meltemi Web running locally (`pnpm identity:dev` in C:\meltemi, port 8787).
+# The identity service of Meltemi Web running locally (`pnpm identity:dev` in C:\meltemi\web, port 8787).
 IDENTITY_ISSUER=http://localhost:8787
 IDENTITY_JWKS_URL=http://localhost:8787/.well-known/jwks.json
 

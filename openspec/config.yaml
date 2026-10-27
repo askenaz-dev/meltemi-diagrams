@@ -85,12 +85,11 @@ context: |
   the Worker of diagrams.meltemi.dev on Cloudflare's free plan: it serves the playground's built
   site, an API on D1 and R2 (content-addressed blobs), and one Durable Object per project that
   holds the project as a Yjs document (approved download: `yjs`, MIT) and materialises it to
-  files. Identity is the family's: id.meltemi.dev, specified in C:\meltemi
-  (openspec change identity-service, spec identity-session); this repository consumes its
-  contract through the reference verifier `@meltemi/identity`, built in C:\meltemi (`pnpm
-  install` and `pnpm build` there first) and linked from `packages/cloud` four levels up
-  (`"@meltemi/identity": "link:../../../../meltemi/packages/identity"`), and never sees a
-  provider token. Rules of that contract: check the Origin header on every state change
+  files. Identity is the family's: id.meltemi.dev, specified in Meltemi Web (C:\meltemi\web;
+  openspec change identity-service, spec identity-session); this repository consumes its
+  contract through the reference verifier `@meltemi/identity`, which Meltemi Web publishes on
+  npm (`packages/cloud` depends on `^0.2.0`), and never sees a provider token. Rules of that
+  contract: check the Origin header on every state change
   (every host under meltemi.dev shares the session cookie and is the same site); never serve
   user-authored content (published catalogs) from a host under meltemi.dev: it goes to a
   separate registrable domain (PUBLISH_HOST, the owner's). Creating, editing and collaborating
@@ -101,7 +100,7 @@ context: |
   change that starts once the functionality is validated locally (the owner's order of
   2026-10-13); the functional changes depend on nothing in the cloud: the Worker runs with
   `wrangler dev` on http://localhost:8788 (the identity service on http://localhost:8787 and
-  the product site on http://localhost:8789, both from C:\meltemi) and tests use in-memory
+  the product site on http://localhost:8789, both from C:\meltemi\web) and tests use in-memory
   stores and sessions signed with test keys. The changes apply in this order: cloud-accounts,
   cloud-projects, sharing-and-permissions, live-collaboration, cli-cloud.
 
