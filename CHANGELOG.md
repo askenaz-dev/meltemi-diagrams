@@ -6,6 +6,37 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 
 ## 1.11.0
 
+Sequence diagrams set the distance between participants and say which calls happen inside which:
+`spacing` for the whole diagram, a `gap` on either side of a participant that may bring it closer,
+a head drag that writes the gap, and a call's block that holds the events it causes, answered by
+`return` ([decision 0060](docs/decisions/0060-sequence-spacing-and-nested-calls.md)). The language
+stays 0.2: `spacing`, the sides, the negative `gap`, call blocks and `return` are additive.
+
+### Language
+
+- `spacing <n>` sets the distance between neighbouring heads of a sequence diagram, 0 to 400
+  diagram units, before their gaps; without it the layout keeps 40, scaled by the theme. The model
+  JSON writes `properties.spacing`, null without it.
+- `space <event> <n> [before|after]` and `gap <participant> <n> [before|after]` take a side,
+  `before` by default; both sides of a pair add up, and `space … after` on the last event lengthens
+  the lifelines. `placement.duplicate` is keyed on the target and the side, and the model JSON
+  writes `side` on every `space` and `gap`.
+- A `gap` may be negative, down to a floor: the two heads' halves and 8 units, and the room the
+  labels between them need. When the floor wins, `layout.gap-floor` (warning) on the `gap` names
+  the amount drawn. A negative gap before the first participant or after the last is
+  `prop.invalid-value`; a negative `space` stays an error.
+- A message's block holds the events the call causes (messages, notes, fragments, activations,
+  lifecycle events, dividers and delays) beside its properties. The receiver is active for the
+  block: one bar from the call's arrow to the block's last event, which a `deactivate` cannot end
+  (`sequence.activation`); explicit activations inside nest deeper.
+- `return ["Label"] [as <id>] [{ … }]` in a call's block is the dashed reply from the receiver to
+  the caller. It is a relation like any other, keyed with the other relations of its pair, so no
+  key moves, and the model JSON gives every relation `returns` after `async` (the call's key, or
+  null) and every message event its `events`. A `return` outside a call, or an event after a
+  `return` in the same list, is `sequence.return`; a `return` in a branch ends that branch.
+  Scenarios, numbering, styles, animations, completion, hover, the formatter and the VS Code
+  grammar know the nesting.
+
 ### Playground
 
 - The properties panel at the right of the canvas folds to a rail, as the explorer and the code
@@ -41,9 +72,24 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 - Toolbar buttons are named without their key, which their tooltips show in parentheses and
   `aria-keyshortcuts` says: "Show the layers (L)", the palette's "Node (N)" and "Icon (I)", the
   split arrows' "More shapes (F)". The package exports `Tooltips` and `ariaKeyshortcuts` for hosts.
+- A participant's head dragged sideways and dropped short of a neighbour's centre writes its
+  `gap` before it, never below 0 on the first participant, instead of snapping back; dropped past
+  the centre it still reorders. When the floor wins, the status line says what was written and what
+  is drawn. The inspector gains **Participant spacing** on a sequence diagram, **Gap after** on a
+  participant, accepting a negative number except on the outer side, and **Space after** on an
+  event.
+- Alt+N nests the selected events in the call right before them, Alt+Shift+N moves the events of
+  the selected call (or of the call around the selection) out after it, writing each `return` as a
+  reply, and Alt+R appends a `return` to the call; the context menu lists **Nest in the call**,
+  **Unnest the call** and **Return to the caller** after **Activate the receiver**. Alt+Up and
+  Alt+Down move events into and out of call blocks, a call dragged down moves its block with it,
+  removing a call removes its block with what names the events in it, and the inspector shows a
+  `return`'s **Message**, **From** and **To** read-only.
 
 ### Fixed
 
+- The `gap` of a sequence diagram's first participant draws, as room left of it inside the
+  drawing; the layout read it and drew nothing.
 - The agent setup prompt is served as `text/markdown; charset=utf-8`. Without the charset, a client
   that does not assume UTF-8, such as PowerShell's `Invoke-WebRequest`, read its dashes and
   ellipses as Latin-1.

@@ -25,7 +25,7 @@ import { CanvasOpening, type OpenWithText } from "../../src/extension/remember.j
 const root = join(REPO_ROOT, "packages", "vscode");
 
 interface Grammar {
-  repository: Record<string, { match?: string; patterns?: { match?: string }[] }>;
+  repository: Record<string, { match?: string; patterns?: { name?: string; match?: string }[] }>;
 }
 
 describe("grammar", () => {
@@ -109,6 +109,16 @@ describe("grammar", () => {
     expect(declares.test("line l1 from (0, 0) to (100, 0)")).toBe(true);
     expect(declares.test('line l2 "Edge" from (0, 0) to (10, 10)')).toBe(true);
     expect(declares.test("style a { line dashed }")).toBe(false);
+  });
+
+  it("colours `return`, `spacing` and the sides of `space` and `gap`", () => {
+    const patterns = grammar.repository["keywords"]!.patterns ?? [];
+    const scopeOf = (word: string) =>
+      patterns.find((p) => p.match !== undefined && new RegExp(p.match).test(` ${word} `))?.name;
+    expect(scopeOf("return")).toBe("keyword.control.sequence.meltemi");
+    expect(scopeOf("spacing")).toBe("support.type.property-name.diagram.meltemi");
+    expect(scopeOf("before")).toBe("keyword.other.sequence.meltemi");
+    expect(scopeOf("after")).toBe("keyword.other.sequence.meltemi");
   });
 
   it("colours the `on` of a note's attachment as a placement word", () => {

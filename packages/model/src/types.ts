@@ -217,6 +217,11 @@ export interface Relation {
   readonly twoWay: boolean;
   /** Sequence diagrams: `kind async` in the block. */
   readonly async: boolean;
+  /**
+   * Sequence diagrams: the key of the call a `return` answers, inside that call's block; null for
+   * every other relation and in every other profile.
+   */
+  readonly returns: string | null;
   /** C4 views: the technology of the model relation, or of the combination. */
   readonly technology: string | null;
   /** C4 views: the keys of the model relations the relation stands for; empty elsewhere. */
@@ -241,7 +246,8 @@ export interface Relation {
   readonly range: Range;
   /** Range of the `as <id>` identifier; null for anonymous relations. */
   readonly idRange: Range | null;
-  readonly node: RelationStatement;
+  /** The relation statement, or a sequence diagram's `return` statement (`returns` is set). */
+  readonly node: RelationStatement | KeywordStatement;
 }
 
 interface PlacementBase {
@@ -291,16 +297,25 @@ export interface LabelEntry extends PlacementBase {
   readonly offset: Point;
 }
 
-/** Sequence diagrams: `space <event> <n>`, extra room above a named event. */
+/**
+ * Sequence diagrams: `space <event> <n> [before|after]`, extra room above (`before`, the default)
+ * or below a named event; 0 or more.
+ */
 export interface SpaceEntry extends PlacementBase {
   readonly statement: "space";
   readonly amount: number;
+  readonly side: "before" | "after";
 }
 
-/** Sequence diagrams: `gap <participant> <n>`, extra room before a participant. */
+/**
+ * Sequence diagrams: `gap <participant> <n> [before|after]`, room added left (`before`, the
+ * default) or right of a participant; negative between two participants brings them closer, down
+ * to the floor the layout keeps.
+ */
 export interface GapEntry extends PlacementBase {
   readonly statement: "gap";
   readonly amount: number;
+  readonly side: "before" | "after";
 }
 
 export type PlacementEntry =
@@ -369,6 +384,11 @@ export interface DiagramProperties {
   readonly layers: readonly string[];
   /** Sequence diagrams: the number of the first message with `autonumber`, or null. */
   readonly autonumber: number | null;
+  /**
+   * Sequence diagrams: `spacing <n>`, the distance between adjacent heads in diagram units, or
+   * null for the default (40, scaled with the theme's labels).
+   */
+  readonly spacing: number | null;
 }
 
 export type ReferenceRole =
@@ -402,11 +422,20 @@ export interface Reference {
 export type FragmentOperator = "alt" | "opt" | "loop" | "par" | "break" | "critical" | "region";
 
 /** Where an event sits: the fragments and branches around it, outermost first. */
-export interface EventPlace {
+/** A place in a fragment: its key and the branch. */
+export interface FragmentPlace {
   readonly fragment: string;
   /** 0-based branch index. */
   readonly branch: number;
 }
+
+/** A place in a call's block: the key of the call. */
+export interface MessagePlace {
+  readonly message: string;
+}
+
+/** Where an event stands: inside a fragment's branch, or inside a call's block. */
+export type EventPlace = FragmentPlace | MessagePlace;
 
 interface EventBase {
   /** The relation key of a message; otherwise the id, or `<kind>#<n>` in order of appearance. */
@@ -423,6 +452,11 @@ interface EventBase {
 export interface MessageEvent extends EventBase {
   readonly kind: "message";
   readonly relation: string;
+  /**
+   * The events of the call's block, which happen after its arrow and before what follows it, the
+   * receiver active meanwhile; empty for a message without a block.
+   */
+  readonly events: readonly SequenceEvent[];
 }
 
 export interface ParticipantEvent extends EventBase {

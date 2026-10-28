@@ -174,6 +174,55 @@ describe("spacing keeps order", () => {
     });
     expect(gap).toContain("gap b 30");
   });
+
+  const three = "diagram s: sequence {\n  a -> b as m\n  b -> c\n}\n";
+  const spacing = (
+    target: string,
+    targetKind: "event" | "participant",
+    amount: number | null,
+    side?: "before" | "after",
+  ): EditOperation => ({
+    kind: "setSpacing",
+    diagram: "s",
+    target,
+    targetKind,
+    amount,
+    ...(side ? { side } : {}),
+  });
+
+  it("writes the side after, and leaves before unwritten", () => {
+    const after = run(three, spacing("b", "participant", 20, "after"));
+    expect(after).toContain("gap b 20 after");
+    const both = run(after, spacing("b", "participant", 10));
+    expect(both).toContain("gap b 10\n");
+    expect(both).toContain("gap b 20 after");
+    const space = run(three, spacing("m", "event", 12, "after"));
+    expect(space).toContain("space m 12 after");
+    // Each side changes and goes on its own.
+    const changed = run(both, spacing("b", "participant", 35, "after"));
+    expect(changed).toContain("gap b 35 after");
+    expect(changed).toContain("gap b 10\n");
+    const removed = run(changed, spacing("b", "participant", 0, "after"));
+    expect(removed).not.toContain("after");
+    expect(removed).toContain("gap b 10");
+  });
+
+  it("writes a negative gap between two participants, rounded", () => {
+    expect(run(three, spacing("b", "participant", -12.4))).toContain("gap b -12");
+    expect(run(three, spacing("a", "participant", -8, "after"))).toContain("gap a -8 after");
+  });
+
+  it("refuses a negative space, and a negative gap on the outer side of the edge", () => {
+    expect(refused(three, spacing("m", "event", -5))).toBe(
+      "edit.invalid-value: Space is 0 or more.",
+    );
+    expect(refused(three, spacing("a", "participant", -5))).toMatch(
+      /^edit.invalid-value: There is nothing beyond `a` to bring closer/,
+    );
+    expect(refused(three, spacing("c", "participant", -5, "after"))).toMatch(
+      /^edit.invalid-value: There is nothing beyond `c`/,
+    );
+  });
 });
 
 describe("inserting events and fragments", () => {
@@ -454,5 +503,163 @@ describe("shared operations in sequence diagrams", () => {
     expect(
       refused(payment, { kind: "setPosition", diagram: "payment", element: "api", x: 1, y: 2 }),
     ).toMatch(/^edit.invalid-value: `setPosition` does not apply to sequence diagrams/);
+  });
+});
+
+describe("nesting calls", () => {
+  const flat =
+    'diagram s: sequence {\n  customer -> api: "Pay" as pay\n  // Ask the bank first.\n  api -> bank: "Authorize" as authorize\n  api --> customer: "Receipt" as receipt\n}\n';
+
+  it("nests the events right after a call in a new block, comments with them", () => {
+    const after = run(flat, {
+      kind: "nestInCall",
+      diagram: "s",
+      call: "pay",
+      events: ["authorize"],
+    });
+    expect(after).toContain(
+      '  customer -> api: "Pay" as pay {\n    // Ask the bank first.\n    api -> bank: "Authorize" as authorize\n  }\n',
+    );
+    const two = run(flat, {
+      kind: "nestInCall",
+      diagram: "s",
+      call: "pay",
+      events: ["receipt", "authorize"],
+    });
+    expect(two).toContain('    api --> customer: "Receipt" as receipt\n  }\n');
+  });
+
+  it("appends to a block the call has, its properties kept", () => {
+    const text =
+      "diagram s: sequence {\n  a -> b as call {\n    kind async\n  }\n  b -> c as next\n}\n";
+    const after = run(text, { kind: "nestInCall", diagram: "s", call: "call", events: ["next"] });
+    expect(after).toContain("  a -> b as call {\n    kind async\n    b -> c as next\n  }\n");
+  });
+
+  it("refuses events that are not right after the call", () => {
+    expect(
+      refused(flat, { kind: "nestInCall", diagram: "s", call: "pay", events: ["receipt"] }),
+    ).toBe("edit.unsafe-target: Select the events right after the call they belong to.");
+  });
+
+  it("unnests a call, writing each return as a reply with its key, and nests it back", () => {
+    const nested =
+      'diagram s: sequence {\n  customer -> api: "Pay" as pay {\n    api -> bank: "Authorize" as authorize\n    return "Receipt" as receipt\n  }\n}\n';
+    const before = compile(nested).document.diagrams[0]!;
+    const after = run(nested, { kind: "unnestCall", diagram: "s", call: "pay" });
+    expect(after).toBe(
+      'diagram s: sequence {\n  customer -> api: "Pay" as pay\n  api -> bank: "Authorize" as authorize\n  api --> customer: "Receipt" as receipt\n}\n',
+    );
+    const unnested = compile(after).document.diagrams[0]!;
+    expect(unnested.relationsByKey.has("receipt")).toBe(true);
+    expect(before.relationsByKey.get("receipt")!.returns).toBe("pay");
+    // Nesting the two back draws a block whose events are the same two.
+    const back = run(after, {
+      kind: "nestInCall",
+      diagram: "s",
+      call: "pay",
+      events: ["authorize", "receipt"],
+    });
+    expect(compile(back).document.diagrams[0]!.events[0]).toMatchObject({ key: "pay" });
+  });
+
+  it("inserts an event last in a call's block, creating it", () => {
+    const after = run(flat, {
+      kind: "insertEvent",
+      diagram: "s",
+      statement: 'return "OK"',
+      inside: { message: "authorize" },
+    });
+    expect(after).toContain('  api -> bank: "Authorize" as authorize {\n    return "OK"\n  }\n');
+  });
+
+  it("refuses an activation on a call whose block activates the receiver", () => {
+    const text = "diagram s: sequence {\n  a -> b as call {\n    b -> c\n  }\n}\n";
+    expect(
+      refused(text, { kind: "toggleActivation", diagram: "s", participant: "b", after: "call" }),
+    ).toBe("edit.invalid-value: The block of `call` already activates `b`.");
+  });
+
+  it("edits a return's label and name, and refuses its line and its ends", () => {
+    const text = 'diagram s: sequence {\n  a -> b as call {\n    return "OK"\n  }\n}\n';
+    const key = "b->a#1";
+    const named = run(text, {
+      kind: "materializeRelationId",
+      diagram: "s",
+      relationKey: key,
+      id: "ok",
+    });
+    expect(named).toContain('    return "OK" as ok\n');
+    expect(
+      run(named, { kind: "setRelationLabel", diagram: "s", relation: "ok", label: "Done" }),
+    ).toContain('    return "Done" as ok\n');
+    expect(
+      refused(text, { kind: "setRelationLine", diagram: "s", relation: key, line: "solid" }),
+    ).toBe(
+      "edit.invalid-value: A `return` answers its call; unnest the call to write the reply by hand.",
+    );
+  });
+
+  it("moves an event into the call before it, before a trailing return, and out again", () => {
+    const text =
+      'diagram s: sequence {\n  a -> b as call {\n    b -> c as inner\n    return "OK"\n  }\n  note n over a "N"\n}\n';
+    const inside = run(text, { kind: "moveEvent", diagram: "s", event: "n", direction: "up" });
+    expect(inside).toContain('    b -> c as inner\n    note n over a "N"\n    return "OK"\n');
+    const out = run(text, { kind: "moveEvent", diagram: "s", event: "inner", direction: "up" });
+    expect(out).toContain('  b -> c as inner\n  a -> b as call {\n    return "OK"\n  }\n');
+  });
+});
+
+describe("removing calls", () => {
+  const text =
+    'diagram s: sequence {\n  a -> b: "Pay" as pay {\n    b -> c: "Ask" as ask\n    note n over b "N"\n    alt stock "In stock" {\n      return "OK" as ok\n    }\n  }\n  a -> b: "Again" as again\n  style ask, again { color "#f00" }\n  placement {\n    space n 10\n    space ask 12\n  }\n  scenario sc "S" {\n    choose stock "In stock"\n  }\n}\n';
+
+  it("removes a call with the events of its block and what names them", () => {
+    expect(run(text, { kind: "removeRelation", diagram: "s", relation: "pay" })).toBe(
+      'diagram s: sequence {\n  participant c\n  a -> b: "Again" as again\n  style again { color "#f00" }\n  placement {\n  }\n  scenario sc "S" {\n  }\n}\n',
+    );
+  });
+
+  it("lists the nested events of a removed participant's calls, and removes them on cascade", () => {
+    const rejection = planEdit(compile(text), {
+      kind: "removeElement",
+      diagram: "s",
+      element: "a",
+      cascade: false,
+    });
+    if (rejection.ok) throw new Error("expected a rejection");
+    expect(rejection.rejection.dependents?.map((d) => `${d.kind} ${d.name}`)).toEqual(
+      expect.arrayContaining(["relation ask", "event n", "event stock", "space n", "space ask"]),
+    );
+    expect(run(text, { kind: "removeElement", diagram: "s", element: "a", cascade: true })).toBe(
+      'diagram s: sequence {\n  participant b; participant c\n  placement {\n  }\n  scenario sc "S" {\n  }\n}\n',
+    );
+  });
+
+  it("runs every relation operation on a return", () => {
+    const call = 'diagram s: sequence {\n  a -> b as call {\n    return "OK" as ok\n  }\n}\n';
+    const op = { diagram: "s", relation: "ok" } as const;
+    expect(run(call, { kind: "setRelationLabel", ...op, label: null })).toContain(
+      "    return as ok\n",
+    );
+    expect(
+      run(call, {
+        kind: "setElementProperty",
+        diagram: "s",
+        target: "ok",
+        targetKind: "relation",
+        property: "kind",
+        value: "async",
+      }),
+    ).toContain('    return "OK" as ok { kind async }\n');
+    expect(run(call, { kind: "removeRelation", ...op })).toBe(
+      "diagram s: sequence {\n  a -> b as call {\n  }\n}\n",
+    );
+    const answers =
+      "edit.invalid-value: A `return` answers its call; unnest the call to write the reply by hand.";
+    expect(refused(call, { kind: "setRelationLine", ...op, line: "solid" })).toBe(answers);
+    expect(refused(call, { kind: "reconnectRelation", ...op, end: "to", element: "b" })).toBe(
+      answers,
+    );
   });
 });

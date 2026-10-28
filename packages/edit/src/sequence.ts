@@ -1,16 +1,20 @@
-import type {
-  Block,
-  CstNode,
-  KeywordStatement,
-  Statement,
-  TextEdit,
-  Token,
+import {
+  isToken,
+  type Block,
+  type CstNode,
+  type KeywordStatement,
+  type Statement,
+  type TextEdit,
+  type Token,
 } from "@meltemi/diagrams-language";
 import {
   FRAGMENT_BRANCH_KEYWORDS,
   FRAGMENT_OPERATORS,
   PARTICIPANT_KINDS,
+  relationNameAnchor,
   type FragmentEvent,
+  type MessageEvent,
+  type PlacementEntry,
   type SequenceEvent,
 } from "@meltemi/diagrams-model";
 import { insertStatement, reject, requireElement, type EditContext } from "./context.js";
@@ -41,6 +45,7 @@ const EVENT_KEYWORDS: ReadonlySet<string> = new Set([
   "note",
   "divider",
   "delay",
+  "return",
   ...FRAGMENT_OPERATORS,
 ]);
 
@@ -79,10 +84,22 @@ function requireFragment(ctx: EditContext, key: string): FragmentEvent {
   return event;
 }
 
-/** The block that holds an event: the diagram body or a fragment branch. */
+/** The block of a call: the block on its relation statement. */
+function callBlock(call: MessageEvent): Block | undefined {
+  const node = call.node;
+  return node.kind === "RelationStatement" && node.block?.kind === "Block" ? node.block : undefined;
+}
+
+/** The block that holds an event: the diagram body, a fragment branch or a call's block. */
 function containerOf(ctx: EditContext, event: SequenceEvent): { block: Block; owner: number } {
   const place = event.path[event.path.length - 1];
   if (!place) return { block: diagramBody(ctx), owner: ctx.diagram.node.start };
+  if ("message" in place) {
+    const call = requireEvent(ctx, place.message);
+    const block = call.kind === "message" ? callBlock(call) : undefined;
+    if (!block) reject("edit.unsafe-target", reasons().sequence.noCallBlock(place.message));
+    return { block, owner: call.node.start };
+  }
   const fragment = requireFragment(ctx, place.fragment);
   return { block: fragment.branches[place.branch]!.block, owner: fragment.node.start };
 }
@@ -199,7 +216,25 @@ export function moveEvent(ctx: EditContext, op: OperationOf<"moveEvent">): TextE
       FRAGMENT_OPERATORS.includes(neighbour.keyword.text as never)
         ? [...ctx.diagram.eventsByKey.values()].find((e) => e.node === neighbour)
         : undefined;
-    if (fragment && fragment.kind === "fragment") {
+    const call =
+      neighbour.kind === "RelationStatement"
+        ? [...ctx.diagram.eventsByKey.values()].find((e) => e.node === neighbour)
+        : undefined;
+    if (call?.kind === "message" && call.events.length > 0) {
+      // Into the adjacent call's block: before its trailing `return` going up, so that the
+      // return stays last; at its start going down.
+      const block = callBlock(call)!;
+      const inner = siblings(block);
+      const last = inner[inner.length - 1];
+      const returns = last?.kind === "KeywordStatement" && last.keyword.text === "return";
+      edits = up
+        ? returns
+          ? relocate(ctx, statement, { kind: "before", anchor: last, block })
+          : relocate(ctx, statement, { kind: "end", block, owner: call.node.start })
+        : inner[0]
+          ? relocate(ctx, statement, { kind: "before", anchor: inner[0], block })
+          : relocate(ctx, statement, { kind: "start", block, owner: call.node.start });
+    } else if (fragment && fragment.kind === "fragment") {
       // Into the adjacent fragment: the end of its last branch, or the start of its first.
       const branch = up ? fragment.branches[fragment.branches.length - 1]! : fragment.branches[0]!;
       edits = relocate(ctx, statement, {
@@ -211,9 +246,21 @@ export function moveEvent(ctx: EditContext, op: OperationOf<"moveEvent">): TextE
       edits = relocate(ctx, statement, { kind: up ? "before" : "after", anchor: neighbour, block });
     }
   } else {
-    // At the edge of a branch: into the neighbouring branch, or out of the fragment.
+    // At the edge of a branch: into the neighbouring branch, or out of the fragment; at the
+    // edge of a call's block, out of the call.
     const place = event.path[event.path.length - 1];
     if (!place) return [];
+    if ("message" in place) {
+      const call = requireEvent(ctx, place.message);
+      const outer = containerOf(ctx, call);
+      const edits = relocate(ctx, statement, {
+        kind: up ? "before" : "after",
+        anchor: call.node,
+        block: outer.block,
+      });
+      verifyNoNewErrors(ctx, edits);
+      return edits;
+    }
     const fragment = requireFragment(ctx, place.fragment);
     const next = fragment.branches[place.branch + (up ? -1 : 1)];
     if (next) {
@@ -250,9 +297,7 @@ function namedEvent(ctx: EditContext, event: SequenceEvent): { id: string; edits
   if (event.kind === "message") {
     const relation = ctx.diagram.relationsByKey.get(event.relation)!;
     const id = freshEventId(ctx, `${relation.from}_${relation.to}`);
-    const statement = relation.node;
-    const anchor =
-      statement.label && "end" in statement.label ? statement.label.end : statement.target.end;
+    const anchor = relationNameAnchor(relation);
     return { id, edits: [{ start: anchor, end: anchor, newText: ` as ${id}` }] };
   }
   if (event.kind === "note" || event.kind === "fragment") {
@@ -265,14 +310,21 @@ function namedEvent(ctx: EditContext, event: SequenceEvent): { id: string; edits
 
 export function setSpacing(ctx: EditContext, op: OperationOf<"setSpacing">): TextEdit[] {
   requireSequence(ctx);
-  const amount = op.amount === null || op.amount <= 0 ? null : Math.round(op.amount);
+  const side = op.side ?? "before";
+  const amount = op.amount === null || Math.round(op.amount) === 0 ? null : Math.round(op.amount);
   const statement = op.targetKind === "event" ? "space" : "gap";
+  const onSide = (p: PlacementEntry) =>
+    (p.statement === "space" || p.statement === "gap") && p.side === side;
   let id: string;
   const edits: TextEdit[] = [];
   if (op.targetKind === "event") {
+    if (amount !== null && amount < 0)
+      reject("edit.invalid-value", reasons().sequence.negativeSpace);
     const event = requireEvent(ctx, op.target);
     const entry = event.id
-      ? ctx.diagram.placement.find((p) => p.statement === "space" && p.target === event.id)
+      ? ctx.diagram.placement.find(
+          (p) => p.statement === "space" && p.target === event.id && onSide(p),
+        )
       : undefined;
     if (!entry && amount === null) return [];
     const named = namedEvent(ctx, event);
@@ -283,8 +335,15 @@ export function setSpacing(ctx: EditContext, op: OperationOf<"setSpacing">): Tex
     if (!PARTICIPANTS.has(element.kind))
       reject("edit.unsafe-target", reasons().sequence.notParticipant(element.id));
     id = element.id;
+    // Before the first participant and after the last there is nothing to bring closer.
+    const order = ctx.diagram.elements.filter((e) => e.kind !== "group");
+    const edge = side === "before" ? order[0]?.id === id : order[order.length - 1]?.id === id;
+    if (amount !== null && amount < 0 && edge)
+      reject("edit.invalid-value", reasons().sequence.outerGap(id));
   }
-  const entry = ctx.diagram.placement.find((p) => p.statement === statement && p.target === id);
+  const entry = ctx.diagram.placement.find(
+    (p) => p.statement === statement && p.target === id && onSide(p),
+  );
   if (entry) {
     if (amount === null) {
       edits.push(...deleteStatements(ctx.text, ctx.compilation.parse.root, [entry.node]));
@@ -296,7 +355,9 @@ export function setSpacing(ctx: EditContext, op: OperationOf<"setSpacing">): Tex
       edits.push({ start: arg.token.start, end: arg.token.end, newText: formatNumber(amount) });
     }
   } else if (amount !== null) {
-    edits.push(insertPlacements(ctx, [`${statement} ${id} ${formatNumber(amount)}`]));
+    // `before` is the default and never written.
+    const written = side === "after" ? " after" : "";
+    edits.push(insertPlacements(ctx, [`${statement} ${id} ${formatNumber(amount)}${written}`]));
   }
   verifyNoNewErrors(ctx, edits);
   return edits;
@@ -311,6 +372,27 @@ export function insertEvent(ctx: EditContext, op: OperationOf<"insertEvent">): T
     edit = insertAfter(ctx, block, event.node, (indent) =>
       reindent(op.statement, "", indent ?? ""),
     );
+  } else if (op.inside !== undefined && "message" in op.inside) {
+    // Last in the call's block, which is created when the call has none.
+    const call = requireEvent(ctx, op.inside.message);
+    if (call.kind !== "message" || call.node.kind !== "RelationStatement") {
+      reject("edit.unsafe-target", reasons().sequence.notMessage(op.inside.message));
+    }
+    const node = call.node;
+    const block = callBlock(call);
+    if (block) {
+      edit = insertStatement(ctx, block, node.start, (indent) =>
+        reindent(op.statement, "", indent ?? ""),
+      );
+    } else {
+      const indent = lineIndent(ctx.text, node.start);
+      const inner = indent + ctx.unit;
+      edit = {
+        start: node.end,
+        end: node.end,
+        newText: ` {${ctx.eol}${inner}${reindent(op.statement, "", inner)}${ctx.eol}${indent}}`,
+      };
+    }
   } else if (op.inside !== undefined) {
     const fragment = requireFragment(ctx, op.inside.fragment);
     const branch = fragment.branches[op.inside.branch];
@@ -494,6 +576,8 @@ export function participantEvents(ctx: EditContext, removed: ReadonlySet<string>
         found.push(event);
       } else if (event.kind === "fragment") {
         for (const branch of event.branches) visit(branch.events);
+      } else if (event.kind === "message") {
+        visit(event.events);
       }
     }
   };
@@ -527,17 +611,33 @@ export function removeEvent(ctx: EditContext, op: OperationOf<"removeEvent">): T
   return edits;
 }
 
-/** The events with the events of the fragments among them, in order. */
+/** The events with the events of the fragments and calls among them, in order. */
 function withNested(events: readonly SequenceEvent[]): SequenceEvent[] {
   const all: SequenceEvent[] = [];
   const visit = (list: readonly SequenceEvent[]) => {
     for (const event of list) {
       all.push(event);
       if (event.kind === "fragment") for (const branch of event.branches) visit(branch.events);
+      if (event.kind === "message") visit(event.events);
     }
   };
   visit(events);
   return all;
+}
+
+/** The events inside the blocks of the calls among `relations` (keys), at any depth. */
+export function nestedInCalls(ctx: EditContext, relations: ReadonlySet<string>): SequenceEvent[] {
+  const found: SequenceEvent[] = [];
+  const visit = (events: readonly SequenceEvent[]) => {
+    for (const event of events) {
+      if (event.kind === "fragment") for (const branch of event.branches) visit(branch.events);
+      else if (event.kind === "message" && relations.has(event.relation))
+        found.push(...withNested(event.events));
+      else if (event.kind === "message") visit(event.events);
+    }
+  };
+  visit(ctx.diagram.events);
+  return found;
 }
 
 /** The written ids of the notes and fragments among `events`. */
@@ -625,6 +725,10 @@ export function toggleActivation(
   if (message.kind !== "message")
     reject("edit.unsafe-target", reasons().sequence.notMessage(op.after));
   const relation = ctx.diagram.relationsByKey.get(message.relation)!;
+  // A call's block activates its receiver already.
+  if (message.events.length > 0) {
+    reject("edit.invalid-value", reasons().sequence.callActivates(message.key, relation.to));
+  }
   const { block } = containerOf(ctx, message);
   const events = eventsOfBlock(ctx, message);
   const index = events.indexOf(message);
@@ -681,6 +785,10 @@ export function toggleActivation(
 function eventsOfBlock(ctx: EditContext, event: SequenceEvent): readonly SequenceEvent[] {
   const place = event.path[event.path.length - 1];
   if (!place) return ctx.diagram.events;
+  if ("message" in place) {
+    const call = requireEvent(ctx, place.message);
+    return call.kind === "message" ? call.events : [];
+  }
   const fragment = requireFragment(ctx, place.fragment);
   return fragment.branches[place.branch]!.events;
 }
@@ -764,6 +872,135 @@ export function setFragmentOperator(
     end: clause.keyword.end,
     newText: index === 0 ? op.operator : keyword!,
   }));
+  verifyNoNewErrors(ctx, edits);
+  return edits;
+}
+
+// ---------------------------------------------------------------------- call blocks
+
+/** The start of the comment lines right above a line, with no blank line between. */
+function leadingComments(text: string, lineStart: number): number {
+  let from = lineStart;
+  while (from > 0) {
+    const previous = text.lastIndexOf("\n", from - 2) + 1;
+    if (
+      !text
+        .slice(previous, from - 1)
+        .trim()
+        .startsWith("//")
+    )
+      break;
+    from = previous;
+  }
+  return from;
+}
+
+export function nestInCall(ctx: EditContext, op: OperationOf<"nestInCall">): TextEdit[] {
+  requireSequence(ctx);
+  const call = requireEvent(ctx, op.call);
+  if (call.kind !== "message" || call.node.kind !== "RelationStatement") {
+    reject("edit.unsafe-target", reasons().sequence.notMessage(op.call));
+  }
+  const node = call.node;
+  // The events must be the siblings right after the call, in order.
+  const siblingsOfCall = eventsOfBlock(ctx, call);
+  const at = siblingsOfCall.indexOf(call);
+  const chosen = op.events.map((key) => requireEvent(ctx, key));
+  const following = siblingsOfCall.slice(at + 1, at + 1 + chosen.length);
+  const ordered = [...chosen].sort((a, b) => a.node.start - b.node.start);
+  if (chosen.length === 0 || ordered.some((event, i) => event !== following[i])) {
+    reject("edit.unsafe-target", reasons().sequence.nestAfterCall);
+  }
+  if (
+    ordered.some(
+      (event) => event.node.kind === "KeywordStatement" && event.node.keyword.text === "return",
+    )
+  ) {
+    reject("edit.unsafe-target", reasons().sequence.nestReturn);
+  }
+  const first = ordered[0]!.node;
+  const last = ordered[ordered.length - 1]!.node;
+  const indent = lineIndent(ctx.text, node.start);
+  const inner = indent + ctx.unit;
+  // The comment lines right above the first event move with it.
+  const firstLine = ctx.text.lastIndexOf("\n", first.start - 1) + 1;
+  const from = leadingComments(ctx.text, firstLine);
+  const own = lineIndent(ctx.text, first.start);
+  const text = reindent(ctx.text.slice(from + own.length, last.end), own, inner);
+  const block = callBlock(call);
+  const edits: TextEdit[] = [
+    ...deleteStatements(
+      ctx.text,
+      ctx.compilation.parse.root,
+      ordered.map((e) => e.node),
+    ),
+  ];
+  if (from < firstLine) edits.push({ start: from, end: firstLine, newText: "" });
+  edits.unshift(
+    block
+      ? insertStatement(ctx, block, node.start, (blockIndent) =>
+          reindent(text, inner, blockIndent ?? inner),
+        )
+      : {
+          start: node.end,
+          end: node.end,
+          newText: ` {${ctx.eol}${inner}${text}${ctx.eol}${indent}}`,
+        },
+  );
+  verifyNoNewErrors(ctx, edits);
+  return edits;
+}
+
+export function unnestCall(ctx: EditContext, op: OperationOf<"unnestCall">): TextEdit[] {
+  requireSequence(ctx);
+  const call = requireEvent(ctx, op.call);
+  if (call.kind !== "message" || call.node.kind !== "RelationStatement") {
+    reject("edit.unsafe-target", reasons().sequence.notMessage(op.call));
+  }
+  const node = call.node;
+  const block = callBlock(call);
+  const events = block ? siblings(block) : [];
+  if (!block || events.length === 0) {
+    reject("edit.unsafe-target", reasons().sequence.noCallBlock(call.key));
+  }
+  const relation = ctx.diagram.relationsByKey.get(call.relation)!;
+  // Every `return` answering this call, at any depth of fragments inside its block, becomes a
+  // written reply in place: `<callee> --> <caller>`, its label, id and block kept.
+  const rewrites: TextEdit[] = [];
+  for (const reply of ctx.diagram.relations) {
+    if (reply.returns !== call.key || reply.node.kind !== "KeywordStatement") continue;
+    const keyword = reply.node.keyword;
+    const label = reply.node.args[0]?.kind === "StringLiteral" ? reply.node.args[0] : undefined;
+    const arrow = `${relation.to} --> ${relation.from}`;
+    rewrites.push(
+      label
+        ? { start: keyword.start, end: label.start, newText: `${arrow}: ` }
+        : { start: keyword.start, end: keyword.end, newText: arrow },
+    );
+  }
+  const first = events[0]!;
+  const last = events[events.length - 1]!;
+  const from = first.start;
+  // The moved text, with the rewrites applied inside it.
+  let slice = ctx.text.slice(from, last.end);
+  for (const rewrite of [...rewrites].sort((a, b) => b.start - a.start)) {
+    slice =
+      slice.slice(0, rewrite.start - from) + rewrite.newText + slice.slice(rewrite.end - from);
+  }
+  const indent = lineIndent(ctx.text, node.start);
+  const text = reindent(slice, lineIndent(ctx.text, first.start), indent);
+  const properties = block.statements.filter((s) => !isEventStatement(s));
+  const interleaved = properties.some((p) => p.start > first.start && p.end < last.end);
+  if (interleaved) reject("edit.unsafe-target", reasons().sequence.unnestInterleaved(call.key));
+  const edits: TextEdit[] = [];
+  if (properties.length === 0) {
+    // Only events were in the block: the block goes, from the end of what precedes it.
+    const before = node.id && isToken(node.id) ? node.id.end : relationNameAnchor(relation);
+    edits.push({ start: before, end: node.end, newText: `${ctx.eol}${indent}${text}` });
+  } else {
+    edits.push(...deleteStatements(ctx.text, ctx.compilation.parse.root, events));
+    edits.push({ start: node.end, end: node.end, newText: `${ctx.eol}${indent}${text}` });
+  }
   verifyNoNewErrors(ctx, edits);
   return edits;
 }

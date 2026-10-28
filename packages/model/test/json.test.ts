@@ -22,6 +22,43 @@ describe("heads in JSON", () => {
   });
 });
 
+describe("sequence spacing and calls in JSON", () => {
+  const text =
+    'diagram s: sequence {\n  spacing 56\n  participant a\n  participant b\n  a -> b as call {\n    return "OK" as ok\n  }\n  placement {\n    gap b 24 after\n    space call 8\n  }\n}\n';
+  const diagram = () => toJson(compile(text)).diagrams[0]!;
+
+  it("writes spacing, and the side of every space and gap", () => {
+    expect(diagram().properties.spacing).toBe(56);
+    expect(diagram().placement.map((p) => ("side" in p ? [p.statement, p.side] : []))).toEqual([
+      ["gap", "after"],
+      ["space", "before"],
+    ]);
+    const gap = diagram().placement[0]!;
+    expect(Object.keys(gap)).toEqual([
+      "statement",
+      "target",
+      "amount",
+      "side",
+      "range",
+      "targetRange",
+    ]);
+  });
+
+  it("writes returns after async, and the events of a call's block", () => {
+    const relations = diagram().relations;
+    expect(relations.map((r) => [r.key, r.returns])).toEqual([
+      ["call", null],
+      ["ok", "call"],
+    ]);
+    const keys = Object.keys(relations[0]!);
+    expect(keys.indexOf("returns")).toBe(keys.indexOf("async") + 1);
+    const [call] = diagram().events;
+    expect(
+      call?.kind === "message" && call.events.map((e) => e.kind === "message" && e.key),
+    ).toEqual(["ok"]);
+  });
+});
+
 describe("model JSON", () => {
   it("describes the checkout diagram", () => {
     const json = toJson(compile(checkout));

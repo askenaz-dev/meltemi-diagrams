@@ -395,6 +395,14 @@ export const en = {
       participantGroup: (id: string) => `\`${id}\` is a participant group.`,
       participantsAtTop: "Participants are declared at the diagram level, not inside fragments.",
       unknownInFragment: (keyword: string) => `Unknown statement \`${keyword}\` in a fragment.`,
+      /** `sequence.return`: a `return` with no call around it. */
+      returnOutsideCall: "`return` answers a call: write it inside the call's block.",
+      /** `sequence.return`: an event after the `return` of its list. */
+      afterReturn: (call: string) =>
+        `\`${call}\` already returned; move this event before the \`return\`.`,
+      /** `sequence.activation`: a `deactivate` that would end the bar of a call's block. */
+      activeForCall: (participant: string, call: string) =>
+        `\`${participant}\` is active for the call \`${call}\`; its bar ends with the block.`,
       divider: 'Expected `divider "Label"`.',
       delay: 'Expected `delay` or `delay "Label"`.',
       /** `left` or `right`. */
@@ -422,6 +430,13 @@ export const en = {
       placementStatement: (keyword: string) =>
         `\`${keyword}\` does not apply to sequence diagrams.`,
       pixels: (form: string) => `Expected ${form} with a number of pixels, 0 or more.`,
+      /** A `gap`: a number of pixels, negative to bring two participants closer. */
+      signedPixels: (form: string) => `Expected ${form} with a number of pixels.`,
+      side: (form: string) => `Expected ${form}: the side is \`before\` or \`after\`.`,
+      outerGap: (participant: string, side: string) =>
+        side === "before"
+          ? `\`${participant}\` is the first participant: a gap before it is 0 or more.`
+          : `\`${participant}\` is the last participant: a gap after it is 0 or more.`,
       unknownEvent: (id: string) => `Unknown event \`${id}\`.`,
       duplicateScenario: (id: string) => `Scenario \`${id}\` is already declared.`,
       scenarioStatements: "Scenarios hold `choose`, `repeat`, `skip` and `take`.",
@@ -673,10 +688,13 @@ export const en = {
       declareParticipant: (id: string) =>
         `Declare it first, for example \`participant ${id} "${id}"\`.`,
       fragmentContents: "Fragments hold messages and the other events, and nested fragments.",
+      returnInCall: 'Write it inside the call\'s block: `a -> b: "Pay" { return "OK" }`.',
       activate: (participant: string) =>
         `Add \`activate ${participant}\` before it, or remove this \`deactivate\`.`,
       placement:
         "Sequence diagrams keep the order of events: use `space <event> <n>`, `gap <participant> <n>` and `label <message> at <n>% offset (dx, dy)`.",
+      outerGap: (participant: string) =>
+        `There is nothing left of \`${participant}\` to tighten; a gap on the outer side is 0 or more.`,
       spaceTarget:
         '`space` names a message with `as <id>`, or a note or fragment with an id, such as `alt check "OK" { }`.',
       namedFragments: (fragments: readonly { readonly id: string; readonly operator: string }[]) =>

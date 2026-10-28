@@ -15,7 +15,12 @@ import {
   type TextEdit,
   type TopLevelItem,
 } from "@meltemi/diagrams-language";
-import { compile, type Compilation, type FlowDiagram } from "@meltemi/diagrams-model";
+import {
+  compile,
+  relationNameAnchor,
+  type Compilation,
+  type FlowDiagram,
+} from "@meltemi/diagrams-model";
 import { messages } from "./messages/index.js";
 
 export interface MergeResult {
@@ -199,8 +204,7 @@ function planDiagram(
     if (newDiagram.elementsById.has(before.id) || newDiagram.relationsByKey.has(before.id))
       continue;
     if (after.id === null) {
-      const node = after.node;
-      const anchor = (node.label ?? node.target).end;
+      const anchor = relationNameAnchor(after);
       edits.push({ start: anchor, end: anchor, newText: ` as ${before.id}` });
     } else tokenRenames.set(after.id, before.id);
     known.add(before.id);

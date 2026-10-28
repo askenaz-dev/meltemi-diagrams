@@ -205,6 +205,70 @@ describe("sequence placement", () => {
   it("refuses space on an anonymous event", () => {
     expect(sequence("  a -> b\n  placement { space a 10 }").codes).toEqual(["ref.unknown-element"]);
   });
+
+  it("reads spacing and the sides, before by default", () => {
+    const { diagram, codes } = sequence(
+      "  spacing 56\n  a -> b as m1\n  b -> c as m2\n  placement {\n    space m1 20\n    space m2 10 after\n    gap b 24 before\n    gap c 30 after\n  }",
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.properties.spacing).toBe(56);
+    expect(
+      diagram.placement.map((p) =>
+        p.statement === "space" || p.statement === "gap"
+          ? [p.statement, p.target, p.amount, p.side]
+          : [p.statement],
+      ),
+    ).toEqual([
+      ["space", "m1", 20, "before"],
+      ["space", "m2", 10, "after"],
+      ["gap", "b", 24, "before"],
+      ["gap", "c", 30, "after"],
+    ]);
+    expect(sequence("  a -> b").diagram.properties.spacing).toBeNull();
+  });
+
+  it("takes a negative gap between two participants, and both sides of one pair", () => {
+    const { diagram, codes } = sequence(
+      "  a -> b\n  b -> c\n  placement {\n    gap b -12\n    gap a 8 after\n    gap c -20 before\n  }",
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.placement.map((p) => ("amount" in p ? p.amount : null))).toEqual([-12, 8, -20]);
+  });
+
+  it("refuses a negative gap on the outer side of the first or the last participant", () => {
+    const before = sequence("  a -> b\n  placement { gap a -10 }");
+    expect(before.codes).toEqual(["prop.invalid-value"]);
+    expect(before.compilation.diagnostics[0]!.message).toContain("first participant");
+    expect(before.compilation.diagnostics[0]!.hints![0]).toContain("nothing left of `a`");
+    const after = sequence("  a -> b\n  placement { gap b -10 after }");
+    expect(after.codes).toEqual(["prop.invalid-value"]);
+    expect(after.compilation.diagnostics[0]!.message).toContain("last participant");
+    // On the inner side it is a tightening.
+    expect(sequence("  a -> b\n  placement { gap a -10 after }").codes).toEqual([]);
+  });
+
+  it("refuses a negative space and a side that is not one, naming the form", () => {
+    const space = sequence("  a -> b as m\n  placement { space m -5 }");
+    expect(space.codes).toEqual(["prop.invalid-value"]);
+    expect(space.compilation.diagnostics[0]!.message).toContain("0 or more");
+    const side = sequence("  a -> b\n  placement { gap b 10 above }");
+    expect(side.codes).toEqual(["prop.invalid-value"]);
+    expect(side.compilation.diagnostics[0]!.message).toContain("`before` or `after`");
+  });
+
+  it("refuses a second gap on the same side of a participant, and takes one on each side", () => {
+    expect(
+      sequence("  a -> b\n  placement {\n    gap b 10\n    gap b 20 before\n  }").codes,
+    ).toEqual(["placement.duplicate"]);
+    expect(
+      sequence("  a -> b\n  placement {\n    gap b 10\n    gap b 20 after\n  }").codes,
+    ).toEqual([]);
+  });
+
+  it("refuses spacing outside 0 to 400", () => {
+    expect(sequence("  spacing 401\n  a -> b").codes).toEqual(["prop.invalid-value"]);
+    expect(sequence("  spacing 0\n  a -> b").codes).toEqual([]);
+  });
 });
 
 describe("scenarios", () => {
@@ -270,5 +334,107 @@ describe("sequence JSON", () => {
     expect(json.relations[0]).toMatchObject({ key: "m", async: true });
     expect(json.events.map((e) => e.kind)).toEqual(["message", "fragment"]);
     expect(json.scenarios[0]).toMatchObject({ id: "s", choices: [{ kind: "choose", branch: 0 }] });
+  });
+});
+
+describe("call blocks and returns", () => {
+  const CALLS =
+    '  customer -> api: "Pay" as pay {\n    kind async\n    description "The payment"\n    api -> bank: "Authorize" as authorize {\n      return "OK" as ok\n    }\n    note n over api "Checked"\n    return "Receipt"\n  }';
+
+  it("holds events inside a call, its properties working beside them", () => {
+    const { diagram, codes } = sequence(CALLS);
+    expect(codes).toEqual([]);
+    const [pay] = diagram.events;
+    expect(pay!.kind).toBe("message");
+    if (pay!.kind !== "message") return;
+    expect(pay.events.map((e) => e.key)).toEqual(["authorize", "n", "api->customer#1"]);
+    expect(pay.events.every((e) => e.path.at(-1) && "message" in e.path.at(-1)!)).toBe(true);
+    const authorize = pay.events[0]!;
+    expect(authorize.kind === "message" && authorize.events.map((e) => e.key)).toEqual(["ok"]);
+    expect(authorize.kind === "message" && authorize.events[0]!.path).toEqual([
+      { message: "pay" },
+      { message: "authorize" },
+    ]);
+    const relation = diagram.relationsByKey.get("pay")!;
+    expect([relation.async, relation.description]).toEqual([true, "The payment"]);
+  });
+
+  it("makes a return a dashed reply from the callee to the caller, naming its call", () => {
+    const { diagram } = sequence(CALLS);
+    const ok = diagram.relationsByKey.get("ok")!;
+    expect([ok.from, ok.to, ok.line, ok.label, ok.returns, ok.heads]).toEqual([
+      "bank",
+      "api",
+      "dashed",
+      "OK",
+      "authorize",
+      "end",
+    ]);
+    const receipt = diagram.relationsByKey.get("api->customer#1")!;
+    expect([receipt.returns, receipt.label, receipt.node.kind]).toEqual([
+      "pay",
+      "Receipt",
+      "KeywordStatement",
+    ]);
+    // Every other relation answers nothing.
+    expect(diagram.relationsByKey.get("pay")!.returns).toBeNull();
+  });
+
+  it("numbers a return with the written replies of the same pair, in source order", () => {
+    const { diagram } = sequence('  a -> b { return }\n  b --> a: "Later"');
+    expect(diagram.relations.map((r) => [r.key, r.returns])).toEqual([
+      ["a->b#1", null],
+      ["b->a#1", "a->b#1"],
+      ["b->a#2", null],
+    ]);
+  });
+
+  it("refuses a return outside a call, and an event after a return", () => {
+    const outside = sequence("  a -> b\n  return");
+    expect(outside.codes).toEqual(["sequence.return"]);
+    expect(outside.compilation.diagnostics[0]!.message).toContain("inside the call's block");
+    const after = sequence('  a -> b as call {\n    return\n    b -> c: "Too late"\n  }');
+    expect(after.codes).toEqual(["sequence.return"]);
+    expect(after.compilation.diagnostics[0]!.message).toBe(
+      "`call` already returned; move this event before the `return`.",
+    );
+  });
+
+  it("ends a branch with a return in it, and only that branch", () => {
+    const { codes } = sequence(
+      '  a -> b as call {\n    alt check "Yes" {\n      return "Y"\n    } else "No" {\n      b -> c\n      return "N"\n    }\n  }',
+    );
+    expect(codes).toEqual([]);
+  });
+
+  it("keeps the receiver active for the block: a deactivate of it there is refused", () => {
+    expect(sequence("  a -> b as call {\n    deactivate b\n  }").codes).toEqual([
+      "sequence.activation",
+    ]);
+    // An explicit activation inside nests deeper, and its deactivate is fine.
+    expect(sequence("  a -> b as call {\n    activate b\n    deactivate b\n  }").codes).toEqual([]);
+  });
+
+  it("writes returns and nested events to the JSON", () => {
+    const json = toJson(sequence(CALLS).compilation).diagrams[0]!;
+    expect(json.relations.find((r) => r.key === "ok")).toMatchObject({ returns: "authorize" });
+    const pay = json.events[0]!;
+    expect(pay.kind === "message" && pay.events.map((e) => e.key)).toEqual([
+      "authorize",
+      "n",
+      "api->customer#1",
+    ]);
+  });
+
+  it("keeps a call's block in a scenario, repeated with the loop around it", () => {
+    const { diagram } = sequence(
+      '  loop poll "Until ready" {\n    a -> b as ask {\n      return "Not yet" as reply\n    }\n  }\n  scenario twice { repeat poll 2 }',
+    );
+    const events = resolveScenario(diagram, "twice")!;
+    const loops = events.filter((e): e is FragmentEvent => e.kind === "fragment");
+    const second = loops[1]!.branches[0]!.events[0]!;
+    expect(second.key).toBe("ask@2");
+    expect(second.kind === "message" && second.events.map((e) => e.key)).toEqual(["reply@2"]);
+    expect(flattenEvents(diagram.events).map((e) => e.key)).toEqual(["poll", "ask", "reply"]);
   });
 });

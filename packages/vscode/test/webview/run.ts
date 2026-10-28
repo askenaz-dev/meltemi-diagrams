@@ -360,6 +360,18 @@ const SEQUENCE = `diagram payment: sequence {
 }
 `;
 
+/** A call followed by what it causes, flat: Alt+N nests them. */
+const CALLS = `diagram payment: sequence {
+  actor customer "Customer"
+  participant api "API"
+  participant bank "Bank"
+
+  customer -> api: "Pay" as pay
+  api -> bank: "Authorize" as authorize
+  bank --> api: "OK" as approved
+}
+`;
+
 /** A note with an outline, one without, and a text, each attached to a box. */
 const FREE_NOTES = `diagram s: free {
   box api "API"
@@ -2265,6 +2277,109 @@ const tests: {
       await page.keyboard.up("Shift");
       await h.settled();
       assert.match(h.text, /\n {2}bank --> customer\n/);
+    },
+  },
+  {
+    name: "spaces participants: a short head drag writes a gap, Participant spacing writes spacing",
+    text: SEQUENCE,
+    async run(h) {
+      const page = h.page;
+      const order =
+        /actor customer "Customer"\n {2}participant api "API"\n {2}participant bank "Bank"/;
+      const drag = async (id: string, dx: number) => {
+        const head = await h.centre(id);
+        await page.mouse.move(head.x, head.y);
+        await page.mouse.down();
+        await page.mouse.move(head.x + dx, head.y, { steps: 4 });
+        await page.mouse.up();
+        await h.settled();
+      };
+      // Under the drag threshold: nothing is written.
+      const untouched = h.text;
+      await drag("bank", 2);
+      assert.equal(h.text, untouched);
+      // A short drag writes the gap before the head and keeps the order.
+      await drag("bank", 30);
+      assert.match(h.text, /\n {4}gap bank \d+\n/);
+      assert.match(h.text, order);
+      assert.match((await page.locator(".status").textContent()) ?? "", /Gap before bank: \d+/);
+      // Most of the way to `customer`, not past its centre: the heads need the room.
+      const customer = await h.centre("customer");
+      const api = await h.centre("api");
+      await drag("api", -Math.round((api.x - customer.x) * 0.7));
+      assert.match(h.text, /\n {4}gap api -\d+\n/);
+      assert.match(h.text, order);
+      assert.match((await page.locator(".status").textContent()) ?? "", /written, -?\d+ drawn/);
+      // Participant spacing, with nothing selected.
+      await h.focusStage();
+      await page.keyboard.press("Escape");
+      await h.settled();
+      const spacing = page.locator("#mdg-field-spacing");
+      await spacing.fill("56");
+      await spacing.press("Enter");
+      await h.settled();
+      assert.match(h.text, /\n {2}spacing 56\n/);
+      await page.screenshot({ path: join(output, "canvas-sequence-spacing.png") });
+    },
+  },
+  {
+    name: "nests a call with Alt+N, returns with Alt+R and unnests with Alt+Shift+N",
+    text: CALLS,
+    async run(h) {
+      const page = h.page;
+      const arrow = async (key: string) => {
+        const box = await page
+          .locator(`.content g[data-id="${key}"][data-role="relation"] polyline`)
+          .first()
+          .boundingBox();
+        assert.ok(box, `no arrow for ${key}`);
+        return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      };
+      const authorize = await arrow("authorize");
+      await page.mouse.click(authorize.x, authorize.y);
+      await h.settled();
+      const approved = await arrow("approved");
+      await page.keyboard.down("Shift");
+      await page.mouse.click(approved.x, approved.y);
+      await page.keyboard.up("Shift");
+      await h.settled();
+      assert.deepEqual([...h.session.selected].sort(), ["approved", "authorize"]);
+      await h.focusStage();
+      await page.keyboard.press("Alt+n");
+      await h.settled();
+      assert.match(
+        h.text,
+        /as pay \{\n {4}api -> bank: "Authorize" as authorize\n {4}bank --> api: "OK" as approved\n {2}\}/,
+      );
+      // The call is selected: Alt+R answers it at the end of its block.
+      assert.deepEqual(h.session.selected, ["pay"]);
+      await page.keyboard.press("Alt+r");
+      await h.settled();
+      assert.match(h.text, /as approved\n {4}return\n {2}\}/);
+      await page.screenshot({ path: join(output, "canvas-sequence-call.png") });
+      // A nested row is its own event.
+      const nested = await arrow("authorize");
+      await page.mouse.click(nested.x, nested.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["authorize"]);
+      // Dragging the call down moves its block with it.
+      const pay = await arrow("pay");
+      await page.mouse.move(pay.x, pay.y);
+      await page.mouse.down();
+      await page.mouse.move(pay.x, pay.y + 20, { steps: 4 });
+      await page.mouse.move(pay.x, pay.y + 28, { steps: 4 });
+      await page.mouse.up();
+      await h.settled();
+      assert.match(h.text, /space pay \d+/);
+      const moved = await arrow("authorize");
+      assert.ok(moved.y > nested.y + 10, "the block moved with its call");
+      await h.focusStage();
+      await page.keyboard.press("Alt+Shift+N");
+      await h.settled();
+      assert.match(
+        h.text,
+        /as pay\n {2}api -> bank: "Authorize" as authorize\n {2}bank --> api: "OK" as approved\n {2}api --> customer\n/,
+      );
     },
   },
   {

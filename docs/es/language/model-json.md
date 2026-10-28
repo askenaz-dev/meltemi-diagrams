@@ -15,7 +15,8 @@ lo descarga, y los motores de disposición y las pruebas lo leen. El nombre del 
 - Cada elemento, relación e instrucción lleva el `range` de su instrucción en el código fuente.
 - Las relaciones anónimas aparecen con su `key` sintética (`<from>-><to>#<n>`) e `id: null`.
 - Dentro de una versión las claves se agregan, nunca cambian: `heads` en las relaciones y `line`
-  en los elementos llegaron en 1.10.0, y la versión sigue siendo `0.1`.
+  en los elementos llegaron en 1.10.0, `spacing`, `side`, `returns` y los `events` de los mensajes
+  en 1.11.0, y la versión sigue siendo `0.1`.
 - Todos los perfiles de diagrama se compilan; los bloques `story` y `export` todavía no están en el
   JSON.
 
@@ -89,19 +90,19 @@ en 1. `end` es exclusivo.
 
 ## Diagrama
 
-| Clave        | Tipo   | Significado                                                                                                                                                                                                                                                                                            |
-| ------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`         | cadena | Id del diagrama.                                                                                                                                                                                                                                                                                       |
-| `type`       | cadena | `flow`, `free`, `sequence` o `c4`.                                                                                                                                                                                                                                                                     |
-| `range`      | rango  | El bloque `diagram` completo.                                                                                                                                                                                                                                                                          |
-| `properties` | objeto | `direction`, `layout` (con los valores predeterminados aplicados), `theme`, `title`, `description`, `preset` (cadena o null), `canvas` (`{ "width", "height" }` o null), `routing`, `layers` (de atrás hacia adelante; `["main"]` en los diagramas de flujo), `autonumber` (el primer número, o null). |
-| `classes`    | lista  | Declaraciones `class <id> { }`, en el orden del código fuente.                                                                                                                                                                                                                                         |
-| `rules`      | lista  | Instrucciones `rule <kind> { }`, en el orden del código fuente.                                                                                                                                                                                                                                        |
-| `elements`   | lista  | Elementos en el orden del código fuente.                                                                                                                                                                                                                                                               |
-| `relations`  | lista  | Relaciones en el orden del código fuente.                                                                                                                                                                                                                                                              |
-| `placement`  | lista  | Instrucciones `place`, `size`, `route` y `label` en el orden del código fuente.                                                                                                                                                                                                                        |
-| `styles`     | lista  | Una entrada por cada instrucción `style`.                                                                                                                                                                                                                                                              |
-| `animations` | lista  | Una entrada por cada instrucción `animate`.                                                                                                                                                                                                                                                            |
+| Clave        | Tipo   | Significado                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`         | cadena | Id del diagrama.                                                                                                                                                                                                                                                                                                                                                                               |
+| `type`       | cadena | `flow`, `free`, `sequence` o `c4`.                                                                                                                                                                                                                                                                                                                                                             |
+| `range`      | rango  | El bloque `diagram` completo.                                                                                                                                                                                                                                                                                                                                                                  |
+| `properties` | objeto | `direction`, `layout` (con los valores predeterminados aplicados), `theme`, `title`, `description`, `preset` (cadena o null), `canvas` (`{ "width", "height" }` o null), `routing`, `layers` (de atrás hacia adelante; `["main"]` en los diagramas de flujo), `autonumber` (el primer número, o null), `spacing` (la distancia entre las cabeceras de secuencia tal como se escribió, o null). |
+| `classes`    | lista  | Declaraciones `class <id> { }`, en el orden del código fuente.                                                                                                                                                                                                                                                                                                                                 |
+| `rules`      | lista  | Instrucciones `rule <kind> { }`, en el orden del código fuente.                                                                                                                                                                                                                                                                                                                                |
+| `elements`   | lista  | Elementos en el orden del código fuente.                                                                                                                                                                                                                                                                                                                                                       |
+| `relations`  | lista  | Relaciones en el orden del código fuente.                                                                                                                                                                                                                                                                                                                                                      |
+| `placement`  | lista  | Instrucciones `place`, `size`, `route` y `label` en el orden del código fuente.                                                                                                                                                                                                                                                                                                                |
+| `styles`     | lista  | Una entrada por cada instrucción `style`.                                                                                                                                                                                                                                                                                                                                                      |
+| `animations` | lista  | Una entrada por cada instrucción `animate`.                                                                                                                                                                                                                                                                                                                                                    |
 
 ### Elemento
 
@@ -127,22 +128,23 @@ en 1. `end` es exclusivo.
 
 ### Relación
 
-| Clave         | Tipo          | Significado                                                                                |
-| ------------- | ------------- | ------------------------------------------------------------------------------------------ |
-| `key`         | cadena        | El id, o `<from>-><to>#<n>` si es anónima.                                                 |
-| `id`          | cadena o null | El nombre de `as <id>`.                                                                    |
-| `from`, `to`  | cadena        | Ids de elementos.                                                                          |
-| `line`        | cadena        | `solid` (`->`, `--`, `<->`) o `dashed` (`-->`, `---`, `<-->`).                             |
-| `twoWay`      | booleano      | Escrita con `<->` o `<-->`.                                                                |
-| `heads`       | cadena        | `end` (`->`, `-->`), `both` (`<->`, `<-->`) o `none` (`--`, `---`), en todos los perfiles. |
-| `async`       | booleano      | `kind async` en un mensaje de secuencia.                                                   |
-| `label`       | cadena o null | Texto después de `:`.                                                                      |
-| `description` | cadena o null | Del bloque de la relación.                                                                 |
-| `classes`     | lista         | Nombres de las clases aplicadas en el bloque de la relación.                               |
-| `layer`       | cadena o null | La `layer` del bloque (composiciones libres).                                              |
-| `groupPath`   | lista         | Grupos que contienen la instrucción de la relación.                                        |
-| `range`       | rango         | La instrucción de la relación.                                                             |
-| `idRange`     | rango o null  | El identificador de `as <id>`.                                                             |
+| Clave         | Tipo          | Significado                                                                                      |
+| ------------- | ------------- | ------------------------------------------------------------------------------------------------ |
+| `key`         | cadena        | El id, o `<from>-><to>#<n>` si es anónima.                                                       |
+| `id`          | cadena o null | El nombre de `as <id>`.                                                                          |
+| `from`, `to`  | cadena        | Ids de elementos.                                                                                |
+| `line`        | cadena        | `solid` (`->`, `--`, `<->`) o `dashed` (`-->`, `---`, `<-->`).                                   |
+| `twoWay`      | booleano      | Escrita con `<->` o `<-->`.                                                                      |
+| `heads`       | cadena        | `end` (`->`, `-->`), `both` (`<->`, `<-->`) o `none` (`--`, `---`), en todos los perfiles.       |
+| `async`       | booleano      | `kind async` en un mensaje de secuencia.                                                         |
+| `returns`     | cadena o null | La clave de la llamada a la que responde un `return` de secuencia; null en las demás relaciones. |
+| `label`       | cadena o null | Texto después de `:`.                                                                            |
+| `description` | cadena o null | Del bloque de la relación.                                                                       |
+| `classes`     | lista         | Nombres de las clases aplicadas en el bloque de la relación.                                     |
+| `layer`       | cadena o null | La `layer` del bloque (composiciones libres).                                                    |
+| `groupPath`   | lista         | Grupos que contienen la instrucción de la relación.                                              |
+| `range`       | rango         | La instrucción de la relación.                                                                   |
+| `idRange`     | rango o null  | El identificador de `as <id>`.                                                                   |
 
 ### Entradas de colocación
 
@@ -154,10 +156,11 @@ Cada entrada tiene `statement`, `target`, `range` y `targetRange`, además de:
 | `size`      | `width`, `height`.                                                                                                                                                                |
 | `route`     | `from` y `to` como `{ "element", "port" }`, con `"position"` (un porcentaje) cuando el extremo está fijado en un punto de su lado; `via` como una lista de puntos `{ "x", "y" }`. |
 | `label`     | `at`: porcentaje a lo largo de la ruta; `offset` como `{ "x", "y" }`.                                                                                                             |
-| `space`     | `amount`: espacio adicional encima de un mensaje, una nota o un fragmento de secuencia.                                                                                           |
-| `gap`       | `amount`: espacio adicional a la izquierda de un participante de secuencia.                                                                                                       |
+| `space`     | `amount`: espacio adicional encima de un mensaje, una nota o un fragmento de secuencia, o debajo; `side`: `before` (encima) o `after` (debajo).                                   |
+| `gap`       | `amount`: espacio adicional a la izquierda de un participante de secuencia, o a su derecha, negativo para acercarlo; `side`: `before` (izquierda) o `after` (derecha).            |
 
-En `route` y `label`, `target` es la clave de la relación; en `space`, el id del evento.
+En `route` y `label`, `target` es la clave de la relación; en `space`, el id del evento. `side` es
+`before` cuando la instrucción no escribe ninguno.
 
 ### Entradas de estilo y de animación
 
@@ -214,17 +217,17 @@ El documento lista `models` después de `themes`:
 ### Eventos y escenarios de secuencia
 
 Los diagramas de secuencia agregan `events` y `scenarios` después de `animations`; en los demás
-diagramas, los dos están vacíos. Los eventos están en orden, y los fragmentos contienen los eventos
-de sus ramas.
+diagramas, los dos están vacíos. Los eventos están en orden; los fragmentos contienen los eventos
+de sus ramas, y los mensajes, los eventos de los bloques de sus llamadas.
 
-| `kind`                                        | Claves además de `kind`, `key` y `range`                                               |
-| --------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `message`                                     | `relation`: la clave de la relación, que también es la clave del evento.               |
-| `activate`, `deactivate`, `create`, `destroy` | `participant`.                                                                         |
-| `note`                                        | `id` (o null), `position` (`over`, `left`, `right`), `participants`, `text`.           |
-| `fragment`                                    | `id` (o null), `operator`, `branches`: `{ "condition" (or null), "events", "range" }`. |
-| `divider`                                     | `label`.                                                                               |
-| `delay`                                       | `label` (o null).                                                                      |
+| `kind`                                        | Claves además de `kind`, `key` y `range`                                                                                                                                          |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `message`                                     | `relation`: la clave de la relación, que también es la clave del evento; `events`: los eventos del bloque de su llamada, vacío si no lo tiene. Un `return` también es un mensaje. |
+| `activate`, `deactivate`, `create`, `destroy` | `participant`.                                                                                                                                                                    |
+| `note`                                        | `id` (o null), `position` (`over`, `left`, `right`), `participants`, `text`.                                                                                                      |
+| `fragment`                                    | `id` (o null), `operator`, `branches`: `{ "condition" (or null), "events", "range" }`.                                                                                            |
+| `divider`                                     | `label`.                                                                                                                                                                          |
+| `delay`                                       | `label` (o null).                                                                                                                                                                 |
 
 Los eventos sin id tienen la clave `<kind>#<n>` (`activate#1`, `note#2`; los fragmentos usan su
 operador, `alt#1`).

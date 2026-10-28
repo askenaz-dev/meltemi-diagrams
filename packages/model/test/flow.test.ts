@@ -185,6 +185,7 @@ describe("diagram properties", () => {
       routing: "auto",
       layers: ["main"],
       autonumber: null,
+      spacing: null,
     });
   });
 

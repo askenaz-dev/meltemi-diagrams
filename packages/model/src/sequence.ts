@@ -6,10 +6,11 @@ import {
   type KeywordStatement,
   type LineIndex,
   type Missing,
+  type RelationStatement,
   type Statement,
   type Token,
 } from "@meltemi/diagrams-language";
-import { FlowAnalyzer, type Classified } from "./flow.js";
+import { FlowAnalyzer, type Classified, type Mutable } from "./flow.js";
 import { messages } from "./messages/index.js";
 import {
   FRAGMENT_BRANCH_KEYWORDS,
@@ -47,6 +48,8 @@ export function analyzeSequenceDiagram(
 
 interface Lifeline {
   depth: number;
+  /** The levels of `depth` that calls' blocks opened: no `deactivate` ends them. */
+  implicit: number;
   appeared: boolean;
   created: boolean;
   destroyed: boolean;
@@ -77,6 +80,26 @@ function clausesOf(stmt: KeywordStatement): {
 
 const blockOf = (block: Block | Missing | undefined): Block | undefined =>
   block && block.kind === "Block" ? block : undefined;
+
+/** A statement of the event order: a message, `return` or another event keyword. */
+const isEventStatement = (stmt: Statement): boolean =>
+  stmt.kind === "RelationStatement" ||
+  (stmt.kind === "KeywordStatement" && EVENT_KEYWORDS.has(stmt.keyword.text));
+
+/** The events a call's block holds; its other statements are the message's properties. */
+const callEvents = (block: Block | Missing | undefined): Statement[] =>
+  (blockOf(block)?.statements ?? []).filter(
+    (stmt) => stmt.kind !== "Error" && !headerHasError(stmt) && isEventStatement(stmt),
+  );
+
+/** The call an event stands inside: the last `{ message }` place of its path, or undefined. */
+const enclosingCall = (path: readonly EventPlace[]): string | undefined => {
+  for (let i = path.length - 1; i >= 0; i--) {
+    const place = path[i]!;
+    if ("message" in place) return place.message;
+  }
+  return undefined;
+};
 
 /** Declarations of flow and free diagrams, which sequence diagrams do not have. */
 const OTHER_DECLARATIONS: readonly string[] = [
@@ -124,6 +147,10 @@ const SEQUENCE_STATEMENTS: readonly string[] = [
 
 class SequenceAnalyzer extends FlowAnalyzer {
   private readonly relationOf = new Map<Statement, Relation>();
+  /** Each `return` and the call statement whose block holds it. */
+  private readonly returnCalls = new Map<KeywordStatement, RelationStatement>();
+  /** The relation of each call statement, as it is built. */
+  private readonly callRelations = new Map<RelationStatement, Relation>();
   private readonly counters = new Map<string, number>();
   /** Ids written on notes and fragments, with their tokens. */
   private readonly eventIds = new Map<string, Token>();
@@ -153,19 +180,145 @@ class SequenceAnalyzer extends FlowAnalyzer {
     return true;
   }
 
-  /** Relations at any depth of fragments, so that they are built with the others. */
-  private collectRelations(stmt: Statement, out: Classified): void {
+  /**
+   * Relations at any depth of fragments and of calls' blocks, in source order, so that they are
+   * built and numbered with the others; a `return` in a call's block is a relation too, answering
+   * the innermost call around it.
+   */
+  private collectRelations(stmt: Statement, out: Classified, call?: RelationStatement): void {
     if (stmt.kind === "RelationStatement") {
       out.relations.push({ stmt, groupPath: [] });
+      for (const inner of callEvents(stmt.block)) this.collectRelations(inner, out, stmt);
       return;
     }
-    if (stmt.kind !== "KeywordStatement" || !OPERATORS.has(stmt.keyword.text)) return;
+    if (stmt.kind !== "KeywordStatement") return;
+    if (stmt.keyword.text === "return") {
+      if (!call) return; // `sequence.return`, reported with the events
+      this.returnCalls.set(stmt, call);
+      // Built by `relation`, which tells a `return` from a relation statement.
+      out.relations.push({ stmt: stmt as unknown as RelationStatement, groupPath: [] });
+      return;
+    }
+    if (!OPERATORS.has(stmt.keyword.text)) return;
     for (const clause of clausesOf(stmt)) {
       for (const inner of blockOf(clause.block)?.statements ?? []) {
         if (inner.kind === "Error" || headerHasError(inner)) continue;
-        this.collectRelations(inner, out);
+        this.collectRelations(inner, out, call);
       }
     }
+  }
+
+  /**
+   * A message's relation: its block's properties alone, the events of a call's block being built
+   * as events; a `return` is a reply from the call's receiver to its caller.
+   */
+  protected override relation(
+    stmt: RelationStatement | KeywordStatement,
+    groupPath: string[],
+  ): void {
+    if (stmt.kind === "KeywordStatement") {
+      this.returnRelation(stmt);
+      return;
+    }
+    const before = this.relations.length;
+    const block = blockOf(stmt.block);
+    if (block && block.statements.some(isEventStatement)) {
+      const properties = {
+        ...block,
+        statements: block.statements.filter((s) => !isEventStatement(s)),
+      };
+      super.relation({ ...stmt, block: properties }, groupPath);
+    } else {
+      super.relation(stmt, groupPath);
+    }
+    const made =
+      this.relations.length > before ? this.relations[this.relations.length - 1] : undefined;
+    if (!made) return;
+    made.node = stmt;
+    this.callRelations.set(stmt, made);
+  }
+
+  /** `return ["Label"] [as <id>] [{ properties }]`: the reply of the call around it. */
+  private returnRelation(stmt: KeywordStatement): void {
+    const callStmt = this.returnCalls.get(stmt);
+    const call = callStmt ? this.callRelations.get(callStmt) : undefined;
+    // A call that did not resolve has no reply to draw; its own error says why.
+    if (!call) return;
+    const form = '`return ["Label"] [as <id>] [{ ... }]`';
+    let [first, ...rest] = stmt.args;
+    let label: string | null = null;
+    if (first?.kind === "StringLiteral") {
+      label = String(first.value ?? "");
+      [first, ...rest] = rest;
+    }
+    let idToken: Token | undefined;
+    if (first !== undefined) {
+      const as = singleIdent(first);
+      idToken = rest.length === 1 ? singleIdent(rest[0]) : undefined;
+      if (as?.text !== "as" || !idToken || rest.length !== 1) {
+        this.invalid(messages().diagnostics.common.expected(form), first);
+        return;
+      }
+    }
+    let id: string | null = null;
+    if (idToken) {
+      const element = this.elementsById.get(idToken.text);
+      const firstRelation = this.relationIdTokens.get(idToken.text);
+      if (element) {
+        const m = messages();
+        this.error(
+          "ref.duplicate-id",
+          m.diagnostics.flow.relationIdUsedByElement(idToken.text),
+          idToken,
+          {
+            related: [{ message: m.related.elementDeclared, at: element.idToken }],
+            hints: [m.hints.flow.sharedNamespace],
+          },
+        );
+      } else if (firstRelation && firstRelation !== idToken) {
+        const m = messages();
+        this.error("ref.duplicate-id", m.diagnostics.flow.relationIdUsed(idToken.text), idToken, {
+          related: [{ message: m.related.firstUsed, at: firstRelation }],
+        });
+      } else {
+        id = idToken.text;
+        this.relationIdTokens.set(id, idToken);
+      }
+    }
+    const { description, classes, layer, layerRange, values } = this.elementBlock(
+      blockOf(stmt.block),
+      this.profile.relationProperties,
+      "Relation",
+      undefined,
+    );
+    const relation: Mutable<Relation> = {
+      key: "",
+      id,
+      from: call.to,
+      to: call.from,
+      line: "dashed",
+      heads: "end",
+      twoWay: false,
+      async: false,
+      // Set once the call has its key.
+      returns: null,
+      technology: null,
+      sources: [],
+      derived: false,
+      label,
+      description,
+      assumption: typeof values.assumption === "string" ? values.assumption : null,
+      data: {},
+      classes,
+      layer,
+      layerRange,
+      groupPath: [],
+      range: this.range(stmt),
+      idRange: id !== null && idToken ? this.range(idToken) : null,
+      node: stmt,
+    };
+    this.relations.push(relation);
+    if (id !== null && idToken) this.reference(idToken, id, "relation", "relation-id", stmt);
   }
 
   protected override statementCandidates(keyword: string): readonly string[] {
@@ -186,6 +339,13 @@ class SequenceAnalyzer extends FlowAnalyzer {
   // ---------------------------------------------------------------- events
 
   protected override afterRelations(classified: Classified): void {
+    // A `return` names the call it answers, now that the call has its key.
+    for (const relation of this.relations) {
+      if (relation.node.kind !== "KeywordStatement") continue;
+      const callStmt = this.returnCalls.get(relation.node);
+      const call = callStmt ? this.callRelations.get(callStmt) : undefined;
+      if (call) relation.returns = call.key;
+    }
     for (const relation of this.relations) {
       this.relationOf.set(relation.node, relation);
       for (const end of new Set([relation.from, relation.to])) {
@@ -274,11 +434,27 @@ class SequenceAnalyzer extends FlowAnalyzer {
 
   private buildEvents(statements: readonly Statement[], path: EventPlace[]): SequenceEvent[] {
     const events: SequenceEvent[] = [];
+    // A `return` ends its statement list: what follows it in the same list is reported.
+    let returned = false;
+    const afterReturn = (stmt: Statement) => {
+      if (!returned) return;
+      const m = messages();
+      this.error(
+        "sequence.return",
+        m.diagnostics.sequence.afterReturn(enclosingCall(path) ?? ""),
+        stmt.kind === "KeywordStatement" ? stmt.keyword : stmt,
+      );
+    };
     for (const stmt of statements) {
       if (stmt.kind === "Error" || headerHasError(stmt)) continue;
       if (stmt.kind === "RelationStatement") {
         const relation = this.relationOf.get(stmt);
         if (!relation) continue;
+        afterReturn(stmt);
+        // The call's block: its events, inside the call.
+        const inner = callEvents(stmt.block);
+        const nested =
+          inner.length > 0 ? this.buildEvents(inner, [...path, { message: relation.key }]) : [];
         events.push(
           this.register({
             kind: "message",
@@ -286,6 +462,7 @@ class SequenceAnalyzer extends FlowAnalyzer {
             id: relation.id,
             idRange: relation.idRange,
             relation: relation.key,
+            events: nested,
             path,
             range: this.range(stmt),
             node: stmt,
@@ -293,6 +470,34 @@ class SequenceAnalyzer extends FlowAnalyzer {
         );
         continue;
       }
+      if (stmt.kind === "KeywordStatement" && stmt.keyword.text === "return") {
+        if (!this.returnCalls.has(stmt)) {
+          const m = messages();
+          this.error("sequence.return", m.diagnostics.sequence.returnOutsideCall, stmt.keyword, {
+            hints: [m.hints.sequence.returnInCall],
+          });
+          continue;
+        }
+        const relation = this.relationOf.get(stmt);
+        if (!relation) continue;
+        afterReturn(stmt);
+        events.push(
+          this.register({
+            kind: "message",
+            key: relation.key,
+            id: relation.id,
+            idRange: relation.idRange,
+            relation: relation.key,
+            events: [],
+            path,
+            range: this.range(stmt),
+            node: stmt,
+          }),
+        );
+        returned = true;
+        continue;
+      }
+      afterReturn(stmt);
       if (stmt.kind === "ShorthandDeclaration" || !EVENT_KEYWORDS.has(stmt.keyword.text)) {
         // Only nested statements get here: the diagram level was classified already.
         const keyword = stmt.kind === "KeywordStatement" ? stmt.keyword : stmt;
@@ -542,7 +747,7 @@ class SequenceAnalyzer extends FlowAnalyzer {
   private line(state: LifeState, participant: string): Lifeline {
     let line = state.get(participant);
     if (!line) {
-      line = { depth: 0, appeared: false, created: false, destroyed: false };
+      line = { depth: 0, implicit: 0, appeared: false, created: false, destroyed: false };
       state.set(participant, line);
     }
     return line;
@@ -569,6 +774,16 @@ class SequenceAnalyzer extends FlowAnalyzer {
             }
             line.appeared = true;
           }
+          if (event.events.length > 0) {
+            // The receiver is active for the call's block, a level no `deactivate` ends.
+            const callee = this.line(state, relation.to);
+            callee.depth++;
+            callee.implicit++;
+            this.checkOrder(event.events, state);
+            const after = this.line(state, relation.to);
+            after.depth = Math.max(0, after.depth - 1);
+            after.implicit = Math.max(0, after.implicit - 1);
+          }
           break;
         }
         case "activate":
@@ -581,7 +796,17 @@ class SequenceAnalyzer extends FlowAnalyzer {
             );
           }
           if (event.kind === "activate") line.depth++;
-          else if (line.depth === 0) {
+          else if (line.depth > 0 && line.depth === line.implicit) {
+            const m = messages();
+            this.error(
+              "sequence.activation",
+              m.diagnostics.sequence.activeForCall(
+                event.participant,
+                enclosingCall(event.path) ?? "",
+              ),
+              event.node,
+            );
+          } else if (line.depth === 0) {
             const m = messages();
             this.error(
               "sequence.activation",
@@ -672,27 +897,50 @@ class SequenceAnalyzer extends FlowAnalyzer {
       });
       return true;
     }
-    const form = `\`${keyword} <${keyword === "space" ? "event" : "participant"}> <n>\``;
+    const form = `\`${keyword} <${keyword === "space" ? "event" : "participant"}> <n> [before|after]\``;
     if (!this.noBlock(stmt, form)) return true;
-    const [target, amount, extra] = stmt.args;
+    const [target, amount, sideArg, extra] = stmt.args;
     const token = singleIdent(target);
     if (!token) {
       this.shapeError(stmt, form, target);
       return true;
     }
+    const words = messages().diagnostics.sequence;
+    // `space` is room, 0 or more; a `gap` may be negative, to bring two participants closer.
     if (
       amount?.kind !== "NumberLiteral" ||
       (amount.unit !== null && amount.unit !== "px") ||
-      amount.value < 0 ||
-      extra
+      (keyword === "space" && amount.value < 0)
     ) {
-      this.invalid(messages().diagnostics.sequence.pixels(form), extra ?? amount ?? stmt.keyword);
+      this.invalid(
+        keyword === "space" ? words.pixels(form) : words.signedPixels(form),
+        amount ?? stmt.keyword,
+      );
       return true;
     }
+    const sideToken = sideArg === undefined ? undefined : singleIdent(sideArg);
+    if (
+      (sideArg !== undefined &&
+        (!sideToken || (sideToken.text !== "before" && sideToken.text !== "after"))) ||
+      extra
+    ) {
+      this.invalid(words.side(form), extra ?? sideArg ?? stmt.keyword);
+      return true;
+    }
+    const side = sideToken?.text === "after" ? "after" : "before";
     let name: string | undefined;
     if (keyword === "gap") {
       name = this.participant(token, stmt, "gap");
       if (!name) return true;
+      // Before the first participant and after the last there is nothing to bring closer.
+      const order = this.elements.filter((element) => element.kind !== "group");
+      const edge = side === "before" ? order[0]?.id === name : order[order.length - 1]?.id === name;
+      if (amount.value < 0 && edge) {
+        this.error("prop.invalid-value", words.outerGap(name, side), amount, {
+          hints: [messages().hints.sequence.outerGap(name)],
+        });
+        return true;
+      }
     } else {
       const relation = this.relationsByKey.get(token.text);
       const event = this.eventsByKey.get(token.text);
@@ -711,11 +959,12 @@ class SequenceAnalyzer extends FlowAnalyzer {
         return true;
       }
     }
-    if (this.duplicatePlacement(stmt, name)) return true;
+    if (this.duplicatePlacement(stmt, name, side)) return true;
     this.placement.push({
       statement: keyword,
       target: name,
       amount: amount.value,
+      side,
       range: this.range(stmt),
       targetRange: this.range(token),
       node: stmt,

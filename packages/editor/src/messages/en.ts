@@ -188,7 +188,10 @@ export const en = {
   sequence: {
     fields: {
       spaceBefore: "Space before",
+      spaceAfter: "Space after",
       gapBefore: "Gap before",
+      gapAfter: "Gap after",
+      participantSpacing: "Participant spacing",
       message: "Message",
       text: "Text",
       position: "Position",
@@ -208,7 +211,11 @@ export const en = {
       selectMessage: "Select the message after which the participant is active.",
       addParticipant: "Add a participant first.",
       pixels: "Write a number of pixels, 0 or more.",
+      signedPixels:
+        "Write a number of pixels; before the first participant and after the last, 0 or more.",
       messageKind: "A message is a call, a reply or async.",
+      nestAfterCall: "Select the events right after the call they belong to.",
+      selectCall: "Select a call, or an event inside one.",
     },
   },
 
@@ -300,6 +307,11 @@ export const en = {
     copied: "Copied.",
     invalidId: (id: string) => `${code(id)} is not a valid id.`,
     noteAttached: (target: string) => `Created a note attached to ${code(target)}.`,
+    /** A head dragged sideways wrote the gap before it. */
+    gapSet: (participant: string, amount: number) => `Gap before ${participant}: ${amount}.`,
+    /** The layout drew less than the gap a drag wrote: the floor won. */
+    gapFloor: (participant: string, written: number, applied: number) =>
+      `Gap before ${participant}: ${written} written, ${applied} drawn: the labels need the room.`,
     attachNotesOnly: (kind: string) =>
       `Only a note can be attached to an element; a ${code(kind)} cannot.`,
     notInProject:

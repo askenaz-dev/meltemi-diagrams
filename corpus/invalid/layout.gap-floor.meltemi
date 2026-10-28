@@ -1,0 +1,14 @@
+language "0.2"
+
+// A negative gap closer than the heads and the label between them allow: the layout keeps
+// the floor and says how far apart it drew them.
+diagram checkout: sequence {
+  participant customer "Customer"
+  participant api "API"
+
+  customer -> api: "Place the order with every item" as order
+
+  placement {
+    gap api -120
+  }
+}

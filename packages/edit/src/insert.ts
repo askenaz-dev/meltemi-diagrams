@@ -53,6 +53,7 @@ export const DIAGRAM_PROPERTY_KEYWORDS: ReadonlySet<string> = new Set([
   "canvas",
   "layers",
   "autonumber",
+  "spacing",
   "level",
   "scope",
 ]);

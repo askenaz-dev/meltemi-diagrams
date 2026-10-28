@@ -270,6 +270,7 @@ export class FlowAnalyzer {
     routing: Routing;
     layers: string[];
     autonumber: number | null;
+    spacing: number | null;
   };
   protected readonly definitions: StyleDefinitions;
   protected readonly report = (
@@ -302,6 +303,7 @@ export class FlowAnalyzer {
       routing: "auto",
       layers: [MAIN_LAYER],
       autonumber: null,
+      spacing: null,
     };
   }
 
@@ -1215,6 +1217,7 @@ export class FlowAnalyzer {
       heads: RELATION_ARROWS[stmt.arrow.text]?.heads ?? "end",
       twoWay: RELATION_ARROWS[stmt.arrow.text]?.heads === "both",
       async: values.kind === "async",
+      returns: null,
       technology: null,
       sources: [],
       derived: false,
@@ -1370,6 +1373,9 @@ export class FlowAnalyzer {
       case "autonumber":
         this.properties.autonumber = Number(value);
         break;
+      case "spacing":
+        this.properties.spacing = Number(value);
+        break;
     }
   }
 
@@ -1522,8 +1528,9 @@ export class FlowAnalyzer {
     return true;
   }
 
-  protected duplicatePlacement(stmt: KeywordStatement, target: string): boolean {
-    const key = `${stmt.keyword.text}:${target}`;
+  /** Whether a placement of the same kind already names the target (on the same side, if any). */
+  protected duplicatePlacement(stmt: KeywordStatement, target: string, side = ""): boolean {
+    const key = `${stmt.keyword.text}:${target}${side === "" ? "" : `:${side}`}`;
     const first = this.placementSeen.get(key);
     if (first) {
       const m = messages();

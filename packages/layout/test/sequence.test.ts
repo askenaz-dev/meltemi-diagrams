@@ -71,6 +71,57 @@ describe("columns", () => {
     const gapped = run("  a -> b\n  placement { gap b 40 }").boxes!.get("b")!.x;
     expect(gapped - plain).toBe(40);
   });
+
+  const centre = (result: ReturnType<typeof run>, id: string) => {
+    const box = result.boxes!.get(id)!;
+    return box.x + box.width / 2;
+  };
+  const apart = (result: ReturnType<typeof run>, a: string, b: string) =>
+    centre(result, b) - centre(result, a);
+
+  it("moves every pair by spacing, written in diagram units", () => {
+    const body = "  a -> b\n  b -> c";
+    const plain = run(body);
+    const wide = run(`  spacing 56\n${body}`);
+    expect(apart(wide, "a", "b") - apart(plain, "a", "b")).toBe(16);
+    expect(apart(wide, "b", "c") - apart(plain, "b", "c")).toBe(16);
+  });
+
+  it("adds the two sides of a pair, and a gap after the last participant is room at the right", () => {
+    const body = "  a -> b\n  b -> c";
+    const plain = run(body);
+    const both = run(`${body}\n  placement {\n    gap a 10 after\n    gap b 20\n  }`);
+    expect(apart(both, "a", "b") - apart(plain, "a", "b")).toBe(30);
+    const after = run(`${body}\n  placement { gap c 50 after }`);
+    expect(after.scene!.width - plain.scene!.width).toBe(50);
+    expect(apart(after, "a", "c")).toBe(apart(plain, "a", "c"));
+  });
+
+  it("draws a gap before the first participant as room at the left", () => {
+    const plain = run("  a -> b");
+    const before = run("  a -> b\n  placement { gap a 30 }");
+    expect(before.scene!.width - plain.scene!.width).toBe(30);
+    expect(apart(before, "a", "b")).toBe(apart(plain, "a", "b"));
+  });
+
+  it("brings two participants closer with a negative gap, without a warning while it fits", () => {
+    const plain = run("  a -> b");
+    const tight = run("  a -> b\n  placement { gap b -20 }");
+    expect(apart(plain, "a", "b") - apart(tight, "a", "b")).toBe(20);
+    expect(tight.diagnostics.filter((d) => d.code === "layout.gap-floor")).toEqual([]);
+  });
+
+  it("keeps the floor over a negative gap and says what it drew", () => {
+    const result = run('  a -> b: "A rather long message label"\n  placement { gap b -200 }');
+    const [floor, ...rest] = result.diagnostics.filter((d) => d.code === "layout.gap-floor");
+    expect(rest).toEqual([]);
+    expect(floor!.severity).toBe("warning");
+    expect(floor!.message).toMatch(/^The gap before `b` is -?\d+ here, not -200: /);
+    // The heads never touch: half of each head and the clearance at least.
+    const a = result.boxes!.get("a")!;
+    const b = result.boxes!.get("b")!;
+    expect(b.x - (a.x + a.width)).toBeGreaterThanOrEqual(8);
+  });
 });
 
 describe("rows keep event order", () => {
@@ -83,6 +134,20 @@ describe("rows keep event order", () => {
     const spaced = run(`${body}\n  placement { space m2 40 }`);
     expect(spaced.connectors!.get("m2")!.points[0]!.y - ys[1]!).toBe(40);
     expect(spaced.events!.get("m2")!.y).toBeGreaterThan(plain.events!.get("m1")!.y);
+  });
+
+  it("adds space after an event below its row, and after the last event at the end", () => {
+    const body = "  a -> b as m1\n  b -> c as m2\n  c -> a as m3";
+    const plain = run(body);
+    const y = (result: ReturnType<typeof run>, key: string) =>
+      result.connectors!.get(key)!.points[0]!.y;
+    const after = run(`${body}\n  placement { space m1 30 after }`);
+    expect(y(after, "m1")).toBe(y(plain, "m1"));
+    expect(y(after, "m2") - y(plain, "m2")).toBe(30);
+    // The row of the event does not hold the room below it.
+    expect(after.events!.get("m1")!.height).toBe(plain.events!.get("m1")!.height);
+    const last = run(`${body}\n  placement { space m3 40 after }`);
+    expect(last.scene!.height - plain.scene!.height).toBe(40);
   });
 
   it("loops self-calls to the right", () => {
@@ -122,6 +187,44 @@ describe("drawing", () => {
     const auth = result.connectors!.get("auth")!.points[0]!.y + result.offset!.y;
     expect(bar).toMatchObject({ y: pay });
     expect(bar.kind === "rect" && bar.y + bar.height).toBe(auth);
+  });
+
+  it("draws a call's block as the bar of its receiver, from the arrow to the block's last event", () => {
+    const flat = run(
+      '  customer -> api: "Pagar" as pay\n  activate api\n  api -> bank as auth\n  deactivate api',
+    );
+    const block = run('  customer -> api: "Pagar" as pay {\n    api -> bank as auth\n  }');
+    const barOf = (result: ReturnType<typeof run>, id: string) =>
+      groups(result.scene!, "lifeline")
+        .find((g) => g.id === id)!
+        .items.filter((i) => i.kind === "rect");
+    // The same picture as the written activation pair.
+    expect(barOf(block, "api")).toEqual(barOf(flat, "api"));
+    expect(block.connectors!.get("auth")!.points).toEqual(flat.connectors!.get("auth")!.points);
+  });
+
+  it("nests the bars of a call inside a call, and draws a return as a dashed reply", () => {
+    const result = run(
+      '  customer -> api: "Pay" as pay {\n    api -> bank: "Authorize" as authorize {\n      return "OK" as ok\n    }\n    return "Receipt" as receipt\n  }',
+    );
+    expect(
+      groups(result.scene!, "lifeline")
+        .find((g) => g.id === "api")!
+        .items.filter((i) => i.kind === "rect"),
+    ).toHaveLength(1);
+    expect(
+      groups(result.scene!, "lifeline")
+        .find((g) => g.id === "bank")!
+        .items.filter((i) => i.kind === "rect"),
+    ).toHaveLength(1);
+    const ys = ["pay", "authorize", "ok", "receipt"].map(
+      (key) => result.connectors!.get(key)!.points[0]!.y,
+    );
+    expect([...ys].sort((a, b) => a - b)).toEqual(ys);
+    // The reply goes from the callee back to the caller.
+    const ok = result.connectors!.get("ok")!.points;
+    expect(ok[0]!.x).toBeGreaterThan(ok[ok.length - 1]!.x);
+    expect(result.events!.get("ok")).toBeDefined();
   });
 
   it("draws created heads at their row and destroyed lifelines ending in a cross", () => {

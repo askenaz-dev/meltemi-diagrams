@@ -79,6 +79,7 @@ export function relationHover(diagram: FlowDiagram, relation: Relation): string 
     `**${what}** \`${relation.from} ${arrow} ${relation.to}\`${relation.id ? t.named(relation.id) : ""}`,
   ];
   if (relation.label) lines.push("", t.label(relation.label));
+  if (relation.returns !== null) lines.push("", t.returnsFrom(relation.returns));
   if (diagram.type === "sequence" && relation.id) {
     const space = diagram.placement.find(
       (p) => p.statement === "space" && p.target === relation.id,
@@ -112,6 +113,8 @@ function eventPlace(diagram: FlowDiagram, event: SequenceEvent): string {
   const t = serviceMessages();
   return event.path
     .map((place) => {
+      // Inside a call's block: the call.
+      if ("message" in place) return t.insideCall(place.message);
       const fragment = diagram.eventsByKey.get(place.fragment);
       const condition =
         fragment?.kind === "fragment" ? fragment.branches[place.branch]?.condition : null;
@@ -163,9 +166,12 @@ export function eventHover(diagram: FlowDiagram, event: SequenceEvent): string {
     case "delay":
       lines.push(`**${kindWord("delay")}**${event.label ? ` “${event.label}”` : ""}`);
       break;
-    case "message":
+    case "message": {
       lines.push(`**${kindWord("message")}** \`${event.relation}\``);
+      const call = diagram.relationsByKey.get(event.relation)?.returns;
+      if (call) lines.push("", t.returnsFrom(call));
       break;
+    }
   }
   if (event.path.length > 0) lines.push("", t.within(eventPlace(diagram, event)));
   return lines.join("\n");

@@ -378,6 +378,9 @@ canvas.
 | O, F                                                          | Sequence: a note over the selection; a fragment around the selected events                                                            |
 | Alt+Up, Alt+Down                                              | Sequence: move the selected event before or after its neighbour                                                                       |
 | Alt+A                                                         | Sequence: activate the receiver after the selected message, or undo that                                                              |
+| Alt+N                                                         | Sequence: nest the selected events in the block of the call right before them                                                         |
+| Alt+Shift+N                                                   | Sequence: move the events of the selected call, or of the call around the selection, out after it                                     |
+| Alt+R                                                         | Sequence: add a `return` at the end of the selected call's block, or of the call around the selection                                 |
 | L, U                                                          | Show or hide the layers panel, the element libraries                                                                                  |
 | Ctrl+Shift+], Ctrl+]                                          | Bring to front, bring forward                                                                                                         |
 | Ctrl+Shift+[, Ctrl+[                                          | Send to back, send backward                                                                                                           |
@@ -742,27 +745,45 @@ coordinates.
 - **Heads.** A participant, database, collections or queue is selected, outlined, pulsed and
   edited on the box it is drawn as, at the bottom of the row of heads, whether or not an actor
   shares the diagram; an actor and the other figures on their figure and name.
-- **Dragging.** Drag a head sideways to reorder the participant; no message changes. Drag a
-  message, note or fragment down to add `space` above it, or up to take it away; it stops at its
-  neighbour, so a drag never reorders events. Alt drags without the grid.
+- **Dragging.** Drag a head past a neighbour's centre to reorder the participant; no message
+  changes. A shorter drag writes the distance dragged as its **Gap before** (`gap`), negative to the
+  left, never below 0 for the first participant; a drag under 3 pixels writes nothing. The status
+  line says the gap written, and when the heads or the labels between them need more room than the
+  gap leaves, the amount drawn too. Drag a message, note or fragment down to add `space` above it,
+  or up to take it away; it stops at its neighbour, so a drag never reorders events, and a call
+  moves with its block. Alt drags without the grid.
 - **Moving events.** Alt+Up and Alt+Down move the selected event past its neighbour, into the
-  nearest branch of an adjacent fragment, or out of the fragment at its edge. A move that would
-  deactivate a participant that is not active, or break a lifecycle, is refused with the reason.
+  nearest branch of an adjacent fragment or the block of an adjacent call, or out of the fragment
+  or the call at its edge. A move that would deactivate a participant that is not active, break a
+  lifecycle or leave a `return` outside its call is refused with the reason.
 - **Activations.** Alt+A on a selected message activates its receiver (or the selected
-  participant) right after it and deactivates it after its reply; again, it removes the pair.
+  participant) right after it and deactivates it after its reply; again, it removes the pair. A
+  call whose block holds events already activates its receiver, so Alt+A refuses it.
+- **Call blocks.** Alt+N (**Nest in the call**) moves the selected events into the block of the
+  call right before them, creating the block; the call is then selected, and Alt+R (**Return to the
+  caller**) adds a `return` at the end of its block. Alt+Shift+N (**Unnest the call**) moves the
+  events of the selected call, or of the call around the selected event, out after it, each
+  `return` written as a reply from the receiver to the caller. A selection that does not follow a
+  call is refused with the reason. The context menu offers the three after **Activate the
+  receiver**.
 - **Arrow keys.** Left and Right swap the selected participant with its neighbour; Up and Down
   change the space above the selected message, note or fragment.
-- **Inspector.** Messages: **Message** (call, reply, async) and **Space before**. Notes: **Text**,
-  **Position**, the participants and **Space before**. Fragments: **Operator**, one **Condition**
-  per branch and **Space before**. Participants: **Kind** and **Gap before**. The diagram:
-  **Number messages from** (`autonumber`).
+- **Inspector.** Messages: **Message** (call, reply, async), **Space before** and **Space after**;
+  a `return` shows **Message** as `return`, with **From** and **To**, read-only, since they come
+  from its call. Notes: **Text**, **Position**, the participants, **Space before** and **Space
+  after**. Fragments: **Operator**, one **Condition** per branch, **Space before** and **Space
+  after**. Participants: **Kind**, **Gap before** and **Gap after**, negative to bring them closer
+  except on the outer side of the first and the last. The diagram: **Number messages from**
+  (`autonumber`) and **Participant spacing** (`spacing`, 40 when empty).
 - **Scenarios.** When the diagram has scenarios, the toolbar offers them beside **All events**.
   Picking one previews that path read-only; pick **All events** to edit again. **Export SVG** asks
   for "All events" or a scenario and writes `<file>.<scenario>.svg` for a scenario.
 - **Language features.** Completion knows the sequence statements, participants after arrows and in
-  events, note positions, fragments and their conditions in scenarios, and `kind async`. Hover
-  describes events and scenarios; go to definition, references and rename follow the ids of notes
-  and fragments; quick fixes declare an unknown participant and remove a stray `deactivate`.
+  events, note positions, fragments and their conditions in scenarios, `kind async`, `return` and
+  the events in a call's block, `before` and `after` after the amount of `space` and `gap`, and
+  `spacing`. Hover describes events and scenarios, a `return` as the reply to its call and a nested
+  event's call; go to definition, references and rename follow the ids of notes and fragments;
+  quick fixes declare an unknown participant and remove a stray `deactivate`.
 
 ## C4 views
 

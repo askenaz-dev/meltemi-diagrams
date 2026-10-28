@@ -1,6 +1,6 @@
 language "0.2"
 
-// A payment with an approval branch, a retry loop and two scenarios to export.
+// A payment with an approval branch, a call that returns, a retry loop and two scenarios.
 diagram payment: sequence {
   title "Card payment"
   autonumber
@@ -20,7 +20,10 @@ diagram payment: sequence {
 
   alt result "Approved" {
     bank --> api: "Approved" as approved
-    api -> ledger: "Record" as record
+    // The ledger is active for the call, until it returns.
+    api -> ledger: "Record" as record {
+      return "Recorded" as recorded
+    }
     api --> web: "Receipt" as receipt
   } else "Declined" {
     bank --> api: "Declined" as declined

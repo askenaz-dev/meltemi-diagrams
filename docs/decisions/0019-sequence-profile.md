@@ -68,3 +68,7 @@ destruction, notes, every fragment, dividers, delays and numbering.
   playback will animate a scenario's resolved events.
 - Heads are measured as drawn and the drawing takes the theme's `muted` colour since
   [decision 0052](0052-canvas-feel-and-naming.md).
+- [Decision 0060](0060-sequence-spacing-and-nested-calls.md) sets the distance between heads with
+  `spacing`, gives `space` and `gap` a side and lets `gap` go negative down to a reported floor,
+  writes a `gap` from a short head drag, and lets a call's block hold the events it causes, with
+  `return` answering the call.

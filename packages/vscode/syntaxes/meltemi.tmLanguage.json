@@ -87,11 +87,11 @@
         },
         {
           "name": "keyword.control.sequence.meltemi",
-          "match": "\\b(activate|deactivate|create|destroy|alt|else|opt|loop|par|and|break|critical|option|region|divider|delay|choose|repeat|skip|take)\\b"
+          "match": "\\b(activate|deactivate|create|destroy|alt|else|opt|loop|par|and|break|critical|option|region|divider|delay|choose|repeat|skip|take|return)\\b"
         },
         {
           "name": "keyword.other.sequence.meltemi",
-          "match": "\\b(over|of|space|gap|kind)\\b"
+          "match": "\\b(over|of|space|gap|kind|before|after)\\b"
         },
         {
           "name": "keyword.other.placement.meltemi",
@@ -99,7 +99,7 @@
         },
         {
           "name": "support.type.property-name.diagram.meltemi",
-          "match": "\\b(direction|layout|routing|title|description|preset|canvas|layers|autonumber)\\b"
+          "match": "\\b(direction|layout|routing|title|description|preset|canvas|layers|autonumber|spacing)\\b"
         },
         {
           "name": "support.type.property-name.style.meltemi",

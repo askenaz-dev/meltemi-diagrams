@@ -392,6 +392,11 @@ export const en = {
     moveUp: "Move up",
     moveDown: "Move down",
     activateReceiver: "Activate the receiver",
+    /** Sequence diagrams: the selected events into the block of the call before them. */
+    nestInCall: "Nest in the call",
+    unnestCall: "Unnest the call",
+    /** Sequence diagrams: a `return` at the end of the call's block. */
+    addReturn: "Return to the caller",
     addNote: "Add a note",
     wrapInFragment: "Wrap in a fragment…",
     addDivider: "Add a divider",

@@ -18,6 +18,13 @@ export interface DiagnosticData {
   readonly candidates?: readonly string[];
   /** `layout.text-overflow`: the element and the size that fits its text. */
   readonly size?: { readonly element: string; readonly width: number; readonly height: number };
+  /** `layout.gap-floor`: the participant, the side, the gap written and the gap drawn. */
+  readonly gap?: {
+    readonly participant: string;
+    readonly side: "before" | "after";
+    readonly written: number;
+    readonly applied: number;
+  };
 }
 
 /** A problem found in a source text. Codes are stable and documented in docs/language/diagnostics.md. */

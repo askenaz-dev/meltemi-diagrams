@@ -32,7 +32,8 @@
         "layers": [
           "main"
         ],
-        "autonumber": null
+        "autonumber": null,
+        "spacing": null
       },
       "classes": [],
       "rules": [],
@@ -268,6 +269,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -311,6 +313,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -354,6 +357,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -397,6 +401,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -713,7 +718,8 @@
         "layers": [
           "main"
         ],
-        "autonumber": null
+        "autonumber": null,
+        "spacing": null
       },
       "classes": [],
       "rules": [],
@@ -817,6 +823,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -860,6 +867,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -1045,6 +1053,7 @@
           "kind": "message",
           "key": "pay",
           "relation": "pay",
+          "events": [],
           "range": {
             "start": {
               "offset": 762,
@@ -1085,6 +1094,7 @@
           "kind": "message",
           "key": "receipt",
           "relation": "receipt",
+          "events": [],
           "range": {
             "start": {
               "offset": 829,

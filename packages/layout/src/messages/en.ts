@@ -68,6 +68,19 @@ export const en = {
             ? `the box of \`${other.owner}\``
             : `the connector of \`${other.owner}\``
       }.`,
+    /**
+     * `layout.gap-floor`: a negative `gap` the layout could not draw as written, because the heads
+     * and the labels between the two participants need the room.
+     */
+    gapFloor: (
+      participant: string,
+      side: string,
+      written: number,
+      applied: number,
+      left: string,
+      right: string,
+    ) =>
+      `The gap ${side} \`${participant}\` is ${applied} here, not ${written}: the heads and the labels between \`${left}\` and \`${right}\` need the room.`,
     /** `layout.degenerate-line`: a free line whose points coincide. */
     degenerateLine: (id: string) =>
       `Line \`${id}\` has no length: its points coincide, so it is drawn as a point.`,

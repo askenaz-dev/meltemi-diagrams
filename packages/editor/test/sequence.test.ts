@@ -47,6 +47,7 @@ function open(text: string) {
     apply,
     act: (action: CanvasAction) => session.receive({ type: "action", revision: rev, action }),
     text: () => current,
+    messages: () => messages,
     render: () => messages.find((m): m is HostMessage & { type: "render" } => m.type === "render")!,
     inspector: () =>
       messages.find((m): m is HostMessage & { type: "inspector" } => m.type === "inspector")!.model,
@@ -124,6 +125,39 @@ describe("sequence canvas", () => {
     expect(lines(after, /->/)).toEqual(lines(payment, /->/));
   });
 
+  it("drags a head sideways to write the gap before it, says it, and back to remove it", () => {
+    const canvas = open(payment);
+    const status = () =>
+      canvas.messages().find((m): m is HostMessage & { type: "status" } => m.type === "status")
+        ?.message;
+    const after = canvas.apply({ kind: "move", ids: ["bank"], delta: { x: 24, y: 2 } });
+    expect(after).toContain("gap bank 24");
+    expect(status()).toBe("Gap before bank: 24.");
+    expect(lines(after, /^(actor|participant|queue|database) /)).toEqual(
+      lines(payment, /^(actor|participant|queue|database) /),
+    );
+    const back = canvas.apply({ kind: "move", ids: ["bank"], delta: { x: -24, y: 0 } });
+    expect(back).not.toContain("gap bank");
+  });
+
+  it("writes nothing when the first head is dragged left", () => {
+    const canvas = open(payment);
+    const result = canvas.act({ kind: "move", ids: ["customer"], delta: { x: -30, y: 0 } });
+    expect(result.plan?.edits ?? []).toEqual([]);
+  });
+
+  it("says what the layout drew when a drag asks for less room than the labels need", () => {
+    const canvas = open(
+      'diagram s: sequence {\n  participant a "A"\n  participant b "B"\n  a -> b: "A rather long message label"\n}\n',
+    );
+    const after = canvas.apply({ kind: "move", ids: ["b"], delta: { x: -60, y: 0 } });
+    expect(after).toContain("gap b -60");
+    const status = canvas
+      .messages()
+      .find((m): m is HostMessage & { type: "status" } => m.type === "status")?.message;
+    expect(status).toMatch(/^Gap before b: -60 written, -?\d+ drawn: the labels need the room\.$/);
+  });
+
   it("drags a message down to write its space, clamped at 0", () => {
     const canvas = open(payment);
     const down = canvas.apply({ kind: "move", ids: ["authorize"], delta: { x: 3, y: 28 } });
@@ -153,6 +187,46 @@ describe("sequence canvas", () => {
       "diagram s: sequence {\n  a -> b as ask\n  activate b\n  b --> a as reply\n  deactivate b\n}\n",
     );
     expect(canvas.apply({ kind: "toggleActivation", ids: ["ask"] })).toBe(text);
+  });
+
+  it("nests with Alt+N, returns with Alt+R and unnests with Alt+Shift+N", () => {
+    expect(commandFor(key("n", { alt: true }), false, "sequence")).toBe("nestInCall");
+    expect(commandFor(key("N", { alt: true, shift: true }), false, "sequence")).toBe("unnestCall");
+    expect(commandFor(key("r", { alt: true }), false, "sequence")).toBe("addReturn");
+    const text =
+      'diagram s: sequence {\n  customer -> api: "Pay" as pay\n  api -> bank: "Authorize" as authorize\n  api --> customer: "Receipt" as receipt\n}\n';
+    const canvas = open(text);
+    const nested = canvas.apply({ kind: "nestInCall", ids: ["authorize", "receipt"] });
+    expect(nested).toBe(
+      'diagram s: sequence {\n  customer -> api: "Pay" as pay {\n    api -> bank: "Authorize" as authorize\n    api --> customer: "Receipt" as receipt\n  }\n}\n',
+    );
+    // The call is selected: Alt+R answers it at the end of its block.
+    expect(canvas.session.selected).toEqual(["pay"]);
+    const events = canvas.render().events;
+    expect(events.find((e) => e.key === "authorize")?.parent).toBe("pay");
+    const answered = canvas.apply({ kind: "addReturn", ids: canvas.session.selected });
+    expect(answered).toContain('    api --> customer: "Receipt" as receipt\n    return\n  }\n');
+    const ret = canvas.render().relations.find((r) => r.returns === "pay");
+    expect(ret?.from).toBe("api");
+    expect(canvas.apply({ kind: "unnestCall", ids: ["authorize"] })).toBe(
+      'diagram s: sequence {\n  customer -> api: "Pay" as pay\n  api -> bank: "Authorize" as authorize\n  api --> customer: "Receipt" as receipt\n  api --> customer\n}\n',
+    );
+  });
+
+  it("refuses to nest without a call before the selection, and to unnest without one", () => {
+    const canvas = open(payment);
+    const first = canvas.render().events[0]!.key;
+    const nest = canvas.act({ kind: "nestInCall", ids: [first] });
+    expect(nest.plan).toBeUndefined();
+    expect(nest.messages).toEqual([
+      {
+        type: "rejected",
+        code: "edit.invalid-value",
+        reason: "Select the events right after the call they belong to.",
+      },
+    ]);
+    const unnest = canvas.act({ kind: "unnestCall", ids: [] });
+    expect(unnest.messages[0]).toMatchObject({ reason: "Select a call, or an event inside one." });
   });
 
   it("creates participants where they are dropped, notes, dividers and fragments", () => {
@@ -247,6 +321,23 @@ describe("sequence inspector", () => {
     expect(set("space", 20)).toContain("space authorize 20");
   });
 
+  it("shows a return read-only, and writes its space", () => {
+    const text = 'diagram s: sequence {\n  a -> b as call {\n    return "OK"\n  }\n}\n';
+    const canvas = open(text);
+    const key = canvas.render().relations.find((r) => r.returns === "call")!.key;
+    canvas.send({ type: "select", ids: [key] });
+    const model = canvas.inspector();
+    expect(field(model, "message")).toMatchObject({
+      value: "return",
+      options: ["return"],
+      readonly: true,
+    });
+    expect(field(model, "from")).toMatchObject({ value: "b", readonly: true });
+    expect(field(model, "to")).toMatchObject({ value: "a", readonly: true });
+    const spaced = canvas.apply({ kind: "setField", ids: [key], field: "space", value: 12 });
+    expect(spaced).toMatch(/return "OK" as (\w+)\n[\s\S]*space \1 12\n/);
+  });
+
   it("shows fragments with their conditions and notes with their placement", () => {
     const canvas = open(payment);
     canvas.send({ type: "select", ids: ["result"] });
@@ -291,10 +382,23 @@ describe("sequence inspector", () => {
     expect(
       canvas.apply({ kind: "setField", ids: ["bank"], field: "kind", value: "database" }),
     ).toContain('database bank "Banco"');
+    // The gap after, and a negative gap between two participants; not outside the edge.
+    expect(
+      canvas.apply({ kind: "setField", ids: ["bank"], field: "gapAfter", value: 12 }),
+    ).toContain("gap bank 12 after");
+    expect(canvas.apply({ kind: "setField", ids: ["bank"], field: "gap", value: -10 })).toContain(
+      "gap bank -10",
+    );
+    const refused = canvas.act({ kind: "setField", ids: ["customer"], field: "gap", value: -10 });
+    expect(refused.plan).toBeUndefined();
     canvas.send({ type: "select", ids: [] });
     expect(field(canvas.inspector(), "direction")).toBeUndefined();
     expect(canvas.apply({ kind: "setField", ids: [], field: "autonumber", value: 1 })).toContain(
       '  theme "editorial.light"\n  autonumber 1\n',
+    );
+    expect(field(canvas.inspector(), "spacing")).toMatchObject({ placeholder: "40" });
+    expect(canvas.apply({ kind: "setField", ids: [], field: "spacing", value: 56 })).toContain(
+      "spacing 56",
     );
   });
 });
@@ -344,6 +448,37 @@ describe("sequence language services", () => {
     const inside = labels(payment.replace('    bank --> api: "OK" as approved\n', "    |\n"));
     expect(inside).toContain("activate");
     expect(inside).not.toContain("participant");
+  });
+
+  it("completes calls, returns, sides and spacing", () => {
+    const calls =
+      'diagram s: sequence {\n  participant a\n  participant b\n  a -> b: "Pay" as pay {\n    |\n  }\n}\n';
+    const inCall = labels(calls);
+    expect(inCall).toEqual(expect.arrayContaining(["kind", "return", "activate", "note", "a"]));
+    expect(inCall).not.toContain("participant");
+    expect(labels(calls.replace("    |\n", "    b -> |\n"))).toEqual(["a", "b"]);
+    // A return's block holds message properties only.
+    const returned = labels(calls.replace("    |\n", '    return "OK" { | }\n'));
+    expect(returned).toContain("kind");
+    expect(returned).not.toContain("return");
+    // The diagram's body: `spacing`, and no `return` outside a call.
+    const body = labels(calls.replace("    |\n", "  }\n  |\n  {\n"));
+    expect(body).toContain("spacing");
+    expect(body).not.toContain("return");
+    const placed = (statement: string) =>
+      labels(calls.replace("    |\n", "  }\n  placement {\n    " + statement + "\n  }\n  {\n"));
+    expect(placed("gap b -12 |")).toEqual(["before", "after"]);
+    expect(placed("space pay 24 |")).toEqual(["before", "after"]);
+  });
+
+  it("hovers a return, its keyword and a nested event", () => {
+    const text =
+      'diagram s: sequence {\n  a -> b: "Pay" as pay {\n    note n over b "N"\n    return "OK" as ok\n  }\n}\n';
+    const analysis = analyzeDocument({ text });
+    const ret = text.indexOf("return");
+    expect(hover(analysis, text.indexOf("ok\n") + 1)!.markdown).toContain("returns from `pay`");
+    expect(hover(analysis, ret + 1)!.markdown).toContain("answers the call");
+    expect(hover(analysis, text.indexOf("note n") + 1)!.markdown).toContain("in the call `pay`");
   });
 
   it("hovers events, goes from scenarios to fragments and selects events", () => {

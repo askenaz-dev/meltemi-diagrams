@@ -14,7 +14,8 @@ describes version `0.1`. A breaking change increases the version.
 - Every element, relation and statement carries the `range` of its statement in the source.
 - Anonymous relations appear with their synthetic `key` (`<from>-><to>#<n>`) and `id: null`.
 - Keys are added within a version, never changed: `heads` on relations and `line` on elements
-  came in 1.10.0, and the version stays `0.1`.
+  came in 1.10.0, `spacing`, `side`, `returns` and the `events` of messages in 1.11.0, and the
+  version stays `0.1`.
 - Every diagram profile compiles; `story` and `export` blocks are not in the JSON yet.
 
 ## Document
@@ -87,19 +88,19 @@ exclusive.
 
 ## Diagram
 
-| Key          | Type   | Meaning                                                                                                                                                                                                                                               |
-| ------------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`         | string | Diagram id.                                                                                                                                                                                                                                           |
-| `type`       | string | `flow`, `free`, `sequence` or `c4`.                                                                                                                                                                                                                   |
-| `range`      | range  | The whole `diagram` block.                                                                                                                                                                                                                            |
-| `properties` | object | `direction`, `layout` (defaults applied), `theme`, `title`, `description`, `preset` (string or null), `canvas` (`{ "width", "height" }` or null), `routing`, `layers` (back to front; `["main"]` for flow), `autonumber` (the first number, or null). |
-| `classes`    | array  | `class <id> { }` declarations, in source order.                                                                                                                                                                                                       |
-| `rules`      | array  | `rule <kind> { }` statements, in source order.                                                                                                                                                                                                        |
-| `elements`   | array  | Elements in source order.                                                                                                                                                                                                                             |
-| `relations`  | array  | Relations in source order.                                                                                                                                                                                                                            |
-| `placement`  | array  | `place`, `size`, `route` and `label` statements in source order.                                                                                                                                                                                      |
-| `styles`     | array  | One entry per `style` statement.                                                                                                                                                                                                                      |
-| `animations` | array  | One entry per `animate` statement.                                                                                                                                                                                                                    |
+| Key          | Type   | Meaning                                                                                                                                                                                                                                                                                                                    |
+| ------------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`         | string | Diagram id.                                                                                                                                                                                                                                                                                                                |
+| `type`       | string | `flow`, `free`, `sequence` or `c4`.                                                                                                                                                                                                                                                                                        |
+| `range`      | range  | The whole `diagram` block.                                                                                                                                                                                                                                                                                                 |
+| `properties` | object | `direction`, `layout` (defaults applied), `theme`, `title`, `description`, `preset` (string or null), `canvas` (`{ "width", "height" }` or null), `routing`, `layers` (back to front; `["main"]` for flow), `autonumber` (the first number, or null), `spacing` (the distance between sequence heads as written, or null). |
+| `classes`    | array  | `class <id> { }` declarations, in source order.                                                                                                                                                                                                                                                                            |
+| `rules`      | array  | `rule <kind> { }` statements, in source order.                                                                                                                                                                                                                                                                             |
+| `elements`   | array  | Elements in source order.                                                                                                                                                                                                                                                                                                  |
+| `relations`  | array  | Relations in source order.                                                                                                                                                                                                                                                                                                 |
+| `placement`  | array  | `place`, `size`, `route` and `label` statements in source order.                                                                                                                                                                                                                                                           |
+| `styles`     | array  | One entry per `style` statement.                                                                                                                                                                                                                                                                                           |
+| `animations` | array  | One entry per `animate` statement.                                                                                                                                                                                                                                                                                         |
 
 ### Element
 
@@ -134,6 +135,7 @@ exclusive.
 | `twoWay`      | boolean        | Written `<->` or `<-->`.                                                               |
 | `heads`       | string         | `end` (`->`, `-->`), `both` (`<->`, `<-->`) or `none` (`--`, `---`), in every profile. |
 | `async`       | boolean        | `kind async` on a sequence message.                                                    |
+| `returns`     | string or null | The key of the call a sequence `return` answers; null on every other relation.         |
 | `label`       | string or null | Text after `:`.                                                                        |
 | `description` | string or null | From the relation block.                                                               |
 | `classes`     | array          | Class names applied in the relation block.                                             |
@@ -152,10 +154,11 @@ Every entry has `statement`, `target`, `range` and `targetRange`, plus:
 | `size`      | `width`, `height`.                                                                                                                                                    |
 | `route`     | `from` and `to` as `{ "element", "port" }`, with `"position"` (a percentage) when the end is pinned to a point of its side; `via` as a list of `{ "x", "y" }` points. |
 | `label`     | `at`: percentage along the route; `offset` as `{ "x", "y" }`.                                                                                                         |
-| `space`     | `amount`: extra space above a sequence message, note or fragment.                                                                                                     |
-| `gap`       | `amount`: extra space left of a sequence participant.                                                                                                                 |
+| `space`     | `amount`: extra space above a sequence message, note or fragment, or below it; `side`: `before` (above) or `after` (below).                                           |
+| `gap`       | `amount`: extra space left of a sequence participant, or right of it, negative to bring it closer; `side`: `before` (left) or `after` (right).                        |
 
-For `route` and `label`, `target` is the relation key; for `space`, the id of the event.
+For `route` and `label`, `target` is the relation key; for `space`, the id of the event. `side` is
+`before` when the statement writes none.
 
 ### Style and animation entries
 
@@ -211,16 +214,17 @@ The document lists `models` after `themes`:
 ### Sequence events and scenarios
 
 Sequence diagrams add `events` and `scenarios` after `animations`; other diagrams have both empty.
-Events are in order, fragments holding their branches' events.
+Events are in order, fragments holding their branches' events and messages the events of their
+call blocks.
 
-| `kind`                                        | Keys besides `kind`, `key` and `range`                                                  |
-| --------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `message`                                     | `relation`: the relation key, which is also the event key.                              |
-| `activate`, `deactivate`, `create`, `destroy` | `participant`.                                                                          |
-| `note`                                        | `id` (or null), `position` (`over`, `left`, `right`), `participants`, `text`.           |
-| `fragment`                                    | `id` (or null), `operator`, `branches`: `{ "condition" (or null), "events", "range" }`. |
-| `divider`                                     | `label`.                                                                                |
-| `delay`                                       | `label` (or null).                                                                      |
+| `kind`                                        | Keys besides `kind`, `key` and `range`                                                                                                             |
+| --------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `message`                                     | `relation`: the relation key, which is also the event key; `events`: the events of its call block, empty without one. A `return` is a message too. |
+| `activate`, `deactivate`, `create`, `destroy` | `participant`.                                                                                                                                     |
+| `note`                                        | `id` (or null), `position` (`over`, `left`, `right`), `participants`, `text`.                                                                      |
+| `fragment`                                    | `id` (or null), `operator`, `branches`: `{ "condition" (or null), "events", "range" }`.                                                            |
+| `divider`                                     | `label`.                                                                                                                                           |
+| `delay`                                       | `label` (or null).                                                                                                                                 |
 
 Events without an id have the key `<kind>#<n>` (`activate#1`, `note#2`; fragments use their
 operator, `alt#1`).

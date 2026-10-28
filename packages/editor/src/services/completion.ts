@@ -257,7 +257,8 @@ function bodyStatements(profile: ProfileSchema, group: boolean): string[] {
   }
   return [
     ...profile.elementKinds,
-    ...profile.events,
+    // A `return` answers a call: it is written inside the call's block, not here.
+    ...profile.events.filter((e) => e !== "return"),
     ...Object.keys(profile.diagramProperties),
     ...profile.diagramBlocks,
   ];
@@ -704,6 +705,20 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
       if (scope === "relation" && match(prefix, `kind\\s+\\w*`)) {
         return words(MESSAGE_KINDS, "value", range);
       }
+      // A call's block holds events, `return` among them, beside the message's properties.
+      const call = blockAt(root, offset)?.owner.kind === "RelationStatement";
+      if (scope === "relation" && diagram?.type === "sequence" && call) {
+        const items = sequenceBody(diagram, prefix, range, offset);
+        if (items) return items;
+        if (match(prefix, `${ID}\\s*--?>\\s*\\w*`)) return participantItems(diagram, range);
+        if (prefix === "" || match(prefix, ID)) {
+          return [
+            ...words(Object.keys(profile.relationProperties), "keyword", range),
+            ...words(profile.events, "keyword", range),
+            ...participantItems(diagram, range),
+          ];
+        }
+      }
       if (match(prefix, `class\\s+(${ID}\\s*,\\s*)*\\w*`)) {
         return words(classNames(analysis, diagram), "class", range);
       }
@@ -751,6 +766,10 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
       if (diagram?.type === "sequence") {
         if (match(prefix, `space\\s+\\w*`)) return namedEventItems(diagram, range, true);
         if (match(prefix, `gap\\s+\\w*`)) return participantItems(diagram, range);
+        // The side after the amount: `before` is the default.
+        if (match(prefix, `(space|gap)\\s+${ID}\\s+-?\\d+\\s+\\w*`)) {
+          return words(["before", "after"], "keyword", range);
+        }
         if (match(prefix, `label\\s+\\w*`)) return relationItems(diagram, range);
         if (match(prefix, `label\\s+${ID}\\s+\\w*`)) return words(["at"], "keyword", range);
         if (prefix === "" || match(prefix, ID)) {

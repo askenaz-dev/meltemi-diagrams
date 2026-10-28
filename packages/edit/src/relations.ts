@@ -1,17 +1,23 @@
 import {
-  isToken,
   type CstNode,
   type KeywordStatement,
+  type RelationStatement,
   type TextEdit,
   type Token,
 } from "@meltemi/diagrams-language";
-import { arrowToken, type Relation, type RouteEntry } from "@meltemi/diagrams-model";
+import {
+  arrowToken,
+  relationNameAnchor,
+  type Relation,
+  type RouteEntry,
+} from "@meltemi/diagrams-model";
 import { reject, requireElement, requireNamedRelation, type EditContext } from "./context.js";
 import { freeId, requirePortOf } from "./create.js";
 import { deleteStatements } from "./delete.js";
 import { endpointText, requireEndPosition, routeParts } from "./routes.js";
 import { insertPlacements, removeListItems, requireNewId, type OperationOf } from "./plan.js";
 import { messages, reasons } from "./messages/index.js";
+import { eventDependents, eventIdsOf, nestedInCalls } from "./sequence.js";
 import { renameInStories, storyDependents } from "./stories.js";
 
 /** A relation by id or by key (`<from>-><to>#<n>`). */
@@ -74,21 +80,36 @@ export function relationDependents(
 
 export function removeRelation(ctx: EditContext, op: OperationOf<"removeRelation">): TextEdit[] {
   const relation = requireRelation(ctx, op.relation);
-  const dependents = relation.id
-    ? relationDependents(ctx, new Set([relation.id]))
-    : { statements: [], edits: [] };
+  // A call goes with the events of its block, and everything goes with what names them.
+  const nested = nestedInCalls(ctx, new Set([relation.key]));
+  const removed = new Set([
+    relation,
+    ...nested.flatMap((e) =>
+      e.kind === "message" ? [ctx.diagram.relationsByKey.get(e.relation)!] : [],
+    ),
+  ]);
+  const relationIds = new Set([...removed].flatMap((r) => (r.id === null ? [] : [r.id])));
+  const eventIds = eventIdsOf(nested);
+  const relations = relationDependents(ctx, relationIds);
+  const events = eventDependents(ctx, eventIds);
+  const dependents = {
+    statements: [...relations.statements, ...events.statements],
+    edits: [...relations.edits, ...events.edits],
+  };
   // An implicit endpoint mentioned by no other relation would disappear: keep it declared.
   const keep: string[] = [];
-  for (const end of new Set([relation.from, relation.to])) {
+  for (const end of new Set([...removed].flatMap((r) => [r.from, r.to]))) {
     const element = ctx.diagram.elementsById.get(end);
     if (!element?.implicit) continue;
     const mentions = ctx.diagram.relations.filter((r) => r.from === end || r.to === end);
-    if (mentions.every((r) => r === relation)) keep.push(end);
+    if (mentions.every((r) => removed.has(r))) keep.push(end);
   }
-  // Story actions that name the relation lose it, or go when it was their only target.
-  const stories = relation.id
-    ? storyDependents(ctx.compilation, ctx.diagram.id, new Set([relation.id]))
-    : { statements: [], edits: [] };
+  // Story actions that name what goes lose it, or go when it was their only target.
+  const stories = storyDependents(
+    ctx.compilation,
+    ctx.diagram.id,
+    new Set([...relationIds, ...eventIds]),
+  );
   const edits: TextEdit[] = [
     ...dependents.edits,
     ...stories.edits,
@@ -113,12 +134,21 @@ export function removeRelation(ctx: EditContext, op: OperationOf<"removeRelation
   return edits;
 }
 
+/** A relation written as a relation statement; a `return` answers its call and is refused. */
+function writtenRelation(relation: Relation): RelationStatement {
+  if (relation.node.kind !== "RelationStatement") {
+    reject("edit.invalid-value", reasons().relations.returnAnswers);
+  }
+  return relation.node;
+}
+
 export function setRelationLine(ctx: EditContext, op: OperationOf<"setRelationLine">): TextEdit[] {
   const relation = requireRelation(ctx, op.relation);
+  const node = writtenRelation(relation);
   // The heads stay: a two-way arrow stays two-way, a line stays a line.
   const arrow = arrowToken(op.line, relation.heads);
-  if (relation.node.arrow.text === arrow) return [];
-  return [{ start: relation.node.arrow.start, end: relation.node.arrow.end, newText: arrow }];
+  if (node.arrow.text === arrow) return [];
+  return [{ start: node.arrow.start, end: node.arrow.end, newText: arrow }];
 }
 
 function routeOf(ctx: EditContext, relation: Relation): RouteEntry | undefined {
@@ -136,7 +166,7 @@ export function reconnectRelation(
   requireElement(ctx, op.element);
   if (op.port !== undefined) requirePortOf(ctx, op.element, op.port);
   if (op.position !== undefined) requireEndPosition(op.port, op.position);
-  const node = relation.node;
+  const node = writtenRelation(relation);
   const endRef = op.end === "from" ? node.source : node.target;
   const current = op.end === "from" ? relation.from : relation.to;
   const edits: TextEdit[] = [];
@@ -168,7 +198,7 @@ export function reconnectRelation(
     let id = relation.id;
     if (id === null) {
       id = freeId(ctx, `${relation.from}_${relation.to}`, true);
-      const anchor = node.label && isToken(node.label) ? node.label.end : node.target.end;
+      const anchor = relationNameAnchor(relation);
       edits.push({ start: anchor, end: anchor, newText: ` as ${id}` });
     }
     const pinned = endpointText(op.element, op.port, op.position);

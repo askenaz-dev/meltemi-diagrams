@@ -5497,7 +5497,10 @@ export class CanvasApp {
         this.toggleLibraries();
         return;
       case "toggleActivation":
-        this.act({ kind: "toggleActivation", ids: this.selection });
+      case "nestInCall":
+      case "unnestCall":
+      case "addReturn":
+        this.act({ kind: command, ids: this.selection });
         return;
       case "addEntity":
         this.addEntity(this.centre());
@@ -6479,7 +6482,8 @@ export class CanvasApp {
     if (element && element.kind !== "group") {
       items.push({ label: words.messageTo, key: "C", disabled: preview, run: run("connect") });
     }
-    if (relation) {
+    // A `return` takes its line from the call it answers.
+    if (relation && relation.returns === undefined) {
       items.push({
         label: relation.line === "solid" ? words.makeReply : words.makeCall,
         disabled: preview,
@@ -6503,13 +6507,44 @@ export class CanvasApp {
         },
       );
     }
-    if (relation) {
+    if (relation && relation.returns === undefined) {
       items.push({
         label: words.activateReceiver,
         key: "Alt+A",
         disabled: preview,
         run: run("toggleActivation"),
       });
+    }
+    if (event) {
+      // The call around the event, through the fragments between them.
+      let parent = event.parent;
+      while (parent !== null && this.events.get(parent)?.kind === "fragment") {
+        parent = this.events.get(parent)?.parent ?? null;
+      }
+      const inCall = parent !== null;
+      const block = [...this.events.values()].some((e) => e.parent === event.key);
+      items.push({
+        label: words.nestInCall,
+        key: "Alt+N",
+        disabled: preview,
+        run: run("nestInCall"),
+      });
+      if (block || inCall) {
+        items.push({
+          label: words.unnestCall,
+          key: `Alt+${keys.shift}+N`,
+          disabled: preview,
+          run: run("unnestCall"),
+        });
+      }
+      if ((relation && relation.returns === undefined) || inCall) {
+        items.push({
+          label: words.addReturn,
+          key: "Alt+R",
+          disabled: preview,
+          run: run("addReturn"),
+        });
+      }
     }
     if (items.length > 0) items.push("-");
     items.push(

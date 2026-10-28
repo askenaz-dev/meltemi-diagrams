@@ -1271,6 +1271,29 @@ const tests: Test[] = [
     },
   },
   {
+    name: "writes Participant spacing on a sequence diagram from the inspector",
+    async run({ page }) {
+      await page
+        .locator(".code-input")
+        .fill(
+          'language "0.2"\n\ndiagram s: sequence {\n  participant a "A"\n  participant b "B"\n  a -> b: "Ask"\n}\n',
+        );
+      await analysed(page);
+      await page.locator('#app .content g[data-id="b"][data-role="element"]').first().waitFor();
+      await page.locator("#app .stage").focus();
+      await page.keyboard.press("Escape");
+      const spacing = page.locator("#app #mdg-field-spacing");
+      assert.equal(await spacing.getAttribute("placeholder"), "40");
+      await spacing.fill("56");
+      await spacing.press("Enter");
+      await until(page, "the spacing written into the code", () =>
+        /\n {2}spacing 56\n/.test(
+          (document.querySelector(".code-input") as HTMLTextAreaElement).value,
+        ),
+      );
+    },
+  },
+  {
     name: "draws a free line with the arrow tool and selects it",
     async run({ page }) {
       await page

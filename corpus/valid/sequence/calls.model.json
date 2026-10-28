@@ -1,0 +1,1126 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "checkout",
+      "type": "sequence",
+      "range": {
+        "start": {
+          "offset": 188,
+          "line": 5,
+          "column": 1
+        },
+        "end": {
+          "offset": 1066,
+          "line": 46,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "auto",
+        "theme": "editorial.light",
+        "title": null,
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null,
+        "spacing": 56
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "customer",
+          "kind": "actor",
+          "label": "Customer",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 259,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 284,
+              "line": 9,
+              "column": 28
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 265,
+              "line": 9,
+              "column": 9
+            },
+            "end": {
+              "offset": 273,
+              "line": 9,
+              "column": 17
+            }
+          }
+        },
+        {
+          "id": "api",
+          "kind": "participant",
+          "label": "API",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 287,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 308,
+              "line": 10,
+              "column": 24
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 299,
+              "line": 10,
+              "column": 15
+            },
+            "end": {
+              "offset": 302,
+              "line": 10,
+              "column": 18
+            }
+          }
+        },
+        {
+          "id": "bank",
+          "kind": "participant",
+          "label": "Bank",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 311,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 334,
+              "line": 11,
+              "column": 26
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 323,
+              "line": 11,
+              "column": 15
+            },
+            "end": {
+              "offset": 327,
+              "line": 11,
+              "column": 19
+            }
+          }
+        },
+        {
+          "id": "ledger",
+          "kind": "database",
+          "label": "Ledger",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 337,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 361,
+              "line": 12,
+              "column": 27
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 346,
+              "line": 12,
+              "column": 12
+            },
+            "end": {
+              "offset": 352,
+              "line": 12,
+              "column": 18
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "pay",
+          "id": "pay",
+          "from": "customer",
+          "to": "api",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Pay",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 365,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 748,
+              "line": 27,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 391,
+              "line": 14,
+              "column": 29
+            },
+            "end": {
+              "offset": 394,
+              "line": 14,
+              "column": 32
+            }
+          }
+        },
+        {
+          "key": "authorize",
+          "id": "authorize",
+          "from": "api",
+          "to": "bank",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Authorize",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 401,
+              "line": 15,
+              "column": 5
+            },
+            "end": {
+              "offset": 525,
+              "line": 18,
+              "column": 6
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 429,
+              "line": 15,
+              "column": 33
+            },
+            "end": {
+              "offset": 438,
+              "line": 15,
+              "column": 42
+            }
+          }
+        },
+        {
+          "key": "reserve",
+          "id": "reserve",
+          "from": "bank",
+          "to": "ledger",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Reserve",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 447,
+              "line": 16,
+              "column": 7
+            },
+            "end": {
+              "offset": 483,
+              "line": 16,
+              "column": 43
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 476,
+              "line": 16,
+              "column": 36
+            },
+            "end": {
+              "offset": 483,
+              "line": 16,
+              "column": 43
+            }
+          }
+        },
+        {
+          "key": "approved",
+          "id": "approved",
+          "from": "bank",
+          "to": "api",
+          "line": "dashed",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": "authorize",
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Approved",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 490,
+              "line": 17,
+              "column": 7
+            },
+            "end": {
+              "offset": 519,
+              "line": 17,
+              "column": 36
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 511,
+              "line": 17,
+              "column": 28
+            },
+            "end": {
+              "offset": 519,
+              "line": 17,
+              "column": 36
+            }
+          }
+        },
+        {
+          "key": "record",
+          "id": "record",
+          "from": "api",
+          "to": "ledger",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Record",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 559,
+              "line": 20,
+              "column": 7
+            },
+            "end": {
+              "offset": 640,
+              "line": 22,
+              "column": 8
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 586,
+              "line": 20,
+              "column": 34
+            },
+            "end": {
+              "offset": 592,
+              "line": 20,
+              "column": 40
+            }
+          }
+        },
+        {
+          "key": "recorded",
+          "id": "recorded",
+          "from": "ledger",
+          "to": "api",
+          "line": "dashed",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": "record",
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Recorded",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 603,
+              "line": 21,
+              "column": 9
+            },
+            "end": {
+              "offset": 632,
+              "line": 21,
+              "column": 38
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 624,
+              "line": 21,
+              "column": 30
+            },
+            "end": {
+              "offset": 632,
+              "line": 21,
+              "column": 38
+            }
+          }
+        },
+        {
+          "key": "receipt",
+          "id": "receipt",
+          "from": "api",
+          "to": "customer",
+          "line": "dashed",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": "pay",
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Receipt",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 647,
+              "line": 23,
+              "column": 7
+            },
+            "end": {
+              "offset": 674,
+              "line": 23,
+              "column": 34
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 667,
+              "line": 23,
+              "column": 27
+            },
+            "end": {
+              "offset": 674,
+              "line": 23,
+              "column": 34
+            }
+          }
+        },
+        {
+          "key": "refunded",
+          "id": "refunded",
+          "from": "api",
+          "to": "customer",
+          "line": "dashed",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": "pay",
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Refunded",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 709,
+              "line": 25,
+              "column": 7
+            },
+            "end": {
+              "offset": 738,
+              "line": 25,
+              "column": 36
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 730,
+              "line": 25,
+              "column": 28
+            },
+            "end": {
+              "offset": 738,
+              "line": 25,
+              "column": 36
+            }
+          }
+        },
+        {
+          "key": "status",
+          "id": "status",
+          "from": "api",
+          "to": "bank",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Status",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 784,
+              "line": 30,
+              "column": 5
+            },
+            "end": {
+              "offset": 857,
+              "line": 32,
+              "column": 6
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 809,
+              "line": 30,
+              "column": 30
+            },
+            "end": {
+              "offset": 815,
+              "line": 30,
+              "column": 36
+            }
+          }
+        },
+        {
+          "key": "pending",
+          "id": "pending",
+          "from": "bank",
+          "to": "api",
+          "line": "dashed",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": "status",
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "Pending",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 824,
+              "line": 31,
+              "column": 7
+            },
+            "end": {
+              "offset": 851,
+              "line": 31,
+              "column": 34
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 844,
+              "line": 31,
+              "column": 27
+            },
+            "end": {
+              "offset": 851,
+              "line": 31,
+              "column": 34
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "gap",
+          "target": "bank",
+          "amount": -12,
+          "side": "before",
+          "range": {
+            "start": {
+              "offset": 881,
+              "line": 36,
+              "column": 5
+            },
+            "end": {
+              "offset": 893,
+              "line": 36,
+              "column": 17
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 885,
+              "line": 36,
+              "column": 9
+            },
+            "end": {
+              "offset": 889,
+              "line": 36,
+              "column": 13
+            }
+          }
+        },
+        {
+          "statement": "gap",
+          "target": "ledger",
+          "amount": 24,
+          "side": "after",
+          "range": {
+            "start": {
+              "offset": 898,
+              "line": 37,
+              "column": 5
+            },
+            "end": {
+              "offset": 917,
+              "line": 37,
+              "column": 24
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 902,
+              "line": 37,
+              "column": 9
+            },
+            "end": {
+              "offset": 908,
+              "line": 37,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "space",
+          "target": "status",
+          "amount": 16,
+          "side": "before",
+          "range": {
+            "start": {
+              "offset": 922,
+              "line": 38,
+              "column": 5
+            },
+            "end": {
+              "offset": 937,
+              "line": 38,
+              "column": 20
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 928,
+              "line": 38,
+              "column": 11
+            },
+            "end": {
+              "offset": 934,
+              "line": 38,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "space",
+          "target": "poll",
+          "amount": 20,
+          "side": "after",
+          "range": {
+            "start": {
+              "offset": 942,
+              "line": 39,
+              "column": 5
+            },
+            "end": {
+              "offset": 961,
+              "line": 39,
+              "column": 24
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 948,
+              "line": 39,
+              "column": 11
+            },
+            "end": {
+              "offset": 952,
+              "line": 39,
+              "column": 15
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [
+        {
+          "kind": "message",
+          "key": "pay",
+          "relation": "pay",
+          "events": [
+            {
+              "kind": "message",
+              "key": "authorize",
+              "relation": "authorize",
+              "events": [
+                {
+                  "kind": "message",
+                  "key": "reserve",
+                  "relation": "reserve",
+                  "events": [],
+                  "range": {
+                    "start": {
+                      "offset": 447,
+                      "line": 16,
+                      "column": 7
+                    },
+                    "end": {
+                      "offset": 483,
+                      "line": 16,
+                      "column": 43
+                    }
+                  }
+                },
+                {
+                  "kind": "message",
+                  "key": "approved",
+                  "relation": "approved",
+                  "events": [],
+                  "range": {
+                    "start": {
+                      "offset": 490,
+                      "line": 17,
+                      "column": 7
+                    },
+                    "end": {
+                      "offset": 519,
+                      "line": 17,
+                      "column": 36
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 401,
+                  "line": 15,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 525,
+                  "line": 18,
+                  "column": 6
+                }
+              }
+            },
+            {
+              "kind": "fragment",
+              "key": "stock",
+              "id": "stock",
+              "operator": "alt",
+              "branches": [
+                {
+                  "condition": "In stock",
+                  "events": [
+                    {
+                      "kind": "message",
+                      "key": "record",
+                      "relation": "record",
+                      "events": [
+                        {
+                          "kind": "message",
+                          "key": "recorded",
+                          "relation": "recorded",
+                          "events": [],
+                          "range": {
+                            "start": {
+                              "offset": 603,
+                              "line": 21,
+                              "column": 9
+                            },
+                            "end": {
+                              "offset": 632,
+                              "line": 21,
+                              "column": 38
+                            }
+                          }
+                        }
+                      ],
+                      "range": {
+                        "start": {
+                          "offset": 559,
+                          "line": 20,
+                          "column": 7
+                        },
+                        "end": {
+                          "offset": 640,
+                          "line": 22,
+                          "column": 8
+                        }
+                      }
+                    },
+                    {
+                      "kind": "message",
+                      "key": "receipt",
+                      "relation": "receipt",
+                      "events": [],
+                      "range": {
+                        "start": {
+                          "offset": 647,
+                          "line": 23,
+                          "column": 7
+                        },
+                        "end": {
+                          "offset": 674,
+                          "line": 23,
+                          "column": 34
+                        }
+                      }
+                    }
+                  ],
+                  "range": {
+                    "start": {
+                      "offset": 530,
+                      "line": 19,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 680,
+                      "line": 24,
+                      "column": 6
+                    }
+                  }
+                },
+                {
+                  "condition": "Out of stock",
+                  "events": [
+                    {
+                      "kind": "message",
+                      "key": "refunded",
+                      "relation": "refunded",
+                      "events": [],
+                      "range": {
+                        "start": {
+                          "offset": 709,
+                          "line": 25,
+                          "column": 7
+                        },
+                        "end": {
+                          "offset": 738,
+                          "line": 25,
+                          "column": 36
+                        }
+                      }
+                    }
+                  ],
+                  "range": {
+                    "start": {
+                      "offset": 681,
+                      "line": 24,
+                      "column": 7
+                    },
+                    "end": {
+                      "offset": 744,
+                      "line": 26,
+                      "column": 6
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 530,
+                  "line": 19,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 744,
+                  "line": 26,
+                  "column": 6
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 365,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 748,
+              "line": 27,
+              "column": 4
+            }
+          }
+        },
+        {
+          "kind": "fragment",
+          "key": "poll",
+          "id": "poll",
+          "operator": "loop",
+          "branches": [
+            {
+              "condition": "Until settled",
+              "events": [
+                {
+                  "kind": "message",
+                  "key": "status",
+                  "relation": "status",
+                  "events": [
+                    {
+                      "kind": "message",
+                      "key": "pending",
+                      "relation": "pending",
+                      "events": [],
+                      "range": {
+                        "start": {
+                          "offset": 824,
+                          "line": 31,
+                          "column": 7
+                        },
+                        "end": {
+                          "offset": 851,
+                          "line": 31,
+                          "column": 34
+                        }
+                      }
+                    }
+                  ],
+                  "range": {
+                    "start": {
+                      "offset": 784,
+                      "line": 30,
+                      "column": 5
+                    },
+                    "end": {
+                      "offset": 857,
+                      "line": 32,
+                      "column": 6
+                    }
+                  }
+                }
+              ],
+              "range": {
+                "start": {
+                  "offset": 752,
+                  "line": 29,
+                  "column": 3
+                },
+                "end": {
+                  "offset": 861,
+                  "line": 33,
+                  "column": 4
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 752,
+              "line": 29,
+              "column": 3
+            },
+            "end": {
+              "offset": 861,
+              "line": 33,
+              "column": 4
+            }
+          }
+        }
+      ],
+      "scenarios": [
+        {
+          "id": "settled",
+          "label": "Settled after two checks",
+          "choices": [
+            {
+              "kind": "choose",
+              "fragment": "stock",
+              "branch": 0,
+              "iterations": null,
+              "range": {
+                "start": {
+                  "offset": 1019,
+                  "line": 43,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 1042,
+                  "line": 43,
+                  "column": 28
+                }
+              }
+            },
+            {
+              "kind": "repeat",
+              "fragment": "poll",
+              "branch": null,
+              "iterations": 2,
+              "range": {
+                "start": {
+                  "offset": 1047,
+                  "line": 44,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 1060,
+                  "line": 44,
+                  "column": 18
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 969,
+              "line": 42,
+              "column": 3
+            },
+            "end": {
+              "offset": 1064,
+              "line": 45,
+              "column": 4
+            }
+          }
+        }
+      ],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}
