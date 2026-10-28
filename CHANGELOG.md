@@ -4,7 +4,29 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
-## 1.10.1
+## 1.11.0
+
+### Playground
+
+- The properties panel at the right of the canvas folds to a rail, as the explorer and the code
+  pane do: from the button in its head, the toolbar's **Show the properties** toggle or Ctrl+Alt+B
+  (Cmd+Alt+B), and unfolds from the rail's button, the toggle or Ctrl+Alt+B again. The page
+  remembers the fold, and a first visit on a screen narrower than 1100 pixels starts with the rail.
+- Every icon button of the page shows its name and its key in the canvas's bubble after a moment
+  ("Undo (Ctrl+Z)", "Hide the code (Ctrl+J)"), and says the key to assistive technology; names no
+  longer hold keys, and the theme switch says which theme a press gives. The explorer, the code
+  pane and the properties each have their own picture
+  ([decision 0062](docs/decisions/0062-inspector-collapse-and-tooltips.md)).
+
+### Canvas (VS Code and the playground)
+
+- The inspector has a head with a fold button and folds to a 36 px rail whose button unfolds it,
+  in step with the toolbar's toggle and kept with the canvas's state; the theme panel folds with
+  it. The fold writes nothing to the document and works on a read-only canvas. In VS Code it has
+  no key, since the workbench owns Ctrl+Alt+B.
+- Toolbar buttons are named without their key, which their tooltips show in parentheses and
+  `aria-keyshortcuts` says: "Show the layers (L)", the palette's "Node (N)" and "Icon (I)", the
+  split arrows' "More shapes (F)". The package exports `Tooltips` and `ariaKeyshortcuts` for hosts.
 
 ### Fixed
 

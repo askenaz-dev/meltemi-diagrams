@@ -79,3 +79,5 @@ The owner met three rough edges on 2026-10-23, each with one cause in the code.
   `openCards`; the playground's `Settings.code` and `Playground.setCodeCollapsed`.
 - The playground browser suite and the webview suite gain the fold, the cards and the colour rows;
   `strip.test.ts` lists the grouped fields of a relation's dash. The language stays 0.2.
+- [Decision 0062](0062-inspector-collapse-and-tooltips.md) folds the properties panel the same way,
+  to a rail from a button in its head, and names every fold button's key in its title only.

@@ -5,7 +5,7 @@ import type {
   InspectorModel,
   ThemePanelModel,
 } from "@meltemi/diagrams-editor/canvas";
-import { ICONS, clear, h, icon } from "./dom.js";
+import { ICONS, ariaKeyshortcuts, clear, h, icon } from "./dom.js";
 import { alignGlyph, glyph, glyphName, type GlyphFamily } from "./glyphs.js";
 import { messages } from "./messages/index.js";
 
@@ -51,6 +51,37 @@ export interface InspectorActions {
   editTheme(): void;
   /** Sends an action of a field's button, such as Convert to container. */
   act(action: CanvasAction): void;
+  /** Folds the panel to its rail (the head's button) or unfolds it (the rail's button). */
+  fold(collapsed: boolean): void;
+}
+
+/**
+ * A button that folds the properties panel to its rail or unfolds it: the properties glyph, its
+ * name, and the host's key for the fold in its title when the host has one.
+ */
+function foldButton(
+  name: string,
+  key: string,
+  expanded: boolean,
+  dataKey: string,
+  run: () => void,
+): HTMLButtonElement {
+  const button = h(
+    "button",
+    {
+      type: "button",
+      class: "fold",
+      "data-key": dataKey,
+      "aria-label": name,
+      title: key ? `${name} (${key})` : name,
+      "aria-keyshortcuts": key ? ariaKeyshortcuts(key) : undefined,
+      "aria-expanded": String(expanded),
+      "aria-controls": "mdg-inspector",
+    },
+    icon(ICONS.inspector),
+  );
+  button.addEventListener("click", run);
+  return button;
 }
 
 const keyOf = (name: string) => `mdg-field-${name.replace(/\W/g, "-")}`;
@@ -1029,9 +1060,15 @@ function effectsRow(
 export class Inspector {
   readonly element = h("aside", {
     class: "panel inspector",
+    id: "mdg-inspector",
     "aria-label": messages().inspector.label,
     tabindex: -1,
   });
+  /** The rail the panel folds to, one button that unfolds it; kept across renders. */
+  private readonly rail = h("div", { class: "inspector-rail" });
+  /** The host's key for the fold, shown in the titles of the fold buttons; "" when it has none. */
+  private key = "";
+  private collapsed = false;
   private model: InspectorModel | undefined;
   /** A canvas that only shows: every field is drawn disabled and nothing is committed. */
   private readOnly = false;
@@ -1048,6 +1085,55 @@ export class Inspector {
         { id: "mdg-color-tokens" },
         ...COLOR_TOKENS.map((t) => h("option", { value: t })),
       ),
+      this.rail,
+    );
+    this.drawRail();
+  }
+
+  /** The rail's button, which has the focus when the panel folds from inside. */
+  get railButton(): HTMLButtonElement {
+    return this.rail.querySelector("button")!;
+  }
+
+  /** The host's key for the fold ("" for none), named in the titles of the fold buttons. */
+  setKey(key: string): void {
+    this.key = key;
+    this.drawRail();
+    this.element.querySelector(".panel-head .fold")?.replaceWith(this.foldHead());
+  }
+
+  /**
+   * Folds the panel to its rail or unfolds it: the stylesheet narrows it and swaps its contents
+   * for the rail, and both buttons say whether the panel is open.
+   */
+  setCollapsed(collapsed: boolean): void {
+    this.collapsed = collapsed;
+    this.element.dataset.collapsed = String(collapsed);
+    for (const button of this.element.querySelectorAll<HTMLButtonElement>("button.fold")) {
+      button.setAttribute("aria-expanded", String(!collapsed));
+    }
+  }
+
+  private drawRail(): void {
+    this.rail.replaceChildren(
+      foldButton(
+        messages().inspector.showPanel,
+        this.key,
+        !this.collapsed,
+        "inspector:unfold",
+        () => this.actions.fold(false),
+      ),
+    );
+  }
+
+  /** The head's button, which folds the panel. */
+  private foldHead(): HTMLButtonElement {
+    return foldButton(
+      messages().inspector.hidePanel,
+      this.key,
+      !this.collapsed,
+      "inspector:fold",
+      () => this.actions.fold(true),
     );
   }
 
@@ -1087,7 +1173,10 @@ export class Inspector {
     this.model = model;
     const datalist = this.element.querySelector("datalist")!;
     clear(this.element);
-    this.element.append(datalist, h("h2", {}, model.title));
+    this.element.append(
+      datalist,
+      h("div", { class: "panel-head" }, h("h2", {}, model.title), this.foldHead()),
+    );
     // Read-only: the same fields, each one disabled, so the values can be read and nothing written.
     const fields: readonly InspectorField[] = this.readOnly
       ? model.fields.map((f) => ({ ...f, readonly: true }))
@@ -1132,6 +1221,7 @@ export class Inspector {
     for (const field of fields) {
       if (field.section !== "strip") this.element.append(this.field(field));
     }
+    this.element.append(this.rail);
     refocus(this.element, key);
   }
 
@@ -1141,7 +1231,7 @@ export class Inspector {
     this.cards.clear();
     const datalist = this.element.querySelector("datalist")!;
     clear(this.element);
-    this.element.append(datalist);
+    this.element.append(datalist, this.rail);
   }
 
   /**
@@ -1474,6 +1564,8 @@ function sameTarget(a: InspectorModel, b: InspectorModel): boolean {
 export interface ThemePanelActions {
   token(token: string, value: Value): void;
   close(): void;
+  /** Folds the properties to their rail, the theme panel with them. */
+  fold(): void;
 }
 
 /**
@@ -1488,8 +1580,15 @@ export class ThemePanel {
     hidden: true,
   });
   private panel: ThemePanelModel | undefined;
+  /** The host's key for the fold, named in the fold button's title; "" when it has none. */
+  private key = "";
 
   constructor(private readonly actions: ThemePanelActions) {}
+
+  /** The host's key for the fold ("" for none), named in the head's fold button. */
+  setKey(key: string): void {
+    this.key = key;
+  }
 
   get open(): boolean {
     return this.panel !== undefined;
@@ -1516,8 +1615,12 @@ export class ThemePanel {
     close.addEventListener("click", () => this.actions.close());
     const where =
       panel.file === null ? words.thisFile : panel.file.slice(panel.file.lastIndexOf("/") + 1);
+    // The theme panel stands where the properties do: it folds with them, from its own head.
+    const fold = foldButton(messages().inspector.hidePanel, this.key, true, "theme:fold", () =>
+      this.actions.fold(),
+    );
     this.element.append(
-      h("div", { class: "panel-head" }, h("h2", {}, words.title(panel.id)), close),
+      h("div", { class: "panel-head" }, h("h2", {}, words.title(panel.id)), fold, close),
       h("p", { class: "where" }, words.where(where)),
     );
     for (const group of panel.groups) {

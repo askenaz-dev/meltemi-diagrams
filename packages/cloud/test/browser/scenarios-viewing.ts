@@ -181,6 +181,16 @@ export const viewingScenarios: Scenario[] = [
       await page.keyboard.press("Control+z");
       await page.waitForTimeout(500);
       assert.equal(await code(page), slide, "the drag wrote nothing into the code");
+      // The properties fold and unfold in view mode, writing nothing; a kept fold is undone first.
+      const inspector = page.locator("#mdg-inspector");
+      const rail = page.getByRole("button", { name: "Show the properties panel", exact: true });
+      if ((await inspector.getAttribute("data-collapsed")) === "true") await rail.click();
+      await page.getByRole("button", { name: "Hide the properties panel", exact: true }).click();
+      assert.equal(await inspector.getAttribute("data-collapsed"), "true");
+      await rail.click();
+      await page.waitForTimeout(300);
+      assert.equal(await inspector.getAttribute("data-collapsed"), "false");
+      assert.equal(await code(page), slide, "the fold wrote nothing into the code");
       // The inspector shows its fields and does not commit: they are disabled, and a value put in one
       // whatever the control lets through is no edit.
       const fields = page

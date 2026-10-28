@@ -86,7 +86,8 @@ export const ICONS = {
     "M2.5 12.5c1.7-.3 3.2-1.4 4.4-3.2|M12.8 6a2.1 2.1 0 1 1-4.2 0 2.1 2.1 0 0 1 4.2 0z|M6.9 9.3L8.9 7.6",
   snap: "M4 2.5v5a4 4 0 0 0 8 0v-5|M4 5h2.5|M9.5 5H12",
   minimap: "M2.5 3.5h11v9h-11z|M8 8h4v3H8z",
-  inspector: "M2.5 3.5h11v9h-11z|M10 3.5v9",
+  /** The properties: a frame with a bar at the right holding two rows, unlike the other panes. */
+  inspector: "M2.5 3h11v10h-11z|M9.5 3v10|M11 6h1.5|M11 8.5h1.5",
   arrange: "M2.5 3.5h4v3h-4z|M9.5 9.5h4v3h-4z|M4.5 6.5v3h5",
   export: "M8 10V2.5|M5 5.5l3-3 3 3|M3 9.5v4h10v-4",
   play: "M5 3.5l8 4.5-8 4.5z",
@@ -123,4 +124,27 @@ export const ICONS = {
 /** Removes every child of an element. */
 export function clear(element: Element): void {
   while (element.firstChild) element.firstChild.remove();
+}
+
+/** The ARIA names of the modifiers the catalogs write in shown keys, in both languages. */
+const ARIA_MODIFIERS: Record<string, string> = {
+  Ctrl: "Control",
+  Cmd: "Meta",
+  Shift: "Shift",
+  Mayús: "Shift",
+  Alt: "Alt",
+};
+
+/**
+ * A key as a title shows it ("Ctrl+Alt+B", "Mayús+1", "L") written as `aria-keyshortcuts` wants
+ * it ("Control+Alt+B", "Shift+1", "L"): the modifiers by their ARIA names, Cmd as Meta, a plus key
+ * as "Plus". An empty key gives an empty string.
+ */
+export function ariaKeyshortcuts(shown: string): string {
+  if (shown === "") return "";
+  const parts = shown.endsWith("+") ? [...shown.slice(0, -1).split("+"), "Plus"] : shown.split("+");
+  return parts
+    .filter((part) => part !== "")
+    .map((part) => ARIA_MODIFIERS[part] ?? part)
+    .join("+");
 }

@@ -907,6 +907,71 @@ body {
   display: none;
 }
 
+/* A panel's head: its title, then its buttons (the fold, the theme panel's Done). */
+.panel .panel-head {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.panel .panel-head h2 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.inspector > .panel-head {
+  margin-bottom: 8px;
+}
+
+.panel button.fold svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Folded, the properties are a 36 px rail holding the button that unfolds them: the width moves,
+   the contents fade out, then the rail fades in, as the playground's code pane folds. */
+.inspector {
+  position: relative;
+  transition: width var(--mdg-motion-slow) var(--mdg-ease);
+}
+
+.inspector[data-collapsed="true"] {
+  width: 36px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.inspector > :not(.inspector-rail) {
+  transition: opacity var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.inspector[data-collapsed="true"] > :not(.inspector-rail) {
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity var(--mdg-motion-fast) var(--mdg-ease),
+    visibility 0s linear var(--mdg-motion-fast);
+}
+
+.inspector-rail {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 8px;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.inspector[data-collapsed="true"] .inspector-rail {
+  visibility: visible;
+  opacity: 1;
+  transition: opacity var(--mdg-motion) var(--mdg-ease) var(--mdg-motion-fast);
+}
+
 .panel h2 {
   margin: 0 0 8px;
   font-size: 12px;

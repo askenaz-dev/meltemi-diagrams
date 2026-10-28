@@ -36,7 +36,11 @@ Uninstall it from the Extensions view to roll back. To work on the extension its
 - **Inspector**: the style strip first (colours, line, width, corner radius, shape, icon
   position, arrowhead, the effects with a card of settings for each one that is on, and the
   diagram's theme), then the properties of the diagram, the selected element or relation, or the
-  shared style of several items. While a theme is edited, the theme panel takes its place.
+  shared style of several items. While a theme is edited, the theme panel takes its place. The
+  button at the right of its head (**Hide the properties panel**) folds it to a narrow rail at the
+  right of the canvas; the rail's button (**Show the properties panel**) and the toolbar's **Show
+  the properties** toggle, a frame with a bar at the right, bring it back. The three are one
+  choice, kept for the webview, and the theme panel folds with it.
 - **Libraries** (toolbar toggle, U): ready-made elements by category, from AWS, Azure, Google
   Cloud, Kubernetes, Tabler and the technology logos, with a search box and the placement control
   of the icon picker ([element libraries](#element-libraries)).
@@ -48,21 +52,21 @@ session, in the next ones, and for other files. **Open Canvas to the Side** (the
 title, or the command palette) opens it again and restores the automatic opening. The setting
 `meltemi.canvas.openWithText` chooses `remember` (the default), `always` or `never`.
 
-| Setting                       | Default    | Meaning                                                                    |
-| ----------------------------- | ---------- | -------------------------------------------------------------------------- |
-| `meltemi.canvas.openWithText` | `remember` | When the canvas opens beside the code                                      |
-| `meltemi.canvas.grid`         | `14`       | Grid size in diagram units                                                 |
-| `meltemi.canvas.showGrid`     | `true`     | Draw the grid                                                              |
-| `meltemi.canvas.snap`         | `true`     | Snap to the grid                                                           |
-| `meltemi.canvas.guides`       | `true`     | Snap to the edges and centres of other boxes, with guides                  |
-| `meltemi.canvas.minimap`      | `true`     | Show the minimap                                                           |
-| `meltemi.canvas.inspector`    | `true`     | Show the inspector                                                         |
-| `meltemi.export.browser`      | empty      | The browser that draws PNG, PDF and video; found when empty                |
-| `meltemi.export.ffmpeg`       | empty      | The FFmpeg that encodes video; `ffmpeg` on the path when empty             |
-| `meltemi.assist.provider`     | empty      | Optional AI assistance: `anthropic` or `openai-compatible`; off when empty |
-| `meltemi.assist.model`        | empty      | The model; `claude-opus-5-5` for Anthropic when empty                      |
-| `meltemi.assist.baseUrl`      | empty      | The endpoint, such as `http://127.0.0.1:11434/v1` for a local Ollama       |
-| `meltemi.language`            | `auto`     | The language of the extension and the canvas: `auto`, `en` or `es`         |
+| Setting                       | Default    | Meaning                                                                      |
+| ----------------------------- | ---------- | ---------------------------------------------------------------------------- |
+| `meltemi.canvas.openWithText` | `remember` | When the canvas opens beside the code                                        |
+| `meltemi.canvas.grid`         | `14`       | Grid size in diagram units                                                   |
+| `meltemi.canvas.showGrid`     | `true`     | Draw the grid                                                                |
+| `meltemi.canvas.snap`         | `true`     | Snap to the grid                                                             |
+| `meltemi.canvas.guides`       | `true`     | Snap to the edges and centres of other boxes, with guides                    |
+| `meltemi.canvas.minimap`      | `true`     | Show the minimap                                                             |
+| `meltemi.canvas.inspector`    | `true`     | Show the inspector until it is folded from its head, its rail or the toolbar |
+| `meltemi.export.browser`      | empty      | The browser that draws PNG, PDF and video; found when empty                  |
+| `meltemi.export.ffmpeg`       | empty      | The FFmpeg that encodes video; `ffmpeg` on the path when empty               |
+| `meltemi.assist.provider`     | empty      | Optional AI assistance: `anthropic` or `openai-compatible`; off when empty   |
+| `meltemi.assist.model`        | empty      | The model; `claude-opus-5-5` for Anthropic when empty                        |
+| `meltemi.assist.baseUrl`      | empty      | The endpoint, such as `http://127.0.0.1:11434/v1` for a local Ollama         |
+| `meltemi.language`            | `auto`     | The language of the extension and the canvas: `auto`, `en` or `es`           |
 
 The toolbar toggles override the grid, snapping, minimap and inspector settings for one canvas.
 
@@ -381,6 +385,10 @@ canvas.
 | Shift+0, Shift+1, Shift+2                                     | Zoom to 100 %, fit the diagram, fit the selection                                                                                     |
 | Shift+F10, the context-menu key                               | Open the context menu (arrows to move, Enter to choose)                                                                               |
 
+The inspector's fold has no key on the canvas: VS Code binds Ctrl+Alt+B to its secondary side bar,
+so the buttons in the inspector's head and rail and the toolbar's toggle fold and unfold it, all
+reachable with Tab. The playground folds it with Ctrl+Alt+B too.
+
 Focus is always visible: the canvas, toolbar buttons, inspector fields, menu items and dialog
 buttons draw a ring in the theme's focus colour. Each element tells assistive technology its kind
 and label, and a status line announces the selection and the result of each action.
@@ -395,8 +403,12 @@ The canvas moves briefly and always the same way, on the motion tokens of its st
   arrowheads, open from their anchor with a fade, a 4 px rise and a scale from 98 % over 160 ms,
   and close with a 120 ms fade. They take presses at once.
 - **Panels.** Libraries and Layers slide in from the left, the inspector and the theme panel from
-  the right, over 220 ms.
-- **Tooltips** appear after 400 ms over a control and fade in.
+  the right, over 220 ms. Folding the inspector narrows it to its 36 px rail over 220 ms while its
+  contents fade out over 120 ms, and the rail's button fades in after them; the drawing keeps its
+  zoom and place.
+- **Tooltips** appear after 400 ms over a control and fade in. An icon button's name says what it
+  does; its tooltip adds its key in parentheses ("Show the layers (L)", "Node (N)"), which
+  assistive technology reads from `aria-keyshortcuts`.
 - **Outlines.** The outline of a drop or connection target (the element under a note tool, too)
   and the inline editor's outline fade in; the results of the icon picker fade in one after the other.
 - **The Pointer's trail.** Each segment fades linearly over 800 ms from its own point and the width

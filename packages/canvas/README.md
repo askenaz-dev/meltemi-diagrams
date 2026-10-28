@@ -67,6 +67,19 @@ Popovers, menus, side panels, tooltips and target outlines open and close with s
 on the motion tokens of `canvas.css` (`--mdg-motion-fast`, `--mdg-motion`, `--mdg-motion-slow`,
 `--mdg-ease`). When the system asks for reduced motion they are zero and nothing moves.
 
+The properties panel folds to a rail from the button in its head and unfolds from the rail's
+button or the toolbar's toggle, one choice kept with the canvas's state (`PersistedState.inspector`,
+read as a boolean only). A host folds it too with `app.setInspectorCollapsed(collapsed)` and reads
+`app.inspectorCollapsed`; a host that binds a key of its own for it names the key in
+`host.keys.inspector` (the playground passes "Ctrl+Alt+B"), and the canvas's tooltips show it.
+
+Every toolbar button's name says what it does, without its key; its `title` adds the key in
+parentheses and `aria-keyshortcuts` says it. The package exports the bubble that shows those titles,
+`Tooltips` (`new Tooltips(root, { except })`, 400 ms after the pointer rests, `TOOLTIP_DELAY`), so a
+host draws its own controls' tooltips the same way (the playground uses `{ except: "#app" }`, and
+the canvas keeps its own), and `ariaKeyshortcuts(shown)`, which writes a shown key ("Ctrl+Alt+B",
+"Mayús+1") as `aria-keyshortcuts` wants it ("Control+Alt+B", "Shift+1").
+
 ## Documentation
 
 - [Editor guide](https://github.com/askenaz-dev/meltemi-diagrams/blob/main/docs/editor.md)

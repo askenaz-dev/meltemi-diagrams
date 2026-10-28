@@ -6,7 +6,7 @@
 
 import { messages } from "../messages/index.js";
 import type { Studio } from "../studio.js";
-import { download, h, icon } from "../ui.js";
+import { download, h, icon, withKey } from "../ui.js";
 import { writeZip } from "../zip.js";
 import { isTextPath } from "../files.js";
 import { contextMenu, type MenuEntry } from "../menu.js";
@@ -123,6 +123,9 @@ export class Explorer {
     this.collapseButton.setAttribute("aria-expanded", "true");
     this.railButton = button(EXPLORER_ICONS.sidebar, words.show, () => this.setCollapsed(false));
     this.railButton.setAttribute("aria-expanded", "false");
+    // Ctrl+B folds and unfolds it from anywhere in the page: the titles say so.
+    withKey(this.collapseButton, words.hide, messages().keys.explorer);
+    withKey(this.railButton, words.show, messages().keys.explorer);
     this.bar = h(
       "div",
       { class: "explorer-bar" },

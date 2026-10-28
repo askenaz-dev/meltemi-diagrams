@@ -114,7 +114,9 @@ export function menuButton(
     "aria-expanded": "false",
     "aria-controls": id,
     "aria-label": options.name,
-    title: options.name,
+    // Every button of the header has a title, which the page's bubble shows; a menu without a
+    // name of its own is titled by its label.
+    title: options.name ?? options.label,
   });
   button.append(icon(ICONS[options.icon]), h("span", {}, options.label), icon(ICONS.chevron));
   const menu = h("div", {

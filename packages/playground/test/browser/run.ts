@@ -21,6 +21,7 @@ import {
   chromium,
   type Browser,
   type BrowserContext,
+  type Locator,
   type Page,
   type Route,
 } from "playwright-core";
@@ -2267,6 +2268,13 @@ const tests: Test[] = [
   {
     name: "explorer: hides to a rail with Ctrl+B and keeps it, takes the focus with Ctrl+Shift+E and walks with the arrows",
     async run({ page }) {
+      const hide = page.getByRole("button", { name: "Hide the explorer", exact: true });
+      assert.equal(await hide.getAttribute("title"), "Hide the explorer (Ctrl+B)");
+      assert.equal(await hide.getAttribute("aria-keyshortcuts"), "Control+B");
+      // The rail's button is out of the accessibility tree while the explorer is open.
+      const show = page.locator(".explorer-rail button");
+      assert.equal(await show.getAttribute("aria-label"), "Show the explorer");
+      assert.equal(await show.getAttribute("title"), "Show the explorer (Ctrl+B)");
       await page.locator(".code-input").focus();
       await page.keyboard.press("Control+b");
       await until(
@@ -2347,13 +2355,13 @@ const tests: Test[] = [
       assert.equal(await columns(), "0s");
       await page.emulateMedia({ reducedMotion: "no-preference" });
       // The bar's button folds the pane; the canvas keeps its viewport.
-      const hide = page.getByRole("button", { name: "Hide the code (Ctrl+J)" });
+      const hide = page.getByRole("button", { name: "Hide the code", exact: true });
       assert.equal(await hide.getAttribute("aria-expanded"), "true");
       await hide.click();
       await folded(true);
       await page.waitForTimeout(250);
       assert.equal(Math.round((await page.locator("#code-pane").boundingBox())!.width), 36);
-      const show = page.getByRole("button", { name: "Show the code (Ctrl+J)" });
+      const show = page.getByRole("button", { name: "Show the code", exact: true });
       assert.equal(await show.isVisible(), true);
       assert.equal(await show.getAttribute("aria-expanded"), "false");
       assert.equal(await show.getAttribute("aria-controls"), "code-pane");
@@ -2378,7 +2386,7 @@ const tests: Test[] = [
       await folded(true);
       assert.equal(
         await page.evaluate(() => document.activeElement?.getAttribute("aria-label")),
-        "Show the code (Ctrl+J)",
+        "Show the code",
       );
       await show.click();
       await folded(false);
@@ -2487,7 +2495,7 @@ const tests: Test[] = [
       await page.waitForTimeout(250);
       assert.equal(await page.locator("#code-pane").getAttribute("data-collapsed"), "true");
       // Its text is selected in the code when the pane unfolds.
-      await page.getByRole("button", { name: "Show the code (Ctrl+J)" }).click();
+      await page.getByRole("button", { name: "Show the code", exact: true }).click();
       await folded(false);
       const selected = await page.evaluate(() => {
         const area = document.querySelector(".code-input") as HTMLTextAreaElement;
@@ -2526,7 +2534,7 @@ const tests: Test[] = [
       assert.equal(await page.locator(".code-input").isVisible(), true);
       assert.equal(await page.locator(".code-rail").isVisible(), false);
       assert.equal(
-        await page.getByRole("button", { name: "Hide the code (Ctrl+J)" }).isVisible(),
+        await page.getByRole("button", { name: "Hide the code", exact: true }).isVisible(),
         false,
       );
       const wide = await page.evaluate(
@@ -2557,6 +2565,203 @@ const tests: Test[] = [
         "the rail",
         () => document.querySelector("#code-pane")?.getAttribute("data-collapsed") === "true",
       );
+    },
+  },
+  {
+    name: "properties: fold from the header, keep it, Ctrl+Alt+B from the code and the stage, not from a field",
+    async run({ page }) {
+      const aside = page.locator("#mdg-inspector");
+      const toggle = page.getByRole("button", { name: "Show the properties", exact: true });
+      const fold = page.getByRole("button", { name: "Hide the properties panel", exact: true });
+      const rail = page.getByRole("button", { name: "Show the properties panel", exact: true });
+      const transform = () =>
+        page.locator("#app .content").evaluate((e: HTMLElement) => e.style.transform);
+      const collapsed = (on: boolean) =>
+        until(
+          page,
+          on ? "the properties' rail" : "the properties open",
+          (want) =>
+            document.querySelector("#mdg-inspector")?.getAttribute("data-collapsed") === want,
+          String(on),
+        );
+      // The page names its chord to the canvas: the titles say it, the names do not.
+      assert.equal(await toggle.getAttribute("title"), "Show the properties (Ctrl+Alt+B)");
+      assert.equal(await toggle.getAttribute("aria-keyshortcuts"), "Control+Alt+B");
+      assert.equal(await fold.getAttribute("title"), "Hide the properties panel (Ctrl+Alt+B)");
+      assert.equal(await fold.getAttribute("aria-keyshortcuts"), "Control+Alt+B");
+      const before = await transform();
+      await fold.click();
+      await collapsed(true);
+      await page.waitForTimeout(250);
+      assert.equal(Math.round((await aside.boundingBox())!.width), 36);
+      assert.equal(await transform(), before, "the canvas keeps its viewport");
+      await page.mouse.move(5, 500);
+      assert.equal(await rail.getAttribute("title"), "Show the properties panel (Ctrl+Alt+B)");
+      await page.screenshot({ path: join(output, "inspector-rail-light.png") });
+      // The fold is kept with the page's settings.
+      await page.reload();
+      await ready(page);
+      assert.equal(await aside.getAttribute("data-collapsed"), "true");
+      // Ctrl+Alt+B from the code unfolds it and gives it the focus.
+      await page.locator(".code-input").focus();
+      await page.keyboard.press("Control+Alt+b");
+      await collapsed(false);
+      assert.equal(await page.evaluate(() => document.activeElement?.id), "mdg-inspector");
+      // With the stage focused the canvas lets the chord through to the page.
+      await page.locator("#app .stage").focus();
+      await page.keyboard.press("Control+Alt+b");
+      await collapsed(true);
+      // Not from a field: the inspector's Title field, the explorer's rename box.
+      await page.keyboard.press("Control+Alt+b");
+      await collapsed(false);
+      await aside.getByRole("textbox", { name: "Title", exact: true }).focus();
+      await page.keyboard.press("Control+Alt+b");
+      await page.waitForTimeout(200);
+      assert.equal(await aside.getAttribute("data-collapsed"), "false");
+      await page.locator('.tree li[data-key="f:diagrams/overview.meltemi"] > .tree-row').click();
+      await page.keyboard.press("F2");
+      const rename = page.locator(".tree input");
+      await rename.waitFor();
+      await page.keyboard.press("Control+Alt+b");
+      await page.waitForTimeout(200);
+      assert.equal(await aside.getAttribute("data-collapsed"), "false");
+      await page.keyboard.press("Escape");
+    },
+  },
+  {
+    name: "properties: the rail in the dark",
+    dark: true,
+    init: () => {
+      localStorage.setItem(
+        "meltemi-playground:settings:v1",
+        JSON.stringify({ theme: "dark", canvas: { inspector: false } }),
+      );
+    },
+    async run({ page }) {
+      assert.equal(await page.locator("#mdg-inspector").getAttribute("data-collapsed"), "true");
+      await page.waitForTimeout(250);
+      await page.screenshot({ path: join(output, "inspector-rail-dark.png") });
+    },
+  },
+  {
+    name: "properties: a first visit on a 1000 px window starts with the rails, and a reload keeps an unfold",
+    viewport: { width: 1000, height: 800 },
+    async run({ page }) {
+      assert.equal(await page.locator("#mdg-inspector").getAttribute("data-collapsed"), "true");
+      assert.equal(await page.locator("#explorer").getAttribute("data-collapsed"), "true");
+      await page.getByRole("button", { name: "Show the properties panel", exact: true }).click();
+      await until(
+        page,
+        "the properties open",
+        () => document.querySelector("#mdg-inspector")?.getAttribute("data-collapsed") === "false",
+      );
+      await page.reload();
+      await ready(page);
+      assert.equal(await page.locator("#mdg-inspector").getAttribute("data-collapsed"), "false");
+    },
+  },
+  {
+    name: "properties: on a narrow screen the Canvas tab keeps the panel, and Ctrl+Alt+B folds it there",
+    viewport: { width: 375, height: 812 },
+    init: () => {
+      localStorage.setItem(
+        "meltemi-playground:settings:v1",
+        JSON.stringify({ canvas: { inspector: true } }),
+      );
+    },
+    async run({ page }) {
+      await page.locator("#tab-canvas").click();
+      assert.equal(await page.locator("#mdg-inspector").isVisible(), true);
+      assert.equal(await page.locator("#mdg-inspector").getAttribute("data-collapsed"), "false");
+      await page.keyboard.press("Control+Alt+b");
+      await until(
+        page,
+        "the properties' rail",
+        () => document.querySelector("#mdg-inspector")?.getAttribute("data-collapsed") === "true",
+      );
+      assert.equal(await page.locator("#tab-canvas").getAttribute("aria-selected"), "true");
+      const wide = await page.evaluate(
+        () => document.documentElement.scrollWidth > window.innerWidth,
+      );
+      assert.equal(wide, false, "no sideways scrolling");
+    },
+  },
+  {
+    name: "properties: a kept value that is not a boolean opens the panel",
+    init: () => {
+      localStorage.setItem(
+        "meltemi-playground:settings:v1",
+        JSON.stringify({ canvas: { inspector: "no" } }),
+      );
+    },
+    async run({ page }) {
+      assert.equal(await page.locator("#mdg-inspector").getAttribute("data-collapsed"), "false");
+      assert.equal(
+        await page
+          .getByRole("button", { name: "Show the properties", exact: true })
+          .getAttribute("aria-pressed"),
+        "true",
+      );
+    },
+  },
+  {
+    name: "tooltips: the page's buttons show their name and key in the canvas's bubble, after a moment",
+    async run({ page }) {
+      const pageTip = page.locator(":not(#app) > .tooltip");
+      const undo = page.getByRole("button", { name: "Undo", exact: true });
+      assert.equal(await undo.getAttribute("title"), "Undo (Ctrl+Z)");
+      assert.equal(await undo.getAttribute("aria-keyshortcuts"), "Control+Z");
+      await undo.hover();
+      assert.equal(await pageTip.isVisible(), false, "not at once");
+      await pageTip.waitFor({ state: "visible", timeout: 2000 });
+      assert.equal(await pageTip.textContent(), "Undo (Ctrl+Z)");
+      await page.mouse.move(700, 600);
+      assert.equal(await undo.getAttribute("title"), "Undo (Ctrl+Z)");
+      // On the canvas, one bubble: the canvas's own.
+      await page.locator('#app .toolbar button[aria-label="Zoom in"]').hover();
+      await page.locator("#app > .tooltip").waitFor({ state: "visible", timeout: 2000 });
+      assert.equal(await page.locator(".tooltip:visible").count(), 1);
+      await page.mouse.move(700, 600);
+      // Format says its key in its title only.
+      const format = page.getByRole("button", { name: "Format the file", exact: true });
+      assert.equal(await format.getAttribute("title"), "Format the file (Shift+Alt+F)");
+      assert.equal(await format.getAttribute("aria-keyshortcuts"), "Shift+Alt+F");
+      // The explorer's fold buttons and the code's say Ctrl+B and Ctrl+J the same way.
+      const hideExplorer = page.getByRole("button", { name: "Hide the explorer", exact: true });
+      assert.equal(await hideExplorer.getAttribute("title"), "Hide the explorer (Ctrl+B)");
+      assert.equal(await hideExplorer.getAttribute("aria-keyshortcuts"), "Control+B");
+      const hideCode = page.getByRole("button", { name: "Hide the code", exact: true });
+      assert.equal(await hideCode.getAttribute("title"), "Hide the code (Ctrl+J)");
+      assert.equal(await hideCode.getAttribute("aria-keyshortcuts"), "Control+J");
+      // The theme switch says what a press does.
+      await page.getByRole("button", { name: "Switch to the dark theme", exact: true }).click();
+      await page.getByRole("button", { name: "Switch to the light theme", exact: true }).click();
+      assert.equal(
+        await page.getByRole("button", { name: "Switch to the dark theme", exact: true }).count(),
+        1,
+      );
+      // Three panes, three pictures.
+      const glyph = (button: Locator) =>
+        button.evaluate((b) =>
+          [...b.querySelectorAll("path")].map((p) => p.getAttribute("d")).join("|"),
+        );
+      const glyphs = [
+        await glyph(hideExplorer),
+        await glyph(hideCode),
+        await glyph(page.getByRole("button", { name: "Hide the properties panel", exact: true })),
+      ];
+      assert.equal(new Set(glyphs).size, 3, glyphs.join(" / "));
+      // Every icon button of the header, the explorer and the code bar has a title.
+      const untitled = await page.evaluate(() =>
+        [
+          ...document.querySelectorAll<HTMLElement>(
+            ".topbar .button, .explorer-bar .button, .explorer-head .button, .code-path .button",
+          ),
+        ]
+          .filter((b) => !b.getAttribute("title"))
+          .map((b) => b.getAttribute("aria-label") ?? b.textContent),
+      );
+      assert.deepEqual(untitled, []);
     },
   },
   {
@@ -3053,7 +3258,7 @@ const tests: Test[] = [
   {
     name: "switches to dark and remembers it, and lists the notices",
     async run({ page }) {
-      await page.getByRole("button", { name: "Switch light and dark" }).click();
+      await page.getByRole("button", { name: "Switch to the dark theme", exact: true }).click();
       assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), "dark");
       await page.reload();
       await ready(page);
@@ -3135,6 +3340,18 @@ const tests: Test[] = [
       await page.getByRole("button", { name: es.header.about }).click();
       const agents = page.locator("dialog[open]").getByRole("link", { name: es.about.agents });
       assert.equal(await agents.getAttribute("href"), "es/agent-setup/");
+      await page.keyboard.press("Escape");
+      const fold = page.getByRole("button", {
+        name: "Ocultar el panel de propiedades",
+        exact: true,
+      });
+      assert.equal(
+        await fold.getAttribute("title"),
+        "Ocultar el panel de propiedades (Ctrl+Alt+B)",
+      );
+      const format = page.getByRole("button", { name: "Dar formato al archivo", exact: true });
+      assert.equal(await format.getAttribute("title"), "Dar formato al archivo (Mayús+Alt+F)");
+      assert.equal(await format.getAttribute("aria-keyshortcuts"), "Shift+Alt+F");
     },
   },
   {

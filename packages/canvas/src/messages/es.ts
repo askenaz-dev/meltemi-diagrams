@@ -153,9 +153,10 @@ export const es: typeof en = {
     relationTitle: (label) => `${label} (R; Mayús para una línea discontinua)`,
     relationKindsTitle: (label) =>
       `${label} (R; R otra vez para el siguiente tipo de flecha; Mayús alterna entre continua y discontinua)`,
-    arrowMenu: "Tipos de flecha (R cambia)",
-    shapeMenu: "Más formas (F)",
-    groupMenu: "Grupo o contenedor (G)",
+    arrowMenu: "Tipos de flecha",
+    arrowMenuKey: "R cambia",
+    shapeMenu: "Más formas",
+    groupMenu: "Grupo o contenedor",
     groupKinds: { group: "Grupo", container: "Contenedor" },
     newDiagram: "Nuevo diagrama",
     connect: "Conectar el elemento seleccionado con…",
@@ -176,7 +177,7 @@ export const es: typeof en = {
     snap: "Ajustar a la cuadrícula y a las guías",
     minimap: "Mostrar el minimapa",
     inspector: "Mostrar las propiedades",
-    layers: "Mostrar las capas (L)",
+    layers: "Mostrar las capas",
     libraries: "Bibliotecas",
     arrange: "Organizar",
     playEffects: "Reproducir los efectos",
@@ -221,11 +222,13 @@ export const es: typeof en = {
       collections: "Colecciones",
       queue: "Cola",
     },
-    hint: (name, key) => `${name}: haz clic en el lienzo o presiona ${key}`,
-    shaped: (name, shape, key) =>
-      `${name}, ${Object.hasOwn(SHAPE_NAMES, shape) ? SHAPE_NAMES[shape as ShapeName] : shape}: haz clic en el lienzo o presiona ${key}`,
+    hint: (name) => `${name}: haz clic en el lienzo`,
+    shaped: (name, shape) =>
+      `${name}, ${Object.hasOwn(SHAPE_NAMES, shape) ? SHAPE_NAMES[shape as ShapeName] : shape}: haz clic en el lienzo`,
+    shapedTool: (name, shape) =>
+      `${name}, ${Object.hasOwn(SHAPE_NAMES, shape) ? SHAPE_NAMES[shape as ShapeName] : shape}`,
     declared: (name) => `${name}: haz clic en el lienzo`,
-    icon: (key) => `Icono: busca uno para la selección o para colocarlo, o presiona ${key}`,
+    icon: "Icono: busca uno para la selección o para colocarlo",
   },
 
   fragments: {
@@ -441,6 +444,8 @@ export const es: typeof en = {
 
   inspector: {
     label: "Propiedades",
+    hidePanel: "Ocultar el panel de propiedades",
+    showPanel: "Mostrar el panel de propiedades",
     strip: "Estilo",
     effects: "Efectos",
     effectsOff: "ninguno",

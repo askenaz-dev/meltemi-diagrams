@@ -40,6 +40,11 @@ extensiones sobre `examples/`.
   posición del icono, punta, los efectos con una tarjeta de ajustes por cada uno activo, y el tema
   del diagrama), luego las propiedades del diagrama, del elemento o la relación seleccionados, o
   el estilo común de varios elementos. Mientras se edita un tema, el panel del tema ocupa su lugar.
+  El botón a la derecha de su cabecera (**Ocultar el panel de propiedades**) lo pliega en un riel
+  angosto a la derecha del lienzo; el botón del riel (**Mostrar el panel de propiedades**) y el
+  botón **Mostrar las propiedades** de la barra de herramientas, un marco con una barra a la
+  derecha, lo traen de vuelta. Los tres son una sola elección, que el webview conserva, y el panel
+  del tema se pliega con él.
 
 - **Bibliotecas** (botón de la barra de herramientas, U): elementos prearmados por categoría, de
   AWS, Azure, Google Cloud, Kubernetes, Tabler y los logos de tecnologías, con un cuadro de búsqueda
@@ -61,7 +66,7 @@ extensiones sobre `examples/`.
 | `meltemi.canvas.snap`         | `true`         | Ajustar a la cuadrícula                                                                  |
 | `meltemi.canvas.guides`       | `true`         | Ajustar a los lados y los centros de otras cajas, con guías                              |
 | `meltemi.canvas.minimap`      | `true`         | Mostrar el minimapa                                                                      |
-| `meltemi.canvas.inspector`    | `true`         | Mostrar el inspector                                                                     |
+| `meltemi.canvas.inspector`    | `true`         | Mostrar el inspector hasta que se pliega desde su cabecera, su riel o la barra           |
 | `meltemi.export.browser`      | vacío          | El navegador que dibuja PNG, PDF y video; si está vacío, se busca uno                    |
 | `meltemi.export.ffmpeg`       | vacío          | El FFmpeg que codifica el video; si está vacío, `ffmpeg` del PATH                        |
 | `meltemi.assist.provider`     | vacío          | Asistencia opcional de IA: `anthropic` u `openai-compatible`; si está vacío, desactivada |
@@ -408,6 +413,11 @@ como en todas partes. Tab después del último elemento sale del lienzo.
 | Mayús+0, Mayús+1, Mayús+2                                                 | Zoom al 100 %, ajustar el diagrama a la vista, ajustar la selección a la vista                                                                           |
 | Mayús+F10, la tecla de menú contextual                                    | Abrir el menú contextual (flechas para moverse, Entrar para elegir)                                                                                      |
 
+El pliegue del inspector no tiene tecla en el lienzo: VS Code asigna Ctrl+Alt+B a su barra lateral
+secundaria, así que lo pliegan y despliegan los botones de su cabecera y de su riel y el botón de
+la barra de herramientas, todos alcanzables con Tab. El playground también lo pliega con
+Ctrl+Alt+B.
+
 El foco siempre es visible: el lienzo, los botones de la barra de herramientas, los campos del
 inspector, las opciones de los menús y los botones de los diálogos dibujan un anillo con el color de
 foco del tema. Cada elemento comunica su tipo y su etiqueta a las tecnologías de asistencia, y una
@@ -425,8 +435,12 @@ estilo (`--mdg-motion-fast` 120 ms, `--mdg-motion` 160 ms, `--mdg-motion-slow` 2
   un fundido, una subida de 4 px y una escala desde el 98 % en 160 ms, y se cierran con un fundido
   de 120 ms. Aceptan clics desde el primer momento.
 - **Paneles.** Bibliotecas y Capas entran deslizándose desde la izquierda, y el inspector y el
-  panel del tema desde la derecha, en 220 ms.
-- **Descripciones emergentes**: aparecen con un fundido tras 400 ms sobre un control.
+  panel del tema desde la derecha, en 220 ms. Al plegarse, el inspector se angosta hasta su riel de
+  36 px en 220 ms mientras su contenido desaparece en 120 ms, y luego aparece el botón del riel; el
+  dibujo conserva su zoom y su lugar.
+- **Descripciones emergentes**: aparecen con un fundido tras 400 ms sobre un control. El nombre de
+  un botón de icono dice lo que hace; su descripción agrega la tecla entre paréntesis ("Mostrar las
+  capas (L)", "Nodo (N)"), que las tecnologías de asistencia leen en `aria-keyshortcuts`.
 - **Contornos.** El contorno de un destino al soltar o al conectar (también el elemento bajo la
   herramienta de nota) y el contorno del editor en su sitio aparecen con un fundido; los resultados
   del selector de iconos aparecen uno tras otro.

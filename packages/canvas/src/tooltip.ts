@@ -4,23 +4,26 @@ import { h } from "./dom.js";
 export const TOOLTIP_DELAY = 400;
 
 /**
- * The canvas's tooltips: the `title` of a button, chip or field shown in a bubble under it (over
- * it near the bottom of the window) after the pointer rests on it for `TOOLTIP_DELAY`, fading in.
+ * The canvas's tooltips, which a host page may use for its own controls too: the `title` of a
+ * button, chip or field shown in a bubble under it (over it near the bottom of the window) after
+ * the pointer rests on it for `TOOLTIP_DELAY`, fading in.
  * While the pointer is on a control its `title` is kept aside in `data-tip`, so the browser draws
  * no tooltip of its own, and put back when the pointer leaves: the attribute stays what the code
  * and assistive technology read. A press, a key or the wheel hides the bubble.
  */
 export class Tooltips {
-  readonly element = h("div", {
-    class: "tooltip",
-    id: "mdg-tooltip",
-    role: "tooltip",
-    hidden: true,
-  });
+  readonly element = h("div", { class: "tooltip", role: "tooltip", hidden: true });
   private target: HTMLElement | undefined;
   private timer: number | undefined;
 
-  constructor(private readonly root: HTMLElement) {
+  /**
+   * `options.except` selects elements whose controls are another bubble's: a page that hosts the
+   * canvas draws its own controls' tooltips with `{ except: "#app" }`, and the canvas draws its own.
+   */
+  constructor(
+    private readonly root: HTMLElement,
+    private readonly options: { readonly except?: string } = {},
+  ) {
     root.addEventListener("pointerover", (e) => this.over(e));
     root.addEventListener("pointerout", (e) => {
       const next = e.relatedTarget as Node | null;
@@ -39,6 +42,8 @@ export class Tooltips {
     this.leave();
     // The drawing's own titles (links, accessible names) are the drawing's.
     if (!target || target.closest(".content, .overlay")) return;
+    // Controls inside an excepted element have a bubble of their own.
+    if (this.options.except && target.closest(this.options.except)) return;
     const title = target.getAttribute("title");
     if (title) {
       target.dataset.tip = title;
