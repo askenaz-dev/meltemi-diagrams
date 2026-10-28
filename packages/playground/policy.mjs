@@ -14,12 +14,16 @@ export const ANONYMOUS_SESSION = '{"user":null}';
  * What `dist/_headers` holds: the headers the assets platform of the cloud Worker gives every file
  * of the page it serves without running the Worker. The page's own policy is a `meta` tag, which
  * cannot say who may frame it; without `frame-ancestors` any site could frame a signed-in page and
- * trick a person into pressing Revoke, Create or Sign out. A static server serves the file as a plain
- * file, with no effect on the page.
+ * trick a person into pressing Revoke, Create or Sign out. The agent setup prompt names its charset:
+ * without it, a client that does not assume UTF-8 (PowerShell's `Invoke-WebRequest`) reads its
+ * dashes and ellipses as Latin-1 (decision 0063). A static server serves the file as a plain file,
+ * with no effect on the page.
  */
 export const PAGE_HEADERS = `/*
   Content-Security-Policy: frame-ancestors 'self'
   X-Content-Type-Options: nosniff
+/agent-setup/prompt.md
+  Content-Type: text/markdown; charset=utf-8
 `;
 
 /**

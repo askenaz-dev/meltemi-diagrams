@@ -17,7 +17,8 @@ installs it and has you draw once.
 
 1. Confirm you have terminal access on this machine. If you cannot run commands here, give the
    person the commands of this page to run themselves, and stop.
-2. Run `node --version`. Node 22.12 or later is needed.
+2. Run `node --version`. Node 22.12 or later is needed. If it is missing or older, tell the
+   person which version they need, and stop: they install Node themselves.
 3. Run `npx @meltemi/diagrams-cli@latest --version` (or `mdg --version` when the command line is
    installed). This prompt is for 1.10.0 or later. If the version is older, tell the person that
    the published command line is older than this prompt needs, and stop.
@@ -66,6 +67,8 @@ ask for that. Then read the installed `SKILL.md` before drawing.
 - Never commit or stage anything, and never change the project's configuration, CI or agent
   instruction files beyond the skill folders, without asking first.
 - Never add `--force` or `--user` on your own.
+- Never install or download Node or any other tool yourself: `npx` fetching the command line is
+  the only download this setup needs.
 - Never draw a picture by hand, edit an exported SVG, or retype a Mermaid or PlantUML source:
   `mdg import` converts it.
 

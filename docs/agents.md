@@ -90,6 +90,8 @@ you ask to look at the result in a browser.
 - Commit or stage anything, or change your configuration, CI or agent instruction files beyond the
   skill folders, without asking you first.
 - Add `--force` or `--user` on its own.
+- Install or download Node or any other tool on its own: when Node is missing or older than
+  22.12, it tells you and stops.
 - Draw a picture by hand, edit an exported SVG or retype a Mermaid or PlantUML source, which
   `mdg import` converts.
 

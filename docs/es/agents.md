@@ -97,6 +97,8 @@ local, solo cuando pides ver el resultado en un navegador.
 - Hacer commit ni preparar nada, ni cambiar tu configuración, tu CI o los archivos de instrucciones
   de los agentes más allá de las carpetas de skills, sin preguntarte antes.
 - Agregar `--force` o `--user` por su cuenta.
+- Instalar ni descargar Node ni otra herramienta por su cuenta: si falta Node o es anterior a la
+  22.12, te lo dice y se detiene.
 - Dibujar una imagen a mano, editar un SVG exportado ni reescribir una fuente de Mermaid o
   PlantUML, que `mdg import` convierte.
 

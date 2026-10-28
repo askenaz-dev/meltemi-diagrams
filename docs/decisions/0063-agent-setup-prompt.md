@@ -101,6 +101,15 @@ Every agent of the owner's list but Claude Code reads `.agents/skills`.
   and stops. Releasing 1.10.0 close to the merge closes the gap. The real proof, pasting the
   one-liner into Claude Code and into Codex in an empty folder against the published package, is
   the owner's step after the tag.
+- On 28 October 2026, after the tag, Codex (`codex exec`, its `workspace-write` sandbox with the
+  network) ran the one-liner in an empty folder: it read the hosted prompt, checked Node and 1.10.0,
+  asked which agents since the folder had none, installed `.claude/skills` and `.agents/skills`,
+  drew `init`'s sign-in, validated it to `Checked 1 file: 0 errors, 0 warnings.` and exported the
+  SVG, with no cloud command, token or commit. It found two faults, fixed the same day: the prompt
+  was served as `text/markdown` with no charset, which PowerShell read as Latin-1, so `_headers`
+  names `charset=utf-8`; and its sandbox could not run the machine's Node, so it downloaded one,
+  which the prompt now forbids (it tells the person and stops). Claude Code's half waits for a
+  signed-in `claude`.
 - A project installed by 1.9.0 keeps `.codex/skills/meltemi-diagrams`; running `skill install`
   again writes `.agents/skills`, and the old folder is the person's to delete.
 - The family site's Diagrams page linking `https://diagrams.meltemi.dev/agent-setup/` belongs to

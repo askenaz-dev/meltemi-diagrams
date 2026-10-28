@@ -256,12 +256,14 @@ describe("contentSecurityPolicy", () => {
 });
 
 describe("PAGE_HEADERS", () => {
-  it("gives every path exactly the two headers the page needs from its server", () => {
+  it("gives every path the two headers the page needs, and the agent setup prompt its charset", () => {
     const lines = PAGE_HEADERS.split("\n").filter((line) => line.trim() !== "");
     expect(lines).toEqual([
       "/*",
       "  Content-Security-Policy: frame-ancestors 'self'",
       "  X-Content-Type-Options: nosniff",
+      "/agent-setup/prompt.md",
+      "  Content-Type: text/markdown; charset=utf-8",
     ]);
   });
 

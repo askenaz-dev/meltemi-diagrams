@@ -523,7 +523,8 @@ page with the docs). Recommendation: the five comparisons, in `agent-setup.test.
   below; if so, `codex` maps to `.codex/skills` in the table and the repository keeps `.codex` as
   a target, one row and one target changed.
 - [`.md` served with `nosniff`] → `NOTICES.md` is served the same way today and the About
-  scenario fetches it; the cloud suite asserts a `200` with `text/markdown` or `text/plain`.
+  scenario fetches it; the cloud suite asserts a `200` with `text/markdown; charset=utf-8`, which `_headers` names
+  for the prompt (the real proof found PowerShell reading it as Latin-1 without the charset).
 - [The page at `/agent-setup` without the slash] → the assets platform's default `html_handling`
   redirects to `/agent-setup/`; the suite asserts the slash form only, which is what the links
   use.

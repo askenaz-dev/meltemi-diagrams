@@ -4,6 +4,17 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
+## 1.10.1
+
+### Fixed
+
+- The agent setup prompt is served as `text/markdown; charset=utf-8`. Without the charset, a client
+  that does not assume UTF-8, such as PowerShell's `Invoke-WebRequest`, read its dashes and
+  ellipses as Latin-1.
+- The agent setup prompt tells the agent to stop when Node is missing or older than 22.12, and never
+  to install or download Node or another tool itself: an agent whose sandbox could not run the
+  machine's Node downloaded one ([decision 0063](docs/decisions/0063-agent-setup-prompt.md)).
+
 ## 1.10.0 (2026-10-28)
 
 The playground's project in one place: an explorer of folders and diagrams in the first column,

@@ -27,6 +27,7 @@ const REQUIRED: Record<string, string> = {
   "the install command": "npx @meltemi/diagrams-cli@latest skill install",
   "the version the prompt needs": "1.10.0",
   "the Node version": "Node 22.12",
+  "stopping when Node is missing": "If it is missing or older",
   "the template when there is no code": "--template sequence",
   "the command that prints the prompt": "skill prompt",
 };
@@ -40,6 +41,7 @@ const NEVER: Record<string, string> = {
   "never commit or stage without asking": "commit or stage",
   "never --force unasked": "`--force`",
   "never --user unasked": "`--user`",
+  "never install Node": "install or download Node",
   "never draw by hand": "by hand",
   "never edit an exported SVG": "exported SVG",
   "import instead of retyping": "`mdg import`",

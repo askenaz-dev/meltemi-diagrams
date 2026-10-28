@@ -266,9 +266,10 @@ const scenarios: Scenario[] = [
         assert.equal(file.headers.get("content-security-policy"), "frame-ancestors 'self'", path);
         assert.equal(file.headers.get("x-content-type-options"), "nosniff", path);
       }
-      // The prompt an agent is told to read is the command line's file, as the build copied it.
+      // The prompt an agent is told to read is the command line's file, as the build copied it,
+      // in UTF-8 by name: a client that does not assume it would read its dashes as Latin-1.
       const prompt = await t.ask("/agent-setup/prompt.md");
-      assert.match(prompt.headers.get("content-type") ?? "", /^text\/(markdown|plain)/);
+      assert.equal(prompt.headers.get("content-type"), "text/markdown; charset=utf-8");
       assert.equal(
         prompt.text,
         readFileSync(new URL("../../../cli/agent-setup/prompt.md", import.meta.url), "utf8"),
