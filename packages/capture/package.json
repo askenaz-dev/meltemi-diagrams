@@ -1,6 +1,6 @@
 {
   "name": "@meltemi/diagrams-capture",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "PNG, PDF and video captures of rendered SVG with the installed Edge, Chrome or Chromium over the DevTools protocol, and video encoding with the installed FFmpeg.",
   "license": "MIT",
   "repository": {

@@ -3,7 +3,7 @@
     {
       "code": "project.tool-version",
       "severity": "error",
-      "message": "The project requires meltemi-diagrams ^9.0.0, but this is version 1.9.0.",
+      "message": "The project requires meltemi-diagrams ^9.0.0, but this is version 1.10.0.",
       "range": {
         "start": {
           "offset": 81,

@@ -208,16 +208,18 @@ a video and a catalog.
 
 ## Status
 
-Version 1.9.0, the first published: the complete product described in `propuesta-detallada-diagramas-como-codigo.pdf`
+Version 1.10.0: the complete product described in `propuesta-detallada-diagramas-como-codigo.pdf`
 (Spanish), built through the changes of the [1.0 roadmap](docs/roadmap-1.0.md), with styling and
 custom themes on the canvas since 1.1.0, arrow ends, connector shapes and the trace effect since
 1.2.0, English and Spanish everywhere since 1.3.0, connector ends pinned to points of sides since
 1.4.0, connectors meeting boxes at any point of their border since 1.5.0, connectors that go
 around boxes with canvas colours from the theme since 1.6.0, element libraries with the cloud
-providers' icons and layers in flow diagrams since 1.7.0, and plain containers, stacks, corner
+providers' icons and layers in flow diagrams since 1.7.0, plain containers, stacks, corner
 radii, twenty-four shapes and icons placed anywhere in a box or drawn as the shape since 1.8.0,
-and HTML drawings that zoom, show cards and panels, and open what a box holds since 1.9.0, as the
-[changelog](CHANGELOG.md) records. Every acceptance criterion passes on the reference
+HTML drawings that zoom, show cards and panels, and open what a box holds since 1.9.0, the first
+published, and the playground's project explorer, lines and a hand-drawn look, the pointer and
+notes, and one prompt that sets up a coding agent since 1.10.0, as the [changelog](CHANGELOG.md)
+records. Every acceptance criterion passes on the reference
 machine ([results](docs/quality/results.md)). Work is planned with OpenSpec under `openspec/`.
 
 ## Performance

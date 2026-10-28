@@ -1,6 +1,6 @@
 {
   "name": "@meltemi/diagrams-layout",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "Layout of flow, free, sequence and C4 diagrams into a vector scene: boxes, ports, routes, labels, composition checks and the label audit.",
   "license": "MIT",
   "repository": {

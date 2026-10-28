@@ -1,6 +1,6 @@
 {
   "name": "@meltemi/diagrams-import",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "Imports Mermaid and PlantUML diagrams into .meltemi sheets, with a report of every construct.",
   "license": "MIT",
   "repository": {

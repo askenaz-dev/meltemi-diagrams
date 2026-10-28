@@ -3,7 +3,7 @@ name: meltemi-diagrams
 description: Use when asked to draw, document or convert a system or software architecture, turn a diagram or a screenshot into code, or change a `.meltemi` file. Creates, edits, converts and exports architecture diagrams as code in the Meltemi language (`.meltemi` files) - flow sheets with groups, plain containers, data stores, decisions, notes, tags and boxes in twenty-four shapes with icons, laid out automatically (ELK), assisted or by hand, with ports, constraints, styles and themes; free compositions (slides with boxes, text, icons, images, layers and links to flow views); sequence diagrams (participants, calls, replies, activations, notes, alt/opt/loop/par fragments and exportable scenarios); C4 models with context, container and component views; motion effects and stories that walk through a diagram scene by scene; SVG, PNG, PDF and HTML-player exports with repeatable export profiles. Imports Mermaid and PlantUML sources instead of retyping them, and turns draw.io, HTML or SVG pictures into sheets.
 license: MIT
 metadata:
-  version: 1.9.0
+  version: 1.10.0
 ---
 
 # Meltemi Diagrams

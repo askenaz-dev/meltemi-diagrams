@@ -216,7 +216,7 @@ historia, un video y un catálogo.
 
 ## Estado
 
-Versión 1.9.0, la primera publicada: el producto completo descrito en `propuesta-detallada-diagramas-como-codigo.pdf` (en
+Versión 1.10.0: el producto completo descrito en `propuesta-detallada-diagramas-como-codigo.pdf` (en
 español), construido mediante los cambios de la [hoja de ruta de la 1.0](docs/roadmap-1.0.md), con
 la edición de estilos y de temas personalizados en el lienzo desde la 1.1.0, las puntas de flecha
 en ambos extremos, las formas de conector y el efecto de recorrido desde la 1.2.0, inglés y
@@ -224,10 +224,12 @@ español en todo el producto desde la 1.3.0, los extremos de conector fijados en
 lados desde la 1.4.0, los conectores que tocan las cajas en cualquier punto de su borde desde la
 1.5.0, los conectores que rodean las cajas con los colores del lienzo tomados del tema desde la
 1.6.0, las bibliotecas de elementos con los iconos de los proveedores de nube y las capas en los
-diagramas de flujo desde la 1.7.0, y los contenedores simples, las pilas, los radios de esquina y
+diagramas de flujo desde la 1.7.0, los contenedores simples, las pilas, los radios de esquina y
 las veinticuatro formas, con iconos en cualquier lugar de una caja o dibujados como la forma,
-desde la 1.8.0, y los dibujos HTML que se acercan, muestran tarjetas y paneles y abren lo que
-contiene una caja desde la 1.9.0, como recoge el [registro de cambios](CHANGELOG.md). Todos los criterios de
+desde la 1.8.0, los dibujos HTML que se acercan, muestran tarjetas y paneles y abren lo que
+contiene una caja desde la 1.9.0, la primera publicada, y el explorador de proyecto del
+playground, las líneas y el aspecto a mano alzada, el puntero y las notas, y un prompt que
+prepara un agente de programación desde la 1.10.0, como recoge el [registro de cambios](CHANGELOG.md). Todos los criterios de
 aceptación se cumplen en la máquina de referencia ([resultados](docs/quality/results.md)). El
 trabajo se planifica con OpenSpec en `openspec/`.
 

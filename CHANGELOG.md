@@ -4,7 +4,7 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
-## 1.10.0
+## 1.10.0 (2026-10-28)
 
 The playground's project in one place: an explorer of folders and diagrams in the first column,
 with the project's switcher at its top, as VS Code lists a workspace
@@ -20,6 +20,13 @@ that draws a fading trail and edits nothing, and a `note` joins free composition
 an `on <element>` clause that attaches it with a dotted leader
 ([decision 0059](docs/decisions/0059-pointer-and-notes.md)). The language stays 0.2: `note` in free
 diagrams and views and the `on` clause are additive.
+
+One prompt sets up a coding agent: pasted into Claude Code, Codex or another agent, it has the
+agent read `https://diagrams.meltemi.dev/agent-setup/prompt.md`, install the `meltemi-diagrams`
+skill in the folders each agent reads and prove it with a validated sequence diagram
+([decision 0063](docs/decisions/0063-agent-setup-prompt.md)). Codex reads `.agents/skills`, no
+longer `.codex/skills`: a project whose skill 1.9.0 installed runs `skill install` again, and the
+old `.codex/skills/meltemi-diagrams` folder is yours to delete.
 
 ### Language
 

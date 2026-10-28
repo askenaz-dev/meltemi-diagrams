@@ -1,6 +1,6 @@
 {
   "name": "@meltemi/diagrams-render",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "Renders a vector scene to portable SVG.",
   "license": "MIT",
   "repository": {

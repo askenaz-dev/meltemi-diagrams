@@ -7,28 +7,28 @@ are in decision 0032 and [quality.md](quality.md). Each case runs after a few un
 the editor's path is the analysis a file gets after an edit (compile, layout and diagnostics
 inside its project) and a canvas drag from the message to the new drawing.
 
-Measured on 2026-10-21: 11th Gen Intel(R) Core(TM) i9-11980HK @ 2.60GHz, 16 threads, 64 GB, win32 10.0.26300, Node v24.15.0.
+Measured on 2026-10-28: 11th Gen Intel(R) Core(TM) i9-11980HK @ 2.60GHz, 16 threads, 64 GB, win32 10.0.26300, Node v24.15.0.
 
 | Case                                                    | Median (ms) | p95 (ms) | Target (p95, ms) |
 | ------------------------------------------------------- | ----------: | -------: | ---------------- |
-| parse acceptance/free/shapes.meltemi (117 lines)        |        0.18 |     0.40 |                  |
-| compile acceptance/free/shapes.meltemi                  |        0.44 |     1.07 |                  |
-| compile a 30-node diagram (155 lines)                   |        0.83 |     1.13 |                  |
-| plan a drag, apply it and recompile, 30 nodes           |        1.26 |     3.19 |                  |
-| parse a 500-node diagram (2505 lines)                   |        6.51 |    20.24 |                  |
-| compile a 500-node diagram (2505 lines)                 |       16.43 |    29.34 |                  |
-| export a 30-node diagram with the bundled fonts         |        2.84 |     6.74 |                  |
-| export a 30-node diagram with a new font library (cold) |       68.74 |    70.32 |                  |
-| export a 500-node diagram with the bundled fonts        |       76.88 |    85.88 |                  |
-| arrange with ELK and export a 30-node `auto` diagram    |       14.30 |    19.70 |                  |
-| arrange with ELK and export a 500-node `auto` diagram   |      322.61 |   325.40 |                  |
-| analysis after an edit, flow (auto)                     |       50.98 |    63.71 | under 500        |
-| canvas drag round trip, flow (auto)                     |       11.02 |    13.06 | under 100        |
-| analysis after an edit, sequence (30 elements)          |        1.70 |     2.43 | under 500        |
-| canvas drag round trip, sequence (30 elements)          |        4.08 |     6.68 | under 100        |
-| analysis after an edit, c4 (30 elements)                |       15.88 |    21.31 | under 500        |
-| canvas drag round trip, c4 (30 elements)                |        7.61 |    11.19 | under 100        |
-| analysis after an edit, free (30 elements)              |        2.64 |     5.75 | under 500        |
-| canvas drag round trip, free (30 elements)              |        4.86 |     8.55 | under 100        |
-| analysis after an edit, flow (assisted)                 |        3.93 |     8.36 | under 500        |
-| canvas drag round trip, flow (assisted)                 |        6.95 |    11.99 | under 100        |
+| parse acceptance/free/sketch.meltemi (118 lines)        |        0.21 |     0.43 |                  |
+| compile acceptance/free/sketch.meltemi                  |        0.52 |     1.33 |                  |
+| compile a 30-node diagram (155 lines)                   |        1.07 |     2.98 |                  |
+| plan a drag, apply it and recompile, 30 nodes           |        1.43 |     5.03 |                  |
+| parse a 500-node diagram (2505 lines)                   |        8.80 |    23.93 |                  |
+| compile a 500-node diagram (2505 lines)                 |       17.86 |    33.51 |                  |
+| export a 30-node diagram with the bundled fonts         |        3.35 |     7.56 |                  |
+| export a 30-node diagram with a new font library (cold) |       79.07 |    91.37 |                  |
+| export a 500-node diagram with the bundled fonts        |       95.85 |   136.51 |                  |
+| arrange with ELK and export a 30-node `auto` diagram    |       18.49 |    24.89 |                  |
+| arrange with ELK and export a 500-node `auto` diagram   |      360.22 |   429.06 |                  |
+| analysis after an edit, flow (auto)                     |       60.68 |    81.93 | under 500        |
+| canvas drag round trip, flow (auto)                     |       14.59 |    16.49 | under 100        |
+| analysis after an edit, sequence (30 elements)          |        2.01 |     8.62 | under 500        |
+| canvas drag round trip, sequence (30 elements)          |        5.44 |    11.66 | under 100        |
+| analysis after an edit, c4 (30 elements)                |       20.60 |    29.88 | under 500        |
+| canvas drag round trip, c4 (30 elements)                |        9.23 |    13.63 | under 100        |
+| analysis after an edit, free (30 elements)              |        3.11 |     7.18 | under 500        |
+| canvas drag round trip, free (30 elements)              |        5.87 |    11.83 | under 100        |
+| analysis after an edit, flow (assisted)                 |        7.09 |    14.04 | under 500        |
+| canvas drag round trip, flow (assisted)                 |       11.09 |    17.87 | under 100        |

@@ -1,6 +1,6 @@
 {
   "name": "@meltemi/diagrams-editor",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "Host-neutral editor services of Meltemi Diagrams: language features, rendering and the canvas session.",
   "license": "MIT",
   "repository": {

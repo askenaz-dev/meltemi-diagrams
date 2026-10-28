@@ -1,6 +1,6 @@
 {
   "name": "@meltemi/diagrams-player",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "The embeddable HTML player of Meltemi stories and effects: one offline script, pages and fragments.",
   "license": "MIT",
   "repository": {

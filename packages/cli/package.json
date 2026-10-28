@@ -1,6 +1,6 @@
 {
   "name": "@meltemi/diagrams-cli",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "Command line interface (meltemi-diagrams, alias mdg) for .meltemi projects.",
   "license": "MIT",
   "repository": {

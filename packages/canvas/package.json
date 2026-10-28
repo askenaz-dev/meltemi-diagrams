@@ -1,6 +1,6 @@
 {
   "name": "@meltemi/diagrams-canvas",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "The canvas of Meltemi Diagrams: the browser application that draws and edits diagrams beside their code, hosted by the VS Code extension and the playground.",
   "license": "MIT",
   "repository": {

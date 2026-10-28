@@ -1,6 +1,6 @@
 {
   "name": "@meltemi/diagrams-catalog",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "The offline HTML catalog of a Meltemi project: diagrams and stories by folder, the player, search and links, in one file.",
   "license": "MIT",
   "repository": {

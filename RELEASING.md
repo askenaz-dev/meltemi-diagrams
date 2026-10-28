@@ -19,7 +19,7 @@ to `main` deploys it (`.github/workflows/deploy.yml`).
 3. Set the version everywhere it is written:
 
    ```bash
-   pnpm release:version 1.9.0
+   pnpm release:version 1.10.0
    ```
 
    It rewrites every `package.json` (the extension included) and the CLI's version constant. The
@@ -72,11 +72,11 @@ pnpm release:check
 ## 3. Tag and watch
 
 ```bash
-git tag -a v1.9.0 -m "Meltemi Diagrams 1.9.0"
+git tag -a v1.10.0 -m "Meltemi Diagrams 1.10.0"
 ```
 
 ```bash
-git push origin v1.9.0
+git push origin v1.10.0
 ```
 
 The tag starts the release workflow. Its jobs run one after the other, each only if the one before
@@ -113,7 +113,7 @@ family's infrastructure. Provenance keeps working: it comes from the workflow, n
 
 ## Patch releases
 
-A fix release follows the same steps with the next patch version (`pnpm release:version 1.9.1`).
+A fix release follows the same steps with the next patch version (`pnpm release:version 1.10.1`).
 A fix that changes what a valid file means is not a patch: it follows the
 [language policy](docs/language/policy.md).
 

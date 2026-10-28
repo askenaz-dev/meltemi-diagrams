@@ -1,6 +1,6 @@
 {
   "name": "@meltemi/diagrams-fonts",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "description": "Bundled OFL fonts, text measurement, font subsetting and text outlines for Meltemi Diagrams.",
   "license": "MIT",
   "repository": {
