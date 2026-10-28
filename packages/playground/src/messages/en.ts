@@ -394,6 +394,12 @@ export const en = {
     effects: "Effects",
     instant: "Instant",
     instantHint: "Draws the picture at this time of the effects or the story.",
+    /** The box an entitled account sees under the theme. */
+    unbranded: "Export without the Meltemi branding",
+    unbrandedHint:
+      "Leaves out the strip at the foot of the sheet: the Meltemi mark, the wordmark and the title; the catalog's pictures follow.",
+    /** Said after an export made without the branding. */
+    unbrandedNotice: "Without the Meltemi branding.",
     scale: "Scale",
     scaleHint: "Pixels per point, 1 to 8.",
     size: "Size",

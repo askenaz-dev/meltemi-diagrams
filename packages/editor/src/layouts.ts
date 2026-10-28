@@ -12,7 +12,8 @@ import type { ProjectSessions } from "./projects.js";
 
 /**
  * Lays out a diagram with the themes, fonts, icons and images of the file that defines it, as
- * exports and the catalog draw it.
+ * exports and the catalog draw it; `frame: "none"` leaves the theme's frame out (an export
+ * without the branding).
  */
 export function layoutIn(
   workspace: Workspace,
@@ -22,6 +23,7 @@ export function layoutIn(
   theme: string | null,
   scenario: string | undefined,
   locale: Locale = projects.contentLocale(workspace),
+  frame?: "none",
 ): LayoutResult {
   return layoutDiagram(owner.compilation, diagram, {
     theme,
@@ -33,6 +35,7 @@ export function layoutIn(
     engine: projects.engine,
     images: workspace.imageResolver(owner.path),
     ...(scenario !== undefined ? { scenario } : {}),
+    ...(frame ? { frame } : {}),
   });
 }
 

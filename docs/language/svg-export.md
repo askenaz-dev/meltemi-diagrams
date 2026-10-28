@@ -212,7 +212,9 @@ strip is 44 px high, the mark 24 px and the title 11 px. `frame header` (the sta
 strip on top. `mark none` drops the symbol; `brand ""` drops the wordmark; `frame none` removes the
 strip, which is how the editorial themes behave. The strip spans the whole canvas, is a scene group
 with role `frame`, outside the diagram's elements, and the canvas grows to fit the wordmark and
-title.
+title. The editor's exports can also leave the strip out by request, whatever the theme says,
+keeping every other token; the hosted page offers it to the accounts an administrator entitled
+([the playground](../playground.md#exports-in-the-browser)).
 
 ### Sketched strokes
 

@@ -227,7 +227,10 @@ Sus medidas siguen a `frameSize`: a 12 px, la franja mide 44 px de alto, el sím
 título 11 px. `frame header` (los temas stage) pone la franja arriba. `mark none` quita el símbolo;
 `brand ""` quita el logotipo; `frame none` elimina la franja, que es como se comportan los temas
 editorial. La franja ocupa todo el lienzo, es un grupo de la escena con el rol `frame`, fuera de los
-elementos del diagrama, y el lienzo crece para que quepan el logotipo y el título.
+elementos del diagrama, y el lienzo crece para que quepan el logotipo y el título. Las
+exportaciones del editor también pueden omitir la franja a pedido, diga lo que diga el tema,
+conservando todos los demás tokens; la página alojada lo ofrece a las cuentas que un administrador
+habilitó ([el playground](../playground.md#exportaciones-en-el-navegador)).
 
 ### Trazos a mano
 

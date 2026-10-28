@@ -17,6 +17,20 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
   longer hold keys, and the theme switch says which theme a press gives. The explorer, the code
   pane and the properties each have their own picture
   ([decision 0062](docs/decisions/0062-inspector-collapse-and-tooltips.md)).
+- An account an administrator entitled finds **Export without the Meltemi branding** under Theme
+  in the export dialog: the pictures, of every format, leave out the strip at the foot of the sheet,
+  the message says so, and the dialog's catalog button builds its pictures the same way. Profile
+  shows every person their account id with Copy, and an entitled person what the account may do
+  ([decision 0061](docs/decisions/0061-unbranded-exports.md)).
+
+### Account
+
+- Administrators entitle an account to export without the Meltemi branding, revoke it and list the
+  entitled accounts, from the page's console: `GET /api/admin/entitlements`, and `GET` and `PUT` on
+  `/api/admin/accounts/<account>/entitlements`, by account id or `@<handle>`, recording who and
+  when. `GET /api/session` answers `user.entitlements.unbranded`, true for every administrator.
+  Migration 0005 adds the three columns to `users`.
+- Exports take `branding: "none"` and layouts `frame: "none"`: the theme without its frame.
 
 ### Canvas (VS Code and the playground)
 

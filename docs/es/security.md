@@ -154,7 +154,8 @@ mantienen seguro:
   `blob:`, y nada más; el servicio no comprueba que el HTML sea un catálogo, y el aislamiento no
   depende de ello. Una página tiene como máximo 16 MiB y un proyecto puede publicarse diez veces por
   hora; el propietario despublica, y los administradores de `ADMIN_SUBS` retiran una página
-  ([retirada](cloud.md#retirada)), con una ruta que responde `404` a todos los demás. La ruta de
+  ([retirada](cloud.md#retirada)) y habilitan una cuenta para exportar sin la marca
+  ([habilitaciones](cloud.md#habilitaciones)), con rutas que responden `404` a todos los demás. La ruta de
   desarrollo que sirve una página desde el propio origen del servicio responde `404` salvo que
   `DEV` esté definido.
 

@@ -3731,6 +3731,24 @@ a.pg-menu-item {
   overflow-wrap: anywhere;
 }
 
+/* The account id in Profile: the id, then its Copy button. */
+.account-id-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.account-id {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--pg-surface);
+  font-family: var(--pg-code-font);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
 .account-handle {
   display: grid;
   grid-template-columns: minmax(0, 320px) auto;

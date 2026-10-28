@@ -75,7 +75,17 @@ export interface ExportRequest {
    * project's `locale` when left out.
    */
   readonly locale?: Locale;
+  /**
+   * Whether the pictures carry the theme's frame, the Meltemi strip at the foot of the sheet
+   * (`"theme"`, when left out), or leave it out (`"none"`), whatever the theme says, in every
+   * layout the export makes: the diagram, a story's views, the player's views and a video's frames.
+   */
+  readonly branding?: "theme" | "none";
 }
+
+/** The layout's frame option for a request: `"none"` for an export without the branding. */
+const frameOf = (request: ExportRequest): "none" | undefined =>
+  request.branding === "none" ? "none" : undefined;
 
 /**
  * What an export makes: a text, a picture to capture or a video to record, with the notices of what
@@ -116,6 +126,7 @@ function layoutOf(
   theme: string | null,
   scenario: string | undefined,
   locale: Locale,
+  frame: "none" | undefined,
 ): LayoutResult {
   const result = layoutIn(
     context.workspace,
@@ -125,6 +136,7 @@ function layoutOf(
     theme,
     scenario,
     locale,
+    frame,
   );
   const own = owner === context.file;
   context.report(
@@ -142,9 +154,10 @@ function storyLayouts(
   story: StoryDefinition,
   theme: string | null,
   locale: Locale,
+  frame: "none" | undefined,
 ): Map<string, LaidOutView> | undefined {
   return storyLayoutsIn(context.workspace, context.file, story, (owner, diagram) =>
-    layoutOf(context, owner, diagram, theme, undefined, locale),
+    layoutOf(context, owner, diagram, theme, undefined, locale, frame),
   );
 }
 
@@ -188,7 +201,7 @@ function drillViews(
   const rootDiagram =
     root.compilation.document.diagrams.find((d) => d.id === diagram.id) ?? diagram;
   return viewClosure(program, sources, { owner: root, diagram: rootDiagram }, layout, (view) =>
-    layoutOf(context, view.owner, view.diagram, request.theme, undefined, locale),
+    layoutOf(context, view.owner, view.diagram, request.theme, undefined, locale, frameOf(request)),
   );
 }
 
@@ -241,6 +254,7 @@ export function produceExport(context: ExportContext, request: ExportRequest): E
       request.target.story,
       request.theme,
       contentLocale(context, request),
+      frameOf(request),
     );
     const doc =
       layouts &&
@@ -271,6 +285,7 @@ export function produceExport(context: ExportContext, request: ExportRequest): E
       request.theme,
       request.scenario,
       contentLocale(context, request),
+      frameOf(request),
     );
     if (!result.scene) return { problem: problems.cannotDraw(diagram.id) };
     if (request.format === "html") {
@@ -347,6 +362,7 @@ function produceVideo(context: ExportContext, request: ExportRequest): ExportOut
       request.target.story,
       request.theme,
       contentLocale(context, request),
+      frameOf(request),
     );
     const story = layouts && storyDocument(request.target.story, layouts, fonts);
     if (!story) return { problem: problems.storyNotDrawn(request.target.story.id) };
@@ -362,6 +378,7 @@ function produceVideo(context: ExportContext, request: ExportRequest): ExportOut
       request.theme,
       request.scenario,
       contentLocale(context, request),
+      frameOf(request),
     );
     const effects = result.scene ? effectsDocument({ diagram, layout: result }, fonts) : undefined;
     if (!effects) return { problem: problems.cannotDraw(diagram.id) };

@@ -273,6 +273,17 @@ catálogo, cuyas páginas lo llevan como su `lang`. Empieza en el `"locale"` del
 inglés, y también se aplica a los perfiles del archivo y a la sección del catálogo; **Descargar →
 Catálogo** usa el idioma del proyecto ([proyectos](language/projects.md#idioma-de-las-exportaciones)).
 
+**Sin la marca de Meltemi.** Una cuenta que un administrador habilitó
+([habilitaciones](cloud.md#habilitaciones)), y todo administrador, encuentra **Exportar sin la marca
+de Meltemi** bajo **Tema**, para todos los formatos: marcada, las imágenes omiten la franja al pie
+de la hoja (el símbolo de Meltemi, el logotipo y el título del diagrama), y el mensaje tras la
+descarga termina con "Sin la marca de Meltemi." El botón del catálogo del mismo diálogo sigue a la
+casilla en las imágenes del catálogo, mientras su pie todavía nombra la herramienta. La casilla
+empieza sin marcar cada vez que se abre el diálogo, y los perfiles del archivo y **Descargar →
+Catálogo** conservan el marco del tema. Nadie más, ni un servidor estático, tiene esa casilla. Es
+una comodidad, no un candado: un tema con `frame none`, o los temas `editorial`, exportan sin la
+marca para todos ([temas](language/svg-export.md#marco)).
+
 ## Idioma
 
 La página habla inglés y español. Sigue el idioma del navegador hasta que en el menú del globo, al
@@ -324,7 +335,8 @@ la ofrece cuando la sirve el Worker de `packages/cloud`. Servida por un servidor
 `pnpm preview`, nada cambia. Al arrancar, la página le pregunta a su propio origen, una vez, quién
 ha iniciado sesión. Un servidor estático responde con el `{"user":null}` que escribió la
 compilación; cualquier otra respuesta que la página no pueda usar, o ninguna, también significa que
-nadie ha iniciado sesión, sin decir nada.
+nadie ha iniciado sesión, sin decir nada. Como la página pregunta una sola vez, lo que un
+administrador habilite en tu cuenta se ve en la siguiente carga.
 
 **Sin sesión iniciada**, el final de la cabecera tiene un enlace **Iniciar sesión**. Va al servicio
 de identidad, `id.meltemi.dev`, y te devuelve a la página en la que estabas; antes de salir, la
@@ -351,14 +363,14 @@ de secciones a la izquierda y la elegida a su lado, o, en una pantalla estrecha,
 la página con las secciones como una tira de pestañas arriba. Las flechas, Inicio y Fin pasan de una
 sección a otra; Escape y el botón de cerrar vuelven a la página.
 
-| Sección               | Contiene                                                                                                                                                                                                        |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Perfil**            | Tu foto y tu nombre, los correos de tus inicios de sesión, el alias de publicación (de 3 a 30 letras minúsculas, dígitos o guiones; no puede cambiar mientras haya una página publicada con él) y Cerrar sesión |
-| **Inicios de sesión** | GitHub y Google tal como inicias sesión con ellos: la cuenta, si el proveedor verificó su correo, cuándo se vinculó; Desvincular, tras una pregunta, mientras quede otro; Vincular el otro                      |
-| **Dispositivos**      | Dónde tienes la sesión iniciada, con este dispositivo marcado; cerrar la sesión de un dispositivo o de todos los demás, tras una pregunta                                                                       |
-| **Tokens de API**     | Los tokens que permiten que la línea de comandos y los scripts actúen como tú (más abajo)                                                                                                                       |
-| **Uso**               | Tus proyectos y tu almacenamiento frente a sus límites, y los límites de los archivos, el tamaño y las versiones de un proyecto y de una imagen                                                                 |
-| **Zona de peligro**   | Eliminar la cuenta: lo que borra, y el camino a la página del servicio de identidad donde lo confirmas                                                                                                          |
+| Sección               | Contiene                                                                                                                                                                                                                                                                                                                                              |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Perfil**            | Tu foto y tu nombre, los correos de tus inicios de sesión, el alias de publicación (de 3 a 30 letras minúsculas, dígitos o guiones; no puede cambiar mientras haya una página publicada con él), el identificador de tu cuenta con **Copiar** (lo que un administrador te pide), si tu cuenta puede exportar sin la marca de Meltemi, y Cerrar sesión |
+| **Inicios de sesión** | GitHub y Google tal como inicias sesión con ellos: la cuenta, si el proveedor verificó su correo, cuándo se vinculó; Desvincular, tras una pregunta, mientras quede otro; Vincular el otro                                                                                                                                                            |
+| **Dispositivos**      | Dónde tienes la sesión iniciada, con este dispositivo marcado; cerrar la sesión de un dispositivo o de todos los demás, tras una pregunta                                                                                                                                                                                                             |
+| **Tokens de API**     | Los tokens que permiten que la línea de comandos y los scripts actúen como tú (más abajo)                                                                                                                                                                                                                                                             |
+| **Uso**               | Tus proyectos y tu almacenamiento frente a sus límites, y los límites de los archivos, el tamaño y las versiones de un proyecto y de una imagen                                                                                                                                                                                                       |
+| **Zona de peligro**   | Eliminar la cuenta: lo que borra, y el camino a la página del servicio de identidad donde lo confirmas                                                                                                                                                                                                                                                |
 
 Inicios de sesión y Dispositivos son lo que guarda el servicio de identidad; la página le pregunta a
 su propio origen, cuyo Worker le pregunta al servicio de identidad en tu nombre

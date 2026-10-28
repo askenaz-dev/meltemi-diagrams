@@ -76,7 +76,12 @@ export function downloadModel(playground: Playground): void {
  */
 export async function projectCatalog(
   playground: Playground,
-  options: { readonly locale?: Locale | undefined; readonly strict?: boolean } = {},
+  options: {
+    readonly locale?: Locale | undefined;
+    readonly strict?: boolean;
+    /** `"none"`: the pictures without the Meltemi strip, for an export without the branding. */
+    readonly frame?: "none" | undefined;
+  } = {},
 ) {
   const script = await fetch("assets/catalog.js", { credentials: "same-origin" }).then((r) => {
     if (options.strict && !r.ok) throw new Error(`assets/catalog.js: ${r.status}`);
@@ -86,6 +91,7 @@ export async function projectCatalog(
     buildCatalog(projects.forFolder(ROOT), projects, {
       script: () => script,
       generator: `Meltemi Diagrams ${playground.options.version}`,
+      ...(options.frame ? { frame: options.frame } : {}),
     }),
   );
 }
@@ -95,10 +101,14 @@ export async function projectCatalog(
  * controls and drawings in `locale`: the project's language when it is left out, as with the
  * command line without `--lang`.
  */
-export async function downloadCatalog(playground: Playground, locale?: Locale): Promise<void> {
+export async function downloadCatalog(
+  playground: Playground,
+  locale?: Locale,
+  frame?: "none",
+): Promise<void> {
   const m = messages().download;
   playground.status(m.building);
-  const build = await projectCatalog(playground, { locale });
+  const build = await projectCatalog(playground, { locale, frame });
   const name = `${projectSlug(playground)}-catalog.html`;
   download(name, build.html, "text/html;charset=utf-8");
   playground.status(m.catalogDownloaded(name, build.data.entries.length, build.skipped.length));

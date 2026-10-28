@@ -2816,6 +2816,16 @@ const tests: Test[] = [
   {
     name: "exports SVG as the CLI does, PNG at its scale, the HTML player and a PDF page",
     async run({ page }) {
+      // A static server entitles nobody: the dialog has no control that speaks of the branding.
+      await page.getByRole("button", { name: "Export", exact: true }).click();
+      assert.equal(
+        await page
+          .locator("dialog[open]")
+          .getByLabel(/branding/i)
+          .count(),
+        0,
+      );
+      await page.keyboard.press("Escape");
       const svg = await exportWith(page, { format: "svg" });
       assert.equal(readFileSync(svg, "utf8"), cliSvg("flow", "diagrams/overview.meltemi"));
 
@@ -3530,6 +3540,8 @@ const tests: Test[] = [
       let dialog = page.locator("dialog[open]");
       assert.equal(await dialog.locator("h2").textContent(), "Exportar");
       assert.equal(await dialog.getByLabel("Idioma", { exact: true }).inputValue(), "en");
+      // A static server entitles nobody: no control speaks of the brand.
+      assert.equal(await dialog.getByLabel(/marca/i).count(), 0);
       await page.keyboard.press("Escape");
       assert.match(await exported("svg"), /\[Container:/);
       const svg = await exported("svg", "es");

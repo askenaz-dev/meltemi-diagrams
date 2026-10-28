@@ -28,6 +28,15 @@ export const accountPanel: typeof en = {
   handleNone: "Todavía no has elegido un alias: al publicar por primera vez se te pide uno.",
   signOutTitle: "Cerrar sesión",
   signOutIntro: "Cierra tu sesión en este navegador. Tu trabajo se queda aquí.",
+  accountIdTitle: "Identificador de la cuenta",
+  accountIdIntro:
+    "Con él te conoce este servicio. Un administrador puede pedírtelo para conceder algo a tu cuenta.",
+  accountIdCopy: "Copiar",
+  accountIdCopied: "Copiado.",
+  accountIdSelect: "Selecciona el identificador y cópialo.",
+  unbrandedTitle: "Exportaciones sin la marca de Meltemi",
+  unbrandedOn:
+    "Tu cuenta puede exportar sin la marca de Meltemi: el diálogo de exportación lo ofrece.",
 
   signinsIntro: "Las cuentas con las que inicias sesión. Necesitas al menos una.",
   provider: { github: "GitHub", google: "Google" },

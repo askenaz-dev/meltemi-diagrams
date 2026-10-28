@@ -256,6 +256,17 @@ the controls of the HTML player and the headings of the catalog, whose pages car
 the catalog section too; **Download → Catalog** uses the project's language
 ([projects](language/projects.md#language-of-exports)).
 
+**Without the Meltemi branding.** An account that an administrator entitled
+([entitlements](cloud.md#entitlements)), and every administrator, finds **Export without the Meltemi
+branding** under **Theme**, for every format: checked, the pictures leave out the strip at the foot
+of the sheet (the Meltemi mark, the wordmark and the diagram's title), and the message after the
+download ends with "Without the Meltemi branding." The catalog button of the same dialog follows
+the box for the catalog's pictures, while its footer still names the tool. The box starts unchecked
+each time the dialog opens, and the file's profiles and **Download → Catalog** keep the theme's
+frame. Anyone else, and a static server, has no such box. It is a convenience, not a lock: a theme
+with `frame none`, or the `editorial` themes, export without the brand for everybody
+([themes](language/svg-export.md#frame)).
+
 ## Language
 
 The page speaks English and Spanish. It follows the browser's language until the globe menu at the
@@ -301,7 +312,8 @@ The account is optional, and it belongs to the [cloud service](cloud.md), not to
 offers it only when the Worker of `packages/cloud` serves it. Served by a static server, such as
 `pnpm preview`, nothing changes. When it starts the page asks its own origin, once, who is signed
 in. A static server answers with the `{"user":null}` that the build wrote; any other answer the page
-cannot use, or none at all, also means that nobody is signed in, silently.
+cannot use, or none at all, also means that nobody is signed in, silently. Since the page asks once,
+something an administrator grants your account shows at the next load.
 
 **Signed out**, the end of the header holds a **Sign in** link. It goes to the identity service,
 `id.meltemi.dev`, and brings you back to the page you were on; before leaving, the page keeps your
@@ -327,14 +339,14 @@ left and the one chosen beside it, or, on a narrow screen, a sheet over the whol
 sections as a strip of tabs above. The arrows, Home and End move between the sections; Escape and
 the close button return to the page.
 
-| Section         | Holds                                                                                                                                                                                      |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Profile**     | Your picture and name, the emails of your sign-ins, the publishing handle (3 to 30 lowercase letters, digits or hyphens; it cannot change while a page is published under it) and Sign out |
-| **Sign-ins**    | GitHub and Google as you sign in with them: the account, whether the provider verified its email, when it was linked; Unlink, after a question, while another one is left; Link the other  |
-| **Devices**     | Where you are signed in, this device marked; Sign out of one device or of all the others, after a question                                                                                 |
-| **API tokens**  | The tokens that let the command line and scripts act as you (below)                                                                                                                        |
-| **Usage**       | Your projects and storage against their limits, and the limits of a project's files, size and versions and of an image                                                                     |
-| **Danger zone** | Deleting the account: what it removes, and the way to the identity service's page where you confirm it                                                                                     |
+| Section         | Holds                                                                                                                                                                                                                                                                                                                         |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Profile**     | Your picture and name, the emails of your sign-ins, the publishing handle (3 to 30 lowercase letters, digits or hyphens; it cannot change while a page is published under it), your account id with **Copy** (what an administrator asks you for), whether your account may export without the Meltemi branding, and Sign out |
+| **Sign-ins**    | GitHub and Google as you sign in with them: the account, whether the provider verified its email, when it was linked; Unlink, after a question, while another one is left; Link the other                                                                                                                                     |
+| **Devices**     | Where you are signed in, this device marked; Sign out of one device or of all the others, after a question                                                                                                                                                                                                                    |
+| **API tokens**  | The tokens that let the command line and scripts act as you (below)                                                                                                                                                                                                                                                           |
+| **Usage**       | Your projects and storage against their limits, and the limits of a project's files, size and versions and of an image                                                                                                                                                                                                        |
+| **Danger zone** | Deleting the account: what it removes, and the way to the identity service's page where you confirm it                                                                                                                                                                                                                        |
 
 Sign-ins and Devices are what the identity service holds; the page asks its own origin, whose Worker
 asks the identity service on your behalf ([the identity data](cloud.md#the-identity-data)). When the

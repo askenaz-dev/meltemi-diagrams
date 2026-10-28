@@ -18,6 +18,11 @@ export interface SessionUser {
   /** An address the avatar may be drawn from (`avatarUrl`), or undefined. */
   readonly picture: string | undefined;
   readonly handle: string | null;
+  /**
+   * What the account may do: `unbranded`, export without the Meltemi branding, which an
+   * administrator grants. True only when the answer says exactly that.
+   */
+  readonly entitlements: { readonly unbranded: boolean };
 }
 
 /**
@@ -106,13 +111,16 @@ function webAddress(value: unknown): string | undefined {
 
 function userOf(value: unknown, page: string): SessionUser | undefined {
   if (!isObject(value)) return undefined;
-  const { sub, name, picture, handle } = value;
+  const { sub, name, picture, handle, entitlements } = value;
   if (typeof sub !== "string" || sub === "" || typeof name !== "string") return undefined;
   return {
     sub,
     name,
     picture: avatarUrl(picture, page),
     handle: typeof handle === "string" ? handle : null,
+    entitlements: {
+      unbranded: isObject(entitlements) && entitlements["unbranded"] === true,
+    },
   };
 }
 

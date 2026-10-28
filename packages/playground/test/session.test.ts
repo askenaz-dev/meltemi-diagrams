@@ -25,6 +25,8 @@ const NOBODY: Session = { kind: "anonymous", signIn: OWN_LINK };
 
 const PICTURE = "https://avatars.githubusercontent.com/u/1?v=4";
 const ANA = { sub: "u1", name: "Ana", picture: PICTURE, handle: null };
+/** Ana as the page reads her: an answer without `entitlements` entitles nobody. */
+const PARSED_ANA = { ...ANA, entitlements: { unbranded: false } };
 /** What the Worker answers a browser with a session cookie. */
 const COOKIE = { user: ANA, account: `${IDENTITY}/account`, signOut: `${IDENTITY}/logout` };
 /** What it answers a bearer token. */
@@ -124,7 +126,7 @@ describe("loadSession", () => {
     const { fetch } = fakeFetch(() => jsonResponse(COOKIE));
     expect(await loadSession(fetch, { href: PAGE }, IDENTITY)).toEqual({
       kind: "cookie",
-      user: { sub: "u1", name: "Ana", picture: PICTURE, handle: null },
+      user: { ...PARSED_ANA },
       account: "https://id.meltemi.dev/account",
       signOut: "https://id.meltemi.dev/logout",
     });
@@ -134,7 +136,7 @@ describe("loadSession", () => {
     const { fetch } = fakeFetch(() => jsonResponse(BEARER));
     expect(await loadSession(fetch, { href: PAGE }, IDENTITY)).toEqual({
       kind: "token",
-      user: { sub: "u1", name: "Ana", picture: undefined, handle: null },
+      user: { ...PARSED_ANA, picture: undefined },
       token: { id: "t1", name: "CLI (2026-10-14)" },
       signIn: OWN_LINK,
     });
@@ -246,7 +248,7 @@ describe("parseSession", () => {
   it("reads the three shapes of the answer", () => {
     expect(parse(COOKIE)).toEqual({
       kind: "cookie",
-      user: { sub: "u1", name: "Ana", picture: PICTURE, handle: null },
+      user: { ...PARSED_ANA },
       account: "https://id.meltemi.dev/account",
       signOut: "https://id.meltemi.dev/logout",
     });
@@ -277,6 +279,20 @@ describe("parseSession", () => {
     expect(parse({ ...COOKIE, user: withoutHandle })).toMatchObject({ user: { handle: null } });
   });
 
+  it("reads the entitlement inside the user as true only when the answer says exactly true", () => {
+    const unbranded = (user: unknown, extra: Record<string, unknown> = {}) => {
+      const session = parse({ ...COOKIE, user, ...extra });
+      return session.kind === "cookie" ? session.user.entitlements.unbranded : undefined;
+    };
+    expect(unbranded({ ...ANA, entitlements: { unbranded: true } })).toBe(true);
+    expect(unbranded({ ...ANA, entitlements: { unbranded: false } })).toBe(false);
+    expect(unbranded(ANA)).toBe(false);
+    expect(unbranded({ ...ANA, entitlements: { unbranded: "yes" } })).toBe(false);
+    expect(unbranded({ ...ANA, entitlements: "unbranded" })).toBe(false);
+    // Beside the user, not inside it: not the person's.
+    expect(unbranded(ANA, { entitlements: { unbranded: true } })).toBe(false);
+  });
+
   it("leaves a picture out, and keeps the person, when it is not one the page may draw", () => {
     for (const picture of [
       "",
@@ -288,7 +304,7 @@ describe("parseSession", () => {
     ]) {
       expect(parse({ ...COOKIE, user: { ...ANA, picture } })).toEqual({
         kind: "cookie",
-        user: { sub: "u1", name: "Ana", picture: undefined, handle: null },
+        user: { ...PARSED_ANA, picture: undefined },
         account: "https://id.meltemi.dev/account",
         signOut: "https://id.meltemi.dev/logout",
       });

@@ -54,6 +54,9 @@ interface UserRecord {
   email_verified: number;
   created_at: string;
   handle: string | null;
+  unbranded_exports: number;
+  unbranded_exports_by: string | null;
+  unbranded_exports_at: string | null;
 }
 
 interface TokenRecord {
@@ -138,7 +141,7 @@ interface VersionRecord {
 // What a person's row is made of when it is written (the handle is chosen later, by its own
 // statement), and what is read of it.
 const USER_WRITE_COLUMNS = "sub, name, picture, email, email_verified, created_at";
-const USER_COLUMNS = `${USER_WRITE_COLUMNS}, handle`;
+const USER_COLUMNS = `${USER_WRITE_COLUMNS}, handle, unbranded_exports, unbranded_exports_by, unbranded_exports_at`;
 const TOKEN_COLUMNS = "id, sub, name, hash, created_at, last_used_at";
 const CODE_COLUMNS = "hash, sub, state, expires_at";
 const PROJECT_COLUMNS =
@@ -157,6 +160,9 @@ const toUser = (row: UserRecord): User => ({
   emailVerified: row.email_verified === 1,
   createdAt: row.created_at,
   handle: row.handle,
+  unbrandedExports: row.unbranded_exports === 1,
+  unbrandedExportsBy: row.unbranded_exports_by,
+  unbrandedExportsAt: row.unbranded_exports_at,
 });
 
 const toToken = (row: TokenRecord): TokenRow => ({
@@ -496,6 +502,11 @@ const SELECT_ROLES_AFTER_EMAIL =
 const SET_HANDLE =
   "UPDATE users SET handle = ? WHERE sub = ? AND (handle IS ? OR NOT EXISTS (SELECT 1 FROM publications WHERE handle = users.handle)) AND NOT EXISTS (SELECT 1 FROM users other WHERE other.handle = ? AND other.sub <> ?)";
 const HANDLE_HELD_BY_ANOTHER = "SELECT 1 AS held FROM users WHERE handle = ? AND sub <> ?";
+// The handle's unique index (`users_handle`) finds its holder.
+const SELECT_USER_BY_HANDLE = `SELECT ${USER_COLUMNS} FROM users WHERE handle = ?`;
+const SET_UNBRANDED =
+  "UPDATE users SET unbranded_exports = ?, unbranded_exports_by = ?, unbranded_exports_at = ? WHERE sub = ?";
+const SELECT_ENTITLED = `SELECT ${USER_COLUMNS} FROM users WHERE unbranded_exports = 1 ORDER BY unbranded_exports_at, sub`;
 
 const SELECT_PUBLICATIONS_OF = `SELECT ${PUBLICATION_COLUMNS} FROM publications WHERE project_id = ? ORDER BY published_at, slug`;
 const SELECT_PUBLICATIONS_OWNED = `SELECT ${PUBLICATION_COLUMNS} FROM publications WHERE project_id IN (SELECT id FROM projects WHERE owner_sub = ?) ORDER BY published_at, slug`;
@@ -1179,6 +1190,19 @@ export function d1Store(db: D1Like): CloudStore {
       if (!user) return "missing";
       const held = await db.prepare(HANDLE_HELD_BY_ANOTHER).bind(handle, sub).first();
       return held ? "taken" : "locked";
+    },
+    async userByHandle(handle) {
+      const row = await db.prepare(SELECT_USER_BY_HANDLE).bind(handle).first<UserRecord>();
+      return row ? toUser(row) : undefined;
+    },
+
+    async setUnbrandedExports(sub, on, by, at) {
+      const changed = await runCounting(db.prepare(SET_UNBRANDED).bind(bit(on), by, at, sub));
+      return changed > 0 ? "set" : "missing";
+    },
+    async entitledUsers() {
+      const { results } = await db.prepare(SELECT_ENTITLED).all<UserRecord>();
+      return results.map(toUser);
     },
 
     async publicationsOf(projectId) {

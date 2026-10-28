@@ -982,7 +982,13 @@ describe("a token at work", () => {
     expect(response.status).toBe(200);
     const body = await jsonOf(response);
     expect(body).toEqual({
-      user: { sub: "u-ana", name: "Ana", picture: "", handle: null },
+      user: {
+        sub: "u-ana",
+        name: "Ana",
+        picture: "",
+        handle: null,
+        entitlements: { unbranded: false },
+      },
       token: { id: created.id, name: "CI" },
     });
     expect(body).not.toHaveProperty("account");

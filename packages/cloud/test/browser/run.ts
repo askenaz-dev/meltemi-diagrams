@@ -111,6 +111,7 @@ import { projectScenarios } from "./scenarios-projects.js";
 import { publishDialogScenarios } from "./scenarios-publish-dialog.js";
 import { publishingScenarios } from "./scenarios-publishing.js";
 import { sharingScenarios } from "./scenarios-sharing.js";
+import { unbrandedScenarios } from "./scenarios-unbranded.js";
 import { versionScenarios } from "./scenarios-versions.js";
 import { viewingScenarios } from "./scenarios-viewing.js";
 import { workerScenarios } from "./scenarios-worker.js";
@@ -435,7 +436,13 @@ const scenarios: Scenario[] = [
       assert.equal(session.status, 200);
       assert.equal(session.headers["cache-control"], "no-store");
       assert.deepEqual(session.json, {
-        user: { sub: "u-ana-menu", name: "Ana", picture: `${origin}/favicon.svg`, handle: null },
+        user: {
+          sub: "u-ana-menu",
+          name: "Ana",
+          picture: `${origin}/favicon.svg`,
+          handle: null,
+          entitlements: { unbranded: false },
+        },
         account: `${IDENTITY}/account`,
         signOut: `${IDENTITY}/logout`,
       });
@@ -547,7 +554,13 @@ const scenarios: Scenario[] = [
       const asToken = await t.ask("/api/session", { headers: bearer(token) });
       assert.equal(asToken.status, 200);
       assert.deepEqual(asToken.json(), {
-        user: { sub: "u-ana-tokens", name: "Ana", picture: `${origin}/favicon.svg`, handle: null },
+        user: {
+          sub: "u-ana-tokens",
+          name: "Ana",
+          picture: `${origin}/favicon.svg`,
+          handle: null,
+          entitlements: { unbranded: false },
+        },
         token: { id, name: "ci build" },
       });
       const listed = await t.ask("/api/tokens", { headers: bearer(token) });
@@ -990,6 +1003,7 @@ scenarios.push(
   ...viewingScenarios,
   ...sharingScenarios,
   ...publishDialogScenarios,
+  ...unbrandedScenarios,
   ...limitScenarios,
   ...collaborationScenarios,
   ...collaborationRoomScenarios,

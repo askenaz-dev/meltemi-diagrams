@@ -34,6 +34,13 @@ const LATER = "2026-10-14T13:00:00.000Z";
 /** The SHA-256 in hexadecimal of a label: what a token or a code rests as. */
 const sha = (label: string): string => createHash("sha256").update(label).digest("hex");
 
+/** What a person's row says of the branding entitlement until an administrator sets it. */
+const NOT_ENTITLED = {
+  unbrandedExports: false,
+  unbrandedExportsBy: null,
+  unbrandedExportsAt: null,
+} as const;
+
 const profile: UserProfile = {
   sub: "u1",
   name: "Ana",
@@ -421,6 +428,10 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
       expect(await spy.deleteInvitation(P1, invitation(5).id)).toBe(true);
       expect(await spy.setHandle(evil, "evil-handle")).toBe("set");
       expect(await spy.setHandle(evil + "9", "evil-handle")).toBe("missing");
+      expect((await spy.userByHandle("evil-handle"))?.sub).toBe(evil);
+      expect(await spy.setUnbrandedExports(evil, true, evil, T)).toBe("set");
+      expect(await spy.setUnbrandedExports(evil + "9", true, evil, T)).toBe("missing");
+      expect((await spy.entitledUsers()).map((u) => u.sub)).toEqual([evil]);
       const published = {
         projectId: P1,
         handle: "evil-handle",
@@ -556,6 +567,10 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
           storage_bytes: 0,
           // Added by 0003_sharing.sql: NULL until the person chooses one (`setHandle`).
           handle: null,
+          // Added by 0005_unbranded_exports.sql: not entitled, by nobody, until an administrator.
+          unbranded_exports: 0,
+          unbranded_exports_by: null,
+          unbranded_exports_at: null,
         },
       ]);
       expect(db.raw.prepare("SELECT * FROM tokens").all()).toEqual([
@@ -597,7 +612,7 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
       );
       // The handle is read with the rest; it is never written by the upsert (its own statement sets it).
       expect(read?.sql).toBe(
-        "SELECT sub, name, picture, email, email_verified, created_at, handle FROM users WHERE sub = ?",
+        "SELECT sub, name, picture, email, email_verified, created_at, handle, unbranded_exports, unbranded_exports_by, unbranded_exports_at FROM users WHERE sub = ?",
       );
       expect(write?.values).toEqual([
         "u1",
@@ -637,7 +652,7 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
       await store.applyUserDeleted("evt_1", "u1", T);
       // The cookie is still good for a while: the next request makes the person again.
       const back = await store.upsertUser(profile, LATER);
-      expect(back).toEqual({ ...profile, createdAt: LATER, handle: null });
+      expect(back).toEqual({ ...profile, createdAt: LATER, handle: null, ...NOT_ENTITLED });
       db.close();
     });
 
@@ -661,6 +676,9 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
         email_verified: 1,
         created_at: T,
         handle: null,
+        unbranded_exports: 1,
+        unbranded_exports_by: "admin",
+        unbranded_exports_at: T,
       };
       const user = await d1Store(
         scripted({ batch: async () => [{}, { results: [row] }] }),
@@ -673,6 +691,9 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
         emailVerified: true,
         createdAt: T,
         handle: null,
+        unbrandedExports: true,
+        unbrandedExportsBy: "admin",
+        unbrandedExportsAt: T,
       });
     });
   });
@@ -3103,7 +3124,12 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
       const second = d1Store(db);
       await first.upsertUser(profile, T);
       await first.createToken(token(), MAX_TOKENS);
-      expect(await second.user("u1")).toEqual({ ...profile, createdAt: T, handle: null });
+      expect(await second.user("u1")).toEqual({
+        ...profile,
+        createdAt: T,
+        handle: null,
+        ...NOT_ENTITLED,
+      });
       expect(await second.tokensOf("u1")).toEqual([token()]);
       expect(await second.applyUserDeleted("evt_1", "u1", T)).toBe("applied");
       expect(await first.user("u1")).toBeUndefined();

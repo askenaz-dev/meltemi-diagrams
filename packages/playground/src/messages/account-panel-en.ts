@@ -32,6 +32,14 @@ export const accountPanel = {
   handleNone: "You have not chosen a handle yet: publishing asks for one the first time.",
   signOutTitle: "Sign out",
   signOutIntro: "Ends your session in this browser. Your work stays here.",
+  accountIdTitle: "Account id",
+  accountIdIntro:
+    "What this service knows you by. An administrator may ask you for it to grant something to your account.",
+  accountIdCopy: "Copy",
+  accountIdCopied: "Copied.",
+  accountIdSelect: "Select the id and copy it.",
+  unbrandedTitle: "Exports without the Meltemi branding",
+  unbrandedOn: "Your account may export without the Meltemi branding: the export dialog offers it.",
 
   // Sign-ins
   signinsIntro: "The accounts you sign in with. You need at least one.",

@@ -55,6 +55,9 @@ describe("a session cookie the verifier accepts", () => {
       ...ANA,
       createdAt: "2026-10-14T12:00:00.000Z",
       handle: null,
+      unbrandedExports: false,
+      unbrandedExportsBy: null,
+      unbrandedExportsAt: null,
     });
   });
 
@@ -103,6 +106,9 @@ describe("a session cookie the verifier accepts", () => {
       emailVerified: false,
       createdAt: "2026-10-14T12:00:00.000Z",
       handle: null,
+      unbrandedExports: false,
+      unbrandedExportsBy: null,
+      unbrandedExportsAt: null,
     });
   });
 
@@ -152,6 +158,9 @@ describe("a session cookie the verifier accepts", () => {
         ...change,
         createdAt: "2026-10-14T12:00:00.000Z",
         handle: null,
+        unbrandedExports: false,
+        unbrandedExportsBy: null,
+        unbrandedExportsAt: null,
       });
     },
   );

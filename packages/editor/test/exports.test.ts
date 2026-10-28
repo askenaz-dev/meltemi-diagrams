@@ -187,4 +187,42 @@ describe("exports that pick what nothing says", () => {
     const small = exportOf("checkout", "png", { scale: 2 });
     expect("job" in small && small.notices).toBeUndefined();
   });
+
+  const text = (output: ExportOutput) => {
+    if (!("text" in output)) throw new Error(JSON.stringify(output));
+    return output.text;
+  };
+
+  it("leaves the branding out when asked, and keeps the rest of the picture", () => {
+    const branded = text(exportOf("still", "svg"));
+    const plain = text(exportOf("still", "svg", { branding: "none" }));
+    expect(branded).toContain('data-role="frame"');
+    expect(branded).toContain("meltemi-wind");
+    expect(plain).not.toContain('data-role="frame"');
+    expect(plain).not.toContain("meltemi-wind");
+    // The same fonts and background: only the strip goes.
+    const style = (svg: string) => /<style>[\s\S]*?<\/style>/.exec(svg)?.[0];
+    expect(style(plain)).toBe(style(branded));
+    const height = (svg: string) => Number(/height="(\d+(?:\.\d+)?)"/.exec(svg)?.[1]);
+    expect(height(branded) - height(plain)).toBe(44);
+    // A request that says the theme's branding, or nothing, draws the same bytes.
+    expect(text(exportOf("still", "svg", { branding: "theme" }))).toBe(branded);
+  });
+
+  it("leaves the branding out of the player's pictures and of a video's frames", () => {
+    // The player holds its scenes as data: the frame is a group whose role says so.
+    const framed = /"role":"frame"/;
+    const player = text(exportOf("checkout", "html"));
+    expect(player).toMatch(framed);
+    expect(text(exportOf("checkout", "html", { branding: "none" }))).not.toMatch(framed);
+    const branded = video(exportOf("checkout", "gif", { durationMs: 1000 }));
+    const plain = video(exportOf("checkout", "gif", { durationMs: 1000, branding: "none" }));
+    // A video keeps its format's size; the scene it records has no frame.
+    expect(branded.video.html).toMatch(framed);
+    expect(plain.video.html).not.toMatch(framed);
+    expect([plain.video.width, plain.video.height]).toEqual([
+      branded.video.width,
+      branded.video.height,
+    ]);
+  });
 });

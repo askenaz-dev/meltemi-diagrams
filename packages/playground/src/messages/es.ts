@@ -359,6 +359,10 @@ export const es: typeof en = {
     effects: "Efectos",
     instant: "Instante",
     instantHint: "Dibuja la imagen en este momento de los efectos o de la historia.",
+    unbranded: "Exportar sin la marca de Meltemi",
+    unbrandedHint:
+      "Omite la franja al pie de la hoja: la marca de Meltemi, el nombre y el título; las imágenes del catálogo la siguen.",
+    unbrandedNotice: "Sin la marca de Meltemi.",
     scale: "Escala",
     scaleHint: "Píxeles por punto, de 1 a 8.",
     size: "Tamaño",

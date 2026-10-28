@@ -12,7 +12,12 @@ import {
   patchAccountRoute,
   usageRoute,
 } from "./routes/account.js";
-import { takedownRoute } from "./routes/admin.js";
+import {
+  entitlementsListRoute,
+  entitlementsRoute,
+  setEntitlementsRoute,
+  takedownRoute,
+} from "./routes/admin.js";
 import { cliAuthApprove, cliAuthPage, cliAuthStyle, cliAuthToken } from "./routes/cli-auth.js";
 import {
   deleteBinaryRoute,
@@ -366,6 +371,27 @@ export const ROUTES: readonly RouteEntry[] = [
     params: ["handle", "slug"],
     principal: true,
     route: takedownRoute,
+  },
+  // The entitlement to export without the branding: an account's, read and set, and the list.
+  {
+    method: "GET",
+    path: /^\/api\/admin\/accounts\/([^/]+)\/entitlements$/,
+    params: ["account"],
+    principal: true,
+    route: entitlementsRoute,
+  },
+  {
+    method: "PUT",
+    path: /^\/api\/admin\/accounts\/([^/]+)\/entitlements$/,
+    params: ["account"],
+    principal: true,
+    route: setEntitlementsRoute,
+  },
+  {
+    method: "GET",
+    path: /^\/api\/admin\/entitlements$/,
+    principal: true,
+    route: entitlementsListRoute,
   },
   // Development only: serves a publication from this origin; the route answers 404 anywhere else.
   {
