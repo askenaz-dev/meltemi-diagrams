@@ -70,6 +70,10 @@ The `@meltemi/diagrams-cli` package SHALL hold the `meltemi-diagrams` skill unde
 - **WHEN** `meltemi-diagrams skill install` runs in an empty project folder
 - **THEN** `.claude/skills/meltemi-diagrams/SKILL.md` and `.agents/skills/meltemi-diagrams/SKILL.md` exist with the skill's references and examples, exactly two `Wrote` lines are printed, nothing else is written, and the exit code is 0
 
+#### Scenario: Install for both agents
+- **WHEN** `meltemi-diagrams skill install --agent codex --agent claude` runs in an empty project folder
+- **THEN** `.claude/skills/meltemi-diagrams/` and then `.agents/skills/meltemi-diagrams/` are written, in the table's order, two `Wrote` lines are printed in that order and the exit code is 0
+
 #### Scenario: A list of agents sharing a folder
 - **WHEN** `meltemi-diagrams skill install --agent codex,cursor,copilot` runs
 - **THEN** `.agents/skills/meltemi-diagrams/` is written once, one `Wrote` line is printed and no `.claude` folder exists

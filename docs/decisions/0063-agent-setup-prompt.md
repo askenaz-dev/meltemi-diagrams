@@ -108,8 +108,14 @@ Every agent of the owner's list but Claude Code reads `.agents/skills`.
   SVG, with no cloud command, token or commit. It found two faults, fixed the same day: the prompt
   was served as `text/markdown` with no charset, which PowerShell read as Latin-1, so `_headers`
   names `charset=utf-8`; and its sandbox could not run the machine's Node, so it downloaded one,
-  which the prompt now forbids (it tells the person and stops). Claude Code's half waits for a
-  signed-in `claude`.
+  which the prompt now forbids (it tells the person and stops).
+- The same day, Claude Code (`claude -p`, allowed `npx`, `node`, file reads and writes and a
+  fetch of diagrams.meltemi.dev) ran the one-liner in another empty folder: its fetch tool returned
+  the prompt paraphrased, which was enough; it checked Node and 1.10.0, counted itself as the
+  project's only agent and installed `.claude/skills` without asking, saying so in its report and
+  offering the other folders; with no code to read it drew the setup flow itself rather than
+  `init`'s sign-in, validated it to `Checked 1 file: 0 errors, 0 warnings.` on the first run and
+  exported the SVG, with no cloud command, token or commit.
 - A project installed by 1.9.0 keeps `.codex/skills/meltemi-diagrams`; running `skill install`
   again writes `.agents/skills`, and the old folder is the person's to delete.
 - The family site's Diagrams page linking `https://diagrams.meltemi.dev/agent-setup/` belongs to

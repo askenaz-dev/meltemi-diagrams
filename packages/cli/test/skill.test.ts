@@ -110,7 +110,7 @@ describe("skill install", () => {
       "install",
       "repeated",
       "--agent",
-      "gemini",
+      "codex",
       "--agent",
       "claude",
     );
