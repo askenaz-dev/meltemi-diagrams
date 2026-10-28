@@ -259,6 +259,8 @@ export function aboutDialog(playground: Playground): void {
     markdown(m.text(playground.options.version)),
     list,
     h("p", {}, h("a", { href: "NOTICES.md", target: "_blank", rel: "noopener" }, m.notices)),
+    // The agent setup page beside the playground, in the interface's language (decision 0063).
+    h("p", {}, h("a", { href: m.agentsPage, target: "_blank", rel: "noopener" }, m.agents)),
   ]);
 }
 
@@ -274,6 +276,7 @@ export function continueDialog(playground: Playground): void {
     [m.export, `meltemi-diagrams export ${name}`],
     [m.catalog, `meltemi-diagrams build catalog ${name}`],
     [m.init, "meltemi-diagrams init my-project --template purchase"],
+    [m.skill, "meltemi-diagrams skill install"],
   ];
   const download = h("button", { type: "button", class: "button primary with-text" }, m.download);
   download.addEventListener("click", () => {

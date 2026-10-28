@@ -34,7 +34,7 @@ function tree(dir: string): string[] {
 const skillsRoot = join(REPO_ROOT, "skills");
 const syncScript = join(REPO_ROOT, "scripts", "sync-skills.mjs");
 // The agent folders, and the command line's package, which installs the skills elsewhere.
-const agentDirs = [".claude", ".codex", "packages/cli"];
+const agentDirs = [".claude", ".agents", "packages/cli"];
 const skills = readdirSync(skillsRoot).filter((name) =>
   statSync(join(skillsRoot, name)).isDirectory(),
 );
@@ -48,8 +48,39 @@ describe("agent skills", () => {
     expect(text).not.toContain(".arch");
   });
 
+  it("meltemi-diagrams has the front matter and the size the Agent Skills specification allows", () => {
+    const text = readFileSync(join(skillsRoot, "meltemi-diagrams", "SKILL.md"), "utf8");
+    // The keys by regex, without a YAML parser: one line each, `version` under `metadata`.
+    const front = text.split(/^---$/m)[1] ?? "";
+    const key = (name: string) => front.match(new RegExp(`^${name}: (.*)$`, "m"))?.[1];
+    expect(key("name")).toBe("meltemi-diagrams");
+    const description = key("description") ?? "";
+    expect(
+      description.length,
+      `the description is ${description.length} characters; the limit is 1,024`,
+    ).toBeLessThanOrEqual(1024);
+    expect(description.startsWith("Use when")).toBe(true);
+    expect(key("license")).toBe("MIT");
+    const cli = readFileSync(join(REPO_ROOT, "packages", "cli", "src", "cli.ts"), "utf8");
+    const version = cli.match(/export const CLI_VERSION = "([^"]+)";/)?.[1];
+    expect(
+      front.match(/^metadata:\r?\n {2}version: (\S+)$/m)?.[1],
+      `metadata.version must be CLI_VERSION ${version} (pnpm release:version writes both)`,
+    ).toBe(version);
+    const lines = text.split("\n");
+    expect(lines.length, "SKILL.md must stay under 500 lines").toBeLessThanOrEqual(500);
+    // The token rule survives a compacted session, which keeps the start of a skill.
+    const token = lines.findIndex((line) => line.includes("`mdg_…`"));
+    expect(token, "the token rule within the first 40 lines").toBeGreaterThanOrEqual(0);
+    expect(token).toBeLessThan(40);
+    expect(text).toContain("`Checked 1 file: 0 errors, 0 warnings.`");
+    // The cloud commands live in their reference, which only a person's request leads to.
+    expect(existsSync(join(skillsRoot, "meltemi-diagrams", "reference", "cloud.md"))).toBe(true);
+    expect(text).not.toMatch(/pnpm mdg (login|logout|whoami|push|pull|publish|projects)\b/);
+  });
+
   it.each(skills)(
-    "%s is copied unchanged to .claude/skills, .codex/skills and the CLI package",
+    "%s is copied unchanged to .claude/skills, .agents/skills and the CLI package",
     (name) => {
       const source = join(skillsRoot, name);
       const files = tree(source);
@@ -86,8 +117,8 @@ describe("agent skills", () => {
       };
       write("skills/fresh/SKILL.md", "fresh");
       write(".claude/skills/openspec-propose/SKILL.md", "foreign");
-      write(".codex/skills/old/SKILL.md", "stale");
-      write(".codex/skills/.skills-sync.json", JSON.stringify({ skills: ["old", "../outside"] }));
+      write(".agents/skills/old/SKILL.md", "stale");
+      write(".agents/skills/.skills-sync.json", JSON.stringify({ skills: ["old", "../outside"] }));
       write("outside/keep.txt", "outside the agent folder");
 
       execFileSync(process.execPath, [syncScript], { cwd: root, stdio: "pipe" });
@@ -97,7 +128,7 @@ describe("agent skills", () => {
         "fresh",
         "openspec-propose",
       ]);
-      expect(readdirSync(join(root, ".codex", "skills")).sort()).toEqual([
+      expect(readdirSync(join(root, ".agents", "skills")).sort()).toEqual([
         ".skills-sync.json",
         "fresh",
       ]);

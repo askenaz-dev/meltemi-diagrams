@@ -65,6 +65,13 @@ diagrams and views and the `on` clause are additive.
 
 ### Playground
 
+- The agent setup page, `https://diagrams.meltemi.dev/agent-setup/` and its Spanish twin
+  `es/agent-setup/`: the one prompt a person pastes into a coding agent, which has the agent read
+  `agent-setup/prompt.md`, install the skill and prove it with a validated sequence diagram; the
+  agents and their folders; and what the agent never does. A static page with no script and its
+  own policy, built beside the playground. The About dialog links it as "Drawing with coding
+  agents", and Continue locally lists `meltemi-diagrams skill install`
+  ([decision 0063](docs/decisions/0063-agent-setup-prompt.md)).
 - The code pane folds to a rail: the button at the end of the file's path, a double click on the
   divider or Ctrl+J fold it to 36 px and the canvas takes the width, keeping its zoom and its
   place; the rail's button or Ctrl+J unfold it at the share it had, which the page remembers with
@@ -225,12 +232,21 @@ diagrams and views and the `on` clause are additive.
   without `duration`, and MP4 profiles with `background transparent`, are no longer errors:
   `export.missing-duration` is gone.
 - `init --list` prints each template's title, description and contents ("1 model, 2 views").
-- `skill install [folder]` gives a project's coding agents the skill that draws Meltemi diagrams:
-  it writes `.claude/skills/meltemi-diagrams/` and `.codex/skills/meltemi-diagrams/` (`--agent`,
-  `--user` for your own folders, `--force` to replace a copy), with the commands named as they are
-  installed (`mdg validate`, `mdg preview`). The package ships the skill
+- `skill install [folder]` gives a project's coding agents the skill that draws Meltemi diagrams,
+  in the folders the agents read: `.claude/skills/meltemi-diagrams/` for Claude Code and
+  `.agents/skills/meltemi-diagrams/` for Codex, Cursor, GitHub Copilot, Gemini CLI, Devin Desktop
+  and any other agent that reads `.agents/skills`. `--agent` takes `claude`, `codex`, `cursor`,
+  `copilot`, `gemini`, `windsurf`, `devin`, `agents` or `all` (the default), several as a
+  comma-separated list, and writes each folder once; `--user` writes your own folders and `--force`
+  replaces a copy. It writes skill folders only, with the commands named as they are installed
+  (`mdg validate`, `mdg preview`). `skill prompt` prints the agent setup prompt, the text an agent
+  follows to install the skill and prove it draws, which the package ships beside the skill. The
+  skill's front matter gains `license` and `metadata.version`, its description fits the Agent
+  Skills limit with when to use it first, its workflow opens with how to check the command line,
+  where sheets go and the token rule, and the cloud commands move to `reference/cloud.md`
   ([drawing with coding agents](docs/agents.md),
-  [decision 0056](docs/decisions/0056-agent-skill-install.md)).
+  [decision 0056](docs/decisions/0056-agent-skill-install.md),
+  [decision 0063](docs/decisions/0063-agent-setup-prompt.md)).
 - An SVG icon whose file name a reference cannot write (`My Logo (1).svg`) is left out of its pack
   with the warning `asset.unusable-name`, which names the file to rename it to (`My-Logo-1.svg`).
 - `convert --to free` keeps notes as notes, with their `on` clause, instead of turning them into

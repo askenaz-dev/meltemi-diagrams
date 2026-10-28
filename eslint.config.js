@@ -16,6 +16,7 @@ export default tseslint.config(
       "openspec/**",
       ".claude/**",
       ".codex/**",
+      ".agents/**",
       "**/.vscode-test/**",
       "packages/vscode/.test-output/**",
       "packages/player/.test-output/**",

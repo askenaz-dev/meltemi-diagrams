@@ -7,7 +7,7 @@ This repository is Meltemi Diagrams: diagrams as code for the Meltemi family. Di
 
 Read [skills/meltemi-diagrams/SKILL.md](skills/meltemi-diagrams/SKILL.md) first. It holds the
 workflow, the template, the rules that save iterations and the references (language, layout,
-themes, converting). The same skill is copied to `.claude/skills/` and `.codex/skills/`; run
+themes, converting). The same skill is copied to `.claude/skills/` and `.agents/skills/`; run
 `pnpm skills:sync` after editing `skills/`.
 
 ```bash

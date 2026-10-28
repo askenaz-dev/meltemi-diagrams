@@ -14,8 +14,9 @@ const CONSTANT = /export const CLI_VERSION = "[^"]*";/;
 
 /**
  * Files that quote the product version besides the manifests: the purchase example is the project
- * template, which requires the version that wrote it, and the corpus' expected message for a
- * project that requires a later version names the running one.
+ * template, which requires the version that wrote it, the corpus' expected message for a project
+ * that requires a later version names the running one, and the skill's `metadata` names the
+ * version it teaches.
  */
 export const VERSION_MENTIONS = [
   {
@@ -25,6 +26,11 @@ export const VERSION_MENTIONS = [
   {
     path: join(root, "corpus", "projects", "invalid", "project.tool-version", "expected.json"),
     pattern: /(but this is version )\d+\.\d+\.\d+(\.)/,
+  },
+  // The skill's front matter says which product version it teaches (decision 0063).
+  {
+    path: join(root, "skills", "meltemi-diagrams", "SKILL.md"),
+    pattern: /(^ {2}version: )\d+\.\d+\.\d+(\r?)$/m,
   },
 ];
 

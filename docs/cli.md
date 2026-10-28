@@ -29,8 +29,9 @@ absolute paths unless asked.
 | `publish [folder]`          | Publishes the catalog as a web page of the cloud service                                              |
 | `projects`                  | Lists your cloud projects                                                                             |
 | `skill install [folder]`    | Gives a project's coding agents the skill that draws Meltemi diagrams ([agents](agents.md))           |
+| `skill prompt`              | Prints the prompt a coding agent follows to install the skill and prove it ([agents](agents.md))      |
 
-The five rows before the last are [the cloud commands](#the-cloud-commands).
+The five rows before the last two are [the cloud commands](#the-cloud-commands).
 
 Untrusted repositories are safe to process: nothing in a project runs, reads outside it or reaches
 the network, and sizes are bounded ([security](security.md)). The commands that use the network do
@@ -195,11 +196,20 @@ from the environment. See [assist.md](assist.md).
 ## Agents' skill
 
 `skill install [folder]` writes the `meltemi-diagrams` skill into the folder (the working one by
-default) for Claude Code (`.claude/skills/meltemi-diagrams/`) and Codex
-(`.codex/skills/meltemi-diagrams/`): `--agent claude|codex|all` picks the agents, `--user` installs
-into your own folders instead, and `--force` replaces a copy already there (only the skill's own
-folder; without it the command refuses with exit code 2 and writes nothing). The installed text
-names this command line (`mdg validate`, `mdg preview`). See [agents.md](agents.md).
+default), in the folders the agents read skills from: `.claude/skills/meltemi-diagrams/` for
+Claude Code, `.agents/skills/meltemi-diagrams/` for Codex, Cursor, GitHub Copilot, Gemini CLI,
+Devin Desktop (once Windsurf) and any other agent that reads `.agents/skills`. `--agent` takes
+`claude`, `codex`, `cursor`, `copilot`, `gemini`, `windsurf`, `devin`, `agents` or `all` (the
+default), several as a comma-separated list or repeated, and writes each folder once; an unknown
+or empty name is a usage error listing them. `--user` installs into your own folders instead
+(`~/.claude/skills`, `~/.agents/skills`), and `--force` replaces a copy already there (only the
+skill's own folder; without it the command refuses with exit code 2 and writes nothing). The
+command writes skill folders only, never an instruction file of the project, and the installed
+text names this command line (`mdg validate`, `mdg preview`).
+
+`skill prompt` prints the agent setup prompt, the text a coding agent reads and follows to install
+the skill and prove it draws, which `https://diagrams.meltemi.dev/agent-setup/prompt.md` serves
+too; it takes no argument. See [agents.md](agents.md).
 
 ## The cloud commands
 

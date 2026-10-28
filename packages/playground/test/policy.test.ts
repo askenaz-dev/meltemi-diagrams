@@ -6,6 +6,7 @@ import {
   AVATAR_HOSTS,
   PAGE_HEADERS,
   DEFAULT_IDENTITY,
+  agentSetupPolicy,
   contentSecurityPolicy,
   identityOrigin,
 } from "../policy.mjs";
@@ -267,6 +268,27 @@ describe("PAGE_HEADERS", () => {
   it("is written by the build beside api/session", () => {
     const build = readFileSync(new URL("../build.mjs", import.meta.url), "utf8");
     expect(build).toContain('writeFileSync(join(dist, "_headers"), PAGE_HEADERS);');
+  });
+});
+
+describe("agentSetupPolicy", () => {
+  it("allows the agent setup page its stylesheet and icon, and nothing else", () => {
+    expect(agentSetupPolicy()).toBe(
+      "default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'",
+    );
+  });
+
+  it("is what the build writes into the two pages, beside the stylesheet and the prompt", () => {
+    const build = readFileSync(new URL("../build.mjs", import.meta.url), "utf8");
+    for (const write of [
+      'writeFileSync(join(dist, "agent-setup", "index.html"), agentSetupPage("en.html"));',
+      'writeFileSync(join(dist, "es", "agent-setup", "index.html"), agentSetupPage("es.html"));',
+      'copy(join(agentSetup, "agent-setup.css"), join(dist, "agent-setup", "agent-setup.css"));',
+      'join(dist, "agent-setup", "prompt.md"),',
+    ]) {
+      expect(build).toContain(write);
+    }
+    expect(build).toContain('.replace("{{policy}}", agentSetupPolicy())');
   });
 });
 

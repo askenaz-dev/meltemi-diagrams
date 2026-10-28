@@ -29,8 +29,9 @@ nombra las rutas absolutas de la máquina, salvo que se pida.
 | `publish [folder]`          | Publica el catálogo como una página web del servicio de la nube                                                          |
 | `projects`                  | Lista tus proyectos de la nube                                                                                           |
 | `skill install [carpeta]`   | Da a los agentes de programación de un proyecto la skill que dibuja diagramas de Meltemi ([agentes](agents.md))          |
+| `skill prompt`              | Imprime el prompt que sigue un agente para instalar la skill y demostrar que funciona ([agentes](agents.md))             |
 
-Las cinco filas antes de la última son [los comandos de la nube](#los-comandos-de-la-nube).
+Las cinco filas antes de las dos últimas son [los comandos de la nube](#los-comandos-de-la-nube).
 
 Procesar repositorios que no son de confianza es seguro: nada de un proyecto se ejecuta, lee fuera
 de él ni accede a la red, y los tamaños están acotados ([seguridad](security.md)). Los comandos que
@@ -206,11 +207,22 @@ primero y necesita tu sí, o `--yes`; las claves solo vienen del entorno. Consul
 ## Skill de agentes
 
 `skill install [carpeta]` escribe la skill `meltemi-diagrams` en la carpeta (la de trabajo por
-defecto) para Claude Code (`.claude/skills/meltemi-diagrams/`) y Codex
-(`.codex/skills/meltemi-diagrams/`): `--agent claude|codex|all` elige los agentes, `--user` la
-instala en tus propias carpetas, y `--force` reemplaza una copia que ya está (solo la carpeta de la
-skill; sin él, el comando se niega con el código de salida 2 y no escribe nada). El texto instalado
-nombra esta línea de comandos (`mdg validate`, `mdg preview`). Consulta [agents.md](agents.md).
+defecto), en las carpetas de las que los agentes leen las skills: `.claude/skills/meltemi-diagrams/`
+para Claude Code, `.agents/skills/meltemi-diagrams/` para Codex, Cursor, GitHub Copilot, Gemini
+CLI, Devin Desktop (antes Windsurf) y cualquier otro agente que lea `.agents/skills`. `--agent`
+acepta `claude`, `codex`, `cursor`, `copilot`, `gemini`, `windsurf`, `devin`, `agents` o `all` (el
+valor por defecto), varios en una lista separada por comas o repitiendo la opción, y escribe cada
+carpeta una vez; un nombre desconocido o vacío es un error de uso que los enumera. `--user` la
+instala en tus propias carpetas (`~/.claude/skills`, `~/.agents/skills`), y `--force` reemplaza
+una copia que ya está (solo la carpeta de la skill; sin él, el comando se niega con el código de
+salida 2 y no escribe nada). El comando escribe solo carpetas de skills, nunca un archivo de
+instrucciones del proyecto, y el texto instalado nombra esta línea de comandos (`mdg validate`,
+`mdg preview`).
+
+`skill prompt` imprime el prompt de configuración para agentes, el texto que un agente de
+programación lee y sigue para instalar la skill y demostrar que dibuja, que también sirve
+`https://diagrams.meltemi.dev/agent-setup/prompt.md`; no recibe argumentos. Consulta
+[agents.md](agents.md).
 
 ## Los comandos de la nube
 

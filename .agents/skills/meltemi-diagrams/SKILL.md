@@ -1,6 +1,9 @@
 ---
 name: meltemi-diagrams
-description: Create, edit, convert and export architecture diagrams as code in the Meltemi language (.meltemi files) - flow sheets with groups, plain nested containers, data stores, decisions, notes, tags, boxes in twenty-four shapes (AI agents, persons and provider icons drawn as the shape among them) with corner radii and icons on any side or at the centre, automatic (ELK), assisted or manual layout, ports, constraints, styles, themes, and SVG, PNG, PDF and HTML-player exports with repeatable export profiles, free compositions (slides with boxes, text, icons, images, layers and links to flow views), sequence diagrams (participants, calls, replies, activations, notes, alt/opt/loop/par fragments and exportable scenarios), C4 architecture models with context, container and component views, motion effects, and stories that walk through a diagram scene by scene (reveal, highlight, focus, camera, trace, transitions between views). Use when asked to draw or document a system or software architecture, convert an existing diagram (HTML, SVG, Mermaid, PlantUML, draw.io, a screenshot) into code, or change a .meltemi file.
+description: Use when asked to draw, document or convert a system or software architecture, turn a diagram or a screenshot into code, or change a `.meltemi` file. Creates, edits, converts and exports architecture diagrams as code in the Meltemi language (`.meltemi` files) - flow sheets with groups, plain containers, data stores, decisions, notes, tags and boxes in twenty-four shapes with icons, laid out automatically (ELK), assisted or by hand, with ports, constraints, styles and themes; free compositions (slides with boxes, text, icons, images, layers and links to flow views); sequence diagrams (participants, calls, replies, activations, notes, alt/opt/loop/par fragments and exportable scenarios); C4 models with context, container and component views; motion effects and stories that walk through a diagram scene by scene; SVG, PNG, PDF and HTML-player exports with repeatable export profiles. Imports Mermaid and PlantUML sources instead of retyping them, and turns draw.io, HTML or SVG pictures into sheets.
+license: MIT
+metadata:
+  version: 1.9.0
 ---
 
 # Meltemi Diagrams
@@ -10,6 +13,13 @@ compiles it, validates it and exports SVG. The text is the source of truth: when
 can produce the image, never draw the image by hand and never edit the exported SVG.
 
 ## Workflow
+
+Before you start: `pnpm mdg --version` says which version of the command line is there; where
+`mdg` is not on the path, `npx @meltemi/diagrams-cli@latest <command>` runs the same command. New
+sheets go under `diagrams/`, or where the project keeps them (the `sources` of its
+`project.json`). Cloud commands run only when the person asks
+([reference/cloud.md](reference/cloud.md)), and a token (`mdg_…`) is never printed, read, copied
+or committed.
 
 1. Collect the pieces from the request or the source material: elements (boxes, data stores,
    decisions), bands (groups), arrows with their labels, annotations (notes, tags), what is
@@ -45,18 +55,20 @@ can produce the image, never draw the image by hand and never edit the exported 
    `style fn { icon "aws:lambda"; shape icon }` ([reference/free.md](reference/free.md)).
 
 3. Validate: `pnpm mdg validate path/to/sheet.meltemi` (from the repository root). Fix every
-   diagnostic; each code is explained in [reference/language.md](reference/language.md).
+   diagnostic, each code explained in [reference/language.md](reference/language.md), until the
+   last line reads `Checked 1 file: 0 errors, 0 warnings.`, which is what success prints.
 4. Export: `pnpm mdg export path/to/sheet.meltemi` writes `sheet.svg` beside the source.
    `--stdout` prints it, `--theme editorial.light` gives a neutral sheet without the brand frame
    and `--theme stage.light` a presentation sheet. `--format png` (with `--scale`, `--size 1920x1080`,
    `--background transparent`) and `--format pdf` use the installed Edge or Chrome; an `export`
    block in the file makes a delivery repeatable with `--profile <id>` or `--profiles`
    ([reference/language.md](reference/language.md)).
-5. Review the SVG in a browser (`pnpm preview` serves the repository at `http://localhost:4173`).
-   Check: no overlapping boxes, text fits its box, arrows leave and enter the intended sides,
-   labels are readable, a legend exists when colours carry meaning. The export prints composition
-   warnings (`layout.overlap`, `layout.label-under-connector`, `layout.container-margin`,
-   `layout.connector-overlap`); fix every one.
+5. Review the SVG. When the person wants to look at it in a browser, start a server:
+   `pnpm preview` serves the repository at `http://localhost:4173` until stopped with Ctrl+C, and
+   tell them how to stop it. Check: no overlapping boxes, text fits its box, arrows leave and
+   enter the intended sides, labels are readable, a legend exists when colours carry meaning. The
+   export prints composition warnings (`layout.overlap`, `layout.label-under-connector`,
+   `layout.container-margin`, `layout.connector-overlap`); fix every one.
 6. Iterate with small edits. Keep ids stable and keep the author's comments. Finish with
    `pnpm mdg format path/to/sheet.meltemi` so the file has the canonical layout.
 
@@ -181,26 +193,6 @@ diagram checkout: flow {
 | text wider than its box                          | add `size <id> (w, h)` or shorten the description                                |
 | diagonal arrow where a straight one was expected | the two boxes do not overlap on that axis; align them or use a waypoint          |
 
-## Sharing in the cloud (only when the person asks)
-
-A project can mirror itself in the optional Meltemi cloud service, to open it in the browser, share
-it or publish its catalog as a web page. These commands need a signed-in person and change things
-outside the repository, so run them only when asked, and never add `--force` unasked.
-
-- `pnpm mdg login` opens the person's browser to approve the request (`--no-browser` prints the
-  address); `logout` revokes the token and `whoami` says who it is for. In CI the token is
-  `MELTEMI_TOKEN`. Exit code 3 means "run `login`".
-- `pnpm mdg push <folder> --create` makes the cloud project and records it in `project.json`
-  (`cloud`). Later `push <folder>` lists what differs by path and by id and asks. `push --check`
-  writes nothing and exits 1 when the cloud differs, so it is safe to run.
-- `pnpm mdg pull [<id>] [folder]` brings the cloud's files into the folder (files that differ are
-  kept unless `--force`); `pnpm mdg review <folder> --base cloud` lists what differs by id.
-- `pnpm mdg publish <folder> --slug name` makes the catalog a public web page, so only on request;
-  `--unpublish` takes it down. `pnpm mdg projects --json` lists the person's cloud projects.
-
-Never print, read or copy a token (`mdg_…`): it lives in `MELTEMI_TOKEN` or in the credentials file
-that `login` keeps, and belongs in no command line, file or commit. `docs/cli.md` has the details.
-
 ## Reference
 
 - [reference/language.md](reference/language.md): grammar, vocabulary, diagnostics and fixes.
@@ -218,6 +210,8 @@ that `login` keeps, and belongs in no command line, file or commit. `docs/cli.md
   relations, local labels, imported models and their diagnostics.
 - [reference/stories.md](reference/stories.md): stories, scenes, actions, transitions, timing,
   their diagnostics and frame exports.
+- [reference/cloud.md](reference/cloud.md): sharing a project in the optional cloud service, only
+  when the person asks, and where its token lives.
 - [examples/platform.meltemi](examples/platform.meltemi): a complete sheet using every construct.
 - [examples/slide.meltemi](examples/slide.meltemi): a flow view and a free slide linked to it.
 - [examples/sequence.meltemi](examples/sequence.meltemi): a payment sequence with a group, an

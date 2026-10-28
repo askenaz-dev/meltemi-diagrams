@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Copies every skill under skills/ into the agent folders (.claude/skills and .codex/skills), so
-// Claude Code, Codex and other agents read the same instructions, and into the command line's
-// package (packages/cli/skills), which installs them into other projects. The canonical copy is skills/.
+// Copies every skill under skills/ into the agent folders (.claude/skills for Claude Code, and the
+// cross-agent .agents/skills that Codex, Cursor, GitHub Copilot, Gemini CLI and Devin Desktop read),
+// so every agent reads the same instructions, and into the command line's package
+// (packages/cli/skills), which installs them into other projects. The canonical copy is skills/.
 // Agent folders also hold skills this repository does not own (the OpenSpec skills), so the script
 // records the skills it copies in a manifest and only ever deletes skills it copied before.
 import {
@@ -20,10 +21,11 @@ const MANIFEST = ".skills-sync.json";
 
 const root = process.cwd();
 const source = join(root, "skills");
-// The command line ships the skills too, for `meltemi-diagrams skill install` (decision 0056).
+// The command line ships the skills too, for `meltemi-diagrams skill install` (decisions 0056 and
+// 0063, which moved the second agent folder from .codex/skills to .agents/skills).
 const targets = [
   join(root, ".claude", "skills"),
-  join(root, ".codex", "skills"),
+  join(root, ".agents", "skills"),
   join(root, "packages", "cli", "skills"),
 ];
 

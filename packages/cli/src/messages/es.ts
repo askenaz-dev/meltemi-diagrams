@@ -45,6 +45,8 @@ Comandos:
   logout                    Revocar el token de la nube guardado y olvidarlo
   skill install [carpeta]   Dar a los agentes de programación de un proyecto la skill que dibuja
                             diagramas de Meltemi
+  skill prompt              Imprimir el prompt que sigue un agente de programación para instalar
+                            la skill y demostrar que funciona
   whoami                    Imprimir el nombre y el handle con los que tienes la sesión iniciada
   publish [carpeta]         Publicar el catálogo como una página web del servicio de la nube
                             (--unpublish)
@@ -214,16 +216,27 @@ import: 0 completa, 1 parcial, 2 error de uso, entrada no admitida o una hoja qu
 comandos de la nube: 3 sin sesión iniciada, o el servicio rechazó el token (ejecuta login).
 `,
     skill: `Uso: skill install [carpeta] [opciones]
+     skill prompt
 
-Escribe la skill meltemi-diagrams, que enseña a los agentes de programación a dibujar, convertir y
-exportar diagramas de Meltemi, en la carpeta (la de trabajo por defecto) para Claude Code
-(.claude/skills/meltemi-diagrams) y Codex (.codex/skills/meltemi-diagrams). Sus comandos se
-escriben como los de esta línea de comandos (mdg validate, mdg preview). Una copia que ya está se
-conserva.
+install escribe la skill meltemi-diagrams, que enseña a los agentes de programación a dibujar,
+convertir y exportar diagramas de Meltemi, en la carpeta (la de trabajo por defecto), en las
+carpetas que leen los agentes: .claude/skills/meltemi-diagrams para Claude Code,
+.agents/skills/meltemi-diagrams para Codex, Cursor, GitHub Copilot, Gemini CLI, Devin Desktop
+(Windsurf) y cualquier otro agente que lea .agents/skills. Cada carpeta se escribe una vez. Sus
+comandos se escriben como los de esta línea de comandos (mdg validate, mdg preview). Una copia
+que ya está se conserva. Solo se escriben carpetas de skills, nunca un archivo de instrucciones
+del proyecto.
 
-Opciones:
-  --agent <nombre>   claude, codex o all (all por defecto)
-  --user             Instalarla en tus propias carpetas (~/.claude, ~/.codex), para todo proyecto
+prompt imprime el prompt de configuración para agentes: el texto que un agente de programación
+lee y sigue para instalar la skill y demostrar que dibuja, también en
+https://diagrams.meltemi.dev/agent-setup/prompt.md.
+
+Opciones de install:
+  --agent <nombres>  claude, codex, cursor, copilot, gemini, windsurf, devin, agents o all (all
+                     por defecto: las dos carpetas); varios en una lista separada por comas o
+                     repitiendo la opción
+  --user             Instalarla en tus propias carpetas (~/.claude/skills, ~/.agents/skills),
+                     para todo proyecto
   --force            Reemplazar una copia que ya está (solo la carpeta de la skill)
 `,
     init: (templates) => `Uso: init [carpeta] [opciones]
@@ -602,11 +615,15 @@ iniciada o el token fue rechazado.
     subcommand: (given) =>
       given === ""
         ? "Indica qué hacer: skill install [carpeta]."
-        : `No existe el comando de skill \`${given}\`; el comando es: skill install [carpeta].`,
+        : `No existe el comando de skill \`${given}\`; los comandos son: skill install [carpeta], skill prompt.`,
     tooMany: "Indica una carpeta como mucho.",
     userWithFolder: "--user la instala en tus propias carpetas; no indiques una carpeta con él.",
     unknownAgent: (agent, agents) =>
-      `No existe el agente \`${agent}\`; los agentes son ${agents.join(", ")}.`,
+      agent === ""
+        ? `El nombre de un agente está vacío; los agentes son ${agents.join(", ")}.`
+        : `No existe el agente \`${agent}\`; los agentes son ${agents.join(", ")}.`,
+    promptArguments:
+      "skill prompt no recibe argumentos; imprime el prompt de configuración para agentes.",
     exists: (path) =>
       `${path} ya tiene la skill; agrega --force para reemplazarla (solo esa carpeta).`,
   },

@@ -19,3 +19,6 @@ export function identityOrigin(value: string | undefined): string;
 
 /** The page's Content-Security-Policy for the identity origin `identityOrigin` gave. */
 export function contentSecurityPolicy(identity: string): string;
+
+/** The agent setup pages' Content-Security-Policy: their stylesheet and icon, nothing else. */
+export function agentSetupPolicy(): string;

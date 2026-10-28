@@ -28,6 +28,7 @@
     }
   },
   "files": [
+    "agent-setup",
     "dist",
     "skills",
     "templates"

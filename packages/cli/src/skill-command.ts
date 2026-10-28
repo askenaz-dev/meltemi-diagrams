@@ -25,15 +25,35 @@ export interface SkillContext {
   readonly home?: string;
 }
 
-/** The agents the skill installs for, with the folder each reads skills from. */
-export const SKILL_AGENTS = { claude: ".claude", codex: ".codex" } as const;
+/**
+ * The agents the skill installs for, with the folder under the project (or the home folder) each
+ * reads skills from, as the vendors' pages name them (decision 0063): Claude Code reads
+ * `.claude/skills`; Codex, Cursor, GitHub Copilot, Gemini CLI and Devin Desktop (once Windsurf)
+ * read the cross-agent `.agents/skills`, which `agents` names for any other agent that reads it.
+ */
+export const SKILL_AGENTS = {
+  claude: ".claude/skills",
+  codex: ".agents/skills",
+  cursor: ".agents/skills",
+  copilot: ".agents/skills",
+  gemini: ".agents/skills",
+  windsurf: ".agents/skills",
+  devin: ".agents/skills",
+  agents: ".agents/skills",
+} as const;
 export type SkillAgent = keyof typeof SKILL_AGENTS;
+
+/** The agents' names and `all`, as the help and the refusal list them. */
+const AGENT_NAMES = [...Object.keys(SKILL_AGENTS), "all"];
 
 /** The skill the package ships. */
 export const SKILL_NAME = "meltemi-diagrams";
 
 /** The folder of the shipped skills: `skills/` beside `src/` and `dist/`. */
 const SKILL_ROOT = fileURLToPath(new URL("../skills/", import.meta.url));
+
+/** The agent setup prompt the package ships, which `skill prompt` prints and the site serves. */
+const PROMPT = fileURLToPath(new URL("../agent-setup/prompt.md", import.meta.url));
 
 const EXIT_OK = 0;
 const EXIT_USAGE = 2;
@@ -74,19 +94,35 @@ function writeSkill(destination: string): void {
   rewrite(destination);
 }
 
-/** `meltemi-diagrams skill install`. */
+/**
+ * The skill folders the named agents read, each once, in the table's order; `all` names every
+ * folder. The first name that is empty or unknown otherwise.
+ */
+export function skillFolders(
+  names: readonly string[],
+): { folders: string[] } | { unknown: string } {
+  const wanted = new Set<string>();
+  for (const name of names) {
+    if (name === "all") Object.values(SKILL_AGENTS).forEach((folder) => wanted.add(folder));
+    else if (Object.hasOwn(SKILL_AGENTS, name)) wanted.add(SKILL_AGENTS[name as SkillAgent]);
+    else return { unknown: name };
+  }
+  return { folders: [...new Set(Object.values(SKILL_AGENTS))].filter((f) => wanted.has(f)) };
+}
+
+/** `meltemi-diagrams skill install` and `meltemi-diagrams skill prompt`. */
 export function skillCommand(args: readonly string[], context: SkillContext): number {
   const fail = (message: string) => {
     context.stderr(`${context.name} skill: ${message}\n`);
     return EXIT_USAGE;
   };
-  let options: { agent?: string; user: boolean; force: boolean; help: boolean };
+  let options: { agent?: string[]; user: boolean; force: boolean; help: boolean };
   let positionals: string[];
   try {
     const parsed = parseArgs({
       args: [...args],
       options: {
-        agent: { type: "string" },
+        agent: { type: "string", multiple: true },
         user: { type: "boolean", default: false },
         force: { type: "boolean", default: false },
         help: { type: "boolean", short: "h", default: false },
@@ -105,20 +141,23 @@ export function skillCommand(args: readonly string[], context: SkillContext): nu
     return EXIT_OK;
   }
   const [subcommand, folder, ...extra] = positionals;
+  if (subcommand === "prompt") {
+    const given = options.agent !== undefined || options.user || options.force;
+    if (folder !== undefined || given) return fail(t.promptArguments);
+    // Byte for byte: the text is written for the installed command and is never rewritten.
+    context.stdout(readFileSync(PROMPT, "utf8"));
+    return EXIT_OK;
+  }
   if (subcommand !== "install") return fail(t.subcommand(subcommand ?? ""));
   if (extra.length > 0) return fail(t.tooMany);
   if (options.user && folder !== undefined) return fail(t.userWithFolder);
-  const agents: SkillAgent[] =
-    options.agent === undefined || options.agent === "all"
-      ? ["claude", "codex"]
-      : Object.hasOwn(SKILL_AGENTS, options.agent)
-        ? [options.agent as SkillAgent]
-        : [];
-  if (agents.length === 0) {
-    return fail(t.unknownAgent(options.agent ?? "", [...Object.keys(SKILL_AGENTS), "all"]));
-  }
+  const names = (options.agent ?? ["all"]).flatMap((value) =>
+    value.split(",").map((name) => name.trim()),
+  );
+  const chosen = skillFolders(names);
+  if ("unknown" in chosen) return fail(t.unknownAgent(chosen.unknown, AGENT_NAMES));
   const base = options.user ? (context.home ?? homedir()) : resolve(context.cwd, folder ?? ".");
-  const destinations = agents.map((agent) => join(base, SKILL_AGENTS[agent], "skills", SKILL_NAME));
+  const destinations = chosen.folders.map((agentFolder) => join(base, agentFolder, SKILL_NAME));
   // Nothing is written when any destination holds a copy, unless asked to replace it.
   if (!options.force) {
     const existing = destinations.find((path) => existsSync(path));

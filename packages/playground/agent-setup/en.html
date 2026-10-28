@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="{{policy}}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="One prompt that has Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI or Devin Desktop install the meltemi-diagrams skill and prove it draws diagrams as code."
+    />
+    <meta name="generator" content="Meltemi Diagrams {{version}}" />
+    <title>Drawing with coding agents · Meltemi Diagrams</title>
+    <link rel="alternate" hreflang="en" href="./" />
+    <link rel="alternate" hreflang="es" href="../es/agent-setup/" />
+    <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="agent-setup.css" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="../">Meltemi Diagrams</a>
+      <a href="../es/agent-setup/" hreflang="es" lang="es">Español</a>
+    </header>
+    <main>
+      <h1>Drawing with coding agents</h1>
+      <p class="lead">
+        The <code>meltemi-diagrams</code> skill teaches Claude Code, Codex, Cursor, GitHub Copilot,
+        Gemini CLI, Devin Desktop and other coding agents to draw diagrams as code: they write
+        <code>.meltemi</code> files, validate them with the command line and fix what it reports,
+        instead of drawing pictures by hand. The skill holds a workflow, a template, the rules that
+        save iterations, references for the language, layout, themes, C4, sequence diagrams, free
+        compositions, stories and converting, and complete examples.
+      </p>
+
+      <h2>One prompt</h2>
+      <p>
+        Paste this into your coding agent, in your project. The agent reads the
+        <a href="prompt.md">setup prompt</a>, installs the skill for the agents your project uses,
+        draws a small sequence diagram of one of its flows, validates it until no diagnostic remains
+        and tells you where the SVG is.
+      </p>
+      <pre
+        class="prompt"
+      ><code>Set up Meltemi Diagrams in this project so you can draw diagrams as code, and prove it works — you'll need terminal access on this machine and Node 22.12 or later. First read https://diagrams.meltemi.dev/agent-setup/prompt.md and follow it. Install the meltemi-diagrams skill for the coding agents this project uses (ask me if it's unclear which) with `npx @meltemi/diagrams-cli@latest skill install`. Then prove it: write a small sequence diagram of one flow of this project, validate it until no diagnostic remains, export the SVG, and show me the validation's last line and where the SVG is. Never sign in to the cloud, never print or commit a token, and don't commit or change my project's configuration beyond the skill folders without asking me first.</code></pre>
+      <p>
+        The setup prompt needs the command line 1.10.0 or later; an agent that finds an older one
+        says so and stops. An agent without web access prints the same text with
+        <code>npx @meltemi/diagrams-cli@latest skill prompt</code>.
+      </p>
+
+      <h2>Installing the skill yourself</h2>
+      <p>In your project's folder, without installing anything:</p>
+      <pre><code>npx @meltemi/diagrams-cli@latest skill install --agent &lt;names&gt;</code></pre>
+      <p>
+        Or install the command line once, and run <code>mdg skill install</code> in each project:
+      </p>
+      <pre><code>npm install --global @meltemi/diagrams-cli</code></pre>
+      <p>
+        <code>&lt;names&gt;</code> is one or more names of the table, separated by commas, or
+        <code>all</code>, the default, for both folders. A folder several agents share is written
+        once. <code>--user</code> writes your own folders (<code>~/.claude/skills</code>,
+        <code>~/.agents/skills</code>), for every project. A copy already there is kept unless you
+        add <code>--force</code>, which replaces only the skill's own folder. The command writes
+        skill folders only, never <code>AGENTS.md</code>, <code>CLAUDE.md</code> or another file of
+        the project.
+      </p>
+      <table>
+        <caption>
+          The agents and the folders they read skills from
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Agent</th>
+            <th scope="col">Name</th>
+            <th scope="col">Folder</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Claude Code</td>
+            <td><code>claude</code></td>
+            <td><code>.claude/skills</code></td>
+          </tr>
+          <tr>
+            <td>Codex</td>
+            <td><code>codex</code></td>
+            <td><code>.agents/skills</code></td>
+          </tr>
+          <tr>
+            <td>Cursor</td>
+            <td><code>cursor</code></td>
+            <td><code>.agents/skills</code></td>
+          </tr>
+          <tr>
+            <td>GitHub Copilot</td>
+            <td><code>copilot</code></td>
+            <td><code>.agents/skills</code></td>
+          </tr>
+          <tr>
+            <td>Gemini CLI</td>
+            <td><code>gemini</code></td>
+            <td><code>.agents/skills</code></td>
+          </tr>
+          <tr>
+            <td>Windsurf</td>
+            <td><code>windsurf</code></td>
+            <td><code>.agents/skills</code></td>
+          </tr>
+          <tr>
+            <td>Devin Desktop</td>
+            <td><code>devin</code></td>
+            <td><code>.agents/skills</code></td>
+          </tr>
+          <tr>
+            <td>Any other agent that reads the cross-agent folder</td>
+            <td><code>agents</code></td>
+            <td><code>.agents/skills</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>What the agent proves</h2>
+      <p>
+        It writes one real flow of your project as a small sequence diagram under
+        <code>diagrams/</code>, or the sign-in of <code>mdg init --template sequence</code> in a
+        folder with no code to read. It validates the sheet until the last line reads
+        <code>Checked 1 file: 0 errors, 0 warnings.</code>, exports the SVG beside it and tells you
+        that line, where the SVG is and which folders the skill went to.
+      </p>
+
+      <h2>What it never does</h2>
+      <ul>
+        <li>Print, read, copy or commit a token (an <code>mdg_…</code> value).</li>
+        <li>Sign in, push, pull, publish or run any other cloud command unless you ask for it.</li>
+        <li>
+          Commit or stage anything, or change your configuration, CI or agent instruction files
+          beyond the skill folders, without asking you first.
+        </li>
+        <li>Add <code>--force</code> or <code>--user</code> on its own.</li>
+        <li>
+          Draw a picture by hand, edit an exported SVG or retype a Mermaid or PlantUML source, which
+          <code>mdg import</code> converts.
+        </li>
+      </ul>
+
+      <h2>More</h2>
+      <ul>
+        <li><a href="prompt.md">The setup prompt</a>, the text the agent follows.</li>
+        <li>
+          <a href="https://github.com/askenaz-dev/meltemi-diagrams/blob/main/docs/agents.md"
+            >The documentation for agents</a
+          >, with how to ask for a diagram.
+        </li>
+        <li><a href="../">The playground</a>, to write and export diagrams in your browser.</li>
+      </ul>
+    </main>
+    <footer>Meltemi Diagrams {{version}} · MIT</footer>
+  </body>
+</html>

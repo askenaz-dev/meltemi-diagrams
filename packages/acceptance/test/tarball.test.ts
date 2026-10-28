@@ -1,6 +1,6 @@
 import { gzipSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
-import { tarballProblems } from "../src/release-check.js";
+import { CLI_SHIPS, tarballProblems } from "../src/release-check.js";
 import { readTarball } from "../src/tarball.js";
 
 /** A ustar header block for a file. */
@@ -83,5 +83,24 @@ describe("tarballs", () => {
       "no LICENSE",
       "ships package/src/index.ts",
     ]);
+  });
+
+  it("requires the command line's skill and agent setup prompt", () => {
+    const cli = (extra: Record<string, string>) =>
+      readTarball(
+        tarball({
+          "package/package.json": manifest({ name: "@meltemi/diagrams-cli" }),
+          "package/dist/index.js": "",
+          "package/dist/index.d.ts": "",
+          "package/README.md": "# x",
+          "package/LICENSE": "MIT",
+          ...extra,
+        }),
+      );
+    const skill = { "package/skills/meltemi-diagrams/SKILL.md": "---" };
+    const prompt = { "package/agent-setup/prompt.md": "# Set up" };
+    expect(tarballProblems(cli({ ...skill, ...prompt }), "1.0.0")).toEqual([]);
+    expect(tarballProblems(cli(skill), "1.0.0")).toEqual(["missing package/agent-setup/prompt.md"]);
+    expect(tarballProblems(cli({}), "1.0.0")).toEqual(CLI_SHIPS.map((path) => `missing ${path}`));
   });
 });

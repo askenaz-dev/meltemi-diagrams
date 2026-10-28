@@ -22,6 +22,7 @@ import { TEMPLATES, templateManifest } from "@meltemi/diagrams-project";
 import {
   ANONYMOUS_SESSION,
   PAGE_HEADERS,
+  agentSetupPolicy,
   contentSecurityPolicy,
   identityOrigin,
 } from "./policy.mjs";
@@ -132,6 +133,23 @@ mkdirSync(join(dist, "api"), { recursive: true });
 writeFileSync(join(dist, "api", "session"), ANONYMOUS_SESSION);
 // The headers the cloud Worker's assets platform gives every file of the page (`policy.mjs`).
 writeFileSync(join(dist, "_headers"), PAGE_HEADERS);
+
+// The agent setup page in its two languages, its stylesheet and the prompt an agent reads, which is
+// the command line's own file, copied unchanged (decision 0063).
+const agentSetup = join(here, "agent-setup");
+const agentSetupPage = (source) =>
+  readFileSync(join(agentSetup, source), "utf8")
+    .replace("{{policy}}", agentSetupPolicy())
+    .replaceAll("{{version}}", version);
+mkdirSync(join(dist, "agent-setup"), { recursive: true });
+mkdirSync(join(dist, "es", "agent-setup"), { recursive: true });
+writeFileSync(join(dist, "agent-setup", "index.html"), agentSetupPage("en.html"));
+writeFileSync(join(dist, "es", "agent-setup", "index.html"), agentSetupPage("es.html"));
+copy(join(agentSetup, "agent-setup.css"), join(dist, "agent-setup", "agent-setup.css"));
+copy(
+  join(repo, "packages", "cli", "agent-setup", "prompt.md"),
+  join(dist, "agent-setup", "prompt.md"),
+);
 
 // Fonts: every file the font library reads. Tabler: the data the icon pack reads.
 for (const file of bundledFontFiles()) {

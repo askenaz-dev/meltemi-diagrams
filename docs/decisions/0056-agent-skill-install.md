@@ -44,3 +44,5 @@ repository root"), so a copy made by hand taught an agent commands a project doe
 - Publishing the skill in plugin marketplaces or skill registries stays an owner step of the
   `delivery` change.
 - New public surface: the `skill` command and its words; the package's `skills/` folder.
+- [Decision 0063](0063-agent-setup-prompt.md) moved Codex's folder to `.agents/skills`, which
+  Codex reads now, added the other agents and `skill prompt`, and gave the skill a setup prompt.

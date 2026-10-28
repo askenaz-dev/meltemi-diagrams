@@ -310,6 +310,9 @@ export const en = {
     text: (version: string) =>
       `**Meltemi Diagrams ${version}**: diagrams as code, a canvas to compose them and exports for documents, slides and video.\n\nThe playground runs entirely in your browser. There is no account, nothing you write is sent anywhere, and your work stays in this browser until you download it.\n\nMeltemi Diagrams is MIT. The playground bundles the components below under their own licences: the fonts under the SIL Open Font License 1.1, elkjs under the Eclipse Public License 2.0 (source at github.com/kieler/elkjs), and the others as listed.`,
     notices: "Read every licence (NOTICES.md)",
+    agents: "Drawing with coding agents",
+    /** The agent setup page, relative to the playground. */
+    agentsPage: "agent-setup/",
   },
 
   /** The dialog that continues the work with the command line and VS Code. */
@@ -323,6 +326,7 @@ export const en = {
     export: "Export every profile",
     catalog: "Build the catalog",
     init: "Start a new project from a template",
+    skill: "Give your coding agents the skill",
   },
 
   /** The export dialog: its fields, the profiles and the catalog, and what an export says. */

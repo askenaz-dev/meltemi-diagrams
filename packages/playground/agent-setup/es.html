@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="{{policy}}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Un prompt para que Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI o Devin Desktop instalen la skill meltemi-diagrams y demuestren que dibujan diagramas como código."
+    />
+    <meta name="generator" content="Meltemi Diagrams {{version}}" />
+    <title>Dibujar con agentes de programación · Meltemi Diagrams</title>
+    <link rel="alternate" hreflang="en" href="../../agent-setup/" />
+    <link rel="alternate" hreflang="es" href="./" />
+    <link rel="icon" href="../../favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../../agent-setup/agent-setup.css" />
+  </head>
+  <body>
+    <header class="top">
+      <a class="brand" href="../../">Meltemi Diagrams</a>
+      <a href="../../agent-setup/" hreflang="en" lang="en">English</a>
+    </header>
+    <main>
+      <h1>Dibujar con agentes de programación</h1>
+      <p class="lead">
+        La skill <code>meltemi-diagrams</code> enseña a Claude Code, Codex, Cursor, GitHub Copilot,
+        Gemini CLI, Devin Desktop y otros agentes de programación a dibujar diagramas como código:
+        escriben archivos <code>.meltemi</code>, los validan con la línea de comandos y corrigen lo
+        que esta informa, en lugar de dibujar imágenes a mano. La skill trae un flujo de trabajo,
+        una plantilla, las reglas que ahorran iteraciones, referencias del lenguaje, la disposición,
+        los temas, C4, los diagramas de secuencia, las composiciones libres, las historias y la
+        conversión, y ejemplos completos.
+      </p>
+
+      <h2>Un prompt</h2>
+      <p>
+        Pega esto en tu agente de programación, en tu proyecto. El agente lee el
+        <a href="../../agent-setup/prompt.md">prompt de configuración</a>, instala la skill para los
+        agentes que usa tu proyecto, dibuja un diagrama de secuencia pequeño de uno de sus flujos,
+        lo valida hasta que no queda ningún diagnóstico y te dice dónde quedó el SVG. El prompt está
+        en inglés, el idioma en que el agente lee la guía; el agente te responde en el tuyo.
+      </p>
+      <pre
+        class="prompt"
+      ><code>Set up Meltemi Diagrams in this project so you can draw diagrams as code, and prove it works — you'll need terminal access on this machine and Node 22.12 or later. First read https://diagrams.meltemi.dev/agent-setup/prompt.md and follow it. Install the meltemi-diagrams skill for the coding agents this project uses (ask me if it's unclear which) with `npx @meltemi/diagrams-cli@latest skill install`. Then prove it: write a small sequence diagram of one flow of this project, validate it until no diagnostic remains, export the SVG, and show me the validation's last line and where the SVG is. Never sign in to the cloud, never print or commit a token, and don't commit or change my project's configuration beyond the skill folders without asking me first.</code></pre>
+      <p>
+        El prompt de configuración necesita la línea de comandos 1.10.0 o posterior; un agente que
+        encuentra una anterior lo dice y se detiene. Un agente sin acceso a la web imprime el mismo
+        texto con <code>npx @meltemi/diagrams-cli@latest skill prompt</code>.
+      </p>
+
+      <h2>Instalar la skill tú mismo</h2>
+      <p>En la carpeta de tu proyecto, sin instalar nada:</p>
+      <pre><code>npx @meltemi/diagrams-cli@latest skill install --agent &lt;names&gt;</code></pre>
+      <p>
+        O instala la línea de comandos una vez y ejecuta <code>mdg skill install</code> en cada
+        proyecto:
+      </p>
+      <pre><code>npm install --global @meltemi/diagrams-cli</code></pre>
+      <p>
+        <code>&lt;names&gt;</code> es uno o más nombres de la tabla, separados por comas, o
+        <code>all</code>, el valor por defecto, para las dos carpetas. Una carpeta que comparten
+        varios agentes se escribe una vez. <code>--user</code> escribe tus propias carpetas
+        (<code>~/.claude/skills</code>, <code>~/.agents/skills</code>), para todo proyecto. Una
+        copia que ya está se conserva salvo que agregues <code>--force</code>, que reemplaza solo la
+        carpeta de la skill. El comando escribe solo carpetas de skills, nunca
+        <code>AGENTS.md</code>, <code>CLAUDE.md</code> ni otro archivo del proyecto.
+      </p>
+      <table>
+        <caption>
+          Los agentes y las carpetas de las que leen las skills
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Agente</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Carpeta</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Claude Code</td>
+            <td><code>claude</code></td>
+            <td><code>.claude/skills</code></td>
+          </tr>
+          <tr>
+            <td>Codex</td>
+            <td><code>codex</code></td>
+            <td><code>.agents/skills</code></td>
+          </tr>
+          <tr>
+            <td>Cursor</td>
+            <td><code>cursor</code></td>
+            <td><code>.agents/skills</code></td>
+          </tr>
+          <tr>
+            <td>GitHub Copilot</td>
+            <td><code>copilot</code></td>
+            <td><code>.agents/skills</code></td>
+          </tr>
+          <tr>
+            <td>Gemini CLI</td>
+            <td><code>gemini</code></td>
+            <td><code>.agents/skills</code></td>
+          </tr>
+          <tr>
+            <td>Windsurf</td>
+            <td><code>windsurf</code></td>
+            <td><code>.agents/skills</code></td>
+          </tr>
+          <tr>
+            <td>Devin Desktop</td>
+            <td><code>devin</code></td>
+            <td><code>.agents/skills</code></td>
+          </tr>
+          <tr>
+            <td>Cualquier otro agente que lea la carpeta común</td>
+            <td><code>agents</code></td>
+            <td><code>.agents/skills</code></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>Lo que el agente demuestra</h2>
+      <p>
+        Escribe un flujo real de tu proyecto como un diagrama de secuencia pequeño en
+        <code>diagrams/</code>, o el inicio de sesión de <code>mdg init --template sequence</code>
+        en una carpeta sin código que leer. Valida la hoja hasta que la última línea dice
+        <code>Checked 1 file: 0 errors, 0 warnings.</code>, exporta el SVG a su lado y te dice esa
+        línea, dónde quedó el SVG y en qué carpetas quedó la skill.
+      </p>
+
+      <h2>Lo que nunca hace</h2>
+      <ul>
+        <li>
+          Imprimir, leer, copiar ni confirmar en un commit un token (un valor <code>mdg_…</code>).
+        </li>
+        <li>
+          Iniciar sesión, hacer push, pull, publicar ni ejecutar otro comando de la nube salvo que
+          lo pidas.
+        </li>
+        <li>
+          Hacer commit ni preparar nada, ni cambiar tu configuración, tu CI o los archivos de
+          instrucciones de los agentes más allá de las carpetas de skills, sin preguntarte antes.
+        </li>
+        <li>Agregar <code>--force</code> o <code>--user</code> por su cuenta.</li>
+        <li>
+          Dibujar una imagen a mano, editar un SVG exportado ni reescribir una fuente de Mermaid o
+          PlantUML, que <code>mdg import</code> convierte.
+        </li>
+      </ul>
+
+      <h2>Más</h2>
+      <ul>
+        <li>
+          <a href="../../agent-setup/prompt.md">El prompt de configuración</a>, el texto que sigue
+          el agente.
+        </li>
+        <li>
+          <a href="https://github.com/askenaz-dev/meltemi-diagrams/blob/main/docs/agents.md"
+            >La documentación para agentes</a
+          >, con cómo pedir un diagrama.
+        </li>
+        <li>
+          <a href="../../">El playground</a>, para escribir y exportar diagramas en tu navegador.
+        </li>
+      </ul>
+    </main>
+    <footer>Meltemi Diagrams {{version}} · MIT</footer>
+  </body>
+</html>

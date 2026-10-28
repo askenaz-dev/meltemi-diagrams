@@ -24,7 +24,9 @@ style sheets, `templates.json`, the fonts, the Tabler data, the runtimes written
 `NOTICES.md`, `api/session`, the answer a static server gives the page's one request to an API
 (`{"user":null}`: nobody is signed in), and `_headers`, the two headers the cloud service's assets
 platform gives every file of the page (`frame-ancestors 'self'` and `nosniff`; a static server
-serves it as a plain file). Any static server serves it; during development `pnpm preview` serves
+serves it as a plain file), and `agent-setup/` with `es/agent-setup/`, the static page that tells
+how to give coding agents the skill ([drawing with coding agents](agents.md)), beside its
+stylesheet and `agent-setup/prompt.md`, the command line's setup prompt. Any static server serves it; during development `pnpm preview` serves
 the repository at `http://localhost:4173/packages/playground/dist/`. The hosted page is
 `https://diagrams.meltemi.dev`: the [cloud service](cloud.md) serves the same build with an account
 on top of it (`pnpm cloud:dev` locally), deployed from `main` by the deploy workflow.
@@ -269,7 +271,9 @@ meltemi-diagrams validate my-project
 ```
 
 **Export project (.zip)** in the Projects panel downloads the same archive, and
-**Download → Continue locally** lists the commands.
+**Download → Continue locally** lists the commands, `meltemi-diagrams skill install` among them,
+which gives your coding agents the skill. The About dialog (the (i) button) links **Drawing with
+coding agents**, the agent setup page, under its description.
 
 ## The account
 

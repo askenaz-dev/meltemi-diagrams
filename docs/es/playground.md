@@ -26,7 +26,11 @@ que se escriben en las exportaciones HTML, `NOTICES.md`, `api/session`, la respu
 servidor estático a la única solicitud que la página hace a una API (`{"user":null}`: nadie ha
 iniciado sesión), y `_headers`, las dos cabeceras que la plataforma de recursos del servicio en la
 nube da a cada archivo de la página (`frame-ancestors 'self'` y `nosniff`; un servidor estático lo
-sirve como un archivo más). Cualquier servidor estático lo sirve; durante el desarrollo,
+sirve como un archivo más), y `agent-setup/` con `es/agent-setup/`, la página estática que explica
+cómo dar la skill a los agentes de programación
+([dibujar con agentes de programación](agents.md)), junto a su hoja de estilo y a
+`agent-setup/prompt.md`, el prompt de configuración de la línea de comandos. Cualquier servidor
+estático lo sirve; durante el desarrollo,
 `pnpm preview` sirve el repositorio en `http://localhost:4173/packages/playground/dist/`. La página
 alojada es `https://diagrams.meltemi.dev`: el [servicio en la nube](cloud.md) sirve la misma
 compilación con una cuenta encima (`pnpm cloud:dev` en local), desplegada desde `main` por el flujo
@@ -287,7 +291,10 @@ meltemi-diagrams validate my-project
 ```
 
 **Exportar proyecto (.zip)**, en el panel Proyectos, descarga el mismo archivo comprimido, y
-**Descargar → Continuar localmente** lista los comandos.
+**Descargar → Continuar localmente** lista los comandos, entre ellos
+`meltemi-diagrams skill install`, que da la skill a tus agentes de programación. El diálogo Acerca
+de (el botón (i)) enlaza **Dibujar con agentes de programación**, la página de configuración para
+agentes, bajo su descripción.
 
 ## La cuenta
 

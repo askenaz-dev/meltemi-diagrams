@@ -250,12 +250,29 @@ const scenarios: Scenario[] = [
       // The page's own files, served by the assets platform without running the Worker (it runs
       // first for its own paths only), carry the build's `_headers`: no other site may frame the
       // page (its policy is a meta tag, which cannot) and each file is what its type says.
-      for (const path of ["/", "/playground.js", "/playground.css", "/favicon.svg"]) {
+      // The agent setup page, its twin, its stylesheet and the prompt are files of the page too.
+      for (const path of [
+        "/",
+        "/playground.js",
+        "/playground.css",
+        "/favicon.svg",
+        "/agent-setup/",
+        "/es/agent-setup/",
+        "/agent-setup/prompt.md",
+        "/agent-setup/agent-setup.css",
+      ]) {
         const file = await t.ask(path);
         assert.equal(file.status, 200, path);
         assert.equal(file.headers.get("content-security-policy"), "frame-ancestors 'self'", path);
         assert.equal(file.headers.get("x-content-type-options"), "nosniff", path);
       }
+      // The prompt an agent is told to read is the command line's file, as the build copied it.
+      const prompt = await t.ask("/agent-setup/prompt.md");
+      assert.match(prompt.headers.get("content-type") ?? "", /^text\/(markdown|plain)/);
+      assert.equal(
+        prompt.text,
+        readFileSync(new URL("../../../cli/agent-setup/prompt.md", import.meta.url), "utf8"),
+      );
       // A file that is not there is the platform's 404: there is nothing in it to frame.
       const missing = await t.ask("/nothing-here.js");
       assert.equal(missing.status, 404);

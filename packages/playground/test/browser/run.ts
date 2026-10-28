@@ -3067,6 +3067,74 @@ const tests: Test[] = [
       const text = await page.evaluate(() => fetch("NOTICES.md").then((r) => r.text()));
       assert.match(text, /## elkjs[\s\S]*Eclipse Public License/);
       assert.match(text, /## inter-ui[\s\S]*SIL Open Font License|## @fontsource\/inter[\s\S]*OFL/);
+      // The agent setup page, and the prompt an agent reads beside it.
+      const agents = dialog.getByRole("link", { name: en.about.agents });
+      assert.equal(await agents.getAttribute("href"), "agent-setup/");
+      const prompt = await page.evaluate(() =>
+        fetch("agent-setup/prompt.md").then((r) => r.text()),
+      );
+      assert.equal(prompt.split("\n")[0], "# Set up Meltemi Diagrams for a coding agent");
+      await page.keyboard.press("Escape");
+      // Continue locally ends with the skill for coding agents.
+      await page.getByRole("button", { name: en.header.download }).click();
+      await page.getByRole("menuitem", { name: /Continue locally/ }).click();
+      const commands = page.locator("dialog[open] dl.commands");
+      assert.equal(await commands.locator("dt").last().textContent(), en.continue.skill);
+      assert.equal(
+        await commands.locator("dd").last().textContent(),
+        "meltemi-diagrams skill install",
+      );
+    },
+  },
+  {
+    name: "shows the agent setup page in English and Spanish, without sideways scroll at 375 pixels",
+    viewport: { width: 375, height: 800 },
+    async run({ page, url }) {
+      for (const [path, heading, picture] of [
+        ["agent-setup/", "Drawing with coding agents", "agent-setup-en.png"],
+        ["es/agent-setup/", "Dibujar con agentes de programación", "agent-setup-es.png"],
+      ] as const) {
+        await page.goto(new URL(path, url).href);
+        assert.equal((await page.locator("h1").textContent())?.trim(), heading);
+        const oneLiner = (await page.locator("pre.prompt code").textContent()) ?? "";
+        assert.match(oneLiner, /^Set up Meltemi Diagrams in this project/);
+        assert.match(oneLiner, /https:\/\/diagrams\.meltemi\.dev\/agent-setup\/prompt\.md/);
+        const address = await page
+          .locator('main a[href$="prompt.md"]')
+          .first()
+          .evaluate((a) => (a as HTMLAnchorElement).href);
+        // From Node: the page's own policy lets it fetch nothing.
+        const prompt = await (await page.request.get(address)).text();
+        assert.equal(
+          prompt.split("\n")[0],
+          "# Set up Meltemi Diagrams for a coding agent",
+          `${path} links the prompt`,
+        );
+        assert.equal(
+          await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
+          false,
+          `${path} scrolls sideways at 375 pixels`,
+        );
+        await page.screenshot({ path: join(output, picture), fullPage: true });
+      }
+    },
+  },
+  {
+    name: "in a Spanish browser, Continue locally lists the skill and About links the Spanish page",
+    locale: "es-CL",
+    async run({ page }) {
+      await page.getByRole("button", { name: es.header.download }).click();
+      await page.getByRole("menuitem", { name: /Continuar localmente/ }).click();
+      const commands = page.locator("dialog[open] dl.commands");
+      assert.equal(await commands.locator("dt").last().textContent(), es.continue.skill);
+      assert.equal(
+        await commands.locator("dd").last().textContent(),
+        "meltemi-diagrams skill install",
+      );
+      await page.keyboard.press("Escape");
+      await page.getByRole("button", { name: es.header.about }).click();
+      const agents = page.locator("dialog[open]").getByRole("link", { name: es.about.agents });
+      assert.equal(await agents.getAttribute("href"), "es/agent-setup/");
     },
   },
   {

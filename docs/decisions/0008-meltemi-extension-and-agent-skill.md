@@ -37,3 +37,5 @@ need the language, the placement rules and the export workflow in a form they lo
   because they derive from the file stem.
 - Three copies of the skill in the repository, kept equal by the sync script and the test.
 - The command and package names are recorded in decision 0002.
+- [Decision 0063](0063-agent-setup-prompt.md) moved the second agent folder from
+  `.codex/skills` to `.agents/skills`, the cross-agent folder Codex and the others read.

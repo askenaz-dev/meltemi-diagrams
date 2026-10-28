@@ -85,3 +85,19 @@ export function contentSecurityPolicy(identity) {
     `form-action 'self' ${identity}`,
   ].join("; ");
 }
+
+/**
+ * The agent setup pages' Content-Security-Policy (decision 0063): static pages with no script, no
+ * connection and no inline style, which load their stylesheet and icon from their own origin.
+ *
+ * @returns {string}
+ */
+export function agentSetupPolicy() {
+  return [
+    "default-src 'none'",
+    "style-src 'self'",
+    "img-src 'self'",
+    "base-uri 'none'",
+    "form-action 'none'",
+  ].join("; ");
+}

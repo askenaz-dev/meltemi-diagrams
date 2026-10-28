@@ -315,10 +315,14 @@ checked, and the latest results, are in [docs/quality.md](docs/quality.md) and
 ## For agents
 
 Coding agents draw with the `meltemi-diagrams` skill (workflow, template, rules, language and
-layout references, complete examples). In your project, `mdg skill install` gives it to Claude Code
-and Codex ([drawing with coding agents](docs/agents.md)). In this repository it lives in `skills/`,
-`pnpm skills:sync` copies it to `.claude/skills/`, `.codex/skills/` and the command line's package,
-and `AGENTS.md` points other agents to it.
+layout references, complete examples). One prompt pasted into Claude Code, Codex, Cursor, GitHub
+Copilot, Gemini CLI or Devin Desktop has the agent read
+`https://diagrams.meltemi.dev/agent-setup/prompt.md`, install the skill and prove it draws: the
+prompt and the agents are on [the agent setup page](https://diagrams.meltemi.dev/agent-setup/)
+and in [drawing with coding agents](docs/agents.md). In your project, `mdg skill install` writes
+the skill into `.claude/skills/` and `.agents/skills/`. In this repository it lives in `skills/`,
+`pnpm skills:sync` copies it to `.claude/skills/`, `.agents/skills/` and the command line's
+package, and `AGENTS.md` points other agents to it.
 
 ## Branding
 

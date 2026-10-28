@@ -326,10 +326,14 @@ comprueba cada criterio de aceptación, y los últimos resultados, están en
 ## Para agentes
 
 Los agentes de programación dibujan con la skill `meltemi-diagrams` (flujo de trabajo, plantilla,
-reglas, referencias del lenguaje y de la disposición, ejemplos completos). En tu proyecto,
-`mdg skill install` se la da a Claude Code y a Codex
-([dibujar con agentes de programación](docs/es/agents.md)). En este repositorio vive en `skills/`,
-`pnpm skills:sync` la copia en `.claude/skills/`, `.codex/skills/` y el paquete de la línea de
+reglas, referencias del lenguaje y de la disposición, ejemplos completos). Un prompt pegado en
+Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI o Devin Desktop hace que el agente lea
+`https://diagrams.meltemi.dev/agent-setup/prompt.md`, instale la skill y demuestre que dibuja: el
+prompt y los agentes están en
+[la página de configuración para agentes](https://diagrams.meltemi.dev/es/agent-setup/) y en
+[dibujar con agentes de programación](docs/es/agents.md). En tu proyecto, `mdg skill install`
+escribe la skill en `.claude/skills/` y `.agents/skills/`. En este repositorio vive en `skills/`,
+`pnpm skills:sync` la copia en `.claude/skills/`, `.agents/skills/` y el paquete de la línea de
 comandos, y `AGENTS.md` remite a ella a los demás agentes.
 
 ## Marca

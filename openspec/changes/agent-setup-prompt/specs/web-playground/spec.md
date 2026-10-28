@@ -55,8 +55,9 @@ which `meltemi-diagrams validate` and VS Code open as is, and SHALL show how to 
 The page SHALL show its version and the generator's name, and an About dialog with the licence of
 the product (MIT) and of every bundled component, linking to `NOTICES.md`: EPL-2.0 for elkjs with
 its source link, OFL-1.1 for the fonts, MIT for the others, and linking "Drawing with coding
-agents" (in the page's language) to the agent setup page at `agent-setup/`, a relative address
-that resolves under the Worker and under a static server's sub-path. `pnpm licenses:inventory
+agents" (in the page's language) to the agent setup page in that language, `agent-setup/` or
+`es/agent-setup/`, a relative address that resolves under the Worker and under a static server's
+sub-path. `pnpm licenses:inventory
 --check` SHALL cover the playground's bundled packages.
 
 #### Scenario: Notices
@@ -66,6 +67,10 @@ that resolves under the Worker and under a static server's sub-path. `pnpm licen
 #### Scenario: The agents link
 - **WHEN** the About dialog opens
 - **THEN** it holds a link named "Drawing with coding agents" whose `href` is `agent-setup/`, and `agent-setup/prompt.md` fetched from the page's origin starts with `# Set up Meltemi Diagrams for a coding agent`
+
+#### Scenario: The agents link in Spanish
+- **WHEN** the About dialog opens in the Spanish interface
+- **THEN** its link is named "Dibujar con agentes de programación" and its `href` is `es/agent-setup/`
 
 #### Scenario: The list cannot be read
 - **WHEN** `notices.json` cannot be fetched or is not JSON

@@ -1,0 +1,157 @@
+/* The agent setup page: a static page with no script, so its colours follow the system's theme
+   (the playground's tokens, playground.css, light on :root and dark under the media query). */
+
+:root {
+  color-scheme: light;
+  --pg-bg: #ffffff;
+  --pg-surface: #f6f7f9;
+  --pg-border: #d5d9e0;
+  --pg-fg: #1c2330;
+  --pg-muted: #5b6577;
+  --pg-accent: #2563eb;
+  --pg-focus: #2563eb;
+  --pg-code-bg: #fbfcfd;
+  --pg-ui-font: "Inter", "Segoe UI", system-ui, sans-serif;
+  --pg-code-font: "Cascadia Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --pg-bg: #14171d;
+    --pg-surface: #1b1f27;
+    --pg-border: #343a46;
+    --pg-fg: #e4e8ef;
+    --pg-muted: #9aa4b5;
+    --pg-accent: #4f8cff;
+    --pg-focus: #6ea2ff;
+    --pg-code-bg: #11141a;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--pg-bg);
+  color: var(--pg-fg);
+  font: 16px/1.6 var(--pg-ui-font);
+}
+
+.top,
+main,
+footer {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--pg-border);
+}
+
+.brand {
+  color: var(--pg-fg);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+a {
+  color: var(--pg-accent);
+}
+
+a:focus-visible {
+  outline: 2px solid var(--pg-focus);
+  outline-offset: 2px;
+}
+
+h1 {
+  font-size: 2rem;
+  line-height: 1.2;
+  margin: 2rem 0 1rem;
+}
+
+h2 {
+  font-size: 1.25rem;
+  margin: 2rem 0 0.5rem;
+}
+
+.lead {
+  font-size: 1.0625rem;
+}
+
+code {
+  font-family: var(--pg-code-font);
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+pre {
+  margin: 0.75rem 0;
+  padding: 12px 14px;
+  background: var(--pg-code-bg);
+  border: 1px solid var(--pg-border);
+  border-radius: 6px;
+  /* Long lines wrap: the page never scrolls sideways, at 375 pixels either. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* One click selects the whole prompt, ready to copy. */
+.prompt code {
+  user-select: all;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.9375rem;
+}
+
+caption {
+  text-align: left;
+  color: var(--pg-muted);
+  padding-bottom: 0.5rem;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--pg-border);
+  vertical-align: top;
+}
+
+th {
+  background: var(--pg-surface);
+}
+
+/* An agent's name and folder stay whole; the agent's description wraps instead. */
+td code {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+li + li {
+  margin-top: 0.25rem;
+}
+
+footer {
+  margin-top: 3rem;
+  padding-top: 16px;
+  padding-bottom: 32px;
+  border-top: 1px solid var(--pg-border);
+  color: var(--pg-muted);
+  font-size: 0.875rem;
+}

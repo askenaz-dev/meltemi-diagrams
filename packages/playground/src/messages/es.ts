@@ -286,6 +286,8 @@ export const es: typeof en = {
     text: (version) =>
       `**Meltemi Diagrams ${version}**: diagramas como código, un lienzo para componerlos y exportaciones para documentos, diapositivas y video.\n\nEl playground se ejecuta por completo en tu navegador. No hay cuenta, nada de lo que escribes se envía a ningún sitio y tu trabajo se queda en este navegador hasta que lo descargas.\n\nMeltemi Diagrams tiene licencia MIT. El playground incluye los componentes siguientes con sus propias licencias: las fuentes con la SIL Open Font License 1.1, elkjs con la Eclipse Public License 2.0 (código fuente en github.com/kieler/elkjs) y los demás según se indica.`,
     notices: "Leer todas las licencias (NOTICES.md)",
+    agents: "Dibujar con agentes de programación",
+    agentsPage: "es/agent-setup/",
   },
 
   continue: {
@@ -298,6 +300,7 @@ export const es: typeof en = {
     export: "Exportar todos los perfiles",
     catalog: "Generar el catálogo",
     init: "Empezar un proyecto nuevo a partir de una plantilla",
+    skill: "Dar la skill a tus agentes de programación",
   },
 
   exports: {

@@ -42,6 +42,7 @@ Commands:
   publish [folder]       Publish the catalog as a web page of the cloud service (--unpublish)
   projects               List your cloud projects: id, name, role, last change (--json)
   skill install [folder] Give a project's coding agents the skill that draws Meltemi diagrams
+  skill prompt           Print the prompt a coding agent follows to install the skill and prove it
 
 Every command takes --lang en|es: the language of its messages and of the words it adds to the
 files it writes (the project's "locale" otherwise; messages follow MELTEMI_LANG or LANG).
@@ -183,15 +184,24 @@ commands: 3 not signed in, or the service refused the token (run login).
 `,
     /** `init --help`: the template names, joined. */
     skill: `Usage: skill install [folder] [options]
+       skill prompt
 
-Writes the meltemi-diagrams skill, which teaches coding agents to draw, convert and export
-Meltemi diagrams, into the folder (the working folder by default) for Claude Code
-(.claude/skills/meltemi-diagrams) and Codex (.codex/skills/meltemi-diagrams). Its commands are
-written as this command line's (mdg validate, mdg preview). A copy already there is kept.
+install writes the meltemi-diagrams skill, which teaches coding agents to draw, convert and
+export Meltemi diagrams, into the folder (the working folder by default), in the folders the
+agents read: .claude/skills/meltemi-diagrams for Claude Code, .agents/skills/meltemi-diagrams for
+Codex, Cursor, GitHub Copilot, Gemini CLI, Devin Desktop (Windsurf) and any other agent that
+reads .agents/skills. Each folder is written once. Its commands are written as this command
+line's (mdg validate, mdg preview). A copy already there is kept. Only skill folders are written,
+never an instruction file of the project.
 
-Options:
-  --agent <name>     claude, codex or all (all by default)
-  --user             Install into your own folders (~/.claude, ~/.codex), for every project
+prompt prints the agent setup prompt: the text a coding agent reads and follows to install the
+skill and prove it draws, also at https://diagrams.meltemi.dev/agent-setup/prompt.md.
+
+Options for install:
+  --agent <names>    claude, codex, cursor, copilot, gemini, windsurf, devin, agents or all (all
+                     by default: both folders); several as a comma-separated list or repeated
+  --user             Install into your own folders (~/.claude/skills, ~/.agents/skills), for
+                     every project
   --force            Replace a copy already there (only the skill's own folder)
 `,
     init: (templates: string) => `Usage: init [folder] [options]
@@ -578,11 +588,14 @@ token was refused.
     subcommand: (given: string) =>
       given === ""
         ? "Name what to do: skill install [folder]."
-        : `There is no skill command \`${given}\`; the command is: skill install [folder].`,
+        : `There is no skill command \`${given}\`; the commands are: skill install [folder], skill prompt.`,
     tooMany: "Give one folder at most.",
     userWithFolder: "--user installs into your own folders; give no folder with it.",
     unknownAgent: (agent: string, agents: readonly string[]) =>
-      `There is no agent \`${agent}\`; the agents are ${agents.join(", ")}.`,
+      agent === ""
+        ? `An agent's name is empty; the agents are ${agents.join(", ")}.`
+        : `There is no agent \`${agent}\`; the agents are ${agents.join(", ")}.`,
+    promptArguments: "skill prompt takes no argument; it prints the agent setup prompt.",
     exists: (path: string) =>
       `${path} already holds the skill; add --force to replace it (only that folder).`,
   },

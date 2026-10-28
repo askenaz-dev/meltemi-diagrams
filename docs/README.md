@@ -53,7 +53,8 @@ canvas, animated, and exported for documents, slides, the web and video.
 - [Importing Mermaid](import/mermaid.md) and [PlantUML](import/plantuml.md): what each construct
   becomes.
 - [AI assistance](assist.md), optional.
-- [Drawing with coding agents](agents.md): the skill and `skill install`.
+- [Drawing with coding agents](agents.md): the one prompt that sets up a coding agent, the skill,
+  `skill install` and the agent setup page at `https://diagrams.meltemi.dev/agent-setup/`.
 - [Plugins](plugins.md) and [safety](security.md).
 
 ## Quality and project

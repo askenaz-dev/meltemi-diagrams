@@ -81,6 +81,18 @@ function exportedPaths(value: unknown): string[] {
     .flatMap(([, v]) => exportedPaths(v));
 }
 
+/** The command line's package. */
+const CLI_PACKAGE = "@meltemi/diagrams-cli";
+
+/**
+ * What the command line reads beside `dist` and must ship: the skill `skill install` writes and the
+ * prompt `skill prompt` prints (decisions 0056 and 0063).
+ */
+export const CLI_SHIPS = [
+  "package/skills/meltemi-diagrams/SKILL.md",
+  "package/agent-setup/prompt.md",
+];
+
 /** What is wrong with a packed tarball, if anything. */
 export function tarballProblems(files: ReadonlyMap<string, Buffer>, version: string): string[] {
   const problems: string[] = [];
@@ -105,6 +117,9 @@ export function tarballProblems(files: ReadonlyMap<string, Buffer>, version: str
   }
   if (!files.has("package/README.md")) problems.push("no README.md");
   if (!files.has("package/LICENSE")) problems.push("no LICENSE");
+  if (manifest.name === CLI_PACKAGE) {
+    for (const path of CLI_SHIPS) if (!files.has(path)) problems.push(`missing ${path}`);
+  }
   for (const path of files.keys()) {
     if (/^package\/(src|test)\//.test(path)) problems.push(`ships ${path}`);
   }
@@ -136,6 +151,11 @@ function journey(folder: string, cliBin: string): string[] {
   const version = mdg("--version");
   if (version !== TOOL_VERSION) throw new Error(`--version prints ${version}`);
   lines.push(`--version prints ${version}`);
+  const prompt = mdg("skill", "prompt").split("\n")[0];
+  if (prompt !== "# Set up Meltemi Diagrams for a coding agent") {
+    throw new Error(`skill prompt starts with ${prompt}`);
+  }
+  lines.push(`skill prompt: ${prompt}`);
   mdg("init", "shop", "--template", "purchase");
   lines.push(`init wrote ${readdirSync(join(folder, "shop"), { recursive: true }).length} entries`);
   const validated = mdg("validate", "shop");
@@ -178,6 +198,11 @@ function journey(folder: string, cliBin: string): string[] {
   exists("legacy.meltemi");
   const imported = mdg("validate", "legacy.meltemi");
   lines.push(`import of a Mermaid file: ${imported}`);
+  mdg("skill", "install", "shop", "--agent", "all");
+  for (const agentFolder of [".claude", ".agents"]) {
+    exists(`shop/${agentFolder}/skills/meltemi-diagrams/SKILL.md`);
+  }
+  lines.push("skill install --agent all: .claude/skills and .agents/skills");
   return lines;
 }
 

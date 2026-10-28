@@ -15,6 +15,7 @@ const SKIPPED = new Set([
   "archive",
   ".claude",
   ".codex",
+  ".agents",
 ]);
 
 function markdownFiles(folder: string): string[] {
@@ -115,6 +116,7 @@ const TRANSLATED = [
     "security",
     "compatibility",
     "performance",
+    "agents",
   ].map((name) => `docs/${name}.md`),
   ...["language", "tracks", "import"].flatMap((folder) =>
     readdirSync(join(REPO_ROOT, "docs", folder))
