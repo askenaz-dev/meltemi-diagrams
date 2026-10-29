@@ -20,6 +20,12 @@ export interface User extends UserProfile {
   readonly createdAt: Iso;
   /** The name of the person's publications (`[a-z0-9-]{3,30}`, unique); null until they choose one. */
   readonly handle: string | null;
+  /** Whether an administrator entitled the person to export without the Meltemi branding. */
+  readonly unbrandedExports: boolean;
+  /** The administrator who last set or revoked the entitlement; null until one did. */
+  readonly unbrandedExportsBy: string | null;
+  /** When the entitlement was last set or revoked; null until then. */
+  readonly unbrandedExportsAt: Iso | null;
 }
 
 /** What the project's link gives to anyone who holds it: nothing, reading, or reading and writing. */
@@ -527,6 +533,19 @@ export interface CloudStore {
    * with no row. Their own handle again is `"set"` and changes nothing.
    */
   setHandle(sub: string, handle: string): Promise<"set" | "taken" | "locked" | "missing">;
+  /** The person who holds a handle, or undefined when nobody does. */
+  userByHandle(handle: string): Promise<User | undefined>;
+
+  // ---- Entitlements --------------------------------------------------------------------------
+
+  /**
+   * Entitles the person to export without the Meltemi branding, or revokes it, recording the
+   * administrator and the time, in one statement: `"missing"` for a person with no row, who is
+   * then not written.
+   */
+  setUnbrandedExports(sub: string, on: boolean, by: string, at: Iso): Promise<"set" | "missing">;
+  /** The people entitled to export without the branding, the earliest grant first. */
+  entitledUsers(): Promise<User[]>;
 
   // ---- Publications ------------------------------------------------------------------------
 

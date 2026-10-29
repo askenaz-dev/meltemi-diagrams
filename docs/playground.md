@@ -41,36 +41,37 @@ builds the site, serves it on `127.0.0.1` and drives it in the installed Edge or
 
 ## What it does
 
-| Area     | In the playground                                                                                                                                                                                                                                                                                                                                  |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Projects | The explorer lists the project's folders and diagrams and makes, renames, moves and deletes them, with the imports that follow a move ([the explorer](#the-explorer)); **New project** starts from the `init` templates, shown as cards; a project `.zip` is imported and exported as a whole. The project compiler is the CLI's and the editor's. |
-| Code     | Highlighting, line numbers, diagnostics underlined and listed with their lines and quick fixes, completion, hover, formatting, rename and go to definition across files; the pane folds to a rail to give the canvas the width ([the code pane](#the-code-pane)).                                                                                  |
-| Canvas   | The canvas of VS Code: palette and relation tool, selection, moves, routes, labels, the style strip and inspector, the theme panel, minimap, grid and snapping, layout actions, sequence and C4 tools, effects and stories with their timeline. Every gesture is an edit of the text.                                                              |
-| Undo     | One history per file for typing, canvas edits, fixes, formatting and renames, and moves of files with the imports that follow them; Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y anywhere in the page. In a cloud project it covers your own edits only.                                                                                                        |
-| Import   | Mermaid, PlantUML and Markdown, pasted or from a file, into a new `.meltemi` file, with the importer's findings and its report.                                                                                                                                                                                                                    |
-| Export   | SVG, animated SVG, PNG, PDF, the HTML player, GIF, WebM and MP4, and the file's export profiles; the source file, the project `.zip`, the model JSON and the HTML catalog.                                                                                                                                                                         |
-| Share    | A link with the project in the address; for a cloud project, its own short link and who may open it ([sharing a project](#sharing-a-project)).                                                                                                                                                                                                     |
-| Keep     | The project stays in the browser between visits.                                                                                                                                                                                                                                                                                                   |
-| Account  | Optional, only when the cloud service serves the page: sign in with GitHub or Google through the Meltemi identity service, and make API tokens ([the account](#the-account)).                                                                                                                                                                      |
-| Cloud    | Signed in: projects in your account that open on every device, merge what you edit offline, keep versions and show a preview ([projects in the cloud](#projects-in-the-cloud)).                                                                                                                                                                    |
-| Together | A cloud project open in several places shows who is here, where their carets and selections are, and what they have selected on the canvas; everyone types at once ([working together](#working-together)).                                                                                                                                        |
-| View     | The link of a shared project opens it to look at, play and export, signed in or not, and to copy ([viewing a shared project](#viewing-a-shared-project)).                                                                                                                                                                                          |
-| Publish  | A cloud project's catalog as a web page at an address of its own ([publishing a project](#publishing-a-project)).                                                                                                                                                                                                                                  |
-| Language | English and Spanish: the page follows the browser's language until the globe menu in the header chooses one.                                                                                                                                                                                                                                       |
+| Area     | In the playground                                                                                                                                                                                                                                                                                                                                                                         |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Projects | The explorer lists the project's folders and diagrams and makes, renames, moves and deletes them, with the imports that follow a move ([the explorer](#the-explorer)); **New project** starts from the `init` templates, shown as cards; a project `.zip` is imported and exported as a whole. The project compiler is the CLI's and the editor's.                                        |
+| Code     | Highlighting, line numbers, diagnostics underlined and listed with their lines and quick fixes, completion, hover, formatting, rename and go to definition across files; the pane folds to a rail to give the canvas the width ([the code pane](#the-code-pane)).                                                                                                                         |
+| Canvas   | The canvas of VS Code: palette and relation tool, selection, moves, routes, labels, the style strip and inspector, the theme panel, minimap, grid and snapping, layout actions, sequence and C4 tools, effects and stories with their timeline. Every gesture is an edit of the text. The properties panel folds to a rail like the code ([the properties panel](#the-properties-panel)). |
+| Undo     | One history per file for typing, canvas edits, fixes, formatting and renames, and moves of files with the imports that follow them; Ctrl+Z, Ctrl+Shift+Z and Ctrl+Y anywhere in the page. In a cloud project it covers your own edits only.                                                                                                                                               |
+| Import   | Mermaid, PlantUML and Markdown, pasted or from a file, into a new `.meltemi` file, with the importer's findings and its report.                                                                                                                                                                                                                                                           |
+| Export   | SVG, animated SVG, PNG, PDF, the HTML player, GIF, WebM and MP4, and the file's export profiles; the source file, the project `.zip`, the model JSON and the HTML catalog.                                                                                                                                                                                                                |
+| Share    | A link with the project in the address; for a cloud project, its own short link and who may open it ([sharing a project](#sharing-a-project)).                                                                                                                                                                                                                                            |
+| Keep     | The project stays in the browser between visits.                                                                                                                                                                                                                                                                                                                                          |
+| Account  | Optional, only when the cloud service serves the page: sign in with GitHub or Google through the Meltemi identity service, and make API tokens ([the account](#the-account)).                                                                                                                                                                                                             |
+| Cloud    | Signed in: projects in your account that open on every device, merge what you edit offline, keep versions and show a preview ([projects in the cloud](#projects-in-the-cloud)).                                                                                                                                                                                                           |
+| Together | A cloud project open in several places shows who is here, where their carets and selections are, and what they have selected on the canvas; everyone types at once ([working together](#working-together)).                                                                                                                                                                               |
+| View     | The link of a shared project opens it to look at, play and export, signed in or not, and to copy ([viewing a shared project](#viewing-a-shared-project)).                                                                                                                                                                                                                                 |
+| Publish  | A cloud project's catalog as a web page at an address of its own ([publishing a project](#publishing-a-project)).                                                                                                                                                                                                                                                                         |
+| Language | English and Spanish: the page follows the browser's language until the globe menu in the header chooses one.                                                                                                                                                                                                                                                                              |
 
 ### Keys of the code
 
-| Key                          | Does                                                                     |
-| ---------------------------- | ------------------------------------------------------------------------ |
-| Ctrl+Space                   | Suggestions (they also open as a word starts)                            |
-| Ctrl+.                       | Quick fixes                                                              |
-| Shift+Alt+F                  | Format the file                                                          |
-| F2                           | Rename the id under the caret across the project                         |
-| F12, Ctrl+click              | Go to the definition                                                     |
-| Tab, Shift+Tab               | Indent, unindent; Escape then Tab moves to the next control              |
-| Ctrl+Z, Ctrl+Shift+Z, Ctrl+Y | Undo and redo, in the code and on the canvas                             |
-| Ctrl+S                       | Keep the project in the browser now; in a cloud project, send what waits |
-| Ctrl+J                       | Fold the code pane to a rail, or unfold it, from anywhere in the page    |
+| Key                          | Does                                                                         |
+| ---------------------------- | ---------------------------------------------------------------------------- |
+| Ctrl+Space                   | Suggestions (they also open as a word starts)                                |
+| Ctrl+.                       | Quick fixes                                                                  |
+| Shift+Alt+F                  | Format the file                                                              |
+| F2                           | Rename the id under the caret across the project                             |
+| F12, Ctrl+click              | Go to the definition                                                         |
+| Tab, Shift+Tab               | Indent, unindent; Escape then Tab moves to the next control                  |
+| Ctrl+Z, Ctrl+Shift+Z, Ctrl+Y | Undo and redo, in the code and on the canvas                                 |
+| Ctrl+S                       | Keep the project in the browser now; in a cloud project, send what waits     |
+| Ctrl+J                       | Fold the code pane to a rail, or unfold it, from anywhere in the page        |
+| Ctrl+Alt+B                   | Fold the properties panel to a rail, or unfold it, from anywhere in the page |
 
 On Apple systems, Cmd takes the place of Ctrl. The canvas keeps its own keys (`docs/editor.md`),
 and the explorer its own ([the explorer](#the-explorer)).
@@ -96,6 +97,24 @@ five percent), and the page remembers the share.
   selection is in the code when the pane unfolds.
 - **Narrow screens.** The code is the **Code** tab, whole, whatever is remembered; there Ctrl+J
   shows the Code tab, or the Canvas tab when the code is shown.
+
+### The properties panel
+
+The canvas's properties panel, at its right, folds the same way. The button at the right of its
+head, the toolbar's **Show the properties** toggle or Ctrl+Alt+B (Cmd+Alt+B) fold it to a 36 px
+rail, and the canvas takes the width without changing its zoom or its place; the rail's button, the
+toggle or Ctrl+Alt+B again unfold it and give it the focus. The page remembers the fold with the
+canvas's other choices, and a first visit on a screen narrower than 1100 pixels starts with the
+rail, as the explorer does. Ctrl+Alt+B works from the code and from the canvas, not from a field
+(the panel's own, the explorer's rename box), where the head's button does it; on a Mac the page
+keeps Cmd+Option+B from opening the browser's bookmarks. On a narrow screen the panel or its rail
+stays as remembered inside the **Canvas** tab, and Ctrl+Alt+B folds it there without changing the
+tab.
+
+**Tooltips.** Every icon button of the page and of the canvas says what it does to assistive
+technology and, when the pointer rests on it for a moment, shows its name with its key in
+parentheses ("Undo (Ctrl+Z)", "Hide the code (Ctrl+J)"); the explorer, the code pane and the
+properties each have their own picture.
 
 ## The explorer
 
@@ -150,6 +169,7 @@ diagrams, as an editor's explorer lists them.
 | Shift+F10           | The row's menu                                                  |
 | Ctrl+B              | Hide or show the explorer, from anywhere in the page            |
 | Ctrl+J              | Fold or unfold the code pane, from anywhere in the page         |
+| Ctrl+Alt+B          | Fold or unfold the properties panel, from anywhere in the page  |
 | Ctrl+Shift+E        | Go to the explorer, from anywhere in the page                   |
 
 ### The project switcher
@@ -238,6 +258,17 @@ the controls of the HTML player and the headings of the catalog, whose pages car
 the catalog section too; **Download → Catalog** uses the project's language
 ([projects](language/projects.md#language-of-exports)).
 
+**Without the Meltemi branding.** An account that an administrator entitled
+([entitlements](cloud.md#entitlements)), and every administrator, finds **Export without the Meltemi
+branding** under **Theme**, for every format: checked, the pictures leave out the strip at the foot
+of the sheet (the Meltemi mark, the wordmark and the diagram's title), and the message after the
+download ends with "Without the Meltemi branding." The catalog button of the same dialog follows
+the box for the catalog's pictures, while its footer still names the tool. The box starts unchecked
+each time the dialog opens, and the file's profiles and **Download → Catalog** keep the theme's
+frame. Anyone else, and a static server, has no such box. It is a convenience, not a lock: a theme
+with `frame none`, or the `editorial` themes, export without the brand for everybody
+([themes](language/svg-export.md#frame)).
+
 ## Language
 
 The page speaks English and Spanish. It follows the browser's language until the globe menu at the
@@ -283,7 +314,8 @@ The account is optional, and it belongs to the [cloud service](cloud.md), not to
 offers it only when the Worker of `packages/cloud` serves it. Served by a static server, such as
 `pnpm preview`, nothing changes. When it starts the page asks its own origin, once, who is signed
 in. A static server answers with the `{"user":null}` that the build wrote; any other answer the page
-cannot use, or none at all, also means that nobody is signed in, silently.
+cannot use, or none at all, also means that nobody is signed in, silently. Since the page asks once,
+something an administrator grants your account shows at the next load.
 
 **Signed out**, the end of the header holds a **Sign in** link. It goes to the identity service,
 `id.meltemi.dev`, and brings you back to the page you were on; before leaving, the page keeps your
@@ -309,14 +341,14 @@ left and the one chosen beside it, or, on a narrow screen, a sheet over the whol
 sections as a strip of tabs above. The arrows, Home and End move between the sections; Escape and
 the close button return to the page.
 
-| Section         | Holds                                                                                                                                                                                      |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Profile**     | Your picture and name, the emails of your sign-ins, the publishing handle (3 to 30 lowercase letters, digits or hyphens; it cannot change while a page is published under it) and Sign out |
-| **Sign-ins**    | GitHub and Google as you sign in with them: the account, whether the provider verified its email, when it was linked; Unlink, after a question, while another one is left; Link the other  |
-| **Devices**     | Where you are signed in, this device marked; Sign out of one device or of all the others, after a question                                                                                 |
-| **API tokens**  | The tokens that let the command line and scripts act as you (below)                                                                                                                        |
-| **Usage**       | Your projects and storage against their limits, and the limits of a project's files, size and versions and of an image                                                                     |
-| **Danger zone** | Deleting the account: what it removes, and the way to the identity service's page where you confirm it                                                                                     |
+| Section         | Holds                                                                                                                                                                                                                                                                                                                         |
+| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Profile**     | Your picture and name, the emails of your sign-ins, the publishing handle (3 to 30 lowercase letters, digits or hyphens; it cannot change while a page is published under it), your account id with **Copy** (what an administrator asks you for), whether your account may export without the Meltemi branding, and Sign out |
+| **Sign-ins**    | GitHub and Google as you sign in with them: the account, whether the provider verified its email, when it was linked; Unlink, after a question, while another one is left; Link the other                                                                                                                                     |
+| **Devices**     | Where you are signed in, this device marked; Sign out of one device or of all the others, after a question                                                                                                                                                                                                                    |
+| **API tokens**  | The tokens that let the command line and scripts act as you (below)                                                                                                                                                                                                                                                           |
+| **Usage**       | Your projects and storage against their limits, and the limits of a project's files, size and versions and of an image                                                                                                                                                                                                        |
+| **Danger zone** | Deleting the account: what it removes, and the way to the identity service's page where you confirm it                                                                                                                                                                                                                        |
 
 Sign-ins and Devices are what the identity service holds; the page asks its own origin, whose Worker
 asks the identity service on your behalf ([the identity data](cloud.md#the-identity-data)). When the

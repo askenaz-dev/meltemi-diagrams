@@ -41,3 +41,5 @@ places themes first in the precedence chain, before project rules and explicit s
   `<defs>` block for them.
 - Themes are shared through imports (decision 0010) and the project's default theme (decision 0013).
 - `brand/` holds assets derived from the Meltemi identity, under that project's licence.
+- [Decision 0061](0061-unbranded-exports.md) lets an export leave the frame out by request,
+  whatever the theme says, for the accounts an administrator entitles in the hosted page.

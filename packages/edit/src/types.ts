@@ -531,7 +531,13 @@ export type EditOperation =
       readonly diagram: string;
       readonly target: string;
       readonly targetKind: "event" | "participant";
+      /**
+       * Pixels; null or 0 removes the statement. A `gap` may be negative between two
+       * participants; a `space` and a `gap` on the outer side of the first or last participant may not.
+       */
       readonly amount: number | null;
+      /** The side: `before` (the default, never written) or `after`. */
+      readonly side?: "before" | "after";
     }
   | {
       /**
@@ -542,7 +548,28 @@ export type EditOperation =
       readonly diagram: string;
       readonly statement: string;
       readonly after?: string;
-      readonly inside?: { readonly fragment: string; readonly branch: number };
+      /** First in a fragment's branch, or last in a call's block (created when it has none). */
+      readonly inside?:
+        { readonly fragment: string; readonly branch: number } | { readonly message: string };
+    }
+  | {
+      /**
+       * Sequence diagrams: moves the consecutive events right after a call into its block,
+       * creating the block when it has none; their text moves whole, comments included.
+       */
+      readonly kind: "nestInCall";
+      readonly diagram: string;
+      readonly call: string;
+      readonly events: readonly string[];
+    }
+  | {
+      /**
+       * Sequence diagrams: moves the events of a call's block out after the call, each `return`
+       * answering it written as a reply; the block goes when only events were in it.
+       */
+      readonly kind: "unnestCall";
+      readonly diagram: string;
+      readonly call: string;
     }
   | {
       /** Sequence diagrams: wraps consecutive sibling events in a new fragment. */

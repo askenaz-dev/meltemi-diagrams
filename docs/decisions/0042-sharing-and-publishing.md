@@ -78,3 +78,5 @@ API with the cookie attached. User-authored content therefore cannot live under 
   owner alone and never logged. API tokens and approval codes stay hash-only.
 - The playground gains a share dialog, a read-only mode and the publish action; the command line
   has `mdg publish` (the `cli-cloud` change), which uses the same routes.
+- [Decision 0061](0061-unbranded-exports.md) gives the administrators a second action beside the
+  takedown: entitling an account to export without the Meltemi branding.

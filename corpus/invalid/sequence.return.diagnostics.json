@@ -1,0 +1,42 @@
+[
+  {
+    "code": "sequence.return",
+    "severity": "error",
+    "message": "`pay` already returned; move this event before the `return`.",
+    "range": {
+      "start": {
+        "offset": 269,
+        "line": 8,
+        "column": 5
+      },
+      "end": {
+        "offset": 292,
+        "line": 8,
+        "column": 28
+      }
+    },
+    "hints": [],
+    "related": []
+  },
+  {
+    "code": "sequence.return",
+    "severity": "error",
+    "message": "`return` answers a call: write it inside the call's block.",
+    "range": {
+      "start": {
+        "offset": 299,
+        "line": 10,
+        "column": 3
+      },
+      "end": {
+        "offset": 305,
+        "line": 10,
+        "column": 9
+      }
+    },
+    "hints": [
+      "Write it inside the call's block: `a -> b: \"Pay\" { return \"OK\" }`."
+    ],
+    "related": []
+  }
+]

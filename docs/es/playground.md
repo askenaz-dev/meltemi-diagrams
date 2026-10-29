@@ -46,36 +46,37 @@ compila el sitio, lo sirve en `127.0.0.1` y lo maneja en el Edge o el Chrome ins
 
 ## Lo que hace
 
-| Área      | En el playground                                                                                                                                                                                                                                                                                                                                                                                                         |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Proyectos | El explorador lista las carpetas y los diagramas del proyecto y los crea, les cambia el nombre, los mueve y los elimina, con las importaciones que siguen a un movimiento ([el explorador](#el-explorador)); **Nuevo proyecto** parte de las plantillas de `init`, mostradas como tarjetas; el `.zip` de un proyecto se importa y se exporta entero. El compilador de proyectos es el mismo que usan la CLI y el editor. |
-| Código    | Resaltado, números de línea, diagnósticos subrayados y listados con sus líneas y correcciones rápidas, autocompletado, información al pasar el puntero, formato, cambio de nombre e ir a la definición entre archivos; el panel se pliega en un riel para darle el ancho al lienzo ([el panel del código](#el-panel-del-código)).                                                                                        |
-| Lienzo    | El lienzo de VS Code: paleta y herramienta de relación, selección, movimientos, rutas, etiquetas, la barra de estilo y el inspector, el panel del tema, minimapa, cuadrícula y ajuste a la cuadrícula, acciones de disposición, herramientas de secuencia y C4, efectos e historias con su línea de tiempo. Cada gesto es una edición del texto.                                                                         |
-| Deshacer  | Un historial por archivo para lo que escribes, las ediciones del lienzo, las correcciones, el formato y los cambios de nombre, y los movimientos de archivos con las importaciones que los siguen; Ctrl+Z, Ctrl+Mayús+Z y Ctrl+Y en cualquier parte de la página. En un proyecto en la nube cubre solo tus propias ediciones.                                                                                            |
-| Importar  | Mermaid, PlantUML y Markdown, pegados o desde un archivo, a un nuevo archivo `.meltemi`, con los hallazgos del importador y su informe.                                                                                                                                                                                                                                                                                  |
-| Exportar  | SVG, SVG animado, PNG, PDF, el reproductor HTML, GIF, WebM y MP4, y los perfiles de exportación del archivo; el archivo fuente, el `.zip` del proyecto, el JSON del modelo y el catálogo HTML.                                                                                                                                                                                                                           |
-| Compartir | Un enlace con el proyecto en la dirección; para un proyecto en la nube, su propio enlace corto y quién puede abrirlo ([compartir un proyecto](#compartir-un-proyecto)).                                                                                                                                                                                                                                                  |
-| Conservar | El proyecto se queda en el navegador entre visitas.                                                                                                                                                                                                                                                                                                                                                                      |
-| Cuenta    | Opcional, solo cuando el servicio en la nube sirve la página: iniciar sesión con GitHub o Google mediante el servicio de identidad de Meltemi, y crear tokens de API ([la cuenta](#la-cuenta)).                                                                                                                                                                                                                          |
-| Nube      | Con la sesión iniciada: proyectos en tu cuenta que se abren en todos los dispositivos, combinan lo que editas sin conexión, guardan versiones y muestran una vista previa ([proyectos en la nube](#proyectos-en-la-nube)).                                                                                                                                                                                               |
-| Juntos    | Un proyecto en la nube abierto en varios sitios muestra quién está, dónde están sus cursores y selecciones y qué han seleccionado en el lienzo; todos escriben a la vez ([trabajar juntos](#trabajar-juntos)).                                                                                                                                                                                                           |
-| Ver       | El enlace de un proyecto compartido lo abre para mirarlo, reproducirlo y exportarlo, con la sesión iniciada o sin ella, y para copiarlo ([ver un proyecto compartido](#ver-un-proyecto-compartido)).                                                                                                                                                                                                                     |
-| Publicar  | El catálogo de un proyecto en la nube como página web en una dirección propia ([publicar un proyecto](#publicar-un-proyecto)).                                                                                                                                                                                                                                                                                           |
-| Idioma    | Inglés y español: la página sigue el idioma del navegador hasta que se elige uno en el menú del globo de la cabecera.                                                                                                                                                                                                                                                                                                    |
+| Área      | En el playground                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Proyectos | El explorador lista las carpetas y los diagramas del proyecto y los crea, les cambia el nombre, los mueve y los elimina, con las importaciones que siguen a un movimiento ([el explorador](#el-explorador)); **Nuevo proyecto** parte de las plantillas de `init`, mostradas como tarjetas; el `.zip` de un proyecto se importa y se exporta entero. El compilador de proyectos es el mismo que usan la CLI y el editor.                                            |
+| Código    | Resaltado, números de línea, diagnósticos subrayados y listados con sus líneas y correcciones rápidas, autocompletado, información al pasar el puntero, formato, cambio de nombre e ir a la definición entre archivos; el panel se pliega en un riel para darle el ancho al lienzo ([el panel del código](#el-panel-del-código)).                                                                                                                                   |
+| Lienzo    | El lienzo de VS Code: paleta y herramienta de relación, selección, movimientos, rutas, etiquetas, la barra de estilo y el inspector, el panel del tema, minimapa, cuadrícula y ajuste a la cuadrícula, acciones de disposición, herramientas de secuencia y C4, efectos e historias con su línea de tiempo. Cada gesto es una edición del texto. El panel de propiedades se pliega en un riel como el código ([el panel de propiedades](#el-panel-de-propiedades)). |
+| Deshacer  | Un historial por archivo para lo que escribes, las ediciones del lienzo, las correcciones, el formato y los cambios de nombre, y los movimientos de archivos con las importaciones que los siguen; Ctrl+Z, Ctrl+Mayús+Z y Ctrl+Y en cualquier parte de la página. En un proyecto en la nube cubre solo tus propias ediciones.                                                                                                                                       |
+| Importar  | Mermaid, PlantUML y Markdown, pegados o desde un archivo, a un nuevo archivo `.meltemi`, con los hallazgos del importador y su informe.                                                                                                                                                                                                                                                                                                                             |
+| Exportar  | SVG, SVG animado, PNG, PDF, el reproductor HTML, GIF, WebM y MP4, y los perfiles de exportación del archivo; el archivo fuente, el `.zip` del proyecto, el JSON del modelo y el catálogo HTML.                                                                                                                                                                                                                                                                      |
+| Compartir | Un enlace con el proyecto en la dirección; para un proyecto en la nube, su propio enlace corto y quién puede abrirlo ([compartir un proyecto](#compartir-un-proyecto)).                                                                                                                                                                                                                                                                                             |
+| Conservar | El proyecto se queda en el navegador entre visitas.                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| Cuenta    | Opcional, solo cuando el servicio en la nube sirve la página: iniciar sesión con GitHub o Google mediante el servicio de identidad de Meltemi, y crear tokens de API ([la cuenta](#la-cuenta)).                                                                                                                                                                                                                                                                     |
+| Nube      | Con la sesión iniciada: proyectos en tu cuenta que se abren en todos los dispositivos, combinan lo que editas sin conexión, guardan versiones y muestran una vista previa ([proyectos en la nube](#proyectos-en-la-nube)).                                                                                                                                                                                                                                          |
+| Juntos    | Un proyecto en la nube abierto en varios sitios muestra quién está, dónde están sus cursores y selecciones y qué han seleccionado en el lienzo; todos escriben a la vez ([trabajar juntos](#trabajar-juntos)).                                                                                                                                                                                                                                                      |
+| Ver       | El enlace de un proyecto compartido lo abre para mirarlo, reproducirlo y exportarlo, con la sesión iniciada o sin ella, y para copiarlo ([ver un proyecto compartido](#ver-un-proyecto-compartido)).                                                                                                                                                                                                                                                                |
+| Publicar  | El catálogo de un proyecto en la nube como página web en una dirección propia ([publicar un proyecto](#publicar-un-proyecto)).                                                                                                                                                                                                                                                                                                                                      |
+| Idioma    | Inglés y español: la página sigue el idioma del navegador hasta que se elige uno en el menú del globo de la cabecera.                                                                                                                                                                                                                                                                                                                                               |
 
 ### Teclas del código
 
-| Tecla                        | Hace                                                                                       |
-| ---------------------------- | ------------------------------------------------------------------------------------------ |
-| Ctrl+Espacio                 | Sugerencias (también se abren al empezar una palabra)                                      |
-| Ctrl+.                       | Correcciones rápidas                                                                       |
-| Mayús+Alt+F                  | Dar formato al archivo                                                                     |
-| F2                           | Cambiar el nombre del id bajo el cursor en todo el proyecto                                |
-| F12, Ctrl+clic               | Ir a la definición                                                                         |
-| Tab, Mayús+Tab               | Aplicar sangría, quitar sangría; Esc y luego Tab pasa al siguiente control                 |
-| Ctrl+Z, Ctrl+Mayús+Z, Ctrl+Y | Deshacer y rehacer, en el código y en el lienzo                                            |
-| Ctrl+S                       | Guardar ahora el proyecto en el navegador; en un proyecto en la nube, enviar lo que espera |
-| Ctrl+J                       | Plegar el panel del código en un riel, o desplegarlo, desde cualquier parte de la página   |
+| Tecla                        | Hace                                                                                         |
+| ---------------------------- | -------------------------------------------------------------------------------------------- |
+| Ctrl+Espacio                 | Sugerencias (también se abren al empezar una palabra)                                        |
+| Ctrl+.                       | Correcciones rápidas                                                                         |
+| Mayús+Alt+F                  | Dar formato al archivo                                                                       |
+| F2                           | Cambiar el nombre del id bajo el cursor en todo el proyecto                                  |
+| F12, Ctrl+clic               | Ir a la definición                                                                           |
+| Tab, Mayús+Tab               | Aplicar sangría, quitar sangría; Esc y luego Tab pasa al siguiente control                   |
+| Ctrl+Z, Ctrl+Mayús+Z, Ctrl+Y | Deshacer y rehacer, en el código y en el lienzo                                              |
+| Ctrl+S                       | Guardar ahora el proyecto en el navegador; en un proyecto en la nube, enviar lo que espera   |
+| Ctrl+J                       | Plegar el panel del código en un riel, o desplegarlo, desde cualquier parte de la página     |
+| Ctrl+Alt+B                   | Plegar el panel de propiedades en un riel, o desplegarlo, desde cualquier parte de la página |
 
 En los sistemas de Apple, Cmd sustituye a Ctrl. El lienzo conserva sus propias teclas
 (`docs/editor.md`), y el explorador las suyas ([el explorador](#el-explorador)).
@@ -102,6 +103,25 @@ mueven un cinco por ciento), y la página recuerda la proporción.
 - **Pantallas estrechas.** El código es la pestaña **Código**, entera, se recuerde lo que se
   recuerde; allí Ctrl+J muestra la pestaña Código, o la pestaña Lienzo cuando el código está a la
   vista.
+
+### El panel de propiedades
+
+El panel de propiedades del lienzo, a su derecha, se pliega del mismo modo. El botón a la derecha
+de su cabecera, el botón **Mostrar las propiedades** de la barra de herramientas o Ctrl+Alt+B
+(Cmd+Alt+B) lo pliegan en un riel de 36 px, y el lienzo toma el ancho sin cambiar su zoom ni su
+posición; el botón del riel, el de la barra o Ctrl+Alt+B otra vez lo despliegan y le dan el foco.
+La página recuerda el pliegue con las demás elecciones del lienzo, y una primera visita en una
+pantalla de menos de 1100 píxeles de ancho empieza con el riel, como el explorador. Ctrl+Alt+B
+funciona desde el código y desde el lienzo, no desde un campo (los del panel, el cuadro de cambio
+de nombre del explorador), donde lo hace el botón de la cabecera; en un Mac la página evita que
+Cmd+Opción+B abra los marcadores del navegador. En una pantalla estrecha el panel o su riel quedan
+como se recuerdan dentro de la pestaña **Lienzo**, y Ctrl+Alt+B lo pliega allí sin cambiar de
+pestaña.
+
+**Descripciones emergentes.** Cada botón de icono de la página y del lienzo dice lo que hace a las
+tecnologías de asistencia y, cuando el puntero se detiene un momento sobre él, muestra su nombre
+con su tecla entre paréntesis ("Deshacer (Ctrl+Z)", "Ocultar el código (Ctrl+J)"); el explorador,
+el panel del código y las propiedades tienen cada uno su propio dibujo.
 
 ## El explorador
 
@@ -149,19 +169,20 @@ diagramas, como los lista el explorador de un editor.
   menos de 1100 píxeles empieza con el riel. En una pantalla estrecha el explorador es la primera de
   tres pestañas, **Archivos**, **Código** y **Lienzo**, y abrir un archivo muestra el código.
 
-| Tecla (en el árbol)        | Hace                                                                       |
-| -------------------------- | -------------------------------------------------------------------------- |
-| Arriba, Abajo, Inicio, Fin | Moverse entre filas; con Mayús, ampliar la selección                       |
-| Derecha, Izquierda         | Abrir una carpeta o entrar en ella; cerrarla o ir a la carpeta padre       |
-| Intro, Espacio             | Abrir el archivo, el diagrama o la historia; abrir o cerrar una carpeta    |
-| Una letra                  | Ir a la siguiente fila cuyo nombre empieza por ella                        |
-| F2                         | Cambiar el nombre en la fila: Intro lo guarda, Escape deja el anterior     |
-| Ctrl+D                     | Duplicar el archivo a su lado                                              |
-| Supr                       | Eliminar, después de una pregunta                                          |
-| Mayús+F10                  | El menú de la fila                                                         |
-| Ctrl+B                     | Ocultar o mostrar el explorador, desde cualquier parte de la página        |
-| Ctrl+J                     | Plegar o desplegar el panel del código, desde cualquier parte de la página |
-| Ctrl+Mayús+E               | Ir al explorador, desde cualquier parte de la página                       |
+| Tecla (en el árbol)        | Hace                                                                           |
+| -------------------------- | ------------------------------------------------------------------------------ |
+| Arriba, Abajo, Inicio, Fin | Moverse entre filas; con Mayús, ampliar la selección                           |
+| Derecha, Izquierda         | Abrir una carpeta o entrar en ella; cerrarla o ir a la carpeta padre           |
+| Intro, Espacio             | Abrir el archivo, el diagrama o la historia; abrir o cerrar una carpeta        |
+| Una letra                  | Ir a la siguiente fila cuyo nombre empieza por ella                            |
+| F2                         | Cambiar el nombre en la fila: Intro lo guarda, Escape deja el anterior         |
+| Ctrl+D                     | Duplicar el archivo a su lado                                                  |
+| Supr                       | Eliminar, después de una pregunta                                              |
+| Mayús+F10                  | El menú de la fila                                                             |
+| Ctrl+B                     | Ocultar o mostrar el explorador, desde cualquier parte de la página            |
+| Ctrl+J                     | Plegar o desplegar el panel del código, desde cualquier parte de la página     |
+| Ctrl+Alt+B                 | Plegar o desplegar el panel de propiedades, desde cualquier parte de la página |
+| Ctrl+Mayús+E               | Ir al explorador, desde cualquier parte de la página                           |
 
 ### El selector de proyectos
 
@@ -254,6 +275,17 @@ catálogo, cuyas páginas lo llevan como su `lang`. Empieza en el `"locale"` del
 inglés, y también se aplica a los perfiles del archivo y a la sección del catálogo; **Descargar →
 Catálogo** usa el idioma del proyecto ([proyectos](language/projects.md#idioma-de-las-exportaciones)).
 
+**Sin la marca de Meltemi.** Una cuenta que un administrador habilitó
+([habilitaciones](cloud.md#habilitaciones)), y todo administrador, encuentra **Exportar sin la marca
+de Meltemi** bajo **Tema**, para todos los formatos: marcada, las imágenes omiten la franja al pie
+de la hoja (el símbolo de Meltemi, el logotipo y el título del diagrama), y el mensaje tras la
+descarga termina con "Sin la marca de Meltemi." El botón del catálogo del mismo diálogo sigue a la
+casilla en las imágenes del catálogo, mientras su pie todavía nombra la herramienta. La casilla
+empieza sin marcar cada vez que se abre el diálogo, y los perfiles del archivo y **Descargar →
+Catálogo** conservan el marco del tema. Nadie más, ni un servidor estático, tiene esa casilla. Es
+una comodidad, no un candado: un tema con `frame none`, o los temas `editorial`, exportan sin la
+marca para todos ([temas](language/svg-export.md#marco)).
+
 ## Idioma
 
 La página habla inglés y español. Sigue el idioma del navegador hasta que en el menú del globo, al
@@ -305,7 +337,8 @@ la ofrece cuando la sirve el Worker de `packages/cloud`. Servida por un servidor
 `pnpm preview`, nada cambia. Al arrancar, la página le pregunta a su propio origen, una vez, quién
 ha iniciado sesión. Un servidor estático responde con el `{"user":null}` que escribió la
 compilación; cualquier otra respuesta que la página no pueda usar, o ninguna, también significa que
-nadie ha iniciado sesión, sin decir nada.
+nadie ha iniciado sesión, sin decir nada. Como la página pregunta una sola vez, lo que un
+administrador habilite en tu cuenta se ve en la siguiente carga.
 
 **Sin sesión iniciada**, el final de la cabecera tiene un enlace **Iniciar sesión**. Va al servicio
 de identidad, `id.meltemi.dev`, y te devuelve a la página en la que estabas; antes de salir, la
@@ -332,14 +365,14 @@ de secciones a la izquierda y la elegida a su lado, o, en una pantalla estrecha,
 la página con las secciones como una tira de pestañas arriba. Las flechas, Inicio y Fin pasan de una
 sección a otra; Escape y el botón de cerrar vuelven a la página.
 
-| Sección               | Contiene                                                                                                                                                                                                        |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Perfil**            | Tu foto y tu nombre, los correos de tus inicios de sesión, el alias de publicación (de 3 a 30 letras minúsculas, dígitos o guiones; no puede cambiar mientras haya una página publicada con él) y Cerrar sesión |
-| **Inicios de sesión** | GitHub y Google tal como inicias sesión con ellos: la cuenta, si el proveedor verificó su correo, cuándo se vinculó; Desvincular, tras una pregunta, mientras quede otro; Vincular el otro                      |
-| **Dispositivos**      | Dónde tienes la sesión iniciada, con este dispositivo marcado; cerrar la sesión de un dispositivo o de todos los demás, tras una pregunta                                                                       |
-| **Tokens de API**     | Los tokens que permiten que la línea de comandos y los scripts actúen como tú (más abajo)                                                                                                                       |
-| **Uso**               | Tus proyectos y tu almacenamiento frente a sus límites, y los límites de los archivos, el tamaño y las versiones de un proyecto y de una imagen                                                                 |
-| **Zona de peligro**   | Eliminar la cuenta: lo que borra, y el camino a la página del servicio de identidad donde lo confirmas                                                                                                          |
+| Sección               | Contiene                                                                                                                                                                                                                                                                                                                                              |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Perfil**            | Tu foto y tu nombre, los correos de tus inicios de sesión, el alias de publicación (de 3 a 30 letras minúsculas, dígitos o guiones; no puede cambiar mientras haya una página publicada con él), el identificador de tu cuenta con **Copiar** (lo que un administrador te pide), si tu cuenta puede exportar sin la marca de Meltemi, y Cerrar sesión |
+| **Inicios de sesión** | GitHub y Google tal como inicias sesión con ellos: la cuenta, si el proveedor verificó su correo, cuándo se vinculó; Desvincular, tras una pregunta, mientras quede otro; Vincular el otro                                                                                                                                                            |
+| **Dispositivos**      | Dónde tienes la sesión iniciada, con este dispositivo marcado; cerrar la sesión de un dispositivo o de todos los demás, tras una pregunta                                                                                                                                                                                                             |
+| **Tokens de API**     | Los tokens que permiten que la línea de comandos y los scripts actúen como tú (más abajo)                                                                                                                                                                                                                                                             |
+| **Uso**               | Tus proyectos y tu almacenamiento frente a sus límites, y los límites de los archivos, el tamaño y las versiones de un proyecto y de una imagen                                                                                                                                                                                                       |
+| **Zona de peligro**   | Eliminar la cuenta: lo que borra, y el camino a la página del servicio de identidad donde lo confirmas                                                                                                                                                                                                                                                |
 
 Inicios de sesión y Dispositivos son lo que guarda el servicio de identidad; la página le pregunta a
 su propio origen, cuyo Worker le pregunta al servicio de identidad en tu nombre

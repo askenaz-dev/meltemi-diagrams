@@ -360,6 +360,18 @@ const SEQUENCE = `diagram payment: sequence {
 }
 `;
 
+/** A call followed by what it causes, flat: Alt+N nests them. */
+const CALLS = `diagram payment: sequence {
+  actor customer "Customer"
+  participant api "API"
+  participant bank "Bank"
+
+  customer -> api: "Pay" as pay
+  api -> bank: "Authorize" as authorize
+  bank --> api: "OK" as approved
+}
+`;
+
 /** A note with an outline, one without, and a text, each attached to a box. */
 const FREE_NOTES = `diagram s: free {
   box api "API"
@@ -1622,10 +1634,152 @@ const tests: {
       assert.match((await page.locator(".inspector h2").textContent()) ?? "", /Diagram d/);
       assert.equal(await page.locator(".minimap").isVisible(), true);
       for (const button of await page.locator(".toolbar button").all()) {
-        assert.ok(await button.getAttribute("aria-label"), "every toolbar button has a label");
+        const label = await button.getAttribute("aria-label");
+        assert.ok(label, "every toolbar button has a label");
+        assert.ok(await button.getAttribute("title"), `${label} has a title`);
       }
       assert.equal(await page.locator(".stage").getAttribute("tabindex"), "0");
       await page.screenshot({ path: join(output, "canvas-light.png") });
+    },
+  },
+  {
+    name: "folds the properties to a rail from its head, keeps it, and unfolds from the rail",
+    async run(h) {
+      const page = h.page;
+      const aside = page.locator("#mdg-inspector");
+      const toggle = page.getByRole("button", { name: "Show the properties", exact: true });
+      const fold = page.getByRole("button", { name: "Hide the properties panel", exact: true });
+      const rail = page.getByRole("button", { name: "Show the properties panel", exact: true });
+      const transform = () =>
+        page.locator(".content").evaluate((e: HTMLElement) => e.style.transform);
+      const focused = () =>
+        page.evaluate(() => {
+          const e = document.activeElement;
+          return e?.id || e?.getAttribute("aria-label") || "";
+        });
+      // VS Code names no key for the fold: the three titles are the names alone.
+      assert.equal(await toggle.getAttribute("title"), "Show the properties");
+      assert.equal(await toggle.getAttribute("aria-keyshortcuts"), null);
+      assert.equal(await fold.getAttribute("title"), "Hide the properties panel");
+      assert.equal(await fold.getAttribute("aria-keyshortcuts"), null);
+      assert.equal(await fold.getAttribute("aria-expanded"), "true");
+      assert.equal(await fold.getAttribute("aria-controls"), "mdg-inspector");
+      assert.equal(await rail.isVisible(), false);
+      const motion = () =>
+        aside.evaluate((e) => {
+          const style = getComputedStyle(e);
+          return `${style.transitionProperty} ${style.transitionDuration}`;
+        });
+      assert.equal(await motion(), "width 0.22s");
+      const before = await transform();
+      await fold.click();
+      await h.settled();
+      assert.equal(await aside.getAttribute("data-collapsed"), "true");
+      await page.waitForTimeout(300);
+      assert.equal(Math.round((await aside.boundingBox())!.width), 36);
+      assert.equal(await rail.isVisible(), true);
+      assert.equal(await rail.getAttribute("aria-expanded"), "false");
+      assert.equal(await rail.getAttribute("aria-controls"), "mdg-inspector");
+      // The pointer rests where the rail's button now is: away, so its title is back.
+      await page.mouse.move(5, 400);
+      assert.equal(await rail.getAttribute("title"), "Show the properties panel");
+      assert.equal(await fold.isVisible(), false);
+      assert.equal(await toggle.getAttribute("aria-pressed"), "false");
+      assert.equal(await transform(), before, "the viewport stays");
+      assert.equal(await focused(), "Show the properties panel", "the rail has the focus");
+      await page.screenshot({ path: join(output, "inspector-rail.png") });
+      // A render while folded keeps the rail.
+      await h.type(h.text.replace('title "Checkout"', 'title "Checkout, folded"'));
+      assert.equal(await aside.getAttribute("data-collapsed"), "true");
+      assert.equal(await rail.isVisible(), true);
+      // The fold is kept over a reload.
+      await h.reload();
+      assert.equal(await aside.getAttribute("data-collapsed"), "true");
+      assert.equal(await toggle.getAttribute("aria-pressed"), "false");
+      // The rail unfolds the panel and gives it the focus.
+      await rail.click();
+      await h.settled();
+      assert.equal(await aside.getAttribute("data-collapsed"), "false");
+      assert.equal(await fold.getAttribute("aria-expanded"), "true");
+      assert.equal(await toggle.getAttribute("aria-pressed"), "true");
+      assert.equal(await focused(), "mdg-inspector", "the panel has the focus");
+      await page.waitForTimeout(300);
+      assert.equal(Math.round((await aside.boundingBox())!.width), 260);
+      // Folding from a field gives the focus to the rail's button.
+      await aside.getByRole("textbox", { name: "Title", exact: true }).focus();
+      await fold.click();
+      await h.settled();
+      assert.equal(await focused(), "Show the properties panel");
+      // The toolbar's toggle and the panel agree, both ways; the toolbar keeps the focus.
+      await toggle.click();
+      await h.settled();
+      assert.equal(await aside.getAttribute("data-collapsed"), "false");
+      assert.equal(await toggle.getAttribute("aria-pressed"), "true");
+      await toggle.click();
+      await h.settled();
+      assert.equal(await aside.getAttribute("data-collapsed"), "true");
+      assert.equal(await toggle.getAttribute("aria-pressed"), "false");
+      assert.equal(await focused(), "Show the properties");
+      // No document edit: the fold is the webview's own state.
+      assert.equal(actions(h), 0, "the fold writes nothing");
+      // Reduced motion: the fold is instant.
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      assert.equal(await motion(), "width 0s");
+      await page.emulateMedia({ reducedMotion: "no-preference" });
+      // A kept value that is not a boolean opens the panel, and the next fold writes a boolean.
+      await page.evaluate(() => {
+        const w = window as { __state?: Record<string, unknown> };
+        w.__state = { ...w.__state, inspector: "no" };
+      });
+      await h.reload();
+      assert.equal(await aside.getAttribute("data-collapsed"), "false");
+      assert.equal(await toggle.getAttribute("aria-pressed"), "true");
+      await fold.click();
+      await h.settled();
+      assert.equal(
+        await page.evaluate(
+          () => (window as { __state?: { inspector?: unknown } }).__state?.inspector,
+        ),
+        false,
+      );
+    },
+  },
+  {
+    name: "no properties rail while a story plays",
+    text: STORY,
+    async run(h) {
+      const page = h.page;
+      await page.getByRole("button", { name: "Hide the properties panel", exact: true }).click();
+      await h.settled();
+      const rail = page.getByRole("button", { name: "Show the properties panel", exact: true });
+      assert.equal(await rail.isVisible(), true);
+      const picker = page.getByRole("combobox", { name: "Story" });
+      await picker.waitFor({ state: "visible" });
+      await picker.selectOption("purchase");
+      await h.settled();
+      await page.getByRole("region", { name: "Story timeline" }).waitFor({ state: "visible" });
+      assert.equal(await rail.isVisible(), false);
+      assert.equal(await page.locator(".inspector").isVisible(), false);
+    },
+  },
+  {
+    name: "read-only: the properties fold and unfold, the fields stay disabled, nothing is written",
+    readOnly: true,
+    async run(h) {
+      const page = h.page;
+      const aside = page.locator("#mdg-inspector");
+      const sent = actions(h);
+      await page.getByRole("button", { name: "Hide the properties panel", exact: true }).click();
+      await h.settled();
+      assert.equal(await aside.getAttribute("data-collapsed"), "true");
+      await page.getByRole("button", { name: "Show the properties panel", exact: true }).click();
+      await h.settled();
+      assert.equal(await aside.getAttribute("data-collapsed"), "false");
+      assert.equal(
+        await aside.getByRole("textbox", { name: "Title", exact: true }).isDisabled(),
+        true,
+      );
+      assert.equal(actions(h), sent, "no action");
     },
   },
   {
@@ -2486,6 +2640,16 @@ const tests: {
         false,
       );
       assert.match((await panel.locator("h2").textContent()) ?? "", /Theme brand/);
+      // The theme panel folds with the properties, from its own head, and comes back with them.
+      await panel.getByRole("button", { name: "Hide the properties panel" }).click();
+      await h.settled();
+      assert.equal(await panel.isVisible(), false);
+      const rail = page.getByRole("button", { name: "Show the properties panel", exact: true });
+      assert.equal(await rail.isVisible(), true);
+      await rail.click();
+      await h.settled();
+      assert.equal(await panel.isVisible(), true);
+      assert.match((await panel.locator("h2").textContent()) ?? "", /Theme brand/);
       const accent = page.locator("#mdg-field-theme-accent");
       await accent.fill("#6A4FD0");
       await accent.press("Enter");
@@ -2679,6 +2843,109 @@ const tests: {
       await page.keyboard.up("Shift");
       await h.settled();
       assert.match(h.text, /\n {2}bank --> customer\n/);
+    },
+  },
+  {
+    name: "spaces participants: a short head drag writes a gap, Participant spacing writes spacing",
+    text: SEQUENCE,
+    async run(h) {
+      const page = h.page;
+      const order =
+        /actor customer "Customer"\n {2}participant api "API"\n {2}participant bank "Bank"/;
+      const drag = async (id: string, dx: number) => {
+        const head = await h.centre(id);
+        await page.mouse.move(head.x, head.y);
+        await page.mouse.down();
+        await page.mouse.move(head.x + dx, head.y, { steps: 4 });
+        await page.mouse.up();
+        await h.settled();
+      };
+      // Under the drag threshold: nothing is written.
+      const untouched = h.text;
+      await drag("bank", 2);
+      assert.equal(h.text, untouched);
+      // A short drag writes the gap before the head and keeps the order.
+      await drag("bank", 30);
+      assert.match(h.text, /\n {4}gap bank \d+\n/);
+      assert.match(h.text, order);
+      assert.match((await page.locator(".status").textContent()) ?? "", /Gap before bank: \d+/);
+      // Most of the way to `customer`, not past its centre: the heads need the room.
+      const customer = await h.centre("customer");
+      const api = await h.centre("api");
+      await drag("api", -Math.round((api.x - customer.x) * 0.7));
+      assert.match(h.text, /\n {4}gap api -\d+\n/);
+      assert.match(h.text, order);
+      assert.match((await page.locator(".status").textContent()) ?? "", /written, -?\d+ drawn/);
+      // Participant spacing, with nothing selected.
+      await h.focusStage();
+      await page.keyboard.press("Escape");
+      await h.settled();
+      const spacing = page.locator("#mdg-field-spacing");
+      await spacing.fill("56");
+      await spacing.press("Enter");
+      await h.settled();
+      assert.match(h.text, /\n {2}spacing 56\n/);
+      await page.screenshot({ path: join(output, "canvas-sequence-spacing.png") });
+    },
+  },
+  {
+    name: "nests a call with Alt+N, returns with Alt+R and unnests with Alt+Shift+N",
+    text: CALLS,
+    async run(h) {
+      const page = h.page;
+      const arrow = async (key: string) => {
+        const box = await page
+          .locator(`.content g[data-id="${key}"][data-role="relation"] polyline`)
+          .first()
+          .boundingBox();
+        assert.ok(box, `no arrow for ${key}`);
+        return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      };
+      const authorize = await arrow("authorize");
+      await page.mouse.click(authorize.x, authorize.y);
+      await h.settled();
+      const approved = await arrow("approved");
+      await page.keyboard.down("Shift");
+      await page.mouse.click(approved.x, approved.y);
+      await page.keyboard.up("Shift");
+      await h.settled();
+      assert.deepEqual([...h.session.selected].sort(), ["approved", "authorize"]);
+      await h.focusStage();
+      await page.keyboard.press("Alt+n");
+      await h.settled();
+      assert.match(
+        h.text,
+        /as pay \{\n {4}api -> bank: "Authorize" as authorize\n {4}bank --> api: "OK" as approved\n {2}\}/,
+      );
+      // The call is selected: Alt+R answers it at the end of its block.
+      assert.deepEqual(h.session.selected, ["pay"]);
+      await page.keyboard.press("Alt+r");
+      await h.settled();
+      assert.match(h.text, /as approved\n {4}return\n {2}\}/);
+      await page.screenshot({ path: join(output, "canvas-sequence-call.png") });
+      // A nested row is its own event.
+      const nested = await arrow("authorize");
+      await page.mouse.click(nested.x, nested.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["authorize"]);
+      // Dragging the call down moves its block with it.
+      const pay = await arrow("pay");
+      await page.mouse.move(pay.x, pay.y);
+      await page.mouse.down();
+      await page.mouse.move(pay.x, pay.y + 20, { steps: 4 });
+      await page.mouse.move(pay.x, pay.y + 28, { steps: 4 });
+      await page.mouse.up();
+      await h.settled();
+      assert.match(h.text, /space pay \d+/);
+      const moved = await arrow("authorize");
+      assert.ok(moved.y > nested.y + 10, "the block moved with its call");
+      await h.focusStage();
+      await page.keyboard.press("Alt+Shift+N");
+      await h.settled();
+      assert.match(
+        h.text,
+        /as pay\n {2}api -> bank: "Authorize" as authorize\n {2}bank --> api: "OK" as approved\n {2}api --> customer\n/,
+      );
     },
   },
   {
@@ -4573,6 +4840,20 @@ const tests: {
       });
       await page.mouse.move(5, 400);
       assert.equal(await zoomIn.getAttribute("title"), "Zoom in (+)");
+      assert.equal(await zoomIn.getAttribute("aria-keyshortcuts"), "Plus");
+      const node = page.locator('.toolbar button[data-tool="node"]');
+      assert.equal(await node.getAttribute("title"), "Node (N)");
+      assert.equal(await node.getAttribute("aria-label"), "Node: click on the canvas");
+      assert.equal(await node.getAttribute("aria-keyshortcuts"), "N");
+      const iconTool = page.locator('.toolbar button[data-tool="icon"]');
+      assert.equal(await iconTool.getAttribute("title"), "Icon (I)");
+      assert.equal(
+        await iconTool.getAttribute("aria-label"),
+        "Icon: find one for the selection or to place",
+      );
+      const layers = page.getByRole("button", { name: "Show the layers", exact: true });
+      assert.equal(await layers.getAttribute("title"), "Show the layers (L)");
+      assert.equal(await layers.getAttribute("aria-keyshortcuts"), "L");
       // Reduced motion: no transition, no transform.
       await page.emulateMedia({ reducedMotion: "reduce" });
       await arrow.click();
@@ -4967,7 +5248,9 @@ const tests: {
       const page = h.page;
       const arrow = page.locator('.toolbar .split-arrow[data-shapes="box"]');
       assert.equal(await arrow.isVisible(), true);
-      assert.equal(await arrow.getAttribute("aria-label"), "More shapes (F)");
+      assert.equal(await arrow.getAttribute("aria-label"), "More shapes");
+      assert.equal(await arrow.getAttribute("title"), "More shapes (F)");
+      assert.equal(await arrow.getAttribute("aria-keyshortcuts"), "F");
       await arrow.click();
       const grid = page.getByRole("dialog", { name: "Shapes" });
       assert.equal(await grid.isVisible(), true);
@@ -4978,10 +5261,8 @@ const tests: {
       const box = page.locator('.toolbar button[data-tool="box"]');
       assert.equal(await box.getAttribute("aria-pressed"), "true");
       assert.equal(await box.getAttribute("data-shape"), "hexagon");
-      assert.equal(
-        await box.getAttribute("aria-label"),
-        "Box, hexagon: click on the canvas, or press B",
-      );
+      assert.equal(await box.getAttribute("aria-label"), "Box, hexagon: click on the canvas");
+      assert.equal(await box.getAttribute("title"), "Box, hexagon (B)");
       // The ghost has the hexagon's size and outline; a click places one, in one edit.
       const at = await pageAt(h, "client", { x: 98, y: 224 }, 160, { x: 98, y: 126 });
       await page.mouse.move(at.x, at.y);
@@ -5264,7 +5545,8 @@ const tests: {
     async run(h) {
       const page = h.page;
       const arrow = page.locator(".toolbar .split-arrow[data-group-kinds]");
-      assert.equal(await arrow.getAttribute("aria-label"), "Group or container (G)");
+      assert.equal(await arrow.getAttribute("aria-label"), "Group or container");
+      assert.equal(await arrow.getAttribute("title"), "Group or container (G)");
       await arrow.click();
       const kinds = page.locator(".menu [role=menuitemradio]");
       assert.deepEqual(
@@ -5276,10 +5558,8 @@ const tests: {
       await page.locator('.menu [data-group-kind="container"]').click();
       const group = page.locator('.toolbar button[data-tool="group"]');
       assert.equal(await group.getAttribute("data-group-kind"), "container");
-      assert.equal(
-        await group.getAttribute("aria-label"),
-        "Container: click on the canvas, or press G",
-      );
+      assert.equal(await group.getAttribute("aria-label"), "Container: click on the canvas");
+      assert.equal(await group.getAttribute("title"), "Container (G)");
       // Right of the cache, where nothing is drawn.
       const width = analyzeDocument({ text: h.text }).diagrams[0]!.layout!.boxes!.get(
         "cache",
@@ -5714,7 +5994,8 @@ const tests: {
     async run(h) {
       const page = h.page;
       const arrow = page.locator('.toolbar .split-arrow[data-shapes="box"]');
-      assert.equal(await arrow.getAttribute("aria-label"), "Más formas (F)");
+      assert.equal(await arrow.getAttribute("aria-label"), "Más formas");
+      assert.equal(await arrow.getAttribute("title"), "Más formas (F)");
       assert.equal(
         await page.locator(".toolbar .split-arrow[data-arrow-kinds]").getAttribute("title"),
         "Tipos de flecha (R cambia)",
@@ -5756,7 +6037,7 @@ const tests: {
       assert.equal(await closed(grid), true);
       assert.equal(
         await page.locator('.toolbar button[data-tool="box"]').getAttribute("aria-label"),
-        "Caja, estrella: haz clic en el lienzo o presiona B",
+        "Caja, estrella: haz clic en el lienzo",
       );
     },
   },
@@ -5919,8 +6200,9 @@ const tests: {
     text: "",
     async run(h) {
       const page = h.page;
-      // A file without diagrams has neither the properties nor the tools of a drawing.
+      // A file without diagrams has neither the properties (nor their rail) nor the tools of a drawing.
       assert.equal(await page.locator(".inspector").isVisible(), false);
+      assert.equal(await page.locator(".inspector-rail button").isVisible(), false);
       assert.equal(await page.locator('.toolbar button[data-tool="box"]').isVisible(), false);
       // The diagram arrives (in the cloud, the room's files land after an empty project).
       await h.type(WIDE_SLIDE);
@@ -6173,13 +6455,15 @@ const tests: {
       assert.equal(await attribute(".stage", "aria-roledescription"), "lienzo de diagrama");
       assert.equal(await attribute(".minimap", "aria-label"), "Minimapa");
       const node = page.locator('.toolbar button[data-tool="node"]');
+      assert.equal(await node.getAttribute("aria-label"), "Nodo: haz clic en el lienzo");
+      assert.equal(await node.getAttribute("title"), "Nodo (N)");
+      // Shift is "Mayús" in Spanish titles, and Shift to assistive technology.
+      const fit = page.getByRole("button", { name: "Ajustar el diagrama a la vista", exact: true });
+      assert.equal(await fit.getAttribute("title"), "Ajustar el diagrama a la vista (Mayús+1)");
+      assert.equal(await fit.getAttribute("aria-keyshortcuts"), "Shift+1");
       assert.equal(
-        await node.getAttribute("aria-label"),
-        "Nodo: haz clic en el lienzo o presiona N",
-      );
-      assert.equal(
-        await node.getAttribute("title"),
-        "Nodo: haz clic en el lienzo o presiona N (N)",
+        await page.getByRole("button", { name: "Ocultar el panel de propiedades" }).isVisible(),
+        true,
       );
       for (const name of ["Alejar", "Acercar", "Mostrar la cuadrícula", "Exportar SVG"]) {
         assert.equal(await page.getByRole("button", { name, exact: true }).isVisible(), true, name);
@@ -6496,13 +6780,14 @@ const tests: {
       const inspector = page.getByRole("complementary", { name: "Properties, view only" });
       assert.equal(await inspector.isVisible(), true);
       assert.equal(await inspector.getAttribute("data-readonly"), "");
-      // The values are there to read; every control is disabled, so none is left to change.
+      // The values are there to read; every control is disabled, so none is left to change. The
+      // fold buttons stay: folding writes nothing.
       const label = page.locator("#mdg-field-label");
       assert.equal(await label.inputValue(), "API");
       assert.equal(await label.isDisabled(), true);
       const live = () =>
         inspector
-          .locator("input, select, textarea, button")
+          .locator("input, select, textarea, button:not(.fold)")
           .evaluateAll((els) =>
             els
               .filter((e) => !(e as HTMLInputElement).disabled)
@@ -6559,7 +6844,7 @@ const tests: {
       // The toolbar keeps what looks and loses what writes.
       for (const name of [
         ...["Zoom out", "Zoom in", "Fit the diagram", "Show the grid", "Show the minimap"],
-        ...["Show the properties", "Show the layers (L)", "Export SVG"],
+        ...["Show the properties", "Show the layers", "Export SVG"],
       ]) {
         assert.equal(await page.getByRole("button", { name, exact: true }).isVisible(), true, name);
       }
@@ -9322,7 +9607,8 @@ const tests: {
       const words = "Sticky note: click to add one, or drag it onto the canvas";
       // The button says what it does and shows a card of the theme's paper.
       assert.equal(await tools.button.getAttribute("aria-label"), words);
-      assert.equal(await tools.button.getAttribute("title"), `${words} (S)`);
+      // Titled short, as the palette's tools are; the name says what a click does.
+      assert.equal(await tools.button.getAttribute("title"), "Sticky note (S)");
       assert.equal(await tools.button.getAttribute("aria-keyshortcuts"), "S");
       assert.equal(await tools.button.locator("svg").getAttribute("data-sticky"), "#fff59d");
       assert.equal(await tools.arrow.getAttribute("title"), "Colour of new sticky notes");
@@ -9358,6 +9644,7 @@ const tests: {
         await tools.button.getAttribute("aria-label"),
         "Sticky note, pink: click to add one, or drag it onto the canvas",
       );
+      assert.equal(await tools.button.getAttribute("title"), "Sticky note, pink (S)");
       assert.equal(await tools.button.locator("svg").getAttribute("data-sticky"), "#f8bbd0");
       // Dragged onto the canvas below the group, at (400, 420).
       const drop = await strokeAt(h, { x: 400, y: 420 });
@@ -10000,7 +10287,8 @@ const tests: {
     async run(h) {
       const page = h.page;
       const arrow = page.locator(".toolbar .split-arrow[data-group-kinds]");
-      assert.equal(await arrow.getAttribute("aria-label"), "Group, container, column or row (G)");
+      assert.equal(await arrow.getAttribute("aria-label"), "Group, container, column or row");
+      assert.equal(await arrow.getAttribute("title"), "Group, container, column or row (G)");
       await arrow.click();
       const kinds = page.locator(".menu [role=menuitemradio]");
       assert.deepEqual(
@@ -10015,10 +10303,9 @@ const tests: {
       await page.locator('.menu [data-group-kind="column"]').click();
       const group = page.locator('.toolbar button[data-tool="group"]');
       assert.equal(await group.getAttribute("data-group-kind"), "column");
-      assert.equal(
-        await group.getAttribute("aria-label"),
-        "Column: click on the canvas, or press G",
-      );
+      // Named without its key, which the title and aria-keyshortcuts carry.
+      assert.equal(await group.getAttribute("aria-label"), "Column: click on the canvas");
+      assert.equal(await group.getAttribute("title"), "Column (G)");
       const spot = await strokeAt(h, { x: 680, y: 140 });
       await page.mouse.click(spot.x, spot.y);
       await h.settled();
@@ -10037,7 +10324,8 @@ const tests: {
       await h.settled();
       // A flow diagram offers no lists: its group button creates a group.
       await h.type(SHEET);
-      assert.equal(await arrow.getAttribute("aria-label"), "Group or container (G)");
+      assert.equal(await arrow.getAttribute("aria-label"), "Group or container");
+      assert.equal(await arrow.getAttribute("title"), "Group or container (G)");
       assert.equal(await group.getAttribute("data-group-kind"), "group");
     },
   },
@@ -10071,7 +10359,8 @@ const tests: {
     async run(h) {
       const page = h.page;
       const arrow = page.locator(".toolbar .split-arrow[data-group-kinds]");
-      assert.equal(await arrow.getAttribute("aria-label"), "Grupo, contenedor, columna o fila (G)");
+      assert.equal(await arrow.getAttribute("aria-label"), "Grupo, contenedor, columna o fila");
+      assert.equal(await arrow.getAttribute("title"), "Grupo, contenedor, columna o fila (G)");
       await arrow.click();
       assert.deepEqual(
         await page
@@ -10081,10 +10370,8 @@ const tests: {
       );
       await page.locator('.menu [data-group-kind="row"]').click();
       const group = page.locator('.toolbar button[data-tool="group"]');
-      assert.equal(
-        await group.getAttribute("aria-label"),
-        "Fila: haz clic en el lienzo o presiona G",
-      );
+      assert.equal(await group.getAttribute("aria-label"), "Fila: haz clic en el lienzo");
+      assert.equal(await group.getAttribute("title"), "Fila (G)");
       const spot = await strokeAt(h, { x: 680, y: 140 });
       await page.mouse.click(spot.x, spot.y);
       await h.settled();

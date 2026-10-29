@@ -211,6 +211,8 @@ export const en = {
       listUnreadable: "The pen's list of points cannot be read; fix the syntax first.",
     },
     relations: {
+      /** `edit.invalid-value`: the line or the ends of a `return`. */
+      returnAnswers: "A `return` answers its call; unnest the call to write the reply by hand.",
       /** `edit.unsafe-target`. */
       missing: (name: string, diagram: string) =>
         `Relation \`${name}\` does not exist in diagram \`${diagram}\`.`,
@@ -501,6 +503,16 @@ export const en = {
       notParticipant: (id: string) => `\`${id}\` is not a participant.`,
       /** `edit.unsafe-target`. */
       amountUnreadable: "The amount cannot be read.",
+      noCallBlock: (call: string) => `The call \`${call}\` has no block.`,
+      nestAfterCall: "Select the events right after the call they belong to.",
+      nestReturn: "A `return` answers its own call; it does not move into another one.",
+      callActivates: (call: string, participant: string) =>
+        `The block of \`${call}\` already activates \`${participant}\`.`,
+      unnestInterleaved: (call: string) =>
+        `The block of \`${call}\` mixes its properties among its events; move them first.`,
+      negativeSpace: "Space is 0 or more.",
+      outerGap: (id: string) =>
+        `There is nothing beyond \`${id}\` to bring closer: a gap on its outer side is 0 or more.`,
       /** `edit.unsafe-target`: the number of the branch, from 1. */
       noBranch: (key: string, branch: number) => `\`${key}\` has no branch ${branch}.`,
       /** `edit.invalid-value`: wrapping events in a fragment. */

@@ -67,3 +67,5 @@ is exported and imported as a whole.
 - An empty sequence diagram lays out with an empty width (it divided by nothing before), which New
   diagram's sequence choice showed.
 - `templates.json` grows by the titles and contents, and the site by ten small SVG files.
+- [Decision 0062](0062-inspector-collapse-and-tooltips.md) gives the explorer's fold buttons their
+  key in their titles ("Hide the explorer (Ctrl+B)"), and the properties panel a rail like it.

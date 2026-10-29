@@ -245,6 +245,8 @@ export interface RelationInfo {
   readonly layer: string | null;
   /** Where its label is drawn, or goes: the middle of its line when it has none. */
   readonly text?: TextPlace;
+  /** Sequence diagrams: the key of the call a `return` answers; absent on other messages. */
+  readonly returns?: string;
 }
 
 /** What the canvas knows about an event of a sequence diagram. */
@@ -257,7 +259,7 @@ export interface EventInfo {
   readonly height: number;
   /** The frame of a note or a fragment, in diagram coordinates. */
   readonly box: Box | null;
-  /** The fragment around the event, or null. */
+  /** The fragment or the call around the event, or null. */
   readonly parent: string | null;
   /** The participant of an activation or a lifecycle event. */
   readonly participant: string | null;
@@ -1052,6 +1054,12 @@ export type CanvasAction =
   | { readonly kind: "moveEvent"; readonly id: string; readonly direction: "up" | "down" }
   /** Sequence diagrams: the activation of a participant after the selected message. */
   | { readonly kind: "toggleActivation"; readonly ids: readonly string[] }
+  /** Sequence diagrams: the selected events into the block of the call right before them. */
+  | { readonly kind: "nestInCall"; readonly ids: readonly string[] }
+  /** Sequence diagrams: the events of the selected call, or of the call around the selection, out. */
+  | { readonly kind: "unnestCall"; readonly ids: readonly string[] }
+  /** Sequence diagrams: a `return` at the end of the selected call, or of the call around it. */
+  | { readonly kind: "addReturn"; readonly ids: readonly string[] }
   /** Sequence diagrams: a note, divider or delay after the selection, or at the end. */
   | {
       readonly kind: "insertEvent";
@@ -1453,6 +1461,9 @@ function isAction(a: unknown): a is CanvasAction {
     case "moveEvent":
       return isString(a.id) && oneOf(a.direction, ["up", "down"]);
     case "toggleActivation":
+    case "nestInCall":
+    case "unnestCall":
+    case "addReturn":
       return isStrings(a.ids);
     case "insertEvent":
       return isStrings(a.ids) && oneOf(a.eventKind, ["note", "divider", "delay"]);

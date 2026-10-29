@@ -32,7 +32,8 @@
         "layers": [
           "main"
         ],
-        "autonumber": null
+        "autonumber": null,
+        "spacing": null
       },
       "classes": [],
       "rules": [],
@@ -198,6 +199,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [
             "visit"
@@ -243,6 +245,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [
             "authorize"
@@ -323,7 +326,8 @@
         "layers": [
           "main"
         ],
-        "autonumber": null
+        "autonumber": null,
+        "spacing": null
       },
       "classes": [],
       "rules": [],
@@ -641,6 +645,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [
             "store"
@@ -686,6 +691,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [
             "visit"
@@ -731,6 +737,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": "JSON/HTTPS",
           "sources": [
             "request"
@@ -776,6 +783,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [
             "persist"
@@ -821,6 +829,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [
             "orders"
@@ -924,7 +933,8 @@
         "layers": [
           "main"
         ],
-        "autonumber": null
+        "autonumber": null,
+        "spacing": null
       },
       "classes": [],
       "rules": [],
@@ -1244,6 +1254,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [
             "store"
@@ -1289,6 +1300,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [
             "authorize"
@@ -1334,6 +1346,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [
             "orders"

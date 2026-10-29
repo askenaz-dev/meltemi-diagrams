@@ -40,6 +40,11 @@ extensiones sobre `examples/`.
   posición del icono, punta, los efectos con una tarjeta de ajustes por cada uno activo, y el tema
   del diagrama), luego las propiedades del diagrama, del elemento o la relación seleccionados, o
   el estilo común de varios elementos. Mientras se edita un tema, el panel del tema ocupa su lugar.
+  El botón a la derecha de su cabecera (**Ocultar el panel de propiedades**) lo pliega en un riel
+  angosto a la derecha del lienzo; el botón del riel (**Mostrar el panel de propiedades**) y el
+  botón **Mostrar las propiedades** de la barra de herramientas, un marco con una barra a la
+  derecha, lo traen de vuelta. Los tres son una sola elección, que el webview conserva, y el panel
+  del tema se pliega con él.
 
 - **Bibliotecas** (botón de la barra de herramientas, U): elementos prearmados por categoría, de
   AWS, Azure, Google Cloud, Kubernetes, Tabler y los logos de tecnologías, con un cuadro de búsqueda
@@ -61,7 +66,7 @@ extensiones sobre `examples/`.
 | `meltemi.canvas.snap`         | `true`         | Ajustar a la cuadrícula                                                                  |
 | `meltemi.canvas.guides`       | `true`         | Ajustar a los lados y los centros de otras cajas, con guías                              |
 | `meltemi.canvas.minimap`      | `true`         | Mostrar el minimapa                                                                      |
-| `meltemi.canvas.inspector`    | `true`         | Mostrar el inspector                                                                     |
+| `meltemi.canvas.inspector`    | `true`         | Mostrar el inspector hasta que se pliega desde su cabecera, su riel o la barra           |
 | `meltemi.export.browser`      | vacío          | El navegador que dibuja PNG, PDF y video; si está vacío, se busca uno                    |
 | `meltemi.export.ffmpeg`       | vacío          | El FFmpeg que codifica el video; si está vacío, `ffmpeg` del PATH                        |
 | `meltemi.assist.provider`     | vacío          | Asistencia opcional de IA: `anthropic` u `openai-compatible`; si está vacío, desactivada |
@@ -408,12 +413,20 @@ como en todas partes. Tab después del último elemento sale del lienzo.
 | O, F                                                                      | Secuencia: una nota sobre la selección; un fragmento alrededor de los eventos seleccionados                                                              |
 | Alt+Arriba, Alt+Abajo                                                     | Secuencia: mover el evento seleccionado antes o después de su vecino                                                                                     |
 | Alt+A                                                                     | Secuencia: activar el receptor después del mensaje seleccionado, o deshacerlo                                                                            |
+| Alt+N                                                                     | Secuencia: anidar los eventos seleccionados en el bloque de la llamada que los precede                                                                   |
+| Alt+Mayús+N                                                               | Secuencia: sacar detrás de ella los eventos de la llamada seleccionada, o de la llamada que rodea a la selección                                         |
+| Alt+R                                                                     | Secuencia: agregar un `return` al final del bloque de la llamada seleccionada, o de la llamada que rodea a la selección                                  |
 | L, U                                                                      | Mostrar u ocultar el panel de capas, las bibliotecas de elementos                                                                                        |
 | Ctrl+Mayús+], Ctrl+]                                                      | Traer al frente, traer adelante                                                                                                                          |
 | Ctrl+Mayús+[, Ctrl+[                                                      | Enviar al fondo, enviar atrás                                                                                                                            |
 | +, =, -                                                                   | Acercar o alejar                                                                                                                                         |
 | Mayús+0, Mayús+1, Mayús+2                                                 | Zoom al 100 %, ajustar el diagrama a la vista, ajustar la selección a la vista                                                                           |
 | Mayús+F10, la tecla de menú contextual                                    | Abrir el menú contextual (flechas para moverse, Entrar para elegir)                                                                                      |
+
+El pliegue del inspector no tiene tecla en el lienzo: VS Code asigna Ctrl+Alt+B a su barra lateral
+secundaria, así que lo pliegan y despliegan los botones de su cabecera y de su riel y el botón de
+la barra de herramientas, todos alcanzables con Tab. El playground también lo pliega con
+Ctrl+Alt+B.
 
 El foco siempre es visible: el lienzo, los botones de la barra de herramientas, los campos del
 inspector, las opciones de los menús y los botones de los diálogos dibujan un anillo con el color de
@@ -432,8 +445,12 @@ estilo (`--mdg-motion-fast` 120 ms, `--mdg-motion` 160 ms, `--mdg-motion-slow` 2
   un fundido, una subida de 4 px y una escala desde el 98 % en 160 ms, y se cierran con un fundido
   de 120 ms. Aceptan clics desde el primer momento.
 - **Paneles.** Bibliotecas y Capas entran deslizándose desde la izquierda, y el inspector y el
-  panel del tema desde la derecha, en 220 ms.
-- **Descripciones emergentes**: aparecen con un fundido tras 400 ms sobre un control.
+  panel del tema desde la derecha, en 220 ms. Al plegarse, el inspector se angosta hasta su riel de
+  36 px en 220 ms mientras su contenido desaparece en 120 ms, y luego aparece el botón del riel; el
+  dibujo conserva su zoom y su lugar.
+- **Descripciones emergentes**: aparecen con un fundido tras 400 ms sobre un control. El nombre de
+  un botón de icono dice lo que hace; su descripción agrega la tecla entre paréntesis ("Mostrar las
+  capas (L)", "Nodo (N)"), que las tecnologías de asistencia leen en `aria-keyshortcuts`.
 - **Contornos.** El contorno de un destino al soltar o al conectar (también el elemento bajo la
   herramienta de nota) y el contorno del editor en su sitio aparecen con un fundido; los resultados
   del selector de iconos aparecen uno tras otro.
@@ -857,32 +874,52 @@ coordenadas.
 - **Cabeceras.** Un participante, una base de datos, una colección o una cola se seleccionan, se
   resaltan, pulsan y editan sobre la caja con la que se dibujan, abajo en la fila de cabeceras,
   haya o no un actor en el diagrama; un actor y las demás figuras, sobre su figura y su nombre.
-- **Arrastrar.** Arrastra una cabecera hacia un lado para reordenar el participante; ningún mensaje
-  cambia. Arrastra un mensaje, una nota o un fragmento hacia abajo para agregar `space` encima, o
-  hacia arriba para quitarlo; se detiene en su vecino, así que un arrastre nunca reordena eventos.
-  Con Alt se arrastra sin la cuadrícula.
+- **Arrastrar.** Arrastra una cabecera más allá del centro de un vecino para reordenar el
+  participante; ningún mensaje cambia. Un arrastre más corto escribe la distancia arrastrada como
+  su **Separación antes** (`gap`), negativa hacia la izquierda, nunca menor que 0 en el primer
+  participante; un arrastre de menos de 3 píxeles no escribe nada. La línea de estado dice la
+  separación escrita y, cuando las cabeceras o las etiquetas entre ellas necesitan más lugar del que
+  deja, también la cantidad dibujada. Arrastra un mensaje, una nota o un fragmento hacia abajo para
+  agregar `space` encima, o hacia arriba para quitarlo; se detiene en su vecino, así que un
+  arrastre nunca reordena eventos, y una llamada se mueve con su bloque. Con Alt se arrastra sin la
+  cuadrícula.
 - **Mover eventos.** Alt+Arriba y Alt+Abajo mueven el evento seleccionado más allá de su vecino, a la
-  rama más cercana de un fragmento adyacente, o fuera del fragmento cuando está en su borde. Un
-  movimiento que desactivaría un participante que no está activo, o que rompería un ciclo de vida,
-  se rechaza indicando el motivo.
+  rama más cercana de un fragmento adyacente o al bloque de una llamada adyacente, o fuera del
+  fragmento o de la llamada cuando está en su borde. Un movimiento que desactivaría un participante
+  que no está activo, que rompería un ciclo de vida o que dejaría un `return` fuera de su llamada se
+  rechaza indicando el motivo.
 - **Activaciones.** Alt+A sobre un mensaje seleccionado activa su receptor (o el participante
-  seleccionado) justo después y lo desactiva tras su respuesta; si se repite, quita el par.
+  seleccionado) justo después y lo desactiva tras su respuesta; si se repite, quita el par. Una
+  llamada cuyo bloque contiene eventos ya activa a su receptor, así que Alt+A la rechaza.
+- **Bloques de llamada.** Alt+N (**Anidar en la llamada**) mueve los eventos seleccionados al bloque
+  de la llamada que los precede, y crea el bloque; luego queda seleccionada la llamada, y Alt+R
+  (**Devolver a quien llama**) agrega un `return` al final de su bloque. Alt+Mayús+N (**Desanidar la
+  llamada**) saca los eventos de la llamada seleccionada, o de la llamada que rodea al evento
+  seleccionado, detrás de ella, y escribe cada `return` como una respuesta del receptor a quien
+  llama. Una selección que no sigue a una llamada se rechaza indicando el motivo. El menú
+  contextual ofrece las tres después de **Activar el receptor**.
 - **Flechas.** Izquierda y Derecha intercambian el participante seleccionado con su vecino; Arriba y Abajo
   cambian el espacio encima del mensaje, la nota o el fragmento seleccionados.
-- **Inspector.** Mensajes: **Mensaje** (llamada, respuesta, asíncrono) y **Espacio antes**. Notas:
-  **Texto**, **Posición**, los participantes y **Espacio antes**. Fragmentos: **Operador**, una
-  **Condición** por rama y **Espacio antes**. Participantes: **Tipo** y **Separación antes**. El
-  diagrama: **Numerar los mensajes desde** (`autonumber`).
+- **Inspector.** Mensajes: **Mensaje** (llamada, respuesta, asíncrono), **Espacio antes** y
+  **Espacio después**; un `return` muestra **Mensaje** como `return`, con **Origen** y **Destino**, de
+  solo lectura, porque vienen de su llamada. Notas: **Texto**, **Posición**, los participantes,
+  **Espacio antes** y **Espacio después**. Fragmentos: **Operador**, una **Condición** por rama,
+  **Espacio antes** y **Espacio después**. Participantes: **Tipo**, **Separación antes** y
+  **Separación después**, negativas para acercarlos salvo en el lado exterior del primero y del
+  último. El diagrama: **Numerar los mensajes desde** (`autonumber`) y **Separación entre
+  participantes** (`spacing`, 40 cuando está vacío).
 - **Escenarios.** Cuando el diagrama tiene escenarios, la barra de herramientas los ofrece junto a
   **Todos los eventos**. Elegir uno muestra una vista previa de ese camino, de solo lectura; elige
   **Todos los eventos** para volver a editar. **Exportar SVG** pregunta por "Todos los eventos" o un
   escenario y, para un escenario, escribe `<file>.<scenario>.svg`.
 - **Funciones del lenguaje.** El autocompletado conoce las instrucciones de secuencia, los
   participantes después de las flechas y en los eventos, las posiciones de las notas, los
-  fragmentos y sus condiciones en los escenarios, y `kind async`. La información al pasar el puntero
-  describe eventos y escenarios; ir a la definición, las referencias y cambiar el nombre siguen los
-  ids de notas y fragmentos; las correcciones rápidas declaran un participante desconocido y quitan
-  un `deactivate` sobrante.
+  fragmentos y sus condiciones en los escenarios, `kind async`, `return` y los eventos en el bloque
+  de una llamada, `before` y `after` después de la cantidad de `space` y `gap`, y `spacing`. La
+  información al pasar el puntero describe eventos y escenarios, un `return` como la respuesta a su
+  llamada y la llamada de un evento anidado; ir a la definición, las referencias y cambiar el nombre
+  siguen los ids de notas y fragmentos; las correcciones rápidas declaran un participante
+  desconocido y quitan un `deactivate` sobrante.
 
 ## Vistas C4
 

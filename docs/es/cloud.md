@@ -208,8 +208,9 @@ Desde la primera solicitud autenticada con la cookie, el Worker guarda una fila 
 `sub`, con una copia del `name`, el `picture`, el `email` y el `email_verified` del token. Cada
 solicitud los compara con la fila y la actualiza cuando difieren, así que un nuevo inicio de sesión
 con otro nombre u otra imagen la actualiza. La fila guarda además lo que el token no lleva: el
-alias de la persona, una vez que lo eligió ([Alias](#alias)). La fila de una persona eliminada se
-borra, no se marca.
+alias de la persona, una vez que lo eligió ([Alias](#alias)), y si un administrador habilitó la
+cuenta para exportar sin la marca de Meltemi, con quién lo hizo y cuándo
+([Habilitaciones](#habilitaciones)). La fila de una persona eliminada se borra, no se marca.
 
 ## La regla de Origin
 
@@ -322,6 +323,9 @@ que muestran el código, en inglés o en español, en lugar de JSON.
 | `POST /api/account/identity/sessions/<sid>/revoke`  | una persona con sesión iniciada en la página                         | `200`, lo mismo sin esa sesión                                                           |
 | `POST /api/invitations/<token>/accept`              | una persona, con la cookie o con un token                            | `200`, el proyecto, con el rol que la persona tiene ahora                                |
 | `DELETE /api/admin/publications/<handle>/<slug>`    | un administrador, con la cookie; cualquier otra persona recibe `404` | `204`                                                                                    |
+| `GET /api/admin/accounts/<account>/entitlements`    | un administrador, con la cookie; cualquier otra persona recibe `404` | `200`, la habilitación de la cuenta                                                      |
+| `PUT /api/admin/accounts/<account>/entitlements`    | un administrador, con la cookie; cualquier otra persona recibe `404` | `200`, la habilitación de la cuenta                                                      |
+| `GET /api/admin/entitlements`                       | un administrador, con la cookie; cualquier otra persona recibe `404` | `200`, las cuentas habilitadas                                                           |
 | `GET` y `HEAD /_published/<handle>/<slug>/`         | cualquiera; solo en desarrollo                                       | `200`, la página publicada                                                               |
 
 Las rutas de los proyectos nombran cada una el rol que necesitan: el del propietario, el de un
@@ -399,7 +403,8 @@ de enlace) y el de una retirada se lee hasta 8 KiB como el resto.
     "sub": "u_7d3f",
     "name": "Ana",
     "picture": "https://avatars.githubusercontent.com/u/1",
-    "handle": "ana"
+    "handle": "ana",
+    "entitlements": { "unbranded": false }
   },
   "account": "https://id.meltemi.dev/account",
   "signOut": "https://id.meltemi.dev/logout"
@@ -407,7 +412,9 @@ de enlace) y el de una retirada se lee hasta 8 KiB como el resto.
 ```
 
 `handle` es el nombre bajo el que la persona publica, o `null` hasta que lo elige
-([Alias](#alias)). Antes de responder, una cookie cuyo correo verificó el servicio de identidad ve
+([Alias](#alias)). `entitlements.unbranded` dice si la cuenta puede exportar sin la marca de
+Meltemi: `true` cuando un administrador la habilitó, y para todo administrador
+([Habilitaciones](#habilitaciones)). Antes de responder, una cookie cuyo correo verificó el servicio de identidad ve
 cómo cada invitación pendiente para ese correo se convierte en una membresía
 ([Invitaciones](#invitaciones)); un correo que no está verificado no resuelve nada. `account` es la
 página del servicio de identidad y `signOut` la dirección a la que un formulario envía, con el
@@ -421,7 +428,8 @@ invitación, porque solo la cookie tiene un correo verificado:
     "sub": "u_7d3f",
     "name": "Ana",
     "picture": "https://avatars.githubusercontent.com/u/1",
-    "handle": "ana"
+    "handle": "ana",
+    "entitlements": { "unbranded": false }
   },
   "token": { "id": "5f0c2a9e", "name": "laptop" }
 }
@@ -1448,7 +1456,7 @@ necesita cualquier rol que el proyecto admita, o el token de una sesión en vivo
 ([El socket](#el-socket)). `GET /api/projects/<id>` y `GET` y `HEAD …/blobs/<hash>` también toman
 `read` del token vigente de una sesión en vivo en `X-Meltemi-Live`; ninguna otra ruta lee esa
 cabecera. `PATCH /api/account { handle }`
-necesita una persona, con la cookie o un token, y la ruta de los administradores una cookie que
+necesita una persona, con la cookie o un token, y las rutas de los administradores una cookie que
 `ADMIN_SUBS` liste. Las rutas
 sobre la propia cuenta de quien pregunta (`GET` y `POST /api/projects`, `GET /api/account/usage`)
 necesitan una persona.
@@ -1841,7 +1849,17 @@ comas; sin definir, no lo es nadie. Quien llama debe ser una persona de la lista
 que se aplica la regla de `Origin`: no se acepta un token de API ni siquiera de un administrador,
 porque un token es para programas y se roba con más facilidad. Todos los demás, con sesión iniciada
 o sin ella, reciben `404 not-found`, la respuesta de una ruta que no existe, y no `403`, que le diría
-a un desconocido que la ruta está ahí.
+a un desconocido que la ruta está ahí. En la página, con la sesión iniciada, un administrador la
+llama desde la consola del navegador, que envía la cookie y el `Origin`:
+
+```js
+await fetch("/api/admin/publications/ana/purchase", {
+  method: "DELETE",
+  credentials: "same-origin",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ reason: "Not what this site is for" }),
+});
+```
 
 La página se elimina primero y la retirada se escribe después, en un solo paso con la eliminación de
 la fila: `takedowns (handle, slug, by_sub, reason, at, project_id)`, siendo el proyecto aquel desde el
@@ -1850,6 +1868,58 @@ el administrador lo intenta de nuevo; un fallo posterior deja una fila sin pági
 publicación no sirve y un segundo intento completa. La dirección responde entonces `404`, y el
 propietario del proyecto ve la página, en `GET …/publish`, como retirada por el servicio. Las
 retiradas son el registro del servicio y se quedan cuando se elimina una cuenta.
+
+### Habilitaciones
+
+Un administrador habilita una cuenta para exportar sin la marca de Meltemi, y lo revoca: el diálogo
+de exportación de una persona habilitada ofrece **Exportar sin la marca de Meltemi**
+([el playground](playground.md#exportaciones-en-el-navegador)). Tres rutas, con las reglas de la
+retirada (una persona de la lista con la cookie, primero la regla de `Origin`, `404 not-found` para
+todos los demás y para un token de API): `GET /api/admin/entitlements` lista las cuentas
+habilitadas, primero la habilitada antes, como `{ "accounts": [...] }`;
+`GET /api/admin/accounts/<account>/entitlements` lee la de una cuenta, y `PUT` en la misma ruta con
+`{ "unbranded": true }` o `{ "unbranded": false }` la fija, registrando al administrador (`by`) y el
+momento (`at`). Ambas responden la cuenta:
+
+```json
+{
+  "sub": "u_7d3f",
+  "handle": "ana",
+  "name": "Ana",
+  "entitlements": { "unbranded": true, "by": "u_admin", "at": "2026-10-28T12:00:00.000Z" }
+}
+```
+
+`<account>` es el identificador de la cuenta, que cada persona lee en el Perfil del panel de la
+cuenta, o `@<handle>` para una persona que eligió un alias; una cuenta sin fila (nadie inició
+sesión con ella todavía) o un alias que nadie tiene es `404`, y no se crea nada. Otro cuerpo es
+`400 request.invalid`. Los administradores están habilitados en la respuesta de la sesión sin que
+nadie los habilite; su propia fila dice solo lo que se fijó en ella. La persona ve una habilitación
+o una revocación en la siguiente carga de la página, que lee la sesión una vez, y una cuenta
+eliminada se lleva su habilitación. Desde la consola del navegador en la página, con la sesión
+iniciada, la lista, una habilitación y una revocación:
+
+```js
+await fetch("/api/admin/entitlements", { credentials: "same-origin" }).then((r) => r.json());
+```
+
+```js
+await fetch("/api/admin/accounts/@ana/entitlements", {
+  method: "PUT",
+  credentials: "same-origin",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ unbranded: true }),
+}).then((r) => r.json());
+```
+
+```js
+await fetch("/api/admin/accounts/@ana/entitlements", {
+  method: "PUT",
+  credentials: "same-origin",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ unbranded: false }),
+}).then((r) => r.json());
+```
 
 ### Publicaciones y eliminación
 
@@ -1944,7 +2014,7 @@ como cadenas, que siempre ganan a un binding.
 | `IDENTITY_EVENTS_SECRET` | secreto (Store)     | El secreto de este producto con el servicio de identidad, su `EVENTS_SECRET_DIAGRAMS`: verifica los eventos de eliminación y firma las llamadas de [los datos de identidad](#los-datos-de-identidad)                                                                 |
 | `FORMS_SECRET`           | secreto (Store)     | Firma el `csrf` de la página de aprobación y es la clave del hash de una dirección en el límite de frecuencia                                                                                                                                                        |
 | `PUBLISH_HOST`           | variable, opcional  | El host que sirve las publicaciones, como `meltemi.page`: un nombre de host en minúscula de un dominio propio, nunca el host del servicio ni uno bajo el dominio de la cookie. `meltemi.page` en `wrangler.jsonc`; sin definir, publicar funciona solo en desarrollo |
-| `ADMIN_SUBS`             | secreto (Store)     | Los `sub` de los administradores del servicio, separados por comas: quién puede retirar una publicación. Sin definir o vacía, nadie                                                                                                                                  |
+| `ADMIN_SUBS`             | secreto (Store)     | Los `sub` de los administradores del servicio, separados por comas: quién puede retirar una publicación y habilitar cuentas para exportar sin la marca, como lo están ellos mismos. Sin definir o vacía, nadie                                                       |
 | `DEV`                    | solo en `.dev.vars` | `"true"` activa el modo de desarrollo, más abajo                                                                                                                                                                                                                     |
 | `IDENTITY_JWKS`          | solo en `.dev.vars` | Un conjunto de claves en línea, `{"keys":[…]}`, para desarrollo y pruebas                                                                                                                                                                                            |
 

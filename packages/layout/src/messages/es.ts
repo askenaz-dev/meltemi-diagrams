@@ -58,6 +58,8 @@ export const es: typeof en = {
             ? `a la caja de ${code(other.owner)}`
             : `al conector de ${code(other.owner)}`
       }.`,
+    gapFloor: (participant, side, written, applied, left, right) =>
+      `El espacio ${side === "after" ? "después de" : "antes de"} \`${participant}\` es ${applied} aquí, no ${written}: las cabeceras y las etiquetas entre \`${left}\` y \`${right}\` necesitan el lugar.`,
     degenerateLine: (id) =>
       `La línea \`${id}\` no tiene largo: sus puntos coinciden, así que se dibuja como un punto.`,
     unknownTheme: (written, fallback) =>

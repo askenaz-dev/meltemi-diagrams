@@ -144,6 +144,12 @@ import {
 export interface LayoutOptions {
   /** Theme name that overrides the diagram's `theme` property. */
   readonly theme?: string | null;
+  /**
+   * Draws the scene with `frame none` whatever the theme says, keeping every other token: no strip
+   * at the foot of the sheet (the mark, the wordmark and the title) and no mark gradient. An export
+   * without the Meltemi branding asks for it.
+   */
+  readonly frame?: "none";
   /** Theme used when the diagram has no `theme` property, such as the project's default theme. */
   readonly defaultTheme?: string | null;
   /**
@@ -1173,7 +1179,9 @@ function layoutDrawing(
   const definitions = options.themes ?? compilation.document.themes;
   const resolved = resolveTheme(written ?? options.defaultTheme ?? null, definitions);
   // A default theme that does not resolve is reported where it is configured.
-  const { theme } = resolved.known || written !== null ? resolved : resolveTheme(null, definitions);
+  const known = resolved.known || written !== null ? resolved : resolveTheme(null, definitions);
+  // An export without the branding keeps the theme and leaves its frame out.
+  const theme = options.frame === "none" ? { ...known.theme, frame: "none" as const } : known.theme;
   if (!resolved.known && written !== null) {
     const fileThemes = definitions.map((t) => t.id).filter((id) => !id.includes("#"));
     diagnostics.push({

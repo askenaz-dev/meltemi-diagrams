@@ -1,0 +1,21 @@
+[
+  {
+    "code": "layout.gap-floor",
+    "severity": "warning",
+    "message": "The gap before `api` is 50 here, not -120: the heads and the labels between `customer` and `api` need the room.",
+    "range": {
+      "start": {
+        "offset": 326,
+        "line": 12,
+        "column": 5
+      },
+      "end": {
+        "offset": 338,
+        "line": 12,
+        "column": 17
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

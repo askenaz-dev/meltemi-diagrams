@@ -442,6 +442,11 @@ describe("every operation on the valid corpus", () => {
         const result = planEdit(compilation, operation);
         // A move that would break the order of events is refused by design.
         if (!result.ok && operation.kind === "moveEvent") continue;
+        // A negative gap cannot sit on the outer side of the first or last participant.
+        if (!result.ok && /a gap (before|after) it is 0 or more/.test(result.rejection.reason))
+          continue;
+        // A `return` takes its ends and line from the call it answers.
+        if (!result.ok && /A `return` answers its call/.test(result.rejection.reason)) continue;
         // A free line's or a pen's points are in its statement: it takes no place, size or label.
         if (
           !result.ok &&

@@ -175,7 +175,10 @@ export const es: typeof en = {
   sequence: {
     fields: {
       spaceBefore: "Espacio antes",
+      spaceAfter: "Espacio después",
       gapBefore: "Separación antes",
+      gapAfter: "Separación después",
+      participantSpacing: "Separación entre participantes",
       message: "Mensaje",
       text: "Texto",
       position: "Posición",
@@ -192,7 +195,11 @@ export const es: typeof en = {
       selectMessage: "Selecciona el mensaje tras el cual el participante está activo.",
       addParticipant: "Agrega primero un participante.",
       pixels: "Escribe un número de píxeles, 0 o más.",
+      signedPixels:
+        "Escribe un número de píxeles; antes del primer participante y después del último, 0 o más.",
       messageKind: "Un mensaje es `call`, `reply` o `async`.",
+      nestAfterCall: "Selecciona los eventos que siguen a la llamada a la que pertenecen.",
+      selectCall: "Selecciona una llamada, o un evento dentro de una.",
     },
   },
 
@@ -270,6 +277,9 @@ export const es: typeof en = {
     copied: "Copiado.",
     invalidId: (id) => `${code(id)} no es un id válido.`,
     noteAttached: (target) => `Se creó una nota adjunta a ${code(target)}.`,
+    gapSet: (participant, amount) => `Separación antes de ${participant}: ${amount}.`,
+    gapFloor: (participant, written, applied) =>
+      `Separación antes de ${participant}: ${written} escrita, ${applied} dibujada: las etiquetas necesitan el lugar.`,
     attachNotesOnly: (kind) => `Solo una nota se puede adjuntar a un elemento; ${code(kind)} no.`,
     notInProject:
       "Este archivo no está en un proyecto: crea el tema en el archivo o agrega un project.json.",

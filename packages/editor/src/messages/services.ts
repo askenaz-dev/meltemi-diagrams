@@ -87,8 +87,16 @@ const en = {
       'In a scenario, the branch of an `alt` or `critical` fragment: `choose <fragment> "Condition"` or `choose <fragment> <n>`.',
     skip: "In a scenario, leaves out an `opt` or `break` fragment: `skip <fragment>`.",
     take: "In a scenario, keeps an `opt` or `break` fragment: `take <fragment>`.",
-    space: "Extra space above a message, note or fragment: `space <id> 24`.",
-    gap: "Extra space left of a participant: `gap <participant> 40`.",
+    space:
+      "Extra space above a message, note or fragment, or below it with `after`: `space <id> 24 [after]`.",
+    gap: "Space left of a participant, or right of it with `after`; a negative gap brings it closer: `gap <participant> 40 [after]`.",
+    before: "The side above an event or left of a participant: the default of `space` and `gap`.",
+    after:
+      "The side below an event or right of a participant: `space <id> 24 after`, `gap <participant> 40 after`.",
+    return:
+      'In a call\'s block, the reply that answers the call, from the receiver back to the caller: `return "OK" [as id]`.',
+    spacing:
+      "The distance between the heads of neighbouring participants, before their gaps: `spacing 56` (40 by default).",
     sequence: "A sequence diagram: participants, messages in order, fragments and scenarios.",
     // diagram properties
     direction:
@@ -301,6 +309,8 @@ const en = {
   imported: " (imported)",
   /** The branch of a fragment without a condition: `branch 2`. */
   branch: (n: number) => `branch ${n}`,
+  /** The place of an event inside a call's block: `inside pay`. */
+  insideCall: (call: string) => `the call \`${call}\``,
 
   /** Headings of hovers on diagrams, stories and scenes. */
   headings: {
@@ -339,6 +349,8 @@ const en = {
     message: "message",
     reply: "reply",
     asyncMessage: "async message",
+    /** A `return`: the reply that answers its call. */
+    returnsFrom: (call: string) => `returns from \`${call}\``,
     named: (id: string) => ` as ${code(id)}`,
     label: (label: string) => `label “${label}”`,
     spaceBefore: (amount: string) => `space ${amount} before`,
@@ -578,8 +590,17 @@ const es: typeof en = {
       'En un escenario, la rama de un fragmento `alt` o `critical`: `choose <fragment> "Condition"` o `choose <fragment> <n>`.',
     skip: "En un escenario, omite un fragmento `opt` o `break`: `skip <fragment>`.",
     take: "En un escenario, conserva un fragmento `opt` o `break`: `take <fragment>`.",
-    space: "Espacio adicional sobre un mensaje, una nota o un fragmento: `space <id> 24`.",
-    gap: "Espacio adicional a la izquierda de un participante: `gap <participant> 40`.",
+    space:
+      "Espacio adicional sobre un mensaje, una nota o un fragmento, o debajo con `after`: `space <id> 24 [after]`.",
+    gap: "Espacio a la izquierda de un participante, o a la derecha con `after`; un gap negativo lo acerca: `gap <participant> 40 [after]`.",
+    before:
+      "El lado de arriba de un evento o el izquierdo de un participante: el de `space` y `gap` por defecto.",
+    after:
+      "El lado de abajo de un evento o el derecho de un participante: `space <id> 24 after`, `gap <participant> 40 after`.",
+    return:
+      'En el bloque de una llamada, la respuesta que la contesta, del receptor a quien llama: `return "OK" [as id]`.',
+    spacing:
+      "La distancia entre las cabeceras de participantes vecinos, antes de sus gaps: `spacing 56` (40 por defecto).",
     sequence:
       "Un diagrama de secuencia: participantes, mensajes en orden, fragmentos y escenarios.",
     // propiedades del diagrama
@@ -792,6 +813,7 @@ const es: typeof en = {
   time: (ms) => time(ms, true),
   imported: " (importado)",
   branch: (n) => `rama ${n}`,
+  insideCall: (call) => `la llamada \`${call}\``,
 
   headings: {
     diagram: (type, name) => `**diagrama ${type}** ${code(name)}`,
@@ -824,6 +846,7 @@ const es: typeof en = {
     message: "mensaje",
     reply: "respuesta",
     asyncMessage: "mensaje asíncrono",
+    returnsFrom: (call) => `responde a \`${call}\``,
     named: (id) => ` con el id ${code(id)}`,
     label: (label) => `etiqueta “${label}”`,
     spaceBefore: (amount) => `${amount} de espacio antes`,

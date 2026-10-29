@@ -5,6 +5,7 @@ import {
   type Element,
   type FlowDiagram,
   type FragmentEvent,
+  type GapEntry,
   type LabelEntry,
   type NoteEvent,
   type Point,
@@ -24,6 +25,7 @@ import {
 } from "./layout.js";
 import type { TextMetrics } from "./measure.js";
 import { markGradient } from "./mark.js";
+import { messages as words } from "./messages/index.js";
 import type { BoxShape } from "./shapes.js";
 import {
   strokeDash,
@@ -57,6 +59,8 @@ const STACK = 4;
 const LIFELINE_OPACITY = 0.5;
 const BAR = 10;
 const BAR_STEP = 5;
+/** The least room between two heads, whatever a negative `gap` asks. */
+const HEAD_CLEARANCE = 8;
 const SELF_WIDTH = 34;
 const SELF_HEIGHT = 22;
 
@@ -133,27 +137,42 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
   };
   const numbered = diagram.properties.autonumber !== null;
   const discRoom = numbered ? 22 : 0;
+  // `space` above (before) or below (after) an event; `gap` left (before) or right (after) of a
+  // participant, both sides of a pair adding up.
   const spaces = new Map<string, number>();
-  const gaps = new Map<string, number>();
+  const spacesAfter = new Map<string, number>();
+  const gapsBefore = new Map<string, GapEntry>();
+  const gapsAfter = new Map<string, GapEntry>();
   const labelEntries = new Map<string, LabelEntry>();
   for (const entry of diagram.placement) {
-    if (entry.statement === "space") spaces.set(entry.target, entry.amount);
-    else if (entry.statement === "gap") gaps.set(entry.target, entry.amount);
-    else if (entry.statement === "label") labelEntries.set(entry.target, entry);
+    if (entry.statement === "space") {
+      (entry.side === "after" ? spacesAfter : spaces).set(entry.target, entry.amount);
+    } else if (entry.statement === "gap") {
+      (entry.side === "after" ? gapsAfter : gapsBefore).set(entry.target, entry);
+    } else if (entry.statement === "label") labelEntries.set(entry.target, entry);
   }
+  const gapBefore = (id: string) => gapsBefore.get(id)?.amount ?? 0;
+  const gapAfter = (id: string) => gapsAfter.get(id)?.amount ?? 0;
   const baseKey = (key: string) => key.replace(/@\d+$/, "").replace(/@\d+$/, "");
 
   // ---------------------------------------------------------------- columns
+  // The base distance between two heads: `spacing` as written, in diagram units, or 40 scaled
+  // with the theme's labels. A pair's written distance never comes closer than its floor: the two
+  // half heads and HEAD_CLEARANCE, so heads never touch.
+  const base = diagram.properties.spacing ?? Math.round(40 * f);
+  const halves = (i: number) => widths[i - 1]! / 2 + widths[i]! / 2;
+  const written = (i: number) =>
+    halves(i) + base + gapAfter(participants[i - 1]!.id) + gapBefore(participants[i]!.id);
+  // Room left of the first participant, and right of the last, never less than nothing.
+  const outerBefore = participants.length > 0 ? Math.max(0, gapBefore(participants[0]!.id)) : 0;
+  const outerAfter =
+    participants.length > 0 ? Math.max(0, gapAfter(participants[participants.length - 1]!.id)) : 0;
   const xs: number[] = [];
-  participants.forEach((p, i) => {
+  participants.forEach((_p, i) => {
     xs[i] =
       i === 0
-        ? widths[0]! / 2
-        : xs[i - 1]! +
-          widths[i - 1]! / 2 +
-          widths[i]! / 2 +
-          Math.round(40 * f) +
-          (gaps.get(p.id) ?? 0);
+        ? widths[0]! / 2 + outerBefore
+        : xs[i - 1]! + Math.max(written(i), halves(i) + HEAD_CLEARANCE);
   });
   const constraints: { a: number; b: number; length: number }[] = [];
   let leftExtra = 0;
@@ -174,6 +193,7 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
         } else {
           constraints.push({ a: Math.min(a, b), b: Math.max(a, b), length: room + 24 });
         }
+        walk(event.events);
       } else if (event.kind === "note") {
         const size = noteSize(event);
         const indices = event.participants.map((p) => column.get(p)!).sort((x, y) => x - y);
@@ -205,6 +225,34 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
   for (const { a, b, length } of constraints) {
     const deficit = length - (xs[b]! - xs[a]!);
     if (deficit > 0) for (let k = b; k < xs.length; k++) xs[k] = xs[k]! + deficit;
+  }
+  // A negative gap that the floor or the room of labels, self-calls and notes kept from being
+  // drawn is said, on the statement (the `before` one when both sides are written).
+  for (let i = 1; i < participants.length; i++) {
+    const after = gapsAfter.get(participants[i - 1]!.id);
+    const before = gapsBefore.get(participants[i]!.id);
+    const sum = (after?.amount ?? 0) + (before?.amount ?? 0);
+    const distance = xs[i]! - xs[i - 1]!;
+    if (sum >= 0 || distance <= written(i)) continue;
+    const entry = before ?? after!;
+    const other = entry === before ? (after?.amount ?? 0) : (before?.amount ?? 0);
+    const applied = Math.round(distance - halves(i) - base - other);
+    diagnostics.push({
+      code: "layout.gap-floor",
+      severity: "warning",
+      message: words().diagnostics.gapFloor(
+        entry.target,
+        entry.side,
+        entry.amount,
+        applied,
+        participants[i - 1]!.id,
+        participants[i]!.id,
+      ),
+      range: entry.range,
+      data: {
+        gap: { participant: entry.target, side: entry.side, written: entry.amount, applied },
+      },
+    });
   }
 
   // ---------------------------------------------------------------- rows
@@ -275,222 +323,241 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
     for (const [index, event] of list.entries()) {
       y += spaces.get(baseKey(event.key)) ?? 0;
       const start = y;
-      switch (event.kind) {
-        case "message": {
-          const relation = diagram.relationsByKey.get(event.relation);
-          if (!relation) break;
-          const a = relation.from;
-          const b = relation.to;
-          number += numbered ? 1 : 0;
-          const text = relation.label ?? "";
-          const textWidth = messageLabel(relation);
-          let points: Point[];
-          let arrowY: number;
-          if (a === b) {
-            const top = y + labelHeight;
-            const x0 = edge(a, 1);
-            points = [
-              { x: x0, y: top },
-              { x: x0 + SELF_WIDTH, y: top },
-              { x: x0 + SELF_WIDTH, y: top + SELF_HEIGHT },
-              { x: x0, y: top + SELF_HEIGHT },
-            ];
-            arrowY = top;
-            y = top + SELF_HEIGHT + rowGap;
-          } else {
-            const createdHead = created.get(b);
-            const dir: -1 | 1 = xs[column.get(b)!]! > xs[column.get(a)!]! ? 1 : -1;
-            if (createdHead !== undefined && createdHead < 0) {
-              // The creating message ends on the new head, drawn at this row.
-              const top = y + 4;
-              const head = headBoxAt(diagram.elementsById.get(b)!, top);
-              heads.set(b, head);
-              created.set(b, top);
-              lifelines.get(b)!.top = top + headHeight;
-              arrowY = top + headHeight - boxHeight / 2;
-              const x1 = edge(a, dir);
-              const x2 = dir > 0 ? head.x : head.x + head.width;
+      // `space … after` is room below the event's row, which the row itself does not hold.
+      try {
+        switch (event.kind) {
+          case "message": {
+            const relation = diagram.relationsByKey.get(event.relation);
+            if (!relation) break;
+            const a = relation.from;
+            const b = relation.to;
+            number += numbered ? 1 : 0;
+            const text = relation.label ?? "";
+            const textWidth = messageLabel(relation);
+            let points: Point[];
+            let arrowY: number;
+            if (a === b) {
+              const top = y + labelHeight;
+              const x0 = edge(a, 1);
               points = [
-                { x: x1, y: arrowY },
-                { x: x2, y: arrowY },
+                { x: x0, y: top },
+                { x: x0 + SELF_WIDTH, y: top },
+                { x: x0 + SELF_WIDTH, y: top + SELF_HEIGHT },
+                { x: x0, y: top + SELF_HEIGHT },
               ];
-              y = top + headHeight + rowGap;
+              arrowY = top;
+              y = top + SELF_HEIGHT + rowGap;
             } else {
-              arrowY = y + labelHeight + 4;
-              points = [
-                { x: edge(a, dir), y: arrowY },
-                { x: edge(b, dir === 1 ? -1 : 1), y: arrowY },
-              ];
-              y = arrowY + rowGap;
+              const createdHead = created.get(b);
+              const dir: -1 | 1 = xs[column.get(b)!]! > xs[column.get(a)!]! ? 1 : -1;
+              if (createdHead !== undefined && createdHead < 0) {
+                // The creating message ends on the new head, drawn at this row.
+                const top = y + 4;
+                const head = headBoxAt(diagram.elementsById.get(b)!, top);
+                heads.set(b, head);
+                created.set(b, top);
+                lifelines.get(b)!.top = top + headHeight;
+                arrowY = top + headHeight - boxHeight / 2;
+                const x1 = edge(a, dir);
+                const x2 = dir > 0 ? head.x : head.x + head.width;
+                points = [
+                  { x: x1, y: arrowY },
+                  { x: x2, y: arrowY },
+                ];
+                y = top + headHeight + rowGap;
+              } else {
+                arrowY = y + labelHeight + 4;
+                points = [
+                  { x: edge(a, dir), y: arrowY },
+                  { x: edge(b, dir === 1 ? -1 : 1), y: arrowY },
+                ];
+                y = arrowY + rowGap;
+              }
             }
-          }
-          let label: MessageGeo["label"];
-          if (text !== "" || numbered) {
-            const entry = relation.id ? labelEntries.get(relation.id) : undefined;
-            const first = points[0]!;
-            const lastPoint = points[points.length - 1]!;
-            const at = entry ? entry.at / 100 : 0.5;
-            const offset = entry?.offset ?? { x: 0, y: 0 };
-            const width = Math.max(textWidth + 8, 8);
-            const anchor =
-              a === b
-                ? { x: first.x + SELF_WIDTH + 8 + width / 2, y: first.y + SELF_HEIGHT / 2 }
-                : { x: first.x + (lastPoint.x - first.x) * at, y: arrowY - labelHeight / 2 - 1 };
-            label = {
-              box: {
-                x: anchor.x - width / 2 + offset.x,
-                y: anchor.y - labelHeight / 2 + offset.y,
-                width,
-                height: labelHeight,
-              },
-              text,
-            };
-          }
-          messages.push({
-            key: event.key,
-            relation,
-            points,
-            self: a === b,
-            label,
-            number: numbered ? number : null,
-          });
-          const xsOf = points.map((p) => p.x);
-          extend(
-            Math.min(...xsOf) - 8,
-            Math.max(...xsOf, label ? label.box.x + label.box.width : -Infinity) + 8,
-          );
-          last = { participants: new Set([a, b]), y: a === b ? points[3]!.y : arrowY };
-          rows.set(event.key, { y: start, height: y - start });
-          continue;
-        }
-        case "activate": {
-          const top = last && last.participants.has(event.participant) ? last.y : y;
-          const stack = stacks.get(event.participant) ?? [];
-          const bar: Bar = {
-            participant: event.participant,
-            depth: stack.length,
-            top,
-            bottom: top,
-          };
-          stack.push(bar);
-          stacks.set(event.participant, stack);
-          bars.push(bar);
-          rows.set(event.key, { y: top, height: 0 });
-          continue;
-        }
-        case "deactivate": {
-          const stack = stacks.get(event.participant) ?? [];
-          const bar = stack.pop();
-          const bottom = last && last.participants.has(event.participant) ? last.y : y;
-          if (bar) bar.bottom = Math.max(bottom, bar.top + 12);
-          rows.set(event.key, { y: bottom, height: 0 });
-          continue;
-        }
-        case "create": {
-          const next = list[index + 1];
-          const relation =
-            next?.kind === "message" ? diagram.relationsByKey.get(next.relation) : undefined;
-          if (relation && relation.to === event.participant && relation.from !== relation.to) {
-            created.set(event.participant, -1); // drawn by the next message
-          } else {
-            const top = y + 4;
-            heads.set(
-              event.participant,
-              headBoxAt(diagram.elementsById.get(event.participant)!, top),
+            let label: MessageGeo["label"];
+            if (text !== "" || numbered) {
+              const entry = relation.id ? labelEntries.get(relation.id) : undefined;
+              const first = points[0]!;
+              const lastPoint = points[points.length - 1]!;
+              const at = entry ? entry.at / 100 : 0.5;
+              const offset = entry?.offset ?? { x: 0, y: 0 };
+              const width = Math.max(textWidth + 8, 8);
+              const anchor =
+                a === b
+                  ? { x: first.x + SELF_WIDTH + 8 + width / 2, y: first.y + SELF_HEIGHT / 2 }
+                  : { x: first.x + (lastPoint.x - first.x) * at, y: arrowY - labelHeight / 2 - 1 };
+              label = {
+                box: {
+                  x: anchor.x - width / 2 + offset.x,
+                  y: anchor.y - labelHeight / 2 + offset.y,
+                  width,
+                  height: labelHeight,
+                },
+                text,
+              };
+            }
+            messages.push({
+              key: event.key,
+              relation,
+              points,
+              self: a === b,
+              label,
+              number: numbered ? number : null,
+            });
+            const xsOf = points.map((p) => p.x);
+            extend(
+              Math.min(...xsOf) - 8,
+              Math.max(...xsOf, label ? label.box.x + label.box.width : -Infinity) + 8,
             );
-            created.set(event.participant, top);
-            lifelines.get(event.participant)!.top = top + headHeight;
-            y = top + headHeight + rowGap;
-          }
-          rows.set(event.key, { y: start, height: y - start });
-          continue;
-        }
-        case "destroy": {
-          const x = xs[column.get(event.participant)!]!;
-          const at = y + 8;
-          crosses.push({ key: event.key, x, y: at });
-          lifelines.get(event.participant)!.bottom = at;
-          for (const bar of stacks.get(event.participant) ?? [])
-            bar.bottom = Math.max(at, bar.top + 12);
-          stacks.set(event.participant, []);
-          y = at + rowGap + 4;
-          rows.set(event.key, { y: start, height: y - start });
-          last = undefined;
-          continue;
-        }
-        case "note": {
-          const size = noteSize(event);
-          const indices = event.participants.map((p) => column.get(p)!).sort((p, q) => p - q);
-          const i = indices[0]!;
-          const j = indices[indices.length - 1]!;
-          const top = y + 4;
-          let x: number;
-          let width = size.width;
-          if (event.position === "over") {
-            const left = xs[i]! - (i === j ? 0 : 24);
-            const right = xs[j]! + (i === j ? 0 : 24);
-            width = Math.max(size.width, right - left);
-            x = (left + right) / 2 - width / 2;
-          } else if (event.position === "left") {
-            x = xs[i]! - 10 - width;
-          } else {
-            x = xs[i]! + 10;
-          }
-          const box = { x, y: top, width, height: size.height };
-          notes.push({ key: event.key, event, box });
-          extend(box.x - 8, box.x + box.width + 8);
-          y = top + size.height + rowGap;
-          rows.set(event.key, { y: start, height: y - start });
-          last = undefined;
-          continue;
-        }
-        case "fragment": {
-          const top = y + 4;
-          const headerHeight = Math.round(22 * f);
-          const frame = { minX: Infinity, maxX: -Infinity };
-          open.push(frame);
-          const separators: FrameGeo["separators"] = [];
-          y = top + headerHeight + 6;
-          for (const [b, branch] of event.branches.entries()) {
-            if (b > 0) {
-              const sep = y + 2;
-              separators.push({ y: sep, condition: branch.condition });
-              y = sep + Math.round(20 * f);
+            last = { participants: new Set([a, b]), y: a === b ? points[3]!.y : arrowY };
+            rows.set(event.key, { y: start, height: y - start });
+            if (event.events.length > 0) {
+              // The receiver is active for the call's block: a bar from the arrow to the block's
+              // last event, which moves the ends of the nested messages to its edge.
+              const stack = stacks.get(b) ?? [];
+              const top = last.y;
+              const bar: Bar = { participant: b, depth: stack.length, top, bottom: top };
+              stack.push(bar);
+              stacks.set(b, stack);
+              bars.push(bar);
+              process(event.events);
+              (stacks.get(b) ?? []).pop();
+              const bottom = last && last.participants.has(b) ? last.y : y;
+              bar.bottom = Math.max(bottom, bar.top + 12);
             }
+            continue;
+          }
+          case "activate": {
+            const top = last && last.participants.has(event.participant) ? last.y : y;
+            const stack = stacks.get(event.participant) ?? [];
+            const bar: Bar = {
+              participant: event.participant,
+              depth: stack.length,
+              top,
+              bottom: top,
+            };
+            stack.push(bar);
+            stacks.set(event.participant, stack);
+            bars.push(bar);
+            rows.set(event.key, { y: top, height: 0 });
+            continue;
+          }
+          case "deactivate": {
+            const stack = stacks.get(event.participant) ?? [];
+            const bar = stack.pop();
+            const bottom = last && last.participants.has(event.participant) ? last.y : y;
+            if (bar) bar.bottom = Math.max(bottom, bar.top + 12);
+            rows.set(event.key, { y: bottom, height: 0 });
+            continue;
+          }
+          case "create": {
+            const next = list[index + 1];
+            const relation =
+              next?.kind === "message" ? diagram.relationsByKey.get(next.relation) : undefined;
+            if (relation && relation.to === event.participant && relation.from !== relation.to) {
+              created.set(event.participant, -1); // drawn by the next message
+            } else {
+              const top = y + 4;
+              heads.set(
+                event.participant,
+                headBoxAt(diagram.elementsById.get(event.participant)!, top),
+              );
+              created.set(event.participant, top);
+              lifelines.get(event.participant)!.top = top + headHeight;
+              y = top + headHeight + rowGap;
+            }
+            rows.set(event.key, { y: start, height: y - start });
+            continue;
+          }
+          case "destroy": {
+            const x = xs[column.get(event.participant)!]!;
+            const at = y + 8;
+            crosses.push({ key: event.key, x, y: at });
+            lifelines.get(event.participant)!.bottom = at;
+            for (const bar of stacks.get(event.participant) ?? [])
+              bar.bottom = Math.max(at, bar.top + 12);
+            stacks.set(event.participant, []);
+            y = at + rowGap + 4;
+            rows.set(event.key, { y: start, height: y - start });
             last = undefined;
-            process(branch.events);
+            continue;
           }
-          open.pop();
-          const bottom = y + 4;
-          const headerText = fragmentHeader(event, metrics, scale);
-          if (!Number.isFinite(frame.minX)) {
-            frame.minX = xs[0]! - 24;
-            frame.maxX = xs[xs.length - 1]! + 24;
+          case "note": {
+            const size = noteSize(event);
+            const indices = event.participants.map((p) => column.get(p)!).sort((p, q) => p - q);
+            const i = indices[0]!;
+            const j = indices[indices.length - 1]!;
+            const top = y + 4;
+            let x: number;
+            let width = size.width;
+            if (event.position === "over") {
+              const left = xs[i]! - (i === j ? 0 : 24);
+              const right = xs[j]! + (i === j ? 0 : 24);
+              width = Math.max(size.width, right - left);
+              x = (left + right) / 2 - width / 2;
+            } else if (event.position === "left") {
+              x = xs[i]! - 10 - width;
+            } else {
+              x = xs[i]! + 10;
+            }
+            const box = { x, y: top, width, height: size.height };
+            notes.push({ key: event.key, event, box });
+            extend(box.x - 8, box.x + box.width + 8);
+            y = top + size.height + rowGap;
+            rows.set(event.key, { y: start, height: y - start });
+            last = undefined;
+            continue;
           }
-          const minX = frame.minX - 16;
-          const maxX = Math.max(frame.maxX + 16, minX + headerText + 24);
-          const box = { x: minX, y: top, width: maxX - minX, height: bottom - top };
-          frames.push({ key: event.key, event, box, headerHeight, separators });
-          extend(box.x - 8, box.x + box.width + 8);
-          y = bottom + rowGap;
-          rows.set(event.key, { y: start, height: y - start });
-          last = undefined;
-          continue;
+          case "fragment": {
+            const top = y + 4;
+            const headerHeight = Math.round(22 * f);
+            const frame = { minX: Infinity, maxX: -Infinity };
+            open.push(frame);
+            const separators: FrameGeo["separators"] = [];
+            y = top + headerHeight + 6;
+            for (const [b, branch] of event.branches.entries()) {
+              if (b > 0) {
+                const sep = y + 2;
+                separators.push({ y: sep, condition: branch.condition });
+                y = sep + Math.round(20 * f);
+              }
+              last = undefined;
+              process(branch.events);
+            }
+            open.pop();
+            const bottom = y + 4;
+            const headerText = fragmentHeader(event, metrics, scale);
+            if (!Number.isFinite(frame.minX)) {
+              frame.minX = xs[0]! - 24;
+              frame.maxX = xs[xs.length - 1]! + 24;
+            }
+            const minX = frame.minX - 16;
+            const maxX = Math.max(frame.maxX + 16, minX + headerText + 24);
+            const box = { x: minX, y: top, width: maxX - minX, height: bottom - top };
+            frames.push({ key: event.key, event, box, headerHeight, separators });
+            extend(box.x - 8, box.x + box.width + 8);
+            y = bottom + rowGap;
+            rows.set(event.key, { y: start, height: y - start });
+            last = undefined;
+            continue;
+          }
+          case "divider": {
+            dividers.push({ key: event.key, y: y + 12, label: event.label });
+            y += 24 + rowGap;
+            rows.set(event.key, { y: start, height: y - start });
+            last = undefined;
+            continue;
+          }
+          case "delay": {
+            delays.push({ key: event.key, y: y + 14, label: event.label });
+            y += 28 + rowGap;
+            rows.set(event.key, { y: start, height: y - start });
+            last = undefined;
+            continue;
+          }
         }
-        case "divider": {
-          dividers.push({ key: event.key, y: y + 12, label: event.label });
-          y += 24 + rowGap;
-          rows.set(event.key, { y: start, height: y - start });
-          last = undefined;
-          continue;
-        }
-        case "delay": {
-          delays.push({ key: event.key, y: y + 14, label: event.label });
-          y += 28 + rowGap;
-          rows.set(event.key, { y: start, height: y - start });
-          last = undefined;
-          continue;
-        }
+      } finally {
+        y += spacesAfter.get(baseKey(event.key)) ?? 0;
       }
     }
   };
@@ -520,9 +587,11 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
 
   // ---------------------------------------------------------------- canvas
   // A diagram with no participant yet (a new one) has an empty width, not an unknown one.
-  const leftmost = xs.length > 0 ? xs[0]! - widths[0]! / 2 - leftExtra : 0;
+  const leftmost = xs.length > 0 ? xs[0]! - widths[0]! / 2 - outerBefore - leftExtra : 0;
   const rightmost =
-    xs.length > 0 ? xs[xs.length - 1]! + widths[widths.length - 1]! / 2 + rightExtra : 0;
+    xs.length > 0
+      ? xs[xs.length - 1]! + widths[widths.length - 1]! / 2 + rightExtra + outerAfter
+      : 0;
   const left = Math.min(leftmost, ...frames.map((fr) => fr.box.x));
   const right = Math.max(
     rightmost,

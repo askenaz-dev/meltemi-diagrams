@@ -7,8 +7,9 @@ import type {
 } from "@meltemi/diagrams-editor";
 import type { PresencePen } from "@meltemi/diagrams-editor/canvas";
 import { CANVAS_SETTINGS, settingsMessage } from "./canvas-settings.js";
+import { messages } from "./messages/index.js";
 import type { Studio } from "./studio.js";
-import { isMac } from "./ui.js";
+import { isMac, shownKey } from "./ui.js";
 
 export { CANVAS_SETTINGS };
 
@@ -127,6 +128,8 @@ export function mountCanvas(
       },
       getState: () => state.get(),
       setState: (next) => state.set(next),
+      // The page folds the properties with Ctrl+Alt+B (Cmd+Alt+B); the canvas's tooltips say so.
+      keys: { inspector: shownKey(messages().keys.inspector) },
     },
     isMac,
   );

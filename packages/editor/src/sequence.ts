@@ -5,6 +5,7 @@ import {
   FRAGMENT_OPERATORS,
   PARTICIPANT_KINDS,
   type Element,
+  type EventPlace,
   type FlowDiagram,
   type FragmentOperator,
   type Relation,
@@ -28,6 +29,7 @@ export function allEvents(events: readonly SequenceEvent[]): SequenceEvent[] {
     for (const event of list) {
       all.push(event);
       if (event.kind === "fragment") for (const branch of event.branches) visit(branch.events);
+      if (event.kind === "message") visit(event.events);
     }
   };
   visit(events);
@@ -38,18 +40,42 @@ export function allEvents(events: readonly SequenceEvent[]): SequenceEvent[] {
 export const isSpaced = (event: SequenceEvent): boolean =>
   event.kind === "message" || event.kind === "note" || event.kind === "fragment";
 
-/** The written `space` above an event, 0 when none. */
-export function spaceOf(diagram: FlowDiagram, event: SequenceEvent): number {
+/** The written `space` above (`before`) or below (`after`) an event, 0 when none. */
+export function spaceOf(
+  diagram: FlowDiagram,
+  event: SequenceEvent,
+  side: "before" | "after" = "before",
+): number {
   if (event.id === null) return 0;
-  const entry = diagram.placement.find((p) => p.statement === "space" && p.target === event.id);
+  const entry = diagram.placement.find(
+    (p) => p.statement === "space" && p.target === event.id && p.side === side,
+  );
   return entry?.statement === "space" ? entry.amount : 0;
 }
 
-/** The written `gap` left of a participant, 0 when none. */
-export function gapOf(diagram: FlowDiagram, participant: string): number {
-  const entry = diagram.placement.find((p) => p.statement === "gap" && p.target === participant);
+/** The written `gap` left (`before`) or right (`after`) of a participant, 0 when none. */
+export function gapOf(
+  diagram: FlowDiagram,
+  participant: string,
+  side: "before" | "after" = "before",
+): number {
+  const entry = diagram.placement.find(
+    (p) => p.statement === "gap" && p.target === participant && p.side === side,
+  );
   return entry?.statement === "gap" ? entry.amount : 0;
 }
+
+/** Whether a side of a participant is the outer side of the first or the last one. */
+function outerSide(diagram: FlowDiagram, participant: string, side: "before" | "after"): boolean {
+  const order = diagram.elements.filter((e) => e.kind !== "group");
+  return side === "before"
+    ? order[0]?.id === participant
+    : order[order.length - 1]?.id === participant;
+}
+
+/** The key of the fragment or the call a place is in, or null at the diagram level. */
+const placeKey = (place: EventPlace | undefined): string | null =>
+  place === undefined ? null : "fragment" in place ? place.fragment : place.message;
 
 /** The events of a sequence diagram for the canvas, in order, with their rows and frames. */
 export function eventInfos(diagram: FlowDiagram, layout: LayoutResult | null): EventInfo[] {
@@ -66,7 +92,7 @@ export function eventInfos(diagram: FlowDiagram, layout: LayoutResult | null): E
       y: row.y,
       height: row.height,
       box: framed ? (layout?.boxes?.get(event.key) ?? null) : null,
-      parent: event.path[event.path.length - 1]?.fragment ?? null,
+      parent: placeKey(event.path[event.path.length - 1]),
       participant:
         event.kind === "activate" ||
         event.kind === "deactivate" ||
@@ -112,13 +138,29 @@ export function sequenceMove(
       const x = centre(id);
       if (x === undefined || Math.abs(delta.x) < 1) continue;
       const parent = element.groupPath[element.groupPath.length - 1] ?? null;
-      // The declared siblings left of the drop point give the index.
-      const index = diagram.elements.filter((e) => {
-        if (e.id === id || !e.node) return false;
-        if ((e.groupPath[e.groupPath.length - 1] ?? null) !== parent) return false;
-        const c = centre(e.id);
-        return c !== undefined && c < x + delta.x;
-      }).length;
+      // The declared siblings left of a point give the index there.
+      const indexAt = (at: number) =>
+        diagram.elements.filter((e) => {
+          if (e.id === id || !e.node) return false;
+          if ((e.groupPath[e.groupPath.length - 1] ?? null) !== parent) return false;
+          const c = centre(e.id);
+          return c !== undefined && c < at;
+        }).length;
+      const index = indexAt(x + delta.x);
+      if (index === indexAt(x) && PARTICIPANTS.has(element.kind)) {
+        // No neighbour's centre crossed: the head moves by the gap before it, which never goes
+        // below 0 before the first participant.
+        const amount = Math.round(gapOf(diagram, id) + delta.x);
+        ops.push({
+          kind: "setSpacing",
+          diagram: diagram.id,
+          target: id,
+          targetKind: "participant",
+          side: "before",
+          amount: outerSide(diagram, id, "before") ? Math.max(0, amount) : amount,
+        });
+        continue;
+      }
       ops.push({ kind: "reorderParticipant", diagram: diagram.id, participant: id, index });
       continue;
     }
@@ -158,6 +200,44 @@ function messageOf(diagram: FlowDiagram, ids: readonly string[]): SequenceEvent 
     .find((e) => e.kind === "message");
 }
 
+/** The events of the block an event is in: the diagram's, a branch's or a call's. */
+function siblingsOf(diagram: FlowDiagram, event: SequenceEvent): readonly SequenceEvent[] {
+  const place = event.path[event.path.length - 1];
+  if (!place) return diagram.events;
+  if ("fragment" in place) {
+    const fragment = diagram.eventsByKey.get(place.fragment);
+    return fragment?.kind === "fragment" ? (fragment.branches[place.branch]?.events ?? []) : [];
+  }
+  const call = diagram.eventsByKey.get(place.message);
+  return call?.kind === "message" ? call.events : [];
+}
+
+const isReturn = (diagram: FlowDiagram, event: SequenceEvent): boolean =>
+  event.kind === "message" && diagram.relationsByKey.get(event.relation)?.returns != null;
+
+/**
+ * The selected call, or the call around the selection: a selected message that is not a
+ * `return` (with a block, when `withBlock`), else the nearest call the selection is inside.
+ */
+function callOf(
+  diagram: FlowDiagram,
+  ids: readonly string[],
+  withBlock: boolean,
+): SequenceEvent | undefined {
+  const selected = allEvents(diagram.events).filter((e) => ids.includes(e.key));
+  const first = selected.find((e) => e.kind === "message") ?? selected[0];
+  if (!first) return undefined;
+  if (
+    first.kind === "message" &&
+    !isReturn(diagram, first) &&
+    (!withBlock || first.events.length > 0)
+  ) {
+    return first;
+  }
+  const place = [...first.path].reverse().find((p) => "message" in p);
+  return place && "message" in place ? diagram.eventsByKey.get(place.message) : undefined;
+}
+
 /** The last selected event, or undefined to append at the end. */
 function anchorOf(diagram: FlowDiagram, ids: readonly string[]): SequenceEvent | undefined {
   const order = allEvents(diagram.events);
@@ -193,7 +273,16 @@ export function sequenceAction(
   view: DiagramView,
   action: Extract<
     CanvasAction,
-    { kind: "moveEvent" | "toggleActivation" | "insertEvent" | "wrap" }
+    {
+      kind:
+        | "moveEvent"
+        | "toggleActivation"
+        | "nestInCall"
+        | "unnestCall"
+        | "addReturn"
+        | "insertEvent"
+        | "wrap";
+    }
   >,
 ): SequenceResult {
   const diagram = view.diagram;
@@ -227,6 +316,43 @@ export function sequenceAction(
           },
         ],
         select: [...action.ids],
+      };
+    }
+    case "nestInCall": {
+      // The selected events of the first one's block, after the call right before them.
+      const order = allEvents(diagram.events);
+      const first = order.find((e) => action.ids.includes(e.key));
+      const siblings = first ? siblingsOf(diagram, first) : [];
+      const call = first ? siblings[siblings.indexOf(first) - 1] : undefined;
+      if (call?.kind !== "message" || isReturn(diagram, call)) {
+        return { ok: false, reason: reasons.nestAfterCall };
+      }
+      const events = siblings.filter((e) => action.ids.includes(e.key));
+      return {
+        ok: true,
+        operations: [
+          { kind: "nestInCall", diagram: d, call: call.key, events: events.map((e) => e.key) },
+        ],
+        select: [call.key],
+      };
+    }
+    case "unnestCall":
+    case "addReturn": {
+      const call = callOf(diagram, action.ids, action.kind === "unnestCall");
+      if (!call) return { ok: false, reason: reasons.selectCall };
+      return {
+        ok: true,
+        operations: [
+          action.kind === "unnestCall"
+            ? { kind: "unnestCall", diagram: d, call: call.key }
+            : {
+                kind: "insertEvent",
+                diagram: d,
+                statement: "return",
+                inside: { message: call.key },
+              },
+        ],
+        select: [call.key],
       };
     }
     case "insertEvent": {
@@ -274,7 +400,9 @@ export function sequenceAction(
       }
       // The outermost selected events: those whose fragments are not selected too.
       const keys = new Set(selected.map((e) => e.key));
-      const outer = selected.filter((e) => !e.path.some((p) => keys.has(p.fragment)));
+      const outer = selected.filter(
+        (e) => !e.path.some((p) => "fragment" in p && keys.has(p.fragment)),
+      );
       return {
         ok: true,
         operations: [
@@ -301,13 +429,18 @@ function messageKind(relation: Relation): (typeof MESSAGE_KINDS)[number] {
   return relation.async ? "async" : relation.line === "dashed" ? "reply" : "call";
 }
 
-const spaceField = (diagram: FlowDiagram, event: SequenceEvent | undefined): InspectorField => ({
-  name: "space",
-  label: messages().sequence.fields.spaceBefore,
-  type: "number",
-  value: event && spaceOf(diagram, event) > 0 ? spaceOf(diagram, event) : null,
-  placeholder: "0",
-});
+/** The room above and below an event: **Space before** and **Space after**. */
+const spaceFields = (diagram: FlowDiagram, event: SequenceEvent | undefined): InspectorField[] =>
+  (["before", "after"] as const).map((side) => ({
+    name: side === "before" ? "space" : "spaceAfter",
+    label:
+      side === "before"
+        ? messages().sequence.fields.spaceBefore
+        : messages().sequence.fields.spaceAfter,
+    type: "number",
+    value: event && spaceOf(diagram, event, side) > 0 ? spaceOf(diagram, event, side) : null,
+    placeholder: "0",
+  }));
 
 /** Fields of a participant or a participant group, before the style fields. */
 export function participantFields(diagram: FlowDiagram, element: Element): InspectorField[] {
@@ -346,13 +479,15 @@ export function participantFields(diagram: FlowDiagram, element: Element): Inspe
     ...(group
       ? []
       : [
-          {
-            name: "gap",
-            label: words.sequence.fields.gapBefore,
+          ...(["before", "after"] as const).map((side) => ({
+            name: side === "before" ? "gap" : "gapAfter",
+            label:
+              side === "before" ? words.sequence.fields.gapBefore : words.sequence.fields.gapAfter,
             type: "number" as const,
-            value: gapOf(diagram, element.id) > 0 ? gapOf(diagram, element.id) : null,
+            // A negative gap brings the participant closer: shown as written.
+            value: gapOf(diagram, element.id, side) !== 0 ? gapOf(diagram, element.id, side) : null,
             placeholder: "0",
-          },
+          })),
         ]),
   ];
 }
@@ -361,6 +496,9 @@ export function participantFields(diagram: FlowDiagram, element: Element): Inspe
 export function messageFields(diagram: FlowDiagram, relation: Relation): InspectorField[] {
   const participants = diagram.elements.filter((e) => isParticipant(e)).map((e) => e.id);
   const words = messages();
+  // A `return` takes its ends and its line from the call it answers.
+  const answers = relation.returns !== null;
+  const fixed = answers ? ({ readonly: true } as const) : {};
   return [
     {
       name: "id",
@@ -382,16 +520,25 @@ export function messageFields(diagram: FlowDiagram, relation: Relation): Inspect
       type: "enum",
       value: relation.from,
       options: participants,
+      ...fixed,
     },
-    { name: "to", label: words.fields.to, type: "enum", value: relation.to, options: participants },
+    {
+      name: "to",
+      label: words.fields.to,
+      type: "enum",
+      value: relation.to,
+      options: participants,
+      ...fixed,
+    },
     {
       name: "message",
       label: words.sequence.fields.message,
       type: "enum",
-      value: messageKind(relation),
-      options: MESSAGE_KINDS,
+      value: answers ? "return" : messageKind(relation),
+      options: answers ? ["return"] : MESSAGE_KINDS,
+      ...fixed,
     },
-    spaceField(diagram, diagram.eventsByKey.get(relation.key)),
+    ...spaceFields(diagram, diagram.eventsByKey.get(relation.key)),
   ];
 }
 
@@ -426,7 +573,7 @@ export function eventFields(diagram: FlowDiagram, event: SequenceEvent): Inspect
           value: event.participants.join(", "),
           placeholder: participants.join(", "),
         },
-        spaceField(diagram, event),
+        ...spaceFields(diagram, event),
       ];
     case "fragment":
       return [
@@ -447,7 +594,7 @@ export function eventFields(diagram: FlowDiagram, event: SequenceEvent): Inspect
           type: "text",
           value: branch.condition,
         })),
-        spaceField(diagram, event),
+        ...spaceFields(diagram, event),
       ];
     case "divider":
       return [{ name: "text", label: words.fields.label, type: "text", value: event.label }];
@@ -496,6 +643,13 @@ export function sequenceDiagramFields(
       placeholder: "off",
     },
     {
+      name: "spacing",
+      label: words.sequence.fields.participantSpacing,
+      type: "number",
+      value: p.spacing,
+      placeholder: "40",
+    },
+    {
       name: "theme",
       label: words.fields.theme,
       type: "enum",
@@ -522,27 +676,46 @@ export function sequenceFieldOperations(
   const reasons = messages().sequence.reasons;
   const element = diagram.elementsById.get(id);
   if (element) {
-    if (field !== "gap") return undefined;
-    if (number !== null && (!Number.isFinite(number) || number < 0)) {
-      return { ok: false, reason: reasons.pixels };
+    if (field !== "gap" && field !== "gapAfter") return undefined;
+    const side = field === "gap" ? "before" : "after";
+    // Negative between two participants; on the outer side of the first or last, 0 or more.
+    if (
+      number !== null &&
+      (!Number.isFinite(number) || (number < 0 && outerSide(diagram, id, side)))
+    ) {
+      return { ok: false, reason: reasons.signedPixels };
     }
     return {
       ok: true,
       operations: [
-        { kind: "setSpacing", diagram: d, target: id, targetKind: "participant", amount: number },
+        {
+          kind: "setSpacing",
+          diagram: d,
+          target: id,
+          targetKind: "participant",
+          amount: number,
+          side,
+        },
       ],
     };
   }
   const event = diagram.eventsByKey.get(id);
   if (!event) return undefined;
-  if (field === "space") {
+  if (field === "space" || field === "spaceAfter") {
     if (number !== null && (!Number.isFinite(number) || number < 0)) {
       return { ok: false, reason: reasons.pixels };
     }
     return {
       ok: true,
       operations: [
-        { kind: "setSpacing", diagram: d, target: event.key, targetKind: "event", amount: number },
+        {
+          kind: "setSpacing",
+          diagram: d,
+          target: event.key,
+          targetKind: "event",
+          amount: number,
+          side: field === "space" ? "before" : "after",
+        },
       ],
     };
   }

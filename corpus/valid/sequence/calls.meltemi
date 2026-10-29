@@ -1,0 +1,46 @@
+language "0.2"
+
+// Calls that hold what they cause: a call's block keeps its receiver active, and `return`
+// answers the call around it. Spacing between the heads, and room on each side.
+diagram checkout: sequence {
+  theme "editorial.light"
+  spacing 56
+
+  actor customer "Customer"
+  participant api "API"
+  participant bank "Bank"
+  database ledger "Ledger"
+
+  customer -> api: "Pay" as pay {
+    api -> bank: "Authorize" as authorize {
+      bank -> ledger: "Reserve" as reserve
+      return "Approved" as approved
+    }
+    alt stock "In stock" {
+      api -> ledger: "Record" as record {
+        return "Recorded" as recorded
+      }
+      return "Receipt" as receipt
+    } else "Out of stock" {
+      return "Refunded" as refunded
+    }
+  }
+
+  loop poll "Until settled" {
+    api -> bank: "Status" as status {
+      return "Pending" as pending
+    }
+  }
+
+  placement {
+    gap bank -12
+    gap ledger 24 after
+    space status 16
+    space poll 20 after
+  }
+
+  scenario settled "Settled after two checks" {
+    choose stock "In stock"
+    repeat poll 2
+  }
+}

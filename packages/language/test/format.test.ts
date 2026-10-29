@@ -453,3 +453,15 @@ describe("line edits", () => {
     }
   });
 });
+
+describe("formatter and call blocks", () => {
+  it("keeps a one-line call block on its line and indents a multi-line one", () => {
+    const one = 'diagram s: sequence {\n  a -> b: "Pay" { return "OK" }\n}\n';
+    expect(format(one)).toBe(one);
+    const input =
+      'diagram s: sequence {\n  a -> b: "Pay" as pay {\nb -> c: "Ask" {\n      return   "Yes"\n}\n        return "OK"   as ok\n  }\n}\n';
+    expect(format(input)).toBe(
+      'diagram s: sequence {\n  a -> b: "Pay" as pay {\n    b -> c: "Ask" {\n      return "Yes"\n    }\n    return "OK" as ok\n  }\n}\n',
+    );
+  });
+});

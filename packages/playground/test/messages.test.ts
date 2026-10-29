@@ -44,6 +44,11 @@ describe("the playground's catalog", () => {
         "Playground",
         "GitHub",
         "Google",
+        // Keys that read the same in Spanish.
+        "Ctrl+Z",
+        "Ctrl+B",
+        "Ctrl+J",
+        "Ctrl+Alt+B",
       ]),
     ).toEqual([]);
   });

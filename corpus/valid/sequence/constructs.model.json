@@ -32,7 +32,8 @@
         "layers": [
           "main"
         ],
-        "autonumber": 1
+        "autonumber": 1,
+        "spacing": null
       },
       "classes": [],
       "rules": [],
@@ -422,6 +423,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -465,6 +467,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -508,6 +511,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -551,6 +555,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -594,6 +599,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -637,6 +643,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -680,6 +687,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -723,6 +731,7 @@
           "twoWay": false,
           "heads": "end",
           "async": true,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -766,6 +775,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -809,6 +819,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -852,6 +863,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -895,6 +907,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -938,6 +951,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -981,6 +995,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -1024,6 +1039,7 @@
           "twoWay": false,
           "heads": "end",
           "async": false,
+          "returns": null,
           "technology": null,
           "sources": [],
           "derived": false,
@@ -1064,6 +1080,7 @@
           "statement": "space",
           "target": "save",
           "amount": 12,
+          "side": "before",
           "range": {
             "start": {
               "offset": 1634,
@@ -1093,6 +1110,7 @@
           "statement": "gap",
           "target": "events",
           "amount": 20,
+          "side": "before",
           "range": {
             "start": {
               "offset": 1652,
@@ -1193,6 +1211,7 @@
           "kind": "message",
           "key": "checkout",
           "relation": "checkout",
+          "events": [],
           "range": {
             "start": {
               "offset": 499,
@@ -1210,6 +1229,7 @@
           "kind": "message",
           "key": "place",
           "relation": "place",
+          "events": [],
           "range": {
             "start": {
               "offset": 541,
@@ -1244,6 +1264,7 @@
           "kind": "message",
           "key": "validate",
           "relation": "validate",
+          "events": [],
           "range": {
             "start": {
               "offset": 599,
@@ -1278,6 +1299,7 @@
           "kind": "message",
           "key": "build",
           "relation": "build",
+          "events": [],
           "range": {
             "start": {
               "offset": 657,
@@ -1326,6 +1348,7 @@
                   "kind": "message",
                   "key": "save",
                   "relation": "save",
+                  "events": [],
                   "range": {
                     "start": {
                       "offset": 758,
@@ -1343,6 +1366,7 @@
                   "kind": "message",
                   "key": "saved",
                   "relation": "saved",
+                  "events": [],
                   "range": {
                     "start": {
                       "offset": 791,
@@ -1377,6 +1401,7 @@
                   "kind": "message",
                   "key": "declined",
                   "relation": "declined",
+                  "events": [],
                   "range": {
                     "start": {
                       "offset": 849,
@@ -1448,6 +1473,7 @@
                   "kind": "message",
                   "key": "publish",
                   "relation": "publish",
+                  "events": [],
                   "range": {
                     "start": {
                       "offset": 929,
@@ -1482,6 +1508,7 @@
                   "kind": "message",
                   "key": "confirm",
                   "relation": "confirm",
+                  "events": [],
                   "range": {
                     "start": {
                       "offset": 1010,
@@ -1536,6 +1563,7 @@
                   "kind": "message",
                   "key": "status",
                   "relation": "status",
+                  "events": [],
                   "range": {
                     "start": {
                       "offset": 1093,
@@ -1553,6 +1581,7 @@
                   "kind": "message",
                   "key": "pending",
                   "relation": "pending",
+                  "events": [],
                   "range": {
                     "start": {
                       "offset": 1132,
@@ -1607,6 +1636,7 @@
                   "kind": "message",
                   "key": "discount",
                   "relation": "discount",
+                  "events": [],
                   "range": {
                     "start": {
                       "offset": 1210,
@@ -1661,6 +1691,7 @@
                   "kind": "message",
                   "key": "ship",
                   "relation": "ship",
+                  "events": [],
                   "range": {
                     "start": {
                       "offset": 1284,
@@ -1695,6 +1726,7 @@
                   "kind": "message",
                   "key": "later",
                   "relation": "later",
+                  "events": [],
                   "range": {
                     "start": {
                       "offset": 1350,
@@ -1749,6 +1781,7 @@
                   "kind": "message",
                   "key": "cancelled",
                   "relation": "cancelled",
+                  "events": [],
                   "range": {
                     "start": {
                       "offset": 1429,

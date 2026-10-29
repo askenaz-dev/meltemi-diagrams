@@ -443,6 +443,11 @@ export const es: typeof en = {
       participantsAtTop:
         "Los participantes se declaran en el nivel del diagrama, no dentro de fragmentos.",
       unknownInFragment: (keyword) => `Instrucción desconocida ${code(keyword)} en un fragmento.`,
+      returnOutsideCall:
+        "`return` responde a una llamada: escríbelo dentro del bloque de la llamada.",
+      afterReturn: (call) => `\`${call}\` ya respondió; mueve este evento antes del \`return\`.`,
+      activeForCall: (participant, call) =>
+        `\`${participant}\` está activo durante la llamada \`${call}\`; su barra termina con el bloque.`,
       divider: 'Se esperaba `divider "Label"`.',
       delay: 'Se esperaba `delay` o `delay "Label"`.',
       noteSide: (position) => `Se esperaba \`${position} of <participant>\`.`,
@@ -466,6 +471,12 @@ export const es: typeof en = {
       placementStatement: (keyword) =>
         `${code(keyword)} no se aplica a los diagramas de secuencia.`,
       pixels: (form) => `Se esperaba ${form} con un número de píxeles, 0 o más.`,
+      signedPixels: (form) => `Se esperaba ${form} con un número de píxeles.`,
+      side: (form) => `Se esperaba ${form}: el lado es \`before\` o \`after\`.`,
+      outerGap: (participant, side) =>
+        side === "before"
+          ? `\`${participant}\` es el primer participante: un espacio antes de él es 0 o más.`
+          : `\`${participant}\` es el último participante: un espacio después de él es 0 o más.`,
       unknownEvent: (id) => `Evento desconocido ${code(id)}.`,
       duplicateScenario: (id) => `El escenario ${code(id)} ya está declarado.`,
       scenarioStatements: "Los escenarios contienen `choose`, `repeat`, `skip` y `take`.",
@@ -711,10 +722,13 @@ export const es: typeof en = {
       declareParticipant: (id) => `Decláralo primero, por ejemplo \`participant ${id} "${id}"\`.`,
       fragmentContents:
         "Los fragmentos contienen mensajes, los demás eventos y fragmentos anidados.",
+      returnInCall: 'Escríbelo dentro del bloque de la llamada: `a -> b: "Pagar" { return "OK" }`.',
       activate: (participant) =>
         `Agrega \`activate ${participant}\` antes o quita este \`deactivate\`.`,
       placement:
         "Los diagramas de secuencia mantienen el orden de los eventos: usa `space <event> <n>`, `gap <participant> <n>` y `label <message> at <n>% offset (dx, dy)`.",
+      outerGap: (participant) =>
+        `No queda nada de \`${participant}\` que acercar; un espacio en el lado exterior es 0 o más.`,
       spaceTarget:
         '`space` nombra un mensaje con `as <id>`, o una nota o un fragmento con id, como `alt check "OK" { }`.',
       namedFragments: (fragments) =>

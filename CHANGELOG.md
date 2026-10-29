@@ -14,6 +14,12 @@ eraser, and seen by the room while it is drawn
 ([decision 0064](docs/decisions/0064-whiteboard-tools.md)). The language stays 0.2: `pen`,
 `sticky`, the list properties, `opacity`, `preset board`, the three tokens and `draw` are additive.
 
+Sequence diagrams set the distance between participants and say which calls happen inside which:
+`spacing` for the whole diagram, a `gap` on either side of a participant that may bring it closer,
+a head drag that writes the gap, and a call's block that holds the events it causes, answered by
+`return` ([decision 0060](docs/decisions/0060-sequence-spacing-and-nested-calls.md)). The language
+stays 0.2: `spacing`, the sides, the negative `gap`, call blocks and `return` are additive.
+
 ### Language
 
 - Pen strokes: `pen <id> [(x, y), (x, y), …]` is a freehand stroke of free diagrams, its points in
@@ -45,9 +51,79 @@ eraser, and seen by the room while it is drawn
   target first shown by `draw` starts hidden. The player, the catalog and video exports show it.
 - The model JSON gives every element `pen` after `line` and `list` after `pen`; the version stays
   0.1.
+- `spacing <n>` sets the distance between neighbouring heads of a sequence diagram, 0 to 400
+  diagram units, before their gaps; without it the layout keeps 40, scaled by the theme. The model
+  JSON writes `properties.spacing`, null without it.
+- `space <event> <n> [before|after]` and `gap <participant> <n> [before|after]` take a side,
+  `before` by default; both sides of a pair add up, and `space … after` on the last event lengthens
+  the lifelines. `placement.duplicate` is keyed on the target and the side, and the model JSON
+  writes `side` on every `space` and `gap`.
+- A `gap` may be negative, down to a floor: the two heads' halves and 8 units, and the room the
+  labels between them need. When the floor wins, `layout.gap-floor` (warning) on the `gap` names
+  the amount drawn. A negative gap before the first participant or after the last is
+  `prop.invalid-value`; a negative `space` stays an error.
+- A message's block holds the events the call causes (messages, notes, fragments, activations,
+  lifecycle events, dividers and delays) beside its properties. The receiver is active for the
+  block: one bar from the call's arrow to the block's last event, which a `deactivate` cannot end
+  (`sequence.activation`); explicit activations inside nest deeper.
+- `return ["Label"] [as <id>] [{ … }]` in a call's block is the dashed reply from the receiver to
+  the caller. It is a relation like any other, keyed with the other relations of its pair, so no
+  key moves, and the model JSON gives every relation `returns` after `async` (the call's key, or
+  null) and every message event its `events`. A `return` outside a call, or an event after a
+  `return` in the same list, is `sequence.return`; a `return` in a branch ends that branch.
+  Scenarios, numbering, styles, animations, completion, hover, the formatter and the VS Code
+  grammar know the nesting.
+
+### Playground
+
+- The properties panel at the right of the canvas folds to a rail, as the explorer and the code
+  pane do: from the button in its head, the toolbar's **Show the properties** toggle or Ctrl+Alt+B
+  (Cmd+Alt+B), and unfolds from the rail's button, the toggle or Ctrl+Alt+B again. The page
+  remembers the fold, and a first visit on a screen narrower than 1100 pixels starts with the rail.
+- Every icon button of the page shows its name and its key in the canvas's bubble after a moment
+  ("Undo (Ctrl+Z)", "Hide the code (Ctrl+J)"), and says the key to assistive technology; names no
+  longer hold keys, and the theme switch says which theme a press gives. The explorer, the code
+  pane and the properties each have their own picture
+  ([decision 0062](docs/decisions/0062-inspector-collapse-and-tooltips.md)).
+- An account an administrator entitled finds **Export without the Meltemi branding** under Theme
+  in the export dialog: the pictures, of every format, leave out the strip at the foot of the sheet,
+  the message says so, and the dialog's catalog button builds its pictures the same way. Profile
+  shows every person their account id with Copy, and an entitled person what the account may do
+  ([decision 0061](docs/decisions/0061-unbranded-exports.md)).
+- Two templates, **Kanban board** and **Whiteboard** (a sketched board with a story that draws its
+  strokes), among the New project cards; their thumbnails are drawn in each template's own theme.
+
+### Account
+
+- Administrators entitle an account to export without the Meltemi branding, revoke it and list the
+  entitled accounts, from the page's console: `GET /api/admin/entitlements`, and `GET` and `PUT` on
+  `/api/admin/accounts/<account>/entitlements`, by account id or `@<handle>`, recording who and
+  when. `GET /api/session` answers `user.entitlements.unbranded`, true for every administrator.
+  Migration 0005 adds the three columns to `users`.
+- Exports take `branding: "none"` and layouts `frame: "none"`: the theme without its frame.
 
 ### Canvas (VS Code and the playground)
 
+- The inspector has a head with a fold button and folds to a 36 px rail whose button unfolds it,
+  in step with the toolbar's toggle and kept with the canvas's state; the theme panel folds with
+  it. The fold writes nothing to the document and works on a read-only canvas. In VS Code it has
+  no key, since the workbench owns Ctrl+Alt+B.
+- Toolbar buttons are named without their key, which their tooltips show in parentheses and
+  `aria-keyshortcuts` says: "Show the layers (L)", the palette's "Node (N)" and "Icon (I)", the
+  split arrows' "More shapes (F)". The package exports `Tooltips` and `ariaKeyshortcuts` for hosts.
+- A participant's head dragged sideways and dropped short of a neighbour's centre writes its
+  `gap` before it, never below 0 on the first participant, instead of snapping back; dropped past
+  the centre it still reorders. When the floor wins, the status line says what was written and what
+  is drawn. The inspector gains **Participant spacing** on a sequence diagram, **Gap after** on a
+  participant, accepting a negative number except on the outer side, and **Space after** on an
+  event.
+- Alt+N nests the selected events in the call right before them, Alt+Shift+N moves the events of
+  the selected call (or of the call around the selection) out after it, writing each `return` as a
+  reply, and Alt+R appends a `return` to the call; the context menu lists **Nest in the call**,
+  **Unnest the call** and **Return to the caller** after **Activate the receiver**. Alt+Up and
+  Alt+Down move events into and out of call blocks, a call dragged down moves its block with it,
+  removing a call removes its block with what names the events in it, and the inspector shows a
+  `return`'s **Message**, **From** and **To** read-only.
 - Pen (P), Highlighter (H) and Eraser (E) on free diagrams. The pen button is a split button whose
   menu holds Pen and Highlighter, the widths and the theme's colours, kept between sessions; the
   tools stay in the hand after each stroke. A stroke is drawn as the layout will draw it while the
@@ -70,11 +146,6 @@ eraser, and seen by the room while it is drawn
 - Strokes of others: in a room, a stroke appears on the others' canvases while it is drawn, in its
   colour and width, and the written `pen` replaces it when the drawing arrives.
 
-### Playground
-
-- Two templates, **Kanban board** and **Whiteboard** (a sketched board with a story that draws its
-  strokes), among the New project cards; their thumbnails are drawn in each template's own theme.
-
 ### Command line
 
 - `init --template kanban` and `init --template whiteboard`; `init --list` prints seven templates.
@@ -86,11 +157,8 @@ eraser, and seen by the room while it is drawn
   the story's actions, as it leaves its styles.
 - The playground's template thumbnails were drawn in the technical theme whatever theme the
   template named.
-
-## 1.10.1
-
-### Fixed
-
+- The `gap` of a sequence diagram's first participant draws, as room left of it inside the
+  drawing; the layout read it and drew nothing.
 - The agent setup prompt is served as `text/markdown; charset=utf-8`. Without the charset, a client
   that does not assume UTF-8, such as PowerShell's `Invoke-WebRequest`, read its dashes and
   ellipses as Latin-1.

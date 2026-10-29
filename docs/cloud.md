@@ -192,7 +192,9 @@ From the first authenticated request with the cookie the Worker keeps a user row
 the token's `name`, `picture`, `email` and `email_verified`. Every request compares them with the
 row and refreshes it when they differ, so a new sign-in with another name or picture updates it.
 The row also holds what the token does not carry: the person's handle, once they chose one
-([Handles](#handles)). A deleted person's row is removed, not marked.
+([Handles](#handles)), and whether an administrator entitled the account to export without the
+Meltemi branding, with who did it and when ([Entitlements](#entitlements)). A deleted person's row
+is removed, not marked.
 
 ## The Origin rule
 
@@ -303,6 +305,9 @@ the code, in English or Spanish, instead of JSON.
 | `POST /api/account/identity/sessions/<sid>/revoke`  | a person signed in on the page                            | `200`, the same without that session                              |
 | `POST /api/invitations/<token>/accept`              | a person, with the cookie or a token                      | `200`, the project, with the role the person now has              |
 | `DELETE /api/admin/publications/<handle>/<slug>`    | an administrator, with the cookie; anyone else gets `404` | `204`                                                             |
+| `GET /api/admin/accounts/<account>/entitlements`    | an administrator, with the cookie; anyone else gets `404` | `200`, the account's entitlement                                  |
+| `PUT /api/admin/accounts/<account>/entitlements`    | an administrator, with the cookie; anyone else gets `404` | `200`, the account's entitlement                                  |
+| `GET /api/admin/entitlements`                       | an administrator, with the cookie; anyone else gets `404` | `200`, the entitled accounts                                      |
 | `GET` and `HEAD /_published/<handle>/<slug>/`       | anyone; development only                                  | `200`, the published page                                         |
 
 The projects' routes each name the role they need: the owner's, an editor's or, for what only
@@ -379,7 +384,8 @@ is read up to 8 KiB like the rest.
     "sub": "u_7d3f",
     "name": "Ana",
     "picture": "https://avatars.githubusercontent.com/u/1",
-    "handle": "ana"
+    "handle": "ana",
+    "entitlements": { "unbranded": false }
   },
   "account": "https://id.meltemi.dev/account",
   "signOut": "https://id.meltemi.dev/logout"
@@ -387,7 +393,9 @@ is read up to 8 KiB like the rest.
 ```
 
 `handle` is the name the person publishes under, or `null` until they choose one
-([Handles](#handles)). Before it answers, a cookie whose email the identity service verified has
+([Handles](#handles)). `entitlements.unbranded` says whether the account may export without the
+Meltemi branding: `true` when an administrator entitled it, and for every administrator
+([Entitlements](#entitlements)). Before it answers, a cookie whose email the identity service verified has
 every pending invitation for that email turned into a membership
 ([Invitations](#invitations)); an email that is not verified resolves nothing. `account` is the
 identity service's page and `signOut` the address a form posts to, with the field `return_to`, to
@@ -401,7 +409,8 @@ only the cookie holds a verified email:
     "sub": "u_7d3f",
     "name": "Ana",
     "picture": "https://avatars.githubusercontent.com/u/1",
-    "handle": "ana"
+    "handle": "ana",
+    "entitlements": { "unbranded": false }
   },
   "token": { "id": "5f0c2a9e", "name": "laptop" }
 }
@@ -1384,7 +1393,7 @@ needs a person and the token, which is the proof. The socket needs any role the 
 a live session's token ([The socket](#the-socket)). `GET /api/projects/<id>` and `GET` and `HEAD
 …/blobs/<hash>` also take `read` from a live session's current token in `X-Meltemi-Live`; no other
 route reads that header. `PATCH /api/account { handle }` needs a person, with the cookie or a token, and the
-administrators' route a cookie that `ADMIN_SUBS` lists. The routes about the asker's own account (`GET` and
+administrators' routes a cookie that `ADMIN_SUBS` lists. The routes about the asker's own account (`GET` and
 `POST /api/projects`, `GET /api/account/usage`) need a person.
 
 When the role falls short, the answer is, in this order:
@@ -1761,7 +1770,17 @@ characters, line breaks and tabs allowed, no other control character). Administr
 listed person with the cookie, so the `Origin` rule applies: an API token is not accepted even from
 an administrator, because a token is for programs and is stolen more easily. Everybody else, signed
 in or not, gets `404 not-found`, the answer of a route that does not exist, and not `403`, which would
-tell a stranger the route is there.
+tell a stranger the route is there. On the page, signed in, an administrator calls it from the
+browser's console, which sends the cookie and the `Origin`:
+
+```js
+await fetch("/api/admin/publications/ana/purchase", {
+  method: "DELETE",
+  credentials: "same-origin",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ reason: "Not what this site is for" }),
+});
+```
 
 The page is deleted first and the takedown written second, in one step with the row's removal:
 `takedowns (handle, slug, by_sub, reason, at, project_id)`, the project being the one the page was
@@ -1770,6 +1789,56 @@ the administrator tries again; a failure after it leaves a row with no page, whi
 does not serve and a second try completes. The address then answers `404`, and the project's owner
 sees the page, in `GET …/publish`, as removed by the service. Takedowns are the service's record
 and stay when an account is deleted.
+
+### Entitlements
+
+An administrator entitles an account to export without the Meltemi branding, and revokes it: the
+export dialog of an entitled person offers **Export without the Meltemi branding**
+([the playground](playground.md#exports-in-the-browser)). Three routes, under the takedown's rules
+(a listed person with the cookie, the `Origin` rule first, `404 not-found` to everybody else and
+to an API token): `GET /api/admin/entitlements` lists the entitled accounts, the earliest grant
+first, as `{ "accounts": [...] }`; `GET /api/admin/accounts/<account>/entitlements` reads one
+account's, and `PUT` the same path with `{ "unbranded": true }` or `{ "unbranded": false }` sets it,
+recording the administrator (`by`) and the time (`at`). Both answer the account:
+
+```json
+{
+  "sub": "u_7d3f",
+  "handle": "ana",
+  "name": "Ana",
+  "entitlements": { "unbranded": true, "by": "u_admin", "at": "2026-10-28T12:00:00.000Z" }
+}
+```
+
+`<account>` is the account id, which every person reads in the account panel's Profile, or
+`@<handle>` for a person who chose a handle; an account with no row (nobody signed in with it yet)
+or a handle nobody holds is `404`, and nothing is created. Another body is `400 request.invalid`.
+Administrators are entitled in the session answer without a grant; their own row says only what was
+set on it. The person sees a grant or a revocation at the next load of the page, which reads the
+session once, and a deleted account takes its entitlement with it. From the browser's console on
+the page, signed in, the list, a grant and a revocation:
+
+```js
+await fetch("/api/admin/entitlements", { credentials: "same-origin" }).then((r) => r.json());
+```
+
+```js
+await fetch("/api/admin/accounts/@ana/entitlements", {
+  method: "PUT",
+  credentials: "same-origin",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ unbranded: true }),
+}).then((r) => r.json());
+```
+
+```js
+await fetch("/api/admin/accounts/@ana/entitlements", {
+  method: "PUT",
+  credentials: "same-origin",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ unbranded: false }),
+}).then((r) => r.json());
+```
 
 ### Publications and deletion
 
@@ -1861,7 +1930,7 @@ binding.
 | `IDENTITY_EVENTS_SECRET` | secret (Store)     | This product's secret with the identity service, its `EVENTS_SECRET_DIAGRAMS`: verifies the deletion events and signs the calls of [the identity data](#the-identity-data)                                                                           |
 | `FORMS_SECRET`           | secret (Store)     | Signs the approval page's `csrf` and keys the hash of an address in the rate limit                                                                                                                                                                   |
 | `PUBLISH_HOST`           | variable, optional | The host that serves publications, such as `meltemi.page`: a lowercase host name of a domain of its own, never the service's host nor one under the cookie's domain. `meltemi.page` in `wrangler.jsonc`; unset, publishing works in development only |
-| `ADMIN_SUBS`             | secret (Store)     | The `sub`s of the administrators of the service, comma separated: who may take a publication down. Unset or empty, nobody                                                                                                                            |
+| `ADMIN_SUBS`             | secret (Store)     | The `sub`s of the administrators of the service, comma separated: who may take a publication down and entitle accounts to export without the branding, as they are themselves. Unset or empty, nobody                                                |
 | `DEV`                    | `.dev.vars` only   | `"true"` turns on development mode, below                                                                                                                                                                                                            |
 | `IDENTITY_JWKS`          | `.dev.vars` only   | An inline key set, `{"keys":[…]}`, for development and tests                                                                                                                                                                                         |
 

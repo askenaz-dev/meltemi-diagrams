@@ -217,6 +217,8 @@ export const es: typeof en = {
         "No se puede leer la lista de puntos del trazo de lápiz; corrige la sintaxis primero.",
     },
     relations: {
+      returnAnswers:
+        "Un `return` responde a su llamada; desanida la llamada para escribir la respuesta a mano.",
       missing: (name, diagram) =>
         `La relación ${code(name)} no existe en el diagrama ${code(diagram)}.`,
       anonymous: (name) =>
@@ -398,6 +400,16 @@ export const es: typeof en = {
         `Un evento ${code(kind)} no tiene espacio propio; ajusta el espacio del mensaje siguiente.`,
       notParticipant: (id) => `${code(id)} no es un participante.`,
       amountUnreadable: "No se puede leer la cantidad.",
+      noCallBlock: (call) => `La llamada ${code(call)} no tiene bloque.`,
+      nestAfterCall: "Selecciona los eventos que siguen a la llamada a la que pertenecen.",
+      nestReturn: "Un `return` responde a su propia llamada; no pasa a otra.",
+      callActivates: (call, participant) =>
+        `El bloque de ${code(call)} ya activa a ${code(participant)}.`,
+      unnestInterleaved: (call) =>
+        `El bloque de ${code(call)} mezcla sus propiedades entre sus eventos; muévelas primero.`,
+      negativeSpace: "El espacio es 0 o más.",
+      outerGap: (id) =>
+        `No hay nada más allá de ${code(id)} que acercar: un espacio en su lado exterior es 0 o más.`,
       noBranch: (key, branch) => `${code(key)} no tiene la rama ${branch}.`,
       notFragmentOperator: (operator, operators) =>
         `${code(operator)} no es un fragmento; usa ${operators.join(", ")}.`,

@@ -138,7 +138,8 @@ again only when they choose it, and a new project is private. Four things keep t
   `blob:`, and nothing else; the service does not check that the HTML is a catalog, and the
   isolation does not depend on it. A page is at most 16 MiB and a project may publish ten times an
   hour; the owner unpublishes, and the administrators listed in `ADMIN_SUBS` take a page down
-  ([takedown](cloud.md#takedown)), a route that answers `404` to everybody else. The development
+  ([takedown](cloud.md#takedown)) and entitle an account to export without the branding
+  ([entitlements](cloud.md#entitlements)), routes that answer `404` to everybody else. The development
   route that serves a page from the service's own origin answers `404` unless `DEV` is set.
 
 ## The command line and the cloud

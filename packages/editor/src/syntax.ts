@@ -128,6 +128,8 @@ export function scopeAt(root: SourceFile, offset: number): Scope {
     case "KeywordStatement": {
       const word = owner.keyword.text;
       if (word === "group") return "group";
+      // A sequence diagram's `return` is a message: its block holds message properties.
+      if (word === "return") return "relation";
       if (OPERATORS.has(word)) return "fragment";
       if (word === "scenario") return "scenario";
       if ((ENTITY_KINDS as readonly string[]).includes(word)) return "entity";

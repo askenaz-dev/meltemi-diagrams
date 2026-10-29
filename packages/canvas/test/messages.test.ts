@@ -189,9 +189,9 @@ describe("the canvas catalog", () => {
       "Connected api to db with a line, dashed.",
     );
     expect(en.announcements.connected("api", "db", false)).toBe("Connected api to db.");
-    expect(en.palette.shaped("Box", "hexagon", "B")).toBe(
-      "Box, hexagon: click on the canvas, or press B",
-    );
+    expect(en.palette.shaped("Box", "hexagon")).toBe("Box, hexagon: click on the canvas");
+    expect(en.palette.shapedTool("Box", "hexagon")).toBe("Box, hexagon");
+    expect(en.palette.hint("Node")).toBe("Node: click on the canvas");
     expect(en.shapeGrid.none("blob")).toBe("No shape is called “blob”.");
     expect(en.inspector.slider("Corner radius")).toBe("Corner radius, slider");
   });
@@ -221,9 +221,8 @@ describe("the canvas catalog", () => {
     expect(es.announcements.connected("api", "db", false, "none")).toBe(
       "Se conectó api con db con una línea.",
     );
-    expect(es.palette.shaped("Caja", "diamond", "B")).toBe(
-      "Caja, rombo: haz clic en el lienzo o presiona B",
-    );
+    expect(es.palette.shaped("Caja", "diamond")).toBe("Caja, rombo: haz clic en el lienzo");
+    expect(es.palette.shapedTool("Caja", "diamond")).toBe("Caja, rombo");
     expect(es.shapeGrid.typed("est")).toBe("Buscar: est");
     expect(es.shapeGrid.none("x")).toBe("Ninguna forma se llama «x».");
     expect(es.inspector.slider("Radio de las esquinas")).toBe(
@@ -249,13 +248,28 @@ describe("the canvas catalog", () => {
       "New diagram",
       "Nuevo diagrama",
     ]);
-    expect([en.toolbar.shapeMenu, es.toolbar.shapeMenu]).toEqual([
-      "More shapes (F)",
-      "Más formas (F)",
-    ]);
+    // The split arrows are named by their menu; their keys are in their titles.
+    expect([en.toolbar.shapeMenu, es.toolbar.shapeMenu]).toEqual(["More shapes", "Más formas"]);
     expect([en.toolbar.arrowMenu, es.toolbar.arrowMenu]).toEqual([
-      "Kinds of arrow (R cycles)",
-      "Tipos de flecha (R cambia)",
+      "Kinds of arrow",
+      "Tipos de flecha",
+    ]);
+    expect([en.toolbar.arrowMenuKey, es.toolbar.arrowMenuKey]).toEqual(["R cycles", "R cambia"]);
+    expect([en.toolbar.groupMenu, es.toolbar.groupMenu]).toEqual([
+      "Group or container",
+      "Grupo o contenedor",
+    ]);
+    expect([en.toolbar.layers, es.toolbar.layers]).toEqual([
+      "Show the layers",
+      "Mostrar las capas",
+    ]);
+    expect([en.inspector.hidePanel, en.inspector.showPanel]).toEqual([
+      "Hide the properties panel",
+      "Show the properties panel",
+    ]);
+    expect([es.inspector.hidePanel, es.inspector.showPanel]).toEqual([
+      "Ocultar el panel de propiedades",
+      "Mostrar el panel de propiedades",
     ]);
     expect([en.inspector.options.fit, es.inspector.options.fit]).toEqual([
       "fit to content",
@@ -349,7 +363,8 @@ describe("the words of icons", () => {
       "Quitar el icono",
     ]);
     expect([en.toolbar.libraries, es.toolbar.libraries]).toEqual(["Libraries", "Bibliotecas"]);
-    expect(en.palette.icon("I")).toBe("Icon: find one for the selection or to place, or press I");
+    expect(en.palette.icon).toBe("Icon: find one for the selection or to place");
+    expect(es.palette.icon).toBe("Icono: busca uno para la selección o para colocarlo");
   });
 
   it("says what an icon did, in both languages", () => {

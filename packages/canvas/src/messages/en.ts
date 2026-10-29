@@ -78,13 +78,15 @@ export const en = {
     relationKindsTitle: (label: string) =>
       `${label} (R; R again for the next kind of arrow; Shift swaps solid and dashed)`,
     /** The arrow part of the relation tool, which opens the kinds of arrow. */
-    arrowMenu: "Kinds of arrow (R cycles)",
+    arrowMenu: "Kinds of arrow",
+    /** What the relation arrow's key does, in its title: R cycles the kinds. */
+    arrowMenuKey: "R cycles",
     /** The arrow part of the box (free) or node (flow) tool, which opens the shapes. */
-    shapeMenu: "More shapes (F)",
+    shapeMenu: "More shapes",
     /** The arrow part of the group tool, which offers a group with a title or a plain container. */
-    groupMenu: "Group or container (G)",
+    groupMenu: "Group or container",
     /** The same on free diagrams, where it offers the two lists too. */
-    groupMenuLists: "Group, container, column or row (G)",
+    groupMenuLists: "Group, container, column or row",
     /**
      * The kinds of group the group tool creates: a band with a title, an untitled container, and
      * on free diagrams a column or a row, a list that places what it holds one after the other.
@@ -117,7 +119,7 @@ export const en = {
     snap: "Snap to the grid and guides",
     minimap: "Show the minimap",
     inspector: "Show the properties",
-    layers: "Show the layers (L)",
+    layers: "Show the layers",
     /** The toggle of the Libraries panel; its title adds the key, U. */
     libraries: "Libraries",
     arrange: "Arrange",
@@ -176,15 +178,16 @@ export const en = {
       highlighter: "Highlighter",
       eraser: "Eraser",
     },
-    /** The label of a tool: its name, then how to use it. */
-    hint: (name: string, key: string) => `${name}: click on the canvas, or press ${key}`,
+    /** The label of a tool: its name, then how to use it; its key is in its title. */
+    hint: (name: string) => `${name}: click on the canvas`,
     /** The label of the box or node tool, with the shape it places (a value of the language). */
-    shaped: (name: string, shape: string, key: string) =>
-      `${name}, ${shapeName(shape)}: click on the canvas, or press ${key}`,
+    shaped: (name: string, shape: string) => `${name}, ${shapeName(shape)}: click on the canvas`,
+    /** The box or node tool with its shape, as its title names it before the key. */
+    shapedTool: (name: string, shape: string) => `${name}, ${shapeName(shape)}`,
     /** The label of a tool of a declared type, named by the type. */
     declared: (name: string) => `${name}: click on the canvas`,
-    /** The label of the icon tool, which opens the icon picker. */
-    icon: (key: string) => `Icon: find one for the selection or to place, or press ${key}`,
+    /** The label of the icon tool, which opens the icon picker; its key is in its title. */
+    icon: "Icon: find one for the selection or to place",
   },
 
   /** The operators of a new fragment, each with what it means; the operators stay as written. */
@@ -454,6 +457,11 @@ export const en = {
     moveUp: "Move up",
     moveDown: "Move down",
     activateReceiver: "Activate the receiver",
+    /** Sequence diagrams: the selected events into the block of the call before them. */
+    nestInCall: "Nest in the call",
+    unnestCall: "Unnest the call",
+    /** Sequence diagrams: a `return` at the end of the call's block. */
+    addReturn: "Return to the caller",
     addNote: "Add a note",
     wrapInFragment: "Wrap in a fragment…",
     addDivider: "Add a divider",
@@ -466,6 +474,10 @@ export const en = {
   /** The property inspector and its style strip: the words the canvas adds to the fields. */
   inspector: {
     label: "Properties",
+    /** The button in the panel's head that folds it to its rail. */
+    hidePanel: "Hide the properties panel",
+    /** The rail's button, which unfolds the panel. */
+    showPanel: "Show the properties panel",
     strip: "Style",
     effects: "Effects",
     /** What the Effects row says when no effect is on. */
@@ -629,6 +641,8 @@ export const en = {
     /** The button's label once a colour of paper is chosen (its name, as `colours` gives it). */
     coloured: (name: string) =>
       `Sticky note, ${name.toLowerCase()}: click to add one, or drag it onto the canvas`,
+    /** The button's title once a colour of paper is chosen, short like the palette's titles. */
+    shortColoured: (name: string) => `Sticky note, ${name.toLowerCase()}`,
     /** The first choice of the menu: the theme's `sticky` colour, nothing written. */
     themeColour: "Theme colour",
     colours: {

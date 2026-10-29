@@ -188,6 +188,8 @@ export class CanvasSession {
   private pendingEdit: string | undefined;
   /** A status line to show after the next render and the selection it brings. */
   private pendingStatus: string | undefined;
+  /** The participant whose gap a head drag just wrote, and the amount: said with the render. */
+  private pendingGap: { readonly participant: string; readonly amount: number } | undefined;
   /** The diagram to show once it exists, after a conversion. */
   private pendingDiagram: string | undefined;
   /**
@@ -344,6 +346,17 @@ export class CanvasSession {
       messages.push({ type: "select", ids: [this.pendingEdit] });
       this.pendingEdit = undefined;
     }
+    // A head drag says the gap it wrote, and what the layout drew when the floor won.
+    if (render && this.pendingGap !== undefined) {
+      const { participant, amount } = this.pendingGap;
+      const floor = view.layout?.diagnostics.find(
+        (d) => d.code === "layout.gap-floor" && d.data?.gap?.participant === participant,
+      )?.data?.gap;
+      this.pendingStatus = floor
+        ? words.gapFloor(participant, floor.written, floor.applied)
+        : words.gapSet(participant, amount);
+    }
+    this.pendingGap = undefined;
     // After the selection, whose own announcement it would otherwise lose to.
     if (this.pendingStatus !== undefined) {
       if (render) messages.push({ type: "status", message: this.pendingStatus });
@@ -530,6 +543,7 @@ export class CanvasSession {
         labelBox: geometry.labels.get(relation.key) ?? null,
         layer: relation.layer,
         ...(text ? { text } : {}),
+        ...(relation.returns !== null ? { returns: relation.returns } : {}),
       });
     }
     const events = (
@@ -1749,6 +1763,9 @@ export class CanvasSession {
         break;
       case "moveEvent":
       case "toggleActivation":
+      case "nestInCall":
+      case "unnestCall":
+      case "addReturn":
       case "insertEvent":
       case "wrap": {
         if (diagram.type !== "sequence") break;
@@ -1764,8 +1781,15 @@ export class CanvasSession {
       }
       case "move": {
         if (diagram.type === "sequence") {
-          ops.push(...sequenceMove(view, action.ids, action.delta ?? { x: 0, y: 0 }));
+          const moved = sequenceMove(view, action.ids, action.delta ?? { x: 0, y: 0 });
+          ops.push(...moved);
           this.pendingSelection = [...this.selection];
+          const gap = moved.find(
+            (op) => op.kind === "setSpacing" && op.targetKind === "participant",
+          );
+          if (gap?.kind === "setSpacing") {
+            this.pendingGap = { participant: gap.target, amount: gap.amount ?? 0 };
+          }
           break;
         }
         const refused = this.moveRefusal(view, action);
@@ -2119,7 +2143,7 @@ export class CanvasSession {
         const events = action.ids
           .map((key) => diagram.eventsByKey.get(key))
           .filter((e) => e !== undefined && e.kind !== "message")
-          .filter((e) => !e!.path.some((p) => removed.has(p.fragment)))
+          .filter((e) => !e!.path.some((p) => "fragment" in p && removed.has(p.fragment)))
           .sort((a, b) => b!.node.start - a!.node.start);
         for (const event of events)
           ops.push({ kind: "removeEvent", diagram: d, event: event!.key });

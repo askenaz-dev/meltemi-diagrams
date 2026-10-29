@@ -18,6 +18,8 @@ type Column = readonly [name: string, type: "TEXT" | "INTEGER", notNull: boolean
 const THIRD_FILE = "0003_sharing.sql";
 /** The next one adds the project to a takedown (`0004_takedown_project.sql`): one column. */
 const FOURTH_FILE = "0004_takedown_project.sql";
+/** The next one entitles accounts to export without the branding (`0005_unbranded_exports.sql`). */
+const FIFTH_FILE = "0005_unbranded_exports.sql";
 
 /** The tables 0003 makes, with their columns in order. */
 const NEW_TABLES: Record<string, readonly Column[]> = {
@@ -115,6 +117,7 @@ describe("the sharing migration file", () => {
       "0002_projects.sql",
       THIRD_FILE,
       FOURTH_FILE,
+      FIFTH_FILE,
     ]);
   });
 
@@ -201,7 +204,10 @@ describe.skipIf(!sqliteAvailable)("the sharing migration", () => {
   });
 
   it("adds handle to users, last, as text that may be NULL", () => {
-    const db = openDatabase();
+    // The columns of later migrations come after it: the database as the fourth left it.
+    const db = openDatabase({
+      migrations: migrationFiles().filter((file) => file.name <= FOURTH_FILE),
+    });
     expect(columnsOf(db, "users")).toEqual(USERS_AFTER.map((column) => [...column]));
     const info = db.raw.prepare("PRAGMA table_info(users)").all();
     expect(info.at(-1)?.dflt_value).toBeNull();

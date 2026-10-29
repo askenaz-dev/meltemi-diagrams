@@ -1,0 +1,11 @@
+language "0.2"
+
+// A `return` answers a call: at the diagram level there is no call around it, and an event after
+// a `return` in the same block comes after the call has returned.
+diagram checkout: sequence {
+  customer -> api: "Pay" as pay {
+    return "Receipt"
+    api -> bank: "Too late"
+  }
+  return "Orphan"
+}

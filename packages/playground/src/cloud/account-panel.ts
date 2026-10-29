@@ -21,6 +21,7 @@ import {
   type AccountSection,
 } from "./account-panel-model.js";
 import { avatar } from "./avatar.js";
+import { copyText } from "./clipboard.js";
 import { identityApi, type DeviceView, type IdentityApi, type SigninView } from "./identity-api.js";
 import { returnAddress, type SessionUser } from "./session.js";
 import { tokensSection, type TokensSection } from "./tokens-section.js";
@@ -295,6 +296,31 @@ export function openAccountPanel(options: AccountPanelOptions): void {
     returnTo.value = returnAddress(location.href);
     options.keep();
   });
+  // The account id: what an administrator asks a person for, to grant something to their account.
+  const accountId = h("code", { class: "account-id" }, options.user.sub);
+  const accountIdSaid = h("p", { class: "field-hint", "aria-live": "polite" });
+  const accountIdCopy = h(
+    "button",
+    { type: "button", class: "button with-text", "data-action": "copy-account-id" },
+    m.accountIdCopy,
+  );
+  accountIdCopy.addEventListener("click", async () => {
+    if (await copyText(options.user.sub)) {
+      accountIdSaid.textContent = m.accountIdCopied;
+      return;
+    }
+    // The clipboard refused: the id is selected, to copy by hand.
+    const range = document.createRange();
+    range.selectNodeContents(accountId);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    accountIdSaid.textContent = m.accountIdSelect;
+  });
+  // What the account may do that an administrator granted.
+  const unbranded = options.user.entitlements.unbranded
+    ? [h("h4", {}, m.unbrandedTitle), h("p", { class: "account-intro" }, m.unbrandedOn)]
+    : [];
   const name = options.user.name.trim();
   panels
     .get("profile")!
@@ -315,6 +341,11 @@ export function openAccountPanel(options: AccountPanelOptions): void {
       h("h4", {}, m.handleTitle),
       h("p", { class: "account-intro" }, m.handleIntro),
       handleForm,
+      h("h4", {}, m.accountIdTitle),
+      h("p", { class: "account-intro" }, m.accountIdIntro),
+      h("div", { class: "account-id-row" }, accountId, accountIdCopy),
+      accountIdSaid,
+      ...unbranded,
       h("h4", {}, m.signOutTitle),
       h("p", { class: "account-intro" }, m.signOutIntro),
       signOutForm,

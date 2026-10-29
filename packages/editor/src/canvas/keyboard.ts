@@ -84,6 +84,9 @@ export type CanvasCommand =
   | "moveEventUp"
   | "moveEventDown"
   | "toggleActivation"
+  | "nestInCall"
+  | "unnestCall"
+  | "addReturn"
   | "addEntity"
   | "zoomIn"
   | "zoomOut"
@@ -200,6 +203,10 @@ export const KEY_BINDINGS: readonly KeyBinding[] = [
   bind({ key: "ArrowUp", alt: true, command: "moveEventUp", profile: "sequence" }),
   bind({ key: "ArrowDown", alt: true, command: "moveEventDown", profile: "sequence" }),
   bind({ key: "a", alt: true, command: "toggleActivation", profile: "sequence" }),
+  // N for nest: N alone creates a node on flow and does nothing on sequence.
+  bind({ key: "n", alt: true, command: "nestInCall", profile: "sequence" }),
+  bind({ key: "n", alt: true, shift: true, command: "unnestCall", profile: "sequence" }),
+  bind({ key: "r", alt: true, command: "addReturn", profile: "sequence" }),
   bind({ key: "a", command: "addEntity", profile: "c4" }),
   bind({ key: "g", command: "createGroup" }),
   bind({ key: "l", command: "toggleLayers" }),

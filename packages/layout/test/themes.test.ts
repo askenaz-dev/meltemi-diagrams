@@ -11,10 +11,10 @@ import {
   type TextItem,
 } from "../src/index.js";
 
-function scene(text: string, theme?: string | null): Scene {
+function scene(text: string, theme?: string | null, frame?: "none"): Scene {
   const compilation = compile(text);
   expect(compilation.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
-  const result = layoutDiagram(compilation, compilation.document.diagrams[0]!, { theme });
+  const result = layoutDiagram(compilation, compilation.document.diagrams[0]!, { theme, frame });
   if (!result.scene) throw new Error(result.diagnostics.map((d) => d.message).join("\n"));
   return result.scene;
 }
@@ -51,6 +51,40 @@ describe("built-in themes", () => {
     const plain = scene(`${FRAMELESS}${sheet('  theme "plain"\n')}`);
     expect(s.height - plain.height).toBe(FRAME_HEIGHT);
     expect(s.background).toBe("#F7FBFF");
+  });
+
+  it("leave the frame out when asked, keeping every other token", () => {
+    const branded = scene(sheet());
+    const plain = scene(sheet(), undefined, "none");
+    expect(frameOf(plain)).toBeUndefined();
+    expect(plain.gradients).toEqual([]);
+    expect(branded.height - plain.height).toBe(FRAME_HEIGHT);
+    expect(plain.width).toBe(branded.width);
+    expect(plain.background).toBe(branded.background);
+    // The boxes, their labels and the arrow are drawn the same, only higher up by nothing.
+    const drawn = (s: Scene) =>
+      s.items
+        .filter((i) => !(i.kind === "group" && i.role === "frame"))
+        .map((i) => JSON.stringify(i));
+    expect(drawn(plain)).toEqual(drawn(branded));
+  });
+
+  it("leave a sequence diagram's frame out too", () => {
+    const text =
+      'diagram p: sequence {\n  title "Pay"\n  theme "stage.light"\n  participant a\n  participant b\n  a -> b: "go"\n}\n';
+    const branded = scene(text);
+    const plain = scene(text, undefined, "none");
+    expect(frameOf(branded)).toBeDefined();
+    expect(frameOf(plain)).toBeUndefined();
+    expect(plain.gradients).toEqual([]);
+    expect(plain.height).toBeLessThan(branded.height);
+  });
+
+  it("still report an unknown theme once without the frame", () => {
+    const compilation = compile(sheet('  theme "corporate"\n'));
+    const result = layoutDiagram(compilation, compilation.document.diagrams[0]!, { frame: "none" });
+    expect(result.diagnostics.filter((d) => d.code === "layout.unknown-theme")).toHaveLength(1);
+    expect(frameOf(result.scene!)).toBeUndefined();
   });
 
   it("keep the neutral themes frameless", () => {

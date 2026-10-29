@@ -81,7 +81,7 @@ import {
   type IconChoiceInfo,
   type LibraryItemInfo,
 } from "@meltemi/diagrams-editor/canvas";
-import { ICONS, clear, h, icon, s } from "./dom.js";
+import { ICONS, ariaKeyshortcuts, clear, h, icon, s } from "./dom.js";
 import { glyph, repaintSticky, shapeIcon, stickyGlyph, type IconPlacement } from "./glyphs.js";
 import { IconPicker } from "./icon-picker.js";
 import { AddIconsDialog, pickedRefusal, type PickedIcon } from "./add-icons.js";
@@ -187,6 +187,12 @@ export interface CanvasHostApi {
   post(message: CanvasMessage): void;
   getState(): PersistedState | undefined;
   setState(state: PersistedState): void;
+  /**
+   * The host's own keys for what the canvas leaves to it, shown in the canvas's tooltips: the
+   * playground folds the properties with Ctrl+Alt+B; VS Code, whose workbench owns that chord,
+   * names none.
+   */
+  readonly keys?: { readonly inspector?: string };
 }
 
 /** What an inline editor edits: the label (or the id) of an element, a relation or an event. */
@@ -936,11 +942,15 @@ export class CanvasApp {
         ),
       editTheme: () => this.post({ type: "editTheme", open: true }),
       act: (action) => this.act(action),
+      fold: (collapsed) => this.setInspectorCollapsed(collapsed),
     });
     this.themePanel = new ThemePanel({
       token: (token, value) => this.post({ type: "themeToken", token, value }),
       close: () => this.post({ type: "editTheme", open: false }),
+      fold: () => this.setInspectorCollapsed(true),
     });
+    this.inspector.setKey(this.inspectorKey);
+    this.themePanel.setKey(this.inspectorKey);
     this.layersPanel = new LayersPanel({
       act: (action) => this.act(action),
       setHidden: (layer, hidden) => this.setLayerHidden(layer, hidden),
@@ -1179,7 +1189,8 @@ export class CanvasApp {
         else {
           const had = this.themePanel.open;
           this.themePanel.hide();
-          if (had) this.inspector.element.focus();
+          if (had)
+            (this.showInspector ? this.inspector.element : this.inspector.railButton).focus();
         }
         this.syncToggles();
         break;
@@ -1820,7 +1831,43 @@ export class CanvasApp {
     return this.local.minimap ?? this.settings.minimap;
   }
   private get showInspector(): boolean {
-    return this.local.inspector ?? this.settings.inspector;
+    // A kept value that is not a boolean is the host's default.
+    const kept = this.local.inspector;
+    return typeof kept === "boolean" ? kept : this.settings.inspector;
+  }
+
+  /** The host's key for the fold of the properties, or "" when it has none. */
+  private get inspectorKey(): string {
+    const key = this.host.keys?.inspector;
+    return typeof key === "string" ? key : "";
+  }
+
+  /** Whether the properties panel is folded to its rail. */
+  get inspectorCollapsed(): boolean {
+    return !this.showInspector;
+  }
+
+  /**
+   * Folds the properties panel to its rail or unfolds it, keeping the choice as the toolbar's
+   * toggle does; the fold buttons, the toggle and a host's key all come here. Folding from inside
+   * the panel (or the theme panel) gives the focus to the rail's button; unfolding gives it to the
+   * panel, unless the toolbar has it. Nothing is written to the document.
+   */
+  setInspectorCollapsed(collapsed: boolean): void {
+    const focused = document.activeElement;
+    const inside =
+      !!focused &&
+      (this.inspector.element.contains(focused) || this.themePanel.element.contains(focused));
+    const fromToolbar = !!focused && this.toolbar.contains(focused);
+    this.persist({ inspector: !collapsed });
+    this.syncToggles();
+    if (collapsed) {
+      if (inside && !this.inspector.element.hidden) this.inspector.railButton.focus();
+      return;
+    }
+    if (fromToolbar) return;
+    const panel = this.themePanel.open ? this.themePanel.element : this.inspector.element;
+    if (!panel.hidden) panel.focus();
   }
 
   // ------------------------------------------------------------------ render
@@ -4290,15 +4337,25 @@ export class CanvasApp {
 
   // ------------------------------------------------------------------ toolbar
 
+  /**
+   * A toolbar button: `label` is its name, without a key; its title is `shown` (the name, unless
+   * given) followed by the key in parentheses, and `aria-keyshortcuts` says the key.
+   */
   private button(
     label: string,
     iconPaths: string,
     run: () => void,
     shortcut?: string,
+    shown = label,
   ): HTMLButtonElement {
     const button = h(
       "button",
-      { type: "button", title: shortcut ? `${label} (${shortcut})` : label, "aria-label": label },
+      {
+        type: "button",
+        title: shortcut ? `${shown} (${shortcut})` : shown,
+        "aria-label": label,
+        "aria-keyshortcuts": shortcut ? ariaKeyshortcuts(shortcut) : undefined,
+      },
       icon(iconPaths),
     );
     button.addEventListener("click", run);
@@ -4372,10 +4429,11 @@ export class CanvasApp {
       if (p.kind === "icon") {
         // The icon tool opens the icon picker; the icon chosen arms the tool.
         const button: HTMLButtonElement = this.button(
-          words.palette.icon(p.key),
+          words.palette.icon,
           ICONS.icon,
           () => this.toggleIconPicker(button),
           p.key,
+          tools.icon,
         );
         button.setAttribute("data-tool", p.kind);
         button.setAttribute("aria-haspopup", "dialog");
@@ -4399,10 +4457,11 @@ export class CanvasApp {
       }
       const kind = p.kind;
       const button = this.button(
-        words.palette.hint(tools[kind], p.key),
+        words.palette.hint(tools[kind]),
         ICONS[kind],
         () => this.arm(kind),
         p.key,
+        tools[kind],
       );
       button.setAttribute("data-tool", kind);
       // C4 views draw the model's entities and their scope's boundary only.
@@ -4421,6 +4480,7 @@ export class CanvasApp {
       "R",
     );
     this.relationButton.setAttribute("data-tool", "relation");
+    this.relationButton.setAttribute("aria-keyshortcuts", "R");
     const relationSplit = this.arrowSplit(this.relationButton);
     // Beside the diagram picker: adds a diagram of a kind to any file.
     const newDiagram: HTMLButtonElement = this.button(words.toolbar.newDiagram, ICONS.plus, () =>
@@ -4573,14 +4633,23 @@ export class CanvasApp {
         this.syncToggles();
         this.drawMinimap();
       }),
-      this.toggle("inspector", words.toolbar.inspector, ICONS.inspector, () => {
-        this.persist({ inspector: !this.showInspector });
-        this.syncToggles();
-      }),
-      this.toggle("layers", words.toolbar.layers, ICONS.layers, () => {
-        this.persist({ layers: !this.showLayers });
-        this.syncToggles();
-      }),
+      this.toggle(
+        "inspector",
+        words.toolbar.inspector,
+        ICONS.inspector,
+        () => this.setInspectorCollapsed(this.showInspector),
+        this.inspectorKey || undefined,
+      ),
+      this.toggle(
+        "layers",
+        words.toolbar.layers,
+        ICONS.layers,
+        () => {
+          this.persist({ layers: !this.showLayers });
+          this.syncToggles();
+        },
+        "L",
+      ),
       this.toggle(
         "libraries",
         words.toolbar.libraries,
@@ -4662,9 +4731,16 @@ export class CanvasApp {
 
   /**
    * The arrow part of a split button: a dropdown as tall as the button, with a chevron in the
-   * text's colour, that opens a grid or a menu; its title names the menu and its key.
+   * text's colour, that opens a grid or a menu. It is named by its menu (`label`), titled with what
+   * its key does (`shown`, "F" or "R cycles") and says the key (`key`) to assistive technology; a
+   * menu without a key of its own (the pen's, the sticky notes' colours) is titled by its name.
    */
-  private splitArrow(label: string, open: (arrow: HTMLButtonElement) => void): HTMLButtonElement {
+  private splitArrow(
+    label: string,
+    shown: string | undefined,
+    key: string | undefined,
+    open: (arrow: HTMLButtonElement) => void,
+  ): HTMLButtonElement {
     const chevron = s(
       "svg",
       {
@@ -4689,8 +4765,9 @@ export class CanvasApp {
       {
         type: "button",
         class: "split-arrow",
-        title: label,
+        title: shown ? `${label} (${shown})` : label,
         "aria-label": label,
+        "aria-keyshortcuts": key,
         "aria-expanded": "false",
         // What chooses a shape or a kind of arrow writes nothing yet, but it arms a tool that does.
         "data-write": "",
@@ -4753,7 +4830,7 @@ export class CanvasApp {
     profile: string | undefined,
   ): HTMLElement {
     this.shapeButtons.set(kind, main);
-    const arrow = this.splitArrow(messages().toolbar.shapeMenu, (button) =>
+    const arrow = this.splitArrow(messages().toolbar.shapeMenu, "F", "F", (button) =>
       this.openShapes("arm", button),
     );
     arrow.setAttribute("aria-haspopup", "dialog");
@@ -4772,7 +4849,8 @@ export class CanvasApp {
    * becomes current and arms the tool. Sequence diagrams have messages, and no arrow part.
    */
   private arrowSplit(main: HTMLButtonElement): HTMLElement {
-    const arrow = this.splitArrow(messages().toolbar.arrowMenu, (button) =>
+    const words = messages().toolbar;
+    const arrow = this.splitArrow(words.arrowMenu, words.arrowMenuKey, "R", (button) =>
       this.openArrowKinds(button),
     );
     arrow.setAttribute("aria-haspopup", "menu");
@@ -4794,7 +4872,7 @@ export class CanvasApp {
    */
   private groupSplit(main: HTMLButtonElement): HTMLElement {
     this.groupButton = main;
-    const arrow = this.splitArrow(messages().toolbar.groupMenu, (button) =>
+    const arrow = this.splitArrow(messages().toolbar.groupMenu, "G", "G", (button) =>
       this.openGroupKinds(button),
     );
     this.groupArrow = arrow;
@@ -4873,16 +4951,16 @@ export class CanvasApp {
     const words = messages();
     const kind = this.groupKindNow;
     const name = kind === "group" ? words.palette.tools.group : words.toolbar.groupKinds[kind];
-    const label = words.palette.hint(name, "G");
+    const label = words.palette.hint(name);
     if (button.dataset.groupKind !== kind) button.replaceChildren(icon(GROUP_ICONS[kind]));
-    button.title = `${label} (G)`;
+    button.title = `${name} (G)`;
     button.setAttribute("aria-label", label);
     button.dataset.groupKind = kind;
     const arrow = this.groupArrow;
     if (arrow) {
       const menu =
         this.render?.profile === "free" ? words.toolbar.groupMenuLists : words.toolbar.groupMenu;
-      arrow.title = menu;
+      arrow.title = `${menu} (G)`;
       arrow.setAttribute("aria-label", menu);
     }
   }
@@ -4903,7 +4981,9 @@ export class CanvasApp {
     );
     main.classList.add("pen-button");
     this.penButton = main;
-    const arrow = this.splitArrow(words.toolbar.penMenu, (button) => this.togglePenMenu(button));
+    const arrow = this.splitArrow(words.toolbar.penMenu, undefined, undefined, (button) =>
+      this.togglePenMenu(button),
+    );
     arrow.setAttribute("aria-haspopup", "dialog");
     arrow.setAttribute("aria-controls", "mdg-pen");
     arrow.setAttribute("data-pen-menu", "");
@@ -5003,13 +5083,19 @@ export class CanvasApp {
    */
   private stickySplit(key: string): HTMLElement {
     const words = messages();
-    const main = this.button(words.sticky.button, ICONS.sticky, () => this.createSticky(), key);
+    const main = this.button(
+      words.sticky.button,
+      ICONS.sticky,
+      () => this.createSticky(),
+      key,
+      words.palette.tools.sticky,
+    );
     main.classList.add("sticky-button");
     main.setAttribute("data-sticky-tool", "");
     main.setAttribute("aria-keyshortcuts", key);
     main.addEventListener("pointerdown", (e) => this.paletteDrag(e, "sticky"));
     this.stickyButton = main;
-    const arrow = this.splitArrow(words.toolbar.stickyMenu, (button) =>
+    const arrow = this.splitArrow(words.toolbar.stickyMenu, undefined, undefined, (button) =>
       this.openStickyColours(button),
     );
     arrow.setAttribute("aria-haspopup", "menu");
@@ -5046,12 +5132,14 @@ export class CanvasApp {
     const words = messages().sticky;
     const name = fill === null ? undefined : stickyColourName(fill);
     const label = name === undefined ? words.button : words.coloured(name);
+    // Short like the palette's titles ("Node (N)"); the name says what a click does.
+    const shown = name === undefined ? messages().palette.tools.sticky : words.shortColoured(name);
     const colour = this.stickyColour(fill);
     // The card already shown moves to its new colour; the button's first sync draws it.
     const card = button.querySelector<SVGSVGElement>("svg[data-sticky]");
     if (card) repaintSticky(card, colour);
     else button.replaceChildren(stickyGlyph(colour));
-    button.title = `${label} (S)`;
+    button.title = `${shown} (S)`;
     button.setAttribute("aria-label", label);
     button.dataset.fill = fill ?? "";
   }
@@ -5286,12 +5374,10 @@ export class CanvasApp {
       const entry = PALETTE.find((p) => p.kind === kind)!;
       const name = words.tools[entry.kind];
       // The default shape keeps the plain label of the tool.
-      const label =
-        this.shape === "rounded"
-          ? words.hint(name, entry.key)
-          : words.shaped(name, this.shape, entry.key);
+      const label = this.shape === "rounded" ? words.hint(name) : words.shaped(name, this.shape);
+      const shown = this.shape === "rounded" ? name : words.shapedTool(name, this.shape);
       button.replaceChildren(shapeIcon(this.shape));
-      button.title = `${label} (${entry.key})`;
+      button.title = `${shown} (${entry.key})`;
       button.setAttribute("aria-label", label);
       button.dataset.shape = this.shape;
     }
@@ -5309,10 +5395,12 @@ export class CanvasApp {
     };
     for (const [name, button] of this.toggles)
       button.setAttribute("aria-pressed", String(states[name]));
-    // The theme panel takes the inspector's place while it is open; without a drawing there are
-    // no properties to show.
-    this.inspector.element.hidden = !this.showInspector || this.themePanel.open || this.noDiagram;
-    this.themePanel.element.hidden = !this.showInspector || !this.themePanel.open;
+    // The theme panel takes the inspector's place while it is open, and folds with it to the
+    // inspector's rail; without a drawing there are no properties and no rail.
+    const collapsed = !this.showInspector;
+    this.inspector.element.hidden = this.noDiagram || (this.themePanel.open && !collapsed);
+    this.themePanel.element.hidden = !this.themePanel.open || collapsed;
+    this.inspector.setCollapsed(collapsed);
     this.layersPanel.element.hidden = !this.showLayers || !this.layersAllowed;
     this.libraryPanel.element.hidden = !this.showLibraries || !this.layersAllowed;
     for (const button of this.toolbar.querySelectorAll<HTMLButtonElement>("[data-tool]")) {
@@ -7528,7 +7616,10 @@ export class CanvasApp {
         this.toggleLibraries();
         return;
       case "toggleActivation":
-        this.act({ kind: "toggleActivation", ids: this.selection });
+      case "nestInCall":
+      case "unnestCall":
+      case "addReturn":
+        this.act({ kind: command, ids: this.selection });
         return;
       case "addEntity":
         this.addEntity(this.centre());
@@ -8608,7 +8699,8 @@ export class CanvasApp {
     if (element && element.kind !== "group") {
       items.push({ label: words.messageTo, key: "C", disabled: preview, run: run("connect") });
     }
-    if (relation) {
+    // A `return` takes its line from the call it answers.
+    if (relation && relation.returns === undefined) {
       items.push({
         label: relation.line === "solid" ? words.makeReply : words.makeCall,
         disabled: preview,
@@ -8632,13 +8724,44 @@ export class CanvasApp {
         },
       );
     }
-    if (relation) {
+    if (relation && relation.returns === undefined) {
       items.push({
         label: words.activateReceiver,
         key: "Alt+A",
         disabled: preview,
         run: run("toggleActivation"),
       });
+    }
+    if (event) {
+      // The call around the event, through the fragments between them.
+      let parent = event.parent;
+      while (parent !== null && this.events.get(parent)?.kind === "fragment") {
+        parent = this.events.get(parent)?.parent ?? null;
+      }
+      const inCall = parent !== null;
+      const block = [...this.events.values()].some((e) => e.parent === event.key);
+      items.push({
+        label: words.nestInCall,
+        key: "Alt+N",
+        disabled: preview,
+        run: run("nestInCall"),
+      });
+      if (block || inCall) {
+        items.push({
+          label: words.unnestCall,
+          key: `Alt+${keys.shift}+N`,
+          disabled: preview,
+          run: run("unnestCall"),
+        });
+      }
+      if ((relation && relation.returns === undefined) || inCall) {
+        items.push({
+          label: words.addReturn,
+          key: "Alt+R",
+          disabled: preview,
+          run: run("addReturn"),
+        });
+      }
     }
     if (items.length > 0) items.push("-");
     items.push(

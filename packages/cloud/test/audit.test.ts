@@ -75,7 +75,13 @@ describe("GET /api/session", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(response.headers.get("Content-Type")).toBe("application/json; charset=utf-8");
     expect(body).toEqual({
-      user: { sub: "u-ana", name: "Ana", picture, handle: null },
+      user: {
+        sub: "u-ana",
+        name: "Ana",
+        picture,
+        handle: null,
+        entitlements: { unbranded: false },
+      },
       account: `${ISSUER}/account`,
       signOut: `${ISSUER}/logout`,
     });
@@ -103,7 +109,13 @@ describe("GET /api/session", () => {
     expect(response.headers.get("Cache-Control")).toBe("no-store");
     expect(Object.keys(body).sort()).toEqual(["token", "user"]);
     expect(body).toEqual({
-      user: { sub: "u-ana", name: "Ana", picture: "", handle: null },
+      user: {
+        sub: "u-ana",
+        name: "Ana",
+        picture: "",
+        handle: null,
+        entitlements: { unbranded: false },
+      },
       token: { id: token.id, name: "laptop" },
     });
   });

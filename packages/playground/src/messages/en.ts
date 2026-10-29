@@ -21,6 +21,18 @@ export const en = {
   },
 
   /** The header: the brand, the actions and the view tabs of narrow screens. */
+  /**
+   * The page's keys, as the titles of its buttons show them after the name (Cmd for Ctrl on a Mac);
+   * `aria-keyshortcuts` says them too.
+   */
+  keys: {
+    undo: "Ctrl+Z",
+    redo: "Ctrl+Shift+Z",
+    format: "Shift+Alt+F",
+    explorer: "Ctrl+B",
+    code: "Ctrl+J",
+    inspector: "Ctrl+Alt+B",
+  },
   header: {
     tag: "Playground",
     actions: "Playground",
@@ -30,13 +42,15 @@ export const en = {
     importTitle: "Import Mermaid or PlantUML",
     undo: "Undo",
     redo: "Redo",
-    format: "Format the file (Shift+Alt+F)",
+    format: "Format the file",
     share: "Share",
     shareTitle: "Copy a link to the project",
     export: "Export",
     exportTitle: "Export pictures, players and videos",
     download: "Download",
-    theme: "Switch light and dark",
+    /** The theme switch, named by what a press does. */
+    themeToDark: "Switch to the dark theme",
+    themeToLight: "Switch to the light theme",
     about: "About the playground",
     views: "View",
     code: "Code",
@@ -214,8 +228,8 @@ export const en = {
     help: "Tab indents; press Escape, then Tab, to move on. Ctrl+Space suggests, Ctrl+Period offers fixes, Shift+Alt+F formats, F2 renames and F12 goes to the definition.",
     width: "Width of the code",
     /** The rail's button, which unfolds the code pane, and the bar's, which folds it. */
-    show: "Show the code (Ctrl+J)",
-    hide: "Hide the code (Ctrl+J)",
+    show: "Show the code",
+    hide: "Hide the code",
     source: "Source",
     sourceOf: (file: string) => `Source of ${file}`,
     suggestions: "Suggestions",
@@ -384,6 +398,12 @@ export const en = {
     effects: "Effects",
     instant: "Instant",
     instantHint: "Draws the picture at this time of the effects or the story.",
+    /** The box an entitled account sees under the theme. */
+    unbranded: "Export without the Meltemi branding",
+    unbrandedHint:
+      "Leaves out the strip at the foot of the sheet: the Meltemi mark, the wordmark and the title; the catalog's pictures follow.",
+    /** Said after an export made without the branding. */
+    unbrandedNotice: "Without the Meltemi branding.",
     scale: "Scale",
     scaleHint: "Pixels per point, 1 to 8.",
     size: "Size",

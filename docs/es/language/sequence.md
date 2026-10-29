@@ -83,6 +83,31 @@ cuatro flechas.
 largo de su flecha. `autonumber` numera los mensajes desde 1 en pequeños discos; `autonumber 10`
 empieza en 10.
 
+### Llamadas y respuestas
+
+El bloque de una llamada contiene lo que la llamada provoca, además de sus propiedades: los eventos
+que se escriben en él ocurren mientras el receptor atiende la llamada, y `return` la responde.
+
+```text
+customer -> api: "Pay" as pay {
+  api -> bank: "Authorize" as authorize {
+    return "Approved" as approved   // bank --> api
+  }
+  return "Receipt" as receipt       // api --> customer
+}
+```
+
+- Un bloque con eventos mantiene activo al receptor desde la llamada hasta su último evento, como
+  lo harían un `activate` y un `deactivate`; una llamada con eventos dentro de otra dibuja su propia
+  barra en su receptor, anidada cuando ese receptor ya está activo.
+- `return ["Label"] [as <id>] [{ … }]` es una respuesta del receptor a quien hizo la llamada que lo
+  rodea: un mensaje discontinuo cuyos extremos y línea vienen de la llamada. Es el último evento de
+  su lista; un `return` en una rama de un fragmento termina solo esa rama.
+- Un `return` fuera del bloque de una llamada, o un evento después de un `return` en la misma
+  lista, es `sequence.return`.
+- El bloque de una llamada contiene sus propiedades (`kind`, `description`, `class`) y sus eventos;
+  el bloque propio de un `return` solo acepta propiedades.
+
 ## Eventos
 
 Cada instrucción de abajo es un evento. Los eventos ocurren en el orden en que se escriben.
@@ -96,10 +121,13 @@ Cada instrucción de abajo es un evento. Los eventos ocurren en el orden en que 
 | `note [<id>] left of <p> "Text"`, `note [<id>] right of <p> "Text"` | una nota junto a una línea de vida                                                     |
 | `divider "Label"`                                                   | una línea doble que cruza todas las líneas de vida                                     |
 | `delay ["Label"]`                                                   | un salto en el tiempo                                                                  |
+| `return ["Label"] [as <id>]`                                        | en el bloque de una llamada, la respuesta a quien llama                                |
 
 Una barra de activación empieza en el mensaje que lleva a su `activate` y termina en el mensaje
 anterior a su `deactivate`. Las activaciones que siguen abiertas al final llegan hasta el final de
-la línea de vida.
+la línea de vida. Una llamada cuyo bloque contiene eventos dibuja la barra del receptor desde la
+flecha de la llamada hasta el último evento del bloque, sin `activate`; un `deactivate` que
+terminaría esa barra es `sequence.activation`.
 
 ## Fragmentos
 
@@ -125,16 +153,27 @@ nombres del diagrama con los participantes. Los demás eventos tienen claves com
 `note#2`, que usan las herramientas y que el texto nunca escribe.
 
 ```text
+spacing 56                 // entre las cabeceras de participantes vecinos (40)
+
 placement {
-  space authorize 28   // 28 más sobre el mensaje, la nota o el fragmento
-  gap bank 40          // 40 más a la izquierda del participante
+  space authorize 28       // 28 más sobre el mensaje, la nota o el fragmento
+  space poll 20 after      // 20 más debajo
+  gap bank 40              // 40 más a la izquierda del participante
+  gap ledger 24 after      // 24 más a su derecha
+  gap api -12              // 12 más cerca del participante de su izquierda
 }
 ```
 
-`space` nombra un mensaje, una nota o un fragmento con id; `gap` nombra un participante. Ninguno de
-los dos cambia nunca el orden de los eventos. `style`, `class` y `rule` se aplican a los
-participantes, a los mensajes con nombre y a las notas y los fragmentos con id; `rule note { … }` y
-`rule fragment { … }` dan estilo a todas las notas y a todos los fragmentos.
+`spacing` es la distancia entre las cabeceras de participantes vecinos antes de sus gaps: 40 cuando
+no se escribe, de 0 a 400. `space` nombra un mensaje, una nota o un fragmento con id; `gap` nombra
+un participante. Los dos aceptan un lado después de la cantidad: `before`, el predeterminado, que
+nunca se escribe (encima de un evento, a la izquierda de un participante), o `after` (debajo, a la
+derecha); un destino acepta una instrucción por lado. Un `space` es 0 o más. Un `gap` puede ser
+negativo para acercar un participante a su vecino, salvo en el lado exterior: un `gap` negativo
+antes del primer participante o después del último es `prop.invalid-value`, porque ahí no hay nada
+que acercar. Ninguno de los dos cambia nunca el orden de los eventos. `style`, `class` y `rule` se
+aplican a los participantes, a los mensajes con nombre y a las notas y los fragmentos con id;
+`rule note { … }` y `rule fragment { … }` dan estilo a todas las notas y a todos los fragmentos.
 
 ## Reglas comprobadas según el orden
 
@@ -143,7 +182,8 @@ creado, destruido):
 
 | Código                | Cuándo                                                                                                             |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `sequence.activation` | `deactivate` de un participante que no está activo                                                                 |
+| `sequence.activation` | `deactivate` de un participante que no está activo, o que terminaría la barra del bloque de una llamada            |
+| `sequence.return`     | `return` fuera del bloque de una llamada; un evento después de un `return` en la misma lista                       |
 | `sequence.lifecycle`  | un evento después de `destroy`; `create` después de que el participante apareció, o dos veces; `destroy` dos veces |
 | `ref.unknown-element` | un participante desconocido en un evento, o un grupo usado como participante                                       |
 
@@ -184,12 +224,18 @@ previa, de solo lectura.
 Los diagramas de secuencia se disponen sin motor, de forma determinista:
 
 - **Columnas.** Las cabeceras se miden a partir de sus etiquetas. Los centros contiguos están
-  separados al menos por la mitad de cada cabecera más 40, más `gap`. Un mensaje necesita el ancho
-  de su etiqueta más 24 entre sus columnas; las autollamadas y las notas laterales necesitan espacio
-  junto a su columna.
+  separados por la mitad de cada cabecera más `spacing` (40), más el `gap` después de la de la
+  izquierda y el `gap` antes de la de la derecha; un gap negativo resta. Un par nunca se acerca más
+  que su mínimo: la mitad de cada cabecera más 8, el ancho de la etiqueta de un mensaje más 24 entre
+  sus columnas, y el espacio que necesitan las autollamadas y las notas laterales junto a su
+  columna. Cuando un gap negativo acercaría un par más que eso, gana el mínimo y `layout.gap-floor`
+  avisa en el `gap` con la cantidad dibujada. Un `gap` antes del primer participante o después del
+  último agrega espacio en ese lado del diagrama.
 - **Filas.** Los eventos van de arriba abajo: los mensajes con su etiqueta sobre la flecha, las
   autollamadas 24 más altas, las notas, los encabezados de los fragmentos y las separaciones entre
-  ramas, los separadores y los retrasos. `space` agrega su cantidad sobre un evento.
+  ramas, los separadores y los retrasos. `space` agrega su cantidad sobre un evento, y
+  `space … after`, debajo. El bloque de una llamada ocupa sus filas justo después de la de la
+  llamada, y su `return` se dibuja desde el borde de la barra del receptor hasta quien llama.
 - **Las comprobaciones de composición** no se aplican: las filas y las columnas no se pueden
   superponer.
 - **Dibujo.** Las cabeceras, las barras de activación, las notas y los marcos de los fragmentos se
@@ -209,10 +255,16 @@ saber qué hay bajo el puntero.
 
 Las ediciones mantienen el orden de los eventos (consulta [editor.md](../editor.md)):
 
-- arrastrar un participante hacia un lado reordena su declaración y no cambia ningún mensaje;
+- arrastrar la cabecera de un participante más allá del centro de un vecino reordena su
+  declaración y no cambia ningún mensaje; un arrastre más corto escribe su `gap` anterior, y la
+  línea de estado lo dice cuando el mínimo dibuja menos de lo escrito;
 - arrastrar hacia abajo un mensaje, una nota o un fragmento escribe `space`, que nunca baja de 0,
-  así que nada pasa a su vecino;
-- cruzar un evento es un movimiento explícito y validado (Alt+Arriba y Alt+Abajo), que se rechaza cuando
-  rompería las reglas comprobadas según el orden;
+  así que nada pasa a su vecino; una llamada se mueve con su bloque;
+- cruzar un evento es un movimiento explícito y validado (Alt+Arriba y Alt+Abajo), que entra y sale
+  de los bloques de las llamadas y se rechaza cuando rompería las reglas comprobadas según el orden;
+- Alt+N anida los eventos seleccionados en la llamada que los precede, Alt+Mayús+N saca los eventos
+  de una llamada detrás de ella, cada `return` escrito como una respuesta, y Alt+R agrega un
+  `return` al final del bloque de la llamada;
 - las activaciones, las notas y los fragmentos se quedan con sus mensajes; quitar un participante
-  enumera primero sus mensajes, sus eventos y su espaciado.
+  enumera primero sus mensajes, sus eventos y su espaciado, y quitar una llamada quita con ella los
+  eventos de su bloque.

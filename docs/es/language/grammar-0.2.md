@@ -304,25 +304,29 @@ un `place`; su tamaño se escribe o se deriva de sus hijos.
 
 Un diagrama de secuencia ordena los eventos de arriba abajo ([sequence.md](sequence.md)). Comparte
 con los demás perfiles las relaciones, `style`, `class`, `rule`, `animate`, `link` y las propiedades
-de diagrama `theme`, `title`, `description`, `preset` y `canvas`.
+de diagrama `theme`, `title`, `description`, `preset` y `canvas`; `autonumber` y `spacing` son
+suyas.
 
-| Instrucción   | Forma                                                                                                                  | Notas                                                                        |
-| ------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| participantes | `participant`, `actor`, `boundary`, `control`, `entity`, `database`, `collections`, `queue` `<id> ["Label"] [{ ... }]` | también `id["Label"]` y `id[("Label")]`                                      |
-| `group`       | `group <id> ["Label"] { participants }`                                                                                | una caja alrededor de participantes                                          |
-| mensaje       | `a -> b: "L" as id { kind async }`, `a --> b`, `a <-> b`                                                               | llamada, respuesta; bidireccional; `kind async`; `a -> a` es una autollamada |
-| activación    | `activate <p>`, `deactivate <p>`                                                                                       | barras anidadas                                                              |
-| ciclo de vida | `create <p>`, `destroy <p>`                                                                                            | la cabecera en su fila; una cruz termina la línea de vida                    |
-| `note`        | `note [<id>] over <p>[, <q>] "T"`, `left of <p>`, `right of <p>`                                                       |                                                                              |
-| fragmentos    | `alt`/`else`, `opt`, `loop`, `par`/`and`, `break`, `critical`/`option`, `region` `[<id>] ["c"] { ... }`                | las ramas encadenadas van en la línea de la `}`                              |
-| `divider`     | `divider "L"`                                                                                                          |                                                                              |
-| `delay`       | `delay ["L"]`                                                                                                          |                                                                              |
-| `autonumber`  | `autonumber [n]`                                                                                                       | numera los mensajes desde `n` (1)                                            |
-| `scenario`    | `scenario <id> ["L"] { choose <f> "c" \| <n>; repeat <loop> <n>; skip <f>; take <f> }`                                 | un camino para las exportaciones                                             |
-| `placement`   | `space <event> n`, `gap <participant> n`, `label <message> at n% offset (dx, dy)`                                      |                                                                              |
+| Instrucción   | Forma                                                                                                                  | Notas                                                                                                                                 |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| participantes | `participant`, `actor`, `boundary`, `control`, `entity`, `database`, `collections`, `queue` `<id> ["Label"] [{ ... }]` | también `id["Label"]` y `id[("Label")]`                                                                                               |
+| `group`       | `group <id> ["Label"] { participants }`                                                                                | una caja alrededor de participantes                                                                                                   |
+| mensaje       | `a -> b: "L" as id { kind async }`, `a --> b`, `a <-> b`                                                               | llamada, respuesta; bidireccional; `kind async`; `a -> a` es una autollamada; el bloque de una llamada contiene propiedades y eventos |
+| `return`      | `return ["L"] [as id] [{ ... }]`                                                                                       | en el bloque de una llamada: la respuesta discontinua del receptor a quien llama, la última de su lista                               |
+| activación    | `activate <p>`, `deactivate <p>`                                                                                       | barras anidadas; el bloque de una llamada con eventos también es una                                                                  |
+| ciclo de vida | `create <p>`, `destroy <p>`                                                                                            | la cabecera en su fila; una cruz termina la línea de vida                                                                             |
+| `note`        | `note [<id>] over <p>[, <q>] "T"`, `left of <p>`, `right of <p>`                                                       |                                                                                                                                       |
+| fragmentos    | `alt`/`else`, `opt`, `loop`, `par`/`and`, `break`, `critical`/`option`, `region` `[<id>] ["c"] { ... }`                | las ramas encadenadas van en la línea de la `}`                                                                                       |
+| `divider`     | `divider "L"`                                                                                                          |                                                                                                                                       |
+| `delay`       | `delay ["L"]`                                                                                                          |                                                                                                                                       |
+| `autonumber`  | `autonumber [n]`                                                                                                       | numera los mensajes desde `n` (1)                                                                                                     |
+| `spacing`     | `spacing n`                                                                                                            | la distancia entre cabeceras vecinas, de 0 a 400 (40)                                                                                 |
+| `scenario`    | `scenario <id> ["L"] { choose <f> "c" \| <n>; repeat <loop> <n>; skip <f>; take <f> }`                                 | un camino para las exportaciones                                                                                                      |
+| `placement`   | `space <event> n [before\|after]`, `gap <participant> [-]n [before\|after]`, `label <message> at n% offset (dx, dy)`   | `before` por defecto; un `gap` puede ser negativo salvo en el lado exterior                                                           |
 
-Las reglas que se comprueban según el orden (`sequence.activation`, `sequence.lifecycle`) y las
-comprobaciones de escenarios (`sequence.scenario`) se enumeran en [diagnostics.md](diagnostics.md).
+Las reglas que se comprueban según el orden (`sequence.activation`, `sequence.return`,
+`sequence.lifecycle`) y las comprobaciones de escenarios (`sequence.scenario`) se enumeran en
+[diagnostics.md](diagnostics.md).
 
 ## Bloques `model` y vocabulario `c4`
 

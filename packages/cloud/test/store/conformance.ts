@@ -23,6 +23,13 @@ export interface StoreUnderTest {
   close?(): void | Promise<void>;
 }
 
+/** What a person's row says of the branding entitlement until an administrator sets it. */
+const NOT_ENTITLED = {
+  unbrandedExports: false,
+  unbrandedExportsBy: null,
+  unbrandedExportsAt: null,
+} as const;
+
 const aProfile = (over: Partial<UserProfile> = {}): UserProfile => ({
   sub: "u1",
   name: "Ana Dev",
@@ -125,7 +132,12 @@ export function runStoreConformance(
 
       it("creates the person on the first upsert and reads them back whole", async () => {
         const created = await store.upsertUser(aProfile(), at(5 * SECOND));
-        expect(created).toEqual({ ...aProfile(), createdAt: at(5 * SECOND), handle: null });
+        expect(created).toEqual({
+          ...aProfile(),
+          createdAt: at(5 * SECOND),
+          handle: null,
+          ...NOT_ENTITLED,
+        });
         expect(await store.user("u1")).toEqual(created);
       });
 
@@ -139,7 +151,12 @@ export function runStoreConformance(
         async (_column, change) => {
           await store.upsertUser(aProfile(), at(SECOND));
           const refreshed = await store.upsertUser(aProfile(change), at(DAY));
-          expect(refreshed).toEqual({ ...aProfile(change), createdAt: at(SECOND), handle: null });
+          expect(refreshed).toEqual({
+            ...aProfile(change),
+            createdAt: at(SECOND),
+            handle: null,
+            ...NOT_ENTITLED,
+          });
           expect(await store.user("u1")).toEqual(refreshed);
         },
       );
@@ -151,8 +168,14 @@ export function runStoreConformance(
           ...next,
           createdAt: at(SECOND),
           handle: null,
+          ...NOT_ENTITLED,
         });
-        expect(await store.user("u1")).toEqual({ ...next, createdAt: at(SECOND), handle: null });
+        expect(await store.user("u1")).toEqual({
+          ...next,
+          createdAt: at(SECOND),
+          handle: null,
+          ...NOT_ENTITLED,
+        });
       });
 
       it("answers the stored row and changes nothing when the profile is the same", async () => {
@@ -167,7 +190,12 @@ export function runStoreConformance(
         await store.upsertUser(aProfile({ name: "One" }), at(SECOND));
         for (const [i, name] of ["Two", "Three", "One", "Four"].entries()) {
           const row = await store.upsertUser(aProfile({ name }), at(DAY * (i + 1)));
-          expect(row).toEqual({ ...aProfile({ name }), createdAt: at(SECOND), handle: null });
+          expect(row).toEqual({
+            ...aProfile({ name }),
+            createdAt: at(SECOND),
+            handle: null,
+            ...NOT_ENTITLED,
+          });
         }
         expect((await store.user("u1"))?.createdAt).toBe(at(SECOND));
       });
@@ -190,8 +218,13 @@ export function runStoreConformance(
           emailVerified: false,
         });
         const created = await store.upsertUser(odd, at(0));
-        expect(created).toEqual({ ...odd, createdAt: at(0), handle: null });
-        expect(await store.user(odd.sub)).toEqual({ ...odd, createdAt: at(0), handle: null });
+        expect(created).toEqual({ ...odd, createdAt: at(0), handle: null, ...NOT_ENTITLED });
+        expect(await store.user(odd.sub)).toEqual({
+          ...odd,
+          createdAt: at(0),
+          handle: null,
+          ...NOT_ENTITLED,
+        });
         // The statement that would have run if the sub were pasted into SQL did not.
         await store.upsertUser(aProfile(), at(SECOND));
         expect((await store.user("u1"))?.name).toBe("Ana Dev");
@@ -214,6 +247,7 @@ export function runStoreConformance(
           ...aProfile({ sub: "u2", name: "Bo" }),
           createdAt: at(SECOND),
           handle: null,
+          ...NOT_ENTITLED,
         });
         expect((await store.user("u1"))?.name).toBe("Changed");
       });
@@ -233,6 +267,79 @@ export function runStoreConformance(
         const refreshed = await store.upsertUser(aProfile(), at(SECOND));
         (refreshed as { name: string }).name = "changed a third time";
         expect((await store.user("u1"))?.name).toBe("Ana Dev");
+      });
+    });
+
+    describe("the entitlement to export without the branding", () => {
+      it("is off for a new person, with nobody and no time recorded", async () => {
+        const created = await store.upsertUser(aProfile(), at(0));
+        expect(created.unbrandedExports).toBe(false);
+        expect([created.unbrandedExportsBy, created.unbrandedExportsAt]).toEqual([null, null]);
+        expect(await store.entitledUsers()).toEqual([]);
+      });
+
+      it("is set and revoked, recording who did it and when each time", async () => {
+        await store.upsertUser(aProfile(), at(0));
+        expect(await store.setUnbrandedExports("u1", true, "admin", at(MINUTE))).toBe("set");
+        expect(present(await store.user("u1"))).toMatchObject({
+          unbrandedExports: true,
+          unbrandedExportsBy: "admin",
+          unbrandedExportsAt: at(MINUTE),
+        });
+        expect(await store.setUnbrandedExports("u1", false, "other-admin", at(HOUR))).toBe("set");
+        expect(present(await store.user("u1"))).toMatchObject({
+          unbrandedExports: false,
+          unbrandedExportsBy: "other-admin",
+          unbrandedExportsAt: at(HOUR),
+        });
+      });
+
+      it("answers missing for nobody, and writes no row", async () => {
+        expect(await store.setUnbrandedExports("nobody", true, "admin", at(0))).toBe("missing");
+        expect(await store.user("nobody")).toBeUndefined();
+      });
+
+      it("touches only the person named, a sub that merely starts the same included", async () => {
+        await store.upsertUser(aProfile(), at(0));
+        await store.upsertUser(aProfile({ sub: "u10" }), at(0));
+        await store.upsertUser(aProfile({ sub: "u2" }), at(0));
+        await store.setUnbrandedExports("u1", true, "admin", at(MINUTE));
+        expect(present(await store.user("u10")).unbrandedExports).toBe(false);
+        expect(present(await store.user("u2")).unbrandedExports).toBe(false);
+      });
+
+      it("survives a refresh of the profile", async () => {
+        await store.upsertUser(aProfile(), at(0));
+        await store.setUnbrandedExports("u1", true, "admin", at(MINUTE));
+        const refreshed = await store.upsertUser(aProfile({ name: "Ana B." }), at(DAY));
+        expect(refreshed.unbrandedExports).toBe(true);
+        expect(refreshed.unbrandedExportsBy).toBe("admin");
+      });
+
+      it("lists the entitled people, the earliest grant first, and not a revoked or deleted one", async () => {
+        for (const sub of ["u1", "u2", "u3"]) await store.upsertUser(aProfile({ sub }), at(0));
+        await store.setUnbrandedExports("u2", true, "admin", at(MINUTE));
+        await store.setUnbrandedExports("u1", true, "admin", at(HOUR));
+        await store.setUnbrandedExports("u3", true, "admin", at(2 * HOUR));
+        expect((await store.entitledUsers()).map((u) => u.sub)).toEqual(["u2", "u1", "u3"]);
+        await store.setUnbrandedExports("u1", false, "admin", at(DAY));
+        expect((await store.entitledUsers()).map((u) => u.sub)).toEqual(["u2", "u3"]);
+        await store.applyUserDeleted("evt_entitled", "u3", at(DAY));
+        expect((await store.entitledUsers()).map((u) => u.sub)).toEqual(["u2"]);
+      });
+    });
+
+    describe("a person by their handle", () => {
+      it("finds the holder, follows a change of handle, and finds nobody for a free handle", async () => {
+        await store.upsertUser(aProfile(), at(0));
+        await store.upsertUser(aProfile({ sub: "u2" }), at(0));
+        expect(await store.userByHandle("ana-dev")).toBeUndefined();
+        expect(await store.setHandle("u1", "ana-dev")).toBe("set");
+        expect(present(await store.userByHandle("ana-dev")).sub).toBe("u1");
+        expect(await store.setHandle("u1", "ana-b")).toBe("set");
+        expect(await store.userByHandle("ana-dev")).toBeUndefined();
+        expect(present(await store.userByHandle("ana-b")).sub).toBe("u1");
+        expect(await store.userByHandle("nobody-here")).toBeUndefined();
       });
     });
 
@@ -978,7 +1085,7 @@ export function runStoreConformance(
         await Promise.all(profiles.map((profile, i) => store.upsertUser(profile, at(i * SECOND))));
         const row = present(await store.user("u1"));
         const winner = present(profiles.find((profile) => profile.name === row.name));
-        expect(row).toEqual({ ...winner, createdAt: at(0), handle: null });
+        expect(row).toEqual({ ...winner, createdAt: at(0), handle: null, ...NOT_ENTITLED });
       });
 
       it("counts every failure recorded at once", async () => {

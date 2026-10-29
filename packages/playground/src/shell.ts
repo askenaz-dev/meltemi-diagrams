@@ -1,4 +1,4 @@
-import type { CanvasApp } from "@meltemi/diagrams-canvas";
+import { Tooltips, type CanvasApp } from "@meltemi/diagrams-canvas";
 import { definition, formatDocument, rename, setJsonField } from "@meltemi/diagrams-editor";
 import { LOCALES, getLocale, resolveLocale } from "@meltemi/diagrams-i18n";
 import {
@@ -136,8 +136,12 @@ export class Playground {
   private codePane!: HTMLElement;
   private divider!: HTMLElement;
   /** The bar's button, which folds the code pane, and the rail's, which unfolds it. */
-  private readonly codeBarButton = iconButton("codePane", messages().code.hide);
-  private readonly codeRailButton = iconButton("codePane", messages().code.show);
+  private readonly codeBarButton = iconButton("codePane", messages().code.hide, {
+    key: messages().keys.code,
+  });
+  private readonly codeRailButton = iconButton("codePane", messages().code.show, {
+    key: messages().keys.code,
+  });
   /** The open file's error count on the rail; hidden at zero. */
   private readonly codeRailProblems = h("span", { class: "code-rail-problems", hidden: true });
   private readonly preview = h("figure", { class: "image-preview", hidden: true });
@@ -181,8 +185,12 @@ export class Playground {
     role: "tablist",
     "aria-label": messages().header.views,
   });
-  private readonly undoButton = iconButton("undo", messages().header.undo);
-  private readonly redoButton = iconButton("redo", messages().header.redo);
+  private readonly undoButton = iconButton("undo", messages().header.undo, {
+    key: messages().keys.undo,
+  });
+  private readonly redoButton = iconButton("redo", messages().header.redo, {
+    key: messages().keys.redo,
+  });
   private keepTimer: ReturnType<typeof setTimeout> | undefined;
   /** Whether the person edited the anonymous project since it was last kept or loaded here. */
   private unkept = false;
@@ -379,7 +387,7 @@ export class Playground {
     importButton.addEventListener("click", () => importDialog(this));
     this.undoButton.addEventListener("click", () => this.undo());
     this.redoButton.addEventListener("click", () => this.redo());
-    const format = iconButton("format", m.header.format);
+    const format = iconButton("format", m.header.format, { key: m.keys.format });
     format.addEventListener("click", () => this.format());
     const share = iconButton("share", m.header.share, { text: true, title: m.header.shareTitle });
     // A cloud project offers its own link and its people, and so does a project that is only shown to
@@ -398,12 +406,16 @@ export class Playground {
       title: m.header.exportTitle,
     });
     exportButton.addEventListener("click", () => openExportDialog(this));
-    const theme = iconButton(this.dark() ? "sun" : "moon", m.header.theme);
+    // The theme switch says what a press does: to the dark theme while light, and back.
+    const themeName = () => (this.dark() ? m.header.themeToLight : m.header.themeToDark);
+    const theme = iconButton(this.dark() ? "sun" : "moon", themeName());
     theme.addEventListener("click", () => {
       this.settings.theme = this.dark() ? "light" : "dark";
       saveSettings(this.settings);
       this.applyTheme();
       theme.replaceChildren(icon(ICONS[this.dark() ? "sun" : "moon"]));
+      theme.setAttribute("aria-label", themeName());
+      theme.title = themeName();
     });
     const about = iconButton("info", m.header.about);
     about.addEventListener("click", () => aboutDialog(this));
@@ -546,7 +558,9 @@ export class Playground {
       this.statusText,
       h("span", { class: "version" }, `Meltemi Diagrams ${this.options.version}`),
     );
-    root.append(header, this.tabs, this.panes, status, liveRegion());
+    // The page's controls show their titles in the canvas's bubble; the canvas draws its own.
+    const tooltips = new Tooltips(root, { except: "#app" });
+    root.append(header, this.tabs, this.panes, status, tooltips.element, liveRegion());
 
     this.canvas = mountCanvas(
       canvasRoot,
@@ -1640,6 +1654,13 @@ export class Playground {
       (target instanceof HTMLTextAreaElement && target !== this.code.input);
     if (!command(e) || native) return;
     const key = e.key.toLowerCase();
+    // Ctrl+Alt+B folds or unfolds the properties, as VS Code's secondary side bar, on a narrow
+    // screen too, where the panel is the canvas's own (AltGr+B on a Spanish keyboard is the same).
+    if ((key === "b" || e.code === "KeyB") && e.altKey && !e.shiftKey) {
+      e.preventDefault();
+      this.canvas.setInspectorCollapsed(!this.canvas.inspectorCollapsed);
+      return;
+    }
     // The explorer's keys, as VS Code has them: Ctrl+B shows or hides it, Ctrl+Shift+E goes to it.
     if (key === "b" && !e.shiftKey && !e.altKey) {
       e.preventDefault();

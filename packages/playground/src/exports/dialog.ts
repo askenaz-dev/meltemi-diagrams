@@ -139,8 +139,9 @@ async function run(
   if ("problem" in output) return failed(output.problem);
   const name = built.name;
   // What the export chose because nothing said (a duration, a background, a size) follows.
+  const unbranded = built.request.branding === "none" ? [m.unbrandedNotice] : [];
   const told = (message: string) =>
-    [message, ...produced.notices, ...(output.notices ?? [])].join(" ");
+    [message, ...produced.notices, ...(output.notices ?? []), ...unbranded].join(" ");
   if ("text" in output) {
     download(name, output.text, TYPES[built.request.format] ?? "text/plain");
     return { ok: true, message: told(m.downloaded(name)) };
@@ -348,8 +349,18 @@ export function openExportDialog(
     placeholder: m.durationPlaceholder,
     spellcheck: "false",
   });
-  const check = (label: string, input: HTMLInputElement) =>
-    h("label", { class: "check" }, input, h("span", {}, label));
+  const check = (label: string, input: HTMLInputElement, hint?: string) => {
+    const box = h("label", { class: "check" }, input, h("span", {}, label));
+    if (!hint) return box;
+    const note = h("span", { class: "field-hint", id: `${input.id}-hint` }, hint);
+    input.setAttribute("aria-describedby", note.id);
+    return h("div", { class: "field" }, box, note);
+  };
+  // Exports without the Meltemi branding, for an account an administrator entitled: the box is
+  // built for nobody else, and starts unchecked each time the dialog opens.
+  const session = playground.options.session;
+  const entitled = session.kind === "cookie" && session.user.entitlements.unbranded;
+  const branding = h("input", { type: "checkbox", id: "export-unbranded" });
 
   const rows: Record<string, HTMLElement> = {
     scenario: field(m.scenario, scenario),
@@ -442,6 +453,7 @@ export function openExportDialog(
     } as {
       -readonly [K in keyof ExportRequest]: ExportRequest[K];
     };
+    if (entitled && branding.checked) request.branding = "none";
     if (!rows.scenario!.hidden && scenario.value) request.scenario = scenario.value;
     if (!rows.fonts!.hidden) request.fonts = fonts.value as FontPolicy;
     if (!rows.motion!.hidden) request.motion = motion.value as "static" | "animated";
@@ -557,7 +569,11 @@ export function openExportDialog(
     catalogButton.disabled = true;
     problem.textContent = "";
     try {
-      await downloadCatalog(playground, locale());
+      await downloadCatalog(
+        playground,
+        locale(),
+        entitled && branding.checked ? "none" : undefined,
+      );
     } finally {
       catalogButton.disabled = false;
     }
@@ -570,6 +586,7 @@ export function openExportDialog(
       field(m.format, format),
       support,
       field(m.theme, theme),
+      ...(entitled ? [check(m.unbranded, branding, m.unbrandedHint)] : []),
       field(m.language, language, m.languageHint),
       ...Object.values(rows),
       ...(profiles.length > 0

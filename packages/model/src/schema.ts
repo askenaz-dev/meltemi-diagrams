@@ -167,6 +167,7 @@ export const SEQUENCE_EVENTS = [
   ...FRAGMENT_OPERATORS,
   "divider",
   "delay",
+  "return",
 ] as const;
 /** Statements of a `scenario` block. */
 export const SCENARIO_STATEMENTS = ["choose", "repeat", "skip", "take"] as const;
@@ -740,6 +741,7 @@ export const SEQUENCE_PROFILE: ProfileSchema = {
     preset: { kind: "enum", values: PRESETS },
     canvas: { kind: "size", min: 100, max: 10000 },
     autonumber: { kind: "number", min: 0, max: 100000 },
+    spacing: { kind: "number", min: 0, max: 400 },
   },
   elementKinds: SEQUENCE_ELEMENT_KINDS,
   shorthand: { box: "participant", data: "database" },

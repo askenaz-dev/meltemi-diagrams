@@ -36,6 +36,11 @@ export interface CatalogOptions {
   readonly script: () => string;
   /** A preview server's event stream, for pages that reload when the sources change. */
   readonly liveReload?: string;
+  /**
+   * `"none"` draws the pictures without the theme's frame, as an export without the branding
+   * does; the page's footer and generator stay.
+   */
+  readonly frame?: "none";
 }
 
 /** A diagram or story left out of the catalog because it cannot be drawn. */
@@ -97,7 +102,16 @@ export function buildCatalog(
   // Reports are for the person who builds the catalog; the page itself takes the content language.
   const words = messages().catalog;
   const lay = (owner: FileCompilation, diagram: FlowDiagram, scenario?: string) => {
-    const result = layoutIn(workspace, projects, owner, diagram, null, scenario);
+    const result = layoutIn(
+      workspace,
+      projects,
+      owner,
+      diagram,
+      null,
+      scenario,
+      undefined,
+      options.frame,
+    );
     report(owner.path, result.diagnostics);
     return result;
   };

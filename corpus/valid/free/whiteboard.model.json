@@ -32,7 +32,8 @@
         "layers": [
           "main"
         ],
-        "autonumber": null
+        "autonumber": null,
+        "spacing": null
       },
       "classes": [],
       "rules": [],

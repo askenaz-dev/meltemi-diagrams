@@ -15,6 +15,8 @@ import {
 } from "@meltemi/diagrams-language";
 import {
   compile,
+  relationLabelSpan,
+  relationNameAnchor,
   singleIdent,
   type Compilation,
   type Element,
@@ -82,6 +84,7 @@ import {
   insertEvent,
   moveEvent,
   participantEvents,
+  nestedInCalls,
   refuseFlowGeometry,
   eventIdsOf,
   removeEvent,
@@ -93,6 +96,8 @@ import {
   reorderParticipant,
   setFragmentCondition,
   setSpacing,
+  nestInCall,
+  unnestCall,
   unwrapFragment,
   wrapInFragment,
 } from "./sequence.js";
@@ -378,6 +383,10 @@ function run(
       return insertEvent(ctx, operation);
     case "wrapInFragment":
       return wrapInFragment(ctx, operation);
+    case "nestInCall":
+      return nestInCall(ctx, operation);
+    case "unnestCall":
+      return unnestCall(ctx, operation);
     case "unwrapFragment":
       return unwrapFragment(ctx, operation);
     case "addBranch":
@@ -632,8 +641,7 @@ function arrange(ctx: EditContext, op: OperationOf<"arrange">): TextEdit[] {
         // C4 views take their relations from the model, where they are named.
         if (ctx.diagram.type === "c4" || !relation.node) continue;
         id = relationId(ctx, relation, named);
-        const node = relation.node;
-        const anchor = node.label && isToken(node.label) ? node.label.end : node.target.end;
+        const anchor = relationNameAnchor(relation);
         edits.push({ start: anchor, end: anchor, newText: ` as ${id}` });
       }
       guardInvalidStatement(ctx, "route", relation.key);
@@ -843,6 +851,17 @@ function setLabelAnchor(ctx: EditContext, op: OperationOf<"setLabelAnchor">): Te
 function setRelationLabel(ctx: EditContext, op: OperationOf<"setRelationLabel">): TextEdit[] {
   const relation = requireNamedRelation(ctx, op.relation);
   const node = relation.node;
+  if (node.kind === "KeywordStatement") {
+    // A `return`'s label is the string right after the keyword.
+    const span = relationLabelSpan(relation);
+    if (op.label === null)
+      return span ? [{ start: node.keyword.end, end: span.end, newText: "" }] : [];
+    const text = quoteString(op.label);
+    if (!span) return [{ start: node.keyword.end, end: node.keyword.end, newText: ` ${text}` }];
+    return ctx.text.slice(span.start, span.end) === text
+      ? []
+      : [{ start: span.start, end: span.end, newText: text }];
+  }
   const label = node.label && isToken(node.label) ? node.label : undefined;
   if (op.label === null) {
     if (!label || !node.colon) return [];
@@ -885,8 +904,7 @@ function materializeRelationId(
     reject("edit.unsafe-target", reasons().c4.nameInModel(relation.key));
   }
   requireNewId(ctx, op.id);
-  const node = relation.node;
-  const anchor = node.label && isToken(node.label) ? node.label.end : node.target.end;
+  const anchor = relationNameAnchor(relation);
   return [{ start: anchor, end: anchor, newText: ` as ${op.id}` }];
 }
 
@@ -966,6 +984,13 @@ function removeElement(ctx: EditContext, op: OperationOf<"removeElement">): Text
       removedElements.has(r.to) ||
       r.groupPath.some((g) => removedElements.has(g)),
   );
+  // A call goes with the events of its block: its messages and returns, notes and fragments.
+  const nested = nestedInCalls(ctx, new Set(removedRelations.map((r) => r.key)));
+  for (const event of nested) {
+    if (event.kind !== "message") continue;
+    const relation = diagram.relationsByKey.get(event.relation)!;
+    if (!removedRelations.includes(relation)) removedRelations.push(relation);
+  }
   const removedRelationIds = new Set(
     removedRelations.flatMap((r) => (r.id === null ? [] : [r.id])),
   );
@@ -1008,8 +1033,18 @@ function removeElement(ctx: EditContext, op: OperationOf<"removeElement">): Text
     const lineLabel = entry.statement === "label" && removedElements.has(entry.target);
     if (target.has(entry.target) || lineLabel) depend(entry.statement, entry.target, entry.node);
   }
-  const removedEvents = participantEvents(ctx, removedElements);
+  const removedEvents = [
+    ...new Set([
+      ...participantEvents(ctx, removedElements),
+      ...nested.filter((e) => e.kind !== "message"),
+    ]),
+  ];
   const removedEventIds = eventIdsOf(removedEvents);
+  for (const scenario of diagram.scenarios) {
+    for (const choice of scenario.choices) {
+      if (removedEventIds.has(choice.fragment)) depend("event", choice.fragment, choice.node);
+    }
+  }
   for (const event of removedEvents) {
     depend("event", event.key, event.node);
     if (event.id !== null) {
@@ -1101,7 +1136,13 @@ function removeElement(ctx: EditContext, op: OperationOf<"removeElement">): Text
     if (!other.implicit || removedElements.has(other.id)) continue;
     const mentions = diagram.relations.filter((r) => r.from === other.id || r.to === other.id);
     if (mentions.length === 0 || !mentions.every((r) => removedRelations.includes(r))) continue;
-    const anchor = mentions[0]!.node;
+    // The declaration replaces the outermost removed statement around the first mention: a
+    // message inside a removed call goes with the call.
+    const first = mentions[0]!.node;
+    const anchor = removedRelations
+      .map((r) => r.node)
+      .filter((n) => n.start <= first.start && first.end <= n.end)
+      .reduce((a, b) => (b.end - b.start > a.end - a.start ? b : a), first);
     keep.set(anchor, [...(keep.get(anchor) ?? []), other.id]);
     ctx.notes.push(messages().notes.keptElement(other.id, other.kind));
   }
@@ -1109,7 +1150,7 @@ function removeElement(ctx: EditContext, op: OperationOf<"removeElement">): Text
   const edits = deleteStatements(
     ctx.text,
     ctx.compilation.parse.root,
-    statements.filter((s) => !keep.has(s)),
+    statements.filter((s) => ![...keep.keys()].some((k) => k.start <= s.start && s.end <= k.end)),
   );
   for (const [node, indices] of partial) edits.push(...removeListItems(node.args, indices));
   edits.push(...constraintEdits);

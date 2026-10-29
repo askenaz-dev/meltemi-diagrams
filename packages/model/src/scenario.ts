@@ -1,6 +1,8 @@
+import { isToken } from "@meltemi/diagrams-language";
 import type {
   FlowDiagram,
   FragmentEvent,
+  Relation,
   ScenarioChoice,
   SequenceEvent,
   SequenceScenario,
@@ -39,6 +41,15 @@ function resolveEvents(
 ): SequenceEvent[] {
   const out: SequenceEvent[] = [];
   for (const event of events) {
+    if (event.kind === "message" && event.events.length > 0) {
+      // A call keeps its block, resolved as a branch is: a loop around it repeats it whole.
+      out.push({
+        ...event,
+        key: suffixed(event.key, suffix),
+        events: resolveEvents(event.events, decisions, suffix),
+      });
+      continue;
+    }
     if (event.kind !== "fragment") {
       out.push(suffix === "" ? event : { ...event, key: suffixed(event.key, suffix) });
       continue;
@@ -100,15 +111,44 @@ function resolveFragment(
   }
 }
 
-/** Every event of a tree, depth first, fragments before their branches' events. */
+/**
+ * Every event of a tree, depth first: fragments before their branches' events, calls before the
+ * events of their blocks.
+ */
 export function flattenEvents(events: readonly SequenceEvent[]): SequenceEvent[] {
   const out: SequenceEvent[] = [];
   const visit = (list: readonly SequenceEvent[]) => {
     for (const event of list) {
       out.push(event);
       if (event.kind === "fragment") for (const branch of event.branches) visit(branch.events);
+      if (event.kind === "message") visit(event.events);
     }
   };
   visit(events);
   return out;
+}
+
+/**
+ * Where ` as <id>` names a relation: after its label, else after its target; a `return` (whose
+ * node is its keyword statement) after its label, else after the keyword.
+ */
+export function relationNameAnchor(relation: Relation): number {
+  return (
+    relationLabelSpan(relation)?.end ??
+    (relation.node.kind === "RelationStatement"
+      ? relation.node.target.end
+      : relation.node.keyword.end)
+  );
+}
+
+/** Where a relation's label string is: after `:` of a relation, or after `return`; undefined without one. */
+export function relationLabelSpan(relation: Relation): { start: number; end: number } | undefined {
+  const node = relation.node;
+  if (node.kind === "RelationStatement") {
+    return node.label && isToken(node.label)
+      ? { start: node.label.start, end: node.label.end }
+      : undefined;
+  }
+  const label = node.args[0];
+  return label?.kind === "StringLiteral" ? { start: label.start, end: label.end } : undefined;
 }

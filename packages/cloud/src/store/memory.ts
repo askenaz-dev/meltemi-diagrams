@@ -145,6 +145,7 @@ export function memoryStore(): CloudStore {
   };
 
   const versionsOf = (projectId: string): VersionEntry[] => versions.get(projectId) ?? [];
+  const binary = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
   return {
     async user(sub) {
@@ -154,7 +155,14 @@ export function memoryStore(): CloudStore {
     async upsertUser(profile, now) {
       const existing = users.get(profile.sub);
       if (!existing) {
-        const created: User = { ...profile, createdAt: now, handle: null };
+        const created: User = {
+          ...profile,
+          createdAt: now,
+          handle: null,
+          unbrandedExports: false,
+          unbrandedExportsBy: null,
+          unbrandedExportsAt: null,
+        };
         users.set(profile.sub, created);
         return { ...created };
       }
@@ -168,6 +176,9 @@ export function memoryStore(): CloudStore {
         ...profile,
         createdAt: existing.createdAt,
         handle: existing.handle,
+        unbrandedExports: existing.unbrandedExports,
+        unbrandedExportsBy: existing.unbrandedExportsBy,
+        unbrandedExportsAt: existing.unbrandedExportsAt,
       };
       users.set(profile.sub, refreshed);
       return { ...refreshed };
@@ -691,6 +702,35 @@ export function memoryStore(): CloudStore {
       }
       users.set(sub, { ...person, handle });
       return "set";
+    },
+    async userByHandle(handle) {
+      for (const user of users.values()) if (user.handle === handle) return { ...user };
+      return undefined;
+    },
+
+    async setUnbrandedExports(sub, on, by, at) {
+      const person = users.get(sub);
+      if (!person) return "missing";
+      users.set(sub, {
+        ...person,
+        unbrandedExports: on,
+        unbrandedExportsBy: by,
+        unbrandedExportsAt: at,
+      });
+      return "set";
+    },
+    async entitledUsers() {
+      return (
+        [...users.values()]
+          .filter((user) => user.unbrandedExports)
+          // As SQLite orders text: by its bytes, the time first, then the sub.
+          .sort(
+            (a, b) =>
+              binary(a.unbrandedExportsAt ?? "", b.unbrandedExportsAt ?? "") ||
+              binary(a.sub, b.sub),
+          )
+          .map((user) => ({ ...user }))
+      );
     },
 
     async publicationsOf(projectId) {

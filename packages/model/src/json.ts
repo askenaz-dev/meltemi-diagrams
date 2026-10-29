@@ -198,6 +198,7 @@ export interface FlowDiagramJson {
     routing: string;
     layers: string[];
     autonumber: number | null;
+    spacing: number | null;
   };
   classes: ClassJson[];
   rules: RuleJson[];
@@ -215,7 +216,7 @@ export interface FlowDiagramJson {
 }
 
 export type EventJson =
-  | { kind: "message"; key: string; relation: string; range: RangeJson }
+  | { kind: "message"; key: string; relation: string; events: EventJson[]; range: RangeJson }
   | {
       kind: "activate" | "deactivate" | "create" | "destroy";
       key: string;
@@ -319,6 +320,7 @@ export interface RelationJson {
   /** Where the written token puts heads: `end`, `both` or `none`. */
   heads: "end" | "both" | "none";
   async: boolean;
+  returns: string | null;
   technology: string | null;
   sources: string[];
   derived: boolean;
@@ -371,6 +373,7 @@ export type PlacementJson =
       statement: "space" | "gap";
       target: string;
       amount: number;
+      side: "before" | "after";
       range: RangeJson;
       targetRange: RangeJson;
     };
@@ -595,6 +598,7 @@ function diagramJson(diagram: FlowDiagram): FlowDiagramJson {
       routing: diagram.properties.routing,
       layers: [...diagram.properties.layers],
       autonumber: diagram.properties.autonumber,
+      spacing: diagram.properties.spacing,
     },
     classes: diagram.classes.map(classJson),
     rules: diagram.rules.map(ruleJson),
@@ -660,7 +664,13 @@ function eventJson(event: SequenceEvent): EventJson {
   const range = rangeJson(event.range);
   switch (event.kind) {
     case "message":
-      return { kind: "message", key: event.key, relation: event.relation, range };
+      return {
+        kind: "message",
+        key: event.key,
+        relation: event.relation,
+        events: event.events.map(eventJson),
+        range,
+      };
     case "activate":
     case "deactivate":
     case "create":
@@ -766,6 +776,7 @@ function relationJson(relation: Relation): RelationJson {
     twoWay: relation.twoWay,
     heads: relation.heads,
     async: relation.async,
+    returns: relation.returns,
     technology: relation.technology,
     sources: [...relation.sources],
     derived: relation.derived,
@@ -828,6 +839,7 @@ function placementJson(entry: PlacementEntry): PlacementJson {
         statement: entry.statement,
         target: entry.target,
         amount: entry.amount,
+        side: entry.side,
         range,
         targetRange,
       };
