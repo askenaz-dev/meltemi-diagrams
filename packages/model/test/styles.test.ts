@@ -79,6 +79,19 @@ describe("class declarations", () => {
     expect(theme!.tokens).toEqual({});
   });
 
+  it("takes rules for lines, pens and stickies in a theme, heads and opacity included", () => {
+    const { theme, codes } = compiled(
+      'theme t {\n  rule line { arrowhead open; corners rounded }\n  rule pen { width 4; opacity 0.5; arrowtail bar }\n  rule sticky { fill "#fff59d" }\n  rule node { arrowhead none }\n}\n',
+    );
+    expect(codes).toEqual(["prop.invalid-value"]);
+    expect(theme!.rules.map((r) => [r.kind, r.properties])).toEqual([
+      ["line", { arrowhead: "open", corners: "rounded" }],
+      ["pen", { width: 4, opacity: 0.5, arrowtail: "bar" }],
+      ["sticky", { fill: "#fff59d" }],
+      ["node", {}],
+    ]);
+  });
+
   it("refuses classes that apply other classes", () => {
     const { diagnostics } = compiled(diagram("  class a { class b }"));
     expect(diagnostics.map((d) => d.code)).toEqual(["prop.unknown"]);
@@ -216,9 +229,18 @@ describe("style properties", () => {
     expect(diagnostics[0]!.hints![0]).toContain("danger");
   });
 
-  it("names the range of an outline width", () => {
-    const { diagnostics } = compiled(diagram("  a -> b\n  style a { width 40 }"));
-    expect(diagnostics[0]!.message).toBe("`width` expects a number from 0 to 16.");
+  it("takes a wide outline and names the range of a width", () => {
+    const { diagnostics, diagram: d } = compiled(
+      diagram("  db -> api\n  style db { width 24 }\n  style api { width 80 }"),
+    );
+    expect(diagnostics.map((x) => [x.code, x.message])).toEqual([
+      ["prop.invalid-value", "`width` expects a number from 0 to 64."],
+    ]);
+    expect(diagnostics[0]!.range.start.column).toBe(21);
+    expect(d.styles.map((s) => [s.target, s.properties])).toEqual([
+      ["db", { width: 24 }],
+      ["api", {}],
+    ]);
   });
 
   it("refuses patterns on relations and arrowheads on elements", () => {
@@ -243,6 +265,18 @@ describe("presets and canvas", () => {
     expect([d.properties.preset, d.properties.canvas]).toEqual(["slide", null]);
   });
 
+  it("records the board preset, in flow and free diagrams", () => {
+    const { diagram: d, codes } = compiled(diagram("  preset board"));
+    expect(codes).toEqual([]);
+    expect([d.properties.preset, d.properties.canvas]).toEqual(["board", null]);
+    const board = compiled('diagram w: free {\n  preset board\n  box a "A"\n}\n');
+    expect(board.codes).toEqual([]);
+    expect(board.diagram.properties.preset).toBe("board");
+    // A board is still one canvas.
+    const both = compiled(diagram("  preset board\n  canvas (800, 600)"));
+    expect(both.codes).toEqual(["prop.invalid-value"]);
+  });
+
   it("records a fixed canvas", () => {
     const { diagram: d, codes } = compiled(diagram("  canvas (1280, 720px)"));
     expect(codes).toEqual([]);
@@ -258,7 +292,14 @@ describe("presets and canvas", () => {
 
   it("lists the presets and checks canvas sizes", () => {
     const { diagnostics } = compiled(diagram("  preset poster"));
-    expect(diagnostics[0]!.message).toContain("document, slide");
+    expect(diagnostics.map((d) => [d.code, d.message])).toEqual([
+      [
+        "prop.invalid-value",
+        "Invalid value `poster` for `preset`; expected one of document, slide, board.",
+      ],
+    ]);
+    // On the word.
+    expect(diagnostics[0]!.range.start.column).toBe(10);
     const small = compiled(diagram("  canvas (50, 600)"));
     expect(small.diagnostics[0]!.message).toBe(
       "`canvas` expects `(width, height)` with numbers from 100 to 10000.",

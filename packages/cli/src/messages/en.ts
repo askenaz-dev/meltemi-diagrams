@@ -48,7 +48,7 @@ Every command takes --lang en|es: the language of its messages and of the words 
 files it writes (the project's "locale" otherwise; messages follow MELTEMI_LANG or LANG).
 
 Options for init:
-  --template <name>      flow (default), c4, sequence, free or purchase
+  --template <name>      flow (default), c4, sequence, free, kanban, whiteboard or purchase
   --name <name>          The project's name; the folder's name by default
   --list                 List the templates
   --ci <service>         Also write a CI workflow: github or gitlab
@@ -615,6 +615,14 @@ token was refused.
       free: {
         title: "Slide",
         description: "A slide composed freely: text, boxes, an icon and a group",
+      },
+      kanban: {
+        title: "Kanban board",
+        description: "A board of columns and sticky cards",
+      },
+      whiteboard: {
+        title: "Whiteboard",
+        description: "A sketched board with strokes, stickies and a story that draws them",
       },
       purchase: {
         title: "Purchase example",

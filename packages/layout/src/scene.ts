@@ -112,6 +112,19 @@ export interface SceneBounds {
   };
 }
 
+/**
+ * A rounded rectangle that texts are clipped to, in the coordinates of the group that carries it.
+ * Its `id` is unique in the scene and the same for every layout of the same source.
+ */
+export interface SceneClip {
+  readonly id: string;
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+  readonly radius: number;
+}
+
 /** Wraps the primitives of one element, relation, label or frame and carries its identity. */
 export interface GroupItem extends Classed {
   readonly kind: "group";
@@ -126,6 +139,23 @@ export interface GroupItem extends Classed {
   readonly bounds?: SceneBounds;
   /** Stories: how visible the group is, from 0 to 1. */
   readonly opacity?: number;
+  /**
+   * Free diagrams: the `opacity` the element's, group's, line's or pen's style gives it, below 1.
+   * Kept apart from `opacity`, which stories set per frame: renderers draw the group at the
+   * product of the two.
+   */
+  readonly styleOpacity?: number;
+  /**
+   * Pen strokes: the group draws a freehand stroke, already drawn by hand. Sketch passes leave it
+   * as it is, and the label audit takes no part of it.
+   */
+  readonly freehand?: boolean;
+  /**
+   * Stickies whose text does not fit their card: the card the group's own text items are clipped
+   * to. Renderers write it once (SVG: a `<clipPath>` with its `id`) and clip those texts with it;
+   * the card, its shadow and its icon are drawn whole.
+   */
+  readonly textClip?: SceneClip;
   /** Elements and relations: their layer, when it is not `main`. */
   readonly layer?: string;
   /** Elements with a `url`: the drawing links there. */

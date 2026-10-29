@@ -41,6 +41,9 @@ diagram checkout: flow {
     `layout.placement-ignored`, con la pista de usar `layout assisted`.
   - `size`, `label`, los puertos de las instrucciones `route`, las restricciones y los estilos se
     aplican como siempre.
+  - En las composiciones libres, una lista se organiza como una sola caja y conserva a sus hijos en
+    su orden, y las líneas y los lápices conservan sus puntos escritos
+    ([free.md](free.md#listas)).
   - Los conectores siguen las rutas ortogonales del motor.
 - **`assisted`**:
   - El motor organiza todo el grafo.
@@ -95,7 +98,10 @@ Un motor que lanza una excepción se informa como `layout.engine-failed`.
   tienen los codos que tenían antes, cada uno a menos de 1 px.
 
 En las composiciones libres, ambos escriben también un `place` y un `size` para cada grupo
-organizado, y las posiciones de los hijos de los grupos relativas al interior del grupo.
+organizado, y las posiciones de los hijos de los grupos relativas al interior del grupo. Una lista
+(`layout column|row` en el bloque de un grupo) se organiza como una sola caja: recibe un `place` y
+conserva su tamaño derivado, y no se escribe nada para los hijos que coloca
+([free.md](free.md#listas)).
 
 Ambos convierten `layout auto` en `layout assisted`, así que el archivo conserva el dibujo. Otras
 opciones:
@@ -216,6 +222,20 @@ toma carriles, desvíos ni huecos bajo el título de un grupo, y las comprobacio
 entre cajas la dejan fuera: sus puntos están donde los escribiste. Una línea cuyos puntos coinciden
 se dibuja como un punto de su ancho y se informa como `layout.degenerate-line` (advertencia).
 
+**Trazos de lápiz.** Un `pen` ([free.md](free.md#trazos-de-lápiz)) se dibuja junto a las líneas,
+pero no se traza como un conector: sus puntos escritos, desplazados por el origen del interior de
+su padre, se unen con un solo trazado suave por los puntos medios de los puntos consecutivos, sea
+cual sea el `routing`. No toma carriles, desvíos ni huecos, ningún motor lo mueve, y las
+comprobaciones de composición lo dejan fuera. Un punto, o puntos que coinciden, dibujan un punto,
+sin advertencia. Sus puntas son `arrowtail` y `arrowhead`, recortadas a lo largo de sus tramos
+finales como las de una línea.
+
+**Listas.** Un grupo que escribe `layout column` o `layout row` coloca a sus propios hijos en el
+orden del código ([free.md](free.md#listas)) antes de que se dibuje ningún conector: un conector
+entre dos tarjetas de una lista termina donde la lista las pone. El motor ve una lista como una
+sola caja de su tamaño derivado en todos los modos, con las relaciones hacia lo que contiene
+terminando en ella, y nunca organiza nada dentro de ella.
+
 **Elementos girados.** Un conector llega a un elemento girado con `rotation` por su contorno
 girado. Un extremo libre se dirige al rectángulo que envuelve el dibujo girado, como a cualquier
 caja, y se desliza desde el lado de ese rectángulo hasta el contorno. Un puerto con nombre o un
@@ -273,7 +293,8 @@ instrucción del elemento que aparece después:
 secundarias (`-->`); ELK ya traza más rectas las relaciones principales. Las notas y las marcas son
 anotaciones que colocas sobre las cajas a propósito, así que sus cajas no se comprueban; aun así, su
 texto no debe tapar otros textos. En las composiciones libres, los textos, los iconos y las imágenes
-también son anotaciones.
+también son anotaciones, y las líneas y los lápices quedan fuera de las comprobaciones: un trazo
+puede cruzar cajas y etiquetas. Una nota adhesiva se comprueba como una caja.
 
 - **Pilas.** Una caja declarada después de otra caja de su capa que la contiene, estrictamente
   dentro de ella, es una pila hecha a propósito, que se dibuja encima, y no se informa; una

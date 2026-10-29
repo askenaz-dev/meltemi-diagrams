@@ -92,6 +92,15 @@ export const en = {
     /** `layout.placement-ignored`. */
     placementIgnored:
       "`layout auto` arranges every element, so `place` statements and route waypoints are ignored.",
+    /** `layout.place-ignored`: a child of a list group, and the list that places it. */
+    placeIgnored: (element: string, list: string) =>
+      `The \`place\` of \`${element}\` is ignored: the list \`${list}\` places its children in order.`,
+    /**
+     * `layout.missing-placement`: what a group that is not a list holds inside a list, without
+     * `place`; the element, its group and the innermost list around it.
+     */
+    unplacedInList: (element: string, group: string, list: string) =>
+      `\`${element}\` has no \`place\` statement; inside the list \`${list}\`, the group \`${group}\` is not a list and needs a position for each child.`,
     /** `layout.image-unavailable`: the path written and the image object. */
     imageUnavailable: (source: string, element: string) =>
       `The image "${source}" of \`${element}\` cannot be drawn; a placeholder is drawn instead.`,
@@ -194,6 +203,19 @@ export const en = {
       needsHeight: number,
     ) =>
       `\`${element}\` is ${needsWidth === width ? `${height} px tall` : `${width} × ${height} px`} but ${withIcon ? "its icon and text" : "its text"} "${text}" needs ${needsWidth === width ? needsHeight : `${needsWidth} × ${needsHeight}`} px.`,
+    /**
+     * `layout.text-overflow` of a sticky whose text does not fit its card even at its smallest
+     * font size: the sticky, its size, that font size and the size at which the text fits.
+     */
+    stickyOverflow: (
+      element: string,
+      width: number,
+      height: number,
+      fontSize: number,
+      needsWidth: number,
+      needsHeight: number,
+    ) =>
+      `The text of \`${element}\` does not fit its ${width} × ${height} px card even at ${fontSize} px, and is clipped: it needs ${needsWidth} × ${needsHeight} px.`,
   },
   /** The hints of the layout's diagnostics. */
   hints: {
@@ -220,6 +242,9 @@ export const en = {
       "Hosts pass an engine in `LayoutOptions.engine`; the command line uses ELK. Or place every element.",
     /** `layout.placement-ignored`. */
     assisted: "Use `layout assisted` to keep placed elements where they are.",
+    /** `layout.place-ignored`: the child whose `place` is ignored and its list. */
+    placeIgnored: (element: string, list: string) =>
+      `Remove \`place ${element}\`, or remove \`layout\` from \`${list}\` to place its children yourself.`,
     /** `layout.image-unavailable` when the host reads images. */
     imageFile:
       "Check that the file exists in the project and is a PNG, JPEG, GIF, WebP or SVG image.",
@@ -242,9 +267,9 @@ export const en = {
     /** `layout.vertical-align-ignored`: an icon in the centre, whose label band is at an edge. */
     verticalAlignCentredIcon:
       "With `iconPosition center` the label's band is at `labelPosition`: set `labelPosition` instead, or remove `verticalAlign`.",
-    /** `layout.vertical-align-ignored`: an element that is no box. */
+    /** `layout.vertical-align-ignored`: an element that is neither a box nor a sticky. */
     verticalAlignNeverUsed:
-      "Remove `verticalAlign`: it only moves the text of a free box within its shape.",
+      "Remove `verticalAlign`: it only moves the text of a free box within its shape, or of a sticky within its card.",
     labelPositionNeverUsed:
       "Remove `labelPosition`: it only places the label of a node, decision, data store or box whose icon is the centre piece.",
     /** `layout.label-position-ignored` of a `labelPosition` the theme gives. */
@@ -261,6 +286,12 @@ export const en = {
     /** `layout.too-large`. */
     tooLarge:
       "Split the diagram into views or story scenes; text is never shrunk to fit the canvas.",
+    /** `layout.too-large` of `preset document` and `preset slide`: the preset of whiteboards. */
+    boardPreset:
+      "Write `preset board` when the sheet is a whiteboard: a board grows with its content.",
+    /** `layout.too-large` of a written `canvas`: the preset of whiteboards instead. */
+    boardCanvas:
+      "Replace the `canvas` with `preset board` when the sheet is a whiteboard: a board grows with its content.",
     /** `layout.text-overflow`: the size that fits, as code. */
     textOverflow: (element: string, width: number, height: number) =>
       `Use \`size ${element} (${width}, ${height})\`, or shorten the text.`,

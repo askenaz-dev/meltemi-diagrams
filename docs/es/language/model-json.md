@@ -15,7 +15,8 @@ lo descarga, y los motores de disposición y las pruebas lo leen. El nombre del 
 - Cada elemento, relación e instrucción lleva el `range` de su instrucción en el código fuente.
 - Las relaciones anónimas aparecen con su `key` sintética (`<from>-><to>#<n>`) e `id: null`.
 - Dentro de una versión las claves se agregan, nunca cambian: `heads` en las relaciones y `line`
-  en los elementos llegaron en 1.10.0, y la versión sigue siendo `0.1`.
+  en los elementos llegaron en 1.10.0, `pen` y `list` en los elementos en 1.11.0, y la versión
+  sigue siendo `0.1`.
 - Todos los perfiles de diagrama se compilan; los bloques `story` y `export` todavía no están en el
   JSON.
 
@@ -89,41 +90,43 @@ en 1. `end` es exclusivo.
 
 ## Diagrama
 
-| Clave        | Tipo   | Significado                                                                                                                                                                                                                                                                                            |
-| ------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `id`         | cadena | Id del diagrama.                                                                                                                                                                                                                                                                                       |
-| `type`       | cadena | `flow`, `free`, `sequence` o `c4`.                                                                                                                                                                                                                                                                     |
-| `range`      | rango  | El bloque `diagram` completo.                                                                                                                                                                                                                                                                          |
-| `properties` | objeto | `direction`, `layout` (con los valores predeterminados aplicados), `theme`, `title`, `description`, `preset` (cadena o null), `canvas` (`{ "width", "height" }` o null), `routing`, `layers` (de atrás hacia adelante; `["main"]` en los diagramas de flujo), `autonumber` (el primer número, o null). |
-| `classes`    | lista  | Declaraciones `class <id> { }`, en el orden del código fuente.                                                                                                                                                                                                                                         |
-| `rules`      | lista  | Instrucciones `rule <kind> { }`, en el orden del código fuente.                                                                                                                                                                                                                                        |
-| `elements`   | lista  | Elementos en el orden del código fuente.                                                                                                                                                                                                                                                               |
-| `relations`  | lista  | Relaciones en el orden del código fuente.                                                                                                                                                                                                                                                              |
-| `placement`  | lista  | Instrucciones `place`, `size`, `route` y `label` en el orden del código fuente.                                                                                                                                                                                                                        |
-| `styles`     | lista  | Una entrada por cada instrucción `style`.                                                                                                                                                                                                                                                              |
-| `animations` | lista  | Una entrada por cada instrucción `animate`.                                                                                                                                                                                                                                                            |
+| Clave        | Tipo   | Significado                                                                                                                                                                                                                                                                                                                  |
+| ------------ | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`         | cadena | Id del diagrama.                                                                                                                                                                                                                                                                                                             |
+| `type`       | cadena | `flow`, `free`, `sequence` o `c4`.                                                                                                                                                                                                                                                                                           |
+| `range`      | rango  | El bloque `diagram` completo.                                                                                                                                                                                                                                                                                                |
+| `properties` | objeto | `direction`, `layout` (con los valores predeterminados aplicados), `theme`, `title`, `description`, `preset` (`document`, `slide`, `board` o null), `canvas` (`{ "width", "height" }` o null), `routing`, `layers` (de atrás hacia adelante; `["main"]` en los diagramas de flujo), `autonumber` (el primer número, o null). |
+| `classes`    | lista  | Declaraciones `class <id> { }`, en el orden del código fuente.                                                                                                                                                                                                                                                               |
+| `rules`      | lista  | Instrucciones `rule <kind> { }`, en el orden del código fuente.                                                                                                                                                                                                                                                              |
+| `elements`   | lista  | Elementos en el orden del código fuente.                                                                                                                                                                                                                                                                                     |
+| `relations`  | lista  | Relaciones en el orden del código fuente.                                                                                                                                                                                                                                                                                    |
+| `placement`  | lista  | Instrucciones `place`, `size`, `route` y `label` en el orden del código fuente.                                                                                                                                                                                                                                              |
+| `styles`     | lista  | Una entrada por cada instrucción `style`.                                                                                                                                                                                                                                                                                    |
+| `animations` | lista  | Una entrada por cada instrucción `animate`.                                                                                                                                                                                                                                                                                  |
 
 ### Elemento
 
-| Clave         | Tipo          | Significado                                                                                                                                                                                                     |
-| ------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`          | cadena        | Id del elemento.                                                                                                                                                                                                |
-| `kind`        | cadena        | `node`, `decision`, `data`, `group`, `note` o `tag`; en las composiciones libres, `box`, `text`, `icon`, `image`, `line`, `note` o `group`; en los diagramas de secuencia, los tipos de participante o `group`. |
-| `label`       | cadena        | Texto visible; de forma predeterminada, el id.                                                                                                                                                                  |
-| `implicit`    | booleano      | Verdadero cuando solo una relación menciona el elemento.                                                                                                                                                        |
-| `description` | cadena o null | De un bloque de elemento o de grupo.                                                                                                                                                                            |
-| `url`         | cadena o null | La `url` del bloque, o la de la entidad en las vistas C4.                                                                                                                                                       |
-| `classes`     | lista         | Nombres de las clases aplicadas en el bloque de la declaración, en orden.                                                                                                                                       |
-| `ports`       | lista         | Puertos con nombre: `{ "name", "side", "position" }`.                                                                                                                                                           |
-| `layer`       | cadena o null | La `layer` del bloque (composiciones libres).                                                                                                                                                                   |
-| `link`        | objeto o null | `{ "binding", "diagram", "element" }`; `binding` es null en los enlaces dentro del mismo archivo.                                                                                                               |
-| `source`      | cadena o null | La referencia del icono o la ruta de la imagen de los objetos `icon` e `image`.                                                                                                                                 |
-| `shape`       | cadena o null | La forma que implica la declaración: `cylinder` para `id[("…")]`, null en los demás casos. Una `shape` escrita en un estilo queda en `styles`.                                                                  |
-| `line`        | objeto o null | Los puntos de un objeto `line` libre, en el interior de su grupo: `{ "from": { "x", "y" }, "to": { "x", "y" }, "via": [ { "x", "y" }, … ] }`; null en todos los demás tipos.                                    |
-| `attachedTo`  | cadena o null | El elemento al que está adjunta una `note` (`on <elemento>`; la ruta de la entidad en una vista C4); null en los demás tipos y en una nota sin `on`.                                                            |
-| `groupPath`   | lista         | Ids de los grupos que lo contienen, primero el más externo.                                                                                                                                                     |
-| `range`       | rango         | La instrucción que lo declara, o la primera mención en los elementos implícitos.                                                                                                                                |
-| `idRange`     | rango         | El token del identificador.                                                                                                                                                                                     |
+| Clave         | Tipo          | Significado                                                                                                                                                                                                                      |
+| ------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | cadena        | Id del elemento.                                                                                                                                                                                                                 |
+| `kind`        | cadena        | `node`, `decision`, `data`, `group`, `note` o `tag`; en las composiciones libres, `box`, `text`, `icon`, `image`, `note`, `sticky`, `line`, `pen` o `group`; en los diagramas de secuencia, los tipos de participante o `group`. |
+| `label`       | cadena        | Texto visible; de forma predeterminada, el id.                                                                                                                                                                                   |
+| `implicit`    | booleano      | Verdadero cuando solo una relación menciona el elemento.                                                                                                                                                                         |
+| `description` | cadena o null | De un bloque de elemento o de grupo.                                                                                                                                                                                             |
+| `url`         | cadena o null | La `url` del bloque, o la de la entidad en las vistas C4.                                                                                                                                                                        |
+| `classes`     | lista         | Nombres de las clases aplicadas en el bloque de la declaración, en orden.                                                                                                                                                        |
+| `ports`       | lista         | Puertos con nombre: `{ "name", "side", "position" }`.                                                                                                                                                                            |
+| `layer`       | cadena o null | La `layer` del bloque (composiciones libres).                                                                                                                                                                                    |
+| `link`        | objeto o null | `{ "binding", "diagram", "element" }`; `binding` es null en los enlaces dentro del mismo archivo.                                                                                                                                |
+| `source`      | cadena o null | La referencia del icono o la ruta de la imagen de los objetos `icon` e `image`.                                                                                                                                                  |
+| `shape`       | cadena o null | La forma que implica la declaración: `cylinder` para `id[("…")]`, null en los demás casos. Una `shape` escrita en un estilo queda en `styles`.                                                                                   |
+| `line`        | objeto o null | Los puntos de un objeto `line` libre, en el interior de su grupo: `{ "from": { "x", "y" }, "to": { "x", "y" }, "via": [ { "x", "y" }, … ] }`; null en todos los demás tipos.                                                     |
+| `pen`         | objeto o null | Los puntos de un trazo `pen` tal como se escribieron, con los decimales, en el interior de su grupo: `{ "points": [ { "x", "y" }, … ] }`; null en todos los demás tipos.                                                         |
+| `list`        | objeto o null | Cómo una lista coloca a sus hijos: `{ "layout", "spacing", "align" }`, `layout` `column` o `row`, `spacing` y `align` null cuando no se escriben; null en todos los demás elementos.                                             |
+| `attachedTo`  | cadena o null | El elemento al que está adjunta una `note` (`on <elemento>`; la ruta de la entidad en una vista C4); null en los demás tipos y en una nota sin `on`.                                                                             |
+| `groupPath`   | lista         | Ids de los grupos que lo contienen, primero el más externo.                                                                                                                                                                      |
+| `range`       | rango         | La instrucción que lo declara, o la primera mención en los elementos implícitos.                                                                                                                                                 |
+| `idRange`     | rango         | El token del identificador.                                                                                                                                                                                                      |
 
 ### Relación
 
@@ -180,7 +183,8 @@ En `route` y `label`, `target` es la clave de la relación; en `space`, el id de
 Las propiedades de estilo conservan sus tipos: `width` es un número, las palabras como `dashed` o
 `hatch` son cadenas, y un color escrito como nombre de un token del tema (`stroke danger`) es la
 cadena `@danger`. Un color entre comillas se conserva tal como se escribió, así que nunca empieza por
-`@`. `verticalAlign top` es la cadena `top`, igual que `textAlign left` es `left`.
+`@`. `verticalAlign top` es la cadena `top`, igual que `textAlign left` es `left`, y
+`opacity 0.35` es el número `0.35`.
 
 ### Entradas de clase y de regla
 
@@ -255,7 +259,8 @@ El `view` de una escena es el diagrama que muestra, tal como se escribió; `tran
 `{ "kind", "startMs", "durationMs" }` o null. Las acciones son
 `{ "kind", "targets", "all", "startMs", "durationMs", "children", "range" }`, con los valores
 predeterminados aplicados; una acción `parallel` contiene sus acciones en `children` y dura tanto
-como la más larga.
+como la más larga. Una acción `draw` se lleva como un `trace`: sus destinos en orden y su tiempo,
+800 ms cuando no se escribe.
 
 ### Perfiles de exportación
 
@@ -265,14 +270,14 @@ con null en las opciones que no se escriben ([export.md](export.md)).
 
 ## Tema
 
-| Clave     | Tipo          | Significado                                                                                                                                              |
-| --------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`      | cadena        | Id del tema.                                                                                                                                             |
-| `extends` | cadena o null | Nombre del tema base, o null para `technical.light`.                                                                                                     |
-| `tokens`  | objeto        | Valores de los tokens ordenados por nombre; los tamaños y los anchos son números, y las palabras como `sketch rough`, cadenas (`{ "sketch": "rough" }`). |
-| `classes` | lista         | Entradas de clase del bloque del tema.                                                                                                                   |
-| `rules`   | lista         | Entradas de regla del bloque del tema.                                                                                                                   |
-| `range`   | rango         | El bloque `theme`.                                                                                                                                       |
+| Clave     | Tipo          | Significado                                                                                                                                                                                                                          |
+| --------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`      | cadena        | Id del tema.                                                                                                                                                                                                                         |
+| `extends` | cadena o null | Nombre del tema base, o null para `technical.light`.                                                                                                                                                                                 |
+| `tokens`  | objeto        | Valores de los tokens ordenados por nombre, tal como se escribieron (entre ellos `highlight`, `sticky` y `stickyText`); los tamaños y los anchos son números, y las palabras como `sketch rough`, cadenas (`{ "sketch": "rough" }`). |
+| `classes` | lista         | Entradas de clase del bloque del tema.                                                                                                                                                                                               |
+| `rules`   | lista         | Entradas de regla del bloque del tema.                                                                                                                                                                                               |
+| `range`   | rango         | El bloque `theme`.                                                                                                                                                                                                                   |
 
 ## Diagnóstico
 

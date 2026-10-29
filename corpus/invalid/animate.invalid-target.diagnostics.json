@@ -2,7 +2,7 @@
   {
     "code": "animate.invalid-target",
     "severity": "error",
-    "message": "Flow particles run along relations and lines; name the relation (`a -> b as r`) and animate it.",
+    "message": "Flow particles run along relations, lines and pens; name the relation (`a -> b as r`) and animate it.",
     "range": {
       "start": {
         "offset": 142,

@@ -14,10 +14,17 @@ import { messages } from "./messages/index.js";
 import {
   ALL_ELEMENT_KINDS,
   ELEMENT_ONLY_PROPERTIES,
+  FLOW_PROFILE,
   FREE_ELEMENT_KINDS,
   FREE_PROFILE,
+  PEN_PROPERTIES,
+  PEN_REFUSED_PROPERTIES,
+  PEN_WIDTH_RANGE,
   RELATION_ONLY_PROPERTIES,
   RULE_KINDS,
+  SEQUENCE_PROFILE,
+  STICKY_PROPERTIES,
+  STICKY_REFUSED_PROPERTIES,
   STYLE_PROPERTIES,
   THEME_COLOR_TOKENS,
   isFreeStyleProperty,
@@ -362,9 +369,21 @@ export interface PropertyBlock {
 /** The hint for a property used on a target it does not apply to. */
 export function targetHint(name: string): string {
   const hints = messages().hints.values;
+  if (name === "opacity") return hints.opacityTargets;
   return ELEMENT_ONLY_PROPERTIES.includes(name)
     ? hints.appliesToElements(name)
     : hints.appliesToRelations(name);
+}
+
+/**
+ * The first value of the statement of a block whose keyword is `keyword` (a token of
+ * `PropertyBlock.tokens`), for a diagnostic on the value rather than on the property.
+ */
+export function argumentOf(block: Block, keyword: Token): Arg | undefined {
+  for (const stmt of block.statements) {
+    if (stmt.kind === "KeywordStatement" && stmt.keyword === keyword) return stmt.args[0];
+  }
+  return undefined;
 }
 
 /**
@@ -463,7 +482,7 @@ export function refuseFreeProperties(
     if (!isFreeStyleProperty(name)) continue;
     const m = messages();
     report("prop.invalid-value", m.diagnostics.values.freeOnly(name), token, {
-      hints: [m.hints.values.freeProperties],
+      hints: [name === "opacity" ? m.hints.values.freeOpacity : m.hints.values.freeProperties],
     });
     delete values[name];
   }
@@ -476,28 +495,30 @@ function ruleKindFits(kind: string, profile: ProfileSchema | undefined): boolean
 
 /** The profiles whose rules take a kind, for the message of a misplaced rule. */
 function profilesOfKind(kind: string): string[] {
-  return (["flow", "free", "sequence"] as const).filter((name) =>
-    (
-      ({
-        flow: ["node", "decision", "data", "group", "note", "tag", "relation"],
-        free: ["box", "text", "icon", "image", "group", "relation"],
-        sequence: [
-          "participant",
-          "actor",
-          "boundary",
-          "control",
-          "entity",
-          "database",
-          "collections",
-          "queue",
-          "group",
-          "relation",
-          "note",
-          "fragment",
-        ],
-      }) as Record<string, readonly string[]>
-    )[name]!.includes(kind),
-  );
+  return [FLOW_PROFILE, FREE_PROFILE, SEQUENCE_PROFILE]
+    .filter((profile) => profile.ruleKinds.includes(kind))
+    .map((profile) => profile.name);
+}
+
+/**
+ * The style properties a `rule <kind>` refuses besides `shape` and `rotation`: a relation's rule
+ * refuses the element properties, a line's none (it takes a relation's properties), a pen's and a
+ * sticky's what they do not take, and every other kind's the relation properties.
+ */
+function ruleRefuses(kind: string): readonly string[] {
+  if (kind === "relation") return ELEMENT_ONLY_PROPERTIES;
+  if (kind === "line") return [];
+  if (kind === "pen") return PEN_REFUSED_PROPERTIES;
+  if (kind === "sticky") return STICKY_REFUSED_PROPERTIES;
+  return RELATION_ONLY_PROPERTIES;
+}
+
+/** The hint of a property a `rule <kind>` refuses: what the kind takes, or where the property goes. */
+function ruleRefusalHint(kind: string, name: string): string {
+  const hints = messages().hints.values;
+  if (kind === "pen") return hints.penProperties(PEN_PROPERTIES);
+  if (kind === "sticky") return hints.stickyProperties(STICKY_PROPERTIES);
+  return targetHint(name);
 }
 
 /**
@@ -685,16 +706,25 @@ export class StyleDefinitions {
         delete properties[name];
         continue;
       }
-      const misplaced =
-        kind === "relation"
-          ? ELEMENT_ONLY_PROPERTIES.includes(name)
-          : RELATION_ONLY_PROPERTIES.includes(name);
-      if (misplaced) {
+      if (ruleRefuses(kind).includes(name)) {
+        const m = messages();
+        this.report("prop.invalid-value", m.diagnostics.values.ruleNotFor(name, kind), token, {
+          hints: [ruleRefusalHint(kind, name)],
+        });
+        delete properties[name];
+        continue;
+      }
+      // A pen is drawn one pixel wide at least.
+      if (kind === "pen" && name === "width" && properties.width === 0) {
+        const m = messages();
         this.report(
           "prop.invalid-value",
-          messages().diagnostics.values.ruleNotFor(name, kind),
-          token,
-          { hints: [targetHint(name)] },
+          m.diagnostics.values.expects(
+            "width",
+            describeSpec({ kind: "number", ...PEN_WIDTH_RANGE }),
+          ),
+          argumentOf(stmt.block, token) ?? token,
+          { hints: [m.hints.values.penWidth] },
         );
         delete properties[name];
         continue;

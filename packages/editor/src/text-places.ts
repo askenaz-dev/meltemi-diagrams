@@ -10,10 +10,11 @@ import {
   type ResolvedStyle,
   type Scene,
   type SceneItem,
+  type StickyText,
   type TextItem,
   type Theme,
 } from "@meltemi/diagrams-layout";
-import type { FlowDiagram, Point } from "@meltemi/diagrams-model";
+import type { Element, FlowDiagram, Point } from "@meltemi/diagrams-model";
 import type { TextPlace } from "./canvas/protocol.js";
 
 /** Where the labels of a diagram are drawn, by element id, relation key and event key. */
@@ -36,13 +37,19 @@ const UNSHAPED: ReadonlySet<string> = new Set(["group", "note", "tag", "text"]);
 
 const ALIGN = { start: "left", middle: "center", end: "right" } as const;
 
+/** A sticky's default font size, as a factor of the theme's label size (the layout's own). */
+const STICKY_FONT_SCALE = 1.2;
+
 /**
  * Where and how the layout drew the label of every element, relation and sequence event, read
  * from its scene, in diagram coordinates: the inline editor types over it in the same font, size,
  * weight, colour and alignment. An empty label is drawn as one empty line, so its place is known
  * too; a relation without a label is placed at the middle of its line. `shapes` are the shapes the
  * layout drew elements with: an icon shape's label lies outside its square, and a placeholder's
- * name drawn in the square (when the icon is missing) is not its label.
+ * name drawn in the square (when the icon is missing) is not its label. `stickies` are how the
+ * layout wrapped the text of every sticky (`LayoutResult.stickies`): the editor types over a
+ * sticky in the room its text wraps in, at the size it shrank to, so that typing wraps as the
+ * card will, and knows the size the words start from before they shrink (`fullSize`).
  */
 export function textPlaces(
   diagram: FlowDiagram,
@@ -51,6 +58,7 @@ export function textPlaces(
   theme: Theme,
   connectors: ReadonlyMap<string, ConnectorGeometry>,
   shapes: ReadonlyMap<string, string> = new Map(),
+  stickies: ReadonlyMap<string, StickyText> = new Map(),
 ): TextPlaces {
   const scale = typeScale(theme);
   const styles = new StyleResolver(theme, diagram);
@@ -149,9 +157,53 @@ export function textPlaces(
   const within = (text: TextItem, box: Box) =>
     text.x > box.x && text.x < box.x + box.width && text.y > box.y && text.y < box.y + box.height;
 
+  /**
+   * A sticky's text as the layout wrapped it: the room inside its card's padding (already in
+   * diagram coordinates), the size it shrank to and its line height, aligned on the middle of the
+   * block of lines where `verticalAlign` puts it, or from the top when it overflows.
+   */
+  const sticky = (owner: Element, text: StickyText, drawn: readonly TextItem[]): TextPlace => {
+    const { area, line } = text;
+    const block = text.lines.length * line;
+    const top = !text.fits
+      ? area.y
+      : text.verticalAlign === "top"
+        ? area.y
+        : text.verticalAlign === "bottom"
+          ? area.y + area.height - block
+          : area.y + (area.height - block) / 2;
+    const x =
+      text.align === "left"
+        ? area.x
+        : text.align === "right"
+          ? area.x + area.width
+          : area.x + area.width / 2;
+    const first = drawn[0];
+    // The size the words are drawn at before they shrink to fit, as the layout starts from.
+    const full =
+      styles.element(owner).fontSize ?? Math.round(scale.label * STICKY_FONT_SCALE * 100) / 100;
+    return {
+      anchor: { x, y: top + block / 2 },
+      area,
+      align: text.align,
+      font: first ? fontOf(first) : scene.fonts.body,
+      size: text.size,
+      fullSize: Math.max(text.size, full),
+      weight: text.weight,
+      color: first?.fill ?? styles.element(owner).color ?? theme.stickyText,
+      line,
+      lines: true,
+    };
+  };
+
   const element = (group: GroupItem) => {
     const owner = diagram.elementsById.get(group.id);
     if (!owner || elements.has(owner.id) || owner.kind === "icon" || owner.kind === "image") return;
+    const wrapped = owner.kind === "sticky" ? stickies.get(owner.id) : undefined;
+    if (wrapped) {
+      elements.set(owner.id, sticky(owner, wrapped, textsOf(group)));
+      return;
+    }
     const bounds = group.bounds;
     if (!bounds) return;
     const single = ONE_LINE.has(owner.kind) || diagram.type === "sequence";

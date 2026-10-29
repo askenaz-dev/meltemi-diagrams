@@ -25,6 +25,7 @@ pnpm mdg format --check architecture/
 | Bloque en varias líneas | `{` termina la línea, una instrucción por línea un nivel más adentro, `}` en su propia línea; `} else "B" {` sigue unido                 |
 | `;`                     | las instrucciones unidas con `;` se quedan en una línea: `place a at (1, 2); size a (160, 56)`                                           |
 | Lista en varias líneas  | `via [` termina la línea, un elemento por línea un nivel más adentro, `]` en su propia línea                                             |
+| Puntos de un lápiz      | una línea cuando la instrucción `pen` cabe en 100 columnas; si no, rellenada, como abajo                                                 |
 | Líneas en blanco        | como máximo una seguida; ninguna justo después de `{` ni antes de `}`; exactamente una entre bloques de nivel superior                   |
 | Comentarios             | se conservan en su lugar y en su orden; un espacio antes de un comentario `//` al final de la línea; los comentarios de bloque, tal cual |
 | Finales de línea        | sin espacios al final, el primer fin de línea del archivo en todas partes, un salto de línea final, y se conserva la BOM                 |
@@ -32,6 +33,35 @@ pnpm mdg format --check architecture/
 El formateador nunca cambia el texto ni el orden de los tokens, nunca descarta un comentario y da el
 mismo resultado si se ejecuta dos veces. Los archivos con errores de sintaxis se rechazan y quedan
 sin cambios (`format.syntax-errors`).
+
+### Instrucciones `pen`
+
+Una instrucción `pen` ([free.md](free.md#trazos-de-lápiz)) contiene los puntos de un trazo, a
+menudo cuarenta o más, así que su lista se rellena en lugar de imprimirse con un elemento por
+línea. Se haya escrito como se haya escrito, la lista va en una línea cuando la instrucción entera,
+con su bloque, cabe en 100 columnas con su sangría. Si no, `[` termina la primera línea de la
+instrucción, las tuplas siguen un nivel más adentro, tantas en cada línea como quepan en 100
+columnas, separadas por `, `, y `]` va en su propia línea, seguido del bloque cuando lo hay:
+
+```text
+diagram notes: free {
+  pen tick [(0, 0), (10, 10), (20, 0)]
+  pen word [
+    (12, 40), (14.5, 31), (18, 24), (23, 21), (28, 24), (30, 32), (29.5, 41), (33, 47), (39, 45),
+    (44, 38), (47, 29), (50, 22), (55, 21), (58, 27), (58.5, 36), (62, 44), (68, 46), (74, 41)
+  ] { layer main }
+}
+```
+
+- La coma que sigue a la última tupla de una línea se queda al final de esa línea. El formateador
+  conserva los tokens que recibe, así que no agrega ni quita ninguna coma: la última línea termina
+  con una solo cuando el código fuente tiene una antes de `]`.
+- Un tabulador cuenta como 4 columnas al medir una línea, con `format.indent` en `"tab"`.
+- Un comentario de línea dentro de la lista, o un comentario de bloque en una línea propia, hace
+  que la lista se rellene; el comentario se conserva.
+- La decisión depende solo de los tokens y la profundidad de la instrucción, nunca de los saltos de
+  línea del código fuente, así que volver a dar formato al resultado no cambia nada. Las listas
+  `via` siguen la regla de arriba.
 
 ## Ajuste del proyecto
 

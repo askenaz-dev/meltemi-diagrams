@@ -56,6 +56,7 @@ describe("the playground's catalog", () => {
     expect(en.templates.titles).toEqual(
       Object.fromEntries(names.map((name) => [name, TEMPLATES[name].title])),
     );
+    expect(names).toEqual(["flow", "c4", "sequence", "free", "kanban", "whiteboard", "purchase"]);
     expect(Object.keys(es.templates.descriptions)).toEqual(names);
     expect(Object.keys(es.templates.titles)).toEqual(names);
     expect(es.templates.descriptions.flow).toBe("Un diagrama de flujo para empezar");
@@ -114,6 +115,14 @@ describe("the interface language", () => {
     expect(templateDescription(template("c4"))).toBe(es.templates.descriptions.c4);
     expect(templateTitle(template("c4"))).toBe("Modelo C4");
     expect(templateContents(template("c4"))).toBe("1 modelo · 2 vistas");
+    // The whiteboard cards, in Spanish.
+    expect(templateTitle(template("kanban"))).toBe("Tablero kanban");
+    expect(templateContents(template("kanban"))).toBe("1 diagrama");
+    expect(templateTitle(template("whiteboard"))).toBe("Pizarra");
+    expect(templateContents(template("whiteboard"))).toBe("1 diagrama · 1 historia");
+    expect(templateContents(template("purchase"))).toBe(
+      "1 modelo · 2 vistas · 2 diagramas · 1 historia",
+    );
     // A template the catalog does not know keeps its own words.
     const mine = { ...template("flow"), name: "mine", title: "Mine", description: "My own" };
     expect(templateDescription(mine)).toBe("My own");

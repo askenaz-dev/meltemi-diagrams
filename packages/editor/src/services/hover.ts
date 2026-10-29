@@ -1,6 +1,7 @@
-import { isToken, type Range } from "@meltemi/diagrams-language";
-import { THEMES } from "@meltemi/diagrams-layout";
+import { isToken, type CstNode, type Range, type Token } from "@meltemi/diagrams-language";
+import { StyleResolver, THEMES, type LayoutResult } from "@meltemi/diagrams-layout";
 import {
+  MAIN_LAYER,
   PORTS,
   arrowToken,
   type Element,
@@ -15,7 +16,7 @@ import {
 import { diagramView, type DocumentAnalysis } from "../analysis.js";
 import { kindWord, serviceMessages } from "../messages/services.js";
 import { diagramAt, pathAt, referenceAt, statementPrefix, tokenAt } from "../syntax.js";
-import { keywordDoc } from "./docs.js";
+import { keywordDoc, listDoc } from "./docs.js";
 import { entityAt, entityHover } from "./entities.js";
 import { profileAt, profileHover } from "./profiles.js";
 import { storyAt, storyHover } from "./stories.js";
@@ -27,6 +28,14 @@ export interface Hover {
 
 const fmt = (n: number) => String(Math.round(n * 100) / 100);
 
+/** A multi-line text in markdown: its line breaks kept. */
+const breaks = (text: string) => text.replace(/\n/g, "  \n");
+
+/**
+ * What a hover says about an element: its kind, id and label (a pen's point count, a sticky's
+ * text), its description, then where it is drawn, its size, a sticky's colour, a list group's
+ * arrangement, its ports, groups, layer and link.
+ */
 export function elementHover(
   analysis: DocumentAnalysis,
   diagram: FlowDiagram,
@@ -34,33 +43,90 @@ export function elementHover(
 ): string {
   const t = serviceMessages().hover;
   const kind = kindWord(element.kind);
+  const layout = diagramView(analysis, diagram.id)?.layout ?? null;
   const lines = [
     element.source !== null
       ? `**${kind}** \`${element.id}\` — \`${element.source}\``
-      : `**${kind}** \`${element.id}\` — ${element.label}`,
+      : element.pen
+        ? `**${kind}** \`${element.id}\` — ${t.points(element.pen.points.length)}`
+        : `**${kind}** \`${element.id}\` — ${breaks(element.label)}`,
   ];
-  if (element.description) lines.push("", element.description.replace(/\n/g, "  \n"));
-  const place = diagram.placement.find(
-    (p): p is PlaceEntry => p.statement === "place" && p.target === element.id,
-  );
-  const size = diagram.placement.find(
-    (p): p is SizeEntry => p.statement === "size" && p.target === element.id,
-  );
-  const box = diagramView(analysis, diagram.id)?.layout?.boxes?.get(element.id);
+  if (element.description) lines.push("", breaks(element.description));
   const facts: string[] = [];
-  if (place) facts.push(t.placed(fmt(place.x), fmt(place.y)));
-  else if (box) facts.push(t.arranged(fmt(box.x + box.width / 2), fmt(box.y + box.height / 2)));
-  if (size) facts.push(t.size(fmt(size.width), fmt(size.height)));
-  else if (box) facts.push(t.defaultSize(fmt(box.width), fmt(box.height)));
+  // A pen is its points: it has no place or size, and its layer is said even when it is `main`.
+  if (!element.pen) facts.push(...placeFacts(diagram, element, layout));
+  if (element.kind === "sticky") {
+    const colour = stickyColour(diagram, element, layout);
+    if (colour) facts.push(colour);
+  }
+  if (element.list) facts.push(...listFacts(element, layout));
   if (element.ports.length > 0) {
     facts.push(t.ports(element.ports.map((p) => `\`${p.name}\` ${p.side}`).join(", ")));
   }
   if (element.groupPath.length > 0)
     facts.push(t.within(element.groupPath.map((g) => `\`${g}\``).join(" › ")));
-  if (element.layer !== null) facts.push(t.layer(element.layer));
+  if (element.layer !== null || element.pen) facts.push(t.layer(element.layer ?? MAIN_LAYER));
   if (element.link) facts.push(t.linked(element.link.text));
   if (facts.length > 0) lines.push("", facts.join(" · "));
   return lines.join("\n");
+}
+
+/**
+ * Where an element is drawn and its size: its written `place`, or where the layout put it (the
+ * place of a list's child is the list's to choose, whatever is written), and its written or
+ * drawn size.
+ */
+function placeFacts(diagram: FlowDiagram, element: Element, layout: LayoutResult | null): string[] {
+  const t = serviceMessages().hover;
+  const parent = element.groupPath[element.groupPath.length - 1];
+  // A line in a list keeps its points; the list places its other children.
+  const listed = element.kind !== "line" && parent !== undefined;
+  const list = listed && diagram.elementsById.get(parent)?.list ? parent : null;
+  const place = list
+    ? undefined
+    : diagram.placement.find(
+        (p): p is PlaceEntry => p.statement === "place" && p.target === element.id,
+      );
+  const size = diagram.placement.find(
+    (p): p is SizeEntry => p.statement === "size" && p.target === element.id,
+  );
+  const box = layout?.boxes?.get(element.id);
+  const facts: string[] = [];
+  if (place) facts.push(t.placed(fmt(place.x), fmt(place.y)));
+  else if (box) facts.push(t.arranged(fmt(box.x + box.width / 2), fmt(box.y + box.height / 2)));
+  if (list) facts.push(t.placedBy(list));
+  if (size) facts.push(t.size(fmt(size.width), fmt(size.height)));
+  else if (box) facts.push(t.defaultSize(fmt(box.width), fmt(box.height)));
+  return facts;
+}
+
+/** The colour of a sticky's card: its style's `fill`, or the theme's `sticky`. */
+function stickyColour(
+  diagram: FlowDiagram,
+  element: Element,
+  layout: LayoutResult | null,
+): string | undefined {
+  const theme = layout?.theme;
+  if (!theme) return undefined;
+  const t = serviceMessages().hover;
+  const fill = new StyleResolver(theme, diagram).element(element).fill;
+  return fill ? t.colour(fill, null) : t.colour(theme.sticky, "sticky");
+}
+
+/** How a list group arranges its children: its layout, and its spacing and alignment. */
+function listFacts(element: Element, layout: LayoutResult | null): string[] {
+  const list = element.list;
+  if (!list) return [];
+  const t = serviceMessages().hover;
+  // The layout knows the defaults: half the theme's group padding, and `start`.
+  const drawn = layout?.lists?.get(element.id);
+  const spacing = list.spacing ?? drawn?.spacing;
+  const align = list.align ?? drawn?.align;
+  return [
+    t.list(list.layout),
+    ...(spacing !== undefined ? [t.listSpacing(fmt(spacing), list.spacing === null)] : []),
+    ...(align !== undefined ? [t.listAlign(align, list.align === null)] : []),
+  ];
 }
 
 export function relationHover(diagram: FlowDiagram, relation: Relation): string {
@@ -382,8 +448,36 @@ export function hover(analysis: DocumentAnalysis, offset: number): Hover | undef
         markdown: `**${declared.type}** — ${declared.title}${declared.description ? `: ${declared.description}` : ""}${t.kinds(Object.keys(declared.elements).join(", "), plugin)}`,
       };
     }
-    const doc = keywordDoc(token.text);
+    const doc = (diagram && listWordAt(diagram, path, token)) ?? keywordDoc(token.text);
     if (doc) return { range, markdown: `**${token.text}** — ${doc}` };
+  }
+  return undefined;
+}
+
+/**
+ * What a word of a group block means when it arranges a list: `layout`, `spacing` and `align`
+ * of a free group block, and the values of `layout` and `align` there. `path` runs from the root
+ * to the innermost node at the token.
+ */
+function listWordAt(
+  diagram: FlowDiagram,
+  path: readonly CstNode[],
+  token: Token,
+): string | undefined {
+  // Declared types compile on the free profile, lists included.
+  if (diagram.type !== "free" && !diagram.definition) return undefined;
+  for (let i = path.length - 1; i >= 2; i--) {
+    const statement = path[i]!;
+    if (statement.kind !== "KeywordStatement") continue;
+    const block = path[i - 1]!;
+    const owner = path[i - 2]!;
+    const word = statement.keyword.text;
+    const inGroup =
+      block.kind === "Block" && owner.kind === "KeywordStatement" && owner.keyword.text === "group";
+    if (!inGroup || (word !== "layout" && word !== "spacing" && word !== "align")) return undefined;
+    // The keyword itself, or a value of `layout` or `align`.
+    const value = statement.args.some((a) => a.start <= token.start && token.end <= a.end);
+    return statement.keyword === token || value ? listDoc(token.text) : undefined;
   }
   return undefined;
 }

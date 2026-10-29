@@ -661,6 +661,15 @@ describe("ports, groups and fragments", () => {
     expect(back).toBe(sheet);
   });
 
+  it("takes an ungrouped group out of the story actions that name it", () => {
+    const told = `diagram d: flow {\n  group g "G" {\n    a["A"]\n  }\n}\nstory s for d {\n  scene one {\n    reveal g, a\n    highlight g\n    hold 1s\n  }\n}\n`;
+    const after = apply({ kind: "ungroup", diagram: "d", group: "g" }, told);
+    expect(after).toBe(
+      `diagram d: flow {\n  a["A"]\n}\nstory s for d {\n  scene one {\n    reveal a\n    hold 1s\n  }\n}\n`,
+    );
+    expect(compile(after).diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+  });
+
   it("refuses to group elements of different parents and to ungroup a relation end", () => {
     const nested = `diagram d: flow {\n  group g "G" {\n    a["A"]\n  }\n  b["B"]\n  g -> b\n}\n`;
     expect(
@@ -984,6 +993,222 @@ describe("moving declarations between groups", () => {
     );
     expect(viewRefusal.code).toBe("edit.unsafe-target");
     expect(viewRefusal.reason).toMatch(/C4 view/);
+  });
+});
+
+describe("moving a declaration to a position", () => {
+  const board = `diagram s: free {
+  group todo "To do" {
+    layout column
+    sticky a "A"
+    // the second card
+    sticky b "B"
+  }
+  sticky c "C"
+  placement {
+    place todo at (200, 150)
+    place c at (400, 300)
+  }
+}
+`;
+  const order = (text: string, group: string) =>
+    compile(text)
+      .document.diagrams[0]!.elements.filter((e) => e.groupPath.at(-1) === group)
+      .map((e) => e.id);
+
+  it("puts a card between two cards of a list and removes its place", () => {
+    const after = apply(
+      { kind: "moveElement", diagram: "s", element: "c", parent: "todo", index: 1 },
+      board,
+    );
+    expect(after).toBe(`diagram s: free {
+  group todo "To do" {
+    layout column
+    sticky a "A"
+    sticky c "C"
+    // the second card
+    sticky b "B"
+  }
+  placement {
+    place todo at (200, 150)
+  }
+}
+`);
+    expect(order(after, "todo")).toEqual(["a", "c", "b"]);
+  });
+
+  it("reorders a card within its column and changes nothing else", () => {
+    const after = apply(
+      { kind: "moveElement", diagram: "s", element: "b", parent: "todo", index: 0 },
+      board,
+    );
+    expect(after).toBe(
+      board.replace(
+        '    sticky a "A"\n    // the second card\n    sticky b "B"\n',
+        '    // the second card\n    sticky b "B"\n    sticky a "A"\n',
+      ),
+    );
+    // To the end, and past it.
+    for (const index of [2, 9]) {
+      expect(
+        order(
+          apply({ kind: "moveElement", diagram: "s", element: "a", parent: "todo", index }, board),
+          "todo",
+        ),
+      ).toEqual(["b", "a"]);
+    }
+    // Where it already is, before itself or before the next one: nothing to do.
+    for (const index of [0, 1]) {
+      const same = plan(
+        { kind: "moveElement", diagram: "s", element: "a", parent: "todo", index },
+        board,
+      );
+      expect(same.ok && same.plan.edits).toEqual([]);
+    }
+  });
+
+  it("takes a card out of a column with a place", () => {
+    const after = apply(
+      { kind: "moveElement", diagram: "s", element: "a", parent: null, at: { x: 500, y: 200 } },
+      board,
+    );
+    expect(after).toContain('  }\n  sticky c "C"\n  sticky a "A"\n  placement {\n');
+    expect(after).toContain("    place c at (400, 300)\n    place a at (500, 200)\n");
+    expect(order(after, "todo")).toEqual(["b"]);
+  });
+
+  it("refuses a place into a list and an index that is not a position", () => {
+    const placed = refused(
+      {
+        kind: "moveElement",
+        diagram: "s",
+        element: "c",
+        parent: "todo",
+        index: 0,
+        at: { x: 10, y: 10 },
+      },
+      board,
+    );
+    expect(placed.code).toBe("edit.invalid-value");
+    expect(placed.reason).toBe(
+      "`todo` is a list, which places its children: `c` goes in at an index, not at a point.",
+    );
+    for (const index of [-1, 1.5, Number.NaN]) {
+      expect(
+        refused({ kind: "moveElement", diagram: "s", element: "c", parent: "todo", index }, board)
+          .code,
+      ).toBe("edit.invalid-value");
+    }
+  });
+
+  it("appends to a list without an index, removes a place left in it, and opens a one-line list", () => {
+    const appended = apply(
+      { kind: "moveElement", diagram: "s", element: "c", parent: "todo" },
+      board,
+    );
+    expect(order(appended, "todo")).toEqual(["a", "b", "c"]);
+    expect(appended).not.toContain("place c ");
+    // A card of the list with a place, which the list ignores, loses it where it stays.
+    const stale = board.replace(
+      "    place c at (400, 300)\n",
+      "    place a at (1, 2)\n    place c at (400, 300)\n",
+    );
+    expect(apply({ kind: "moveElement", diagram: "s", element: "a", parent: "todo" }, stale)).toBe(
+      board,
+    );
+    const short = `diagram s: free {\n  group todo "To do" { layout column }\n  sticky c "C"\n}\n`;
+    expect(
+      apply({ kind: "moveElement", diagram: "s", element: "c", parent: "todo", index: 0 }, short),
+    ).toBe(
+      `diagram s: free {\n  group todo "To do" {\n    layout column\n    sticky c "C"\n  }\n}\n`,
+    );
+    const joined = `diagram s: free {\n  group todo "To do" { layout column; sticky a "A"; sticky b "B" }\n  sticky c "C"\n}\n`;
+    expect(
+      apply({ kind: "moveElement", diagram: "s", element: "c", parent: "todo", index: 1 }, joined),
+    ).toBe(
+      `diagram s: free {\n  group todo "To do" { layout column; sticky a "A"; sticky c "C"; sticky b "B" }\n}\n`,
+    );
+    expect(
+      apply({ kind: "moveElement", diagram: "s", element: "b", parent: "todo", index: 0 }, joined),
+    ).toBe(
+      `diagram s: free {\n  group todo "To do" { layout column; sticky b "B"; sticky a "A" }\n  sticky c "C"\n}\n`,
+    );
+  });
+
+  it("moves a card from one list to another at an index", () => {
+    const columns = `diagram s: free {
+  group board "" {
+    layout row
+    group todo "To do" {
+      layout column
+      sticky a "A"
+    }
+    group done "Done" {
+      layout column
+      sticky d "D"
+    }
+  }
+}
+`;
+    const after = apply(
+      { kind: "moveElement", diagram: "s", element: "a", parent: "done", index: 0 },
+      columns,
+    );
+    expect(after).toContain(
+      '    group todo "To do" {\n      layout column\n    }\n    group done "Done" {\n      layout column\n      sticky a "A"\n      sticky d "D"\n    }\n',
+    );
+    // A column moved within the row.
+    expect(
+      order(
+        apply(
+          { kind: "moveElement", diagram: "s", element: "done", parent: "board", index: 0 },
+          columns,
+        ),
+        "board",
+      ),
+    ).toEqual(["done", "todo"]);
+  });
+
+  it("places at an index outside lists: in a group with its place, and in the diagram body", () => {
+    const text = `diagram s: free {
+  group g "G" {
+    box x "X"
+    // y
+    box y "Y"
+  }
+  box c "C"
+  placement {
+    place c at (400, 300)
+  }
+}
+`;
+    const into = apply(
+      {
+        kind: "moveElement",
+        diagram: "s",
+        element: "c",
+        parent: "g",
+        index: 1,
+        at: { x: 30, y: 40 },
+      },
+      text,
+    );
+    expect(into).toContain('    box x "X"\n    box c "C"\n    // y\n    box y "Y"\n');
+    expect(into).toContain("    place c at (30, 40)\n");
+    const first = apply(
+      { kind: "moveElement", diagram: "s", element: "c", parent: null, index: 0 },
+      text,
+    );
+    expect(first).toContain('diagram s: free {\n  box c "C"\n  group g "G" {\n');
+    expect(first).toContain("    place c at (400, 300)\n");
+    // A flow diagram, and an implicit element declared where the index says.
+    const flow = `diagram d: flow {\n  group g "G" {\n    a["A"]\n    b["B"]\n  }\n  a -> x\n}\n`;
+    expect(
+      apply({ kind: "moveElement", diagram: "d", element: "x", parent: "g", index: 1 }, flow),
+    ).toContain('    a["A"]\n    x["x"]\n    b["B"]\n');
+    expect(
+      apply({ kind: "moveElement", diagram: "d", element: "b", parent: "g", index: 0 }, flow),
+    ).toContain('    b["B"]\n    a["A"]\n');
   });
 });
 

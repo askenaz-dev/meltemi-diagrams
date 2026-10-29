@@ -13,12 +13,16 @@ export interface CheckedConnector {
   readonly label: Box | undefined;
 }
 
-/** The kinds drawn as boxes that may not overlap: flow kinds, free boxes and C4 entities. */
+/**
+ * The kinds drawn as boxes that may not overlap: flow kinds, free boxes and stickies (whose card
+ * is a rectangle), and C4 entities.
+ */
 const BOX_KINDS: ReadonlySet<string> = new Set([
   "node",
   "decision",
   "data",
   "box",
+  "sticky",
   "person",
   "system",
   "container",

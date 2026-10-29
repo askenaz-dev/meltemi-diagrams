@@ -2,17 +2,21 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { untranslated } from "@meltemi/diagrams-i18n";
-import { layoutDiagram } from "@meltemi/diagrams-layout";
+import { layoutDiagram, type PolylineItem, type Scene } from "@meltemi/diagrams-layout";
 import { createElkEngine } from "@meltemi/diagrams-layout-elk";
 import { compile } from "@meltemi/diagrams-model";
-import { viewKey } from "@meltemi/diagrams-motion";
+import { sceneGroups, viewKey } from "@meltemi/diagrams-motion";
 import { CORPUS_ROOT } from "../../../test-support/corpus.js";
+// The times a video export captures its frames at.
+import { frameTimes } from "../../capture/src/page.mjs";
+import { frameScene } from "../src/frame.js";
 import {
   PlayerController,
   commandForKey,
   effectsDocument,
   effectsSummary,
   formatTime,
+  frameSvg,
   isPlayerDocument,
   playerData,
   playerFragment,
@@ -671,5 +675,65 @@ describe("selection, the keyboard walk and drill-downs in the controller", () =>
     expect(player.canOpen("api")).toBeNull();
     expect(player.up()).toBe(false);
     expect(player.items().length).toBeGreaterThan(0);
+  });
+});
+
+describe("drawn whiteboards", () => {
+  const BOARD = `language "0.2"
+diagram board: free {
+  pen title [(0, 0), (60, 20), (120, 0), (180, 20)]
+  pen arrow [(0, 60), (180, 60)]
+  style arrow { arrowhead triangle }
+}
+story walk for board {
+  scene one {
+    draw title over 1s
+    hold 1s
+  }
+  scene two {
+    draw title, arrow over 2s
+  }
+}
+`;
+
+  function boardDocument(): StoryPlayerDocument {
+    const compilation = compile(BOARD);
+    expect(compilation.diagnostics).toEqual([]);
+    const story = compilation.document.stories[0]!;
+    const layouts = new Map<string, LaidOutView>();
+    for (const [key, view] of storyViews(story)) {
+      const diagram = view.diagram!;
+      layouts.set(key, { diagram, layout: layoutDiagram(compilation, diagram, { engine }) });
+    }
+    return storyDocument(story, layouts)!;
+  }
+  const groupOf = (scene: Scene, id: string) =>
+    sceneGroups(scene.items).find((g) => g.role === "element" && g.id === id)!;
+
+  it("draws half of a stroke at 500 ms and the whole of it at 1500 ms of a video", () => {
+    // The page a video is captured from parses the document's data and draws each frame time.
+    const data = JSON.parse(playerData(boardDocument())) as StoryPlayerDocument;
+    const times = frameTimes(data.timeline.durationMs, 30);
+    expect([times[15], times[45]]).toEqual([500, 1500]);
+    const half = frameScene(data, times[15]!)!;
+    const [stroke, ...rest] = groupOf(half, "title").items as PolylineItem[];
+    expect(rest).toEqual([]);
+    expect(stroke!.dash!.offset).toBeCloseTo(stroke!.dash!.array[0]! / 2, 1);
+    expect(frameSvg(data, times[15]!)).toContain(`stroke-dasharray="${stroke!.dash!.array[0]}`);
+    // The arrow is drawn in the second scene: hidden until then.
+    expect(groupOf(half, "arrow").opacity).toBe(0);
+    const whole = frameScene(data, times[45]!)!;
+    expect(groupOf(whole, "title")).toEqual(groupOf(data.views.board!.scene, "title"));
+  });
+
+  it("says what a draw does in both languages", () => {
+    const doc = boardDocument();
+    expect(storySummary(doc).map((s) => s.items)).toEqual([
+      ["Draw title stroke by stroke over 1 s", "Hold 1 s"],
+      ["Draw title and arrow stroke by stroke over 2 s"],
+    ]);
+    expect(storySummary(doc, "es")[1]!.items).toEqual([
+      "Dibujar title y arrow trazo a trazo en 2 s",
+    ]);
   });
 });

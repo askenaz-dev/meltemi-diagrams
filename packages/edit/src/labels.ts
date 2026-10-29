@@ -38,6 +38,7 @@ export function setElementLabel(ctx: EditContext, op: OperationOf<"setElementLab
   if (element.kind === "icon" || element.kind === "image") {
     reject("edit.unsafe-target", reasons().elements.sourcedLabel(element.id, element.kind));
   }
+  if (element.kind === "pen") reject("edit.unsafe-target", reasons().pens.noLabel(element.id));
   const quoted = quoteString(op.label);
   const node = element.node;
   if (!node) {

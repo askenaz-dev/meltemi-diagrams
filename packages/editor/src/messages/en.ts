@@ -41,6 +41,10 @@ export const en = {
     inside: "Inside",
     /** The button beside Inside that turns a node or a box into a group holding what is on it. */
     convertToContainer: "Convert to container",
+    /** A list group's distance between its children, beside Layout (column or row). */
+    spacing: "Spacing",
+    /** Where a list group's children sit across its column or row. */
+    align: "Align",
   },
 
   /** Labels of the style fields, by style property; the strip shows the colours, line and heads. */
@@ -68,6 +72,7 @@ export const en = {
     fontWeight: "Text weight",
     textAlign: "Text alignment",
     verticalAlign: "Vertical alignment",
+    opacity: "Opacity",
   },
 
   /**
@@ -114,6 +119,8 @@ export const en = {
     text: "text",
     icon: "icon",
     image: "image",
+    pen: "pen",
+    sticky: "sticky",
     participant: "participant",
     actor: "actor",
     boundary: "boundary",
@@ -161,6 +168,8 @@ export const en = {
     groups: {
       base: "Base",
       colours: "Colours",
+      /** The highlighter's colour and the stickies' fill and text. */
+      whiteboard: "Whiteboard",
       fonts: "Fonts",
       type: "Type",
       spacing: "Spacing",
@@ -219,6 +228,9 @@ export const en = {
   written: {
     divider: "Divider",
     condition: "Condition",
+    /** The label of a group created as a list: the group menu's Column and Row. */
+    column: "Column",
+    row: "Row",
   },
 
   /** C4 views: the fields of entities, relations and the view, and the kinds of entities. */
@@ -325,6 +337,12 @@ export const en = {
       `${code(inner)} is stacked on ${code(outer)}; convert ${code(outer)} to a container to move them together.`,
     /** The icon picker's choice, or an icon dropped, with nothing that takes an icon. */
     noIconTarget: "Icons go on nodes, decisions, data stores and boxes; select one of them.",
+    /** A child of a list nudged or dragged within it: the list sets where it goes. */
+    listPlaces: (id: string, list: string) =>
+      `${code(list)} places ${code(id)}: drag it between its neighbours, or press Alt+Up or Alt+Down.`,
+    /** A position given for a group that is not a list. */
+    notList: (id: string) =>
+      `${code(id)} is not a list: only a group with \`layout column\` or \`layout row\` takes a position.`,
   },
 
   /** Canvas actions that do not apply to C4 views, with the reason. */

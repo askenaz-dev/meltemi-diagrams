@@ -54,60 +54,65 @@ Neutral Spanish, the same terms everywhere:
 - Numbers use the comma for decimals in prose ("1,2 s"); values written in the language keep the
   dot (`place a at (10.5, 20)`).
 
-| English          | Español                 | English         | Español                  |
-| ---------------- | ----------------------- | --------------- | ------------------------ |
-| diagram          | diagrama                | canvas          | lienzo                   |
-| node             | nodo                    | decision        | decisión                 |
-| data store       | almacén de datos        | note            | nota                     |
-| tag              | marca                   | group           | grupo                    |
-| box              | caja                    | text            | texto                    |
-| icon             | icono                   | image           | imagen                   |
-| relation         | relación                | message         | mensaje                  |
-| participant      | participante            | actor           | actor                    |
-| fragment         | fragmento               | scenario        | escenario                |
-| label            | etiqueta                | description     | descripción              |
-| arrowhead, head  | punta                   | line            | línea                    |
-| route            | ruta                    | waypoint        | punto de paso            |
-| port             | puerto                  | corner          | esquina                  |
-| layout           | disposición             | grid            | cuadrícula               |
-| inspector        | inspector               | strip           | barra de estilo          |
-| theme            | tema                    | token           | token                    |
-| style            | estilo                  | class           | clase                    |
-| rule             | regla                   | effect          | efecto                   |
-| flow particles   | partículas              | moving dash     | trazo en movimiento      |
-| pulse            | pulso                   | trace           | recorrido                |
-| story            | historia                | scene           | escena                   |
-| timeline         | línea de tiempo         | player          | reproductor              |
-| catalog          | catálogo                | export          | exportar                 |
-| project          | proyecto                | file            | archivo                  |
-| model            | modelo                  | view            | vista                    |
-| entity           | entidad                 | container       | contenedor               |
-| component        | componente              | software system | sistema de software      |
-| person           | persona                 | boundary        | límite                   |
-| free composition | composición libre       | playground      | playground               |
-| warning          | advertencia             | error           | error                    |
-| hint             | pista                   | quick fix       | corrección rápida        |
-| undo, redo       | deshacer, rehacer       | selection       | selección                |
-| lifeline         | línea de vida           | activation      | activación               |
-| toolbar          | barra de herramientas   | palette         | paleta                   |
-| minimap          | minimapa                | guides          | guías                    |
-| snap to grid     | ajustar a la cuadrícula | zoom to fit     | ajustar a la vista       |
-| shortcut         | atajo                   | swatch          | muestra                  |
-| fill             | relleno                 | stroke          | borde                    |
-| width, height    | ancho, alto             | font, size      | fuente, tamaño           |
-| opacity          | opacidad                | layer           | capa                     |
-| link             | enlace                  | direction       | dirección                |
-| duration         | duración                | speed           | velocidad                |
-| delay            | retraso                 | repeat          | repetir                  |
-| default          | predeterminado          | inherited       | heredado                 |
-| mixed            | mixto                   | none            | ninguno                  |
-| light, dark      | claro, oscuro           | preview         | vista previa             |
-| play, pause      | reproducir, pausar      | loop            | repetir en bucle         |
-| search           | buscar                  | settings        | ajustes                  |
-| add              | agregar                 | remove          | quitar                   |
-| delete           | eliminar                | video           | video                    |
-| arrange          | organizar               | recompute       | recalcular               |
-| open             | abrir                   | show the source | mostrar el código fuente |
+| English          | Español                 | English          | Español                  |
+| ---------------- | ----------------------- | ---------------- | ------------------------ |
+| diagram          | diagrama                | canvas           | lienzo                   |
+| node             | nodo                    | decision         | decisión                 |
+| data store       | almacén de datos        | note             | nota                     |
+| tag              | marca                   | group            | grupo                    |
+| box              | caja                    | text             | texto                    |
+| icon             | icono                   | image            | imagen                   |
+| relation         | relación                | message          | mensaje                  |
+| participant      | participante            | actor            | actor                    |
+| fragment         | fragmento               | scenario         | escenario                |
+| label            | etiqueta                | description      | descripción              |
+| arrowhead, head  | punta                   | line             | línea                    |
+| route            | ruta                    | waypoint         | punto de paso            |
+| port             | puerto                  | corner           | esquina                  |
+| layout           | disposición             | grid             | cuadrícula               |
+| inspector        | inspector               | strip            | barra de estilo          |
+| theme            | tema                    | token            | token                    |
+| style            | estilo                  | class            | clase                    |
+| rule             | regla                   | effect           | efecto                   |
+| flow particles   | partículas              | moving dash      | trazo en movimiento      |
+| pulse            | pulso                   | trace            | recorrido                |
+| story            | historia                | scene            | escena                   |
+| timeline         | línea de tiempo         | player           | reproductor              |
+| catalog          | catálogo                | export           | exportar                 |
+| project          | proyecto                | file             | archivo                  |
+| model            | modelo                  | view             | vista                    |
+| entity           | entidad                 | container        | contenedor               |
+| component        | componente              | software system  | sistema de software      |
+| person           | persona                 | boundary         | límite                   |
+| free composition | composición libre       | playground       | playground               |
+| warning          | advertencia             | error            | error                    |
+| hint             | pista                   | quick fix        | corrección rápida        |
+| undo, redo       | deshacer, rehacer       | selection        | selección                |
+| lifeline         | línea de vida           | activation       | activación               |
+| toolbar          | barra de herramientas   | palette          | paleta                   |
+| minimap          | minimapa                | guides           | guías                    |
+| snap to grid     | ajustar a la cuadrícula | zoom to fit      | ajustar a la vista       |
+| shortcut         | atajo                   | swatch           | muestra                  |
+| fill             | relleno                 | stroke (outline) | borde                    |
+| width, height    | ancho, alto             | font, size       | fuente, tamaño           |
+| opacity          | opacidad                | layer            | capa                     |
+| link             | enlace                  | direction        | dirección                |
+| duration         | duración                | speed            | velocidad                |
+| delay            | retraso                 | repeat           | repetir                  |
+| default          | predeterminado          | inherited        | heredado                 |
+| mixed            | mixto                   | none             | ninguno                  |
+| light, dark      | claro, oscuro           | preview          | vista previa             |
+| play, pause      | reproducir, pausar      | loop             | repetir en bucle         |
+| search           | buscar                  | settings         | ajustes                  |
+| add              | agregar                 | remove           | quitar                   |
+| delete           | eliminar                | video            | video                    |
+| arrange          | organizar               | recompute        | recalcular               |
+| open             | abrir                   | show the source  | mostrar el código fuente |
+| whiteboard       | pizarra                 | board            | tablero                  |
+| pen              | lápiz                   | stroke (drawn)   | trazo                    |
+| highlighter      | marcador                | eraser           | borrador                 |
+| sticky           | nota adhesiva           | list             | lista                    |
+| column           | columna                 | row              | fila                     |
 
 ## Documentation
 

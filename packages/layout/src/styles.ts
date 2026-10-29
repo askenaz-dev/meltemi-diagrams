@@ -1,6 +1,9 @@
 import {
   ELEMENT_ONLY_PROPERTIES,
+  LINE_REFUSED_PROPERTIES,
+  PEN_REFUSED_PROPERTIES,
   RELATION_ONLY_PROPERTIES,
+  STICKY_REFUSED_PROPERTIES,
   THEME_COLOR_TOKENS,
   type ClassUse,
   type Element,
@@ -46,9 +49,15 @@ export interface ResolvedStyle {
   readonly textAlign?: "left" | "center" | "right";
   /** Free boxes: where the text block sits within the shape's text band; `middle` by default. */
   readonly verticalAlign?: "top" | "middle" | "bottom";
+  /** Free elements, groups, lines and pens: how opaque their drawing is, from 0 to 1. */
+  readonly opacity?: number;
 }
 
 const COLOR_PROPERTIES = new Set(["fill", "stroke", "color", "iconColor"]);
+/** What a pen's style leaves out: the properties it refuses, and `rotation`. */
+const PEN_EXCLUDED: readonly string[] = [...PEN_REFUSED_PROPERTIES, "rotation"];
+/** What a sticky's style leaves out: the properties it refuses, and `shape`. */
+const STICKY_EXCLUDED: readonly string[] = [...STICKY_REFUSED_PROPERTIES, "shape"];
 const COLOR_TOKENS: ReadonlySet<string> = new Set(THEME_COLOR_TOKENS);
 
 /** Replaces a colour token name (`@danger`) with the theme's value. */
@@ -105,9 +114,19 @@ export class StyleResolver {
   }
 
   element(element: Element): ResolvedStyle {
-    // A free line takes a relation's properties (heads, route kind, corners) and none of a box's.
+    // A free line takes a relation's properties (heads, route kind, corners) and none of a box's
+    // but `opacity`.
     if (element.kind === "line") {
-      return this.resolve(element.id, "line", element.classes, ELEMENT_ONLY_PROPERTIES);
+      return this.resolve(element.id, "line", element.classes, LINE_REFUSED_PROPERTIES);
+    }
+    // A pen takes its stroke's colour, width, line, opacity and heads, and nothing else.
+    if (element.kind === "pen") {
+      return this.resolve(element.id, "pen", element.classes, PEN_EXCLUDED);
+    }
+    // A sticky takes its card's, its text's and its icon's properties: a class it shares with
+    // boxes gives it no shape, pattern or icon placement.
+    if (element.kind === "sticky") {
+      return this.resolve(element.id, "sticky", element.classes, STICKY_EXCLUDED);
     }
     // A kind of a declared type: the type's style first, and rules of the kind (decision 0030).
     const declared = element.typeKind ? this.declared?.elements[element.typeKind] : undefined;

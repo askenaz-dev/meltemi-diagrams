@@ -149,7 +149,8 @@ interface Owner {
  * it does not belong to (containers hold labels; annotations may sit on boxes), or a connector
  * other than its own. A container's own texts may lie over the boxes it holds; two texts that
  * coincide are still reported. Text boxes are measured with the scene's fonts, from the cap
- * height above the baseline to the descenders below it.
+ * height above the baseline to the descenders below it. Pen strokes (`GroupItem.freehand`) take no part:
+ * they are drawn over what they mark.
  */
 export function auditLabels(
   scene: Scene,
@@ -208,6 +209,8 @@ export function auditLabels(
       if (item.kind === "group") {
         // The brand mark is drawn in its own units; its text sits beside it.
         if (item.transform) continue;
+        // A pen stroke is drawn over whatever it marks: no label lies under it or on it.
+        if (item.freehand) continue;
         // A free line is an element drawn as a connector: its box is no shape to overlap.
         const line = item.role === "element" && item.track !== undefined;
         const next: Owner = {

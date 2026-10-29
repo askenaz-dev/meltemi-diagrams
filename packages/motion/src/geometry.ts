@@ -32,6 +32,41 @@ export function pointAlong(points: readonly Point[], fraction: number): Point {
   return points[points.length - 1]!;
 }
 
+/**
+ * The line a pen draws through its points, as points: from the first, a quadratic curve to the
+ * midpoint of each inner point and the next, with the inner point as its control, then straight
+ * to the last, as the layout writes a pen's path (`penPath`). Each curve is sampled every 4 px of
+ * its control polygon, at most 12 times; fewer than three points are the points themselves.
+ */
+export function smoothTrack(points: readonly Point[]): Point[] {
+  const at = (p: Point): Point => ({ x: round(p.x), y: round(p.y) });
+  if (points.length < 3) return points.map(at);
+  const out: Point[] = [at(points[0]!)];
+  let from = points[0]!;
+  for (let i = 1; i < points.length - 1; i++) {
+    const control = points[i]!;
+    const next = points[i + 1]!;
+    const to = { x: (control.x + next.x) / 2, y: (control.y + next.y) / 2 };
+    const reach =
+      Math.hypot(control.x - from.x, control.y - from.y) +
+      Math.hypot(to.x - control.x, to.y - control.y);
+    const steps = Math.min(12, Math.max(1, Math.ceil(reach / 4)));
+    for (let s = 1; s <= steps; s++) {
+      const t = s / steps;
+      const u = 1 - t;
+      out.push(
+        at({
+          x: u * u * from.x + 2 * u * t * control.x + t * t * to.x,
+          y: u * u * from.y + 2 * u * t * control.y + t * t * to.y,
+        }),
+      );
+    }
+    from = to;
+  }
+  out.push(at(points[points.length - 1]!));
+  return out;
+}
+
 /** An SVG path through the points: `M x y L x y …`. */
 export function trackPath(points: readonly Point[]): string {
   return points.map((p, i) => `${i === 0 ? "M" : "L"}${round(p.x)} ${round(p.y)}`).join(" ");

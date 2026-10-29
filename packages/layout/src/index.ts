@@ -6,7 +6,7 @@ export * from "./geometry.js";
 export * from "./markers.js";
 export { strokeDash } from "./scene.js";
 export { MELTEMI_MARK, MARK_GRADIENT_ID, markGradient, markGroup } from "./mark.js";
-export { estimateTextWidth, splitLines } from "./text.js";
+export { estimateTextWidth, splitLines, wrapLines } from "./text.js";
 export {
   MIN_TEXT_MARGIN,
   TEXT_PADDING,
@@ -19,13 +19,19 @@ export {
   c4TypeName,
   layoutDiagram,
   typeScale,
+  DEFAULT_PEN_WIDTH,
   DEFAULT_SIZES,
   DOCUMENT_MAX_WIDTH,
   PATTERN_SIZE,
   SLIDE_SIZE,
+  STICKY_MIN_FONT_SIZE,
+  penPath,
   type LayoutOptions,
   type LayoutResult,
   type ConnectorGeometry,
+  type ListGeometry,
+  type PenGeometry,
+  type StickyText,
   type TypeScale,
 } from "./layout.js";
 export { StyleResolver, themeColor, type PatternKind, type ResolvedStyle } from "./styles.js";
@@ -51,7 +57,14 @@ export {
   type ShapeOutline,
   type ShapeSize,
 } from "./shapes.js";
-export { groupHeaderOf, isUntitledGroup, type FrameTheme } from "./free.js";
+export {
+  groupHeaderOf,
+  isList,
+  isUntitledGroup,
+  listPlaces,
+  type FrameTheme,
+  type ListArrangement,
+} from "./free.js";
 export * from "./engine.js";
 export { solveConstraints, type ConstraintConflict, type SolverBox } from "./constraints.js";
 export { checkComposition, stacked, type CheckedConnector } from "./checks.js";

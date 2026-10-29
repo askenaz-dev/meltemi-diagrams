@@ -44,7 +44,9 @@ export const en = {
     text: "Text",
     icon: "Icon",
     image: "Image",
+    sticky: "Sticky",
     line: "Line",
+    pen: "Pen",
     person: "Person",
     system: "System",
     container: "Container",
@@ -121,6 +123,9 @@ export const en = {
       /** `edit.invalid-value`. */
       unsafeUrl: (value: string) =>
         `\`${value}\` is not a URL a link may use: \`https:\`, \`http:\`, \`mailto:\` or a relative one.`,
+      /** `edit.invalid-value`: the `index` of a declaration in its block. */
+      notIndex: (value: number) =>
+        `\`${value}\` is not a position among the declarations of a block; positions are whole numbers from 0.`,
     },
 
     /** Elements: their declarations, kinds, labels and sources. */
@@ -189,6 +194,21 @@ export const en = {
       notALine: (id: string) => `\`${id}\` is not a line.`,
       /** `edit.invalid-value`: a `place` or `size` of a free line. */
       points: (id: string) => `\`${id}\` is a line: its points are written in its statement.`,
+    },
+    /** Pen strokes: their points and their statements. */
+    pens: {
+      /** `edit.invalid-value`: a pen in a flow, sequence or C4 diagram. */
+      freeOnly: "Pen strokes belong to free diagrams.",
+      /** `edit.invalid-value`: a pen without points. */
+      noPoints: "A pen stroke needs one point at least.",
+      /** `edit.unsafe-target`: `setPenPoints` on something that is not a pen. */
+      notAPen: (id: string) => `\`${id}\` is not a pen stroke.`,
+      /** `edit.invalid-value`: a `place` or `size` of a pen. */
+      points: (id: string) => `\`${id}\` is a pen stroke: its points are written in its statement.`,
+      /** `edit.unsafe-target`: a label written on a pen. */
+      noLabel: (id: string) => `\`${id}\` is a pen stroke, which has no label.`,
+      /** `edit.unsafe-target`: the statement has no point list to rewrite. */
+      listUnreadable: "The pen's list of points cannot be read; fix the syntax first.",
     },
     relations: {
       /** `edit.unsafe-target`. */
@@ -293,6 +313,26 @@ export const en = {
       /** `edit.unsafe-target`: a child that is not beside the element. */
       containerChild: (child: string, id: string) =>
         `\`${child}\` is not beside \`${id}\` in its group, so it cannot go into it.`,
+    },
+
+    /** Lists: groups of free diagrams that arrange their children in a column or a row. */
+    lists: {
+      /** `edit.invalid-value`: `layout`, `spacing` or `align` outside a free diagram. */
+      freeOnly: (property: string) => `A group's \`${property}\` belongs to free diagrams.`,
+      /** `edit.invalid-value`: `layout`, `spacing` or `align` on a relation or an element. */
+      groupsOnly: (property: string, id: string) =>
+        `\`${property}\` arranges the children of a group; \`${id}\` is not a group.`,
+      /** `edit.invalid-value`: a new element of another kind than a group with a `layout`. */
+      kindLayout: (kind: string) => `Only a group takes \`layout\`, not a ${kind}.`,
+      /** `edit.invalid-value`: with the values the property takes. */
+      notValue: (value: string, property: string, values: readonly string[]) =>
+        `\`${value}\` is not a value of \`${property}\`; expected one of ${values.join(", ")}.`,
+      /** `edit.invalid-value`: `spacing` or `align` on a group that writes no `layout`. */
+      needsLayout: (property: string) =>
+        `\`${property}\` arranges the children of a list; write \`layout column\` or \`layout row\` first.`,
+      /** `edit.invalid-value`: a `place` for an element moved into a list. */
+      placeInList: (id: string, list: string) =>
+        `\`${list}\` is a list, which places its children: \`${id}\` goes in at an index, not at a point.`,
     },
 
     /** Text pasted into a diagram. */
@@ -669,5 +709,8 @@ export const en = {
     /** Links of other diagrams to an ungrouped group. */
     removedLinks: (count: number, group: string) =>
       `Removed ${count === 1 ? "the link" : `${count} links`} to \`${group}\` from other diagrams.`,
+    /** Story actions that named an ungrouped group. */
+    removedStoryTargets: (count: number, group: string) =>
+      `Removed \`${group}\` from ${count === 1 ? "a story action" : `${count} story actions`}.`,
   },
 };

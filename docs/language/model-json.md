@@ -14,7 +14,7 @@ describes version `0.1`. A breaking change increases the version.
 - Every element, relation and statement carries the `range` of its statement in the source.
 - Anonymous relations appear with their synthetic `key` (`<from>-><to>#<n>`) and `id: null`.
 - Keys are added within a version, never changed: `heads` on relations and `line` on elements
-  came in 1.10.0, and the version stays `0.1`.
+  came in 1.10.0, `pen` and `list` on elements in 1.11.0, and the version stays `0.1`.
 - Every diagram profile compiles; `story` and `export` blocks are not in the JSON yet.
 
 ## Document
@@ -87,41 +87,43 @@ exclusive.
 
 ## Diagram
 
-| Key          | Type   | Meaning                                                                                                                                                                                                                                               |
-| ------------ | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`         | string | Diagram id.                                                                                                                                                                                                                                           |
-| `type`       | string | `flow`, `free`, `sequence` or `c4`.                                                                                                                                                                                                                   |
-| `range`      | range  | The whole `diagram` block.                                                                                                                                                                                                                            |
-| `properties` | object | `direction`, `layout` (defaults applied), `theme`, `title`, `description`, `preset` (string or null), `canvas` (`{ "width", "height" }` or null), `routing`, `layers` (back to front; `["main"]` for flow), `autonumber` (the first number, or null). |
-| `classes`    | array  | `class <id> { }` declarations, in source order.                                                                                                                                                                                                       |
-| `rules`      | array  | `rule <kind> { }` statements, in source order.                                                                                                                                                                                                        |
-| `elements`   | array  | Elements in source order.                                                                                                                                                                                                                             |
-| `relations`  | array  | Relations in source order.                                                                                                                                                                                                                            |
-| `placement`  | array  | `place`, `size`, `route` and `label` statements in source order.                                                                                                                                                                                      |
-| `styles`     | array  | One entry per `style` statement.                                                                                                                                                                                                                      |
-| `animations` | array  | One entry per `animate` statement.                                                                                                                                                                                                                    |
+| Key          | Type   | Meaning                                                                                                                                                                                                                                                                     |
+| ------------ | ------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`         | string | Diagram id.                                                                                                                                                                                                                                                                 |
+| `type`       | string | `flow`, `free`, `sequence` or `c4`.                                                                                                                                                                                                                                         |
+| `range`      | range  | The whole `diagram` block.                                                                                                                                                                                                                                                  |
+| `properties` | object | `direction`, `layout` (defaults applied), `theme`, `title`, `description`, `preset` (`document`, `slide`, `board` or null), `canvas` (`{ "width", "height" }` or null), `routing`, `layers` (back to front; `["main"]` for flow), `autonumber` (the first number, or null). |
+| `classes`    | array  | `class <id> { }` declarations, in source order.                                                                                                                                                                                                                             |
+| `rules`      | array  | `rule <kind> { }` statements, in source order.                                                                                                                                                                                                                              |
+| `elements`   | array  | Elements in source order.                                                                                                                                                                                                                                                   |
+| `relations`  | array  | Relations in source order.                                                                                                                                                                                                                                                  |
+| `placement`  | array  | `place`, `size`, `route` and `label` statements in source order.                                                                                                                                                                                                            |
+| `styles`     | array  | One entry per `style` statement.                                                                                                                                                                                                                                            |
+| `animations` | array  | One entry per `animate` statement.                                                                                                                                                                                                                                          |
 
 ### Element
 
-| Key           | Type           | Meaning                                                                                                                                                                                  |
-| ------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`          | string         | Element id.                                                                                                                                                                              |
-| `kind`        | string         | `node`, `decision`, `data`, `group`, `note` or `tag`; in free diagrams `box`, `text`, `icon`, `image`, `line`, `note` or `group`; in sequence diagrams the participant kinds or `group`. |
-| `label`       | string         | Visible text; defaults to the id.                                                                                                                                                        |
-| `implicit`    | boolean        | True when only a relation mentions the element.                                                                                                                                          |
-| `description` | string or null | From an element or group block.                                                                                                                                                          |
-| `url`         | string or null | The `url` of the block, or of the entity in C4 views.                                                                                                                                    |
-| `classes`     | array          | Class names applied in the declaration block, in order.                                                                                                                                  |
-| `ports`       | array          | Named ports: `{ "name", "side", "position" }`.                                                                                                                                           |
-| `layer`       | string or null | The `layer` of the block (free diagrams).                                                                                                                                                |
-| `link`        | object or null | `{ "binding", "diagram", "element" }`; `binding` is null for links in the same file.                                                                                                     |
-| `source`      | string or null | The icon reference or image path of `icon` and `image` objects.                                                                                                                          |
-| `shape`       | string or null | The shape the declaration implies: `cylinder` for `id[("…")]`, null otherwise. A `shape` written in a style stays in `styles`.                                                           |
-| `line`        | object or null | The points of a free `line` object, in its group's interior: `{ "from": { "x", "y" }, "to": { "x", "y" }, "via": [ { "x", "y" }, … ] }`; null on every other kind.                       |
-| `attachedTo`  | string or null | The element a `note` is attached to (`on <element>`; the entity path in a C4 view); null on every other kind and on a note with no `on`.                                                 |
-| `groupPath`   | array          | Ids of the enclosing groups, outermost first.                                                                                                                                            |
-| `range`       | range          | Declaring statement, or the first mention for implicit elements.                                                                                                                         |
-| `idRange`     | range          | The identifier token.                                                                                                                                                                    |
+| Key           | Type           | Meaning                                                                                                                                                                                                   |
+| ------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`          | string         | Element id.                                                                                                                                                                                               |
+| `kind`        | string         | `node`, `decision`, `data`, `group`, `note` or `tag`; in free diagrams `box`, `text`, `icon`, `image`, `note`, `sticky`, `line`, `pen` or `group`; in sequence diagrams the participant kinds or `group`. |
+| `label`       | string         | Visible text; defaults to the id.                                                                                                                                                                         |
+| `implicit`    | boolean        | True when only a relation mentions the element.                                                                                                                                                           |
+| `description` | string or null | From an element or group block.                                                                                                                                                                           |
+| `url`         | string or null | The `url` of the block, or of the entity in C4 views.                                                                                                                                                     |
+| `classes`     | array          | Class names applied in the declaration block, in order.                                                                                                                                                   |
+| `ports`       | array          | Named ports: `{ "name", "side", "position" }`.                                                                                                                                                            |
+| `layer`       | string or null | The `layer` of the block (free diagrams).                                                                                                                                                                 |
+| `link`        | object or null | `{ "binding", "diagram", "element" }`; `binding` is null for links in the same file.                                                                                                                      |
+| `source`      | string or null | The icon reference or image path of `icon` and `image` objects.                                                                                                                                           |
+| `shape`       | string or null | The shape the declaration implies: `cylinder` for `id[("…")]`, null otherwise. A `shape` written in a style stays in `styles`.                                                                            |
+| `line`        | object or null | The points of a free `line` object, in its group's interior: `{ "from": { "x", "y" }, "to": { "x", "y" }, "via": [ { "x", "y" }, … ] }`; null on every other kind.                                        |
+| `pen`         | object or null | The points of a `pen` stroke as written, decimals kept, in its group's interior: `{ "points": [ { "x", "y" }, … ] }`; null on every other kind.                                                           |
+| `list`        | object or null | How a list group arranges its children: `{ "layout", "spacing", "align" }`, `layout` `column` or `row`, `spacing` and `align` null when not written; null on every other element.                         |
+| `attachedTo`  | string or null | The element a `note` is attached to (`on <element>`; the entity path in a C4 view); null on every other kind and on a note with no `on`.                                                                  |
+| `groupPath`   | array          | Ids of the enclosing groups, outermost first.                                                                                                                                                             |
+| `range`       | range          | Declaring statement, or the first mention for implicit elements.                                                                                                                                          |
+| `idRange`     | range          | The identifier token.                                                                                                                                                                                     |
 
 ### Relation
 
@@ -178,7 +180,7 @@ For `route` and `label`, `target` is the relation key; for `space`, the id of th
 Style properties keep their types: `width` is a number, words such as `dashed` or `hatch` are
 strings, and a colour written as a theme token name (`stroke danger`) is the string `@danger`. A
 quoted colour is kept as written, so it never starts with `@`. `verticalAlign top` is the string
-`top`, as `textAlign left` is `left`.
+`top`, as `textAlign left` is `left`, and `opacity 0.35` the number `0.35`.
 
 ### Class and rule entries
 
@@ -250,7 +252,8 @@ start of the story ([stories.md](stories.md)):
 A scene's `view` is the diagram it shows, as written; `transition` is `{ "kind", "startMs",
 "durationMs" }` or null. Actions are `{ "kind", "targets", "all", "startMs", "durationMs",
 "children", "range" }`, with defaults applied; a `parallel` action holds its actions in
-`children` and lasts as long as the longest.
+`children` and lasts as long as the longest. A `draw` action is carried as a `trace` is: its
+targets in order and its time, 800 ms when not written.
 
 ### Export profiles
 
@@ -261,14 +264,14 @@ null for options not written ([export.md](export.md)).
 
 ## Theme
 
-| Key       | Type           | Meaning                                                                                                                    |
-| --------- | -------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `id`      | string         | Theme id.                                                                                                                  |
-| `extends` | string or null | Base theme name, or null for `technical.light`.                                                                            |
-| `tokens`  | object         | Token values sorted by name; sizes and widths are numbers, words such as `sketch rough` strings (`{ "sketch": "rough" }`). |
-| `classes` | array          | Class entries of the theme block.                                                                                          |
-| `rules`   | array          | Rule entries of the theme block.                                                                                           |
-| `range`   | range          | The `theme` block.                                                                                                         |
+| Key       | Type           | Meaning                                                                                                                                                                                    |
+| --------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `id`      | string         | Theme id.                                                                                                                                                                                  |
+| `extends` | string or null | Base theme name, or null for `technical.light`.                                                                                                                                            |
+| `tokens`  | object         | Token values sorted by name, as written (`highlight`, `sticky` and `stickyText` among them); sizes and widths are numbers, words such as `sketch rough` strings (`{ "sketch": "rough" }`). |
+| `classes` | array          | Class entries of the theme block.                                                                                                                                                          |
+| `rules`   | array          | Rule entries of the theme block.                                                                                                                                                           |
+| `range`   | range          | The `theme` block.                                                                                                                                                                         |
 
 ## Diagnostic
 

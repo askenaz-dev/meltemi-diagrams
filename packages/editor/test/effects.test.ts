@@ -124,7 +124,8 @@ describe("effects in the inspector", () => {
       section: "strip",
       group: "effect.trace",
     });
-    expect(colour.swatches).toHaveLength(16);
+    // The sixteen colours and the three of whiteboards.
+    expect(colour.swatches).toHaveLength(19);
     expect(colour.swatches!.find((s) => s.token === "accent")!.color).toMatch(/^#/);
     // A chip writes the token, the picker a quoted colour, and Theme takes the colour away.
     canvas.apply({ kind: "setField", ids: ["save"], field: "effect.trace.color", value: "accent" });
@@ -233,6 +234,37 @@ describe("effects of notes and texts", () => {
     const canvas = open(FREE, "sheet");
     canvas.apply({ kind: "setField", ids: ["bare"], field: "style.stroke", value: "#d92d20" });
     expect(effects(canvas, "bare")).toEqual(["effect.dash", "effect.pulse"]);
+  });
+
+  it("runs every effect of a line along a pen's stroke, and a box's on an outlined sticky", () => {
+    const canvas = open(
+      FREE.replace(
+        '  text label "Label"\n',
+        '  text label "Label"\n  pen mark [(0, 0), (40, 10), (80, 0)]\n  line rule from (0, 400) to (200, 400)\n  sticky card "Todo"\n',
+      ).replace(
+        "    place label at (100, 300)\n",
+        "    place label at (100, 300)\n    place card at (500, 300)\n",
+      ),
+      "sheet",
+    );
+    expect(effects(canvas, "mark")).toEqual([
+      "effect.flow",
+      "effect.dash",
+      "effect.pulse",
+      "effect.trace",
+    ]);
+    canvas.apply({ kind: "setField", ids: ["mark"], field: "effect.trace", value: "on" });
+    expect(canvas.text()).toContain("  animate mark { effect trace }\n");
+    // A free line too.
+    canvas.apply({ kind: "setField", ids: ["rule"], field: "effect.flow", value: "on" });
+    expect(canvas.text()).toContain("  animate rule { effect flow }\n");
+    // A sticky's card is filled, with no line for a dash until a stroke is written; a fill does
+    // not give it one.
+    expect(effects(canvas, "card")).toEqual(["effect.pulse"]);
+    canvas.apply({ kind: "setField", ids: ["card"], field: "style.fill", value: "#f8bbd0" });
+    expect(effects(canvas, "card")).toEqual(["effect.pulse"]);
+    canvas.apply({ kind: "setField", ids: ["card"], field: "style.stroke", value: "#d92d20" });
+    expect(effects(canvas, "card")).toEqual(["effect.dash", "effect.pulse"]);
   });
 });
 

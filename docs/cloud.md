@@ -846,6 +846,15 @@ person with no file open sends `{}`):
   1000, and the id of the diagram the points are over. A batch over those bounds, or a point of the
   wrong shape, makes the whole message invalid. A laser rides in the same message as the pointer
   and is relayed once: the room never keeps it, and a state it relays later has none.
+- `canvas.laser.pen`, when present, says the batch is a stroke being drawn with the pen or the
+  highlighter, not the Pointer's trail: `{ "width", "colour", "opacity", "stroke", "cancel"? }`,
+  the width an integer from 1 to 64, the colour a string of at most 32 characters, the opacity a
+  number from 0 to 1, `stroke` an integer from 0 to 2,147,483,647 that the person's page increases
+  with each stroke (every batch of one stroke carries the same number), and `cancel`, when present,
+  `true`: the batch, whose points may be none, ends a stroke cancelled with Escape. Other canvases
+  draw the batches of one number as one stroke that grows and does not fade, never joined to the
+  stroke before, until the drawing that holds the written `pen` arrives; a cancel drops it at once.
+  A part over those bounds makes the whole message invalid.
 
 A canvas part holds a selection, a pointer, a laser or any of them.
 

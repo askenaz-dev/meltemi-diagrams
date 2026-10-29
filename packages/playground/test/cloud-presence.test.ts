@@ -13,7 +13,8 @@ import {
   type PaneSelection,
   type PresenceSource,
 } from "../src/cloud/presence.js";
-import { positionIn } from "../src/cloud/presence-wire.js";
+import { positionIn, type LaserBatch } from "../src/cloud/presence-wire.js";
+import { presenceMessage } from "../src/canvas-host.js";
 import { ManualTimers } from "./support/clock.js";
 import { FakePane, newStudio } from "./support/cloud.js";
 
@@ -609,6 +610,27 @@ describe("the others", () => {
     timers.advance(HEARTBEAT_MS * 4);
     expect(ana.presence.peers).toEqual([]);
   });
+
+  it("show a stroke Ben draws batch by batch, with its pen part, to the canvas of the same diagram", () => {
+    const { ana, ben, deliver } = pair();
+    const pen = { width: 4, colour: "#e03131", opacity: 1, stroke: 1 };
+    const first = Array.from({ length: 10 }, (_, i) => ({ x: 10 + i, y: 20, t: i * 10 }));
+    const second = Array.from({ length: 10 }, (_, i) => ({ x: 20 + i, y: 20, t: i * 10 }));
+    ben.presence.laser(first, "flow", pen);
+    deliver(ben, "c-ben", BEN, ana);
+    const person = { name: "Ben", colour: presenceColour("u_ben"), selection: [] };
+    expect(presenceMessage(ana.presence.canvas(API_PATH, "Someone", "flow"))).toEqual({
+      type: "presence",
+      people: [{ ...person, laser: { batch: 1, points: first, pen } }],
+    });
+    ben.presence.laser(second, "flow", pen);
+    deliver(ben, "c-ben", BEN, ana);
+    expect(ana.presence.canvas(API_PATH, "Someone", "flow")).toEqual([
+      { ...person, laser: { batch: 2, points: second, pen } },
+    ]);
+    // Over another diagram of the file the points are not this one's: nothing is drawn.
+    expect(ana.presence.canvas(API_PATH, "Someone", "other")).toEqual([]);
+  });
 });
 
 describe("the page's own state", () => {
@@ -750,5 +772,223 @@ describe("the Pointer trail", () => {
     expect(p.presence.colour).toBeUndefined();
     hello(p);
     expect(p.presence.colour).toBe(presenceColour("u_ana"));
+  });
+});
+
+describe("a stroke of the pen or the highlighter", () => {
+  /** Points of a stroke 10 ms apart, along x. */
+  const stroke = (count: number, from = 0) =>
+    Array.from({ length: count }, (_, i) => ({ x: from + i * 4, y: 10, t: i * 10 }));
+  const PEN = { width: 4, colour: "#e03131", opacity: 1, stroke: 1 };
+  const HIGHLIGHTER = { width: 20, colour: "#ffd43b", opacity: 0.35, stroke: 1 };
+  const laserOf = (p: Page) =>
+    (states(p).at(-1)!["c-me"].canvas as { laser?: LaserBatch } | undefined)?.laser;
+
+  it("leaves with its pen part in the next state, in the same message, and a heartbeat carries none", () => {
+    const p = page();
+    hello(p);
+    p.inputs.canvas = ["api"];
+    p.presence.pointer({ x: 52, y: 10, diagram: "flow" });
+    p.presence.laser(stroke(5), "flow", PEN);
+    // The window of the hello's send is still open: the stroke waits for it to end, as a trail does.
+    expect(p.sent).toHaveLength(1);
+    p.timers.advance(THROTTLE_MS);
+    expect(p.sent).toHaveLength(2);
+    expect(states(p).at(-1)!["c-me"].canvas).toEqual({
+      selection: ["api"],
+      pointer: { x: 52, y: 10, diagram: "flow" },
+      laser: { diagram: "flow", points: stroke(5), pen: PEN },
+    });
+    p.timers.advance(HEARTBEAT_MS);
+    expect(p.sent.length).toBeGreaterThanOrEqual(3);
+    expect(laserOf(p)).toBeUndefined();
+  });
+
+  it("goes out batch by batch while it is drawn, each with the pen part, at the throttle's pace", () => {
+    const p = page();
+    hello(p);
+    p.timers.advance(THROTTLE_MS);
+    p.presence.laser(stroke(3), "flow", HIGHLIGHTER);
+    expect(laserOf(p)).toEqual({ diagram: "flow", points: stroke(3), pen: HIGHLIGHTER });
+    // The next batch, 50 ms later, waits for the window of the first.
+    p.timers.advance(50);
+    p.presence.laser(stroke(3, 12), "flow", HIGHLIGHTER);
+    p.timers.advance(50);
+    p.presence.laser(stroke(3, 24), "flow", HIGHLIGHTER);
+    expect(p.sent).toHaveLength(2);
+    p.timers.advance(THROTTLE_MS - 100);
+    expect(p.sent).toHaveLength(3);
+    const joined = laserOf(p)!;
+    expect(joined.pen).toEqual(HIGHLIGHTER);
+    expect(joined.points.map((point) => point.x)).toEqual([12, 16, 20, 24, 28, 32]);
+    expect(joined.points[0]!.t).toBe(0);
+    expect(joined.points[3]!.t).toBe(50);
+  });
+
+  it("never joins points of another look in a batch: a stroke and a trail are never one batch", () => {
+    const p = page();
+    hello(p);
+    // A Pointer's trail, then a stroke of the pen in the same window: the trail is let go of.
+    p.presence.laser(stroke(3), "flow");
+    p.timers.advance(100);
+    p.presence.laser(stroke(2, 100), "flow", PEN);
+    p.timers.advance(THROTTLE_MS);
+    expect(laserOf(p)).toEqual({ diagram: "flow", points: stroke(2, 100), pen: PEN });
+    // A stroke of the pen, then one of the highlighter: the second goes in the state after.
+    p.timers.advance(THROTTLE_MS);
+    const highlighter = { ...HIGHLIGHTER, stroke: 2 };
+    p.presence.laser(stroke(3), "flow", { ...PEN, stroke: 2 });
+    p.presence.laser(stroke(2, 100), "flow", highlighter);
+    expect(laserOf(p)).toEqual({ diagram: "flow", points: stroke(3), pen: { ...PEN, stroke: 2 } });
+    p.timers.advance(THROTTLE_MS);
+    expect(laserOf(p)).toEqual({ diagram: "flow", points: stroke(2, 100), pen: highlighter });
+    // A stroke, then the Pointer's trail: the trail waits behind it.
+    p.timers.advance(THROTTLE_MS);
+    p.presence.laser(stroke(3), "flow", { ...PEN, stroke: 3 });
+    p.presence.laser(stroke(2, 100), "flow");
+    expect(laserOf(p)).toEqual({ diagram: "flow", points: stroke(3), pen: { ...PEN, stroke: 3 } });
+    p.timers.advance(THROTTLE_MS);
+    expect(laserOf(p)).toEqual({ diagram: "flow", points: stroke(2, 100) });
+  });
+
+  it("joins the batches of one stroke in a window, though the pen part is another object", () => {
+    const p = page();
+    hello(p);
+    p.presence.laser(stroke(3), "flow", PEN);
+    p.presence.laser(stroke(2, 12), "flow", { ...PEN });
+    p.timers.advance(THROTTLE_MS);
+    expect(laserOf(p)?.points).toHaveLength(5);
+    expect(laserOf(p)?.pen).toEqual(PEN);
+  });
+
+  it("is not sent with a pen part out of the room's bounds, which would cost the whole state", () => {
+    for (const pen of [
+      { ...PEN, width: 0 },
+      { ...PEN, width: 65 },
+      { ...PEN, width: 2.5 },
+      { ...PEN, colour: "#".padEnd(33, "f") },
+      { ...PEN, opacity: 1.5 },
+      { ...PEN, opacity: -0.1 },
+      { ...PEN, opacity: Number.NaN },
+      { ...PEN, stroke: -1 },
+      { ...PEN, stroke: 2_147_483_648 },
+      { ...PEN, stroke: 0.5 },
+      { ...PEN, cancel: false as unknown as true },
+    ]) {
+      const p = page();
+      hello(p);
+      p.presence.laser(stroke(3), "flow", pen);
+      p.timers.advance(THROTTLE_MS);
+      expect(p.sent, JSON.stringify(pen)).toHaveLength(1);
+    }
+  });
+
+  it("takes the edges of the bounds, and nothing of the pen part but its width, colour, opacity and number", () => {
+    const p = page();
+    hello(p);
+    const edge = { width: 64, colour: "#".padEnd(32, "f"), opacity: 0, stroke: 2_147_483_647 };
+    p.presence.laser(stroke(2), "flow", { ...edge, dash: [4, 2] } as LaserBatch["pen"]);
+    p.timers.advance(THROTTLE_MS);
+    expect(laserOf(p)?.pen).toEqual(edge);
+    p.timers.advance(THROTTLE_MS);
+    p.presence.laser(stroke(2), "flow", { width: 1, colour: "#000", opacity: 1, stroke: 0 });
+    p.timers.advance(THROTTLE_MS);
+    expect(laserOf(p)?.pen).toEqual({ width: 1, colour: "#000", opacity: 1, stroke: 0 });
+  });
+
+  it("stays under what a message of the room may hold, with the longest selection, batch and pen part", () => {
+    const p = page();
+    hello(p);
+    p.inputs.canvas = Array.from({ length: 200 }, (_, i) => `${i}`.padEnd(200, "x"));
+    p.inputs.selection = { start: 0, end: 11 };
+    p.presence.pointer({ x: -999_999, y: -999_999, diagram: "d".repeat(200) });
+    // The canvas sends its points to a tenth.
+    const longest = Array.from({ length: 64 }, (_, i) => ({
+      x: Math.round((-999_999.9 + i) * 10) / 10,
+      y: -999_999.9,
+      t: i * 15,
+    }));
+    p.presence.laser(longest, "d".repeat(200), {
+      width: 64,
+      colour: "#".padEnd(32, "f"),
+      opacity: 0.35,
+      stroke: 2_147_483_647,
+    });
+    p.presence.laser([], "d".repeat(200), {
+      width: 64,
+      colour: "#".padEnd(32, "f"),
+      opacity: 0.35,
+      stroke: 2_147_483_647,
+      cancel: true,
+    });
+    p.timers.advance(THROTTLE_MS);
+    expect(laserOf(p)?.points).toHaveLength(64);
+    expect(laserOf(p)?.pen?.cancel).toBe(true);
+    expect(p.sent.at(-1)!.byteLength).toBeLessThan(16 * 1024);
+  });
+
+  it("goes with its number, the same in every batch of one stroke and another for the next", () => {
+    const p = page();
+    hello(p);
+    p.timers.advance(THROTTLE_MS);
+    p.presence.laser(stroke(3), "flow", PEN);
+    expect(laserOf(p)?.pen?.stroke).toBe(1);
+    p.timers.advance(THROTTLE_MS);
+    p.presence.laser(stroke(3, 12), "flow", { ...PEN, stroke: 2 });
+    expect(laserOf(p)).toEqual({
+      diagram: "flow",
+      points: stroke(3, 12),
+      pen: { ...PEN, stroke: 2 },
+    });
+  });
+
+  it("sends the end of a stroke before the next stroke that starts in the same window", () => {
+    const p = page();
+    hello(p);
+    // The end of stroke 1, and stroke 2 begun 100 ms later, before the window ends.
+    p.presence.laser(stroke(3), "flow", PEN);
+    p.timers.advance(100);
+    p.presence.laser(stroke(2, 100), "flow", { ...PEN, stroke: 2 });
+    p.presence.laser(stroke(2, 108), "flow", { ...PEN, stroke: 2 });
+    expect(p.sent).toHaveLength(1);
+    p.timers.advance(THROTTLE_MS - 100);
+    expect(p.sent).toHaveLength(2);
+    expect(laserOf(p)).toEqual({ diagram: "flow", points: stroke(3), pen: PEN });
+    // The next stroke, whole, in the state after.
+    p.timers.advance(THROTTLE_MS);
+    expect(p.sent).toHaveLength(3);
+    expect(laserOf(p)?.pen).toEqual({ ...PEN, stroke: 2 });
+    expect(laserOf(p)?.points.map((point) => point.x)).toEqual([100, 104, 108, 112]);
+    // Nothing more waits.
+    p.timers.advance(THROTTLE_MS * 4);
+    expect(p.sent).toHaveLength(3);
+  });
+
+  it("sends the cancel of a stroke, with its last points or none, and never loses it to the next", () => {
+    const p = page();
+    hello(p);
+    p.timers.advance(THROTTLE_MS);
+    p.presence.laser(stroke(3), "flow", PEN);
+    expect(laserOf(p)?.pen).toEqual(PEN);
+    // Escape: the cancel comes with no points, and goes in the next state.
+    p.presence.laser([], "flow", { ...PEN, cancel: true });
+    // A new stroke at once: it waits behind the cancel.
+    p.presence.laser(stroke(2, 40), "flow", { ...PEN, stroke: 2 });
+    p.timers.advance(THROTTLE_MS);
+    expect(laserOf(p)).toEqual({ diagram: "flow", points: [], pen: { ...PEN, cancel: true } });
+    p.timers.advance(THROTTLE_MS);
+    expect(laserOf(p)).toEqual({
+      diagram: "flow",
+      points: stroke(2, 40),
+      pen: { ...PEN, stroke: 2 },
+    });
+    // A cancel that joins the stroke's last points in the window carries them.
+    p.timers.advance(THROTTLE_MS);
+    p.presence.laser(stroke(2), "flow", { ...PEN, stroke: 3 });
+    p.presence.laser(stroke(2, 8), "flow", { ...PEN, stroke: 3 });
+    p.presence.laser([], "flow", { ...PEN, stroke: 3, cancel: true });
+    p.timers.advance(THROTTLE_MS);
+    expect(laserOf(p)?.pen).toEqual({ ...PEN, stroke: 3, cancel: true });
+    expect(laserOf(p)?.points.map((point) => point.x)).toEqual([8, 12]);
   });
 });

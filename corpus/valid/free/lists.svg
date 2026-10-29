@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="808" height="488" viewBox="0 0 808 488" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Lists</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="808" height="488" fill="#F7FBFF"/>
+  <g data-id="steps" data-role="element">
+    <rect x="20" y="123.5" width="252" height="248" rx="14" fill="#EAF1F8" stroke="#C9D6E3" stroke-width="1"/>
+    <text x="40" y="146.23" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">A column</text>
+  </g>
+  <g data-id="board" data-role="element">
+    <rect x="324" y="91.5" width="464" height="332" rx="14" fill="#EAF1F8" stroke="#C9D6E3" stroke-width="1"/>
+  </g>
+  <g data-id="todo" data-role="element">
+    <rect x="340" y="107.5" width="216" height="300" rx="14" fill="#EAF1F8" stroke="#C9D6E3" stroke-width="1"/>
+    <text x="360" y="130.23" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">To do</text>
+  </g>
+  <g data-id="done" data-role="element">
+    <rect x="580" y="107.5" width="192" height="300" rx="14" fill="#EAF1F8" stroke="#C9D6E3" stroke-width="1"/>
+    <text x="600" y="130.23" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">Done</text>
+  </g>
+  <g data-id="parts" data-role="element">
+    <rect x="356" y="319.5" width="184" height="72" rx="14" fill="#EAF1F8" stroke="#DCE5ED" stroke-width="1" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="heading" data-role="element">
+    <text x="363.5" y="47.69" text-anchor="start" font-size="28" font-weight="700" fill="#0B1830">Lists</text>
+  </g>
+  <g data-id="plan" data-role="element">
+    <rect x="66" y="163.5" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="146" y="196.23" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Plan</text>
+  </g>
+  <g data-id="build" data-role="element">
+    <rect x="36" y="231.5" width="220" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="146" y="264.23" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Build and test the first version</text>
+  </g>
+  <g data-id="ship" data-role="element">
+    <rect x="66" y="299.5" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="146" y="332.23" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Ship</text>
+  </g>
+  <g data-id="brief" data-role="element">
+    <rect x="356" y="150.5" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="356" y="147.5" width="160" height="160" rx="2" fill="#bbdefb" stroke="none" stroke-width="0"/>
+    <text x="436" y="233.17" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Write the brief</text>
+  </g>
+  <g data-id="api" data-role="element">
+    <rect x="372" y="335.5" width="72" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="408" y="360.23" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">API</text>
+  </g>
+  <g data-id="ui" data-role="element">
+    <rect x="452" y="335.5" width="72" height="40" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="488" y="360.23" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">UI</text>
+  </g>
+  <g data-id="name" data-role="element">
+    <rect x="596" y="150.5" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="596" y="147.5" width="160" height="160" rx="2" fill="#c8e6c9" stroke="none" stroke-width="0"/>
+    <text x="676" y="233.17" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Pick a name</text>
+  </g>
+  <g data-id="check" data-role="element">
+    <path d="M 714 169.5 Q 724 181.5 735 168.5 L 746 155.5" fill="none" stroke="#15803D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,444.5 788,444.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 454) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="470.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="788" y="470" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Lists</text>
+  </g>
+</svg>

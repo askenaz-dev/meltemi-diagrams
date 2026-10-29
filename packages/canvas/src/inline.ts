@@ -49,6 +49,55 @@ export function inlineFrame(
 }
 
 /**
+ * Where the editor of a text that wraps (a sticky note's) lies, its anchor already on the screen:
+ * exactly as wide as the text's area at the zoom, so its lines break where the drawing's do, and
+ * `height` tall (its lines, measured). The block grows from where it is drawn: about its middle,
+ * but kept inside the area while it fits, so a block drawn at the top grows down and one drawn at
+ * the bottom grows up; a block taller than the area starts at its top, as the drawing's does.
+ */
+export function wrappedFrame(
+  place: TextPlace,
+  zoom: number,
+  anchor: Point,
+  height: number,
+): {
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+  readonly height: number;
+} {
+  const { area } = place;
+  const left = anchor.x + (area.x - place.anchor.x) * zoom;
+  const top = anchor.y + (area.y - place.anchor.y) * zoom;
+  const room = area.height * zoom;
+  const centred = anchor.y - height / 2;
+  return {
+    left,
+    top: height >= room ? top : Math.min(Math.max(centred, top), top + room - height),
+    width: area.width * zoom,
+    height,
+  };
+}
+
+/** The smallest size a sticky note's words shrink to, in diagram units, as the layout's do. */
+export const MIN_WRAPPED_SIZE = 8;
+
+/**
+ * The size a sticky note's words are typed at: from the size the card draws them at before they
+ * shrink (`fullSize`, else the size they are drawn at), smaller by one unit at a time while `fits`
+ * says the lines are taller than the card, down to `MIN_WRAPPED_SIZE`, as the layout steps them. A
+ * long text edited down to a word is typed at the size the card will draw it, not the one it shrank
+ * to. `fits` is asked last at the size returned.
+ */
+export function wrappedSize(place: TextPlace, fits: (size: number) => boolean): number {
+  let size = Math.max(place.fullSize ?? place.size, MIN_WRAPPED_SIZE);
+  while (!fits(size) && size > MIN_WRAPPED_SIZE) {
+    size = Math.max(MIN_WRAPPED_SIZE, Math.round((size - 1) * 100) / 100);
+  }
+  return size;
+}
+
+/**
  * The place of a text the scene does not draw (an untitled group, an event without text): the
  * middle of its box, at the canvas's own size.
  */
@@ -117,6 +166,23 @@ export function drawnLines(
   return found;
 }
 
+/**
+ * Every line of text an element draws, in order: the lines of a sticky note, which the layout
+ * wraps where the label has no line break, so they are not the label's lines. A line drawn as
+ * glyph outlines is a path that carries its text.
+ */
+export function wrappedLines(svg: Element, id: string): Element[] {
+  const selector = `g[data-id="${id.replace(/["\\]/g, "\\$&")}"][data-role="element"]`;
+  return [...svg.querySelectorAll(selector)].flatMap((group) =>
+    [...group.children]
+      .flatMap((child) => (child.tagName.toLowerCase() === "a" ? [...child.children] : [child]))
+      .filter((node) => {
+        const tag = node.tagName.toLowerCase();
+        return tag === "text" || (tag === "path" && node.hasAttribute("aria-label"));
+      }),
+  );
+}
+
 /** What an inline editor edits and how it says so. */
 export interface InlineOptions {
   /** The element, relation key or event key. */
@@ -126,18 +192,29 @@ export interface InlineOptions {
   readonly value: string;
   /** Whether Shift+Enter breaks a line: a label the drawing breaks at `\n`. */
   readonly multiline: boolean;
+  /**
+   * The drawing wraps the text at its area's width and shrinks it to fit (a sticky note's): the
+   * editor wraps there too, at the drawn size, and shrinks as the text outgrows the area.
+   */
+  readonly wrap?: boolean;
   readonly label: string;
   /** The keys, said to assistive technology. */
   readonly keys: string;
   readonly commit: () => void;
   readonly cancel: () => void;
+  /**
+   * Ctrl+Enter (Cmd+Enter on a Mac) on the text of a card of a list: keeps the text and adds the
+   * next card after it, whose editor opens in turn. Without it, Ctrl+Enter commits as Enter does.
+   */
+  readonly next?: () => void;
 }
 
 /**
  * The editor of a label typed where it is drawn: a text area with no frame, autocomplete or
  * spelling, and no background but a relation's pill, in the drawing's font, size, weight, colour
  * and alignment at the zoom, which grows with its lines. Enter, Tab and a click outside commit;
- * Shift+Enter breaks a line of a label that has lines; Escape cancels.
+ * Shift+Enter breaks a line of a label that has lines; Ctrl+Enter on a card of a list commits and
+ * adds the next card; Escape cancels.
  */
 export class InlineEditor {
   readonly element: HTMLTextAreaElement;
@@ -148,7 +225,7 @@ export class InlineEditor {
 
   constructor(readonly options: InlineOptions) {
     const area = h("textarea", {
-      class: "inline",
+      class: options.wrap ? "inline wrapping" : "inline",
       "aria-label": options.label,
       "aria-description": options.keys,
       "aria-multiline": options.multiline ? "true" : "false",
@@ -156,7 +233,7 @@ export class InlineEditor {
       autocorrect: "off",
       autocapitalize: "off",
       spellcheck: "false",
-      wrap: "off",
+      wrap: options.wrap ? "soft" : "off",
       rows: 1,
     });
     area.value = options.value;
@@ -168,6 +245,11 @@ export class InlineEditor {
       if (e.isComposing) return;
       if (e.key === "Enter" && e.shiftKey && options.multiline) {
         // The text area breaks the line itself; the editor grows on the input that follows.
+        return;
+      }
+      if (e.key === "Enter" && (e.ctrlKey || e.metaKey) && options.next) {
+        e.preventDefault();
+        this.finish(options.next);
         return;
       }
       if (e.key === "Enter" || e.key === "Tab") {
@@ -228,12 +310,7 @@ export class InlineEditor {
     if (!place) return;
     const area = this.element;
     const style = area.style;
-    const lines = area.value.split("\n").length;
-    style.fontSize = `${place.size * this.zoom}px`;
-    style.lineHeight = `${place.line * this.zoom}px`;
-    // The width the lines need: measured with the editor collapsed, as it draws them.
-    style.width = "0px";
-    const frame = inlineFrame(place, this.zoom, this.anchor, { width: area.scrollWidth, lines });
+    const frame = this.options.wrap ? this.wrapped(place) : this.unwrapped(place);
     style.left = `${frame.left}px`;
     style.top = `${frame.top}px`;
     style.width = `${frame.width}px`;
@@ -246,6 +323,43 @@ export class InlineEditor {
     style.transform = this.angle ? `rotate(${this.angle}deg)` : "";
     area.scrollLeft = 0;
     area.scrollTop = 0;
+  }
+
+  /** The frame of a text drawn on its lines, as wide as its longest line or its room. */
+  private unwrapped(place: TextPlace): InlineFrame {
+    const area = this.element;
+    const style = area.style;
+    const lines = area.value.split("\n").length;
+    style.fontSize = `${place.size * this.zoom}px`;
+    style.lineHeight = `${place.line * this.zoom}px`;
+    // The width the lines need: measured with the editor collapsed, as it draws them.
+    style.width = "0px";
+    return inlineFrame(place, this.zoom, this.anchor, { width: area.scrollWidth, lines });
+  }
+
+  /**
+   * The frame of a text that wraps at its area's width: the lines measured from the size the card
+   * draws its words at before they shrink and, while they are taller than the area, at a size
+   * smaller by one unit at a time (the line height keeping its ratio) down to the smallest the
+   * drawing uses, as the layout shrinks them (`wrappedSize`): the text grows back as it is cut. The
+   * drawing redraws the text at the commit, so a size that differs by a step is never written.
+   */
+  private wrapped(place: TextPlace): ReturnType<typeof wrappedFrame> {
+    const area = this.element;
+    const style = area.style;
+    const zoom = this.zoom;
+    const room = place.area.height * zoom;
+    const ratio = place.size > 0 ? place.line / place.size : 1.25;
+    style.width = `${place.area.width * zoom}px`;
+    let height = 0;
+    wrappedSize(place, (size) => {
+      style.fontSize = `${size * zoom}px`;
+      style.lineHeight = `${size * ratio * zoom}px`;
+      style.height = "0px";
+      height = area.scrollHeight;
+      return height <= room + 0.5;
+    });
+    return wrappedFrame(place, zoom, this.anchor, height);
   }
 
   /** Focuses the editor without scrolling the stage, its text selected. */

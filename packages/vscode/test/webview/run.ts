@@ -598,17 +598,29 @@ class Harness {
 
   /** Replaces the text, as if the user typed in the text editor. */
   async type(text: string): Promise<void> {
+    await this.typeNow(text);
+    await this.settled();
+  }
+
+  /** Replaces the text and posts its drawing, without waiting for the canvas to settle. */
+  async typeNow(text: string): Promise<void> {
     this.text = text;
     this.revision++;
     await this.post(this.session.update(this.analyze(text, this.revision)));
-    await this.settled();
   }
+
+  /**
+   * Runs as each message of the canvas arrives, before the session takes it: a test changes the
+   * text there (`typeNow`), as somebody else's edit that reached the host first.
+   */
+  intercept: ((message: unknown) => Promise<void>) | undefined;
 
   private async fromCanvas(message: unknown): Promise<void> {
     this.busy++;
     try {
       this.received.push(message);
       this.receivedAt.push(Date.now());
+      if (this.intercept) await this.intercept(message);
       if ((message as { type: string }).type === "ready") {
         await this.post([{ type: "settings", settings: this.config }]);
         await this.post(this.session.update(this.analyze(this.text, this.revision)));
@@ -1033,6 +1045,559 @@ async function turnAgreement(
     return m ? Number(m[1]) : null;
   };
   return { drawn: angle(seen.drawn), outline: angle(seen.outline), apart: seen.apart };
+}
+
+// ------------------------------------------------------------------ whiteboard helpers
+
+/** Two pens below a box, for the eraser: `p1` along y 300 and `p2` along y 400, `a` above them. */
+const PENS = `diagram s: free {
+  title "Pens"
+  layout manual
+  box a "A"
+  pen p1 [(100, 300), (200, 312), (300, 300)]
+  pen p2 [(100, 400), (200, 412), (300, 400)]
+  style p2 { stroke accent; width 6 }
+  placement {
+    place a at (200, 200)
+  }
+}
+`;
+
+/**
+ * A stroke 4 wide beside a box, for selecting, moving and scaling it: its points span (301.5, 280)
+ * to (421.5, 310), so its bounds are (299.5, 278) to (423.5, 312); `a` spans 120..280 × 132..188.
+ */
+const STROKE = `diagram s: free {
+  title "Stroke"
+  layout manual
+  box a "A"
+  pen pen1 [(301.5, 300), (341.5, 280), (381.5, 310), (421.5, 300)]
+  style pen1 { stroke accent; width 4 }
+  placement {
+    place a at (200, 160)
+  }
+}
+`;
+
+/**
+ * Where the drawing shown puts diagram coordinates on the page: the zoom, and the page point of
+ * the diagram's origin, read from the scene's own `<svg>` (its CSS box, which no stroke widens) and
+ * the offset its sheet grid is laid at.
+ */
+async function sceneOf(h: Harness): Promise<{ x: number; y: number; zoom: number }> {
+  return h.page.evaluate(() => {
+    const svg = document.querySelector(".content > svg")!;
+    const grid = document.querySelector("#mdg-grid-minor")!;
+    const box = svg.getBoundingClientRect();
+    const zoom = box.width / Number(svg.getAttribute("width"));
+    return {
+      x: box.left + zoom * Number(grid.getAttribute("x")),
+      y: box.top + zoom * Number(grid.getAttribute("y")),
+      zoom,
+    };
+  });
+}
+
+/** The page position of a diagram point, exactly (a measured box would add its stroke). */
+async function strokeAt(
+  h: Harness,
+  point: { x: number; y: number },
+): Promise<{ x: number; y: number }> {
+  const scene = await sceneOf(h);
+  return { x: scene.x + scene.zoom * point.x, y: scene.y + scene.zoom * point.y };
+}
+
+/** Whether two numbers are within `tolerance` of each other, said with `what` when not. */
+function nearly(actual: number, expected: number, tolerance: number, what: string): void {
+  assert.ok(
+    Math.abs(actual - expected) <= tolerance,
+    `${what}: ${actual} is not within ${tolerance} of ${expected}`,
+  );
+}
+
+/**
+ * The selection's frame on the page: the outline rectangle's own geometry, without the stroke that
+ * a box measured by the page would add to it.
+ */
+async function frameOf(h: Harness): Promise<Rect> {
+  // No named functions inside: the page has no `__name` helper for them.
+  return h.page.evaluate(() => {
+    const overlay = document.querySelector(".overlay")!.getBoundingClientRect();
+    const rect = document.querySelector(".overlay rect.outline")!;
+    return {
+      x: overlay.x + Number(rect.getAttribute("x")),
+      y: overlay.y + Number(rect.getAttribute("y")),
+      width: Number(rect.getAttribute("width")),
+      height: Number(rect.getAttribute("height")),
+    };
+  });
+}
+
+/** Clicks a point on the stroke of `STROKE`'s `pen1` (2 units below its first point). */
+async function selectStroke(h: Harness): Promise<void> {
+  const on = await strokeAt(h, { x: 301.5, y: 302 });
+  await h.page.mouse.click(on.x, on.y);
+  await h.settled();
+  assert.deepEqual(h.session.selected, ["pen1"]);
+}
+
+/** The points written in `pen <id> [...]`, in its group's interior. */
+function penPointsOf(text: string, id: string): { x: number; y: number }[] {
+  const match = new RegExp(`\\bpen ${id} \\[([^\\]]*)\\]`).exec(text);
+  assert.ok(match, `no pen ${id} in\n${text}`);
+  return [...match[1]!.matchAll(/\((-?[\d.]+),\s*(-?[\d.]+)\)/g)].map((m) => ({
+    x: Number(m[1]),
+    y: Number(m[2]),
+  }));
+}
+
+/**
+ * Presses at the first page point, moves through the others in small steps and releases; `during`
+ * runs before the last leg, with the button still down.
+ */
+async function strokeThrough(
+  h: Harness,
+  points: readonly { x: number; y: number }[],
+  during?: () => Promise<void>,
+): Promise<void> {
+  const page = h.page;
+  await page.mouse.move(points[0]!.x, points[0]!.y);
+  await page.mouse.down();
+  for (let i = 1; i < points.length; i++) {
+    if (i === points.length - 1) await during?.();
+    await page.mouse.move(points[i]!.x, points[i]!.y, { steps: 6 });
+  }
+  await page.mouse.up();
+  await h.settled();
+}
+
+/** The pen button's main part, the eraser button and the pen menu's arrow. */
+function penTools(page: Page) {
+  return {
+    pen: page.locator('.toolbar [data-split="pen"] > button.pen-button'),
+    arrow: page.locator(".toolbar [data-pen-menu]"),
+    eraser: page.locator('.toolbar button[data-tool="eraser"]'),
+    menu: page.locator(".pen-menu"),
+  };
+}
+
+/**
+ * Four sticky notes in a row, 196 apart: two of the theme's paper (one with words that wrap), a
+ * pink one and a blue one turned a little.
+ */
+const STICKIES = `diagram s: free {
+  title "Stickies"
+  layout manual
+  sticky idea "Idea"
+  sticky wrap "Move the catalogue cache to the edge before the sale"
+  sticky ask "Ask the payments team"
+  sticky warm "Warm every region"
+  style ask { fill "#f8bbd0" }
+  style warm { fill "#bbdefb"; rotation 354 }
+  placement {
+    place idea at (126, 126)
+    place wrap at (322, 126)
+    place ask at (518, 126)
+    place warm at (714, 126)
+  }
+}
+`;
+
+/** A sticky note under a theme of the file's own, which the theme panel edits. */
+const THEMED_STICKY = `theme board {
+  extends "technical.light"
+}
+
+diagram s: free {
+  title "Board"
+  theme "board"
+  layout manual
+  sticky idea "Idea"
+  placement {
+    place idea at (140, 140)
+  }
+}
+`;
+
+/** The sticky note button's main part, its arrow, and a colour of the menu by its fill. */
+function stickyTools(page: Page) {
+  return {
+    button: page.locator('.toolbar [data-split="sticky"] > button.sticky-button'),
+    arrow: page.locator(".toolbar [data-sticky-colours]"),
+    menu: page.locator(".menu"),
+    colour: (fill: string) => page.locator(`.menu [data-sticky-fill="${fill}"]`),
+  };
+}
+
+/** The colours the sticky note menu offers: each one's fill, name and whether it is checked. */
+async function stickyColours(page: Page): Promise<string[][]> {
+  return page
+    .locator(".menu [data-sticky-fill]")
+    .evaluateAll((items) =>
+      items.map((item) => [
+        item.getAttribute("data-sticky-fill") ?? "",
+        (item.textContent ?? "").trim(),
+        item.getAttribute("aria-checked") ?? "",
+      ]),
+    );
+}
+
+/** The paper colour a sticky note's card is drawn with: its second rect, after its shadow. */
+async function cardFill(h: Harness, id: string): Promise<string | null> {
+  return h.page
+    .locator(`.content g[data-id="${id}"][data-role="element"] > rect`)
+    .nth(1)
+    .getAttribute("fill");
+}
+
+/** How many lines the open editor in place shows: its height in lines of its line height. */
+async function editorLines(h: Harness): Promise<number> {
+  return h.page
+    .locator("textarea.inline")
+    .evaluate(
+      (area: HTMLTextAreaElement) =>
+        area.clientHeight / parseFloat(getComputedStyle(area).lineHeight),
+    );
+}
+
+/**
+ * A column `todo` holding the sticky notes `a` and `b`, and a sticky note `c` beside it. The
+ * layout puts `todo` at 44..236 × 60..444 (its interior from y 100), `a` at 60..220 × 100..260,
+ * `b` at 60..220 × 268..428 (8 apart), and `c` at 340..500 × 60..220.
+ */
+const LISTS = `diagram s: free {
+  title "Lists"
+  layout manual
+  group todo "To do" {
+    layout column
+    sticky a "Alpha"
+    sticky b "Beta"
+  }
+  sticky c "Gamma"
+  placement {
+    place todo at (140, 252)
+    place c at (420, 140)
+  }
+}
+`;
+
+/** A board: a row of three columns stretched to one height, with cards of three colours. */
+const KANBAN = `diagram board: free {
+  title "Kanban"
+  layout manual
+  group board "" {
+    layout row
+    spacing 16
+    align stretch
+    group todo "To do" {
+      layout column
+      sticky t1 "Write the brief"
+      sticky t2 "Pick a name"
+    }
+    group doing "Doing" {
+      layout column
+      sticky d1 "Draw the board"
+      sticky d2 "Ship the beta"
+    }
+    group done "Done" {
+      layout column
+      sticky n1 "Set up the repo"
+    }
+  }
+  style t2 { fill "#f8bbd0" }
+  style d1 { fill "#bbdefb" }
+  style n1 { fill "#c8e6c9" }
+  placement {
+    place board at (380, 280)
+  }
+}
+`;
+
+/**
+ * The insertion bar of a drag over a list, drawn in the drawing shown: whether it shows, whether
+ * it stands across a row, the list it is for, and the box of its line on the page (no thicker than
+ * the line's own geometry).
+ */
+async function insertionOf(
+  h: Harness,
+): Promise<{ shown: boolean; row: boolean; list: string | null; box: Rect }> {
+  return h.page.evaluate(() => {
+    const bar = document.querySelector(".content svg .mdg-insertion");
+    const line = bar?.querySelector(".mdg-insertion-line");
+    const r = line?.getBoundingClientRect();
+    return {
+      shown: bar?.classList.contains("shown") === true,
+      row: bar?.classList.contains("row") === true,
+      list: bar?.getAttribute("data-list") ?? null,
+      box: r
+        ? { x: r.x, y: r.y, width: r.width, height: r.height }
+        : { x: 0, y: 0, width: 0, height: 0 },
+    };
+  });
+}
+
+/** The + at the end of a list, by the list's id. */
+function listAdd(page: Page, id: string): Locator {
+  return page.locator(`.stage .list-add[data-list="${id}"]`);
+}
+
+/** Whether the + of a list shows: grown in and pressable. */
+async function listAddShown(page: Page, id: string): Promise<boolean> {
+  const button = listAdd(page, id);
+  if ((await button.count()) === 0) return false;
+  return button.evaluate(
+    (b: HTMLElement) =>
+      b.classList.contains("shown") && getComputedStyle(b).visibility === "visible",
+  );
+}
+
+/** The ids declared in a group's block of `text`, in order (a block of one level of nesting). */
+function declaredIn(text: string, group: string): string[] {
+  const start = text.indexOf(`group ${group} `);
+  assert.ok(start >= 0, `no group ${group} in\n${text}`);
+  const open = text.indexOf("{", start);
+  let depth = 0;
+  let end = open;
+  for (let i = open; i < text.length; i++) {
+    if (text[i] === "{") depth++;
+    else if (text[i] === "}") depth--;
+    if (depth === 0) {
+      end = i;
+      break;
+    }
+  }
+  const body = text.slice(open + 1, end);
+  // Only the block's own declarations, two spaces deeper than the group.
+  const indent = /\n( *)\S/.exec(body)?.[1] ?? "    ";
+  return [
+    ...body.matchAll(new RegExp(`\\n${indent}(?:sticky|box|text|group|note|icon) (\\w+)`, "g")),
+  ].map((m) => m[1]!);
+}
+
+/**
+ * Shows the stage's own cursor picture at a page point, for a screenshot: a headless page draws
+ * no cursor, and the eraser's circle is what the screenshot is about.
+ */
+async function showCursor(h: Harness, at: { x: number; y: number }): Promise<void> {
+  await h.page.evaluate((at) => {
+    const stage = document.querySelector<HTMLElement>(".stage")!;
+    const value = stage.style.getPropertyValue("--mdg-pointer-cursor");
+    const url = /url\("([^"]+)"\)/.exec(value)?.[1];
+    if (!url) return;
+    const image = document.createElement("img");
+    image.className = "test-cursor";
+    image.src = url;
+    image.style.cssText = `position:fixed;left:${at.x - 8}px;top:${at.y - 8}px;width:16px;height:16px;pointer-events:none;z-index:99`;
+    document.body.append(image);
+  }, at);
+  await h.page.waitForTimeout(30);
+}
+
+/**
+ * A class on a free board, for the strokes of others: a heading, the sun and a leaf with a relation
+ * between them. The leaf spans about 404..516 × 152..208, with room around it for a circle.
+ */
+const PEER = `diagram s: free {
+  title "Class"
+  layout manual
+  text heading "Photosynthesis"
+  box sun "Sun"
+  box leaf "Leaf"
+  sun -> leaf as light
+  placement {
+    place heading at (300, 60)
+    place sun at (140, 180)
+    place leaf at (460, 180)
+  }
+}
+`;
+
+/**
+ * Twenty points of a loop around the leaf of `PEER`, from its left over the top (the first ten) and
+ * back under it (the last ten), to a tenth, `t` 20 ms apart within each batch of ten.
+ */
+const LOOP = Array.from({ length: 20 }, (_, i) => {
+  const angle = Math.PI - (i * 2 * Math.PI) / 19;
+  return {
+    x: Math.round((460 + 100 * Math.cos(angle)) * 10) / 10,
+    y: Math.round((180 - 56 * Math.sin(angle)) * 10) / 10,
+    t: (i % 10) * 20,
+  };
+});
+
+/** The pen part of Ben's batches: a 4 px red pen, his first stroke. */
+const RED_PEN = { width: 4, colour: "#e03131", opacity: 1, stroke: 1 };
+
+/** `PEER` and a second board, `t`, with a star in its middle, to pick another diagram. */
+const TWO_BOARDS = `${PEER}
+diagram t: free {
+  title "Second"
+  layout manual
+  box star "Star"
+  placement {
+    place star at (300, 200)
+  }
+}
+`;
+
+/** `PEER` with `pen` statements written into it, as the release of a stroke does. */
+const peerWith = (...pens: string[]): string =>
+  PEER.replace("  sun -> leaf as light\n", `  sun -> leaf as light\n${pens.join("")}`);
+
+/** A `pen` statement of `points` with a style, as the session writes one. */
+const penStatement = (
+  id: string,
+  points: readonly { x: number; y: number }[],
+  style: string,
+): string =>
+  `  pen ${id} [${points.map((p) => `(${p.x}, ${p.y})`).join(", ")}]\n  style ${id} { ${style} }\n`;
+
+/**
+ * What the presence layer's canvas holds, in page pixels: how many pixels are drawn, the colour and
+ * the alpha (0 to 255) of the most opaque, the box of those at least `min` opaque, and how many of
+ * those lie in the column at the page x `across.x` above the page y `across.above` (the width of a
+ * stroke that crosses that column).
+ */
+async function presenceInk(
+  h: Harness,
+  across?: { x: number; above: number },
+  min = 128,
+): Promise<{
+  count: number;
+  colour: [number, number, number] | null;
+  alpha: number;
+  box: Rect | null;
+  across: number;
+}> {
+  // No named functions inside: the page has no `__name` helper for them.
+  return h.page.locator(".presence-trails").evaluate(
+    (canvas: HTMLCanvasElement, { across, min }) => {
+      const context = canvas.getContext("2d")!;
+      const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+      const rect = canvas.getBoundingClientRect();
+      const scale = canvas.width / Math.max(1, rect.width);
+      const column = across ? Math.round((across.x - rect.left) * scale) : -1;
+      const limit = across ? (across.above - rect.top) * scale : -1;
+      let count = 0;
+      let alpha = 0;
+      let colour: [number, number, number] | null = null;
+      let left = Infinity;
+      let top = Infinity;
+      let right = -Infinity;
+      let bottom = -Infinity;
+      let crossed = 0;
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const i = (y * canvas.width + x) * 4;
+          const a = data[i + 3]!;
+          if (a === 0) continue;
+          count++;
+          if (a > alpha) {
+            alpha = a;
+            colour = [data[i]!, data[i + 1]!, data[i + 2]!];
+          }
+          if (a < min) continue;
+          left = Math.min(left, x);
+          right = Math.max(right, x + 1);
+          top = Math.min(top, y);
+          bottom = Math.max(bottom, y + 1);
+          if (x === column && y < limit) crossed++;
+        }
+      }
+      return {
+        count,
+        colour,
+        alpha,
+        box:
+          right < left
+            ? null
+            : {
+                x: rect.left + left / scale,
+                y: rect.top + top / scale,
+                width: (right - left) / scale,
+                height: (bottom - top) / scale,
+              },
+        across: crossed / scale,
+      };
+    },
+    { across, min },
+  );
+}
+
+/** The pen part of a laser batch, as a host sends it. */
+type PenPart = NonNullable<NonNullable<PresencePerson["laser"]>["pen"]>;
+
+/**
+ * Waits until the presence layer holds ink (or `timeout` ms pass), and returns what it holds: the
+ * first frames of a page just opened may come late on a loaded machine.
+ */
+async function untilInk(
+  h: Harness,
+  done: (ink: Ink) => boolean = (ink) => ink.count > 0,
+  timeout = 2000,
+): Promise<Ink> {
+  const until = Date.now() + timeout;
+  let ink = await presenceInk(h);
+  while (!done(ink) && Date.now() < until) {
+    await h.page.waitForTimeout(50);
+    ink = await presenceInk(h);
+  }
+  return ink;
+}
+
+/** What the presence layer holds once it has ink and stays the same for 150 ms: all drawn. */
+async function steadyInk(h: Harness, timeout = 2000): Promise<Ink> {
+  const until = Date.now() + timeout;
+  let ink = await untilInk(h, undefined, timeout);
+  for (;;) {
+    await h.page.waitForTimeout(150);
+    const next = await presenceInk(h);
+    if (next.count === ink.count || Date.now() >= until) return next;
+    ink = next;
+  }
+}
+
+/** What `presenceInk` measures. */
+type Ink = Awaited<ReturnType<typeof presenceInk>>;
+
+/**
+ * Ben with a laser batch, as the host sends him, his pointer at its last point (none when
+ * `lifted`: his finger or stylus left the screen); a batch of no points leaves his pointer out.
+ */
+const benDrawing = (
+  batch: number,
+  points: readonly { x: number; y: number; t: number }[],
+  pen: PenPart = RED_PEN,
+  lifted = false,
+): PresencePerson => {
+  const last = points[points.length - 1];
+  return {
+    name: "Ben",
+    colour: "#1c7ed6",
+    selection: [],
+    ...(last && !lifted ? { pointer: { x: last.x, y: last.y } } : {}),
+    laser: { batch, points, pen },
+  };
+};
+
+/** A `presenceLaser` message the canvas posted, and when it arrived. */
+interface LaserPost {
+  at: number;
+  points: { x: number; y: number; t: number }[];
+  diagram?: string;
+  pen?: { width: number; colour: string; opacity: number; stroke: number; cancel?: true };
+}
+
+/** The `presenceLaser` messages the canvas posted from the `from`-th message on. */
+function laserPosts(h: Harness, from = 0): LaserPost[] {
+  const posts: LaserPost[] = [];
+  h.received.forEach((m, i) => {
+    const message = m as { type: string } & Omit<LaserPost, "at">;
+    if (i >= from && message.type === "presenceLaser") {
+      posts.push({ ...message, at: h.receivedAt[i]! });
+    }
+  });
+  return posts;
 }
 
 const tests: {
@@ -1485,7 +2050,8 @@ const tests: {
       const strip = page.getByRole("region", { name: "Style" });
       assert.equal(await strip.isVisible(), true);
       const fill = page.getByRole("radiogroup", { name: "Fill" });
-      assert.equal(await fill.getByRole("radio").count(), 17);
+      // Theme, then the nineteen colour tokens (the whiteboard's highlight, sticky and stickyText too).
+      assert.equal(await fill.getByRole("radio").count(), 20);
       await fill.getByRole("radio", { name: /^accent / }).click();
       await h.settled();
       assert.match(h.text, /style api \{ fill accent \}/);
@@ -1597,10 +2163,10 @@ const tests: {
       assert.equal(await dashCard.getAttribute("data-open"), "false");
       assert.equal(await page.locator("#mdg-field-effect-dash-duration").isVisible(), true);
       assert.equal(await page.locator("#mdg-field-effect-dash-delay").isVisible(), false);
-      // The trace colour is a row of chips: Theme, the sixteen tokens and the picker, with the
+      // The trace colour is a row of chips: Theme, the nineteen tokens and the picker, with the
       // accent as what applies.
       const colour = traceCard.locator('[data-field="effect.trace.color"]');
-      assert.equal(await colour.getByRole("radio").count(), 17);
+      assert.equal(await colour.getByRole("radio").count(), 20);
       assert.equal(await colour.locator(".row-label > span").first().textContent(), "colour");
       assert.equal(
         await colour.getByRole("radiogroup").getAttribute("aria-label"),
@@ -5200,8 +5766,9 @@ const tests: {
     readOnly: true,
     async run(h) {
       const page = h.page;
-      // The box's, the node's (shown on flow diagrams only), the group's and the relation tool's.
-      assert.equal(await page.locator(".toolbar .split-arrow").count(), 4);
+      // The box's, the node's (shown on flow diagrams only), the sticky note's, the group's, the
+      // pen's and the relation tool's.
+      assert.equal(await page.locator(".toolbar .split-arrow").count(), 6);
       for (const arrow of await page.locator(".toolbar .split-arrow").all()) {
         assert.equal(await arrow.isVisible(), false);
       }
@@ -5432,7 +5999,7 @@ const tests: {
         await field
           .locator("option")
           .evaluateAll((options) => options.map((o) => (o as HTMLOptionElement).textContent)),
-        ["default (fit to content)", "document", "slide", "custom"],
+        ["default (fit to content)", "document", "slide", "board", "custom"],
       );
       assert.equal(await page.locator("#mdg-field-canvas-width").inputValue(), "800");
       const before = actions(h);
@@ -7753,7 +8320,13 @@ const tests: {
       await page.mouse.down();
       await page.mouse.move(api.x + 80, api.y, { steps: 8 });
       await page.waitForTimeout(80);
-      assert.deepEqual((await trailPixels(h)).colour, [224, 49, 49]);
+      // The trail fades from its newest point, so its most opaque pixel is a little below full
+      // alpha when the frame comes late, and reading it back unpremultiplied rounds by one.
+      const colour = (await trailPixels(h)).colour;
+      assert.ok(
+        colour !== null && colour.every((value, i) => Math.abs(value - [224, 49, 49][i]!) <= 2),
+        `the trail is #e03131, read as ${JSON.stringify(colour)}`,
+      );
       await page.mouse.up();
       await h.postRaw({ type: "presence", people: [] });
       assert.doesNotMatch(await cursor(), /%23e03131/);
@@ -7795,6 +8368,2470 @@ const tests: {
       const total = batches.reduce((sum, batch) => sum + batch.points.length, 0);
       assert.ok(total >= 12, `${total} points together`);
       assert.deepEqual(h.writes(), []);
+    },
+  },
+  {
+    name: "whiteboard: pen: P draws a stroke inside the group under it, selects nothing and stays armed",
+    text: FREE,
+    async run(h) {
+      const page = h.page;
+      const tools = penTools(page);
+      const at = (point: { x: number; y: number }) =>
+        pageAt(h, "client", { x: 98, y: 224 }, 160, point);
+      // Something selected first: the stroke lets it go.
+      const client = await h.centre("client");
+      await page.mouse.click(client.x, client.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["client"]);
+      await h.focusStage();
+      await page.keyboard.press("p");
+      assert.equal(await tools.pen.getAttribute("aria-pressed"), "true");
+      assert.match((await page.locator(".status").textContent()) ?? "", /^Pen: drag/);
+      assert.match(
+        await page
+          .locator(".stage")
+          .evaluate((stage) =>
+            (stage as HTMLElement).style.getPropertyValue("--mdg-pointer-cursor"),
+          ),
+        /^url\("data:image\/svg\+xml,/,
+      );
+      // Four points inside `g` (its box spans 210..630 × 122..318), below its two boxes.
+      const corners = [
+        { x: 260, y: 290 },
+        { x: 300, y: 280 },
+        { x: 340, y: 300 },
+        { x: 380, y: 290 },
+      ];
+      const before = actions(h);
+      const stroke = page.locator(".overlay path.pen-stroke");
+      await strokeThrough(h, await Promise.all(corners.map(at)), async () => {
+        // While the button is down: one path on the overlay, as the layout will draw it.
+        assert.equal(await stroke.count(), 1);
+        assert.match(
+          (await stroke.getAttribute("d")) ?? "",
+          /^M [\d.-]+ [\d.-]+( Q [\d.-]+ [\d.-]+ [\d.-]+ [\d.-]+)+ L /,
+        );
+        assert.equal(await stroke.getAttribute("stroke-linecap"), "round");
+        assert.equal(actions(h), before, "nothing is written before the release");
+      });
+      assert.equal(actions(h), before + 1, "one stroke, one edit");
+      assert.match(
+        h.text,
+        /group g "Backend" \{\n {4}box api "API"\n {4}box db "DB"\n {4}pen pen1 \[[^\]]+\]\n {2}\}/,
+      );
+      assert.doesNotMatch(h.text, /style pen1/);
+      const points = penPointsOf(h.text, "pen1");
+      assert.ok(points.length >= 3 && points.length <= 8, `${points.length} points`);
+      // In the group's interior, from the first corner to the last 120 units on.
+      for (const p of points) {
+        assert.ok(p.x >= 0 && p.x <= 420 && p.y >= 0 && p.y <= 196, `(${p.x}, ${p.y}) inside g`);
+        assert.equal(Math.round(p.x * 10) / 10, p.x, "a tenth at most");
+      }
+      const first = points[0]!;
+      const last = points[points.length - 1]!;
+      assert.ok(Math.abs(last.x - first.x - 120) <= 2 && Math.abs(last.y - first.y) <= 2);
+      assert.deepEqual(h.session.selected, []);
+      assert.equal(await tools.pen.getAttribute("aria-pressed"), "true", "the pen stays armed");
+      assert.equal(
+        await page.locator(".status").textContent(),
+        `Drew a stroke of ${points.length} points.`,
+      );
+      // The overlay's stroke gave way to the drawing's pen.
+      assert.equal(await stroke.count(), 0);
+      assert.equal(
+        await page.locator('.content g[data-id="pen1"][data-role="element"]').count(),
+        1,
+      );
+      // A second stroke right away, photographed half drawn over the first one.
+      await strokeThrough(
+        h,
+        await Promise.all(
+          [
+            { x: 270, y: 262 },
+            { x: 330, y: 254 },
+            { x: 372, y: 266 },
+          ].map(at),
+        ),
+        async () => {
+          assert.equal(await stroke.count(), 1);
+          await page.locator(".main").screenshot({ path: join(output, "pen-drawn.png") });
+        },
+      );
+      assert.match(h.text, /\n {4}pen pen2 \[/);
+      assert.equal(actions(h), before + 2);
+      await page.locator(".main").screenshot({ path: join(output, "pen-drawn-after.png") });
+      // Escape while drawing: the stroke goes, nothing is written, and the pen stays armed.
+      const third = await Promise.all(
+        [
+          { x: 60, y: 360 },
+          { x: 140, y: 380 },
+        ].map(at),
+      );
+      await page.mouse.move(third[0]!.x, third[0]!.y);
+      await page.mouse.down();
+      await page.mouse.move(third[1]!.x, third[1]!.y, { steps: 5 });
+      await page.keyboard.press("Escape");
+      assert.equal(await stroke.count(), 0);
+      await page.mouse.up();
+      await h.settled();
+      assert.equal(actions(h), before + 2);
+      assert.equal(await page.locator(".status").textContent(), "No stroke drawn.");
+      assert.equal(await tools.pen.getAttribute("aria-pressed"), "true");
+      // Escape again puts the pen away; a double click then edits as before.
+      await page.keyboard.press("Escape");
+      assert.equal(await tools.pen.getAttribute("aria-pressed"), "false");
+      assert.equal(await page.locator(".stage.drawing").count(), 0);
+    },
+  },
+  {
+    name: "whiteboard: pen: the menu's thick and danger write a style, and are kept after a reload",
+    text: FREE,
+    async run(h) {
+      const page = h.page;
+      const tools = penTools(page);
+      await tools.arrow.click();
+      assert.equal(await tools.menu.isVisible(), true);
+      assert.equal(await tools.arrow.getAttribute("aria-expanded"), "true");
+      // Pen and Highlighter, four widths (the default checked) and the theme's colours, ink first.
+      assert.equal(
+        await tools.menu.locator('[data-pen-tool="pen"]').getAttribute("aria-checked"),
+        "true",
+      );
+      assert.equal(
+        await tools.menu.locator('[data-width="3"]').getAttribute("aria-checked"),
+        "true",
+      );
+      const tokens = await tools.menu
+        .locator("button.chip")
+        .evaluateAll((chips) => chips.map((c) => c.getAttribute("data-token")));
+      assert.equal(tokens[0], "ink");
+      assert.ok(tokens.includes("danger") && tokens.includes("highlight"), tokens.join(" "));
+      await tools.menu.locator('[data-width="8"]').click();
+      await tools.menu.locator('button.chip[data-token="danger"]').click();
+      // The menu stays open, shows both, and the pen is armed in the hand.
+      assert.equal(await tools.menu.isVisible(), true);
+      assert.equal(
+        await tools.menu.locator('[data-width="8"]').getAttribute("aria-checked"),
+        "true",
+      );
+      assert.equal(
+        await tools.menu.locator('[data-token="danger"]').getAttribute("aria-checked"),
+        "true",
+      );
+      assert.equal(await tools.pen.getAttribute("aria-pressed"), "true");
+      await page.waitForTimeout(200);
+      // The whole page: the pen button (its bar in the pen's colour) above its menu.
+      await page.screenshot({
+        path: join(output, "pen-menu.png"),
+        clip: { x: 0, y: 0, width: 900, height: 300 },
+      });
+      const at = (point: { x: number; y: number }) =>
+        pageAt(h, "client", { x: 98, y: 224 }, 160, point);
+      // The press on the canvas closes the menu and draws.
+      await strokeThrough(
+        h,
+        await Promise.all(
+          [
+            { x: 60, y: 330 },
+            { x: 120, y: 316 },
+            { x: 180, y: 340 },
+          ].map(at),
+        ),
+      );
+      assert.equal(await closed(tools.menu), true);
+      assert.match(h.text, /\n {2}pen pen1 \[[^\]]+\]\n/);
+      assert.match(h.text, /\n {2}style pen1 \{ stroke danger; width 8 \}\n/);
+      // The stroke on the overlay was drawn in the theme's danger, 8 wide.
+      // After a reload the menu still shows thick and danger.
+      await h.reload();
+      await penTools(page).arrow.click();
+      const menu = penTools(page).menu;
+      assert.equal(await menu.locator('[data-width="8"]').getAttribute("aria-checked"), "true");
+      assert.equal(
+        await menu.locator('[data-token="danger"]').getAttribute("aria-checked"),
+        "true",
+      );
+      // Escape closes it and gives the keyboard back to its arrow.
+      await page.keyboard.press("Escape");
+      assert.equal(await closed(menu), true);
+      assert.equal(await penTools(page).arrow.getAttribute("aria-expanded"), "false");
+    },
+  },
+  {
+    name: "whiteboard: pen: H highlights under the heading with its own colour, width and opacity",
+    text: FREE,
+    async run(h) {
+      const page = h.page;
+      const tools = penTools(page);
+      await h.focusStage();
+      await page.keyboard.press("h");
+      // The pen button now arms the highlighter, and shows it.
+      assert.equal(await tools.pen.getAttribute("data-tool"), "highlighter");
+      assert.equal(await tools.pen.getAttribute("aria-pressed"), "true");
+      assert.equal(await tools.pen.getAttribute("title"), "Highlighter (H)");
+      const at = (point: { x: number; y: number }) =>
+        pageAt(h, "client", { x: 98, y: 224 }, 160, point);
+      const stroke = page.locator(".overlay path.pen-stroke");
+      await strokeThrough(
+        h,
+        await Promise.all(
+          [
+            { x: 240, y: 46 },
+            { x: 300, y: 48 },
+            { x: 360, y: 46 },
+          ].map(at),
+        ),
+        async () => {
+          assert.equal(await stroke.getAttribute("stroke-width"), "20");
+          assert.equal(await stroke.getAttribute("stroke-opacity"), "0.35");
+        },
+      );
+      assert.match(h.text, /\n {2}pen pen1 \[[^\]]+\]\n/);
+      assert.match(h.text, /\n {2}style pen1 \{ stroke highlight; width 20; opacity 0\.35 \}\n/);
+      // The heading's words are still drawn above the mark.
+      assert.equal(await drawnText(h, "heading"), "Checkout");
+      await page.locator(".main").screenshot({ path: join(output, "pen-highlighter.png") });
+      // P takes the pen again, and the button follows.
+      await page.keyboard.press("p");
+      assert.equal(await tools.pen.getAttribute("data-tool"), "pen");
+      assert.equal(await tools.pen.getAttribute("aria-pressed"), "true");
+    },
+  },
+  {
+    name: "whiteboard: pen: Shift keeps a stroke straight, and a press without moving is a dot",
+    text: FREE,
+    async run(h) {
+      const page = h.page;
+      const at = (point: { x: number; y: number }) =>
+        pageAt(h, "client", { x: 98, y: 224 }, 160, point);
+      await h.focusStage();
+      await page.keyboard.press("p");
+      await page.keyboard.down("Shift");
+      await strokeThrough(
+        h,
+        await Promise.all(
+          [
+            { x: 60, y: 330 },
+            { x: 110, y: 380 },
+            { x: 150, y: 310 },
+            { x: 200, y: 330 },
+          ].map(at),
+        ),
+      );
+      await page.keyboard.up("Shift");
+      const straight = penPointsOf(h.text, "pen1");
+      assert.equal(straight.length, 2, JSON.stringify(straight));
+      assert.ok(Math.abs(straight[1]!.x - straight[0]!.x - 140) <= 2);
+      assert.ok(Math.abs(straight[1]!.y - straight[0]!.y) <= 2);
+      const dot = await at({ x: 120, y: 420 });
+      await page.mouse.click(dot.x, dot.y);
+      await h.settled();
+      const one = penPointsOf(h.text, "pen2");
+      assert.equal(one.length, 1, JSON.stringify(one));
+      assert.ok(Math.abs(one[0]!.x - 120) <= 1.5 && Math.abs(one[0]!.y - 420) <= 1.5);
+      assert.equal(await page.locator(".status").textContent(), "Drew a stroke of 1 point.");
+      // Two quick dots are two pens, not a double click that opens an editor.
+      await page.mouse.dblclick(dot.x + 40, dot.y);
+      await h.settled();
+      assert.equal(await page.locator(".inline").count(), 0);
+      assert.match(h.text, /pen pen4 /);
+    },
+  },
+  {
+    name: "whiteboard: eraser: E across two pens and a box removes the pens in one edit",
+    text: PENS,
+    async run(h) {
+      const page = h.page;
+      const tools = penTools(page);
+      const at = (point: { x: number; y: number }) =>
+        pageAt(h, "a", { x: 200, y: 200 }, 160, point);
+      await h.focusStage();
+      await page.keyboard.press("e");
+      assert.equal(await tools.eraser.getAttribute("aria-pressed"), "true");
+      assert.match(
+        await page
+          .locator(".stage")
+          .evaluate((stage) =>
+            (stage as HTMLElement).style.getPropertyValue("--mdg-pointer-cursor"),
+          ),
+        /circle/,
+      );
+      const p1 = page.locator('.content g[data-id="p1"][data-role="element"]');
+      const p2 = page.locator('.content g[data-id="p2"][data-role="element"]');
+      const before = actions(h);
+      // Escape halfway: the stroke crossed fades back and nothing is erased.
+      const top = await at({ x: 150, y: 150 });
+      const middle = await at({ x: 150, y: 360 });
+      const bottom = await at({ x: 150, y: 460 });
+      await page.mouse.move(top.x, top.y);
+      await page.mouse.down();
+      await page.mouse.move(middle.x, middle.y, { steps: 8 });
+      assert.equal(await p1.evaluate((g) => g.classList.contains("mdg-erased")), true);
+      await page.keyboard.press("Escape");
+      await page.mouse.up();
+      await h.settled();
+      assert.equal(await p1.evaluate((g) => g.classList.contains("mdg-erased")), false);
+      assert.equal(actions(h), before);
+      assert.equal(await page.locator(".status").textContent(), "Nothing erased.");
+      assert.equal(await tools.eraser.getAttribute("aria-pressed"), "true", "still armed");
+      // Down across the box, p1 and p2: the pens fade as the eraser crosses them. The picture is
+      // taken just as p1 is crossed, the eraser's circle drawn over it.
+      await page.mouse.move(top.x, top.y);
+      await page.mouse.down();
+      await page.mouse.move(top.x, (await at({ x: 150, y: 290 })).y, { steps: 8 });
+      const crossing = await at({ x: 150, y: 306 });
+      await page.mouse.move(crossing.x, crossing.y);
+      await showCursor(h, crossing);
+      await page.locator(".main").screenshot({ path: join(output, "eraser.png") });
+      await page.evaluate(() => document.querySelector(".test-cursor")?.remove());
+      await page.mouse.move(middle.x, middle.y, { steps: 4 });
+      assert.equal(await p1.evaluate((g) => g.classList.contains("mdg-erased")), true);
+      assert.equal(await p2.evaluate((g) => g.classList.contains("mdg-erased")), false);
+      await page.mouse.move(bottom.x, bottom.y, { steps: 8 });
+      assert.equal(await p2.evaluate((g) => g.classList.contains("mdg-erased")), true);
+      assert.equal(actions(h), before, "nothing is written before the release");
+      await page.mouse.up();
+      await h.settled();
+      assert.equal(actions(h), before + 1, "one edit, one undo step");
+      const last = h.received.filter((m) => (m as { type: string }).type === "action").at(-1) as {
+        action: { kind: string; ids: string[]; cascade: boolean };
+      };
+      // The pens' own styles go with them: nothing to confirm.
+      assert.equal(last.action.kind, "remove");
+      assert.equal(last.action.cascade, true);
+      assert.deepEqual([...last.action.ids].sort(), ["p1", "p2"]);
+      assert.equal(await page.locator(".dialog:not([hidden])").count(), 0);
+      assert.doesNotMatch(h.text, /pen p1|pen p2|style p2/);
+      assert.match(h.text, /\n {2}box a "A"\n/);
+      assert.match(h.text, /place a at \(200, 200\)/);
+      assert.equal(await page.locator(".status").textContent(), "Erased 2 strokes.");
+      assert.equal(await tools.eraser.getAttribute("aria-pressed"), "true", "still armed");
+      // A press on empty canvas erases nothing and writes nothing.
+      await page.mouse.click(bottom.x + 80, bottom.y);
+      await h.settled();
+      assert.equal(actions(h), before + 1);
+      // The eraser's button puts it away.
+      await tools.eraser.click();
+      assert.equal(await tools.eraser.getAttribute("aria-pressed"), "false");
+    },
+  },
+  {
+    name: "whiteboard: pen: a read-only canvas shows no pen, highlighter or eraser and P does nothing",
+    text: FREE,
+    readOnly: true,
+    async run(h) {
+      const page = h.page;
+      const tools = penTools(page);
+      for (const tool of [tools.pen, tools.arrow, tools.eraser]) {
+        assert.equal(await tool.isVisible(), false);
+      }
+      await h.focusStage();
+      for (const key of ["p", "h", "e"]) await page.keyboard.press(key);
+      await h.settled();
+      assert.equal(await page.locator(".stage.drawing").count(), 0);
+      assert.equal(await page.locator(".pen-menu").isVisible(), false);
+      // A press and a drag select and look around; nothing is written.
+      const client = await h.centre("client");
+      await dragTo(
+        h,
+        { x: client.x + 200, y: client.y + 120 },
+        { x: client.x + 300, y: client.y + 160 },
+      );
+      assert.equal(await page.locator(".overlay path.pen-stroke").count(), 0);
+      assert.deepEqual(h.writes(), []);
+      // Writable again, the tools are back.
+      await h.settings({ readOnly: false });
+      assert.equal(await tools.pen.isVisible(), true);
+      assert.equal(await tools.eraser.isVisible(), true);
+    },
+  },
+  {
+    name: "whiteboard: pen: P typed in the inline editor is text, and a flow diagram has no pen",
+    text: FREE,
+    async run(h) {
+      const page = h.page;
+      const tools = penTools(page);
+      const heading = await h.centre("heading");
+      await page.mouse.dblclick(heading.x, heading.y);
+      const inline = page.locator("textarea.inline");
+      assert.equal(await inline.inputValue(), "Checkout");
+      await page.keyboard.press("End");
+      await page.keyboard.type("php");
+      assert.equal(await inline.inputValue(), "Checkoutphp");
+      assert.equal(await tools.pen.getAttribute("aria-pressed"), "false");
+      assert.equal(await page.locator(".stage.drawing").count(), 0);
+      await page.keyboard.press("Escape");
+      await h.settled();
+      assert.deepEqual(h.writes(), []);
+      // A flow diagram: no pen, highlighter or eraser, and P and E arm nothing.
+      await h.type(SHEET);
+      assert.equal(await tools.pen.isVisible(), false);
+      assert.equal(await tools.eraser.isVisible(), false);
+      await h.focusStage();
+      await page.keyboard.press("p");
+      await page.keyboard.press("e");
+      assert.equal(await page.locator(".stage.drawing").count(), 0);
+    },
+  },
+  {
+    name: "whiteboard: pen: a stylus draws while the palm resting on the screen draws nothing",
+    text: FREE,
+    async run(h) {
+      const page = h.page;
+      const at = (point: { x: number; y: number }) =>
+        pageAt(h, "client", { x: 98, y: 224 }, 160, point);
+      await h.focusStage();
+      await page.keyboard.press("p");
+      // What reaches the stage, to know the palm was really there.
+      await page.evaluate(() => {
+        const seen: string[] = [];
+        (window as { __pointers?: string[] }).__pointers = seen;
+        document
+          .querySelector(".stage")!
+          .addEventListener("pointerdown", (e) => seen.push((e as PointerEvent).pointerType), true);
+      });
+      // A stylus through CDP (Playwright's mouse is a mouse) and a touch beside it.
+      const cdp = await page.context().newCDPSession(page);
+      const stylus = (
+        type: "mousePressed" | "mouseMoved" | "mouseReleased",
+        p: { x: number; y: number },
+      ) =>
+        cdp.send("Input.dispatchMouseEvent", {
+          type,
+          x: p.x,
+          y: p.y,
+          button: type === "mouseMoved" ? "none" : "left",
+          buttons: type === "mouseReleased" ? 0 : 1,
+          clickCount: 1,
+          pointerType: "pen",
+        });
+      const path = await Promise.all(
+        [
+          { x: 60, y: 340 },
+          { x: 90, y: 330 },
+          { x: 120, y: 350 },
+          { x: 150, y: 336 },
+          { x: 180, y: 344 },
+        ].map(at),
+      );
+      const palm = await at({ x: 480, y: 420 });
+      await stylus("mousePressed", path[0]!);
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [{ x: palm.x, y: palm.y }],
+      });
+      for (const [i, p] of path.slice(1).entries()) {
+        await stylus("mouseMoved", p);
+        await cdp.send("Input.dispatchTouchEvent", {
+          type: "touchMove",
+          touchPoints: [{ x: palm.x + i * 6, y: palm.y + i * 3 }],
+        });
+      }
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      await stylus("mouseReleased", path[path.length - 1]!);
+      await h.settled();
+      const seen = await page.evaluate(() => (window as { __pointers?: string[] }).__pointers);
+      assert.deepEqual(seen, ["pen", "touch"], "a stylus press, then a palm");
+      // One stroke, along the stylus only.
+      const points = penPointsOf(h.text, "pen1");
+      assert.ok(points.length >= 3, `${points.length} points`);
+      for (const p of points) assert.ok(p.x >= 58 && p.x <= 182, `(${p.x}, ${p.y}) by the stylus`);
+      assert.doesNotMatch(h.text, /pen pen2/);
+      // The palm let go of, a touch draws again.
+      await cdp.send("Input.dispatchTouchEvent", {
+        type: "touchStart",
+        touchPoints: [{ x: palm.x, y: palm.y }],
+      });
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+      await h.settled();
+      assert.match(h.text, /pen pen2 \[/);
+    },
+  },
+  {
+    name: "whiteboard: pen selected: its stroke selects it, framed by its bounds with eight resize handles",
+    text: STROKE,
+    async run(h) {
+      const page = h.page;
+      // Inside its bounds but away from its stroke, a press reaches the canvas: nothing selected.
+      const away = await strokeAt(h, { x: 330, y: 309 });
+      await page.mouse.click(away.x, away.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, []);
+      await selectStroke(h);
+      assert.equal(await page.locator(".status").textContent(), "Stroke pen1, 4 points, selected.");
+      // Assistive technology hears a stroke and its points, not the kind and an empty label.
+      assert.equal(
+        await page
+          .locator('.content g[data-id="pen1"][data-role="element"]')
+          .getAttribute("aria-label"),
+        "Stroke pen1, 4 points",
+      );
+      // The frame is its bounds: the box of its points grown by half its width.
+      const nw = await strokeAt(h, { x: 299.5, y: 278 });
+      const se = await strokeAt(h, { x: 423.5, y: 312 });
+      near(
+        await frameOf(h),
+        { x: nw.x, y: nw.y, width: se.x - nw.x, height: se.y - nw.y },
+        1,
+        "the frame",
+      );
+      assert.equal(await page.locator('.overlay .handle[data-handle^="resize:"]').count(), 8);
+      assert.equal(
+        await page.locator(".overlay .handle").count(),
+        8,
+        "no rotation, connection, point or label handle",
+      );
+      // Its strip: the colour row, the line, the width, the opacity and both heads; its fields
+      // without a label or a geometry.
+      const inspector = page.locator(".inspector");
+      assert.match((await inspector.locator("h2").textContent()) ?? "", /^pen pen1$/);
+      for (const field of [
+        "style.stroke",
+        "style.line",
+        "style.width",
+        "style.opacity",
+        "style.arrowtail",
+        "style.arrowhead",
+      ]) {
+        assert.equal(await inspector.locator(`.strip [data-field="${field}"]`).count(), 1, field);
+      }
+      const width = inspector.locator('[data-field="style.width"] input[type="range"]');
+      assert.deepEqual(
+        [await width.getAttribute("min"), await width.getAttribute("max")],
+        ["1", "64"],
+      );
+      assert.equal(await width.inputValue(), "4");
+      const opacity = inspector.locator('[data-field="style.opacity"] input[type="range"]');
+      assert.deepEqual(
+        [
+          await opacity.getAttribute("min"),
+          await opacity.getAttribute("max"),
+          await opacity.getAttribute("step"),
+        ],
+        ["0", "1", "0.05"],
+      );
+      // Nothing written: the slider shows, greyed, the opacity that applies.
+      assert.equal(await opacity.inputValue(), "1");
+      assert.equal(await opacity.evaluate((e) => e.classList.contains("inherited")), true);
+      assert.equal(await inspector.locator("#mdg-field-id").inputValue(), "pen1");
+      for (const absent of ["label", "x", "y", "w", "h", "kind"]) {
+        assert.equal(await inspector.locator(`#mdg-field-${absent}`).count(), 0, absent);
+      }
+      await page.locator(".main").screenshot({ path: join(output, "pen-selected.png") });
+      // The context menu renames it and connects nothing.
+      const on = await strokeAt(h, { x: 301.5, y: 302 });
+      await page.mouse.click(on.x, on.y, { button: "right" });
+      const items = await page.locator(".menu [role=menuitem]").allTextContents();
+      assert.ok(
+        items.some((item) => item.startsWith("Rename id")),
+        items.join(" | "),
+      );
+      assert.ok(!items.some((item) => /^(Edit label|Connect to)/.test(item)), items.join(" | "));
+      await page.keyboard.press("Escape");
+      assert.deepEqual(h.writes(), []);
+    },
+  },
+  {
+    name: "whiteboard: pen selected: dragged by its stroke, every point moves by the drag, unsnapped",
+    text: STROKE,
+    async run(h) {
+      await selectStroke(h);
+      const before = penPointsOf(h.text, "pen1");
+      const writes = actions(h);
+      // On the stroke where its first curve passes (341.5, 288.6).
+      const from = await strokeAt(h, { x: 341.5, y: 288 });
+      const to = await strokeAt(h, { x: 371.5, y: 288 });
+      await dragTo(h, from, to, async () => {
+        // The frame follows the pointer, and the drawing moves with it.
+        const start = await strokeAt(h, { x: 329.5, y: 278 });
+        nearly((await frameOf(h)).x, start.x, 1, "the frame's left edge, 30 to the right");
+        assert.ok(h.previews().length > 0, "the drop's drawing is previewed");
+      });
+      assert.equal(actions(h), writes + 1, "one edit, one undo step");
+      const sent = h.received.filter((m) => (m as { type: string }).type === "action").at(-1) as {
+        action: { kind: string; delta: { x: number; y: number }; parent?: unknown };
+      };
+      assert.equal(sent.action.kind, "move");
+      assert.deepEqual(sent.action.delta, { x: 30, y: 0 });
+      assert.equal("parent" in sent.action, false, "a stroke keeps its group");
+      // Every point 30 to the right, off the grid of 14: 301.5 is now 331.5.
+      assert.deepEqual(
+        penPointsOf(h.text, "pen1"),
+        before.map((p) => ({ x: p.x + 30, y: p.y })),
+      );
+      assert.match(h.text, /style pen1 \{ stroke accent; width 4 \}/);
+      assert.doesNotMatch(h.text, /place pen1/);
+      assert.deepEqual(h.session.selected, ["pen1"]);
+    },
+  },
+  {
+    name: "whiteboard: pen selected: the south-east handle scales its points about the opposite corner",
+    text: STROKE,
+    async run(h) {
+      const page = h.page;
+      await selectStroke(h);
+      const before = penPointsOf(h.text, "pen1");
+      const writes = actions(h);
+      const { zoom } = await sceneOf(h);
+      const handle = await page.locator('.overlay .handle[data-handle="resize:se"]').boundingBox();
+      assert.ok(handle, "no south-east handle");
+      const grip = { x: handle.x + handle.width / 2, y: handle.y + handle.height / 2 };
+      // The points span 120 × 30: dragged 120 and 30 further, their box doubles.
+      await dragTo(h, grip, { x: grip.x + 120 * zoom, y: grip.y + 30 * zoom }, async () => {
+        // The stroke's path follows the pointer on the overlay, in the frame that follows it too.
+        const outline = page.locator(".overlay path.pen-outline");
+        assert.equal(await outline.count(), 1);
+        assert.match((await outline.getAttribute("d")) ?? "", /^M [\d.-]+ [\d.-]+ Q /);
+        const box = await outline.boundingBox();
+        assert.ok(box);
+        nearly(box.width, 240 * zoom, 3, "the outline's width");
+        const frame = await frameOf(h);
+        nearly(frame.width, 244 * zoom, 1, "the frame's width");
+        nearly(frame.height, 64 * zoom, 1, "the frame's height");
+        await page.locator(".main").screenshot({ path: join(output, "pen-scaling.png") });
+      });
+      assert.equal(actions(h), writes + 1, "one edit, one undo step");
+      assert.equal(await page.locator(".overlay path.pen-outline").count(), 0);
+      // Every point twice as far from the north-west corner of the points, (301.5, 280).
+      const after = penPointsOf(h.text, "pen1");
+      assert.equal(after.length, before.length);
+      for (const [i, p] of after.entries()) {
+        nearly(p.x, 301.5 + 2 * (before[i]!.x - 301.5), 0.2, `x of point ${i}`);
+        nearly(p.y, 280 + 2 * (before[i]!.y - 280), 0.2, `y of point ${i}`);
+      }
+      assert.match(h.text, /style pen1 \{ stroke accent; width 4 \}/);
+      assert.deepEqual(h.session.selected, ["pen1"], "still selected");
+      // Shift keeps the proportions: a drag along x alone scales y as much.
+      const scaled = await page.locator('.overlay .handle[data-handle="resize:se"]').boundingBox();
+      assert.ok(scaled);
+      const corner = { x: scaled.x + scaled.width / 2, y: scaled.y + scaled.height / 2 };
+      await page.keyboard.down("Shift");
+      await dragTo(h, corner, { x: corner.x + 60 * zoom, y: corner.y });
+      await page.keyboard.up("Shift");
+      const kept = penPointsOf(h.text, "pen1");
+      const span = (points: { x: number; y: number }[], axis: "x" | "y") =>
+        Math.max(...points.map((p) => p[axis])) - Math.min(...points.map((p) => p[axis]));
+      nearly(span(kept, "x"), 300, 0.5, "the width, 1.25 times");
+      nearly(span(kept, "y"), 75, 0.5, "the height, 1.25 times too");
+      assert.equal(actions(h), writes + 2);
+    },
+  },
+  {
+    name: "whiteboard: pen selected: Right nudges it, Ctrl+D duplicates it, Delete removes it with its style",
+    text: STROKE,
+    async run(h) {
+      const page = h.page;
+      await selectStroke(h);
+      const before = penPointsOf(h.text, "pen1");
+      await h.focusStage();
+      await page.keyboard.press("ArrowRight");
+      await h.settled();
+      assert.deepEqual(
+        penPointsOf(h.text, "pen1"),
+        before.map((p) => ({ x: p.x + 1, y: p.y })),
+      );
+      // Shift: a step of the grid (14), still off it, as the stroke was.
+      await page.keyboard.press("Shift+ArrowDown");
+      await h.settled();
+      const nudged = penPointsOf(h.text, "pen1");
+      assert.deepEqual(
+        nudged,
+        before.map((p) => ({ x: p.x + 1, y: p.y + 14 })),
+      );
+      // A duplicate is the same stroke, shifted, with the same style, and it is selected.
+      await page.keyboard.press("Control+d");
+      await h.settled();
+      const id = /\n {2}pen (?!pen1 )(\S+) \[/.exec(h.text)?.[1];
+      assert.ok(id, `no copy in\n${h.text}`);
+      const copy = penPointsOf(h.text, id);
+      assert.equal(copy.length, nudged.length);
+      assert.match(h.text, new RegExp(`style ${id} \\{ stroke accent; width 4 \\}`));
+      const shift = { x: copy[0]!.x - nudged[0]!.x, y: copy[0]!.y - nudged[0]!.y };
+      assert.ok(shift.x !== 0 || shift.y !== 0, "shifted");
+      for (const [i, p] of copy.entries()) {
+        nearly(p.x - nudged[i]!.x, shift.x, 0.11, `x of copied point ${i}`);
+        nearly(p.y - nudged[i]!.y, shift.y, 0.11, `y of copied point ${i}`);
+      }
+      assert.deepEqual(h.session.selected, [id]);
+      // Delete takes the selected stroke with its style, and asks nothing.
+      await page.keyboard.press("Delete");
+      await h.settled();
+      assert.equal(await page.locator(".dialog:not([hidden])").count(), 0);
+      assert.ok(!h.text.includes(id), `${id} left in\n${h.text}`);
+      // The first stroke, 1 to the right and 14 down: pressed by its first point there.
+      const on = await strokeAt(h, { x: 302.5, y: 316 });
+      await page.mouse.click(on.x, on.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["pen1"]);
+      await h.focusStage();
+      await page.keyboard.press("Delete");
+      await h.settled();
+      assert.equal(await page.locator(".dialog:not([hidden])").count(), 0);
+      assert.doesNotMatch(h.text, /pen1/);
+      assert.match(h.text, /\n {2}box a "A"\n/);
+    },
+  },
+  {
+    name: "whiteboard: pen selected: a double click, Enter and F2 open nothing; Shift+F2 renames it",
+    text: STROKE,
+    async run(h) {
+      const page = h.page;
+      const on = await strokeAt(h, { x: 301.5, y: 302 });
+      await page.mouse.dblclick(on.x, on.y);
+      await h.settled();
+      assert.equal(await page.locator(".inline").count(), 0, "no editor");
+      assert.deepEqual(h.session.selected, ["pen1"]);
+      await h.focusStage();
+      for (const key of ["Enter", "F2"]) {
+        await page.keyboard.press(key);
+        assert.equal(await page.locator(".inline").count(), 0, `${key} opens no editor`);
+      }
+      assert.equal(
+        await page.locator(".status").textContent(),
+        "A stroke has no text; change its colour, width and heads in the properties.",
+      );
+      assert.deepEqual(h.writes(), []);
+      await page.keyboard.press("Shift+F2");
+      const inline = page.locator(".inline");
+      assert.equal(await inline.inputValue(), "pen1");
+      await inline.fill("mark");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /\n {2}pen mark \[/);
+      assert.match(h.text, /style mark \{ stroke accent; width 4 \}/);
+    },
+  },
+  {
+    name: "whiteboard: pen selected: a rubber band around its bounds selects it, one across it does not",
+    text: STROKE,
+    async run(h) {
+      const from = await strokeAt(h, { x: 290, y: 262 });
+      // Short of its right end (423.5): nothing.
+      await dragTo(h, from, await strokeAt(h, { x: 410, y: 330 }));
+      assert.deepEqual(h.session.selected, []);
+      // Around its bounds: the stroke alone.
+      await dragTo(h, from, await strokeAt(h, { x: 436, y: 330 }));
+      assert.deepEqual(h.session.selected, ["pen1"]);
+    },
+  },
+  {
+    name: "whiteboard: pen selected: a sketched theme leaves the stroke one unjittered path",
+    text: STROKE,
+    async run(h) {
+      const page = h.page;
+      // The stroked shapes an element is drawn with (no named functions inside: the page has no
+      // `__name` helper for them).
+      const strokes = (id: string) =>
+        page.evaluate(
+          (id) =>
+            [
+              ...document.querySelectorAll(
+                `.content g[data-id="${id}"][data-role="element"] :is(path, rect, polyline, ellipse, circle):not(.mdg-hit)`,
+              ),
+            ]
+              .filter((e) => (e.getAttribute("stroke") ?? "none") !== "none")
+              .map((e) => e.getAttribute("d") ?? e.tagName),
+          id,
+        );
+      const drawn = async () => ({ pen: await strokes("pen1"), box: (await strokes("a")).length });
+      // A path's numbers from its first point, which a theme's margins may move.
+      const shape = (d: string | null | undefined) => {
+        const numbers = (d ?? "").match(/-?[\d.]+/g)?.map(Number) ?? [];
+        return numbers.map((n, i) => Math.round((n - numbers[i % 2]!) * 100) / 100);
+      };
+      const plain = await drawn();
+      assert.equal(plain.pen.length, 1);
+      assert.match(plain.pen[0] ?? "", /^M [\d.]+ [\d.]+ Q [\d.]+ [\d.]+ [\d.]+ [\d.]+ Q /);
+      await h.type(STROKE.replace('title "Stroke"', 'title "Stroke"\n  theme "sketch.light"'));
+      const sketched = await drawn();
+      // The box is painted twice by hand; the stroke is the same one path.
+      assert.ok(sketched.box >= 2, `${sketched.box} strokes on the box`);
+      assert.equal(sketched.pen.length, 1);
+      assert.deepEqual(shape(sketched.pen[0]), shape(plain.pen[0]));
+      await page.locator(".main").screenshot({ path: join(output, "pen-sketched.png") });
+    },
+  },
+  {
+    name: "whiteboard: opacity: the slider on a box writes opacity 0.5 and draws it at half",
+    text: STROKE,
+    async run(h) {
+      const page = h.page;
+      const a = await h.centre("a");
+      await page.mouse.click(a.x, a.y);
+      await h.settled();
+      const field = page.locator('.inspector [data-field="style.opacity"]');
+      const slider = field.locator('input[type="range"]');
+      assert.equal(await slider.inputValue(), "1");
+      await slider.fill("0.5");
+      await h.settled();
+      assert.match(h.text, /style a \{ opacity 0\.5 \}/);
+      const box = page.locator('.content g[data-id="a"][data-role="element"]');
+      assert.equal(await box.evaluate((g) => getComputedStyle(g).opacity), "0.5");
+      assert.equal(await field.locator('input[type="number"]').inputValue(), "0.5");
+      assert.equal(await slider.evaluate((e) => e.classList.contains("inherited")), false);
+      await page.locator(".main").screenshot({ path: join(output, "opacity-slider.png") });
+    },
+  },
+  {
+    name: "whiteboard: sticky: S adds one near the centre that pops in, and its words wrap as they are typed",
+    text: FREE,
+    async run(h) {
+      const page = h.page;
+      // The group that holds a new drawing while it pops in, caught as it is added (no named
+      // functions inside: the page has no `__name` helper for them).
+      await page.evaluate(() => {
+        const seen: { id: string | null; name: string; origin: string; card: number[] }[] = [];
+        (window as unknown as { __popped: typeof seen }).__popped = seen;
+        new MutationObserver((records) => {
+          for (const record of records) {
+            for (const node of record.addedNodes) {
+              if (!(node instanceof SVGGElement) || !node.classList.contains("mdg-pop")) continue;
+              const drawing = node.querySelector<SVGGElement>('[data-role="element"]');
+              // The card's own rect (after its shadow), in the drawing's units.
+              const card = drawing?.querySelectorAll<SVGRectElement>(":scope > rect")[1]?.getBBox();
+              seen.push({
+                id: drawing?.getAttribute("data-id") ?? null,
+                name: getComputedStyle(node).animationName,
+                origin: node.style.transformOrigin,
+                card: card ? [card.x + card.width / 2, card.y + card.height / 2] : [],
+              });
+            }
+          }
+        }).observe(document.querySelector(".content")!, { childList: true, subtree: true });
+      });
+      await h.focusStage();
+      const before = actions(h);
+      await page.keyboard.press("s");
+      await h.settled();
+      assert.equal(actions(h), before + 1, "one sticky note, one edit");
+      assert.match(h.text, /\n {2}sticky sticky1 "Sticky"\n/);
+      assert.doesNotMatch(h.text, /style sticky1/);
+      // It popped in about its card's centre, over the canvas's motion.
+      const popped = await page.evaluate(
+        () =>
+          (
+            window as unknown as {
+              __popped: { id: string; name: string; origin: string; card: number[] }[];
+            }
+          ).__popped,
+      );
+      assert.equal(popped.length, 1, JSON.stringify(popped));
+      assert.deepEqual(
+        { id: popped[0]!.id, name: popped[0]!.name },
+        { id: "sticky1", name: "mdg-pop-in" },
+      );
+      const origin = popped[0]!.origin.split(" ").map(parseFloat);
+      assert.equal(popped[0]!.card.length, 2, JSON.stringify(popped));
+      nearly(origin[0]!, popped[0]!.card[0]!, 0.5, "the pop's centre across");
+      nearly(origin[1]!, popped[0]!.card[1]!, 0.5, "the pop's centre down");
+      await page.waitForTimeout(300);
+      assert.equal(await page.locator(".content g.mdg-pop").count(), 0, "the pop is over");
+      // Near the centre of the stage: in the free cell of the first ring around it, a card and two
+      // grid steps away at most, since the group fills the centre of the free fixture.
+      const place = h.place("sticky1");
+      const scene = await sceneOf(h);
+      const stage = (await page.locator(".stage").boundingBox())!;
+      const centre = {
+        x: (stage.x + stage.width / 2 - scene.x) / scene.zoom,
+        y: (stage.y + stage.height / 2 - scene.y) / scene.zoom,
+      };
+      assert.ok(
+        Math.abs(place.x - centre.x) <= 160 + 28 + 7 &&
+          Math.abs(place.y - centre.y) <= 160 + 28 + 7,
+        `(${place.x}, ${place.y}) near the centre (${centre.x}, ${centre.y})`,
+      );
+      // Its editor is open over the card, its words selected, wrapping at the card at the size
+      // the card draws them; the drawn words are hidden meanwhile.
+      const inline = page.locator("textarea.inline");
+      assert.equal(await inline.inputValue(), "Sticky");
+      assert.equal(
+        await inline.evaluate((area: HTMLTextAreaElement) => getComputedStyle(area).whiteSpace),
+        "pre-wrap",
+      );
+      assert.deepEqual(await drawnLines(h, "sticky1"), []);
+      const zoom = await zoomOf(h);
+      const editor = await editorOf(h);
+      nearly(editor.fontSize, 15.6 * zoom, 0.05, "the size the card draws its words at");
+      assert.equal(editor.textAlign, "center");
+      const card = await boxOf(h, "sticky1");
+      // Centred on the card (whose drawing is 3 taller for its shadow), inside its padding.
+      nearly(editor.box.x + editor.box.width / 2, card.x + card.width / 2, 1, "centred across");
+      assert.ok(editor.box.width < card.width - 8 * zoom, `${editor.box.width} inside the card`);
+      assert.equal(Math.round(await editorLines(h)), 1);
+      await page.keyboard.type("Cache the catalogue");
+      // The words outgrow a line of the card: the editor wraps them as the card will.
+      assert.equal(Math.round(await editorLines(h)), 2);
+      nearly((await editorOf(h)).box.width, editor.box.width, 0.5, "the same width");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /\n {2}sticky sticky1 "Cache the catalogue"\n/);
+      assert.doesNotMatch(h.text, /style sticky1/);
+      assert.deepEqual(h.place("sticky1"), place);
+      const lines = await drawnLines(h, "sticky1");
+      assert.equal(lines.length, 2, JSON.stringify(lines));
+      assert.equal(lines.join(" "), "Cache the catalogue");
+      // Shift+Enter breaks a line; Enter keeps the text.
+      const sticky = await h.centre("sticky1");
+      await page.mouse.dblclick(sticky.x, sticky.y);
+      assert.equal(await inline.inputValue(), "Cache the catalogue");
+      await page.keyboard.press("End");
+      await page.keyboard.press("Shift+Enter");
+      await page.keyboard.type("first");
+      assert.equal(await inline.inputValue(), "Cache the catalogue\nfirst");
+      assert.equal(Math.round(await editorLines(h)), 3);
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /\n {2}sticky sticky1 "Cache the catalogue\\nfirst"\n/);
+      assert.deepEqual((await drawnLines(h, "sticky1")).slice(-1), ["first"]);
+    },
+  },
+  {
+    name: "whiteboard: sticky: pops in about its own centre, grown and faded in (sticky-pop.png, slowed)",
+    text: STICKIES,
+    // The motion slowed and the start made smaller, so that the middle of the pop is seen.
+    theme: ":root { --mdg-motion: 2400ms; --mdg-pop-scale: 0.6; }",
+    async run(h) {
+      const page = h.page;
+      await h.focusStage();
+      await page.keyboard.press("s");
+      await page.locator(".content g.mdg-pop").waitFor();
+      await page.waitForTimeout(600);
+      const group = page.locator(".content g.mdg-pop");
+      const middle = await group.evaluate((g) => ({
+        opacity: Number(getComputedStyle(g).opacity),
+        box: g.getBoundingClientRect().toJSON() as { x: number; y: number; width: number },
+      }));
+      await page.locator(".main").screenshot({ path: join(output, "sticky-pop.png") });
+      // Half grown and half shown, about the centre the card ends at.
+      assert.ok(middle.opacity > 0.05 && middle.opacity < 0.95, `opacity ${middle.opacity}`);
+      await group.waitFor({ state: "detached", timeout: 5000 });
+      await h.settled();
+      const card = await boxOf(h, "sticky1");
+      assert.ok(middle.box.width < card.width - 4, `${middle.box.width} of ${card.width}`);
+      const centre = (b: { x: number; width: number }) => b.x + b.width / 2;
+      nearly(centre(middle.box), centre(card), 1.5, "the same centre across");
+      assert.equal(await page.locator("textarea.inline").inputValue(), "Sticky");
+    },
+  },
+  {
+    name: "whiteboard: sticky: the arrow's pink is kept, and the button dragged places a pink one with its editor open",
+    text: FREE,
+    async run(h) {
+      const page = h.page;
+      const tools = stickyTools(page);
+      const words = "Sticky note: click to add one, or drag it onto the canvas";
+      // The button says what it does and shows a card of the theme's paper.
+      assert.equal(await tools.button.getAttribute("aria-label"), words);
+      assert.equal(await tools.button.getAttribute("title"), `${words} (S)`);
+      assert.equal(await tools.button.getAttribute("aria-keyshortcuts"), "S");
+      assert.equal(await tools.button.locator("svg").getAttribute("data-sticky"), "#fff59d");
+      assert.equal(await tools.arrow.getAttribute("title"), "Colour of new sticky notes");
+      await tools.arrow.click();
+      assert.equal(await tools.menu.isVisible(), true);
+      assert.equal(await tools.arrow.getAttribute("aria-expanded"), "true");
+      // The theme's paper first and checked, then the six colours of paper by name.
+      assert.deepEqual(await stickyColours(page), [
+        ["", "Theme colour", "true"],
+        ["#fff59d", "Yellow", "false"],
+        ["#f8bbd0", "Pink", "false"],
+        ["#c8e6c9", "Green", "false"],
+        ["#bbdefb", "Blue", "false"],
+        ["#ffe0b2", "Orange", "false"],
+        ["#e1bee7", "Purple", "false"],
+      ]);
+      assert.equal(
+        await tools.colour("#e1bee7").locator("svg").getAttribute("data-sticky"),
+        "#e1bee7",
+      );
+      await page.waitForTimeout(200);
+      await page.screenshot({
+        path: join(output, "sticky-menu.png"),
+        clip: { x: 0, y: 0, width: 700, height: 300 },
+      });
+      await tools.colour("#f8bbd0").click();
+      assert.equal(await closed(tools.menu), true);
+      assert.equal(await tools.arrow.getAttribute("aria-expanded"), "false");
+      // Chosen, not written: the button adds pink ones now, and says so.
+      assert.deepEqual(h.writes(), []);
+      assert.equal(await page.locator(".status").textContent(), "New sticky notes are pink.");
+      assert.equal(
+        await tools.button.getAttribute("aria-label"),
+        "Sticky note, pink: click to add one, or drag it onto the canvas",
+      );
+      assert.equal(await tools.button.locator("svg").getAttribute("data-sticky"), "#f8bbd0");
+      // Dragged onto the canvas below the group, at (400, 420).
+      const drop = await strokeAt(h, { x: 400, y: 420 });
+      const stage = (await page.locator(".stage").boundingBox())!;
+      assert.ok(drop.y < stage.y + stage.height - 20, "the drop is on the stage");
+      const from = await middleOf(tools.button);
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(drop.x, drop.y, { steps: 10 });
+      await page.mouse.up();
+      await h.settled();
+      assert.match(h.text, /\n {2}sticky sticky1 "Sticky"\n/);
+      assert.match(h.text, /\n {2}style sticky1 \{ fill "#f8bbd0" \}\n/);
+      // Snapped to the 14 grid.
+      assert.deepEqual(h.place("sticky1"), { x: 406, y: 420 });
+      assert.equal(await page.locator("textarea.inline").inputValue(), "Sticky");
+      assert.equal(await cardFill(h, "sticky1"), "#f8bbd0");
+      await page.keyboard.press("Escape");
+      await h.settled();
+      // After a reload the button and its menu still add pink ones.
+      await h.reload();
+      const again = stickyTools(page);
+      assert.equal(await again.button.locator("svg").getAttribute("data-sticky"), "#f8bbd0");
+      await again.arrow.click();
+      assert.equal(await again.colour("#f8bbd0").getAttribute("aria-checked"), "true");
+      assert.equal(await again.colour("").getAttribute("aria-checked"), "false");
+      // The theme's paper again: the next one writes no style. A click adds it near the centre.
+      await again.colour("").click();
+      assert.equal(
+        await page.locator(".status").textContent(),
+        "New sticky notes take the theme's colour.",
+      );
+      await again.button.click();
+      await h.settled();
+      assert.match(h.text, /\n {2}sticky sticky2 "Sticky"\n/);
+      assert.doesNotMatch(h.text, /style sticky2/);
+      assert.equal(await page.locator("textarea.inline").inputValue(), "Sticky");
+    },
+  },
+  {
+    name: "whiteboard: sticky: a read-only canvas shows no sticky note button and S adds nothing",
+    text: FREE,
+    readOnly: true,
+    async run(h) {
+      const page = h.page;
+      const tools = stickyTools(page);
+      assert.equal(await tools.button.isVisible(), false);
+      assert.equal(await tools.arrow.isVisible(), false);
+      await h.focusStage();
+      await page.keyboard.press("s");
+      await h.settled();
+      assert.equal(await page.locator("textarea.inline").count(), 0);
+      assert.equal(await page.locator(".menu").isVisible(), false);
+      assert.deepEqual(h.writes(), []);
+      assert.equal(h.text, FREE);
+      // Writable again it is back, after the text tool; a flow diagram has none.
+      await h.settings({ readOnly: false });
+      assert.equal(await tools.button.isVisible(), true);
+      assert.equal(
+        await page
+          .locator('.toolbar [data-split="sticky"]')
+          .evaluate((split) => split.previousElementSibling?.getAttribute("data-tool")),
+        "text",
+      );
+      await h.type(SHEET);
+      assert.equal(await tools.button.isVisible(), false);
+      assert.equal(await tools.arrow.isVisible(), false);
+    },
+  },
+  {
+    name: "whiteboard: sticky: the strip names the six colours of paper before the theme's, and Blue writes its fill",
+    text: STICKIES,
+    async run(h) {
+      const page = h.page;
+      const idea = await h.centre("idea");
+      await page.mouse.click(idea.x, idea.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["idea"]);
+      const fill = page.getByRole("radiogroup", { name: "Fill" });
+      const chips = await fill
+        .getByRole("radio")
+        .evaluateAll((radios) =>
+          radios.map((r) => [r.getAttribute("aria-label") ?? "", r.getAttribute("title") ?? ""]),
+        );
+      // The theme's, the six colours of paper by name, then the nineteen colours of the theme.
+      assert.equal(chips.length, 1 + 6 + 19, JSON.stringify(chips));
+      assert.deepEqual(chips.slice(1, 7), [
+        ["Yellow #fff59d", "Yellow · #fff59d"],
+        ["Pink #f8bbd0", "Pink · #f8bbd0"],
+        ["Green #c8e6c9", "Green · #c8e6c9"],
+        ["Blue #bbdefb", "Blue · #bbdefb"],
+        ["Orange #ffe0b2", "Orange · #ffe0b2"],
+        ["Purple #e1bee7", "Purple · #e1bee7"],
+      ]);
+      for (const [label] of chips.slice(7)) assert.match(label!, /^[a-z][A-Za-z]* #/);
+      assert.equal(await fill.locator("button.chip.paper").count(), 6);
+      await fill.getByRole("radio", { name: "Blue #bbdefb" }).click();
+      await h.settled();
+      assert.match(h.text, /\n {2}style idea \{ fill "#bbdefb" \}\n/);
+      assert.equal(await cardFill(h, "idea"), "#bbdefb");
+      assert.equal(
+        await page
+          .getByRole("radiogroup", { name: "Fill" })
+          .getByRole("radio", { name: "Blue #bbdefb" })
+          .getAttribute("aria-checked"),
+        "true",
+      );
+      await page.waitForTimeout(200);
+      await page.locator(".inspector").screenshot({ path: join(output, "sticky-strip.png") });
+    },
+  },
+  {
+    name: "whiteboard: sticky: a board of sticky notes, one edited where its words wrap (sticky.png)",
+    text: STICKIES,
+    async run(h) {
+      const page = h.page;
+      // The card's words as drawn, before the editor opens over them.
+      const drawn = await drawnLines(h, "wrap");
+      assert.ok(drawn.length >= 3, JSON.stringify(drawn));
+      const wrap = await h.centre("wrap");
+      await page.mouse.dblclick(wrap.x, wrap.y);
+      const inline = page.locator("textarea.inline");
+      assert.equal(
+        await inline.inputValue(),
+        "Move the catalogue cache to the edge before the sale",
+      );
+      // At the drawn size, in as many lines as the card draws, its own hidden.
+      const zoom = await zoomOf(h);
+      nearly((await editorOf(h)).fontSize, 15.6 * zoom, 0.05, "the drawn size");
+      assert.equal(Math.round(await editorLines(h)), drawn.length);
+      assert.deepEqual(await drawnLines(h, "wrap"), []);
+      await page.keyboard.press("End");
+      await page.keyboard.type(" and every region is warm");
+      assert.ok(Math.round(await editorLines(h)) > drawn.length, "more lines as it is typed");
+      await page.locator(".main").screenshot({ path: join(output, "sticky.png") });
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(
+        h.text,
+        /sticky wrap "Move the catalogue cache to the edge before the sale and every region is warm"/,
+      );
+      assert.equal(
+        (await drawnLines(h, "wrap")).join(" "),
+        "Move the catalogue cache to the edge before the sale and every region is warm",
+      );
+      // The editor of a turned card turns with it.
+      const warm = await h.centre("warm");
+      await page.mouse.dblclick(warm.x, warm.y);
+      assert.equal(await inline.inputValue(), "Warm every region");
+      assert.equal(
+        await inline.evaluate((area: HTMLTextAreaElement) => area.style.transform),
+        "rotate(354deg)",
+      );
+      await page.keyboard.press("Escape");
+      await h.settled();
+      assert.equal((await drawnLines(h, "warm")).join(" "), "Warm every region");
+      // Words that outgrow the card shrink in the editor as the card will shrink them.
+      const idea = await h.centre("idea");
+      await page.mouse.dblclick(idea.x, idea.y);
+      const many = Array.from({ length: 14 }, () => "every region warm").join(" ");
+      await page.keyboard.type(many);
+      const shrunk = await editorOf(h);
+      const card = await boxOf(h, "idea");
+      assert.ok(shrunk.fontSize < 15.6 * zoom - 0.5, `${shrunk.fontSize} smaller`);
+      assert.ok(shrunk.box.height <= card.height, `${shrunk.box.height} inside the card`);
+      await page.keyboard.press("Enter");
+      await h.settled();
+      const size = await page
+        .locator('.content g[data-id="idea"][data-role="element"] > text')
+        .first()
+        .getAttribute("font-size");
+      // The drawing shrank them alike, to within a step of the editor's measure.
+      nearly(Number(size) * zoom, shrunk.fontSize, zoom + 0.05, "the drawn size");
+    },
+  },
+  {
+    name: "whiteboard: sticky: the theme panel holds a Whiteboard group with highlight, sticky and stickyText",
+    text: THEMED_STICKY,
+    async run(h) {
+      const page = h.page;
+      await page.getByRole("button", { name: "Edit theme…" }).click();
+      await h.settled();
+      const panel = page.getByRole("complementary", { name: "Theme" });
+      assert.equal(await panel.isVisible(), true);
+      const group = panel.getByRole("region", { name: "Whiteboard" });
+      assert.equal(await group.isVisible(), true);
+      assert.deepEqual(
+        await group.locator("input[id]").evaluateAll((inputs) => inputs.map((i) => i.id)),
+        ["mdg-field-theme-highlight", "mdg-field-theme-sticky", "mdg-field-theme-stickyText"],
+      );
+      // Each a colour: a swatch, a picker and "inherit".
+      assert.equal(await group.locator(".swatch").count(), 3);
+      assert.equal(await group.locator('input[type="color"]').count(), 3);
+      // Apart from the other colours of the theme.
+      const titles = await panel
+        .locator("section.group")
+        .evaluateAll((sections) => sections.map((s) => s.getAttribute("aria-label")));
+      const colours = titles.indexOf("Whiteboard") - 1;
+      assert.ok(colours >= 0, titles.join(", "));
+      assert.equal(
+        await panel
+          .locator("section.group")
+          .nth(colours)
+          .locator("#mdg-field-theme-sticky, #mdg-field-theme-highlight")
+          .count(),
+        0,
+      );
+      // A paper for every sticky note of the theme: the card and the button take it.
+      const sticky = page.locator("#mdg-field-theme-sticky");
+      await sticky.fill("#dbeafe");
+      await sticky.press("Enter");
+      await h.settled();
+      assert.match(h.text, /extends "technical.light"\n {2}sticky "#dbeafe"\n/);
+      assert.equal((await cardFill(h, "idea"))?.toLowerCase(), "#dbeafe");
+      assert.equal(
+        (await stickyTools(page).button.locator("svg").getAttribute("data-sticky"))?.toLowerCase(),
+        "#dbeafe",
+      );
+      await page.waitForTimeout(200);
+      await page.screenshot({ path: join(output, "sticky-theme-panel.png") });
+    },
+  },
+  {
+    name: "whiteboard: sticky: Spanish names the button, its colours and the strip's, and writes Nota",
+    text: FREE,
+    lang: "es",
+    async run(h) {
+      const page = h.page;
+      const tools = stickyTools(page);
+      assert.equal(
+        await tools.button.getAttribute("aria-label"),
+        "Nota adhesiva: haz clic para añadir una o arrástrala al lienzo",
+      );
+      assert.equal(
+        await tools.arrow.getAttribute("aria-label"),
+        "Color de las notas adhesivas nuevas",
+      );
+      await tools.arrow.click();
+      assert.deepEqual(
+        (await stickyColours(page)).map(([, name]) => name),
+        ["Color del tema", "Amarillo", "Rosa", "Verde", "Azul", "Naranja", "Morado"],
+      );
+      await tools.colour("#c8e6c9").click();
+      assert.equal(
+        await page.locator(".status").textContent(),
+        "Color de las notas adhesivas nuevas: verde.",
+      );
+      assert.equal(
+        await tools.button.getAttribute("aria-label"),
+        "Nota adhesiva, verde: haz clic para añadir una o arrástrala al lienzo",
+      );
+      await h.focusStage();
+      await page.keyboard.press("s");
+      await h.settled();
+      assert.match(h.text, /\n {2}sticky sticky1 "Nota"\n/);
+      assert.match(h.text, /\n {2}style sticky1 \{ fill "#c8e6c9" \}\n/);
+      assert.equal(await page.locator("textarea.inline").inputValue(), "Nota");
+      await page.keyboard.press("Escape");
+      await h.settled();
+      // The strip names the colours of paper in Spanish, the green one checked.
+      const sticky = await h.centre("sticky1");
+      await page.mouse.click(sticky.x, sticky.y);
+      await h.settled();
+      const paper = page.locator('.inspector [data-field="style.fill"] button.chip.paper');
+      assert.deepEqual(
+        await paper.evaluateAll((chips) => chips.map((c) => c.getAttribute("aria-label"))),
+        [
+          "Amarillo #fff59d",
+          "Rosa #f8bbd0",
+          "Verde #c8e6c9",
+          "Azul #bbdefb",
+          "Naranja #ffe0b2",
+          "Morado #e1bee7",
+        ],
+      );
+      assert.equal(await paper.nth(2).getAttribute("aria-checked"), "true");
+    },
+  },
+  {
+    name: "whiteboard: list: a card dragged between two shows the bar, makes room and is declared there without its place",
+    text: LISTS,
+    async run(h) {
+      const page = h.page;
+      const scene = await sceneOf(h);
+      const at = (x: number, y: number) => ({
+        x: scene.x + scene.zoom * x,
+        y: scene.y + scene.zoom * y,
+      });
+      const a0 = await boxOf(h, "a");
+      const b0 = await boxOf(h, "b");
+      const before = actions(h);
+      // c's centre dragged to the gap between a (y 100..260) and b (268..428).
+      await dragTo(h, at(420, 140), at(140, 264), async () => {
+        await h.settled();
+        // The room made, and the bar slid into it.
+        await page.waitForTimeout(300);
+        const bar = await insertionOf(h);
+        assert.equal(bar.shown, true, "the bar shows");
+        assert.equal(bar.row, false, "across a column");
+        const a = await boxOf(h, "a");
+        const b = await boxOf(h, "b");
+        // The column keeps its top-left corner as it grows (the session's `listCorners`): a stays,
+        // and b goes down by c's height and the spacing.
+        nearly(a.y, a0.y, 1.5, "a stays where it was");
+        nearly(b.y - a.y - (b0.y - a0.y), (160 + 8) * scene.zoom, 2, "the room between a and b");
+        // The bar lies between a and b, across the column inside its edges, under c.
+        assert.equal(bar.list, "todo");
+        const middle = bar.box.y + bar.box.height / 2;
+        assert.ok(middle > a.y + a.height && middle < b.y, `${middle} between a and b`);
+        const column = await boxOf(h, "todo");
+        nearly(bar.box.x, column.x + 6 * scene.zoom, 1.5, "the bar starts inside the column");
+        nearly(bar.box.width, column.width - 12 * scene.zoom, 1.5, "the bar spans the column");
+        assert.equal(
+          await page.evaluate(() => {
+            const bar = document.querySelector(".content svg .mdg-insertion")!;
+            const c = document.querySelector('.content svg g[data-id="c"][data-role="element"]')!;
+            return (bar.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+          }),
+          true,
+          "c is drawn over the bar",
+        );
+        // c floats under the pointer, lifted above the column.
+        const c = await boxOf(h, "c");
+        const pointer = at(140, 264);
+        nearly(c.x + c.width / 2, pointer.x, 2, "c under the pointer across");
+        nearly(c.y + c.height / 2, pointer.y, 3, "c under the pointer down");
+        assert.equal(
+          await page
+            .locator('.content g[data-id="c"][data-role="element"]')
+            .evaluate((g) => g.classList.contains("mdg-lifted")),
+          true,
+        );
+        // The preview asked for the move the drop sends: into todo at 1, with no point.
+        const asked = h.previews().map((p) => (p as unknown as { action: unknown }).action);
+        assert.deepEqual(asked.at(-1), { kind: "move", ids: ["c"], parent: "todo", index: 1 });
+      });
+      assert.equal(actions(h), before + 1, "one drop, one edit");
+      assert.deepEqual(declaredIn(h.text, "todo"), ["a", "c", "b"]);
+      assert.doesNotMatch(h.text, /place c /);
+      assert.equal(await page.locator(".status").textContent(), "Moved c to 2 of 3 in todo.");
+      // c glided into the room it had, between a and b, and the bar is gone.
+      await page.waitForTimeout(300);
+      const [a, c, b] = [await boxOf(h, "a"), await boxOf(h, "c"), await boxOf(h, "b")];
+      nearly(c.y - a.y, (160 + 8) * scene.zoom, 1.5, "c below a");
+      nearly(b.y - c.y, (160 + 8) * scene.zoom, 1.5, "b below c");
+      nearly(c.x, a.x, 1, "c in the column");
+      assert.equal((await insertionOf(h)).shown, false);
+    },
+  },
+  {
+    name: "whiteboard: list: the bar fades in and slides from gap to gap while the cards glide (slowed)",
+    text: LISTS,
+    // The motion slowed, so that its middle is seen.
+    theme: ":root { --mdg-motion-fast: 1600ms; --mdg-motion: 1600ms; }",
+    async run(h) {
+      const page = h.page;
+      const scene = await sceneOf(h);
+      const at = (x: number, y: number) => ({
+        x: scene.x + scene.zoom * x,
+        y: scene.y + scene.zoom * y,
+      });
+      // No named functions inside: the page has no `__name` helper for them.
+      const motion = () =>
+        page.evaluate(() => {
+          const bar = document.querySelector(".content svg .mdg-insertion");
+          const b = document.querySelector('.content svg g[data-id="b"][data-role="element"]');
+          const kinds = (bar?.getAnimations() ?? []).map((animation) => {
+            const frames = (animation.effect as KeyframeEffect).getKeyframes();
+            return `${"opacity" in frames[0]! ? "fade" : "slide"}:${(animation.effect as KeyframeEffect).composite}`;
+          });
+          return {
+            opacity: bar ? Number(getComputedStyle(bar).opacity) : -1,
+            kinds,
+            glides: b?.getAnimations().length ?? 0,
+          };
+        });
+      const from = at(420, 140);
+      const gap = at(140, 264);
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(gap.x, gap.y, { steps: 8 });
+      await h.settled();
+      await page.waitForTimeout(300);
+      const fading = await motion();
+      assert.ok(fading.opacity > 0.02 && fading.opacity < 0.98, `fading in: ${fading.opacity}`);
+      assert.ok(fading.kinds.includes("fade:replace"), fading.kinds.join(", "));
+      assert.ok(fading.glides > 0, "b glides down to make room");
+      // Above a: the bar slides there, added to the slide under way.
+      const top = at(140, 120);
+      await page.mouse.move(top.x, top.y, { steps: 6 });
+      await h.settled();
+      await page.waitForTimeout(100);
+      const sliding = await motion();
+      assert.ok(sliding.kinds.includes("slide:add"), sliding.kinds.join(", "));
+      await page.screenshot({ path: join(output, "kanban-slide.png") });
+      await page.keyboard.press("Escape");
+      await page.mouse.up();
+      await h.settled();
+      assert.equal(h.text, LISTS);
+    },
+  },
+  {
+    name: "whiteboard: list: a card dragged above its neighbour is declared before it; Alt shows no bar and is refused",
+    text: LISTS,
+    async run(h) {
+      const page = h.page;
+      const scene = await sceneOf(h);
+      const at = (x: number, y: number) => ({
+        x: scene.x + scene.zoom * x,
+        y: scene.y + scene.zoom * y,
+      });
+      // With Alt, b keeps its group: no bar, and the list refuses a place for it.
+      const from = at(140, 348);
+      const to = at(140, 120);
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.keyboard.down("Alt");
+      await page.mouse.move(to.x, to.y, { steps: 8 });
+      await h.settled();
+      assert.equal((await insertionOf(h)).shown, false, "no bar with Alt");
+      await page.mouse.up();
+      await page.keyboard.up("Alt");
+      await h.settled();
+      assert.equal(h.text, LISTS);
+      const status = page.locator(".status");
+      assert.match((await status.textContent()) ?? "", /todo.+places.+b.+Alt\+Up or Alt\+Down/);
+      assert.equal(await status.evaluate((s) => s.classList.contains("error")), true);
+      // Without it, b goes before a: the bar shows above a, and no place is written.
+      const before = actions(h);
+      await dragTo(h, from, to, async () => {
+        await h.settled();
+        await page.waitForTimeout(250);
+        const bar = await insertionOf(h);
+        assert.equal(bar.shown, true);
+        const a = await boxOf(h, "a");
+        assert.ok(bar.box.y + bar.box.height < a.y, "the bar above a, which made room");
+      });
+      assert.equal(actions(h), before + 1);
+      assert.deepEqual(declaredIn(h.text, "todo"), ["b", "a"]);
+      assert.doesNotMatch(h.text, /place [ab] /);
+      // Dragged back where it is, it writes nothing.
+      const again = actions(h);
+      await dragBy(h, "b", 0, 30 * scene.zoom);
+      assert.equal(actions(h), again, "a drop that keeps the order writes nothing");
+      assert.deepEqual(declaredIn(h.text, "todo"), ["b", "a"]);
+    },
+  },
+  {
+    name: "whiteboard: list: a card dragged out onto the canvas is declared at the top level with its place",
+    text: LISTS,
+    async run(h) {
+      const page = h.page;
+      const scene = await sceneOf(h);
+      const at = (x: number, y: number) => ({
+        x: scene.x + scene.zoom * x,
+        y: scene.y + scene.zoom * y,
+      });
+      await dragTo(h, at(140, 180), at(600, 400), async () => {
+        await h.settled();
+        assert.equal((await insertionOf(h)).shown, false, "no bar outside a list");
+      });
+      assert.deepEqual(declaredIn(h.text, "todo"), ["b"]);
+      assert.match(h.text, /\n {2}sticky a "Alpha"\n/);
+      const place = h.place("a");
+      assert.ok(
+        Math.abs(place.x - 600) <= 14 && Math.abs(place.y - 400) <= 14,
+        `place a at (${place.x}, ${place.y})`,
+      );
+      assert.match((await page.locator(".status").textContent()) ?? "", /to the top level/);
+    },
+  },
+  {
+    name: "whiteboard: list: the + of a selected column adds a sticky note last in it, its editor open, and again while typing",
+    text: LISTS,
+    async run(h) {
+      const page = h.page;
+      const scene = await sceneOf(h);
+      const at = (x: number, y: number) => ({
+        x: scene.x + scene.zoom * x,
+        y: scene.y + scene.zoom * y,
+      });
+      assert.equal(await listAddShown(page, "todo"), false, "no + before the list is hovered");
+      // Its title selects the column; the + shows below its last card.
+      const title = at(140, 80);
+      await page.mouse.click(title.x, title.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["todo"]);
+      // Away from the column, the selection keeps it.
+      await page.mouse.move(at(700, 500).x, at(700, 500).y);
+      await page.waitForTimeout(200);
+      assert.equal(await listAddShown(page, "todo"), true);
+      const plus = listAdd(page, "todo");
+      assert.equal(await plus.getAttribute("aria-label"), "Add a sticky note to todo");
+      assert.equal(await plus.getAttribute("title"), "Add a sticky note to todo (Ctrl+Enter)");
+      const b = await boxOf(h, "b");
+      const todo = await boxOf(h, "todo");
+      const centre = await middleOf(plus);
+      nearly(centre.x, b.x + b.width / 2, 1, "under the last card");
+      // The column has no room below its last card: the + is past its edge, clear of the resize
+      // handle there.
+      nearly(centre.y, todo.y + todo.height + 4 + 6 + 11, 1.5, "just below the column");
+      const before = actions(h);
+      await plus.click();
+      await h.settled();
+      assert.equal(actions(h), before + 1);
+      assert.deepEqual(declaredIn(h.text, "todo"), ["a", "b", "sticky1"]);
+      assert.match(h.text, /\n {4}sticky sticky1 "Sticky"\n/);
+      assert.doesNotMatch(h.text, /place sticky1/);
+      const inline = page.locator("textarea.inline");
+      assert.equal(await inline.inputValue(), "Sticky");
+      assert.ok((await boxOf(h, "todo")).height > todo.height + 100, "the column grew");
+      // Its words typed, the + keeps them and adds the next card after it.
+      await page.keyboard.type("Ship it");
+      await listAdd(page, "todo").click();
+      await h.settled();
+      assert.deepEqual(declaredIn(h.text, "todo"), ["a", "b", "sticky1", "sticky2"]);
+      assert.match(h.text, /sticky sticky1 "Ship it"/);
+      assert.equal(await inline.inputValue(), "Sticky");
+      assert.equal(await inline.getAttribute("data-id"), "sticky2");
+      await page.keyboard.press("Escape");
+      await h.settled();
+    },
+  },
+  {
+    name: "whiteboard: list: the + of a hovered row adds a column last in it, its title editor open (kanban-plus.png)",
+    text: KANBAN,
+    async run(h) {
+      const page = h.page;
+      // Over a card of Done: the + of its column, below the card, and the + of the board.
+      const card = await h.centre("n1");
+      await page.mouse.move(card.x, card.y, { steps: 4 });
+      await page.waitForTimeout(250);
+      assert.equal(await listAddShown(page, "done"), true);
+      assert.equal(await listAddShown(page, "board"), true);
+      assert.equal(await listAddShown(page, "todo"), false);
+      assert.equal(
+        await listAdd(page, "board").getAttribute("aria-label"),
+        "Add a column to board",
+      );
+      // The column's + grows in from the canvas's pop scale.
+      assert.equal(
+        await listAdd(page, "done").evaluate((b) => getComputedStyle(b).transform),
+        "none",
+      );
+      await page.locator(".main").screenshot({ path: join(output, "kanban-plus.png") });
+      // Right of the last column, then pressed.
+      const done = await boxOf(h, "done");
+      const plus = await middleOf(listAdd(page, "board"));
+      assert.ok(plus.x > done.x + done.width, "right of the last column");
+      await listAdd(page, "board").click();
+      await h.settled();
+      assert.deepEqual(declaredIn(h.text, "board"), ["todo", "doing", "done", "group1"]);
+      assert.match(h.text, /group group1 "Column" \{\s*layout column\s*\}/);
+      assert.doesNotMatch(h.text, /place group1/);
+      assert.equal(await page.locator("textarea.inline").inputValue(), "Column");
+      await page.keyboard.press("Escape");
+      await h.settled();
+      // Gone with the pointer, off the board.
+      const board = await boxOf(h, "board");
+      await page.mouse.move(board.x + 20, board.y + board.height + 60, { steps: 4 });
+      await page.waitForTimeout(250);
+      assert.equal(await listAddShown(page, "board"), false);
+    },
+  },
+  {
+    name: "whiteboard: list: Alt+Up and Alt+Down move the selected card among its neighbours, which stays selected",
+    text: LISTS,
+    async run(h) {
+      const page = h.page;
+      const b = await h.centre("b");
+      await page.mouse.click(b.x, b.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["b"]);
+      const before = actions(h);
+      await page.keyboard.press("Alt+ArrowUp");
+      await h.settled();
+      assert.equal(actions(h), before + 1);
+      assert.deepEqual(declaredIn(h.text, "todo"), ["b", "a"]);
+      assert.deepEqual(h.session.selected, ["b"]);
+      const status = page.locator(".status");
+      assert.equal(await status.textContent(), "Moved b before a in todo.");
+      // At the top it stays, and says so.
+      await page.keyboard.press("Alt+ArrowUp");
+      await h.settled();
+      assert.equal(actions(h), before + 1, "nothing sent at an end");
+      assert.equal(await status.textContent(), "b is already first in todo.");
+      await page.keyboard.press("Alt+ArrowDown");
+      await h.settled();
+      assert.deepEqual(declaredIn(h.text, "todo"), ["a", "b"]);
+      assert.equal(await status.textContent(), "Moved b after a in todo.");
+      assert.doesNotMatch(h.text, /place [ab] /);
+      // An arrow key alone would write a place the list ignores: it says how to move it instead.
+      await page.keyboard.press("ArrowUp");
+      await h.settled();
+      assert.match((await status.textContent()) ?? "", /Alt\+Up or Alt\+Down/);
+      assert.deepEqual(declaredIn(h.text, "todo"), ["a", "b"]);
+    },
+  },
+  {
+    name: "whiteboard: list: Ctrl+Enter adds a card after the selected one, and again from its editor",
+    text: LISTS,
+    async run(h) {
+      const page = h.page;
+      const a = await h.centre("a");
+      await page.mouse.click(a.x, a.y);
+      await h.settled();
+      await page.keyboard.press("Control+Enter");
+      await h.settled();
+      assert.deepEqual(declaredIn(h.text, "todo"), ["a", "sticky1", "b"]);
+      const inline = page.locator("textarea.inline");
+      assert.equal(await inline.getAttribute("data-id"), "sticky1");
+      // Its keys say how to go on to the next card.
+      assert.match(
+        (await inline.getAttribute("aria-description")) ?? "",
+        /Ctrl\+Enter keeps it and adds the next card\.$/,
+      );
+      await page.keyboard.type("Middle");
+      await page.keyboard.press("Control+Enter");
+      await h.settled();
+      assert.match(h.text, /sticky sticky1 "Middle"/);
+      assert.deepEqual(declaredIn(h.text, "todo"), ["a", "sticky1", "sticky2", "b"]);
+      assert.equal(await inline.getAttribute("data-id"), "sticky2");
+      await page.keyboard.press("Escape");
+      await h.settled();
+      // Outside a list it says what it needs.
+      const c = await h.centre("c");
+      await page.mouse.click(c.x, c.y);
+      await h.settled();
+      await page.keyboard.press("Control+Enter");
+      await h.settled();
+      assert.equal(
+        await page.locator(".status").textContent(),
+        "Select a list, or a card of one, to add to it.",
+      );
+    },
+  },
+  {
+    name: "whiteboard: list: the group menu's Column creates a column with its place and size, and G another",
+    text: LISTS,
+    async run(h) {
+      const page = h.page;
+      const arrow = page.locator(".toolbar .split-arrow[data-group-kinds]");
+      assert.equal(await arrow.getAttribute("aria-label"), "Group, container, column or row (G)");
+      await arrow.click();
+      const kinds = page.locator(".menu [role=menuitemradio]");
+      assert.deepEqual(
+        await kinds.evaluateAll((items) => items.map((i) => i.getAttribute("data-group-kind"))),
+        ["group", "container", "column", "row"],
+      );
+      await page.waitForTimeout(200);
+      await page.screenshot({
+        path: join(output, "list-group-menu.png"),
+        clip: { x: 0, y: 0, width: 700, height: 260 },
+      });
+      await page.locator('.menu [data-group-kind="column"]').click();
+      const group = page.locator('.toolbar button[data-tool="group"]');
+      assert.equal(await group.getAttribute("data-group-kind"), "column");
+      assert.equal(
+        await group.getAttribute("aria-label"),
+        "Column: click on the canvas, or press G",
+      );
+      const spot = await strokeAt(h, { x: 680, y: 140 });
+      await page.mouse.click(spot.x, spot.y);
+      await h.settled();
+      assert.match(h.text, /\n {2}group group1 "Column" \{\s*layout column\s*\}/);
+      assert.match(h.text, /place group1 at \(\d+, \d+\)/);
+      assert.match(h.text, /size group1 \(\d+, \d+\)/);
+      // Its title is open to type.
+      assert.equal(await page.locator("textarea.inline").inputValue(), "Column");
+      await page.keyboard.press("Escape");
+      await h.settled();
+      await h.focusStage();
+      await page.keyboard.press("g");
+      await h.settled();
+      assert.match(h.text, /\n {2}group group2 "Column" \{\s*layout column\s*\}/);
+      await page.keyboard.press("Escape");
+      await h.settled();
+      // A flow diagram offers no lists: its group button creates a group.
+      await h.type(SHEET);
+      assert.equal(await arrow.getAttribute("aria-label"), "Group or container (G)");
+      assert.equal(await group.getAttribute("data-group-kind"), "group");
+    },
+  },
+  {
+    name: "whiteboard: list: a read-only canvas shows no + and moves no card, by drag or key",
+    text: LISTS,
+    readOnly: true,
+    async run(h) {
+      const page = h.page;
+      const b = await h.centre("b");
+      await page.mouse.move(b.x, b.y, { steps: 4 });
+      await page.waitForTimeout(200);
+      assert.equal(await listAddShown(page, "todo"), false);
+      assert.equal(await page.locator(".stage .list-adds").isVisible(), false);
+      await page.mouse.click(b.x, b.y);
+      await h.settled();
+      await page.keyboard.press("Alt+ArrowUp");
+      await page.keyboard.press("Control+Enter");
+      await h.settled();
+      const a = await h.centre("a");
+      await dragTo(h, b, { x: a.x, y: a.y - 60 });
+      assert.equal((await insertionOf(h)).shown, false);
+      assert.deepEqual(h.writes(), []);
+      assert.equal(h.text, LISTS);
+    },
+  },
+  {
+    name: "whiteboard: list: Spanish names Column and Row, the + of a column, and writes Fila and Nota",
+    text: LISTS,
+    lang: "es",
+    async run(h) {
+      const page = h.page;
+      const arrow = page.locator(".toolbar .split-arrow[data-group-kinds]");
+      assert.equal(await arrow.getAttribute("aria-label"), "Grupo, contenedor, columna o fila (G)");
+      await arrow.click();
+      assert.deepEqual(
+        await page
+          .locator(".menu [role=menuitemradio]")
+          .evaluateAll((items) => items.map((i) => (i.textContent ?? "").trim())),
+        ["Grupo", "Contenedor", "Columna", "Fila"],
+      );
+      await page.locator('.menu [data-group-kind="row"]').click();
+      const group = page.locator('.toolbar button[data-tool="group"]');
+      assert.equal(
+        await group.getAttribute("aria-label"),
+        "Fila: haz clic en el lienzo o presiona G",
+      );
+      const spot = await strokeAt(h, { x: 680, y: 140 });
+      await page.mouse.click(spot.x, spot.y);
+      await h.settled();
+      assert.match(h.text, /\n {2}group group1 "Fila" \{\s*layout row\s*\}/);
+      await page.keyboard.press("Escape");
+      await h.settled();
+      const title = await strokeAt(h, { x: 140, y: 80 });
+      await page.mouse.click(title.x, title.y);
+      await h.settled();
+      const plus = listAdd(page, "todo");
+      assert.equal(await plus.getAttribute("aria-label"), "Añadir una nota adhesiva a todo");
+      assert.equal(
+        await plus.getAttribute("title"),
+        "Añadir una nota adhesiva a todo (Ctrl+Entrar)",
+      );
+      await plus.click();
+      await h.settled();
+      assert.match(h.text, /\n {4}sticky sticky1 "Nota"\n/);
+      assert.deepEqual(declaredIn(h.text, "todo"), ["a", "b", "sticky1"]);
+      await page.keyboard.press("Escape");
+      await h.settled();
+    },
+  },
+  {
+    name: "whiteboard: list: the inspector of a column shows Layout, Spacing and Align, and resizing it writes its size",
+    text: LISTS,
+    async run(h) {
+      const page = h.page;
+      const scene = await sceneOf(h);
+      const title = await strokeAt(h, { x: 140, y: 80 });
+      await page.mouse.click(title.x, title.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["todo"]);
+      assert.equal(await page.locator("#mdg-field-layout").inputValue(), "column");
+      assert.equal(await page.locator("#mdg-field-spacing").isVisible(), true);
+      assert.equal(await page.locator("#mdg-field-align").isVisible(), true);
+      const spacing = page.locator("#mdg-field-spacing");
+      await spacing.fill("16");
+      await spacing.press("Enter");
+      await h.settled();
+      assert.match(h.text, /layout column\n\s*spacing 16\n/);
+      // The cards went 16 apart.
+      const a = await boxOf(h, "a");
+      const b = await boxOf(h, "b");
+      nearly(b.y - a.y, (160 + 16) * scene.zoom, 1.5, "16 apart");
+      // The south handle makes the column taller: its least size.
+      const handle = page.locator('.overlay .handle[data-handle="resize:s"]');
+      const from = await middleOf(handle);
+      await dragTo(h, from, { x: from.x, y: from.y + 84 * scene.zoom });
+      const size = /size todo \((\d+), (\d+)\)/.exec(h.text);
+      assert.ok(size, h.text);
+      assert.ok(Number(size[2]) > 392 + 70, `taller: ${size[0]}`);
+      assert.deepEqual(declaredIn(h.text, "todo"), ["a", "b"]);
+    },
+  },
+  {
+    name: "whiteboard: list: a card dragged across a board to another column, the bar between its cards (kanban-drop.png)",
+    text: KANBAN,
+    async run(h) {
+      const page = h.page;
+      const t1 = await boxOf(h, "t1");
+      const t2 = await boxOf(h, "t2");
+      const from = await h.centre("d2");
+      // Between Write the brief and Pick a name.
+      const to = { x: t1.x + t1.width / 2, y: (t1.y + t1.height + t2.y) / 2 };
+      await dragTo(h, from, to, async () => {
+        await h.settled();
+        await page.waitForTimeout(300);
+        const bar = await insertionOf(h);
+        assert.equal(bar.shown, true);
+        const [first, second] = [await boxOf(h, "t1"), await boxOf(h, "t2")];
+        assert.ok(
+          second.y - first.y > t2.y - t1.y + 120 * (await zoomOf(h)),
+          "Pick a name made room",
+        );
+        await page.locator(".main").screenshot({ path: join(output, "kanban-drop.png") });
+      });
+      assert.deepEqual(declaredIn(h.text, "todo"), ["t1", "d2", "t2"]);
+      assert.deepEqual(declaredIn(h.text, "doing"), ["d1"]);
+      assert.doesNotMatch(h.text, /place d2/);
+      // Escape over a list puts everything back, gliding.
+      const d1 = await h.centre("d1");
+      const before = actions(h);
+      await page.mouse.move(d1.x, d1.y);
+      await page.mouse.down();
+      await page.mouse.move(to.x, to.y, { steps: 8 });
+      await h.settled();
+      await page.waitForTimeout(200);
+      await page.keyboard.press("Escape");
+      await page.mouse.up();
+      await h.settled();
+      await page.waitForTimeout(300);
+      assert.equal(actions(h), before, "nothing written");
+      assert.equal((await insertionOf(h)).shown, false);
+      nearly((await h.centre("d1")).y, d1.y, 1, "d1 back in its place");
+      nearly(
+        (await boxOf(h, "t2")).y,
+        (await boxOf(h, "d2")).y + 168 * (await zoomOf(h)),
+        2,
+        "t2 back below d2",
+      );
+    },
+  },
+  // Strokes of others (`diagram-canvas`): the pen's points in the presence laser batches.
+  {
+    name: "whiteboard: peer stroke: Ben's batches grow a 4 px red stroke that does not fade, and the render holding his pen takes its place (peer-stroke.png)",
+    text: PEER,
+    async run(h) {
+      const page = h.page;
+      const first = LOOP.slice(0, 10);
+      const second = LOOP.slice(10);
+      await h.presence([benDrawing(1, first)]);
+      const early = await presenceInk(h);
+      // A page just opened may take a frame or two to draw under load.
+      await untilInk(h);
+      await page.waitForTimeout(250);
+      const scene = await sceneOf(h);
+      const zoom = scene.zoom;
+      const at = (p: { x: number; y: number }) => ({
+        x: scene.x + zoom * p.x,
+        y: scene.y + zoom * p.y,
+      });
+      const half = await presenceInk(h, { x: at({ x: 460, y: 0 }).x, above: at(LOOP[0]!).y });
+      // Ten points over 180 ms: the stroke grew point by point, in Ben's pen's red, opaque.
+      assert.ok(half.count > early.count, `grown: ${early.count} then ${half.count}`);
+      assert.deepEqual(half.colour, [224, 49, 49]);
+      assert.equal(half.alpha, 255);
+      nearly(half.across, 4 * zoom, 1.5, "the stroke's width across the top of the loop");
+      // Through the first ten points: from the leaf's left, over its top, to its right.
+      const box = (points: readonly { x: number; y: number }[]) => {
+        const xs = points.map((p) => at(p).x);
+        const ys = points.map((p) => at(p).y);
+        return {
+          left: Math.min(...xs) - 2 * zoom,
+          right: Math.max(...xs) + 2 * zoom,
+          top: Math.min(...ys) - 2 * zoom,
+          bottom: Math.max(...ys) + 2 * zoom,
+        };
+      };
+      const over = box(first);
+      nearly(half.box!.x, over.left, 3, "left");
+      nearly(half.box!.x + half.box!.width, over.right, 3, "right");
+      nearly(half.box!.y, over.top, 3, "top");
+      nearly(half.box!.y + half.box!.height, over.bottom, 3, "bottom, above the leaf's middle");
+      // The next ten points grow the same stroke, under the leaf and back to where it began. Ana
+      // highlights the heading meanwhile: a 20 px stroke of the highlight colour, translucent.
+      const underline = Array.from({ length: 8 }, (_, i) => ({
+        x: 214 + i * 24,
+        y: 78,
+        t: i * 25,
+      }));
+      const ana: PresencePerson = {
+        name: "Ana",
+        colour: "#2f9e44",
+        selection: [],
+        pointer: { x: 382, y: 78 },
+        laser: {
+          batch: 1,
+          points: underline,
+          pen: { width: 20, colour: "#ffe600", opacity: 0.35, stroke: 1 },
+        },
+      };
+      await h.presence([benDrawing(2, second), ana]);
+      const all = box(LOOP);
+      // The first frame after a new person's cursor may come a quarter of a second late.
+      await untilInk(h, (ink) => !!ink.box && ink.box.y + ink.box.height >= all.bottom - 3);
+      await page.waitForTimeout(250);
+      const whole = await presenceInk(h);
+      assert.ok(whole.count > half.count, `${half.count} then ${whole.count}`);
+      nearly(whole.box!.y + whole.box!.height, all.bottom, 3, "bottom, under the leaf");
+      nearly(whole.box!.x, all.left, 3, "left");
+      const mark = await presenceInk(h, { x: at({ x: 300, y: 0 }).x, above: at(LOOP[0]!).y }, 40);
+      nearly(mark.across, 20 * zoom, 2, "the highlighter's width");
+      assert.equal(await page.locator(".presence-cursor").count(), 2);
+      await page.locator(".main").screenshot({ path: join(output, "peer-stroke.png") });
+      // Two seconds on, nothing has faded.
+      await page.waitForTimeout(2000);
+      const later = await presenceInk(h);
+      assert.equal(later.count, whole.count, "still drawn whole");
+      assert.deepEqual(later.box, whole.box);
+      assert.equal(later.alpha, 255);
+      // The render that holds Ben's pen: the presence strokes go at once, and the pen is drawn there.
+      await h.type(peerWith(penStatement("ben1", LOOP, 'stroke "#e03131"; width 4')));
+      await page.waitForTimeout(50);
+      assert.equal((await presenceInk(h)).count, 0, "the presence layer holds nothing");
+      assert.equal(
+        await page.locator('.content g[data-id="ben1"][data-role="element"]').count(),
+        1,
+      );
+      assert.equal(await page.locator(".presence-cursor").count(), 2, "the cursors stay");
+      assert.deepEqual(h.writes(), []);
+    },
+  },
+  {
+    name: "whiteboard: peer stroke: a stroke still drawn stays through somebody else's edit, goes with its own pen, and its late end draws nothing",
+    text: PEER,
+    async run(h) {
+      const page = h.page;
+      // Ben underlines the sun from left to right, in three batches.
+      const line = Array.from({ length: 24 }, (_, i) => ({
+        x: 80 + i * 5,
+        y: 222 + (i % 2) * 0.5,
+        t: (i % 8) * 15,
+      }));
+      const [one, two, three] = [line.slice(0, 8), line.slice(8, 16), line.slice(16)];
+      await h.presence([benDrawing(1, one)]);
+      await page.waitForTimeout(150);
+      const drawn = await untilInk(h);
+      assert.ok(drawn.count > 0, "drawn");
+      // Somebody else retitles the heading while Ben goes on: the render holds no pen of his, and
+      // his stroke stays whole.
+      await h.presence([benDrawing(2, two)]);
+      await h.type(PEER.replace('"Photosynthesis"', '"Light"'));
+      await page.waitForTimeout(200);
+      const kept = await presenceInk(h);
+      assert.ok(kept.count > drawn.count, `kept and grown: ${drawn.count} then ${kept.count}`);
+      // The release writes his pen: the render holding it takes the stroke's place.
+      await h.type(peerWith(penStatement("ben1", line, 'stroke "#e03131"; width 4')));
+      await page.waitForTimeout(50);
+      assert.equal((await presenceInk(h)).count, 0, "gone with its pen");
+      // The stroke's last batch, which the room carried after the pen: its number went with its
+      // pen, and nothing of it is drawn over the pen.
+      await h.presence([benDrawing(3, three)]);
+      await page.waitForTimeout(250);
+      assert.equal((await presenceInk(h)).count, 0, "the late end draws nothing");
+      // His next stroke, under the leaf, is his own and is drawn.
+      const next = Array.from({ length: 8 }, (_, i) => ({ x: 410 + i * 12, y: 236, t: i * 15 }));
+      await h.presence([benDrawing(4, next, { ...RED_PEN, stroke: 2 })]);
+      await page.waitForTimeout(250);
+      assert.ok((await presenceInk(h)).count > 0, "the next stroke is drawn");
+    },
+  },
+  {
+    name: "whiteboard: peer stroke: a batch whose pen part does not fit draws nothing, and Ben's cursor still shows",
+    text: PEER,
+    async run(h) {
+      const page = h.page;
+      const points = LOOP.slice(0, 10);
+      for (const [batch, pen] of [
+        [1, { ...RED_PEN, width: 900 }],
+        [2, { ...RED_PEN, width: 2.5 }],
+        [3, { ...RED_PEN, colour: `#${"e".repeat(40)}` }],
+        [4, { ...RED_PEN, opacity: 2 }],
+        [5, { ...RED_PEN, stroke: -1 }],
+        [6, { ...RED_PEN, stroke: 1.5 }],
+      ] as const) {
+        await h.presence([benDrawing(batch, points, pen)]);
+        await page.waitForTimeout(300);
+        assert.equal((await presenceInk(h)).count, 0, `batch ${batch}: ${JSON.stringify(pen)}`);
+        assert.equal(await page.locator(".presence-cursor").count(), 1, "Ben's cursor");
+      }
+      // The same points with a part that fits are drawn.
+      await h.presence([benDrawing(7, points)]);
+      await page.waitForTimeout(300);
+      assert.ok((await untilInk(h)).count > 0);
+      assert.deepEqual(h.writes(), []);
+    },
+  },
+  {
+    name: "whiteboard: peer stroke: a highlighter stroke goes to a host that shares presence with its pen part, at most every 50 ms; the Pointer's batches carry none",
+    text: PEER,
+    async run(h) {
+      const page = h.page;
+      // A host that has said nothing of presence is sent nothing.
+      await h.focusStage();
+      await page.keyboard.press("h");
+      const draw = async (from: { x: number; y: number }) => {
+        const start = await strokeAt(h, from);
+        await page.mouse.move(start.x, start.y);
+        await page.mouse.down();
+        for (let i = 1; i <= 15; i++) {
+          await page.mouse.move(start.x + i * 8, start.y + (i % 3));
+          await page.waitForTimeout(20);
+        }
+        await page.mouse.up();
+        await h.settled();
+        await page.waitForTimeout(120);
+      };
+      await draw({ x: 220, y: 78 });
+      assert.deepEqual(laserPosts(h), [], "no presence, no batches");
+      assert.match(h.text, /\n {2}style pen1 \{ stroke highlight; width 20; opacity 0\.35 \}\n/);
+      // Once the host shares presence, a 300 ms highlighter stroke goes in batches of its look.
+      await h.presence([]);
+      let from = h.received.length;
+      await draw({ x: 220, y: 100 });
+      const highlighted = laserPosts(h, from);
+      assert.ok(highlighted.length >= 3, `${highlighted.length} batches`);
+      // At the pointer's beat, but the last, which the release sends at once.
+      for (let i = 1; i < highlighted.length - 1; i++) {
+        const gap = highlighted[i]!.at - highlighted[i - 1]!.at;
+        assert.ok(gap >= 40, `batches ${i - 1} and ${i} ${gap} ms apart`);
+      }
+      const number = highlighted[0]!.pen!.stroke;
+      assert.ok(Number.isInteger(number) && number >= 0 && number <= 2_147_483_647, `${number}`);
+      for (const post of highlighted) {
+        // The theme's highlight colour (light: #ffe600), resolved, never the token, and the
+        // stroke's number in every batch of it.
+        assert.deepEqual(post.pen, { width: 20, colour: "#ffe600", opacity: 0.35, stroke: number });
+        assert.equal(post.points[0]!.t, 0, "each batch starts at 0");
+        assert.ok(post.points.length <= 64);
+        assert.equal(post.diagram, "s");
+      }
+      const total = highlighted.reduce((sum, post) => sum + post.points.length, 0);
+      assert.ok(total >= 12, `${total} points together`);
+      assert.match(h.text, /\n {2}pen pen2 \[/);
+      // The pen sends its own look: 3 wide, the ink colour, opaque, and the next number.
+      await page.keyboard.press("p");
+      from = h.received.length;
+      await draw({ x: 140, y: 250 });
+      const inked = laserPosts(h, from);
+      assert.ok(inked.length >= 1);
+      for (const post of inked) {
+        assert.equal(post.pen?.width, 3);
+        assert.equal(post.pen?.opacity, 1);
+        assert.match(post.pen?.colour ?? "", /^#[0-9a-f]{6}$/);
+        assert.equal(post.pen?.stroke, number === 2_147_483_647 ? 0 : number + 1);
+        assert.equal(post.pen?.cancel, undefined);
+      }
+      // Escape cancels a stroke: its last batch says so, and nothing is written.
+      from = h.received.length;
+      const before = actions(h);
+      const start = await strokeAt(h, { x: 140, y: 300 });
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      for (let i = 1; i <= 6; i++) {
+        await page.mouse.move(start.x + i * 8, start.y);
+        await page.waitForTimeout(20);
+      }
+      await page.keyboard.press("Escape");
+      await page.mouse.up();
+      await h.settled();
+      const cancelled = laserPosts(h, from);
+      assert.ok(cancelled.length >= 2, `${cancelled.length} batches`);
+      const third = cancelled[0]!.pen!.stroke;
+      assert.equal(third, inked[0]!.pen!.stroke === 2_147_483_647 ? 0 : inked[0]!.pen!.stroke + 1);
+      for (const post of cancelled.slice(0, -1)) assert.equal(post.pen?.cancel, undefined);
+      assert.deepEqual(cancelled.at(-1)!.pen, { ...cancelled[0]!.pen, cancel: true });
+      assert.equal(actions(h), before, "a stroke cancelled writes nothing");
+      // The Pointer's trail goes as before, with no pen part.
+      await page.keyboard.press("k");
+      from = h.received.length;
+      await draw({ x: 140, y: 280 });
+      const pointed = laserPosts(h, from);
+      assert.ok(pointed.length >= 3, `${pointed.length} batches`);
+      for (const post of pointed) assert.equal(post.pen, undefined);
+      assert.doesNotMatch(h.text, /pen pen4/, "the Pointer writes nothing");
+    },
+  },
+  {
+    name: "whiteboard: peer stroke: a stroke cancelled with Escape goes at once, and Ben's next strokes are never joined",
+    text: PEER,
+    async run(h) {
+      const page = h.page;
+      const scene = await sceneOf(h);
+      const at = (p: { x: number; y: number }) => ({
+        x: scene.x + scene.zoom * p.x,
+        y: scene.y + scene.zoom * p.y,
+      });
+      // Ben loops over the leaf's top, then cancels with Escape: the last batch has no points.
+      await h.presence([benDrawing(1, LOOP.slice(0, 10))]);
+      assert.ok((await steadyInk(h)).count > 0, "drawn");
+      await h.presence([benDrawing(2, [], { ...RED_PEN, cancel: true })]);
+      // At once: in the next frames, long before the ten seconds a stroke is otherwise kept.
+      const cancelled = await untilInk(h, (ink) => ink.count === 0, 1000);
+      assert.equal(cancelled.count, 0, "gone at once with its cancel");
+      // He underlines the sun, and 200 ms later loops over the leaf again, with the same pen.
+      const under = Array.from({ length: 8 }, (_, i) => ({ x: 90 + i * 14, y: 236, t: i * 15 }));
+      await h.presence([benDrawing(3, under, { ...RED_PEN, stroke: 2 })]);
+      await page.waitForTimeout(200);
+      await h.presence([benDrawing(4, LOOP.slice(0, 10), { ...RED_PEN, stroke: 3 })]);
+      await steadyInk(h);
+      // Both are drawn, and nothing joins the underline's end to the loop's start: the column
+      // between them, at x 270, holds no ink.
+      const both = await presenceInk(h, {
+        x: at({ x: 270, y: 0 }).x,
+        above: at({ x: 0, y: 320 }).y,
+      });
+      assert.ok(both.box, "drawn");
+      assert.ok(both.box.x <= at({ x: 92, y: 0 }).x, "the underline is drawn");
+      assert.ok(both.box.x + both.box.width >= at({ x: 540, y: 0 }).x, "the loop is drawn");
+      assert.equal(both.across, 0, "no line between the two strokes");
+      assert.deepEqual(h.writes(), []);
+    },
+  },
+  {
+    name: "whiteboard: peer stroke: Ben's stroke stays and grows when his finger leaves the screen, and goes when he leaves",
+    text: PEER,
+    async run(h) {
+      const page = h.page;
+      await h.presence([benDrawing(1, LOOP.slice(0, 10))]);
+      const first = await steadyInk(h);
+      assert.ok(first.count > 0, "drawn");
+      // The finger lifted: the host sends Ben without a pointer, his last batch the same.
+      await h.presence([benDrawing(1, LOOP.slice(0, 10), RED_PEN, true)]);
+      await page.waitForTimeout(150);
+      const lifted = await presenceInk(h);
+      assert.ok(lifted.count >= first.count, `still drawn: ${first.count} then ${lifted.count}`);
+      assert.deepEqual(lifted.box, first.box, "still drawn whole");
+      // A batch that comes with no pointer shown grows the stroke.
+      await h.presence([benDrawing(2, LOOP.slice(10), RED_PEN, true)]);
+      // Under the leaf: the drawing reaches down.
+      const reach = (ink: Ink) => (ink.box ? ink.box.y + ink.box.height : 0);
+      const grown = await untilInk(h, (ink) => reach(ink) > reach(lifted) + 20);
+      assert.ok(reach(grown) > reach(lifted) + 20, `grown: ${reach(lifted)} then ${reach(grown)}`);
+      assert.ok(grown.count > lifted.count, "grown");
+      // Ben left: his stroke goes with him.
+      await h.presence([]);
+      const left = await untilInk(h, (ink) => ink.count === 0, 1000);
+      assert.equal(left.count, 0, "gone with Ben");
+    },
+  },
+  {
+    name: "whiteboard: peer stroke: on another diagram picked, the render holding Ben's pen takes his stroke's place at once",
+    text: TWO_BOARDS,
+    async run(h) {
+      const page = h.page;
+      await page.locator('.toolbar select[aria-label="Diagram"]').selectOption("t");
+      await h.settled();
+      assert.equal(
+        await page.locator('.content g[data-id="star"][data-role="element"]').count(),
+        1,
+      );
+      const line = Array.from({ length: 10 }, (_, i) => ({ x: 240 + i * 12, y: 260, t: i * 10 }));
+      await h.presence([benDrawing(1, line)]);
+      assert.ok((await untilInk(h)).count > 0, "drawn");
+      // His release writes the pen in `t`: the render that holds it takes the stroke's place.
+      await h.type(
+        TWO_BOARDS.replace(
+          '  box star "Star"\n',
+          `  box star "Star"\n${penStatement("ben1", line, 'stroke "#e03131"; width 4')}`,
+        ),
+      );
+      assert.equal(
+        await page.locator('.content g[data-id="ben1"][data-role="element"]').count(),
+        1,
+      );
+      // In the next frames, long before the ten seconds a stroke is otherwise kept.
+      const gone = await untilInk(h, (ink) => ink.count === 0, 1000);
+      assert.equal(gone.count, 0, "gone with its pen");
+    },
+  },
+  {
+    name: "whiteboard: pen: a refusal while a stroke or an erasure is in the hand leaves it there, and a stroke refused for a stale text goes again",
+    text: PENS,
+    async run(h) {
+      const page = h.page;
+      const tools = penTools(page);
+      const stroke = page.locator(".overlay path.pen-stroke");
+      await h.focusStage();
+      await page.keyboard.press("p");
+      // Another edit of the session refused while the hand draws: the stroke goes on.
+      const before = actions(h);
+      const a = await strokeAt(h, { x: 420, y: 300 });
+      await page.mouse.move(a.x, a.y);
+      await page.mouse.down();
+      await page.mouse.move(a.x + 30, a.y + 10, { steps: 4 });
+      await h.postRaw({ type: "rejected", code: "edit.refused", reason: "Refused elsewhere." });
+      assert.equal(await stroke.count(), 1, "the stroke is still in the hand");
+      await page.mouse.move(a.x + 60, a.y, { steps: 4 });
+      await page.mouse.up();
+      await h.settled();
+      assert.equal(actions(h), before + 1);
+      assert.match(h.text, /\n {2}pen pen1 \[/);
+      assert.equal(await stroke.count(), 0);
+      // The same while the eraser sweeps: what it hid stays hidden, and the release takes both.
+      await page.keyboard.press("e");
+      const p1 = await strokeAt(h, { x: 150, y: 306 });
+      const p2 = await strokeAt(h, { x: 150, y: 406 });
+      await page.mouse.move(p1.x, p1.y);
+      await page.mouse.down();
+      await page.mouse.move(p1.x, p1.y + 4);
+      await h.postRaw({ type: "rejected", code: "edit.refused", reason: "Refused elsewhere." });
+      assert.equal(
+        await page.locator('.content g[data-id="p1"][data-role="element"].mdg-erased').count(),
+        1,
+        "p1 stays hidden",
+      );
+      await page.mouse.move(p2.x, p2.y, { steps: 8 });
+      await page.mouse.up();
+      await h.settled();
+      assert.equal(actions(h), before + 2, "one erasure");
+      assert.doesNotMatch(h.text, /\bpen p1\b/);
+      assert.doesNotMatch(h.text, /\bpen p2\b/);
+      // Somebody else's edit reaches the host first: the drawing of it comes, then the refusal of
+      // the stroke's stale revision, and the stroke goes again against the new text, once.
+      await page.keyboard.press("p");
+      let others = 0;
+      h.intercept = async (message) => {
+        const m = message as { type: string; action?: { kind: string } };
+        if (m.type !== "action" || m.action?.kind !== "createPen" || others >= 1) return;
+        others++;
+        await h.typeNow(h.text.replace('title "Pens"', 'title "Pens of Ana"'));
+      };
+      const b = await strokeAt(h, { x: 420, y: 380 });
+      await strokeThrough(h, [b, { x: b.x + 30, y: b.y + 10 }, { x: b.x + 60, y: b.y }]);
+      assert.equal(others, 1);
+      assert.match(h.text, /title "Pens of Ana"/);
+      assert.match(h.text, /\n {2}pen pen2 \[/, "written the second time");
+      assert.equal(actions(h), before + 4, "the stroke, refused, and again");
+      assert.match(
+        (await page.locator(".status").textContent()) ?? "",
+        /^Drew a stroke of \d+ points\.$/,
+      );
+      assert.equal(await stroke.count(), 0);
+      // Refused twice: it is not drawn, and the status line says why.
+      others = 0;
+      h.intercept = async (message) => {
+        const m = message as { type: string; action?: { kind: string } };
+        if (m.type !== "action" || m.action?.kind !== "createPen" || others >= 2) return;
+        others++;
+        await h.typeNow(h.text.replace(/title "[^"]*"/, `title "Pens ${others}"`));
+      };
+      const c = await strokeAt(h, { x: 420, y: 440 });
+      await strokeThrough(h, [c, { x: c.x + 30, y: c.y + 10 }, { x: c.x + 60, y: c.y }]);
+      h.intercept = undefined;
+      assert.equal(others, 2);
+      assert.doesNotMatch(h.text, /\bpen pen3\b/);
+      assert.equal(actions(h), before + 6);
+      assert.match((await page.locator(".status").textContent()) ?? "", /text changed/);
+      assert.equal(await stroke.count(), 0, "the refused stroke left the overlay");
+      assert.equal(await tools.pen.getAttribute("aria-pressed"), "true");
+    },
+  },
+  {
+    name: "whiteboard: pen: a stylus's barrel button erases with the pen in the hand, and opens no menu",
+    text: PENS,
+    async run(h) {
+      const page = h.page;
+      const tools = penTools(page);
+      await h.focusStage();
+      await page.keyboard.press("p");
+      await page.evaluate(() => {
+        const seen: { type: string; button: number; buttons: number }[] = [];
+        (window as unknown as { __pressed: typeof seen }).__pressed = seen;
+        document.querySelector(".stage")!.addEventListener(
+          "pointerdown",
+          (e) => {
+            const p = e as PointerEvent;
+            seen.push({ type: p.pointerType, button: p.button, buttons: p.buttons });
+          },
+          true,
+        );
+      });
+      // A stylus with its barrel button held, through CDP (Playwright's mouse is a mouse).
+      const cdp = await page.context().newCDPSession(page);
+      const barrel = (
+        type: "mousePressed" | "mouseMoved" | "mouseReleased",
+        p: { x: number; y: number },
+      ) =>
+        cdp.send("Input.dispatchMouseEvent", {
+          type,
+          x: p.x,
+          y: p.y,
+          button: type === "mouseMoved" ? "none" : "right",
+          buttons: type === "mouseReleased" ? 0 : 2,
+          clickCount: 1,
+          pointerType: "pen",
+        });
+      const before = actions(h);
+      const from = await strokeAt(h, { x: 150, y: 306 });
+      const to = await strokeAt(h, { x: 150, y: 406 });
+      await barrel("mousePressed", from);
+      for (let i = 1; i <= 8; i++) {
+        await barrel("mouseMoved", {
+          x: from.x + ((to.x - from.x) * i) / 8,
+          y: from.y + ((to.y - from.y) * i) / 8,
+        });
+      }
+      await barrel("mouseReleased", to);
+      await h.settled();
+      await page.waitForTimeout(100);
+      const pressed = await page.evaluate(
+        () =>
+          (window as unknown as { __pressed: { type: string; button: number; buttons: number }[] })
+            .__pressed,
+      );
+      assert.deepEqual(pressed, [{ type: "pen", button: 2, buttons: 2 }]);
+      assert.equal(actions(h), before + 1, "one erasure");
+      assert.doesNotMatch(h.text, /\bpen p1\b/);
+      assert.doesNotMatch(h.text, /\bpen p2\b/);
+      assert.match(h.text, /box a "A"/);
+      assert.equal(await page.locator(".menu").isVisible(), false, "no context menu");
+      assert.equal(await tools.pen.getAttribute("aria-pressed"), "true", "the pen stays in hand");
+      // With nothing in the hand, the same button is the stylus's right button: its menu opens.
+      await page.keyboard.press("Escape");
+      assert.equal(await tools.pen.getAttribute("aria-pressed"), "false");
+      const empty = await strokeAt(h, { x: 420, y: 460 });
+      await barrel("mousePressed", empty);
+      await barrel("mouseReleased", empty);
+      await h.settled();
+      assert.equal(await page.locator(".menu").isVisible(), true, "the menu of the right button");
+      await page.keyboard.press("Escape");
+    },
+  },
+  {
+    name: "whiteboard: pen selected: a press 4 screen pixels off a stroke takes it and 10 off does not, at 25 % and at 400 %",
+    text: `diagram s: free {
+  layout manual
+  pen pen1 [(300, 300), (400, 300)]
+  style pen1 { width 4 }
+}
+`,
+    async run(h) {
+      const page = h.page;
+      const zoomPicker = page.locator('.toolbar select[aria-label="Zoom"]');
+      const stage = (await page.locator(".stage").boundingBox())!;
+      for (const zoom of ["0.25", "4"]) {
+        await zoomPicker.selectOption(zoom);
+        await h.settled();
+        const scene = await sceneOf(h);
+        nearly(scene.zoom, Number(zoom), 0.001, "the zoom");
+        // Below the middle of the stroke, beyond its drawn edge (2 units from its line).
+        const middle = await strokeAt(h, { x: 350, y: 300 });
+        const edge = middle.y + 2 * scene.zoom;
+        for (const [off, taken] of [
+          [10, false],
+          [4, true],
+        ] as const) {
+          const y = edge + off;
+          assert.ok(y < stage.y + stage.height - 4, `${y} on the stage`);
+          await h.focusStage();
+          await page.keyboard.press("Escape");
+          await h.settled();
+          assert.deepEqual(h.session.selected, []);
+          await page.mouse.click(middle.x, y);
+          await h.settled();
+          assert.deepEqual(
+            h.session.selected,
+            taken ? ["pen1"] : [],
+            `${off} px off the stroke at ${Number(zoom) * 100} %`,
+          );
+        }
+      }
+    },
+  },
+  {
+    name: "whiteboard: sticky: a long text shrunk on its card is typed back at full size when cut, and the status says its new text",
+    text: `diagram s: free {
+  layout manual
+  sticky card "${Array.from({ length: 4 }, () => "Cache the catalogue before the sale starts and warm it again").join(" ")}"
+  placement {
+    place card at (300, 200)
+  }
+}
+`,
+    async run(h) {
+      const page = h.page;
+      const zoom = await zoomOf(h);
+      const card = await h.centre("card");
+      await page.mouse.click(card.x, card.y);
+      await h.settled();
+      await page.mouse.dblclick(card.x, card.y);
+      const shrunk = await editorOf(h);
+      assert.ok(shrunk.fontSize < 15.6 * zoom - 0.5, `shrunk: ${shrunk.fontSize}`);
+      // The words cut down to one: the editor types them at the size the card will draw them.
+      await page.keyboard.press("Control+a");
+      await page.keyboard.type("Hi");
+      nearly((await editorOf(h)).fontSize, 15.6 * zoom, 0.05, "typed at the full size");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /\n {2}sticky card "Hi"\n/);
+      // The status line says the selection with its new text, not the old one.
+      assert.equal(await page.locator(".status").textContent(), "sticky card, Hi, selected.");
+    },
+  },
+  {
+    name: "whiteboard: story draw: the panel adds draw for a pen, and halfway through it the frame shows half the stroke (story-draw.png)",
+    text: `diagram s: free {
+  title "Drawn"
+  layout manual
+  box a "A"
+  pen p1 [(100, 300), (400, 300)]
+  style p1 { stroke danger; width 6 }
+  placement {
+    place a at (250, 180)
+  }
+}
+
+story walk for s {
+  title "A walk"
+
+  scene one {
+    reveal a over 600ms
+  }
+}
+`,
+    async run(h) {
+      const page = h.page;
+      const picker = page.getByRole("combobox", { name: "Story" });
+      await picker.waitFor({ state: "visible" });
+      await picker.selectOption("walk");
+      await h.settled();
+      const actionSelect = page.getByRole("combobox", { name: "Action to add" });
+      assert.deepEqual(
+        await actionSelect
+          .locator("option")
+          .evaluateAll((options) => options.map((o) => (o as HTMLOptionElement).value)),
+        ["reveal", "hide", "highlight", "focus", "camera", "trace", "draw", "hold"],
+      );
+      // The stroke picked on the frame, and drawn in the scene.
+      const stroke = page.locator('.content g[data-id="p1"] path').first();
+      const line = (await stroke.boundingBox())!;
+      await page.mouse.click(line.x + line.width / 2, line.y + line.height / 2);
+      await actionSelect.selectOption("draw");
+      await page.getByRole("button", { name: "Add to scene" }).click();
+      await h.settled();
+      assert.ok(h.text.includes("    reveal a over 600ms\n    draw p1\n  }"), h.text);
+      assert.match((await page.locator(".timeline .clock").textContent()) ?? "", /\/ 1\.4 s$/);
+      assert.equal(await page.locator('.timeline .bar[data-path="0.1"]').textContent(), "draw p1");
+      // Before its draw the stroke is not shown.
+      const group = page.locator('.content g[data-id="p1"][data-role="element"]');
+      await page.locator(".timeline").focus();
+      await page.keyboard.press("Home");
+      assert.equal(await group.getAttribute("opacity"), "0");
+      // Halfway through the draw (1 s of 1.4 s), half the 300-long stroke is drawn.
+      const ruler = (await page.locator(".timeline .ruler").boundingBox())!;
+      await page.mouse.click(ruler.x + (ruler.width * 1000) / 1400, ruler.y + ruler.height / 2);
+      const halfway = await group.locator("polyline").evaluate((polyline) => ({
+        dash: polyline.getAttribute("stroke-dasharray"),
+        offset: Number(polyline.getAttribute("stroke-dashoffset")),
+        colour: polyline.getAttribute("stroke"),
+        width: polyline.getAttribute("stroke-width"),
+      }));
+      assert.match(halfway.dash ?? "", /^300[ ,]/);
+      nearly(halfway.offset, 150, 20, "the part not drawn yet");
+      assert.equal(halfway.width, "6");
+      await page.screenshot({ path: join(output, "story-draw.png") });
+      // Once drawn it stays whole.
+      await page.keyboard.press("End");
+      assert.equal(await group.locator("polyline").count(), 0);
+      assert.equal(await group.locator("path").count(), 1);
+      assert.notEqual(await group.getAttribute("opacity"), "0");
+      // Its bar's end retimes it, and the remove button takes it out of the scene.
+      const grip = (await page.locator('.timeline .bar[data-path="0.1"] .grip').boundingBox())!;
+      const lanes = (await page.locator(".timeline .lanes").first().boundingBox())!;
+      await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(lanes.x + (lanes.width * 1200) / 1400, grip.y + grip.height / 2, {
+        steps: 5,
+      });
+      await page.mouse.up();
+      await h.settled();
+      assert.ok(h.text.includes("    reveal a over 600ms\n    draw p1 over 600ms\n  }"), h.text);
+      await page.locator('.timeline .bar[data-path="0.1"]').click();
+      await page.getByRole("button", { name: "Remove the selected action" }).click();
+      await h.settled();
+      assert.doesNotMatch(h.text, /draw p1/);
     },
   },
 ];

@@ -113,6 +113,92 @@ describe("model JSON", () => {
   });
 });
 
+describe("pens in JSON", () => {
+  const SHEET =
+    'diagram d: free {\n  box a "A"\n  line l from (0, 0) to (10, 0)\n  pen p [(0, 0), (12.5, -4)]\n}\n';
+  const elements = (text: string) => toJson(compile(text)).diagrams[0]!.elements;
+
+  it("writes a pen's points after line, and null on every other element", () => {
+    const json = elements(SHEET);
+    expect(json.map((e) => [e.id, e.kind, e.line === null, e.pen])).toEqual([
+      ["a", "box", true, null],
+      ["l", "line", false, null],
+      [
+        "p",
+        "pen",
+        true,
+        {
+          points: [
+            { x: 0, y: 0 },
+            { x: 12.5, y: -4 },
+          ],
+        },
+      ],
+    ]);
+    for (const element of json) {
+      const keys = Object.keys(element);
+      expect(keys.indexOf("pen")).toBe(keys.indexOf("line") + 1);
+    }
+  });
+
+  it("writes the same string twice, with opacity among the style properties", () => {
+    const text = SHEET.replace("}\n", "  style p { opacity 0.35; width 20 }\n}\n");
+    const json = toJson(compile(text));
+    expect(json.diagrams[0]!.styles[0]!.properties).toEqual({ opacity: 0.35, width: 20 });
+    expect(stringifyJson(toJson(compile(text)))).toBe(stringifyJson(json));
+  });
+
+  it("leaves out a flow diagram with a pen", () => {
+    const json = toJson(compile("diagram d: flow {\n  pen p [(0, 0), (10, 10)]\n}\n"));
+    expect(json.ok).toBe(false);
+    expect(json.diagrams).toEqual([]);
+    expect(json.diagnostics.map((d) => d.code)).toEqual(["prop.unknown"]);
+  });
+});
+
+describe("whiteboard objects in JSON", () => {
+  const SHEET =
+    'language "0.2"\ntheme board { extends "sketch.light"; highlight "#fde68a"; sticky "#dbeafe"; stickyText "#111111" }\ndiagram w: free {\n  theme "board"\n  preset board\n  group todo "To do" {\n    layout column\n    spacing 12\n    sticky a "A"\n    sticky b "B"\n  }\n  group plain "Plain" {\n    box c "C"\n  }\n  pen p [(0, 0), (10, 10)]\n  style p { stroke highlight; opacity 0.35 }\n}\nstory tour for w {\n  scene one {\n    draw p over 2s\n  }\n}\n';
+
+  it("writes kinds, lists after pens, the board preset, the tokens and draw", () => {
+    const json = toJson(compile(SHEET));
+    expect(json.ok).toBe(true);
+    const diagram = json.diagrams[0]!;
+    expect(diagram.properties.preset).toBe("board");
+    expect(diagram.elements.map((e) => [e.id, e.kind, e.pen === null, e.list])).toEqual([
+      ["todo", "group", true, { layout: "column", spacing: 12, align: null }],
+      ["a", "sticky", true, null],
+      ["b", "sticky", true, null],
+      ["plain", "group", true, null],
+      ["c", "box", true, null],
+      ["p", "pen", false, null],
+    ]);
+    for (const element of diagram.elements) {
+      const keys = Object.keys(element);
+      expect(keys.indexOf("pen")).toBe(keys.indexOf("line") + 1);
+      expect(keys.indexOf("list")).toBe(keys.indexOf("pen") + 1);
+    }
+    expect(diagram.styles[0]!.properties).toEqual({ opacity: 0.35, stroke: "@highlight" });
+    expect(json.themes[0]!.tokens).toEqual({
+      highlight: "#fde68a",
+      sticky: "#dbeafe",
+      stickyText: "#111111",
+    });
+    expect(json.stories[0]!.scenes[0]!.actions).toEqual([
+      expect.objectContaining({ kind: "draw", targets: ["p"], startMs: 0, durationMs: 2000 }),
+    ]);
+    // The same string twice.
+    expect(stringifyJson(toJson(compile(SHEET)))).toBe(stringifyJson(json));
+  });
+
+  it("leaves out a flow diagram with a sticky", () => {
+    const json = toJson(compile('diagram d: flow {\n  sticky s "S"\n}\n'));
+    expect(json.ok).toBe(false);
+    expect(json.diagrams).toEqual([]);
+    expect(json.diagnostics.map((d) => d.code)).toEqual(["prop.unknown"]);
+  });
+});
+
 describe("note attachments in JSON", () => {
   const COMMERCE = readFileSync(join(CORPUS_ROOT, "valid", "c4", "commerce.meltemi"), "utf8");
   const element = (json: ReturnType<typeof toJson>, diagram: string, id: string) =>

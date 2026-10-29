@@ -45,6 +45,42 @@ const diff = (after: string): ModelChange[] =>
   diffDocuments(compile(BASE).document, compile(after).document);
 const lines = (after: string) => diff(after).map((c) => describeChange(c));
 
+describe("pens in the semantic diff", () => {
+  const sheet = (points: string, id = "stroke") =>
+    `diagram board: free {\n  pen ${id} [${points}]\n  box a "A"\n  placement { place a at (200, 100) }\n}\n`;
+  const changes = (before: string, after: string) =>
+    diffDocuments(compile(before).document, compile(after).document).map((c) => describeChange(c));
+
+  it("compares a stroke's points as a place: moved when they change", () => {
+    expect(changes(sheet("(0, 0), (10, 10)"), sheet("(0, 0), (10, 10)"))).toEqual([]);
+    expect(changes(sheet("(0, 0), (10, 10)"), sheet("(5, 0), (15, 10.5)"))).toEqual([
+      '~ element stroke "": moved',
+    ]);
+  });
+
+  it("tells a renamed stroke by its points", () => {
+    expect(changes(sheet("(0, 0), (10, 10)"), sheet("(0, 0), (10, 10)", "arrow"))).toEqual([
+      '> element stroke → arrow ""',
+    ]);
+  });
+});
+
+describe("lists in the semantic diff", () => {
+  const sheet = (block: string) =>
+    `diagram board: free {\n  group todo "To do" {\n${block}\n    sticky a "A"\n  }\n}\n`;
+  const changes = (before: string, after: string) =>
+    diffDocuments(compile(before).document, compile(after).document).map((c) => describeChange(c));
+
+  it("tells a group made a list, and a list arranged otherwise", () => {
+    expect(changes(sheet(""), sheet("    layout column"))).toEqual([
+      '~ element todo "To do": layout none → column',
+    ]);
+    expect(
+      changes(sheet("    layout column"), sheet("    layout row\n    spacing 8\n    align end")),
+    ).toEqual(['~ element todo "To do": layout column → row; spacing none → 8; align none → end']);
+  });
+});
+
 describe("semantic diff", () => {
   it("finds nothing between equal versions, whatever the comments and layout of the text", () => {
     expect(diff(BASE)).toEqual([]);

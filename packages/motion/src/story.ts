@@ -1,6 +1,8 @@
 import type {
   GroupItem,
   LayoutResult,
+  PathItem,
+  PolylineItem,
   Scene,
   SceneBounds,
   SceneItem,
@@ -12,9 +14,9 @@ import type {
   StoryDefinition,
   TargetKind,
 } from "@meltemi/diagrams-model";
-import { sceneAt } from "./frames.js";
+import { sceneAt, targetKey, withTargets } from "./frames.js";
 import { circlePath, round, roundedRectPath, trackLength } from "./geometry.js";
-import { motionOptions, planMotion, type MotionPlan } from "./plan.js";
+import { drawnTrack, motionOptions, planMotion, type MotionPlan } from "./plan.js";
 
 /** One action of a story with its absolute time, as plain data. */
 export interface TimelineAction {
@@ -148,6 +150,11 @@ interface StoryState {
   opacity: Map<string, number>;
   highlights: { id: string; intensity: number }[];
   traces: { id: string; progress: number }[];
+  /**
+   * The targets of `draw` actions under way, by `targetKey` of their role and id: how much of each
+   * is drawn, from 0 (not started) to below 1.
+   */
+  draws: Map<string, number>;
   focus: { ids: Set<string>; level: number } | null;
   camera: { from: Box | null; to: Box | null; progress: number } | null;
 }
@@ -180,14 +187,18 @@ export function boundsOf(scene: Scene, ids: readonly string[]): Box | null {
       if (ids.includes(item.id)) {
         if (item.bounds) add(item.bounds);
         else if (item.track && item.track.length > 0) {
-          const xs = item.track.map((p) => p.x);
-          const ys = item.track.map((p) => p.y);
-          add({
-            x: Math.min(...xs),
-            y: Math.min(...ys),
-            width: Math.max(...xs) - Math.min(...xs),
-            height: Math.max(...ys) - Math.min(...ys),
-          });
+          // In one loop: a pen's track may hold more points than a call takes arguments.
+          let x0 = Infinity;
+          let y0 = Infinity;
+          let x1 = -Infinity;
+          let y1 = -Infinity;
+          for (const p of item.track) {
+            if (p.x < x0) x0 = p.x;
+            if (p.y < y0) y0 = p.y;
+            if (p.x > x1) x1 = p.x;
+            if (p.y > y1) y1 = p.y;
+          }
+          add({ x: x0, y: y0, width: x1 - x0, height: y1 - y0 });
         }
       }
       visit(item.items);
@@ -219,17 +230,18 @@ function stateAt(timeline: StoryTimeline, t: number, views: StoryViews): StorySt
   for (let i = 0; i < scenes.length; i++) if (scenes[i]!.startMs <= t) index = i;
   const all = scenes.flatMap((s, i) => flatten(s.actions, i));
   all.sort((a, b) => a.action.startMs - b.action.startMs);
-  // Visibility: a target first revealed starts hidden.
+  // Visibility: a target first revealed or drawn starts hidden.
   const opacity = new Map<string, number>();
   const firstVisibility = new Map<string, string>();
   for (const { action } of all) {
-    if (action.kind !== "reveal" && action.kind !== "hide") continue;
+    if (action.kind !== "reveal" && action.kind !== "hide" && action.kind !== "draw") continue;
     for (const target of action.targets)
       if (!firstVisibility.has(target.id)) firstVisibility.set(target.id, action.kind);
   }
-  for (const [id, kind] of firstVisibility) opacity.set(id, kind === "reveal" ? 0 : 1);
+  for (const [id, kind] of firstVisibility) opacity.set(id, kind === "hide" ? 1 : 0);
   const highlights: StoryState["highlights"] = [];
   const traces: StoryState["traces"] = [];
+  const draws: StoryState["draws"] = new Map();
   let focus: StoryState["focus"] = null;
   let camera: StoryState["camera"] = null;
   let cameraBox: Box | null = null;
@@ -257,6 +269,15 @@ function stateAt(timeline: StoryTimeline, t: number, views: StoryViews): StorySt
         break;
       case "trace":
         if (p < 1) for (const target of action.targets) traces.push({ id: target.id, progress: p });
+        break;
+      case "draw":
+        // Drawing shows its targets: until its share is over, each is only its drawing so far.
+        for (const target of action.targets) opacity.set(target.id, 1);
+        if (p >= 1) break;
+        for (const [key, fraction] of drawProgress(action, p, views(view)?.scene)) {
+          if (fraction < 1) draws.set(key, fraction);
+          else draws.delete(key);
+        }
         break;
       case "focus":
         // Focus lasts to the end of its scene.
@@ -294,7 +315,42 @@ function stateAt(timeline: StoryTimeline, t: number, views: StoryViews): StorySt
   }
   // A camera set in another view does not frame this one.
   if (camera && cameraView !== scenes[index]?.view) camera = null;
-  return { scene: index, opacity, highlights, traces, focus, camera };
+  return { scene: index, opacity, highlights, traces, draws, focus, camera };
+}
+
+/** The group of a target in a scene: an element's or a relation's, by its kind. */
+function targetGroup(scene: Scene, target: TimelineAction["targets"][number]) {
+  return findGroup(scene.items, target.id, [target.kind]);
+}
+
+/**
+ * How much of each target of a `draw` action is drawn at its progress `p`, by `targetKey`: the
+ * targets one after another in the order written, each over a share of the action proportional
+ * to the length of the line it draws (equal shares when none has a length, as dots), from 0
+ * before its share to 1 after it. A target named twice shows the drawing under way, else the one
+ * finished.
+ */
+function drawProgress(
+  action: TimelineAction,
+  p: number,
+  scene: Scene | undefined,
+): Map<string, number> {
+  const lengths = action.targets.map((target) => {
+    const group = scene && targetGroup(scene, target);
+    const track = group ? drawnTrack(group) : null;
+    return track ? trackLength(track) : 0;
+  });
+  const total = lengths.reduce((sum, length) => sum + length, 0);
+  const drawn = new Map<string, number>();
+  let start = 0;
+  action.targets.forEach((target, i) => {
+    const share = total > 0 ? lengths[i]! / total : 1 / lengths.length;
+    const fraction = share > 0 ? Math.min(1, Math.max(0, (p - start) / share)) : p >= start ? 1 : 0;
+    start += share;
+    const key = targetKey(target.kind, target.id);
+    if (fraction > 0 || !drawn.has(key)) drawn.set(key, fraction);
+  });
+  return drawn;
 }
 
 function fullBox(scene: Scene): Box {
@@ -433,6 +489,62 @@ function storyOverlays(
   return { highlights: out, traces };
 }
 
+/**
+ * A pen, a free line or a relation drawn up to `fraction` of its line, as a trace grows: one
+ * stroke along the whole line it draws (`drawnTrack`) in its own colour, width and opacity, with a
+ * dash as long as the line offset so that only its first `fraction` shows, and no dot at the head.
+ * A dashed or dotted stroke is cut at that length instead, so its own pattern shows as it grows.
+ * Nothing shows before it starts; its heads and its label wait until it is whole.
+ */
+function drawnItems(group: GroupItem, fraction: number): SceneItem[] {
+  const track = drawnTrack(group);
+  const line = group.items.find(
+    (i): i is PolylineItem | PathItem =>
+      (i.kind === "polyline" || i.kind === "path") && i.stroke !== "none",
+  );
+  if (fraction <= 0 || !track || !line) return [];
+  const stroke = {
+    kind: "polyline",
+    stroke: line.stroke,
+    strokeWidth: line.strokeWidth,
+    dashed: line.dashed,
+    ...(line.opacity !== undefined ? { opacity: line.opacity } : {}),
+  } as const;
+  if (line.dashed !== false) {
+    return [
+      {
+        ...stroke,
+        points: partialTrack(track, fraction).map((q) => ({ x: round(q.x), y: round(q.y) })),
+      },
+    ];
+  }
+  // The same points at every frame, so a sketch theme paints the same wobble as the line grows.
+  const length = round(trackLength(track));
+  return [
+    {
+      ...stroke,
+      points: track,
+      // A gap longer than the line, so the dash shows once and leaves no dot at the end.
+      dash: {
+        array: [length, round(length + line.strokeWidth + 1)],
+        offset: round(length * (1 - fraction)),
+      },
+    },
+  ];
+}
+
+/** The groups a `draw` action is drawing, each replaced by its drawing so far. */
+function withDrawings(
+  items: readonly SceneItem[],
+  draws: ReadonlyMap<string, number>,
+): SceneItem[] {
+  if (draws.size === 0) return [...items];
+  return withTargets(items, (group) => {
+    const fraction = draws.get(targetKey(group.role, group.id));
+    return fraction === undefined ? null : drawnItems(group, fraction);
+  });
+}
+
 /** Puts the trace of each relation in its group, before the label so the label stays readable. */
 function withTraces(items: readonly SceneItem[], traces: Map<string, SceneItem[]>): SceneItem[] {
   if (traces.size === 0) return [...items];
@@ -459,9 +571,13 @@ function inflate(bounds: SceneBounds, by: number): SceneBounds {
 /** The drawing of one view at time t, with effects, opacities and overlays, without camera. */
 function drawView(data: StoryViewData, state: StoryState, t: number, accent: string): Scene {
   const traced = new Set(state.traces.map((x) => x.id));
-  // A trace suspends the local effects of its relation.
+  // A trace suspends the local effects of its relation, and a drawing those of its target.
   const plan: MotionPlan = {
-    effects: data.plan.effects.filter((e) => !(e.role === "relation" && traced.has(e.target))),
+    effects: data.plan.effects.filter(
+      (e) =>
+        !(e.role === "relation" && traced.has(e.target)) &&
+        !state.draws.has(targetKey(e.role, e.target)),
+    ),
   };
   const animated = sceneAt(data.scene, plan, t);
   const focused = state.focus;
@@ -475,7 +591,8 @@ function drawView(data: StoryViewData, state: StoryState, t: number, accent: str
     return false;
   };
   const overlays = storyOverlays(data.scene, state, accent);
-  const items = withOpacity(withTraces(animated.items, overlays.traces), (group) => {
+  const drawn = withDrawings(withTraces(animated.items, overlays.traces), state.draws);
+  const items = withOpacity(drawn, (group) => {
     // A relation is drawn at the opacity of its least visible end, so no arrow points at a box
     // that is not there yet.
     const ends = group.role === "relation" ? data.ends[group.id] : undefined;
@@ -492,8 +609,11 @@ function drawView(data: StoryViewData, state: StoryState, t: number, accent: str
 }
 
 /**
- * The scene of a story at `t` milliseconds: visibility, highlights, traces, focus and camera, the
- * transition between two views, and the views' own effects on the same clock. Pure.
+ * The scene of a story at `t` milliseconds: visibility, highlights, traces, drawings, focus and
+ * camera, the transition between two views, and the views' own effects on the same clock. A
+ * `draw` replays its pens, lines and relations one after another, each from its first point to
+ * its last over a share of the action proportional to its length, in its own stroke, and leaves
+ * them drawn. Pure.
  */
 export function storyFrame(
   timeline: StoryTimeline,

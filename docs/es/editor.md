@@ -228,6 +228,10 @@ rango se rechaza indicando el rango, y el texto queda como estaba.
 | Presionar justo fuera del borde de una caja y arrastrar hasta otra caja                          | `a -> b` con el inicio fijado en ese punto; sobre el borde, también el final                                                                                                                                                              |
 | Herramienta de relación (R): clic en el origen y luego en el destino                             | `a -> b`, o el tipo de flecha elegido (`->`, `-->`, `--`, `---`, `<->`, `<-->`), seleccionada; Mayús en el segundo clic alterna continua y discontinua; Esc cancela                                                                       |
 | Herramienta de relación (R) en un diagrama libre: arrastrar sobre el lienzo vacío                | `line line1 from (x, y) to (x, y)` y los estilos del tipo actual, dentro del grupo que está bajo el punto donde presionas, seleccionada; ajustada a la cuadrícula, Mayús para pasos de 45°, Esc cancela ([líneas](#composiciones-libres)) |
+| Lápiz (P) o marcador (H): arrastrar sobre el lienzo                                              | `pen pen1 [(x, y), …]` dentro del grupo más interior que contiene el trazo y no es una lista, con un `style` para lo que difiere de lo predeterminado ([herramientas de pizarra](#herramientas-de-pizarra))                               |
+| Borrador (E): arrastrar sobre trazos                                                             | Quita los trazos que cruzó, con sus estilos                                                                                                                                                                                               |
+| Arrastrar un trazo, o una de sus asas                                                            | Todos los puntos de la instrucción `pen`, movidos o escalados                                                                                                                                                                             |
+| Arrastrar tarjetas sobre una lista (un grupo con `layout`)                                       | Sus declaraciones pasan al lugar de la barra en la lista, y su `place` se va                                                                                                                                                              |
 | Arrastrar un extremo o un codo de una línea seleccionada, o el centro de un tramo                | Ese punto de la instrucción `line`, ajustado a la cuadrícula; arrastrar un centro agrega un codo a `via`                                                                                                                                  |
 | Doble clic en un codo de una línea                                                               | Lo quita de `via`; el último se lleva `via` con él                                                                                                                                                                                        |
 | Arrastrar una línea por su trazo                                                                 | Todos los puntos de la instrucción `line`, la misma distancia                                                                                                                                                                             |
@@ -394,6 +398,9 @@ como en todas partes. Tab después del último elemento sale del lienzo.
 | R con la herramienta de relación activa                                   | El tipo de flecha siguiente: `->`, `-->`, `--`, `---`, `<->`, `<-->`                                                                                     |
 | N, D, S, O, T, G                                                          | Flujo: crear un nodo (de la forma actual), una decisión, un almacén de datos, una nota, una marca o un grupo (del tipo actual) cerca del centro          |
 | B, T, M, O, G                                                             | Libre: crear una caja (de la forma actual), un texto, una imagen, una nota o un grupo (del tipo actual) cerca del centro                                 |
+| P, H, E, S                                                                | Libre: activar el lápiz, el marcador o el borrador; crear una nota adhesiva cerca del centro                                                             |
+| Ctrl+Intro                                                                | Libre: añadir una nota adhesiva (o una columna) después de la tarjeta seleccionada de una lista                                                          |
+| Alt+Arriba, Alt+Abajo                                                     | Libre: mover la tarjeta seleccionada de una lista antes o después de su vecina                                                                           |
 | A, O                                                                      | C4: agregar a la vista una entidad del modelo; crear una nota en la vista                                                                                |
 | F                                                                         | Flujo y libre: abrir la cuadrícula de formas (escribe para filtrar, flechas para moverte, Entrar para crear, Esc para cerrar)                            |
 | I                                                                         | Flujo y libre: abrir o cerrar el selector de iconos, para la selección o para colocar un icono; en su campo de búsqueda I se escribe ([iconos](#iconos)) |
@@ -712,8 +719,9 @@ caja interior la convierte en un `layout.overlap`.
 ## Composiciones libres
 
 La paleta depende del diagrama: los diagramas de flujo ofrecen nodo, decisión, almacén de datos,
-nota, marca, grupo e icono; los diagramas libres ofrecen caja, texto, icono, imagen, nota y grupo, y
-la herramienta de flecha también dibuja líneas. Los botones de caja y de nodo abren las formas
+nota, marca, grupo e icono; los diagramas libres ofrecen caja, texto, nota adhesiva, icono, imagen,
+nota, grupo, lápiz y borrador ([herramientas de pizarra](#herramientas-de-pizarra)), y la
+herramienta de flecha también dibuja líneas. Los botones de caja y de nodo abren las formas
 ([formas y contenedores](#formas-y-contenedores)).
 
 - **Dibujar una línea.** Activa la herramienta de relación (R, o un tipo del menú del botón de
@@ -779,6 +787,62 @@ la herramienta de flecha también dibuja líneas. Los botones de caja y de nodo 
   comandos) copia el diagrama de flujo que se muestra en un nuevo diagrama libre del mismo archivo,
   tal como está dibujado, con un enlace de cada objeto a su origen, y muestra la copia.
 - **Copiar.** Un hijo copiado sin su grupo lleva la posición en la que está dibujado.
+
+### Herramientas de pizarra
+
+Una composición libre es también una pizarra: trazos a mano alzada, marcas de marcador, notas
+adhesivas y listas de tarjetas ([trazos de lápiz](language/free.md#trazos-de-lápiz),
+[notas adhesivas](language/free.md#notas-adhesivas), [listas](language/free.md#listas)). Cada
+herramienta escribe instrucciones, cada una en un paso de deshacer.
+
+- **Lápiz y marcador.** P activa el lápiz y H el marcador. El botón del lápiz muestra el último
+  elegido, en su color; su flecha abre un menú con la herramienta, el grosor (el predeterminado 3,
+  fino 2, medio 4 o grueso 8; el del marcador es siempre 20) y los colores del tema, que se
+  conservan entre sesiones. La herramienta sigue en la mano después de cada trazo, hasta Esc, otra
+  herramienta, K o su botón otra vez. Presiona y arrastra: el trazo sigue al puntero tal como se
+  dibujará, Mayús lo mantiene recto y Esc lo cancela. Al soltar se escribe `pen pen1 [(x, y), …]`,
+  simplificado y a una décima de unidad, dentro del grupo más interior que contiene todo el trazo y
+  no es una lista (en el nivel superior si ninguno lo contiene, así que un trazo nunca agranda una
+  columna), con `style pen1 { … }` solo para lo que difiere de lo predeterminado, como
+  `stroke danger; width 8`, o `stroke highlight; width 20; opacity 0.35` para el marcador. Presionar
+  sin mover dibuja un punto. El trazo nuevo no queda seleccionado, así que el siguiente empieza
+  enseguida, y la línea de estado dice cuántos puntos tiene.
+- **Borrador.** E activa el borrador, cuyo cursor es un círculo pequeño. Cada trazo que cruza se
+  desvanece, y al soltar se quitan, con sus propios estilos y efectos, en un paso de deshacer; Esc
+  los devuelve. Solo borra trazos: las cajas, las notas adhesivas y las líneas se quedan.
+- **Lápiz de tableta.** El lápiz de una tableta dibuja con el lápiz o el marcador mientras se
+  ignoran los toques de la palma, y su botón lateral borra.
+- **Un trazo seleccionado.** Presionar sobre un trazo, o rodearlo con un rectángulo de selección,
+  lo selecciona. Su marco es su caja, con ocho asas que escalan sus puntos, y no tiene asa de
+  rotación ni de conexión. Arrastrarlo por el trazo, o las flechas, mueve todos sus puntos, fuera
+  de la cuadrícula. La tira muestra su color, línea, grosor, opacidad y las dos puntas. Intro, F2 y
+  el doble clic no abren nada, porque un trazo no tiene texto; Mayús+F2 le cambia el id, y Supr lo
+  quita con su estilo.
+- **Notas adhesivas.** S, o el botón de nota adhesiva, crea `sticky sticky1 "Nota"` cerca del
+  centro con su editor abierto, y arrastrar el botón la pone bajo el puntero. La flecha del botón
+  elige el color de la tarjeta: el del tema, o amarillo, rosa, verde, azul, naranja o morado, que
+  se escribe como `style sticky1 { fill "#f8bbd0" }` y se conserva entre sesiones. El editor
+  ajusta las palabras al ancho de la tarjeta y al tamaño con que se dibujarán; Intro confirma y
+  Mayús+Intro corta la línea. La tira ofrece primero los seis colores y después los del tema.
+- **Columnas y filas.** El menú del botón de grupo añade **Columna** y **Fila**, que escriben
+  `group group1 "Columna" { layout column }`. Arrastra tarjetas sobre una lista y una barra muestra
+  dónde irán mientras las demás tarjetas les hacen sitio; al soltar, sus declaraciones pasan ahí y
+  pierden su `place`. Arrastrar una tarjeta dentro de su lista la reordena, y sacarla al lienzo
+  escribe su `place`. Una lista con el puntero encima o seleccionada muestra un **+** al final que
+  añade una nota adhesiva a una columna, o una columna a una fila, con su editor abierto. Ctrl+Intro
+  añade una después de la tarjeta seleccionada, o al final de una lista seleccionada, y en el editor
+  de una tarjeta confirma el texto y añade la siguiente; Alt+Arriba y Alt+Abajo mueven la tarjeta
+  seleccionada antes o después de su vecina. Las flechas solas no mueven una tarjeta, porque la
+  coloca la lista. Una lista crece hacia abajo o hacia la derecha desde su esquina superior
+  izquierda, que el lienzo conserva reescribiendo el `place` de la lista más externa, así que las
+  tarjetas que ya estaban no se mueven. El inspector muestra **Disposición**, **Espaciado** y
+  **Alineación** de la lista.
+- **Trazos de otros.** En una sala, un trazo que alguien dibuja aparece en tu lienzo mientras lo
+  dibuja, en el color y el grosor de su lápiz, y su `pen` ocupa su lugar cuando llega su edición
+  ([trabajar juntos](playground.md#trabajar-juntos)).
+- **Repetir un dibujo.** La acción `draw` de una historia dibuja trazos, líneas y relaciones uno
+  tras otro como se dibujaron ([historias](language/stories.md)), y el panel de historias la
+  ofrece.
 
 ## Diagramas de secuencia
 

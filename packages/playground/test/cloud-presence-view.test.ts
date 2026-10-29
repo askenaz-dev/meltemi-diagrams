@@ -404,5 +404,44 @@ describe("the presence message of the canvas", () => {
       diagram: "d",
     });
     expect(laserOf({ type: "presenceLaser", points })).toEqual({ points });
+    expect("pen" in laserOf({ type: "presenceLaser", points })).toBe(false);
+  });
+
+  it("copies the pen part of a stroke the canvas posted, its width, colour, opacity and number alone", () => {
+    const points = [{ x: 1, y: 2, t: 0 }];
+    const pen = { width: 20, colour: "#ffd43b", opacity: 0.35, stroke: 41 };
+    const copied = laserOf({
+      type: "presenceLaser",
+      points,
+      diagram: "d",
+      pen: { ...pen, dash: [4, 2] } as typeof pen,
+    });
+    expect(copied).toEqual({ points, diagram: "d", pen });
+    expect(Object.keys(copied.pen!).sort()).toEqual(["colour", "opacity", "stroke", "width"]);
+  });
+
+  it("copies the cancel of the batch that ends a stroke, with no points", () => {
+    const pen = { width: 4, colour: "#e03131", opacity: 1, stroke: 41, cancel: true as const };
+    expect(laserOf({ type: "presenceLaser", points: [], diagram: "d", pen })).toEqual({
+      points: [],
+      diagram: "d",
+      pen,
+    });
+  });
+
+  it("carries a person's stroke to the canvas with its pen part", () => {
+    const people = [
+      {
+        name: "Ben",
+        colour: "#1c7ed6",
+        selection: [],
+        laser: {
+          batch: 4,
+          points: [{ x: 1, y: 2, t: 0 }],
+          pen: { width: 4, colour: "#e03131", opacity: 1, stroke: 41 },
+        },
+      },
+    ];
+    expect(presenceMessage(people)).toEqual({ type: "presence", people });
   });
 });

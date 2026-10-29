@@ -118,6 +118,8 @@ export const es: typeof en = {
       c4: "Modelo C4",
       sequence: "Diagrama de secuencia",
       free: "Diapositiva",
+      kanban: "Tablero kanban",
+      whiteboard: "Pizarra",
       purchase: "Ejemplo de compra",
     },
     contents: (counts) =>
@@ -137,6 +139,9 @@ export const es: typeof en = {
       c4: "Un modelo de arquitectura con una vista de contexto y una vista de contenedores",
       sequence: "Un diagrama de secuencia con un escenario para cada resultado",
       free: "Una diapositiva de composición libre: texto, cajas, un icono y un grupo",
+      kanban: "Un tablero de columnas y notas adhesivas",
+      whiteboard:
+        "Un tablero de estilo boceto con trazos, notas adhesivas y una historia que los dibuja",
       purchase:
         "El ejemplo de referencia: un modelo, sus vistas C4, una secuencia de pago, una diapositiva ejecutiva, una historia animada y perfiles de exportación",
     },

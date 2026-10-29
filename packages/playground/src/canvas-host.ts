@@ -5,6 +5,7 @@ import type {
   PresencePerson,
   SessionResult,
 } from "@meltemi/diagrams-editor";
+import type { PresencePen } from "@meltemi/diagrams-editor/canvas";
 import { CANVAS_SETTINGS, settingsMessage } from "./canvas-settings.js";
 import type { Studio } from "./studio.js";
 import { isMac } from "./ui.js";
@@ -42,16 +43,39 @@ export function pointerOf(
   return diagram === undefined ? { x: point.x, y: point.y } : { x: point.x, y: point.y, diagram };
 }
 
-/** The points a stroke of the Pointer tool made, as presence publishes them. */
+/**
+ * The points a stroke of the Pointer tool made, as presence publishes them; with `pen` they are a
+ * stroke of the pen or the highlighter, and that is how it looks (`live-collaboration`, "Strokes
+ * being drawn in presence").
+ */
 export interface CanvasLaser {
   readonly points: readonly { readonly x: number; readonly y: number; readonly t: number }[];
   readonly diagram?: string;
+  readonly pen?: PresencePen;
 }
 
-/** What a canvas's `presenceLaser` message says: the points, and the diagram they are over. */
+/**
+ * What a canvas's `presenceLaser` message says: the points, the diagram they are over, and the
+ * width, colour, opacity and number of the stroke when it is one of the pen or the highlighter,
+ * with `cancel` on the batch that ends one cancelled with Escape.
+ */
 export function laserOf(message: Extract<CanvasMessage, { type: "presenceLaser" }>): CanvasLaser {
-  const { points, diagram } = message;
-  return diagram === undefined ? { points } : { points, diagram };
+  const { points, diagram, pen } = message;
+  return {
+    points,
+    ...(diagram === undefined ? {} : { diagram }),
+    ...(pen === undefined
+      ? {}
+      : {
+          pen: {
+            width: pen.width,
+            colour: pen.colour,
+            opacity: pen.opacity,
+            stroke: pen.stroke,
+            ...(pen.cancel === true ? { cancel: true as const } : {}),
+          },
+        }),
+  };
 }
 
 /** What the canvas asks of the page beyond the session. */

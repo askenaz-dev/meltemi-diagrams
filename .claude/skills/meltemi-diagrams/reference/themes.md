@@ -50,6 +50,7 @@ Tokens (numbers without a unit or with `px`):
 | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------- |
 | `background`, `surface`, `ink`, `muted`, `line`, `connector`, `band`, `bandLine`, `tag`, `tagText`, `accent`, `accentEnd` | quoted colour                                     |
 | `success`, `warning`, `danger`, `info`                                                                                    | quoted colour (signals)                           |
+| `highlight`, `sticky`, `stickyText`                                                                                       | quoted colour (highlighter strokes, stickies)     |
 | `font`, `mono`                                                                                                            | quoted font stack                                 |
 | `labelSize`, `descriptionSize`, `groupTitleSize`, `noteSize`, `tagSize`, `relationLabelSize`, `frameSize`                 | 6 to 48 (technical: 13, 11, 13, 11, 10.5, 11, 12) |
 | `labelWeight`                                                                                                             | 400, 500, 600 or 700                              |
@@ -101,8 +102,11 @@ diagram platform: flow {
 - Order: theme tokens, theme rules, diagram rules, classes (declaration block, then `style`
   statements), explicit `style` properties. The last value wins.
 - `pattern hatch|dots|cross` marks state without relying on colour; use it with a legend.
-- `width` sets an outline or connector width; `arrowhead` and `arrowtail` a relation's heads at the
-  target and the source; `line dotted` dots it; `corners rounded` rounds its bends.
+- `width` sets an outline, connector or pen stroke width (0 to 64); `arrowhead` and `arrowtail` a
+  relation's, a free line's or a pen's heads at the target and the source; `line dotted` dots it;
+  `corners rounded` rounds its bends. `opacity 0..1` fades free elements, groups, lines and pens.
+- The whiteboard tokens: `stroke highlight` colours a highlighter stroke, and stickies take
+  `sticky` and `stickyText` (`#fff59d` and `#1f2328` on light themes); pens take `ink`.
 - The theme's `radius` and `groupRadius` are only defaults: `style api { radius 0 }` squares one
   node, `rule group { radius 0 }` every group, and a class may carry `radius` too. Square corners
   everywhere: `theme square { extends "technical.light"; radius 0; groupRadius 0 }`.
@@ -130,6 +134,9 @@ diagram platform: flow {
 
 - `preset document`: warns above 1,200 px wide.
 - `preset slide`: a 16:9 canvas, warns above 1,920 × 1,080 px. Pair it with a `stage.*` theme.
+- `preset board`: the canvas grows with the content and never warns; for whiteboards and kanban
+  boards.
 - `canvas (1280, 720)`: a fixed canvas with the content centred.
 
-`layout.too-large` means the diagram should be split into views, not shrunk.
+`layout.too-large` means the diagram should be split into views, not shrunk, or that a whiteboard
+needs `preset board`.

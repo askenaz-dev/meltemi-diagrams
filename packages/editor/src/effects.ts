@@ -31,11 +31,17 @@ export function effectsFor(
   if (kind === "relation") return ["flow", "dash", "pulse", "trace"];
   if (kind === "event") return ["pulse"];
   const element = diagram.elementsById.get(id);
-  // A free line runs every effect a relation does.
-  if (element?.kind === "line") return ["flow", "dash", "pulse", "trace"];
+  // A free line and a pen stroke run every effect a relation does: their stroke is a track.
+  if (element?.kind === "line" || element?.kind === "pen") {
+    return ["flow", "dash", "pulse", "trace"];
+  }
   if (element && NO_OUTLINE.has(element.kind)) return ["pulse"];
-  // A note or a text has an outline to follow only when its styles give it one.
-  if (element && (element.kind === "note" || element.kind === "text")) {
+  // A note or a text has an outline to follow only when its styles give it one; a sticky only
+  // when they give it a `stroke`, since its fill is no line.
+  if (
+    element &&
+    (element.kind === "note" || element.kind === "text" || element.kind === "sticky")
+  ) {
     return outlined(diagram, element) ? ["pulse", "dash"] : ["pulse"];
   }
   return ["pulse", "dash"];

@@ -7,6 +7,7 @@ export * from "./routes.js";
 export * from "./keyboard.js";
 export * from "./protocol.js";
 export * from "./palette.js";
+export * from "./pens.js";
 export * from "./turning.js";
 // The outlines of the shapes, from the layout's pure geometry module (no engine, no model at run
 // time), so the canvas draws what the layout draws: pictures, ghosts, hit tests and magnets.

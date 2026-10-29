@@ -109,6 +109,7 @@ const SOURCES: Readonly<Record<string, string>> = {
   icon: "El icono",
   image: "La imagen",
   label: "La etiqueta",
+  text: "El texto",
 };
 
 /** What a value follows in a declaration. */
@@ -227,7 +228,7 @@ export const es: typeof en = {
       quotedSource: (source, id) =>
         `${SOURCES[source] ?? code(source)} de ${code(id)} debe ser una cadena entre comillas.`,
       needsSource: (kind, id, form) =>
-        `\`${kind} ${id}\` necesita ${kind === "text" || kind === "note" ? "su texto" : kind === "icon" ? "un icono" : "la ruta de una imagen"}; se esperaba ${form}.`,
+        `\`${kind} ${id}\` necesita ${kind === "text" || kind === "note" || kind === "sticky" ? "su texto" : kind === "icon" ? "un icono" : "la ruta de una imagen"}; se esperaba ${form}.`,
       attachSelf: (id) => `Una nota no puede estar unida a sí misma: ${code(id)}.`,
       valueAfter: (after, form) =>
         `Valor inesperado después ${AFTER[after] ?? `de ${code(after)}`}; se esperaba ${form}.`,
@@ -293,6 +294,20 @@ export const es: typeof en = {
       linePoints:
         "Una línea lleva un punto `(x, y)` tras `from` y tras `to`, y sus quiebres en una lista tras `via`.",
       notForLines: (name, target) => `${code(name)} no se aplica a líneas como ${code(target)}.`,
+      penHasPoints: (name, statement) =>
+        `${code(name)} es un trazo de lápiz; ${code(statement)} no se aplica a él.`,
+      penPoints:
+        "Un trazo de lápiz lleva, después de su id, una lista de puntos `(x, y)`, al menos uno.",
+      penNoLabel: (id) =>
+        `${code(id)} es un trazo de lápiz, que no lleva etiqueta; sus puntos van después de su id.`,
+      notForPens: (name, target, accepted) =>
+        `${code(name)} no se aplica a trazos de lápiz como ${code(target)}; un trazo de lápiz admite ${list("es", accepted.map(code))}.`,
+      notForStickies: (name, target) =>
+        `${code(name)} no se aplica a notas adhesivas como ${code(target)}.`,
+      listInProfile: (name, profile) =>
+        `${code(name)} en un grupo pertenece a las listas de las composiciones libres; este es ${pick(A_PROFILE, profile)}.`,
+      listNeedsLayout: (name) =>
+        `${code(name)} ordena los hijos de una lista; este grupo no escribe \`layout\`.`,
       elementNotRelation: (name, statement) =>
         `${code(name)} es un elemento; ${code(statement)} necesita una relación.`,
       unknownRelation: (name) => `Relación desconocida ${code(name)}.`,
@@ -305,12 +320,12 @@ export const es: typeof en = {
       effectProperty: (name, effects, effect) =>
         `${code(name)} se aplica a los efectos ${list("es", effects.map(code))}, no a ${code(effect)}.`,
       flowTarget:
-        "Las partículas recorren relaciones y líneas; nombra la relación (`a -> b as r`) y anímala.",
+        "Las partículas recorren relaciones, líneas y trazos de lápiz; nombra la relación (`a -> b as r`) y anímala.",
       traceTarget:
-        "Un recorrido avanza por relaciones y líneas; nombra la relación (`a -> b as r`) y anímala.",
+        "Un recorrido avanza por relaciones, líneas y trazos de lápiz; nombra la relación (`a -> b as r`) y anímala.",
       dashOnEvent: "Un trazo en movimiento recorre relaciones y los contornos de las cajas.",
       dashNeedsOutline: (target, kind) =>
-        `${code(target)} es ${kind === "note" ? "una nota" : "un texto"} sin contorno; un trazo en movimiento sigue una línea o una caja.`,
+        `${code(target)} es ${kind === "note" ? "una nota" : kind === "sticky" ? "una nota adhesiva" : "un texto"} sin contorno; un trazo en movimiento sigue una línea o una caja.`,
       dashWithoutOutline: (target, kind) =>
         `${code(target)} es ${pick(UNOUTLINED, kind)} sin contorno; un trazo en movimiento necesita una línea o una caja.`,
       unknownTarget: (name) => `Elemento o relación desconocidos ${code(name)}.`,
@@ -493,6 +508,8 @@ export const es: typeof en = {
         `${code(view)} no tiene ningún elemento ni relación con nombre ${code(id)}.`,
       traceTarget: (id, element) =>
         `\`trace\` sigue una relación; ${code(id)} es ${element ? "un elemento" : "una nota o un fragmento"}.`,
+      drawTarget: (id, kind) =>
+        `\`draw\` admite trazos de lápiz, líneas y relaciones; ${code(id)} es ${kind === null ? "una nota o un fragmento" : `un elemento ${code(kind)}`}.`,
       conflict: (action, channel, target) =>
         `${code(action)} se superpone a una acción anterior sobre ${CHANNELS[channel] ?? code(channel)} de ${code(target)}.`,
     },
@@ -554,12 +571,12 @@ export const es: typeof en = {
         "Los grupos contienen declaraciones de elementos, relaciones, grupos anidados, `description` y `url`.",
       declareElement: (keyword, box) =>
         `Declara un elemento con \`${keyword}["Label"]\` o \`${box} ${keyword}\`.`,
-      freeStatements:
-        "Las composiciones libres aceptan declaraciones `box`, `text`, `icon`, `image`, `line` y `group`, relaciones, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `layers`, `placement`, `style`, `animate`, `class` y `rule`.",
+      freeStatements: (declarations) =>
+        `Las composiciones libres aceptan declaraciones ${list("es", declarations.map(code))}, relaciones, \`direction\`, \`layout\`, \`theme\`, \`title\`, \`description\`, \`preset\`, \`canvas\`, \`routing\`, \`layers\`, \`placement\`, \`style\`, \`animate\`, \`class\` y \`rule\`.`,
       flowStatements:
         "Los diagramas de flujo aceptan declaraciones de elementos, relaciones, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `placement`, `style`, `animate`, `class` y `rule`.",
-      freeDeclarations:
-        "Las composiciones libres declaran `box`, `text`, `icon`, `image`, `note`, `line` y `group`.",
+      freeDeclarations: (declarations) =>
+        `Las composiciones libres declaran ${list("es", declarations.map(code))}.`,
       attachTarget: (note) =>
         `Une ${code(note)} a un elemento de este diagrama: \`note ${note} "Texto" on <element>\`.`,
       flowDeclarations: (keyword) =>
@@ -581,9 +598,18 @@ export const es: typeof en = {
       constraintElements: "Las restricciones se aplican a elementos declarados en este diagrama.",
       dashOutline:
         "Dale un `fill`, un `stroke` o un `pattern` en un `style`, una clase o una `rule` de este diagrama, o usa un pulso.",
+      dashStroke:
+        "Dale un `stroke` en un `style`, una clase o una `rule` de este diagrama, o usa un pulso.",
       form: (form) => `Forma: ${form}.`,
       linePointsWritten:
         "Los puntos de una línea se escriben en su instrucción: `line <id> from (x, y) to (x, y)`.",
+      penPointsWritten:
+        "Los puntos de un trazo de lápiz se escriben en su instrucción: `pen <id> [(x, y), (x, y), ...]`.",
+      listsInFree:
+        "Las composiciones libres colocan los hijos de un grupo en una columna o una fila con `layout column` o `layout row`.",
+      listLayout: "Escribe `layout column` o `layout row` en el bloque del grupo.",
+      groupLayout: (mode) =>
+        `\`layout ${mode}\` es una instrucción del diagrama; un bloque de grupo admite \`layout column\` o \`layout row\`.`,
       declareFirst: (name) => `Decláralo primero, por ejemplo \`${name}["Label"]\`.`,
       nameRelation:
         "Las relaciones anónimas necesitan `as <id>` para poder nombrarlas, por ejemplo `a -> b as save`.",
@@ -611,6 +637,12 @@ export const es: typeof en = {
       styleProperties: (names) => `Las clases y las reglas aceptan ${names.map(code).join(", ")}.`,
       freeProperties:
         "Los diagramas de flujo y de secuencia y las vistas C4 escriben el texto con la escala tipográfica del tema; las composiciones libres eligen su tamaño, su peso y su alineación.",
+      freeOpacity:
+        "Los diagramas de flujo y de secuencia y las vistas C4 dibujan cada elemento opaco; las composiciones libres atenúan elementos, grupos, líneas y trazos de lápiz con `opacity`.",
+      opacityTargets: "`opacity` se aplica a elementos, grupos, líneas y trazos de lápiz.",
+      penProperties: (names) => `Un trazo de lápiz admite ${list("es", names.map(code))}.`,
+      penWidth: "Un trazo de lápiz mide al menos un píxel de ancho; quita el trazo para ocultarlo.",
+      stickyProperties: (names) => `Una nota adhesiva admite ${list("es", names.map(code))}.`,
       applyClasses: "Aplica las clases dentro de bloques de elemento, de relación o `style`.",
       kinds: (kinds) => `Tipos: ${kinds.join(", ")}.`,
     },
@@ -695,7 +727,7 @@ export const es: typeof en = {
       diagrams: (names) => `Diagramas: ${names.join(", ")}.`,
       declareDiagram: "Declara un diagrama o importa uno.",
       actionsInScene: "Las acciones como `reveal` van dentro de `scene <id> { … }`.",
-      actions: "Acciones: reveal, hide, highlight, focus, camera, trace, hold y parallel.",
+      actions: "Acciones: reveal, hide, highlight, focus, camera, trace, draw, hold y parallel.",
       transition:
         "Un cambio de composición entre escenas necesita una transición explícita, que relaciona los elementos por id.",
       conflict:

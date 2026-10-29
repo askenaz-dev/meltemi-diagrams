@@ -2,11 +2,12 @@
 
 [English](../../language/stories.md)
 
-Una `story` cuenta un diagrama paso a paso: escenas que revelan, resaltan y recorren partes de él,
-mueven la cámara y cambian a otra vista del mismo sistema. Una historia nunca cambia sus diagramas;
-los dibuja fotograma a fotograma con el mismo reloj determinista que los efectos de movimiento
-([motion.md](motion.md), decisión 0023), así que el lienzo, un fotograma exportado en un instante y,
-más adelante, el reproductor y los videos muestran el mismo estado en el mismo instante.
+Una `story` cuenta un diagrama paso a paso: escenas que revelan, resaltan, recorren y dibujan
+partes de él, mueven la cámara y cambian a otra vista del mismo sistema. Una historia nunca cambia
+sus diagramas; los dibuja fotograma a fotograma con el mismo reloj determinista que los efectos
+de movimiento ([motion.md](motion.md), decisión 0023), así que el lienzo, un fotograma exportado
+en un instante y, más adelante, el reproductor y los videos muestran el mismo estado en el mismo
+instante.
 
 ```text
 story purchase for checkout {
@@ -46,15 +47,16 @@ Los tiempos se escriben `800ms` o `1.5s`, de `0ms` a `600s`.
 
 ## Acciones
 
-| Acción                      | Tiempo predeterminado | Efecto                                                                                                                                    |
-| --------------------------- | --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `reveal a, b [over <time>]` | 600 ms                | hace aparecer los destinos con un fundido; un destino cuya primera acción de visibilidad es `reveal` empieza oculto                       |
-| `hide a, b [over <time>]`   | 600 ms                | hace desaparecer los destinos con un fundido                                                                                              |
-| `highlight a [over <time>]` | 1000 ms               | contornea los destinos con el color de acento, con una entrada y una salida graduales de min(200 ms, un cuarto del tiempo)                |
-| `focus a, b [over <time>]`  | 600 ms                | atenúa al 25 % todo salvo los destinos y las relaciones entre ellos, hasta el final de la escena; `focus all` lo anula                    |
-| `camera a, b [over <time>]` | 800 ms                | mueve el encuadre a los límites de los destinos más 40 px, con la relación de aspecto del dibujo; `camera all` encuadra la vista completa |
-| `trace r [over <time>]`     | 1200 ms               | dibuja una relación desde su origen hasta su destino con el color de acento, 2 px más ancha, con un punto en el extremo que avanza        |
-| `hold <time>`               | —                     | espera                                                                                                                                    |
+| Acción                      | Tiempo predeterminado | Efecto                                                                                                                                     |
+| --------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `reveal a, b [over <time>]` | 600 ms                | hace aparecer los destinos con un fundido; un destino cuya primera acción de visibilidad es `reveal` empieza oculto                        |
+| `hide a, b [over <time>]`   | 600 ms                | hace desaparecer los destinos con un fundido                                                                                               |
+| `highlight a [over <time>]` | 1000 ms               | contornea los destinos con el color de acento, con una entrada y una salida graduales de min(200 ms, un cuarto del tiempo)                 |
+| `focus a, b [over <time>]`  | 600 ms                | atenúa al 25 % todo salvo los destinos y las relaciones entre ellos, hasta el final de la escena; `focus all` lo anula                     |
+| `camera a, b [over <time>]` | 800 ms                | mueve el encuadre a los límites de los destinos más 40 px, con la relación de aspecto del dibujo; `camera all` encuadra la vista completa  |
+| `trace r [over <time>]`     | 1200 ms               | dibuja una relación desde su origen hasta su destino con el color de acento, 2 px más ancha, con un punto en el extremo que avanza         |
+| `draw a, b [over <time>]`   | 800 ms                | vuelve a dibujar lápices, líneas libres y relaciones con nombre desde su primer punto hasta el último, uno tras otro, y los deja dibujados |
+| `hold <time>`               | —                     | espera                                                                                                                                     |
 
 Los destinos son los ids de la vista de la escena: elementos, relaciones con nombre, y notas y
 fragmentos con nombre de los diagramas de secuencia; en una vista C4, rutas de entidades como
@@ -63,6 +65,46 @@ Todas las curvas son lineales. Una relación se dibuja con la opacidad de su ext
 así que revelar dos cajas revela las flechas entre ellas. Un recorrido suspende los efectos
 `animate` propios de la relación mientras dura; los demás efectos de las vistas se ejecutan con el
 reloj de la historia.
+
+`draw` vuelve a dibujar lo que se dibujó en una pizarra ([free.md](free.md#trazos-de-lápiz)): una
+explicación escrita con lápices se convierte en una historia, en un SVG animado y en un video.
+
+```text
+diagram whiteboard: free {
+  theme "sketch.light"
+
+  sticky idea "Ship it"
+  pen title [(40, 40), (80, 30), (120, 44), (160, 36)]
+  pen arrow [(40, 120), (120, 110), (200, 124)]
+
+  placement {
+    place idea at (340, 120)
+  }
+
+  style arrow { arrowhead triangle }
+}
+
+story explain for whiteboard {
+  scene strokes {
+    draw title, arrow over 2s
+    reveal idea
+  }
+}
+```
+
+- **Orden y tiempo.** Los destinos se dibujan uno tras otro en el orden escrito, cada uno durante
+  una parte del tiempo proporcional a la longitud de su línea, así que una palabra larga toma la
+  mayor parte y un punto aparece en su turno; cuando ninguno tiene longitud, se reparten el tiempo
+  por igual. Cada uno crece desde su primer punto hasta el último con su propio color, ancho, línea
+  y opacidad, y sus puntas y su etiqueta aparecen cuando está completo.
+- **Visibilidad.** Un destino cuya primera acción de visibilidad es `draw` empieza oculto, como con
+  `reveal`, y sigue dibujado después de su parte. `draw` usa los canales de visibilidad y de
+  recorrido de sus destinos, así que un `reveal` o un `trace` del mismo destino al mismo tiempo es
+  `story.conflict`.
+- **Efectos.** Mientras un destino se dibuja, sus propios efectos `animate` quedan suspendidos, como
+  durante un recorrido.
+- **Destinos.** Lápices, líneas libres y relaciones con nombre; cualquier otra cosa es
+  `story.invalid-target`, que dice que `draw` admite trazos de lápiz, líneas y relaciones.
 
 ## Transiciones
 
@@ -84,15 +126,15 @@ traslada a otra.
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | `story.unknown-diagram`    | el diagrama después de `for` o `view` no está en el archivo ni se importa; la pista lista los diagramas                         |
 | `ref.unknown-element`      | un destino no es un id de la vista de la escena; se sugieren ids parecidos                                                      |
-| `story.invalid-target`     | `trace` nombra algo que no es una relación                                                                                      |
+| `story.invalid-target`     | `trace` nombra algo que no es una relación, o `draw` algo que no es un lápiz, una línea libre ni una relación                   |
 | `story.missing-transition` | la vista cambia sin una `transition`                                                                                            |
 | `story.conflict`           | dos acciones sobre el mismo canal del mismo destino se superponen en el tiempo (`reveal db` y `hide db` en un mismo `parallel`) |
 | `story.empty-scene`        | advertencia: una escena sin acciones ni transición no dura nada                                                                 |
 | `prop.invalid-value`       | un tiempo mal formado o fuera de rango, o una instrucción en el lugar equivocado                                                |
 
-Los canales son la visibilidad (`reveal`, `hide`), el resaltado y el recorrido, por destino, y el
-foco y la cámara, por vista. Una historia de un diagrama importado cuya importación no se resuelve
-la informa la importación, no la historia.
+Los canales son la visibilidad (`reveal`, `hide`), el resaltado y el recorrido, por destino
+(`draw` toma la visibilidad y el recorrido), y el foco y la cámara, por vista. Una historia de un
+diagrama importado cuya importación no se resuelve la informa la importación, no la historia.
 
 ## Exportaciones
 

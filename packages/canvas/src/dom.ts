@@ -59,6 +59,8 @@ export const ICONS = {
   eyeOff:
     "M1.5 8c1.8-3 4-4.5 6.5-4.5s4.7 1.5 6.5 4.5c-1.8 3-4 4.5-6.5 4.5S3.3 11 1.5 8z|M2.5 2.5l11 11",
   plus: "M8 3v10|M3 8h10",
+  /** The + at the end of a list: a plus with shorter arms, drawn heavier in its round button. */
+  listAdd: "M8 4v8|M4 8h8",
   up: "M8 12V4|M4.5 7.5L8 4l3.5 3.5",
   down: "M8 4v8|M4.5 8.5L8 12l3.5-3.5",
   node: "M2.5 4.5h11v7h-11z",
@@ -68,8 +70,15 @@ export const ICONS = {
   tag: "M3.5 5.5h9a2.5 2.5 0 0 1 0 5h-9a2.5 2.5 0 0 1 0-5z",
   group: "M2 3.5h12v9H2z|M2 6h12",
   plainContainer: "M2.5 3.5h11v9h-11z|M5 6.5h6v3H5z",
+  /** A column: a tall frame with a title band and two cards one under the other. */
+  column:
+    "M4 1.5h8a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-11a1 1 0 0 1 1-1z|M3 4h10|M5.5 6h5v2.5h-5z|M5.5 10h5v2.5h-5z",
+  /** A row: a wide frame with two cards side by side. */
+  row: "M2.5 3h11a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z|M3.5 5.5h4v5h-4z|M8.5 5.5h4v5h-4z",
   box: "M4.5 4.5h7a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-7a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2z",
   text: "M3.5 4h9|M8 4v8.5|M6.5 12.5h3",
+  /** A sticky note: a square card of paper with its bottom right corner folded over. */
+  sticky: "M2.5 2.5h11v8l-3 3h-8z|M13.5 10.5h-3v3",
   icon: "M8 2.25l5 2.9v5.7l-5 2.9-5-2.9v-5.7z|M3.2 5.2L8 8l4.8-2.8|M8 8v5.6",
   image: "M2.5 3.5h11v9h-11z|M2.5 10.5l3-3 3 3 2-2 3 3|M10.5 6h.01",
   front: "M5.5 5.5h8v8h-8z|M10.5 5.5v-3h-8v8h3",
@@ -84,6 +93,12 @@ export const ICONS = {
   /** The Pointer tool: a dot with the trail it leaves. */
   pointer:
     "M2.5 12.5c1.7-.3 3.2-1.4 4.4-3.2|M12.8 6a2.1 2.1 0 1 1-4.2 0 2.1 2.1 0 0 1 4.2 0z|M6.9 9.3L8.9 7.6",
+  /** The pen: a pencil, its point at the bottom left, its collar and its band. */
+  pen: "M2.5 13.5l1.2-3.4 7.7-7.7a1.6 1.6 0 0 1 2.3 2.3L6 12.3z|M3.7 10.1L6 12.3|M9.7 4.1L12 6.4",
+  /** The highlighter: a marker with a chisel point over the mark it leaves. */
+  highlighter: "M4.7 8.3l6.2-6.2 3 3-6.2 6.2z|M4.7 8.3l-1.5 3 1.5 1.5 3-1.5|M2 14.6h7.5",
+  /** The eraser: a block of rubber in two parts, tilted over the line it rubs on. */
+  eraser: "M2.5 9.9l7.4-7.4 3.6 3.6-7.4 7.4z|M4.4 7.9l3.7 3.7|M6.1 13.5h7.4",
   snap: "M4 2.5v5a4 4 0 0 0 8 0v-5|M4 5h2.5|M9.5 5H12",
   minimap: "M2.5 3.5h11v9h-11z|M8 8h4v3H8z",
   inspector: "M2.5 3.5h11v9h-11z|M10 3.5v9",

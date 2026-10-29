@@ -117,6 +117,7 @@ describe("theme panel", () => {
     expect(panel.groups.map((g) => g.title)).toEqual([
       "Base",
       "Colours",
+      "Whiteboard",
       "Fonts",
       "Type",
       "Spacing",
@@ -151,6 +152,27 @@ describe("theme panel", () => {
     expect(
       panel.groups.find((g) => g.title === "Shapes and lines")!.fields.map((f) => f.name),
     ).toContain("sketch");
+  });
+
+  it("shows the whiteboard colours in a group of their own, inherited until written", () => {
+    const canvas = open(SHEET);
+    canvas.send({ type: "editTheme", open: true });
+    const groups = canvas.panel()!.groups;
+    const whiteboard = groups.find((g) => g.title === "Whiteboard")!;
+    expect(whiteboard.fields.map((f) => [f.name, f.type, f.value, f.placeholder])).toEqual([
+      ["highlight", "color", null, "#ffe600"],
+      ["sticky", "color", null, "#fff59d"],
+      ["stickyText", "color", null, "#1f2328"],
+    ]);
+    // The other colours keep their group, without the whiteboard's.
+    const colours = groups.find((g) => g.title === "Colours")!.fields.map((f) => f.name);
+    expect(colours).toHaveLength(16);
+    expect(colours).not.toContain("sticky");
+    canvas.send({ type: "themeToken", token: "sticky", value: "#dbeafe" });
+    expect(canvas.text()).toContain('  sticky "#dbeafe"\n');
+    expect(field(canvas.panel()!, "sticky")).toMatchObject({ value: "#dbeafe" });
+    canvas.send({ type: "themeToken", token: "sticky", value: null });
+    expect(canvas.text()).not.toContain("sticky");
   });
 
   it("says there is nothing to edit for a built-in theme", () => {

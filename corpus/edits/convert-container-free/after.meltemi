@@ -2,7 +2,10 @@ language "0.2"
 
 diagram slide: free {
   layout manual
-  group frame "" { link overview.node3; box db "Database" }
+  group frame "" {
+    link overview.node3
+    box db "Database"
+  }
   box api "API"
   api -> db: "reads"
   style frame { fill "#eef4ff" }

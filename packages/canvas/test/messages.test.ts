@@ -365,6 +365,32 @@ describe("the words of icons", () => {
     );
     expect(es.announcements.iconAdded("PostgreSQL")).toBe("Se agregó PostgreSQL.");
   });
+
+  it("says where the cards of a list go, and what its + adds, in both languages", () => {
+    expect(en.announcements.movedInList(["c"], "todo", 2, 3)).toBe("Moved c to 2 of 3 in todo.");
+    expect(en.announcements.movedInList(["c", "d"], "todo", 1, 4)).toBe(
+      "Moved 2 elements to 1 of 4 in todo.",
+    );
+    expect(en.announcements.movedPast("b", "a", "todo", true)).toBe("Moved b before a in todo.");
+    expect(en.announcements.listEnd("b", "todo", false)).toBe("b is already last in todo.");
+    expect(en.announcements.createdList("row")).toBe("Created a row.");
+    expect(en.lists.addSticky("todo")).toBe("Add a sticky note to todo");
+    expect(es.announcements.movedInList(["c"], "todo", 2, 3)).toBe(
+      "Se movió c a la posición 2 de 3 en todo.",
+    );
+    expect(es.announcements.movedPast("b", "a", "todo", false)).toBe(
+      "Se movió b después de a en todo.",
+    );
+    expect(es.announcements.listEnd("b", "todo", true)).toBe("b ya está al principio de todo.");
+    expect(es.announcements.createdList("column")).toBe("Se creó una columna.");
+    expect(es.lists.addColumn("board")).toBe("Añadir una columna a board");
+    expect(es.toolbar.groupKinds).toEqual({
+      group: "Grupo",
+      container: "Contenedor",
+      column: "Columna",
+      row: "Fila",
+    });
+  });
 });
 
 describe("the pictures of the shapes", () => {

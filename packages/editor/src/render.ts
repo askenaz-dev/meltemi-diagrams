@@ -103,9 +103,18 @@ export function renderLayout(
       elementLabels: layout.elementLabels ?? new Map(),
       rotations: layout.rotations ?? new Map(),
       radii: layout.radii ?? new Map(),
-      // The drawing without effects: the text lies where the editor types it.
+      // The drawing without effects: the text lies where the editor types it, a sticky's in the
+      // room the layout wrapped it in.
       texts: layout.theme
-        ? textPlaces(diagram, drawn, offset, layout.theme, connectors, layout.shapes)
+        ? textPlaces(
+            diagram,
+            drawn,
+            offset,
+            layout.theme,
+            connectors,
+            layout.shapes,
+            layout.stickies,
+          )
         : NO_TEXT_PLACES,
     },
   };

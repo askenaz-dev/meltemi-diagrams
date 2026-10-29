@@ -754,6 +754,8 @@ class C4Analyzer extends FlowAnalyzer {
         external: entity.external,
         shape: null,
         line: null,
+        pen: null,
+        list: null,
         attachedTo: null,
         attachedToRange: null,
         typeKind: null,

@@ -52,6 +52,8 @@ function requireTarget(
 ): void {
   if (kind === "element") {
     const element = requireElement(ctx, target);
+    // A free line and a pen are connectors without ends: every effect runs along their stroke.
+    if (element.kind === "line" || element.kind === "pen") return;
     if (effect === "flow") reject("edit.invalid-value", reasons().animations.flowOnBoxes);
     if (effect === "trace") reject("edit.invalid-value", reasons().animations.traceOnBoxes);
     if (effect === "dash" && NO_OUTLINE.has(element.kind)) {

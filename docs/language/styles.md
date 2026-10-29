@@ -43,26 +43,33 @@ A theme without `extends` extends `technical.light`. Themes are imported like an
 
 ### Tokens
 
-| Group   | Tokens                                                                                                                    | Value                                                          | `technical.*`                                            |
-| ------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | -------------------------------------------------------- |
-| Colours | `background`, `surface`, `ink`, `muted`, `line`, `connector`, `band`, `bandLine`, `tag`, `tagText`, `accent`, `accentEnd` | quoted colour                                                  | see [svg-export.md](svg-export.md#themes)                |
-| Signals | `success`, `warning`, `danger`, `info`                                                                                    | quoted colour                                                  | `#15803D`, `#B45309`, `#B91C1C`, `#0369A1` on light      |
-| Fonts   | `font`, `mono`                                                                                                            | quoted CSS font stack                                          | Inter, Cascadia Mono                                     |
-| Type    | `labelSize`, `descriptionSize`, `groupTitleSize`, `noteSize`, `tagSize`, `relationLabelSize`, `frameSize`                 | number, 6 to 48                                                | 13, 11, 13, 11, 10.5, 11, 12                             |
-|         | `labelWeight`                                                                                                             | 400, 500, 600 or 700                                           | 600                                                      |
-| Spacing | `padding` (text to box edge), `groupPadding`, `groupHeader` (group title band), `margin` (around the canvas)              | number, 0 to 200                                               | 16, 16, 40, 20                                           |
-| Shape   | `radius` (boxes, notes), `groupRadius`: defaults that an element's `radius` overrides                                     | number, 0 to 64                                                | 8, 14                                                    |
-| Strokes | `strokeWidth` (outlines), `connectorWidth`                                                                                | number, 0 to 8                                                 | 1, 1.3                                                   |
-| Arrows  | `arrowhead`, `arrowSize`, `corners`                                                                                       | a head (below); number, 0 to 32; `sharp` or `rounded`          | `triangle`, 8, `sharp` (`sketch.*`: `rounded`)           |
-| Sketch  | `sketch`                                                                                                                  | `none`, `light` or `rough`                                     | `none` (`sketch.*`: `light`)                             |
-| Icons   | `iconSize`, `iconPosition`                                                                                                | number, 8 to 64; `left`, `right`, `top`, `bottom` or `center`  | 18, `left` (stage: 24, `top`)                            |
-| Frame   | `frame`, `brand`, `mark`                                                                                                  | `none`, `footer` or `header`; quoted text; `meltemi` or `none` | `footer`, `Meltemi Diagrams`, `meltemi`                  |
-| Motion  | `flowDuration`, `dashDuration`, `pulseDuration`, `traceDuration`                                                          | a time, `100ms` to `60s`                                       | none: 1200 ms for flow, 1500 ms for trace, 1 s otherwise |
-| Canvas  | `selection`, `guide`                                                                                                      | quoted colour                                                  | none: the canvas uses `accent`                           |
+| Group      | Tokens                                                                                                                    | Value                                                          | `technical.*`                                                                     |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Colours    | `background`, `surface`, `ink`, `muted`, `line`, `connector`, `band`, `bandLine`, `tag`, `tagText`, `accent`, `accentEnd` | quoted colour                                                  | see [svg-export.md](svg-export.md#themes)                                         |
+| Signals    | `success`, `warning`, `danger`, `info`                                                                                    | quoted colour                                                  | `#15803D`, `#B45309`, `#B91C1C`, `#0369A1` on light                               |
+| Whiteboard | `highlight` (highlighter strokes), `sticky` (the card of stickies), `stickyText` (their text)                             | quoted colour                                                  | `#ffe600`, `#fff59d`, `#1f2328` on light; `#ffd600`, `#f3e37c`, `#1f2328` on dark |
+| Fonts      | `font`, `mono`                                                                                                            | quoted CSS font stack                                          | Inter, Cascadia Mono                                                              |
+| Type       | `labelSize`, `descriptionSize`, `groupTitleSize`, `noteSize`, `tagSize`, `relationLabelSize`, `frameSize`                 | number, 6 to 48                                                | 13, 11, 13, 11, 10.5, 11, 12                                                      |
+|            | `labelWeight`                                                                                                             | 400, 500, 600 or 700                                           | 600                                                                               |
+| Spacing    | `padding` (text to box edge), `groupPadding`, `groupHeader` (group title band), `margin` (around the canvas)              | number, 0 to 200                                               | 16, 16, 40, 20                                                                    |
+| Shape      | `radius` (boxes, notes), `groupRadius`: defaults that an element's `radius` overrides                                     | number, 0 to 64                                                | 8, 14                                                                             |
+| Strokes    | `strokeWidth` (outlines), `connectorWidth`                                                                                | number, 0 to 8                                                 | 1, 1.3                                                                            |
+| Arrows     | `arrowhead`, `arrowSize`, `corners`                                                                                       | a head (below); number, 0 to 32; `sharp` or `rounded`          | `triangle`, 8, `sharp` (`sketch.*`: `rounded`)                                    |
+| Sketch     | `sketch`                                                                                                                  | `none`, `light` or `rough`                                     | `none` (`sketch.*`: `light`)                                                      |
+| Icons      | `iconSize`, `iconPosition`                                                                                                | number, 8 to 64; `left`, `right`, `top`, `bottom` or `center`  | 18, `left` (stage: 24, `top`)                                                     |
+| Frame      | `frame`, `brand`, `mark`                                                                                                  | `none`, `footer` or `header`; quoted text; `meltemi` or `none` | `footer`, `Meltemi Diagrams`, `meltemi`                                           |
+| Motion     | `flowDuration`, `dashDuration`, `pulseDuration`, `traceDuration`                                                          | a time, `100ms` to `60s`                                       | none: 1200 ms for flow, 1500 ms for trace, 1 s otherwise                          |
+| Canvas     | `selection`, `guide`                                                                                                      | quoted colour                                                  | none: the canvas uses `accent`                                                    |
 
 The canvas tokens colour the editor only: `selection` its selection, handles and the point a
 connector end takes, `guide` its alignment guides and the outline and magnets of the box an end
 is dragged over. Exports never use them, and styles cannot name them.
+
+The whiteboard tokens are colour tokens like the others, set in every built-in theme and inherited
+by the themes that extend them: `stroke highlight` colours a highlighter stroke, and stickies take
+`sticky` and `stickyText` unless styled ([free.md](free.md#stickies)). `stickyText` is near-black
+in the dark themes too, since a sticky is paper. Pens take `ink` ([free.md](free.md#pen-strokes)).
+The theme panel shows the three in a Whiteboard group.
 
 `sketch` paints every stroke as if drawn by hand: outlines, connectors, heads, label pills, group
 bands and the frame are drawn twice over a clean fill, each pass wobbling a little (`light`) or
@@ -101,43 +108,51 @@ diagram checkout: flow {
 }
 ```
 
-| Property                 | Value                                                                                            | Applies to                    |
-| ------------------------ | ------------------------------------------------------------------------------------------------ | ----------------------------- |
-| `fill`                   | quoted colour (`"none"` for no background) or colour token name                                  | elements, relation labels     |
-| `stroke`                 | quoted colour or colour token name                                                               | outlines and connectors       |
-| `color`                  | quoted colour or colour token name                                                               | text                          |
-| `line`                   | `solid`, `dashed` or `dotted`                                                                    | outlines and connectors       |
-| `width`                  | number, 0 to 16                                                                                  | outlines and connectors       |
-| `radius`                 | number, 0 to 64: the corner radius, over the theme's `radius` or `groupRadius`                   | elements and groups only      |
-| `rotation`               | number, 0 to 360: degrees the element turns, clockwise about its box's centre                    | flow and free elements        |
-| `shape`                  | one of the twenty-four shapes of [free.md](free.md#text-and-shapes)                              | flow nodes and free boxes     |
-| `pattern`                | `none`, `hatch`, `dots` or `cross`                                                               | elements only                 |
-| `arrowhead`              | the head at the target (below)                                                                   | relations and free lines      |
-| `arrowtail`              | the head at the source (below)                                                                   | relations and free lines      |
-| `routing`                | `auto`, `orthogonal`, `polyline` or `bezier` ([layout](layout.md))                               | relations and free lines      |
-| `corners`                | `sharp` or `rounded` bends of straight and elbow routes                                          | relations and free lines      |
-| `icon`                   | `"<pack>:<name>"` ([assets.md](assets.md))                                                       | elements and relations        |
-| `iconColor`              | quoted colour or colour token name                                                               | monochrome icons              |
-| `iconPosition`           | `left`, `right`, `top`, `bottom` or `center` ([icons in boxes](#icons-in-boxes))                 | nodes, decisions, data, boxes |
-| `labelPosition`          | `top`, `bottom`, `left` or `right`: the edge of the label around a centred icon                  | nodes, decisions, data, boxes |
-| `iconSize`               | `auto`, or a number from 8 to 128: the side of the icon                                          | nodes, decisions, data, boxes |
-| `fontSize`, `fontWeight` | the text's size, 6 to 160, and weight, 400, 500, 600 or 700 ([free.md](free.md#text-and-shapes)) | free boxes and texts          |
-| `textAlign`              | `left`, `center` or `right`: where the text sits across its box                                  | free boxes and texts          |
-| `verticalAlign`          | `top`, `middle` or `bottom`: where the text sits down its shape                                  | free boxes                    |
-| `class`                  | one or more class ids, in `style` statements and declaration blocks                              | elements and relations        |
+| Property                 | Value                                                                                            | Applies to                            |
+| ------------------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------- |
+| `fill`                   | quoted colour (`"none"` for no background) or colour token name                                  | elements, relation labels             |
+| `stroke`                 | quoted colour or colour token name                                                               | outlines, connectors and pens         |
+| `color`                  | quoted colour or colour token name                                                               | text                                  |
+| `line`                   | `solid`, `dashed` or `dotted`                                                                    | outlines, connectors and pens         |
+| `width`                  | number, 0 to 64 (1 to 64 on a pen)                                                               | outlines, connectors and pens         |
+| `opacity`                | number, 0 (invisible) to 1 (opaque)                                                              | free elements, groups, lines and pens |
+| `radius`                 | number, 0 to 64: the corner radius, over the theme's `radius` or `groupRadius`                   | elements and groups only              |
+| `rotation`               | number, 0 to 360: degrees the element turns, clockwise about its box's centre                    | flow and free elements                |
+| `shape`                  | one of the twenty-four shapes of [free.md](free.md#text-and-shapes)                              | flow nodes and free boxes             |
+| `pattern`                | `none`, `hatch`, `dots` or `cross`                                                               | elements only                         |
+| `arrowhead`              | the head at the target (below)                                                                   | relations, free lines and pens        |
+| `arrowtail`              | the head at the source (below)                                                                   | relations, free lines and pens        |
+| `routing`                | `auto`, `orthogonal`, `polyline` or `bezier` ([layout](layout.md))                               | relations and free lines              |
+| `corners`                | `sharp` or `rounded` bends of straight and elbow routes                                          | relations and free lines              |
+| `icon`                   | `"<pack>:<name>"` ([assets.md](assets.md))                                                       | elements and relations                |
+| `iconColor`              | quoted colour or colour token name                                                               | monochrome icons                      |
+| `iconPosition`           | `left`, `right`, `top`, `bottom` or `center` ([icons in boxes](#icons-in-boxes))                 | nodes, decisions, data, boxes         |
+| `labelPosition`          | `top`, `bottom`, `left` or `right`: the edge of the label around a centred icon                  | nodes, decisions, data, boxes         |
+| `iconSize`               | `auto`, or a number from 8 to 128: the side of the icon                                          | nodes, decisions, data, boxes         |
+| `fontSize`, `fontWeight` | the text's size, 6 to 160, and weight, 400, 500, 600 or 700 ([free.md](free.md#text-and-shapes)) | free boxes, texts and stickies        |
+| `textAlign`              | `left`, `center` or `right`: where the text sits across its box                                  | free boxes, texts and stickies        |
+| `verticalAlign`          | `top`, `middle` or `bottom`: where the text sits down its shape                                  | free boxes and stickies               |
+| `class`                  | one or more class ids, in `style` statements and declaration blocks                              | elements and relations                |
 
 - A colour token name (`danger`, `accent`, `muted`, …) follows the theme: `stroke danger` is red in
   every theme, in that theme's red. A bare word that is not a colour token is
   `prop.invalid-value`; write CSS colours quoted, as in `fill "red"`.
 - `pattern` overlays the shape with hatching, dots or a grid in the element's stroke colour (or
   `muted`) at 35 % opacity, so meaning never depends on colour alone.
-- `pattern`, `iconPosition`, `labelPosition`, `iconSize`, `radius` and `rotation` on a relation,
-  `arrowhead`, `arrowtail`, `routing` or `corners` on an element other than a free line, and
-  `shape` on anything but a flow `node` or a free `box`, are `prop.invalid-value` in `style`
-  statements and rules. A free line takes the properties of a relation and refuses those of a box
-  ([free.md](free.md#lines)). `fontSize`, `fontWeight`, `textAlign` and `verticalAlign` are
-  free-only: flow diagrams refuse them. A class may hold them all; each target takes what applies
-  to it.
+- `pattern`, `iconPosition`, `labelPosition`, `iconSize`, `radius`, `rotation` and `opacity` on a
+  relation, `arrowhead` and `arrowtail` on an element other than a free line or a pen, `routing`
+  or `corners` on an element other than a free line, and `shape` on anything but a flow `node` or
+  a free `box`, are `prop.invalid-value` in `style` statements and rules. A free line takes the
+  properties of a relation and refuses those of a box ([free.md](free.md#lines)); a pen takes
+  `stroke`, `width`, `line`, `opacity`, `arrowhead` and `arrowtail` and refuses the others
+  ([free.md](free.md#pen-strokes)). `fontSize`, `fontWeight`, `textAlign`, `verticalAlign` and
+  `opacity` are free-only: flow diagrams refuse them. A class may hold them all; each target takes
+  what applies to it.
+- `width` is an outline's, a connector's or a pen stroke's width, from 0 to 64; a pen is drawn at
+  least 1 px wide, so `width 0` on a pen is `prop.invalid-value`. `width 20` draws a highlighter
+  stroke.
+- `opacity` fades an element, a group with everything it holds, a free line or a pen of a free
+  diagram, from 0 (invisible) to 1 (opaque); a story's visibility multiplies with it.
 - `radius` rounds the corners of every shape that has them, clamped to half the shorter side:
   nodes and `rounded` boxes (the theme's `radius` by default), `rectangle`, `square` and `framed`
   boxes and nodes (square by default), the vertices of the polygons and of decisions (sharp by
@@ -282,11 +297,12 @@ compilation, which is where the whole theme chain is known; the class is then ig
 ### Rules
 
 `rule <kind> { <properties> }` styles every element of a kind (`node`, `decision`, `data`, `group`,
-`note`, `tag`; in free diagrams `box`, `text`, `icon`, `image`, `group` and `line`) or every
-relation (`relation`). `rule line { line dashed }` reads oddly but is right: the kind, then the
-property. Rules are written in diagrams and in theme blocks,
-where they reach every diagram that uses the theme; a project-wide rule therefore lives in the
-project's default theme. A property set twice for the same kind is `prop.duplicate`. Only
+`note`, `tag`; in free diagrams `box`, `text`, `icon`, `image`, `note`, `sticky`, `line`, `pen` and
+`group`) or every relation (`relation`). `rule line` and `rule pen` take heads too:
+`rule pen { arrowhead triangle }` ends every pen in a triangle. `rule line { line dashed }` reads
+oddly but is right: the kind, then the property. Rules are written in diagrams and in theme
+blocks, where they reach every diagram that uses the theme; a project-wide rule therefore lives in
+the project's default theme. A property set twice for the same kind is `prop.duplicate`. Only
 `rule node` and `rule box` may set `shape`; `rule group { radius 0 }` squares every group.
 
 ## Precedence
@@ -309,8 +325,12 @@ Animation state, added by the motion engine, applies on top of the result.
 | (none)            | the content plus `margin`, plus the frame             | never                                       |
 | `preset document` | as above                                              | wider than 1,200 px                         |
 | `preset slide`    | as above, extended to 16:9 with the content centred   | wider than 1,920 px or taller than 1,080 px |
+| `preset board`    | as above, whatever its size                           | never                                       |
 | `canvas (w, h)`   | `w × h` with the content centred; grows where it must | when the content does not fit               |
 
-`preset` and `canvas` cannot be combined. The frame strip spans the canvas at its top or bottom
-edge. Text is never shrunk to fit a canvas: when the warning appears, split the diagram into views
-or story scenes.
+`preset` and `canvas` cannot be combined, and another preset word is `prop.invalid-value` listing
+`document, slide, board`. The frame strip spans the canvas at its top or bottom edge. Text is
+never shrunk to fit a canvas: when the warning appears, split the diagram into views or story
+scenes. `preset board` is for whiteboards, which grow with what is drawn on them: a kanban board
+or an explanation drawn with pens and stickies ([free.md](free.md)). The warning of
+`preset document` and `preset slide` says so in its hints.

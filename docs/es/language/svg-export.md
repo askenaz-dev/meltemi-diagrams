@@ -58,6 +58,8 @@ los temas `technical.*`; otros tamaños de letra los escalan.
 | `group`                                              | la caja de los hijos + `groupPadding` a los lados y abajo, `groupHeader` arriba (`groupPadding` sin título), ensanchado para su título; un hijo dibujado con `shape icon` cuenta con su etiqueta                     |
 | `tag`                                                | ancho del texto medido + 18, por 18                                                                                                                                                                                  |
 | `note`                                               | ancho medido de la línea más larga, por 18 por línea más 4                                                                                                                                                           |
+| `sticky`                                             | 160 x 160, sin crecer nunca: su texto se reparte en líneas y se encoge hasta caber ([free.md](free.md#notas-adhesivas))                                                                                              |
+| `pen`                                                | el rectángulo que envuelve sus puntos, ampliado la mitad de su ancho (3 de forma predeterminada) por cada lado ([free.md](free.md#trazos-de-lápiz))                                                                  |
 
 Las cajas base escalan con `labelSize` (160 x 56 a 13 px). Además, una caja es al menos tan alta
 como su etiqueta y sus líneas de descripción más cuatro quintos de `padding` arriba y abajo, así que
@@ -79,6 +81,8 @@ Las píldoras de las etiquetas de relación son tan anchas como su texto medido 
 | `group`    | banda redondeada (`groupRadius` 14, o su propio `radius`) con el título (`groupTitleSize` 13 px) arriba a la izquierda y la descripción debajo; un grupo sin título dibuja solo su contorno             |
 | `note`     | texto atenuado alineado a la izquierda de `noteSize` 11 px, 18 px por línea, sin borde salvo que se fije `fill`, `stroke` o `pattern`                                                                   |
 | `tag`      | píldora con texto monoespaciado de `tagSize` 10,5 px; de forma predeterminada, relleno `tag` y texto `tagText`                                                                                          |
+| `sticky`   | una sombra suave 3 px bajo una tarjeta de `radius` 2 con el color `sticky` del tema, con su texto repartido en líneas y encogido hasta caber, de 15,6 px como mucho, en `stickyText`, centrado          |
+| `pen`      | un solo trazado por los puntos medios de sus puntos, con extremos y uniones redondeados, sin relleno, de 3 px con el `ink` del tema de forma predeterminada                                             |
 
 Las veinticuatro formas que admiten los nodos y las cajas libres, con sus tamaños, sus áreas de
 texto y sus contornos, se enumeran en [free.md](free.md#texto-y-formas); `shape icon` dibuja solo
@@ -113,7 +117,9 @@ antes de la etiqueta, con el color y el ancho del conector; las formas rellenas 
 su base, y las huecas, en su parte trasera. Un conector Bézier se recorta en ambos extremos.
 
 `-->`, `---` y `line dashed` usan un patrón de guiones `5 4`; `line dotted` dibuja puntos redondos: un
-guion de 0 y un hueco de `1.5 × width + 3` con extremos redondeados.
+guion de 0 y un hueco de `1.5 × width + 3` con extremos redondeados. Un lápiz discontinuo, de
+extremos redondeados, escala su patrón con su ancho (un guion de `max(5, 2 × width)` y un hueco de
+`max(4, width) + width`), así que los huecos siguen abiertos por ancho que sea.
 
 El anclaje en cada caja sigue la decisión 0006:
 
@@ -248,9 +254,12 @@ pasada, así que el mismo texto siempre produce los mismos bytes, y una edición
 cambia el temblor de una forma. La clave de una relación anónima (`a->b#1`) y un id generado
 cambian cuando se reordenan las instrucciones, y su temblor cambia con ellos; nombra lo que deba
 quedarse quieto. El texto, las imágenes, los iconos, el símbolo de la marca, los degradados y los
-patrones no se tocan, y los rellenos siguen limpios. Solo cambia la pintura: las cajas, los
-recorridos y los límites de la disposición, la detección de clics, los contornos de selección y
-los tiradores del lienzo y el editor de texto usan la geometría limpia. Todas las exportaciones
+patrones no se tocan, y los rellenos siguen limpios. Los trazos de lápiz se pintan tal como están
+escritos, en un solo trazado limpio: ya están dibujados a mano ([free.md](free.md#trazos-de-lápiz)).
+La tarjeta de una nota adhesiva no tiene borde salvo que se le dé estilo, así que solo se dibuja a
+mano su contorno con estilo. Solo cambia la pintura: las cajas, los recorridos y los límites de la
+disposición, la detección de clics, los contornos de selección y los tiradores del lienzo y el
+editor de texto usan la geometría limpia. Todas las exportaciones
 (SVG, PNG, PDF, los reproductores, el video) y el lienzo dibujan con `renderSvg`, así que todos
 muestran los mismos trazos; un guion en movimiento se mueve en las dos pasadas. Una imagen
 dibujada a mano pesa más: la pizarra de la galería ocupa 6,5 KB limpia y 35,6 KB a mano con
@@ -260,8 +269,10 @@ dibujada a mano pesa más: la pizarra de la galería ocupa 6,5 KB limpia y 35,6 
 
 `preset document` advierte (`layout.too-large`) cuando el lienzo es más ancho que 1200 px.
 `preset slide` amplía el lienzo a 16:9 con el contenido centrado y advierte cuando el contenido
-supera 1920 × 1080 px. `canvas (w, h)` fija el lienzo y centra el contenido; una dimensión que el
-contenido supera crece, con la misma advertencia. El texto nunca se reduce: divide los diagramas
+supera 1920 × 1080 px. `preset board` conserva el lienzo tal como se calcula, del tamaño que
+tenga, sin advertencia: una pizarra crece con lo que se dibuja en ella. `canvas (w, h)` fija el
+lienzo y centra el contenido; una dimensión que el contenido supera crece, con la misma
+advertencia. El texto nunca se reduce: divide los diagramas
 densos en vistas.
 
 ## El SVG
@@ -278,7 +289,10 @@ densos en vistas.
   etiquetas de relación son un `<g data-role="label">` anidado. Los editores pueden relacionar los
   clics con los ids gracias a estos atributos. Una línea libre es un grupo de elemento cuya
   etiqueta se anida del mismo modo. Un grupo en una capa distinta de `main` lleva además
-  `data-layer="<nombre>"`.
+  `data-layer="<nombre>"`, y un elemento o un grupo con estilo `opacity`, un atributo `opacity`.
+  Un lápiz es un grupo de elemento cuyo trazo es un solo `<path>` de extremos y uniones redondeados,
+  seguido de sus puntas; una nota
+  adhesiva cuyo texto no cabe contiene un `<clipPath>` de su tarjeta para su texto.
 - Las imágenes de las composiciones libres son
   `<image href="data:…" preserveAspectRatio="xMidYMid meet">` dentro del grupo de su elemento, con
   la descripción como hijo `<title>`. No se hace referencia a ningún archivo ni URL.

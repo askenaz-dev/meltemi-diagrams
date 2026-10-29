@@ -9,9 +9,10 @@
 //   room to client   { "<connection id>": <peer> | null, ... }
 //
 // `<state>` is `{ file?, caret?, canvas? }` (`parseAwareness`), `canvas` holding the selection, the
-// pointer and the points of the Pointer tool's trail, `<peer>` is the same with the room's `user` on it (`guest` included, so that every
-// page badges a person without an account from the room's word alone). From a client the map holds
-// exactly ONE entry, which is the client's own state; the
+// pointer and the points of the Pointer tool's trail (or of a stroke of the pen or the highlighter,
+// with its `pen` part), `<peer>` is the same with the room's `user` on it (`guest` included, so that
+// every page badges a person without an account from the room's word alone). From a client the map
+// holds exactly ONE entry, which is the client's own state; the
 // key the client gives it is ignored, because the room keys what it relays by the sender's
 // connection id (`hello.you.id`), so that no client can speak for another's entry. `null` is "I have
 // no state any more". From the room, `null` is "that connection has no state any more" (it left, or
@@ -36,6 +37,13 @@ export const ATTACHMENT_BYTES = 2 * 1024;
 /** The most points of a Pointer trail one state carries, and the longest it lasts in milliseconds. */
 export const MAX_LASER_POINTS = 64;
 export const MAX_LASER_MS = 1000;
+/** The width of a stroke being drawn: an integer number of pixels from `MIN_PEN_WIDTH` to this. */
+export const MAX_PEN_WIDTH = 64;
+export const MIN_PEN_WIDTH = 1;
+/** The longest colour of a stroke being drawn, in characters. */
+export const MAX_PEN_COLOUR = 32;
+/** The number of a stroke being drawn: an integer from 0 to this (a signed 32-bit integer's top). */
+export const MAX_PEN_STROKE = 2_147_483_647;
 
 /** The longest encoded relative position of a caret (the page's own encoding, opaque to the room). */
 const MAX_POSITION = 256;
@@ -64,11 +72,30 @@ export interface AwarenessPointer {
  * The points a stroke of the Pointer tool made since the client's last state (`live-collaboration`,
  * "Pointer trails"): at most `MAX_LASER_POINTS`, `x` and `y` in diagram units to a tenth, `t` the
  * milliseconds since the first, 0 to `MAX_LASER_MS`, and the diagram they are over when the page said.
- * It rides in the same message as the pointer, is relayed once and never kept.
+ * With `pen` the points are a stroke being drawn with the pen or the highlighter (`live-collaboration`,
+ * "Strokes being drawn in presence"). It rides in the same message as the pointer, is relayed once and
+ * never kept.
  */
 export interface AwarenessLaser {
   readonly points: readonly { readonly x: number; readonly y: number; readonly t: number }[];
   readonly diagram?: string;
+  readonly pen?: AwarenessPen;
+}
+
+/**
+ * How a stroke being drawn looks, for the others to draw it as it grows: `width` an integer from
+ * `MIN_PEN_WIDTH` to `MAX_PEN_WIDTH`, `colour` a string of at most `MAX_PEN_COLOUR` characters (a CSS
+ * colour the canvas reads or draws grey; the room does not read it), `opacity` from 0 to 1, `stroke`
+ * an integer from 0 to `MAX_PEN_STROKE` that the client increases with each stroke (the others
+ * never join two strokes), and `cancel`, only ever `true`, on the batch that ends a stroke cancelled
+ * with Escape.
+ */
+export interface AwarenessPen {
+  readonly width: number;
+  readonly colour: string;
+  readonly opacity: number;
+  readonly stroke: number;
+  readonly cancel?: true;
 }
 
 /** What a client publishes. Every part is optional: a client with no file open publishes `{}`. */
@@ -227,8 +254,9 @@ function parsePointer(value: unknown): AwarenessPointer | undefined {
 
 /**
  * A Pointer stroke from a client: at most `MAX_LASER_POINTS` points, each with `x` and `y` finite
- * within `MAX_POINTER` (kept to a tenth) and `t` an integer from 0 to `MAX_LASER_MS`, and maybe the
- * diagram. Anything else is undefined, and the whole message is invalid.
+ * within `MAX_POINTER` (kept to a tenth) and `t` an integer from 0 to `MAX_LASER_MS`, maybe the
+ * diagram, and maybe the `pen` part of a stroke of the pen or the highlighter (`parsePen`). Anything
+ * else is undefined, and the whole message is invalid.
  */
 function parseLaser(value: unknown): AwarenessLaser | undefined {
   if (!isRecord(value)) return undefined;
@@ -245,10 +273,52 @@ function parseLaser(value: unknown): AwarenessLaser | undefined {
       return undefined;
     points.push({ x, y, t });
   }
+  const look = value["pen"];
+  let pen: AwarenessPen | undefined;
+  if (look !== undefined && look !== null) {
+    pen = parsePen(look);
+    if (!pen) return undefined;
+  }
   const diagram = value["diagram"];
-  if (diagram === undefined || diagram === null) return { points };
-  const id = bounded(diagram, MAX_ELEMENT);
-  return id === undefined ? undefined : { points, diagram: id };
+  let id: string | undefined;
+  if (diagram !== undefined && diagram !== null) {
+    id = bounded(diagram, MAX_ELEMENT);
+    if (id === undefined) return undefined;
+  }
+  return { points, ...(id !== undefined ? { diagram: id } : {}), ...(pen ? { pen } : {}) };
+}
+
+/**
+ * The look of a stroke being drawn: `width` an integer from `MIN_PEN_WIDTH` to `MAX_PEN_WIDTH`,
+ * `colour` a string of at most `MAX_PEN_COLOUR` characters, `opacity` a number from 0 to 1, `stroke`
+ * an integer from 0 to `MAX_PEN_STROKE`, and `cancel` absent or `true`. A field out of those bounds
+ * is undefined, and the whole message is invalid; any other field is not kept.
+ */
+function parsePen(value: unknown): AwarenessPen | undefined {
+  if (!isRecord(value)) return undefined;
+  const { width, colour, opacity, stroke, cancel } = value;
+  if (
+    typeof width !== "number" ||
+    !Number.isInteger(width) ||
+    width < MIN_PEN_WIDTH ||
+    width > MAX_PEN_WIDTH
+  ) {
+    return undefined;
+  }
+  if (typeof colour !== "string" || colour.length > MAX_PEN_COLOUR) return undefined;
+  if (typeof opacity !== "number" || !Number.isFinite(opacity) || opacity < 0 || opacity > 1) {
+    return undefined;
+  }
+  if (
+    typeof stroke !== "number" ||
+    !Number.isInteger(stroke) ||
+    stroke < 0 ||
+    stroke > MAX_PEN_STROKE
+  ) {
+    return undefined;
+  }
+  if (cancel !== undefined && cancel !== true) return undefined;
+  return { width, colour, opacity, stroke, ...(cancel === true ? { cancel } : {}) };
 }
 
 /** A coordinate of a laser point: finite, within `MAX_POINTER`, to a tenth of a diagram unit. */

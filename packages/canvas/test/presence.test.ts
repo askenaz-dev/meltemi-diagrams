@@ -17,6 +17,7 @@ import {
   luminance,
   outlineBox,
   parseColour,
+  personKeys,
   presenceMarks,
   readLaser,
   readMe,
@@ -396,6 +397,97 @@ describe("the trail batch of a person", () => {
     expect(readLaser([])).toBeUndefined();
   });
 
+  it("reads the pen part of a stroke, its colour as #rrggbb, its number and its cancel", () => {
+    const pen = { width: 4, colour: "#e03131", opacity: 1, stroke: 3 };
+    const RED = { width: 4, colour: "#e03131", opacity: 1 };
+    expect(readLaser(batch(ten, { pen }))).toEqual({
+      batch: 7,
+      points: ten,
+      pen: { look: RED, stroke: 3, cancel: false },
+    });
+    expect(
+      readLaser(batch(ten, { pen: { width: 20, colour: "#FFE600", opacity: 0.35, stroke: 0 } })),
+    ).toEqual({
+      batch: 7,
+      points: ten,
+      pen: { look: { width: 20, colour: "#ffe600", opacity: 0.35 }, stroke: 0, cancel: false },
+    });
+    // Escape: the batch that ends a cancelled stroke, with no points.
+    expect(readLaser(batch([], { pen: { ...pen, cancel: true } }))).toEqual({
+      batch: 7,
+      points: [],
+      pen: { look: RED, stroke: 3, cancel: true },
+    });
+    // The edges of the bounds fit.
+    for (const edge of [
+      { width: 1, colour: "#000", opacity: 0, stroke: 0 },
+      { width: 64, colour: "rgb(224, 49, 49)", opacity: 1, stroke: 2_147_483_647 },
+    ]) {
+      expect(readLaser(batch(ten, { pen: edge }))?.pen?.look.width, JSON.stringify(edge)).toBe(
+        edge.width,
+      );
+    }
+  });
+
+  it("drops the whole batch when its pen part does not fit", () => {
+    const pen = { width: 4, colour: "#e03131", opacity: 1, stroke: 3 };
+    for (const bad of [
+      { ...pen, width: 900 },
+      { ...pen, width: 0 },
+      { ...pen, width: 4.5 },
+      { ...pen, width: "4" },
+      { ...pen, colour: `#${"e".repeat(32)}` },
+      { ...pen, colour: 7 },
+      { ...pen, opacity: 2 },
+      { ...pen, opacity: -0.1 },
+      { ...pen, opacity: Number.NaN },
+      { ...pen, stroke: -1 },
+      { ...pen, stroke: 2_147_483_648 },
+      { ...pen, stroke: 2.5 },
+      { ...pen, stroke: "3" },
+      { ...pen, cancel: false },
+      { ...pen, cancel: "yes" },
+      { width: 4, colour: "#e03131", opacity: 1 },
+      { width: 4, colour: "#e03131" },
+      null,
+      "pen",
+    ]) {
+      expect(readLaser(batch(ten, { pen: bad })), JSON.stringify(bad)).toBeUndefined();
+    }
+    // The person and their pointer stay.
+    const [ben] = readPeople([
+      {
+        name: "Ben",
+        colour: "#e03131",
+        selection: [],
+        pointer: { x: 120, y: 80 },
+        laser: batch(ten, { pen: { ...pen, width: 900 } }),
+      },
+    ]);
+    expect(ben!.laser).toBeUndefined();
+    expect(ben!.pointer).toEqual({ x: 120, y: 80 });
+  });
+
+  it("draws a stroke whose colour cannot be read in the person's colour", () => {
+    const pen = { width: 4, colour: "var(--x)", opacity: 1, stroke: 1 };
+    expect(readLaser(batch(ten, { pen }))?.pen?.look.colour).toBe(FALLBACK_COLOUR);
+    expect(readLaser(batch(ten, { pen }), "#1971c2")?.pen?.look.colour).toBe("#1971c2");
+    const [ben] = readPeople([
+      {
+        name: "Ben",
+        colour: "#E03131",
+        selection: [],
+        pointer: { x: 120, y: 80 },
+        laser: batch(ten, { pen }),
+      },
+    ]);
+    expect(ben!.laser?.pen).toEqual({
+      look: { width: 4, colour: "#e03131", opacity: 1 },
+      stroke: 1,
+      cancel: false,
+    });
+  });
+
   it("rides on the person, and a batch that does not fit leaves the person and their pointer", () => {
     const [ben, eve] = readPeople([
       {
@@ -416,6 +508,27 @@ describe("the trail batch of a person", () => {
     expect(ben!.laser).toEqual({ batch: 7, points: ten });
     expect(eve!.laser).toBeUndefined();
     expect(eve!.pointer).toEqual({ x: 5, y: 6 });
+  });
+});
+
+describe("the key of each person, for the strokes they draw", () => {
+  const person = (name: string, colour: string, pointer?: { x: number; y: number }) =>
+    readPeople([{ name, colour, selection: [], ...(pointer ? { pointer } : {}) }])[0]!;
+
+  it("is the same whether or not their pointer is shown", () => {
+    const ben = person("Ben", "#1c7ed6", { x: 1, y: 2 });
+    const lifted = person("Ben", "#1c7ed6");
+    expect(personKeys([ben])).toEqual(personKeys([lifted]));
+  });
+
+  it("tells apart two people of one name and colour by their order, pointer or not", () => {
+    const one = person("Ben", "#1c7ed6");
+    const two = person("Ben", "#1c7ed6", { x: 1, y: 2 });
+    const ana = person("Ana", "#e03131");
+    const keys = personKeys([one, ana, two]);
+    expect(new Set(keys).size).toBe(3);
+    expect(keys[0]).not.toBe(keys[2]);
+    expect(personKeys([one, two])).toEqual([keys[0], keys[2]]);
   });
 });
 

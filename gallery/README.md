@@ -46,3 +46,11 @@ The `sketch.light` theme paints every stroke by hand in two passes while the tex
 ![Free: a whiteboard sketch](free/sketch.svg)
 
 [Source](free/sketch.meltemi) · [SVG](free/sketch.svg) · [PNG](free/sketch.png) · [PDF](free/sketch.pdf)
+
+## Free: a whiteboard
+
+A board that grows with its content (`preset board`): a highlighter mark under the heading, a row of two lists of stickies that place themselves, and pen strokes drawn by hand, each a `pen` with its points.
+
+![Free: a whiteboard](free/whiteboard.svg)
+
+[Source](free/whiteboard.meltemi) · [SVG](free/whiteboard.svg) · [PNG](free/whiteboard.png) · [PDF](free/whiteboard.pdf)

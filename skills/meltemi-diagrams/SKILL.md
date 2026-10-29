@@ -1,6 +1,6 @@
 ---
 name: meltemi-diagrams
-description: Use when asked to draw, document or convert a system or software architecture, turn a diagram or a screenshot into code, or change a `.meltemi` file. Creates, edits, converts and exports architecture diagrams as code in the Meltemi language (`.meltemi` files) - flow sheets with groups, plain containers, data stores, decisions, notes, tags and boxes in twenty-four shapes with icons, laid out automatically (ELK), assisted or by hand, with ports, constraints, styles and themes; free compositions (slides with boxes, text, icons, images, layers and links to flow views); sequence diagrams (participants, calls, replies, activations, notes, alt/opt/loop/par fragments and exportable scenarios); C4 models with context, container and component views; motion effects and stories that walk through a diagram scene by scene; SVG, PNG, PDF and HTML-player exports with repeatable export profiles. Imports Mermaid and PlantUML sources instead of retyping them, and turns draw.io, HTML or SVG pictures into sheets.
+description: Use when asked to draw, document or convert a system or software architecture, sketch a whiteboard or kanban board, turn a diagram or a screenshot into code, or change a `.meltemi` file. Creates, edits, converts and exports Meltemi diagrams as code (`.meltemi` files) - flow sheets with groups, plain containers, data stores, decisions, notes, tags and boxes in 24 shapes with icons, laid out by ELK, assisted or by hand, with ports, constraints, styles and themes; free compositions (slides with boxes, text, icons, images, layers and links to flow views, and whiteboards with pen strokes, stickies and kanban lists); sequence diagrams (participants, calls, replies, activations, notes, alt/opt/loop/par fragments, scenarios); C4 models with context, container and component views; motion effects and stories that walk through a diagram scene by scene; SVG, PNG, PDF and HTML-player exports with export profiles. Imports Mermaid and PlantUML instead of retyping them, and turns draw.io, HTML or SVG pictures into sheets.
 license: MIT
 metadata:
   version: 1.10.0
@@ -25,7 +25,8 @@ or committed.
    decisions), bands (groups), arrows with their labels, annotations (notes, tags), what is
    proposed versus in use, and the numbered steps of the main path. Choose the profile: `flow` for
    an architecture or process that ELK can arrange, `free` for a slide or a hand-composed picture
-   with headings, icons and images ([reference/free.md](reference/free.md)), `sequence` for an
+   with headings, icons and images, or a whiteboard with pen strokes, stickies and kanban columns
+   under `preset board` ([reference/free.md](reference/free.md)), `sequence` for an
    interaction over time between participants ([reference/sequence.md](reference/sequence.md)),
    a `model` with `c4` views for a C4 architecture (context, containers, components) shared by
    several pictures ([reference/c4.md](reference/c4.md)).
@@ -171,7 +172,10 @@ diagram checkout: flow {
 - One diagram per file unless they share a model; the SVG is named after the file.
 - In `free` diagrams, a child's `place` is relative to its group's interior, every group has a
   `place`, and the paint order is the source order within each layer: declare on-top objects last
-  or give them `layer front` (with `layers main, front`).
+  or give them `layer front` (with `layers main, front`). A group with `layout column` or
+  `layout row` places its children itself, in source order: give them no `place`
+  (`layout.place-ignored`). Strokes are `pen` statements with their points, never lines with many
+  bends.
 
 ## When the result looks wrong
 
@@ -203,7 +207,8 @@ diagram checkout: flow {
   other diagram or a screenshot into a sheet, with the checks that prove the conversion.
 - [reference/free.md](reference/free.md): free compositions, the twenty-four shapes, icons in
   boxes and as shapes, interior coordinates, plain containers, stacks and bands, layers, links,
-  images and the conversion from flow.
+  images, the conversion from flow, and whiteboards: pen strokes, stickies and lists (kanban
+  boards).
 - [reference/sequence.md](reference/sequence.md): sequence diagrams, fragments, scenarios,
   spacing, their diagnostics and the mapping from Mermaid and PlantUML.
 - [reference/c4.md](reference/c4.md): models, C4 views, levels and scopes, lifted and combined

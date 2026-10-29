@@ -4,6 +4,10 @@ const code = (text: string) => `\`${text}\``;
 /** `a style`, `an element`. */
 const article = (word: string) => `${/^[aeiou]/i.test(word) ? "an" : "a"} ${word}`;
 
+/** Words joined as prose: `a`, `a and b`, `a, b and c`. */
+const and = (words: readonly string[]) =>
+  words.length < 2 ? words.join("") : `${words.slice(0, -1).join(", ")} and ${words.at(-1)}`;
+
 /** Where each entity kind of a model belongs, for `model.invalid-nesting`. */
 const HOMES: Readonly<Record<string, string>> = {
   person: "at the model's root",
@@ -145,9 +149,9 @@ export const en = {
       /** The written text or source of an element: `icon`, `image` or `label`. */
       quotedSource: (source: string, id: string) =>
         `The ${source} of \`${id}\` must be a quoted string.`,
-      /** `text`, `icon` or `image` without what it shows. */
+      /** `text`, `note`, `sticky`, `icon` or `image` without what it shows. */
       needsSource: (kind: string, id: string, form: string) =>
-        `\`${kind} ${id}\` needs ${kind === "text" || kind === "note" ? "its text" : kind === "icon" ? "an icon" : "an image path"}; expected ${form}.`,
+        `\`${kind} ${id}\` needs ${kind === "text" || kind === "note" || kind === "sticky" ? "its text" : kind === "icon" ? "an icon" : "an image path"}; expected ${form}.`,
       /** `prop.invalid-value`: a note on itself. */
       attachSelf: (id: string) => `A note cannot be attached to itself: \`${id}\`.`,
       /** After the `text`, `icon`, `image` or `label` of a declaration. */
@@ -229,6 +233,26 @@ export const en = {
       /** A style property a free line does not take. */
       notForLines: (name: string, target: string) =>
         `\`${name}\` does not apply to lines such as \`${target}\`.`,
+      /** A `place` or `size` of a pen, or its `rotation`. */
+      penHasPoints: (name: string, statement: string) =>
+        `\`${name}\` is a pen; \`${statement}\` does not apply to it.`,
+      /** A pen whose list is missing or empty, or holds an item that is not a point. */
+      penPoints: "A pen takes a list of points `(x, y)` after its id, at least one.",
+      /** A pen with a string after its id. */
+      penNoLabel: (id: string) =>
+        `\`${id}\` is a pen, which has no label; its points follow its id.`,
+      /** A style property a pen does not take, and the ones it takes. */
+      notForPens: (name: string, target: string, accepted: readonly string[]) =>
+        `\`${name}\` does not apply to pens such as \`${target}\`; a pen takes ${and(accepted.map(code))}.`,
+      /** A style property a sticky does not take, such as `pattern`. */
+      notForStickies: (name: string, target: string) =>
+        `\`${name}\` does not apply to stickies such as \`${target}\`.`,
+      /** `layout`, `spacing` or `align` in a group block of a diagram that is not free. */
+      listInProfile: (name: string, profile: string) =>
+        `A group's \`${name}\` belongs to the lists of free diagrams; this is a ${profile} diagram.`,
+      /** `spacing` or `align` in a group block without `layout`. */
+      listNeedsLayout: (name: string) =>
+        `\`${name}\` arranges the children of a list; this group writes no \`layout\`.`,
       /** `ref.unknown-relation`. */
       elementNotRelation: (name: string, statement: string) =>
         `\`${name}\` is an element; \`${statement}\` needs a relation.`,
@@ -246,13 +270,13 @@ export const en = {
         `\`${name}\` applies to ${effects.map(code).join(" and ")} effects, not to \`${effect}\`.`,
       /** `animate.invalid-target`. */
       flowTarget:
-        "Flow particles run along relations and lines; name the relation (`a -> b as r`) and animate it.",
+        "Flow particles run along relations, lines and pens; name the relation (`a -> b as r`) and animate it.",
       traceTarget:
-        "A trace runs along relations and lines; name the relation (`a -> b as r`) and animate it.",
+        "A trace runs along relations, lines and pens; name the relation (`a -> b as r`) and animate it.",
       dashOnEvent: "A moving dash runs along relations and the outlines of boxes.",
       /** A note or a free text that no style of the diagram gives an outline. */
       dashNeedsOutline: (target: string, kind: string) =>
-        `\`${target}\` is ${kind === "note" ? "a note" : "a text"} without an outline; a moving dash follows a line or a box.`,
+        `\`${target}\` is ${kind === "note" ? "a note" : kind === "sticky" ? "a sticky" : "a text"} without an outline; a moving dash follows a line or a box.`,
       /** An element kind drawn without an outline, such as `icon`. */
       dashWithoutOutline: (target: string, kind: string) =>
         `\`${target}\` is a ${kind} without an outline; a moving dash needs a line or a box.`,
@@ -471,6 +495,9 @@ export const en = {
       /** `story.invalid-target`. */
       traceTarget: (id: string, element: boolean) =>
         `\`trace\` follows a relation; \`${id}\` is ${element ? "an element" : "a note or fragment"}.`,
+      /** The element's kind, or null for a note or fragment. */
+      drawTarget: (id: string, kind: string | null) =>
+        `\`draw\` takes pens, lines and relations; \`${id}\` is ${kind === null ? "a note or fragment" : `${/^[aeiou]/i.test(kind) ? "an" : "a"} \`${kind}\` element`}.`,
       /** `story.conflict`: the channel is `visibility`, `highlight`, `trace`, `focus` or `camera`. */
       conflict: (action: string, channel: string, target: string) =>
         `\`${action}\` overlaps an earlier action on the same ${channel} of \`${target}\`.`,
@@ -545,12 +572,14 @@ export const en = {
       /** The keyword, and the kind the profile's shorthand declares. */
       declareElement: (keyword: string, box: string) =>
         `Declare an element with \`${keyword}["Label"]\` or \`${box} ${keyword}\`.`,
-      freeStatements:
-        "Free diagrams accept `box`, `text`, `icon`, `image`, `line` and `group` declarations, relations, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `layers`, `placement`, `style`, `animate`, `class` and `rule`.",
+      /** The declaration keywords of free diagrams. */
+      freeStatements: (declarations: readonly string[]) =>
+        `Free diagrams accept ${and(declarations.map(code))} declarations, relations, \`direction\`, \`layout\`, \`theme\`, \`title\`, \`description\`, \`preset\`, \`canvas\`, \`routing\`, \`layers\`, \`placement\`, \`style\`, \`animate\`, \`class\` and \`rule\`.`,
       flowStatements:
         "Flow diagrams accept element declarations, relations, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `placement`, `style`, `animate`, `class` and `rule`.",
-      freeDeclarations:
-        "Free diagrams declare `box`, `text`, `icon`, `image`, `note`, `line` and `group`.",
+      /** The declaration keywords of free diagrams. */
+      freeDeclarations: (declarations: readonly string[]) =>
+        `Free diagrams declare ${and(declarations.map(code))}.`,
       /** `ref.unknown-element` on a note's `on <element>`. */
       attachTarget: (note: string) =>
         `Attach \`${note}\` to an element of this diagram: \`note ${note} "Text" on <element>\`.`,
@@ -575,10 +604,24 @@ export const en = {
       constraintElements: "Constraints apply to elements declared in this diagram.",
       dashOutline:
         "Give it a `fill`, a `stroke` or a `pattern` in a `style`, a class or a `rule` of this diagram, or use a pulse.",
+      /** A dash on a sticky without a `stroke`: its fill is no outline. */
+      dashStroke:
+        "Give it a `stroke` in a `style`, a class or a `rule` of this diagram, or use a pulse.",
       form: (form: string) => `Form: ${form}.`,
       /** A `place`, `size` or `rotation` of a free line. */
       linePointsWritten:
         "A line's points are written in its statement: `line <id> from (x, y) to (x, y)`.",
+      /** A `place`, `size` or `rotation` of a pen. */
+      penPointsWritten:
+        "A pen's points are written in its statement: `pen <id> [(x, y), (x, y), ...]`.",
+      /** `layout`, `spacing` or `align` in a group block of a diagram that is not free. */
+      listsInFree:
+        "Free diagrams arrange a group's children in a column or a row with `layout column` or `layout row`.",
+      /** `spacing` or `align` without `layout`. */
+      listLayout: "Write `layout column` or `layout row` in the group's block.",
+      /** `layout auto`, `assisted` or `manual` in a group block. */
+      groupLayout: (mode: string) =>
+        `\`layout ${mode}\` is a statement of the diagram; a group block takes \`layout column\` or \`layout row\`.`,
       declareFirst: (name: string) => `Declare it first, for example \`${name}["Label"]\`.`,
       nameRelation:
         "Anonymous relations need `as <id>` before they can be referenced, for example `a -> b as save`.",
@@ -608,6 +651,17 @@ export const en = {
         `Classes and rules accept ${names.map(code).join(", ")}.`,
       freeProperties:
         "Flow, sequence and C4 diagrams set text in the theme's type scale; free diagrams choose its size, weight and alignment.",
+      /** `opacity` in a flow, sequence or C4 diagram. */
+      freeOpacity:
+        "Flow, sequence and C4 diagrams draw every element opaque; free diagrams fade elements, groups, lines and pens with `opacity`.",
+      /** `opacity` on a relation. */
+      opacityTargets: "`opacity` applies to elements, groups, lines and pens.",
+      /** The properties of a pen, for a rule that sets another. */
+      penProperties: (names: readonly string[]) => `A pen takes ${and(names.map(code))}.`,
+      /** `width 0` on a pen. */
+      penWidth: "A pen is drawn one pixel wide at least; remove the pen to hide its stroke.",
+      /** The properties of a sticky, for a style or a rule that sets another. */
+      stickyProperties: (names: readonly string[]) => `A sticky takes ${and(names.map(code))}.`,
       applyClasses: "Apply classes inside element, relation or `style` blocks.",
       kinds: (kinds: readonly string[]) => `Kinds: ${kinds.join(", ")}.`,
     },
@@ -690,7 +744,7 @@ export const en = {
       diagrams: (names: readonly string[]) => `Diagrams: ${names.join(", ")}.`,
       declareDiagram: "Declare a diagram or import one.",
       actionsInScene: "Actions such as `reveal` go inside `scene <id> { … }`.",
-      actions: "Actions: reveal, hide, highlight, focus, camera, trace, hold and parallel.",
+      actions: "Actions: reveal, hide, highlight, focus, camera, trace, draw, hold and parallel.",
       transition:
         "A change of composition between scenes needs an explicit transition, matched by id.",
       conflict:

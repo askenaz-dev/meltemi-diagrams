@@ -184,6 +184,8 @@ account and opens; **In this browser** makes it in the browser instead.
 | C4 model (`c4`)               | An architecture model with a context view and a container view                                                              |
 | Sequence diagram (`sequence`) | A sequence diagram with a scenario for each outcome                                                                         |
 | Slide (`free`)                | A slide composed freely: text, boxes, an icon and a group                                                                   |
+| Kanban board (`kanban`)       | A board of columns and sticky cards                                                                                         |
+| Whiteboard (`whiteboard`)     | A sketched board with strokes, stickies and a story that draws them                                                         |
 | Purchase example (`purchase`) | The reference example: a model, its C4 views, a payment sequence, an executive slide, an animated story and export profiles |
 
 The pictures are drawn once, when the site is built, in the template's theme and in its dark

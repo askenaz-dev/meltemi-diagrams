@@ -138,6 +138,8 @@ export const en = {
     /** A trace along a relation, from one end to the other when the view knows them. */
     trace: (relation: string, ends: readonly [string, string] | null, time: string) =>
       `Trace “${relation}”${ends ? ` from ${ends[0]} to ${ends[1]}` : ""} over ${time}`,
+    /** `draw`: strokes, lines and relations drawn one after another from their first point. */
+    draw: (targets: string, time: string) => `Draw ${targets} stroke by stroke over ${time}`,
     hold: (time: string) => `Hold ${time}`,
     /** Actions that start together, already joined with semicolons. */
     parallel: (actions: string) => `At the same time: ${actions}`,

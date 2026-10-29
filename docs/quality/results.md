@@ -22,7 +22,7 @@ Run on 2026-10-28: 11th Gen Intel(R) Core(TM) i9-11980HK @ 2.60GHz, 16 threads, 
 
 ## Visual regression
 
-- 32 of 32 drawings match their references
+- 34 of 34 drawings match their references
 
 ## Determinism
 

@@ -8,6 +8,7 @@ import type {
 import { ICONS, clear, h, icon } from "./dom.js";
 import { alignGlyph, glyph, glyphName, type GlyphFamily } from "./glyphs.js";
 import { messages } from "./messages/index.js";
+import { stickyColourName } from "./sticky.js";
 
 const COLOR_TOKENS = [
   "accent",
@@ -26,6 +27,10 @@ const COLOR_TOKENS = [
   "warning",
   "danger",
   "info",
+  // The whiteboard's: highlighter strokes, and the paper and words of sticky notes.
+  "highlight",
+  "sticky",
+  "stickyText",
 ];
 
 type Value = string | number | null;
@@ -819,12 +824,13 @@ function glyphField(field: InspectorField, send: Send): HTMLElement {
  * A row of colour chips: "theme" (inherit), then the theme's tokens with their colours; arrows move
  * between them, Enter or Space chooses. A native picker beside the row writes a colour of one's own.
  * Inside a card the row shows `text` (the label without the effect's name the header shows) while
- * the group keeps the field's full label as its accessible name.
+ * the group keeps the field's full label as its accessible name. With `inherit` null the row has
+ * no "theme" chip: every chip is a colour, as in the pen menu, whose first chip is its default.
  */
-function colorRow(
+export function colorRow(
   field: InspectorField,
   send: Send,
-  inherit = messages().inspector.themeChip,
+  inherit: string | null = messages().inspector.themeChip,
   text?: string,
 ): HTMLElement {
   const id = keyOf(field.name);
@@ -835,16 +841,27 @@ function colorRow(
   // The written value, or what applies without one: an inherited value or the theme's.
   const inherited = field.placeholder;
   const shown =
-    value ?? (mixed ? words.mixed : inherited ? words.inherited(inherited) : inherit.toLowerCase());
+    value ??
+    (mixed ? words.mixed : inherited ? words.inherited(inherited) : (inherit ?? "").toLowerCase());
   const labelId = `${id}-label`;
   const group = h("div", {
     class: "chips",
     role: "radiogroup",
     ...(text === undefined ? { "aria-labelledby": labelId } : { "aria-label": field.label }),
   });
-  const options: { value: string | null; label: string; color?: string }[] = [
-    { value: null, label: inherit },
-    ...swatches.map((s) => ({ value: s.token, label: s.token, color: s.color })),
+  // A sticky's fill row starts with the six colours of paper, which the session sends by their
+  // hex: they are named by their colour ("Pink"), and drawn as paper apart from the tokens.
+  const options: { value: string | null; label: string; color?: string; paper?: boolean }[] = [
+    ...(inherit === null ? [] : [{ value: null, label: inherit }]),
+    ...swatches.map((s) => {
+      const paper = stickyColourName(s.token);
+      return {
+        value: s.token,
+        label: paper ?? s.token,
+        color: s.color,
+        paper: paper !== undefined,
+      };
+    }),
   ];
   const checked = mixed ? -1 : options.findIndex((o) => o.value === value);
   const chips = options.map((option, i) => {
@@ -853,7 +870,7 @@ function colorRow(
       {
         type: "button",
         role: "radio",
-        class: option.color ? "chip" : "chip inherit",
+        class: option.color ? (option.paper ? "chip paper" : "chip") : "chip inherit",
         "aria-checked": String(i === checked),
         "aria-label": option.color
           ? `${option.label} ${option.color}`

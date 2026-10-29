@@ -149,7 +149,7 @@ describe("the Canvas field", () => {
       type: "enum",
       value: null,
       placeholder: "fit",
-      options: ["document", "slide", "custom"],
+      options: ["document", "slide", "board", "custom"],
     });
     expect(field(canvas.messages(), "canvas.width")).toBeUndefined();
     expect(field(open(sheet("  preset slide\n")).messages(), "canvas")!.value).toBe("slide");
@@ -192,6 +192,19 @@ describe("the Canvas field", () => {
     });
   });
 
+  it("writes a board, which grows with the drawing, over a custom size in one plan", () => {
+    const text = sheet("  canvas (800, 600)\n");
+    const canvas = open(text);
+    const after = canvas.apply({ kind: "setField", ids: [], field: "canvas", value: "board" });
+    expect(after).toContain("  preset board\n");
+    expect(after).not.toContain("canvas (");
+    expect(field(canvas.messages(), "canvas")).toMatchObject({ value: "board" });
+    expect(field(canvas.messages(), "canvas.width")).toBeUndefined();
+    expect(compile(after).document.diagrams[0]!.properties.preset).toBe("board");
+    // Back to fitting the content: nothing written.
+    expect(canvas.apply({ kind: "setField", ids: [], field: "canvas", value: null })).toBe(sheet());
+  });
+
   it("goes from a preset to a custom size and back to fitting the content", () => {
     const canvas = open(sheet("  preset document\n"));
     let text = canvas.apply({ kind: "setField", ids: [], field: "canvas.width", value: 1200 });
@@ -217,7 +230,7 @@ describe("the Canvas field", () => {
     });
     expect(choose(canvas, "canvas", "poster").messages[0]).toMatchObject({
       type: "rejected",
-      reason: "The canvas is one of `fit`, `document`, `slide`, `custom`.",
+      reason: "The canvas is one of `fit`, `document`, `slide`, `board`, `custom`.",
     });
     expect(canvas.text()).toBe(sheet("  canvas (800, 600)\n"));
   });

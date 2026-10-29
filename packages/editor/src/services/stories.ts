@@ -4,6 +4,7 @@ import {
   STORY_STATEMENTS,
   STORY_TRANSITIONS,
   SCENE_STATEMENTS,
+  drawTargetKind,
   type FlowDiagram,
   type StoryAction,
   type StoryDefinition,
@@ -11,7 +12,7 @@ import {
   type StoryScene,
 } from "@meltemi/diagrams-model";
 import type { DocumentAnalysis } from "../analysis.js";
-import { entryOf, kindWord, serviceMessages } from "../messages/services.js";
+import { elementDetail, entryOf, kindWord, serviceMessages } from "../messages/services.js";
 import { tokenAt } from "../syntax.js";
 import type { CompletionItem } from "./completion.js";
 import { elementHover, eventHover, relationHover } from "./hover.js";
@@ -142,7 +143,7 @@ function viewTargets(
     ...diagram.elements.map((e): CompletionItem => ({
       label: e.id,
       kind: e.kind === "group" ? "group" : "element",
-      detail: `${kindWord(e.kind)} · ${e.label}`,
+      detail: elementDetail(e),
       range,
     })),
     ...relations,
@@ -154,6 +155,25 @@ function viewTargets(
         detail: kindWord(e.kind),
         range,
       })),
+  ];
+}
+
+/** What `draw` replays in a view: its pens, its free lines and its named relations. */
+function drawTargets(
+  diagram: FlowDiagram | null,
+  range: CompletionItem["range"],
+): CompletionItem[] {
+  if (!diagram) return [];
+  return [
+    ...diagram.elements
+      .filter((e) => drawTargetKind(e.id, diagram) !== null)
+      .map((e): CompletionItem => ({
+        label: e.id,
+        kind: "element",
+        detail: elementDetail(e),
+        range,
+      })),
+    ...viewTargets(diagram, range, true),
   ];
 }
 
@@ -229,6 +249,20 @@ export function storyCompletions(
   }
   if (match(prefix, `trace\\s+[\\w.]*`)) return viewTargets(view, dotted, true);
   if (match(prefix, `trace\\s+[\\w.]+\\s+\\w*`)) return storyWords(["over"], "keyword", range);
+  // `draw a, b`: the pens, free lines and named relations not listed yet.
+  const draw = /^draw\s+((?:[\w.]+\s*,\s*)*)[\w.]*$/.exec(prefix);
+  if (draw) {
+    const listed = new Set(
+      draw[1]!
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s !== ""),
+    );
+    return drawTargets(view, dotted).filter((i) => !listed.has(i.label));
+  }
+  if (match(prefix, `draw\\s+[\\w.]+(\\s*,\\s*[\\w.]+)*\\s+\\w*`)) {
+    return storyWords(["over"], "keyword", range);
+  }
   const action = /^(reveal|hide|highlight|focus|camera)\s+((?:[\w.]+\s*,\s*)*)([\w.]*)$/.exec(
     prefix,
   );

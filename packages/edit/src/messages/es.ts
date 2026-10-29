@@ -40,6 +40,9 @@ const A_KIND: Readonly<Record<string, string>> = {
   text: "un texto",
   icon: "un icono",
   image: "una imagen",
+  sticky: "una nota adhesiva",
+  line: "una línea",
+  pen: "un trazo de lápiz",
   person: "una persona",
   system: "un sistema",
   container: "un contenedor",
@@ -105,7 +108,9 @@ export const es: typeof en = {
     text: "Texto",
     icon: "Icono",
     image: "Imagen",
+    sticky: "Nota",
     line: "Línea",
+    pen: "Lápiz",
     person: "Persona",
     system: "Sistema",
     container: "Contenedor",
@@ -153,6 +158,8 @@ export const es: typeof en = {
       notValueOf: (value, property) => `${code(value)} no es un valor de ${code(property)}.`,
       unsafeUrl: (value) =>
         `${code(value)} no es una URL que un enlace pueda usar: \`https:\`, \`http:\`, \`mailto:\` o una relativa.`,
+      notIndex: (value) =>
+        `${code(String(value))} no es una posición entre las declaraciones de un bloque; las posiciones son números enteros desde 0.`,
     },
 
     elements: {
@@ -199,6 +206,15 @@ export const es: typeof en = {
       freeOnly: "Las líneas que no unen elementos pertenecen a las composiciones libres.",
       notALine: (id) => `\`${id}\` no es una línea.`,
       points: (id) => `\`${id}\` es una línea: sus puntos se escriben en su instrucción.`,
+    },
+    pens: {
+      freeOnly: "Los trazos de lápiz pertenecen a las composiciones libres.",
+      noPoints: "Un trazo de lápiz necesita al menos un punto.",
+      notAPen: (id) => `${code(id)} no es un trazo de lápiz.`,
+      points: (id) => `${code(id)} es un trazo de lápiz: sus puntos se escriben en su instrucción.`,
+      noLabel: (id) => `${code(id)} es un trazo de lápiz, que no lleva etiqueta.`,
+      listUnreadable:
+        "No se puede leer la lista de puntos del trazo de lápiz; corrige la sintaxis primero.",
     },
     relations: {
       missing: (name, diagram) =>
@@ -266,6 +282,19 @@ export const es: typeof en = {
         `${code(id)} declara ${ports.length === 1 ? "el puerto" : "los puertos"} ${ports.map(code).join(", ")}; los grupos no tienen puertos con nombre, así que ${ports.length === 1 ? "quítalo" : "quítalos"} primero.`,
       containerChild: (child, id) =>
         `${code(child)} no está junto a ${code(id)} en su grupo, así que no puede entrar en él.`,
+    },
+
+    lists: {
+      freeOnly: (property) => `${code(property)} en un grupo pertenece a las composiciones libres.`,
+      groupsOnly: (property, id) =>
+        `${code(property)} ordena los hijos de un grupo; ${code(id)} no es un grupo.`,
+      kindLayout: (kind) => `Solo un grupo admite \`layout\`, no ${pick(A_KIND, kind)}.`,
+      notValue: (value, property, values) =>
+        `${code(value)} no es un valor de ${code(property)}; se esperaba uno de ${values.join(", ")}.`,
+      needsLayout: (property) =>
+        `${code(property)} ordena los hijos de una lista; escribe \`layout column\` o \`layout row\` primero.`,
+      placeInList: (id, list) =>
+        `${code(list)} es una lista, que coloca a sus hijos: ${code(id)} entra en una posición, no en un punto.`,
     },
 
     insert: {
@@ -499,5 +528,9 @@ export const es: typeof en = {
       n === 1
         ? `Se quitó de otros diagramas el enlace a ${code(group)}.`
         : `Se quitaron de otros diagramas ${n} enlaces a ${code(group)}.`,
+    removedStoryTargets: (n, group) =>
+      n === 1
+        ? `Se quitó ${code(group)} de una acción de historia.`
+        : `Se quitó ${code(group)} de ${n} acciones de historia.`,
   },
 };

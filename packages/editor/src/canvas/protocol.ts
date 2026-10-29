@@ -15,6 +15,8 @@ export type ElementKind =
   | "icon"
   | "image"
   | "line"
+  | "pen"
+  | "sticky"
   | "participant"
   | "actor"
   | "boundary"
@@ -111,6 +113,12 @@ export interface TextPlace {
   /** The CSS font stack. */
   readonly font: string;
   readonly size: number;
+  /**
+   * A sticky note's: the size its words are drawn at before they shrink to fit the card (its
+   * `fontSize`, or 1.2 times the theme's label size), which `size` is when they fit. The editor
+   * types from it, so a long text shortened is typed at the size the card will draw it.
+   */
+  readonly fullSize?: number;
   readonly weight: number;
   readonly color: string;
   /** The distance between two lines. */
@@ -189,6 +197,30 @@ export interface ElementInfo {
     readonly points: readonly Point[];
     readonly drawn: readonly Point[];
     readonly via: readonly Point[];
+  };
+  /**
+   * A `pen` stroke: its points where they are drawn, in diagram coordinates (its written points
+   * moved by its group's interior origin), the box of the points grown by half its width (its
+   * `box` too, which its frame and its resize handles use), and its drawn width. It has no
+   * rotation, connection, point or label handles; moving or scaling it writes every point
+   * (`setPenPoints`).
+   */
+  readonly pen?: {
+    readonly points: readonly Point[];
+    readonly bounds: Box;
+    readonly width: number;
+  };
+  /**
+   * A group of a free diagram that arranges its children (`layout column` or `layout row`): its
+   * layout, its spacing and its alignment as the layout applies them (defaults filled in), and the
+   * children it places in source order, its lines and pens left out. A `move` or a `create` with
+   * an `index` counts among these children.
+   */
+  readonly list?: {
+    readonly layout: "column" | "row";
+    readonly spacing: number;
+    readonly align: "start" | "center" | "end" | "stretch";
+    readonly children: readonly string[];
   };
 }
 
@@ -291,6 +323,12 @@ export interface CanvasRender {
     readonly guide: string;
     readonly accent: string;
   };
+  /**
+   * The colour tokens of the diagram's theme with the colours they resolve to, in the theme's
+   * order (the strip's swatches): the pen menu's colour row, and the colour a stroke in progress
+   * is drawn in when its colour is a token (`@ink`, `@highlight`).
+   */
+  readonly swatches?: readonly ColorSwatch[];
 }
 
 export interface CanvasSettings {
@@ -432,9 +470,12 @@ export interface StoryPlaybackInfo {
   readonly fontFaces: readonly string[];
 }
 
-/** Actions a scene can run, which **Add to scene** inserts. */
+/**
+ * Actions a scene can run, which **Add to scene** inserts. `draw` replays pens, free lines and
+ * named relations (`story-language`); the edit refuses it on anything else.
+ */
 export type SceneActionKind =
-  "reveal" | "hide" | "highlight" | "focus" | "camera" | "trace" | "hold";
+  "reveal" | "hide" | "highlight" | "focus" | "camera" | "trace" | "draw" | "hold";
 
 /** Statements that would be removed with an element, listed for confirmation. */
 export interface DependentInfo {
@@ -486,11 +527,67 @@ export interface PresencePerson {
    * at most 64 entries, `x` and `y` in diagram units and `t` the milliseconds since the batch's
    * first point, 0 to 1000. The trail is drawn in `colour`, point by point at its own pace, and
    * fades as the person's own does. A batch that does not fit those bounds is not drawn.
+   *
+   * A batch with `pen` holds the points of a stroke the person is drawing with the pen or the
+   * highlighter (`diagram-canvas` "Strokes of others"): drawn in the pen's width, colour and
+   * opacity, the batches of one `stroke` number growing one stroke that does not fade, until the
+   * next `render` after its last batch or ten seconds, or at once on its `cancel` batch. A batch
+   * whose `pen` does not fit `isPresencePen` is not drawn.
    */
   readonly laser?: {
     readonly batch: number;
     readonly points: readonly { readonly x: number; readonly y: number; readonly t: number }[];
+    readonly pen?: PresencePen;
   };
+}
+
+/**
+ * How a stroke being drawn looks, as a laser batch carries it to the others, and which of the
+ * person's strokes it is: `width` a whole number of pixels from 1 to 64, `colour` a CSS colour of
+ * at most 32 characters (the resolved colour, not a token), `opacity` from 0 to 1, `stroke` an
+ * integer from 0 to 2,147,483,647 that the person's canvas increases with each stroke (the batches
+ * of one stroke carry the same number, and a stroke is never joined to another), and `cancel`,
+ * only ever `true`, on the batch that ends a stroke cancelled with Escape (its points may be none):
+ * the others drop that stroke at once.
+ */
+export interface PresencePen {
+  readonly width: number;
+  readonly colour: string;
+  readonly opacity: number;
+  readonly stroke: number;
+  readonly cancel?: true;
+}
+
+/** The bounds of `PresencePen`, which the canvas, the page and the room apply alike. */
+export const PRESENCE_PEN_LIMITS = {
+  width: { min: 1, max: 64 },
+  colour: 32,
+  opacity: { min: 0, max: 1 },
+  stroke: { min: 0, max: 2_147_483_647 },
+} as const;
+
+/** Whether a value is a `PresencePen` within its bounds (`PRESENCE_PEN_LIMITS`). */
+export function isPresencePen(v: unknown): v is PresencePen {
+  if (typeof v !== "object" || v === null) return false;
+  const pen = v as Record<string, unknown>;
+  const { width, colour, opacity, stroke } = PRESENCE_PEN_LIMITS;
+  return (
+    typeof pen.width === "number" &&
+    Number.isInteger(pen.width) &&
+    pen.width >= width.min &&
+    pen.width <= width.max &&
+    typeof pen.colour === "string" &&
+    pen.colour.length <= colour &&
+    typeof pen.opacity === "number" &&
+    Number.isFinite(pen.opacity) &&
+    pen.opacity >= opacity.min &&
+    pen.opacity <= opacity.max &&
+    typeof pen.stroke === "number" &&
+    Number.isInteger(pen.stroke) &&
+    pen.stroke >= stroke.min &&
+    pen.stroke <= stroke.max &&
+    (pen.cancel === undefined || pen.cancel === true)
+  );
 }
 
 /** An element of a library with its thumbnail, null while its pack is still loading. */
@@ -698,24 +795,61 @@ export type HostMessage =
 /** The kinds of diagram the canvas creates: C4 views need a model, written in text. */
 export type CreatableDiagram = "flow" | "free" | "sequence";
 
-/** Moves elements by a delta in diagram coordinates. */
+/**
+ * Moves elements by a delta in diagram coordinates, or into a list group at a position. A child
+ * of a list stays where its list puts it: a move by a delta that leaves it in its list (a nudge,
+ * an Alt-drag) is refused with a status that says how to move it.
+ */
 export interface MoveAction {
   readonly kind: "move";
   readonly ids: readonly string[];
-  readonly delta: Point;
+  /**
+   * How far the elements move, in diagram coordinates. Absent only with `index`, whose drop
+   * writes no position; a pen or a line moved with it keeps its points.
+   */
+  readonly delta?: Point;
   /**
    * The group the moved elements land in, or null for the diagram's top level: each one whose
    * parent differs is declared in it, placed where it is dropped (flow and free diagrams).
-   * Absent, every element keeps its parent, as nudges and Alt-drags do.
+   * Absent, every element keeps its parent, as nudges and Alt-drags do. A list group places them
+   * itself: they are declared at the end of it, or at `index`, and lose their `place`.
    */
   readonly parent?: string | null;
+  /**
+   * With `parent` a list group: where the elements go among its children (`ElementInfo.list`)
+   * once the moved ones are taken out, before the child at that index, after the last when it is
+   * the count. Several elements go there one after another in the order of `ids`; moving a child
+   * within its own list reorders it. A whole number from 0.
+   */
+  readonly index?: number;
 }
 
-/** Gives an element a new box in diagram coordinates. */
+/**
+ * Gives an element a new box in diagram coordinates. A child of a list writes its size alone; a
+ * pen stroke's points are scaled from its bounds to the box (`scalePenPoints`), its width kept,
+ * so its resize handles preview and drop as a box's do.
+ */
 export interface ResizeAction {
   readonly kind: "resize";
   readonly id: string;
   readonly box: Box;
+}
+
+/**
+ * The styles a new pen stroke writes in its `style` statement; what is absent keeps the default
+ * (the theme's `ink`, 3 wide, opaque, no heads).
+ */
+export interface PenStyle {
+  /** A colour token such as `@highlight`, or a colour such as `#e03131`. */
+  readonly stroke?: string;
+  /** 1 to 64. */
+  readonly width?: number;
+  /** 0 to 1. */
+  readonly opacity?: number;
+  /** A head at the last point, by its name in the language (`triangle`). */
+  readonly arrowhead?: string;
+  /** A head at the first point. */
+  readonly arrowtail?: string;
 }
 
 /**
@@ -747,6 +881,33 @@ export type CanvasAction =
       readonly from: Point;
       readonly to: Point;
       readonly via: readonly Point[];
+    }
+  | {
+      /**
+       * Draws a pen stroke through `points`, in diagram coordinates as the pointer gave them
+       * (simplified, not snapped). `parent` is the innermost group under the first point, where
+       * the session starts looking for the stroke's group: from it outwards, the first group that
+       * is not a list and whose drawn box holds the whole stroke (its points grown by half its
+       * width), else the top level, so that a stroke never grows a list nor moves its cards. The
+       * points are written in that group's interior, and a group without `size` gets the size it
+       * is drawn with, so that it stays as drawn. `style` holds only what differs from a stroke's
+       * defaults (`penStyleFor`). The new pen is not selected and no editor opens, so the next
+       * stroke starts at once.
+       */
+      readonly kind: "createPen";
+      readonly points: readonly Point[];
+      readonly parent?: string;
+      readonly style?: PenStyle;
+    }
+  | {
+      /**
+       * Moves the points of a pen stroke, in diagram coordinates: a drag of its stroke or a scale.
+       * A pen in a list goes out to the nearest group around it that is not a list and holds it,
+       * else to the top level, as `createPen` chooses.
+       */
+      readonly kind: "setPenPoints";
+      readonly element: string;
+      readonly points: readonly Point[];
     }
   | {
       readonly kind: "setEnd";
@@ -789,6 +950,19 @@ export type CanvasAction =
        * to its top.
        */
       readonly attachedTo?: string;
+      /**
+       * The fill of a new sticky, written as `style <id> { fill … }` in the same edit: a colour
+       * such as `#f8bbd0`, or a colour token as `@sticky`.
+       */
+      readonly fill?: string;
+      /** A new group that is a list (the group menu's Column and Row): `{ layout column }`. */
+      readonly layout?: "column" | "row";
+      /**
+       * With `parent` a list group: where the new element goes among its children
+       * (`ElementInfo.list`), before the child at that index, at the end when it is the count;
+       * the list places it, so it gets no `place`.
+       */
+      readonly index?: number;
     }
   | {
       /**
@@ -1019,6 +1193,13 @@ export type CanvasMessage =
       readonly type: "presenceLaser";
       readonly points: readonly { readonly x: number; readonly y: number; readonly t: number }[];
       readonly diagram?: string;
+      /**
+       * Set while the points are a stroke of the pen or the highlighter, for the others to draw it
+       * as it grows: its width, its resolved colour, its opacity and its number, within
+       * `PRESENCE_PEN_LIMITS`, with `cancel` on the batch (maybe of no points) that ends a stroke
+       * cancelled with Escape. The Pointer's batches carry none.
+       */
+      readonly pen?: PresencePen;
     };
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null;
@@ -1055,6 +1236,7 @@ const KINDS = [
   "text",
   "icon",
   "image",
+  "sticky",
   "participant",
   "actor",
   "boundary",
@@ -1069,6 +1251,27 @@ const KINDS = [
   "datastore",
   "component",
 ] as const;
+/** The most points a pen stroke or one of its edits carries. */
+const PEN_POINTS = 10_000;
+/** A position among a list's children. */
+const isIndex = (v: unknown): v is number =>
+  typeof v === "number" && Number.isInteger(v) && v >= 0 && v <= 100_000;
+/** The points of a pen: one at least. */
+const isPenPoints = (v: unknown): v is Point[] =>
+  Array.isArray(v) && v.length >= 1 && v.length <= PEN_POINTS && v.every(isPoint);
+/** A colour as the canvas writes one: `#` and 3, 4, 6 or 8 hex digits, or `@` and a token. */
+const isColourChoice = (v: unknown): v is string =>
+  typeof v === "string" &&
+  (/^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(v) ||
+    /^@[A-Za-z][A-Za-z0-9]{0,63}$/.test(v));
+/** The styles of a new pen: each one optional and of its kind; the edit checks the values. */
+const isPenStyle = (v: unknown): v is PenStyle =>
+  isObject(v) &&
+  (v.stroke === undefined || isColourChoice(v.stroke)) &&
+  (v.width === undefined || (isNumber(v.width) && v.width >= 1 && v.width <= 64)) &&
+  (v.opacity === undefined || (isNumber(v.opacity) && v.opacity >= 0 && v.opacity <= 1)) &&
+  (v.arrowhead === undefined || (typeof v.arrowhead === "string" && v.arrowhead.length <= 64)) &&
+  (v.arrowtail === undefined || (typeof v.arrowtail === "string" && v.arrowtail.length <= 64));
 const OPERATORS = ["alt", "opt", "loop", "par", "break", "critical", "region"] as const;
 const CREATABLE: readonly CreatableDiagram[] = ["flow", "free", "sequence"];
 const EDGES = ["left", "center", "right", "top", "middle", "bottom"] as const;
@@ -1079,18 +1282,21 @@ const STORY_ACTION_KINDS = [
   "focus",
   "camera",
   "trace",
+  "draw",
   "hold",
-] as const;
+] as const satisfies readonly SceneActionKind[];
 const isPath = (v: unknown): v is number[] =>
   Array.isArray(v) &&
   v.length >= 1 &&
   v.length <= 64 &&
   v.every((n) => Number.isInteger(n) && (n as number) >= 0);
 
+/** A move: by a delta, or into a list group at an index (the delta then optional). */
 const isMove = (a: Record<string, unknown>): boolean =>
   isStrings(a.ids) &&
-  isPoint(a.delta) &&
-  (a.parent === undefined || a.parent === null || isString(a.parent));
+  (a.index === undefined ? isPoint(a.delta) : a.delta === undefined || isPoint(a.delta)) &&
+  (a.parent === undefined || a.parent === null || isString(a.parent)) &&
+  (a.index === undefined || (isIndex(a.index) && isString(a.parent)));
 const isResize = (a: Record<string, unknown>): boolean =>
   isString(a.id) && isBox(a.box) && a.box.width > 0 && a.box.height > 0;
 
@@ -1137,6 +1343,14 @@ function isAction(a: unknown): a is CanvasAction {
         a.via.length <= 1000 &&
         a.via.every(isPoint)
       );
+    case "createPen":
+      return (
+        isPenPoints(a.points) &&
+        (a.parent === undefined || isString(a.parent)) &&
+        (a.style === undefined || isPenStyle(a.style))
+      );
+    case "setPenPoints":
+      return isString(a.element) && isPenPoints(a.points);
     case "setEnd":
       return (
         isString(a.relation) &&
@@ -1157,6 +1371,11 @@ function isAction(a: unknown): a is CanvasAction {
         (a.source === undefined || isString(a.source)) &&
         (a.shape === undefined || oneOf(a.shape, SHAPES)) &&
         (a.attachedTo === undefined || isString(a.attachedTo)) &&
+        (a.fill === undefined || isColourChoice(a.fill)) &&
+        // Column and Row are groups; an index counts among the children of a list.
+        (a.layout === undefined ||
+          (oneOf(a.layout, ["column", "row"]) && a.elementKind === "group")) &&
+        (a.index === undefined || (isIndex(a.index) && isString(a.parent))) &&
         // An icon object is its icon: it comes with one, and takes no icon style or shape.
         (a.elementKind !== "icon" ||
           (isReference(a.source) && a.icon === undefined && a.shape === undefined))
@@ -1338,7 +1557,9 @@ export function isCanvasMessage(m: unknown): m is CanvasMessage {
         Array.isArray(m.points) &&
         m.points.length <= 64 &&
         m.points.every((p) => isPoint(p) && isNumber((p as { t?: unknown }).t)) &&
-        (m.diagram === undefined || isString(m.diagram))
+        (m.diagram === undefined || isString(m.diagram)) &&
+        // A stroke's look out of bounds makes the whole batch unfit, as a point out of bounds does.
+        (m.pen === undefined || isPresencePen(m.pen))
       );
     case "action":
       return isNumber(m.revision) && isAction(m.action);

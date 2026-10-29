@@ -83,8 +83,17 @@ export const en = {
     shapeMenu: "More shapes (F)",
     /** The arrow part of the group tool, which offers a group with a title or a plain container. */
     groupMenu: "Group or container (G)",
-    /** The kinds of group the group tool creates: a band with a title, or an untitled container. */
-    groupKinds: { group: "Group", container: "Container" },
+    /** The same on free diagrams, where it offers the two lists too. */
+    groupMenuLists: "Group, container, column or row (G)",
+    /**
+     * The kinds of group the group tool creates: a band with a title, an untitled container, and
+     * on free diagrams a column or a row, a list that places what it holds one after the other.
+     */
+    groupKinds: { group: "Group", container: "Container", column: "Column", row: "Row" },
+    /** The arrow part of the pen tool, which opens the pen menu. */
+    penMenu: "Pen and highlighter: width and colour",
+    /** The arrow part of the sticky note button, which picks the colour of new sticky notes. */
+    stickyMenu: "Colour of new sticky notes",
     /** The button beside the diagram picker that adds a diagram to the file. */
     newDiagram: "New diagram",
     connect: "Connect the selected element to…",
@@ -149,6 +158,8 @@ export const en = {
       tag: "Tag",
       box: "Box",
       text: "Text",
+      /** Free diagrams: a square card of paper whose words wrap and shrink to fit it. */
+      sticky: "Sticky note",
       icon: "Icon",
       image: "Image",
       participant: "Participant",
@@ -160,6 +171,10 @@ export const en = {
       database: "Database",
       collections: "Collections",
       queue: "Queue",
+      /** Free diagrams: freehand strokes, highlighter marks, and the eraser of strokes. */
+      pen: "Pen",
+      highlighter: "Highlighter",
+      eraser: "Eraser",
     },
     /** The label of a tool: its name, then how to use it. */
     hint: (name: string, key: string) => `${name}: click on the canvas, or press ${key}`,
@@ -212,6 +227,9 @@ export const en = {
       `${message}\nLine ${line}. Fix it in the text, or use the quick fix there.`,
     /** What assistive technology reads for a drawn element. */
     element: (kind: string, label: string) => `${kind} ${label}`,
+    /** What assistive technology reads for a pen stroke, which has no label: its id and points. */
+    stroke: (id: string, count: number) =>
+      `Stroke ${id}, ${count} ${plural("en", count, { one: "point", other: "points" })}`,
     /** The buttons under the message of a file without diagrams, which create one. */
     create: "Create a diagram",
   },
@@ -236,6 +254,9 @@ export const en = {
     selectedRelation: (from: string, to: string, message: boolean) =>
       `${message ? "Message" : "Relation"} ${from} to ${to} selected.`,
     selectedEvent: (kind: string, key: string) => `${kind} ${key} selected.`,
+    /** A pen stroke selected: its id and how many points it has. */
+    selectedStroke: (id: string, count: number) =>
+      `Stroke ${id}, ${count} ${plural("en", count, { one: "point", other: "points" })}, selected.`,
     /** Alt+click: the element selected in the stack under the pointer, counted from the top. */
     selectedBelow: (kind: string, id: string, label: string, index: number, count: number) =>
       `${kind} ${id}${label === "" ? "" : `, ${label},`} selected: ${index} of ${count} under the pointer.`,
@@ -297,6 +318,8 @@ export const en = {
     /** An icon or an image, which have no label to edit in place. */
     noLabel: (kind: string) => `An ${kind} has no label; change it in the properties.`,
     nothingToEdit: (kind: string) => `A ${kind} has nothing to edit here; see the properties.`,
+    /** Enter or F2 on a pen stroke, which has no text to edit in place. */
+    strokeHasNoText: "A stroke has no text; change its colour, width and heads in the properties.",
     /** A connector's end dropped on a named port or a point of a side. */
     endPinned: (relation: string, element: string, port: string, position?: number) =>
       position === undefined
@@ -326,6 +349,46 @@ export const en = {
     iconAdded: (label: string) => `Added ${label}.`,
     iconsRemoved: (ids: readonly string[]) =>
       `Removed the icon of ${ids.length === 1 ? ids[0] : `${ids.length} elements`}.`,
+    /** The pen, the highlighter or the eraser armed: how to use it, and how to put it away. */
+    penArmed:
+      "Pen: drag on the canvas to draw; Shift keeps a stroke straight. P or Escape puts it away.",
+    highlighterArmed: "Highlighter: drag over what to mark. H or Escape puts it away.",
+    eraserArmed: "Eraser: drag across the strokes to erase. E or Escape puts it away.",
+    /** A stroke written with the pen or the highlighter, by the points it kept. */
+    penDrawn: (count: number) =>
+      `Drew a stroke of ${count} ${plural("en", count, { one: "point", other: "points" })}.`,
+    /** Escape while a stroke is drawn: nothing is written, and the tool stays in the hand. */
+    strokeCancelled: "No stroke drawn.",
+    /** The strokes the eraser took, in one step. */
+    erased: (count: number) =>
+      `Erased ${count} ${plural("en", count, { one: "stroke", other: "strokes" })}.`,
+    /** Escape while erasing, or a drag that crossed no stroke. */
+    nothingErased: "Nothing erased.",
+    /** A colour chosen in the sticky note button's menu: a colour's name, or null for the theme's. */
+    stickyColour: (name: string | null) =>
+      name === null
+        ? "New sticky notes take the theme's colour."
+        : `New sticky notes are ${name.toLowerCase()}.`,
+    /** A column or a row created with the group tool. */
+    createdList: (layout: "column" | "row") =>
+      `Created a ${layout === "column" ? "column" : "row"}.`,
+    /** A sticky note added to the end of a column, or after a card, by its + or Ctrl+Enter. */
+    addedSticky: (list: string) => `Added a sticky note to ${list}.`,
+    /** A column added to a row by its + or Ctrl+Enter. */
+    addedColumn: (list: string) => `Added a column to ${list}.`,
+    /** Elements dropped into a list, or moved in it: where they went, counted from 1. */
+    movedInList: (ids: readonly string[], list: string, position: number, count: number) =>
+      `Moved ${ids.length === 1 ? ids[0] : `${ids.length} elements`} to ${position} of ${count} in ${list}.`,
+    /** Alt+Up or Alt+Down: the card moved before or after its neighbour. */
+    movedPast: (id: string, neighbour: string, list: string, before: boolean) =>
+      `Moved ${id} ${before ? "before" : "after"} ${neighbour} in ${list}.`,
+    /** Alt+Up on the first card of a list, Alt+Down on the last: nothing moves. */
+    listEnd: (id: string, list: string, first: boolean) =>
+      `${id} is already ${first ? "first" : "last"} in ${list}.`,
+    /** Ctrl+Enter with nothing that is in a list, or a list, selected. */
+    noListToAdd: "Select a list, or a card of one, to add to it.",
+    /** Alt+Up or Alt+Down with nothing that is in a list selected. */
+    noListToMove: "Select a card of a list to move it among its neighbours.",
   },
 
   /** The labels of the editor that opens in place over an element, a relation or an event. */
@@ -338,6 +401,8 @@ export const en = {
       multiline
         ? "Enter or Tab keeps the text, Shift+Enter starts a new line, Escape cancels."
         : "Enter or Tab keeps the text, Escape cancels.",
+    /** Said after the keys in the editor of a card of a list. */
+    nextCard: "Ctrl+Enter keeps it and adds the next card.",
   },
 
   /** The context menus of the canvas and the toolbar's Arrange menu. */
@@ -534,6 +599,55 @@ export const en = {
     status: (angle: number) => `Rotation ${angle}°. Release to keep it; Escape cancels.`,
     done: (id: string, angle: number) =>
       angle === 0 ? `${id} is upright again.` : `${id} turned to ${angle}°.`,
+  },
+
+  /**
+   * The pen menu, behind the pen button's arrow: the pen or the highlighter, the pen's widths and
+   * the colour of the tool chosen. Choices are kept with the canvas's state.
+   */
+  pen: {
+    label: "Pen and highlighter",
+    tools: "Tool",
+    width: "Width",
+    widths: { default: "Default", thin: "Thin", medium: "Medium", thick: "Thick" },
+    /** A width chip's name with its size: "Thin, 2 px". */
+    widthChip: (name: string, width: number) => `${name}, ${width} px`,
+    /** What the width row shows: the width in use. */
+    pixels: (width: number) => `${width} px`,
+    /** The highlighter is always as wide: its width row says so instead of offering widths. */
+    fixedWidth: (width: number) => `The highlighter is always ${width} px wide.`,
+    colour: { pen: "Pen colour", highlighter: "Highlighter colour" },
+  },
+
+  /**
+   * The sticky note button: a click adds one near the centre, a drag places it; its arrow picks
+   * the colour of new ones, the theme's or one of six colours of paper, which the strip's fill row
+   * names too.
+   */
+  sticky: {
+    button: "Sticky note: click to add one, or drag it onto the canvas",
+    /** The button's label once a colour of paper is chosen (its name, as `colours` gives it). */
+    coloured: (name: string) =>
+      `Sticky note, ${name.toLowerCase()}: click to add one, or drag it onto the canvas`,
+    /** The first choice of the menu: the theme's `sticky` colour, nothing written. */
+    themeColour: "Theme colour",
+    colours: {
+      yellow: "Yellow",
+      pink: "Pink",
+      green: "Green",
+      blue: "Blue",
+      orange: "Orange",
+      purple: "Purple",
+    },
+  },
+
+  /**
+   * The + at the end of a hovered or selected list (`layout column` or `layout row`): it adds a
+   * sticky note to a column, or a column to a row, with its editor open.
+   */
+  lists: {
+    addSticky: (list: string) => `Add a sticky note to ${list}`,
+    addColumn: (list: string) => `Add a column to ${list}`,
   },
 
   shapeGrid: {

@@ -41,21 +41,24 @@ since it animates the line itself.
 
 ## Targets and channels
 
-| Effect  | Draws                                                                         | Targets                                                                                     |
-| ------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `flow`  | particles along the connector, under its label                                | named relations, free lines, sequence messages and C4 relations                             |
-| `dash`  | a dash of 8 and a gap of 6 moving along the line or outline                   | named relations, free lines and elements with an outline, notes and texts that are outlined |
-| `pulse` | a halo that grows by 15 % and fades out, or a glow along a relation or a line | elements, named relations, free lines, named notes and fragments                            |
-| `trace` | a highlight that fills the connector from its start, then fades out           | named relations, free lines, sequence messages and C4 relations                             |
+| Effect  | Draws                                                                         | Targets                                                                                                     |
+| ------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `flow`  | particles along the connector, under its label                                | named relations, free lines, pens, sequence messages and C4 relations                                       |
+| `dash`  | a dash of 8 and a gap of 6 moving along the line or outline                   | named relations, free lines, pens and elements with an outline, notes, texts and stickies that are outlined |
+| `pulse` | a halo that grows by 15 % and fades out, or a glow along a relation or a line | elements, named relations, free lines, pens, named notes and fragments                                      |
+| `trace` | a highlight that fills the connector from its start, then fades out           | named relations, free lines, pens, sequence messages and C4 relations                                       |
 
-A free `line` ([free.md](free.md#lines)) is animated as a relation is: particles, a dash, a glow and
-a trace run along its drawn line, from its `from` point to its `to` point (`direction reverse`
-the other way). Any other target is `animate.invalid-target`: flow or a trace on a box, whose
-message says they run along relations and lines, a dash on an icon or on a note or text without an outline. Each effect drives
+A free `line` ([free.md](free.md#lines)) or a pen ([free.md](free.md#pen-strokes)) is animated as
+a relation is: particles, a dash, a glow and a trace run along its drawn line, from its first point
+to its last (`direction reverse` the other way); on a pen they follow the smoothed curve, not the
+straight segments between its points. Any other target is `animate.invalid-target`: flow
+or a trace on a box or a text, whose message says they run along relations, lines and pens, a
+dash on an icon or on a note, text or sticky without an outline. Each effect drives
 one channel, so a target can have a flow, a dash, a pulse and a trace at once, but a second
 effect of the same kind on the same target is `animate.conflict`, wherever it is written. A note
 or a text has an outline for a dash when a `style`, a class or a `rule` of the diagram sets its
-`fill`, `stroke` or `pattern`; icons, images and the stick figures of sequence diagrams never do.
+`fill`, `stroke` or `pattern`, and a sticky, always filled, when they set its `stroke`; icons,
+images and the stick figures of sequence diagrams never do.
 
 Animations are the last layer of style precedence: while an effect runs, its dash replaces the
 written line style of the target; outside its window the target is drawn exactly as styled.

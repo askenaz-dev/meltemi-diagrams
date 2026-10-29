@@ -1,12 +1,14 @@
 import {
   applyTextEdits,
   isToken,
+  tokensOf,
   type Block,
   type KeywordStatement,
   type ShorthandDeclaration,
   type Statement,
   type TextEdit,
   type Token,
+  type Trivia,
 } from "@meltemi/diagrams-language";
 import { compile, type Element } from "@meltemi/diagrams-model";
 import {
@@ -17,7 +19,7 @@ import {
   type TextContext,
 } from "./context.js";
 import { reasons } from "./messages/index.js";
-import { lineIndent, lineStart } from "./text.js";
+import { hasOnlyWhitespaceTrivia, isCommentTrivia, lineIndent, lineStart } from "./text.js";
 
 /** Keywords that declare an element. */
 export const DECLARATION_KEYWORDS: ReadonlySet<string> = new Set([
@@ -31,6 +33,9 @@ export const DECLARATION_KEYWORDS: ReadonlySet<string> = new Set([
   "text",
   "icon",
   "image",
+  "sticky",
+  "line",
+  "pen",
   "participant",
   "actor",
   "boundary",
@@ -40,6 +45,21 @@ export const DECLARATION_KEYWORDS: ReadonlySet<string> = new Set([
   "collections",
   "queue",
 ]);
+
+/**
+ * A group's own statements, which come before its children: what its block says of the group,
+ * the arrangement of a list included.
+ */
+export const GROUP_OWN_KEYWORDS: readonly string[] = [
+  "description",
+  "class",
+  "layer",
+  "link",
+  "url",
+  "layout",
+  "spacing",
+  "align",
+];
 
 /** Diagram properties, which come first in a diagram body. */
 export const DIAGRAM_PROPERTY_KEYWORDS: ReadonlySet<string> = new Set([
@@ -184,6 +204,102 @@ export function insertDeclaration(
   const first = statements[0];
   if (first) return insertBefore(ctx, first, render);
   return insertStatement(ctx, block, owner, render);
+}
+
+/**
+ * The comments on the lines right above a statement of `block`, which belong to it: line breaks
+ * that follow a line break and end a line that holds only comments. A blank line ends them.
+ */
+export function commentsAbove(block: Block, statement: Statement): Trivia[] {
+  const children = block.children;
+  const above: Trivia[] = [];
+  for (let i = children.indexOf(statement) - 1; i > 0; i--) {
+    const child = children[i]!;
+    const previous = children[i - 1]!;
+    if (!isToken(child) || child.kind !== "Newline") break;
+    if (!isToken(previous) || previous.kind !== "Newline") break;
+    const comments = child.leadingTrivia.filter(isCommentTrivia);
+    if (comments.length === 0) break;
+    above.unshift(...comments);
+  }
+  return above;
+}
+
+/**
+ * Inserts a statement before `before`, a statement of `block`: on a line of its own above the
+ * comment lines that belong to `before` when it starts a line, or followed by `; ` otherwise.
+ */
+export function insertBeforeStatement(
+  ctx: TextContext,
+  block: Block,
+  before: Statement,
+  render: (indent: string | null) => string,
+): TextEdit {
+  const first = commentsAbove(block, before)[0];
+  if (!first) return insertBefore(ctx, before, render);
+  const start = lineStart(ctx.text, first.start);
+  const indent = lineIndent(ctx.text, before.start);
+  return { start, end: start, newText: indent + render(indent) + ctx.eol };
+}
+
+/**
+ * Inserts a declaration into `block`, the diagram body when `body` is true or a group's block
+ * otherwise: before `before` when given, else after the last declaration, else after a group's
+ * own statements. A block written on one line that is empty, or that holds only a group's own
+ * statements, opens onto lines, so that the declarations go on lines of their own.
+ */
+export function insertIntoBlock(
+  ctx: EditContext,
+  block: Block,
+  owner: number,
+  body: boolean,
+  render: (indent: string | null) => string,
+  before?: Statement,
+): TextEdit {
+  if (before) return insertBeforeStatement(ctx, block, before, render);
+  const close = block.close;
+  const lineBreaks = block.children.some((c) => isToken(c) && c.kind === "Newline");
+  const own = !body && !block.statements.some(isDeclaration);
+  const quiet = [...tokensOf(block)].every((t) => t === block.open || hasOnlyWhitespaceTrivia(t));
+  const opens =
+    !lineBreaks &&
+    isToken(close) &&
+    quiet &&
+    (block.statements.length === 0 ||
+      (own && block.statements.every((s) => isKeyword(s, ...GROUP_OWN_KEYWORDS))));
+  if (opens) {
+    const indent = lineIndent(ctx.text, owner);
+    const inner = indent + ctx.unit;
+    const lines = [
+      ...block.statements.map((s) => ctx.text.slice(s.start, s.end)),
+      render(inner),
+    ].map((line) => inner + line);
+    return {
+      start: block.open.end,
+      end: close.start,
+      newText: `${ctx.eol}${lines.join(ctx.eol)}${ctx.eol}${indent}`,
+    };
+  }
+  return insertDeclaration(
+    ctx,
+    block,
+    owner,
+    render,
+    own ? (s) => isKeyword(s, ...GROUP_OWN_KEYWORDS) : isDeclaration,
+  );
+}
+
+/**
+ * Inserts a `style` statement with the diagram's: after the last `style` statement of the body,
+ * else as its last statement. A group takes no `style` statement, so its children's go here.
+ */
+export function insertDiagramStyle(ctx: EditContext, text: string): TextEdit {
+  const body = diagramBody(ctx);
+  const styles = body.statements.filter((s) => isKeyword(s, "style"));
+  const last = styles[styles.length - 1];
+  return last
+    ? insertAfter(ctx, body, last, () => text)
+    : insertStatement(ctx, body, ctx.diagram.node.start, () => text);
 }
 
 /** Re-indents a statement's text from `from` to `to`, line by line after the first. */

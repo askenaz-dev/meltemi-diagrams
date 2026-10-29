@@ -1,4 +1,5 @@
 import { createLine, setLinePoints } from "./lines.js";
+import { createPen, setPenPoints } from "./pens.js";
 import {
   applyTextEdits,
   invertTextEdits,
@@ -30,6 +31,7 @@ import {
   createContext,
   createTextContext,
   insertStatement,
+  isListGroup,
   reject,
   requireElement,
   requireNamedRelation,
@@ -314,6 +316,10 @@ function run(
       return createLine(ctx, operation);
     case "setLinePoints":
       return setLinePoints(ctx, operation);
+    case "createPen":
+      return createPen(ctx, operation);
+    case "setPenPoints":
+      return setPenPoints(ctx, operation);
     case "renameRelation":
       return renameRelation(ctx, operation);
     case "removeRelation":
@@ -486,9 +492,10 @@ export function setPosition(ctx: EditContext, op: OperationOf<"setPosition">): T
   ];
 }
 
-/** A free line takes no `place` or `size`: its points are written in its statement. */
+/** A free line or a pen takes no `place` or `size`: its points are written in its statement. */
 function refuseLine(element: Element): void {
   if (element.kind === "line") reject("edit.invalid-value", reasons().lines.points(element.id));
+  if (element.kind === "pen") reject("edit.invalid-value", reasons().pens.points(element.id));
 }
 
 /** Edits that turn `layout auto`, written or implied, into `layout assisted`. */
@@ -530,18 +537,25 @@ function assistedMode(ctx: EditContext): TextEdit[] {
   ];
 }
 
-/** Writes arranged positions as `place` statements and switches the diagram to `assisted`. */
+/**
+ * Writes arranged positions as `place` statements and switches the diagram to `assisted`. A list
+ * group places its children and grows with them, so its children get no `place` and it gets no
+ * `size` from an arrangement. Free lines and pens hold their points in their statements and
+ * refuse a `place`, so they get none either.
+ */
 function arrange(ctx: EditContext, op: OperationOf<"arrange">): TextEdit[] {
   const edits: TextEdit[] = [...assistedMode(ctx)];
   const inserted: string[] = [];
   for (const [id, point] of op.positions) {
     const element = requireElement(ctx, id);
+    if (element.kind === "line" || element.kind === "pen") continue;
+    if (isListGroup(ctx, element.groupPath[element.groupPath.length - 1])) continue;
     const rounded = { x: Math.round(point.x), y: Math.round(point.y) };
     requireNumbers(rounded.x, rounded.y);
     if (element.kind === "group") {
       const place = findEntry<PlaceEntry>(ctx, "place", id);
       const size = findEntry<SizeEntry>(ctx, "size", id);
-      const box = op.sizes?.get(id);
+      const box = element.list === null ? op.sizes?.get(id) : undefined;
       const dimensions = box ? { x: Math.round(box.width), y: Math.round(box.height) } : undefined;
       if (dimensions) requireNumbers(dimensions.x, dimensions.y);
       if (op.writeGroups) {

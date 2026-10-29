@@ -1387,6 +1387,193 @@ const tests: Test[] = [
     },
   },
   {
+    name: "whiteboard: P draws a stroke on a free diagram: the code gains a pen, nothing is selected, the pen stays armed for a second one and Escape puts it away",
+    async run({ page }) {
+      await page
+        .locator(".code-input")
+        .fill(
+          'language "0.2"\n\ndiagram s: free {\n  layout manual\n  box a "A"\n  placement {\n    place a at (126, 112)\n  }\n}\n',
+        );
+      await analysed(page);
+      const a = page.locator('#app .content g[data-id="a"][data-role="element"]').first();
+      await a.waitFor();
+      const box = (await a.boundingBox())!;
+      const pen = page.locator('#app .toolbar [data-split="pen"] > button.pen-button');
+      const stroke = page.locator("#app .overlay path.pen-stroke");
+      const selected = () =>
+        page.evaluate(
+          () =>
+            (
+              window as unknown as {
+                meltemiPlayground: { studio: { session: { selected: readonly string[] } } };
+              }
+            ).meltemiPlayground.studio.session.selected,
+        );
+      /** The points written in `pen <id> [...]`. */
+      const pointsOf = (text: string, id: string) => {
+        const found = new RegExp(`\\n {2}pen ${id} \\[([^\\]]*)\\]`).exec(text);
+        assert.ok(found, `no pen ${id} in\n${text}`);
+        return [...found[1]!.matchAll(/\((-?[\d.]+), (-?[\d.]+)\)/g)].map((m) => ({
+          x: Number(m[1]),
+          y: Number(m[2]),
+        }));
+      };
+      /** A press, a wave through three points 40 px apart and a release; `during` before the last leg. */
+      const draw = async (from: { x: number; y: number }, during?: () => Promise<void>) => {
+        await page.mouse.move(from.x, from.y);
+        await page.mouse.down();
+        await page.mouse.move(from.x + 40, from.y - 14, { steps: 6 });
+        await page.mouse.move(from.x + 80, from.y + 10, { steps: 6 });
+        await during?.();
+        await page.mouse.move(from.x + 120, from.y, { steps: 6 });
+        await page.mouse.up();
+      };
+      await page.locator("#app .stage").focus();
+      await page.keyboard.press("p");
+      assert.equal(await pen.getAttribute("aria-pressed"), "true");
+      assert.match((await page.locator("#app .status").textContent()) ?? "", /^Pen: drag/);
+      // Below the box, on empty canvas.
+      const before = await code(page);
+      const from = { x: box.x + 10, y: box.y + box.height + 120 };
+      await draw(from, async () => {
+        // While the button is down: one path on the overlay, as the layout will draw it, and
+        // nothing written.
+        assert.equal(await stroke.count(), 1);
+        assert.match(
+          (await stroke.getAttribute("d")) ?? "",
+          /^M [\d.-]+ [\d.-]+( Q [\d.-]+ [\d.-]+ [\d.-]+ [\d.-]+)+ L /,
+        );
+        assert.equal(await code(page), before, "nothing is written before the release");
+      });
+      await until(page, "the stroke written into the code", () =>
+        /\n {2}box a "A"\n {2}pen pen1 \[[^\]]+\]\n {2}placement \{/.test(
+          (document.querySelector(".code-input") as HTMLTextAreaElement).value,
+        ),
+      );
+      const text = await code(page);
+      assert.doesNotMatch(text, /style pen1/, "a stroke of the defaults writes no style");
+      const points = pointsOf(text, "pen1");
+      assert.ok(points.length >= 3 && points.length <= 10, `${points.length} points`);
+      for (const p of points) {
+        assert.equal(Math.round(p.x * 10) / 10, p.x, "a tenth at most");
+        assert.equal(Math.round(p.y * 10) / 10, p.y, "a tenth at most");
+      }
+      // Nothing is selected, the pen stays in the hand and the status line counts the points.
+      assert.deepEqual(await selected(), []);
+      assert.equal(await pen.getAttribute("aria-pressed"), "true", "the pen stays armed");
+      assert.equal(
+        await page.locator("#app .status").textContent(),
+        `Drew a stroke of ${points.length} points.`,
+      );
+      // The overlay's stroke gave way to the drawing's pen, where it was drawn.
+      const drawn = page.locator('#app .content g[data-id="pen1"][data-role="element"]').first();
+      await drawn.waitFor();
+      await until(
+        page,
+        "the overlay's stroke gone",
+        () => document.querySelectorAll("#app .overlay path.pen-stroke").length === 0,
+      );
+      // Its box holds the stroke and half its width (and the wider path it is hit by) each side.
+      const line = (await drawn.boundingBox())!;
+      assert.ok(
+        Math.abs(line.x + line.width / 2 - (from.x + 60)) <= 4 &&
+          line.width >= 118 &&
+          line.width <= 140,
+        `drawn at ${line.x}, ${line.width} wide, from ${from.x} to ${from.x + 120}`,
+      );
+      // A second stroke right away: pen2 after pen1, the pen still armed.
+      await draw({ x: from.x, y: from.y + 60 });
+      await until(page, "the second stroke written into the code", () =>
+        /\n {2}pen pen1 \[[^\]]+\]\n {2}pen pen2 \[[^\]]+\]\n/.test(
+          (document.querySelector(".code-input") as HTMLTextAreaElement).value,
+        ),
+      );
+      await page.locator('#app .content g[data-id="pen2"][data-role="element"]').first().waitFor();
+      assert.deepEqual(await selected(), []);
+      assert.equal(await pen.getAttribute("aria-pressed"), "true");
+      await page.screenshot({ path: join(output, "pen-playground.png") });
+      // Escape puts the pen away.
+      await page.keyboard.press("Escape");
+      assert.equal(await pen.getAttribute("aria-pressed"), "false");
+      assert.equal(await page.locator("#app .stage.drawing").count(), 0);
+    },
+  },
+  {
+    name: "whiteboard: S adds a sticky note on a free diagram with its editor open, and a long sentence typed and entered wraps on the card",
+    async run({ page }) {
+      await page
+        .locator(".code-input")
+        .fill(
+          'language "0.2"\n\ndiagram s: free {\n  layout manual\n  box a "A"\n  placement {\n    place a at (126, 112)\n  }\n}\n',
+        );
+      await analysed(page);
+      await page.locator('#app .content g[data-id="a"][data-role="element"]').first().waitFor();
+      await page.locator("#app .stage").focus();
+      await page.keyboard.press("s");
+      await until(page, "the sticky note written into the code", () =>
+        /\n {2}sticky sticky1 "Sticky"\n/.test(
+          (document.querySelector(".code-input") as HTMLTextAreaElement).value,
+        ),
+      );
+      assert.doesNotMatch(await code(page), /style sticky1/, "the theme's colour writes no fill");
+      // Its editor is open on the card, the default words selected, wrapping as the card will.
+      const inline = page.locator("#app textarea.inline");
+      await inline.waitFor();
+      assert.equal(await inline.inputValue(), "Sticky");
+      assert.equal(
+        await inline.evaluate((area: HTMLTextAreaElement) => getComputedStyle(area).whiteSpace),
+        "pre-wrap",
+      );
+      const lines = () =>
+        inline.evaluate((area: HTMLTextAreaElement) =>
+          Math.round(area.scrollHeight / parseFloat(getComputedStyle(area).lineHeight)),
+        );
+      assert.equal(await lines(), 1);
+      const sentence = "Cache the catalogue so that every product page opens at once";
+      await page.keyboard.type(sentence);
+      assert.ok((await lines()) >= 3, `the editor wraps the sentence: ${await lines()} lines`);
+      await page.keyboard.press("Enter");
+      await until(
+        page,
+        "the sentence written into the code",
+        (words) =>
+          (document.querySelector(".code-input") as HTMLTextAreaElement).value.includes(
+            `\n  sticky sticky1 "${words}"\n`,
+          ),
+        sentence,
+      );
+      assert.doesNotMatch(await code(page), /style sticky1/);
+      assert.equal(await page.locator("#app textarea.inline").count(), 0);
+      // The card draws the words on several lines, each inside it.
+      await until(
+        page,
+        "the sentence drawn wrapped on the card",
+        (words) => {
+          const texts = [
+            ...document.querySelectorAll(
+              '#app .content g[data-id="sticky1"][data-role="element"] > text',
+            ),
+          ];
+          return texts.length >= 3 && texts.map((t) => t.textContent).join(" ") === words;
+        },
+        sentence,
+      );
+      const card = page.locator('#app .content g[data-id="sticky1"][data-role="element"]').first();
+      const outline = (await card.boundingBox())!;
+      for (const line of await card.locator(":scope > text").all()) {
+        const drawn = (await line.boundingBox())!;
+        assert.ok(
+          drawn.x >= outline.x && drawn.x + drawn.width <= outline.x + outline.width,
+          `a line inside the card: ${JSON.stringify(drawn)} in ${JSON.stringify(outline)}`,
+        );
+      }
+      // The whole drawing in view for the picture.
+      await page.keyboard.press("Shift+Digit1");
+      await settled(page);
+      await page.screenshot({ path: join(output, "sticky-playground.png") });
+    },
+  },
+  {
     name: "aligns a box's text to the top left with the strip's alignment picker",
     async run({ page }) {
       await page
@@ -2228,6 +2415,173 @@ const tests: Test[] = [
       assert.equal(await page.locator(".switcher-name").textContent(), "Pagos");
       const panel = await projectsPanel(page);
       assert.equal(await panel.locator(".panel-row.previous").count(), 1);
+    },
+  },
+  {
+    name: "whiteboard: New project offers seven cards with Kanban board and Whiteboard; the whiteboard draws its strokes and stickies in the hand font, the kanban board its three columns",
+    async run({ page }) {
+      assert.deepEqual(
+        templates.map((t) => t.name),
+        ["flow", "c4", "sequence", "free", "kanban", "whiteboard", "purchase"],
+      );
+      await (await projectsPanel(page)).getByRole("button", { name: "New project…" }).click();
+      const dialog = page.locator("dialog.new-project");
+      assert.equal(await dialog.locator(".template-card").count(), 7);
+      for (const [name, title, contents] of [
+        ["kanban", "Kanban board", "1 diagram"],
+        ["whiteboard", "Whiteboard", "1 diagram · 1 story"],
+      ] as const) {
+        const card = dialog.locator(`[data-template="${name}"]`);
+        assert.equal(await card.locator(".template-title").textContent(), title);
+        assert.equal(await card.locator(".template-contents").textContent(), contents);
+        assert.equal(
+          await card.locator("img.template-thumb").getAttribute("src"),
+          `templates/${name}.light.svg`,
+        );
+        await until(
+          page,
+          `the ${name} card's picture`,
+          (wanted) => {
+            const image = document.querySelector<HTMLImageElement>(
+              `dialog.new-project [data-template="${wanted}"] img.template-thumb`,
+            );
+            return image !== null && image.complete && image.naturalWidth > 0;
+          },
+          name,
+        );
+      }
+
+      // The whiteboard, created anonymously from its card: its file in the tree, its pens drawn as
+      // one path each (the highlighter's wide and translucent, the arrow's with its head), its
+      // stickies as cards whose words are in the hand font of sketch.light.
+      await page.evaluate(() => {
+        document.querySelector(".status-text")!.textContent = "";
+      });
+      await dialog.locator('[data-template="whiteboard"]').click();
+      assert.equal(await dialog.getByLabel("Name").inputValue(), "Whiteboard");
+      await dialog.getByRole("button", { name: "Create the project" }).click();
+      await until(
+        page,
+        "the whiteboard created",
+        () => document.querySelector(".status-text")?.textContent === "Created Whiteboard.",
+      );
+      await expectOpen(page, "diagrams/whiteboard.meltemi");
+      await analysed(page);
+      assert.equal(
+        await page.locator('.tree li[data-key="f:diagrams/whiteboard.meltemi"]').count(),
+        1,
+      );
+      assert.equal(await page.locator("#problems-title").textContent(), "No problems");
+      await until(page, "the whiteboard's strokes and stickies drawn", () =>
+        ["marker", "arrow", "ask", "miss", "heading", "divider"].every(
+          (id) =>
+            document.querySelector(`#app .content g[data-id="${id}"][data-role="element"]`) !==
+            null,
+        ),
+      );
+      // (No named functions in the page: it has no `__name` helper for them.)
+      const drawing = await page.evaluate(() => {
+        const marker = document.querySelector(
+          '#app .content g[data-id="marker"][data-role="element"]',
+        )!;
+        const arrow = document.querySelector(
+          '#app .content g[data-id="arrow"][data-role="element"]',
+        )!;
+        const ask = document.querySelector('#app .content g[data-id="ask"][data-role="element"]')!;
+        const markerPaths = [...marker.querySelectorAll("path")].filter(
+          (p) => !p.classList.contains("mdg-hit"),
+        );
+        const arrowPaths = [...arrow.querySelectorAll("path")].filter(
+          (p) => !p.classList.contains("mdg-hit"),
+        );
+        return {
+          marker: {
+            opacity: marker.getAttribute("opacity"),
+            width: markerPaths[0]?.getAttribute("stroke-width"),
+            d: markerPaths[0]?.getAttribute("d") ?? "",
+            paths: markerPaths.length,
+          },
+          arrow: { d: arrowPaths[0]?.getAttribute("d") ?? "", paths: arrowPaths.length },
+          stickyFont: getComputedStyle(ask.querySelector("text")!).fontFamily,
+          stickyText: [...ask.querySelectorAll("text")].map((t) => t.textContent).join(" "),
+        };
+      });
+      assert.equal(drawing.marker.opacity, "0.35", JSON.stringify(drawing));
+      assert.equal(drawing.marker.width, "20", JSON.stringify(drawing));
+      assert.equal(drawing.marker.paths, 1, "the highlighter's stroke is one path, unjittered");
+      assert.match(drawing.marker.d, /^M [\d.-]+ [\d.-]+ Q /);
+      assert.match(drawing.arrow.d, /^M [\d.-]+ [\d.-]+ Q /);
+      assert.equal(drawing.arrow.paths, 2, "the arrow's stroke and its head");
+      assert.match(drawing.stickyFont, /Patrick Hand/);
+      assert.equal(drawing.stickyText, "Ask the cache first");
+      await until(page, "the hand font loaded", () =>
+        [...document.fonts].some(
+          (face) => face.family.replace(/["']/g, "") === "Patrick Hand" && face.status === "loaded",
+        ),
+      );
+      await page.waitForTimeout(300);
+      await page.screenshot({ path: join(output, "whiteboard-template.png") });
+
+      // The kanban board: a row of three columns as tall as one another, each card in its column
+      // in the order it is written.
+      await openTemplate(page, "kanban");
+      await expectOpen(page, "diagrams/board.meltemi");
+      assert.equal(await page.locator("#problems-title").textContent(), "No problems");
+      const columns = {
+        todo: ["invoices", "search", "reviews"],
+        doing: ["checkout", "cache"],
+        done: ["signin"],
+      };
+      await until(
+        page,
+        "the board's columns and cards drawn",
+        (ids) =>
+          ids.every(
+            (id) =>
+              document.querySelector(`#app .content g[data-id="${id}"][data-role="element"]`) !==
+              null,
+          ),
+        ["columns", ...Object.keys(columns), ...Object.values(columns).flat()],
+      );
+      const boxes = await page.evaluate(
+        (ids) => {
+          const found: Record<string, { x: number; y: number; right: number; bottom: number }> = {};
+          for (const id of ids) {
+            const r = document
+              .querySelector(`#app .content g[data-id="${id}"][data-role="element"]`)!
+              .getBoundingClientRect();
+            found[id] = { x: r.x, y: r.y, right: r.right, bottom: r.bottom };
+          }
+          return found;
+        },
+        ["columns", ...Object.keys(columns), ...Object.values(columns).flat()],
+      );
+      const { todo, doing, done } = boxes as Record<
+        string,
+        { x: number; y: number; right: number; bottom: number }
+      >;
+      assert.ok(todo!.right < doing!.x && doing!.right < done!.x, JSON.stringify(boxes));
+      assert.ok(
+        Math.abs(todo!.y - done!.y) <= 1 && Math.abs(todo!.bottom - done!.bottom) <= 1,
+        `the columns are stretched to one height: ${JSON.stringify(boxes)}`,
+      );
+      for (const [column, cards] of Object.entries(columns)) {
+        const outer = boxes[column]!;
+        let above = -Infinity;
+        for (const id of cards) {
+          const card = boxes[id]!;
+          assert.ok(
+            card.x >= outer.x - 1 &&
+              card.right <= outer.right + 1 &&
+              card.y >= outer.y - 1 &&
+              card.bottom <= outer.bottom + 1,
+            `${id} inside ${column}: ${JSON.stringify(card)} in ${JSON.stringify(outer)}`,
+          );
+          assert.ok(card.y > above, `${id} below the card before it`);
+          above = card.bottom - 4;
+        }
+      }
+      await page.screenshot({ path: join(output, "kanban-template.png") });
     },
   },
   {

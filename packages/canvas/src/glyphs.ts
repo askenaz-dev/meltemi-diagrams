@@ -473,6 +473,47 @@ export function shapeIcon(value: string): SVGSVGElement {
 }
 
 /**
+ * A 16 by 16 picture of a sticky note in a colour, for the sticky note button and the colours of
+ * its menu: the card of paper filled with `fill`, outlined in the current colour like the
+ * toolbar's icons, its bottom right corner folded over in a shade of the same paper.
+ */
+export function stickyGlyph(fill: string): SVGSVGElement {
+  const line = {
+    stroke: "currentColor",
+    "stroke-width": 1.3,
+    "stroke-linecap": "round",
+    "stroke-linejoin": "round",
+  };
+  return s(
+    "svg",
+    {
+      viewBox: "0 0 16 16",
+      width: 16,
+      height: 16,
+      "aria-hidden": "true",
+      focusable: "false",
+      "data-sticky": fill,
+    },
+    // The paper (`data-paper`: what a change of colour repaints).
+    s("path", { d: "M2.5 2.5h11v8l-3 3h-8z", fill, "data-paper": "", ...line }),
+    // The fold: the paper's own colour in shadow, so every colour folds alike.
+    s("path", { d: "M13.5 10.5h-3v3z", fill, "data-paper": "", ...line }),
+    s("path", { d: "M13.5 10.5h-3v3z", fill: "#000", "fill-opacity": 0.16, stroke: "none" }),
+  );
+}
+
+/**
+ * Paints a sticky note's picture in another colour of paper, in place, so that the colour can
+ * move to the new one rather than be swapped.
+ */
+export function repaintSticky(svg: SVGSVGElement, fill: string): void {
+  svg.setAttribute("data-sticky", fill);
+  for (const paper of svg.querySelectorAll<SVGPathElement>("[data-paper]")) {
+    paper.style.fill = fill;
+  }
+}
+
+/**
  * The readable name of a value of a family in the interface language, for labels and titles: a
  * shape, an arrow kind, a place of an icon or a label, or a line style, route kind, corner or head
  * (where `rounded`, `diamond` and `circle` are corners and heads, not shapes). A value the catalog

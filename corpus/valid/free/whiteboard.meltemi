@@ -1,0 +1,79 @@
+language "0.2"
+
+// A whiteboard: a retrospective on a board that grows with its content. A highlighter mark under
+// the heading, two columns of stickies, a circle and an arrow drawn by hand, a faded sticky, a
+// dashed line, and a story that draws the strokes again and reveals the action.
+diagram retro: free {
+  title "Sprint retrospective"
+  preset board
+  layout manual
+
+  pen marker [
+    (272, 72), (321.3, 70.7), (370.7, 70.7), (420, 72), (469.3, 73.3), (518.7, 73.3), (568, 72)
+  ]
+  text heading "Sprint 12 retrospective"
+
+  group well "Went well" {
+    layout column
+    spacing 12
+    sticky deploys "Deploys took ten minutes"
+    sticky pairing "Pairing on the checkout"
+  }
+
+  group improve "To improve" {
+    layout column
+    spacing 12
+    sticky flaky "Flaky end-to-end tests"
+    sticky reviews "Reviews waited two days"
+  }
+
+  pen arrow [(528, 230), (540.8, 220.2), (553.6, 213.5), (566.4, 211.9), (579.2, 215.4), (592, 222)]
+  text action "Quarantine\nflaky tests"
+  pen circle [
+    (606, 198.2), (615.7, 184.5), (636.4, 174.5), (662.2, 169.4), (688, 166.2), (715, 164.1),
+    (742.8, 166.7), (765.1, 175.7), (779.9, 187.7), (791.9, 199.9), (801.6, 213.4), (801.3, 228),
+    (788.2, 241), (768.9, 251), (748.8, 259.9), (725.3, 267.6), (697.4, 269.9), (670.7, 265.5),
+    (647.9, 258), (626.3, 249.8), (607.2, 239.3), (598.3, 225.3)
+  ]
+  sticky parked "Parked: a new design system"
+
+  line divider from (80, 540) to (800, 540)
+  text next "Next retrospective in two weeks"
+
+  placement {
+    place heading at (420, 60)
+    place well at (200, 310)
+    place improve at (420, 310)
+    place action at (700, 216)
+    place parked at (700, 420)
+    place next at (440, 580)
+  }
+
+  style heading { fontSize 28; fontWeight 700 }
+  style marker { stroke highlight; width 20; opacity 0.35 }
+  style deploys, pairing { fill "#c8e6c9" }
+  style flaky, reviews { fill "#f8bbd0" }
+  style arrow { width 3; arrowhead triangle }
+  style circle { stroke danger; width 3 }
+  style action { fontSize 18; fontWeight 600 }
+  style parked { fill "#e1bee7"; opacity 0.5; rotation 3 }
+  style divider { line dashed; stroke muted }
+  style next { color muted }
+}
+
+// The retrospective as it was held: the heading marked, each column with its stickies (a group's
+// reveal shows its frame, so the cards are revealed with it), the arrow and the circle drawn in
+// one go, then the action.
+story replay for retro {
+  title "The retrospective, step by step"
+
+  scene review {
+    draw marker over 600ms
+    reveal well, deploys, pairing over 500ms
+    reveal improve, flaky, reviews over 500ms
+    draw arrow, circle over 1600ms
+    reveal action over 400ms
+    draw divider over 600ms
+    hold 1s
+  }
+}

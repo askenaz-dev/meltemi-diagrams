@@ -268,6 +268,32 @@ describe("presets and canvas", () => {
     expect(layout(sized(1000, 100, "  preset document")).diagnostics).toEqual([]);
   });
 
+  it("names the board preset in the hints of a document, a slide or a canvas too large", () => {
+    for (const extra of ["  preset document", "  preset slide"]) {
+      const [warning] = layout(sized(1960, 1100, extra)).diagnostics;
+      expect(warning!.code, extra).toBe("layout.too-large");
+      expect(warning!.hints, extra).toEqual([
+        "Split the diagram into views or story scenes; text is never shrunk to fit the canvas.",
+        "Write `preset board` when the sheet is a whiteboard: a board grows with its content.",
+      ]);
+    }
+    // A written canvas gives way to the board's preset.
+    const [canvas] = layout(sized(560, 160, "  canvas (400, 300)")).diagnostics;
+    expect(canvas!.hints).toEqual([
+      "Split the diagram into views or story scenes; text is never shrunk to fit the canvas.",
+      "Replace the `canvas` with `preset board` when the sheet is a whiteboard: a board grows with its content.",
+    ]);
+  });
+
+  it("keeps a board as large as its content, reporting nothing", () => {
+    const result = layout(sized(3960, 2560, "  preset board"));
+    expect([result.scene!.width, result.scene!.height]).toEqual([4000, 2600]);
+    expect(result.diagnostics).toEqual([]);
+    // As small as its content too: a board is never widened to a ratio.
+    const small = layout(sized(160, 860, "  preset board"));
+    expect([small.scene!.width, small.scene!.height]).toEqual([200, 900]);
+  });
+
   it("centres the content in a fixed canvas above the footer", () => {
     const text = `diagram d: flow {\n  layout manual\n  canvas (1280, 720)\n  a["A"]\n  placement { place a at (500, 500); size a (560, 260) }\n}\n`;
     const s = scene(text);

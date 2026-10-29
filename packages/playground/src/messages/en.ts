@@ -126,6 +126,8 @@ export const en = {
       c4: "C4 model",
       sequence: "Sequence diagram",
       free: "Slide",
+      kanban: "Kanban board",
+      whiteboard: "Whiteboard",
       purchase: "Purchase example",
     },
     /** What a template holds, the kinds it has in order: "1 model · 2 views". */
@@ -149,6 +151,8 @@ export const en = {
       c4: "An architecture model with a context view and a container view",
       sequence: "A sequence diagram with a scenario for each outcome",
       free: "A slide composed freely: text, boxes, an icon and a group",
+      kanban: "A board of columns and sticky cards",
+      whiteboard: "A sketched board with strokes, stickies and a story that draws them",
       purchase:
         "The reference example: a model, its C4 views, a payment sequence, an executive slide, an animated story and export profiles",
     },

@@ -51,6 +51,8 @@
           "source": null,
           "shape": null,
           "line": null,
+          "pen": null,
+          "list": null,
           "attachedTo": null,
           "entity": {
             "model": "commerce",
@@ -99,6 +101,8 @@
           "source": null,
           "shape": null,
           "line": null,
+          "pen": null,
+          "list": null,
           "attachedTo": null,
           "entity": {
             "model": "commerce",
@@ -147,6 +151,8 @@
           "source": null,
           "shape": null,
           "line": null,
+          "pen": null,
+          "list": null,
           "attachedTo": null,
           "entity": {
             "model": "commerce",
@@ -336,6 +342,8 @@
           "source": null,
           "shape": null,
           "line": null,
+          "pen": null,
+          "list": null,
           "attachedTo": null,
           "entity": {
             "model": "commerce",
@@ -384,6 +392,8 @@
           "source": null,
           "shape": null,
           "line": null,
+          "pen": null,
+          "list": null,
           "attachedTo": null,
           "entity": {
             "model": "commerce",
@@ -432,6 +442,8 @@
           "source": null,
           "shape": null,
           "line": null,
+          "pen": null,
+          "list": null,
           "attachedTo": null,
           "entity": {
             "model": "commerce",
@@ -482,6 +494,8 @@
           "source": null,
           "shape": null,
           "line": null,
+          "pen": null,
+          "list": null,
           "attachedTo": null,
           "entity": {
             "model": "commerce",
@@ -532,6 +546,8 @@
           "source": null,
           "shape": null,
           "line": null,
+          "pen": null,
+          "list": null,
           "attachedTo": null,
           "entity": {
             "model": "commerce",
@@ -582,6 +598,8 @@
           "source": null,
           "shape": null,
           "line": null,
+          "pen": null,
+          "list": null,
           "attachedTo": "shop.api",
           "entity": null,
           "technology": null,
@@ -925,6 +943,8 @@
           "source": null,
           "shape": null,
           "line": null,
+          "pen": null,
+          "list": null,
           "attachedTo": null,
           "entity": {
             "model": "commerce",
@@ -973,6 +993,8 @@
           "source": null,
           "shape": null,
           "line": null,
+          "pen": null,
+          "list": null,
           "attachedTo": null,
           "entity": {
             "model": "commerce",
@@ -1021,6 +1043,8 @@
           "source": null,
           "shape": null,
           "line": null,
+          "pen": null,
+          "list": null,
           "attachedTo": null,
           "entity": {
             "model": "commerce",
@@ -1071,6 +1095,8 @@
           "source": null,
           "shape": null,
           "line": null,
+          "pen": null,
+          "list": null,
           "attachedTo": null,
           "entity": {
             "model": "commerce",
@@ -1121,6 +1147,8 @@
           "source": null,
           "shape": null,
           "line": null,
+          "pen": null,
+          "list": null,
           "attachedTo": null,
           "entity": {
             "model": "commerce",
@@ -1169,6 +1197,8 @@
           "source": null,
           "shape": null,
           "line": null,
+          "pen": null,
+          "list": null,
           "attachedTo": null,
           "entity": {
             "model": "commerce",

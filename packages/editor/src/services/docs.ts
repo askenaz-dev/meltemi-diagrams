@@ -14,3 +14,11 @@ export const KEYWORD_DOCS: Readonly<Record<string, string>> = serviceMessages("e
 export function keywordDoc(word: string, locale?: Locale): string | undefined {
   return entryOf(serviceMessages(locale).keywords, word);
 }
+
+/**
+ * What a word means in the group block of a free diagram, where `layout`, `spacing` and `align`
+ * make the group a list and `column`, `row`, `start`… are their values; undefined for the others.
+ */
+export function listDoc(word: string, locale?: Locale): string | undefined {
+  return entryOf(serviceMessages(locale).listWords, word);
+}

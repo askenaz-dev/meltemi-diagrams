@@ -74,6 +74,10 @@ export const es: typeof en = {
       `\`layout ${mode}\` necesita un motor de disposición para colocar ${ids(elements)}.`,
     placementIgnored:
       "`layout auto` organiza todos los elementos, así que se ignoran las instrucciones `place` y los puntos de paso de las rutas.",
+    placeIgnored: (element, list) =>
+      `Se ignora el \`place\` de ${code(element)}: la lista ${code(list)} coloca a sus hijos en orden.`,
+    unplacedInList: (element, group, list) =>
+      `${code(element)} no tiene una instrucción \`place\`; dentro de la lista ${code(list)}, el grupo ${code(group)} no es una lista y necesita una posición para cada hijo.`,
     imageUnavailable: (source, element) =>
       `La imagen "${source}" de ${code(element)} no se puede dibujar; en su lugar se dibuja un marcador de posición.`,
     iconMissing: (element) =>
@@ -120,6 +124,8 @@ export const es: typeof en = {
       `${code(element)} mide ${n(width)} px de ancho, pero ${withIcon ? `su icono y su texto "${text}" necesitan` : `su texto "${text}" necesita`} ${n(needs)} px.`,
     textOverflowTall: (element, width, height, withIcon, text, needsWidth, needsHeight) =>
       `${code(element)} mide ${needsWidth === width ? `${n(height)} px de alto` : `${n(width)} × ${n(height)} px`}, pero ${withIcon ? `su icono y su texto "${text}" necesitan` : `su texto "${text}" necesita`} ${needsWidth === width ? n(needsHeight) : `${n(needsWidth)} × ${n(needsHeight)}`} px.`,
+    stickyOverflow: (element, width, height, fontSize, needsWidth, needsHeight) =>
+      `El texto de ${code(element)} no cabe en su tarjeta de ${n(width)} × ${n(height)} px ni a ${n(fontSize)} px, y se recorta: necesita ${n(needsWidth)} × ${n(needsHeight)} px.`,
   },
   hints: {
     labelCutByPicture:
@@ -136,6 +142,8 @@ export const es: typeof en = {
     engine:
       "Las aplicaciones anfitrionas pasan un motor en `LayoutOptions.engine`; la línea de comandos usa ELK. O coloca cada elemento.",
     assisted: "Usa `layout assisted` para mantener los elementos colocados donde están.",
+    placeIgnored: (element, list) =>
+      `Quita \`place ${element}\`, o quita \`layout\` de ${code(list)} para colocar tú a sus hijos.`,
     imageFile:
       "Comprueba que el archivo existe en el proyecto y es una imagen PNG, JPEG, GIF, WebP o SVG.",
     imageHost:
@@ -149,7 +157,7 @@ export const es: typeof en = {
     verticalAlignCentredIcon:
       "Con `iconPosition center` la franja de la etiqueta está en `labelPosition`: usa `labelPosition`, o quita `verticalAlign`.",
     verticalAlignNeverUsed:
-      "Quita `verticalAlign`: solo mueve el texto de una caja libre dentro de su forma.",
+      "Quita `verticalAlign`: solo mueve el texto de una caja libre dentro de su forma, o el de una nota adhesiva dentro de su tarjeta.",
     labelPositionNeverUsed:
       "Quita `labelPosition`: solo coloca la etiqueta de un nodo, una decisión, un almacén de datos o una caja cuyo icono ocupa el centro.",
     labelPositionIgnoredByTheme:
@@ -161,6 +169,10 @@ export const es: typeof en = {
       "Fuentes incluidas: Inter, IBM Plex Sans y Cascadia Mono. Deja espacio de más con `size` si hace falta.",
     tooLarge:
       "Divide el diagrama en vistas o en escenas de una historia; el texto nunca se reduce para que quepa en el lienzo.",
+    boardPreset:
+      "Escribe `preset board` si la hoja es una pizarra: un tablero crece con su contenido.",
+    boardCanvas:
+      "Cambia el `canvas` por `preset board` si la hoja es una pizarra: un tablero crece con su contenido.",
     textOverflow: (element, width, height) =>
       `Usa \`size ${element} (${width}, ${height})\` o acorta el texto.`,
     stackOrder: (outer, inner) =>

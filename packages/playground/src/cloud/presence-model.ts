@@ -12,6 +12,7 @@ import {
   readState,
   type AwarenessEntry,
   type EncodedCaret,
+  type LaserBatch,
   type LaserPoint,
   type PointerPosition,
 } from "./presence-wire.js";
@@ -52,11 +53,15 @@ export interface Peer {
   readonly joinedAt: number;
 }
 
-/** A peer's last Pointer trail batch, and which of the batches of the peer it is. */
+/**
+ * A peer's last Pointer trail batch, and which of the batches of the peer it is. `pen` is set when
+ * the batch is of a stroke the peer is drawing with the pen or the highlighter: how it looks.
+ */
 export interface PeerLaser {
   readonly seq: number;
   readonly diagram: string | undefined;
   readonly points: readonly LaserPoint[];
+  readonly pen?: LaserBatch["pen"];
 }
 
 const sameCaret = (a: EncodedCaret | undefined, b: EncodedCaret | undefined): boolean =>
@@ -127,6 +132,7 @@ export class PeerBook {
               seq: (before?.laser?.seq ?? 0) + 1,
               diagram: read.laser.diagram,
               points: read.laser.points,
+              ...(read.laser.pen ? { pen: read.laser.pen } : {}),
             }
           : before?.laser,
         movedAt:
@@ -294,8 +300,16 @@ export interface CanvasPerson {
   readonly selection: readonly string[];
   /** Where the person's pointer is over the same diagram, in diagram units. */
   readonly pointer?: { readonly x: number; readonly y: number };
-  /** The person's last Pointer trail batch over the same diagram: `batch` grows with each one. */
-  readonly laser?: { readonly batch: number; readonly points: readonly LaserPoint[] };
+  /**
+   * The person's last Pointer trail batch over the same diagram: `batch` grows with each one. With
+   * `pen` it is a batch of a stroke they are drawing, which the canvas draws growing in that width,
+   * colour and opacity (`PresencePerson.laser.pen`).
+   */
+  readonly laser?: {
+    readonly batch: number;
+    readonly points: readonly LaserPoint[];
+    readonly pen?: LaserBatch["pen"];
+  };
 }
 
 /**
@@ -329,7 +343,15 @@ export function canvasPeople(
       colour: peer.colour,
       selection: peer.selection,
       ...(here ? { pointer: { x: pointer.x, y: pointer.y } } : {}),
-      ...(trail ? { laser: { batch: laser.seq, points: laser.points } } : {}),
+      ...(trail
+        ? {
+            laser: {
+              batch: laser.seq,
+              points: laser.points,
+              ...(laser.pen ? { pen: laser.pen } : {}),
+            },
+          }
+        : {}),
     });
   }
   return people;

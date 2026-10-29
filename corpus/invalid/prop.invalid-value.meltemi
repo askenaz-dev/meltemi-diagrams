@@ -16,3 +16,8 @@ diagram broken: flow {
   style ok { shape ellipse }
   style orders { iconSize 200 }
 }
+
+// A pen whose points are not tuples.
+diagram strokes: free {
+  pen p [10, 20]
+}

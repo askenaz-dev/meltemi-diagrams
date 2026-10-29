@@ -23,6 +23,10 @@ export interface StoryHost {
 
 /** Times snap to this step when a bar is dragged, in milliseconds. */
 export const TIME_STEP = 100;
+/**
+ * What **Add to scene** offers, in this order. `draw` replays the selected pens, free lines and
+ * named relations from their first point; on anything else the edit refuses it with its reason.
+ */
 const ADDABLE: readonly SceneActionKind[] = [
   "reveal",
   "hide",
@@ -30,6 +34,7 @@ const ADDABLE: readonly SceneActionKind[] = [
   "focus",
   "camera",
   "trace",
+  "draw",
   "hold",
 ];
 

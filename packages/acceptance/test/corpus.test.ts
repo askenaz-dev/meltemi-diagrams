@@ -10,13 +10,22 @@ const sessions = projectSessions();
 const fonts = createNodeFontLibrary();
 
 describe("acceptance corpus", () => {
-  it("covers the four profiles with long labels, cycles, nested containers, parallel relations and 30 elements, flow and free with stacks, shapes and icons, and free with lines and a sketch", () => {
+  it("covers the four profiles with long labels, cycles, nested containers, parallel relations and 30 elements, flow and free with stacks, shapes and icons, and free with lines, a sketch, a whiteboard and a kanban board", () => {
     const common = ["cycles", "long-labels", "nested", "parallel", "thirty"];
     for (const profile of PROFILES) {
       const names = sheets.filter((s) => s.profile === profile).map((s) => s.name.split("/")[1]);
       const expected =
         profile === "free"
-          ? [...common, "icons", "lines", "shapes", "sketch", "stacked"].sort()
+          ? [
+              ...common,
+              "icons",
+              "kanban",
+              "lines",
+              "shapes",
+              "sketch",
+              "stacked",
+              "whiteboard",
+            ].sort()
           : profile === "flow"
             ? [...common, "icons", "shapes", "stacked"].sort()
             : common;
@@ -81,6 +90,35 @@ describe("acceptance corpus", () => {
       }
     },
   );
+
+  it("free/kanban stretches its four columns to one height and stacks each column's cards in source order", () => {
+    const sheet = sheets.find((s) => s.name === "free/kanban")!;
+    const layout = sessions.analyze(sheet.path).diagrams[0]!.layout!;
+    const box = (id: string) => layout.boxes!.get(id)!;
+    const columns = ["backlog", "todo", "doing", "done"].map(box);
+    expect(new Set(columns.map((c) => c.height)).size).toBe(1);
+    const cards = ["audit", "search", "limits"].map(box);
+    for (const [i, list] of [columns, cards].entries()) {
+      for (let j = 1; j < list.length; j++) {
+        const [before, after] = [list[j - 1]!, list[j]!];
+        if (i === 0) expect(after.x).toBeGreaterThan(before.x + before.width);
+        else expect(after.y).toBeGreaterThan(before.y + before.height);
+      }
+    }
+  });
+
+  it("free/whiteboard paints each pen as written under the sketch theme, and its line in two passes", () => {
+    const sheet = sheets.find((s) => s.name === "free/whiteboard")!;
+    const scene = sessions.analyze(sheet.path).diagrams[0]!.layout!.scene!;
+    const svg = renderSvg(scene, { fonts: "system", provider: fonts });
+    const strokes = (id: string) =>
+      new RegExp(`<g data-id="${id}" data-role="element"[^>]*>([\\s\\S]*?)</g>`)
+        .exec(svg)![1]!
+        .match(/<(path|polyline)\b/g)!.length;
+    expect(strokes("marker")).toBe(1);
+    expect(strokes("underline")).toBe(1);
+    expect(strokes("divider")).toBe(2);
+  });
 
   it.each(["flow/shapes", "free/shapes"])("%s draws every shape", (name) => {
     const sheet = sheets.find((s) => s.name === name)!;

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { createNodeFontLibrary } from "@meltemi/diagrams-fonts/node";
 import { layoutDiagram, type Scene } from "@meltemi/diagrams-layout";
 import { compile } from "@meltemi/diagrams-model";
 import { escapeXml, renderSvg } from "../src/index.js";
@@ -34,6 +35,59 @@ describe("renderSvg", () => {
     expect(svg).toMatch(/<polyline [^>]*stroke-linecap="round" stroke-dasharray="0 4\.95"/);
     expect(svg).toMatch(/<path [^>]*stroke-dasharray="0 6" stroke-linecap="round"/);
     expect(svg.match(/stroke-linecap="round" stroke-linecap/)).toBeNull();
+  });
+
+  it("scales a dashed pen's dashes with its width, so its round caps leave the gaps open", () => {
+    const svg = render(
+      'diagram f: free {\n  box a "A"\n  box b "B"\n  a -> b as r\n  pen thin [(0, 300), (200, 300)]\n  pen p [(0, 340), (200, 340)]\n  pen wide [(0, 400), (200, 400)]\n  pen dots [(0, 460), (200, 460)]\n  line l from (0, 500) to (200, 500)\n  style thin { width 1; line dashed }\n  style p { width 4; line dashed }\n  style wide { width 20; line dashed }\n  style dots { width 4; line dotted }\n  style r, l { width 4; line dashed }\n  placement {\n    place a at (100, 100)\n    place b at (400, 100)\n  }\n}\n',
+    );
+    const group = (id: string) =>
+      new RegExp(`<g data-id="${id}" data-role="(element|relation)"[^>]*>[\\s\\S]*?</g>`).exec(
+        svg,
+      )![0];
+    // Each dash is drawn half a width longer at both ends: a gap of 4 + w leaves 4 open.
+    expect(group("thin")).toContain(
+      'stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 5"',
+    );
+    expect(group("p")).toContain('stroke-dasharray="8 8"');
+    expect(group("wide")).toContain('stroke-dasharray="40 40"');
+    // Dots keep their rule: round dots of the width, spaced by it.
+    expect(group("dots")).toContain('stroke-dasharray="0 9"');
+    // Relations and lines keep the dash they always had.
+    expect(group("r")).toContain('stroke-dasharray="5 4"');
+    expect(group("l")).toContain('stroke-dasharray="5 4"');
+    // A pen's drawing so far in a story is a polyline in its group, dashed the same way.
+    const frame: Scene = {
+      width: 100,
+      height: 100,
+      background: "#fff",
+      title: null,
+      description: null,
+      fonts: { body: "sans-serif", mono: "monospace" },
+      gradients: [],
+      patterns: [],
+      items: [
+        {
+          kind: "group",
+          id: "p",
+          role: "element",
+          freehand: true,
+          items: [
+            {
+              kind: "polyline",
+              points: [
+                { x: 0, y: 0 },
+                { x: 50, y: 0 },
+              ],
+              stroke: "#000",
+              strokeWidth: 6,
+              dashed: true,
+            },
+          ],
+        },
+      ],
+    };
+    expect(renderSvg(frame)).toContain('stroke-dasharray="12 12"');
   });
 
   it("draws images inside their element with the description as title", () => {
@@ -158,6 +212,142 @@ describe("links", () => {
   });
 });
 
+describe("opacity", () => {
+  const free = `diagram f: free {
+  group g "G" {
+    box a "A"
+  }
+  pen mark [(0, 300), (200, 300)]
+  style g { opacity 0.5 }
+  style mark { stroke highlight; width 20; opacity 0.35 }
+  placement {
+    place g at (200, 100)
+    place a at (80, 28)
+  }
+}
+`;
+
+  it("is written on the group of an element, a group or a pen that a style fades", () => {
+    const svg = render(free);
+    expect(svg).toContain('<g data-id="g" data-role="element" opacity="0.5">');
+    expect(svg).toContain('<g data-id="mark" data-role="element" opacity="0.35">');
+    expect(svg).toMatch(/<path d="M [^"]+" fill="none" stroke="#ffe600" stroke-width="20"/);
+    // The scene is flat: what a faded group holds is drawn beside it, faded by it.
+    expect(svg).toContain('<g data-id="a" data-role="element" opacity="0.5">');
+  });
+
+  it("fades what a group holds at every depth, times the elements' own", () => {
+    const svg = render(
+      'diagram f: free {\n  group g "G" {\n    box a "A"\n    pen p [(0, 0), (30, 10)]\n    group h "H" {\n      box b "B"\n    }\n  }\n  box out "Out"\n  style g { opacity 0.3 }\n  style h { opacity 0.5 }\n  placement {\n    place g at (300, 300)\n    place a at (80, 40)\n    place h at (120, 200)\n    place b at (80, 40)\n    place out at (700, 100)\n  }\n}\n',
+    );
+    expect(svg).toContain('<g data-id="a" data-role="element" opacity="0.3">');
+    expect(svg).toContain('<g data-id="p" data-role="element" opacity="0.3">');
+    expect(svg).toContain('<g data-id="h" data-role="element" opacity="0.15">');
+    expect(svg).toContain('<g data-id="b" data-role="element" opacity="0.15">');
+    expect(svg).toContain('<g data-id="out" data-role="element">');
+  });
+
+  it("multiplies a style's opacity with a story's", () => {
+    const compilation = compile(free);
+    const scene = layoutDiagram(compilation, compilation.document.diagrams[0]!).scene!;
+    // A story frame sets `opacity` on the groups it fades.
+    const frame: Scene = {
+      ...scene,
+      items: scene.items.map((item) =>
+        item.kind === "group" && (item.id === "g" || item.id === "a")
+          ? { ...item, opacity: 0.5 }
+          : item,
+      ),
+    };
+    const svg = renderSvg(frame);
+    expect(svg).toContain('<g data-id="g" data-role="element" opacity="0.25">');
+    expect(svg).toContain('<g data-id="a" data-role="element" opacity="0.25">');
+  });
+});
+
+describe("stickies", () => {
+  const board = (text: string, extra = "", theme = "technical.light") =>
+    `diagram f: free {\n  theme "${theme}"\n  sticky s "${text}"\n${extra}  placement {\n    place s at (100, 100)\n  }\n}\n`;
+  const LONG = Array.from(
+    { length: 400 },
+    (_, i) => ["move", "the", "cache", "to", "edge"][i % 5],
+  ).join(" ");
+  /** The markup of the sticky's group, up to its closing tag. */
+  const stickyOf = (svg: string) => {
+    const start = svg.indexOf('<g data-id="s" data-role="element"');
+    expect(start).toBeGreaterThanOrEqual(0);
+    return svg.slice(start, svg.indexOf("\n  </g>", start));
+  };
+
+  it("draw a shadow, then the card, then the text, with nothing clipped when it fits", () => {
+    const svg = stickyOf(render(board("Idea")));
+    const lines = svg.split("\n").slice(1);
+    expect(lines[0]).toMatch(
+      /^ *<rect x="\d+" y="\d+" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"\/>$/,
+    );
+    expect(lines[1]).toMatch(
+      /^ *<rect x="\d+" y="\d+" width="160" height="160" rx="2" fill="#fff59d" stroke="none" stroke-width="0"\/>$/,
+    );
+    expect(lines[2]).toMatch(
+      /^ *<text [^>]*font-size="15.6" font-weight="400" fill="#1f2328">Idea<\/text>$/,
+    );
+    expect(svg).not.toContain("clip");
+  });
+
+  it("clip a text that does not fit to the card, the shadow and the card whole", () => {
+    const svg = stickyOf(render(board(LONG)));
+    const lines = svg.split("\n").slice(1);
+    expect(lines[0]).toMatch(
+      /^ *<clipPath id="clip-f-s"><rect x="\d+" y="\d+" width="160" height="160" rx="2"\/><\/clipPath>$/,
+    );
+    expect(lines[1]).toMatch(/^ *<rect [^>]*opacity="0.15"\/>$/);
+    expect(lines[2]).toMatch(/^ *<rect [^>]*fill="#fff59d"[^>]*\/>$/);
+    const texts = lines.filter((l) => l.includes("<text"));
+    expect(texts.length).toBeGreaterThan(12);
+    for (const text of texts) {
+      expect(text).toMatch(/font-size="8" [^>]*clip-path="url\(#clip-f-s\)">/);
+    }
+    expect(lines.filter((l) => l.includes("<rect") && l.includes("clip-path"))).toEqual([]);
+  });
+
+  it("clip outlined text through a group, so its own translation keeps the card in place", () => {
+    const compilation = compile(board(LONG));
+    const library = createNodeFontLibrary();
+    const scene = layoutDiagram(compilation, compilation.document.diagrams[0]!, {
+      measurer: library,
+    }).scene!;
+    const svg = stickyOf(renderSvg(scene, { fonts: "outlined", provider: library }));
+    expect(svg).not.toContain("<text");
+    expect(svg).toMatch(
+      /<g clip-path="url\(#clip-f-s\)">\n *<path transform="translate\([^)]+\)" d="[^"]*" fill="#1f2328" aria-label="move the cache/,
+    );
+    expect(svg.match(/<g clip-path="url\(#clip-f-s\)">/g)!.length).toBe(
+      svg.match(/aria-label=/g)!.length,
+    );
+  });
+
+  it("paint a stroked card in two sketch passes, and an unstroked one as it is", () => {
+    const plain = (theme: string) => stickyOf(render(board("Idea", "", theme)));
+    // No outline to paint by hand: the same markup as under a clean theme.
+    expect(plain("sketch.light")).toBe(plain("technical.light"));
+    const stroked = stickyOf(
+      render(board("Idea", "  style s { stroke ink; width 2 }\n", "sketch.light")),
+    );
+    const lines = stroked.split("\n").slice(1);
+    // The shadow as it is, the card's fill alone, then two stroke-only passes, then the text.
+    expect(lines[0]).toMatch(/^ *<rect [^>]*fill="#000000" stroke="none"[^>]*opacity="0.15"\/>$/);
+    expect(lines[1]).toMatch(/^ *<rect [^>]*fill="#fff59d" stroke="none" stroke-width="0"\/>$/);
+    expect(lines[2]).toMatch(
+      /^ *<path d="M[^"]+" fill="none" stroke="#[0-9A-Fa-f]{6}" stroke-width="2"/,
+    );
+    expect(lines[3]).toMatch(
+      /^ *<path d="M[^"]+" fill="none" stroke="#[0-9A-Fa-f]{6}" stroke-width="2"/,
+    );
+    expect(lines[2]).not.toBe(lines[3]);
+    expect(lines[4]).toMatch(/^ *<text [^>]*>Idea<\/text>$/);
+  });
+});
+
 describe("layers", () => {
   it("marks the groups of elements and relations on a layer other than main", () => {
     const svg = render(
@@ -273,6 +463,20 @@ describe("sketched strokes", () => {
       expect(pass).toContain('stroke-dasharray="6 4" stroke-dashoffset="3"');
       expect(pass).toContain('class="mdg-m mdg-e0"');
     }
+  });
+
+  it("leave a pen stroke as drawn, one path, while the box beside it has two passes", () => {
+    const text = (theme: string) =>
+      `diagram s: free {\n  layout manual\n  theme "${theme}"\n  box a "A"\n  pen p [(0, 200), (60, 180), (140, 230), (200, 200)]\n  style p { width 4; arrowhead triangle }\n  placement {\n    place a at (100, 100)\n  }\n}\n`;
+    const rough = render(`theme hand { extends "sketch.light"; sketch rough }\n${text("hand")}`);
+    const clean = render(text("technical.light"));
+    expect(groupOf(rough, "p", "element")).toBe(groupOf(clean, "p", "element"));
+    const pen = groupOf(rough, "p", "element");
+    expect(pen.match(/<path /g)).toHaveLength(2);
+    expect(pen).toMatch(
+      /<path d="M [\d.]+ [\d.]+ Q [^"]+ L [\d.]+ [\d.]+" fill="none" stroke="#0B1830" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"\/>/,
+    );
+    expect(groupOf(rough, "a", "element").match(/fill="none" stroke=/g)).toHaveLength(2);
   });
 
   it("leave the scene the layout returns clean", () => {

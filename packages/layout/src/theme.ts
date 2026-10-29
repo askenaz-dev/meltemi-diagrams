@@ -55,6 +55,11 @@ export interface Theme {
   readonly warning: string;
   readonly danger: string;
   readonly info: string;
+  /** Whiteboards: the colour of highlighter strokes. */
+  readonly highlight: string;
+  /** Whiteboards: the default fill of stickies, and the colour of their text. */
+  readonly sticky: string;
+  readonly stickyText: string;
   /** CSS font stacks of body and monospace text. */
   readonly font: string;
   readonly mono: string;
@@ -138,6 +143,9 @@ type Palette = Pick<
   | "warning"
   | "danger"
   | "info"
+  | "highlight"
+  | "sticky"
+  | "stickyText"
 >;
 
 /** Technical: architecture review, the Meltemi palette and a footer frame. */
@@ -233,6 +241,21 @@ const DARK_SIGNALS = {
   info: "#38BDF8",
 } as const;
 
+/**
+ * The whiteboard colours: a yellow highlighter and yellow stickies. A sticky is a paper card in
+ * every theme, so its text is near-black on the dark themes' warmer yellow too.
+ */
+const LIGHT_WHITEBOARD = {
+  highlight: "#ffe600",
+  sticky: "#fff59d",
+  stickyText: "#1f2328",
+} as const;
+const DARK_WHITEBOARD = {
+  highlight: "#ffd600",
+  sticky: "#f3e37c",
+  stickyText: "#1f2328",
+} as const;
+
 /** The technical palettes, which the sketch themes share. */
 const TECHNICAL_LIGHT: Palette = {
   background: "#F7FBFF",
@@ -248,6 +271,7 @@ const TECHNICAL_LIGHT: Palette = {
   accent: "#1D4ED8",
   accentEnd: "#0891B2",
   ...LIGHT_SIGNALS,
+  ...LIGHT_WHITEBOARD,
 };
 const TECHNICAL_DARK: Palette = {
   background: "#07111F",
@@ -263,6 +287,7 @@ const TECHNICAL_DARK: Palette = {
   accent: "#3B82F6",
   accentEnd: "#22D3EE",
   ...DARK_SIGNALS,
+  ...DARK_WHITEBOARD,
 };
 
 const PALETTES: Readonly<Record<(typeof BUILT_IN_THEMES)[number], Palette>> = {
@@ -285,6 +310,7 @@ const PALETTES: Readonly<Record<(typeof BUILT_IN_THEMES)[number], Palette>> = {
     warning: "#8A5A00",
     danger: "#A33A2B",
     info: "#2E5E8C",
+    ...LIGHT_WHITEBOARD,
   },
   "editorial.dark": {
     background: "#13161a",
@@ -303,6 +329,7 @@ const PALETTES: Readonly<Record<(typeof BUILT_IN_THEMES)[number], Palette>> = {
     warning: "#E0B05C",
     danger: "#E58A7C",
     info: "#8DB8E0",
+    ...DARK_WHITEBOARD,
   },
   "stage.light": {
     background: "#FFFFFF",
@@ -318,6 +345,7 @@ const PALETTES: Readonly<Record<(typeof BUILT_IN_THEMES)[number], Palette>> = {
     accent: "#1D4ED8",
     accentEnd: "#0891B2",
     ...LIGHT_SIGNALS,
+    ...LIGHT_WHITEBOARD,
   },
   "stage.dark": {
     background: "#05080F",
@@ -333,6 +361,7 @@ const PALETTES: Readonly<Record<(typeof BUILT_IN_THEMES)[number], Palette>> = {
     accent: "#3B82F6",
     accentEnd: "#22D3EE",
     ...DARK_SIGNALS,
+    ...DARK_WHITEBOARD,
   },
   "sketch.light": TECHNICAL_LIGHT,
   "sketch.dark": TECHNICAL_DARK,

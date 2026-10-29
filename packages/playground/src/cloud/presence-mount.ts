@@ -91,8 +91,9 @@ export function mountPresence(playground: Playground, controller: CloudControlle
   controller.subscribe((project) => follow(project ? controller.presence : undefined));
   // Where the person's pointer is over the canvas goes out with the rest of their state.
   playground.onCanvasPointer((at) => current?.pointer(at));
-  // So do the points of a stroke of the Pointer tool, in the same message.
-  playground.onCanvasLaser((batch) => current?.laser(batch.points, batch.diagram));
+  // So do the points of a stroke of the Pointer tool, or of the pen or the highlighter with how it
+  // looks, in the same message.
+  playground.onCanvasLaser((batch) => current?.laser(batch.points, batch.diagram, batch.pen));
 
   studio.listen({
     // Another file was opened (or this one renamed): the person is somewhere else. What the canvas

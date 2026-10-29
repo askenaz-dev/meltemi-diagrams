@@ -15,6 +15,8 @@ const KINDS: typeof en.kinds = {
   text: "texto",
   icon: "icono",
   image: "imagen",
+  pen: "lápiz",
+  sticky: "nota adhesiva",
   participant: "participante",
   actor: "actor",
   boundary: "límite",
@@ -74,6 +76,8 @@ export const es: typeof en = {
     canvas: "Lienzo",
     inside: "Dentro de",
     convertToContainer: "Convertir en contenedor",
+    spacing: "Espaciado",
+    align: "Alineación",
   },
 
   style: {
@@ -99,6 +103,7 @@ export const es: typeof en = {
     fontWeight: "Grosor del texto",
     textAlign: "Alineación del texto",
     verticalAlign: "Alineación vertical",
+    opacity: "Opacidad",
   },
 
   placeholders: {
@@ -143,6 +148,7 @@ export const es: typeof en = {
     groups: {
       base: "Base",
       colours: "Colores",
+      whiteboard: "Pizarra",
       fonts: "Fuentes",
       type: "Tipografía",
       spacing: "Espaciado",
@@ -193,6 +199,8 @@ export const es: typeof en = {
   written: {
     divider: "Separador",
     condition: "Condición",
+    column: "Columna",
+    row: "Fila",
   },
 
   c4: {
@@ -286,6 +294,10 @@ export const es: typeof en = {
       `${code(inner)} queda apilado sobre ${code(outer)}; convierte ${code(outer)} en contenedor para moverlos juntos.`,
     noIconTarget:
       "Los iconos van en nodos, decisiones, almacenes de datos y cajas; selecciona uno de ellos.",
+    listPlaces: (id, list) =>
+      `${code(list)} coloca a ${code(id)}: arrástralo entre sus vecinos o pulsa Alt+Arriba o Alt+Abajo.`,
+    notList: (id) =>
+      `${code(id)} no es una lista: solo un grupo con \`layout column\` o \`layout row\` admite una posición.`,
   },
 
   c4Refused: {

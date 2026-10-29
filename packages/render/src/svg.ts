@@ -1,4 +1,5 @@
 import type {
+  GroupItem,
   Scene,
   SceneGradient,
   SceneItem,
@@ -68,8 +69,9 @@ export function escapeXml(text: string): string {
 
 /**
  * Serialises a scene to standalone SVG. Portable by construction: inline presentation attributes,
- * linear gradients and patterns in `<defs>` only when the scene declares them, no markers, no
- * `dominant-baseline`, and no CSS except the `@font-face` rules of the `embedded` font policy.
+ * linear gradients and patterns in `<defs>` only when the scene declares them, a `<clipPath>` in
+ * the group of a sticky whose text it clips, no markers, no `dominant-baseline`, and no CSS except
+ * the `@font-face` rules of the `embedded` font policy.
  */
 export function renderSvg(scene: Scene, options: RenderOptions = {}): string {
   const policy = options.fonts ?? "system";
@@ -125,9 +127,19 @@ export function renderSvg(scene: Scene, options: RenderOptions = {}): string {
 }
 
 /**
+ * The dash of a pen's stroke, which is round-capped: each dash grows by half the width at both
+ * ends, so a fixed `5 4` closes from width 4. The dash is at least twice the width and the gap the
+ * width plus room for the caps, so a gap of at least 4 (or of the width) stays visible.
+ */
+function penDash(width: number): string {
+  return `${n(Math.max(5, 2 * width))} ${n(Math.max(4, width) + width)}`;
+}
+
+/**
  * The dash of a stroke: an explicit pattern and offset, the default dash, round dots, or none.
  * Dots are dashes of length 0 with round caps, spaced by the line's width; `roundCaps` says the
- * element already writes them.
+ * element already writes them. `freehand` says the stroke is a pen's (`GroupItem.freehand`),
+ * whose dashes scale with its width.
  */
 function dashOf(
   item: {
@@ -136,6 +148,7 @@ function dashOf(
     readonly dash?: { readonly array: readonly number[]; readonly offset: number };
   },
   roundCaps = false,
+  freehand = false,
 ): string {
   if (item.dash) {
     return ` stroke-dasharray="${item.dash.array.map(n).join(" ")}" stroke-dashoffset="${n(item.dash.offset)}"`;
@@ -144,11 +157,22 @@ function dashOf(
     const caps = roundCaps ? "" : ' stroke-linecap="round"';
     return ` stroke-dasharray="0 ${n(1.5 * item.strokeWidth + 3)}"${caps}`;
   }
-  return item.dashed ? ` stroke-dasharray="${DASH}"` : "";
+  if (!item.dashed) return "";
+  return ` stroke-dasharray="${freehand ? penDash(item.strokeWidth) : DASH}"`;
 }
 
 function opacityOf(opacity: number | undefined): string {
   return opacity !== undefined ? ` opacity="${n(opacity)}"` : "";
+}
+
+/**
+ * The opacity a group is drawn at: a story's `opacity` times its style's `styleOpacity`, or
+ * undefined when neither is set.
+ */
+function groupOpacity(group: GroupItem): number | undefined {
+  if (group.opacity === undefined) return group.styleOpacity;
+  if (group.styleOpacity === undefined) return group.opacity;
+  return group.opacity * group.styleOpacity;
 }
 
 function classOf(item: { readonly className?: string }): string {
@@ -289,27 +313,48 @@ function base64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
+/**
+ * Writes one scene item. `clip` is the id of the `<clipPath>` the item is drawn through when it is
+ * a text of a group with a `textClip`; `freehand` says the item is drawn by a pen's group.
+ */
 function emit(
   item: SceneItem,
   out: string[],
   indent: string,
   scene: Scene,
   outline: FontProvider | null,
+  clip?: string,
+  freehand = false,
 ): void {
   switch (item.kind) {
     case "group": {
       const transform = item.transform ? ` transform="${escapeXml(item.transform)}"` : "";
       const layer = item.layer ? ` data-layer="${escapeXml(item.layer)}"` : "";
       out.push(
-        `${indent}<g data-id="${escapeXml(item.id)}" data-role="${item.role}"${layer}${transform}${opacityOf(item.opacity)}${classOf(item)}>`,
+        `${indent}<g data-id="${escapeXml(item.id)}" data-role="${item.role}"${layer}${transform}${opacityOf(groupOpacity(item))}${classOf(item)}>`,
       );
+      // A sticky's text that does not fit is clipped to its card, in the group's own coordinates;
+      // its own texts take the clip, nested groups (its icon) do not.
+      const textClip = item.textClip?.id;
+      // A pen's stroke, and its drawing so far in a story, dash by its width.
+      const pen = freehand || item.freehand === true;
+      if (item.textClip) {
+        const { x, y, width, height, radius } = item.textClip;
+        out.push(
+          `${indent}  <clipPath id="${escapeXml(item.textClip.id)}"><rect x="${n(x)}" y="${n(y)}" width="${n(width)}" height="${n(height)}" rx="${n(radius)}"/></clipPath>`,
+        );
+      }
       if (item.href) {
         // The element's drawing is a link; its group keeps its identity for tools.
         out.push(`${indent}  <a href="${escapeXml(item.href)}">`);
-        for (const child of item.items) emit(child, out, `${indent}    `, scene, outline);
+        for (const child of item.items) {
+          emit(child, out, `${indent}    `, scene, outline, textClip, pen);
+        }
         out.push(`${indent}  </a>`);
       } else {
-        for (const child of item.items) emit(child, out, `${indent}  `, scene, outline);
+        for (const child of item.items) {
+          emit(child, out, `${indent}  `, scene, outline, textClip, pen);
+        }
       }
       out.push(`${indent}</g>`);
       return;
@@ -329,7 +374,7 @@ function emit(
         item.fillRule === "evenodd" ? ' fill-rule="evenodd"' : "",
       ].join("");
       out.push(
-        `${indent}<path d="${escapeXml(item.d)}"${extra} fill="${escapeXml(item.fill)}" stroke="${escapeXml(item.stroke)}" stroke-width="${n(item.strokeWidth)}"${rounded}${dashOf(item, !!item.rounded)}${classOf(item)}/>`,
+        `${indent}<path d="${escapeXml(item.d)}"${extra} fill="${escapeXml(item.fill)}" stroke="${escapeXml(item.stroke)}" stroke-width="${n(item.strokeWidth)}"${rounded}${dashOf(item, !!item.rounded, freehand)}${classOf(item)}/>`,
       );
       return;
     }
@@ -344,25 +389,29 @@ function emit(
     }
     case "polyline":
       out.push(
-        `${indent}<polyline points="${item.points.map((p) => `${n(p.x)},${n(p.y)}`).join(" ")}" fill="none" stroke="${escapeXml(item.stroke)}" stroke-width="${n(item.strokeWidth)}" stroke-linejoin="round" stroke-linecap="round"${dashOf(item, true)}${opacityOf(item.opacity)}${classOf(item)}/>`,
+        `${indent}<polyline points="${item.points.map((p) => `${n(p.x)},${n(p.y)}`).join(" ")}" fill="none" stroke="${escapeXml(item.stroke)}" stroke-width="${n(item.strokeWidth)}" stroke-linejoin="round" stroke-linecap="round"${dashOf(item, true, freehand)}${opacityOf(item.opacity)}${classOf(item)}/>`,
       );
       return;
     case "text": {
+      const clipped = clip === undefined ? "" : ` clip-path="url(#${escapeXml(clip)})"`;
       const family = outline?.family(stackOf(item, scene));
       if (outline && family && (outline.embeddable?.(family) ?? true)) {
         const shape = outline.outline(item.text, family, item.weight, item.size);
         if (shape.d === "") return;
         const shift =
           item.anchor === "start" ? 0 : item.anchor === "middle" ? shape.width / 2 : shape.width;
+        // The clip is in the group's coordinates, so a translated outline is wrapped to keep them.
+        if (clipped) out.push(`${indent}<g${clipped}>`);
         out.push(
-          `${indent}<path transform="translate(${n(item.x - shift)} ${n(item.baseline)})" d="${shape.d}" fill="${escapeXml(item.fill)}" aria-label="${escapeXml(item.text)}"/>`,
+          `${clipped ? `${indent}  ` : indent}<path transform="translate(${n(item.x - shift)} ${n(item.baseline)})" d="${shape.d}" fill="${escapeXml(item.fill)}" aria-label="${escapeXml(item.text)}"/>`,
         );
+        if (clipped) out.push(`${indent}</g>`);
         return;
       }
       const familyAttribute =
         item.font === "mono" ? ` font-family="${escapeXml(scene.fonts.mono)}"` : "";
       out.push(
-        `${indent}<text x="${n(item.x)}" y="${n(item.baseline)}" text-anchor="${item.anchor}" font-size="${n(item.size)}" font-weight="${item.weight}"${familyAttribute} fill="${escapeXml(item.fill)}">${escapeXml(item.text)}</text>`,
+        `${indent}<text x="${n(item.x)}" y="${n(item.baseline)}" text-anchor="${item.anchor}" font-size="${n(item.size)}" font-weight="${item.weight}"${familyAttribute} fill="${escapeXml(item.fill)}"${clipped}>${escapeXml(item.text)}</text>`,
       );
       return;
     }

@@ -7,6 +7,7 @@ import {
   type FlowDiagram,
   type Point,
 } from "@meltemi/diagrams-model";
+import { smoothTrack } from "./geometry.js";
 
 /** Durations an effect takes when its statement writes none, in milliseconds. */
 export const DEFAULT_DURATIONS: Readonly<Record<AnimationEffect, number>> =
@@ -38,7 +39,10 @@ export interface MotionEffect {
   readonly particles: number;
   /** The particle, halo or glow colour. */
   readonly color: string;
-  /** Relations: the drawn line in scene coordinates. */
+  /**
+   * Relations, free lines and pens: the drawn line in scene coordinates (`drawnTrack`), a pen's
+   * curve sampled.
+   */
   readonly track: readonly Point[] | null;
   /** Elements and events: the drawn box. */
   readonly bounds: SceneBounds | null;
@@ -86,6 +90,16 @@ export function sceneGroups(items: readonly SceneItem[], out: GroupItem[] = []):
   return out;
 }
 
+/**
+ * The line a group is drawn along, in scene coordinates: a pen's curve through its points
+ * (`smoothTrack`, so effects and stories follow the stroke the layout draws), or the track of a
+ * relation or a free line as drawn; null without two points.
+ */
+export function drawnTrack(group: GroupItem): readonly Point[] | null {
+  if (!group.track || group.track.length < 2) return null;
+  return group.freehand ? smoothTrack(group.track) : group.track;
+}
+
 /** The first line or outline drawn in a group: its stroke and width. */
 function strokeOf(group: GroupItem): { stroke: string; width: number } | null {
   for (const item of group.items) {
@@ -116,9 +130,9 @@ export function planMotion(
     const role = entry.targetKind;
     const group = find(role, entry.target);
     if (!group) continue;
-    // A group drawn as a connector (a relation, a free line) runs its effects along its track,
-    // whatever its role; the others pulse and dash about their bounds.
-    const track = group.track && group.track.length >= 2 ? group.track : null;
+    // A group drawn as a connector (a relation, a free line, a pen) runs its effects along the
+    // line it draws, whatever its role; the others pulse and dash about their bounds.
+    const track = drawnTrack(group);
     const bounds = track ? null : (group.bounds ?? null);
     if (role === "relation" ? !track : !track && !bounds) continue;
     const drawn = strokeOf(group);

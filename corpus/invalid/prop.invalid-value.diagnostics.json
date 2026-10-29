@@ -114,5 +114,26 @@
     },
     "hints": [],
     "related": []
+  },
+  {
+    "code": "prop.invalid-value",
+    "severity": "error",
+    "message": "A pen takes a list of points `(x, y)` after its id, at least one.",
+    "range": {
+      "start": {
+        "offset": 428,
+        "line": 22,
+        "column": 10
+      },
+      "end": {
+        "offset": 430,
+        "line": 22,
+        "column": 12
+      }
+    },
+    "hints": [
+      "Form: `pen <id> [(x, y), (x, y), ...]`."
+    ],
+    "related": []
   }
 ]

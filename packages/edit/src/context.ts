@@ -112,6 +112,22 @@ export function requireNumbers(...values: number[]): void {
   }
 }
 
+/** Checks the position of a declaration among those of its block: a whole number from 0. */
+export function requireIndex(index: number): void {
+  if (!Number.isInteger(index) || index < 0) {
+    reject("edit.invalid-value", reasons().values.notIndex(index));
+  }
+}
+
+/**
+ * Whether `id` names a list: a group of a free diagram whose block writes `layout column` or
+ * `layout row`, which places its children itself.
+ */
+export function isListGroup(ctx: EditContext, id: string | null | undefined): boolean {
+  if (id === null || id === undefined) return false;
+  return (ctx.diagram.elementsById.get(id)?.list ?? null) !== null;
+}
+
 /**
  * Inserts a statement as the last statement of a block, following the block's layout:
  * a new line indented like the existing statements, or `; statement` in a one-line block.

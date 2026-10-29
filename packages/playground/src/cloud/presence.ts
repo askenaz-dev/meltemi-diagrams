@@ -32,6 +32,8 @@ import {
   decodeAwareness,
   encodeCaret,
   encodeLocal,
+  readPen,
+  type LaserBatch,
   type LaserPoint,
   type LocalState,
   type PointerPosition,
@@ -105,6 +107,60 @@ export function fitSelection(selected: readonly string[]): string[] {
   return ids;
 }
 
+/**
+ * Whether two pen parts are of one stroke: both none (a Pointer's trail), or the same stroke number
+ * in the same width, colour and opacity (its cancel ends that stroke).
+ */
+const samePen = (a: LaserBatch["pen"], b: LaserBatch["pen"]): boolean =>
+  a?.width === b?.width &&
+  a?.colour === b?.colour &&
+  a?.opacity === b?.opacity &&
+  a?.stroke === b?.stroke;
+
+/**
+ * Points of the person's Pointer trail or stroke not yet sent: `t` since `first`, by the page's
+ * clock, the diagram they are over, and the pen part of a stroke.
+ */
+interface PendingLaser {
+  points: LaserPoint[];
+  first: number;
+  readonly diagram: string | undefined;
+  pen: LaserBatch["pen"];
+}
+
+/** A batch with no points yet, whose first point is made at `first`. */
+const newLaser = (
+  first: number,
+  diagram: string | undefined,
+  pen: LaserBatch["pen"],
+): PendingLaser => ({ points: [], first, diagram, pen });
+
+/**
+ * Adds `points`, made from `start` on, to a batch: rebased to its first point, the most recent 64
+ * kept and none older than a second than the newest. A cancel ends the batch's stroke.
+ */
+function addLaser(
+  batch: PendingLaser,
+  points: readonly LaserPoint[],
+  start: number,
+  pen: LaserBatch["pen"],
+): PendingLaser {
+  if (pen?.cancel) batch.pen = pen;
+  if (points.length === 0) return batch;
+  let kept = [
+    ...batch.points,
+    ...points.map((p) => ({ x: p.x, y: p.y, t: Math.round(start + p.t - batch.first) })),
+  ];
+  if (kept.length > MAX_LASER_POINTS) kept = kept.slice(-MAX_LASER_POINTS);
+  // Rebased to the first point kept, and none lasting past `MAX_LASER_MS`.
+  const newest = kept[kept.length - 1]!.t;
+  kept = kept.filter((p) => newest - p.t <= MAX_LASER_MS);
+  const base = kept[0]!.t;
+  batch.first += base;
+  batch.points = kept.map((p) => ({ x: p.x, y: p.y, t: p.t - base }));
+  return batch;
+}
+
 export interface PresenceOptions {
   /** The project's document now (it is another one after the room refused a change). */
   readonly doc: () => Y.Doc;
@@ -151,13 +207,16 @@ export class Presence {
   private pointerAt: PointerPosition | undefined;
   private pointerTimer: unknown;
   /**
-   * The points of the Pointer trail not yet sent: the most recent 64, `t` since the first. A state
-   * carries them once and clears them; a heartbeat never carries one.
+   * The points of the Pointer trail or the stroke not yet sent: the most recent 64, `t` since the
+   * first. A state carries them once and clears them; a heartbeat never carries one.
    */
-  private laserPoints: LaserPoint[] = [];
-  /** When the first of `laserPoints` was made, by the page's clock, and the diagram it is on. */
-  private laserFirst = 0;
-  private laserDiagram: string | undefined;
+  private laserBatch: PendingLaser | undefined;
+  /**
+   * The points of the next stroke (or trail), held while the end of a stroke waits to be sent: the
+   * end of a stroke, its last points or its cancel, is never lost to the next one. They go in the
+   * state after.
+   */
+  private laserHeld: PendingLaser | undefined;
   /** How many batches the person made: a batch is a change of the state. */
   private laserCount = 0;
 
@@ -220,32 +279,49 @@ export class Presence {
    * They wait with the ones not yet sent, rebased to the first of all, the most recent 64 kept and
    * none older than a second than the newest, and go out with the next state, which they bring
    * forward: a stroke is a change, at the same pace as the rest.
+   *
+   * With `pen` the points are a stroke of the pen or the highlighter (`live-collaboration`, "Strokes
+   * being drawn in presence"), and its width, colour, opacity and number go out with them, in the
+   * same batch; `cancel` (Escape) goes on the batch that ends the stroke, though it has no points.
+   * Points of another stroke, or of a trail, are another batch, as another diagram is: after a
+   * trail's they start the batch again, and after a stroke's they wait for the state after, so the
+   * end of a stroke is never lost; a `pen` out of the room's bounds is not sent at all, since the
+   * room would refuse the whole state for it.
    */
-  laser(points: readonly LaserPoint[], diagram?: string): void {
-    if (this.destroyed || points.length === 0) return;
+  laser(points: readonly LaserPoint[], diagram?: string, pen?: LaserBatch["pen"]): void {
+    if (this.destroyed) return;
+    const look = pen === undefined ? undefined : readPen(pen);
+    if (pen !== undefined && !look) return;
+    // No points are no batch, but the end of a stroke cancelled.
+    if (points.length === 0 && look?.cancel !== true) return;
     const now = this.options.now();
-    const span = Math.max(...points.map((p) => p.t));
+    const span = points.length > 0 ? Math.max(...points.map((p) => p.t)) : 0;
     // The batch ended now: its first point was `span` ago.
     const start = now - span;
-    if (this.laserPoints.length === 0 || diagram !== this.laserDiagram) {
-      this.laserPoints = [];
-      this.laserFirst = start;
-      this.laserDiagram = diagram;
+    /** The batch itself when the points are of it: the same stroke (or trail) over the diagram. */
+    const of = (batch: PendingLaser | undefined): PendingLaser | undefined =>
+      batch !== undefined && batch.diagram === diagram && samePen(look, batch.pen)
+        ? batch
+        : undefined;
+    const same = of(this.laserBatch);
+    if (same) {
+      addLaser(same, points, start, look);
+    } else if (this.laserBatch?.pen) {
+      // The end of a stroke waits to be sent: the next batch waits behind it.
+      const held = of(this.laserHeld);
+      if (held) addLaser(held, points, start, look);
+      else this.laserHeld = addLaser(newLaser(start, diagram, look), points, start, look);
+    } else {
+      this.laserBatch = addLaser(newLaser(start, diagram, look), points, start, look);
     }
-    for (const p of points) {
-      this.laserPoints.push({ x: p.x, y: p.y, t: Math.round(start + p.t - this.laserFirst) });
-    }
-    if (this.laserPoints.length > MAX_LASER_POINTS) {
-      this.laserPoints = this.laserPoints.slice(-MAX_LASER_POINTS);
-    }
-    // Rebased to the first point kept, and none lasting past `MAX_LASER_MS`.
-    const newest = this.laserPoints[this.laserPoints.length - 1]!.t;
-    this.laserPoints = this.laserPoints.filter((p) => newest - p.t <= MAX_LASER_MS);
-    const base = this.laserPoints[0]!.t;
-    this.laserFirst += base;
-    this.laserPoints = this.laserPoints.map((p) => ({ x: p.x, y: p.y, t: p.t - base }));
     this.laserCount++;
     this.moved();
+  }
+
+  /** Lets go of the points not yet sent, and of the ones that wait behind them. */
+  private dropLaser(): void {
+    this.laserBatch = undefined;
+    this.laserHeld = undefined;
   }
 
   /** The cheapest description of what the state would be made of. */
@@ -278,7 +354,7 @@ export class Presence {
     }
     const ids = fitSelection(source.canvas());
     const pointer = this.pointerAt;
-    const laser = this.laserPoints.length > 0;
+    const laser = this.laserBatch;
     return {
       file: file.id,
       ...(caret ? { caret } : {}),
@@ -290,8 +366,9 @@ export class Presence {
               ...(laser
                 ? {
                     laser: {
-                      ...(this.laserDiagram !== undefined ? { diagram: this.laserDiagram } : {}),
-                      points: this.laserPoints,
+                      ...(laser.diagram !== undefined ? { diagram: laser.diagram } : {}),
+                      points: laser.points,
+                      ...(laser.pen ? { pen: laser.pen } : {}),
                     },
                   }
                 : {}),
@@ -308,9 +385,15 @@ export class Presence {
     if (!state) return;
     const text = JSON.stringify(state);
     this.dirty = false;
-    // A batch leaves once, in this state or not at all: a stale trail is of no use to anyone.
-    this.laserPoints = [];
-    if (!force && text === this.lastSent) return;
+    // A batch leaves once, in this state or not at all: a stale trail is of no use to anyone. The
+    // batch that waited behind it goes in the next state, after the window.
+    this.laserBatch = this.laserHeld;
+    this.laserHeld = undefined;
+    if (this.laserBatch) this.dirty = true;
+    if (!force && text === this.lastSent) {
+      if (this.laserBatch && !this.windowOpen) this.startWindow();
+      return;
+    }
     if (!this.options.send(encodeLocal(this.clientId, state))) {
       // The socket cannot carry it: the next hello sends it.
       this.dirty = true;
@@ -356,7 +439,7 @@ export class Presence {
     timers.clear(this.heartbeatTimer);
     this.windowTimer = this.heartbeatTimer = undefined;
     this.windowOpen = false;
-    this.laserPoints = [];
+    this.dropLaser();
     if (this.book.clear()) this.notify();
     this.stopSweep();
   }
@@ -370,7 +453,7 @@ export class Presence {
     this.ownSub = sub;
     this.book.setOwn(id);
     // A stroke made while the socket was closed is stale: it is not sent.
-    this.laserPoints = [];
+    this.dropLaser();
     // A room that knows nothing of this connection yet: the state it had is not its state.
     this.lastSent = undefined;
     this.windowOpen = false;
@@ -420,7 +503,7 @@ export class Presence {
     this.stopSweep();
     this.windowTimer = this.heartbeatTimer = this.pointerTimer = undefined;
     this.pointerAt = undefined;
-    this.laserPoints = [];
+    this.dropLaser();
     this.source = undefined;
     this.book.clear();
     this.listeners.clear();

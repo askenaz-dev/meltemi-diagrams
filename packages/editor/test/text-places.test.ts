@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { diagramView } from "../src/analysis.js";
 import {
   analyzeDocument,
   CanvasSession,
@@ -177,5 +178,79 @@ describe("where labels are drawn, for the inline editor", () => {
     expect(area.height).toBeCloseTo(participant.box.height, 1);
     expect(participant.box.height).toBe(40);
     expect(participant.text!.anchor.y).toBeCloseTo(participant.box.y + 20, 0);
+  });
+});
+
+describe("where a sticky's text is drawn, for the inline editor", () => {
+  const WORDS = "Cache the catalogue before the sale starts and warm it again";
+  const sheet = (text: string, style = "") => `${PLAIN}diagram s: free {
+  theme "plain"
+  sticky card "${text}"
+${style}  placement {
+    place card at (200, 200)
+  }
+}
+`;
+  /** The canvas's place of the card's text, and how the layout wrapped it. */
+  const placed = (text: string) => {
+    const card = rendered(text).elements.find((e) => e.id === "card")!;
+    const layout = diagramView(analyzeDocument({ text, revision: 1 }), "s")!.layout!;
+    return { card, wrapped: layout.stickies!.get("card")! };
+  };
+
+  it("types in the room the text wraps in, at the size and line height it is drawn", () => {
+    const { card, wrapped } = placed(sheet("Cache the catalogue"));
+    const text = card.text!;
+    // The card inside the padding, in diagram coordinates, as the layout wrapped it.
+    expect(text.area).toEqual(wrapped.area);
+    expect(text.area).toEqual({
+      x: card.box.x + 16,
+      y: card.box.y + 16,
+      width: card.box.width - 32,
+      height: card.box.height - 32,
+    });
+    // 1.2 times the label size, lines 1.25 times that apart, centred in the middle.
+    expect(text).toMatchObject({
+      size: 15.6,
+      fullSize: 15.6,
+      line: 19.5,
+      weight: 400,
+      align: "center",
+      lines: true,
+      color: "#1f2328",
+    });
+    expect(text.anchor.x).toBeCloseTo(card.box.x + card.box.width / 2, 5);
+    expect(text.anchor.y).toBeCloseTo(card.box.y + card.box.height / 2, 5);
+  });
+
+  it("takes the size a long text shrank to", () => {
+    const long = Array.from({ length: 4 }, () => WORDS).join(" ");
+    const { card, wrapped } = placed(sheet(long, "  style card { fontSize 14 }\n"));
+    expect(wrapped).toMatchObject({ size: 10, fits: true });
+    expect(card.text).toMatchObject({ size: 10, line: 12.5, area: wrapped.area });
+    // The size it shrank from, which the editor starts from: the style's.
+    expect(card.text!.fullSize).toBe(14);
+    // Its block of lines is centred on the card.
+    expect(card.text!.anchor.y).toBeCloseTo(card.box.y + card.box.height / 2, 5);
+  });
+
+  it("knows the theme's size a long text shrank from, when no style sets one", () => {
+    const long = Array.from({ length: 4 }, () => WORDS).join(" ");
+    const { card, wrapped } = placed(sheet(long));
+    expect(wrapped.size).toBeLessThan(15.6);
+    expect(card.text).toMatchObject({ size: wrapped.size, fullSize: 15.6 });
+  });
+
+  it("aligns on the left end of the lines and on the middle of a block at the top", () => {
+    const { card, wrapped } = placed(
+      sheet(WORDS, "  style card { textAlign left; verticalAlign top }\n"),
+    );
+    const text = card.text!;
+    expect(text.align).toBe("left");
+    expect(text.anchor.x).toBe(wrapped.area.x);
+    expect(text.anchor.y).toBeCloseTo(
+      wrapped.area.y + (wrapped.lines.length * wrapped.line) / 2,
+      5,
+    );
   });
 });

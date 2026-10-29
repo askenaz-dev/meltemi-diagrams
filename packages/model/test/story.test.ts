@@ -2,7 +2,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { CORPUS_ROOT } from "../../../test-support/corpus.js";
-import { compile, toJson, type StoryAction } from "../src/index.js";
+import {
+  compile,
+  drawTargetKind,
+  storyTargetKind,
+  toJson,
+  type StoryAction,
+} from "../src/index.js";
 
 const purchase = readFileSync(join(CORPUS_ROOT, "valid", "stories", "purchase.meltemi"), "utf8");
 const BASE =
@@ -10,6 +16,10 @@ const BASE =
 const story = (body: string, extra = "") =>
   compile(`${BASE}${extra}story tour for checkout {\n${body}\n}\n`);
 const codes = (text: ReturnType<typeof compile>) => text.diagnostics.map((d) => d.code);
+/** A whiteboard: two pens, a line, a named relation between stickies, a box and a note. */
+const WHITEBOARD =
+  'language "0.2"\ndiagram board: free {\n  pen title [(0, 0), (40, 4), (80, 0)]\n  pen arrow [(0, 40), (120, 40)]\n  line underline from (0, 20) to (80, 20)\n  sticky a "A"\n  sticky b "B"\n  a -> b as link\n  box api "API"\n  note hint "N"\n}\n';
+const drawn = (body: string) => compile(`${WHITEBOARD}story walk for board {\n${body}\n}\n`);
 
 describe("stories", () => {
   it("compiles the proposal's purchase story to 7.4 s", () => {
@@ -74,6 +84,20 @@ describe("stories", () => {
     expect(compilation.diagnostics[0]!.message).toMatch(/follows a relation/);
   });
 
+  it("checks what a draw replays", () => {
+    const compilation = story("  scene one {\n    draw save, api\n  }");
+    expect(compilation.diagnostics.map((d) => [d.code, d.message])).toEqual([
+      [
+        "story.invalid-target",
+        "`draw` takes pens, lines and relations; `api` is a `node` element.",
+      ],
+    ]);
+    expect(compilation.diagnostics[0]!.range.start).toMatchObject({ line: 10, column: 16 });
+    // The named relation is kept.
+    const [action] = compilation.document.stories[0]!.scenes[0]!.actions;
+    expect(action!.targets.map((t) => [t.id, t.kind])).toEqual([["save", "relation"]]);
+  });
+
   it("reports actions on the same property at the same time", () => {
     const compilation = story(
       "  scene one {\n    parallel {\n      reveal db\n      hide db\n    }\n  }",
@@ -124,6 +148,17 @@ describe("stories", () => {
     expect(codes(clash)).toEqual(["ref.duplicate-id"]);
   });
 
+  it("lists draw among the actions of an unknown one", () => {
+    const compilation = story("  scene one {\n    scribble api\n    hold 1s\n  }");
+    expect(compilation.diagnostics.map((d) => [d.code, d.hints])).toEqual([
+      [
+        "prop.unknown",
+        ["Actions: reveal, hide, highlight, focus, camera, trace, draw, hold and parallel."],
+      ],
+    ]);
+    expect(compilation.diagnostics[0]!.data?.candidates).toContain("draw");
+  });
+
   it("keeps references to the view's ids", () => {
     const [s] = story("  scene one {\n    reveal api, db\n    trace save\n  }").document.stories;
     expect(s!.references.map((r) => [r.diagram, r.id, r.kind])).toEqual([
@@ -131,6 +166,15 @@ describe("stories", () => {
       ["checkout", "db", "element"],
       ["checkout", "save", "relation"],
     ]);
+  });
+
+  it("knows what draw takes in a view", () => {
+    const board = compile(WHITEBOARD).document.diagrams[0]!;
+    expect(
+      ["title", "underline", "link", "hint", "a", "ghost"].map((id) => drawTargetKind(id, board)),
+    ).toEqual(["pen", "line", "relation", null, null, null]);
+    // Pens and lines stay elements as story targets.
+    expect(storyTargetKind("title", board)).toBe("element");
   });
 
   it("resolves imported diagrams through the compile options", () => {
@@ -146,5 +190,109 @@ describe("stories", () => {
     expect(codes(resolved)).toEqual([]);
     expect(resolved.document.stories[0]!.target.file).toBe("/p/checkout.meltemi");
     expect(resolved.document.stories[0]!.references[0]!.file).toBe("/p/checkout.meltemi");
+  });
+});
+
+describe("draw", () => {
+  it("draws the strokes of a whiteboard in order, over the time written", () => {
+    const compilation = drawn("  scene one {\n    draw title, arrow over 2s\n  }");
+    expect(compilation.diagnostics).toEqual([]);
+    const [action] = compilation.document.stories[0]!.scenes[0]!.actions;
+    expect(action).toMatchObject({ kind: "draw", durationMs: 2000, writtenMs: 2000, startMs: 0 });
+    expect(action!.targets.map((t) => [t.id, t.kind])).toEqual([
+      ["title", "element"],
+      ["arrow", "element"],
+    ]);
+    expect(compilation.document.stories[0]!.durationMs).toBe(2000);
+  });
+
+  it("takes pens, free lines and named relations, in 800 ms by default", () => {
+    const compilation = drawn("  scene one {\n    draw underline, link\n    draw title\n  }");
+    expect(compilation.diagnostics).toEqual([]);
+    const actions = compilation.document.stories[0]!.scenes[0]!.actions;
+    expect(actions.map((a) => [a.kind, a.startMs, a.durationMs, a.writtenMs])).toEqual([
+      ["draw", 0, 800, null],
+      ["draw", 800, 800, null],
+    ]);
+    expect(actions[0]!.targets.map((t) => [t.id, t.kind])).toEqual([
+      ["underline", "element"],
+      ["link", "relation"],
+    ]);
+    expect(compilation.document.stories[0]!.references.map((r) => r.id)).toEqual([
+      "underline",
+      "link",
+      "title",
+    ]);
+  });
+
+  it("refuses a box, a sticky and a note, saying what it takes", () => {
+    const compilation = drawn("  scene one {\n    draw api, a, hint, title\n  }");
+    expect(compilation.diagnostics.map((d) => [d.code, d.message])).toEqual([
+      ["story.invalid-target", "`draw` takes pens, lines and relations; `api` is a `box` element."],
+      [
+        "story.invalid-target",
+        "`draw` takes pens, lines and relations; `a` is a `sticky` element.",
+      ],
+      [
+        "story.invalid-target",
+        "`draw` takes pens, lines and relations; `hint` is a `note` element.",
+      ],
+    ]);
+    expect(
+      compilation.document.stories[0]!.scenes[0]!.actions[0]!.targets.map((t) => t.id),
+    ).toEqual(["title"]);
+  });
+
+  it("names a note or a fragment of a sequence diagram", () => {
+    const compilation = compile(
+      'diagram s: sequence {\n  participant a\n  participant b\n  a -> b as call\n  note n over a "N"\n}\nstory t for s {\n  scene one {\n    draw n, call\n  }\n}\n',
+    );
+    expect(compilation.diagnostics.map((d) => [d.code, d.message])).toEqual([
+      [
+        "story.invalid-target",
+        "`draw` takes pens, lines and relations; `n` is a note or fragment.",
+      ],
+    ]);
+  });
+
+  it("conflicts with a reveal, a hide or a trace of the same target at the same time", () => {
+    const shown = drawn(
+      "  scene one {\n    parallel {\n      draw title\n      reveal title\n    }\n  }",
+    );
+    expect(codes(shown)).toEqual(["story.conflict"]);
+    const traced = drawn(
+      "  scene one {\n    parallel {\n      draw link\n      trace link\n    }\n  }",
+    );
+    expect(codes(traced)).toEqual(["story.conflict"]);
+    // One after the other, or with another target, is fine.
+    expect(
+      codes(
+        drawn(
+          "  scene one {\n    draw title\n    hide title\n    parallel {\n      draw arrow\n      reveal a\n    }\n  }",
+        ),
+      ),
+    ).toEqual([]);
+  });
+
+  it("reports one conflict for a target named twice, though it clashes on two channels", () => {
+    for (const target of ["title", "link"]) {
+      const twice = drawn(`  scene one {\n    draw ${target}, ${target}\n  }`);
+      expect(
+        twice.diagnostics.map((d) => [d.code, d.message, d.range.start.column, d.range.end.column]),
+        target,
+      ).toEqual([
+        [
+          "story.conflict",
+          `\`draw\` overlaps an earlier action on the same visibility of \`${target}\`.`,
+          5,
+          12 + 2 * target.length,
+        ],
+      ]);
+    }
+    // Two targets that clash are two conflicts.
+    expect(codes(drawn("  scene one {\n    draw title, arrow, title, arrow\n  }"))).toEqual([
+      "story.conflict",
+      "story.conflict",
+    ]);
   });
 });

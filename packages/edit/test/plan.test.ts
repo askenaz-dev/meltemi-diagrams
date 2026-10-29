@@ -274,7 +274,8 @@ describe("every operation on the valid corpus", () => {
                 }
               : { kind: "reorderElement", ...base, to: "back" },
           );
-          if (element.node && !sequence) {
+          // A pen stroke has no sides for ports: its block refuses `port`.
+          if (element.node && !sequence && element.kind !== "pen") {
             operations.push({ kind: "addPort", ...base, name: "fresh_port", side: "south" });
           }
         } else if (!diagram.relations.some((r) => r.from === element.id || r.to === element.id)) {
@@ -441,8 +442,11 @@ describe("every operation on the valid corpus", () => {
         const result = planEdit(compilation, operation);
         // A move that would break the order of events is refused by design.
         if (!result.ok && operation.kind === "moveEvent") continue;
-        // A free line's points are in its statement: it takes no place or size.
-        if (!result.ok && /is a line: its points are written/.test(result.rejection.reason))
+        // A free line's or a pen's points are in its statement: it takes no place, size or label.
+        if (
+          !result.ok &&
+          /is a line: its points are written|is a pen stroke/.test(result.rejection.reason)
+        )
           continue;
         // Views refuse operations that write declarations, and model relations stay in the model.
         if (

@@ -74,12 +74,32 @@
           "captures": { "1": { "name": "storage.type.element.meltemi" } }
         },
         {
+          "comment": "A list group: `layout column|row` in a group block, where `column` and `row` are values, not placement constraints.",
+          "match": "\\b(layout)\\s+(column|row)\\b",
+          "captures": {
+            "1": { "name": "support.type.property-name.group.meltemi" },
+            "2": { "name": "constant.language.meltemi" }
+          }
+        },
+        {
+          "comment": "A list's cross-axis alignment: `align start|center|end|stretch` in a group block, not the `align a, b top` constraint.",
+          "match": "\\b(align)\\s+(start|center|end|stretch)\\b",
+          "captures": {
+            "1": { "name": "support.type.property-name.group.meltemi" },
+            "2": { "name": "constant.language.meltemi" }
+          }
+        },
+        {
+          "name": "support.type.property-name.group.meltemi",
+          "match": "\\b(spacing)\\b"
+        },
+        {
           "name": "keyword.control.top-level.meltemi",
           "match": "\\b(language|import|from|as|diagram|theme|model|story|export|for|using)\\b"
         },
         {
           "name": "storage.type.element.meltemi",
-          "match": "\\b(node|decision|data|group|note|tag|box|text|icon|image|port|layer|link|participant|actor|boundary|control|entity|database|collections|queue)\\b"
+          "match": "\\b(node|decision|data|group|note|sticky|pen|tag|box|text|icon|image|port|layer|link|participant|actor|boundary|control|entity|database|collections|queue)\\b"
         },
         {
           "name": "keyword.control.block.meltemi",
@@ -103,19 +123,19 @@
         },
         {
           "name": "support.type.property-name.style.meltemi",
-          "match": "\\b(iconColor|iconPosition|labelPosition|iconSize|fill|stroke|color|line|width|pattern|arrowhead|arrowtail|corners|shape|radius|rotation|fontSize|fontWeight|textAlign|verticalAlign|effect|duration|repeat|delay|direction|particles)\\b"
+          "match": "\\b(iconColor|iconPosition|labelPosition|iconSize|fill|stroke|color|line|width|pattern|arrowhead|arrowtail|corners|shape|radius|rotation|opacity|fontSize|fontWeight|textAlign|verticalAlign|effect|duration|repeat|delay|direction|particles)\\b"
         },
         {
           "name": "support.type.property-name.theme.meltemi",
-          "match": "\\b(background|surface|ink|muted|connector|band|bandLine|tagText|accent|accentEnd|success|warning|danger|info|font|mono|labelSize|descriptionSize|groupTitleSize|noteSize|tagSize|relationLabelSize|frameSize|labelWeight|padding|groupPadding|groupHeader|margin|radius|groupRadius|strokeWidth|connectorWidth|arrowSize|corners|sketch|iconSize|frame|brand|mark|flowDuration|dashDuration|pulseDuration|traceDuration|selection|guide)\\b"
+          "match": "\\b(background|surface|ink|muted|connector|band|bandLine|tagText|stickyText|accent|accentEnd|success|warning|danger|info|font|mono|labelSize|descriptionSize|groupTitleSize|noteSize|tagSize|relationLabelSize|frameSize|labelWeight|padding|groupPadding|groupHeader|margin|radius|groupRadius|strokeWidth|connectorWidth|arrowSize|corners|sketch|iconSize|frame|brand|mark|flowDuration|dashDuration|pulseDuration|traceDuration|selection|guide)\\b"
         },
         {
           "name": "constant.language.meltemi",
-          "match": "\\b(LR|RL|TB|BT|auto|assisted|manual|document|slide|orthogonal|polyline|bezier|solid|dashed|dotted|none|triangleOutline|diamondOutline|circleOutline|circle|bar|many|oneOrMany|onlyOne|zeroOrOne|zeroOrMany|sharp|light|rough|hatch|dots|cross|triangle|open|left|top|bottom|right|middle|center|horizontal|vertical|north|south|east|west|flow|pulse|dash|forever|forward|reverse|footer|header|meltemi|sequence|c4|free|rounded|rectangle|square|ellipse|diamond|cylinder|pill|parallelogram|trapezoid|pentagon|hexagon|octagon|star|cloud|callout|arrow|framed|flag|agent|main|sync|async|context|svg|png|pdf|html|mp4|webm|gif|static|animated|embedded|outlined|system)\\b"
+          "match": "\\b(LR|RL|TB|BT|auto|assisted|manual|document|slide|board|orthogonal|polyline|bezier|solid|dashed|dotted|none|triangleOutline|diamondOutline|circleOutline|circle|bar|many|oneOrMany|onlyOne|zeroOrOne|zeroOrMany|sharp|light|rough|hatch|dots|cross|triangle|open|left|top|bottom|right|middle|center|horizontal|vertical|north|south|east|west|flow|pulse|dash|forever|forward|reverse|footer|header|meltemi|sequence|c4|free|rounded|rectangle|square|ellipse|diamond|cylinder|pill|parallelogram|trapezoid|pentagon|hexagon|octagon|star|cloud|callout|arrow|framed|flag|agent|main|sync|async|context|svg|png|pdf|html|mp4|webm|gif|static|animated|embedded|outlined|system)\\b"
         },
         {
           "name": "keyword.control.profile.meltemi",
-          "match": "\\b(level|scope|include|exclude|person|system|container|datastore|component|technology|external|url|assumption|scene|view|transition|cut|fade|morph|over|reveal|hide|hold|trace|highlight|parallel|focus|camera|all|format|scale|background|transparent|motion|fonts|scenario|fps|duration|file|autoplay|loop|embed)\\b"
+          "match": "\\b(level|scope|include|exclude|person|system|container|datastore|component|technology|external|url|assumption|scene|view|transition|cut|fade|morph|over|reveal|hide|hold|trace|draw|highlight|parallel|focus|camera|all|format|scale|background|transparent|motion|fonts|scenario|fps|duration|file|autoplay|loop|embed)\\b"
         }
       ]
     },

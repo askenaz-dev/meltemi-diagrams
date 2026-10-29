@@ -137,6 +137,21 @@ const SCENARIOS: Record<string, () => { analysis: DocumentAnalysis; offset: numb
         '    icon "tabler:server"\n    class hig|hligth\n',
       ),
     ),
+  "a placed child of a list": () =>
+    atDiagnostic(
+      'diagram w: free {\n  group todo "To do" {\n    layout column\n    sticky a "A"\n  }\n  placement {\n    place todo at (200, 200)\n    place a at (40, 40)\n  }\n}\n',
+      "layout.place-ignored",
+    ),
+  "spacing without a layout": () =>
+    atDiagnostic(
+      'diagram w: free {\n  group todo "To do" {\n    spacing 12\n    sticky a "A"\n  }\n  placement {\n    place todo at (200, 200)\n  }\n}\n',
+      "prop.invalid-value",
+    ),
+  "a document too wide": () =>
+    atDiagnostic(
+      'diagram w: free {\n  preset document\n  box a "A"\n  box b "B"\n  placement {\n    place a at (100, 100)\n    place b at (1900, 100)\n  }\n}\n',
+      "layout.too-large",
+    ),
 };
 
 /** The text in backticks of a sentence: code, which every language writes as it is. */
@@ -160,7 +175,7 @@ describe("the words of the language services", () => {
   });
 
   it("keep every code sample of the documentation as written", () => {
-    for (const group of ["keywords", "exportOptions", "storyWords"] as const) {
+    for (const group of ["keywords", "listWords", "exportOptions", "storyWords"] as const) {
       const english: Readonly<Record<string, string>> = serviceMessages("en")[group];
       const spanish: Readonly<Record<string, string>> = serviceMessages("es")[group];
       expect(Object.keys(spanish)).toEqual(Object.keys(english));
@@ -289,6 +304,51 @@ describe("services in a Spanish interface", () => {
     expect(titles("an ignored placement")).toEqual(
       expect.arrayContaining(["Cambiar a `layout assisted`", "Cambiar a `layout manual`"]),
     );
+    expect(titles("a placed child of a list")).toContain(
+      "Quitar `place a` (la lista `todo` lo coloca)",
+    );
+    expect(titles("spacing without a layout")).toContain("Agregar `layout column` a `todo`");
+    expect(titles("a document too wide")).toContain("Cambiar a `preset board`");
+  });
+
+  it("describe pens, stickies and lists in Spanish", () => {
+    const text = `diagram w: free {
+  group todo "To do" {
+    layout column
+    sticky idea "Idea"
+  }
+  group notes "Notes" {
+    pen arrow [(0, 0), (10, 10), (20, 0)]
+  }
+  placement {
+    place todo at (200, 200)
+    place notes at (500, 200)
+    size notes (200, 100)
+  }
+}
+`;
+    const pen = at(text.replace("pen arrow", "pen |arrow"));
+    const markdown = hover(pen.analysis, pen.offset)!.markdown;
+    expect(markdown.split("\n")[0]).toBe("**lápiz** `arrow` — 3 puntos");
+    expect(markdown).toContain("en `notes` · capa `main`");
+    const sticky = at(text.replace("sticky idea", "sticky |idea"));
+    const card = hover(sticky.analysis, sticky.offset)!.markdown;
+    expect(card.split("\n")[0]).toBe("**nota adhesiva** `idea` — Idea");
+    expect(card).toMatch(/color `#[0-9a-fA-F]{6}` \(el `sticky` del tema\)/);
+    expect(card).toContain("colocado por la lista `todo`");
+    const list = at(text.replace('group todo "To do"', 'group |todo "To do"'));
+    expect(hover(list.analysis, list.offset)!.markdown).toMatch(
+      /lista `layout column` · `spacing \d+` \(predeterminado\) · `align start` \(predeterminado\)/,
+    );
+    const word = at(text.replace("    layout column", "    lay|out column"));
+    expect(hover(word.analysis, word.offset)!.markdown).toMatch(
+      /^\*\*layout\*\* — Convierte el grupo en una lista/,
+    );
+    const [diagram] = documentSymbols(analyzeDocument({ text }));
+    expect(diagram!.children.flatMap((c) => c.children).map((c) => [c.name, c.detail])).toEqual([
+      ["idea", "nota adhesiva · Idea"],
+      ["arrow", "lápiz"],
+    ]);
   });
 
   it("refuse renames in Spanish", () => {

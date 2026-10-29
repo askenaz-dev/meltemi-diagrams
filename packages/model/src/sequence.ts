@@ -89,6 +89,8 @@ const OTHER_DECLARATIONS: readonly string[] = [
   "text",
   "icon",
   "image",
+  "pen",
+  "sticky",
 ];
 
 /** The statements of sequence diagrams besides participants, as their hint lists them. */
@@ -177,7 +179,9 @@ class SequenceAnalyzer extends FlowAnalyzer {
   protected override statementHints(keyword: string): string[] {
     const hints = messages().hints.sequence;
     if (OTHER_DECLARATIONS.includes(keyword)) {
-      const profile = ["box", "text", "icon", "image"].includes(keyword) ? "free" : "flow";
+      const profile = ["box", "text", "icon", "image", "pen", "sticky"].includes(keyword)
+        ? "free"
+        : "flow";
       return [hints.otherDeclaration(keyword, profile, PARTICIPANT_KINDS)];
     }
     return [hints.statements];

@@ -183,7 +183,50 @@ describe("a Spanish interface", () => {
     canvas.act({ kind: "setField", ids: [], field: "canvas.width", value: 50 });
     expect(canvas.rejected()).toBe("Escribe un número de 100 a 10000.");
     canvas.act({ kind: "setField", ids: [], field: "canvas", value: "poster" });
-    expect(canvas.rejected()).toBe("El lienzo es uno de `fit`, `document`, `slide`, `custom`.");
+    expect(canvas.rejected()).toBe(
+      "El lienzo es uno de `fit`, `document`, `slide`, `board`, `custom`.",
+    );
+    // A board is a value of the language, offered and written as it is.
+    expect(field(diagram, "canvas").options).toContain("board");
+    expect(canvas.apply({ kind: "setField", ids: [], field: "canvas", value: "board" })).toContain(
+      "  preset board\n",
+    );
+  });
+
+  it("names a pen, a sticky and a list in Spanish", () => {
+    const board = [
+      'language "0.2"',
+      "",
+      "diagram board: free {",
+      '  group todo "Por hacer" {',
+      "    layout column",
+      '    sticky card "Nota"',
+      "  }",
+      "  pen mark [(0, 0), (40, 10)]",
+      "  placement {",
+      "    place todo at (200, 200)",
+      "  }",
+      "}",
+      "",
+    ].join("\n");
+    const canvas = open(board, "board");
+    canvas.send({ type: "select", ids: ["mark"] });
+    expect(canvas.inspector().title).toBe("lápiz mark");
+    expect(field(canvas.inspector(), "style.opacity").label).toBe("Opacidad");
+    canvas.send({ type: "select", ids: ["card"] });
+    expect(canvas.inspector().title).toBe("nota adhesiva card");
+    canvas.send({ type: "select", ids: ["todo"] });
+    const list = canvas.inspector();
+    expect(["layout", "spacing", "align"].map((n) => field(list, n).label)).toEqual([
+      "Disposición",
+      "Espaciado",
+      "Alineación",
+    ]);
+    expect(field(list, "layout").placeholder).toBe("ninguno");
+    canvas.act({ kind: "setField", ids: ["card"], field: "x", value: 10 });
+    expect(canvas.rejected()).toBe(
+      "`todo` coloca a `card`: arrástralo entre sus vecinos o pulsa Alt+Arriba o Alt+Abajo.",
+    );
   });
 
   it("groups the theme panel in Spanish", () => {
@@ -193,6 +236,7 @@ describe("a Spanish interface", () => {
     expect(panel.groups.map((g) => g.title)).toEqual([
       "Base",
       "Colores",
+      "Pizarra",
       "Fuentes",
       "Tipografía",
       "Espaciado",

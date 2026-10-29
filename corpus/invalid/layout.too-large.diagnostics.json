@@ -16,7 +16,8 @@
       }
     },
     "hints": [
-      "Split the diagram into views or story scenes; text is never shrunk to fit the canvas."
+      "Split the diagram into views or story scenes; text is never shrunk to fit the canvas.",
+      "Write `preset board` when the sheet is a whiteboard: a board grows with its content."
     ],
     "related": []
   }

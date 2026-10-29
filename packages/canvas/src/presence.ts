@@ -1,4 +1,4 @@
-import type { Box, Point } from "@meltemi/diagrams-editor/canvas";
+import { isPresencePen, type Box, type Point } from "@meltemi/diagrams-editor/canvas";
 
 /*
  * Other people's selections and pointers (`live-collaboration`). This file is the logic of the layer
@@ -125,10 +125,35 @@ export interface PersonView {
   readonly laser?: LaserBatch;
 }
 
-/** A batch of points of a Pointer trail: `t` is milliseconds since the batch's first point. */
+/**
+ * A batch of points of a Pointer trail: `t` is milliseconds since the batch's first point. With
+ * `pen` the points are of a stroke the person is drawing with the pen or the highlighter.
+ */
 export interface LaserBatch {
   readonly batch: number;
   readonly points: readonly { readonly x: number; readonly y: number; readonly t: number }[];
+  readonly pen?: PeerPen;
+}
+
+/**
+ * How a stroke being drawn looks: its width in diagram units (an integer from 1 to 64, the zoom
+ * scales it as it does the drawing), its colour as `#rrggbb` and its opacity from 0 to 1.
+ */
+export interface StrokeLook {
+  readonly width: number;
+  readonly colour: string;
+  readonly opacity: number;
+}
+
+/**
+ * The pen part of a batch as the canvas reads it: how the stroke looks, which of the person's
+ * strokes it is (`stroke`, the same for every batch of one stroke), and whether the batch ends it
+ * cancelled (`cancel`, Escape: the stroke goes at once).
+ */
+export interface PeerPen {
+  readonly look: StrokeLook;
+  readonly stroke: number;
+  readonly cancel: boolean;
 }
 
 /** At most this many points in a batch, and this long a batch lasts, in milliseconds. */
@@ -159,12 +184,30 @@ const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "obj
  * `x` and `y` two finite numbers within the pointer bound and `t` an integer from 0 to
  * `MAX_LASER_MS`. A batch that does not fit in any point is none: it is not drawn, and the person's
  * cursor is.
+ *
+ * A `pen` part makes the batch a stroke of the pen or the highlighter, read with the bounds of
+ * `isPresencePen` (an integer width from 1 to 64, a colour of at most 32 characters, an opacity
+ * from 0 to 1, an integer stroke number from 0 to 2,147,483,647, `cancel` true or absent); a part
+ * out of them makes the whole batch none. Its colour is written `#rrggbb`, and one the canvas
+ * cannot read becomes `fallback`, the person's own: the canvas never hands a string it did not read
+ * to what it draws.
  */
-export function readLaser(value: unknown): LaserBatch | undefined {
+export function readLaser(value: unknown, fallback = FALLBACK_COLOUR): LaserBatch | undefined {
   if (!isObject(value)) return undefined;
   const { batch, points } = value;
   if (typeof batch !== "number" || !Number.isInteger(batch)) return undefined;
   if (!Array.isArray(points) || points.length > MAX_LASER_POINTS) return undefined;
+  let look: PeerPen | undefined;
+  if (value.pen !== undefined) {
+    const pen = value.pen;
+    if (!isPresencePen(pen)) return undefined;
+    const colour = parseColour(pen.colour);
+    look = {
+      look: { width: pen.width, colour: colour ? toHex(colour) : fallback, opacity: pen.opacity },
+      stroke: pen.stroke,
+      cancel: pen.cancel === true,
+    };
+  }
   const read: { x: number; y: number; t: number }[] = [];
   for (const entry of points) {
     if (!isObject(entry)) return undefined;
@@ -176,7 +219,7 @@ export function readLaser(value: unknown): LaserBatch | undefined {
       return undefined;
     read.push({ x, y, t });
   }
-  return { batch, points: read };
+  return look ? { batch, points: read, pen: look } : { batch, points: read };
 }
 
 /** The colour the host names for the person at this canvas: `#rrggbb`, or none. */
@@ -207,7 +250,7 @@ export function readPeople(value: unknown): PersonView[] {
       if (selection.length >= MAX_SELECTED) break;
       if (typeof id === "string" && id.length <= MAX_ID) selection.push(id);
     }
-    const laser = readLaser(entry.laser);
+    const laser = readLaser(entry.laser, toHex(rgb));
     people.push({
       name: entry.name.slice(0, MAX_NAME),
       colour: toHex(rgb),
@@ -232,6 +275,22 @@ export interface CursorMark {
   readonly tip: Point;
   /** The tip, in diagram units: a cursor whose scene point changed glides; one the view moved does not. */
   readonly scene: Point;
+}
+
+/**
+ * A key for each person of a message, whether or not their pointer is shown, stable from one
+ * message to the next for the same person (their colour and name, and which of the people with
+ * both they are): the strokes a person draws are theirs while they are in the list, though their
+ * finger or stylus lifted or their mouse left the stage.
+ */
+export function personKeys(people: readonly PersonView[]): string[] {
+  const seen = new Map<string, number>();
+  return people.map((person) => {
+    const base = `${person.colour}|${person.name}`;
+    const nth = seen.get(base) ?? 0;
+    seen.set(base, nth + 1);
+    return `${base}|${nth}`;
+  });
 }
 
 /**

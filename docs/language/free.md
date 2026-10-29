@@ -2,10 +2,10 @@
 
 [Español](../es/language/free.md)
 
-A free diagram is a slide or an explanation that does not fit a strict notation. You place boxes,
-text, icons, images, lines and groups where you want them, connect them, and order them in layers.
-Every adjustment is code, and the same rules apply in the command line, the editor and every
-export.
+A free diagram is a slide, a whiteboard or an explanation that does not fit a strict notation. You
+place boxes, text, icons, images, stickies, lines, freehand strokes and groups where you want them,
+connect them, line cards up in columns and rows, and order them in layers. Every adjustment is code,
+and the same rules apply in the command line, the editor and every export.
 
 ```text
 language "0.2"
@@ -51,29 +51,39 @@ diagrams. `layout manual` is the default: every object has a `place`.
 | `icon <id> "<pack>:<name>"`                                   | an icon of the packs ([assets.md](assets.md)), without text; a labelled icon is a box with `shape icon` ([below](#icons-as-shapes))          | 48 × 48                                                  |
 | `image <id> "<path>"`                                         | an image file of the project; `description` is its alt text                                                                                  | its pixel size, at most 640 wide; 160 × 120 when unknown |
 | `note <id> "Text" [on <element>] [{ … }]`                     | an annotation: a few lines of text, with an outline only when styled, and a dotted leader to the element it is attached to ([below](#notes)) | its text's extent                                        |
-| `group <id> ["Label"] { … }`                                  | a band with a title, or a plain container when untitled, holding children                                                                    | written, or derived from its children (below)            |
+| `sticky <id> "Text" [{ … }]`                                  | a sticky note: a square card whose text wraps and shrinks to fit it ([below](#stickies))                                                     | 160 × 160                                                |
+| `group <id> ["Label"] { … }`                                  | a band with a title, or a plain container when untitled, holding children; a column or a row of them with `layout` ([below](#lists))         | written, or derived from its children (below)            |
 | `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), …]]` | a line that joins no element: a divider, a bracket, an underline ([below](#lines))                                                           | the bounding box of its points                           |
+| `pen <id> [(x, y), (x, y), …] [{ … }]`                        | a freehand stroke through its points: a word, an arrow or a highlighter mark drawn by hand ([below](#pen-strokes))                           | the bounding box of its points, grown by half its width  |
 
 `node`, `decision`, `data` and `tag` belong to flow diagrams; in a free diagram they are
-`prop.unknown`, with a hint that lists the free kinds, `note` among them. An element that only a relation mentions is
-a box. Relations take the six tokens of flow diagrams, the lines without heads `--` and `---`
-among them ([grammar](grammar-0.2.md#lexical-rules)).
+`prop.unknown`, with a hint that lists the free kinds, `note`, `sticky` and `pen` among them. An
+element that only a relation mentions is a box. Relations take the six tokens of flow diagrams,
+the lines without heads `--` and `---` among them ([grammar](grammar-0.2.md#lexical-rules)).
 
 ### Text and shapes
 
-`shape` applies to boxes and to the nodes of flow diagrams; texts, icons, images and lines refuse
-it with `prop.invalid-value`. `radius` applies to the elements and groups of both profiles
-([styles.md](styles.md)); `fontSize`, `fontWeight`, `textAlign` and `verticalAlign` to free
-diagrams only, and flow diagrams refuse them with `prop.invalid-value` (decisions 0043 and 0058).
+`shape` applies to boxes and to the nodes of flow diagrams; texts, icons, images, notes, stickies,
+lines and pens refuse it with `prop.invalid-value`. `radius` applies to the elements and groups of
+both profiles ([styles.md](styles.md)); `fontSize`, `fontWeight`, `textAlign`, `verticalAlign` and
+`opacity` to free diagrams only, and flow diagrams refuse them with `prop.invalid-value`
+(decisions 0043, 0058 and 0064).
 
-| Property        | Values                              | Default                                                |
-| --------------- | ----------------------------------- | ------------------------------------------------------ |
-| `shape`         | one of the twenty-four shapes below | `rounded`                                              |
-| `radius`        | 0 to 64, the corner radius          | the theme's `radius`; `groupRadius` for groups (8, 14) |
-| `fontSize`      | 6 to 160                            | the theme's label size; 1.6 times it for `text`        |
-| `fontWeight`    | 400, 500, 600, 700                  | the theme's label weight                               |
-| `textAlign`     | `left`, `center`, `right`           | `center` for boxes, `left` for text                    |
-| `verticalAlign` | `top`, `middle`, `bottom`           | `middle`; boxes only                                   |
+| Property        | Values                                | Default                                                                                   |
+| --------------- | ------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `shape`         | one of the twenty-four shapes below   | `rounded`                                                                                 |
+| `radius`        | 0 to 64, the corner radius            | the theme's `radius`; `groupRadius` for groups (8, 14); 2 for stickies                    |
+| `fontSize`      | 6 to 160                              | the theme's label size; 1.6 times it for `text`, 1.2 times it for a sticky, shrunk to fit |
+| `fontWeight`    | 400, 500, 600, 700                    | the theme's label weight; 400 for a sticky                                                |
+| `textAlign`     | `left`, `center`, `right`             | `center` for boxes and stickies, `left` for text                                          |
+| `verticalAlign` | `top`, `middle`, `bottom`             | `middle`; boxes and stickies only                                                         |
+| `opacity`       | 0 (invisible) to 1 (opaque), a number | 1; elements, groups, lines and pens, not relations                                        |
+
+`opacity` fades an object, a group with everything it holds, a line or a pen:
+`style draft { opacity 0.5 }`. It multiplies with a story's visibility, so a faded box is still
+faded when a scene reveals it. On a relation it is `prop.invalid-value`, with the hint that it
+applies to elements, groups, lines and pens; outside 0 to 1 it is `prop.invalid-value` naming the
+range.
 
 | Shape           | Default size                         | Text                                 | Connectors end on             |
 | --------------- | ------------------------------------ | ------------------------------------ | ----------------------------- |
@@ -159,8 +169,8 @@ style card { shape rectangle; textAlign left; verticalAlign top }
 Lines of text are 1.25 times the font size apart, and `\n` starts a new line in a text and in the
 label of a box or a flow node. A text, icon or image with `fill`, `stroke` or `pattern` gets a
 frame with half the theme padding inside it. Icons take `iconColor`, then `color`. Rules take the
-free kinds: `rule box { shape pill }`, `rule text { color muted }`; only `rule box` and
-`rule node` may set `shape`.
+free kinds: `rule box { shape pill }`, `rule text { color muted }`, `rule pen { width 4 }`; only
+`rule box` and `rule node` may set `shape`.
 
 ### Icons as shapes
 
@@ -240,6 +250,66 @@ attachments, and keeps the notes. In `layout auto` and for a note without a `pla
 assisted`, the arrangement keeps the note near its element. An outlined note takes a moving dash
 (`animate remark { effect dash }`); one without an outline takes only a pulse.
 
+### Stickies
+
+`sticky <id> "Text" [{ … }]` is a sticky note: a square paper card with a few words on it, the
+card of a brainstorm or of a kanban board. Its text is required and `\n` breaks lines. Unlike a
+box, a sticky never grows for its text: the text wraps and shrinks to fit the card.
+
+```text
+diagram ideas: free {
+  sticky cache "Cache the catalogue at the edge before the sale"
+  sticky retry "Retry payments\nonce"
+  sticky metrics "Measure checkout time"
+
+  cache -> metrics
+
+  placement {
+    place cache at (120, 120)
+    place retry at (320, 120)
+    place metrics at (120, 340)
+    size metrics (240, 120)
+  }
+
+  style retry { fill "#f8bbd0"; rotation 4 }
+  style metrics { fill "#c8e6c9"; textAlign left; verticalAlign top }
+}
+```
+
+- **Size.** 160 × 160 at the 13 px label size, scaled with `labelSize`, or its written `size`.
+- **Text.** The text is wrapped at the card's inner width (its width minus twice the theme's
+  `padding`) at spaces; a word longer than that width is broken, and `\n` keeps its breaks. Lines
+  are 1.25 times the font size apart. The font size is `fontSize`, else 1.2 times the label size
+  (15.6 px in the technical themes), at `fontWeight` 400 unless styled. When the wrapped text is
+  taller than the inner height, the size steps down 1 px at a time until it fits, down to 8 px.
+  Text that does not fit even at 8 px is `layout.text-overflow` (warning), whose hint gives a size
+  of the same proportions at which it fits, and it is drawn from the top, clipped to the card.
+- **Colours.** The card takes the theme's `sticky` colour and the text its `stickyText` colour
+  (`#fff59d` and `#1f2328` in the light themes; `fill` and `color` override them). The text stays
+  near-black in the dark themes too: a sticky is paper, not a surface of the theme. A soft shadow
+  lies 3 px under the card, black at 15 %; the card has an outline only when `stroke` is styled
+  (with `width` and `line`), and corners of `radius` 2.
+- **Alignment.** `textAlign` (`center` by default) and `verticalAlign` (`middle`) place the text
+  within the card inside the padding. An `icon` sits at the top left, inside the padding, on a row
+  of its own above the text (`iconColor`, `iconSize`).
+- **Styles.** A sticky takes `fill`, `stroke`, `color`, `line`, `width`, `fontSize`, `fontWeight`,
+  `textAlign`, `verticalAlign`, `radius`, `rotation`, `opacity`, `icon`, `iconColor` and
+  `iconSize`. `shape` is `prop.invalid-value`, naming `node` and `box`, and so are `pattern`,
+  `iconPosition`, `labelPosition` and the relation properties. `rule sticky { … }` styles every
+  sticky; the block takes `description`, `class`, `layer`, `link` and `url`.
+- **As an object.** A sticky takes `place`, `size`, ports, the constraints, z-order and rotation
+  as a box does. It is a relation endpoint: connectors, magnets, ports, `layout.overlap` and the
+  label audit treat the card as a rectangle. It is an element of stories and takes a pulse, and a
+  moving dash on its card once a `style`, a class or a `rule` of the diagram gives it a `stroke`
+  (its fill is no outline; without one the dash is `animate.invalid-target`). Under a sketched
+  theme its text is drawn in the hand font, and a styled
+  outline is painted by hand like a box's.
+
+`sticky s` without its text is `prop.invalid-value` with the hint `sticky <id> "Text"`. Flow,
+sequence and C4 diagrams refuse `sticky` with `prop.unknown`. In the editor, the sticky tool
+creates one with its editor open, and typing wraps the text as the card will
+([the editor](../editor.md#whiteboard-tools)).
+
 ## Groups and interior coordinates
 
 The `place` of an object inside a group is relative to the group's **interior**: the group's
@@ -259,9 +329,10 @@ placement {
 }
 ```
 
-- A group needs a `place`. Without `size` it takes `groupPadding + rightmost child edge +
-groupPadding` by `header + lowest child edge + groupPadding`, measured from the interior; a
-  titled group is never narrower than its title.
+- A group needs a `place`, unless a list places it ([below](#lists)). Without `size` it takes
+  `groupPadding + rightmost child edge + groupPadding` by
+  `header + lowest child edge + groupPadding`, measured from the interior; a titled group is never
+  narrower than its title.
 - Top-level objects and route waypoints use diagram coordinates.
 - `LayoutResult.origins` gives every child's interior origin, so hosts convert between drawn and
   written positions.
@@ -303,6 +374,83 @@ diagram nested: free {
 Flow diagrams draw untitled groups the same way, in every layout mode; the engine leaves
 `groupPadding` above their children. An empty label with a `description` or an icon keeps the
 band, which then holds them.
+
+### Lists
+
+A group whose block writes `layout column` or `layout row` is a **list**: it places its children
+itself, one after the other in source order, as the columns of a kanban board hold their cards. A
+row of columns is the board:
+
+```text
+diagram board: free {
+  preset board
+
+  group kanban "" {
+    layout row
+    spacing 24
+    align stretch
+
+    group todo "To do" {
+      layout column
+      spacing 12
+      sticky cache "Cache the catalogue"
+      sticky retry "Retry payments once"
+    }
+    group doing "Doing" {
+      layout column
+      spacing 12
+      sticky search "Search by SKU"
+    }
+    group done "Done" {
+      layout column
+      spacing 12
+      sticky login "Sign in with passkeys"
+      sticky orders "Export orders as CSV"
+      sticky audit "Keep an audit log"
+    }
+  }
+
+  placement {
+    place kanban at (360, 300)
+  }
+
+  style retry, orders { fill "#f8bbd0" }
+}
+```
+
+The group block's `layout` is the group's own arrangement; the diagram's
+`layout manual|assisted|auto` is another statement.
+
+- **Order.** The list places its elements and groups in source order along its axis, from its
+  interior origin: a column from top to bottom, a row from left to right, each child where the
+  previous one ends plus `spacing`. Moving a declaration in the file moves the card.
+- **Spacing.** `spacing <n>` is the distance between two children, 0 to 400; half `groupPadding`
+  (8 in the technical themes) when it is not written.
+- **Alignment.** `align` places the children across the axis: `start` (the default) at the start
+  of the interior, `center` in its middle, `end` at its end, and `stretch` makes a child without a
+  written `size` as wide as the interior in a column, or as tall in a row. `align stretch` on a row
+  of columns draws the columns at one height.
+- **Sizes.** Each child keeps its written `size` or its default size. Without `size` a list is
+  derived from its children as any group is; a written `size` is its least size, and the list
+  grows when its children need more, so a column of ten cards never hides eight.
+- **Places.** A `place` on a child of a list is `layout.place-ignored` (warning), on the `place`
+  statement, with the hint to remove it or the group's `layout`; the child is drawn where the list
+  puts it. A list inside a list needs no `place`. A group that is not a list, inside a list, places
+  its own children with `place` as usual.
+- **Lines and pens.** A line or a pen inside a list keeps its written points in the list's
+  interior: the list does not arrange it, and its box counts for the list's size.
+- **Layout modes.** The layout engine treats a list as one box of its size in every mode and never
+  arranges its children. In `layout auto` it arranges the list with the other boxes, and
+  `meltemi-diagrams layout` and the Arrange commands write a `place` for the list, nothing for its
+  children and no `size` for the list, whose size stays derived from its children.
+- **Mistakes.** `spacing` or `align` without `layout` is `prop.invalid-value`, with the hint to
+  write `layout column` or `layout row`. Another value (`layout grid`) is `prop.invalid-value`
+  listing the values, and `layout auto` in a group block says that it is a statement of the
+  diagram. In an element block the three are `prop.unknown`; flow diagrams refuse them with
+  `prop.invalid-value`, naming free diagrams.
+
+In the editor, a card dragged over a list shows where it will go and the others make room; the
+drop moves its declaration ([the editor](../editor.md#whiteboard-tools)).
 
 ## Lines
 
@@ -349,9 +497,10 @@ diagram phases: free {
   at the middle of the line, and `label <id> at <n>% [offset (dx, dy)]` moves it.
 - **Styles.** A line takes the properties of a relation: `stroke` (the theme's `connector` by
   default), `width` (`connectorWidth`), `line` (`dashed`, `dotted`), `arrowhead` and `arrowtail`
-  (none by default), `routing` (`polyline` by default, `orthogonal`, `bezier`), `corners`, and
-  `color`, `fill` and `icon` for its pill. A box's properties (`shape`, `radius`, `pattern`,
-  `iconPosition`, `labelPosition`, `iconSize`, the text properties) are `prop.invalid-value`.
+  (none by default), `routing` (`polyline` by default, `orthogonal`, `bezier`), `corners`,
+  `color`, `fill` and `icon` for its pill, and `opacity`. A box's properties (`shape`, `radius`,
+  `pattern`, `iconPosition`, `labelPosition`, `iconSize`, the text properties) are
+  `prop.invalid-value`.
   `rule line { … }` styles every line; its block takes `description`, `class`, `layer` and `url`.
 - **Routing.** The points are the line's anchors and waypoints; how `orthogonal` and `bezier` go
   through them is in [layout.md](layout.md#connectors). A line has no lanes or detours and takes
@@ -370,6 +519,92 @@ diagram phases: free {
 Flow, sequence and C4 diagrams refuse `line` with `prop.unknown`; there, a line between two boxes
 is a relation written `--` or `---`.
 
+## Pen strokes
+
+A `pen` is a freehand stroke: a word written by hand, an arrow drawn on a whiteboard, a circle
+around a box, a highlighter mark under a heading. Its points are in the statement, so it needs no
+`place`:
+
+```text
+diagram explain: free {
+  preset board
+  theme "sketch.light"
+
+  pen marker [(40, 70), (280, 70)]
+  text heading "Why the cache helps"
+  box api "API"
+  box db "Orders DB"
+
+  pen arrow [(216, 140), (250, 128.5), (290, 130), (336, 140)]
+  pen dot [(400, 60)]
+
+  group notes "Notes" {
+    text remark "Reads hit the cache first"
+    pen underline [(0, 24), (90, 27.5), (180, 25)]
+  }
+
+  placement {
+    place heading at (160, 60)
+    place api at (120, 140)
+    place db at (440, 140)
+    place notes at (280, 300)
+    size notes (260, 120)
+    place remark at (100, 8)
+  }
+
+  style marker { stroke highlight; width 20; opacity 0.35 }
+  style arrow { width 4; arrowhead triangle }
+  style dot { width 8; stroke danger }
+  style remark { fontSize 14 }
+  animate arrow { effect trace }
+}
+```
+
+- **Points.** `pen <id> [(x, y), (x, y), …]` lists at least one tuple of two numbers without
+  units; decimals are kept (`128.5`), and the list continues across lines as a `via` list does.
+  The points are in the interior coordinates of the pen's group, as a line's are: `underline`
+  above is drawn under `remark` and moves with `notes`. A missing or empty list, or an item that
+  is not such a tuple (`pen p [10, 20, 30]`), is `prop.invalid-value` with the form in the hint. A
+  pen has no label: a string after its id is `prop.invalid-value`. `place`, `size` and `rotation`
+  are refused on a pen, with the hint that its points are written in its statement.
+- **The curve.** A stroke is one path: from the first point, a quadratic curve to the midpoint of
+  each pair of consecutive points, with the point they share as its control, then straight to the
+  last point, with round caps and joins and no fill. Two points are a segment; one point, or
+  points that all coincide, a dot as wide as the stroke. The canvas, `export`, the player and the
+  video draw the same curve. The box of a pen is the bounding box of its points grown by half its
+  width on every side.
+- **Styles.** `stroke` (the theme's `ink` by default), `width` (1 to 64, 3 by default; `width 0`
+  is `prop.invalid-value`), `line` (`dashed`, `dotted`), `opacity` (0 to 1), and `arrowhead` and
+  `arrowtail` (none by default), which are cut from the stroke and drawn along its end segments as
+  a line's heads are. Every other style property (`fill`, `shape`, `radius`, `pattern`, `routing`,
+  `corners`, the icon and text properties) is `prop.invalid-value`, naming the ones a pen takes.
+  `rule pen { … }` styles every pen, its heads included; the block takes `description`, `class`,
+  `layer`, `link` and `url`.
+- **The highlighter.** A highlighter mark is a pen with `stroke highlight; width 20; opacity 0.35`:
+  the theme's `highlight` colour (`#ffe600` in the light themes, `#ffd600` in the dark ones) at
+  35 %. It is one path, so a stroke that crosses itself does not darken where it overlaps, and
+  the text under it stays readable. Declare it before the text it marks, as `mark` above, or put
+  it on a back layer, so the text is painted over it.
+- **Effects.** `flow`, `dash`, `pulse` and `trace` run along a pen as along a line, from its first
+  point to its last ([motion.md](motion.md)); a story's `draw` replays it as if drawn again
+  ([stories.md](stories.md)).
+- **Order and checks.** A pen is an object: on its layer, it is painted in source order with the
+  boxes. Its box counts for marquee selection, a group derived from its children and the canvas
+  size, but a pen takes no part in the composition checks (`layout.overlap`,
+  `layout.connector-crossing`, the label audit), so a stroke may cross boxes and labels. A list
+  does not arrange it: a pen inside a list keeps its points ([above](#lists)).
+- **Sketched themes.** `sketch light` and `sketch rough` paint a pen as written, without their two
+  passes: a stroke already drawn by hand, jittered twice, would be another drawing.
+- **Formatting.** `meltemi-diagrams format` prints a pen's list on one line when the statement
+  fits in 100 columns, and filled over several lines otherwise, so a stroke of forty points takes
+  a few lines ([formatting.md](formatting.md)).
+- **In the editor.** The Pen and the Highlighter draw strokes on the canvas and write them as
+  `pen` statements, simplified and rounded to a tenth, and the Eraser removes the strokes it
+  crosses ([the editor](../editor.md#whiteboard-tools)).
+
+Flow, sequence and C4 diagrams refuse `pen` with `prop.unknown`, with the hint that pens belong to
+free diagrams.
+
 ## Layers and order
 
 ```text
@@ -381,12 +616,12 @@ text label "Front" { layer front }
 `layers` lists layers from back to front. `main` always exists and comes last when it is not
 listed; objects and relations without `layer` are on it. An undeclared layer is
 `ref.unknown-layer`. The scene is painted layer by layer; within a layer, groups first (outer
-before inner), then the other objects in source order, lines included, then relations. Boxes and groups on
-different layers are not checked against each other, and a connector neither goes around nor is
-reported crossing a box on another layer than its own. In the editor, bring to front and send to
-back move the declaration within its block, and the Layers panel adds, renames, hides and removes
-layers. Flow diagrams take `layers` and `layer` with the same rules; sequence diagrams and C4
-views refuse them.
+before inner), then the other objects in source order, lines and pens included, then relations.
+Boxes and groups on different layers are not checked against each other, and a connector neither
+goes around nor is reported crossing a box on another layer than its own. In the editor, bring to
+front and send to back move the declaration within its block, and the Layers panel adds, renames,
+hides and removes layers. Flow diagrams take `layers` and `layer` with the same rules; sequence
+diagrams and C4 views refuse them.
 
 **Stacks.** A box declared after a box of its layer that holds it, strictly inside it, is painted
 over it and is not `layout.overlap`: a stack is written outer first. Declared the other way round,
@@ -484,12 +719,14 @@ between the views.
 
 | Mode               | Free diagrams                                                                                                                                            |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `manual` (default) | Every object and group has a `place`.                                                                                                                    |
+| `manual` (default) | Every object and group has a `place`, but what a list places.                                                                                            |
 | `assisted`         | Placed objects stay; ELK arranges the others. A group with placed children needs a `place`; a placed and sized group is neither arranged nor in the way. |
-| `auto`             | ELK arranges everything; groups fit their children. Writing it down gives groups a place and a size.                                                     |
+| `auto`             | ELK arranges everything; groups fit their children, and a list is one box. Writing it down gives groups a place and a size.                              |
 
-`meltemi-diagrams layout` and the editor's Arrange commands write children relative to their
-group and give every group a `place` and a `size`.
+In every mode, lines and pens keep their written points and lists place their children
+([Lists](#lists)). `meltemi-diagrams layout` and the editor's Arrange commands write children
+relative to their group and give every group a `place` and a `size`, but write no `place` for
+what a list places and no `size` for a list.
 
 ## Converting a flow diagram
 

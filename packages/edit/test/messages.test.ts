@@ -278,6 +278,37 @@ describe("the reasons of refused edits", () => {
       "Los elementos de una vista C4 están donde sus entidades están en el modelo; no se mueven entre grupos.",
     ],
     [
+      "a place for a card moved into a list",
+      'diagram s: free {\n  group todo "To do" { layout column }\n  sticky c "C"\n}\n',
+      { kind: "moveElement", diagram: "s", element: "c", parent: "todo", at: { x: 1, y: 2 } },
+      "`todo` es una lista, que coloca a sus hijos: `c` entra en una posición, no en un punto.",
+    ],
+    [
+      "an index that is not a position",
+      'diagram s: free {\n  group todo "To do" { layout column }\n  sticky c "C"\n}\n',
+      { kind: "moveElement", diagram: "s", element: "c", parent: "todo", index: -1 },
+      "`-1` no es una posición entre las declaraciones de un bloque; las posiciones son números enteros desde 0.",
+    ],
+    [
+      "a layout on a new box",
+      'diagram s: free {\n  box a "A"\n}\n',
+      { kind: "createElement", diagram: "s", elementKind: "box", layout: "column" },
+      "Solo un grupo admite `layout`, no una caja.",
+    ],
+    [
+      "spacing on a group that is not a list",
+      'diagram s: free {\n  group g "G" { }\n}\n',
+      {
+        kind: "setElementProperty",
+        diagram: "s",
+        target: "g",
+        targetKind: "element",
+        property: "spacing",
+        value: 8,
+      },
+      "`spacing` ordena los hijos de una lista; escribe `layout column` o `layout row` primero.",
+    ],
+    [
       "an unknown shape",
       checkout,
       { kind: "createElement", diagram: "checkout", elementKind: "node", shape: "blob" },
@@ -444,6 +475,11 @@ describe("the reasons of refused edits", () => {
       'diagram d: flow {\n  group g "G" {\n    a["A"]\n  }\n}\ndiagram e: flow {\n  x["X"] { link d.g }\n}\n';
     expect(planned(linked, { kind: "ungroup", diagram: "d", group: "g" }).notes).toEqual([
       "Se quitó de otros diagramas el enlace a `g`.",
+    ]);
+    const told =
+      'diagram d: flow {\n  group g "G" {\n    a["A"]\n  }\n}\nstory s for d {\n  scene one {\n    reveal g, a\n  }\n}\n';
+    expect(planned(told, { kind: "ungroup", diagram: "d", group: "g" }).notes).toEqual([
+      "Se quitó `g` de una acción de historia.",
     ]);
   });
 

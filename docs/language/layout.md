@@ -36,6 +36,8 @@ diagram checkout: flow {
   - The first ignored `place`, or `route` with waypoints, is reported once as
     `layout.placement-ignored`, with the hint to use `layout assisted`.
   - `size`, `label`, the ports of `route` statements, constraints and styles apply as usual.
+  - In free diagrams, a list is arranged as one box and keeps its children in its order, and lines
+    and pens keep their written points ([free.md](free.md#lists)).
   - Connectors follow the engine's orthogonal routes.
 - **`assisted`**:
   - The engine arranges the whole graph.
@@ -85,7 +87,9 @@ assisted` draws them;
   the bends they had before it, each within 1 px.
 
 In free diagrams both also write a `place` and a `size` for every arranged group, and the places
-of group children relative to the group's interior.
+of group children relative to the group's interior. A list (`layout column|row` in a group block)
+is arranged as one box: it gets a `place` and keeps its derived size, and nothing is written for
+the children it places ([free.md](free.md#lists)).
 
 Both turn `layout auto` into `layout assisted`, so the file keeps the picture. Other options:
 
@@ -197,6 +201,18 @@ composition checks between boxes leave it out: its points are where you wrote th
 points coincide is drawn as a dot of its width and reported as `layout.degenerate-line`
 (warning).
 
+**Pen strokes.** A `pen` ([free.md](free.md#pen-strokes)) is drawn beside the lines, but it is
+not routed: its written points, moved by its parent's interior origin, are joined by one smooth
+path through the midpoints of consecutive points, whatever the `routing`. It takes no lane, no
+detour and no gap, no engine moves it, and the composition checks leave it out. One point, or
+points that coincide, draw a dot, without a warning. Its heads are `arrowtail` and `arrowhead`,
+cut along its end segments as a line's are.
+
+**Lists.** A group that writes `layout column` or `layout row` places its own children in source
+order ([free.md](free.md#lists)), before any connector is drawn: a connector between two cards of
+a list ends where the list puts them. The engine sees a list as one box of its derived size in
+every mode, with the relations to what it holds ending on it, and never arranges inside it.
+
 **Turned elements.** A connector meets an element turned by `rotation` on its turned outline. A
 free end is routed to the turned drawing's bounding box, like any box, and slides from that box's
 side onto the outline. A named port or a pinned point (`api.north 30%`) is found on the unturned
@@ -248,7 +264,8 @@ After every layout the scene is checked. Each finding is a warning on the later 
 `layout.connector-overlap` also keeps the primary flow (`->`) apart from secondary dependencies
 (`-->`); ELK already routes primary relations straighter. Notes and tags are annotations that you
 place on boxes on purpose, so their boxes are not checked; their text still must not cover other
-text. In free diagrams, texts, icons and images are annotations too.
+text. In free diagrams, texts, icons and images are annotations too, and lines and pens are left
+out of the checks: a stroke may cross boxes and labels. A sticky is checked as a box.
 
 - **Stacks.** A box declared after a box of its layer that holds it, strictly inside it, is a
   deliberate stack, drawn over it, and is not reported; a partial overlap is, and so are two boxes

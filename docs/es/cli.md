@@ -77,13 +77,15 @@ pnpm mdg init architecture --template purchase
 rango de versiones de esta CLI) y las hojas de la plantilla, e imprime los siguientes comandos.
 Nunca reemplaza un archivo: si alguno ya existe, no se escribe nada.
 
-| Plantilla  | Hojas                                                                                                                                                                                            |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `flow`     | `diagrams/overview.meltemi`: un primer diagrama de flujo (la predeterminada)                                                                                                                     |
-| `c4`       | `models/system.meltemi` y `diagrams/views.meltemi`: un modelo, una vista de contexto y una de contenedores                                                                                       |
-| `sequence` | `diagrams/sign-in.meltemi`: una secuencia con un escenario para cada resultado                                                                                                                   |
-| `free`     | `diagrams/slide.meltemi`: una diapositiva 16:9 con texto, cajas, un icono y un grupo                                                                                                             |
-| `purchase` | El ejemplo de referencia: modelo, vistas de contexto y de contenedores, secuencia de pago con escenarios, diapositiva ejecutiva, historia animada, perfiles PDF, PNG y MP4, ajustes del catálogo |
+| Plantilla    | Hojas                                                                                                                                                                                            |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `flow`       | `diagrams/overview.meltemi`: un primer diagrama de flujo (la predeterminada)                                                                                                                     |
+| `c4`         | `models/system.meltemi` y `diagrams/views.meltemi`: un modelo, una vista de contexto y una de contenedores                                                                                       |
+| `sequence`   | `diagrams/sign-in.meltemi`: una secuencia con un escenario para cada resultado                                                                                                                   |
+| `free`       | `diagrams/slide.meltemi`: una diapositiva 16:9 con texto, cajas, un icono y un grupo                                                                                                             |
+| `kanban`     | `diagrams/board.meltemi`: un tablero de tres columnas de notas adhesivas (`preset board`)                                                                                                        |
+| `whiteboard` | `diagrams/whiteboard.meltemi`: una pizarra a mano alzada con trazos de lápiz, una marca de marcador, notas adhesivas y una historia que los dibuja                                               |
+| `purchase`   | El ejemplo de referencia: modelo, vistas de contexto y de contenedores, secuencia de pago con escenarios, diapositiva ejecutiva, historia animada, perfiles PDF, PNG y MP4, ajustes del catálogo |
 
 `--list` imprime cada una con su título, para qué sirve y lo que contiene, como las muestra Nuevo
 proyecto en el playground, por ejemplo `Modelo C4 — Un modelo de arquitectura con una vista de

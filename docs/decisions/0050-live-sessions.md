@@ -1,6 +1,7 @@
 # 0050. Live sessions: anyone with the link edits together, visitors follow live
 
-Status: accepted (live-sessions change, 21 October 2026). Amends decision 0042.
+Status: accepted (live-sessions change, 21 October 2026). Amends decision 0042. Strokes drawn by
+guests appear to the room while they are drawn, by [decision 0064](0064-whiteboard-tools.md).
 
 ## Context
 

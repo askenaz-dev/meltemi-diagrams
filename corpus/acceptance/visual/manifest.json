@@ -1,6 +1,6 @@
 {
-  "browser": "Edg/156.0.4314.42",
-  "recorded": "2026-10-24",
+  "browser": "Edg/156.0.4314.50",
+  "recorded": "2026-10-28",
   "tolerance": {
     "channel": 16,
     "ratio": 0.001,
@@ -31,6 +31,7 @@
     "c4/thirty",
     "free/cycles",
     "free/icons",
+    "free/kanban",
     "free/lines",
     "free/long-labels",
     "free/nested",
@@ -38,6 +39,7 @@
     "free/shapes",
     "free/sketch",
     "free/stacked",
-    "free/thirty"
+    "free/thirty",
+    "free/whiteboard"
   ]
 }

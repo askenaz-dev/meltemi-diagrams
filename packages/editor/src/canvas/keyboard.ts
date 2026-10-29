@@ -51,6 +51,23 @@ export type CanvasCommand =
   | "createText"
   | "createIcon"
   | "createImage"
+  /** Free diagrams: a sticky near the centre, with its editor open. */
+  | "createSticky"
+  /** Free diagrams: the pen, which stays armed after each stroke. */
+  | "penTool"
+  /** Free diagrams: the pen with the highlighter's colour, width and opacity. */
+  | "highlighterTool"
+  /** Free diagrams: the eraser, which deletes the pens it crosses. */
+  | "eraserTool"
+  /**
+   * Free diagrams: after the selected child of a list, what the list's **+** adds at its end (a
+   * sticky in a column, a column in a row).
+   */
+  | "addToList"
+  /** Free diagrams: the selected child of a list before its neighbour in the list's order. */
+  | "moveInListBefore"
+  /** Free diagrams: the selected child of a list after its neighbour in the list's order. */
+  | "moveInListAfter"
   /** The grid of the twenty-four shapes of the box (free) or node (flow) button. */
   | "openShapes"
   | "bringToFront"
@@ -163,6 +180,16 @@ export const KEY_BINDINGS: readonly KeyBinding[] = [
   bind({ key: "t", command: "createText", profile: "free" }),
   bind({ key: "i", command: "createIcon", profile: "free" }),
   bind({ key: "m", command: "createImage", profile: "free" }),
+  // The whiteboard: S, P, H and E are the words' initials, free on the free profile (S and P
+  // belong to the data store in flow and to participants in sequence diagrams).
+  bind({ key: "s", command: "createSticky", profile: "free" }),
+  bind({ key: "p", command: "penTool", profile: "free" }),
+  bind({ key: "h", command: "highlighterTool", profile: "free" }),
+  bind({ key: "e", command: "eraserTool", profile: "free" }),
+  bind({ key: "Enter", primary: true, command: "addToList", profile: "free" }),
+  // Up and Down in a row as in a column: Alt+Left and Alt+Right belong to the workbench.
+  bind({ key: "ArrowUp", alt: true, command: "moveInListBefore", profile: "free" }),
+  bind({ key: "ArrowDown", alt: true, command: "moveInListAfter", profile: "free" }),
   // F, not S, opens the shapes: S is the data store in flow; sequence diagrams keep F for fragments.
   bind({ key: "f", command: "openShapes", profile: "flow" }),
   bind({ key: "f", command: "openShapes", profile: "free" }),

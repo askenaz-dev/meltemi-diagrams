@@ -52,6 +52,13 @@ export const GALLERY_SHEETS = [
     about:
       "The `sketch.light` theme paints every stroke by hand in two passes while the text stays crisp; a dashed free line divides what runs today from what comes next.",
   },
+  {
+    profile: "free",
+    file: "free/whiteboard.meltemi",
+    title: "Free: a whiteboard",
+    about:
+      "A board that grows with its content (`preset board`): a highlighter mark under the heading, a row of two lists of stickies that place themselves, and pen strokes drawn by hand, each a `pen` with its points.",
+  },
 ] as const;
 
 /** The example's exports, by what they show. */

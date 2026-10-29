@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="764" height="635" viewBox="0 0 764 635" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Sprint retrospective</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="764" height="635" fill="#F7FBFF"/>
+  <g data-id="well" data-role="element">
+    <rect x="44" y="93.5" width="192" height="388" rx="14" fill="#EAF1F8" stroke="#C9D6E3" stroke-width="1"/>
+    <text x="64" y="116.23" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">Went well</text>
+  </g>
+  <g data-id="improve" data-role="element">
+    <rect x="264" y="93.5" width="192" height="388" rx="14" fill="#EAF1F8" stroke="#C9D6E3" stroke-width="1"/>
+    <text x="284" y="116.23" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">To improve</text>
+  </g>
+  <g data-id="marker" data-role="element" opacity="0.35">
+    <path d="M 212 49.5 Q 261.3 48.2 286 48.2 Q 310.7 48.2 335.35 48.85 Q 360 49.5 384.65 50.15 Q 409.3 50.8 434 50.8 Q 458.7 50.8 483.35 50.15 L 508 49.5" fill="none" stroke="#ffe600" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g data-id="heading" data-role="element">
+    <text x="205.5" y="47.69" text-anchor="start" font-size="28" font-weight="700" fill="#0B1830">Sprint 12 retrospective</text>
+  </g>
+  <g data-id="deploys" data-role="element">
+    <rect x="60" y="136.5" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="60" y="133.5" width="160" height="160" rx="2" fill="#c8e6c9" stroke="none" stroke-width="0"/>
+    <text x="140" y="209.42" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Deploys took ten</text>
+    <text x="140" y="228.92" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">minutes</text>
+  </g>
+  <g data-id="pairing" data-role="element">
+    <rect x="60" y="308.5" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="60" y="305.5" width="160" height="160" rx="2" fill="#c8e6c9" stroke="none" stroke-width="0"/>
+    <text x="140" y="381.42" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Pairing on the</text>
+    <text x="140" y="400.92" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">checkout</text>
+  </g>
+  <g data-id="flaky" data-role="element">
+    <rect x="280" y="136.5" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="280" y="133.5" width="160" height="160" rx="2" fill="#f8bbd0" stroke="none" stroke-width="0"/>
+    <text x="360" y="209.42" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Flaky end-to-end</text>
+    <text x="360" y="228.92" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">tests</text>
+  </g>
+  <g data-id="reviews" data-role="element">
+    <rect x="280" y="308.5" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="280" y="305.5" width="160" height="160" rx="2" fill="#f8bbd0" stroke="none" stroke-width="0"/>
+    <text x="360" y="381.42" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Reviews waited</text>
+    <text x="360" y="400.92" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">two days</text>
+  </g>
+  <g data-id="arrow" data-role="element">
+    <path d="M 468 207.5 Q 480.8 197.7 487.2 194.35 Q 493.6 191 500 190.2 Q 506.4 189.4 512.8 191.15 Q 519.2 192.9 521.6 194.14 L 524 195.38" fill="none" stroke="#0B1830" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M532 199.5 L522.2 198.88 L525.81 191.88 Z" fill="#0B1830" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="action" data-role="element">
+    <text x="591.5" y="188.55" text-anchor="start" font-size="18" font-weight="600" fill="#0B1830">Quarantine</text>
+    <text x="591.5" y="211.55" text-anchor="start" font-size="18" font-weight="600" fill="#0B1830">flaky tests</text>
+  </g>
+  <g data-id="circle" data-role="element">
+    <path d="M 546 175.7 Q 555.7 162 566.05 157 Q 576.4 152 589.3 149.45 Q 602.2 146.9 615.1 145.3 Q 628 143.7 641.5 142.65 Q 655 141.6 668.9 142.9 Q 682.8 144.2 693.95 148.7 Q 705.1 153.2 712.5 159.2 Q 719.9 165.2 725.9 171.3 Q 731.9 177.4 736.75 184.15 Q 741.6 190.9 741.45 198.2 Q 741.3 205.5 734.75 212 Q 728.2 218.5 718.55 223.5 Q 708.9 228.5 698.85 232.95 Q 688.8 237.4 677.05 241.25 Q 665.3 245.1 651.35 246.25 Q 637.4 247.4 624.05 245.2 Q 610.7 243 599.3 239.25 Q 587.9 235.5 577.1 231.4 Q 566.3 227.3 556.75 222.05 Q 547.2 216.8 542.75 209.8 L 538.3 202.8" fill="none" stroke="#B91C1C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g data-id="parked" data-role="element" transform="rotate(3 640 397.5)" opacity="0.5">
+    <rect x="560" y="320.5" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="560" y="317.5" width="160" height="160" rx="2" fill="#e1bee7" stroke="none" stroke-width="0"/>
+    <text x="640" y="393.42" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Parked: a new</text>
+    <text x="640" y="412.92" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">design system</text>
+  </g>
+  <g data-id="divider" data-role="element">
+    <polyline points="20,517.5 740,517.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="next" data-role="element">
+    <text x="217" y="565.14" text-anchor="start" font-size="21" font-weight="600" fill="#526579">Next retrospective in two weeks</text>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,591.5 744,591.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 601) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="617.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="744" y="617" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Sprint retrospective</text>
+  </g>
+</svg>

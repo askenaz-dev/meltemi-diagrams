@@ -11,6 +11,7 @@ import {
   ENTITY_TYPE_NAMES,
   ICON_SIZE_RANGE,
   MAIN_LAYER,
+  PEN_WIDTH_RANGE,
   takesRotation,
 } from "@meltemi/diagrams-model";
 import type {
@@ -21,6 +22,7 @@ import type {
   LabelEntry,
   LayoutMode,
   LinePoints,
+  PenPoints,
   Point,
   PortSide,
   Relation,
@@ -77,7 +79,18 @@ import {
   shiftMarker,
   type MarkerPart,
 } from "./markers.js";
-import { freeFrames, groupHeaderOf, isUntitledGroup, paintOrder, parentOf } from "./free.js";
+import {
+  freeFrames,
+  groupHeaderOf,
+  isList,
+  isUntitledGroup,
+  listHolders,
+  listPlaces,
+  paintOrder,
+  parentOf,
+  type FreeFrames,
+  type ListArrangement,
+} from "./free.js";
 import { layoutSequence } from "./sequence.js";
 import { IconPainter } from "./icons.js";
 import { brandFrame } from "./frame.js";
@@ -88,6 +101,7 @@ import {
   type PolylineItem,
   type RectItem,
   type Scene,
+  type SceneClip,
   type SceneGradient,
   type SceneItem,
   type ScenePattern,
@@ -117,7 +131,7 @@ import {
   type ShapeSize,
 } from "./shapes.js";
 import { StyleResolver, type PatternKind, type ResolvedStyle } from "./styles.js";
-import { splitLines } from "./text.js";
+import { splitLines, wrapLines } from "./text.js";
 import {
   DEFAULT_THEME_NAME,
   THEMES,
@@ -177,6 +191,23 @@ export interface LayoutResult {
   /** The route of every relation, by relation key, in diagram coordinates. */
   readonly connectors?: ReadonlyMap<string, ConnectorGeometry>;
   /**
+   * Free diagrams: every pen stroke by its id, in diagram coordinates. Its box in `boxes` is its
+   * `bounds`, which marquee selection and derived groups use.
+   */
+  readonly pens?: ReadonlyMap<string, PenGeometry>;
+  /**
+   * Free diagrams: how the text of every sticky is drawn, by its id, in diagram coordinates: the
+   * room it is wrapped in and the font size it shrank to, which editors that type over the card
+   * take so that their text wraps as the card's does.
+   */
+  readonly stickies?: ReadonlyMap<string, StickyText>;
+  /**
+   * Free diagrams: every list group (`layout column|row`) by its id: its layout, spacing and
+   * alignment with their defaults, the children it places in their order, and its interior origin,
+   * in diagram coordinates. The children's drawn boxes are in `boxes`, as any group child's.
+   */
+  readonly lists?: ReadonlyMap<string, ListGeometry>;
+  /**
    * Free diagrams: the interior origin of the parent group of every group child, in diagram
    * coordinates. A child's written `place` is its centre minus this origin. Empty for flow.
    */
@@ -188,9 +219,10 @@ export interface LayoutResult {
   /**
    * The drawn shape of every element box but groups', when there is a scene: the `shape` of a free
    * box or a flow node, a decision's diamond, a data store's cylinder, a C4 person's person, a
-   * tag's pill, and `rounded` for the others. Hosts pass it with the box to `shapeOutline`,
-   * `onOutline`, `shapeMagnets` and `pointInShape`. Sequence diagrams give their box-kind heads:
-   * `cylinder` for databases, `rounded` for the others; figures have none.
+   * tag's pill, a sticky's `rectangle` (its card, with its radius in `radii`), and `rounded` for
+   * the others. Hosts pass it with the box to `shapeOutline`, `onOutline`, `shapeMagnets` and
+   * `pointInShape`. Sequence diagrams give their box-kind heads: `cylinder` for databases,
+   * `rounded` for the others; figures have none.
    */
   readonly shapes?: ReadonlyMap<string, BoxShape>;
   /**
@@ -229,6 +261,64 @@ export interface ConnectorGeometry {
   readonly via: readonly Point[];
 }
 
+/** Where a pen stroke is drawn, for editors. */
+export interface PenGeometry {
+  /** Its written points moved by the interior origin of its group: where it is drawn. */
+  readonly points: readonly Point[];
+  /** The box of the points grown by half the stroke's width on every side. */
+  readonly bounds: Box;
+  /** The stroke's resolved width. */
+  readonly width: number;
+}
+
+/** The width of a pen stroke whose style writes none. */
+export const DEFAULT_PEN_WIDTH = 3;
+
+/**
+ * How a list group arranges its children, for editors: its `layout`, its `spacing` (half the
+ * theme's `groupPadding` when not written) and its `align` (`start` when not written), the
+ * children it places in source order (its elements and groups; its lines and pens keep their
+ * points), and where its first child starts.
+ */
+export interface ListGeometry extends ListArrangement {
+  /** The list's interior origin, in diagram coordinates: inside its padding, below its header. */
+  readonly origin: Point;
+}
+
+/** How the text of a sticky is drawn, for editors. */
+export interface StickyText {
+  /**
+   * The room the text is wrapped in and aligned within: the card inside the theme's `padding`,
+   * right of its icon when it has one. Unturned, as the card's box is.
+   */
+  readonly area: Box;
+  /** The font size the lines are drawn at: `fontSize` or 1.2 times the label size, shrunk to fit. */
+  readonly size: number;
+  readonly weight: number;
+  /** The distance between two lines: 1.25 times the size. */
+  readonly line: number;
+  /** The lines as drawn: the text wrapped at the area's width. */
+  readonly lines: readonly string[];
+  readonly align: "left" | "center" | "right";
+  readonly verticalAlign: "top" | "middle" | "bottom";
+  /**
+   * Whether the lines fit the area. When they do not even at `STICKY_MIN_FONT_SIZE`, they are
+   * drawn from the area's top at that size, clipped to the card, and `layout.text-overflow` says so.
+   */
+  readonly fits: boolean;
+}
+
+/** The smallest size a sticky's text shrinks to before it is clipped to its card. */
+export const STICKY_MIN_FONT_SIZE = 8;
+/** A sticky's default font size, as a factor of the theme's label size. */
+const STICKY_FONT_SCALE = 1.2;
+/** The weight of a sticky's text when its style writes no `fontWeight`. */
+const STICKY_FONT_WEIGHT = 400;
+/** The corner radius of a sticky's card when its style writes no `radius`. */
+const STICKY_RADIUS = 2;
+/** The shadow under a sticky's card: how far down it lies, its colour and its opacity. */
+const STICKY_SHADOW = { offset: 3, color: "#000000", opacity: 0.15 } as const;
+
 /** Widest content canvas of `preset document` before `layout.too-large`. */
 export const DOCUMENT_MAX_WIDTH = 1200;
 /** The 16:9 canvas of `preset slide`. */
@@ -250,8 +340,11 @@ export const DEFAULT_SIZES: Readonly<
   text: null,
   icon: { width: 48, height: 48 },
   image: null,
-  // A free line is the bounding box of its points.
+  // A sticky is a square card that never grows for its text.
+  sticky: { width: 160, height: 160 },
+  // A free line is the bounding box of its points; a pen, of its points and its width.
   line: null,
+  pen: null,
   // Sequence heads are measured by the sequence layout.
   participant: null,
   actor: null,
@@ -438,6 +531,13 @@ interface LineGeometry {
   readonly connector: ConnectorGeometry;
 }
 
+/** A pen stroke as drawn: its points cut where its heads begin, and its heads. */
+interface PenDrawing {
+  readonly line: readonly Point[];
+  readonly start: readonly MarkerPart[];
+  readonly end: readonly MarkerPart[];
+}
+
 /** Room kept between a group's title and the connectors that pass under it. */
 const TITLE_GAP = 3;
 
@@ -571,16 +671,88 @@ function linePointsOf(line: LinePoints): Point[] {
 
 /** The box of a free line: the bounding box of its points, at least 1 wide and 1 tall. */
 function lineBox(points: readonly Point[]): Box {
-  const xs = points.map((p) => p.x);
-  const ys = points.map((p) => p.y);
-  const x = Math.min(...xs);
-  const y = Math.min(...ys);
+  const { x, y, width, height } = penBox(points, 0);
+  return { x, y, width: Math.max(1, width), height: Math.max(1, height) };
+}
+
+/**
+ * The box of a pen stroke: the bounding box of its points grown by half its width on every side.
+ * The extremes are found in one loop: a stroke may hold more points than a call takes arguments.
+ */
+function penBox(points: readonly Point[], width: number): Box {
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const p of points) {
+    if (p.x < x0) x0 = p.x;
+    if (p.y < y0) y0 = p.y;
+    if (p.x > x1) x1 = p.x;
+    if (p.y > y1) y1 = p.y;
+  }
   return {
-    x,
-    y,
-    width: Math.max(1, Math.max(...xs) - x),
-    height: Math.max(1, Math.max(...ys) - y),
+    x: x0 - width / 2,
+    y: y0 - width / 2,
+    width: x1 - x0 + width,
+    height: y1 - y0 + width,
   };
+}
+
+/** Whether every point of a stroke is its first: a dot. */
+function isDot(points: readonly Point[]): boolean {
+  const first = points[0];
+  return first !== undefined && points.every((p) => p.x === first.x && p.y === first.y);
+}
+
+/**
+ * A name as part of an XML id: letters, digits, `_`, `-` and `.` kept, anything else `_`. Ids of
+ * the language are already such names; the rule keeps a scene's ids valid whatever it is given.
+ */
+function xmlName(name: string): string {
+  return name.replace(/[^A-Za-z0-9_.-]/g, "_");
+}
+
+/** A stroke's points without a point equal to the one before it, which make no segment. */
+function withoutRepeats(points: readonly Point[]): Point[] {
+  const out: Point[] = [];
+  for (const p of points) {
+    const last = out[out.length - 1];
+    if (last === undefined || last.x !== p.x || last.y !== p.y) out.push(p);
+  }
+  return out;
+}
+
+/**
+ * The path of a pen stroke through its points, as the layout draws it: `M p0`, then for every
+ * inner point a quadratic curve to the midpoint between it and the next one, with the point as its
+ * control (`Q p_i mid(p_i, p_i+1)`), then `L p_last`; two points are one segment, and one point
+ * is `M p0 L p0`, which round caps draw as a dot. Numbers are rounded to hundredths, as the scene
+ * writes them. Hosts draw a stroke in progress with it, so it looks as it will be written.
+ */
+export function penPath(points: readonly Point[]): string {
+  const at = (p: Point) => `${round(p.x)} ${round(p.y)}`;
+  const first = points[0];
+  if (first === undefined) return "";
+  let d = `M ${at(first)}`;
+  for (let i = 1; i < points.length - 1; i++) {
+    const p = points[i]!;
+    const next = points[i + 1]!;
+    d += ` Q ${at(p)} ${at({ x: (p.x + next.x) / 2, y: (p.y + next.y) / 2 })}`;
+  }
+  return `${d} L ${at(points[points.length - 1]!)}`;
+}
+
+/** A pen's stroke width: its style's, else `DEFAULT_PEN_WIDTH`, and never below one pixel. */
+function penWidth(style: ResolvedStyle): number {
+  return Math.max(PEN_WIDTH_RANGE.min, style.width ?? DEFAULT_PEN_WIDTH);
+}
+
+/**
+ * The length of a pen's heads: the theme's arrow size, or three times the stroke's width for a
+ * thicker stroke, so the head stays wider than the stroke it ends.
+ */
+function penHeadLength(arrowSize: number, width: number): number {
+  return Math.max(arrowSize, 3 * width);
 }
 
 /** The side whose normal points most nearly from `from` towards `to`. */
@@ -918,8 +1090,8 @@ function iconDiagnostics(
 /**
  * `layout.vertical-align-ignored` for a `verticalAlign` that no element it styles uses: a box whose
  * shape draws its text at a fixed spot, a box whose icon is the centre piece (its label band is at
- * `labelPosition`), or an element that is no box. Once per statement that writes the property, or
- * once for a theme rule or class, on the diagram's `theme` (`themeRange`).
+ * `labelPosition`), or an element that is neither a box nor a sticky. Once per statement that
+ * writes the property, or once for a theme rule or class, on the diagram's `theme` (`themeRange`).
  */
 function verticalAlignDiagnostics(
   diagram: FlowDiagram,
@@ -940,7 +1112,8 @@ function verticalAlignDiagnostics(
     const box = element.kind === "box";
     const fixed = box && FIXED_TEXT_SHAPES.has(sizing.shapeOf(element));
     const centred = box && !fixed && sizing.centred(element);
-    const used = box && !fixed && !centred;
+    // A sticky's text block always moves within its card.
+    const used = (box && !fixed && !centred) || element.kind === "sticky";
     const why: Why | undefined = used
       ? undefined
       : fixed
@@ -1058,14 +1231,70 @@ function layoutDrawing(
     places.set(line.id, boxCenter(box));
     sizes.set(line.id, { width: box.width, height: box.height });
   }
+  const styles = new StyleResolver(theme, diagram);
+  // Pen strokes likewise, their box grown by half their width: a group holds the whole stroke.
+  const freePens = diagram.elements.filter(
+    (e): e is Element & { readonly pen: PenPoints } => e.kind === "pen" && e.pen !== null,
+  );
+  for (const pen of freePens) {
+    const box = penBox(pen.pen.points, penWidth(styles.element(pen)));
+    places.set(pen.id, boxCenter(box));
+    sizes.set(pen.id, { width: box.width, height: box.height });
+  }
 
   const mode = options.layout ?? diagram.properties.layout;
   const free = diagram.type === "free";
-  const unplaced = diagram.elements.filter((e) => e.kind !== "group" && !places.has(e.id));
+  // Lists (`layout column|row` on a free group) place their children, elements and groups, in
+  // order: a `place` on one is ignored and said so. What a list holds, at any depth, is held by
+  // the outermost list around it, which an engine arranges as one box.
+  const holders = free ? listHolders(diagram) : new Map<string, string>();
+  const listed = new Set(
+    diagram.elements
+      .filter((e) => {
+        const parent = parentOf(e);
+        const group = parent === null ? undefined : diagram.elementsById.get(parent);
+        return group !== undefined && isList(group) && listPlaces(e);
+      })
+      .map((e) => e.id),
+  );
+  for (const entry of diagram.placement) {
+    if (entry.statement !== "place" || !listed.has(entry.target)) continue;
+    places.delete(entry.target);
+    const list = parentOf(diagram.elementsById.get(entry.target)!)!;
+    diagnostics.push({
+      code: "layout.place-ignored",
+      severity: "warning",
+      message: words.diagnostics.placeIgnored(entry.target, list),
+      range: entry.range,
+      hints: [words.hints.placeIgnored(entry.target, list)],
+      data: { ids: [entry.target, list] },
+    });
+  }
+  // A list is one box of the arrangement; what it holds is placed by it, or by its own `place`.
+  const unplaced = diagram.elements.filter(
+    (e) => (e.kind !== "group" || isList(e)) && !holders.has(e.id) && !places.has(e.id),
+  );
   // Places are ignored in `auto` only when an engine arranges the diagram.
   const arranging =
     options.engine !== undefined &&
     (mode === "auto" ? true : mode === "assisted" && unplaced.length > 0);
+  // What a group that is not a list holds inside a list keeps its written place in every mode:
+  // no engine arranges inside a list.
+  const unplacedInLists = diagram.elements.filter(
+    (e) => holders.has(e.id) && !listed.has(e.id) && listPlaces(e) && !places.has(e.id),
+  );
+  for (const element of unplacedInLists) {
+    const list = [...element.groupPath]
+      .reverse()
+      .find((id) => isList(diagram.elementsById.get(id)!))!;
+    diagnostics.push({
+      code: "layout.missing-placement",
+      severity: "error",
+      message: words.diagnostics.unplacedInList(element.id, parentOf(element)!, list),
+      range: element.range,
+      hints: [words.hints.addPlace(element.id)],
+    });
+  }
   // Free diagrams place children inside their group, so a group must be placed when its
   // children are, and always when nothing is arranged.
   if (free && !(arranging && mode === "auto")) {
@@ -1076,6 +1305,7 @@ function layoutDrawing(
       (e) =>
         e.kind === "group" &&
         !places.has(e.id) &&
+        !holders.has(e.id) &&
         (!arranging || placedChild.has(e.id) || unplaced.length === 0),
     );
     for (const group of missing) {
@@ -1093,7 +1323,9 @@ function layoutDrawing(
   }
   if (unplaced.length > 0 && !arranging) {
     if (mode === "manual") {
+      // An unplaced list is a group without a place, reported above.
       for (const element of unplaced) {
+        if (element.kind === "group") continue;
         diagnostics.push({
           code: "layout.missing-placement",
           severity: "error",
@@ -1116,6 +1348,7 @@ function layoutDrawing(
     }
     return { scene: null, diagnostics };
   }
+  if (unplacedInLists.length > 0) return { scene: null, diagnostics };
   // A placed and sized group that holds nothing is a band: it stays where it is written, out of
   // the engine's request. In `auto` only bands at the top level, whose places are in diagram
   // coordinates, are kept.
@@ -1134,10 +1367,11 @@ function layoutDrawing(
       .map((e) => e.id),
   );
   if (arranging && mode === "auto") {
+    // What a list holds keeps its places: the engine arranges the list as one box.
     const ignored = diagram.placement
       .filter(
         (e) =>
-          (e.statement === "place" && !autoBands.has(e.target)) ||
+          (e.statement === "place" && !autoBands.has(e.target) && !holders.has(e.target)) ||
           (e.statement === "route" && e.via.length > 0),
       )
       .sort((a, b) => a.range.start.offset - b.range.start.offset)[0];
@@ -1152,7 +1386,6 @@ function layoutDrawing(
     }
   }
 
-  const styles = new StyleResolver(theme, diagram);
   const images = new Map<string, ResolvedImage | undefined>();
   for (const element of diagram.elements) {
     if (element.kind !== "image" || element.source === null) continue;
@@ -1186,7 +1419,10 @@ function layoutDrawing(
     const explicit = sizes.get(element.id);
     const size = explicit ?? sizing.defaultSize(element);
     const entry = sizeEntries.get(element.id);
-    if (explicit && entry) sizing.checkOverflow(element, explicit, entry, diagnostics);
+    // Stickies are checked at the size they are drawn, which a list may stretch.
+    if (element.kind !== "sticky" && explicit && entry) {
+      sizing.checkOverflow(element, explicit, entry, diagnostics);
+    }
     elementSizes.set(element.id, size);
   }
   // Turned elements: their angle, clockwise; 0 and 360 draw upright.
@@ -1239,12 +1475,15 @@ function layoutDrawing(
     return outlineBounds([...turnedAt(id, box), ...corners]);
   };
 
-  // Free diagrams: turn places relative to group interiors into diagram coordinates, and give
-  // every placed group its written or derived size.
-  if (free && !(arranging && mode === "auto")) {
-    const frames = freeFrames(
+  // Free diagrams: turn places relative to group interiors into diagram coordinates, give every
+  // placed group its written or derived size, and arrange the lists. In `auto` only what the lists
+  // hold keeps its places: the engine arranges each outermost list as one box.
+  const autoArranged = arranging && mode === "auto";
+  let frames: FreeFrames | undefined;
+  if (free) {
+    frames = freeFrames(
       diagram,
-      places,
+      autoArranged ? new Map([...places].filter(([id]) => holders.has(id))) : places,
       sizes,
       elementSizes,
       theme,
@@ -1255,22 +1494,56 @@ function layoutDrawing(
           ? extentAt(id, boxFromCenter({ x: 0, y: 0 }, size.width, size.height))
           : undefined,
     );
-    places.clear();
-    for (const [id, center] of frames.centers) places.set(id, center);
-    for (const [id, size] of frames.groupSizes) sizes.set(id, size);
+    // A stretched element is drawn at the size its list gives it, its outside label with it.
+    for (const [id, size] of frames.stretched) {
+      elementSizes.set(id, size);
+      const label = sizing.outsideLabel(diagram.elementsById.get(id)!, { x: 0, y: 0, ...size });
+      if (label) outside.set(id, label.box);
+    }
+    if (!autoArranged) {
+      places.clear();
+      for (const [id, center] of frames.centers) places.set(id, center);
+      for (const [id, size] of frames.groupSizes) sizes.set(id, size);
+    }
   }
+  // A sticky never grows: its text shrinks to fit its card, written, default or stretched, or is
+  // reported.
+  for (const element of diagram.elements) {
+    if (element.kind !== "sticky") continue;
+    const range = sizeEntries.get(element.id)?.range ?? element.range;
+    sizing.checkSticky(element, elementSizes.get(element.id)!, range, diagnostics);
+  }
+  // The outermost lists an engine arranges, as boxes of their arranged size.
+  const topLists = new Map<string, { width: number; height: number }>();
+  for (const element of diagram.elements) {
+    const size = frames?.sizes.get(element.id);
+    if (arranging && isList(element) && !holders.has(element.id) && size) {
+      topLists.set(element.id, size);
+    }
+  }
+  // The groups whose boxes follow the place an engine gave the list that holds them.
+  const framedGroups = new Set<string>();
 
   // Positions: placed, or arranged by the engine; fixed ones never move afterwards.
   const centers = new Map<string, Point>();
   const fixed = new Set<string>();
   let engineRoutes: ReadonlyMap<string, readonly Point[]> = new Map();
   let engineGroups: ReadonlyMap<string, Box> = new Map();
-  // `auto`: the written size of a group with children is the least size the engine gives it.
+  // `auto`: the written size of a group with children is the least size the engine gives it. A
+  // list's written size is already in its arranged one.
   const minimums = new Map<string, { width: number; height: number }>();
-  if (arranging && mode === "auto") {
+  if (autoArranged) {
     for (const element of diagram.elements) {
       const size = sizes.get(element.id);
-      if (element.kind === "group" && size && !childless(element)) minimums.set(element.id, size);
+      if (
+        element.kind === "group" &&
+        size &&
+        !childless(element) &&
+        !isList(element) &&
+        !holders.has(element.id)
+      ) {
+        minimums.set(element.id, size);
+      }
     }
   }
   if (arranging) {
@@ -1290,6 +1563,11 @@ function layoutDrawing(
     // A turned element is arranged as its drawn box.
     const extents = new Map<string, { size: ShapeSize; extent: Box }>();
     const arranged = new Map(elementSizes);
+    // A list is a box of its arranged size; a band stays out, as any band does.
+    for (const [id, size] of topLists) {
+      if (bands.has(id)) topLists.delete(id);
+      else arranged.set(id, size);
+    }
     const shifts = new Map<string, Point>();
     for (const id of new Set([...outside.keys(), ...rotations.keys()])) {
       const size = elementSizes.get(id);
@@ -1323,6 +1601,7 @@ function layoutDrawing(
         minimums,
         extents,
         mirrored,
+        holders,
       );
     try {
       arrangement = options.engine!.arrange(request(new Set()));
@@ -1353,12 +1632,37 @@ function layoutDrawing(
     }
     if (mode === "auto") {
       for (const [id, center] of arrangement.centers) centers.set(id, center);
-      engineRoutes = arrangement.routes;
+      // A relation to what a list holds was arranged to the list: its own route is drawn.
+      const held = (key: string) => {
+        const relation = diagram.relationsByKey.get(key);
+        return relation !== undefined && (holders.has(relation.from) || holders.has(relation.to));
+      };
+      engineRoutes = new Map([...arrangement.routes].filter(([key]) => !held(key)));
       engineGroups = arrangement.groups ?? new Map();
     } else {
-      placeAround(diagram, arrangement, places, elementSizes, centers, fixed, (id, box) =>
+      // Boxes to position: the leaves and the lists; what an unplaced list holds follows it.
+      const positioned = new Map(
+        [...elementSizes].filter(([id]) => !holders.has(id) || places.has(id)),
+      );
+      for (const [id, size] of topLists) positioned.set(id, size);
+      placeAround(diagram, arrangement, places, positioned, centers, fixed, (id, box) =>
         extentAt(id, box),
       );
+    }
+    // The lists the engine arranged: what they hold is where they put it, and fixed there.
+    for (const id of topLists.keys()) {
+      const center = centers.get(id);
+      if (!center || (mode === "assisted" && places.has(id))) continue;
+      for (const [inner, at] of frames!.within(id, center)) {
+        if (diagram.elementsById.get(inner)!.kind === "group") {
+          places.set(inner, at);
+          sizes.set(inner, frames!.sizes.get(inner)!);
+          framedGroups.add(inner);
+        } else {
+          centers.set(inner, at);
+          fixed.add(inner);
+        }
+      }
     }
   } else {
     for (const [id, place] of places) centers.set(id, place);
@@ -1402,7 +1706,8 @@ function layoutDrawing(
     .sort((a, b) => b.groupPath.length - a.groupPath.length);
   const explicitGroups = new Set<string>();
   for (const group of groups) {
-    const arranged = mode === "auto" && arranging && !autoBands.has(group.id);
+    const arranged =
+      mode === "auto" && arranging && !autoBands.has(group.id) && !framedGroups.has(group.id);
     const place = arranged ? undefined : places.get(group.id);
     const size = arranged ? undefined : sizes.get(group.id);
     if (place && size) {
@@ -1500,6 +1805,17 @@ function layoutDrawing(
       });
     }
   }
+  // Pen strokes: their written points moved by their parent's interior origin; their box is the
+  // bounding box of those points grown by half their width, which they draw within.
+  const penGeometry = new Map<string, PenGeometry>();
+  for (const pen of freePens) {
+    const origin = origins.get(pen.id) ?? { x: 0, y: 0 };
+    const points = pen.pen.points.map((p) => ({ x: p.x + origin.x, y: p.y + origin.y }));
+    const width = penWidth(styles.element(pen));
+    const bounds = penBox(points, width);
+    boxes.set(pen.id, bounds);
+    penGeometry.set(pen.id, { points, bounds, width });
+  }
   // The drawn shape of every element box, and the outline of those that are not their box; a
   // turned element's outline is turned, and its drawn box is the bounding box of that outline.
   const shapes = new Map<string, BoxShape>();
@@ -1507,7 +1823,9 @@ function layoutDrawing(
   const turnedBoxes = new Map<string, Box>();
   for (const element of diagram.elements) {
     const box = boxes.get(element.id);
-    if (element.kind === "group" || element.kind === "line" || !box) continue;
+    if (element.kind === "group" || element.kind === "line" || element.kind === "pen" || !box) {
+      continue;
+    }
     const shape = element.kind === "tag" ? "pill" : sizing.shapeOf(element);
     shapes.set(element.id, shape);
     if (rotations.has(element.id)) {
@@ -1540,7 +1858,7 @@ function layoutDrawing(
    * groups that hold them, nor a shape that contains an end box (a box it is stacked inside).
    */
   const shapeIds = diagram.elements.filter(
-    (e) => e.kind !== "group" && e.kind !== "tag" && e.kind !== "line",
+    (e) => e.kind !== "group" && e.kind !== "tag" && e.kind !== "line" && e.kind !== "pen",
   );
   const obstaclesFor = (relation: Relation): Box[] => {
     const ends = [relation.from, relation.to];
@@ -1939,10 +2257,30 @@ function layoutDrawing(
     });
   }
 
+  // Pen strokes: their heads along their end segments, none unless written, which the stroke
+  // stops at as a line does; a dot has none. A point written twice in a row makes no segment, so
+  // the heads and the cut are taken from the stroke without repeats.
+  const penDrawing = new Map<string, PenDrawing>();
+  for (const pen of freePens) {
+    const { points, width } = penGeometry.get(pen.id)!;
+    const style = styles.element(pen);
+    const endKind = style.arrowhead ?? "none";
+    const startKind = style.arrowtail ?? "none";
+    if (isDot(points) || (endKind === "none" && startKind === "none")) {
+      penDrawing.set(pen.id, { line: points, start: [], end: [] });
+      continue;
+    }
+    const length = penHeadLength(theme.arrowSize, width);
+    const ends = relationEnds(withoutRepeats(points), startKind, endKind, length, (length * 7) / 8);
+    penDrawing.set(pen.id, { line: ends.line, start: ends.start, end: ends.end });
+  }
+
   // Every element's box with the label it draws outside it, in diagram coordinates.
   const extents = new Map([...boxes].map(([id, box]) => [id, extentAt(id, box)]));
-  // A line's box is no obstacle: labels may sit beside it as beside any connector.
-  const shapeExtents = new Map([...extents].filter(([id]) => !lineGeometry.has(id)));
+  // A line's box is no obstacle: labels may sit beside it as beside any connector; nor is a pen's.
+  const shapeExtents = new Map(
+    [...extents].filter(([id]) => !lineGeometry.has(id) && !penGeometry.has(id)),
+  );
   placeLabels(relationGeometry, movable, labelObstacles(diagram, shapeExtents, sizing));
   const elementLabels = new Map<string, Box>();
   for (const [id, box] of boxes) {
@@ -1954,8 +2292,9 @@ function layoutDrawing(
   // Turned elements are checked by their drawn box.
   const checked = new Map([...boxes].map(([id, box]) => [id, extentAt(id, box)]));
   for (const [id, box] of boxes) if (!rotations.has(id)) checked.set(id, box);
-  // Lines cross boxes by design: they take no part in the composition checks.
+  // Lines and pen strokes cross boxes by design: they take no part in the composition checks.
   for (const id of lineGeometry.keys()) checked.delete(id);
+  for (const id of penGeometry.keys()) checked.delete(id);
   diagnostics.push(
     ...checkComposition(
       diagram,
@@ -1989,6 +2328,11 @@ function layoutDrawing(
       everything.push({ x: p.x, y: p.y, width: 0, height: 0 });
     if (geometry.label) everything.push(geometry.label.box);
   }
+  // A pen's box holds its stroke; its heads may reach beyond it.
+  for (const drawing of penDrawing.values()) {
+    for (const p of [...markerPoints(drawing.start), ...markerPoints(drawing.end)])
+      everything.push({ x: p.x, y: p.y, width: 0, height: 0 });
+  }
   const bounds = unionBoxes(everything) ?? { x: 0, y: 0, width: 0, height: 0 };
   const margin = theme.margin;
   const contentWidth = Math.ceil(bounds.width + 2 * margin);
@@ -2016,7 +2360,16 @@ function layoutDrawing(
 
   const items: SceneItem[] = [];
   const gradients: SceneGradient[] = [];
-  const emitter = new Emitter(theme, scale, styles, metrics, sizing);
+  const emitter = new Emitter(
+    theme,
+    scale,
+    styles,
+    metrics,
+    sizing,
+    free,
+    diagram.elementsById,
+    diagram.id,
+  );
   const drawRelation = (geometry: RelationGeometry) =>
     emitter.relation(
       geometry.relation,
@@ -2118,6 +2471,23 @@ function layoutDrawing(
         );
         continue;
       }
+      const pen = penDrawing.get(paintable.element.id);
+      if (pen) {
+        items.push(
+          onLayer(
+            emitter.pen(
+              paintable.element,
+              box,
+              penGeometry.get(paintable.element.id)!.points.map(shiftPoint),
+              pen.line.map(shiftPoint),
+              shiftMarker(pen.start, shiftPoint),
+              shiftMarker(pen.end, shiftPoint),
+            ),
+            paintable.element.layer,
+          ),
+        );
+        continue;
+      }
       items.push(
         onLayer(
           paintable.kind === "group"
@@ -2198,6 +2568,20 @@ function layoutDrawing(
     if (geometry.label) labelBoxes.set(id, geometry.label.box);
     connectors.set(id, geometry.connector);
   }
+  // Stickies: the room their text is wrapped in and the size it is drawn at, for editors.
+  const stickies = new Map<string, StickyText>();
+  for (const element of diagram.elements) {
+    const box = element.kind === "sticky" ? boxes.get(element.id) : undefined;
+    if (box) stickies.set(element.id, sizing.stickyPlace(element, box));
+  }
+  // Lists: how they arrange their children and where the first one starts, for editors.
+  const lists = new Map<string, ListGeometry>();
+  for (const [id, list] of frames?.lists ?? []) {
+    const box = boxes.get(id);
+    if (!box) continue;
+    const header = sizing.headerOf(diagram.elementsById.get(id)!);
+    lists.set(id, { ...list, origin: { x: box.x + theme.groupPadding, y: box.y + header } });
+  }
   return {
     scene,
     diagnostics,
@@ -2205,6 +2589,9 @@ function layoutDrawing(
     offset: { x: dx, y: dy },
     labels: labelBoxes,
     connectors,
+    pens: penGeometry,
+    stickies,
+    lists,
     origins,
     theme,
     shapes,
@@ -2323,7 +2710,7 @@ function roundedPoints(list: readonly Point[]): Point[] {
 
 /** A circle of radius `r` about (`cx`, `cy`), as path data. */
 function circlePath(cx: number, cy: number, r: number): string {
-  return `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0Z`;
+  return `M${round(cx - r)} ${cy}a${r} ${r} 0 1 0 ${round(2 * r)} 0a${r} ${r} 0 1 0 ${round(-2 * r)} 0Z`;
 }
 
 function round(value: number): number {
@@ -2433,6 +2820,10 @@ const FLOW_SIDES: Readonly<Record<string, { readonly in: Side; readonly out: Sid
  * the routes meet the icon and not its label: on the side the flow leaves by for a source and
  * enters by for a target, or the other way round for the relations in `mirrored`, which run
  * against the flow.
+ *
+ * A list group is a node of its arranged size in `sizes`, and the engine never sees what it
+ * holds: `holders` gives everything inside a list the outermost list around it, which the
+ * relations and notes attached to what the list holds end on instead, with no port.
  */
 function arrangeRequest(
   diagram: FlowDiagram,
@@ -2446,7 +2837,10 @@ function arrangeRequest(
   minimums: ReadonlyMap<string, { width: number; height: number }> = new Map(),
   iconExtents: ReadonlyMap<string, { size: ShapeSize; extent: Box }> = new Map(),
   mirrored: ReadonlySet<string> = new Set(),
+  holders: ReadonlyMap<string, string> = new Map(),
 ): ArrangeRequest {
+  /** The box the engine arranges for an element: the outermost list holding it, or its own. */
+  const boxOf = (id: string) => holders.get(id) ?? id;
   /** A position along a side of an element's box, as a position along its extent's side. */
   const along = (id: string, side: Side, position: number): number => {
     const known = iconExtents.get(id);
@@ -2478,19 +2872,25 @@ function arrangeRequest(
     return id;
   };
   const edges = diagram.relations.flatMap((relation) => {
-    if (leftOut.has(relation.from) || leftOut.has(relation.to)) return [];
+    const source = boxOf(relation.from);
+    const target = boxOf(relation.to);
+    if (leftOut.has(source) || leftOut.has(target)) return [];
+    // A relation within one list is drawn between the places the list gives.
+    if (source === target && (holders.has(relation.from) || holders.has(relation.to))) return [];
     const route = routes.get(relation.key);
     const port = (end: RouteEntry["from"] | undefined, which: "from" | "to") =>
-      end && end.port !== "auto"
-        ? end.named
-          ? end.port
-          : enginePort(end)
-        : iconPort(relation, which);
+      holders.has(relation[which])
+        ? null
+        : end && end.port !== "auto"
+          ? end.named
+            ? end.port
+            : enginePort(end)
+          : iconPort(relation, which);
     return [
       {
         id: relation.key,
-        source: relation.from,
-        target: relation.to,
+        source,
+        target,
         sourcePort: port(route?.from, "from"),
         targetPort: port(route?.to, "to"),
         primary: relation.line === "solid",
@@ -2505,15 +2905,24 @@ function arrangeRequest(
   const attached = diagram.elements.flatMap((note) => {
     const target = note.attachedTo;
     if (note.kind !== "note" || target === null || target === note.id) return [];
-    if (fixedPlaces.has(note.id) || leftOut.has(note.id) || leftOut.has(target)) return [];
+    // A note in a list is placed by it; a note on what a list holds is arranged beside the list.
+    const source = boxOf(target);
+    if (holders.has(note.id) || fixedPlaces.has(note.id)) return [];
+    if (leftOut.has(note.id) || leftOut.has(source)) return [];
     const element = diagram.elementsById.get(target);
-    if (!element || element.kind === "line" || !sizes.has(target) || !sizes.has(note.id)) {
+    if (
+      !element ||
+      element.kind === "line" ||
+      element.kind === "pen" ||
+      !sizes.has(source) ||
+      !sizes.has(note.id)
+    ) {
       return [];
     }
     return [
       {
         id: `attach${note.id}`,
-        source: target,
+        source,
         target: note.id,
         sourcePort: null,
         targetPort: null,
@@ -2523,9 +2932,16 @@ function arrangeRequest(
     ];
   });
   edges.push(...attached);
-  // Free lines are drawn where their points are written: the engine never moves them.
+  // Free lines and pens are drawn where their points are written: the engine never moves them.
+  // A list is a node; what it holds is not.
   const nodes = diagram.elements
-    .filter((e) => e.kind !== "group" && e.kind !== "line")
+    .filter(
+      (e) =>
+        (e.kind === "group" ? isList(e) && !leftOut.has(e.id) : true) &&
+        e.kind !== "line" &&
+        e.kind !== "pen" &&
+        !holders.has(e.id),
+    )
     .map((element) => {
       const ports: ArrangePort[] = element.ports.map((p) => ({
         id: p.name,
@@ -2558,7 +2974,7 @@ function arrangeRequest(
       };
     });
   const groups = diagram.elements
-    .filter((e) => e.kind === "group" && !leftOut.has(e.id))
+    .filter((e) => e.kind === "group" && !leftOut.has(e.id) && !isList(e) && !holders.has(e.id))
     .map((group) => {
       const minimum = minimums.get(group.id);
       return {
@@ -2634,7 +3050,8 @@ function routesLength(arrangement: Arrangement): number {
  * `assisted` positions: placed elements keep their place. Each other element keeps its offset in
  * the arrangement from the placed element nearest to it there, and is then pushed away from that
  * element, along the layout direction, until it no longer overlaps a box already positioned. Boxes
- * are compared with what they draw beyond them, `extentOf` (the label of an icon shape).
+ * are compared with what they draw beyond them, `extentOf` (the label of an icon shape). `sizes`
+ * holds the boxes to position: the leaves, and the lists, which are arranged as boxes.
  */
 function placeAround(
   diagram: FlowDiagram,
@@ -2650,7 +3067,7 @@ function placeAround(
   const anchors = [...places.keys()].filter((id) => sizes.has(id) && arrangement.centers.has(id));
   const positioned: Box[] = [];
   for (const element of diagram.elements) {
-    if (element.kind === "group" || !places.has(element.id)) continue;
+    if (!sizes.has(element.id) || !places.has(element.id)) continue;
     const size = sizes.get(element.id)!;
     centers.set(element.id, places.get(element.id)!);
     fixed.add(element.id);
@@ -2659,7 +3076,7 @@ function placeAround(
     );
   }
   for (const element of diagram.elements) {
-    if (element.kind === "group" || places.has(element.id)) continue;
+    if (!sizes.has(element.id) || places.has(element.id)) continue;
     const size = sizes.get(element.id)!;
     const arranged = arrangement.centers.get(element.id) ?? { x: 0, y: 0 };
     let nearest: string | undefined;
@@ -2851,7 +3268,8 @@ function parallelLanes(
 
 /**
  * The canvas for the diagram's `preset` or `canvas`, reporting `layout.too-large` when the content
- * canvas exceeds what the preset holds. Nothing is clipped: a fixed canvas grows to fit.
+ * canvas exceeds what the preset holds. Nothing is clipped: a fixed canvas grows to fit. A board
+ * (`preset board`) is the content canvas whatever its size: a whiteboard grows as it is drawn on.
  */
 export function canvasSize(
   diagram: FlowDiagram,
@@ -2868,8 +3286,14 @@ export function canvasSize(
       severity: "warning",
       message,
       range: propertyRange(diagram, keyword, lines) ?? diagram.idRange,
-      hints: [words.hints.tooLarge],
+      // A whiteboard's preset is the board's, which grows with what it holds: a preset or a
+      // written canvas can give way to it.
+      hints: [
+        words.hints.tooLarge,
+        keyword === "preset" ? words.hints.boardPreset : words.hints.boardCanvas,
+      ],
     });
+  if (preset === "board") return { width, height };
   if (preset === "document") {
     if (width > DOCUMENT_MAX_WIDTH) {
       tooLarge("preset", words.diagnostics.tooWideForDocument(width, DOCUMENT_MAX_WIDTH));
@@ -3015,6 +3439,8 @@ class Sizing {
   private readonly centredLays = new Map<string, (content: Box) => CentredLayout>();
   /** The centre of each aligned text block, by element and box. */
   private readonly textCenters = new Map<string, Point>();
+  /** How the text of each sticky is drawn, by element and card size. */
+  private readonly stickyTexts = new Map<string, StickyText>();
 
   constructor(
     private readonly theme: Theme,
@@ -3061,6 +3487,9 @@ class Sizing {
         return known(this.styles.element(element).shape) ?? "rounded";
       case "box":
         return known(this.styles.element(element).shape) ?? known(element.shape) ?? "rounded";
+      case "sticky":
+        // A card: a rectangle with the corners of its `radius` (see `shapeOptions`).
+        return "rectangle";
       default:
         return "rounded";
     }
@@ -3074,6 +3503,7 @@ class Sizing {
     const shape = this.shapeOf(element);
     // A written radius (the element's style, a class or a rule) rounds every cornered shape.
     const written = CORNERED_SHAPES.has(shape) ? this.styles.element(element).radius : undefined;
+    if (element.kind === "sticky") return { radius: written ?? STICKY_RADIUS };
     if (shape === "agent") return { radius: written ?? this.theme.radius * 1.5 };
     if (shape === "person") {
       return { head: personHead(this.scale.label), radius: written ?? this.theme.radius * 3 };
@@ -3287,8 +3717,136 @@ class Sizing {
     if (element.kind === "text" || element.kind === "note") {
       return this.styles.element(element).textAlign ?? "left";
     }
-    if (element.kind === "box") return this.styles.element(element).textAlign ?? "center";
+    if (element.kind === "box" || element.kind === "sticky") {
+      return this.styles.element(element).textAlign ?? "center";
+    }
     return "center";
+  }
+
+  /**
+   * How a sticky's text is drawn on a card of `size`, its area relative to the card's top left
+   * corner: wrapped at the width of the card inside the `padding` (right of its icon), at
+   * `fontSize` or 1.2 times the label size, stepped down by 1 until the lines fit the area or the
+   * size reaches `STICKY_MIN_FONT_SIZE`; lines 1.25 times the size apart, aligned by `textAlign`
+   * (`center`) and `verticalAlign` (`middle`). A blank text always fits.
+   */
+  stickyText(element: Element, size: ShapeSize): StickyText {
+    const key = `${element.id}\u0000${size.width}\u0000${size.height}`;
+    const known = this.stickyTexts.get(key);
+    if (known) return known;
+    const style = this.styles.element(element);
+    const weight = style.fontWeight ?? STICKY_FONT_WEIGHT;
+    const area = this.stickyArea(element, size);
+    let font = style.fontSize ?? round(this.scale.label * STICKY_FONT_SCALE);
+    let laid = this.stickyLines(element.label, area, font, weight);
+    while (!laid.fits && font > STICKY_MIN_FONT_SIZE) {
+      font = Math.max(STICKY_MIN_FONT_SIZE, round(font - 1));
+      laid = this.stickyLines(element.label, area, font, weight);
+    }
+    const text: StickyText = {
+      area,
+      size: font,
+      weight,
+      line: laid.line,
+      lines: laid.lines,
+      align: this.alignOf(element),
+      verticalAlign: style.verticalAlign ?? "middle",
+      fits: laid.fits,
+    };
+    this.stickyTexts.set(key, text);
+    return text;
+  }
+
+  /**
+   * The room of a sticky's text on a card of `size`: inside the padding, below the row of its icon,
+   * so that the text keeps the card's whole width and stays centred on it.
+   */
+  private stickyArea(element: Element, size: ShapeSize): Box {
+    const padding = this.theme.padding;
+    const icon = this.iconOf(element);
+    const row = icon ? icon.size + icon.gap : 0;
+    return {
+      x: padding,
+      y: padding + row,
+      width: Math.max(0, size.width - 2 * padding),
+      height: Math.max(0, size.height - 2 * padding - row),
+    };
+  }
+
+  /** A text wrapped at the width of `area` at a font size, and whether its lines fit `area`. */
+  private stickyLines(
+    text: string,
+    area: Box,
+    size: number,
+    weight: number,
+  ): { lines: string[]; line: number; fits: boolean } {
+    const measure = (line: string) => this.metrics.width(line, "body", weight, size);
+    const lines = wrapLines(text, area.width, measure);
+    const line = round(size * 1.25);
+    const fits =
+      text.trim() === "" ||
+      (lines.length * line <= area.height + 1e-9 &&
+        lines.every((l) => measure(l) <= area.width + 1e-9));
+    return { lines, line, fits };
+  }
+
+  /**
+   * How a sticky's text is drawn on its card at `box`, the area in the box's coordinates: what
+   * editors that type over the card take.
+   */
+  stickyPlace(element: Element, box: Box): StickyText {
+    const text = this.stickyText(element, { width: box.width, height: box.height });
+    return {
+      ...text,
+      area: { ...text.area, x: box.x + text.area.x, y: box.y + text.area.y },
+    };
+  }
+
+  /**
+   * Reports `layout.text-overflow` on a sticky whose text does not fit a card of `size` even at
+   * its smallest font size, with the smallest card of the same proportions on which it fits at
+   * that size, in whole pixels.
+   */
+  checkSticky(element: Element, size: ShapeSize, range: Range, diagnostics: Diagnostic[]): void {
+    const text = this.stickyText(element, size);
+    if (text.fits) return;
+    const scaled = (width: number): ShapeSize => ({
+      width,
+      height: Math.max(1, Math.round((width * size.height) / Math.max(1, size.width))),
+    });
+    const fitsAt = (width: number) => {
+      const card = scaled(width);
+      return this.stickyLines(element.label, this.stickyArea(element, card), text.size, text.weight)
+        .fits;
+    };
+    let low = Math.max(1, Math.ceil(size.width));
+    let high = low * 2;
+    for (let i = 0; i < 32 && !fitsAt(high); i++) {
+      low = high;
+      high *= 2;
+    }
+    while (high - low > 1) {
+      const middle = Math.floor((low + high) / 2);
+      if (fitsAt(middle)) high = middle;
+      else low = middle;
+    }
+    const fit = scaled(high);
+    const words = messages();
+    diagnostics.push({
+      code: "layout.text-overflow",
+      severity: "warning",
+      message: words.diagnostics.stickyOverflow(
+        element.id,
+        size.width,
+        size.height,
+        text.size,
+        fit.width,
+        fit.height,
+      ),
+      range,
+      hints: [words.hints.textOverflow(element.id, fit.width, fit.height)],
+      data: { ids: [element.id], size: { element: element.id, ...fit } },
+    });
   }
 
   /** The inset of a free text or icon drawn with a frame (`fill`, `stroke` or `pattern`). */
@@ -3345,6 +3903,13 @@ class Sizing {
         return this.place(style.icon, Math.round(scale.tag * 1.3), "left");
       case "note":
         return this.place(style.icon, Math.round(this.noteFont(element).size * 1.3), "left");
+      case "sticky":
+        // At the top left of the card, its `iconSize` or the theme's, the text right of it.
+        return this.place(
+          style.icon,
+          typeof style.iconSize === "number" ? style.iconSize : theme.iconSize,
+          "left",
+        );
     }
     const icon = this.elementIcon(element);
     if (!icon) return undefined;
@@ -3955,6 +4520,12 @@ class Sizing {
 
   defaultSize(element: Element): { width: number; height: number } {
     const { scale, theme } = this;
+    if (element.kind === "sticky") {
+      // A square that never grows for its text, scaled with the label size.
+      const base = DEFAULT_SIZES.sticky!;
+      const factor = theme.labelSize / 13;
+      return { width: Math.round(base.width * factor), height: Math.round(base.height * factor) };
+    }
     const needs = this.textNeeds(element);
     switch (element.kind) {
       case "tag":
@@ -4175,7 +4746,33 @@ class Emitter {
     private readonly styles: StyleResolver,
     private readonly metrics: TextMetrics,
     private readonly sizing: Sizing,
+    /** Whether the diagram is free, the only kind whose styles give `opacity`. */
+    private readonly free: boolean = false,
+    /** The diagram's elements by id, where the groups around an element are found. */
+    private readonly elementsById: ReadonlyMap<string, Element> = new Map(),
+    /**
+     * The diagram's id, which the ids the scene declares (a sticky's clip) carry: a story frame
+     * that cross-fades two views draws both scenes in one document.
+     */
+    private readonly diagramId: string = "",
   ) {}
+
+  /**
+   * The group of an element, group, line or pen of a free diagram with its style's `opacity`
+   * times that of every group it is in as `styleOpacity`, which renderers multiply with a story's;
+   * unchanged when it is opaque. A free scene is flat, so a group's children are its siblings and
+   * a faded group fades them through their own groups.
+   */
+  private faded(group: GroupItem, element: Element): GroupItem {
+    if (!this.free) return group;
+    const own = (e: Element) => Math.max(0, Math.min(1, this.styles.element(e).opacity ?? 1));
+    let opacity = own(element);
+    for (const id of element.groupPath) {
+      const holder = this.elementsById.get(id);
+      if (holder) opacity *= own(holder);
+    }
+    return opacity >= 1 ? group : { ...group, styleOpacity: opacity };
+  }
 
   private text(
     x: number,
@@ -4257,7 +4854,7 @@ class Emitter {
   }
 
   group(element: Element, box: Box): GroupItem {
-    return withUrl(withBounds(this.groupItems(element, box), box), element);
+    return this.faded(withUrl(withBounds(this.groupItems(element, box), box), element), element);
   }
 
   private groupItems(element: Element, box: Box): GroupItem {
@@ -4331,12 +4928,15 @@ class Emitter {
   }
 
   element(element: Element, box: Box): GroupItem {
-    return withUrl(
-      withBounds(
-        this.elementItems(element, box),
-        box,
-        this.sizing.innerArea(element, box),
-        this.sizing.outsideLabel(element, box)?.box,
+    return this.faded(
+      withUrl(
+        withBounds(
+          this.elementItems(element, box),
+          box,
+          this.sizing.innerArea(element, box),
+          this.sizing.outsideLabel(element, box)?.box,
+        ),
+        element,
       ),
       element,
     );
@@ -4346,6 +4946,8 @@ class Emitter {
     switch (element.kind) {
       case "note":
         return this.note(element, box);
+      case "sticky":
+        return this.sticky(element, box);
       case "tag":
         return this.tag(element, box);
       case "text":
@@ -4761,6 +5363,83 @@ class Emitter {
     return { kind: "group", id: element.id, role: "element", items };
   }
 
+  /**
+   * A sticky: a soft shadow 3 px under its card, the card in the theme's `sticky` colour (or its
+   * `fill`) with `radius` 2 and an outline only when its style writes `stroke`, its icon at the
+   * top left inside the padding, and its text (`Sizing.stickyText`) in `stickyText` (or its
+   * `color`), wrapped and shrunk to the card, aligned by `textAlign` and `verticalAlign`. Text that
+   * does not fit even at the smallest size starts at the top and is clipped to the card.
+   */
+  private sticky(element: Element, box: Box): GroupItem {
+    const { theme } = this;
+    const style = this.styles.element(element);
+    const radius = cornerRadius(style.radius ?? STICKY_RADIUS, box);
+    const shadow: RectItem = {
+      kind: "rect",
+      x: round(box.x),
+      y: round(box.y + STICKY_SHADOW.offset),
+      width: round(box.width),
+      height: round(box.height),
+      radius,
+      fill: STICKY_SHADOW.color,
+      stroke: "none",
+      strokeWidth: 0,
+      dashed: false,
+      opacity: STICKY_SHADOW.opacity,
+    };
+    const card = this.rect(
+      box,
+      radius,
+      style.fill ?? theme.sticky,
+      style.stroke ?? "none",
+      style.stroke ? (style.width ?? theme.strokeWidth) : 0,
+      strokeDash(style.line),
+    );
+    const items: SceneItem[] = [shadow, card];
+    const text = this.sizing.stickyPlace(element, box);
+    const { area, line } = text;
+    const color = style.color ?? theme.stickyText;
+    const icon = this.sizing.iconOf(element);
+    if (icon) {
+      // In the top left corner inside the padding, on a row of its own above the text.
+      const x = box.x + theme.padding + icon.size / 2;
+      const y = box.y + theme.padding + icon.size / 2;
+      items.push(this.icon(icon, x, y, style.iconColor ?? color));
+    }
+    const block = text.lines.length * line;
+    const top = !text.fits
+      ? area.y
+      : text.verticalAlign === "top"
+        ? area.y
+        : text.verticalAlign === "bottom"
+          ? area.y + area.height - block
+          : area.y + (area.height - block) / 2;
+    const x =
+      text.align === "left"
+        ? area.x
+        : text.align === "right"
+          ? area.x + area.width
+          : area.x + area.width / 2;
+    const anchor: TextItem["anchor"] =
+      text.align === "left" ? "start" : text.align === "right" ? "end" : "middle";
+    text.lines.forEach((content, i) => {
+      items.push(
+        this.text(x, top + line / 2 + i * line, content, text.size, text.weight, color, anchor),
+      );
+    });
+    const group: GroupItem = { kind: "group", id: element.id, role: "element", items };
+    if (text.fits) return group;
+    const clip: SceneClip = {
+      id: `clip-${xmlName(this.diagramId)}-${xmlName(element.id)}`,
+      x: round(box.x),
+      y: round(box.y),
+      width: round(box.width),
+      height: round(box.height),
+      radius,
+    };
+    return { ...group, textClip: clip };
+  }
+
   private tag(element: Element, box: Box): GroupItem {
     const { theme, scale } = this;
     const style = this.styles.element(element);
@@ -4877,9 +5556,71 @@ class Emitter {
           this.sizing.lineIcon(element),
           curve,
         );
-    return withBounds(
-      { kind: "group", id: element.id, role: "element", items, track: roundedPoints(line) },
-      box,
+    return this.faded(
+      withBounds(
+        { kind: "group", id: element.id, role: "element", items, track: roundedPoints(line) },
+        box,
+      ),
+      element,
+    );
+  }
+
+  /**
+   * A pen stroke: one path through its points (`penPath`) with round caps and joins and no fill,
+   * in its `stroke` (the theme's `ink`), `width`, `line` and `opacity`, then its heads; a stroke
+   * whose points coincide is a disc of its width. An element group marked `freehand`, whose
+   * `track` is its points and whose `bounds` is its box. `points` are all its points; `line` the
+   * same cut where its heads begin.
+   */
+  pen(
+    element: Element,
+    box: Box,
+    points: readonly Point[],
+    line: readonly Point[],
+    start: readonly MarkerPart[],
+    end: readonly MarkerPart[],
+  ): GroupItem {
+    const style = this.styles.element(element);
+    const stroke = style.stroke ?? this.theme.ink;
+    const width = penWidth(style);
+    const first = points[0]!;
+    const items: SceneItem[] = isDot(points)
+      ? [
+          {
+            kind: "path",
+            d: circlePath(round(first.x), round(first.y), width / 2),
+            fill: stroke,
+            stroke: "none",
+            strokeWidth: 0,
+            dashed: false,
+          },
+        ]
+      : [
+          {
+            kind: "path",
+            d: penPath(line),
+            fill: "none",
+            stroke,
+            strokeWidth: width,
+            dashed: strokeDash(style.line),
+            rounded: true,
+          },
+          ...markerItems(start, stroke, width),
+          ...markerItems(end, stroke, width),
+        ];
+    return this.faded(
+      withBounds(
+        {
+          kind: "group",
+          id: element.id,
+          role: "element",
+          freehand: true,
+          items,
+          track: roundedPoints(points),
+        },
+        box,
+      ),
+      element,
     );
   }
 

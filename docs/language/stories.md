@@ -2,9 +2,9 @@
 
 [Español](../es/language/stories.md)
 
-A `story` tells a diagram step by step: scenes that reveal, highlight and trace parts of it, move
-the camera, and change to another view of the same system. A story never changes its diagrams; it
-draws them frame by frame on the same deterministic clock as motion effects
+A `story` tells a diagram step by step: scenes that reveal, highlight, trace and draw parts of it,
+move the camera, and change to another view of the same system. A story never changes its
+diagrams; it draws them frame by frame on the same deterministic clock as motion effects
 ([motion.md](motion.md), decision 0023), so the canvas, a frame exported at a time and, later, the
 player and videos show the same state at the same instant.
 
@@ -46,21 +46,61 @@ Times are written `800ms` or `1.5s`, from `0ms` to `600s`.
 
 ## Actions
 
-| Action                      | Default time | Effect                                                                                                                 |
-| --------------------------- | ------------ | ---------------------------------------------------------------------------------------------------------------------- |
-| `reveal a, b [over <time>]` | 600 ms       | fades the targets in; a target whose first visibility action is `reveal` starts hidden                                 |
-| `hide a, b [over <time>]`   | 600 ms       | fades the targets out                                                                                                  |
-| `highlight a [over <time>]` | 1000 ms      | outlines the targets in the accent colour, ramping in and out over min(200 ms, a quarter of the time)                  |
-| `focus a, b [over <time>]`  | 600 ms       | dims everything but the targets and the relations between them to 25 %, to the end of the scene; `focus all` clears it |
-| `camera a, b [over <time>]` | 800 ms       | moves the view box to the targets' bounds plus 40 px at the picture's aspect ratio; `camera all` frames the whole view |
-| `trace r [over <time>]`     | 1200 ms      | draws one relation from its source to its target in the accent colour, 2 px wider, with a dot at its head              |
-| `hold <time>`               | —            | waits                                                                                                                  |
+| Action                      | Default time | Effect                                                                                                                          |
+| --------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `reveal a, b [over <time>]` | 600 ms       | fades the targets in; a target whose first visibility action is `reveal` starts hidden                                          |
+| `hide a, b [over <time>]`   | 600 ms       | fades the targets out                                                                                                           |
+| `highlight a [over <time>]` | 1000 ms      | outlines the targets in the accent colour, ramping in and out over min(200 ms, a quarter of the time)                           |
+| `focus a, b [over <time>]`  | 600 ms       | dims everything but the targets and the relations between them to 25 %, to the end of the scene; `focus all` clears it          |
+| `camera a, b [over <time>]` | 800 ms       | moves the view box to the targets' bounds plus 40 px at the picture's aspect ratio; `camera all` frames the whole view          |
+| `trace r [over <time>]`     | 1200 ms      | draws one relation from its source to its target in the accent colour, 2 px wider, with a dot at its head                       |
+| `draw a, b [over <time>]`   | 800 ms       | draws pens, free lines and named relations again from their first point to their last, one after another, and leaves them drawn |
+| `hold <time>`               | —            | waits                                                                                                                           |
 
 Targets are the ids of the scene's view: elements, named relations, and named notes and fragments
 of sequence diagrams; in a C4 view, entity paths such as `shop.api`. Sequential actions add up; the
 next scene starts when the previous one ends. Every curve is linear. A relation is drawn at the
 opacity of its least visible end, so revealing two boxes reveals the arrows between them. A trace suspends the
 relation's own `animate` effects while it runs; the views' other effects run on the story's clock.
+
+`draw` replays what was drawn on a whiteboard ([free.md](free.md#pen-strokes)): an explanation
+written with pens becomes a story, an animated SVG and a video.
+
+```text
+diagram whiteboard: free {
+  theme "sketch.light"
+
+  sticky idea "Ship it"
+  pen title [(40, 40), (80, 30), (120, 44), (160, 36)]
+  pen arrow [(40, 120), (120, 110), (200, 124)]
+
+  placement {
+    place idea at (340, 120)
+  }
+
+  style arrow { arrowhead triangle }
+}
+
+story explain for whiteboard {
+  scene strokes {
+    draw title, arrow over 2s
+    reveal idea
+  }
+}
+```
+
+- **Order and time.** The targets are drawn one after another in the order written, each over a
+  share of the time proportional to the length of its line, so a long word takes most of it and a
+  dot appears in its turn; when none has a length, they share it equally. Each grows from its
+  first point to its last in its own colour, width, line and opacity, and its heads and label
+  appear when it is whole.
+- **Visibility.** A target whose first visibility action is `draw` starts hidden, as with
+  `reveal`, and stays drawn after its share. `draw` uses the visibility and trace channels of its
+  targets, so a `reveal` or a `trace` of the same target at the same time is `story.conflict`.
+- **Effects.** While a target is being drawn its own `animate` effects are suspended, as under a
+  trace.
+- **Targets.** Pens, free lines and named relations; anything else is `story.invalid-target`,
+  which says that draw takes pens, lines and relations.
 
 ## Transitions
 
@@ -82,15 +122,15 @@ to another.
 | -------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | `story.unknown-diagram`    | the diagram after `for` or `view` is neither in the file nor imported; the hint lists the diagrams               |
 | `ref.unknown-element`      | a target is not an id of the scene's view; close ids are suggested                                               |
-| `story.invalid-target`     | `trace` names something that is not a relation                                                                   |
+| `story.invalid-target`     | `trace` names something that is not a relation, or `draw` something that is not a pen, a free line or a relation |
 | `story.missing-transition` | the view changes without a `transition`                                                                          |
 | `story.conflict`           | two actions on the same channel of the same target overlap in time (`reveal db` and `hide db` in one `parallel`) |
 | `story.empty-scene`        | warning: a scene with no actions and no transition takes no time                                                 |
 | `prop.invalid-value`       | a malformed or out-of-range time, or a statement in the wrong place                                              |
 
-Channels are visibility (`reveal`, `hide`), highlight and trace per target, and focus and camera
-per view. A story of an imported diagram whose import does not resolve is reported by the import,
-not by the story.
+Channels are visibility (`reveal`, `hide`), highlight and trace per target (`draw` takes
+visibility and trace), and focus and camera per view. A story of an imported diagram whose import
+does not resolve is reported by the import, not by the story.
 
 ## Exports
 

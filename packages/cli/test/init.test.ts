@@ -41,12 +41,66 @@ describe("init", () => {
   it("lists each template's title, description and contents", () => {
     const { stdout } = mdg(scratch, "init", "--list");
     const lines = stdout.split("\n").filter(Boolean);
-    expect(lines).toHaveLength(Object.keys(TEMPLATES).length);
+    expect(lines).toHaveLength(7);
+    expect(lines.map((l) => l.split(" ")[0])).toEqual([
+      "flow",
+      "c4",
+      "sequence",
+      "free",
+      "kanban",
+      "whiteboard",
+      "purchase",
+    ]);
     expect(lines.find((l) => l.startsWith("c4 "))).toMatch(
       /^c4 +C4 model — An architecture model with a context view and a container view \(1 model, 2 views\)$/,
     );
+    expect(lines.find((l) => l.startsWith("kanban "))).toMatch(
+      /^kanban +Kanban board — A board of columns and sticky cards \(1 diagram\)$/,
+    );
+    expect(lines.find((l) => l.startsWith("whiteboard "))).toMatch(
+      /^whiteboard +Whiteboard — A sketched board with strokes, stickies and a story that draws them \(1 diagram, 1 story\)$/,
+    );
     expect(lines.find((l) => l.startsWith("purchase "))).toMatch(
       /\(1 model, 2 views, 2 diagrams, 1 story\)$/,
+    );
+  });
+
+  it("creates a kanban board that validates without diagnostics: a row of three columns of stickies", () => {
+    const { code } = mdg(scratch, "init", "board", "--template", "kanban");
+    expect(code).toBe(0);
+    const validate = mdg(scratch, "validate", "board");
+    expect(validate.stdout).toBe("Checked 1 file: 0 errors, 0 warnings.\n");
+    expect(validate.code).toBe(0);
+    const diagram = compile(
+      readFileSync(join(scratch, "board", "diagrams", "board.meltemi"), "utf8"),
+    ).document.diagrams[0]!;
+    expect(diagram.type).toBe("free");
+    expect(diagram.properties.preset).toBe("board");
+    const groups = diagram.elements.filter((e) => e.kind === "group");
+    const row = groups.find((g) => g.list?.layout === "row")!;
+    expect(row.list?.align).toBe("stretch");
+    const columns = groups.filter(
+      (g) => g.list?.layout === "column" && g.groupPath.at(-1) === row.id,
+    );
+    expect(columns.map((c) => c.label)).toEqual(["To do", "Doing", "Done"]);
+    for (const column of columns) {
+      const cards = diagram.elements.filter((e) => e.groupPath.at(-1) === column.id);
+      expect(cards.length, column.id).toBeGreaterThan(0);
+      expect(cards.every((e) => e.kind === "sticky")).toBe(true);
+    }
+    const stickies = diagram.elements.filter((e) => e.kind === "sticky");
+    expect(stickies).toHaveLength(6);
+    // Two colours: the theme's and one written fill; and no place for a card, the lists place them.
+    const filled = diagram.styles.filter(
+      (s) => stickies.some((e) => e.id === s.target) && s.properties.fill !== undefined,
+    );
+    expect(new Set(filled.map((s) => s.properties.fill)).size).toBe(1);
+    expect(filled.length).toBeGreaterThan(0);
+    expect(filled.length).toBeLessThan(stickies.length);
+    expect(diagram.relations).toHaveLength(2);
+    expect(diagram.placement.filter((p) => stickies.some((e) => e.id === p.target))).toEqual([]);
+    expect(diagram.placement.some((p) => p.statement === "place" && p.target === row.id)).toBe(
+      true,
     );
   });
 

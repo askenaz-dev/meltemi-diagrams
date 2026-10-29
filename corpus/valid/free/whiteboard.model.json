@@ -1,0 +1,1651 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "retro",
+      "type": "free",
+      "range": {
+        "start": {
+          "offset": 291,
+          "line": 6,
+          "column": 1
+        },
+        "end": {
+          "offset": 2162,
+          "line": 62,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": null,
+        "title": "Sprint retrospective",
+        "description": null,
+        "preset": "board",
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "marker",
+          "kind": "pen",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": {
+            "points": [
+              {
+                "x": 272,
+                "y": 72
+              },
+              {
+                "x": 321.3,
+                "y": 70.7
+              },
+              {
+                "x": 370.7,
+                "y": 70.7
+              },
+              {
+                "x": 420,
+                "y": 72
+              },
+              {
+                "x": 469.3,
+                "y": 73.3
+              },
+              {
+                "x": 518.7,
+                "y": 73.3
+              },
+              {
+                "x": 568,
+                "y": 72
+              }
+            ]
+          },
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 378,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 490,
+              "line": 13,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 382,
+              "line": 11,
+              "column": 7
+            },
+            "end": {
+              "offset": 388,
+              "line": 11,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "heading",
+          "kind": "text",
+          "label": "Sprint 12 retrospective",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 493,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 531,
+              "line": 14,
+              "column": 41
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 498,
+              "line": 14,
+              "column": 8
+            },
+            "end": {
+              "offset": 505,
+              "line": 14,
+              "column": 15
+            }
+          }
+        },
+        {
+          "id": "well",
+          "kind": "group",
+          "label": "Went well",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": {
+            "layout": "column",
+            "spacing": 12,
+            "align": null
+          },
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 535,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 687,
+              "line": 21,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 541,
+              "line": 16,
+              "column": 9
+            },
+            "end": {
+              "offset": 545,
+              "line": 16,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "deploys",
+          "kind": "sticky",
+          "label": "Deploys took ten minutes",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "well"
+          ],
+          "range": {
+            "start": {
+              "offset": 597,
+              "line": 19,
+              "column": 5
+            },
+            "end": {
+              "offset": 638,
+              "line": 19,
+              "column": 46
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 604,
+              "line": 19,
+              "column": 12
+            },
+            "end": {
+              "offset": 611,
+              "line": 19,
+              "column": 19
+            }
+          }
+        },
+        {
+          "id": "pairing",
+          "kind": "sticky",
+          "label": "Pairing on the checkout",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "well"
+          ],
+          "range": {
+            "start": {
+              "offset": 643,
+              "line": 20,
+              "column": 5
+            },
+            "end": {
+              "offset": 683,
+              "line": 20,
+              "column": 45
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 650,
+              "line": 20,
+              "column": 12
+            },
+            "end": {
+              "offset": 657,
+              "line": 20,
+              "column": 19
+            }
+          }
+        },
+        {
+          "id": "improve",
+          "kind": "group",
+          "label": "To improve",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": {
+            "layout": "column",
+            "spacing": 12,
+            "align": null
+          },
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 691,
+              "line": 23,
+              "column": 3
+            },
+            "end": {
+              "offset": 843,
+              "line": 28,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 697,
+              "line": 23,
+              "column": 9
+            },
+            "end": {
+              "offset": 704,
+              "line": 23,
+              "column": 16
+            }
+          }
+        },
+        {
+          "id": "flaky",
+          "kind": "sticky",
+          "label": "Flaky end-to-end tests",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "improve"
+          ],
+          "range": {
+            "start": {
+              "offset": 757,
+              "line": 26,
+              "column": 5
+            },
+            "end": {
+              "offset": 794,
+              "line": 26,
+              "column": 42
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 764,
+              "line": 26,
+              "column": 12
+            },
+            "end": {
+              "offset": 769,
+              "line": 26,
+              "column": 17
+            }
+          }
+        },
+        {
+          "id": "reviews",
+          "kind": "sticky",
+          "label": "Reviews waited two days",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "improve"
+          ],
+          "range": {
+            "start": {
+              "offset": 799,
+              "line": 27,
+              "column": 5
+            },
+            "end": {
+              "offset": 839,
+              "line": 27,
+              "column": 45
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 806,
+              "line": 27,
+              "column": 12
+            },
+            "end": {
+              "offset": 813,
+              "line": 27,
+              "column": 19
+            }
+          }
+        },
+        {
+          "id": "arrow",
+          "kind": "pen",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": {
+            "points": [
+              {
+                "x": 528,
+                "y": 230
+              },
+              {
+                "x": 540.8,
+                "y": 220.2
+              },
+              {
+                "x": 553.6,
+                "y": 213.5
+              },
+              {
+                "x": 566.4,
+                "y": 211.9
+              },
+              {
+                "x": 579.2,
+                "y": 215.4
+              },
+              {
+                "x": 592,
+                "y": 222
+              }
+            ]
+          },
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 847,
+              "line": 30,
+              "column": 3
+            },
+            "end": {
+              "offset": 945,
+              "line": 30,
+              "column": 101
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 851,
+              "line": 30,
+              "column": 7
+            },
+            "end": {
+              "offset": 856,
+              "line": 30,
+              "column": 12
+            }
+          }
+        },
+        {
+          "id": "action",
+          "kind": "text",
+          "label": "Quarantine\nflaky tests",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 948,
+              "line": 31,
+              "column": 3
+            },
+            "end": {
+              "offset": 985,
+              "line": 31,
+              "column": 40
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 953,
+              "line": 31,
+              "column": 8
+            },
+            "end": {
+              "offset": 959,
+              "line": 31,
+              "column": 14
+            }
+          }
+        },
+        {
+          "id": "circle",
+          "kind": "pen",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": {
+            "points": [
+              {
+                "x": 606,
+                "y": 198.2
+              },
+              {
+                "x": 615.7,
+                "y": 184.5
+              },
+              {
+                "x": 636.4,
+                "y": 174.5
+              },
+              {
+                "x": 662.2,
+                "y": 169.4
+              },
+              {
+                "x": 688,
+                "y": 166.2
+              },
+              {
+                "x": 715,
+                "y": 164.1
+              },
+              {
+                "x": 742.8,
+                "y": 166.7
+              },
+              {
+                "x": 765.1,
+                "y": 175.7
+              },
+              {
+                "x": 779.9,
+                "y": 187.7
+              },
+              {
+                "x": 791.9,
+                "y": 199.9
+              },
+              {
+                "x": 801.6,
+                "y": 213.4
+              },
+              {
+                "x": 801.3,
+                "y": 228
+              },
+              {
+                "x": 788.2,
+                "y": 241
+              },
+              {
+                "x": 768.9,
+                "y": 251
+              },
+              {
+                "x": 748.8,
+                "y": 259.9
+              },
+              {
+                "x": 725.3,
+                "y": 267.6
+              },
+              {
+                "x": 697.4,
+                "y": 269.9
+              },
+              {
+                "x": 670.7,
+                "y": 265.5
+              },
+              {
+                "x": 647.9,
+                "y": 258
+              },
+              {
+                "x": 626.3,
+                "y": 249.8
+              },
+              {
+                "x": 607.2,
+                "y": 239.3
+              },
+              {
+                "x": 598.3,
+                "y": 225.3
+              }
+            ]
+          },
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 988,
+              "line": 32,
+              "column": 3
+            },
+            "end": {
+              "offset": 1357,
+              "line": 37,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 992,
+              "line": 32,
+              "column": 7
+            },
+            "end": {
+              "offset": 998,
+              "line": 32,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "parked",
+          "kind": "sticky",
+          "label": "Parked: a new design system",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1360,
+              "line": 38,
+              "column": 3
+            },
+            "end": {
+              "offset": 1403,
+              "line": 38,
+              "column": 46
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1367,
+              "line": 38,
+              "column": 10
+            },
+            "end": {
+              "offset": 1373,
+              "line": 38,
+              "column": 16
+            }
+          }
+        },
+        {
+          "id": "divider",
+          "kind": "line",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": {
+            "from": {
+              "x": 80,
+              "y": 540
+            },
+            "to": {
+              "x": 800,
+              "y": 540
+            },
+            "via": []
+          },
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1407,
+              "line": 40,
+              "column": 3
+            },
+            "end": {
+              "offset": 1448,
+              "line": 40,
+              "column": 44
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1412,
+              "line": 40,
+              "column": 8
+            },
+            "end": {
+              "offset": 1419,
+              "line": 40,
+              "column": 15
+            }
+          }
+        },
+        {
+          "id": "next",
+          "kind": "text",
+          "label": "Next retrospective in two weeks",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1451,
+              "line": 41,
+              "column": 3
+            },
+            "end": {
+              "offset": 1494,
+              "line": 41,
+              "column": 46
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1456,
+              "line": 41,
+              "column": 8
+            },
+            "end": {
+              "offset": 1460,
+              "line": 41,
+              "column": 12
+            }
+          }
+        }
+      ],
+      "relations": [],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "heading",
+          "x": 420,
+          "y": 60,
+          "range": {
+            "start": {
+              "offset": 1514,
+              "line": 44,
+              "column": 5
+            },
+            "end": {
+              "offset": 1540,
+              "line": 44,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1520,
+              "line": 44,
+              "column": 11
+            },
+            "end": {
+              "offset": 1527,
+              "line": 44,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "well",
+          "x": 200,
+          "y": 310,
+          "range": {
+            "start": {
+              "offset": 1545,
+              "line": 45,
+              "column": 5
+            },
+            "end": {
+              "offset": 1569,
+              "line": 45,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1551,
+              "line": 45,
+              "column": 11
+            },
+            "end": {
+              "offset": 1555,
+              "line": 45,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "improve",
+          "x": 420,
+          "y": 310,
+          "range": {
+            "start": {
+              "offset": 1574,
+              "line": 46,
+              "column": 5
+            },
+            "end": {
+              "offset": 1601,
+              "line": 46,
+              "column": 32
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1580,
+              "line": 46,
+              "column": 11
+            },
+            "end": {
+              "offset": 1587,
+              "line": 46,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "action",
+          "x": 700,
+          "y": 216,
+          "range": {
+            "start": {
+              "offset": 1606,
+              "line": 47,
+              "column": 5
+            },
+            "end": {
+              "offset": 1632,
+              "line": 47,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1612,
+              "line": 47,
+              "column": 11
+            },
+            "end": {
+              "offset": 1618,
+              "line": 47,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "parked",
+          "x": 700,
+          "y": 420,
+          "range": {
+            "start": {
+              "offset": 1637,
+              "line": 48,
+              "column": 5
+            },
+            "end": {
+              "offset": 1663,
+              "line": 48,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1643,
+              "line": 48,
+              "column": 11
+            },
+            "end": {
+              "offset": 1649,
+              "line": 48,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "next",
+          "x": 440,
+          "y": 580,
+          "range": {
+            "start": {
+              "offset": 1668,
+              "line": 49,
+              "column": 5
+            },
+            "end": {
+              "offset": 1692,
+              "line": 49,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1674,
+              "line": 49,
+              "column": 11
+            },
+            "end": {
+              "offset": 1678,
+              "line": 49,
+              "column": 15
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [
+        {
+          "target": "heading",
+          "targetKind": "element",
+          "properties": {
+            "fontSize": 28,
+            "fontWeight": 700
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1700,
+              "line": 52,
+              "column": 3
+            },
+            "end": {
+              "offset": 1745,
+              "line": 52,
+              "column": 48
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1706,
+              "line": 52,
+              "column": 9
+            },
+            "end": {
+              "offset": 1713,
+              "line": 52,
+              "column": 16
+            }
+          }
+        },
+        {
+          "target": "marker",
+          "targetKind": "element",
+          "properties": {
+            "opacity": 0.35,
+            "stroke": "@highlight",
+            "width": 20
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1748,
+              "line": 53,
+              "column": 3
+            },
+            "end": {
+              "offset": 1805,
+              "line": 53,
+              "column": 60
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1754,
+              "line": 53,
+              "column": 9
+            },
+            "end": {
+              "offset": 1760,
+              "line": 53,
+              "column": 15
+            }
+          }
+        },
+        {
+          "target": "deploys",
+          "targetKind": "element",
+          "properties": {
+            "fill": "#c8e6c9"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1808,
+              "line": 54,
+              "column": 3
+            },
+            "end": {
+              "offset": 1849,
+              "line": 54,
+              "column": 44
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1814,
+              "line": 54,
+              "column": 9
+            },
+            "end": {
+              "offset": 1821,
+              "line": 54,
+              "column": 16
+            }
+          }
+        },
+        {
+          "target": "pairing",
+          "targetKind": "element",
+          "properties": {
+            "fill": "#c8e6c9"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1808,
+              "line": 54,
+              "column": 3
+            },
+            "end": {
+              "offset": 1849,
+              "line": 54,
+              "column": 44
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1823,
+              "line": 54,
+              "column": 18
+            },
+            "end": {
+              "offset": 1830,
+              "line": 54,
+              "column": 25
+            }
+          }
+        },
+        {
+          "target": "flaky",
+          "targetKind": "element",
+          "properties": {
+            "fill": "#f8bbd0"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1852,
+              "line": 55,
+              "column": 3
+            },
+            "end": {
+              "offset": 1891,
+              "line": 55,
+              "column": 42
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1858,
+              "line": 55,
+              "column": 9
+            },
+            "end": {
+              "offset": 1863,
+              "line": 55,
+              "column": 14
+            }
+          }
+        },
+        {
+          "target": "reviews",
+          "targetKind": "element",
+          "properties": {
+            "fill": "#f8bbd0"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1852,
+              "line": 55,
+              "column": 3
+            },
+            "end": {
+              "offset": 1891,
+              "line": 55,
+              "column": 42
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1865,
+              "line": 55,
+              "column": 16
+            },
+            "end": {
+              "offset": 1872,
+              "line": 55,
+              "column": 23
+            }
+          }
+        },
+        {
+          "target": "arrow",
+          "targetKind": "element",
+          "properties": {
+            "arrowhead": "triangle",
+            "width": 3
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1894,
+              "line": 56,
+              "column": 3
+            },
+            "end": {
+              "offset": 1937,
+              "line": 56,
+              "column": 46
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1900,
+              "line": 56,
+              "column": 9
+            },
+            "end": {
+              "offset": 1905,
+              "line": 56,
+              "column": 14
+            }
+          }
+        },
+        {
+          "target": "circle",
+          "targetKind": "element",
+          "properties": {
+            "stroke": "@danger",
+            "width": 3
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1940,
+              "line": 57,
+              "column": 3
+            },
+            "end": {
+              "offset": 1979,
+              "line": 57,
+              "column": 42
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1946,
+              "line": 57,
+              "column": 9
+            },
+            "end": {
+              "offset": 1952,
+              "line": 57,
+              "column": 15
+            }
+          }
+        },
+        {
+          "target": "action",
+          "targetKind": "element",
+          "properties": {
+            "fontSize": 18,
+            "fontWeight": 600
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1982,
+              "line": 58,
+              "column": 3
+            },
+            "end": {
+              "offset": 2026,
+              "line": 58,
+              "column": 47
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1988,
+              "line": 58,
+              "column": 9
+            },
+            "end": {
+              "offset": 1994,
+              "line": 58,
+              "column": 15
+            }
+          }
+        },
+        {
+          "target": "parked",
+          "targetKind": "element",
+          "properties": {
+            "fill": "#e1bee7",
+            "opacity": 0.5,
+            "rotation": 3
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2029,
+              "line": 59,
+              "column": 3
+            },
+            "end": {
+              "offset": 2085,
+              "line": 59,
+              "column": 59
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2035,
+              "line": 59,
+              "column": 9
+            },
+            "end": {
+              "offset": 2041,
+              "line": 59,
+              "column": 15
+            }
+          }
+        },
+        {
+          "target": "divider",
+          "targetKind": "element",
+          "properties": {
+            "line": "dashed",
+            "stroke": "@muted"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2088,
+              "line": 60,
+              "column": 3
+            },
+            "end": {
+              "offset": 2131,
+              "line": 60,
+              "column": 46
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2094,
+              "line": 60,
+              "column": 9
+            },
+            "end": {
+              "offset": 2101,
+              "line": 60,
+              "column": 16
+            }
+          }
+        },
+        {
+          "target": "next",
+          "targetKind": "element",
+          "properties": {
+            "color": "@muted"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2134,
+              "line": 61,
+              "column": 3
+            },
+            "end": {
+              "offset": 2160,
+              "line": 61,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2140,
+              "line": 61,
+              "column": 9
+            },
+            "end": {
+              "offset": 2144,
+              "line": 61,
+              "column": 13
+            }
+          }
+        }
+      ],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [
+    {
+      "id": "replay",
+      "target": "retro",
+      "title": "The retrospective, step by step",
+      "description": null,
+      "durationMs": 5200,
+      "scenes": [
+        {
+          "id": "review",
+          "title": null,
+          "view": "retro",
+          "transition": null,
+          "startMs": 0,
+          "durationMs": 5200,
+          "actions": [
+            {
+              "kind": "draw",
+              "targets": [
+                "marker"
+              ],
+              "all": false,
+              "startMs": 0,
+              "durationMs": 600,
+              "children": [],
+              "range": {
+                "start": {
+                  "offset": 2476,
+                  "line": 71,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 2498,
+                  "line": 71,
+                  "column": 27
+                }
+              }
+            },
+            {
+              "kind": "reveal",
+              "targets": [
+                "well",
+                "deploys",
+                "pairing"
+              ],
+              "all": false,
+              "startMs": 600,
+              "durationMs": 500,
+              "children": [],
+              "range": {
+                "start": {
+                  "offset": 2503,
+                  "line": 72,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 2543,
+                  "line": 72,
+                  "column": 45
+                }
+              }
+            },
+            {
+              "kind": "reveal",
+              "targets": [
+                "improve",
+                "flaky",
+                "reviews"
+              ],
+              "all": false,
+              "startMs": 1100,
+              "durationMs": 500,
+              "children": [],
+              "range": {
+                "start": {
+                  "offset": 2548,
+                  "line": 73,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 2589,
+                  "line": 73,
+                  "column": 46
+                }
+              }
+            },
+            {
+              "kind": "draw",
+              "targets": [
+                "arrow",
+                "circle"
+              ],
+              "all": false,
+              "startMs": 1600,
+              "durationMs": 1600,
+              "children": [],
+              "range": {
+                "start": {
+                  "offset": 2594,
+                  "line": 74,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 2624,
+                  "line": 74,
+                  "column": 35
+                }
+              }
+            },
+            {
+              "kind": "reveal",
+              "targets": [
+                "action"
+              ],
+              "all": false,
+              "startMs": 3200,
+              "durationMs": 400,
+              "children": [],
+              "range": {
+                "start": {
+                  "offset": 2629,
+                  "line": 75,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 2653,
+                  "line": 75,
+                  "column": 29
+                }
+              }
+            },
+            {
+              "kind": "draw",
+              "targets": [
+                "divider"
+              ],
+              "all": false,
+              "startMs": 3600,
+              "durationMs": 600,
+              "children": [],
+              "range": {
+                "start": {
+                  "offset": 2658,
+                  "line": 76,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 2681,
+                  "line": 76,
+                  "column": 28
+                }
+              }
+            },
+            {
+              "kind": "hold",
+              "targets": [],
+              "all": false,
+              "startMs": 4200,
+              "durationMs": 1000,
+              "children": [],
+              "range": {
+                "start": {
+                  "offset": 2686,
+                  "line": 77,
+                  "column": 5
+                },
+                "end": {
+                  "offset": 2693,
+                  "line": 77,
+                  "column": 12
+                }
+              }
+            }
+          ],
+          "range": {
+            "start": {
+              "offset": 2457,
+              "line": 70,
+              "column": 3
+            },
+            "end": {
+              "offset": 2697,
+              "line": 78,
+              "column": 4
+            }
+          }
+        }
+      ],
+      "range": {
+        "start": {
+          "offset": 2387,
+          "line": 67,
+          "column": 1
+        },
+        "end": {
+          "offset": 2699,
+          "line": 79,
+          "column": 2
+        }
+      }
+    }
+  ],
+  "exports": [],
+  "diagnostics": []
+}

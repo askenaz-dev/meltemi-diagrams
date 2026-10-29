@@ -9,7 +9,7 @@ import {
   type Scene,
   type SceneItem,
 } from "@meltemi/diagrams-layout";
-import { compile } from "@meltemi/diagrams-model";
+import { compile, type Point } from "@meltemi/diagrams-model";
 import { renderSvg } from "@meltemi/diagrams-render";
 import {
   animatedScene,
@@ -22,6 +22,7 @@ import {
   pointAlong,
   sceneAt,
   sceneGroups,
+  trackLength,
   type MotionPlan,
 } from "@meltemi/diagrams-motion";
 
@@ -547,6 +548,81 @@ describe("free lines", () => {
     expect(
       motionItems(frame).some((i) => i.kind === "path" && /^M[\d.]+ [\d.]+[hHvV]/.test(i.d)),
     ).toBe(false);
+  });
+});
+
+describe("pens", () => {
+  function free(body: string) {
+    const compilation = compile(`language "0.2"\ndiagram d: free {\n${body}\n}\n`);
+    expect(compilation.diagnostics).toEqual([]);
+    const diagram = compilation.document.diagrams[0]!;
+    const scene = layoutDiagram(compilation, diagram, {}).scene!;
+    return { scene, plan: planMotion(diagram, scene) };
+  }
+  const penGroup = (scene: Scene) =>
+    sceneGroups(scene.items).find((g) => g.role === "element" && g.id === "p")!;
+  /** The point at `t` of the quadratic curve from `a` to `b` with control `c`. */
+  const quadratic = (a: Point, c: Point, b: Point, t: number): Point => ({
+    x: (1 - t) ** 2 * a.x + 2 * (1 - t) * t * c.x + t * t * b.x,
+    y: (1 - t) ** 2 * a.y + 2 * (1 - t) * t * c.y + t * t * b.y,
+  });
+
+  it("traces the first half of the smoothed path halfway through its growth", () => {
+    const { scene, plan } = free(
+      "  pen p [(0, 0), (40, 10), (80, 0)]\n  animate p { effect trace; repeat 1 }",
+    );
+    const [effect] = plan.effects;
+    expect(effect).toMatchObject({ target: "p", role: "element", effect: "trace", bounds: null });
+    // The track is the curve the pen draws (`M 0 0 Q 40 10 60 5 L 80 0`), not its three points.
+    const [origin] = penGroup(scene).track!;
+    const at = (p: Point) => ({ x: origin!.x + p.x, y: origin!.y + p.y });
+    const track = effect!.track!;
+    expect(track[0]).toEqual(at({ x: 0, y: 0 }));
+    expect(track[track.length - 1]).toEqual(at({ x: 80, y: 0 }));
+    expect(track).toContainEqual(
+      at(quadratic({ x: 0, y: 0 }, { x: 40, y: 10 }, { x: 60, y: 5 }, 0.5)),
+    );
+    expect(track).toContainEqual(at({ x: 60, y: 5 }));
+    // Its length is the curve's, shorter than the corner at (40, 10).
+    let curve = 0;
+    for (let i = 1; i <= 1000; i++) {
+      const a = quadratic({ x: 0, y: 0 }, { x: 40, y: 10 }, { x: 60, y: 5 }, (i - 1) / 1000);
+      const b = quadratic({ x: 0, y: 0 }, { x: 40, y: 10 }, { x: 60, y: 5 }, i / 1000);
+      curve += Math.hypot(b.x - a.x, b.y - a.y);
+    }
+    curve += Math.hypot(20, 5);
+    const L = Math.round(trackLength(track) * 100) / 100;
+    expect(L).toBeCloseTo(curve, 1);
+    expect(L).toBeLessThan(2 * Math.hypot(40, 10));
+    // A trace grows over the first 80 % of its 1500 ms: half of it is lit at 600 ms.
+    const frame = sceneAt(scene, plan, 600);
+    const lit = penGroup(frame).items.find(
+      (i): i is PolylineItem => i.kind === "polyline" && i.dash !== undefined,
+    )!;
+    expect(lit.points).toEqual(track);
+    expect(lit.dash!.array).toEqual([L, L]);
+    expect(lit.dash!.offset).toBeCloseTo(L / 2, 1);
+    expect(lit.stroke).toBe(effect!.color);
+    // One cycle: after it the pen is its picture again.
+    expect(sceneAt(scene, plan, 1600)).toBe(scene);
+  });
+
+  it("runs flow particles along the smoothed path", () => {
+    const { scene, plan } = free(
+      "  pen p [(0, 0), (40, 40), (80, 0)]\n  animate p { effect flow; duration 1s }",
+    );
+    const [origin] = penGroup(scene).track!;
+    const frame = sceneAt(scene, plan, 500);
+    const [particle] = penGroup(frame).items.filter(
+      (i) => i.kind === "path" && / a[\d.]+ /.test(i.d),
+    );
+    // Halfway along the curve, which rises to 26.67 and never reaches the corner (40, 40) the
+    // points make.
+    const centre = circleCentre(particle!);
+    const half = pointAlong(plan.effects[0]!.track!, 0.5);
+    expect(centre.x).toBeCloseTo(half.x, 1);
+    expect(centre.y).toBeCloseTo(half.y, 1);
+    expect(centre.y - origin!.y).toBeLessThanOrEqual(26.67);
   });
 });
 

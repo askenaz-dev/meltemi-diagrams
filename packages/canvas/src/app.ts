@@ -48,6 +48,11 @@ import {
   nextArrowKind,
   shapeOutline,
   shapeSize,
+  penStyleFor,
+  scalePenPoints,
+  PRESENCE_PEN_LIMITS,
+  STICKY_COLOURS,
+  type PresencePen,
   type ArrowKind,
   type ShapeName,
   type AlignEdge,
@@ -77,22 +82,41 @@ import {
   type LibraryItemInfo,
 } from "@meltemi/diagrams-editor/canvas";
 import { ICONS, clear, h, icon, s } from "./dom.js";
-import { glyph, shapeIcon, type IconPlacement } from "./glyphs.js";
+import { glyph, repaintSticky, shapeIcon, stickyGlyph, type IconPlacement } from "./glyphs.js";
 import { IconPicker } from "./icon-picker.js";
 import { AddIconsDialog, pickedRefusal, type PickedIcon } from "./add-icons.js";
-import { InlineEditor, boxPlace, drawnLines } from "./inline.js";
+import { InlineEditor, boxPlace, drawnLines, wrappedLines } from "./inline.js";
 import { Inspector, ThemePanel } from "./inspector.js";
 import { LayersPanel } from "./layers.js";
 import { LibraryPanel } from "./library.js";
 import { messages, type CanvasMessages } from "./messages/index.js";
 import { Dialog, Menu, Picker, type MenuItem } from "./panels.js";
-import { PresenceLayer, type DrawnTrail } from "./presence-layer.js";
+import {
+  penPathOf,
+  penResize,
+  simplifyStroke,
+  strokeSamples,
+  sweepDistance,
+  sweepTouches,
+  tenthPoints,
+} from "./pen.js";
+import {
+  PenMenu,
+  readPenChoice,
+  toolColour,
+  toolOpacity,
+  toolWidth,
+  type PenChoice,
+  type PenTool,
+} from "./pen-menu.js";
+import { PresenceLayer, type DrawnStroke, type DrawnTrail } from "./presence-layer.js";
 import {
   FALLBACK_COLOUR,
   MAX_LASER_MS,
   MAX_LASER_POINTS,
   cursorMarks,
   parseColour,
+  personKeys,
   presenceMarks,
   readMe,
   readPeople,
@@ -100,12 +124,22 @@ import {
   type PersonView,
   type PresenceShape,
 } from "./presence.js";
+import { PeerStrokes } from "./strokes.js";
 import { TRAIL_FADE_MS, Trail, thin } from "./trail.js";
 
 /** The pointer goes to the host at most this often while it moves (it shares it as presence). */
 const POINTER_EVERY_MS = 50;
+
+/** Whether two pen parts are of one batch: both none, or one stroke in one look, cancelled alike. */
+const samePresencePen = (a: PresencePen | undefined, b: PresencePen | undefined): boolean =>
+  a?.width === b?.width &&
+  a?.colour === b?.colour &&
+  a?.opacity === b?.opacity &&
+  a?.stroke === b?.stroke &&
+  a?.cancel === b?.cancel;
 import { placementIn } from "./placement.js";
 import { ShapeGrid } from "./shape-grid.js";
+import { THEME_STICKY, readStickyFill, stickyColourName, type StickyFill } from "./sticky.js";
 import { StoryPanel } from "./story.js";
 import { Tooltips } from "./tooltip.js";
 import { undoRedoKey, viewCommand, writesDocument } from "./view-only.js";
@@ -126,6 +160,23 @@ export interface PersistedState {
    * Pause and Play; a diagram without a choice plays, unless the system asks for reduced motion.
    */
   readonly effectsPlaying?: Record<string, boolean>;
+  /**
+   * The pen menu's choices: the tool the pen button arms, the pen's width and colour, and the
+   * highlighter's colour (a token as `@ink`, or `#rrggbb`). Read through `readPenChoice`, which
+   * gives the defaults where they are absent or malformed.
+   */
+  readonly pen?: {
+    readonly tool: "pen" | "highlighter";
+    readonly width: number;
+    readonly colour: string;
+    readonly highlightColour: string;
+  };
+  /**
+   * The colour of the sticky notes the sticky note button and S add: one of the six colours of
+   * paper as `#rrggbb`, or null for the theme's `sticky`. Read through `readStickyFill`, which
+   * gives the theme's where it is absent or not one of the six.
+   */
+  readonly sticky?: { readonly fill: string | null };
 }
 
 /**
@@ -145,7 +196,10 @@ interface InlineTarget {
   readonly rename: boolean;
 }
 
-/** Kinds created without opening the label editor: shapes are placed empty, as in draw.io. */
+/**
+ * Kinds created without opening the label editor: shapes are placed empty, as in draw.io, and a
+ * pen stroke has no text at all.
+ */
 const QUIET_KINDS: ReadonlySet<string> = new Set([
   "node",
   "decision",
@@ -153,10 +207,74 @@ const QUIET_KINDS: ReadonlySet<string> = new Set([
   "box",
   "icon",
   "image",
+  "pen",
 ]);
 
 /** The font of an id typed in place: ids are code. */
 const ID_FONT = 'ui-monospace, "Cascadia Mono", Menlo, Consolas, monospace';
+
+/** The whiteboard's drawing tools of free diagrams: they draw strokes, or erase them. */
+type DrawingTool = PenTool | "eraser";
+
+/** What the palette arms: a kind to place, the relation tool, or a drawing tool. */
+type Tool = ElementKind | "relation" | DrawingTool;
+
+/**
+ * The tools that stay armed after their gesture, unlike the tools that place one element: a word
+ * of handwriting is six strokes, not six presses of P. Escape, another tool, K or the same button
+ * puts one away.
+ */
+const STAYS_ARMED: ReadonlySet<string> = new Set<DrawingTool>(["pen", "highlighter", "eraser"]);
+
+/** Whether a tool draws or erases strokes rather than placing an element. */
+const isDrawing = (tool: Tool | undefined): tool is DrawingTool =>
+  tool !== undefined && STAYS_ARMED.has(tool);
+
+/**
+ * Whether a press erases as a stylus's buttons do: its barrel button (the second button,
+ * `buttons` 2, on a pointer of type `pen`) or its eraser end (`buttons` 32).
+ */
+const stylusErases = (e: PointerEvent): boolean =>
+  (e.pointerType === "pen" && (e.buttons & 2) !== 0) || (e.buttons & 32) !== 0;
+
+/**
+ * How long after a stylus erased with its barrel button the context menu its button raises stays
+ * shut, in milliseconds: the menu comes at the press or at the release.
+ */
+const STYLUS_MENU_MS = 1000;
+
+/** How far from the pointer, in screen pixels, the eraser takes a stroke: its cursor's radius. */
+const ERASER_REACH = 8;
+/** The tolerance of a stroke's simplification at the release, in screen pixels. */
+const STROKE_TOLERANCE = 0.75;
+/** Raw pointer positions closer than this to the last one kept, in screen pixels, add nothing. */
+const STROKE_STEP = 0.5;
+/**
+ * How far beyond the edge of a stroke's drawing, in screen pixels at every zoom, a press still
+ * takes it: its hit area is its path drawn this much wider on each side.
+ */
+const STROKE_REACH = 6;
+
+/** The width of a pen's hit area in diagram units: its own, and `STROKE_REACH` pixels each side. */
+const strokeReach = (width: number, zoom: number): number =>
+  width + (2 * STROKE_REACH) / Math.max(zoom, 1e-3);
+/**
+ * A stroke or an erasure in flight is let go of after this many newer drawings that do not hold it
+ * and no refusal: its refusal is the next message after the first, so this is only for a host that
+ * never answers.
+ */
+const PEN_UNHELD_RENDERS = 3;
+/** The colours a token falls back to when the host sends no swatches. */
+const FALLBACK_TOKENS: Readonly<Record<string, string>> = {
+  ink: "#1f2328",
+  highlight: "#ffe600",
+  sticky: THEME_STICKY,
+};
+/**
+ * How long after a sticky note is sent for its drawing may arrive and still pop in: a sticky that
+ * comes later is someone else's, or the text's, and is just drawn.
+ */
+const POP_WAIT_MS = 2000;
 
 type Drag =
   | { kind: "pan"; start: Point; viewport: Viewport }
@@ -182,6 +300,18 @@ type Drag =
       pick?: string;
       /** Alt held at the last move: every parent stays, as on a drop with Alt. */
       free?: boolean;
+      /**
+       * Free diagrams: the list group the selection is dragged over and the position among its
+       * children (the dragged ones taken out) that the pointer gives; the drop moves the
+       * declarations there, with no point, and the preview makes room for them.
+       */
+      list?: ListDrop;
+      /**
+       * Where the drawing shown when the drag began drew each dragged element and what it holds:
+       * the top left of its group, in diagram coordinates. A preview that puts them into a list
+       * draws them in their new place, from which the canvas keeps them under the pointer.
+       */
+      drawn?: Map<string, Point>;
     }
   | { kind: "resize"; id: string; handle: Handle; start: Point; box: Box; result: Box }
   /** A rotation handle dragged about the centre of the element's box (diagram coordinates). */
@@ -253,6 +383,32 @@ type Drag =
     }
   /** Sequence diagrams: a message, note or fragment dragged up or down, never above its space. */
   | { kind: "event"; key: string; start: Point; delta: number; min: number; moving: boolean }
+  /**
+   * A stroke of the pen or the highlighter (`tool`) by the pointer `pointer`: the raw positions
+   * from the press in diagram units (coalesced events included), drawn on the overlay as they
+   * come; `straight` while Shift keeps it a segment from the press; `moving` once the pointer has
+   * left the press, before which the release writes a dot. `parent` is the group under the press.
+   * `look` is how the others see it drawn, and `shared` how many of `points` went to them.
+   */
+  | {
+      kind: "penDraw";
+      tool: PenTool;
+      /** The stroke on the overlay, its `d` rewritten at every move. */
+      path: SVGPathElement;
+      pointer: number;
+      press: Point;
+      points: Point[];
+      straight: boolean;
+      moving: boolean;
+      parent?: string;
+      look: PresencePen;
+      shared: number;
+    }
+  /**
+   * The eraser by the pointer `pointer`, or a stylus's eraser button: the pens it crossed so far,
+   * hidden as it crosses them, and where the pointer was, to sweep from at the next move.
+   */
+  | { kind: "erase"; pointer: number; last: Point; hits: Set<string> }
   | { kind: "minimap" };
 
 /** How close to a box's border, in screen pixels, a dragged end takes a point of it. */
@@ -280,8 +436,43 @@ const C4_TOOL_ICONS: Readonly<Record<string, string>> = {
   datastore: ICONS.database,
 };
 
+/**
+ * What the group tool creates: a group with its title, an untitled container, or on free diagrams
+ * a list group, a column or a row (`group <id> "Column" { layout column }`).
+ */
+type GroupKind = "group" | "container" | "column" | "row";
+
 /** The pictures of the kinds of group the group tool creates. */
-const GROUP_ICONS = { group: ICONS.group, container: ICONS.plainContainer } as const;
+const GROUP_ICONS: Readonly<Record<GroupKind, string>> = {
+  group: ICONS.group,
+  container: ICONS.plainContainer,
+  column: ICONS.column,
+  row: ICONS.row,
+};
+
+/** Where a drag into a list drops: the list group, and the position among its children. */
+interface ListDrop {
+  readonly id: string;
+  readonly index: number;
+}
+
+/**
+ * How thick the insertion bar of a list is drawn and the radius of its end dots, in screen
+ * pixels; how far inside the list's edges it ends, in diagram units.
+ */
+const INSERTION_BAR = 3;
+const INSERTION_DOT = 3;
+const INSERTION_INSET = 6;
+/** The radius of the + at the end of a list, and its distance from the last child, in pixels. */
+const LIST_ADD_RADIUS = 11;
+const LIST_ADD_GAP = 6;
+/** Half a resize handle: a + past a list's edge stays clear of the handle there. */
+const LIST_ADD_HANDLE = 4;
+/**
+ * How long after a drop into a list its drawing may arrive and still glide the dropped elements
+ * into their places (a later drawing is just drawn).
+ */
+const SETTLE_WAIT_MS = 2000;
 
 /** The kinds of diagram the New diagram button adds, in the order of its menu. */
 const CREATABLE: readonly CreatableDiagram[] = ["flow", "free", "sequence"];
@@ -312,11 +503,16 @@ const PALETTE: readonly {
   { kind: "tag", key: "T", profile: "flow" },
   { kind: "box", key: "B", profile: "free" },
   { kind: "text", key: "T", profile: "free" },
+  // A click or S adds a sticky note near the centre, a drag places one; its arrow picks the colour.
+  { kind: "sticky", key: "S", profile: "free" },
   { kind: "icon", key: "I", profile: "flow free" },
   { kind: "image", key: "M", profile: "free" },
   { kind: "participant", key: "P", profile: "sequence" },
   { kind: "actor", key: "A", profile: "sequence" },
   { kind: "group", key: "G" },
+  // The whiteboard: the pen (its menu holds the highlighter, H) and the eraser.
+  { kind: "pen", key: "P", profile: "free" },
+  { kind: "eraser", key: "E", profile: "free" },
 ];
 
 /**
@@ -359,6 +555,10 @@ const DEFAULT_SIZES: Record<ElementKind, { width: number; height: number }> = {
   image: { width: 160, height: 120 },
   // A line is drawn by dragging, from point to point; this is the ghost of a click.
   line: { width: 120, height: 1 },
+  // A pen is drawn by dragging too; a press without moving is a dot of its width.
+  pen: { width: 3, height: 3 },
+  // A sticky never grows: its card is 160 × 160 and its words fit it.
+  sticky: { width: 160, height: 160 },
   person: { width: 160, height: 104 },
   system: { width: 180, height: 80 },
   container: { width: 170, height: 76 },
@@ -454,15 +654,73 @@ export class CanvasApp {
   private readonly peerBatches = new Map<string, number>();
   /** Under reduced motion a person's batch stays whole until this moment. */
   private readonly peerHolds = new Map<string, number>();
+  /**
+   * Other people's strokes of the pen and the highlighter as they draw them (by cursor key), and
+   * the timer that lets them go ten seconds after their last batch.
+   */
+  private readonly peerStrokes = new PeerStrokes();
+  private strokeTimer: ReturnType<typeof setTimeout> | undefined;
+  private strokeExpiry: number | undefined;
   /** The colour the host names for the person at this canvas, from `presence.me`. */
   private personColour: string | undefined;
   private trailFrame: number | undefined;
   /** The points of the stroke the host has not been sent, with `t` as `performance.now()`. */
   private laserQueue: { x: number; y: number; t: number }[] = [];
+  /** How the queued points look when they are a stroke of the pen or the highlighter. */
+  private laserPen: PresencePen | undefined;
   private laserTimer: ReturnType<typeof setTimeout> | undefined;
+  /**
+   * The number of the last stroke drawn with the pen or the highlighter, which the others tell its
+   * batches by (`PresencePen.stroke`): from a random start, so a canvas opened again does not take
+   * up the numbers its strokes of a moment ago went by.
+   */
+  private strokeNumber = Math.floor(Math.random() * PRESENCE_PEN_LIMITS.stroke.max);
+  /** The last batch each person sent of a stroke of theirs, by the person's key: drawn once. */
+  private readonly strokeBatches = new Map<string, number>();
   private stale = false;
   private drag: Drag | undefined;
-  private tool: ElementKind | "relation" | undefined;
+  private tool: Tool | undefined;
+  /** The pen menu, behind the arrow of the pen button. */
+  private readonly penMenu = new PenMenu();
+  /** The main part of the pen button: it shows and arms the pen or the highlighter. */
+  private penButton: HTMLButtonElement | undefined;
+  /** The main part of the sticky note button: it shows the colour of the sticky notes it adds. */
+  private stickyButton: HTMLButtonElement | undefined;
+  /**
+   * When a sticky note was last sent to be created: the drawing that brings it pops it in, as its
+   * editor opens over it, if it comes within `POP_WAIT_MS`.
+   */
+  private popping: number | undefined;
+  /**
+   * The strokes written and the strokes erased, in order, until the render that holds each edit
+   * arrives: a stroke's path stays on the overlay meanwhile (so it never blinks between the hand and
+   * the drawing), and an edit made while another is pending waits for its render, one per render,
+   * as nudges do, so a quick hand never writes against a stale revision. `sent` is the revision an
+   * edit was sent against; `retried` once it was refused for a stale revision and sent again.
+   */
+  private penQueue: {
+    readonly action: CanvasAction;
+    readonly path?: SVGPathElement;
+    sent?: number | undefined;
+    retried?: boolean;
+    /** How many newer drawings came that do not hold it while it was in flight. */
+    unheld?: number;
+  }[] = [];
+  /** The pens the eraser has hidden and not yet written away, back on Escape or a refusal. */
+  private erased = new Set<string>();
+  /** The pointer of a stylus that is down: touches meanwhile are a hand resting on the screen. */
+  private stylus: number | undefined;
+  /** When a stylus's barrel button or eraser end last pressed to erase, for its context menu. */
+  private stylusErasedAt: number | undefined;
+  /** The zoom the pens' hit areas are sized for (`syncStrokeHits`). */
+  private strokeHitZoom: number | undefined;
+  /**
+   * What the inline editor just wrote the text of: the drawing that holds the new text says the
+   * selection again, so the status line does not keep the old text.
+   */
+  private relabelled: string | undefined;
+  /** The midpoint chain of each pen of the drawing as a polyline, measured once per render. */
+  private penSamples = new Map<string, Point[]>();
   /** The relation tool's source, once its first element is clicked. */
   private relationFrom: string | undefined;
   private pending = false;
@@ -538,15 +796,31 @@ export class CanvasApp {
    */
   private previewToken = 0;
   private previewWaiting:
-    { readonly token: number; readonly delta: Point; readonly gone?: boolean } | undefined;
+    | {
+        readonly token: number;
+        readonly delta: Point;
+        readonly gone?: boolean;
+        /** A move into a list: where to. */
+        readonly list?: ListDrop;
+      }
+    | undefined;
   private previewAgain = false;
   private previewSent: string | undefined;
   /**
    * The stage shows a preview's drawing instead of the last render's: that of a move by `delta`
-   * (zero for a resize). Undefined while it shows the last render.
+   * (zero for a resize). Undefined while it shows the last render. A move into a list (`list`)
+   * draws each moved element in its new place: `shifts` holds how far that is from where the
+   * drag began, by id.
    */
   private previewShown:
-    { readonly delta: Point; readonly offset: Point; readonly box?: Box } | undefined;
+    | {
+        readonly delta: Point;
+        readonly offset: Point;
+        readonly box?: Box;
+        readonly list?: ListDrop;
+        shifts?: Map<string, Point>;
+      }
+    | undefined;
   /**
    * A rotation released and written, until the edit's render comes: the outline and the handles
    * keep its angle meanwhile, as the drawing does.
@@ -569,9 +843,52 @@ export class CanvasApp {
   private shape: ShapeName = "rounded";
   /** The kind of arrow the relation tool creates: chosen in its menu or cycled with R. */
   private arrowKind: ArrowKind = "->";
-  /** What the group tool creates: a group with its title, or an untitled container. */
-  private groupKind: "group" | "container" = "group";
+  /**
+   * What the group tool creates: a group with its title, an untitled container, a column or a row
+   * (the last two on free diagrams), kept while the canvas is open and never written.
+   */
+  private groupKind: GroupKind = "group";
   private groupButton: HTMLButtonElement | undefined;
+  /** The arrow part of the group button, whose title names the kinds the diagram offers. */
+  private groupArrow: HTMLButtonElement | undefined;
+  /**
+   * The bar that shows where a drag into a list drops: across the list, in the gap the drop takes,
+   * in the theme's guide colour, with a dot at each end. It is drawn in the drawing shown, under
+   * what is dragged (which floats above it) and above the rest, and goes from drawing to drawing as
+   * previews replace them, so that it fades in once and slides from gap to gap.
+   */
+  private readonly insertion = s(
+    "g",
+    { class: "mdg-insertion", "aria-hidden": "true", "pointer-events": "none" },
+    s("line", { class: "mdg-insertion-halo" }),
+    s("line", { class: "mdg-insertion-line" }),
+    s("circle", { class: "mdg-insertion-dot" }),
+    s("circle", { class: "mdg-insertion-dot" }),
+  );
+  /**
+   * Where the insertion bar shows, in diagram coordinates: its list, whether it lies across a
+   * column (else it stands across a row), and its ends. Undefined while it is hidden.
+   */
+  private insertionAt:
+    | { readonly list: string; readonly column: boolean; readonly from: Point; readonly to: Point }
+    | undefined;
+  /** The + buttons at the end of the lists, by the list's id; hidden ones wait to show again. */
+  private readonly listAdds = h("div", { class: "list-adds" });
+  private readonly listAddButtons = new Map<string, HTMLButtonElement>();
+  /** The lists under the pointer, innermost first, whose + shows. */
+  private hoveredLists: readonly string[] = [];
+  /** The list whose + the pointer is over: it stays while the pointer is on it. */
+  private listAddHover: string | undefined;
+  /**
+   * Elements just dropped into a list, until the drawing of the drop arrives: they glide from
+   * where the drag left them into their places, and the cards around them into theirs.
+   */
+  private settling: { readonly since: number } | undefined;
+  /**
+   * What waits for the render of a pending edit, one per render: a + pressed while the label of
+   * the last card was being written, Alt+Up pressed again before the first moved.
+   */
+  private afterRender: (() => void)[] = [];
   /** The grid of shapes behind the arrow of the box and node buttons, and F. */
   private readonly shapeGrid = new ShapeGrid();
   /** The main parts of the box and node buttons, which show the current shape. */
@@ -654,10 +971,13 @@ export class CanvasApp {
     this.buildToolbar();
     this.minimap.append(this.map, this.frame);
     // The minimap sits in the corner of the canvas, never over the inspector.
+    // The + of the lists over the overlay and its handles, to be pressed.
+    this.listAdds.setAttribute("data-write", "");
     this.stage.append(
       this.content,
       this.presenceLayer.element,
       this.overlay,
+      this.listAdds,
       this.banner,
       this.empty,
       this.status,
@@ -676,6 +996,7 @@ export class CanvasApp {
       this.picker.element,
       this.dialog.element,
       this.shapeGrid.element,
+      this.penMenu.element,
       this.iconPicker.element,
       this.addIconsDialog.element,
     );
@@ -722,6 +1043,15 @@ export class CanvasApp {
         this.stale = true;
         this.pending = false;
         this.queuedSlide = undefined;
+        // A + or a move in a list cannot be written until the errors are fixed.
+        this.afterRender = [];
+        this.settling = undefined;
+        // Strokes and erasures not written yet cannot be, until the errors are fixed.
+        if (this.penQueue.length > 0) {
+          this.penQueue = [];
+          this.restoreErased();
+          this.drawOverlay();
+        }
         this.content.classList.add("stale");
         this.banner.hidden = false;
         this.banner.textContent = messages().stage.outOfDate(
@@ -765,17 +1095,37 @@ export class CanvasApp {
         this.pending = false;
         // Icons that were not written are not chosen.
         this.afterIcons = undefined;
-        // A label refused is drawn as it was.
+        // A label refused is drawn as it was, and the selection keeps its text.
         if (!this.inline) this.showDrawnText();
+        this.relabelled = undefined;
         this.queued = { x: 0, y: 0 };
         this.queuedSlide = undefined;
         this.turnPending = undefined;
-        this.resetPreview();
-        if (message.code === "edit.has-dependents" && message.dependents && message.retry) {
-          const retry = message.retry;
-          this.dialog.confirm(message.reason, message.dependents, () => this.act(retry));
-        } else {
-          this.announce(message.reason, true);
+        {
+          // A stroke refused is not drawn; strokes the eraser could not take come back. One
+          // refused because the text changed under it goes again after the next drawing.
+          const again = this.penRefused(message.code);
+          // A sticky note refused never comes to pop in.
+          this.popping = undefined;
+          // What waited for the edit's render waits no more; a drop into a list refused glides
+          // back where it came from. A stroke or an erasure in the hand is not what was refused:
+          // it goes on.
+          this.afterRender = [];
+          const drawing = this.drag?.kind === "penDraw" || this.drag?.kind === "erase";
+          if (this.settling) {
+            this.settling = undefined;
+            if (!drawing) {
+              const back = this.drawnRects();
+              this.resetPreview();
+              this.glide(back, this.motion("--mdg-motion"));
+            }
+          } else if (!drawing) this.resetPreview();
+          if (message.code === "edit.has-dependents" && message.dependents && message.retry) {
+            const retry = message.retry;
+            this.dialog.confirm(message.reason, message.dependents, () => this.act(retry));
+          } else if (!again) {
+            this.announce(message.reason, true);
+          }
         }
         break;
       case "highlight":
@@ -1499,6 +1849,21 @@ export class CanvasApp {
     if (previous && previous.diagram !== render.diagram) this.presence = [];
     this.render = render;
     this.revision = render.revision;
+    // The strokes written are in this drawing: the overlay's go in the same frame. An edit in flight
+    // that this drawing does not hold (somebody else's edit came first) stays in flight: the
+    // refusal of its stale revision follows, and it goes again.
+    this.penQueue = this.penQueue.filter((entry) => {
+      if (entry.sent === undefined || render.revision <= entry.sent) return true;
+      if (this.holdsPenEdit(entry.action, render)) return false;
+      entry.unheld = (entry.unheld ?? 0) + 1;
+      if (entry.unheld < PEN_UNHELD_RENDERS) return true;
+      // No refusal came for it: it is let go of, as a refusal would.
+      if (entry.action.kind === "remove") this.restoreErased(entry.action.ids);
+      return false;
+    });
+    this.penSamples = new Map();
+    // So are the strokes others drew, which the presence layer gives up to the drawing.
+    this.strokesRendered(render, previous);
     this.libraryPanel.setAddable(this.canAddIcons);
     const after = this.afterIcons;
     this.afterIcons = undefined;
@@ -1517,6 +1882,8 @@ export class CanvasApp {
     this.content.classList.remove("stale");
     this.banner.hidden = true;
     this.empty.hidden = true;
+    // The sticky note just sent, in this drawing for the first time: it pops in below.
+    const popped = this.freshStickies(render, previous);
     this.elements = new Map(render.elements.map((e) => [e.id, e]));
     this.relations = new Map(render.relations.map((r) => [r.key, r]));
     this.events = new Map(render.events.map((e) => [e.key, e]));
@@ -1549,8 +1916,18 @@ export class CanvasApp {
       this.pending = false;
       return;
     }
+    // What was dropped into a list, or moved in it, glides from where it was into its place.
+    const settling =
+      this.settling !== undefined && performance.now() - this.settling.since < SETTLE_WAIT_MS;
+    this.settling = undefined;
+    const before = settling ? this.drawnRects() : undefined;
     // A preview on the stage gives way to the render, which is the drop's when one was pending.
     if (!previous || previous.svg !== render.svg || this.previewShown) this.setSvg(render);
+    this.popIn(popped, render.offset);
+    // Erased strokes the drawing still holds stay hidden: the eraser goes on, or its edit is on
+    // its way; the ones it took are gone from it.
+    this.erased = new Set([...this.erased].filter((id) => this.elements.get(id)?.pen));
+    this.hideErased(this.erased);
     this.previewShown = undefined;
     this.endPreview();
     // A drag that goes on keeps its elements under the pointer over the new drawing.
@@ -1579,11 +1956,20 @@ export class CanvasApp {
     const wasPending = this.pending;
     this.pending = false;
     this.layout();
+    if (before) this.glide(before, this.motion("--mdg-motion"));
     if (wasPending && (this.queued.x !== 0 || this.queued.y !== 0)) {
       const delta = this.queued;
       this.queued = { x: 0, y: 0 };
       this.nudge(delta);
     }
+    // The text the inline editor wrote is in this drawing: the selection is said again with it.
+    const relabelled = this.relabelled;
+    this.relabelled = undefined;
+    if (relabelled !== undefined && this.selection.includes(relabelled)) this.announceSelection();
+    // A stroke or an erasure that waited for this render goes now.
+    this.flushPen();
+    // A + or a move in a list that waited for this render goes now, one per render.
+    if (!this.pending && this.afterRender.length > 0) this.afterRender.shift()!();
   }
 
   private fitted(): Viewport {
@@ -1694,7 +2080,18 @@ export class CanvasApp {
     this.previewShown = undefined;
     this.endPreview();
     if (this.inline) this.cancelInline();
+    // Strokes in the air or on their way, and the strokes being erased, go with the drawing.
+    this.penQueue = [];
+    this.erased = new Set();
+    // So do the lists' + and what waited to add to them.
+    this.afterRender = [];
+    this.settling = undefined;
+    this.hoveredLists = [];
+    this.listAddHover = undefined;
+    this.penMenu.close(false);
     this.tool = undefined;
+    this.stage.classList.remove("drawing");
+    this.syncPointerCursor();
     this.relationFrom = undefined;
     this.borderStart = undefined;
     this.stage.classList.remove("placing", "connecting", "panning");
@@ -1731,6 +2128,8 @@ export class CanvasApp {
     this.announce("");
     this.syncToggles();
     this.drawPresence();
+    // The pens others' strokes were written as were of that drawing.
+    this.peerStrokes.clear(true);
   }
 
   /**
@@ -1757,10 +2156,12 @@ export class CanvasApp {
       this.borderStart = undefined;
       this.queued = { x: 0, y: 0 };
       this.queuedSlide = undefined;
-      this.stage.classList.remove("placing", "connecting");
+      this.stage.classList.remove("placing", "connecting", "drawing");
+      this.syncPointerCursor();
       this.menu.close();
       this.picker.close();
       this.shapeGrid.close(false);
+      this.penMenu.close(false);
       this.iconPicker.close(false);
       this.endIconDrag();
       this.armedIcon = undefined;
@@ -1785,9 +2186,12 @@ export class CanvasApp {
       this.empty.hidden = true;
       this.banner.hidden = true;
       this.shapeGrid.close(false);
+      this.penMenu.close(false);
       this.iconPicker.close(false);
       this.endIconDrag();
       this.setPointing(false);
+      // A story only plays: the pen and the eraser are put away, as their buttons are.
+      if (isDrawing(this.tool)) this.arm(undefined);
     }
   }
 
@@ -1888,7 +2292,14 @@ export class CanvasApp {
       const words = messages().stage;
       for (const element of render.elements) {
         const g = root.querySelector(`g[data-id="${cssEscape(element.id)}"][data-role="element"]`);
-        g?.setAttribute("aria-label", words.element(element.kind, element.label || element.id));
+        // A stroke has no label: it is said as a stroke with its point count.
+        g?.setAttribute(
+          "aria-label",
+          element.pen
+            ? words.stroke(element.id, element.pen.points.length)
+            : words.element(element.kind, element.label || element.id),
+        );
+        if (g && element.pen) g.prepend(this.strokeHit(element.pen, render.offset));
         // An element drawn as its icon (an icon shape, an icon object) is pressed anywhere on its
         // square, between the strokes of an outline icon too: an area of the canvas's own, under
         // the icon, which exports never have.
@@ -1924,6 +2335,8 @@ export class CanvasApp {
           );
         }
       }
+      // The pens' hit areas were sized for the zoom shown.
+      this.strokeHitZoom = this.viewport.zoom;
       // A render that comes while the editor is open draws the text it types over: hidden again.
       this.placeInline();
     }
@@ -1931,11 +2344,108 @@ export class CanvasApp {
     this.map.innerHTML = render.svg;
   }
 
+  /**
+   * The hit area of a pen, which the canvas adds under its drawing and exports never have: its
+   * path, as the layout draws it, `STROKE_REACH` screen pixels wider on each side at the zoom
+   * (`syncStrokeHits` keeps it so as the zoom changes), so a press near a thin stroke takes it, and
+   * only near it (inside its bounds but away from it, a press reaches what lies below). A dot,
+   * whose path has no length, is a disc of the same reach.
+   */
+  private strokeHit(pen: NonNullable<ElementInfo["pen"]>, offset: Point): SVGElement {
+    const points = pen.points.map((p) => ({ x: p.x + offset.x, y: p.y + offset.y }));
+    const first = points[0] ?? { x: offset.x, y: offset.y };
+    const reach = strokeReach(pen.width, this.viewport.zoom);
+    if (points.every((p) => p.x === first.x && p.y === first.y)) {
+      return s("circle", {
+        class: "mdg-hit",
+        "data-pen-width": pen.width,
+        cx: first.x,
+        cy: first.y,
+        r: reach / 2,
+        fill: "none",
+        "pointer-events": "visibleFill",
+      });
+    }
+    return s("path", {
+      class: "mdg-hit",
+      "data-pen-width": pen.width,
+      d: penPathOf(points),
+      fill: "none",
+      stroke: "transparent",
+      "stroke-width": reach,
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+      "pointer-events": "stroke",
+    });
+  }
+
+  /**
+   * Keeps the hit area of every pen `STROKE_REACH` screen pixels beyond its drawn edge at the zoom
+   * shown: the drawing scales with the zoom, the reach of a hand does not.
+   */
+  private syncStrokeHits(): void {
+    const zoom = this.viewport.zoom;
+    if (zoom === this.strokeHitZoom) return;
+    this.strokeHitZoom = zoom;
+    for (const hit of this.content.querySelectorAll<SVGElement>(".mdg-hit[data-pen-width]")) {
+      const reach = strokeReach(Number(hit.getAttribute("data-pen-width")), zoom);
+      if (hit.tagName.toLowerCase() === "circle") hit.setAttribute("r", String(reach / 2));
+      else hit.setAttribute("stroke-width", String(reach));
+    }
+  }
+
+  /**
+   * The sticky notes of a render that the canvas just sent to be created (`popping`, in the last
+   * `POP_WAIT_MS`) and the drawing shown did not hold: the ones to pop in. Once they come, or the
+   * wait is over, a later sticky (someone else's, the text's) is just drawn.
+   */
+  private freshStickies(render: CanvasRender, previous: CanvasRender | undefined): string[] {
+    const since = this.popping;
+    if (since === undefined) return [];
+    if (performance.now() - since > POP_WAIT_MS || previous?.diagram !== render.diagram) {
+      this.popping = undefined;
+      return [];
+    }
+    const fresh = render.elements
+      .filter((e) => e.kind === "sticky" && !this.elements.has(e.id))
+      .map((e) => e.id);
+    if (fresh.length > 0) this.popping = undefined;
+    return fresh;
+  }
+
+  /**
+   * Pops new sticky notes in: each drawing is held, for its animation, in a group that grows it
+   * from `--mdg-pop-scale` about the card's centre and fades it in over `--mdg-motion`; the group
+   * goes when the animation ends. The element's own group keeps its rotation untouched.
+   */
+  private popIn(ids: readonly string[], offset: Point): void {
+    const root = this.content.querySelector("svg");
+    if (!root) return;
+    for (const id of ids) {
+      const g = root.querySelector(`g[data-id="${cssEscape(id)}"][data-role="element"]`);
+      const element = this.elements.get(id);
+      if (!g || !element) continue;
+      const centre = centerOf(element.box);
+      const wrapper = s("g", {
+        class: "mdg-pop",
+        style: `transform-origin: ${centre.x + offset.x}px ${centre.y + offset.y}px`,
+      });
+      g.replaceWith(wrapper);
+      wrapper.append(g);
+      // Its own animation's end only: the effects of the drawing inside it animate too.
+      wrapper.addEventListener("animationend", (e) => {
+        if (e.target === wrapper) wrapper.replaceWith(g);
+      });
+    }
+  }
+
   /** Applies the viewport to every layer. */
   private layout(): void {
     const r = this.render;
     const v = this.viewport;
     this.content.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.zoom})`;
+    // A press takes a pen within the same screen pixels of its stroke at every zoom.
+    this.syncStrokeHits();
     // The workspace grid, aligned with diagram coordinates.
     const grid = this.settings.grid * v.zoom;
     const showGrid = this.showGrid && !!r && !this.storyPanel.active;
@@ -1952,6 +2462,8 @@ export class CanvasApp {
     this.drawOverlay();
     this.drawMinimap();
     this.placeInline();
+    // The pen's tip is as wide as its stroke at the zoom.
+    if (this.tool === "pen" || this.tool === "highlighter") this.syncPointerCursor();
     if (r && !this.storyPanel.active) {
       const viewports = { ...(this.local.viewports ?? {}), [r.diagram]: v };
       this.persist({ viewports });
@@ -2005,12 +2517,14 @@ export class CanvasApp {
 
   /**
    * The shapes that can be seen (hidden layers left out), back to front as they are painted. Free
-   * lines are no shapes: they are hit by their stroke, and offer no border or inside.
+   * lines and pen strokes are no shapes: they are hit by their stroke (their `.mdg-hit` areas),
+   * caught by a rubber band around their bounds (`extents`), and offer no border or inside, so no
+   * connection starts at them and nothing is dropped into them.
    */
   private painted(): ElementInfo[] {
     const order = (e: ElementInfo) => this.paint.get(e.id) ?? -1;
     return [...this.elements.values()]
-      .filter((e) => !this.isHidden(e.layer) && !e.line)
+      .filter((e) => !this.isHidden(e.layer) && !e.line && !e.pen)
       .sort((a, b) => order(a) - order(b));
   }
 
@@ -2026,18 +2540,23 @@ export class CanvasApp {
       .reverse();
   }
 
-  /** What a rubber band must hold to select an element: its box, and the label of an icon shape. */
+  /**
+   * What a rubber band must hold to select an element: its box, the label of an icon shape, and a
+   * stroke's bounds (its points grown by half its width).
+   */
   private extents(): Map<string, Box> {
     return new Map(
       [...this.elements.values()]
         .filter((e) => !this.isHidden(e.layer))
         .map((e) => [
           e.id,
-          e.rotation
-            ? turnedBounds(e.box, e.rotation)
-            : e.labelBox
-              ? (unionBox([e.box, e.labelBox]) ?? e.box)
-              : e.box,
+          e.pen
+            ? e.pen.bounds
+            : e.rotation
+              ? turnedBounds(e.box, e.rotation)
+              : e.labelBox
+                ? (unionBox([e.box, e.labelBox]) ?? e.box)
+                : e.box,
         ]),
     );
   }
@@ -2107,6 +2626,8 @@ export class CanvasApp {
       presenceMarks(this.presence, (id) => this.presenceShape(id)),
       cursorMarks(this.presence, (point) => this.screenOf(point)),
     );
+    // Strokes that stay follow the pan and the zoom (a fading trail draws every frame anyway).
+    if (this.peerStrokes.size > 0) this.runTrails();
   }
 
   /**
@@ -2168,6 +2689,7 @@ export class CanvasApp {
       this.menu.close();
       this.picker.close();
       this.shapeGrid.close(false);
+      this.penMenu.close(false);
       this.iconPicker.close(false);
       this.borderStart = undefined;
       this.stage.classList.remove("connecting");
@@ -2184,19 +2706,40 @@ export class CanvasApp {
     this.drawOverlay();
   }
 
-  /** The stage's cursor while pointing: a 16 px dot in the trail's colour with a white ring. */
+  /**
+   * The stage's cursor while pointing or drawing, a static 16 px picture set through
+   * `--mdg-pointer-cursor`: the Pointer's dot in the trail's colour with a white ring; the tip of
+   * the pen or the highlighter, a dot of its colour as wide as its stroke at the zoom (2 to 13 px),
+   * ringed so it shows on any background; the eraser's circle, which is where it erases.
+   */
   private syncPointerCursor(): void {
-    if (!this.pointing) {
+    const svg = (body: string) =>
+      `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">${body}</svg>`;
+    let picture: string | undefined;
+    if (this.pointing) {
+      picture = svg(
+        `<circle cx="8" cy="8" r="5.5" fill="${this.trailColour()}" stroke="#ffffff" stroke-width="1.5"/>`,
+      );
+    } else if (this.tool === "eraser") {
+      picture = svg(
+        `<circle cx="8" cy="8" r="${ERASER_REACH - 0.75}" fill="#ffffff" fill-opacity="0.55" stroke="#1f2328" stroke-opacity="0.8" stroke-width="1.25"/>` +
+          '<circle cx="8" cy="8" r="0.9" fill="#1f2328" fill-opacity="0.8"/>',
+      );
+    } else if (this.tool === "pen" || this.tool === "highlighter") {
+      const choice = this.penChoice;
+      const r = Math.max(1, Math.min(6.5, (toolWidth(choice) * this.viewport.zoom) / 2));
+      picture = svg(
+        `<circle cx="8" cy="8" r="${r + 1.9}" fill="none" stroke="#000000" stroke-opacity="0.35" stroke-width="0.8"/>` +
+          `<circle cx="8" cy="8" r="${r + 0.75}" fill="${this.colourOf(toolColour(choice))}" fill-opacity="${Math.max(0.6, toolOpacity(choice))}" stroke="#ffffff" stroke-width="1.5"/>`,
+      );
+    }
+    if (picture === undefined) {
       this.stage.style.removeProperty("--mdg-pointer-cursor");
       return;
     }
-    const dot =
-      '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16">' +
-      `<circle cx="8" cy="8" r="5.5" fill="${this.trailColour()}" stroke="#ffffff" stroke-width="1.5"/>` +
-      "</svg>";
     this.stage.style.setProperty(
       "--mdg-pointer-cursor",
-      `url("data:image/svg+xml,${encodeURIComponent(dot)}") 8 8, crosshair`,
+      `url("data:image/svg+xml,${encodeURIComponent(picture)}") 8 8, crosshair`,
     );
   }
 
@@ -2225,9 +2768,15 @@ export class CanvasApp {
     this.runTrails();
   }
 
-  /** Queues a point of the stroke for a host that shares presence. */
-  private queueLaser(at: Point, now: number): void {
+  /**
+   * Queues a point of the stroke for a host that shares presence: of the Pointer's trail, or with
+   * `pen` of a stroke of the pen or the highlighter. A batch is of one stroke: points of another
+   * still waiting (the stroke before, a tool changed within the beat) go first, on their own.
+   */
+  private queueLaser(at: Point, now: number, pen?: PresencePen): void {
     if (!this.sharesPointer) return;
+    if (this.laserQueue.length > 0 && !samePresencePen(pen, this.laserPen)) this.postLaser();
+    this.laserPen = pen;
     this.laserQueue.push({ x: Math.round(at.x * 10) / 10, y: Math.round(at.y * 10) / 10, t: now });
     if (this.laserTimer === undefined) this.sendLaser();
   }
@@ -2237,21 +2786,7 @@ export class CanvasApp {
    * `POINTER_EVERY_MS` (the same beat as the pointer's), and keeps the beat while points arrive.
    */
   private sendLaser(): void {
-    const queued = thin(this.laserQueue, MAX_LASER_POINTS);
-    this.laserQueue = [];
-    const diagram = this.render?.diagram;
-    if (queued.length > 0 && diagram !== undefined) {
-      const first = queued[0]!.t;
-      this.post({
-        type: "presenceLaser",
-        points: queued.map((p) => ({
-          x: p.x,
-          y: p.y,
-          t: Math.min(MAX_LASER_MS, Math.max(0, Math.round(p.t - first))),
-        })),
-        diagram,
-      });
-    }
+    this.postLaser();
     this.laserTimer = setTimeout(() => {
       this.laserTimer = undefined;
       if (this.laserQueue.length > 0) this.sendLaser();
@@ -2259,18 +2794,91 @@ export class CanvasApp {
   }
 
   /**
+   * Posts the queued points now, as one batch whose first point is at 0. A stroke of the pen or the
+   * highlighter carries its look and its number; its cancel batch carries `cancel`, its points or
+   * none.
+   */
+  private postLaser(): void {
+    const queued = thin(this.laserQueue, MAX_LASER_POINTS);
+    this.laserQueue = [];
+    const diagram = this.render?.diagram;
+    const pen = this.laserPen;
+    if ((queued.length === 0 && pen?.cancel !== true) || diagram === undefined) return;
+    const first = queued[0]?.t ?? 0;
+    this.post({
+      type: "presenceLaser",
+      points: queued.map((p) => ({
+        x: p.x,
+        y: p.y,
+        t: Math.min(MAX_LASER_MS, Math.max(0, Math.round(p.t - first))),
+      })),
+      diagram,
+      // A stroke of the pen or the highlighter: the others draw it in its look, and keep it.
+      ...(pen ? { pen } : {}),
+    });
+  }
+
+  /**
+   * Sends the points of a stroke that wait now, out of the beat: the stroke starts, is written or
+   * is cancelled, which the others see without waiting for the next beat. The beat starts again.
+   */
+  private flushLaser(): void {
+    if (!this.sharesPointer) return;
+    if (this.laserTimer !== undefined) clearTimeout(this.laserTimer);
+    this.laserTimer = undefined;
+    this.sendLaser();
+  }
+
+  /**
+   * The stroke of `look` was cancelled (Escape, or let go of): the others are sent its last batch
+   * with `cancel`, the points it still had waiting or none, and drop the stroke at once.
+   */
+  private cancelLaser(look: PresencePen): void {
+    if (!this.sharesPointer) return;
+    if (this.laserQueue.length > 0 && !samePresencePen(look, this.laserPen)) this.postLaser();
+    this.laserPen = { ...look, cancel: true };
+    this.flushLaser();
+    this.laserPen = undefined;
+  }
+
+  /** The number of the next stroke of the pen or the highlighter. */
+  private nextStroke(): number {
+    this.strokeNumber =
+      this.strokeNumber >= PRESENCE_PEN_LIMITS.stroke.max ? 0 : this.strokeNumber + 1;
+    return this.strokeNumber;
+  }
+
+  /**
    * Takes the batches of the host's last `presence` message that were not drawn yet, into the
-   * trail of the person they are of: each point `t` ms from now, in the person's colour. People
-   * who are no longer there, or have no pointer, lose their trail.
+   * trail of the person they are of: each point `t` ms from now, in the person's colour. A batch
+   * with `pen` is a stroke of the pen or the highlighter instead: it grows the person's stroke of
+   * its number, in its own width, colour and opacity, which does not fade, whether or not their
+   * pointer is shown (a finger or a stylus lifted, a mouse that left the stage), or ends it on its
+   * cancel. People who are no longer there lose their trail and their strokes; people without a
+   * pointer lose their trail.
    */
   private takeLasers(): void {
     const now = performance.now();
     const reduced = this.reducedMotion();
+    const people = new Set<string>();
+    const keys = personKeys(this.presence);
+    this.presence.forEach((person, i) => {
+      const key = keys[i]!;
+      people.add(key);
+      const laser = person.laser;
+      if (!laser?.pen || this.strokeBatches.get(key) === laser.batch) return;
+      this.strokeBatches.set(key, laser.batch);
+      if (this.peerStrokes.add(key, laser.pen, laser.points, now, reduced)) this.runTrails();
+    });
+    for (const key of [...this.strokeBatches.keys()]) {
+      if (!people.has(key)) this.strokeBatches.delete(key);
+    }
+    if (this.peerStrokes.keep(people)) this.runTrails();
     const present = new Set<string>();
     for (const mark of cursorMarks(this.presence, (point) => point)) {
       present.add(mark.key);
       const laser = mark.person.laser;
-      if (!laser || this.peerBatches.get(mark.key) === laser.batch) continue;
+      if (!laser || laser.pen || this.peerBatches.get(mark.key) === laser.batch) continue;
       this.peerBatches.set(mark.key, laser.batch);
       let trail = this.peerTrails.get(mark.key);
       if (!trail) {
@@ -2293,13 +2901,33 @@ export class CanvasApp {
     }
   }
 
-  /** Other people's trails go with the presence layer: another file, nobody here, a story. */
+  /**
+   * Other people's trails and strokes go with the presence layer: another file, nobody here, a
+   * story.
+   */
   private clearPeerTrails(): void {
-    if (this.peerTrails.size === 0 && this.peerBatches.size === 0) return;
+    if (this.peerTrails.size === 0 && this.peerBatches.size === 0 && this.peerStrokes.size === 0) {
+      return;
+    }
     this.peerTrails.clear();
     this.peerBatches.clear();
     this.peerHolds.clear();
+    this.peerStrokes.clear();
     this.runTrails();
+  }
+
+  /**
+   * A drawing came: the strokes of others it holds go at once (their pens are drawn in the same
+   * place), and so do the ones whose last batch came before it; another diagram takes them all,
+   * and its pens are the drawing the next render's new pens are told from.
+   */
+  private strokesRendered(render: CanvasRender, previous: CanvasRender | undefined): void {
+    const another = previous !== undefined && previous.diagram !== render.diagram;
+    if (another) this.peerStrokes.clear(true);
+    const pens = render.elements.flatMap((element) =>
+      element.pen ? [{ id: element.id, points: element.pen.points, width: element.pen.width }] : [],
+    );
+    if (this.peerStrokes.rendered(pens, performance.now()) || another) this.runTrails();
   }
 
   /** Draws the trails at the next frame, and keeps drawing a frame at a time while a point lives. */
@@ -2333,8 +2961,329 @@ export class CanvasApp {
       drawn.push({ points: trail.points, colour: trail.colour, fade: reduced ? 0 : TRAIL_FADE_MS });
       alive = alive || trail.alive;
     }
-    this.presenceLayer.drawTrails(drawn, (point) => this.screenOf(point), now);
+    // Other people's strokes: whole, in their look at the zoom, until they go.
+    this.peerStrokes.expire(now);
+    const zoom = this.viewport.zoom;
+    const strokes: DrawnStroke[] = this.peerStrokes.drawn(now).map((stroke) => ({
+      points: stroke.points,
+      colour: stroke.look.colour,
+      width: stroke.look.width * zoom,
+      opacity: stroke.look.opacity,
+    }));
+    alive = alive || this.peerStrokes.pending(now);
+    this.presenceLayer.drawTrails(drawn, (point) => this.screenOf(point), now, strokes);
+    this.expireStrokes(now);
     return alive;
+  }
+
+  /** Draws the strokes again when the oldest has lived its ten seconds, which lets it go. */
+  private expireStrokes(now: number): void {
+    const next = this.peerStrokes.nextExpiry();
+    if (next === this.strokeExpiry) return;
+    if (this.strokeTimer !== undefined) clearTimeout(this.strokeTimer);
+    this.strokeTimer = undefined;
+    this.strokeExpiry = next;
+    if (next === undefined) return;
+    this.strokeTimer = setTimeout(
+      () => {
+        this.strokeTimer = undefined;
+        this.strokeExpiry = undefined;
+        this.runTrails();
+      },
+      Math.max(0, next - now) + 1,
+    );
+  }
+
+  // ------------------------------------------------------------------ the pen and the eraser
+
+  /**
+   * A press with the pen or the highlighter: the stroke starts at the press, in the innermost
+   * group under it, and shows on the overlay at once (a dot until the pointer leaves the press).
+   * Nothing stays selected, so no outline flashes between the strokes of a word.
+   */
+  private startStroke(tool: PenTool, at: Point, e: PointerEvent): void {
+    if (this.selection.length > 0) this.select([]);
+    const group = this.stackAt(at).find((el) => el.kind === "group");
+    const choice: PenChoice = { ...this.penChoice, tool };
+    const path = s("path", {
+      class: tool === "highlighter" ? "pen-stroke highlighter" : "pen-stroke",
+      d: penPathOf([at]),
+      fill: "none",
+      stroke: this.colourOf(toolColour(choice)),
+      "stroke-width": toolWidth(choice),
+      "stroke-opacity": toolOpacity(choice),
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+    });
+    const look = this.presencePen(choice, this.nextStroke());
+    this.drag = {
+      kind: "penDraw",
+      tool,
+      path,
+      pointer: e.pointerId,
+      press: at,
+      points: [at],
+      straight: e.shiftKey,
+      moving: false,
+      ...(group ? { parent: group.id } : {}),
+      look,
+      shared: 1,
+    };
+    // The others see the stroke from its first point at once, a dot until it moves, never joined
+    // to the stroke before (its number is new).
+    this.queueLaser(at, performance.now(), look);
+    this.flushLaser();
+    this.drawOverlay();
+  }
+
+  /**
+   * How the others see a stroke drawn with `choice` (`presenceLaser`'s `pen`): its width in
+   * diagram units, its colour resolved to `#rrggbb` (a theme token is nothing to another canvas
+   * with another theme, and one that cannot be read goes in the person's colour), its opacity and
+   * its number `stroke`, all within `PRESENCE_PEN_LIMITS`.
+   */
+  private presencePen(choice: PenChoice, stroke: number): PresencePen {
+    const { width, opacity } = PRESENCE_PEN_LIMITS;
+    const colour = parseColour(this.colourOf(toolColour(choice)));
+    return {
+      width: Math.min(width.max, Math.max(width.min, Math.round(toolWidth(choice)))),
+      colour: colour ? toHex(colour) : this.trailColour(),
+      opacity: Math.min(opacity.max, Math.max(opacity.min, toolOpacity(choice))),
+      stroke,
+    };
+  }
+
+  /**
+   * The pointer moved while drawing: every position it went through since the last move (the
+   * browser's coalesced events) joins the stroke, and the path is drawn again as the layout will
+   * draw it. Ink is where the hand is: no transition, no frame waited for.
+   */
+  private strokeTo(drag: Extract<Drag, { kind: "penDraw" }>, e: PointerEvent): void {
+    const zoom = this.viewport.zoom;
+    for (const event of coalesced(e)) {
+      const at = this.diagramOf(this.pointOf(event));
+      const last = drag.points[drag.points.length - 1]!;
+      if (Math.hypot(at.x - last.x, at.y - last.y) * zoom < STROKE_STEP) continue;
+      drag.points.push(at);
+    }
+    const at = this.diagramOf(this.pointOf(e));
+    if (
+      !drag.moving &&
+      Math.hypot(at.x - drag.press.x, at.y - drag.press.y) * zoom >= DRAG_THRESHOLD
+    ) {
+      drag.moving = true;
+    }
+    drag.straight = e.shiftKey;
+    drag.path.setAttribute("d", penPathOf(this.strokePoints(drag)));
+    // The others see the stroke grow as it is drawn: the positions it went through since the last
+    // batch, once it left the press. A straight stroke reaches them whole at the release.
+    if (drag.moving && !drag.straight && drag.shared < drag.points.length) {
+      const now = performance.now();
+      for (const point of drag.points.slice(drag.shared)) this.queueLaser(point, now, drag.look);
+      drag.shared = drag.points.length;
+    }
+  }
+
+  /**
+   * The points of a stroke as drawn now, before simplification: a dot until the pointer leaves
+   * the press, the press and the pointer while Shift keeps it straight, else every position.
+   */
+  private strokePoints(drag: Extract<Drag, { kind: "penDraw" }>): Point[] {
+    if (!drag.moving) return [drag.press];
+    if (drag.straight) return [drag.press, drag.points[drag.points.length - 1]!];
+    return drag.points;
+  }
+
+  /**
+   * The release of a stroke: its points simplified (Ramer–Douglas–Peucker at 0.75 screen pixels,
+   * in diagram units at the zoom) and rounded to a tenth, written as a pen in the group under the
+   * press with a style for what differs from a stroke's defaults. The new pen is not selected and
+   * the tool stays armed; the stroke stays on the overlay until its pen is drawn.
+   */
+  private writeStroke(drag: Extract<Drag, { kind: "penDraw" }>): void {
+    // A straight stroke reaches the others as it is written: from the press to where it ends.
+    if (drag.moving && drag.straight) {
+      this.queueLaser(drag.points[drag.points.length - 1]!, performance.now(), drag.look);
+    }
+    // Its last points go now, before the drawing that holds its pen.
+    this.flushLaser();
+    const points = tenthPoints(
+      simplifyStroke(this.strokePoints(drag), STROKE_TOLERANCE / this.viewport.zoom),
+    );
+    const choice: PenChoice = { ...this.penChoice, tool: drag.tool };
+    const style = penStyleFor(drag.tool, choice.width, toolColour(choice));
+    const entry = {
+      action: {
+        kind: "createPen",
+        points,
+        ...(drag.parent ? { parent: drag.parent } : {}),
+        ...(Object.keys(style).length > 0 ? { style } : {}),
+      } satisfies CanvasAction,
+      path: drag.path,
+    };
+    this.penQueue.push(entry);
+    this.flushPen();
+    if (this.penQueue.includes(entry)) {
+      this.announce(messages().announcements.penDrawn(points.length));
+    }
+    this.drawOverlay();
+  }
+
+  /**
+   * Sends the first edit of the pen and the eraser that waits, unless an edit is pending: the next
+   * render sends the one after. One that cannot be sent (errors in the text) goes, and what it
+   * erased comes back.
+   */
+  private flushPen(): void {
+    // One at a time, in order: an edit in flight is held by a drawing or refused first.
+    if (this.pending || this.penQueue.some((entry) => entry.sent !== undefined)) return;
+    const next = this.penQueue.find((entry) => entry.sent === undefined);
+    if (!next) return;
+    const revision = this.revision;
+    if (revision !== undefined && this.act(next.action)) {
+      next.sent = revision;
+      return;
+    }
+    this.penQueue = this.penQueue.filter((entry) => entry !== next);
+    if (next.action.kind === "remove") this.restoreErased(next.action.ids);
+    this.drawOverlay();
+  }
+
+  /**
+   * The session refused the edit in flight. Refused because the text changed under it (another
+   * edit came first), it is kept, its stroke on the overlay or its strokes hidden, and goes once
+   * more against the drawing that follows: returns true. Refused again, or for anything else, a
+   * stroke is not drawn and strokes the eraser could not take come back; the next edit waits for
+   * the render that follows, or, when none follows (a refusal that changes nothing), goes now.
+   */
+  private penRefused(code: string): boolean {
+    const sent = this.penQueue.find((entry) => entry.sent !== undefined);
+    if (!sent) return false;
+    const stale = code === "edit.stale-revision";
+    if (stale && !sent.retried) {
+      sent.sent = undefined;
+      sent.retried = true;
+      return true;
+    }
+    this.penQueue = this.penQueue.filter((entry) => entry !== sent);
+    if (sent.action.kind === "remove") this.restoreErased(sent.action.ids);
+    this.drawOverlay();
+    if (!stale) queueMicrotask(() => this.flushPen());
+    return false;
+  }
+
+  /**
+   * Whether a newer drawing holds an edit of the pen or the eraser in flight: a new pen (one the
+   * drawing shown did not hold) for a stroke, none of the strokes erased for an erasure. A drawing
+   * of somebody else's edit that came first holds neither.
+   */
+  private holdsPenEdit(action: CanvasAction, render: CanvasRender): boolean {
+    if (action.kind === "createPen") {
+      return render.elements.some((element) => element.pen && !this.elements.has(element.id));
+    }
+    if (action.kind === "remove") {
+      const ids = new Set(action.ids);
+      return !render.elements.some((element) => ids.has(element.id));
+    }
+    return true;
+  }
+
+  /** Puts a stroke drawn in diagram units at the current pan and zoom, as the drawing is. */
+  private placeStroke(path: SVGPathElement): void {
+    const v = this.viewport;
+    const offset = this.render?.offset ?? { x: 0, y: 0 };
+    path.setAttribute(
+      "transform",
+      `matrix(${v.zoom} 0 0 ${v.zoom} ${v.x + v.zoom * offset.x} ${v.y + v.zoom * offset.y})`,
+    );
+  }
+
+  /** A press with the eraser, or with a stylus's eraser button: it erases where it is pressed. */
+  private startErase(at: Point, pointer: number): void {
+    this.drag = { kind: "erase", pointer, last: at, hits: new Set() };
+    this.eraseAlong(this.drag, at, at);
+  }
+
+  /** The eraser moved: it erases along every position the pointer went through. */
+  private eraseTo(drag: Extract<Drag, { kind: "erase" }>, e: PointerEvent): void {
+    for (const event of coalesced(e)) {
+      const at = this.diagramOf(this.pointOf(event));
+      this.eraseAlong(drag, drag.last, at);
+      drag.last = at;
+    }
+  }
+
+  /**
+   * Hides every pen the eraser's sweep from `from` to `to` passes within `ERASER_REACH` screen
+   * pixels of (half its width added, so a thick stroke is taken by its edge): its bounds first,
+   * then its drawn path, sampled along the midpoint chain. Only pens are erased, on layers shown.
+   */
+  private eraseAlong(drag: Extract<Drag, { kind: "erase" }>, from: Point, to: Point): void {
+    const reach = ERASER_REACH / this.viewport.zoom;
+    const hits: string[] = [];
+    for (const element of this.elements.values()) {
+      const pen = element.pen;
+      if (!pen || this.erased.has(element.id) || this.isHidden(element.layer)) continue;
+      if (!sweepTouches(from, to, reach, pen.bounds)) continue;
+      let samples = this.penSamples.get(element.id);
+      if (!samples) {
+        samples = strokeSamples(pen.points);
+        this.penSamples.set(element.id, samples);
+      }
+      if (sweepDistance(from, to, samples) <= reach + pen.width / 2) hits.push(element.id);
+    }
+    if (hits.length === 0) return;
+    for (const id of hits) {
+      drag.hits.add(id);
+      this.erased.add(id);
+    }
+    this.hideErased(hits);
+  }
+
+  /** The scene groups of pens, which the eraser fades out and in. */
+  private penGroups(ids: Iterable<string>): SVGGElement[] {
+    return [...ids].flatMap((id) => [
+      ...this.content.querySelectorAll<SVGGElement>(
+        `g[data-id="${cssEscape(id)}"][data-role="element"]`,
+      ),
+    ]);
+  }
+
+  /** Fades the drawings of `ids` out over `--mdg-motion-fast`; they stay hidden. */
+  private hideErased(ids: Iterable<string>): void {
+    for (const g of this.penGroups(ids)) {
+      g.classList.remove("mdg-unerased");
+      g.classList.add("mdg-erased");
+    }
+  }
+
+  /** Brings back strokes the eraser hid (all of them without `ids`), fading in: Escape, a refusal. */
+  private restoreErased(ids?: readonly string[]): void {
+    const back = ids ?? [...this.erased];
+    for (const g of this.penGroups(back)) {
+      g.classList.remove("mdg-erased");
+      g.classList.add("mdg-unerased");
+    }
+    for (const id of back) this.erased.delete(id);
+  }
+
+  /**
+   * The release of the eraser: the pens it crossed are removed in one `remove` (one undo step),
+   * hidden until the drawing without them arrives.
+   */
+  private writeErased(drag: Extract<Drag, { kind: "erase" }>): void {
+    const words = messages().announcements;
+    const ids = [...drag.hits];
+    if (ids.length === 0) {
+      this.announce(words.nothingErased);
+      return;
+    }
+    // A stroke's own `style` and effects go with it (a highlighter mark always has one): the
+    // eraser asks nothing, and one undo brings it all back.
+    const entry = { action: { kind: "remove", ids, cascade: true } satisfies CanvasAction };
+    this.penQueue.push(entry);
+    this.flushPen();
+    if (this.penQueue.includes(entry)) this.announce(words.erased(ids.length));
   }
 
   /** The shape of an id in screen pixels, for the presence layer. */
@@ -2351,6 +3300,9 @@ export class CanvasApp {
   private drawOverlay(): void {
     this.drawPresence();
     clear(this.overlay);
+    // The lists' insertion bar and their +, which stay from one overlay to the next to move.
+    this.syncInsertion();
+    this.syncListAdds();
     const r = this.render;
     if (!r) return;
     const add = (node: SVGElement) => this.overlay.append(node);
@@ -2436,6 +3388,19 @@ export class CanvasApp {
         for (const p of points) {
           add(s("circle", { class: "handle line-point", cx: p.x, cy: p.y, r: 4 }));
         }
+      }
+    }
+    if (drag?.kind === "resize") {
+      // A stroke scaled by a handle: its path as the drop will write it, at every frame, over the
+      // frame that follows the pointer, until the live preview draws the stroke itself there.
+      const pen = this.elements.get(drag.id)?.pen;
+      if (pen) {
+        const path = s("path", {
+          class: "pen-outline",
+          d: penPathOf(scalePenPoints(pen.points, pen.bounds, drag.result, pen.width)),
+        });
+        this.placeStroke(path);
+        add(path);
       }
     }
     if (drag?.kind === "lineDraw" && drag.moving) this.drawLineGhost(drag.start, drag.point);
@@ -2597,6 +3562,7 @@ export class CanvasApp {
     } else if (
       this.tool &&
       this.tool !== "relation" &&
+      !isDrawing(this.tool) &&
       !armed &&
       !iconDrag &&
       this.stage.matches(":hover")
@@ -2619,6 +3585,14 @@ export class CanvasApp {
           }),
         );
       } else rect(box, "ghost");
+    }
+    // The strokes written and on their way, then the one being drawn, over everything.
+    for (const path of [
+      ...this.penQueue.flatMap((entry) => (entry.path ? [entry.path] : [])),
+      ...(drag?.kind === "penDraw" ? [drag.path] : []),
+    ]) {
+      this.placeStroke(path);
+      add(path);
     }
     this.outlined = outlined;
   }
@@ -2679,7 +3653,8 @@ export class CanvasApp {
         );
       }
     }
-    if (element.kind === "group") return;
+    // A stroke is no end of a relation: it has no connection handles.
+    if (element.kind === "group" || element.pen) return;
     // Connection handles just outside each side; past an icon shape's label on its side.
     const label = element.labelBox ? this.screenBox(element.labelBox) : undefined;
     const north = label && label.y + label.height <= box.y + 1 ? label.y : box.y;
@@ -2899,11 +3874,16 @@ export class CanvasApp {
     const svg = this.content.querySelector("svg");
     const drag = this.drag;
     if (!svg || drag?.kind !== "move") return;
-    const shown = this.previewShown?.delta ?? { x: 0, y: 0 };
-    const x = drag.delta.x - shown.x;
-    const y = drag.delta.y - shown.y;
+    const shown = this.previewShown;
     const ids = this.render?.profile === "sequence" ? drag.ids : this.withContents(drag.ids);
+    // Over a list, what is dragged floats above the cards that make room for it, with a shadow.
+    const lifted = drag.moving && drag.list !== undefined;
+    const outer = new Set(lifted ? this.outermost(drag.ids).map((e) => e.id) : []);
     for (const id of ids) {
+      // A preview into a list draws each element in its new place; any other, moved by its delta.
+      const drawn = shown?.shifts?.get(id) ?? shown?.delta ?? { x: 0, y: 0 };
+      const x = drag.delta.x - drawn.x;
+      const y = drag.delta.y - drawn.y;
       // A participant's lifeline follows its head.
       for (const g of svg.querySelectorAll(
         `g[data-id="${cssEscape(id)}"][data-role="element"], g[data-id="${cssEscape(id)}"][data-role="lifeline"]`,
@@ -2913,8 +3893,107 @@ export class CanvasApp {
         const shifted = x === 0 && y === 0 ? turn : `translate(${x} ${y}) ${turn}`.trim();
         if (shifted === "") g.removeAttribute("transform");
         else g.setAttribute("transform", shifted);
+        if (lifted && !g.hasAttribute("data-lifted") && g.parentNode === svg) {
+          // Painted last, in their order: a group before what it holds.
+          g.setAttribute("data-lifted", "");
+          svg.append(g);
+        }
+        g.classList.toggle("mdg-lifted", outer.has(id));
       }
     }
+  }
+
+  /**
+   * Where the drawing shown draws the groups of `ids`: the top left of each one's drawing, its own
+   * transform left out, in diagram coordinates.
+   */
+  private drawnCorners(ids: readonly string[]): Map<string, Point> {
+    const corners = new Map<string, Point>();
+    const svg = this.content.querySelector("svg");
+    const offset = this.previewShown?.offset ?? this.render?.offset;
+    if (!svg || !offset) return corners;
+    for (const id of ids) {
+      const g = svg.querySelector<SVGGElement>(
+        `g[data-id="${cssEscape(id)}"][data-role="element"]`,
+      );
+      if (!g) continue;
+      const box = g.getBBox();
+      corners.set(id, { x: box.x - offset.x, y: box.y - offset.y });
+    }
+    return corners;
+  }
+
+  /** Where each element group of the drawing is on the page now, moving ones as they are seen. */
+  private drawnRects(skip: ReadonlySet<string> = new Set()): Map<string, DOMRect> {
+    const rects = new Map<string, DOMRect>();
+    for (const g of this.content.querySelectorAll<SVGGElement>(
+      'svg g[data-role="element"][data-id]',
+    )) {
+      const id = g.getAttribute("data-id")!;
+      if (!skip.has(id) && !rects.has(id)) rects.set(id, g.getBoundingClientRect());
+    }
+    return rects;
+  }
+
+  /** The canvas's easing, `--mdg-ease`, for the animations it runs itself. */
+  private easing(): string {
+    return getComputedStyle(this.stage).getPropertyValue("--mdg-ease").trim() || "ease-out";
+  }
+
+  /** The length of a motion token in milliseconds: none under reduced motion, as the tokens say. */
+  private motion(token: "--mdg-motion-fast" | "--mdg-motion"): number {
+    const value = getComputedStyle(this.stage).getPropertyValue(token).trim();
+    const time = parseFloat(value);
+    if (!Number.isFinite(time)) return 0;
+    return value.endsWith("ms") ? time : value.endsWith("s") ? time * 1000 : time;
+  }
+
+  /**
+   * Glides the element groups of the drawing now shown from where they were on the page
+   * (`before`, from `drawnRects`) to where they are, over `duration`: the cards of a list making
+   * room, going back, and a dropped card settling in its place. A turned group keeps its turn.
+   */
+  private glide(before: ReadonlyMap<string, DOMRect>, duration: number): void {
+    if (duration <= 0 || before.size === 0) return;
+    const zoom = this.viewport.zoom;
+    const easing = this.easing();
+    for (const g of this.content.querySelectorAll<SVGGElement>(
+      'svg g[data-role="element"][data-id]',
+    )) {
+      const was = before.get(g.getAttribute("data-id")!);
+      if (!was) continue;
+      const now = g.getBoundingClientRect();
+      // A frame that grew or shrank (the list itself) takes its new size at once: slid, one of
+      // its edges would overshoot.
+      if (Math.abs(was.width - now.width) > 1 || Math.abs(was.height - now.height) > 1) continue;
+      const dx = (was.left - now.left) / zoom;
+      const dy = (was.top - now.top) / zoom;
+      if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) continue;
+      const turn = cssTurn(CanvasApp.turnOf(g));
+      if (turn === undefined) continue;
+      g.animate(
+        [
+          { transform: `translate(${dx}px, ${dy}px) ${turn.rotate}`, transformOrigin: turn.origin },
+          { transform: turn.rotate || "none", transformOrigin: turn.origin },
+        ],
+        { duration, easing },
+      );
+    }
+  }
+
+  /**
+   * Replaces the drawing shown through `update` during a drag over a list, or out of one: what the
+   * list holds glides to its new place (the dragged elements follow the pointer on their own).
+   */
+  private glidingInLists(update: () => void): void {
+    const drag = this.drag;
+    const lists =
+      drag?.kind === "move" &&
+      drag.moving &&
+      (drag.list !== undefined || this.previewShown?.list !== undefined);
+    const before = lists ? this.drawnRects(new Set(this.withContents(drag.ids))) : undefined;
+    update();
+    if (before) this.glide(before, this.motion("--mdg-motion-fast"));
   }
 
   /** Elements and everything they hold, at any depth. */
@@ -2954,6 +4033,12 @@ export class CanvasApp {
       return undefined;
     }
     if (drag?.kind === "move") {
+      // Into a list: the move the drop sends, which makes room for the selection there; nothing
+      // while the drop would leave the list as it is.
+      if (drag.list) {
+        if (this.keepsList(drag.ids, drag.list)) return undefined;
+        return { kind: "move", ids: drag.ids, parent: drag.list.id, index: drag.list.index };
+      }
       if (drag.delta.x === 0 && drag.delta.y === 0) return undefined;
       const parent = drag.free ? undefined : this.dropParent(drag.ids, drag.delta);
       return {
@@ -2996,9 +4081,12 @@ export class CanvasApp {
       this.previewAgain = false;
       this.previewSent = undefined;
       if (this.previewShown) {
-        this.restoreDrawing();
-        this.followPointer();
-        this.followRotation();
+        // Out of a list, or back where it was in it: its cards glide back.
+        this.glidingInLists(() => {
+          this.restoreDrawing();
+          this.followPointer();
+          this.followRotation();
+        });
       }
       return;
     }
@@ -3010,7 +4098,10 @@ export class CanvasApp {
     const token = ++this.previewToken;
     this.previewWaiting = {
       token,
-      delta: action.kind === "move" ? action.delta : { x: 0, y: 0 },
+      delta: action.kind === "move" ? (action.delta ?? { x: 0, y: 0 }) : { x: 0, y: 0 },
+      ...(action.kind === "move" && action.index !== undefined && typeof action.parent === "string"
+        ? { list: { id: action.parent, index: action.index } }
+        : {}),
     };
     this.previewAgain = false;
     this.previewSent = key;
@@ -3039,24 +4130,30 @@ export class CanvasApp {
     this.previewWaiting = undefined;
     const r = this.render;
     if (!r || !this.previewing()) return;
-    // Not shown when the gesture went back to sending nothing meanwhile (it may have moved on
-    // again since: that is asked for below).
-    if (!waiting.gone && message.svg === null) {
-      if (this.previewShown) this.restoreDrawing();
-    } else if (!waiting.gone && message.svg !== null) {
-      this.drawPreview(
-        {
-          svg: message.svg,
-          width: message.width ?? r.width,
-          height: message.height ?? r.height,
-          offset: message.offset ?? r.offset,
-          ...(message.box ? { box: message.box } : {}),
-        },
-        waiting.delta,
-      );
-    }
-    this.followPointer();
-    this.followRotation();
+    // The cards of a list glide to the room they make for what is dragged, and back.
+    this.glidingInLists(() => {
+      // Not shown when the gesture went back to sending nothing meanwhile (it may have moved on
+      // again since: that is asked for below).
+      if (!waiting.gone && message.svg === null) {
+        if (this.previewShown) this.restoreDrawing();
+      } else if (!waiting.gone && message.svg !== null) {
+        this.drawPreview(
+          {
+            svg: message.svg,
+            width: message.width ?? r.width,
+            height: message.height ?? r.height,
+            offset: message.offset ?? r.offset,
+            ...(message.box ? { box: message.box } : {}),
+          },
+          waiting.delta,
+          waiting.list,
+        );
+      }
+      this.followPointer();
+      this.followRotation();
+    });
+    // The bar goes to the middle of the room made.
+    this.syncInsertion();
     if (this.previewAgain) {
       this.previewAgain = false;
       this.requestPreview();
@@ -3077,6 +4174,7 @@ export class CanvasApp {
       readonly box?: Box;
     },
     delta: Point,
+    list?: ListDrop,
   ): void {
     const r = this.render!;
     this.putScene(scene);
@@ -3088,10 +4186,23 @@ export class CanvasApp {
       delta,
       offset: scene.offset,
       ...(scene.box ? { box: scene.box } : {}),
+      ...(list ? { list } : {}),
     };
     this.markTurns();
     this.hideLayers();
     this.styleSheetGrid();
+    // A move into a list draws what moved in its new place: how far that is from where the drag
+    // took it, so that it stays under the pointer.
+    const drag = this.drag;
+    if (list && drag?.kind === "move" && drag.drawn) {
+      const now = this.drawnCorners([...drag.drawn.keys()]);
+      const shifts = new Map<string, Point>();
+      for (const [id, was] of drag.drawn) {
+        const at = now.get(id);
+        if (at) shifts.set(id, { x: at.x - was.x, y: at.y - was.y });
+      }
+      this.previewShown.shifts = shifts;
+    }
   }
 
   /** Brings the last render's drawing back after a preview. */
@@ -3118,8 +4229,20 @@ export class CanvasApp {
   /** Ends a drag without its drop: the last render's drawing is shown as it was. */
   private resetPreview(): void {
     if (this.drag?.kind === "laser") this.endLaser();
+    // A stroke let go of is not written (its path goes with the drag), and the others drop it;
+    // erased strokes come back.
+    if (this.drag?.kind === "penDraw") this.cancelLaser(this.drag.look);
+    if (this.drag?.kind === "erase") this.restoreErased([...this.drag.hits]);
+    // A drag over a list let go of: what it carried glides back to its place, and the cards that
+    // made room for it to theirs.
+    const drag = this.drag;
+    const back =
+      drag?.kind === "move" && drag.moving && (drag.list || this.previewShown?.list)
+        ? this.drawnRects()
+        : undefined;
     this.endPreview();
-    if (this.previewShown) this.restoreDrawing();
+    // A drawing whose dragged groups were lifted above the others is drawn in its own order again.
+    if (this.previewShown || this.content.querySelector("[data-lifted]")) this.restoreDrawing();
     for (const g of this.content.querySelectorAll("g[transform]")) {
       const role = g.getAttribute("data-role");
       if (
@@ -3140,6 +4263,7 @@ export class CanvasApp {
       g.classList.remove("turning", "turned-release");
     }
     this.drag = undefined;
+    if (back) this.glide(back, this.motion("--mdg-motion"));
     this.drawOverlay();
   }
 
@@ -3260,18 +4384,32 @@ export class CanvasApp {
         if (p.profile) button.setAttribute("data-profile", p.profile);
         return button;
       }
+      // The pen and the highlighter share a split button; the eraser has its own. They stay armed
+      // after each stroke, and are not dropped from the palette as the kinds are.
+      if (p.kind === "pen" || p.kind === "highlighter") return this.penSplit();
+      // A sticky note is added at once, near the centre or where the button is dropped; the
+      // arrow picks its colour.
+      if (p.kind === "sticky") return this.stickySplit(p.key);
+      if (p.kind === "eraser") {
+        const button = this.button(tools.eraser, ICONS.eraser, () => this.arm("eraser"), p.key);
+        button.setAttribute("data-tool", "eraser");
+        button.setAttribute("aria-keyshortcuts", p.key);
+        if (p.profile) button.setAttribute("data-profile", p.profile);
+        return button;
+      }
+      const kind = p.kind;
       const button = this.button(
-        words.palette.hint(tools[p.kind], p.key),
-        ICONS[p.kind],
-        () => this.arm(p.kind),
+        words.palette.hint(tools[kind], p.key),
+        ICONS[kind],
+        () => this.arm(kind),
         p.key,
       );
-      button.setAttribute("data-tool", p.kind);
+      button.setAttribute("data-tool", kind);
       // C4 views draw the model's entities and their scope's boundary only.
-      if (p.kind === "group") button.setAttribute("data-not-profile", "c4");
-      button.addEventListener("pointerdown", (e) => this.paletteDrag(e, p.kind));
-      if (SHAPED_TOOLS.has(p.kind)) return this.shapesSplit(button, p.kind, p.profile);
-      if (p.kind === "group") return this.groupSplit(button);
+      if (kind === "group") button.setAttribute("data-not-profile", "c4");
+      button.addEventListener("pointerdown", (e) => this.paletteDrag(e, kind));
+      if (SHAPED_TOOLS.has(kind)) return this.shapesSplit(button, kind, p.profile);
+      if (kind === "group") return this.groupSplit(button);
       if (p.profile) button.setAttribute("data-profile", p.profile);
       return button;
     });
@@ -3650,14 +4788,16 @@ export class CanvasApp {
 
   /**
    * The group tool split in two: the main part arms it with the current kind of group; the arrow
-   * part offers a group with a title and an untitled container, where a choice becomes current
-   * and arms the tool. Sequence diagrams have groups of participants only, and no arrow part.
+   * part offers a group with a title and an untitled container, and on free diagrams a column and
+   * a row, where a choice becomes current and arms the tool. Sequence diagrams have groups of
+   * participants only, and no arrow part.
    */
   private groupSplit(main: HTMLButtonElement): HTMLElement {
     this.groupButton = main;
     const arrow = this.splitArrow(messages().toolbar.groupMenu, (button) =>
       this.openGroupKinds(button),
     );
+    this.groupArrow = arrow;
     arrow.setAttribute("aria-haspopup", "menu");
     arrow.setAttribute("data-group-kinds", "");
     arrow.setAttribute("data-not-profile", "sequence");
@@ -3686,42 +4826,306 @@ export class CanvasApp {
     const names = messages().toolbar.groupKinds;
     const base = this.main.getBoundingClientRect();
     const rect = (button.closest(".split") ?? button).getBoundingClientRect();
+    const current = this.groupKindNow;
+    const item = (kind: GroupKind): MenuItem => {
+      const picture = icon(GROUP_ICONS[kind]);
+      picture.setAttribute("width", "16");
+      picture.setAttribute("height", "16");
+      return {
+        label: names[kind],
+        picture,
+        checked: kind === current,
+        data: { "data-group-kind": kind },
+        run: () => {
+          this.groupKind = kind;
+          this.syncGroupButton();
+          this.arm("group");
+        },
+      };
+    };
     button.setAttribute("aria-expanded", "true");
     this.menu.open(
-      (["group", "container"] as const).map((kind) => {
-        const picture = icon(GROUP_ICONS[kind]);
-        picture.setAttribute("width", "16");
-        picture.setAttribute("height", "16");
-        return {
-          label: names[kind],
-          picture,
-          checked: kind === this.groupKind,
-          data: { "data-group-kind": kind },
-          run: () => {
-            this.groupKind = kind;
-            this.syncGroupButton();
-            this.arm("group");
-          },
-        };
-      }),
+      [
+        item("group"),
+        item("container"),
+        // The lists, which place what they hold, apart from the groups that hold it where it is.
+        ...(this.render.profile === "free" ? ["-" as const, item("column"), item("row")] : []),
+      ],
       { x: rect.left - base.left, y: 0 },
       base,
       () => button.setAttribute("aria-expanded", "false"),
     );
   }
 
-  /** The group button shows the current kind of group: its picture and its name. */
+  /** The kind of group G creates on the diagram shown: a column or a row on free diagrams only. */
+  private get groupKindNow(): GroupKind {
+    const lists = this.groupKind === "column" || this.groupKind === "row";
+    return lists && this.render?.profile !== "free" ? "group" : this.groupKind;
+  }
+
+  /**
+   * The group button shows the kind of group it creates on the diagram shown: its picture and its
+   * name; its arrow names the kinds it offers there.
+   */
   private syncGroupButton(): void {
     const button = this.groupButton;
     if (!button) return;
     const words = messages();
-    const name =
-      this.groupKind === "group" ? words.palette.tools.group : words.toolbar.groupKinds.container;
+    const kind = this.groupKindNow;
+    const name = kind === "group" ? words.palette.tools.group : words.toolbar.groupKinds[kind];
     const label = words.palette.hint(name, "G");
-    button.replaceChildren(icon(GROUP_ICONS[this.groupKind]));
+    if (button.dataset.groupKind !== kind) button.replaceChildren(icon(GROUP_ICONS[kind]));
     button.title = `${label} (G)`;
     button.setAttribute("aria-label", label);
-    button.dataset.groupKind = this.groupKind;
+    button.dataset.groupKind = kind;
+    const arrow = this.groupArrow;
+    if (arrow) {
+      const menu =
+        this.render?.profile === "free" ? words.toolbar.groupMenuLists : words.toolbar.groupMenu;
+      arrow.title = menu;
+      arrow.setAttribute("aria-label", menu);
+    }
+  }
+
+  /**
+   * The pen tool split in two (free diagrams): the main part arms the pen or the highlighter,
+   * whichever was chosen last, and shows its picture over a bar of its colour; the arrow part opens
+   * the pen menu (Pen, Highlighter, the widths and the colours). A long press or a right-click on
+   * the main part opens the menu too.
+   */
+  private penSplit(): HTMLElement {
+    const words = messages();
+    const main = this.button(
+      words.palette.tools.pen,
+      ICONS.pen,
+      () => this.arm(this.penChoice.tool),
+      "P",
+    );
+    main.classList.add("pen-button");
+    this.penButton = main;
+    const arrow = this.splitArrow(words.toolbar.penMenu, (button) => this.togglePenMenu(button));
+    arrow.setAttribute("aria-haspopup", "dialog");
+    arrow.setAttribute("aria-controls", "mdg-pen");
+    arrow.setAttribute("data-pen-menu", "");
+    this.holdOpens(main, () => {
+      if (!this.penMenu.isOpen) this.openPenMenu(arrow);
+      return this.penMenu.isOpen;
+    });
+    this.syncPenButton();
+    return h("div", { class: "split", "data-split": "pen", "data-profile": "free" }, main, arrow);
+  }
+
+  /** The choices of the pen menu, as kept with the canvas's state. */
+  private get penChoice(): PenChoice {
+    return readPenChoice(this.local.pen);
+  }
+
+  /**
+   * The colour a pen colour stands for on this diagram: a token (`@ink`) through the theme's
+   * swatches the render carries, a colour of one's own as it is.
+   */
+  private colourOf(colour: string): string {
+    if (!colour.startsWith("@")) return colour;
+    const token = colour.slice(1);
+    return (
+      this.render?.swatches?.find((s) => s.token === token)?.color ??
+      FALLBACK_TOKENS[token] ??
+      this.render?.colors?.accent ??
+      FALLBACK_TOKENS.ink!
+    );
+  }
+
+  /** The pen button shows the pen or the highlighter, whichever it arms, over its colour. */
+  private syncPenButton(): void {
+    const button = this.penButton;
+    if (!button) return;
+    const choice = this.penChoice;
+    const name = messages().palette.tools[choice.tool];
+    const key = choice.tool === "pen" ? "P" : "H";
+    button.replaceChildren(
+      icon(ICONS[choice.tool]),
+      h("span", {
+        class: "pen-swatch",
+        "aria-hidden": "true",
+        style: `background:${this.colourOf(toolColour(choice))}`,
+      }),
+    );
+    button.title = `${name} (${key})`;
+    button.setAttribute("aria-label", name);
+    button.setAttribute("aria-keyshortcuts", key);
+    button.dataset.tool = choice.tool;
+    button.setAttribute("aria-pressed", String(this.tool === choice.tool));
+  }
+
+  /** The pen menu under the pen button, or closed when it is open. */
+  private togglePenMenu(arrow: HTMLButtonElement): void {
+    if (this.penMenu.isOpen) {
+      this.penMenu.close();
+      return;
+    }
+    this.openPenMenu(arrow);
+  }
+
+  /** Opens the pen menu under the pen button: free diagrams that edit, outside story mode. */
+  private openPenMenu(arrow: HTMLButtonElement): void {
+    if (this.readOnly || this.storyPanel.active || this.render?.profile !== "free") return;
+    this.menu.close();
+    this.shapeGrid.close(false);
+    this.iconPicker.close(false);
+    const base = this.main.getBoundingClientRect();
+    const rect = (arrow.closest(".split") ?? arrow).getBoundingClientRect();
+    this.penMenu.open({
+      at: { x: rect.left - base.left, y: 0 },
+      bounds: base,
+      opener: arrow,
+      choice: this.penChoice,
+      swatches: this.render.swatches ?? [],
+      change: (next) => this.choosePen(next),
+    });
+  }
+
+  /**
+   * A choice of the pen menu: kept with the canvas's state, shown on the pen button and the
+   * cursor, and its tool armed at once (the menu keeps the keyboard), so the next press draws.
+   */
+  private choosePen(next: PenChoice): void {
+    this.persist({ pen: next });
+    this.syncPenButton();
+    if (this.tool !== next.tool) this.arm(next.tool, false);
+    else this.syncPointerCursor();
+  }
+
+  /**
+   * The sticky note tool split in two (free diagrams): the main part adds a sticky note near the
+   * centre with its editor open, or, dragged onto the canvas, where it is dropped; it shows a card
+   * of the colour it adds. The arrow part picks that colour: the theme's, or one of six colours of
+   * paper. A long press or a right-click on the main part opens the colours too.
+   */
+  private stickySplit(key: string): HTMLElement {
+    const words = messages();
+    const main = this.button(words.sticky.button, ICONS.sticky, () => this.createSticky(), key);
+    main.classList.add("sticky-button");
+    main.setAttribute("data-sticky-tool", "");
+    main.setAttribute("aria-keyshortcuts", key);
+    main.addEventListener("pointerdown", (e) => this.paletteDrag(e, "sticky"));
+    this.stickyButton = main;
+    const arrow = this.splitArrow(words.toolbar.stickyMenu, (button) =>
+      this.openStickyColours(button),
+    );
+    arrow.setAttribute("aria-haspopup", "menu");
+    arrow.setAttribute("data-sticky-colours", "");
+    const open = () => this.menu.isOpen && arrow.getAttribute("aria-expanded") === "true";
+    this.holdOpens(main, () => {
+      if (!open()) this.openStickyColours(arrow);
+      return open();
+    });
+    this.syncStickyButton();
+    return h(
+      "div",
+      { class: "split", "data-split": "sticky", "data-profile": "free" },
+      main,
+      arrow,
+    );
+  }
+
+  /** The colour of the sticky notes the button adds, as kept with the canvas's state. */
+  private get stickyFill(): StickyFill {
+    return readStickyFill(this.local.sticky);
+  }
+
+  /** The colour a sticky note is drawn in when its fill is `fill`: the theme's for null. */
+  private stickyColour(fill: StickyFill): string {
+    return fill ?? this.colourOf("@sticky");
+  }
+
+  /** The sticky note button shows a card of the colour it adds, and names a colour of paper. */
+  private syncStickyButton(): void {
+    const button = this.stickyButton;
+    if (!button) return;
+    const fill = this.stickyFill;
+    const words = messages().sticky;
+    const name = fill === null ? undefined : stickyColourName(fill);
+    const label = name === undefined ? words.button : words.coloured(name);
+    const colour = this.stickyColour(fill);
+    // The card already shown moves to its new colour; the button's first sync draws it.
+    const card = button.querySelector<SVGSVGElement>("svg[data-sticky]");
+    if (card) repaintSticky(card, colour);
+    else button.replaceChildren(stickyGlyph(colour));
+    button.title = `${label} (S)`;
+    button.setAttribute("aria-label", label);
+    button.dataset.fill = fill ?? "";
+  }
+
+  /**
+   * The colours of new sticky notes under the sticky note button: the theme's, then the six
+   * colours of paper, each with its card and name, the current one checked. A second press closes
+   * them.
+   */
+  private openStickyColours(button: HTMLButtonElement): void {
+    if (this.readOnly || this.storyPanel.active || this.render?.profile !== "free") return;
+    if (this.menu.isOpen && button.getAttribute("aria-expanded") === "true") {
+      this.menu.close();
+      return;
+    }
+    this.penMenu.close(false);
+    this.shapeGrid.close(false);
+    this.iconPicker.close(false);
+    const words = messages().sticky;
+    const current = this.stickyFill;
+    const base = this.main.getBoundingClientRect();
+    const rect = (button.closest(".split") ?? button).getBoundingClientRect();
+    const item = (fill: StickyFill, label: string): MenuItem => ({
+      label,
+      picture: stickyGlyph(this.stickyColour(fill)),
+      checked: fill === current,
+      data: { "data-sticky-fill": fill ?? "" },
+      run: () => this.chooseStickyFill(fill),
+    });
+    button.setAttribute("aria-expanded", "true");
+    this.menu.open(
+      [
+        item(null, words.themeColour),
+        "-",
+        ...STICKY_COLOURS.map((colour) => item(colour.hex, words.colours[colour.name])),
+      ],
+      { x: rect.left - base.left, y: 0 },
+      base,
+      () => button.setAttribute("aria-expanded", "false"),
+    );
+  }
+
+  /** A colour of the sticky note menu: kept with the canvas's state and shown on the button. */
+  private chooseStickyFill(fill: StickyFill): void {
+    this.persist({ sticky: { fill } });
+    this.syncStickyButton();
+    this.announce(
+      messages().announcements.stickyColour(
+        fill === null ? null : (stickyColourName(fill) ?? fill),
+      ),
+    );
+  }
+
+  /**
+   * Adds a sticky note of the button's colour (`fill` written only for a colour of paper) at `at`,
+   * or in a free cell near the centre (S, a click on the button); its editor opens when it is
+   * drawn, and its drawing pops in. A tool in the hand is put away: the next press types.
+   */
+  private createSticky(at?: Point): void {
+    if (this.render?.profile !== "free") return;
+    this.setPointing(false);
+    if (this.tool !== undefined) this.arm(undefined);
+    const point =
+      at ??
+      freeCell(
+        [...this.elements.values()].map((e) => e.box),
+        this.diagramOf(this.centre()),
+        DEFAULT_SIZES.sticky,
+        this.settings.grid,
+      );
+    const fill = this.stickyFill;
+    if (this.create("sticky", point, fill === null ? {} : { fill })) {
+      this.popping = performance.now();
+    }
   }
 
   /** The kind of arrow the relation tool creates on this diagram, or none on a sequence. */
@@ -3963,7 +5367,18 @@ export class CanvasApp {
     if (this.tool === "relation" && this.relationFrom && !this.elements.has(this.relationFrom)) {
       this.arm(undefined);
     }
-    if (this.tool && this.tool !== "relation") {
+    // The pen, the highlighter and the eraser draw on free diagrams only; their colours follow
+    // the theme of the diagram shown.
+    if (isDrawing(this.tool) && r.profile !== "free") this.arm(undefined);
+    if (r.profile === "free") this.penMenu.sync(this.penChoice, r.swatches ?? []);
+    else this.penMenu.close(false);
+    this.syncPenButton();
+    // The sticky note button shows the theme's colour of paper when it adds that one.
+    this.syncStickyButton();
+    // Columns and rows are free diagrams' only: elsewhere the group button creates a group.
+    this.syncGroupButton();
+    if (isDrawing(this.tool)) this.syncPointerCursor();
+    if (this.tool && this.tool !== "relation" && !isDrawing(this.tool)) {
       const entry = PALETTE.find((p) => p.kind === this.tool);
       const sequenceKind = MORE_PARTICIPANTS.some((kind) => kind === this.tool);
       if (
@@ -4009,12 +5424,22 @@ export class CanvasApp {
     // Where the pointer is goes to a host that shares presence, whatever the gesture.
     stage.addEventListener("pointermove", (e) => this.sharePointer(e));
     stage.addEventListener("pointerup", (e) => this.pointerUp(e));
-    stage.addEventListener("pointercancel", () => this.resetPreview());
+    stage.addEventListener("pointercancel", (e) => {
+      if (e.pointerId === this.stylus) this.stylus = undefined;
+      // A touch let go of while a stylus draws (a palm) leaves the stroke alone.
+      const drag = this.drag;
+      if ((drag?.kind === "penDraw" || drag?.kind === "erase") && drag.pointer !== e.pointerId) {
+        return;
+      }
+      this.resetPreview();
+    });
     stage.addEventListener("dblclick", (e) => this.doubleClick(e));
     stage.addEventListener("wheel", (e) => this.wheel(e), { passive: false });
     stage.addEventListener("contextmenu", (e) => {
       e.preventDefault();
       if (this.storyPanel.active || this.pointing) return;
+      // A stylus's barrel button erases with the pen in the hand: it opens no menu.
+      if (this.stylusMenuShut(e)) return;
       const hit = this.hit(e.target);
       if (hit?.id && !this.selection.includes(hit.id)) this.select([hit.id]);
       this.openMenu(this.pointOf(e));
@@ -4032,6 +5457,9 @@ export class CanvasApp {
         this.borderStart = undefined;
         stage.classList.remove("connecting");
       }
+      // No list is under a pointer that left; a selected one keeps its +.
+      this.hoveredLists = [];
+      this.listAddHover = undefined;
       this.drawOverlay();
     });
     // The stage never scrolls; a browser revealing a focused child must not shift it.
@@ -4119,13 +5547,31 @@ export class CanvasApp {
     return role === "element" ? { kind: "element", id } : { kind: "relation", id };
   }
 
+  /**
+   * Whether the context menu a press raised stays shut: with the pen, the highlighter or the
+   * eraser in the hand, a stylus's barrel button erases (a menu of a pointer of type `pen`, or one
+   * that comes while a stylus erases or just after).
+   */
+  private stylusMenuShut(e: MouseEvent): boolean {
+    if (!isDrawing(this.tool)) return false;
+    if ((e as Partial<PointerEvent>).pointerType === "pen") return true;
+    const at = this.stylusErasedAt;
+    return at !== undefined && performance.now() - at < STYLUS_MENU_MS;
+  }
+
   private pointerDown(e: PointerEvent): void {
+    // Palm rejection: while a stylus is down, a touch is the hand resting on the screen.
+    if (e.pointerType === "touch" && this.stylus !== undefined) return;
+    // A stylus's barrel button (the second button, `buttons` 2) or its eraser end (`buttons` 32)
+    // erases while the pen or the highlighter is armed; its context menu stays shut (`listen`).
+    const eraserButton = isDrawing(this.tool) && stylusErases(e);
+    if (eraserButton) this.stylusErasedAt = performance.now();
     this.menu.close();
     this.picker.close();
     if (this.inline) this.commitInline();
     const point = this.pointOf(e);
     this.pointer = point;
-    if (e.button === 2) return;
+    if (e.button === 2 && !eraserButton) return;
     this.stage.focus({ preventScroll: true });
     this.stage.setPointerCapture(e.pointerId);
     if (e.button === 1 || (e.button === 0 && this.spaceDown)) {
@@ -4138,7 +5584,7 @@ export class CanvasApp {
       this.storyClick(e, e.shiftKey || e.ctrlKey || e.metaKey);
       return;
     }
-    if (e.button !== 0 || !this.render) return;
+    if ((e.button !== 0 && !eraserButton) || !this.render) return;
     // Pointing: the stroke is a trail, and nothing is pressed.
     if (this.pointing) {
       this.startLaser(this.diagramOf(point));
@@ -4146,6 +5592,18 @@ export class CanvasApp {
       return;
     }
     const at = this.diagramOf(point);
+    // The pen, the highlighter and the eraser: whatever lies under the press, a stroke starts.
+    if (isDrawing(this.tool)) {
+      e.preventDefault();
+      if (this.stale) {
+        this.announce(messages().announcements.fixFirst, true);
+        return;
+      }
+      if (e.pointerType === "pen") this.stylus = e.pointerId;
+      if (this.tool === "eraser" || eraserButton) this.startErase(at, e.pointerId);
+      else this.startStroke(this.tool, at, e);
+      return;
+    }
     if (this.tool === "relation") {
       const pressed = this.hit(e.target);
       if (this.drawsLine(pressed)) {
@@ -4239,13 +5697,15 @@ export class CanvasApp {
       }
       if (kind === "resize") {
         const element = this.elements.get(hit.id)!;
+        // A stroke's frame is its bounds: the box its points are scaled from.
+        const box = element.pen?.bounds ?? element.box;
         this.drag = {
           kind: "resize",
           id: hit.id,
           handle: arg as Handle,
           start: at,
-          box: element.box,
-          result: element.box,
+          box,
+          result: box,
         };
       } else if (kind === "connect") {
         this.drag = {
@@ -4363,9 +5823,16 @@ export class CanvasApp {
     const drag = this.drag;
     if (!drag) {
       // Pointing shows no connection handle and no border outline: nothing is about to be pressed.
-      if (this.pointing) return;
+      // The pen and the eraser show their cursor alone.
+      if (this.pointing || isDrawing(this.tool)) return;
       if (this.tool) this.drawOverlay();
-      else this.hoverBorder(this.diagramOf(point), e.altKey, this.hit(e.target) !== undefined);
+      else {
+        // A list under the pointer shows its +.
+        this.hoverLists(e);
+        // Over a +, the pointer is on no border.
+        if ((e.target as Element | null)?.closest?.(".list-add")) return;
+        this.hoverBorder(this.diagramOf(point), e.altKey, this.hit(e.target) !== undefined);
+      }
       return;
     }
     const at = this.diagramOf(point);
@@ -4373,6 +5840,13 @@ export class CanvasApp {
     switch (drag.kind) {
       case "laser":
         this.laserPoint(at);
+        return;
+      case "penDraw":
+        // Another pointer (a palm, a second finger) adds nothing to the stroke.
+        if (e.pointerId === drag.pointer) this.strokeTo(drag, e);
+        return;
+      case "erase":
+        if (e.pointerId === drag.pointer) this.eraseTo(drag, e);
         return;
       case "pan":
         this.setViewport({
@@ -4388,6 +5862,11 @@ export class CanvasApp {
         const raw = { x: at.x - drag.start.x, y: at.y - drag.start.y };
         if (!drag.moving && Math.hypot(raw.x, raw.y) * this.viewport.zoom < DRAG_THRESHOLD) return;
         if (this.stale) return;
+        // Where the drawing puts what is dragged, before anything moves it: a drop into a list is
+        // previewed in its new place, from which it is kept under the pointer.
+        if (!drag.moving && this.render?.profile === "free") {
+          drag.drawn = this.drawnCorners(this.withContents(drag.ids));
+        }
         drag.moving = true;
         if (drag.pick !== undefined) {
           // An Alt+press that drags takes what it pressed on, as a plain press does.
@@ -4414,6 +5893,18 @@ export class CanvasApp {
           this.requestPreview();
           break;
         }
+        if (this.elements.get(drag.primary)?.pen) {
+          // A stroke goes where the hand puts it, to a tenth as its points are written: no grid,
+          // no guides, and it keeps its group (its points are written there).
+          const tenth = (value: number) => Math.round(value * 10) / 10 || 0;
+          drag.delta = { x: tenth(raw.x), y: tenth(raw.y) };
+          drag.guides = [];
+          drag.target = undefined;
+          drag.free = free;
+          this.followPointer();
+          this.requestPreview();
+          break;
+        }
         const primary = this.elements.get(drag.primary)!.box;
         const others = [...this.elements.values()]
           .filter((el) => !drag.ids.includes(el.id) && el.kind !== "group")
@@ -4425,9 +5916,15 @@ export class CanvasApp {
           zoom: this.viewport.zoom,
           free,
         });
-        drag.delta = resolved.delta;
-        drag.guides = resolved.guides;
-        drag.target = free ? undefined : this.landingGroup(drag.ids, drag.delta);
+        // Over a list, the selection goes where the pointer is among its children, off the grid
+        // and the guides: the list places it. Alt keeps every parent, so no list takes it.
+        const list = free ? undefined : this.listDrop(drag.ids, resolved.delta, at);
+        const rounded = { x: Math.round(raw.x) || 0, y: Math.round(raw.y) || 0 };
+        drag.list = list;
+        drag.delta = list ? rounded : resolved.delta;
+        drag.guides = list ? [] : resolved.guides;
+        // Into a list, the bar and the room it makes show where: no outline over its cards.
+        drag.target = free || list ? undefined : this.landingGroup(drag.ids, drag.delta);
         drag.free = free;
         this.followPointer();
         // Connectors, labels and groups follow as the drop will draw them.
@@ -4435,6 +5932,20 @@ export class CanvasApp {
         break;
       }
       case "resize": {
+        const pen = this.elements.get(drag.id)?.pen;
+        if (pen) {
+          // A stroke's points scale about the opposite side or corner, off the grid; Shift keeps
+          // its proportions. Its path follows on the overlay at once, the drawing with the preview.
+          drag.result = penResize(
+            drag.box,
+            pen.width,
+            drag.handle,
+            { x: at.x - drag.start.x, y: at.y - drag.start.y },
+            e.shiftKey,
+          );
+          this.requestPreview();
+          break;
+        }
         const turned = this.elements.get(drag.id)?.rotation;
         if (turned) {
           // In the element's own frame, its opposite edge kept where it is in the diagram.
@@ -4554,6 +6065,7 @@ export class CanvasApp {
   }
 
   private pointerUp(e: PointerEvent): void {
+    if (e.pointerId === this.stylus) this.stylus = undefined;
     const drag = this.drag;
     this.stage.classList.remove("panning");
     if (this.stage.hasPointerCapture(e.pointerId)) this.stage.releasePointerCapture(e.pointerId);
@@ -4562,6 +6074,19 @@ export class CanvasApp {
       case "laser":
         this.endLaser();
         break;
+      case "penDraw":
+        // Only the pointer that draws ends its stroke.
+        if (e.pointerId !== drag.pointer) return;
+        this.drag = undefined;
+        this.writeStroke(drag);
+        return;
+      case "erase":
+        if (e.pointerId !== drag.pointer) return;
+        // A stylus's barrel button raises its menu at the release: it stays shut.
+        if (e.pointerType === "pen") this.stylusErasedAt = performance.now();
+        this.drag = undefined;
+        this.writeErased(drag);
+        return;
       case "band": {
         const a = this.diagramOf(drag.start);
         const b = this.diagramOf(drag.current);
@@ -4586,6 +6111,37 @@ export class CanvasApp {
         return;
       }
       case "move":
+        if (drag.moving && drag.list && !e.altKey) {
+          // Into a list, or within it: the declarations move to the position of the bar, with no
+          // point. A drop that leaves the list as it is goes back, writing nothing.
+          const list = drag.list;
+          if (this.keepsList(drag.ids, list)) {
+            this.resetPreview();
+            return;
+          }
+          const sent = this.act({
+            kind: "move",
+            ids: drag.ids,
+            parent: list.id,
+            index: list.index,
+          });
+          if (!sent) {
+            this.resetPreview();
+            return;
+          }
+          const moved = this.outermost(drag.ids).map((e) => e.id);
+          const children = this.elements.get(list.id)?.list?.children ?? [];
+          const count = children.filter((id) => !moved.includes(id)).length + moved.length;
+          this.announce(
+            messages().announcements.movedInList(moved, list.id, list.index + 1, count),
+          );
+          // The drawing stays as the drag left it; its render glides what moved into its place.
+          this.settling = { since: performance.now() };
+          this.drag = undefined;
+          this.endPreview();
+          this.drawOverlay();
+          return;
+        }
         if (drag.moving && (drag.delta.x !== 0 || drag.delta.y !== 0)) {
           // The parent goes along only when it changes; Alt keeps every element's parent.
           const parent = e.altKey ? undefined : this.dropParent(drag.ids, drag.delta);
@@ -4841,10 +6397,18 @@ export class CanvasApp {
     return best?.element;
   }
 
-  /** Whether the canvas offers to turn an element: the elements of flow and free diagrams. */
+  /**
+   * Whether the canvas offers to turn an element: the elements of flow and free diagrams, but not a
+   * pen stroke, which takes no `rotation` (its points say where it goes).
+   */
   private turns(element: ElementInfo): boolean {
     const profile = this.render?.profile;
-    return !this.readOnly && element.kind !== "group" && (profile === "flow" || profile === "free");
+    return (
+      !this.readOnly &&
+      element.kind !== "group" &&
+      !element.pen &&
+      (profile === "flow" || profile === "free")
+    );
   }
 
   /** The angle an element is drawn at now: the rotation handle's while it turns it. */
@@ -4973,11 +6537,11 @@ export class CanvasApp {
   private dropTargetOf(ids: readonly string[], delta: Point): string | null | undefined {
     const profile = this.render?.profile;
     if (profile !== "flow" && profile !== "free") return undefined;
-    // A free line keeps its group when it moves.
+    // A free line and a pen keep their group when they move.
     const union = unionBox(
       ids
         .map((id) => this.elements.get(id))
-        .filter((e): e is ElementInfo => e !== undefined && !e.line)
+        .filter((e): e is ElementInfo => e !== undefined && !e.line && !e.pen)
         .map((e) => e.box),
     );
     if (!union) return undefined;
@@ -5001,6 +6565,512 @@ export class CanvasApp {
     if (target === undefined) return undefined;
     const kept = carriedChildren([...this.elements.values()], ids);
     return changesParent(ids, target, this.parentOf, kept) ? target : undefined;
+  }
+
+  /**
+   * The position a point gives among the children of a list (`children`, in their order): before
+   * the first child whose middle along the list's axis lies past the point.
+   */
+  private listIndexAt(listId: string, children: readonly string[], at: Point): number {
+    const column = this.elements.get(listId)?.list?.layout !== "row";
+    let index = 0;
+    for (const id of children) {
+      const box = this.elements.get(id)?.box;
+      if (!box) continue;
+      const middle = column ? box.y + box.height / 2 : box.x + box.width / 2;
+      if ((column ? at.y : at.x) > middle) index++;
+    }
+    return index;
+  }
+
+  /** The dragged elements that are not inside another dragged one. */
+  private outermost(ids: readonly string[]): ElementInfo[] {
+    const moved = new Set(ids);
+    return ids
+      .map((id) => this.elements.get(id))
+      .filter((e): e is ElementInfo => {
+        if (!e) return false;
+        for (let p: string | null | undefined = e.parent; p; p = this.parentOf(p)) {
+          if (moved.has(p)) return false;
+        }
+        return true;
+      });
+  }
+
+  /**
+   * Where a drag of `ids` by `delta` with the pointer at `at` drops into a list: the list group it
+   * lands in and the position the pointer gives among its children (the dragged ones taken out);
+   * undefined when it lands in no list, when it carries a line or a stroke (which keep their
+   * points), on a hidden layer, or off free diagrams. A column dragged over the columns of a board
+   * goes among them, never into one; a group dragged within its list goes among its siblings.
+   */
+  private listDrop(ids: readonly string[], delta: Point, at: Point): ListDrop | undefined {
+    if (this.render?.profile !== "free") return undefined;
+    const moved = this.outermost(ids);
+    if (moved.length === 0 || moved.some((e) => e.line || e.pen)) return undefined;
+    let target = this.dropTargetOf(ids, delta) ?? undefined;
+    if (target === undefined) return undefined;
+    const isList = (id: string | null | undefined) =>
+      id !== null && id !== undefined && this.elements.get(id)?.list !== undefined;
+    if (moved.every((e) => e.list)) {
+      while (isList(target) && isList(this.parentOf(target!))) target = this.parentOf(target!)!;
+    }
+    const own = moved[0]!.parent;
+    if (
+      moved.every((e) => e.kind === "group" && e.parent === own) &&
+      isList(own) &&
+      this.parentOf(target) === own
+    ) {
+      target = own!;
+    }
+    const group = this.elements.get(target);
+    if (!group?.list || this.isHidden(group.layer)) return undefined;
+    const taken = new Set(this.withContents(ids));
+    const remaining = group.list.children.filter((id) => !taken.has(id));
+    return { id: target, index: this.listIndexAt(target, remaining, at) };
+  }
+
+  /**
+   * Whether a drop into a list leaves everything as it is: the dragged elements are its children
+   * already, in that order at that position, and none of them has a `place` of its own.
+   */
+  private keepsList(ids: readonly string[], drop: ListDrop): boolean {
+    const list = this.elements.get(drop.id)?.list;
+    if (!list) return false;
+    const moved = this.outermost(ids).map((e) => e.id);
+    const remaining = list.children.filter((id) => !moved.includes(id));
+    const order = [...remaining.slice(0, drop.index), ...moved, ...remaining.slice(drop.index)];
+    return (
+      order.length === list.children.length &&
+      order.every((id, i) => list.children[i] === id) &&
+      moved.every((id) => !this.elements.get(id)?.placed)
+    );
+  }
+
+  /**
+   * The insertion bar of the drag over a list, in diagram coordinates: across the list from edge
+   * to edge (its ends show beside a card dragged over it), in the middle of the room the preview
+   * makes for the dragged elements when it shows it, else halfway between the children the drop
+   * goes between (beyond the first or the last by half the list's spacing, in the middle of an
+   * empty list).
+   */
+  private insertionBar():
+    | { readonly list: string; readonly column: boolean; readonly from: Point; readonly to: Point }
+    | undefined {
+    const drag = this.drag;
+    if (drag?.kind !== "move" || !drag.moving || !drag.list || !this.render) return undefined;
+    const group = this.elements.get(drag.list.id);
+    const list = group?.list;
+    if (!group || !list) return undefined;
+    const column = list.layout === "column";
+    const start = (b: Box) => (column ? b.y : b.x);
+    const end = (b: Box) => (column ? b.y + b.height : b.x + b.width);
+    const taken = new Set(this.withContents(drag.ids));
+    const children = list.children
+      .filter((id) => !taken.has(id))
+      .map((id) => this.elements.get(id)?.box)
+      .filter((b): b is Box => b !== undefined);
+    const index = drag.list.index;
+    const shown = this.previewShown;
+    const shifts =
+      shown?.list?.id === drag.list.id && shown.list.index === index ? shown.shifts : undefined;
+    const room = shifts
+      ? unionBox(
+          this.outermost(drag.ids).flatMap((e) => {
+            const shift = shifts.get(e.id);
+            return shift ? [{ ...e.box, x: e.box.x + shift.x, y: e.box.y + shift.y }] : [];
+          }),
+        )
+      : undefined;
+    const before = children[index - 1];
+    const after = children[index];
+    const along = room
+      ? (start(room) + end(room)) / 2
+      : before && after
+        ? (end(before) + start(after)) / 2
+        : before
+          ? end(before) + list.spacing / 2
+          : after
+            ? start(after) - list.spacing / 2
+            : (start(group.box) + end(group.box)) / 2;
+    // Across the list, inside its edges by a little, so that its dots sit beside the cards.
+    const box = group.box;
+    const inset = Math.min(INSERTION_INSET, (column ? box.width : box.height) / 4);
+    const from = (column ? box.x : box.y) + inset;
+    const to = (column ? box.x + box.width : box.y + box.height) - inset;
+    return {
+      list: drag.list.id,
+      column,
+      from: column ? { x: from, y: along } : { x: along, y: from },
+      to: column ? { x: to, y: along } : { x: along, y: to },
+    };
+  }
+
+  /**
+   * Shows the insertion bar where a drag over a list drops, or hides it. It is put in the drawing
+   * shown (a preview's, the render's), under what is dragged; it fades in where it first shows (in
+   * a list it was not in), then slides from gap to gap, each slide added to the one under way;
+   * it fades out when the drag leaves the list or ends.
+   */
+  private syncInsertion(): void {
+    const bar = this.insertionBar();
+    const g = this.insertion;
+    const svg = this.content.querySelector("svg");
+    const r = this.render;
+    if (!bar || !svg || !r) {
+      if (!this.insertionAt) return;
+      this.insertionAt = undefined;
+      g.classList.remove("shown");
+      const fast = this.motion("--mdg-motion-fast");
+      if (fast > 0 && g.isConnected) {
+        g.animate([{ opacity: 1 }, { opacity: 0 }], {
+          duration: fast,
+          easing: this.easing(),
+          fill: "forwards",
+        }).finished.then(
+          () => {
+            if (!this.insertionAt) g.remove();
+          },
+          () => undefined,
+        );
+      } else g.remove();
+      return;
+    }
+    // In the units of the drawing shown, at a constant size on the screen.
+    const offset = this.previewShown?.offset ?? r.offset;
+    const zoom = this.viewport.zoom;
+    const a = { x: bar.from.x + offset.x, y: bar.from.y + offset.y };
+    const b = { x: bar.to.x + offset.x, y: bar.to.y + offset.y };
+    const [halo, line, start, end] = [...g.children] as SVGElement[];
+    for (const [segment, width] of [
+      [halo!, (INSERTION_BAR + 2) / zoom],
+      [line!, INSERTION_BAR / zoom],
+    ] as const) {
+      segment.setAttribute("x1", String(a.x));
+      segment.setAttribute("y1", String(a.y));
+      segment.setAttribute("x2", String(b.x));
+      segment.setAttribute("y2", String(b.y));
+      segment.setAttribute("stroke-width", String(width));
+    }
+    for (const [dot, at] of [
+      [start!, a],
+      [end!, b],
+    ] as const) {
+      dot.setAttribute("cx", String(at.x));
+      dot.setAttribute("cy", String(at.y));
+      dot.setAttribute("r", String(INSERTION_DOT / zoom));
+      dot.setAttribute("stroke-width", String(1 / zoom));
+    }
+    g.classList.add("shown");
+    g.classList.toggle("row", !bar.column);
+    g.setAttribute("data-list", bar.list);
+    // Under what is dragged, which floats over everything else.
+    const lifted = svg.querySelector(":scope > [data-lifted]");
+    const placed =
+      g.parentNode === svg &&
+      (!lifted || (g.compareDocumentPosition(lifted) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0);
+    if (!placed) svg.insertBefore(g, lifted);
+    const previous = this.insertionAt;
+    this.insertionAt = bar;
+    const moved =
+      previous !== undefined &&
+      (previous.from.x !== bar.from.x ||
+        previous.from.y !== bar.from.y ||
+        previous.to.x !== bar.to.x ||
+        previous.to.y !== bar.to.y);
+    if (previous && !moved && previous.list === bar.list) return;
+    const fast = this.motion("--mdg-motion-fast");
+    if (fast <= 0) return;
+    const easing = this.easing();
+    if (!previous || previous.list !== bar.list || previous.column !== bar.column) {
+      // Where it first shows, it fades in.
+      for (const animation of g.getAnimations()) animation.cancel();
+      g.animate([{ opacity: 0 }, { opacity: 1 }], { duration: fast, easing });
+      return;
+    }
+    const dx = (previous.from.x + previous.to.x - bar.from.x - bar.to.x) / 2;
+    const dy = (previous.from.y + previous.to.y - bar.from.y - bar.to.y) / 2;
+    if (Math.abs(dx) < 0.01 && Math.abs(dy) < 0.01) return;
+    g.animate(
+      [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "translate(0px, 0px)" }],
+      {
+        duration: fast,
+        easing,
+        composite: "add",
+      },
+    );
+  }
+
+  /**
+   * The lists whose + shows: the ones selected and the ones under the pointer (or under the + the
+   * pointer is on), on a free diagram that edits, while nothing is dragged and no tool is armed.
+   */
+  private listAddTargets(): string[] {
+    const r = this.render;
+    if (
+      r?.profile !== "free" ||
+      this.readOnly ||
+      this.storyPanel.active ||
+      this.stale ||
+      this.drag !== undefined ||
+      this.tool !== undefined ||
+      this.pointing ||
+      this.iconDrag !== undefined
+    ) {
+      return [];
+    }
+    const ids = new Set<string>();
+    for (const id of this.selection) ids.add(id);
+    for (const id of this.hoveredLists) ids.add(id);
+    if (this.listAddHover !== undefined) ids.add(this.listAddHover);
+    return [...ids].filter((id) => {
+      const element = this.elements.get(id);
+      return element?.list !== undefined && !this.isHidden(element.layer);
+    });
+  }
+
+  /**
+   * Where the + of a list goes on the stage: below a column's last child, right of a row's, in
+   * the middle of an empty list. Where the list has no room for it there, it goes past the list's
+   * edge, clear of the resize handle that a selected list has on it.
+   */
+  private listAddPoint(group: ElementInfo): Point {
+    const children = group.list?.children ?? [];
+    const last = [...children]
+      .reverse()
+      .map((id) => this.elements.get(id))
+      .find((e) => e !== undefined);
+    const frame = this.screenBox(group.box);
+    const away = LIST_ADD_GAP + LIST_ADD_RADIUS;
+    // Past the edge: beyond half a resize handle, then the gap.
+    const beyond = LIST_ADD_HANDLE + away;
+    if (!last) {
+      // An empty list: in its middle, below its title.
+      const centre = centerOf(frame);
+      const text = group.label !== "" ? group.text : undefined;
+      const title = text ? this.screenOf({ x: 0, y: text.anchor.y + text.line / 2 }).y : undefined;
+      const below = title === undefined ? centre.y : Math.max(centre.y, title + away);
+      const fits = below + away + LIST_ADD_HANDLE <= frame.y + frame.height;
+      return { x: centre.x, y: fits ? below : frame.y + frame.height + beyond };
+    }
+    const box = this.screenBox(last.box);
+    if (group.list?.layout === "row") {
+      const inside = box.x + box.width + away;
+      const fits = inside + away + LIST_ADD_HANDLE <= frame.x + frame.width;
+      return { x: fits ? inside : frame.x + frame.width + beyond, y: box.y + box.height / 2 };
+    }
+    const inside = box.y + box.height + away;
+    const fits = inside + away + LIST_ADD_HANDLE <= frame.y + frame.height;
+    return { x: box.x + box.width / 2, y: fits ? inside : frame.y + frame.height + beyond };
+  }
+
+  /**
+   * The lists under a point of the diagram, innermost first, and the ones whose end the point is
+   * just past, where their + may be: moving from a list to its + keeps the list hovered.
+   */
+  private listsAt(at: Point): string[] {
+    const under = this.stackAt(at)
+      .filter((e) => e.list !== undefined)
+      .map((e) => e.id);
+    const reach = (LIST_ADD_HANDLE + LIST_ADD_GAP + 2 * LIST_ADD_RADIUS) / this.viewport.zoom;
+    for (const element of this.elements.values()) {
+      if (!element.list || under.includes(element.id) || this.isHidden(element.layer)) continue;
+      // Past the end of the list, and below an empty one, where its + goes when it has no room.
+      const box = element.box;
+      const empty = element.list.children.length === 0;
+      const zone = {
+        ...box,
+        width: box.width + (element.list.layout === "row" ? reach : 0),
+        height: box.height + (element.list.layout === "row" && !empty ? 0 : reach),
+      };
+      if (this.inBox(zone, at)) under.push(element.id);
+    }
+    return under;
+  }
+
+  /**
+   * Shows the + of the lists that are hovered or selected, where their end is now, and hides the
+   * others: each fades and grows in, and out, over the canvas's motion.
+   */
+  private syncListAdds(): void {
+    const targets = new Set(this.listAddTargets());
+    for (const [id, button] of this.listAddButtons) {
+      if (this.elements.get(id)?.list === undefined) {
+        button.remove();
+        this.listAddButtons.delete(id);
+        if (this.listAddHover === id) this.listAddHover = undefined;
+      } else if (!targets.has(id)) button.classList.remove("shown");
+    }
+    const words = messages();
+    for (const id of targets) {
+      const group = this.elements.get(id)!;
+      let button = this.listAddButtons.get(id);
+      if (!button) {
+        button = this.listAddButton(id);
+        this.listAdds.append(button);
+        this.listAddButtons.set(id, button);
+        // Drawn hidden first, so that it grows in.
+        void button.offsetWidth;
+      }
+      const at = this.listAddPoint(group);
+      button.style.left = `${at.x}px`;
+      button.style.top = `${at.y}px`;
+      const layout = group.list!.layout;
+      const label = layout === "row" ? words.lists.addColumn(id) : words.lists.addSticky(id);
+      if (button.getAttribute("aria-label") !== label) {
+        button.setAttribute("aria-label", label);
+        button.title = `${label} (Ctrl+${words.keys.enter})`;
+      }
+      button.dataset.layout = layout;
+      button.classList.add("shown");
+    }
+  }
+
+  /** The + of a list: a round button over the stage, which the stage's gestures leave alone. */
+  private listAddButton(id: string): HTMLButtonElement {
+    const button = h(
+      "button",
+      {
+        type: "button",
+        class: "list-add",
+        tabindex: -1,
+        "data-list": id,
+        "data-write": "",
+        "data-edit": "",
+        "aria-keyshortcuts": this.mac ? "Meta+Enter" : "Control+Enter",
+      },
+      icon(ICONS.listAdd),
+    );
+    // A press on it is no press on the stage: nothing is selected, dragged or focused away.
+    button.addEventListener("pointerdown", (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+    });
+    for (const type of ["dblclick", "contextmenu"] as const) {
+      button.addEventListener(type, (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+      });
+    }
+    button.addEventListener("pointerenter", () => {
+      this.listAddHover = id;
+    });
+    button.addEventListener("pointerleave", (e) => {
+      if (this.listAddHover !== id) return;
+      this.listAddHover = undefined;
+      // The lists where the pointer is now: a render that grew the list may have moved the +
+      // from under a pointer that stays over the list.
+      this.hoveredLists =
+        this.render?.profile === "free" ? this.listsAt(this.diagramOf(this.pointOf(e))) : [];
+      this.syncListAdds();
+    });
+    button.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.addToList(id);
+    });
+    return button;
+  }
+
+  /**
+   * The lists under the pointer, innermost first, whose + shows; the + the pointer is on keeps
+   * them as they are.
+   */
+  private hoverLists(event: PointerEvent | undefined): void {
+    if (event && (event.target as Element | null)?.closest?.(".list-add")) return;
+    const lists =
+      event && this.render?.profile === "free"
+        ? this.listsAt(this.diagramOf(this.pointOf(event)))
+        : [];
+    if (
+      lists.length === this.hoveredLists.length &&
+      lists.every((id, i) => this.hoveredLists[i] === id)
+    ) {
+      return;
+    }
+    this.hoveredLists = lists;
+    this.syncListAdds();
+  }
+
+  /**
+   * Adds to a list: a sticky note to a column, a column to a row, at `index` among its children
+   * or at its end, with its editor open (the list's + and Ctrl+Enter). Words being typed are kept
+   * first, and the new card waits for their drawing.
+   */
+  private addToList(listId: string, index?: number): void {
+    if (this.readOnly) return;
+    if (this.inline) this.commitInline();
+    if (this.pending) {
+      this.afterRender.push(() => this.addToList(listId, index));
+      return;
+    }
+    const group = this.elements.get(listId);
+    const list = group?.list;
+    if (!group || !list) return;
+    this.setPointing(false);
+    if (this.tool !== undefined) this.arm(undefined);
+    const at = this.diagramOf(this.listAddPoint(group));
+    const position = Math.min(index ?? list.children.length, list.children.length);
+    const words = messages().announcements;
+    const fill = this.stickyFill;
+    const column = list.layout !== "row";
+    const sent = column
+      ? this.create("sticky", at, {
+          parent: listId,
+          index: position,
+          ...(fill === null ? {} : { fill }),
+        })
+      : this.create("group", at, { parent: listId, index: position, layout: "column" });
+    if (!sent) return;
+    // The cards after one added between two glide on to make room for it.
+    if (position < list.children.length) this.settling = { since: performance.now() };
+    // A new card pops in, as one from the sticky note button does.
+    if (column) this.popping = performance.now();
+    this.announce(column ? words.addedSticky(listId) : words.addedColumn(listId));
+  }
+
+  /**
+   * Ctrl+Enter: the next card of a list after the selected one, in its list; at the end of the
+   * list when the list itself is selected.
+   */
+  private addNext(id = this.selection[this.selection.length - 1]): void {
+    const element = id === undefined ? undefined : this.elements.get(id);
+    const parent = element?.parent ? this.elements.get(element.parent) : undefined;
+    const position = element && parent?.list ? parent.list.children.indexOf(element.id) : -1;
+    if (parent && position >= 0) this.addToList(parent.id, position + 1);
+    else if (element?.list) this.addToList(element.id);
+    else this.announce(messages().announcements.noListToAdd);
+  }
+
+  /**
+   * Alt+Up and Alt+Down: the selected child of a list goes before or after its neighbour (before
+   * is left in a row), staying selected; nothing moves at an end of the list.
+   */
+  private moveInList(before: boolean): void {
+    const words = messages().announcements;
+    const primary = this.selection[this.selection.length - 1];
+    const element = primary === undefined ? undefined : this.elements.get(primary);
+    const group = element?.parent ? this.elements.get(element.parent) : undefined;
+    const children = group?.list?.children ?? [];
+    const position = element ? children.indexOf(element.id) : -1;
+    if (!element || !group || position < 0) {
+      this.announce(words.noListToMove);
+      return;
+    }
+    if (this.pending) {
+      this.afterRender.push(() => this.moveInList(before));
+      return;
+    }
+    const neighbour = children[before ? position - 1 : position + 1];
+    if (neighbour === undefined) {
+      this.announce(words.listEnd(element.id, group.id, before));
+      return;
+    }
+    // Counted among the children once it is taken out: one back, or one past its neighbour.
+    const index = before ? position - 1 : position + 1;
+    if (!this.act({ kind: "move", ids: [element.id], parent: group.id, index })) return;
+    // The two cards trade places, gliding.
+    this.settling = { since: performance.now() };
+    this.announce(words.movedPast(element.id, neighbour, group.id, before));
   }
 
   /** The group outlined while dragging: the visible one that holds the dragged elements after it. */
@@ -5064,11 +7134,14 @@ export class CanvasApp {
   }
 
   private doubleClick(e: MouseEvent): void {
-    // Alt+clicks in a row go down a stack; they edit no label. Pointing opens nothing.
-    if (this.storyPanel.active || e.altKey || this.pointing) return;
+    // Alt+clicks in a row go down a stack; they edit no label. Pointing opens nothing, nor do two
+    // quick dots of the pen or presses of the eraser.
+    if (this.storyPanel.active || e.altKey || this.pointing || isDrawing(this.tool)) return;
     // Pointer capture sends the double click to the stage; what is under the pointer counts.
     const hit = this.hit(document.elementFromPoint(e.clientX, e.clientY) ?? e.target);
     if (!hit) return;
+    // A stroke has no text: a double click on it opens nothing and leaves it selected.
+    if (hit.kind === "element" && this.elements.get(hit.id)?.pen) return;
     // Handles are redrawn between the two clicks, so their double clicks are told on the press;
     // but the handle that the first click puts in the middle of a relation lies on its label, and
     // a double click there edits the label, as on the rest of the line.
@@ -5209,6 +7282,17 @@ export class CanvasApp {
           this.drag = undefined;
           this.announce(messages().announcements.lineCancelled);
           this.drawOverlay();
+        } else if (this.drag?.kind === "penDraw") {
+          // The stroke goes and nothing is written; the pen stays in the hand. The others drop it.
+          this.cancelLaser(this.drag.look);
+          this.drag = undefined;
+          this.announce(messages().announcements.strokeCancelled);
+          this.drawOverlay();
+        } else if (this.drag?.kind === "erase") {
+          // The strokes fade back in and nothing is erased; the eraser stays in the hand.
+          this.restoreErased([...this.drag.hits]);
+          this.drag = undefined;
+          this.announce(messages().announcements.nothingErased);
         } else if (this.pointing) {
           // The stroke in the air goes with the tool.
           if (this.drag?.kind === "laser") this.endLaser();
@@ -5286,10 +7370,14 @@ export class CanvasApp {
       case "renameId":
         if (primary) this.editLabel(primary, true);
         return;
-      case "delete":
-        if (this.selection.length > 0)
-          this.act({ kind: "remove", ids: this.selection, cascade: false });
+      case "delete": {
+        if (this.selection.length === 0) return;
+        // Strokes alone go with their own styles and effects, as the eraser takes them: nothing
+        // else depends on a stroke, and one undo brings it all back.
+        const strokes = this.selection.every((id) => this.elements.get(id)?.pen !== undefined);
+        this.act({ kind: "remove", ids: this.selection, cascade: strokes });
         return;
+      }
       case "copy":
         if (elementIds.length > 0) this.post({ type: "copy", ids: elementIds });
         return;
@@ -5347,8 +7435,31 @@ export class CanvasApp {
       case "openShapes":
         this.openShapes("create");
         return;
+      case "penTool":
+        this.arm("pen");
+        return;
+      case "highlighterTool":
+        this.arm("highlighter");
+        return;
+      case "eraserTool":
+        this.arm("eraser");
+        return;
+      case "createSticky":
+        this.createSticky();
+        return;
+      case "addToList":
+        this.addNext();
+        return;
+      case "moveInListBefore":
+      case "moveInListAfter":
+        this.moveInList(command === "moveInListBefore");
+        return;
       case "connect": {
-        const from = primary && this.elements.has(primary) ? primary : undefined;
+        // A stroke is no end of a relation.
+        const from =
+          primary && this.elements.has(primary) && !this.elements.get(primary)!.pen
+            ? primary
+            : undefined;
         if (!from) {
           this.announce(messages().announcements.connectFromFirst);
           return;
@@ -5356,7 +7467,7 @@ export class CanvasApp {
         const anchor = this.mainPoint(this.screenOf(centerOf(this.elements.get(from)!.box)));
         this.picker.open(
           [...this.elements.values()]
-            .filter((e) => e.id !== from && e.kind !== "group")
+            .filter((e) => e.id !== from && e.kind !== "group" && !e.pen)
             .map((e) => ({ id: e.id, label: e.label })),
           { x: anchor.x, y: anchor.y },
           (to) => this.act({ kind: "connect", from, to, line: "solid" }),
@@ -5597,6 +7708,14 @@ export class CanvasApp {
       readonly source?: string;
       /** A note attached to this element, which holds it beside it rather than inside. */
       readonly attachedTo?: string;
+      /** A sticky note's colour of paper, written as its `fill`. */
+      readonly fill?: string;
+      /** A group that is a list: the + of a row adds a column. */
+      readonly layout?: "column" | "row";
+      /** The group that holds it, instead of the one under the point: the list a + adds to. */
+      readonly parent?: string;
+      /** Its position among the children of `parent`, a list. */
+      readonly index?: number;
     } = {},
   ): boolean {
     if (this.readOnly) return false;
@@ -5605,16 +7724,27 @@ export class CanvasApp {
     // The innermost group under the point holds the new element; groups nest too. A note put
     // beside an element goes in the group of that element, which may be the one under the point.
     const parent =
-      extra.attachedTo !== undefined
+      extra.parent ??
+      (extra.attachedTo !== undefined
         ? this.elements.get(extra.attachedTo)?.parent
-        : this.stackAt(at).find((e) => e.kind === "group")?.id;
-    // A container is a group without a title.
-    const container =
-      kind === "group" &&
-      this.groupKind === "container" &&
-      this.render?.profile !== "sequence" &&
-      extra.label === undefined;
+        : this.stackAt(at).find((e) => e.kind === "group")?.id);
+    // A container is a group without a title; a column or a row is a group that is a list, which
+    // the session names in the interface language. Neither is offered outside free diagrams.
+    const groupKind =
+      kind === "group" && extra.label === undefined && extra.layout === undefined
+        ? this.groupKindNow
+        : "group";
+    const container = groupKind === "container" && this.render?.profile !== "sequence";
+    const layout =
+      extra.layout ?? (groupKind === "column" || groupKind === "row" ? groupKind : undefined);
     const label = container ? "" : extra.label;
+    // Dropped into a list, it takes the place the point gives among the list's children.
+    const list = parent ? this.elements.get(parent)?.list : undefined;
+    const index =
+      extra.index ??
+      (list && parent && extra.attachedTo === undefined
+        ? this.listIndexAt(parent, list.children, at)
+        : undefined);
     const sent = this.act({
       kind: "create",
       elementKind: kind,
@@ -5625,10 +7755,19 @@ export class CanvasApp {
       ...(shape !== undefined ? { shape } : {}),
       ...(extra.source !== undefined ? { source: extra.source } : {}),
       ...(extra.attachedTo !== undefined ? { attachedTo: extra.attachedTo } : {}),
+      ...(extra.fill !== undefined ? { fill: extra.fill } : {}),
+      ...(kind === "group" && layout !== undefined ? { layout } : {}),
+      ...(index !== undefined && parent ? { index } : {}),
     });
     if (!sent) return false;
     const words = messages().announcements;
-    this.announce(shape !== undefined ? words.createdShape(kind, shape) : words.created(kind));
+    this.announce(
+      kind === "group" && layout !== undefined
+        ? words.createdList(layout)
+        : shape !== undefined
+          ? words.createdShape(kind, shape)
+          : words.created(kind),
+    );
     return true;
   }
 
@@ -5671,21 +7810,45 @@ export class CanvasApp {
       : { x: Math.round(point.x), y: Math.round(point.y) };
   }
 
-  private arm(tool: ElementKind | "relation" | undefined): void {
+  /**
+   * Arms a tool, or puts it away when it is the one armed (or with none). `focus` gives the stage
+   * the keyboard, which the pen menu keeps when its choices arm their tool.
+   */
+  private arm(tool: Tool | undefined, focus = true): void {
     // No tool places or connects anything on a canvas that only shows.
     if (this.readOnly && tool !== undefined) return;
+    // The pen, the highlighter and the eraser draw on free diagrams only.
+    if (isDrawing(tool) && this.render?.profile !== "free") return;
     // The pointer and a tool never hold together.
     if (tool !== undefined) this.setPointing(false);
     this.tool = this.tool === tool ? undefined : tool;
     this.relationFrom = undefined;
     if (this.tool !== "icon") this.armedIcon = undefined;
-    this.stage.classList.toggle("placing", !!this.tool);
+    const drawing = isDrawing(this.tool);
+    // The pen button arms whichever of the pen and the highlighter was armed last.
+    if ((this.tool === "pen" || this.tool === "highlighter") && this.penChoice.tool !== this.tool) {
+      this.persist({ pen: { ...this.penChoice, tool: this.tool } });
+      this.penMenu.sync(this.penChoice);
+    }
+    this.syncPenButton();
+    this.stage.classList.toggle("placing", !!this.tool && !drawing);
+    this.stage.classList.toggle("drawing", drawing);
+    this.syncPointerCursor();
     this.syncToggles();
     const words = messages().announcements;
     if (this.tool === "relation") {
       if (this.render?.profile === "sequence") this.announce(words.pickSender);
       else this.announceArrowKind();
       this.stage.focus();
+    } else if (isDrawing(this.tool)) {
+      this.announce(
+        this.tool === "pen"
+          ? words.penArmed
+          : this.tool === "highlighter"
+            ? words.highlighterArmed
+            : words.eraserArmed,
+      );
+      if (focus) this.stage.focus();
     } else if (this.tool) {
       this.announce(this.placeWords(this.tool));
       this.stage.focus();
@@ -5700,8 +7863,9 @@ export class CanvasApp {
    */
   private relationClick(hit: ReturnType<CanvasApp["hit"]>, at: Point, dashed: boolean): void {
     const sequence = this.render?.profile === "sequence";
-    // A free line is no end of a relation: a press on it is a press on empty canvas.
-    if (hit && this.elements.get(hit.id)?.line) hit = undefined;
+    // A free line or a stroke is no end of a relation: a press on it is a press on empty canvas.
+    const pressed = hit ? this.elements.get(hit.id) : undefined;
+    if (pressed?.line || pressed?.pen) hit = undefined;
     // On a sequence diagram, a click anywhere on a lifeline, fragments included, is its participant.
     const lifeline = sequence
       ? [...this.elements.values()].find(
@@ -5744,15 +7908,18 @@ export class CanvasApp {
 
   /**
    * Whether a press of the relation tool on `pressed` starts drawing a free line: on a free
-   * diagram that edits, before a source is chosen, on empty canvas, a group's background or
-   * another line.
+   * diagram that edits, before a source is chosen, on empty canvas, a group's background, another
+   * line or a stroke.
    */
   private drawsLine(pressed: ReturnType<CanvasApp["hit"]>): boolean {
     if (this.render?.profile !== "free" || this.readOnly || this.stale) return false;
     if (this.relationFrom) return false;
     if (!pressed) return true;
     const element = pressed.kind === "element" ? this.elements.get(pressed.id) : undefined;
-    return element !== undefined && (element.kind === "group" || element.line !== undefined);
+    return (
+      element !== undefined &&
+      (element.kind === "group" || element.line !== undefined || element.pen !== undefined)
+    );
   }
 
   /** Keeps the ghost of a line just drawn on the overlay while it fades out. */
@@ -5837,6 +8004,11 @@ export class CanvasApp {
       if (inside) {
         this.arm(undefined);
         const at = this.snapPoint(this.diagramOf(this.pointOf(event)));
+        // A sticky note dropped takes the button's colour, and pops in with its editor.
+        if (kind === "sticky") {
+          this.createSticky(at);
+          return;
+        }
         this.create(
           kind,
           at,
@@ -5875,12 +8047,20 @@ export class CanvasApp {
     } else {
       this.drawOverlay();
     }
+    this.announceSelection();
+  }
+
+  /** Says what is selected, as the drawing shown has it: its kind, id and text. */
+  private announceSelection(): void {
+    const ids = this.selection;
     const last = ids[ids.length - 1];
     const element = last ? this.elements.get(last) : undefined;
     const relation = last ? this.relations.get(last) : undefined;
     const words = messages().announcements;
     if (ids.length === 0) this.announce(words.nothingSelected);
     else if (ids.length > 1) this.announce(words.selected(ids.length));
+    else if (element?.pen)
+      this.announce(words.selectedStroke(element.id, element.pen.points.length));
     else if (element) {
       this.announce(words.selectedElement(element.kind, element.id, element.label));
     } else if (relation) {
@@ -5911,6 +8091,11 @@ export class CanvasApp {
     if (this.stale) return;
     if (!renameId && (element?.kind === "icon" || element?.kind === "image")) {
       this.announce(messages().announcements.noLabel(element.kind));
+      return;
+    }
+    // Enter and F2 open nothing on a stroke; Shift+F2 renames its id.
+    if (!renameId && element?.pen) {
+      this.announce(messages().announcements.strokeHasNoText);
       return;
     }
     const value = renameId
@@ -5958,15 +8143,33 @@ export class CanvasApp {
     this.closeInline();
     const place = this.textPlace(target);
     const multiline = !target.rename && place.lines;
+    // A sticky note's words wrap at its card and shrink to fit: its editor does the same.
+    const wrap =
+      !target.rename &&
+      target.kind === "element" &&
+      this.elements.get(target.id)?.kind === "sticky";
+    // A card of a list: Ctrl+Enter keeps its text and adds the next card after it, as on the stage.
+    const parent = target.kind === "element" ? this.elements.get(target.id)?.parent : undefined;
+    const inList = !target.rename && parent ? this.elements.get(parent)?.list : undefined;
+    const keys = messages().inline;
     const editor = new InlineEditor({
       id: target.id,
       rename: target.rename,
       value,
       multiline,
+      wrap,
       label,
-      keys: messages().inline.keys(multiline),
+      keys: inList ? `${keys.keys(multiline)} ${keys.nextCard}` : keys.keys(multiline),
       commit: () => this.commitInline(),
       cancel: () => this.cancelInline(),
+      ...(inList
+        ? {
+            next: () => {
+              this.commitInline();
+              this.addNext(target.id);
+            },
+          }
+        : {}),
     });
     this.inline = { editor, target };
     this.stage.append(editor.element);
@@ -6013,9 +8216,12 @@ export class CanvasApp {
         : target.kind === "relation"
           ? ["label"]
           : ["event", "label"];
-    for (const node of drawnLines(root, target.id, roles, this.drawnText(target))) {
-      node.classList.add("mdg-editing");
-    }
+    // A sticky note's lines are wrapped by the layout, not the label's own: every one is hidden.
+    const nodes =
+      turned?.kind === "sticky"
+        ? wrappedLines(root, target.id)
+        : drawnLines(root, target.id, roles, this.drawnText(target));
+    for (const node of nodes) node.classList.add("mdg-editing");
   }
 
   /** The lines the drawing shows for what an editor edits. */
@@ -6067,8 +8273,10 @@ export class CanvasApp {
     const current = element
       ? element.label
       : (this.relations.get(id)?.label ?? this.events.get(id)?.label ?? "");
-    // The old text stays hidden until the drawing of the new one arrives.
+    // The old text stays hidden until the drawing of the new one arrives, which says the selection
+    // again with it.
     const changed = value !== current && this.act({ kind: "setLabel", id, label: value });
+    if (changed) this.relabelled = id;
     this.closeInline(changed);
     this.stage.focus({ preventScroll: true });
   }
@@ -6136,12 +8344,13 @@ export class CanvasApp {
     const { menu: words, commands, keys } = messages();
     const items: (MenuItem | "-")[] = [];
     if (element || relation) {
-      items.push(
-        { label: words.editLabel, key: keys.enter, run: run("editLabel") },
-        { label: words.renameId, key: `${keys.shift}+F2`, run: run("renameId") },
-      );
+      // A stroke has no text to edit, and is no end of a relation; its id is renamed all the same.
+      if (!element?.pen) {
+        items.push({ label: words.editLabel, key: keys.enter, run: run("editLabel") });
+      }
+      items.push({ label: words.renameId, key: `${keys.shift}+F2`, run: run("renameId") });
     }
-    if (element && element.kind !== "group")
+    if (element && element.kind !== "group" && !element.pen)
       items.push({ label: words.connectTo, key: "C", run: run("connect") });
     // Icon… opens the picker on the elements that take an icon; Remove icon takes theirs away.
     const iconTargets = this.iconTargets();
@@ -6482,6 +8691,28 @@ function boxAround(points: readonly Point[]): Box {
 
 function cssEscape(value: string): string {
   return value.replace(/["\\]/g, "\\$&");
+}
+
+/**
+ * A turned element's rotation, as its drawing writes it (`rotate(a cx cy)`), in CSS terms: the
+ * turn and the point it is about, in the drawing's units. Nothing for an upright one; undefined
+ * for a transform of another form, which an animation in CSS would lose.
+ */
+function cssTurn(turn: string): { readonly rotate: string; readonly origin: string } | undefined {
+  if (turn === "") return { rotate: "", origin: "0px 0px" };
+  const match = /^rotate\((-?[\d.]+)[ ,]+(-?[\d.]+)[ ,]+(-?[\d.]+)\)$/.exec(turn.trim());
+  if (!match) return undefined;
+  return { rotate: `rotate(${match[1]}deg)`, origin: `${match[2]}px ${match[3]}px` };
+}
+
+/**
+ * Every position a pointer went through since its last `pointermove`: a stylus reports far more
+ * than one per frame, and a stroke drawn from the frames alone would lose its curves. The event
+ * itself where the browser coalesces nothing.
+ */
+function coalesced(e: PointerEvent): readonly PointerEvent[] {
+  const events = "getCoalescedEvents" in e ? e.getCoalescedEvents() : [];
+  return events.length > 0 ? events : [e];
 }
 
 /**

@@ -1,0 +1,61 @@
+language "0.2"
+
+// A kanban board on the dark technical theme: a row of four columns stretched to one height, each a
+// list of stickies in the order they are written, cards of five colours whose text stays dark on
+// the paper, a relation from a card in one column to a card in another, and a board that grows.
+diagram kanban: free {
+  title "Release board"
+  theme "technical.dark"
+  preset board
+  layout manual
+
+  text heading "Release 2.4"
+
+  group board "" {
+    layout row
+    spacing 56
+    align stretch
+
+    group backlog "Backlog" {
+      layout column
+      spacing 12
+      sticky darkMode "Dark mode for the settings page"
+      sticky export "Export the monthly reports as CSV"
+    }
+
+    group todo "To do" {
+      layout column
+      spacing 12
+      sticky audit "Keep an audit log of every refund"
+      sticky search "Search by order number"
+      sticky limits "Rate limits per API key"
+    }
+
+    group doing "Doing" {
+      layout column
+      spacing 12
+      sticky refunds "Refunds in one click"
+    }
+
+    group done "Done" {
+      layout column
+      spacing 12
+      sticky passkeys "Sign in with passkeys"
+      sticky invoices "Invoices as PDF"
+    }
+  }
+
+  audit -> refunds: "blocks" as blocks
+
+  placement {
+    place heading at (480, 50)
+    place board at (480, 420)
+  }
+
+  style heading { fontSize 32; fontWeight 700 }
+  style darkMode, export { fill "#e1bee7" }
+  style audit { fill "#f8bbd0" }
+  style refunds { fill "#ffe0b2" }
+  style passkeys, invoices { fill "#c8e6c9" }
+  style limits { fill "#bbdefb" }
+}

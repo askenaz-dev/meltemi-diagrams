@@ -1,7 +1,8 @@
 # 0059. The Pointer tool, notes in free compositions and C4 views, and note attachments
 
 Status: accepted (pointer-and-notes change, 24 October 2026). Extends decisions 0018, 0020, 0045,
-0050 and 0058.
+0050 and 0058. Strokes drawn with the pen ride in the same laser batches, by
+[decision 0064](0064-whiteboard-tools.md).
 
 ## Context
 

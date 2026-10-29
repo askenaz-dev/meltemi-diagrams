@@ -35,33 +35,33 @@ it to an element of another diagram.
 
 ## Inside `diagram <id>: flow { }`
 
-| Statement                                                    | Meaning                                                                                       |
-| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| `title "..."`, `description "..."`                           | SVG `<title>` and `<desc>`; the title also appears in the brand frame                         |
-| `layout auto`, `layout assisted`, `layout manual`            | ELK arranges everything, the unplaced boxes only, or nothing (layout.md)                      |
-| `routing orthogonal`                                         | connector shape: `auto` (default), `orthogonal`, `polyline`, `bezier`                         |
-| `theme "<name>"`                                             | built-in or file theme; default the project theme or `technical.light`                        |
-| `preset document`, `preset slide`, `canvas (w, h)`           | canvas size and limits (see themes.md)                                                        |
-| `class id { ... }`, `rule kind { ... }`                      | reusable styles and styles for every element of a kind (themes.md)                            |
-| `direction LR`                                               | flow of the automatic layout (`LR`, `RL`, `TB`, `BT`)                                         |
-| `layers back, main, front`; `layer back` in a block          | paint order, back to front; `main` always exists; elements, groups and relations take `layer` |
-| `id["Label"]`                                                | node (rounded box)                                                                            |
-| `id[("Label")]`                                              | data store (cylinder)                                                                         |
-| `node id "Label"`, `decision id "Label?"`, `data id "Label"` | typed declarations; label defaults to the id                                                  |
-| `group id "Label" { ... }`                                   | band holding declarations, relations and nested groups                                        |
-| `group id "" { ... }`                                        | a plain container: no title band, padding 16 px all round (free.md)                           |
-| `note id "Line one\nLine two" [on element]`                  | free text, left-aligned, no border; `on` attaches it to an element with a dotted leader       |
-| `tag id "PKCE"`                                              | small pill with mono text                                                                     |
-| `a -> b`, `a --> b`, `a <-> b`, `a <--> b`                   | solid or dashed relation, one way or two-way; undeclared ids become nodes                     |
-| `a -- b`, `a --- b`                                          | a solid or dashed line without heads between two elements                                     |
-| `a -> b: "Label" as id`                                      | relation with label and id                                                                    |
-| `{ description "..." }` after an element or relation         | second text line of a box; description of a relation                                          |
-| `{ assumption "why" }` after a relation                      | an inferred relation, drawn dashed and muted until someone confirms it                        |
-| `{ class a, b }` after an element, group or relation         | apply classes                                                                                 |
-| `{ port in west 30% }` after an element                      | a named port on a side, at a percentage along it (50 % by default)                            |
-| `placement { ... }`                                          | positions, sizes, routes, label anchors (below)                                               |
-| `style <t>[, <t>...] { ... }`                                | visual properties for elements or named relations                                             |
-| `animate <t>[, <t>...] { ... }`                              | motion effects: flow particles, a moving dash, a pulse, a trace (below)                       |
+| Statement                                                          | Meaning                                                                                       |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| `title "..."`, `description "..."`                                 | SVG `<title>` and `<desc>`; the title also appears in the brand frame                         |
+| `layout auto`, `layout assisted`, `layout manual`                  | ELK arranges everything, the unplaced boxes only, or nothing (layout.md)                      |
+| `routing orthogonal`                                               | connector shape: `auto` (default), `orthogonal`, `polyline`, `bezier`                         |
+| `theme "<name>"`                                                   | built-in or file theme; default the project theme or `technical.light`                        |
+| `preset document`, `preset slide`, `preset board`, `canvas (w, h)` | canvas size and limits; `board` grows with a whiteboard (see themes.md)                       |
+| `class id { ... }`, `rule kind { ... }`                            | reusable styles and styles for every element of a kind (themes.md)                            |
+| `direction LR`                                                     | flow of the automatic layout (`LR`, `RL`, `TB`, `BT`)                                         |
+| `layers back, main, front`; `layer back` in a block                | paint order, back to front; `main` always exists; elements, groups and relations take `layer` |
+| `id["Label"]`                                                      | node (rounded box)                                                                            |
+| `id[("Label")]`                                                    | data store (cylinder)                                                                         |
+| `node id "Label"`, `decision id "Label?"`, `data id "Label"`       | typed declarations; label defaults to the id                                                  |
+| `group id "Label" { ... }`                                         | band holding declarations, relations and nested groups                                        |
+| `group id "" { ... }`                                              | a plain container: no title band, padding 16 px all round (free.md)                           |
+| `note id "Line one\nLine two" [on element]`                        | free text, left-aligned, no border; `on` attaches it to an element with a dotted leader       |
+| `tag id "PKCE"`                                                    | small pill with mono text                                                                     |
+| `a -> b`, `a --> b`, `a <-> b`, `a <--> b`                         | solid or dashed relation, one way or two-way; undeclared ids become nodes                     |
+| `a -- b`, `a --- b`                                                | a solid or dashed line without heads between two elements                                     |
+| `a -> b: "Label" as id`                                            | relation with label and id                                                                    |
+| `{ description "..." }` after an element or relation               | second text line of a box; description of a relation                                          |
+| `{ assumption "why" }` after a relation                            | an inferred relation, drawn dashed and muted until someone confirms it                        |
+| `{ class a, b }` after an element, group or relation               | apply classes                                                                                 |
+| `{ port in west 30% }` after an element                            | a named port on a side, at a percentage along it (50 % by default)                            |
+| `placement { ... }`                                                | positions, sizes, routes, label anchors (below)                                               |
+| `style <t>[, <t>...] { ... }`                                      | visual properties for elements or named relations                                             |
+| `animate <t>[, <t>...] { ... }`                                    | motion effects: flow particles, a moving dash, a pulse, a trace (below)                       |
 
 Elements and relations share one namespace per diagram. Anonymous relations get the key
 `<from>-><to>#<n>` in tools and JSON; name a relation (`as id`) before routing or styling it.
@@ -100,7 +100,7 @@ style legendBox { fill "none" }
 | `stroke`        | outline colour                                                                 | connector and arrowhead colour             |
 | `color`         | label and description text                                                     | label pill text                            |
 | `line`          | `solid`, `dashed` or `dotted` outline                                          | overrides the arrow style                  |
-| `width`         | outline width (0 to 16)                                                        | connector width                            |
+| `width`         | outline width (0 to 64; a pen's stroke 1 to 64)                                | connector width                            |
 | `radius`        | corner radius (0 to 64) of boxes, groups                                       | not allowed                                |
 | `shape`         | `node` only: `hexagon`, `icon`… (free.md)                                      | not allowed                                |
 | `pattern`       | `hatch`, `dots`, `cross` or `none`                                             | not allowed                                |
@@ -154,19 +154,19 @@ animate r1 { effect trace }                           // a highlight that fills 
 `pulseDuration` or `traceDuration`, else 1200 ms for flow, 1500 ms for trace and 1 s otherwise),
 `repeat` `forever` (default) or 1 to 1000, `delay`, `direction forward|reverse` (flow, dash and
 trace), `particles 1..8` (flow), `color` (flow, pulse and trace; a trace defaults to `accent`).
-Flow and trace run on relations (and free lines) only; dash on relations, free lines, boxes with
-an outline and notes or texts that style an outline (`fill`, `stroke` or `pattern`); pulse on
-elements, relations, notes and fragments. One effect of each
-kind per target (`animate.conflict`). Exports are static unless you ask:
+Flow and trace run on relations (and free lines and pens) only; dash on relations, free lines,
+pens, boxes with an outline and notes or texts that style an outline (`fill`, `stroke` or
+`pattern`); pulse on elements, relations, notes and fragments. One effect of each kind per target
+(`animate.conflict`). Exports are static unless you ask:
 `pnpm mdg export sheet.meltemi --motion animated` writes an animated SVG (CSS keyframes, static
 fallback), `--at 1.5s` the frame at that time. Use the static export for documents and slides.
 
 ## Stories
 
 `story <id> for <diagram> { scene ... }` walks through a diagram: `reveal`, `hide`, `highlight`,
-`focus`, `camera`, `trace` and `hold` on one clock, `parallel` blocks, and `view` with a
-`transition` to change diagram. `pnpm mdg export sheet.meltemi --story <id> --at 2s` writes a
-frame. See [stories.md](stories.md).
+`focus`, `camera`, `trace`, `draw` (pens, lines and relations drawn again) and `hold` on one
+clock, `parallel` blocks, and `view` with a `transition` to change diagram.
+`pnpm mdg export sheet.meltemi --story <id> --at 2s` writes a frame. See [stories.md](stories.md).
 
 ## Export profiles and links
 
@@ -231,11 +231,11 @@ the optional cloud service, which `project.json` records in `cloud`, and
 | `theme.unknown-base`, `theme.cycle`                              | `extends` names a missing theme or loops; point it at a built-in theme                                                                              |
 | `theme.unknown-class`                                            | a class is not in the diagram, its theme or the built-in ones; declare it or fix the name                                                           |
 | `asset.unknown-icon`, `asset.unknown-pack`                       | the icon name or pack does not exist; search with `pnpm mdg assets icons <words>`                                                                   |
-| `layout.too-large`                                               | the sheet exceeds its `preset` or `canvas`; split it into views instead of shrinking                                                                |
+| `layout.too-large`                                               | the sheet exceeds its `preset` or `canvas`; split it into views instead of shrinking, or write `preset board` for a whiteboard                      |
 | `layout.text-overflow`                                           | an explicit `size` is too narrow for its text; use the width in the hint                                                                            |
 | `layout.icon-missing`                                            | `shape icon` without an `icon`: a dashed placeholder is drawn; add the icon or change the shape                                                     |
 | `layout.label-position-ignored`                                  | `labelPosition` without `iconPosition center` or `shape icon`; add one of them or remove it                                                         |
-| `animate.missing-effect`, `animate.invalid-target`               | write `effect`; flow and trace on named relations and free lines, dash on lines and boxes, pulse anywhere                                           |
+| `animate.missing-effect`, `animate.invalid-target`               | write `effect`; flow and trace on named relations, free lines and pens, dash on lines, pens and boxes, pulse anywhere                               |
 | `animate.conflict`                                               | one effect of each kind per target; merge the two statements                                                                                        |
 | `story.*`                                                        | stories; see [stories.md](stories.md)                                                                                                               |
 | `export.*`                                                       | export profiles: a known target, a `format`, options of that format, a video `duration`                                                             |

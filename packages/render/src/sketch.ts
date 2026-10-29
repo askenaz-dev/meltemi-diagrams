@@ -50,14 +50,16 @@ const FLATTEN = 2;
  * sampled every 16 px (`light`) or 12 px (`rough`) and each sample moved along the outline's
  * normal by at most 0.6 px or 1.4 px. The jitter comes from a pseudo-random sequence seeded by the
  * group's id and the pass, so the same text paints the same bytes and an edit elsewhere leaves a
- * shape's wobble alone. Text, images, icons, gradient strokes and invisible overlays are kept.
+ * shape's wobble alone. Text, images, icons, gradient strokes and invisible overlays are kept, and
+ * so are pen strokes (`GroupItem.freehand`), whole.
  */
 export function sketchItems(items: readonly SceneItem[], level: SketchLevel): SceneItem[] {
   return items.map((item) => (item.kind === "group" ? sketchGroup(item, level) : item));
 }
 
 function sketchGroup(group: GroupItem, level: SketchLevel): GroupItem {
-  if (!SKETCHED.has(group.role)) return group;
+  // A pen stroke is drawn by hand already: jittered twice, it would be another drawing.
+  if (!SKETCHED.has(group.role) || group.freehand) return group;
   const passes = [random(hash(`${group.id}\u0000${0}`)), random(hash(`${group.id}\u0000${1}`))];
   const items: SceneItem[] = [];
   for (const item of group.items) {

@@ -488,3 +488,91 @@ describe("a person's Pointer trail", () => {
     expect(canvasPeople(book.list(), WEB, "Someone", "d")).toEqual([]);
   });
 });
+
+describe("a person's stroke being drawn", () => {
+  const points = [
+    { x: 1, y: 2, t: 0 },
+    { x: 3, y: 4, t: 30 },
+  ];
+  const pen = { width: 20, colour: "#ffd43b", opacity: 0.35, stroke: 5 };
+  /** A state with a batch over `d` whose pen part is `look`, as the room relays it. */
+  const stroke = (look: unknown, selection: string[] = []) =>
+    ({
+      ...state("u_ben", "Ben", { file: API }),
+      canvas: { selection, laser: { diagram: "d", points, pen: look } },
+    }) as Record<string, unknown>;
+
+  it("keeps the batch's pen part with the batch", () => {
+    const book = new PeerBook(PAGE);
+    expect(book.apply([{ id: "c1", state: stroke(pen) }], 0)).toBe(true);
+    expect(book.list()[0]!.laser).toEqual({ seq: 1, diagram: "d", points, pen });
+  });
+
+  it("reaches the canvas of the same diagram with the batch, as the presence message's laser.pen", () => {
+    const book = new PeerBook(PAGE);
+    book.apply([{ id: "c1", state: stroke(pen) }], 0);
+    book.apply([{ id: "c1", state: stroke(pen) }], 1);
+    expect(canvasPeople(book.list(), API, "Someone", "d")).toEqual([
+      {
+        name: "Ben",
+        colour: presenceColour("u_ben"),
+        selection: [],
+        laser: { batch: 2, points, pen },
+      },
+    ]);
+    expect(canvasPeople(book.list(), API, "Someone", "other")).toEqual([]);
+  });
+
+  it("gives way to a Pointer's batch, which carries no pen part", () => {
+    const book = new PeerBook(PAGE);
+    book.apply([{ id: "c1", state: stroke(pen) }], 0);
+    book.apply([{ id: "c1", state: stroke(undefined) }], 1);
+    const told = canvasPeople(book.list(), API, "Someone", "d")[0]!;
+    expect(told.laser).toEqual({ batch: 2, points });
+    expect("pen" in told.laser!).toBe(false);
+  });
+
+  it("is no batch when the part does not fit, and the person's selection is still shown", () => {
+    const book = new PeerBook(PAGE);
+    book.apply([{ id: "c1", state: stroke(pen) }], 0);
+    for (const bad of [
+      { ...pen, width: 0 },
+      { ...pen, width: 65 },
+      { ...pen, colour: "c".repeat(33) },
+      { ...pen, opacity: 1.5 },
+      { ...pen, stroke: -1 },
+      { ...pen, stroke: 1.5 },
+      { ...pen, cancel: false },
+      { width: 20, colour: "#ffd43b", opacity: 0.35 },
+    ]) {
+      book.apply([{ id: "c1", state: stroke(bad, ["api"]) }], 1);
+      const told = canvasPeople(book.list(), API, "Someone", "d")[0]!;
+      expect(told.selection).toEqual(["api"]);
+      // The last batch the canvas has is the one before: nothing of the unfit one is drawn.
+      expect(told.laser, JSON.stringify(bad)).toEqual({ batch: 1, points, pen });
+    }
+  });
+
+  it("carries the batch that ends a stroke cancelled, with no points, to the canvas", () => {
+    const book = new PeerBook(PAGE);
+    book.apply([{ id: "c1", state: stroke(pen) }], 0);
+    const cancelled = { ...pen, cancel: true };
+    book.apply(
+      [
+        {
+          id: "c1",
+          state: {
+            ...state("u_ben", "Ben", { file: API }),
+            canvas: { selection: [], laser: { diagram: "d", points: [], pen: cancelled } },
+          },
+        },
+      ],
+      1,
+    );
+    expect(canvasPeople(book.list(), API, "Someone", "d")[0]!.laser).toEqual({
+      batch: 2,
+      points: [],
+      pen: cancelled,
+    });
+  });
+});

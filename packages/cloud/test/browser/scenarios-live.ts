@@ -3,8 +3,10 @@
  * an anonymous browser on a `view` link follows the owner live and is listed as a guest; the owner
  * starts a live session from the share dialog, an anonymous guest edits the owner's file and drags
  * on the canvas, the owner sees the guest's pointer, "Guests can edit" turned off re-roles the guest
- * and "End session" cuts them with the right words; the anonymous project's `#p=` dialog says a
- * session needs an account; and a visitor in the room keeps the room's traffic bounded.
+ * and "End session" cuts them with the right words; a guest's stroke of the pen grows on the
+ * owner's canvas as it is drawn and gives way to the pen its release writes (`whiteboard-tools`);
+ * the anonymous project's `#p=` dialog says a session needs an account; and a visitor in the room
+ * keeps the room's traffic bounded.
  */
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
@@ -20,7 +22,9 @@ import {
   openByLink,
   roomStats,
   statusLine,
+  studioState,
   textHas,
+  textOf,
   typeAtEnd,
 } from "./cloud.js";
 import type { Scenario } from "./scenario.js";
@@ -70,6 +74,77 @@ async function shot(page: Page, name: string): Promise<void> {
 
 /** The live session's section of an open share dialog. */
 const liveSection = (dialog: Locator): Locator => dialog.locator(".share-live");
+
+/** The diagram of the whiteboard template. */
+const WHITEBOARD = "diagrams/whiteboard.meltemi";
+
+/**
+ * Starts the owner's live session from the share dialog, closes it again and gives its link.
+ */
+async function startLive(page: Page): Promise<string> {
+  const section = liveSection(await openShare(page));
+  await section.getByRole("button", { name: "Start a live session" }).click();
+  await until(
+    page,
+    "the session's link",
+    () => (document.querySelector(".share-live-link") as HTMLInputElement | null)?.value !== "",
+  );
+  const link = await section.locator(".share-live-link").inputValue();
+  await page.keyboard.press("Escape");
+  return link;
+}
+
+/** An awareness message a page sent to its project's room: when Node heard of it, and its size. */
+interface Sent {
+  readonly at: number;
+  readonly bytes: number;
+}
+
+/**
+ * Records the awareness messages (kind 2) the page sends to the room of `project` from now on, as
+ * its socket carries them: listen before the page opens the project.
+ */
+function awarenessSent(page: Page, project: string): Sent[] {
+  const sent: Sent[] = [];
+  page.on("websocket", (socket) => {
+    if (!socket.url().includes(`/rooms/${project}`)) return;
+    socket.on("framesent", (frame) => {
+      const payload = frame.payload;
+      if (typeof payload !== "string" && payload[0] === 2) {
+        sent.push({ at: Date.now(), bytes: payload.length });
+      }
+    });
+  });
+  return sent;
+}
+
+/**
+ * What the presence layer's canvas holds: how many pixels show anything, and how many of them are
+ * of the colour `[r, g, b]` (opaque enough to tell it, within a rounding of the edges).
+ */
+function presencePixels(
+  page: Page,
+  colour: readonly [number, number, number],
+): Promise<{ any: number; matching: number }> {
+  return page.locator("#app .presence-trails").evaluate((canvas: HTMLCanvasElement, [r, g, b]) => {
+    const data = canvas.getContext("2d")!.getImageData(0, 0, canvas.width, canvas.height).data;
+    let any = 0;
+    let matching = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3]! === 0) continue;
+      any++;
+      if (
+        data[i + 3]! >= 100 &&
+        Math.abs(data[i]! - r) <= 16 &&
+        Math.abs(data[i + 1]! - g) <= 16 &&
+        Math.abs(data[i + 2]! - b) <= 16
+      ) {
+        matching++;
+      }
+    }
+    return { any, matching };
+  }, colour);
+}
 
 export const liveScenarios: Scenario[] = [
   {
@@ -318,6 +393,173 @@ export const liveScenarios: Scenario[] = [
         () => (document.querySelector(".live-chip") as HTMLElement | null)?.hidden !== false,
       );
       assert.ok((await statusLine(ana)).length > 0);
+    },
+  },
+  {
+    name: "live: a guest's pen stroke grows on the owner's canvas as it is drawn, in the guest's pen colour, and gives way to the guest's pen statement within a second of the release, the room hearing no more than the throttle allows",
+    signedIn: "u-ana-live-stroke",
+    allowedErrors: [THUMBNAIL_RATE_LOGGED],
+    async run(t) {
+      const { origin } = t;
+      const project = await makeProject(t.me, "Whiteboard", { template: "whiteboard" });
+      const ana = t.page;
+      const anaSent = awarenessSent(ana, project.id);
+      await openByLink(ana, origin, project.id);
+      const link = await startLive(ana);
+
+      // An anonymous guest joins on the link; both have the whiteboard open.
+      const anon = await t.device({ as: null });
+      const guest = anon.page;
+      const guestSent = awarenessSent(guest, project.id);
+      await guest.goto(link);
+      await joined(guest, "the guest joined");
+      await listsGuest(ana, await guestName(guest), "Ana sees the guest");
+      assert.equal((await studioState(ana)).open, WHITEBOARD);
+      assert.equal((await studioState(guest)).open, WHITEBOARD);
+
+      // The guest arms the pen: the colour its button shows is the one the owner will see.
+      await guest.locator("#app .stage").focus();
+      await guest.keyboard.press("p");
+      assert.equal(
+        await guest
+          .locator('#app .toolbar [data-split="pen"] > button.pen-button')
+          .getAttribute("aria-pressed"),
+        "true",
+      );
+      const swatch = await guest
+        .locator("#app .toolbar .pen-swatch")
+        .evaluate((element) => getComputedStyle(element).backgroundColor);
+      const channels = /^rgba?\((\d+), (\d+), (\d+)/.exec(swatch);
+      assert.ok(channels, swatch);
+      const colour = [Number(channels[1]), Number(channels[2]), Number(channels[3])] as const;
+      assert.deepEqual(await presencePixels(ana, colour), { any: 0, matching: 0 });
+
+      // The pointer rests over the canvas until its state has gone out and the window is over.
+      const stage = (await guest.locator("#app .stage").boundingBox())!;
+      const from = { x: stage.x + stage.width * 0.3, y: stage.y + stage.height * 0.55 };
+      await guest.mouse.move(from.x, from.y);
+      await guest.waitForTimeout(400);
+      const statsBefore = await roomStats(t.me, project.id);
+      const measuredFrom = Date.now();
+      // The owner's canvas is watched from the press for the first ink of the guest's colour.
+      const firstInk = ana
+        .waitForFunction(
+          ([r, g, b]) => {
+            const canvas = document.querySelector<HTMLCanvasElement>("#app .presence-trails");
+            const data = canvas
+              ?.getContext("2d")
+              ?.getImageData(0, 0, canvas.width, canvas.height).data;
+            if (!data) return false;
+            for (let i = 0; i < data.length; i += 4) {
+              if (
+                data[i + 3]! >= 100 &&
+                Math.abs(data[i]! - r) <= 16 &&
+                Math.abs(data[i + 1]! - g) <= 16 &&
+                Math.abs(data[i + 2]! - b) <= 16
+              ) {
+                return true;
+              }
+            }
+            return false;
+          },
+          colour,
+          { polling: 20, timeout: 10_000 },
+        )
+        .then(
+          () => Date.now(),
+          () => Number.POSITIVE_INFINITY,
+        );
+      const pressed = Date.now();
+      await guest.mouse.down();
+      // A wave drawn over about a second; the owner's pixels of it are counted twice on the way.
+      const grown: number[] = [];
+      for (let i = 1; i <= 24; i++) {
+        await guest.mouse.move(from.x + i * 12, from.y + Math.sin(i / 3) * 24);
+        await guest.waitForTimeout(40);
+        if (i === 10 || i === 22) grown.push((await presencePixels(ana, colour)).matching);
+        if (i === 22) await shot(ana, "live-owner-stroke");
+      }
+      const seen = await firstInk;
+      assert.ok(
+        seen - pressed <= 500,
+        `the owner saw the guest's stroke ${seen - pressed} ms after the press`,
+      );
+      assert.ok(
+        grown[0]! > 0 && grown[1]! > grown[0]!,
+        `the stroke grows on the owner's canvas: ${grown.join(" then ")} pixels of its colour`,
+      );
+
+      // The release writes the guest's pen: within a second the owner's file holds it, and the
+      // stroke drawn in presence has given way to it.
+      const released = Date.now();
+      await guest.mouse.up();
+      const written = await ana
+        .waitForFunction(
+          (file) =>
+            /\n {2}pen pen1 \[/.test(
+              (
+                window as unknown as {
+                  meltemiPlayground: { studio: { text(path: string): string | undefined } };
+                }
+              ).meltemiPlayground.studio.text(file) ?? "",
+            ),
+          WHITEBOARD,
+          { polling: 20, timeout: 10_000 },
+        )
+        .then(() => Date.now());
+      const cleared = await ana
+        .waitForFunction(
+          () => {
+            const canvas = document.querySelector<HTMLCanvasElement>("#app .presence-trails");
+            const data = canvas
+              ?.getContext("2d")
+              ?.getImageData(0, 0, canvas.width, canvas.height).data;
+            return data !== undefined && data.every((value, i) => i % 4 !== 3 || value === 0);
+          },
+          undefined,
+          { polling: 20, timeout: 10_000 },
+        )
+        .then(() => Date.now());
+      assert.ok(
+        written - released <= 1000,
+        `the pen reached the owner ${written - released} ms after the release`,
+      );
+      assert.ok(
+        cleared - released <= 1000,
+        `the presence stroke went ${cleared - released} ms after the release`,
+      );
+      const statement = (text: string | undefined): string | undefined =>
+        /\n {2}pen pen1 \[[^\]]*\]/.exec(text ?? "")?.[0];
+      const owners = statement(await textOf(ana, WHITEBOARD));
+      assert.ok(owners, "the owner's file holds pen1");
+      assert.equal(owners, statement(await textOf(guest, WHITEBOARD)), "the guest's own statement");
+      await guest.keyboard.press("Escape");
+
+      // Awareness: the guest's stroke went out at the pointer's pace, one message per 250 ms at
+      // most (`THROTTLE_MS` of the page's presence), none of them large, none dropped by the room.
+      await guest.waitForTimeout(300);
+      const statsAfter = await roomStats(t.me, project.id);
+      const measuredTo = Date.now();
+      const between = (sent: readonly Sent[], start: number, end: number): Sent[] =>
+        sent.filter((message) => message.at >= start && message.at <= end);
+      const drag = between(guestSent, pressed, released + 300);
+      assert.ok(
+        drag.length >= 2 && drag.length <= Math.floor((released + 300 - pressed) / 250) + 1,
+        `${drag.length} awareness messages from the guest in a drag of ${released - pressed} ms`,
+      );
+      assert.ok(
+        guestSent.every((message) => message.bytes <= 16 * 1024),
+        `the guest's largest awareness message: ${Math.max(...guestSent.map((m) => m.bytes))} bytes`,
+      );
+      const fromGuest =
+        statsAfter.awareness -
+        statsBefore.awareness -
+        between(anaSent, measuredFrom, measuredTo).length;
+      assert.ok(
+        fromGuest <= Math.floor((measuredTo - measuredFrom) / 250) + 1,
+        `the room counted ${fromGuest} awareness messages from the guest in ${measuredTo - measuredFrom} ms`,
+      );
+      assert.equal(statsAfter.awarenessDropped, statsBefore.awarenessDropped);
     },
   },
   {

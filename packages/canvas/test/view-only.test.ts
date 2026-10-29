@@ -68,6 +68,14 @@ const COMMANDS = {
   createText: false,
   createIcon: false,
   createImage: false,
+  // The whiteboard's tools all write: a stroke, an erased stroke, a sticky, a card in a list.
+  createSticky: false,
+  penTool: false,
+  highlighterTool: false,
+  eraserTool: false,
+  addToList: false,
+  moveInListBefore: false,
+  moveInListAfter: false,
   openShapes: false,
   bringToFront: false,
   sendToBack: false,
@@ -137,6 +145,8 @@ const ACTIONS: readonly CanvasAction[] = [
     to: { x: 10, y: 0 },
     via: [],
   },
+  { kind: "createPen", points: [{ x: 0, y: 0 }], style: { width: 8 } },
+  { kind: "setPenPoints", element: "pen1", points: [{ x: 1, y: 1 }] },
   { kind: "setEnd", relation: "r", end: "to", element: "a", port: null },
   { kind: "create", elementKind: "node", at: { x: 0, y: 0 } },
   { kind: "connect", from: "a", to: "b", line: "solid" },
@@ -235,6 +245,26 @@ const MESSAGES = {
       },
       writes: false,
     },
+    // A stroke shown to the others as it is drawn: the file gets it at the release, as an action.
+    {
+      message: {
+        type: "presenceLaser",
+        points: [{ x: 1, y: 2, t: 0 }],
+        diagram: "d",
+        pen: { width: 20, colour: "#ffe600", opacity: 0.35, stroke: 4 },
+      },
+      writes: false,
+    },
+    // Its cancel batch, Escape: no points, nothing written.
+    {
+      message: {
+        type: "presenceLaser",
+        points: [],
+        diagram: "d",
+        pen: { width: 20, colour: "#ffe600", opacity: 0.35, stroke: 4, cancel: true },
+      },
+      writes: false,
+    },
   ],
   presencePointer: [
     { message: { type: "presencePointer", point: { x: 1, y: 2 }, diagram: "d" }, writes: false },
@@ -299,6 +329,8 @@ describe("the messages of a read-only canvas", () => {
       preview: 1,
       createLine: 1,
       setLinePoints: 1,
+      createPen: 1,
+      setPenPoints: 1,
       setFields: 1,
       attachNote: 1,
     } as const satisfies Record<CanvasAction["kind"], 1>;

@@ -21,19 +21,25 @@ import { composeEdits } from "./batch.js";
 import {
   createContext,
   insertStatement,
+  isListGroup,
   reject,
   requireElement,
+  requireIndex,
   requireNumbers,
   type EditContext,
 } from "./context.js";
 import { declarationText } from "./create.js";
 import { deleteStatements } from "./delete.js";
+import { storyDependents } from "./stories.js";
 import {
   DIAGRAM_PROPERTY_KEYWORDS,
+  GROUP_OWN_KEYWORDS,
+  commentsAbove,
   diagramBody,
   groupBlock,
   insertBefore,
   insertDeclaration,
+  insertIntoBlock,
   isDeclaration,
   isKeyword,
   reindent,
@@ -187,7 +193,8 @@ export function ungroup(ctx: EditContext, op: OperationOf<"ungroup">): TextEdit[
       })),
     );
   }
-  const own = (s: Statement) => isKeyword(s, "description", "class", "layer", "link");
+  // The group's own statements go with it, a list's arrangement included.
+  const own = (s: Statement) => isKeyword(s, ...GROUP_OWN_KEYWORDS);
   const children = (node.block?.statements ?? []).filter((s) => !own(s));
   const indent = lineIndent(ctx.text, node.start);
   const texts = children.map((s) =>
@@ -214,6 +221,14 @@ export function ungroup(ctx: EditContext, op: OperationOf<"ungroup">): TextEdit[
     if (indices.size >= statement.args.length) removed.push(statement);
     else edits.push(...removeListItems(statement.args, indices));
   }
+  // Story actions that name the group would name nothing: the group leaves their targets, and an
+  // action left without targets goes, as when an element is removed.
+  const stories = storyDependents(ctx.compilation, ctx.diagram.id, new Set([op.group]));
+  removed.push(...stories.statements);
+  edits.push(...stories.edits);
+  if (stories.dependents.length > 0) {
+    ctx.notes.push(messages().notes.removedStoryTargets(stories.dependents.length, op.group));
+  }
   edits.push(...deleteStatements(ctx.text, ctx.compilation.parse.root, removed));
   // Links of other diagrams to the group would point to nothing; they go with it.
   const links = removedLinks(ctx, new Set([op.group]));
@@ -226,14 +241,6 @@ export function ungroup(ctx: EditContext, op: OperationOf<"ungroup">): TextEdit[
 
 // ---------------------------------------------------------------------- reparenting
 
-/** A group's own statements, which come before its children. */
-const GROUP_OWN = ["description", "class", "layer", "link", "url"];
-
-/**
- * Moves an element's declaration into the block of the group `parent`, or into the diagram body,
- * after the last declaration there; an implicit element gains its declaration there. With `at`,
- * the element's `place` is written as `setPosition` writes it. Flow and free diagrams.
- */
 /**
  * Turns a flow node or a free box into a container: its styles lose `shape` (`square` and
  * `rectangle` become `radius 0`) while it is still a box, its declaration becomes a group, the
@@ -359,6 +366,13 @@ export function containerDeclaration(ctx: EditContext, element: Element): TextEd
   return [{ start: node.start, end: node.end, newText: `${head} {${ctx.eol}${indent}}` }];
 }
 
+/**
+ * Moves an element's declaration into the block of the group `parent`, or into the diagram body,
+ * after the last declaration there or before the declaration at `index`; an implicit element gains
+ * its declaration there. Within its own block, `index` reorders it. With `at`, the element's
+ * `place` is written as `setPosition` writes it; into a list group, its `place` goes instead, and
+ * `at` is refused. Flow and free diagrams.
+ */
 export function moveElement(ctx: EditContext, op: OperationOf<"moveElement">): TextEdit[] {
   const type = ctx.diagram.type;
   if (type === "sequence" || type === "c4") {
@@ -372,10 +386,25 @@ export function moveElement(ctx: EditContext, op: OperationOf<"moveElement">): T
       reject("edit.unsafe-target", reasons().groups.intoItself(op.element, op.parent));
     }
   }
+  if (op.index !== undefined) requireIndex(op.index);
+  // A list places its children: the element goes in at an index and keeps no place.
+  const list = isListGroup(ctx, op.parent);
+  if (list && op.at)
+    reject("edit.invalid-value", reasons().lists.placeInList(op.element, op.parent!));
   if (op.at) requireNumbers(op.at.x, op.at.y);
   const current = element.groupPath[element.groupPath.length - 1] ?? null;
-  const moved = current === op.parent ? [] : moveDeclaration(ctx, element, op.parent);
+  const moved =
+    current === op.parent && op.index === undefined
+      ? []
+      : moveDeclaration(ctx, element, op.parent, op.index);
   let edits = moved;
+  if (list) {
+    const place = ctx.diagram.placement.find(
+      (p) => p.statement === "place" && p.target === op.element,
+    );
+    if (place)
+      edits = [...edits, ...deleteStatements(ctx.text, ctx.compilation.parse.root, [place.node])];
+  }
   if (op.at) {
     const position: OperationOf<"setPosition"> = {
       kind: "setPosition",
@@ -413,12 +442,27 @@ interface Cut {
   readonly comments: readonly Trivia[];
 }
 
-function moveDeclaration(ctx: EditContext, element: Element, parent: string | null): TextEdit[] {
+/**
+ * The edits that move a declaration into the block of `parent` (the diagram body with null),
+ * before the declaration at `index` or after the last one; none when it would stay where it is.
+ */
+function moveDeclaration(
+  ctx: EditContext,
+  element: Element,
+  parent: string | null,
+  index?: number,
+): TextEdit[] {
   const target =
     parent === null
       ? { block: diagramBody(ctx), owner: ctx.diagram.node.start }
       : groupBlock(ctx, parent);
   const node = element.node;
+  // The declarations of the destination, the moved one included when it is already there.
+  const declarations = target.block.statements.filter(isDeclaration);
+  const at = Math.min(index ?? declarations.length, declarations.length);
+  const own = node ? declarations.indexOf(node) : -1;
+  if (own >= 0 && (at === own || at === own + 1)) return [];
+  const before = declarations[at];
   const declaration = declarationText(element.kind, element.id, element.label, ctx.diagram.type);
   const cut: Cut = node
     ? cutDeclaration(ctx, blockOfParent(ctx, element).block, node)
@@ -431,7 +475,7 @@ function moveDeclaration(ctx: EditContext, element: Element, parent: string | nu
   };
   const edits = [
     ...cut.edits,
-    insertInto(ctx, target.block, target.owner, parent === null, render),
+    insertIntoBlock(ctx, target.block, target.owner, parent === null, render, before),
   ];
   // A block written on one line takes the declaration without its comments.
   if (oneLine) {
@@ -460,18 +504,8 @@ function cutDeclaration(ctx: EditContext, block: Block, node: Statement): Cut {
   }
   const children = block.children;
   const index = children.indexOf(node);
-  // The comment lines right above: line breaks that follow a line break and end a line that holds
-  // only comments. A blank line ends them.
-  const above: Trivia[] = [];
-  for (let i = index - 1; i > 0; i--) {
-    const child = children[i]!;
-    const previous = children[i - 1]!;
-    if (!isToken(child) || child.kind !== "Newline") break;
-    if (!isToken(previous) || previous.kind !== "Newline") break;
-    const comments = child.leadingTrivia.filter(isCommentTrivia);
-    if (comments.length === 0) break;
-    above.unshift(...comments);
-  }
+  // The comment lines right above, which belong to the declaration.
+  const above = commentsAbove(block, node);
   let after = index + 1;
   while (isToken(children[after]) && children[after]!.kind === "Semicolon") after++;
   const terminator = children[after];
@@ -488,40 +522,6 @@ function cutDeclaration(ctx: EditContext, block: Block, node: Statement): Cut {
     statement,
     comments: [...above, ...trailing],
   };
-}
-
-/**
- * Inserts moved text where a declaration of the block goes: after its last declaration, or after
- * a group's own statements. An empty block written on one line opens onto lines.
- */
-function insertInto(
-  ctx: EditContext,
-  block: Block,
-  owner: number,
-  body: boolean,
-  render: (indent: string | null) => string,
-): TextEdit {
-  const close = block.close;
-  const lineBreaks = block.children.some((c) => isToken(c) && c.kind === "Newline");
-  if (block.statements.length === 0 && !lineBreaks && isToken(close)) {
-    if (close.leadingTrivia.every((t) => t.kind === "Whitespace")) {
-      const indent = lineIndent(ctx.text, owner);
-      const inner = indent + ctx.unit;
-      return {
-        start: block.open.end,
-        end: close.start,
-        newText: `${ctx.eol}${inner}${render(inner)}${ctx.eol}${indent}`,
-      };
-    }
-  }
-  const own = !body && !block.statements.some(isDeclaration);
-  return insertDeclaration(
-    ctx,
-    block,
-    owner,
-    render,
-    own ? (s) => isKeyword(s, ...GROUP_OWN) : isDeclaration,
-  );
 }
 
 // ---------------------------------------------------------------------- fragments

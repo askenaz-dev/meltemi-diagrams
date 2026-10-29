@@ -14,13 +14,20 @@ import {
   ICON_POSITIONS,
   LABEL_POSITIONS,
   LAYOUT_MODES,
+  LINE_REFUSED_PROPERTIES,
   LINE_STYLES,
+  LIST_ALIGNS,
+  LIST_LAYOUTS,
+  LIST_SPACING_RANGE,
   PATTERNS,
+  PEN_PROPERTIES,
+  PEN_WIDTH_RANGE,
   PORTS,
   PRESETS,
   PROFILES,
   RELATION_ONLY_PROPERTIES,
   ROUTINGS,
+  STICKY_PROPERTIES,
   STYLE_PROPERTIES,
   THEME_COLOR_TOKENS,
   takesRotation,
@@ -35,10 +42,16 @@ import {
   type SizeEntry,
   type StyleEntry,
 } from "@meltemi/diagrams-model";
-import { CORNERED_SHAPES, StyleResolver, type Theme } from "@meltemi/diagrams-layout";
+import {
+  CORNERED_SHAPES,
+  DEFAULT_PEN_WIDTH,
+  StyleResolver,
+  type Theme,
+} from "@meltemi/diagrams-layout";
 import { DEFAULT_DURATIONS, themeDurations } from "@meltemi/diagrams-motion";
 import { diagramView, type DiagramView, type DocumentAnalysis } from "./analysis.js";
-import { interiorOf, steadyGroups } from "./arrange.js";
+import { interiorOf, placingList, steadyGroups, unlistedOperations } from "./arrange.js";
+import { STICKY_COLOURS } from "./canvas/palette.js";
 import type {
   ColorSwatch,
   FieldGlyphs,
@@ -109,8 +122,29 @@ const RADIUS_KINDS: ReadonlySet<string> = new Set(["node", "box", "decision", "n
  */
 const RADIUS_SHAPES: ReadonlySet<string> = new Set([...CORNERED_SHAPES, "icon"]);
 
-/** The objects of free diagrams whose frame (a fill, a stroke or a pattern) takes `radius`. */
-const FRAME_KINDS: ReadonlySet<string> = new Set(["text", "icon", "image"]);
+/**
+ * The objects of free diagrams whose frame (a fill, a stroke or a pattern) takes `radius`, and
+ * stickies, whose card does.
+ */
+const FRAME_KINDS: ReadonlySet<string> = new Set(["text", "icon", "image", "sticky"]);
+
+/** The corner radius of a sticky's card when nothing writes one, as the layout draws it. */
+const STICKY_RADIUS = 2;
+
+/** The bounds of `opacity` and the slider's step: from invisible to opaque, by twentieths. */
+const OPACITY_RANGE: NonNullable<InspectorField["range"]> = { ...rangeOf("opacity")!, step: 0.05 };
+
+/** The bounds of a pen's `width` as its slider shows them: one pixel at least. */
+const PEN_WIDTH_FIELD_RANGE: NonNullable<InspectorField["range"]> = { ...PEN_WIDTH_RANGE, step: 1 };
+
+/**
+ * The style properties of the kinds that take a set of their own rather than an element's or a
+ * relation's: a pen's stroke and heads, a sticky's card, text and icon.
+ */
+const OWN_PROPERTIES: Readonly<Record<string, readonly string[]>> = {
+  pen: PEN_PROPERTIES,
+  sticky: STICKY_PROPERTIES,
+};
 
 /**
  * Style fields sequence diagrams leave out: messages go straight between lifelines, and neither
@@ -146,7 +180,14 @@ const STYLE_FIELDS: readonly StyleField[] = [
     glyphs: "labelPosition",
     elements: iconKind,
   },
-  { name: "iconSize", type: "number", range: rangeOf("iconSize"), elements: iconKind },
+  // A sticky's icon sits at its top left, at the size this field writes.
+  {
+    name: "iconSize",
+    type: "number",
+    range: rangeOf("iconSize"),
+    elements: (kind, diagram) =>
+      iconKind(kind, diagram) || (diagram.type === "free" && kind === "sticky"),
+  },
   { name: "arrowtail", type: "enum", options: ARROWHEADS, glyphs: "arrowStart" },
   { name: "arrowhead", type: "enum", options: ARROWHEADS, glyphs: "arrowEnd" },
   { name: "routing", type: "enum", options: ROUTINGS, glyphs: "route" },
@@ -175,28 +216,33 @@ const STYLE_FIELDS: readonly StyleField[] = [
     glyphs: "shape",
     elements: (kind) => takesShape(kind),
   },
-  // Free boxes and texts: where the text sits across; boxes also where it sits down the shape.
-  // The canvas draws the two as one grid of cells.
+  // Free boxes, stickies and texts: where the text sits across; boxes and stickies also where it
+  // sits down the card. The canvas draws the two as one grid of cells.
   {
     name: "textAlign",
     type: "enum",
     options: TEXT_ALIGNS,
     glyphs: "textAlign",
-    elements: (kind, diagram) => diagram.type === "free" && (kind === "box" || kind === "text"),
+    elements: (kind, diagram) =>
+      diagram.type === "free" && (kind === "box" || kind === "text" || kind === "sticky"),
   },
   {
     name: "verticalAlign",
     type: "enum",
     options: VERTICAL_ALIGNS,
     glyphs: "verticalAlign",
-    elements: (kind, diagram) => diagram.type === "free" && kind === "box",
+    elements: (kind, diagram) => diagram.type === "free" && (kind === "box" || kind === "sticky"),
   },
 ];
 
-/** Style fields of free diagrams: text. */
+/**
+ * Style fields of free diagrams: text, and the opacity of elements, groups, lines and pens as a
+ * slider from 0 to 1.
+ */
 const FREE_STYLE_FIELDS: readonly StyleField[] = [
   { name: "fontSize", type: "number" },
   { name: "fontWeight", type: "enum", options: FONT_WEIGHTS.map(String) },
+  { name: "opacity", type: "number", range: OPACITY_RANGE },
 ];
 
 /** The word for a kind in titles: the interface's, or the kind itself for declared types. */
@@ -227,35 +273,47 @@ const shown = (value: string | number | undefined): string | number | null =>
       ? value.slice(1)
       : value;
 
+/**
+ * Whether a target takes a style field: a relation the relation properties and none of a box's;
+ * a free line the same, and its `opacity`; a pen and a sticky their own sets (`OWN_PROPERTIES`);
+ * the other elements and events the element properties, those meant for some kinds only where
+ * the kind is one of them.
+ */
+function takesField(diagram: FlowDiagram, target: StyleTarget, field: StyleField): boolean {
+  if (diagram.type === "sequence" && NOT_IN_SEQUENCES.has(field.name)) return false;
+  if (target.kind === "relation") {
+    return !ELEMENT_ONLY_PROPERTIES.includes(field.name) && field.elements === undefined;
+  }
+  if (target.kind === "event") {
+    return !RELATION_ONLY_PROPERTIES.includes(field.name) && field.elements === undefined;
+  }
+  const element = diagram.elementsById.get(target.id);
+  if (!element) return false;
+  if (element.kind === "line") {
+    return !LINE_REFUSED_PROPERTIES.includes(field.name) && field.elements === undefined;
+  }
+  const own = OWN_PROPERTIES[element.kind];
+  if (own ? !own.includes(field.name) : RELATION_ONLY_PROPERTIES.includes(field.name)) {
+    return false;
+  }
+  return field.elements === undefined || field.elements(element.kind, diagram);
+}
+
 function styleFields(diagram: FlowDiagram, targets: readonly StyleTarget[]): InspectorField[] {
-  // Free lines take a relation's properties and none of a box's.
-  const isLine = (t: StyleTarget) =>
-    t.kind === "element" && diagram.elementsById.get(t.id)?.kind === "line";
-  const lines = targets.length > 0 && targets.every(isLine);
-  const kinds = new Set(targets.map((t) => (isLine(t) ? "relation" : t.kind)));
   const styles = targets.map((t) => writtenStyle(diagram, t.id, t.kind));
   const fields = diagram.type === "free" ? [...STYLE_FIELDS, ...FREE_STYLE_FIELDS] : STYLE_FIELDS;
   const labels = messages().style;
+  // A pen's stroke is one pixel wide at least, which its slider shows.
+  const pens =
+    targets.length > 0 &&
+    targets.every((t) => t.kind === "element" && diagram.elementsById.get(t.id)?.kind === "pen");
   return fields
-    .filter(
-      (f) =>
-        !(
-          (kinds.has("element") || kinds.has("event")) &&
-          RELATION_ONLY_PROPERTIES.includes(f.name)
-        ) &&
-        !(kinds.has("relation") && ELEMENT_ONLY_PROPERTIES.includes(f.name)) &&
-        !(diagram.type === "sequence" && NOT_IN_SEQUENCES.has(f.name)) &&
-        (f.elements === undefined ||
-          (!lines &&
-            targets.every((t) => {
-              const element = t.kind === "element" ? diagram.elementsById.get(t.id) : undefined;
-              return element !== undefined && f.elements!(element.kind, diagram);
-            }))),
-    )
+    .filter((f) => targets.every((t) => takesField(diagram, t, f)))
     .map((f) => {
       const values = styles.map((s) => shown(s[f.name]));
       const same = values.every((v) => v === values[0]);
       const options = typeof f.options === "function" ? f.options(diagram) : f.options;
+      const range = f.name === "width" && pens ? PEN_WIDTH_FIELD_RANGE : f.range;
       return {
         name: `style.${f.name}`,
         label: labels[f.name],
@@ -264,7 +322,7 @@ function styleFields(diagram: FlowDiagram, targets: readonly StyleTarget[]): Ins
         ...(same ? { fromTheme: true } : { mixed: true }),
         ...(options ? { options } : {}),
         ...(f.glyphs ? { glyphs: f.glyphs } : {}),
-        ...(f.range ? { range: f.range } : {}),
+        ...(range ? { range } : {}),
       };
     });
 }
@@ -276,7 +334,9 @@ function styleFields(diagram: FlowDiagram, targets: readonly StyleTarget[]): Ins
  * rules, and the icon's position, size and label position. The radius is shown only where it is
  * drawn: not for a box or a node drawn as a shape without corners (an ellipse, a circle, a pill). Label position is shown only
  * where the icon is the centre piece (`iconPosition center`, `shape icon`), and Icon position not
- * where the icon is the shape.
+ * where the icon is the shape. Pens show the theme's `ink`, a width of 3 and no heads; stickies
+ * the theme's `sticky` and `stickyText` and a radius of 2; every element an opacity of 1, unless
+ * their rules and classes give others.
  */
 function withElementDefaults(
   fields: readonly InspectorField[],
@@ -300,6 +360,7 @@ function withElementDefaults(
   const drawnRadius = (e: Element) => {
     if (e.kind === "group") return theme.groupRadius;
     if (e.kind === "decision") return 0;
+    if (e.kind === "sticky") return STICKY_RADIUS;
     if (e.kind !== "box" && e.kind !== "node") return theme.radius;
     switch (shapeOf(e)) {
       case "rounded":
@@ -326,6 +387,7 @@ function withElementDefaults(
   const icon = shared(elements.map((e) => styles.element(e).icon ?? ""));
   // Free lines: no head unless written, straight segments, the theme's corners.
   const lines = some && elements.every((e) => e.kind === "line");
+  const all = (kind: string) => some && elements.every((e) => e.kind === kind);
   const defaults: Readonly<Record<string, string | undefined>> = {
     ...(lines
       ? {
@@ -335,6 +397,26 @@ function withElementDefaults(
           "style.corners": theme.corners,
         }
       : {}),
+    // Pens: the theme's ink, 3 pixels wide and no heads, unless a rule or a class says otherwise.
+    ...(all("pen")
+      ? {
+          "style.stroke": shared(elements.map((e) => inherited.element(e).stroke ?? "ink")),
+          "style.width": shared(
+            elements.map((e) => String(inherited.element(e).width ?? DEFAULT_PEN_WIDTH)),
+          ),
+          "style.arrowhead": shared(elements.map((e) => inherited.element(e).arrowhead ?? "none")),
+          "style.arrowtail": shared(elements.map((e) => inherited.element(e).arrowtail ?? "none")),
+        }
+      : {}),
+    // Stickies: the theme's sticky card and its text colour, unless a rule or a class gives others.
+    ...(all("sticky")
+      ? {
+          "style.fill": shared(elements.map((e) => inherited.element(e).fill ?? "sticky")),
+          "style.color": shared(elements.map((e) => inherited.element(e).color ?? "stickyText")),
+        }
+      : {}),
+    // Opaque unless a rule or a class fades them.
+    "style.opacity": shared(elements.map((e) => String(inherited.element(e).opacity ?? 1))),
     "style.shape": shared(elements.map((e) => view.layout?.shapes?.get(e.id) ?? "rounded")),
     // What applies without the targets' own statements (classes, rules), else a box's text
     // centred in the middle of its shape and a free text's starting on the left: the alignment
@@ -440,13 +522,18 @@ function withRelationDefaults(
   );
 }
 
-/** Kinds an element of a profile can become; icons, images and groups keep theirs. */
+/**
+ * Kinds an element of a profile can become; icons, images, groups, lines, pens and stickies keep
+ * theirs.
+ */
 function kindOptions(diagram: FlowDiagram, element: Element): readonly string[] {
   if (
     element.kind === "group" ||
     element.kind === "icon" ||
     element.kind === "image" ||
-    element.kind === "line"
+    element.kind === "line" ||
+    element.kind === "pen" ||
+    element.kind === "sticky"
   ) {
     return [element.kind];
   }
@@ -478,7 +565,8 @@ function attachmentField(diagram: FlowDiagram, note: Element): InspectorField {
 
 /**
  * The `layer` and `link` fields of free objects and of every element, and the group an element of
- * a flow or free diagram is declared in.
+ * a flow or free diagram is declared in (not for a line or a pen, whose points are written in its
+ * group's interior).
  */
 function identityFields(diagram: FlowDiagram, element: Element | undefined): InspectorField[] {
   const words = messages().fields;
@@ -493,7 +581,7 @@ function identityFields(diagram: FlowDiagram, element: Element | undefined): Ins
       placeholder: "main",
       options: diagram.properties.layers,
     });
-    if (element && element.kind !== "line") {
+    if (element && element.kind !== "line" && element.kind !== "pen") {
       // A group cannot go into itself or into a group it holds.
       const groups = diagram.elements.filter(
         (e) => e.kind === "group" && e.id !== element.id && !e.groupPath.includes(element.id),
@@ -539,9 +627,13 @@ function identityFields(diagram: FlowDiagram, element: Element | undefined): Ins
   return fields;
 }
 
-/** The place and the size of an element, written as `place` and `size` statements. */
+/**
+ * The place and the size of an element, written as `place` and `size` statements. A child of a
+ * list shows where its list puts it, read-only: the list places it and takes no `place`.
+ */
 function geometryFields(view: DiagramView, element: Element): InspectorField[] {
   const diagram = view.diagram;
+  const placed = placingList(diagram, element) !== undefined;
   const place = diagram.placement.find(
     (p): p is PlaceEntry => p.statement === "place" && p.target === element.id,
   );
@@ -563,15 +655,17 @@ function geometryFields(view: DiagramView, element: Element): InspectorField[] {
       name: "x",
       label: words.x,
       type: "number",
-      value: place ? place.x : null,
+      value: place && !placed ? place.x : null,
       ...(center ? { placeholder: String(center.x) } : {}),
+      ...(placed ? { readonly: true } : {}),
     },
     {
       name: "y",
       label: words.y,
       type: "number",
-      value: place ? place.y : null,
+      value: place && !placed ? place.y : null,
       ...(center ? { placeholder: String(center.y) } : {}),
+      ...(placed ? { readonly: true } : {}),
     },
     {
       name: "w",
@@ -622,6 +716,47 @@ function viewNoteFields(view: DiagramView, element: Element): InspectorField[] {
   ];
 }
 
+/**
+ * The list fields of a group of a free diagram: Layout (none, a column or a row) and, once it is
+ * a list, Spacing and Align with what applies when they are not written (half the theme's group
+ * padding, `start`), all written in the group's block.
+ */
+function listFields(view: DiagramView, group: Element): InspectorField[] {
+  const words = messages().fields;
+  const list = group.list;
+  const fields: InspectorField[] = [
+    {
+      name: "layout",
+      label: words.layout,
+      type: "enum",
+      value: list?.layout ?? null,
+      placeholder: messages().placeholders.none,
+      options: LIST_LAYOUTS,
+    },
+  ];
+  if (!list) return fields;
+  const drawn = view.layout?.lists?.get(group.id);
+  fields.push(
+    {
+      name: "spacing",
+      label: words.spacing,
+      type: "number",
+      value: list.spacing,
+      ...(drawn ? { placeholder: String(round(drawn.spacing)) } : {}),
+      range: { ...LIST_SPACING_RANGE, step: 1 },
+    },
+    {
+      name: "align",
+      label: words.align,
+      type: "enum",
+      value: list.align,
+      placeholder: drawn?.align ?? "start",
+      options: LIST_ALIGNS,
+    },
+  );
+  return fields;
+}
+
 function elementFields(view: DiagramView, element: Element): InspectorField[] {
   const diagram = view.diagram;
   const ports = element.ports
@@ -631,6 +766,28 @@ function elementFields(view: DiagramView, element: Element): InspectorField[] {
     )
     .join(", ");
   const words = messages().fields;
+  const description: InspectorField = {
+    name: "description",
+    label: words.description,
+    type: "multiline",
+    value: element.description,
+  };
+  const classes: InspectorField = {
+    name: "classes",
+    label: words.classes,
+    type: "classes",
+    value: element.classes.map((c) => c.name).join(", ") || null,
+  };
+  // A pen is its stroke: no kind to change, no text, no group to pick, no ports, place or size.
+  if (element.kind === "pen") {
+    return [
+      { name: "id", label: words.id, type: "id", value: element.id },
+      description,
+      classes,
+      ...identityFields(diagram, element),
+      ...styleFields(diagram, [{ id: element.id, kind: "element" }]),
+    ];
+  }
   const fields: InspectorField[] = [
     { name: "id", label: words.id, type: "id", value: element.id },
     {
@@ -645,26 +802,24 @@ function elementFields(view: DiagramView, element: Element): InspectorField[] {
       ? { name: "source", label: words.icon, type: "icon", value: element.source }
       : element.kind === "image"
         ? { name: "source", label: words.imageFile, type: "text", value: element.source }
-        : { name: "label", label: words.label, type: "text", value: element.label },
+        : {
+            name: "label",
+            label: words.label,
+            // A sticky's text wraps on its card and breaks where it is written to.
+            type: element.kind === "sticky" ? "multiline" : "text",
+            value: element.label,
+          },
     ...(element.kind === "note" ? [attachmentField(diagram, element)] : []),
-    {
-      name: "description",
-      label: words.description,
-      type: "multiline",
-      value: element.description,
-    },
-    {
-      name: "classes",
-      label: words.classes,
-      type: "classes",
-      value: element.classes.map((c) => c.name).join(", ") || null,
-    },
+    description,
+    classes,
   ];
   fields.push(...identityFields(diagram, element));
   // A free line is its points: no ports, no place, no size.
   if (element.kind === "line") {
     return [...fields, ...styleFields(diagram, [{ id: element.id, kind: "element" }])];
   }
+  if (element.kind === "group" && diagram.type === "free")
+    fields.push(...listFields(view, element));
   if (element.kind !== "group")
     fields.push({
       name: "ports",
@@ -851,7 +1006,10 @@ const CANVAS_SIDE = (() => {
   return spec.kind === "size" ? { min: spec.min, max: spec.max } : { min: 100, max: 10000 };
 })();
 
-/** The choices of the Canvas field after fitting the content, which nothing written means. */
+/**
+ * The choices of the Canvas field after fitting the content, which nothing written means: the
+ * presets (`document`, `slide` and `board`, a whiteboard that grows) and a custom size.
+ */
 const CANVAS_CHOICES = [...PRESETS, "custom"] as const;
 
 /**
@@ -961,8 +1119,11 @@ export function inspect(
   // Icon position joins the strip for elements drawn with an icon.
   const styles = new StyleResolver(theme, view.diagram);
   const elements = model.target.ids.flatMap((id) => view.diagram.elementsById.get(id) ?? []);
-  const iconed = elements.length > 0 && elements.every((e) => styles.element(e).icon !== undefined);
-  return withStrip(withIcons(model, view, analysis.icons), theme, themes, iconed);
+  const some = elements.length > 0;
+  return withStrip(withIcons(model, view, analysis.icons), theme, themes, {
+    iconed: some && elements.every((e) => styles.element(e).icon !== undefined),
+    stickies: some && elements.every((e) => e.kind === "sticky"),
+  });
 }
 
 /** What the inspector knows of the document's place: its path and whether it is in a project. */
@@ -975,6 +1136,16 @@ export interface InspectContext {
 export function themeSwatches(theme: Theme): ColorSwatch[] {
   return THEME_COLOR_TOKENS.map((token) => ({ token, color: theme[token] }));
 }
+
+/**
+ * The six fixed colours of stickies as swatches, which the fill row of a sticky shows before the
+ * theme's tokens: the colour itself is what a chip writes (`fill "#fff59d"`), as the sticky
+ * button's menu writes it.
+ */
+const STICKY_SWATCHES: readonly ColorSwatch[] = STICKY_COLOURS.map(({ hex }) => ({
+  token: hex,
+  color: hex,
+}));
 
 /** The built-in theme of the same family in the other scheme: `technical.dark` for `technical.light`. */
 export function counterpartTheme(name: string): string | undefined {
@@ -1008,6 +1179,8 @@ const STRIP = [
   "line",
   "style.line",
   "style.width",
+  // Free elements, groups, lines and pens: a slider from 0 to 1.
+  "style.opacity",
   "style.arrowtail",
   "style.arrowhead",
   "style.routing",
@@ -1015,7 +1188,10 @@ const STRIP = [
   "style.radius",
   "style.rotation",
   "style.shape",
-  // Free boxes and texts: one grid of cells for the two.
+  // Stickies only: the size and weight their text starts from before it shrinks to the card.
+  "style.fontSize",
+  "style.fontWeight",
+  // Free boxes, stickies and texts: one grid of cells for the two.
   "style.textAlign",
   "style.verticalAlign",
   // For elements with an icon only.
@@ -1028,16 +1204,18 @@ const STRIP = [
 
 /**
  * Marks the fields of the style strip and puts them first: colours with the theme's swatches, the
- * line, width and arrowhead, the shape and, for elements with an icon (`iconed`), the icon's
- * position, the effects as toggles with every field of an effect that is on grouped under its
- * toggle (`group`; the speed with the theme's default as placeholder, the colour with the
- * swatches), and, for the diagram, the theme with its light or dark counterpart.
+ * line, width, opacity and arrowhead, the shape and, for elements with an icon (`iconed`), the
+ * icon's position, the effects as toggles with every field of an effect that is on grouped under
+ * its toggle (`group`; the speed with the theme's default as placeholder, the colour with the
+ * swatches), and, for the diagram, the theme with its light or dark counterpart. Stickies
+ * (`stickies`) also have their text's size and weight there, and their fill row starts with the
+ * six fixed colours of stickies.
  */
 function withStrip(
   model: InspectorModel,
   theme: Theme,
   themes: { readonly editable: boolean; readonly project: boolean },
-  iconed: boolean,
+  targets: { readonly iconed: boolean; readonly stickies: boolean },
 ): InspectorModel {
   const swatches = themeSwatches(theme);
   const durations = themeDurations(theme);
@@ -1047,7 +1225,8 @@ function withStrip(
   const inStrip = (name: string) =>
     STRIP.includes(name) &&
     !(arrow && name === "style.line") &&
-    !(name === "style.iconPosition" && !iconed);
+    !(name === "style.iconPosition" && !targets.iconed) &&
+    !((name === "style.fontSize" || name === "style.fontWeight") && !targets.stickies);
   const fields = model.fields.map((field): InspectorField => {
     if (!inStrip(field.name)) return field;
     // A field of an effect that is on belongs to the card of its toggle.
@@ -1059,6 +1238,9 @@ function withStrip(
         return { ...placed, placeholder: String(durations[effect] ?? DEFAULT_DURATIONS[effect]) };
       }
       return field.type === "color" ? { ...placed, swatches } : placed;
+    }
+    if (field.name === "style.fill" && targets.stickies) {
+      return { ...field, section: "strip", swatches: [...STICKY_SWATCHES, ...swatches] };
     }
     if (field.type === "color") return { ...field, section: "strip", swatches };
     if (field.name === "theme") {
@@ -1334,13 +1516,16 @@ export function fieldOperations(
   if (field.startsWith("style.")) {
     const property = field.slice("style.".length);
     let written: string | number | null = text === "" ? null : text;
-    // Numbers within the property's bounds, such as a corner radius from 0 to 64.
+    // Numbers within the property's bounds, such as a corner radius from 0 to 64; a pen's stroke
+    // is one pixel wide at least.
     const spec = STYLE_PROPERTIES[property];
     if (text !== null && text !== "" && spec?.kind === "number") {
+      const pen = ids.some((id) => diagram.elementsById.get(id)?.kind === "pen");
+      const { min, max } = property === "width" && pen ? PEN_WIDTH_RANGE : spec;
       const parsed = typeof value === "number" ? value : Number(text.trim().replace(/px$/, ""));
       if (!Number.isFinite(parsed)) return { ok: false, reason: reasons.number };
-      if (parsed < spec.min || parsed > spec.max) {
-        return { ok: false, reason: reasons.between(spec.min, spec.max) };
+      if (parsed < min || parsed > max) {
+        return { ok: false, reason: reasons.between(min, max) };
       }
       written = parsed;
     }
@@ -1408,8 +1593,10 @@ export function fieldOperations(
         const parent = text || null;
         if (parent === (element.groupPath[element.groupPath.length - 1] ?? null)) break;
         const origin = interiorOf(view, parent);
-        // Flow diagrams place in diagram coordinates: the place stays as it is.
-        const drawn = diagram.type === "free" ? box : undefined;
+        // Flow diagrams place in diagram coordinates: the place stays as it is. A list places
+        // what goes into it, last, and takes no place for it.
+        const list = parent !== null && diagram.elementsById.get(parent)?.list;
+        const drawn = diagram.type === "free" && !list ? box : undefined;
         ops.push({
           kind: "moveElement",
           diagram: d,
@@ -1505,8 +1692,41 @@ export function fieldOperations(
         }
         break;
       }
+      case "layout":
+      case "spacing":
+      case "align": {
+        // A list's properties, in the group's block; no layout removes the three.
+        let written: string | number | null = text === null || text.trim() === "" ? null : text;
+        if (field === "layout" && written === "none") written = null;
+        if (field === "spacing" && written !== null) {
+          const { min, max } = LIST_SPACING_RANGE;
+          if (number === null || !Number.isFinite(number)) {
+            return { ok: false, reason: reasons.number };
+          }
+          if (number < min || number > max) return { ok: false, reason: reasons.between(min, max) };
+          written = number;
+        }
+        ops.push({
+          kind: "setElementProperty",
+          diagram: d,
+          target: id,
+          targetKind: "element",
+          property: field,
+          value: written,
+        });
+        // A list that stops placing its children leaves each with a place where it is drawn, in
+        // the same edit: the picture stays as it is.
+        if (field === "layout" && written === null && element.list) {
+          ops.push(...unlistedOperations(view, id, id));
+        }
+        break;
+      }
       case "x":
-      case "y":
+      case "y": {
+        const list = placingList(diagram, element);
+        if (list !== undefined) {
+          return { ok: false, reason: messages().session.listPlaces(id, list) };
+        }
         if (number === null || !Number.isFinite(number))
           return { ok: false, reason: reasons.number };
         ops.push({
@@ -1517,6 +1737,7 @@ export function fieldOperations(
           y: field === "y" ? number : centre.y,
         });
         break;
+      }
       case "w":
       case "h": {
         if (number === null || !Number.isFinite(number) || number <= 0)

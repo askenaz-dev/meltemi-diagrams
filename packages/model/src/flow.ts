@@ -24,12 +24,21 @@ import {
   ELEMENT_ONLY_PROPERTIES,
   FLOW_PROFILE,
   FREE_PROFILE,
+  LINE_REFUSED_PROPERTIES,
+  LIST_LAYOUTS,
+  LIST_PROPERTIES,
   MAIN_LAYER,
+  PEN_PROPERTIES,
+  PEN_REFUSED_PROPERTIES,
+  PEN_WIDTH_RANGE,
   PORTS,
   PORT_SIDES,
   RELATION_ARROWS,
   RELATION_ONLY_PROPERTIES,
+  STICKY_PROPERTIES,
+  STICKY_REFUSED_PROPERTIES,
   diagramStatements,
+  isFreeStyleProperty,
   profileTakesShape,
   takesShape,
   profileTakesRotation,
@@ -46,8 +55,10 @@ import {
 import { messages } from "./messages/index.js";
 import {
   StyleDefinitions,
+  argumentOf,
   checkArg,
   describeArg,
+  describeSpec,
   headerHasError,
   readClasses,
   readPropertyBlock,
@@ -78,6 +89,9 @@ import type {
   IconUse,
   ImageUse,
   LayoutMode,
+  ListAlign,
+  ListGroup,
+  ListLayout,
   PlacementEntry,
   Point,
   PortDefinition,
@@ -424,7 +438,8 @@ export class FlowAnalyzer {
 
   /**
    * A dash follows an outline: a note or a free text that no style statement, class or rule of the
-   * diagram gives a `fill`, `stroke` or `pattern` has none, and the dash is refused and dropped.
+   * diagram gives a `fill`, `stroke` or `pattern` has none, nor a sticky without a `stroke`, and
+   * the dash is refused and dropped.
    */
   protected checkOutlinedDashes(): void {
     const source = {
@@ -439,7 +454,13 @@ export class FlowAnalyzer {
         "animate.invalid-target",
         messages().diagnostics.flow.dashNeedsOutline(name, element.kind),
         token,
-        { hints: [messages().hints.flow.dashOutline] },
+        {
+          hints: [
+            element.kind === "sticky"
+              ? messages().hints.flow.dashStroke
+              : messages().hints.flow.dashOutline,
+          ],
+        },
       );
       const at = this.animations.findIndex(
         (a) => a.node === stmt && a.target === name && a.effect === "dash",
@@ -560,6 +581,18 @@ export class FlowAnalyzer {
         ) {
           continue;
         }
+        // `layout`, `spacing` and `align` make a list of a free group; other profiles have none.
+        if (isListProperty(keyword)) {
+          if (!(keyword in this.profile.groupProperties)) {
+            const m = messages();
+            this.invalid(
+              m.diagnostics.flow.listInProfile(keyword, this.profile.name),
+              stmt.keyword,
+              [m.hints.flow.listsInFree],
+            );
+          }
+          continue;
+        }
         const m = messages();
         const hints = otherKind
           ? [otherKind]
@@ -570,7 +603,11 @@ export class FlowAnalyzer {
           ? this.declarationWords()
           : diagramStatements(this.profile).includes(keyword)
             ? []
-            : ["description", "url"];
+            : [
+                "description",
+                "url",
+                ...LIST_PROPERTIES.filter((name) => name in this.profile.groupProperties),
+              ];
         this.error("prop.unknown", m.diagnostics.flow.unknownInGroup(keyword), stmt.keyword, {
           hints,
           data: { candidates },
@@ -604,7 +641,7 @@ export class FlowAnalyzer {
     if (stmt.args.length === 0 && !stmt.block) {
       hints.push(m.declareElement(keyword, this.profile.shorthand.box));
     }
-    hints.push(this.free ? m.freeStatements : m.flowStatements);
+    hints.push(this.free ? m.freeStatements(FREE_DECLARATIONS) : m.flowStatements);
     return hints;
   }
 
@@ -630,7 +667,7 @@ export class FlowAnalyzer {
       return undefined;
     }
     const m = messages().hints.flow;
-    return this.free ? m.freeDeclarations : m.flowDeclarations(keyword);
+    return this.free ? m.freeDeclarations(FREE_DECLARATIONS) : m.flowDeclarations(keyword);
   }
 
   // ------------------------------------------------------------------ elements
@@ -659,6 +696,8 @@ export class FlowAnalyzer {
         external: false,
         shape: data ? "cylinder" : null,
         line: null,
+        pen: null,
+        list: null,
         attachedTo: null,
         attachedToRange: null,
         typeKind: null,
@@ -695,6 +734,8 @@ export class FlowAnalyzer {
       return;
     }
     if (kind === "line" && !declaredKind) return this.declareLine(stmt, groupPath);
+    if (kind === "pen" && !declaredKind) return this.declarePen(stmt, groupPath);
+    if (kind === "sticky" && !declaredKind) return this.declareSticky(stmt, groupPath);
     const [idArg, labelArg, ...extra] = stmt.args;
     const idToken = singleIdent(idArg);
     if (!idToken) {
@@ -759,15 +800,18 @@ export class FlowAnalyzer {
     const block =
       kind === "group"
         ? { ...this.groupBlock(stmt.block, idToken), ports: [], values: {} }
-        : this.elementBlock(
-            stmt.block,
-            declaredKind
-              ? { ...this.profile.elementProperties, ...tableOf(declaredKind.properties) }
-              : this.profile.elementProperties,
-            "Element",
-            idToken,
-          );
-    const { values: blockValues, ...blockFields } = block;
+        : {
+            ...this.elementBlock(
+              stmt.block,
+              declaredKind
+                ? { ...this.profile.elementProperties, ...tableOf(declaredKind.properties) }
+                : this.profile.elementProperties,
+              "Element",
+              idToken,
+            ),
+            list: null,
+          };
+    const { values: blockValues, list, ...blockFields } = block;
     const added = this.addElement({
       id: idToken.text,
       kind,
@@ -782,6 +826,8 @@ export class FlowAnalyzer {
       external: false,
       shape: null,
       line: null,
+      pen: null,
+      list,
       attachedTo: attachment?.target ?? null,
       attachedToRange: attachment ? this.range(attachment.arg) : null,
       typeKind,
@@ -856,6 +902,133 @@ export class FlowAnalyzer {
       external: false,
       shape: null,
       line: { from, to, via },
+      pen: null,
+      list: null,
+      attachedTo: null,
+      attachedToRange: null,
+      typeKind: null,
+      data: {},
+      groupPath,
+      range: this.range(stmt),
+      idRange: this.range(idToken),
+      idToken,
+      node: stmt,
+    });
+  }
+
+  /**
+   * `pen <id> [(x, y), (x, y), ...] [{ ... }]`: a freehand stroke through its points, in the
+   * interior coordinates of its innermost group as a line's are. One point is a dot; decimals are
+   * kept. A pen has no label.
+   */
+  protected declarePen(stmt: KeywordStatement, groupPath: string[]): void {
+    const form = "`pen <id> [(x, y), (x, y), ...]`";
+    const m = messages();
+    const [idArg, list, extra] = stmt.args;
+    const idToken = singleIdent(idArg);
+    if (!idToken) {
+      this.invalid(m.diagnostics.common.expected(form), idArg ?? stmt.keyword, [
+        m.hints.example("pen arrow [(40, 60), (90.5, 58), (140, 70)]"),
+      ]);
+      return;
+    }
+    const hints = [m.hints.flow.form(form)];
+    if (list?.kind === "StringLiteral") {
+      return this.invalid(m.diagnostics.flow.penNoLabel(idToken.text), list, hints);
+    }
+    if (list?.kind !== "List" || list.items.length === 0) {
+      return this.invalid(m.diagnostics.flow.penPoints, list ?? stmt, hints);
+    }
+    const points: Point[] = [];
+    for (const item of list.items) {
+      const point = readPoint(item);
+      if (!point) return this.invalid(m.diagnostics.flow.penPoints, item, hints);
+      points.push(point);
+    }
+    if (extra) return this.invalid(m.diagnostics.flow.unexpectedValue(form), extra, hints);
+    // A stroke has no sides for ports: `port` in its block is unknown, as in any block without it.
+    const { values: _values, ...blockFields } = this.elementBlock(
+      stmt.block,
+      this.profile.elementProperties,
+      "Element",
+      idToken,
+      false,
+    );
+    this.addElement({
+      id: idToken.text,
+      kind: "pen",
+      label: "",
+      implicit: false,
+      ...blockFields,
+      source: null,
+      sourceRange: null,
+      labelWritten: false,
+      entity: null,
+      technology: null,
+      external: false,
+      shape: null,
+      line: null,
+      pen: { points },
+      list: null,
+      attachedTo: null,
+      attachedToRange: null,
+      typeKind: null,
+      data: {},
+      groupPath,
+      range: this.range(stmt),
+      idRange: this.range(idToken),
+      idToken,
+      node: stmt,
+    });
+  }
+
+  /**
+   * `sticky <id> "Text" [{ ... }]`: a square card whose text wraps to fit it. The text is required,
+   * `\n` breaking its lines; the block takes a box's: `description`, `class`, `layer`, `link`, `url`
+   * and ports. A sticky without its text is still declared, so that its uses resolve.
+   */
+  protected declareSticky(stmt: KeywordStatement, groupPath: string[]): void {
+    const form = '`sticky <id> "Text"`';
+    const m = messages();
+    const [idArg, textArg, extra] = stmt.args;
+    const idToken = singleIdent(idArg);
+    if (!idToken) {
+      this.invalid(m.diagnostics.common.expected(form), idArg ?? stmt.keyword, [
+        m.hints.example('sticky idea "Cache the catalogue"'),
+      ]);
+      return;
+    }
+    if (textArg && textArg.kind !== "StringLiteral") {
+      return this.invalid(m.diagnostics.flow.quotedSource("text", idToken.text), textArg);
+    }
+    if (extra) return this.invalid(m.diagnostics.flow.valueAfter("text", form), extra);
+    if (!textArg) {
+      this.invalid(m.diagnostics.flow.needsSource("sticky", idToken.text, form), stmt, [
+        m.hints.flow.form(form),
+      ]);
+    }
+    const { values: _values, ...blockFields } = this.elementBlock(
+      stmt.block,
+      this.profile.elementProperties,
+      "Element",
+      idToken,
+    );
+    this.addElement({
+      id: idToken.text,
+      kind: "sticky",
+      label: textArg ? textArg.value : idToken.text,
+      implicit: false,
+      ...blockFields,
+      source: null,
+      sourceRange: null,
+      labelWritten: textArg !== undefined,
+      entity: null,
+      technology: null,
+      external: false,
+      shape: null,
+      line: null,
+      pen: null,
+      list: null,
       attachedTo: null,
       attachedToRange: null,
       typeKind: null,
@@ -910,7 +1083,7 @@ export class FlowAnalyzer {
           data: {
             ids: [target],
             candidates: this.elements
-              .filter((e) => e.id !== note && e.kind !== "line")
+              .filter((e) => e.id !== note && e.kind !== "line" && e.kind !== "pen")
               .map((e) => e.id),
           },
         });
@@ -951,6 +1124,8 @@ export class FlowAnalyzer {
     table: PropertyTable,
     owner: "Element" | "Relation",
     ownerToken: Token | undefined,
+    /** False for an element without ports (a pen): `port` is then unknown in its block. */
+    takesPorts = true,
   ): {
     description: string | null;
     url: string | null;
@@ -964,10 +1139,11 @@ export class FlowAnalyzer {
     const ports: PortDefinition[] = [];
     const extras: BlockExtras = { ...empty };
     const seen = new Map<string, Token>();
+    const portable = owner === "Element" && takesPorts && this.profile.ports.length > 0;
     const rest = block.statements.filter((stmt) => {
       if (stmt.kind !== "KeywordStatement") return true;
       const keyword = stmt.keyword.text;
-      if (owner === "Element" && keyword === "port" && this.profile.ports.length > 0) {
+      if (portable && keyword === "port") {
         if (!headerHasError(stmt)) this.port(stmt, ports);
         return false;
       }
@@ -977,9 +1153,7 @@ export class FlowAnalyzer {
       }
       return true;
     });
-    const words = Object.keys(table).concat(
-      owner === "Element" && this.profile.ports.length > 0 ? ["port"] : [],
-    );
+    const words = Object.keys(table).concat(portable ? ["port"] : []);
     const { values, classes } = this.readProperties(
       { ...block, statements: rest },
       table,
@@ -1110,19 +1284,25 @@ export class FlowAnalyzer {
   }
 
   /**
-   * Reads the `description`, `class`, `layer` and `link` properties of a group block; children are
-   * classified.
+   * Reads the `description`, `class`, `layer` and `link` properties of a group block, and in free
+   * diagrams the `layout`, `spacing` and `align` of a list; children are classified.
    */
   protected groupBlock(
     block: Block | undefined,
     ownerToken: Token,
-  ): { description: string | null; url: string | null; classes: ClassUse[] } & BlockExtras {
+  ): {
+    description: string | null;
+    url: string | null;
+    classes: ClassUse[];
+    list: ListGroup | null;
+  } & BlockExtras {
     let description: string | null = null;
     let url: string | null = null;
     let classes: ClassUse[] = [];
     const extras: BlockExtras = { layer: null, layerRange: null, link: null };
-    if (!block) return { description, url, classes, ...extras };
+    if (!block) return { description, url, classes, list: null, ...extras };
     const seen = new Map<string, Token>();
+    const listed: { layout?: ListLayout; spacing?: number; align?: ListAlign } = {};
     for (const stmt of block.statements) {
       if (stmt.kind !== "KeywordStatement" || headerHasError(stmt)) continue;
       const name = stmt.keyword.text;
@@ -1130,7 +1310,16 @@ export class FlowAnalyzer {
         this.extra(stmt, extras, seen, ownerToken);
         continue;
       }
-      if (name !== "description" && name !== "url" && !(name === "class" && !stmt.block)) continue;
+      // Other profiles refuse the list properties when the block is classified.
+      const listProperty = isListProperty(name) && name in this.profile.groupProperties;
+      if (
+        !listProperty &&
+        name !== "description" &&
+        name !== "url" &&
+        !(name === "class" && !stmt.block)
+      ) {
+        continue;
+      }
       const first = seen.get(name);
       if (first) {
         const m = messages();
@@ -1140,6 +1329,14 @@ export class FlowAnalyzer {
         continue;
       }
       seen.set(name, stmt.keyword);
+      if (listProperty) {
+        const value = this.listValue(stmt, name);
+        if (value === undefined) continue;
+        if (name === "layout") listed.layout = value as ListLayout;
+        else if (name === "spacing") listed.spacing = value as number;
+        else listed.align = value as ListAlign;
+        continue;
+      }
       if (name === "class") {
         classes = readClasses(stmt, this.lines, this.report) ?? [];
         continue;
@@ -1152,7 +1349,51 @@ export class FlowAnalyzer {
       const value = this.readValue(stmt, this.profile.groupProperties.description!, "description");
       if (typeof value === "string") description = value;
     }
-    return { description, url, classes, ...extras };
+    return { description, url, classes, list: this.listOf(listed, seen), ...extras };
+  }
+
+  /**
+   * Reads `layout column|row`, `spacing <n>` or `align start|center|end|stretch` of a free group
+   * block. `layout auto`, `assisted` and `manual` are the diagram's statement, which the hint says.
+   */
+  protected listValue(stmt: KeywordStatement, name: string): Value | undefined {
+    const [arg] = stmt.args;
+    const word = singleIdent(arg);
+    if (
+      name === "layout" &&
+      word &&
+      stmt.args.length === 1 &&
+      !stmt.block &&
+      !stmt.chain &&
+      (LAYOUT_MODES as readonly string[]).includes(word.text)
+    ) {
+      const m = messages();
+      this.invalid(m.diagnostics.values.invalidEnum(describeArg(arg!), name, LIST_LAYOUTS), arg!, [
+        m.hints.flow.groupLayout(word.text),
+      ]);
+      return undefined;
+    }
+    return this.readValue(stmt, this.profile.groupProperties[name]!, name);
+  }
+
+  /**
+   * The list a group block writes, or null without a valid `layout`. `spacing` and `align` without
+   * a `layout` are reported on their keywords.
+   */
+  protected listOf(
+    listed: { readonly layout?: ListLayout; readonly spacing?: number; readonly align?: ListAlign },
+    seen: ReadonlyMap<string, Token>,
+  ): ListGroup | null {
+    if (!seen.has("layout")) {
+      const m = messages();
+      for (const name of ["spacing", "align"]) {
+        const token = seen.get(name);
+        if (token)
+          this.invalid(m.diagnostics.flow.listNeedsLayout(name), token, [m.hints.flow.listLayout]);
+      }
+    }
+    if (listed.layout === undefined) return null;
+    return { layout: listed.layout, spacing: listed.spacing ?? null, align: listed.align ?? null };
   }
 
   // ------------------------------------------------------------------ relations
@@ -1282,6 +1523,8 @@ export class FlowAnalyzer {
       external: false,
       shape: null,
       line: null,
+      pen: null,
+      list: null,
       attachedTo: null,
       attachedToRange: null,
       typeKind: null,
@@ -1842,13 +2085,27 @@ export class FlowAnalyzer {
     });
   }
 
-  /** A free line takes no `place` or `size`: its points are in its statement. Reports it. */
-  protected lineRefused(id: string, statement: "place" | "size", token: Token): boolean {
-    if (this.elementsById.get(id)?.kind !== "line") return false;
+  /**
+   * A free line or a pen takes no `place` or `size` (and a pen no `rotation`): its points are in its
+   * statement. Reports it.
+   */
+  protected lineRefused(
+    id: string,
+    statement: "place" | "size" | "rotation",
+    token: Token,
+  ): boolean {
+    const kind = this.elementsById.get(id)?.kind;
+    if (kind !== "line" && kind !== "pen") return false;
     const m = messages();
-    this.invalid(m.diagnostics.flow.lineHasPoints(id, statement), token, [
-      m.hints.flow.linePointsWritten,
-    ]);
+    if (kind === "pen") {
+      this.invalid(m.diagnostics.flow.penHasPoints(id, statement), token, [
+        m.hints.flow.penPointsWritten,
+      ]);
+    } else {
+      this.invalid(m.diagnostics.flow.lineHasPoints(id, statement), token, [
+        m.hints.flow.linePointsWritten,
+      ]);
+    }
     return true;
   }
 
@@ -1930,7 +2187,7 @@ export class FlowAnalyzer {
     const words =
       kind === "style"
         ? Object.keys(table).filter((p) =>
-            p === "shape" ? shapes : this.free || !(p in FREE_PROFILE_ONLY),
+            p === "shape" ? shapes : this.free || !isFreeStyleProperty(p),
           )
         : ["effect", "duration", "repeat"];
     const hint = () => {
@@ -1954,30 +2211,68 @@ export class FlowAnalyzer {
     for (const targetToken of targetTokens) {
       const resolved = this.resolveStyleTarget(targetToken, kind, stmt);
       if (!resolved) continue;
-      // A free line takes a relation's properties, and none of a box's.
-      const line =
-        resolved.kind === "element" && this.elementsById.get(resolved.name)?.kind === "line";
+      const element =
+        resolved.kind === "element" ? this.elementsById.get(resolved.name) : undefined;
+      // A free line takes a relation's properties, and none of a box's but `opacity`; a pen takes
+      // its stroke's (`PEN_PROPERTIES`) and refuses the rest; a sticky takes a card's
+      // (`STICKY_PROPERTIES`).
+      const line = element?.kind === "line";
+      const pen = element?.kind === "pen";
+      const sticky = element?.kind === "sticky";
       const misfit =
-        kind === "style"
-          ? resolved.kind === "relation" || line
+        kind !== "style"
+          ? []
+          : resolved.kind === "relation"
             ? ELEMENT_ONLY_PROPERTIES
-            : RELATION_ONLY_PROPERTIES
-          : [];
+            : line
+              ? LINE_REFUSED_PROPERTIES
+              : pen
+                ? [...PEN_REFUSED_PROPERTIES, "rotation"]
+                : sticky
+                  ? STICKY_REFUSED_PROPERTIES
+                  : RELATION_ONLY_PROPERTIES;
       for (const name of misfit) {
         const token = tokens[name];
-        // `shape` is reported below, with the kinds that take it.
-        if (!token || name === "shape" || misplaced.has(name)) continue;
+        // `shape` is reported below, with the kinds that take it; a pen names what it takes.
+        if (!token || (name === "shape" && !pen) || misplaced.has(name)) continue;
         misplaced.add(name);
+        if (pen && name === "rotation") {
+          this.lineRefused(resolved.name, "rotation", token);
+          continue;
+        }
+        const m = messages();
         this.invalid(
-          line
-            ? messages().diagnostics.flow.notForLines(name, resolved.name)
-            : messages().diagnostics.flow.notForTargets(
-                name,
-                resolved.kind === "relation",
-                resolved.name,
-              ),
+          pen
+            ? m.diagnostics.flow.notForPens(name, resolved.name, PEN_PROPERTIES)
+            : line
+              ? m.diagnostics.flow.notForLines(name, resolved.name)
+              : sticky
+                ? m.diagnostics.flow.notForStickies(name, resolved.name)
+                : m.diagnostics.flow.notForTargets(
+                    name,
+                    resolved.kind === "relation",
+                    resolved.name,
+                  ),
           token,
-          line ? [] : [targetHint(name)],
+          line || pen
+            ? []
+            : sticky
+              ? [m.hints.values.stickyProperties(STICKY_PROPERTIES)]
+              : [targetHint(name)],
+        );
+      }
+      // A pen is drawn one pixel wide at least: `width 0` is refused on it, not on a box.
+      const thin = kind === "style" && pen && values.width === 0;
+      if (thin && !misplaced.has("width")) {
+        misplaced.add("width");
+        const m = messages();
+        this.invalid(
+          m.diagnostics.values.expects(
+            "width",
+            describeSpec({ kind: "number", ...PEN_WIDTH_RANGE }),
+          ),
+          argumentOf(stmt.block, tokens.width!) ?? tokens.width!,
+          [m.hints.values.penWidth],
         );
       }
       // `shape` is refused per target: a block may list a node and a decision.
@@ -2003,6 +2298,7 @@ export class FlowAnalyzer {
       const refused = [
         ...(shapeless === null ? [] : ["shape"]),
         ...(unturned === null ? [] : ["rotation"]),
+        ...(thin ? ["width"] : []),
       ];
       const excluded = refused.length === 0 ? misfit : [...misfit, ...refused];
       if (kind === "animate") {
@@ -2154,17 +2450,22 @@ export class FlowAnalyzer {
     const element = resolved.kind === "element" ? this.elementsById.get(resolved.name) : undefined;
     const m = messages().diagnostics.flow;
     let reason: string | null = null;
-    // A free line runs effects as a relation does: it is a connector without ends.
-    const connector = resolved.kind === "relation" || element?.kind === "line";
+    // A free line or a pen runs effects as a relation does: it is a connector without ends, and its
+    // stroke is the outline a dash follows.
+    const connector =
+      resolved.kind === "relation" || element?.kind === "line" || element?.kind === "pen";
     if (effect === "flow" && !connector) {
       reason = m.flowTarget;
     } else if (effect === "trace" && !connector) {
       reason = m.traceTarget;
     } else if (effect === "dash") {
       if (resolved.kind === "event") reason = m.dashOnEvent;
-      else if (element && (element.kind === "note" || element.kind === "text")) {
-        // A note or a text draws an outline when its styles say so, which a later statement may
-        // write: checked once every block is read (`checkOutlinedDashes`).
+      else if (
+        element &&
+        (element.kind === "note" || element.kind === "text" || element.kind === "sticky")
+      ) {
+        // A note, a text or a sticky draws an outline when its styles say so, which a later
+        // statement may write: checked once every block is read (`checkOutlinedDashes`).
         if (stmt) this.pendingDashes.push({ name: resolved.name, token, stmt });
       } else if (element && NO_OUTLINE_KINDS.has(element.kind)) {
         reason = m.dashWithoutOutline(resolved.name, element.kind);
@@ -2207,7 +2508,10 @@ export class FlowAnalyzer {
 
 // -------------------------------------------------------------------- free helpers
 
-/** The declarations and statements of flow and free diagrams, as their hints list them. */
+/**
+ * The declarations and statements of flow and free diagrams, as their hints list them: the hints
+ * of free diagrams are built from `FREE_DECLARATIONS`, so a new kind is one word here.
+ */
 const FLOW_DECLARATIONS: readonly string[] = ["node", "decision", "data", "group", "note", "tag"];
 const FREE_DECLARATIONS: readonly string[] = [
   "box",
@@ -2215,7 +2519,9 @@ const FREE_DECLARATIONS: readonly string[] = [
   "icon",
   "image",
   "note",
+  "sticky",
   "line",
+  "pen",
   "group",
 ];
 const FLOW_STATEMENTS: readonly string[] = [
@@ -2240,16 +2546,13 @@ const FREE_STATEMENTS: readonly string[] = [
   ...FLOW_STATEMENTS.slice(8),
 ];
 
-/** Style properties that only free diagrams accept, for hints. */
-const FREE_PROFILE_ONLY: Readonly<Record<string, true>> = {
-  fontSize: true,
-  fontWeight: true,
-  textAlign: true,
-  verticalAlign: true,
-};
-
 function isWord(arg: Arg | undefined, word: string): boolean {
   return singleIdent(arg)?.text === word;
+}
+
+/** Whether a statement of a group block is one of the properties of a list. */
+function isListProperty(keyword: string): boolean {
+  return (LIST_PROPERTIES as readonly string[]).includes(keyword);
 }
 
 /** A tuple of exactly two numbers without units. */

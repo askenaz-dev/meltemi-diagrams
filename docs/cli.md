@@ -73,13 +73,15 @@ pnpm mdg init architecture --template purchase
 version range) and the template's sheets, and prints the next commands. It never replaces a file:
 if one exists, nothing is written.
 
-| Template   | Sheets                                                                                                                                                                   |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `flow`     | `diagrams/overview.meltemi`: a first flow diagram (the default)                                                                                                          |
-| `c4`       | `models/system.meltemi` and `diagrams/views.meltemi`: a model, a context and a container view                                                                            |
-| `sequence` | `diagrams/sign-in.meltemi`: a sequence with a scenario for each outcome                                                                                                  |
-| `free`     | `diagrams/slide.meltemi`: a 16:9 slide of text, boxes, an icon and a group                                                                                               |
-| `purchase` | The reference example: model, context and container views, payment sequence with scenarios, executive slide, animated story, PDF, PNG and MP4 profiles, catalog settings |
+| Template     | Sheets                                                                                                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `flow`       | `diagrams/overview.meltemi`: a first flow diagram (the default)                                                                                                          |
+| `c4`         | `models/system.meltemi` and `diagrams/views.meltemi`: a model, a context and a container view                                                                            |
+| `sequence`   | `diagrams/sign-in.meltemi`: a sequence with a scenario for each outcome                                                                                                  |
+| `free`       | `diagrams/slide.meltemi`: a 16:9 slide of text, boxes, an icon and a group                                                                                               |
+| `kanban`     | `diagrams/board.meltemi`: a board of three columns of sticky cards (`preset board`)                                                                                      |
+| `whiteboard` | `diagrams/whiteboard.meltemi`: a sketched board with pen strokes, a highlighter mark, stickies and a story that draws them                                               |
+| `purchase`   | The reference example: model, context and container views, payment sequence with scenarios, executive slide, animated story, PDF, PNG and MP4 profiles, catalog settings |
 
 `--list` prints each with its title, what it is for and what it holds, as the playground's New
 project shows them, such as `C4 model — An architecture model with a context view and a container

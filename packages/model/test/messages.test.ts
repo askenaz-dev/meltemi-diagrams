@@ -186,6 +186,118 @@ describe("the words of compilation", () => {
     expect(find(spanish, "export.invalid-option").message).not.toMatch(/\bapplies\b/);
   });
 
+  it("tell pen and opacity errors in Spanish", () => {
+    const { spanish } = both(
+      'diagram w: free {\n  pen p [10, 20]\n  pen q "Label" [(0, 0)]\n  pen r [(0, 0), (10, 10)]\n  box a "A"\n  a -> a as loop\n  placement { place r at (10, 10) }\n  style r { fill accent; width 0 }\n  style loop { opacity 0.5 }\n  rule pen { routing orthogonal }\n  shade x\n}\n' +
+        flow("  api -> db\n  pen s [(0, 0)]\n  style api { opacity 0.5 }"),
+    );
+    expect(spanish.map((d) => [d.code, d.message, d.hints])).toEqual([
+      [
+        "prop.invalid-value",
+        "Un trazo de lápiz lleva, después de su id, una lista de puntos `(x, y)`, al menos uno.",
+        ["Forma: `pen <id> [(x, y), (x, y), ...]`."],
+      ],
+      [
+        "prop.invalid-value",
+        "`q` es un trazo de lápiz, que no lleva etiqueta; sus puntos van después de su id.",
+        ["Forma: `pen <id> [(x, y), (x, y), ...]`."],
+      ],
+      [
+        "prop.invalid-value",
+        "`r` es un trazo de lápiz; `place` no se aplica a él.",
+        [
+          "Los puntos de un trazo de lápiz se escriben en su instrucción: `pen <id> [(x, y), (x, y), ...]`.",
+        ],
+      ],
+      [
+        "prop.invalid-value",
+        "`fill` no se aplica a trazos de lápiz como `r`; un trazo de lápiz admite `stroke`, `width`, `line`, `opacity`, `arrowhead` y `arrowtail`.",
+        undefined,
+      ],
+      [
+        "prop.invalid-value",
+        "`width` espera un número de 1 a 64.",
+        ["Un trazo de lápiz mide al menos un píxel de ancho; quita el trazo para ocultarlo."],
+      ],
+      [
+        "prop.invalid-value",
+        "`opacity` no se aplica a relaciones como `loop`.",
+        ["`opacity` se aplica a elementos, grupos, líneas y trazos de lápiz."],
+      ],
+      [
+        "prop.invalid-value",
+        "`routing` no se aplica a los elementos `pen`.",
+        [
+          "Un trazo de lápiz admite `stroke`, `width`, `line`, `opacity`, `arrowhead` y `arrowtail`.",
+        ],
+      ],
+      [
+        "prop.unknown",
+        "Instrucción desconocida `shade` en una composición libre.",
+        [
+          "Las composiciones libres aceptan declaraciones `box`, `text`, `icon`, `image`, `note`, `sticky`, `line`, `pen` y `group`, relaciones, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `layers`, `placement`, `style`, `animate`, `class` y `rule`.",
+        ],
+      ],
+      [
+        "prop.unknown",
+        "Instrucción desconocida `pen` en un diagrama de flujo.",
+        [
+          "Los diagramas de flujo declaran `node`, `decision`, `data`, `group`, `note` y `tag`; `pen` pertenece a las composiciones libres.",
+        ],
+      ],
+      [
+        "prop.invalid-value",
+        "`opacity` solo se aplica a las composiciones libres.",
+        [
+          "Los diagramas de flujo y de secuencia y las vistas C4 dibujan cada elemento opaco; las composiciones libres atenúan elementos, grupos, líneas y trazos de lápiz con `opacity`.",
+        ],
+      ],
+    ]);
+  });
+
+  it("tell sticky, list and draw errors in Spanish", () => {
+    const { spanish } = both(
+      'diagram w: free {\n  sticky s\n  sticky t "T"\n  style t { pattern dots }\n  rule sticky { arrowhead open }\n  group g "G" {\n    spacing 12\n  }\n  group h "H" {\n    layout auto\n  }\n  pen p [(0, 0)]\n}\n' +
+        flow('  group g {\n    layout column\n    a["A"]\n  }') +
+        "story tour for w {\n  scene one {\n    draw p, t\n  }\n}\n",
+    );
+    const TAKES =
+      "Una nota adhesiva admite `fill`, `stroke`, `color`, `line`, `width`, `fontSize`, `fontWeight`, `textAlign`, `verticalAlign`, `radius`, `rotation`, `opacity`, `icon`, `iconColor` y `iconSize`.";
+    expect(spanish.map((d) => [d.code, d.message, d.hints])).toEqual([
+      [
+        "prop.invalid-value",
+        '`sticky s` necesita su texto; se esperaba `sticky <id> "Text"`.',
+        ['Forma: `sticky <id> "Text"`.'],
+      ],
+      ["prop.invalid-value", "`pattern` no se aplica a notas adhesivas como `t`.", [TAKES]],
+      ["prop.invalid-value", "`arrowhead` no se aplica a los elementos `sticky`.", [TAKES]],
+      [
+        "prop.invalid-value",
+        "`spacing` ordena los hijos de una lista; este grupo no escribe `layout`.",
+        ["Escribe `layout column` o `layout row` en el bloque del grupo."],
+      ],
+      [
+        "prop.invalid-value",
+        "Valor no válido para `layout`: `auto`; se esperaba uno de estos valores: column, row.",
+        [
+          "`layout auto` es una instrucción del diagrama; un bloque de grupo admite `layout column` o `layout row`.",
+        ],
+      ],
+      [
+        "prop.invalid-value",
+        "`layout` en un grupo pertenece a las listas de las composiciones libres; este es un diagrama de flujo.",
+        [
+          "Las composiciones libres colocan los hijos de un grupo en una columna o una fila con `layout column` o `layout row`.",
+        ],
+      ],
+      [
+        "story.invalid-target",
+        "`draw` admite trazos de lápiz, líneas y relaciones; `t` es un elemento `sticky`.",
+        undefined,
+      ],
+    ]);
+  });
+
   it("tell theme block errors in Spanish", () => {
     const { spanish } = both('theme t {\n  extends "nope"\n  colour "#fff"\n}\n');
     expect(find(spanish, "prop.unknown").message).toBe("Token de tema desconocido `colour`.");

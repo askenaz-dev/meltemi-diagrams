@@ -94,6 +94,7 @@ export const es: typeof en = {
     frameAll: "Encuadrar toda la vista",
     trace: (relation: string, ends: readonly [string, string] | null, time: string) =>
       `Recorrer “${relation}”${ends ? ` de ${ends[0]} a ${ends[1]}` : ""} en ${time}`,
+    draw: (targets: string, time: string) => `Dibujar ${targets} trazo a trazo en ${time}`,
     hold: (time: string) => `Esperar ${time}`,
     parallel: (actions: string) => `Al mismo tiempo: ${actions}`,
   },

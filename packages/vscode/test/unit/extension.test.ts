@@ -14,6 +14,8 @@ import {
   DIAGRAM_TYPES,
   FLOW_PROFILE,
   FREE_PROFILE,
+  LIST_ALIGNS,
+  LIST_LAYOUTS,
   MAIN_LAYER,
   PORTS,
   THEME_TOKENS,
@@ -77,6 +79,7 @@ describe("grammar", () => {
       ...Object.keys(FREE_PROFILE.diagramProperties),
       ...FREE_PROFILE.elementKinds,
       ...Object.keys(FREE_PROFILE.elementProperties),
+      ...Object.keys(FREE_PROFILE.groupProperties),
       ...Object.keys(FREE_PROFILE.styleProperties),
       MAIN_LAYER,
       ...PORTS,
@@ -109,6 +112,44 @@ describe("grammar", () => {
     expect(declares.test("line l1 from (0, 0) to (100, 0)")).toBe(true);
     expect(declares.test('line l2 "Edge" from (0, 0) to (10, 10)')).toBe(true);
     expect(declares.test("style a { line dashed }")).toBe(false);
+  });
+
+  it("colours the whiteboard words: pens, stickies, `draw`, `preset board` and `opacity`", () => {
+    const scopeOf = (word: string) =>
+      (grammar.repository["keywords"]!.patterns ?? []).find(
+        (p) => p.match && new RegExp(p.match).test(` ${word} `),
+      ) as { name?: string } | undefined;
+    expect(scopeOf("pen")?.name).toBe("storage.type.element.meltemi");
+    expect(scopeOf("sticky")?.name).toBe("storage.type.element.meltemi");
+    expect(scopeOf("draw")?.name).toBe("keyword.control.profile.meltemi");
+    expect(scopeOf("board")?.name).toBe("constant.language.meltemi");
+    expect(scopeOf("opacity")?.name).toBe("support.type.property-name.style.meltemi");
+    expect(scopeOf("spacing")?.name).toBe("support.type.property-name.group.meltemi");
+    expect(scopeOf("stickyText")?.name).toBe("support.type.property-name.theme.meltemi");
+  });
+
+  it("colours a list group's `layout` and `align` with their values, and leaves the constraint alone", () => {
+    const patterns = grammar.repository["keywords"]!.patterns ?? [];
+    const layout = patterns.find((p) => p.match?.startsWith("\\b(layout)\\s+"));
+    const align = patterns.find((p) => p.match?.startsWith("\\b(align)\\s+"));
+    expect(layout).toBeDefined();
+    expect(align).toBeDefined();
+    const layoutWords = new RegExp(layout!.match!);
+    const alignWords = new RegExp(align!.match!);
+    for (const value of LIST_LAYOUTS)
+      expect(layoutWords.test(`  layout ${value}`), value).toBe(true);
+    for (const value of LIST_ALIGNS) expect(alignWords.test(`  align ${value}`), value).toBe(true);
+    // The diagram's `layout manual` and the constraint `align a, b top` are not list words.
+    expect(layoutWords.test("  layout manual")).toBe(false);
+    expect(alignWords.test("    align api, db top")).toBe(false);
+    // Each comes before the patterns that would colour `layout` as a diagram property and
+    // `column`, `row` or `align` as placement words.
+    const index = (p: { match?: string } | undefined) => patterns.indexOf(p!);
+    const placement = patterns.find((p) => p.match?.startsWith("\\b(place|size|route"));
+    const diagram = patterns.find((p) => p.match?.startsWith("\\b(direction|layout"));
+    expect(index(layout)).toBeLessThan(index(placement));
+    expect(index(layout)).toBeLessThan(index(diagram));
+    expect(index(align)).toBeLessThan(index(placement));
   });
 
   it("colours the `on` of a note's attachment as a placement word", () => {

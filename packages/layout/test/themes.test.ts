@@ -144,6 +144,7 @@ describe("file themes", () => {
         '  background "#1"; surface "#2"; ink "#3"; muted "#4"; line "#5"; connector "#6"',
         '  band "#7"; bandLine "#8"; tag "#9"; tagText "#a"; accent "#b"; accentEnd "#c"',
         '  success "#d"; warning "#e"; danger "#f"; info "#0"; font "F"; mono "M"',
+        '  highlight "#g"; sticky "#h"; stickyText "#i"',
         "  labelSize 14; descriptionSize 12; groupTitleSize 15; noteSize 10; tagSize 9",
         "  relationLabelSize 12; frameSize 13; labelWeight 700; padding 18px; groupPadding 12",
         "  groupHeader 36; margin 30; radius 0; groupRadius 4; strokeWidth 2; connectorWidth 3",
@@ -174,6 +175,9 @@ describe("file themes", () => {
       warning: "#e",
       danger: "#f",
       info: "#0",
+      highlight: "#g",
+      sticky: "#h",
+      stickyText: "#i",
       font: "F",
       mono: "M",
       labelSize: 14,
@@ -247,5 +251,85 @@ describe("file themes", () => {
     const result = layoutDiagram(compilation, compilation.document.diagrams[0]!);
     expect(result.diagnostics[0]!.code).toBe("layout.unknown-theme");
     expect(result.diagnostics[0]!.hints?.[0]).toContain("other");
+  });
+});
+
+describe("whiteboard tokens", () => {
+  /** The stroke of the pen `p` in a free diagram under `theme`. */
+  const penStroke = (text: string) => {
+    const s = scene(text);
+    const pen = s.items.find((i): i is GroupItem => i.kind === "group" && i.id === "p")!;
+    return pen.items.find((i): i is PathItem => i.kind === "path")!.stroke;
+  };
+  const board = (theme: string, style = "") =>
+    `diagram d: free {\n  theme "${theme}"\n  pen p [(0, 0), (100, 0)]\n${style}}\n`;
+
+  it("are set by every built-in theme, yellow on the light ones and warmer on the dark ones", () => {
+    for (const name of BUILT_IN_THEMES) {
+      const dark = name.endsWith(".dark");
+      expect(
+        {
+          highlight: THEMES[name]!.highlight,
+          sticky: THEMES[name]!.sticky,
+          stickyText: THEMES[name]!.stickyText,
+        },
+        name,
+      ).toEqual(
+        dark
+          ? { highlight: "#ffd600", sticky: "#f3e37c", stickyText: "#1f2328" }
+          : { highlight: "#ffe600", sticky: "#fff59d", stickyText: "#1f2328" },
+      );
+    }
+  });
+
+  it("are inherited by a theme that extends another, which may set some of them", () => {
+    const compilation = compile(
+      'theme board { extends "technical.light"; sticky "#dbeafe"; highlight "#fde68a" }\n',
+    );
+    expect(compilation.diagnostics).toEqual([]);
+    const { theme } = resolveTheme("board", compilation.document.themes);
+    expect([theme.sticky, theme.highlight, theme.stickyText]).toEqual([
+      "#dbeafe",
+      "#fde68a",
+      "#1f2328",
+    ]);
+    const dark = resolveTheme(
+      "night",
+      compile('theme night { extends "sketch.dark" }\n').document.themes,
+    ).theme;
+    expect([dark.sticky, dark.highlight, dark.stickyText]).toEqual([
+      "#f3e37c",
+      "#ffd600",
+      "#1f2328",
+    ]);
+  });
+
+  it("colour a highlighter stroke, and a pen with no style takes the theme's ink", () => {
+    const text = `theme board { extends "technical.light"; sticky "#dbeafe"; highlight "#fde68a" }\n${board(
+      "board",
+      "  style p { stroke highlight; width 20; opacity 0.35 }\n",
+    )}`;
+    expect(penStroke(text)).toBe("#fde68a");
+    expect(penStroke(board("sketch.dark"))).toBe(THEMES["sketch.dark"]!.ink);
+    expect(penStroke(board("technical.light"))).toBe(THEMES["technical.light"]!.ink);
+  });
+
+  /** The card's fill and the text's colour of the sticky `s` in a free diagram. */
+  const sticky = (text: string) => {
+    const s = scene(text);
+    const card = s.items.find((i): i is GroupItem => i.kind === "group" && i.id === "s")!;
+    const [, paper] = card.items.filter((i) => i.kind === "rect");
+    return { fill: (paper as { fill: string }).fill, color: textsOf(card)[0]!.fill };
+  };
+  const stickies = (theme: string) =>
+    `diagram d: free {\n  theme "${theme}"\n  sticky s "Idea"\n  pen p [(0, 200), (100, 200)]\n  style p { stroke highlight; width 20; opacity 0.35 }\n  placement { place s at (100, 100) }\n}\n`;
+
+  it("colour stickies: a file theme's card and the base theme's text, or a built-in theme's", () => {
+    const file = `theme board { extends "technical.light"; sticky "#dbeafe"; highlight "#fde68a" }\n${stickies("board")}`;
+    expect(sticky(file)).toEqual({ fill: "#dbeafe", color: "#1f2328" });
+    expect(penStroke(file)).toBe("#fde68a");
+    expect(sticky(stickies("sketch.dark"))).toEqual({ fill: "#f3e37c", color: "#1f2328" });
+    expect(penStroke(board("sketch.dark"))).toBe(THEMES["sketch.dark"]!.ink);
+    expect(sticky(stickies("technical.light"))).toEqual({ fill: "#fff59d", color: "#1f2328" });
   });
 });

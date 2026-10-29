@@ -283,6 +283,13 @@ export interface ElementJson {
     to: { x: number; y: number };
     via: { x: number; y: number }[];
   } | null;
+  /** `pen` strokes: their points as written; null on every other kind. */
+  pen: { points: { x: number; y: number }[] } | null;
+  /**
+   * List groups (`layout column|row` in a free group block): the layout, and the `spacing` and
+   * `align` written (null when not); null on other groups and on elements.
+   */
+  list: { layout: string; spacing: number | null; align: string | null } | null;
   /** Notes: the id of the element (the entity path in a C4 view) the note is attached to. */
   attachedTo: string | null;
   entity: { model: string; path: string; file: string | null } | null;
@@ -732,6 +739,10 @@ function elementJson(element: Element): ElementJson {
           to: { x: element.line.to.x, y: element.line.to.y },
           via: element.line.via.map((p) => ({ x: p.x, y: p.y })),
         }
+      : null,
+    pen: element.pen ? { points: element.pen.points.map((p) => ({ x: p.x, y: p.y })) } : null,
+    list: element.list
+      ? { layout: element.list.layout, spacing: element.list.spacing, align: element.list.align }
       : null,
     attachedTo: element.attachedTo,
     entity: element.entity

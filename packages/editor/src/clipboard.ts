@@ -49,6 +49,12 @@ function copyStatement(
 
 const fmt = (n: number) => String(Math.round(n));
 
+/** A coordinate of a pen to a tenth, a whole number without a decimal, as `createPen` writes it. */
+function tenth(n: number): string {
+  const rounded = Math.round(n * 10) / 10;
+  return String(Object.is(rounded, -0) ? 0 : rounded);
+}
+
 /**
  * A complete `.meltemi` source with the selected elements (groups with their children), the
  * relations among them, their placement and their styles. Unplaced elements get the position they
@@ -93,6 +99,13 @@ export function copyFragment(
       lines.push(`${INDENT}line ${element.id}${label} from ${points[0]} to ${points.at(-1)}${via}`);
       continue;
     }
+    // A pen copied without its group, likewise, with the points it is drawn through.
+    const stroke = element.kind === "pen" ? view.layout?.pens?.get(element.id) : undefined;
+    if (stroke && element.groupPath.length > 0) {
+      const points = stroke.points.map((p) => `(${tenth(p.x)}, ${tenth(p.y)})`);
+      lines.push(`${INDENT}pen ${element.id} [${points.join(", ")}]`);
+      continue;
+    }
     lines.push(
       element.node
         ? copyStatement(text, element.node.start, element.node.end, INDENT, cuts)
@@ -125,6 +138,16 @@ export function copyFragment(
       if (label) {
         placement.push(copyStatement(text, label.node.start, label.node.end, INDENT + INDENT));
       }
+      continue;
+    }
+    // A pen has its points in its statement too, and a child copied with its list is placed by
+    // the list (its size, a least size, goes with it).
+    if (element.kind === "pen") continue;
+    const parent = element.groupPath[element.groupPath.length - 1];
+    const listed = !detached && parent !== undefined && !!diagram.elementsById.get(parent)?.list;
+    if (listed) {
+      if (size)
+        placement.push(copyStatement(text, size.node.start, size.node.end, INDENT + INDENT));
       continue;
     }
     if (place && !detached)
@@ -268,9 +291,13 @@ export function pasteOperations(
   const places = diagram!.placement.filter(
     (p): p is PlaceEntry => p.statement === "place" && topLevel(p.target),
   );
-  // Free lines at the top level move by their points.
+  // Free lines and pens at the top level move by their points.
   const lines = diagram!.elements.filter((e) => e.kind === "line" && e.line && topLevel(e.id));
-  const linePoints = lines.flatMap((e) => [e.line!.from, ...e.line!.via, e.line!.to]);
+  const pens = diagram!.elements.filter((e) => e.kind === "pen" && e.pen && topLevel(e.id));
+  const linePoints = [
+    ...lines.flatMap((e) => [e.line!.from, ...e.line!.via, e.line!.to]),
+    ...pens.flatMap((e) => e.pen!.points),
+  ];
   let shift = "shift" in where ? where.shift : { x: 0, y: 0 };
   if ("at" in where && places.length + linePoints.length > 0) {
     const xs = [...places.map((p) => p.x), ...linePoints.map((p) => p.x)];
@@ -300,6 +327,15 @@ export function pasteOperations(
         from: by(line.line!.from),
         to: by(line.line!.to),
         via: line.line!.via.map(by),
+      });
+      if (error) return { ok: false, reason: error };
+    }
+    for (const pen of pens) {
+      const error = apply({
+        kind: "setPenPoints",
+        diagram: diagram!.id,
+        element: pen.id,
+        points: pen.pen!.points.map((p) => ({ x: p.x + shift.x, y: p.y + shift.y })),
       });
       if (error) return { ok: false, reason: error };
     }

@@ -1,0 +1,67 @@
+language "0.2"
+
+// A whiteboard after a planning meeting: a heading marked with the highlighter, a row of two
+// columns of stickies that place themselves, the launch date circled by hand with an arrow to it,
+// and a risk flagged in red. Every stroke is a `pen` with its points; the board grows with it.
+diagram launch: free {
+  title "Planning the launch"
+  theme "sketch.light"
+  preset board
+  layout manual
+
+  pen marker [(322, 80), (369.2, 78.5), (416.4, 79.1), (463.6, 80.9), (510.8, 81.5), (558, 80)]
+  text heading "Planning the launch"
+
+  group scope "" {
+    layout row
+    spacing 24
+    align stretch
+
+    group must "Must have" {
+      layout column
+      spacing 12
+      sticky signup "Sign up in one step"
+      sticky pricing "A pricing page with three plans"
+    }
+
+    group nice "Nice to have" {
+      layout column
+      spacing 12
+      sticky dark "Dark mode"
+      sticky invites "Invite the whole team at once"
+    }
+  }
+
+  pen arrow [
+    (496, 318), (511.3, 298.7), (526.7, 282.8), (542, 273), (557.3, 270.2), (572.7, 273.3),
+    (588, 280)
+  ]
+  text date "Launch\n12 May"
+  pen circle [
+    (611.2, 219.6), (625.5, 201.2), (652.3, 188.8), (684.2, 183.4), (715.7, 180.6), (748.4, 179.4),
+    (781, 184.7), (805.9, 198.4), (821.2, 215.9), (833.1, 233.6), (841.9, 252.7), (838.7, 272.9),
+    (820.4, 290), (795.4, 302.5), (769.5, 313.7), (739.8, 322.8), (706.1, 324.2), (675, 316.4),
+    (649.3, 304.6), (625.1, 292), (604.3, 276.2), (596.5, 256.5)
+  ]
+
+  sticky risk "Risk: the payment provider's review takes two weeks"
+  pen bang [(824, 420), (825.5, 446), (826, 472)]
+  pen bangDot [(827, 496)]
+
+  placement {
+    place heading at (440, 70)
+    place scope at (260, 360)
+    place date at (720, 252)
+    place risk at (720, 480)
+  }
+
+  style heading { fontSize 34; fontWeight 700 }
+  style marker { stroke highlight; width 20; opacity 0.35 }
+  style pricing { fill "#f8bbd0" }
+  style dark, invites { fill "#bbdefb" }
+  style arrow { width 3; arrowhead triangle }
+  style date { fontSize 30; fontWeight 700 }
+  style circle { width 3 }
+  style risk { fill "#ffe0b2"; rotation 3 }
+  style bang, bangDot { stroke danger; width 6 }
+}

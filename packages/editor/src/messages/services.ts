@@ -42,6 +42,9 @@ const en = {
     box: 'A shape with a label in a free diagram: `box <id> "Label"`, or `<id>["Label"]`.',
     text: 'Measured text without a frame in a free diagram: `text <id> "Line one\\nLine two"`.',
     image: 'An image file of the project in a free diagram: `image <id> "logo.png"`.',
+    sticky:
+      'A sticky note of a free diagram: `sticky <id> "Text"`, a square card that keeps its size and wraps and shrinks its text to fit it. In a theme, the colour of stickies.',
+    pen: "A freehand stroke of a free diagram through its points, in the coordinates of its group: `pen <id> [(x, y), (x, y), ...]`; one point is a dot.",
     // sequence participants
     participant: 'A participant with a box head: `participant <id> "Label"`, or `<id>["Label"]`.',
     actor: 'A person: `actor <id> "Label"`.',
@@ -96,7 +99,9 @@ const en = {
     layers: "Layers of a free diagram from back to front: `layers back, main, front`.",
     title: "The title, in the SVG `<title>` and the brand frame.",
     description: "A description: the SVG `<desc>`, or the second line of a box.",
-    preset: "`document` or `slide` (16:9) canvas.",
+    preset: "`document`, `slide` (16:9) or `board` (a whiteboard that grows) canvas.",
+    board:
+      "A whiteboard canvas that grows with what is drawn on it: `preset board` reports no `layout.too-large`.",
     canvas: "A fixed canvas size: `canvas (1280, 720)`.",
     placement: "Positions, sizes, routes, label anchors and constraints.",
     style: "Visual properties for elements or named relations: `style a, b { fill accent }`.",
@@ -146,7 +151,11 @@ const en = {
     stroke: "Outline or connector colour.",
     color: "Text colour; in `animate`, the colour of flow particles, a pulse or a trace.",
     line: "`solid`, `dashed` or `dotted` outline or connector.",
-    width: "Outline or connector width, 0 to 16.",
+    width: "Outline or connector width, 0 to 64; the width of a pen's stroke, 1 to 64.",
+    opacity:
+      "How opaque an element, group, line or pen of a free diagram is, 0 to 1: `opacity 0.35`.",
+    highlight: "In a theme, the colour of the highlighter: `stroke highlight` on a pen.",
+    stickyText: "In a theme, the colour of the text of stickies.",
     pattern: "`none`, `hatch`, `dots` or `cross` over the shape; elements only.",
     arrowhead:
       "The head at a relation's target: `triangle`, `open`, `none`, `triangleOutline`, `diamond`, `diamondOutline`, `circle`, `circleOutline`, `bar`, `cross`, or the crow's-foot ends `many`, `oneOrMany`, `onlyOne`, `zeroOrOne`, `zeroOrMany`; relations only.",
@@ -189,6 +198,25 @@ const en = {
     orthogonal: "Horizontal and vertical segments.",
     polyline: "Straight segments.",
     bezier: "A smooth curve.",
+  },
+
+  /**
+   * What the words of a list group mean in a group block of a free diagram, where `layout`,
+   * `align`, `column` and `row` are not the diagram's or the placement's: completion and hover.
+   */
+  listWords: {
+    layout:
+      "Makes the group a list that arranges its children in source order: `layout column` (one under the other) or `layout row` (side by side); a `place` on a child is ignored.",
+    spacing:
+      "The distance between the children of a list, 0 to 400: `spacing 12`; half the theme's `groupPadding` by default.",
+    align:
+      "Where the children of a list sit across it: `start` (default), `center`, `end` or `stretch`.",
+    column: "The children one under the other, the list growing downwards.",
+    row: "The children side by side, the list growing to the right; a row of columns is a kanban board.",
+    start: "At the start across the list: the left of a column, the top of a row; the default.",
+    center: "Centred across the list.",
+    end: "At the end across the list: the right of a column, the bottom of a row.",
+    stretch: "Stretched across the list to its width (a column) or its height (a row).",
   },
 
   /** What every option of an `export` profile does: completion and hover in its block. */
@@ -243,6 +271,7 @@ const en = {
       "Moves the view box to the targets plus 40 px: `camera a, b`, or `camera all` for the whole view; 800 ms by default.",
     trace:
       "Draws one relation from its source to its target in the accent colour: `trace r [over <time>]`; 1.2 s by default.",
+    draw: "Draws pens, free lines and named relations from their first point to their last, one after the other, and leaves them drawn: `draw a, b [over <time>]`; 800 ms by default. Targets first drawn start hidden.",
     hold: "Waits: `hold 2s`.",
     parallel:
       "Actions that start together: `parallel { ... }`. It lasts as long as its longest action.",
@@ -293,6 +322,17 @@ const en = {
     within: (path: string) => `in ${path}`,
     layer: (layer: string) => `layer ${code(layer)}`,
     linked: (target: string) => `linked to ${code(target)}`,
+
+    /** Whiteboard objects: the points of a pen, the colour of a sticky, a list group. */
+    points: (count: number) => `${count} point${count === 1 ? "" : "s"}`,
+    colour: (colour: string, token: string | null) =>
+      `colour ${code(colour)}${token ? ` (the theme's ${code(token)})` : ""}`,
+    list: (layout: string) => `list ${code(`layout ${layout}`)}`,
+    listSpacing: (spacing: string, byDefault: boolean) =>
+      `${code(`spacing ${spacing}`)}${byDefault ? " (default)" : ""}`,
+    listAlign: (align: string, byDefault: boolean) =>
+      `${code(`align ${align}`)}${byDefault ? " (default)" : ""}`,
+    placedBy: (list: string) => `placed by the list ${code(list)}`,
 
     /** What a relation is. */
     relation: "relation",
@@ -431,6 +471,10 @@ const en = {
     confirmAssumption: "Confirm the relation (remove its assumption)",
     nameRelation: (id: string) => `Name this relation ${code(id)}`,
     arrangeDiagram: (id: string) => `Arrange diagram ${code(id)} (recompute every position)`,
+    removePlace: (element: string, list: string) =>
+      `Remove \`place ${element}\` (the list ${code(list)} places it)`,
+    addListLayout: (group: string) => `Add \`layout column\` to ${code(group)}`,
+    switchPreset: (preset: string) => `Switch to \`preset ${preset}\``,
   },
 
   /** Why the token under the cursor cannot be renamed here. */
@@ -448,6 +492,13 @@ const en = {
     model: "model",
     theme: "theme",
     extends: (theme: string) => `extends ${theme}`,
+  },
+
+  /** Words for the kinds of free objects the editor's own table does not name. */
+  kinds: {
+    line: "line",
+    pen: "pen",
+    sticky: "sticky",
   },
 };
 
@@ -477,6 +528,9 @@ const es: typeof en = {
     box: 'Una forma con una etiqueta en un diagrama libre: `box <id> "Label"`, o `<id>["Label"]`.',
     text: 'Texto medido sin marco en un diagrama libre: `text <id> "Line one\\nLine two"`.',
     image: 'Un archivo de imagen del proyecto en un diagrama libre: `image <id> "logo.png"`.',
+    sticky:
+      'Una nota adhesiva de un diagrama libre: `sticky <id> "Text"`, una tarjeta cuadrada que conserva su tamaño y ajusta y reduce su texto para que quepa. En un tema, el color de las notas adhesivas.',
+    pen: "Un trazo a mano alzada de un diagrama libre que pasa por sus puntos, en las coordenadas de su grupo: `pen <id> [(x, y), (x, y), ...]`; con un solo punto dibuja un punto redondo.",
     // participantes de secuencias
     participant:
       'Un participante con una cabecera de caja: `participant <id> "Label"`, o `<id>["Label"]`.',
@@ -537,7 +591,9 @@ const es: typeof en = {
     layers: "Las capas de un diagrama libre, de atrás hacia adelante: `layers back, main, front`.",
     title: "El título, en el `<title>` del SVG y en el marco de marca.",
     description: "Una descripción: el `<desc>` del SVG, o la segunda línea de una caja.",
-    preset: "Lienzo `document` o `slide` (16:9).",
+    preset: "Lienzo `document`, `slide` (16:9) o `board` (una pizarra que crece).",
+    board:
+      "Un lienzo de pizarra que crece con lo que se dibuja en él: `preset board` no informa `layout.too-large`.",
     canvas: "Un tamaño fijo de lienzo: `canvas (1280, 720)`.",
     placement: "Posiciones, tamaños, rutas, anclas de etiquetas y restricciones.",
     style:
@@ -590,7 +646,11 @@ const es: typeof en = {
     color:
       "El color del texto; en `animate`, el color de las partículas, de un pulso o de un recorrido.",
     line: "Contorno o conector `solid`, `dashed` o `dotted`.",
-    width: "El ancho del contorno o del conector, de 0 a 16.",
+    width: "El ancho del contorno o del conector, de 0 a 64; el del trazo de un lápiz, de 1 a 64.",
+    opacity:
+      "Cuán opaco es un elemento, un grupo, una línea o un lápiz de un diagrama libre, de 0 a 1: `opacity 0.35`.",
+    highlight: "En un tema, el color del marcador: `stroke highlight` en un lápiz.",
+    stickyText: "En un tema, el color del texto de las notas adhesivas.",
     pattern: "`none`, `hatch`, `dots` o `cross` sobre la forma; solo elementos.",
     arrowhead:
       "La punta en el destino de una relación: `triangle`, `open`, `none`, `triangleOutline`, `diamond`, `diamondOutline`, `circle`, `circleOutline`, `bar`, `cross`, o los extremos de pata de gallo `many`, `oneOrMany`, `onlyOne`, `zeroOrOne`, `zeroOrMany`; solo relaciones.",
@@ -635,6 +695,22 @@ const es: typeof en = {
     orthogonal: "Segmentos horizontales y verticales.",
     polyline: "Segmentos rectos.",
     bezier: "Una curva suave.",
+  },
+
+  listWords: {
+    layout:
+      "Convierte el grupo en una lista que ordena a sus hijos en el orden del código: `layout column` (uno debajo de otro) o `layout row` (uno al lado de otro); se ignora el `place` de un hijo.",
+    spacing:
+      "La distancia entre los hijos de una lista, de 0 a 400: `spacing 12`; de forma predeterminada, la mitad del `groupPadding` del tema.",
+    align:
+      "Dónde quedan los hijos de una lista a lo ancho de ella: `start` (predeterminado), `center`, `end` o `stretch`.",
+    column: "Los hijos uno debajo de otro; la lista crece hacia abajo.",
+    row: "Los hijos uno al lado de otro; la lista crece hacia la derecha. Una fila de columnas es un tablero kanban.",
+    start:
+      "Al principio, a lo ancho de la lista: a la izquierda en una columna, arriba en una fila; lo predeterminado.",
+    center: "Centrados a lo ancho de la lista.",
+    end: "Al final, a lo ancho de la lista: a la derecha en una columna, abajo en una fila.",
+    stretch: "Estirados a lo ancho de la lista: a su ancho (una columna) o a su alto (una fila).",
   },
 
   exportOptions: {
@@ -691,6 +767,7 @@ const es: typeof en = {
       "Lleva el encuadre a los objetivos más 40 px: `camera a, b`, o `camera all` para toda la vista; 800 ms de forma predeterminada.",
     trace:
       "Dibuja una relación de su origen a su destino en el color de acento: `trace r [over <time>]`; 1,2 s de forma predeterminada.",
+    draw: "Dibuja lápices, líneas libres y relaciones con nombre de su primer punto al último, uno tras otro, y los deja dibujados: `draw a, b [over <time>]`; 800 ms de forma predeterminada. Los objetivos que se dibujan por primera vez empiezan ocultos.",
     hold: "Espera: `hold 2s`.",
     parallel: "Acciones que empiezan juntas: `parallel { ... }`. Dura lo que su acción más larga.",
     over: "El tiempo que dura la acción o la transición, como `over 800ms` o `over 1.5s`.",
@@ -732,6 +809,16 @@ const es: typeof en = {
     within: (path) => `en ${path}`,
     layer: (layer) => `capa ${code(layer)}`,
     linked: (target) => `enlace a ${code(target)}`,
+
+    points: (count) => `${count} ${plural("es", count, { one: "punto", other: "puntos" })}`,
+    colour: (colour, token) =>
+      `color ${code(colour)}${token ? ` (el ${code(token)} del tema)` : ""}`,
+    list: (layout) => `lista ${code(`layout ${layout}`)}`,
+    listSpacing: (spacing, byDefault) =>
+      `${code(`spacing ${spacing}`)}${byDefault ? " (predeterminado)" : ""}`,
+    listAlign: (align, byDefault) =>
+      `${code(`align ${align}`)}${byDefault ? " (predeterminado)" : ""}`,
+    placedBy: (list) => `colocado por la lista ${code(list)}`,
 
     relation: "relación",
     message: "mensaje",
@@ -860,6 +947,10 @@ const es: typeof en = {
     confirmAssumption: "Confirmar la relación (quitar su `assumption`)",
     nameRelation: (id) => `Nombrar esta relación ${code(id)}`,
     arrangeDiagram: (id) => `Organizar el diagrama ${code(id)} (recalcular todas las posiciones)`,
+    removePlace: (element, list) =>
+      `Quitar \`place ${element}\` (la lista ${code(list)} lo coloca)`,
+    addListLayout: (group) => `Agregar \`layout column\` a ${code(group)}`,
+    switchPreset: (preset) => `Cambiar a \`preset ${preset}\``,
   },
 
   rename: {
@@ -876,6 +967,12 @@ const es: typeof en = {
     model: "modelo",
     theme: "tema",
     extends: (theme) => `extiende ${theme}`,
+  },
+
+  kinds: {
+    line: "línea",
+    pen: "lápiz",
+    sticky: "nota adhesiva",
   },
 };
 
@@ -895,8 +992,19 @@ export function entryOf(table: object, word: string): string | undefined {
 
 /**
  * The word for a kind of element or event in the interface language, as the inspector names it
- * ("node", "nodo"). The kinds of declared types keep their own word.
+ * ("node", "nodo"), or as the services name the free objects it does not ("pen", "lápiz"). The
+ * kinds of declared types keep their own word.
  */
 export function kindWord(kind: string): string {
-  return entryOf(messages().kinds, kind) ?? kind;
+  return entryOf(messages().kinds, kind) ?? entryOf(serviceMessages().kinds, kind) ?? kind;
+}
+
+/**
+ * How completion and the outline detail an element: its kind word, then the first line of its
+ * label when it has one ("sticky · Cache the"); a pen, which has none, is its kind word alone.
+ */
+export function elementDetail(element: { readonly kind: string; readonly label: string }): string {
+  const kind = kindWord(element.kind);
+  const label = element.label.split("\n")[0]!;
+  return label === "" ? kind : `${kind} · ${label}`;
 }

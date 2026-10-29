@@ -1,5 +1,6 @@
 import type { EditOperation } from "@meltemi/diagrams-edit";
 import {
+  DEFAULT_PEN_WIDTH,
   groupHeaderOf,
   layoutDiagram,
   stacked,
@@ -36,6 +37,33 @@ export function interiorOf(view: DiagramView, group: string | null): Point {
 const parentId = (e: Element) => e.groupPath[e.groupPath.length - 1] ?? null;
 const layerOf = (e: Element) => e.layer ?? MAIN_LAYER;
 
+/** Whether an element keeps its points in its statement: a free line or a pen stroke. */
+export function keepsPoints(element: Element): boolean {
+  return element.kind === "line" || element.kind === "pen";
+}
+
+/**
+ * The list group (`layout column` or `layout row`) that places an element of a free diagram: its
+ * group when that group is a list, which puts its children one after another and takes no
+ * `place` for them. Undefined for any other element, and for lines and pens, which keep their
+ * points in a list as in any group.
+ */
+export function placingList(diagram: FlowDiagram, element: Element): string | undefined {
+  if (diagram.type !== "free" || keepsPoints(element)) return undefined;
+  const parent = parentId(element);
+  return parent !== null && diagram.elementsById.get(parent)?.list ? parent : undefined;
+}
+
+/**
+ * Whether alignment and distribution move an element: not a group, a line or a pen, which have no
+ * edges to line up, nor a child of a list, which its list places.
+ */
+export function alignable(diagram: FlowDiagram, element: Element): boolean {
+  return (
+    element.kind !== "group" && !keepsPoints(element) && placingList(diagram, element) === undefined
+  );
+}
+
 /**
  * The `convertToContainer` operation for a flow node or a free box, with the elements drawn
  * stacked on it as its children: siblings declared after it on its layer whose box lies inside
@@ -61,8 +89,10 @@ export function containerOperation(
   const after = diagram.elements.slice(diagram.elements.indexOf(element) + 1);
   const children = after.filter((e) => {
     const inner = boxes.get(e.id);
+    // Lines and pens keep their points where they are: they are drawings over the box.
     return (
       inner !== undefined &&
+      !keepsPoints(e) &&
       parentId(e) === parentId(element) &&
       layerOf(e) === layerOf(element) &&
       stacked(box, inner)
@@ -112,12 +142,14 @@ export function stackedAfterMove(
   for (const id of ids) {
     const element = diagram.elementsById.get(id);
     const box = boxes.get(id);
-    if (!element || !box) continue;
+    // A stroke or a line over a box is a drawing on it, which no container carries.
+    if (!element || !box || keepsPoints(element)) continue;
     const landed = { ...box, x: box.x + delta.x, y: box.y + delta.y };
     // The smallest box that holds it, which is the one it is seen on.
     let outer: { id: string; area: number } | undefined;
     for (const other of diagram.elements) {
-      if (other.kind === "group" || moves(other) || layerOf(other) !== layerOf(element)) continue;
+      if (other.kind === "group" || keepsPoints(other) || moves(other)) continue;
+      if (layerOf(other) !== layerOf(element)) continue;
       const holder = boxes.get(other.id);
       if (!holder || !stacked(holder, landed)) continue;
       const area = holder.width * holder.height;
@@ -165,7 +197,10 @@ export function steadyGroups(
       diagram.elements.every(
         (e) => e.groupPath[e.groupPath.length - 1] !== group || leaving.includes(e.id),
       );
-    if (!emptied && !(placed && diagram.type === "free")) continue;
+    // A list grows and shrinks with its children, whose places it sets: it keeps no size of the
+    // moment unless it is left empty.
+    const list = Boolean(diagram.elementsById.get(group)?.list);
+    if (!emptied && (list || !(placed && diagram.type === "free"))) continue;
     if (!placed) {
       // Relative to the interior of its own group in free diagrams.
       const origin = diagram.type === "free" ? view.layout?.origins?.get(group) : undefined;
@@ -189,9 +224,188 @@ export function steadyGroups(
 }
 
 /**
+ * Whether a box holds a stroke through `points` of `width`: the box of its points grown by half
+ * its width on every side, as the layout bounds a pen.
+ */
+function holdsStroke(box: Box, points: readonly Point[], width: number): boolean {
+  const half = width / 2;
+  const slack = 1e-6;
+  return points.every(
+    (p) =>
+      p.x - half >= box.x - slack &&
+      p.x + half <= box.x + box.width + slack &&
+      p.y - half >= box.y - slack &&
+      p.y + half <= box.y + box.height + slack,
+  );
+}
+
+/**
+ * The group a stroke through `points` (diagram coordinates) of `width` belongs to, from `start`
+ * (the innermost group under its first point, or the group it is in) outwards: the first that is
+ * not a list and whose drawn box holds the whole stroke, so that a stroke never grows a list nor
+ * moves the children it places; the top level (null) when none does. `start` as it is when it is
+ * no group of a drawn free diagram, which the edit judges.
+ */
+export function strokeParent(
+  view: DiagramView,
+  start: string | null,
+  points: readonly Point[],
+  width: number,
+): string | null {
+  const diagram = view.diagram;
+  const group = start === null ? undefined : diagram.elementsById.get(start);
+  const boxes = view.layout?.boxes;
+  if (start === null || group?.kind !== "group" || diagram.type !== "free" || !boxes) return start;
+  for (const id of [start, ...[...group.groupPath].reverse()]) {
+    const candidate = diagram.elementsById.get(id);
+    const box = boxes.get(id);
+    if (candidate && candidate.list === null && box && holdsStroke(box, points, width)) return id;
+  }
+  return null;
+}
+
+/**
+ * The `setSize` that keeps a plain group of a free diagram drawn as it is while a stroke goes into
+ * it or moves in it: a group without `size` derives its size from what it holds and grows about
+ * its centre, which moves its interior and every child placed in it. The size is written as drawn,
+ * unrounded, so that the interior stays where it is to the hundredth. Nothing for the top level,
+ * a list (which grows with its children) or a group with a size.
+ */
+export function steadySize(view: DiagramView, group: string | null): EditOperation[] {
+  const diagram = view.diagram;
+  if (group === null || diagram.type !== "free") return [];
+  const element = diagram.elementsById.get(group);
+  const box = view.layout?.boxes?.get(group);
+  if (element?.kind !== "group" || element.list !== null || !box) return [];
+  if (diagram.placement.some((p) => p.statement === "size" && p.target === group)) return [];
+  return [
+    { kind: "setSize", diagram: view.id, element: group, width: box.width, height: box.height },
+  ];
+}
+
+/**
+ * The operations that draw the pen `element` through `points`, in diagram coordinates, as a drag
+ * or a scale of its stroke leaves it: its points in its group's interior. A pen in a list, which
+ * would grow the list and move the children it places, goes out first to the nearest group around
+ * the list that is not a list and holds the stroke (`strokeParent`), or to the top level, so that
+ * it lands where it is dropped. `parent` is the group it ends in, which the caller keeps steady
+ * (`steadySize`).
+ */
+export function penOperations(
+  view: DiagramView,
+  element: Element,
+  points: readonly Point[],
+): { readonly operations: EditOperation[]; readonly parent: string | null } {
+  const diagram = view.diagram;
+  const current = parentId(element);
+  const width = view.layout?.pens?.get(element.id)?.width ?? DEFAULT_PEN_WIDTH;
+  const parent =
+    current !== null && diagram.elementsById.get(current)?.list
+      ? strokeParent(view, current, points, width)
+      : current;
+  const operations: EditOperation[] = [];
+  if (parent !== current) {
+    operations.push({ kind: "moveElement", diagram: view.id, element: element.id, parent });
+  }
+  const origin = interiorOf(view, parent);
+  operations.push({
+    kind: "setPenPoints",
+    diagram: view.id,
+    element: element.id,
+    points: points.map((p) => ({ x: p.x - origin.x, y: p.y - origin.y })),
+  });
+  return { operations, parent };
+}
+
+/**
+ * The operations that keep what the list group `list` holds drawn where it is once the list no
+ * longer places it, in the interior of `into`: the list itself when its layout goes, its parent
+ * when it is ungrouped (null: the top level). Each child the list places gets its `place` at its
+ * drawn centre, and the size it is drawn with when the list stretches it; when the list stays a
+ * group, a written size, which was its least size, becomes the size it is drawn with. Lines and
+ * pens that leave the list get their drawn points in the new interior. Into another list, which
+ * places them in order, the children get no place; nor in an `auto` diagram, whose engine places
+ * them, and which a place would make `assisted`.
+ */
+export function unlistedOperations(
+  view: DiagramView,
+  list: string,
+  into: string | null,
+): EditOperation[] {
+  const diagram = view.diagram;
+  const layout = view.layout;
+  const geometry = layout?.lists?.get(list);
+  const boxes = layout?.boxes;
+  if (diagram.type !== "free" || !geometry || !boxes) return [];
+  const d = view.id;
+  const sized = (id: string) =>
+    diagram.placement.some((p) => p.statement === "size" && p.target === id);
+  const size = (id: string, box: Box): EditOperation => ({
+    kind: "setSize",
+    diagram: d,
+    element: id,
+    width: Math.round(box.width),
+    height: Math.round(box.height),
+  });
+  const origin = into === list ? geometry.origin : interiorOf(view, into);
+  const ops: EditOperation[] = [];
+  const intoList = into !== null && into !== list && Boolean(diagram.elementsById.get(into)?.list);
+  if (!intoList) {
+    for (const id of geometry.children) {
+      const box = boxes.get(id);
+      if (!box) continue;
+      if (view.mode !== "auto") {
+        ops.push({
+          kind: "setPosition",
+          diagram: d,
+          element: id,
+          x: Math.round(box.x + box.width / 2 - origin.x),
+          y: Math.round(box.y + box.height / 2 - origin.y),
+        });
+      }
+      if (geometry.align === "stretch" && !sized(id)) ops.push(size(id, box));
+    }
+  }
+  if (into === list) {
+    const box = boxes.get(list);
+    if (box && sized(list)) ops.push(size(list, box));
+    return ops;
+  }
+  for (const element of diagram.elements) {
+    if (parentId(element) !== list) continue;
+    if (element.kind === "pen") {
+      const stroke = layout.pens?.get(element.id);
+      if (!stroke) continue;
+      ops.push({
+        kind: "setPenPoints",
+        diagram: d,
+        element: element.id,
+        points: stroke.points.map((p) => ({ x: p.x - origin.x, y: p.y - origin.y })),
+      });
+    } else if (element.kind === "line" && element.line) {
+      const at = layout.origins?.get(element.id) ?? { x: 0, y: 0 };
+      const moved = (p: Point) => ({
+        x: Math.round(p.x + at.x - origin.x),
+        y: Math.round(p.y + at.y - origin.y),
+      });
+      ops.push({
+        kind: "setLinePoints",
+        diagram: d,
+        element: element.id,
+        from: moved(element.line.from),
+        to: moved(element.line.to),
+        via: element.line.via.map(moved),
+      });
+    }
+  }
+  return ops;
+}
+
+/**
  * Centres of elements and sizes of groups from laid-out boxes. In free diagrams the centres of
  * group children are written relative to their group's interior (`origins`), and groups get a
- * place and a size.
+ * place and a size; lines and pens keep their points, the children of a list get no centre (the
+ * list places them) and a list no size (it grows with its children).
  */
 function fromBoxes(
   diagram: FlowDiagram,
@@ -207,13 +421,16 @@ function fromBoxes(
   const free = diagram.type === "free";
   for (const element of diagram.elements) {
     const box = boxes.get(element.id);
-    if (!box) continue;
+    if (!box || (free && keepsPoints(element))) continue;
+    if (placingList(diagram, element) !== undefined) continue;
     const origin = free ? origins?.get(element.id) : undefined;
     positions.set(element.id, {
       x: box.x + box.width / 2 - (origin?.x ?? 0),
       y: box.y + box.height / 2 - (origin?.y ?? 0),
     });
-    if (element.kind === "group") sizes.set(element.id, { width: box.width, height: box.height });
+    if (element.kind === "group" && !element.list) {
+      sizes.set(element.id, { width: box.width, height: box.height });
+    }
   }
   return free ? { positions, sizes, writeGroups: true } : { positions, sizes };
 }

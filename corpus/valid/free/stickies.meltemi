@@ -1,0 +1,42 @@
+language "0.2"
+
+// Stickies: the theme's colour and the six fixed ones, a long text that wraps and shrinks to fit
+// its card, a turned sticky, one with an icon, one sized and aligned to its top left corner, a
+// relation between two of them, and a rule for every sticky.
+diagram stickies: free {
+  title "Stickies"
+  layout manual
+
+  text heading "Stickies"
+
+  sticky theme "The theme's colour"
+  sticky yellow "Yellow"
+  sticky pink "Pink, with a long text that wraps at the inner width of the card and shrinks a pixel at a time until every word of it fits inside the card"
+  sticky green "Green, with an icon"
+  sticky blue "Blue, turned"
+  sticky orange "Orange"
+  sticky purple "Purple, sized and aligned\nto the top left"
+
+  blue -> orange: "then" as next
+
+  placement {
+    place heading at (440, 40)
+    place theme at (140, 170)
+    place yellow at (340, 170)
+    place pink at (540, 170)
+    place green at (740, 170)
+    place blue at (140, 400)
+    place orange at (400, 400)
+    place purple at (680, 380)
+    size purple (240, 120)
+  }
+
+  rule sticky { fontWeight 500 }
+  style heading { fontSize 28; fontWeight 700 }
+  style yellow { fill "#fff59d" }
+  style pink { fill "#f8bbd0" }
+  style green { fill "#c8e6c9"; icon "tabler:rocket" }
+  style blue { fill "#bbdefb"; rotation 356 }
+  style orange { fill "#ffe0b2" }
+  style purple { fill "#e1bee7"; textAlign left; verticalAlign top }
+}

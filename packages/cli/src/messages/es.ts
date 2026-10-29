@@ -58,7 +58,8 @@ a los archivos que escriben (si no, el "locale" del proyecto; los mensajes sigue
 LANG).
 
 Opciones de init:
-  --template <nombre>       flow (predeterminada), c4, sequence, free o purchase
+  --template <nombre>       flow (predeterminada), c4, sequence, free, kanban, whiteboard o
+                            purchase
   --name <nombre>           El nombre del proyecto; por defecto, el de la carpeta
   --list                    Listar las plantillas
   --ci <servicio>           Escribir también un flujo de trabajo de CI: github o gitlab
@@ -643,6 +644,15 @@ iniciada o el token fue rechazado.
       free: {
         title: "Diapositiva",
         description: "Una diapositiva compuesta libremente: texto, cajas, un icono y un grupo",
+      },
+      kanban: {
+        title: "Tablero kanban",
+        description: "Un tablero de columnas y notas adhesivas",
+      },
+      whiteboard: {
+        title: "Pizarra",
+        description:
+          "Un tablero de estilo boceto con trazos, notas adhesivas y una historia que los dibuja",
       },
       purchase: {
         title: "Ejemplo de compra",

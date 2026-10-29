@@ -1,13 +1,12 @@
 import type { Arg, KeywordStatement, TextEdit } from "@meltemi/diagrams-language";
 import type { Point } from "@meltemi/diagrams-model";
-import { insertStatement, reject, requireElement, type EditContext } from "./context.js";
+import { reject, requireElement, type EditContext } from "./context.js";
 import { freeId } from "./create.js";
 import {
   diagramBody,
   groupBlock,
-  insertAfter,
   insertDeclaration,
-  isKeyword,
+  insertDiagramStyle,
   verifyNoNewErrors,
 } from "./insert.js";
 import { reasons } from "./messages/index.js";
@@ -56,17 +55,7 @@ export function createLine(ctx: EditContext, op: OperationOf<"createLine">): Tex
           : `${text}${ctx.eol}${indent}${beside}`,
     ),
   ];
-  if (styled !== undefined && op.parent) {
-    // A group takes no style statement: after the diagram's last one, else at its end.
-    const body = diagramBody(ctx);
-    const styles = body.statements.filter((s) => isKeyword(s, "style"));
-    const last = styles[styles.length - 1];
-    edits.push(
-      last
-        ? insertAfter(ctx, body, last, () => styled)
-        : insertStatement(ctx, body, ctx.diagram.node.start, () => styled),
-    );
-  }
+  if (styled !== undefined && op.parent) edits.push(insertDiagramStyle(ctx, styled));
   verifyNoNewErrors(ctx, edits);
   return edits;
 }

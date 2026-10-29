@@ -1,6 +1,6 @@
 import { planEdit, type EditOperation } from "@meltemi/diagrams-edit";
-import type { Diagnostic, TextEdit } from "@meltemi/diagrams-language";
-import type { FlowDiagram, RouteEntry, SequenceEvent } from "@meltemi/diagrams-model";
+import type { Diagnostic, Statement, TextEdit } from "@meltemi/diagrams-language";
+import type { Element, FlowDiagram, RouteEntry, SequenceEvent } from "@meltemi/diagrams-model";
 import type { DocumentAnalysis } from "../analysis.js";
 import { arrangeOperation } from "../arrange.js";
 import { deleteStatements, removeListItems } from "@meltemi/diagrams-edit";
@@ -65,6 +65,31 @@ function eventAt(diagram: FlowDiagram, offset: number, kind: SequenceEvent["kind
       found = event;
   }
   return found;
+}
+
+/**
+ * The group of a free diagram whose block writes `spacing` or `align` without `layout`, when the
+ * diagnostic is the one on that keyword: the model refuses them until the group is a list.
+ */
+function listWithoutLayout(
+  analysis: DocumentAnalysis,
+  diagram: FlowDiagram,
+  diagnostic: Diagnostic,
+): string | undefined {
+  if (diagram.type !== "free") return undefined;
+  const start = diagnostic.range.start.offset;
+  const word = analysis.text.slice(start, diagnostic.range.end.offset);
+  if (word !== "spacing" && word !== "align") return undefined;
+  const statementsOf = (e: Element): readonly Statement[] =>
+    e.kind === "group" ? (e.node?.block?.statements ?? []) : [];
+  const group = diagram.elements.find((e) =>
+    statementsOf(e).some((s) => s.kind === "KeywordStatement" && s.keyword.start === start),
+  );
+  if (!group) return undefined;
+  const listed = statementsOf(group).some(
+    (s) => s.kind === "KeywordStatement" && s.keyword.text === "layout",
+  );
+  return listed ? undefined : group.id;
 }
 
 function fixes(analysis: DocumentAnalysis, diagnostic: Diagnostic): CodeAction[] {
@@ -298,6 +323,51 @@ function fixes(analysis: DocumentAnalysis, diagnostic: Diagnostic): CodeAction[]
           },
         ]);
       }
+      break;
+    }
+    case "layout.place-ignored": {
+      // A list places its children: the child's `place` goes (`ids` is the child, then the list).
+      const [element, list] = ids;
+      const place = diagram?.placement.find((p) => p.statement === "place" && p.target === element);
+      if (!element || !list || !place) break;
+      add(
+        t.removePlace(element, list),
+        deleteStatements(analysis.text, analysis.compilation.parse.root, [place.node]),
+        true,
+      );
+      break;
+    }
+    case "layout.too-large": {
+      // A document that grew into a whiteboard: the board's canvas grows with it.
+      if (!diagram || diagram.properties.preset !== "document") break;
+      add(
+        t.switchPreset("board"),
+        plan(analysis, {
+          kind: "setDiagramProperty",
+          diagram: diagram.id,
+          property: "preset",
+          value: "board",
+        }),
+        true,
+      );
+      break;
+    }
+    case "prop.invalid-value": {
+      // `spacing` or `align` in a group block without `layout`: the list starts as a column.
+      const group = diagram && listWithoutLayout(analysis, diagram, diagnostic);
+      if (!diagram || !group) break;
+      add(
+        t.addListLayout(group),
+        plan(analysis, {
+          kind: "setElementProperty",
+          diagram: diagram.id,
+          target: group,
+          targetKind: "element",
+          property: "layout",
+          value: "column",
+        }),
+        true,
+      );
       break;
     }
     case "layout.text-overflow": {

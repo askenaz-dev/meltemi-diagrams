@@ -1,0 +1,1667 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "pens",
+      "type": "free",
+      "range": {
+        "start": {
+          "offset": 305,
+          "line": 6,
+          "column": 1
+        },
+        "end": {
+          "offset": 2612,
+          "line": 66,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": null,
+        "title": "Pen strokes",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null
+      },
+      "classes": [
+        {
+          "id": "caption",
+          "properties": {
+            "color": "@muted",
+            "fontSize": 14
+          },
+          "range": {
+            "start": {
+              "offset": 2252,
+              "line": 58,
+              "column": 3
+            },
+            "end": {
+              "offset": 2294,
+              "line": 58,
+              "column": 45
+            }
+          }
+        }
+      ],
+      "rules": [
+        {
+          "kind": "pen",
+          "properties": {
+            "width": 4
+          },
+          "range": {
+            "start": {
+              "offset": 2297,
+              "line": 59,
+              "column": 3
+            },
+            "end": {
+              "offset": 2317,
+              "line": 59,
+              "column": 23
+            }
+          }
+        }
+      ],
+      "elements": [
+        {
+          "id": "marker",
+          "kind": "pen",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": {
+            "points": [
+              {
+                "x": 318,
+                "y": 52
+              },
+              {
+                "x": 362.5,
+                "y": 53.4
+              },
+              {
+                "x": 401.2,
+                "y": 51.8
+              },
+              {
+                "x": 440.8,
+                "y": 53.1
+              },
+              {
+                "x": 482,
+                "y": 52
+              }
+            ]
+          },
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 367,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 445,
+              "line": 10,
+              "column": 81
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 371,
+              "line": 10,
+              "column": 7
+            },
+            "end": {
+              "offset": 377,
+              "line": 10,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "heading",
+          "kind": "text",
+          "label": "Pen strokes",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 448,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 474,
+              "line": 11,
+              "column": 29
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 453,
+              "line": 11,
+              "column": 8
+            },
+            "end": {
+              "offset": 460,
+              "line": 11,
+              "column": 15
+            }
+          }
+        },
+        {
+          "id": "dot",
+          "kind": "pen",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": {
+            "points": [
+              {
+                "x": 60,
+                "y": 130
+              }
+            ]
+          },
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 478,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 497,
+              "line": 13,
+              "column": 22
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 482,
+              "line": 13,
+              "column": 7
+            },
+            "end": {
+              "offset": 485,
+              "line": 13,
+              "column": 10
+            }
+          }
+        },
+        {
+          "id": "spot",
+          "kind": "pen",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": {
+            "points": [
+              {
+                "x": 100,
+                "y": 130
+              }
+            ]
+          },
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 500,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 521,
+              "line": 14,
+              "column": 24
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 504,
+              "line": 14,
+              "column": 7
+            },
+            "end": {
+              "offset": 508,
+              "line": 14,
+              "column": 11
+            }
+          }
+        },
+        {
+          "id": "twice",
+          "kind": "pen",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": {
+            "points": [
+              {
+                "x": 140,
+                "y": 130
+              },
+              {
+                "x": 140,
+                "y": 130
+              }
+            ]
+          },
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 524,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 558,
+              "line": 15,
+              "column": 37
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 528,
+              "line": 15,
+              "column": 7
+            },
+            "end": {
+              "offset": 533,
+              "line": 15,
+              "column": 12
+            }
+          }
+        },
+        {
+          "id": "tick",
+          "kind": "pen",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": {
+            "points": [
+              {
+                "x": 196,
+                "y": 126
+              },
+              {
+                "x": 208,
+                "y": 140
+              },
+              {
+                "x": 236,
+                "y": 108
+              }
+            ]
+          },
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 561,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 606,
+              "line": 16,
+              "column": 48
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 565,
+              "line": 16,
+              "column": 7
+            },
+            "end": {
+              "offset": 569,
+              "line": 16,
+              "column": 11
+            }
+          }
+        },
+        {
+          "id": "wave",
+          "kind": "pen",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": {
+            "points": [
+              {
+                "x": 330,
+                "y": 130
+              },
+              {
+                "x": 342.7,
+                "y": 121.1
+              },
+              {
+                "x": 355.5,
+                "y": 113.4
+              },
+              {
+                "x": 368.2,
+                "y": 108.2
+              },
+              {
+                "x": 380.9,
+                "y": 106
+              },
+              {
+                "x": 393.6,
+                "y": 107.3
+              },
+              {
+                "x": 406.4,
+                "y": 111.9
+              },
+              {
+                "x": 419.1,
+                "y": 119
+              },
+              {
+                "x": 431.8,
+                "y": 127.7
+              },
+              {
+                "x": 444.5,
+                "y": 136.8
+              },
+              {
+                "x": 457.3,
+                "y": 144.8
+              },
+              {
+                "x": 470,
+                "y": 150.8
+              },
+              {
+                "x": 482.7,
+                "y": 153.8
+              },
+              {
+                "x": 495.5,
+                "y": 153.3
+              },
+              {
+                "x": 508.2,
+                "y": 149.5
+              },
+              {
+                "x": 520.9,
+                "y": 143
+              },
+              {
+                "x": 533.6,
+                "y": 134.5
+              },
+              {
+                "x": 546.4,
+                "y": 125.5
+              },
+              {
+                "x": 559.1,
+                "y": 117
+              },
+              {
+                "x": 571.8,
+                "y": 110.5
+              },
+              {
+                "x": 584.5,
+                "y": 106.7
+              },
+              {
+                "x": 597.3,
+                "y": 106.2
+              },
+              {
+                "x": 610,
+                "y": 109.2
+              },
+              {
+                "x": 622.7,
+                "y": 115.2
+              },
+              {
+                "x": 635.5,
+                "y": 123.2
+              },
+              {
+                "x": 648.2,
+                "y": 132.3
+              },
+              {
+                "x": 660.9,
+                "y": 141
+              },
+              {
+                "x": 673.6,
+                "y": 148.1
+              },
+              {
+                "x": 686.4,
+                "y": 152.7
+              },
+              {
+                "x": 699.1,
+                "y": 154
+              },
+              {
+                "x": 711.8,
+                "y": 151.8
+              },
+              {
+                "x": 724.5,
+                "y": 146.6
+              },
+              {
+                "x": 737.3,
+                "y": 138.9
+              },
+              {
+                "x": 750,
+                "y": 130
+              }
+            ]
+          },
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 609,
+              "line": 17,
+              "column": 3
+            },
+            "end": {
+              "offset": 1166,
+              "line": 24,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 613,
+              "line": 17,
+              "column": 7
+            },
+            "end": {
+              "offset": 617,
+              "line": 17,
+              "column": 11
+            }
+          }
+        },
+        {
+          "id": "arrow",
+          "kind": "pen",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": {
+            "points": [
+              {
+                "x": 60,
+                "y": 310
+              },
+              {
+                "x": 88.8,
+                "y": 288.6
+              },
+              {
+                "x": 117.5,
+                "y": 270
+              },
+              {
+                "x": 146.2,
+                "y": 256.3
+              },
+              {
+                "x": 175,
+                "y": 249
+              },
+              {
+                "x": 203.8,
+                "y": 248.8
+              },
+              {
+                "x": 232.5,
+                "y": 255
+              },
+              {
+                "x": 261.2,
+                "y": 266.1
+              },
+              {
+                "x": 290,
+                "y": 280
+              }
+            ]
+          },
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1170,
+              "line": 26,
+              "column": 3
+            },
+            "end": {
+              "offset": 1318,
+              "line": 29,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1174,
+              "line": 26,
+              "column": 7
+            },
+            "end": {
+              "offset": 1179,
+              "line": 26,
+              "column": 12
+            }
+          }
+        },
+        {
+          "id": "loop",
+          "kind": "pen",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": {
+            "points": [
+              {
+                "x": 420,
+                "y": 252
+              },
+              {
+                "x": 441.3,
+                "y": 252.9
+              },
+              {
+                "x": 459.4,
+                "y": 260.3
+              },
+              {
+                "x": 470.5,
+                "y": 271.5
+              },
+              {
+                "x": 477,
+                "y": 283.6
+              },
+              {
+                "x": 479.6,
+                "y": 296.7
+              },
+              {
+                "x": 474,
+                "y": 309.8
+              },
+              {
+                "x": 459.1,
+                "y": 319.5
+              },
+              {
+                "x": 439.8,
+                "y": 324.5
+              },
+              {
+                "x": 420,
+                "y": 326.8
+              },
+              {
+                "x": 399.1,
+                "y": 326.3
+              },
+              {
+                "x": 379.9,
+                "y": 320.3
+              },
+              {
+                "x": 367.8,
+                "y": 309.1
+              },
+              {
+                "x": 363.1,
+                "y": 296.4
+              },
+              {
+                "x": 362.3,
+                "y": 283.6
+              },
+              {
+                "x": 366.8,
+                "y": 270.5
+              },
+              {
+                "x": 380,
+                "y": 259.8
+              },
+              {
+                "x": 399.6,
+                "y": 254.4
+              }
+            ]
+          },
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1321,
+              "line": 30,
+              "column": 3
+            },
+            "end": {
+              "offset": 1622,
+              "line": 34,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1325,
+              "line": 30,
+              "column": 7
+            },
+            "end": {
+              "offset": 1329,
+              "line": 30,
+              "column": 11
+            }
+          }
+        },
+        {
+          "id": "notes",
+          "kind": "group",
+          "label": "In a group",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1626,
+              "line": 36,
+              "column": 3
+            },
+            "end": {
+              "offset": 1759,
+              "line": 39,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1632,
+              "line": 36,
+              "column": 9
+            },
+            "end": {
+              "offset": 1637,
+              "line": 36,
+              "column": 14
+            }
+          }
+        },
+        {
+          "id": "remark",
+          "kind": "text",
+          "label": "Underlined by hand",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "notes"
+          ],
+          "range": {
+            "start": {
+              "offset": 1657,
+              "line": 37,
+              "column": 5
+            },
+            "end": {
+              "offset": 1689,
+              "line": 37,
+              "column": 37
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1662,
+              "line": 37,
+              "column": 10
+            },
+            "end": {
+              "offset": 1668,
+              "line": 37,
+              "column": 16
+            }
+          }
+        },
+        {
+          "id": "underline",
+          "kind": "pen",
+          "label": "",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": {
+            "points": [
+              {
+                "x": 6,
+                "y": 30
+              },
+              {
+                "x": 58,
+                "y": 32.5
+              },
+              {
+                "x": 112,
+                "y": 30.4
+              },
+              {
+                "x": 162,
+                "y": 31.2
+              }
+            ]
+          },
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "notes"
+          ],
+          "range": {
+            "start": {
+              "offset": 1694,
+              "line": 38,
+              "column": 5
+            },
+            "end": {
+              "offset": 1755,
+              "line": 38,
+              "column": 66
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1698,
+              "line": 38,
+              "column": 9
+            },
+            "end": {
+              "offset": 1707,
+              "line": 38,
+              "column": 18
+            }
+          }
+        },
+        {
+          "id": "dots",
+          "kind": "text",
+          "label": "dots",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [
+            "caption"
+          ],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1763,
+              "line": 41,
+              "column": 3
+            },
+            "end": {
+              "offset": 1797,
+              "line": 41,
+              "column": 37
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1768,
+              "line": 41,
+              "column": 8
+            },
+            "end": {
+              "offset": 1772,
+              "line": 41,
+              "column": 12
+            }
+          }
+        },
+        {
+          "id": "short",
+          "kind": "text",
+          "label": "a short stroke",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [
+            "caption"
+          ],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1800,
+              "line": 42,
+              "column": 3
+            },
+            "end": {
+              "offset": 1845,
+              "line": 42,
+              "column": 48
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1805,
+              "line": 42,
+              "column": 8
+            },
+            "end": {
+              "offset": 1810,
+              "line": 42,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "long",
+          "kind": "text",
+          "label": "a long stroke, filled over lines",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [
+            "caption"
+          ],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1848,
+              "line": 43,
+              "column": 3
+            },
+            "end": {
+              "offset": 1910,
+              "line": 43,
+              "column": 65
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1853,
+              "line": 43,
+              "column": 8
+            },
+            "end": {
+              "offset": 1857,
+              "line": 43,
+              "column": 12
+            }
+          }
+        },
+        {
+          "id": "heads",
+          "kind": "text",
+          "label": "heads",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [
+            "caption"
+          ],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1913,
+              "line": 44,
+              "column": 3
+            },
+            "end": {
+              "offset": 1949,
+              "line": 44,
+              "column": 39
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1918,
+              "line": 44,
+              "column": 8
+            },
+            "end": {
+              "offset": 1923,
+              "line": 44,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "dashed",
+          "kind": "text",
+          "label": "dashed",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [
+            "caption"
+          ],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1952,
+              "line": 45,
+              "column": 3
+            },
+            "end": {
+              "offset": 1990,
+              "line": 45,
+              "column": 41
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1957,
+              "line": 45,
+              "column": 8
+            },
+            "end": {
+              "offset": 1963,
+              "line": 45,
+              "column": 14
+            }
+          }
+        }
+      ],
+      "relations": [],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "heading",
+          "x": 400,
+          "y": 40,
+          "range": {
+            "start": {
+              "offset": 2010,
+              "line": 48,
+              "column": 5
+            },
+            "end": {
+              "offset": 2036,
+              "line": 48,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2016,
+              "line": 48,
+              "column": 11
+            },
+            "end": {
+              "offset": 2023,
+              "line": 48,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "dots",
+          "x": 100,
+          "y": 184,
+          "range": {
+            "start": {
+              "offset": 2041,
+              "line": 49,
+              "column": 5
+            },
+            "end": {
+              "offset": 2065,
+              "line": 49,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2047,
+              "line": 49,
+              "column": 11
+            },
+            "end": {
+              "offset": 2051,
+              "line": 49,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "short",
+          "x": 216,
+          "y": 184,
+          "range": {
+            "start": {
+              "offset": 2070,
+              "line": 50,
+              "column": 5
+            },
+            "end": {
+              "offset": 2095,
+              "line": 50,
+              "column": 30
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2076,
+              "line": 50,
+              "column": 11
+            },
+            "end": {
+              "offset": 2081,
+              "line": 50,
+              "column": 16
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "long",
+          "x": 540,
+          "y": 184,
+          "range": {
+            "start": {
+              "offset": 2100,
+              "line": 51,
+              "column": 5
+            },
+            "end": {
+              "offset": 2124,
+              "line": 51,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2106,
+              "line": 51,
+              "column": 11
+            },
+            "end": {
+              "offset": 2110,
+              "line": 51,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "heads",
+          "x": 175,
+          "y": 354,
+          "range": {
+            "start": {
+              "offset": 2129,
+              "line": 52,
+              "column": 5
+            },
+            "end": {
+              "offset": 2154,
+              "line": 52,
+              "column": 30
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2135,
+              "line": 52,
+              "column": 11
+            },
+            "end": {
+              "offset": 2140,
+              "line": 52,
+              "column": 16
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "dashed",
+          "x": 420,
+          "y": 354,
+          "range": {
+            "start": {
+              "offset": 2159,
+              "line": 53,
+              "column": 5
+            },
+            "end": {
+              "offset": 2185,
+              "line": 53,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2165,
+              "line": 53,
+              "column": 11
+            },
+            "end": {
+              "offset": 2171,
+              "line": 53,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "notes",
+          "x": 640,
+          "y": 290,
+          "range": {
+            "start": {
+              "offset": 2190,
+              "line": 54,
+              "column": 5
+            },
+            "end": {
+              "offset": 2215,
+              "line": 54,
+              "column": 30
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2196,
+              "line": 54,
+              "column": 11
+            },
+            "end": {
+              "offset": 2201,
+              "line": 54,
+              "column": 16
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "remark",
+          "x": 84,
+          "y": 14,
+          "range": {
+            "start": {
+              "offset": 2220,
+              "line": 55,
+              "column": 5
+            },
+            "end": {
+              "offset": 2244,
+              "line": 55,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2226,
+              "line": 55,
+              "column": 11
+            },
+            "end": {
+              "offset": 2232,
+              "line": 55,
+              "column": 17
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [
+        {
+          "target": "heading",
+          "targetKind": "element",
+          "properties": {
+            "fontSize": 28,
+            "fontWeight": 700
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2320,
+              "line": 60,
+              "column": 3
+            },
+            "end": {
+              "offset": 2365,
+              "line": 60,
+              "column": 48
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2326,
+              "line": 60,
+              "column": 9
+            },
+            "end": {
+              "offset": 2333,
+              "line": 60,
+              "column": 16
+            }
+          }
+        },
+        {
+          "target": "remark",
+          "targetKind": "element",
+          "properties": {
+            "fontSize": 16
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2368,
+              "line": 61,
+              "column": 3
+            },
+            "end": {
+              "offset": 2396,
+              "line": 61,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2374,
+              "line": 61,
+              "column": 9
+            },
+            "end": {
+              "offset": 2380,
+              "line": 61,
+              "column": 15
+            }
+          }
+        },
+        {
+          "target": "marker",
+          "targetKind": "element",
+          "properties": {
+            "opacity": 0.35,
+            "stroke": "@highlight",
+            "width": 20
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2399,
+              "line": 62,
+              "column": 3
+            },
+            "end": {
+              "offset": 2456,
+              "line": 62,
+              "column": 60
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2405,
+              "line": 62,
+              "column": 9
+            },
+            "end": {
+              "offset": 2411,
+              "line": 62,
+              "column": 15
+            }
+          }
+        },
+        {
+          "target": "spot",
+          "targetKind": "element",
+          "properties": {
+            "stroke": "@danger",
+            "width": 12
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2459,
+              "line": 63,
+              "column": 3
+            },
+            "end": {
+              "offset": 2497,
+              "line": 63,
+              "column": 41
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2465,
+              "line": 63,
+              "column": 9
+            },
+            "end": {
+              "offset": 2469,
+              "line": 63,
+              "column": 13
+            }
+          }
+        },
+        {
+          "target": "arrow",
+          "targetKind": "element",
+          "properties": {
+            "arrowhead": "triangle",
+            "arrowtail": "circle",
+            "stroke": "@accent"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2500,
+              "line": 64,
+              "column": 3
+            },
+            "end": {
+              "offset": 2567,
+              "line": 64,
+              "column": 70
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2506,
+              "line": 64,
+              "column": 9
+            },
+            "end": {
+              "offset": 2511,
+              "line": 64,
+              "column": 14
+            }
+          }
+        },
+        {
+          "target": "loop",
+          "targetKind": "element",
+          "properties": {
+            "line": "dashed",
+            "stroke": "@muted"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 2570,
+              "line": 65,
+              "column": 3
+            },
+            "end": {
+              "offset": 2610,
+              "line": 65,
+              "column": 43
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 2576,
+              "line": 65,
+              "column": 9
+            },
+            "end": {
+              "offset": 2580,
+              "line": 65,
+              "column": 13
+            }
+          }
+        }
+      ],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

@@ -1,0 +1,57 @@
+language "0.2"
+
+// A kanban board: a row of three columns, and in each column a list of sticky cards. The lists
+// place the cards in the order they are written, so moving a card is moving its line: drag it to
+// another column on the canvas, or cut its declaration and paste it in another group below. The
+// board grows with its cards (preset board).
+diagram board: free {
+  title "Team board"
+  theme "technical.light"
+  preset board
+  layout manual
+
+  text heading "Sprint 12"
+  text goal "Goal: a checkout that takes one page"
+
+  group columns "" {
+    layout row
+    align stretch
+    spacing 40
+
+    group todo "To do" {
+      layout column
+      spacing 12
+      sticky invoices "Send invoices as PDF"
+      sticky search "Search the catalogue by colour"
+      sticky reviews "Show reviews on the product page"
+    }
+
+    group doing "Doing" {
+      layout column
+      spacing 12
+      sticky checkout "One-page checkout"
+      sticky cache "Cache the catalogue"
+    }
+
+    group done "Done" {
+      layout column
+      spacing 12
+      sticky signin "Sign in with Google"
+    }
+  }
+
+  checkout -> signin: "needs" as needs
+  search --> cache: "waits for" as waits
+
+  placement {
+    place heading at (384, 50)
+    place goal at (384, 90)
+    place columns at (384, 424)
+  }
+
+  style heading { fontSize 32; fontWeight 700 }
+  style goal { color muted }
+  style invoices { fill "#bbdefb" }
+  style cache { fill "#bbdefb" }
+  style signin { fill "#bbdefb" }
+}

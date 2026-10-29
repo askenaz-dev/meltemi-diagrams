@@ -49,13 +49,25 @@ describe("free diagrams compile", () => {
     ]);
   });
 
-  it("refuses flow kinds with the free kinds in the hint", () => {
+  it("refuses flow kinds with the free kinds in the hint, lines, notes, pens and stickies among them", () => {
     const { compilation } = free('  decision ok "OK?"');
     const [d] = compilation.diagnostics;
     expect(d!.code).toBe("prop.unknown");
     expect(d!.hints).toEqual([
-      "Free diagrams declare `box`, `text`, `icon`, `image`, `note`, `line` and `group`.",
+      "Free diagrams declare `box`, `text`, `icon`, `image`, `note`, `sticky`, `line`, `pen` and `group`.",
     ]);
+    expect(d!.data?.candidates).toEqual(expect.arrayContaining(["line", "note", "pen", "sticky"]));
+  });
+
+  it("lists the free declarations, pens and stickies among them, in the hint of an unknown statement", () => {
+    const { compilation } = free("  shade a");
+    const [d] = compilation.diagnostics;
+    expect(d!.code).toBe("prop.unknown");
+    expect(d!.hints).toEqual([
+      "Free diagrams accept `box`, `text`, `icon`, `image`, `note`, `sticky`, `line`, `pen` and `group` declarations, relations, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `layers`, `placement`, `style`, `animate`, `class` and `rule`.",
+    ]);
+    expect(d!.data?.candidates).toContain("pen");
+    expect(d!.data?.candidates).toContain("sticky");
   });
 
   it("refuses free kinds in flow diagrams", () => {
@@ -163,7 +175,7 @@ describe("free lines", () => {
     expect(radius.codes).toHaveLength(2);
   });
 
-  it("takes every effect, and a text refuses flow naming relations and lines", () => {
+  it("takes every effect, and a text refuses flow naming relations, lines and pens", () => {
     const line = free(
       "  line l from (0, 0) to (300, 0)\n  animate l { effect flow }\n  animate l { effect dash }\n  animate l { effect pulse }\n  animate l { effect trace }",
     );
@@ -171,7 +183,11 @@ describe("free lines", () => {
     const text = free('  text t "Note"\n  animate t { effect flow }');
     expect(text.codes).toEqual(["animate.invalid-target"]);
     expect(text.compilation.diagnostics[0]!.message).toBe(
-      "Flow particles run along relations and lines; name the relation (`a -> b as r`) and animate it.",
+      "Flow particles run along relations, lines and pens; name the relation (`a -> b as r`) and animate it.",
+    );
+    const trace = free('  text t "Note"\n  animate t { effect trace }');
+    expect(trace.compilation.diagnostics[0]!.message).toBe(
+      "A trace runs along relations, lines and pens; name the relation (`a -> b as r`) and animate it.",
     );
   });
 
@@ -185,6 +201,687 @@ describe("free lines", () => {
       at: 30,
       offset: { x: 0, y: -16 },
     });
+  });
+});
+
+describe("pen strokes", () => {
+  const FORM = "Form: `pen <id> [(x, y), (x, y), ...]`.";
+  const WRITTEN = "A pen's points are written in its statement: `pen <id> [(x, y), (x, y), ...]`.";
+  const TAKES = "a pen takes `stroke`, `width`, `line`, `opacity`, `arrowhead` and `arrowtail`.";
+
+  it("compiles a stroke with its decimals and its styles", () => {
+    const { diagram, codes } = free(
+      "  pen arrow [(40, 60), (90.5, 58), (140, 70), (150, 66)]\n  style arrow { width 4; arrowhead triangle }",
+    );
+    expect(codes).toEqual([]);
+    const arrow = diagram.elementsById.get("arrow")!;
+    expect(arrow).toMatchObject({ kind: "pen", label: "", labelWritten: false, line: null });
+    expect(arrow.pen).toEqual({
+      points: [
+        { x: 40, y: 60 },
+        { x: 90.5, y: 58 },
+        { x: 140, y: 70 },
+        { x: 150, y: 66 },
+      ],
+    });
+    expect(diagram.styles.find((s) => s.target === "arrow")!.properties).toEqual({
+      width: 4,
+      arrowhead: "triangle",
+    });
+  });
+
+  it("keeps a stroke's points as written inside a group", () => {
+    const { diagram, codes } = free(
+      '  group notes "Notes" {\n    pen p [(10, 10), (30, 20)]\n  }\n  placement { place notes at (300, 200) }',
+    );
+    expect(codes).toEqual([]);
+    const p = diagram.elementsById.get("p")!;
+    expect(p.groupPath).toEqual(["notes"]);
+    expect(p.pen!.points).toEqual([
+      { x: 10, y: 10 },
+      { x: 30, y: 20 },
+    ]);
+  });
+
+  it("takes one point, negative coordinates and a list across lines", () => {
+    const dot = free("  pen dot [(100, 100)]");
+    expect(dot.codes).toEqual([]);
+    expect(dot.diagram.elementsById.get("dot")!.pen!.points).toEqual([{ x: 100, y: 100 }]);
+    const long = free("  pen p [\n    (0, 0), (10, 10),\n    (-20.5, -3),\n  ]");
+    expect(long.codes).toEqual([]);
+    expect(long.diagram.elementsById.get("p")!.pen!.points).toEqual([
+      { x: 0, y: 0 },
+      { x: 10, y: 10 },
+      { x: -20.5, y: -3 },
+    ]);
+  });
+
+  it("takes the block of a free element", () => {
+    const { diagram, codes } = free(
+      '  layers back, main\n  pen p [(0, 0), (10, 10)] {\n    description "A tick"\n    class faded\n    layer back\n    url "https://example.com"\n  }\n  class faded { opacity 0.5 }',
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.elementsById.get("p")).toMatchObject({
+      description: "A tick",
+      layer: "back",
+      url: "https://example.com",
+      classes: [{ name: "faded" }],
+    });
+  });
+
+  it("refuses a port in its block, as a block without ports does; a line keeps its ports", () => {
+    const { compilation, diagram } = free("  pen p [(0, 0)] {\n    port out east\n  }");
+    expect(
+      compilation.diagnostics.map((d) => [d.code, d.message, d.hints, d.range.start.line]),
+    ).toEqual([
+      [
+        "prop.unknown",
+        "Unknown property `port` in an element block.",
+        ["Element blocks accept `description`, `class`, `layer`, `link` and `url`."],
+        4,
+      ],
+    ]);
+    expect(diagram.elementsById.get("p")!.ports).toEqual([]);
+    const line = free("  line l from (0, 0) to (10, 10) {\n    port out east\n  }");
+    expect(line.codes).toEqual([]);
+    expect(line.diagram.elementsById.get("l")!.ports.map((p) => p.name)).toEqual(["out"]);
+  });
+
+  it.each([
+    ["numbers that are not tuples", "  pen p [10, 20, 30]", 10],
+    ["an empty list", "  pen p []", 9],
+    ["no list", "  pen p", 3],
+    ["a point with units", "  pen p [(1px, 2)]", 10],
+  ])("refuses %s with the form", (_name, body, column) => {
+    const { compilation, diagram } = free(body);
+    expect(compilation.diagnostics.map((d) => [d.code, d.message, d.hints])).toEqual([
+      [
+        "prop.invalid-value",
+        "A pen takes a list of points `(x, y)` after its id, at least one.",
+        [FORM],
+      ],
+    ]);
+    expect(compilation.diagnostics[0]!.range.start.column).toBe(column);
+    expect(diagram.elementsById.has("p")).toBe(false);
+  });
+
+  it("refuses a label and a value after the points", () => {
+    const { compilation } = free('  pen p "Label" [(0, 0)]\n  pen q [(0, 0)] extra');
+    expect(compilation.diagnostics.map((d) => [d.code, d.message, d.hints])).toEqual([
+      ["prop.invalid-value", "`p` is a pen, which has no label; its points follow its id.", [FORM]],
+      [
+        "prop.invalid-value",
+        "Unexpected value; expected `pen <id> [(x, y), (x, y), ...]`.",
+        [FORM],
+      ],
+    ]);
+  });
+
+  it("refuses a place, a size and a rotation, its points being in its statement", () => {
+    const { compilation, diagram } = free(
+      "  pen p [(0, 0), (10, 10)]\n  placement {\n    place p at (10, 10)\n    size p (20, 20)\n  }\n  style p { rotation 45 }",
+    );
+    expect(compilation.diagnostics.map((d) => [d.code, d.message, d.hints])).toEqual([
+      ["prop.invalid-value", "`p` is a pen; `place` does not apply to it.", [WRITTEN]],
+      ["prop.invalid-value", "`p` is a pen; `size` does not apply to it.", [WRITTEN]],
+      ["prop.invalid-value", "`p` is a pen; `rotation` does not apply to it.", [WRITTEN]],
+    ]);
+    expect(diagram.placement).toEqual([]);
+    expect(diagram.styles[0]!.properties).toEqual({});
+  });
+
+  it("refuses a box's properties, naming the ones a pen takes", () => {
+    const { compilation, diagram } = free(
+      '  pen p [(0, 0), (10, 10)]\n  style p { fill surface }\n  style p { shape pill; radius 4; routing orthogonal; corners rounded; fontSize 20; icon "tabler:x"; pattern dots }',
+    );
+    expect(compilation.diagnostics.map((d) => [d.code, d.message])).toEqual(
+      ["fill", "shape", "radius", "routing", "corners", "fontSize", "icon", "pattern"].map(
+        (name) => [
+          "prop.invalid-value",
+          `\`${name}\` does not apply to pens such as \`p\`; ${TAKES}`,
+        ],
+      ),
+    );
+    // Reported on the property, not on the statement.
+    expect(compilation.diagnostics[0]!.range.start).toMatchObject({ line: 4, column: 13 });
+    expect(diagram.styles.map((s) => s.properties)).toEqual([{}, {}]);
+  });
+
+  it("takes a stroke's properties", () => {
+    const { diagram, codes } = free(
+      "  pen p [(0, 0), (10, 10)]\n  style p { stroke accent; width 64; line dashed; opacity 0.5; arrowhead open; arrowtail bar }",
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.styles[0]!.properties).toEqual({
+      stroke: "@accent",
+      width: 64,
+      line: "dashed",
+      opacity: 0.5,
+      arrowhead: "open",
+      arrowtail: "bar",
+    });
+  });
+
+  it("refuses a width of 0 on a pen, on the value, and keeps it on a box", () => {
+    const { compilation, diagram } = free(
+      '  pen p [(0, 0), (10, 10)]\n  box b "B"\n  style p, b { width 0 }',
+    );
+    expect(compilation.diagnostics.map((d) => [d.code, d.message, d.hints])).toEqual([
+      [
+        "prop.invalid-value",
+        "`width` expects a number from 1 to 64.",
+        ["A pen is drawn one pixel wide at least; remove the pen to hide its stroke."],
+      ],
+    ]);
+    expect(compilation.diagnostics[0]!.range.start).toMatchObject({ line: 5, column: 22 });
+    expect(diagram.styles.map((s) => [s.target, s.properties])).toEqual([
+      ["p", {}],
+      ["b", { width: 0 }],
+    ]);
+  });
+
+  it("is refused by flow, sequence and C4 diagrams, belonging to free diagrams", () => {
+    const flowPen = flow("  pen p [(0, 0), (10, 10)]").compilation.diagnostics;
+    expect(flowPen.map((d) => d.code)).toEqual(["prop.unknown"]);
+    expect(flowPen[0]!.hints![0]).toContain("`pen` belongs to free diagrams");
+    const sequence = compile(
+      "diagram s: sequence {\n  participant a\n  pen p [(0, 0), (10, 10)]\n}\n",
+    ).diagnostics;
+    expect(sequence.map((d) => d.code)).toEqual(["prop.unknown"]);
+    expect(sequence[0]!.hints![0]).toContain("`pen` belongs to free diagrams");
+    const c4 = compile(
+      'model m {\n  system s "S"\n}\ndiagram v: c4 using m {\n  level context\n  pen p [(0, 0), (10, 10)]\n}\n',
+    ).diagnostics;
+    expect(c4.map((d) => d.code)).toEqual(["prop.unknown"]);
+  });
+
+  it("takes a rule for every pen, its heads included", () => {
+    const { diagram, codes } = free(
+      "  pen a [(0, 0), (10, 0)]\n  pen b [(0, 20), (10, 20)]\n  rule pen { width 5; stroke accent; arrowhead open }",
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.rules.map((r) => [r.kind, r.properties])).toEqual([
+      ["pen", { width: 5, stroke: "@accent", arrowhead: "open" }],
+    ]);
+  });
+
+  it("refuses in a rule for pens what a pen does not take", () => {
+    const { compilation, diagram } = free(
+      "  pen a [(0, 0)]\n  rule pen { fill accent; routing orthogonal; width 0; rotation 4; shape pill }",
+    );
+    expect(compilation.diagnostics.map((d) => [d.code, d.message])).toEqual([
+      ["prop.invalid-value", "`fill` does not apply to `pen` elements."],
+      ["prop.invalid-value", "`routing` does not apply to `pen` elements."],
+      ["prop.invalid-value", "`width` expects a number from 1 to 64."],
+      [
+        "prop.invalid-value",
+        "`rotation` does not turn `pen` elements; it turns the other elements of flow diagrams and free compositions.",
+      ],
+      [
+        "prop.invalid-value",
+        "`shape` does not apply to `pen` elements; it applies to `node` and `box` elements.",
+      ],
+    ]);
+    expect(compilation.diagnostics[0]!.hints).toEqual([
+      "A pen takes `stroke`, `width`, `line`, `opacity`, `arrowhead` and `arrowtail`.",
+    ]);
+    expect(diagram.rules[0]!.properties).toEqual({});
+  });
+
+  it("takes heads in rules for lines and pens, and a rule for stickies", () => {
+    const { diagram, codes } = free(
+      '  rule line { arrowhead open; arrowtail bar; routing orthogonal; corners rounded }\n  rule pen { arrowhead triangle }\n  rule sticky { fill "#fff59d" }',
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.rules.map((r) => [r.kind, r.properties])).toEqual([
+      ["line", { arrowhead: "open", arrowtail: "bar", routing: "orthogonal", corners: "rounded" }],
+      ["pen", { arrowhead: "triangle" }],
+      ["sticky", { fill: "#fff59d" }],
+    ]);
+    // Other element kinds still refuse heads in rules.
+    expect(free("  rule box { arrowhead open }").codes).toEqual(["prop.invalid-value"]);
+  });
+
+  it("refuses rules for lines and pens in flow diagrams, naming free diagrams", () => {
+    const { compilation } = flow("  a -> b\n  rule pen { width 2 }\n  rule line { width 2 }");
+    expect(compilation.diagnostics.map((d) => d.message)).toEqual([
+      "`pen` elements belong to free diagrams; this is a flow diagram.",
+      "`line` elements belong to free diagrams; this is a flow diagram.",
+    ]);
+  });
+
+  it("runs every effect as a line does", () => {
+    const { diagram, codes } = free(
+      "  pen p [(0, 0), (40, 10), (80, 0)]\n  animate p { effect trace; repeat 1 }\n  animate p { effect flow }\n  animate p { effect dash }\n  animate p { effect pulse }",
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.animations.map((a) => [a.target, a.effect, a.repeat])).toEqual([
+      ["p", "trace", 1],
+      ["p", "flow", null],
+      ["p", "dash", null],
+      ["p", "pulse", null],
+    ]);
+  });
+
+  it("is no candidate for a note's attachment", () => {
+    const { compilation } = free('  pen p [(0, 0)]\n  box a "A"\n  note n "N" on ghost');
+    expect(compilation.diagnostics[0]!.data?.candidates).toEqual(["a"]);
+  });
+});
+
+describe("opacity", () => {
+  it("is stored as a number on pens, elements, groups and lines", () => {
+    const { diagram, codes } = free(
+      '  pen mark [(0, 0), (40, 0)]\n  box a "A"\n  group g "G" {\n    text t "T"\n  }\n  line l from (0, 0) to (10, 0)\n  style mark { width 20; opacity 0.35 }\n  style a, g, l, t { opacity 0.5 }\n  class faded { opacity 0 }\n  rule note { opacity 1 }',
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.styles.map((s) => [s.target, s.properties])).toEqual([
+      ["mark", { width: 20, opacity: 0.35 }],
+      ["a", { opacity: 0.5 }],
+      ["g", { opacity: 0.5 }],
+      ["l", { opacity: 0.5 }],
+      ["t", { opacity: 0.5 }],
+    ]);
+    expect(diagram.classes[0]!.properties).toEqual({ opacity: 0 });
+    expect(diagram.rules[0]!.properties).toEqual({ opacity: 1 });
+  });
+
+  it("is refused on a relation, naming elements, groups, lines and pens", () => {
+    const { compilation, diagram } = free(
+      '  box a "A"\n  box b "B"\n  a -> b as request\n  style request { opacity 0.5 }\n  rule relation { opacity 0.5 }',
+    );
+    expect(compilation.diagnostics.map((d) => [d.code, d.message, d.hints])).toEqual([
+      [
+        "prop.invalid-value",
+        "`opacity` does not apply to relations such as `request`.",
+        ["`opacity` applies to elements, groups, lines and pens."],
+      ],
+      [
+        "prop.invalid-value",
+        "`opacity` does not apply to relations.",
+        ["`opacity` applies to elements, groups, lines and pens."],
+      ],
+    ]);
+    expect(diagram.styles[0]!.properties).toEqual({});
+  });
+
+  it("is refused out of its range, on the value", () => {
+    const { compilation } = free('  box a "A"\n  style a { opacity 1.5 }');
+    expect(compilation.diagnostics.map((d) => [d.code, d.message])).toEqual([
+      ["prop.invalid-value", "`opacity` expects a number from 0 to 1."],
+    ]);
+    expect(compilation.diagnostics[0]!.range.start.column).toBe(21);
+  });
+
+  it("is refused in flow diagrams, naming free diagrams", () => {
+    const { compilation } = flow(
+      "  api -> db\n  style api { opacity 0.5 }\n  class c { opacity 0.2 }",
+    );
+    expect(compilation.diagnostics.map((d) => [d.code, d.message, d.hints])).toEqual([
+      [
+        "prop.invalid-value",
+        "`opacity` applies to free diagrams only.",
+        [
+          "Flow, sequence and C4 diagrams draw every element opaque; free diagrams fade elements, groups, lines and pens with `opacity`.",
+        ],
+      ],
+      [
+        "prop.invalid-value",
+        "`opacity` applies to free diagrams only.",
+        [
+          "Flow, sequence and C4 diagrams draw every element opaque; free diagrams fade elements, groups, lines and pens with `opacity`.",
+        ],
+      ],
+    ]);
+    // The hint of a flow style block does not offer it.
+    const unknown = flow('  api["API"]\n  style api { shade 1 }').compilation.diagnostics[0]!;
+    expect(unknown.hints![0]).not.toContain("opacity");
+  });
+});
+
+describe("stickies", () => {
+  const FORM = 'Form: `sticky <id> "Text"`.';
+  const TAKES =
+    "A sticky takes `fill`, `stroke`, `color`, `line`, `width`, `fontSize`, `fontWeight`, `textAlign`, `verticalAlign`, `radius`, `rotation`, `opacity`, `icon`, `iconColor` and `iconSize`.";
+
+  it("compiles a sticky with its text, a line break and a fill", () => {
+    const { diagram, codes } = free(
+      '  sticky idea "Cache the\\ncatalogue"\n  style idea { fill "#f8bbd0" }',
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.elementsById.get("idea")).toMatchObject({
+      kind: "sticky",
+      label: "Cache the\ncatalogue",
+      labelWritten: true,
+      line: null,
+      pen: null,
+      list: null,
+    });
+    expect(diagram.styles[0]!.properties).toEqual({ fill: "#f8bbd0" });
+  });
+
+  it("is a relation endpoint", () => {
+    const { diagram, codes } = free('  sticky a "A"\n  box b "B"\n  a -> b');
+    expect(codes).toEqual([]);
+    expect(diagram.relations.map((r) => [r.from, r.to])).toEqual([["a", "b"]]);
+  });
+
+  it("takes a box's block, a place, a size, ports and the constraints", () => {
+    const { diagram, codes } = free(
+      '  layers back, main\n  sticky s "S" {\n    description "A card"\n    class pink\n    layer back\n    url "https://example.com"\n    port top north 25%\n  }\n  box b "B"\n  class pink { fill "#f8bbd0" }\n  placement {\n    place s at (40, 40)\n    size s (200, 200)\n    align s, b top\n  }',
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.elementsById.get("s")).toMatchObject({
+      description: "A card",
+      layer: "back",
+      url: "https://example.com",
+      classes: [{ name: "pink" }],
+      ports: [{ name: "top", side: "north", position: 0.25 }],
+    });
+    expect(diagram.placement.map((p) => [p.statement, p.target])).toEqual([
+      ["place", "s"],
+      ["size", "s"],
+    ]);
+    expect(diagram.constraints.map((c) => c.targets)).toEqual([["s", "b"]]);
+  });
+
+  it("needs its text, with the form in the hint, and is still declared", () => {
+    const { compilation, diagram } = free("  sticky s\n  box b\n  s -> b");
+    expect(compilation.diagnostics.map((d) => [d.code, d.message, d.hints])).toEqual([
+      ["prop.invalid-value", '`sticky s` needs its text; expected `sticky <id> "Text"`.', [FORM]],
+    ]);
+    expect(diagram.elementsById.get("s")).toMatchObject({ kind: "sticky", labelWritten: false });
+    expect(diagram.relations).toHaveLength(1);
+  });
+
+  it("refuses a text that is not a string and a value after the text", () => {
+    const { compilation } = free('  sticky s 12\n  sticky t "T" "U"');
+    expect(compilation.diagnostics.map((d) => [d.code, d.message])).toEqual([
+      ["prop.invalid-value", "The text of `s` must be a quoted string."],
+      ["prop.invalid-value", 'Unexpected value after the text; expected `sticky <id> "Text"`.'],
+    ]);
+  });
+
+  it("refuses a shape, naming node and box", () => {
+    const { compilation, diagram } = free('  sticky s "S"\n  style s { shape hexagon }');
+    expect(compilation.diagnostics.map((d) => [d.code, d.message])).toEqual([
+      [
+        "prop.invalid-value",
+        "`shape` does not apply to `sticky` elements such as `s`; it applies to `node` and `box` elements.",
+      ],
+    ]);
+    expect(compilation.diagnostics[0]!.range.start).toMatchObject({ line: 4, column: 13 });
+    expect(diagram.styles[0]!.properties).toEqual({});
+  });
+
+  it("refuses a pattern, the icon placements and the relation properties, naming what it takes", () => {
+    const { compilation, diagram } = free(
+      '  sticky s "S"\n  style s { pattern dots; iconPosition top; labelPosition bottom; arrowhead open; routing orthogonal }',
+    );
+    expect(compilation.diagnostics.map((d) => [d.code, d.message, d.hints])).toEqual(
+      ["pattern", "iconPosition", "labelPosition", "arrowhead", "routing"].map((name) => [
+        "prop.invalid-value",
+        `\`${name}\` does not apply to stickies such as \`s\`.`,
+        [TAKES],
+      ]),
+    );
+    expect(diagram.styles[0]!.properties).toEqual({});
+  });
+
+  it("takes a card's properties, the whiteboard tokens among the colours", () => {
+    const { diagram, codes } = free(
+      '  sticky s "S"\n  style s {\n    fill sticky\n    stroke accent\n    color stickyText\n    line dashed\n    width 2\n    fontSize 20\n    fontWeight 700\n    textAlign left\n    verticalAlign top\n    radius 8\n    rotation 4\n    opacity 0.9\n    icon "tabler:bulb"\n    iconColor accent\n    iconSize 24\n  }',
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.styles[0]!.properties).toEqual({
+      fill: "@sticky",
+      stroke: "@accent",
+      color: "@stickyText",
+      line: "dashed",
+      width: 2,
+      fontSize: 20,
+      fontWeight: 700,
+      textAlign: "left",
+      verticalAlign: "top",
+      radius: 8,
+      rotation: 4,
+      opacity: 0.9,
+      icon: "tabler:bulb",
+      iconColor: "@accent",
+      iconSize: 24,
+    });
+    expect(diagram.icons.map((i) => i.reference)).toEqual(["tabler:bulb"]);
+  });
+
+  it("takes a rule for every sticky, which refuses what a sticky does not take", () => {
+    const { compilation, diagram } = free(
+      '  sticky s "S"\n  rule sticky { fill "#fff59d"; radius 4; pattern dots; shape pill }',
+    );
+    expect(compilation.diagnostics.map((d) => [d.code, d.message, d.hints])).toEqual([
+      ["prop.invalid-value", "`pattern` does not apply to `sticky` elements.", [TAKES]],
+      [
+        "prop.invalid-value",
+        "`shape` does not apply to `sticky` elements; it applies to `node` and `box` elements.",
+        undefined,
+      ],
+    ]);
+    expect(diagram.rules[0]!.properties).toEqual({ fill: "#fff59d", radius: 4 });
+  });
+
+  it("is refused by flow, sequence and C4 diagrams, belonging to free diagrams", () => {
+    const flowSticky = flow('  sticky s "S"').compilation.diagnostics;
+    expect(flowSticky.map((d) => d.code)).toEqual(["prop.unknown"]);
+    expect(flowSticky[0]!.hints![0]).toContain("`sticky` belongs to free diagrams");
+    const sequence = compile(
+      'diagram s: sequence {\n  participant a\n  sticky n "N"\n}\n',
+    ).diagnostics;
+    expect(sequence.map((d) => d.code)).toEqual(["prop.unknown"]);
+    expect(sequence[0]!.hints![0]).toContain("`sticky` belongs to free diagrams");
+    const c4 = compile(
+      'model m {\n  system s "S"\n}\ndiagram v: c4 using m {\n  level context\n  sticky n "N"\n}\n',
+    ).diagnostics;
+    expect(c4.map((d) => d.code)).toEqual(["prop.unknown"]);
+  });
+
+  it("takes a pulse, and a dash once a stroke gives its card an outline; no flow", () => {
+    const fine = free(
+      '  sticky s "S"\n  animate s { effect dash }\n  animate s { effect pulse }\n  style s { stroke "#d92d20" }',
+    );
+    expect(fine.codes).toEqual([]);
+    expect(fine.diagram.animations.map((a) => a.effect)).toEqual(["dash", "pulse"]);
+    // A class or a rule of the diagram outlines it too.
+    expect(
+      free(
+        '  sticky s "S" { class edged }\n  class edged { stroke accent }\n  animate s { effect dash }',
+      ).codes,
+    ).toEqual([]);
+    expect(
+      free('  sticky s "S"\n  rule sticky { stroke accent }\n  animate s { effect dash }').codes,
+    ).toEqual([]);
+    // Its fill is no line: a dash on a card without a stroke would draw nothing.
+    for (const more of ["", '\n  style s { fill "#f8bbd0" }']) {
+      const bare = free(
+        `  sticky s "S"\n  animate s { effect dash }\n  animate s { effect pulse }${more}`,
+      );
+      expect(bare.codes).toEqual(["animate.invalid-target"]);
+      expect(bare.compilation.diagnostics[0]!.message).toBe(
+        "`s` is a sticky without an outline; a moving dash follows a line or a box.",
+      );
+      expect(bare.compilation.diagnostics[0]!.hints).toEqual([
+        "Give it a `stroke` in a `style`, a class or a `rule` of this diagram, or use a pulse.",
+      ]);
+      expect(bare.diagram.animations.map((a) => a.effect)).toEqual(["pulse"]);
+    }
+    expect(free('  sticky s "S"\n  animate s { effect flow }').codes).toEqual([
+      "animate.invalid-target",
+    ]);
+  });
+
+  it("is an element of stories", () => {
+    const compilation = compile(
+      'language "0.2"\ndiagram d: free {\n  sticky s "S"\n}\nstory tour for d {\n  scene one {\n    reveal s\n    highlight s\n  }\n}\n',
+    );
+    expect(compilation.diagnostics).toEqual([]);
+    expect(compilation.document.stories[0]!.references.map((r) => [r.id, r.kind])).toEqual([
+      ["s", "element"],
+      ["s", "element"],
+    ]);
+  });
+});
+
+describe("list groups", () => {
+  const LAYOUT_HINT = "Write `layout column` or `layout row` in the group's block.";
+
+  it("reads a column of cards", () => {
+    const { diagram, codes } = free(
+      '  group todo "To do" { layout column; spacing 12; sticky a "A"; sticky b "B" }',
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.elementsById.get("todo")!.list).toEqual({
+      layout: "column",
+      spacing: 12,
+      align: null,
+    });
+    expect(diagram.elementsById.get("a")).toMatchObject({ groupPath: ["todo"], list: null });
+  });
+
+  it("reads a board of columns", () => {
+    // One group per line: `} group` on one line would chain a second block to the first.
+    const { diagram, codes } = free(
+      '  group board "" {\n    layout row; align stretch\n    group todo "To do" { layout column }\n    group done "Done" { layout column }\n  }',
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.elementsById.get("board")!.list).toEqual({
+      layout: "row",
+      spacing: null,
+      align: "stretch",
+    });
+    for (const id of ["todo", "done"]) {
+      expect(diagram.elementsById.get(id)).toMatchObject({
+        groupPath: ["board"],
+        list: { layout: "column", spacing: null, align: null },
+      });
+    }
+  });
+
+  it("leaves list null on other groups and on elements, and the diagram's layout as it was", () => {
+    const { diagram, codes } = free(
+      '  layout assisted\n  group g "G" {\n    description "Plain"\n    box a "A"\n  }\n  group c "C" {\n    layout column\n  }',
+    );
+    expect(codes).toEqual([]);
+    expect(diagram.properties.layout).toBe("assisted");
+    expect(diagram.elementsById.get("g")!.list).toBeNull();
+    expect(diagram.elementsById.get("a")!.list).toBeNull();
+    expect(diagram.elementsById.get("c")!.list).toMatchObject({ layout: "column" });
+  });
+
+  it("refuses spacing or align without a layout, on the property", () => {
+    const { compilation, diagram } = free(
+      '  group g "G" {\n    spacing 12\n    align center\n    box a "A"\n  }',
+    );
+    expect(compilation.diagnostics.map((d) => [d.code, d.message, d.hints])).toEqual([
+      [
+        "prop.invalid-value",
+        "`spacing` arranges the children of a list; this group writes no `layout`.",
+        [LAYOUT_HINT],
+      ],
+      [
+        "prop.invalid-value",
+        "`align` arranges the children of a list; this group writes no `layout`.",
+        [LAYOUT_HINT],
+      ],
+    ]);
+    expect(compilation.diagnostics[0]!.range.start).toMatchObject({ line: 4, column: 5 });
+    expect(diagram.elementsById.get("g")!.list).toBeNull();
+  });
+
+  it("refuses other values, listing the ones each takes", () => {
+    const { compilation, diagram } = free(
+      '  group g "G" {\n    layout grid\n  }\n  group h "H" {\n    layout column\n    spacing 500\n    align middle\n  }',
+    );
+    expect(compilation.diagnostics.map((d) => [d.code, d.message])).toEqual([
+      ["prop.invalid-value", "Invalid value `grid` for `layout`; expected one of column, row."],
+      ["prop.invalid-value", "`spacing` expects a number from 0 to 400."],
+      [
+        "prop.invalid-value",
+        "Invalid value `middle` for `align`; expected one of start, center, end, stretch.",
+      ],
+    ]);
+    // Reported on the value.
+    expect(compilation.diagnostics[0]!.range.start).toMatchObject({ line: 4, column: 12 });
+    expect(diagram.elementsById.get("g")!.list).toBeNull();
+    expect(diagram.elementsById.get("h")!.list).toEqual({
+      layout: "column",
+      spacing: null,
+      align: null,
+    });
+  });
+
+  it("says that the diagram's layout modes are no list layouts", () => {
+    const { compilation } = free('  group g "G" {\n    layout auto\n  }');
+    expect(compilation.diagnostics.map((d) => [d.code, d.message, d.hints])).toEqual([
+      [
+        "prop.invalid-value",
+        "Invalid value `auto` for `layout`; expected one of column, row.",
+        [
+          "`layout auto` is a statement of the diagram; a group block takes `layout column` or `layout row`.",
+        ],
+      ],
+    ]);
+  });
+
+  it("refuses a property written twice", () => {
+    expect(free('  group g "G" {\n    layout column\n    layout row\n  }').codes).toEqual([
+      "prop.duplicate",
+    ]);
+  });
+
+  it("is prop.unknown in element blocks", () => {
+    const { codes } = free('  box a "A" { layout column }\n  sticky s "S" { spacing 4 }');
+    expect(codes).toEqual(["prop.unknown", "prop.unknown"]);
+  });
+
+  it("is offered for an unknown statement of a free group block", () => {
+    const { compilation } = free('  group g "G" {\n    spaceing 12\n  }');
+    expect(compilation.diagnostics.map((d) => d.code)).toEqual(["prop.unknown"]);
+    expect(compilation.diagnostics[0]!.data?.candidates).toEqual([
+      "description",
+      "url",
+      "layout",
+      "spacing",
+      "align",
+    ]);
+    const flowGroup = flow('  group g {\n    spaceing 12\n    a["A"]\n  }').compilation;
+    expect(flowGroup.diagnostics[0]!.data?.candidates).toEqual(["description", "url"]);
+  });
+
+  it("is refused in flow diagrams, naming free diagrams", () => {
+    const { compilation, codes } = flow(
+      '  group g {\n    layout column\n    spacing 8\n    align end\n    a["A"]\n  }',
+    );
+    expect(compilation.diagnostics.map((d) => [d.code, d.message, d.hints])).toEqual(
+      ["layout", "spacing", "align"].map((name) => [
+        "prop.invalid-value",
+        `A group's \`${name}\` belongs to the lists of free diagrams; this is a flow diagram.`,
+        [
+          "Free diagrams arrange a group's children in a column or a row with `layout column` or `layout row`.",
+        ],
+      ]),
+    );
+    expect(codes).toHaveLength(3);
+    expect(compilation.diagnostics[0]!.range.start).toMatchObject({ line: 4, column: 5 });
+    const diagram = compilation.document.diagrams[0] as FlowDiagram;
+    expect(diagram.elementsById.get("g")!.list).toBeNull();
+    // Sequence groups have no lists either.
+    const sequence = compile(
+      "diagram s: sequence {\n  group g {\n    layout row\n    participant a\n  }\n}\n",
+    ).diagnostics;
+    expect(sequence.map((d) => [d.code, d.message])).toEqual([
+      [
+        "prop.invalid-value",
+        "A group's `layout` belongs to the lists of free diagrams; this is a sequence diagram.",
+      ],
+    ]);
   });
 });
 

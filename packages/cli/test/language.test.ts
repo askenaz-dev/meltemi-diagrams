@@ -221,8 +221,15 @@ describe("the language of messages", () => {
 
   it("lists templates in Spanish", async () => {
     const { stdout } = await mdg(["init", "--list", "--lang", "es"]);
+    // The names are padded to the longest, `whiteboard`, and two spaces.
     expect(stdout).toContain(
-      `flow      ${es.init.templates.flow.title} — ${es.init.templates.flow.description} (1 diagrama)\n`,
+      `flow        ${es.init.templates.flow.title} — ${es.init.templates.flow.description} (1 diagrama)\n`,
+    );
+    expect(stdout).toContain(
+      "kanban      Tablero kanban — Un tablero de columnas y notas adhesivas (1 diagrama)\n",
+    );
+    expect(stdout).toContain(
+      `whiteboard  Pizarra — ${es.init.templates.whiteboard.description} (1 diagrama, 1 historia)\n`,
     );
   });
 });

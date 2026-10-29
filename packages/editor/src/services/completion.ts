@@ -39,8 +39,8 @@ import {
   declaredProfile,
 } from "@meltemi/diagrams-model";
 import type { DocumentAnalysis } from "../analysis.js";
-import { kindWord, serviceMessages } from "../messages/services.js";
-import { keywordDoc } from "./docs.js";
+import { elementDetail, kindWord, serviceMessages } from "../messages/services.js";
+import { keywordDoc, listDoc } from "./docs.js";
 import { blockAt, diagramAt, scopeAt, statementPrefix, wordBefore } from "../syntax.js";
 import { profileCompletions, profileHeaderCompletions } from "./profiles.js";
 import { storyCompletions, storyHeaderCompletions } from "./stories.js";
@@ -249,6 +249,21 @@ function noteAttachment(
   });
 }
 
+/**
+ * In the group block of a free diagram, `layout`, `spacing` and `align` arrange a list: the values
+ * of `layout` and `align` there, with what they mean; undefined for any other statement.
+ */
+function listCompletions(
+  profile: ProfileSchema,
+  prefix: string,
+  range: CompletionItem["range"],
+): CompletionItem[] | undefined {
+  const property = match(prefix, `(layout|spacing|align)\\s+\\w*`)?.[1];
+  const spec = property ? profile.groupProperties[property] : undefined;
+  if (!spec) return undefined;
+  return spec.kind === "enum" ? words(spec.values, "value", range, listDoc) : [];
+}
+
 /** Statements that start a line in a diagram body or a group of a profile. */
 function bodyStatements(profile: ProfileSchema, group: boolean): string[] {
   if (group) {
@@ -387,7 +402,7 @@ function linkTargets(
         d.elements.map((e) => ({
           label: `${d.id}.${e.id}`,
           kind: "element" as const,
-          detail: `${kindWord(e.kind)} · ${e.label}`,
+          detail: elementDetail(e),
           range,
         })),
       ),
@@ -403,7 +418,7 @@ function elementItems(
   return (diagram?.elements ?? []).map((e) => ({
     label: e.id,
     kind: e.kind === "group" ? "group" : "element",
-    detail: `${kindWord(e.kind)} · ${e.label}`,
+    detail: elementDetail(e),
     range,
   }));
 }
@@ -484,9 +499,17 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
   const text = analysis.text;
   const root = analysis.compilation.parse.root;
   const written = scopeAt(root, offset);
-  // A diagram of a declared type completes as the free profile it compiles on.
+  // The block of a sticky, a pen or a free line is an element's; a diagram of a declared type
+  // completes as the free profile it compiles on.
+  const object = written === "other" ? freeObjectBlockAt(analysis, offset) : undefined;
   const scope =
-    written === "other" && diagramAt(analysis.compilation, offset)?.definition ? "free" : written;
+    written !== "other"
+      ? written
+      : object
+        ? "element"
+        : diagramAt(analysis.compilation, offset)?.definition
+          ? "free"
+          : written;
   const diagram = diagramAt(analysis.compilation, offset);
   const prefix = statementPrefix(text, offset);
   const { start } = wordBefore(text, offset);
@@ -668,7 +691,11 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
       // After any of the six relation tokens: `->`, `-->`, `<->`, `<-->`, `--` and `---`.
       const relation = match(prefix, `${ID}\\s*(?:<?--?>|---?)\\s*\\w*`);
       if (relation) return elementItems(diagram, range);
-      const property = match(prefix, `(direction|layout|routing|preset)\\s+\\w*`);
+      // A group block takes the list's `layout`, never the diagram's.
+      const group = scope === "group";
+      const listed = group ? listCompletions(profile, prefix, range) : undefined;
+      if (listed) return listed;
+      const property = group ? null : match(prefix, `(direction|layout|routing|preset)\\s+\\w*`);
       if (property) {
         const spec = profile.diagramProperties[property[1]!];
         return spec?.kind === "enum" ? words(spec.values, "value", range) : [];
@@ -686,7 +713,10 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
       }
       if (prefix === "" || match(prefix, ID)) {
         return [
-          ...words(bodyStatements(profile, scope === "group"), "keyword", range),
+          // In a group block, `layout`, `spacing` and `align` are the list's.
+          ...words(bodyStatements(profile, group), "keyword", range, (w) =>
+            group && w in profile.groupProperties ? listDoc(w) : undefined,
+          ),
           ...elementItems(diagram, range),
         ];
       }
@@ -739,7 +769,13 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
           [
             ...Object.keys(table),
             ...(scope === "element" && declared ? Object.keys(declared) : []),
-            ...(scope === "element" && profile.ports.length > 0 ? ["port"] : []),
+            // Pens and lines have no ports: their ends are points.
+            ...(scope === "element" &&
+            profile.ports.length > 0 &&
+            object !== "pen" &&
+            object !== "line"
+              ? ["port"]
+              : []),
           ],
           "keyword",
           range,
@@ -896,6 +932,19 @@ export function iconChoices(analysis: DocumentAnalysis, query: string, limit = 1
   if (query.trim() !== "") return searchIcons(icons, query, limit);
   const pack = icons.list()[0];
   return (pack ? drawableNames(pack, limit) : []).map((name) => `${pack!.prefix}:${name}`);
+}
+
+/** The free objects whose blocks take an element's properties, beyond what `scopeAt` names. */
+const FREE_OBJECT_BLOCKS: ReadonlySet<string> = new Set(["sticky", "pen", "line"]);
+
+/** The kind of the sticky, pen or free line of a diagram whose block holds `offset`, if any. */
+function freeObjectBlockAt(analysis: DocumentAnalysis, offset: number): string | undefined {
+  const owner = blockAt(analysis.compilation.parse.root, offset)?.owner;
+  return owner?.kind === "KeywordStatement" &&
+    FREE_OBJECT_BLOCKS.has(owner.keyword.text) &&
+    diagramAt(analysis.compilation, offset) !== undefined
+    ? owner.keyword.text
+    : undefined;
 }
 
 /** The effect written in the `animate` block around `offset`, or null. */

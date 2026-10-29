@@ -174,6 +174,11 @@ function value(details: ChangeFact[], name: string, before: string | null, after
   if (before !== after) details.push({ fact: "value", field: name, before, after });
 }
 
+/** A number as a value fact writes it, or null when there is none. */
+function numberOrNull(n: number | null | undefined): string | null {
+  return n === null || n === undefined ? null : String(n);
+}
+
 function change(
   kind: ChangeKind,
   subject: ChangeSubject,
@@ -235,6 +240,8 @@ function elementSimilarity(b: FlowDiagram, be: Element, a: FlowDiagram, ae: Elem
   if (be.description !== null && be.description === ae.description) score += 1;
   const bp = placeOf(b, be.id);
   if (bp !== null && same(bp, placeOf(a, ae.id))) score += 2;
+  // A pen has no label: the same points tell a renamed stroke as a label tells a box.
+  if (be.pen !== null && same(be.pen.points, ae.pen?.points)) score += 3;
   const theirs = neighbours(a, ae.id);
   score += Math.min(4, neighbours(b, be.id).filter((n) => theirs.includes(n)).length * 2);
   return score;
@@ -265,6 +272,14 @@ function elementDetails(b: FlowDiagram, be: Element, a: FlowDiagram, ae: Element
       state: bp === null ? "placed" : ap === null ? "unplaced" : "moved",
     });
   }
+  // A pen's points are compared as a place is: a stroke dragged, scaled or redrawn has moved.
+  if (be.pen !== null && ae.pen !== null && !same(be.pen.points, ae.pen.points)) {
+    details.push({ fact: "state", state: "moved" });
+  }
+  // A group made a list, or a list arranged otherwise: `layout none → column`.
+  value(details, "layout", be.list?.layout ?? null, ae.list?.layout ?? null);
+  value(details, "spacing", numberOrNull(be.list?.spacing), numberOrNull(ae.list?.spacing));
+  value(details, "align", be.list?.align ?? null, ae.list?.align ?? null);
   if (!same(placementOf(b, be.id, "size"), placementOf(a, ae.id, "size"))) {
     details.push({ fact: "state", state: "resized" });
   }

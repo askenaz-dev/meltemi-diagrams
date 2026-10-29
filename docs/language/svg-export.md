@@ -54,6 +54,8 @@ Sizes come from the theme's tokens ([styles.md](styles.md)). The values below ar
 | `group`                                               | children's box + `groupPadding` sides and bottom, `groupHeader` top (`groupPadding` when untitled), widened for its title; a child drawn with `shape icon` counts with its label                 |
 | `tag`                                                 | measured text width + 18, by 18                                                                                                                                                                  |
 | `note`                                                | measured width of the longest line, by 18 per line plus 4                                                                                                                                        |
+| `sticky`                                              | 160 x 160, never grown: its text wraps and shrinks to fit ([free.md](free.md#stickies))                                                                                                          |
+| `pen`                                                 | the bounding box of its points, grown by half its width (3 by default) on every side ([free.md](free.md#pen-strokes))                                                                            |
 
 The base boxes scale with `labelSize` (160 x 56 at 13 px). A box is also at least as tall as its
 label and description lines plus four fifths of `padding` above and below, so several description
@@ -75,6 +77,8 @@ Relation label pills are as wide as their measured text plus 12 px.
 | `group`    | rounded band (`groupRadius` 14, or its own `radius`) with the title (`groupTitleSize` 13 px) at the top-left, description under it; an untitled group draws its outline only         |
 | `note`     | left-aligned `noteSize` 11 px muted text, 18 px per line, no border unless `fill`, `stroke` or `pattern` is set                                                                      |
 | `tag`      | pill with `tagSize` 10.5 px mono text; `tag` fill and `tagText` text by default                                                                                                      |
+| `sticky`   | a soft shadow 3 px under a card of `radius` 2 in the theme's `sticky` colour, its text wrapped and shrunk to fit, 15.6 px at most, in `stickyText`, centred                          |
+| `pen`      | one path through the midpoints of its points, round caps and joins, no fill, 3 px in the theme's `ink` by default                                                                    |
 
 The twenty-four shapes that nodes and free boxes take, with their sizes, text areas and outlines,
 are listed in [free.md](free.md#text-and-shapes); `shape icon` draws the icon alone with the label
@@ -107,7 +111,9 @@ width; filled shapes stop the line at their base, hollow ones at their back. A B
 is trimmed at both ends.
 
 `-->`, `---` and `line dashed` use a `5 4` dash pattern; `line dotted` draws round dots, a dash of 0 and
-a gap of `1.5 × width + 3` with round caps.
+a gap of `1.5 × width + 3` with round caps. A dashed pen, whose caps are round, scales its pattern
+with its width (a dash of `max(5, 2 × width)` and a gap of `max(4, width) + width`), so the gaps stay
+open however wide it is.
 
 The anchor on each box follows decision 0006:
 
@@ -230,19 +236,23 @@ The offsets come from a pseudo-random sequence seeded by the group's id and the 
 text always renders the same bytes, and an edit elsewhere leaves a shape's wobble alone. An
 anonymous relation's key (`a->b#1`) and a generated id change when statements are reordered, and
 their wobble changes with them; name what must stay put. Text, images, icons, the brand mark,
-gradients and patterns are untouched, and fills stay clean. Only the painting changes: the
-layout's boxes, tracks and bounds, hit tests, the canvas's selection outlines and handles and the
-text editor use the clean geometry. Every export (SVG, PNG, PDF, the players, video) and the
-canvas draw through `renderSvg`, so they all show the same strokes; a moving dash moves on both
-passes. A sketched picture is larger: the whiteboard of the gallery is 6.5 KB clean and 35.6 KB
-sketched with `--fonts system` (decision 0058).
+gradients and patterns are untouched, and fills stay clean. Pen strokes are painted as written,
+in one clean path: they are drawn by hand already ([free.md](free.md#pen-strokes)). A sticky's
+card has no stroke unless one is styled, so only its styled outline is sketched. Only the
+painting changes: the layout's boxes, tracks and bounds, hit tests, the canvas's selection
+outlines and handles and the text editor use the clean geometry. Every export (SVG, PNG, PDF, the
+players, video) and the canvas draw through `renderSvg`, so they all show the same strokes; a
+moving dash moves on both passes. A sketched picture is larger: the whiteboard of the gallery is
+6.5 KB clean and 35.6 KB sketched with `--fonts system` (decision 0058).
 
 ### Presets and canvas
 
 `preset document` warns (`layout.too-large`) when the canvas is wider than 1,200 px. `preset slide`
 extends the canvas to 16:9 with the content centred and warns when the content exceeds
-1,920 × 1,080 px. `canvas (w, h)` fixes the canvas and centres the content; a dimension the content
-exceeds grows, with the same warning. Text is never shrunk: split dense diagrams into views.
+1,920 × 1,080 px. `preset board` keeps the canvas as computed, whatever its size, without a
+warning: a whiteboard grows with what is drawn on it. `canvas (w, h)` fixes the canvas and centres
+the content; a dimension the content exceeds grows, with the same warning. Text is never shrunk:
+split dense diagrams into views.
 
 ## The SVG
 
@@ -257,7 +267,10 @@ exceeds grows, with the same warning. Text is never shrunk: split dense diagrams
 - Every element and relation is a `<g data-id="..." data-role="element|relation">`; relation labels
   are a nested `<g data-role="label">`. A free line is an element group whose label is nested the
   same way. Editors can map clicks back to ids with these attributes.
-  A group on a layer other than `main` also carries `data-layer="<name>"`.
+  A group on a layer other than `main` also carries `data-layer="<name>"`, and an element or a
+  group styled with `opacity` an `opacity` attribute. A pen is an element group whose stroke is one
+  `<path>` with round caps and joins, followed by its heads; a sticky whose text does not fit holds
+  a `<clipPath>` of its card for its text.
 - Images of free diagrams are `<image href="data:…" preserveAspectRatio="xMidYMid meet">` inside
   their element group, with the description as a `<title>` child. No file or URL is referenced.
 - One `<defs>` block appears when the scene uses the brand mark (`<linearGradient>`), patterns

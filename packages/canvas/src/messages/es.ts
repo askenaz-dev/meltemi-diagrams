@@ -63,6 +63,8 @@ const NOUNS: Readonly<Record<string, { readonly name: string; readonly feminine?
   text: { name: "texto" },
   icon: { name: "icono" },
   image: { name: "imagen", feminine: true },
+  pen: { name: "lápiz" },
+  sticky: { name: "nota adhesiva", feminine: true },
   participant: { name: "participante" },
   actor: { name: "actor" },
   boundary: { name: "límite" },
@@ -133,6 +135,7 @@ const VERBS: Readonly<Record<SceneActionKind, string>> = {
   focus: "enfocar",
   camera: "encuadrar",
   trace: "recorrer",
+  draw: "dibujar",
   hold: "mantener",
 };
 
@@ -156,7 +159,10 @@ export const es: typeof en = {
     arrowMenu: "Tipos de flecha (R cambia)",
     shapeMenu: "Más formas (F)",
     groupMenu: "Grupo o contenedor (G)",
-    groupKinds: { group: "Grupo", container: "Contenedor" },
+    groupMenuLists: "Grupo, contenedor, columna o fila (G)",
+    groupKinds: { group: "Grupo", container: "Contenedor", column: "Columna", row: "Fila" },
+    penMenu: "Lápiz y marcador: grosor y color",
+    stickyMenu: "Color de las notas adhesivas nuevas",
     newDiagram: "Nuevo diagrama",
     connect: "Conectar el elemento seleccionado con…",
     moreParticipants: "Más participantes",
@@ -209,6 +215,7 @@ export const es: typeof en = {
       tag: "Marca",
       box: "Caja",
       text: "Texto",
+      sticky: "Nota adhesiva",
       icon: "Icono",
       image: "Imagen",
       participant: "Participante",
@@ -220,6 +227,9 @@ export const es: typeof en = {
       database: "Base de datos",
       collections: "Colecciones",
       queue: "Cola",
+      pen: "Lápiz",
+      highlighter: "Marcador",
+      eraser: "Borrador",
     },
     hint: (name, key) => `${name}: haz clic en el lienzo o presiona ${key}`,
     shaped: (name, shape, key) =>
@@ -263,6 +273,8 @@ export const es: typeof en = {
     fixIt: (message, line) =>
       `${message}\nLínea ${line}. Corrígelo en el texto o usa allí la corrección rápida.`,
     element: (kind, label) => `${noun(kind).name} ${label}`,
+    stroke: (id, count) =>
+      `Trazo ${id}, ${count} ${plural("es", count, { one: "punto", other: "puntos" })}`,
     create: "Crear un diagrama",
   },
 
@@ -288,6 +300,8 @@ export const es: typeof en = {
       message
         ? `Mensaje de ${from} a ${to} seleccionado.`
         : `Relación de ${from} a ${to} seleccionada.`,
+    selectedStroke: (id, count) =>
+      `Trazo ${id}, ${count} ${plural("es", count, { one: "punto", other: "puntos" })}, seleccionado.`,
     selectedEvent: (kind, key) => {
       const { name, feminine } = noun(kind);
       return `${capital(name)} ${key} ${chosen(feminine)}.`;
@@ -350,6 +364,8 @@ export const es: typeof en = {
       `${capital(indefinite(kind))} no tiene etiqueta; cámbia${noun(kind).feminine ? "la" : "lo"} en las propiedades.`,
     nothingToEdit: (kind) =>
       `${capital(indefinite(kind))} no tiene nada que editar aquí; consulta las propiedades.`,
+    strokeHasNoText:
+      "Un trazo no tiene texto; cambia su color, su ancho y sus puntas en las propiedades.",
     endPinned: (relation, element, port, position) =>
       position === undefined
         ? `${relation} ahora termina en ${element}.${port}.`
@@ -376,6 +392,31 @@ export const es: typeof en = {
       ids.length === 1
         ? `Se quitó el icono de ${ids[0]}.`
         : `Se quitó el icono de ${ids.length} elementos.`,
+    penArmed:
+      "Lápiz: arrastra en el lienzo para dibujar; Mayús mantiene recto el trazo. P o Esc lo guardan.",
+    highlighterArmed: "Marcador: arrastra sobre lo que quieras resaltar. H o Esc lo guardan.",
+    eraserArmed: "Borrador: arrastra sobre los trazos para borrarlos. E o Esc lo guardan.",
+    penDrawn: (count) =>
+      `Se dibujó un trazo de ${count} ${plural("es", count, { one: "punto", other: "puntos" })}.`,
+    strokeCancelled: "No se dibujó ningún trazo.",
+    erased: (count) => (count === 1 ? "Se borró 1 trazo." : `Se borraron ${count} trazos.`),
+    nothingErased: "No se borró nada.",
+    stickyColour: (name) =>
+      name === null
+        ? "Las notas adhesivas nuevas toman el color del tema."
+        : `Color de las notas adhesivas nuevas: ${name.toLowerCase()}.`,
+    createdList: (layout) => `Se creó una ${layout === "column" ? "columna" : "fila"}.`,
+    addedSticky: (list) => `Se añadió una nota adhesiva a ${list}.`,
+    addedColumn: (list) => `Se añadió una columna a ${list}.`,
+    movedInList: (ids, list, position, count) =>
+      ids.length === 1
+        ? `Se movió ${ids[0]} a la posición ${position} de ${count} en ${list}.`
+        : `Se movieron ${ids.length} elementos a la posición ${position} de ${count} en ${list}.`,
+    movedPast: (id, neighbour, list, before) =>
+      `Se movió ${id} ${before ? "antes de" : "después de"} ${neighbour} en ${list}.`,
+    listEnd: (id, list, first) => `${id} ya está al ${first ? "principio" : "final"} de ${list}.`,
+    noListToAdd: "Selecciona una lista, o una tarjeta de una lista, para añadirle algo.",
+    noListToMove: "Selecciona una tarjeta de una lista para moverla entre sus vecinas.",
   },
 
   inline: {
@@ -386,6 +427,7 @@ export const es: typeof en = {
       multiline
         ? "Entrar o Tab guarda el texto, Mayús+Entrar empieza una línea nueva, Esc cancela."
         : "Entrar o Tab guarda el texto, Esc cancela.",
+    nextCard: "Ctrl+Entrar lo guarda y añade la tarjeta siguiente.",
   },
 
   menu: {
@@ -536,6 +578,37 @@ export const es: typeof en = {
     degrees: (angle) => `${angle}°`,
     status: (angle) => `Giro de ${angle}°. Suelta para conservarlo; Escape cancela.`,
     done: (id, angle) => (angle === 0 ? `${id} vuelve a estar recto.` : `${id} girado ${angle}°.`),
+  },
+
+  pen: {
+    label: "Lápiz y marcador",
+    tools: "Herramienta",
+    width: "Grosor",
+    widths: { default: "Predeterminado", thin: "Fino", medium: "Medio", thick: "Grueso" },
+    widthChip: (name, width) => `${name}, ${width} px`,
+    pixels: (width) => `${width} px`,
+    fixedWidth: (width) => `El marcador siempre tiene ${width} px de grosor.`,
+    colour: { pen: "Color del lápiz", highlighter: "Color del marcador" },
+  },
+
+  sticky: {
+    button: "Nota adhesiva: haz clic para añadir una o arrástrala al lienzo",
+    coloured: (name) =>
+      `Nota adhesiva, ${name.toLowerCase()}: haz clic para añadir una o arrástrala al lienzo`,
+    themeColour: "Color del tema",
+    colours: {
+      yellow: "Amarillo",
+      pink: "Rosa",
+      green: "Verde",
+      blue: "Azul",
+      orange: "Naranja",
+      purple: "Morado",
+    },
+  },
+
+  lists: {
+    addSticky: (list) => `Añadir una nota adhesiva a ${list}`,
+    addColumn: (list) => `Añadir una columna a ${list}`,
   },
 
   shapeGrid: {

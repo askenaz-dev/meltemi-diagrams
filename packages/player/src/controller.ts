@@ -560,6 +560,8 @@ function phrase(
       const ends = doc.views[view]?.ends[id];
       return t.trace(name(id), ends ? [name(ends[0]), name(ends[1])] : null, time);
     }
+    case "draw":
+      return t.draw(targets, time);
     case "hold":
       return t.hold(time);
     case "parallel":

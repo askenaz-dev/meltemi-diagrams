@@ -197,6 +197,8 @@ iniciada, el proyecto se crea en tu cuenta y se abre; **En este navegador** lo c
 | Modelo C4 (`c4`)                   | Un modelo de arquitectura con una vista de contexto y una vista de contenedores                                                                      |
 | Diagrama de secuencia (`sequence`) | Un diagrama de secuencia con un escenario para cada resultado                                                                                        |
 | Diapositiva (`free`)               | Una diapositiva compuesta libremente: texto, cajas, un icono y un grupo                                                                              |
+| Tablero kanban (`kanban`)          | Un tablero de columnas y notas adhesivas                                                                                                             |
+| Pizarra (`whiteboard`)             | Un tablero de estilo boceto con trazos, notas adhesivas y una historia que los dibuja                                                                |
 | Ejemplo de compra (`purchase`)     | El ejemplo de referencia: un modelo, sus vistas C4, una secuencia de pago, una diapositiva ejecutiva, una historia animada y perfiles de exportación |
 
 Los dibujos se hacen una vez, al compilar el sitio, en el tema de la plantilla y en su versión

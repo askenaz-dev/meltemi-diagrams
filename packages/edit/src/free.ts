@@ -10,6 +10,10 @@ import {
   BUILT_IN_CLASSES,
   ELEMENT_KINDS,
   isSafeUrl,
+  LIST_ALIGNS,
+  LIST_LAYOUTS,
+  LIST_PROPERTIES,
+  LIST_SPACING_RANGE,
   MAIN_LAYER,
   type Element,
   type ElementLink,
@@ -22,10 +26,12 @@ import { insertStatement, reject, requireElement, type EditContext } from "./con
 import { declarationText, usedIds } from "./create.js";
 import { deleteStatements } from "./delete.js";
 import {
+  GROUP_OWN_KEYWORDS,
   diagramBody,
   groupBlock,
   insertAfter,
   insertBefore,
+  insertBeforeStatement,
   insertDeclaration,
   isDeclaration,
   isKeyword,
@@ -168,7 +174,14 @@ export function setElementProperty(
   ctx: EditContext,
   op: OperationOf<"setElementProperty">,
 ): TextEdit[] {
-  const { property, value } = op;
+  const property = op.property;
+  if (property === "layout" || property === "spacing" || property === "align") {
+    return setListProperty(ctx, { ...op, property });
+  }
+  if (typeof op.value === "number") {
+    reject("edit.invalid-value", reasons().styles.wordOrString(property));
+  }
+  const value = op.value;
   if (property === "kind") {
     if (ctx.diagram.type !== "sequence" || op.targetKind !== "relation") {
       reject("edit.invalid-value", reasons().properties.kindForMessages);
@@ -255,6 +268,85 @@ export function setElementProperty(
     edits = [insertStatement(ctx, block, node.start, () => text)];
   } else {
     edits = [{ start: node.end, end: node.end, newText: ` { ${text} }` }];
+  }
+  verifyNoNewErrors(ctx, edits);
+  return edits;
+}
+
+// ---------------------------------------------------------------------- lists
+
+/** The written value of a list property, or null to remove it; refuses what a list does not take. */
+function listValue(property: (typeof LIST_PROPERTIES)[number], value: string | number | null) {
+  if (value === null) return null;
+  if (property === "spacing") {
+    const number = typeof value === "number" ? value : Number(value);
+    const { min, max } = LIST_SPACING_RANGE;
+    if (String(value).trim() === "" || !Number.isFinite(number) || number < min || number > max) {
+      reject("edit.invalid-value", reasons().styles.numberRange(property, min, max));
+    }
+    return formatNumber(number);
+  }
+  const values: readonly string[] = property === "layout" ? LIST_LAYOUTS : LIST_ALIGNS;
+  if (typeof value !== "string" || !values.includes(value)) {
+    reject("edit.invalid-value", reasons().lists.notValue(String(value), property, values));
+  }
+  return value;
+}
+
+/**
+ * Writes, replaces or removes `layout`, `spacing` or `align` in the block of a group of a free
+ * diagram, among the group's own statements: a value replaces the written one, a new statement
+ * goes after the group's last own statement or before its first child. Removing `layout` removes
+ * `spacing` and `align` with it, since they arrange the children of a list.
+ */
+function setListProperty(
+  ctx: EditContext,
+  op: OperationOf<"setElementProperty"> & { property: (typeof LIST_PROPERTIES)[number] },
+): TextEdit[] {
+  const { property } = op;
+  if (ctx.diagram.type !== "free") reject("edit.invalid-value", reasons().lists.freeOnly(property));
+  if (op.targetKind !== "element") {
+    reject("edit.invalid-value", reasons().lists.groupsOnly(property, op.target));
+  }
+  const element = requireElement(ctx, op.target);
+  if (element.kind !== "group") {
+    reject("edit.invalid-value", reasons().lists.groupsOnly(property, op.target));
+  }
+  const value = listValue(property, op.value);
+  const { block, owner } = groupBlock(ctx, element.id);
+  const written = (name: string): KeywordStatement | undefined =>
+    block.statements.find((s): s is KeywordStatement => isKeyword(s, name));
+  if (value !== null && property !== "layout" && !written("layout")) {
+    reject("edit.invalid-value", reasons().lists.needsLayout(property));
+  }
+  const statement = written(property);
+  let edits: TextEdit[];
+  if (value === null) {
+    const removed = (property === "layout" ? LIST_PROPERTIES : [property])
+      .map(written)
+      .filter((s): s is KeywordStatement => s !== undefined);
+    if (removed.length === 0) return [];
+    edits = deleteStatements(ctx.text, ctx.compilation.parse.root, removed);
+  } else if (statement && statement.args.length > 0) {
+    // Only the value changes.
+    const first = statement.args[0]!;
+    const last = statement.args[statement.args.length - 1]!;
+    if (ctx.text.slice(first.start, last.end) === value) return [];
+    edits = [{ start: first.start, end: last.end, newText: value }];
+  } else if (statement) {
+    edits = [{ start: statement.start, end: statement.end, newText: `${property} ${value}` }];
+  } else {
+    const text = `${property} ${value}`;
+    const own = block.statements.filter((s) => isKeyword(s, ...GROUP_OWN_KEYWORDS));
+    const last = own[own.length - 1];
+    const first = block.statements[0];
+    edits = [
+      last
+        ? insertAfter(ctx, block, last, () => text)
+        : first
+          ? insertBeforeStatement(ctx, block, first, () => text)
+          : insertStatement(ctx, block, owner, () => text),
+    ];
   }
   verifyNoNewErrors(ctx, edits);
   return edits;

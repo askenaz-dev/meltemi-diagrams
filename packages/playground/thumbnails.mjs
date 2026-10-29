@@ -76,7 +76,7 @@ export function templateThumbnails(name, files, toolVersion) {
       report: () => undefined,
       printed: new Set(),
     };
-    const theme = diagram.theme ?? DEFAULT_THEME;
+    const theme = diagram.properties.theme ?? DEFAULT_THEME;
     const render = (themeName) => {
       const output = produceExport(context, svgRequest(diagram, file, themeName));
       if (!("text" in output)) {

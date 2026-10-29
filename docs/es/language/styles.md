@@ -43,27 +43,35 @@ Un tema sin `extends` extiende `technical.light`. Los temas se importan como cua
 
 ### Tokens
 
-| Grupo      | Tokens                                                                                                                                 | Valor                                                                 | `technical.*`                                                                       |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
-| Colores    | `background`, `surface`, `ink`, `muted`, `line`, `connector`, `band`, `bandLine`, `tag`, `tagText`, `accent`, `accentEnd`              | color entre comillas                                                  | consulta [svg-export.md](svg-export.md#temas)                                       |
-| Señales    | `success`, `warning`, `danger`, `info`                                                                                                 | color entre comillas                                                  | `#15803D`, `#B45309`, `#B91C1C`, `#0369A1` en el tema claro                         |
-| Fuentes    | `font`, `mono`                                                                                                                         | lista de fuentes CSS entre comillas                                   | Inter, Cascadia Mono                                                                |
-| Tipografía | `labelSize`, `descriptionSize`, `groupTitleSize`, `noteSize`, `tagSize`, `relationLabelSize`, `frameSize`                              | número, de 6 a 48                                                     | 13; 11; 13; 11; 10,5; 11; 12                                                        |
-|            | `labelWeight`                                                                                                                          | 400, 500, 600 o 700                                                   | 600                                                                                 |
-| Espaciado  | `padding` (del texto al borde de la caja), `groupPadding`, `groupHeader` (banda del título del grupo), `margin` (alrededor del lienzo) | número, de 0 a 200                                                    | 16, 16, 40, 20                                                                      |
-| Forma      | `radius` (cajas, notas), `groupRadius`: valores predeterminados que el `radius` de un elemento sustituye                               | número, de 0 a 64                                                     | 8, 14                                                                               |
-| Bordes     | `strokeWidth` (contornos), `connectorWidth`                                                                                            | número, de 0 a 8                                                      | 1; 1,3                                                                              |
-| Flechas    | `arrowhead`, `arrowSize`, `corners`                                                                                                    | una punta (más abajo); número, de 0 a 32; `sharp` o `rounded`         | `triangle`, 8, `sharp` (`sketch.*`: `rounded`)                                      |
-| Boceto     | `sketch`                                                                                                                               | `none`, `light` o `rough`                                             | `none` (`sketch.*`: `light`)                                                        |
-| Iconos     | `iconSize`, `iconPosition`                                                                                                             | número, de 8 a 64; `left`, `right`, `top`, `bottom` o `center`        | 18, `left` (stage: 24, `top`)                                                       |
-| Marco      | `frame`, `brand`, `mark`                                                                                                               | `none`, `footer` o `header`; texto entre comillas; `meltemi` o `none` | `footer`, `Meltemi Diagrams`, `meltemi`                                             |
-| Movimiento | `flowDuration`, `dashDuration`, `pulseDuration`, `traceDuration`                                                                       | un tiempo, de `100ms` a `60s`                                         | ninguno: 1200 ms para las partículas, 1500 ms para el recorrido, 1 s para los demás |
-| Lienzo     | `selection`, `guide`                                                                                                                   | color entre comillas                                                  | ninguno: el lienzo usa `accent`                                                     |
+| Grupo      | Tokens                                                                                                                                 | Valor                                                                 | `technical.*`                                                                                 |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Colores    | `background`, `surface`, `ink`, `muted`, `line`, `connector`, `band`, `bandLine`, `tag`, `tagText`, `accent`, `accentEnd`              | color entre comillas                                                  | consulta [svg-export.md](svg-export.md#temas)                                                 |
+| Señales    | `success`, `warning`, `danger`, `info`                                                                                                 | color entre comillas                                                  | `#15803D`, `#B45309`, `#B91C1C`, `#0369A1` en el tema claro                                   |
+| Pizarra    | `highlight` (los trazos de marcador), `sticky` (la tarjeta de las notas adhesivas), `stickyText` (su texto)                            | color entre comillas                                                  | `#ffe600`, `#fff59d`, `#1f2328` en los claros; `#ffd600`, `#f3e37c`, `#1f2328` en los oscuros |
+| Fuentes    | `font`, `mono`                                                                                                                         | lista de fuentes CSS entre comillas                                   | Inter, Cascadia Mono                                                                          |
+| Tipografía | `labelSize`, `descriptionSize`, `groupTitleSize`, `noteSize`, `tagSize`, `relationLabelSize`, `frameSize`                              | número, de 6 a 48                                                     | 13; 11; 13; 11; 10,5; 11; 12                                                                  |
+|            | `labelWeight`                                                                                                                          | 400, 500, 600 o 700                                                   | 600                                                                                           |
+| Espaciado  | `padding` (del texto al borde de la caja), `groupPadding`, `groupHeader` (banda del título del grupo), `margin` (alrededor del lienzo) | número, de 0 a 200                                                    | 16, 16, 40, 20                                                                                |
+| Forma      | `radius` (cajas, notas), `groupRadius`: valores predeterminados que el `radius` de un elemento sustituye                               | número, de 0 a 64                                                     | 8, 14                                                                                         |
+| Bordes     | `strokeWidth` (contornos), `connectorWidth`                                                                                            | número, de 0 a 8                                                      | 1; 1,3                                                                                        |
+| Flechas    | `arrowhead`, `arrowSize`, `corners`                                                                                                    | una punta (más abajo); número, de 0 a 32; `sharp` o `rounded`         | `triangle`, 8, `sharp` (`sketch.*`: `rounded`)                                                |
+| Boceto     | `sketch`                                                                                                                               | `none`, `light` o `rough`                                             | `none` (`sketch.*`: `light`)                                                                  |
+| Iconos     | `iconSize`, `iconPosition`                                                                                                             | número, de 8 a 64; `left`, `right`, `top`, `bottom` o `center`        | 18, `left` (stage: 24, `top`)                                                                 |
+| Marco      | `frame`, `brand`, `mark`                                                                                                               | `none`, `footer` o `header`; texto entre comillas; `meltemi` o `none` | `footer`, `Meltemi Diagrams`, `meltemi`                                                       |
+| Movimiento | `flowDuration`, `dashDuration`, `pulseDuration`, `traceDuration`                                                                       | un tiempo, de `100ms` a `60s`                                         | ninguno: 1200 ms para las partículas, 1500 ms para el recorrido, 1 s para los demás           |
+| Lienzo     | `selection`, `guide`                                                                                                                   | color entre comillas                                                  | ninguno: el lienzo usa `accent`                                                               |
 
 Los tokens del lienzo solo dan color al editor: `selection` a su selección, a sus tiradores y al
 punto que toma el extremo de un conector, y `guide` a sus guías de alineación y al contorno y los
 imanes de la caja sobre la que se arrastra un extremo. Las exportaciones nunca los usan, y los
 estilos no pueden nombrarlos.
+
+Los tokens de pizarra son tokens de color como los demás, definidos en todos los temas integrados
+y heredados por los temas que los extienden: `stroke highlight` da color a un trazo de marcador, y
+las notas adhesivas toman `sticky` y `stickyText` salvo que se les dé estilo
+([free.md](free.md#notas-adhesivas)). `stickyText` es casi negro también en los temas oscuros,
+porque una nota adhesiva es papel. Los lápices toman `ink` ([free.md](free.md#trazos-de-lápiz)). El
+panel de temas muestra los tres en un grupo Pizarra.
 
 `sketch` pinta cada trazo como si estuviera dibujado a mano: los contornos, los conectores, las
 puntas, las píldoras de las etiquetas, las bandas de los grupos y el marco se dibujan dos veces
@@ -108,16 +116,17 @@ diagram checkout: flow {
 | Propiedad                | Valor                                                                                                 | Se aplica a                                  |
 | ------------------------ | ----------------------------------------------------------------------------------------------------- | -------------------------------------------- |
 | `fill`                   | color entre comillas (`"none"` para no tener fondo) o nombre de un token de color                     | elementos, etiquetas de relación             |
-| `stroke`                 | color entre comillas o nombre de un token de color                                                    | contornos y conectores                       |
+| `stroke`                 | color entre comillas o nombre de un token de color                                                    | contornos, conectores y lápices              |
 | `color`                  | color entre comillas o nombre de un token de color                                                    | texto                                        |
-| `line`                   | `solid`, `dashed` o `dotted`                                                                          | contornos y conectores                       |
-| `width`                  | número, de 0 a 16                                                                                     | contornos y conectores                       |
+| `line`                   | `solid`, `dashed` o `dotted`                                                                          | contornos, conectores y lápices              |
+| `width`                  | número, de 0 a 64 (de 1 a 64 en un lápiz)                                                             | contornos, conectores y lápices              |
+| `opacity`                | número, de 0 (invisible) a 1 (opaco)                                                                  | elementos, grupos, líneas y lápices libres   |
 | `radius`                 | número, de 0 a 64: el radio de las esquinas, sobre el `radius` o el `groupRadius` del tema            | solo elementos y grupos                      |
 | `rotation`               | número, de 0 a 360: los grados que gira el elemento, en el sentido del reloj                          | elementos de flujo y libres                  |
 | `shape`                  | una de las veinticuatro formas de [free.md](free.md#texto-y-formas)                                   | nodos de flujo y cajas libres                |
 | `pattern`                | `none`, `hatch`, `dots` o `cross`                                                                     | solo elementos                               |
-| `arrowhead`              | la punta en el destino (más abajo)                                                                    | relaciones y líneas libres                   |
-| `arrowtail`              | la punta en el origen (más abajo)                                                                     | relaciones y líneas libres                   |
+| `arrowhead`              | la punta en el destino (más abajo)                                                                    | relaciones, líneas libres y lápices          |
+| `arrowtail`              | la punta en el origen (más abajo)                                                                     | relaciones, líneas libres y lápices          |
 | `routing`                | `auto`, `orthogonal`, `polyline` o `bezier` ([disposición](layout.md))                                | relaciones y líneas libres                   |
 | `corners`                | codos `sharp` o `rounded` de las rutas rectas y en codo                                               | relaciones y líneas libres                   |
 | `icon`                   | `"<pack>:<name>"` ([assets.md](assets.md))                                                            | elementos y relaciones                       |
@@ -125,9 +134,9 @@ diagram checkout: flow {
 | `iconPosition`           | `left`, `right`, `top`, `bottom` o `center` ([iconos en las cajas](#iconos-en-las-cajas))             | nodos, decisiones, almacenes de datos, cajas |
 | `labelPosition`          | `top`, `bottom`, `left` o `right`: el borde de la etiqueta alrededor de un icono centrado             | nodos, decisiones, almacenes de datos, cajas |
 | `iconSize`               | `auto`, o un número de 8 a 128: el lado del icono                                                     | nodos, decisiones, almacenes de datos, cajas |
-| `fontSize`, `fontWeight` | el tamaño del texto, de 6 a 160, y su grosor, 400, 500, 600 o 700 ([free.md](free.md#texto-y-formas)) | cajas y textos libres                        |
-| `textAlign`              | `left`, `center` o `right`: dónde va el texto a lo ancho de su caja                                   | cajas y textos libres                        |
-| `verticalAlign`          | `top`, `middle` o `bottom`: dónde va el texto a lo alto de su forma                                   | cajas libres                                 |
+| `fontSize`, `fontWeight` | el tamaño del texto, de 6 a 160, y su grosor, 400, 500, 600 o 700 ([free.md](free.md#texto-y-formas)) | cajas, textos y notas adhesivas libres       |
+| `textAlign`              | `left`, `center` o `right`: dónde va el texto a lo ancho de su caja                                   | cajas, textos y notas adhesivas libres       |
+| `verticalAlign`          | `top`, `middle` o `bottom`: dónde va el texto a lo alto de su forma                                   | cajas libres y notas adhesivas               |
 | `class`                  | uno o más ids de clase, en instrucciones `style` y en bloques de declaración                          | elementos y relaciones                       |
 
 - Un nombre de token de color (`danger`, `accent`, `muted`, …) sigue al tema: `stroke danger` es rojo
@@ -136,13 +145,21 @@ diagram checkout: flow {
 - `pattern` superpone a la forma un rayado, puntos o una cuadrícula en el color del borde del
   elemento (o en `muted`) con un 35 % de opacidad, así que el significado nunca depende solo del
   color.
-- `pattern`, `iconPosition`, `labelPosition`, `iconSize`, `radius` y `rotation` en una relación,
-  `arrowhead`, `arrowtail`, `routing` o `corners` en un elemento que no sea una línea libre, y
-  `shape` en algo que no sea un `node` de flujo o una `box` libre, son `prop.invalid-value` en las
-  instrucciones `style` y en las reglas. Una línea libre acepta las propiedades de una relación y
-  rechaza las de una caja ([free.md](free.md#líneas)). `fontSize`, `fontWeight`, `textAlign` y
-  `verticalAlign` son solo de las composiciones libres: los diagramas de flujo las rechazan. Una
-  clase puede contenerlos todos; cada destino toma lo que se le aplica.
+- `pattern`, `iconPosition`, `labelPosition`, `iconSize`, `radius`, `rotation` y `opacity` en una
+  relación, `arrowhead` y `arrowtail` en un elemento que no sea una línea libre ni un lápiz,
+  `routing` o `corners` en un elemento que no sea una línea libre, y `shape` en algo que no sea un
+  `node` de flujo o una `box` libre, son `prop.invalid-value` en las instrucciones `style` y en las
+  reglas. Una línea libre acepta las propiedades de una relación y rechaza las de una caja
+  ([free.md](free.md#líneas)); un lápiz acepta `stroke`, `width`, `line`, `opacity`, `arrowhead` y
+  `arrowtail` y rechaza las demás ([free.md](free.md#trazos-de-lápiz)). `fontSize`, `fontWeight`,
+  `textAlign`, `verticalAlign` y `opacity` son solo de las composiciones libres: los diagramas de
+  flujo las rechazan. Una clase puede contenerlos todos; cada destino toma lo que se le aplica.
+- `width` es el ancho de un contorno, de un conector o del trazo de un lápiz, de 0 a 64; un lápiz
+  se dibuja con al menos 1 px de ancho, así que `width 0` en un lápiz es `prop.invalid-value`.
+  `width 20` dibuja un trazo de marcador.
+- `opacity` atenúa un elemento, un grupo con todo lo que contiene, una línea libre o un lápiz de
+  una composición libre, de 0 (invisible) a 1 (opaco); la visibilidad de una historia se
+  multiplica por ella.
 - `radius` redondea las esquinas de todas las formas que las tienen, limitado a la mitad del lado
   más corto: los nodos y las cajas `rounded` (con el `radius` del tema por defecto), las cajas y
   los nodos `rectangle`, `square` y `framed` (rectos por defecto), los vértices de los polígonos y
@@ -300,8 +317,10 @@ se ignora.
 ### Reglas
 
 `rule <kind> { <properties> }` da estilo a todos los elementos de un tipo (`node`, `decision`,
-`data`, `group`, `note`, `tag`; en las composiciones libres `box`, `text`, `icon`, `image`, `group`
-y `line`) o a todas las relaciones (`relation`). `rule line { line dashed }` se lee raro, pero es
+`data`, `group`, `note`, `tag`; en las composiciones libres `box`, `text`, `icon`, `image`, `note`,
+`sticky`, `line`, `pen` y `group`) o a todas las relaciones (`relation`). `rule line` y `rule pen`
+también aceptan puntas: `rule pen { arrowhead triangle }` termina todos los lápices en un
+triángulo. `rule line { line dashed }` se lee raro, pero es
 correcto: primero el tipo, luego la propiedad. Las reglas se escriben en los
 diagramas y en los bloques de tema, donde llegan a todos los diagramas que usan el tema; por eso,
 una regla para todo el proyecto vive en el tema predeterminado del proyecto. Una propiedad asignada
@@ -328,8 +347,13 @@ El estado de la animación, que agrega el motor de movimiento, se aplica sobre e
 | (ninguna)         | el contenido más `margin`, más el marco                   | nunca                                        |
 | `preset document` | como arriba                                               | más ancho que 1200 px                        |
 | `preset slide`    | como arriba, ampliado a 16:9 con el contenido centrado    | más ancho que 1920 px o más alto que 1080 px |
+| `preset board`    | como arriba, del tamaño que tenga                         | nunca                                        |
 | `canvas (w, h)`   | `w × h` con el contenido centrado; crece donde hace falta | cuando el contenido no cabe                  |
 
-`preset` y `canvas` no se pueden combinar. La franja del marco ocupa el lienzo de lado a lado en su
-borde superior o inferior. El texto nunca se reduce para que quepa en un lienzo: cuando aparezca la
-advertencia, divide el diagrama en vistas o en escenas de una historia.
+`preset` y `canvas` no se pueden combinar, y otra palabra de preajuste es `prop.invalid-value` y
+enumera `document, slide, board`. La franja del marco ocupa el lienzo de lado a lado en su borde
+superior o inferior. El texto nunca se reduce para que quepa en un lienzo: cuando aparezca la
+advertencia, divide el diagrama en vistas o en escenas de una historia. `preset board` es para las
+pizarras, que crecen con lo que se dibuja en ellas: un tablero kanban o una explicación dibujada
+con lápices y notas adhesivas ([free.md](free.md)). La advertencia de `preset document` y de
+`preset slide` lo dice en sus pistas.

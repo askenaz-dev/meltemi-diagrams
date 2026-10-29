@@ -24,8 +24,9 @@ import type {
  * usually are not.
  */
 export type FlowElementKind = "node" | "decision" | "data" | "group" | "note" | "tag";
-/** Free kinds: shapes, text, icons, images, lines and groups. */
-export type FreeElementKind = "box" | "text" | "icon" | "image" | "note" | "line" | "group";
+/** Free kinds: shapes, text, icons, images, notes, stickies, lines, pen strokes and groups. */
+export type FreeElementKind =
+  "box" | "text" | "icon" | "image" | "note" | "sticky" | "line" | "pen" | "group";
 /** Sequence kinds: the participants, and groups of participants. */
 export type ParticipantKind =
   | "participant"
@@ -60,7 +61,11 @@ export interface PortDefinition {
 }
 export type AnimationEffect = "flow" | "pulse" | "dash" | "trace";
 export type AnimationDirection = "forward" | "reverse";
-export type Preset = "document" | "slide";
+export type Preset = "document" | "slide" | "board";
+/** How a list group arranges its children: one under the other, or side by side. */
+export type ListLayout = "column" | "row";
+/** Where the children of a list sit across its axis. */
+export type ListAlign = "start" | "center" | "end" | "stretch";
 /** Targets of `rule <kind> { }`. */
 export type RuleKind = ElementKind | "relation" | "fragment";
 /** A style value: a colour (`@<token>` for a theme colour token), a word, or a number. */
@@ -144,6 +149,23 @@ export interface LinePoints {
   readonly via: readonly Point[];
 }
 
+/** The points of a `pen` stroke: `pen <id> [(x, y), (x, y), ...]`, one at least. */
+export interface PenPoints {
+  readonly points: readonly Point[];
+}
+
+/**
+ * A list: a free group whose block writes `layout column` or `layout row`, which arranges its
+ * children in source order along that axis.
+ */
+export interface ListGroup {
+  readonly layout: ListLayout;
+  /** `spacing <n>`: the distance between children; null when not written. */
+  readonly spacing: number | null;
+  /** `align start|center|end|stretch`: where children sit across the axis; null if not written. */
+  readonly align: ListAlign | null;
+}
+
 /** A box, decision, data store or group of a flow diagram. */
 export interface Element {
   readonly id: string;
@@ -181,6 +203,16 @@ export interface Element {
    * innermost group; null on every other kind.
    */
   readonly line: LinePoints | null;
+  /**
+   * `pen` strokes: the points written in the statement, decimals kept, in the interior coordinates
+   * of the innermost group; null on every other kind.
+   */
+  readonly pen: PenPoints | null;
+  /**
+   * Free groups whose block writes `layout column|row`: the list; null on other groups and on every
+   * element.
+   */
+  readonly list: ListGroup | null;
   /**
    * Notes: the id of the element the note is attached to (`note <id> "Text" on <element>`), or
    * the entity path in a C4 view; null without the clause and on every other kind.
@@ -788,10 +820,13 @@ export interface ResolvedDiagram {
 // ---------------------------------------------------------------------- stories
 
 export type StoryActionKind =
-  "reveal" | "hide" | "highlight" | "focus" | "camera" | "trace" | "hold" | "parallel";
+  "reveal" | "hide" | "highlight" | "focus" | "camera" | "trace" | "draw" | "hold" | "parallel";
 export type StoryTransitionKind = "cut" | "fade" | "morph";
 
-/** An element, relation or event a story action names, in the scene's view. */
+/**
+ * An element, relation or event a story action names, in the scene's view. Pens and free lines
+ * are elements; what `draw` takes is told by `drawTargetKind`.
+ */
 export interface StoryTarget {
   readonly id: string;
   readonly kind: TargetKind;

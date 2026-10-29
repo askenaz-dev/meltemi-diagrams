@@ -3,6 +3,7 @@ import type {
   AnimationEffect,
   ElementKind,
   LineStyle,
+  ListLayout,
   Point,
   StoryActionKind,
 } from "@meltemi/diagrams-model";
@@ -109,17 +110,33 @@ export type EditOperation =
     }
   | {
       /**
-       * Declares a new element after the last declaration of the diagram or of `parent`, with a
-       * generated `<kind><n>` id when `id` is absent, and writes `place` and `size` when given.
+       * Declares a new element after the last declaration of the diagram or of `parent`, or before
+       * the declaration at `index`, with a generated `<kind><n>` id when `id` is absent, and writes
+       * `place` and `size` when given. A child of a list group gets no `place`: the list places it.
        */
       readonly kind: "createElement";
       readonly diagram: string;
       readonly elementKind: ElementKind;
       readonly id?: string;
       readonly label?: string;
+      /** The element's `place`, in the interior coordinates of `parent`; ignored in a list group. */
       readonly at?: Point;
       readonly size?: { readonly width: number; readonly height: number };
       readonly parent?: string;
+      /**
+       * The position among the declarations of the parent's block (or of the diagram body) at
+       * which the new declaration goes: before the declaration at that index, after the last when
+       * it is absent or past the end. A whole number from 0.
+       */
+      readonly index?: number;
+      /**
+       * A colour token such as `@sticky` (written bare) or a colour such as `#f8bbd0` (quoted),
+       * written as `style <id> { fill … }` after the declaration, in the same statement as `icon`
+       * and `shape`.
+       */
+      readonly fill?: string;
+      /** A new group of a free diagram that is a list: `group <id> "<label>" { layout column }`. */
+      readonly layout?: ListLayout;
       /** The icon reference of an `icon` or the path of an `image` (free diagrams). */
       readonly source?: string;
       /** An icon for the element's style, written as `style <id> { icon "…" }` after it. */
@@ -172,6 +189,33 @@ export type EditOperation =
       readonly from: Point;
       readonly to: Point;
       readonly via: readonly Point[];
+    }
+  | {
+      /**
+       * Declares a pen stroke, `pen <id> [(x, y), …]`, with a generated `pen<n>` id when `id` is
+       * absent, after the last declaration of the diagram body or of `parent`'s block. Its points
+       * are in that parent's interior coordinates, one at least, each coordinate rounded to a
+       * tenth; the list is on one line when the statement fits in 100 columns and filled over
+       * several lines otherwise, as the formatter prints it. `style` goes in one `style` statement
+       * in the same edit: beside the pen, or with the diagram's styles when it goes in a group.
+       */
+      readonly kind: "createPen";
+      readonly diagram: string;
+      readonly points: readonly Point[];
+      readonly parent?: string;
+      readonly id?: string;
+      readonly style?: PenStyle;
+    }
+  | {
+      /**
+       * Moves the points of a pen stroke, in its parent's interior coordinates: number by number
+       * when the count is unchanged (comments kept), the whole list otherwise, printed as
+       * `createPen` prints it.
+       */
+      readonly kind: "setPenPoints";
+      readonly diagram: string;
+      readonly element: string;
+      readonly points: readonly Point[];
     }
   | {
       /**
@@ -423,15 +467,26 @@ export type EditOperation =
       /**
        * Moves an element's declaration, with its block and the comments attached to it, into the
        * block of the group `parent`, or into the diagram body with `null`, after the last
-       * declaration there. An implicit element gains its declaration there. Relations, styles and
-       * animations stay where they are. Flow and free diagrams.
+       * declaration there or before the declaration at `index`. An implicit element gains its
+       * declaration there. Relations, styles and animations stay where they are. Into a list
+       * group, the element's `place` goes: the list places its children. Flow and free diagrams.
        */
       readonly kind: "moveElement";
       readonly diagram: string;
       readonly element: string;
       readonly parent: string | null;
-      /** The element's new `place`, in the interior coordinates of `parent`; the place stays without it. */
+      /**
+       * The element's new `place`, in the interior coordinates of `parent`; the place stays without
+       * it. Refused when `parent` is a list group.
+       */
       readonly at?: Point;
+      /**
+       * The position among the declarations of the destination block, the moved one included when
+       * it is already there, at which the declaration goes: before the declaration at that index,
+       * after the last when it is absent or past the end. A whole number from 0. Within the
+       * element's own block it reorders.
+       */
+      readonly index?: number;
     }
   | {
       /** Renames a layer in `layers` and in every `layer` statement of the diagram. */
@@ -443,14 +498,18 @@ export type EditOperation =
   | {
       /**
        * Sets or (with `null`) removes the `layer` or `link` statement of an element or relation,
-       * or the `kind async` of a sequence message.
+       * or the `kind async` of a sequence message. On a group of a free diagram, `layout`
+       * (`column` or `row`; null removes it with `spacing` and `align`), `spacing` (0 to 400) and
+       * `align` (`start`, `center`, `end`, `stretch`) make it a list, among the group's own
+       * statements.
        */
       readonly kind: "setElementProperty";
       readonly diagram: string;
       readonly target: string;
       readonly targetKind: "element" | "relation";
-      readonly property: "layer" | "link" | "kind" | "url";
-      readonly value: string | null;
+      readonly property: "layer" | "link" | "kind" | "url" | "layout" | "spacing" | "align";
+      /** A word or a string; a number for `spacing`. */
+      readonly value: string | number | null;
     }
   | {
       /** Sequence diagrams: makes a participant the `index`-th (0-based) of its block. */
@@ -734,6 +793,23 @@ export type EditOperation =
     };
 
 export type EditOperationKind = EditOperation["kind"];
+
+/**
+ * The styles of a new pen stroke, written in this order in its `style` statement; what is absent
+ * keeps the default (the theme's `ink`, 3 wide, opaque, no heads).
+ */
+export interface PenStyle {
+  /** A colour token such as `@highlight` (written bare) or a colour such as `#e03131` (quoted). */
+  readonly stroke?: string;
+  /** 1 to 64. */
+  readonly width?: number;
+  /** 0 to 1. */
+  readonly opacity?: number;
+  /** A head of `ARROWHEADS` at the last point. */
+  readonly arrowhead?: string;
+  /** A head of `ARROWHEADS` at the first point. */
+  readonly arrowtail?: string;
+}
 
 /** The types of diagrams `createDiagram` writes: C4 views need a model, written in text. */
 export type CreatableDiagramType = "flow" | "free" | "sequence";

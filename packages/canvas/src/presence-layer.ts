@@ -24,6 +24,17 @@ export interface DrawnTrail {
   readonly fade: number;
 }
 
+/**
+ * Another person's stroke of the pen or the highlighter to draw: its points shown so far in diagram
+ * units, its colour, its width in screen pixels (the pen's at the zoom) and its opacity.
+ */
+export interface DrawnStroke {
+  readonly points: readonly Point[];
+  readonly colour: string;
+  readonly width: number;
+  readonly opacity: number;
+}
+
 /** A cursor drawn, and the diagram point it was last drawn at. */
 interface Drawn {
   readonly element: HTMLElement;
@@ -54,7 +65,10 @@ export class PresenceLayer {
     "aria-hidden": "true",
     focusable: "false",
   });
-  /** The Pointer trails, strokes at the device's resolution; between the outlines and the cursors. */
+  /**
+   * The Pointer trails and the strokes others draw with the pen or the highlighter, at the device's
+   * resolution; between the outlines and the cursors.
+   */
   private readonly trails = h("canvas", { class: "presence-trails", "aria-hidden": "true" });
   private readonly cursorLayer = h("div", { class: "presence-cursors" });
   private readonly cursors = new Map<string, Drawn>();
@@ -82,10 +96,16 @@ export class PresenceLayer {
 
   /**
    * Strokes the Pointer trails at `now`, replacing what was drawn: each segment with round caps and
-   * joins in its trail's colour, at its own opacity and width. `toScreen` puts a point of the
-   * diagram on the stage, so a pan or a zoom keeps a trail on the diagram.
+   * joins in its trail's colour, at its own opacity and width. Other people's pen strokes go first,
+   * under the trails (`drawStrokes`). `toScreen` puts a point of the diagram on the stage, so a pan
+   * or a zoom keeps a trail on the diagram.
    */
-  drawTrails(trails: readonly DrawnTrail[], toScreen: (point: Point) => Point, now: number): void {
+  drawTrails(
+    trails: readonly DrawnTrail[],
+    toScreen: (point: Point) => Point,
+    now: number,
+    strokes: readonly DrawnStroke[] = [],
+  ): void {
     const context = this.trails.getContext("2d");
     if (!context) return;
     this.sizeTrails();
@@ -95,7 +115,7 @@ export class PresenceLayer {
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
     context.lineCap = "round";
     context.lineJoin = "round";
-    let drew = false;
+    let drew = this.drawStrokes(context, strokes, toScreen);
     for (const trail of trails) {
       context.strokeStyle = trail.colour;
       for (const segment of trailSegments(trail.points, now, trail.fade)) {
@@ -112,6 +132,48 @@ export class PresenceLayer {
     }
     context.globalAlpha = 1;
     this.trailsDrawn = drew;
+  }
+
+  /**
+   * Strokes other people's pen and highlighter strokes as the layout will draw their pens: one path
+   * each through the midpoints of consecutive points (a quadratic curve at every inner point, the
+   * last one reached by a segment), round caps and joins, in the stroke's colour and width, with
+   * its opacity on the whole path, so a highlighter crossing itself does not darken. One point is a
+   * dot as wide as the stroke. Returns whether anything was drawn.
+   */
+  private drawStrokes(
+    context: CanvasRenderingContext2D,
+    strokes: readonly DrawnStroke[],
+    toScreen: (point: Point) => Point,
+  ): boolean {
+    let drew = false;
+    for (const stroke of strokes) {
+      const points = stroke.points.map(toScreen);
+      const first = points[0];
+      if (!first || stroke.opacity <= 0) continue;
+      context.globalAlpha = stroke.opacity;
+      context.beginPath();
+      if (points.length === 1) {
+        context.fillStyle = stroke.colour;
+        context.arc(first.x, first.y, stroke.width / 2, 0, 2 * Math.PI);
+        context.fill();
+      } else {
+        context.strokeStyle = stroke.colour;
+        context.lineWidth = stroke.width;
+        context.moveTo(first.x, first.y);
+        for (let i = 1; i < points.length - 1; i++) {
+          const p = points[i]!;
+          const next = points[i + 1]!;
+          context.quadraticCurveTo(p.x, p.y, (p.x + next.x) / 2, (p.y + next.y) / 2);
+        }
+        const last = points[points.length - 1]!;
+        context.lineTo(last.x, last.y);
+        context.stroke();
+      }
+      drew = true;
+    }
+    context.globalAlpha = 1;
+    return drew;
   }
 
   /** Whether the trails canvas holds a stroke now. */

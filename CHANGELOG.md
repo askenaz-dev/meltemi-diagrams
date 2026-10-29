@@ -4,6 +4,89 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
+## 1.11.0
+
+A free composition becomes a whiteboard: freehand strokes and highlighter marks, sticky notes whose
+words fit the card, columns and rows that order their cards into a kanban board, a board that grows
+with what is drawn on it, and a story action that replays the strokes as they were drawn. Everything
+is still a statement of the sheet, drawn by hand on the canvas with a pen, a highlighter and an
+eraser, and seen by the room while it is drawn
+([decision 0064](docs/decisions/0064-whiteboard-tools.md)). The language stays 0.2: `pen`,
+`sticky`, the list properties, `opacity`, `preset board`, the three tokens and `draw` are additive.
+
+### Language
+
+- Pen strokes: `pen <id> [(x, y), (x, y), …]` is a freehand stroke of free diagrams, its points in
+  its group's interior like a line's, decimals kept; one point is a dot. It takes `stroke` (the
+  theme's `ink` by default), `width` (1 to 64, 3 by default), `line`, `opacity`, `arrowhead` and
+  `arrowtail`, and refuses a box's properties, `place`, `size` and `rotation`; `rule pen { }` styles
+  every stroke. It is drawn as one smooth path through the midpoints of its points, left alone by
+  the sketch themes, outside every composition check, and `flow`, `dash`, `pulse` and `trace` run
+  along it. The formatter prints a long stroke's points filled to 100 columns.
+- Stickies: `sticky <id> "Text"` is a square card (160 × 160 at the default label size, or its
+  `size`) that never grows: its text wraps at the card's width, shrinks down to 8 px to fit, and is
+  `layout.text-overflow` (warning) and clipped when it still does not. It has a soft shadow, the
+  theme's new `sticky` fill and `stickyText` colour, takes the text properties, `rotation`,
+  `opacity` and an icon, refuses `shape`, and is an endpoint of relations like a box.
+- Lists: a group block of a free diagram takes `layout column` or `layout row`, `spacing <n>` and
+  `align start|center|end|stretch`, and the group then places its children in source order along
+  its axis; a written `size` is its least size and it grows with its children. A `place` on a
+  child of a list is `layout.place-ignored` (warning). Lines and pens inside a list keep their
+  points, the engine treats a list as one box, and a row of columns with `align stretch` is a
+  kanban board.
+- `opacity <0..1>` is a style property of free diagrams (elements, groups, lines and pens), and
+  `width` takes 0 to 64 on every target. `rule line { }` and `rule pen { }` take heads.
+- `preset board` sizes the canvas from its content with no `layout.too-large`; the warning of
+  `preset document` and `preset slide` names it.
+- Themes gain the colour tokens `highlight`, `sticky` and `stickyText`, set in the eight built-in
+  themes and shown in the theme panel's new Whiteboard group.
+- Stories: `draw a, b [over <time>]` replays pens, free lines and named relations from their first
+  point to their last, one after another in proportion to their lengths, and leaves them drawn; a
+  target first shown by `draw` starts hidden. The player, the catalog and video exports show it.
+- The model JSON gives every element `pen` after `line` and `list` after `pen`; the version stays
+  0.1.
+
+### Canvas (VS Code and the playground)
+
+- Pen (P), Highlighter (H) and Eraser (E) on free diagrams. The pen button is a split button whose
+  menu holds Pen and Highlighter, the widths and the theme's colours, kept between sessions; the
+  tools stay in the hand after each stroke. A stroke is drawn as the layout will draw it while the
+  pointer moves, Shift keeps it straight, Escape cancels it, and the release writes a simplified
+  `pen` inside the innermost group that holds the whole stroke and is not a list, so a stroke never
+  resizes a column, with a `style` only for what differs from the defaults (the highlighter writes
+  `stroke highlight; width 20; opacity 0.35`). A stylus draws with palm rejection and erases with
+  its barrel button. The eraser takes every stroke it crosses, with its style, in one undo step, and
+  nothing else.
+- A selected stroke shows its bounds with resize handles that scale its points, moves by its
+  stroke and the arrow keys, and takes the strip's stroke, width, opacity, line and heads.
+- Sticky (S): a split button whose arrow picks the theme's colour or one of six fixed colours,
+  kept between sessions; the card's editor wraps the text as the card will.
+- The group menu adds Column and Row. Dragging cards over a list shows an insertion bar and the
+  cards make room before the drop; the drop moves the declaration to that place and removes its
+  `place`. A hovered or selected list shows a **+** that adds a sticky to a column or a column to a
+  row; Ctrl+Enter adds after the selected card and Alt+Up and Alt+Down move it among its siblings.
+  The inspector shows Layout, Spacing and Align.
+- The inspector's Opacity slider; the Canvas size field offers `board`.
+- Strokes of others: in a room, a stroke appears on the others' canvases while it is drawn, in its
+  colour and width, and the written `pen` replaces it when the drawing arrives.
+
+### Playground
+
+- Two templates, **Kanban board** and **Whiteboard** (a sketched board with a story that draws its
+  strokes), among the New project cards; their thumbnails are drawn in each template's own theme.
+
+### Command line
+
+- `init --template kanban` and `init --template whiteboard`; `init --list` prints seven templates.
+- The gallery gains `free/whiteboard`.
+
+### Fixed
+
+- Ungrouping a group that a story named left the story pointing at nothing; the group now leaves
+  the story's actions, as it leaves its styles.
+- The playground's template thumbnails were drawn in the technical theme whatever theme the
+  template named.
+
 ## 1.10.1
 
 ### Fixed

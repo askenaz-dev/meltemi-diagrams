@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { BUILT_IN_THEMES, THEME_TOKENS, compile, toJson } from "../src/index.js";
+import {
+  BUILT_IN_THEMES,
+  THEME_COLOR_TOKENS,
+  THEME_TOKENS,
+  THEME_WHITEBOARD_TOKENS,
+  compile,
+  toJson,
+} from "../src/index.js";
 
 const codes = (text: string) => compile(text).diagnostics.map((d) => d.code);
 
@@ -128,6 +135,43 @@ describe("theme blocks", () => {
     expect(BUILT_IN_THEMES).toContain("sketch.light");
     expect(BUILT_IN_THEMES).toContain("sketch.dark");
     expect(BUILT_IN_THEMES).toHaveLength(8);
+  });
+
+  it("takes the whiteboard colours, which styles name as tokens", () => {
+    const theme = compile(
+      'theme board { extends "technical.light"; sticky "#dbeafe"; highlight "#fde68a"; stickyText "#1f2328" }\n',
+    );
+    expect(theme.diagnostics).toEqual([]);
+    expect(theme.document.themes[0]!.tokens).toEqual({
+      sticky: "#dbeafe",
+      highlight: "#fde68a",
+      stickyText: "#1f2328",
+    });
+    expect(THEME_WHITEBOARD_TOKENS).toEqual(["highlight", "sticky", "stickyText"]);
+    for (const token of THEME_WHITEBOARD_TOKENS) {
+      expect(THEME_COLOR_TOKENS).toContain(token);
+      expect(THEME_TOKENS[token]).toEqual({ kind: "color" });
+    }
+    const styled = compile(
+      'diagram d: free {\n  sticky s "S"\n  pen p [(0, 0)]\n  style s { fill sticky; color stickyText }\n  style p { stroke highlight }\n}\n',
+    );
+    expect(styled.diagnostics).toEqual([]);
+    expect(styled.document.diagrams[0]!.styles.map((s) => s.properties)).toEqual([
+      { fill: "@sticky", color: "@stickyText" },
+      { stroke: "@highlight" },
+    ]);
+  });
+
+  it("refuses a whiteboard colour that is not a quoted colour, and lists the three", () => {
+    const compilation = compile("theme t {\n  sticky 12\n  shade 1\n}\n");
+    expect(compilation.diagnostics.map((d) => [d.code, d.message])).toEqual([
+      ["prop.invalid-value", "`sticky` expects a quoted color."],
+      ["prop.unknown", "Unknown theme token `shade`."],
+    ]);
+    expect(compilation.diagnostics[0]!.range.start).toMatchObject({ line: 2, column: 10 });
+    const hint = compilation.diagnostics[1]!.hints![0]!;
+    for (const token of ["highlight", "sticky", "stickyText"]) expect(hint).toContain(token);
+    expect(compilation.diagnostics[1]!.data?.candidates).toContain("stickyText");
   });
 
   it("takes the canvas colours, which styles cannot name", () => {

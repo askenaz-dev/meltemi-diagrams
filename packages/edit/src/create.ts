@@ -2,6 +2,7 @@ import { getLocale, type Locale } from "@meltemi/diagrams-i18n";
 import type { TextEdit } from "@meltemi/diagrams-language";
 import {
   BOX_SHAPES,
+  LIST_LAYOUTS,
   PORTS,
   PROFILES,
   SHAPE_KINDS,
@@ -12,8 +13,10 @@ import {
 } from "@meltemi/diagrams-model";
 import {
   insertStatement,
+  isListGroup,
   reject,
   requireElement,
+  requireIndex,
   requireNumbers,
   type EditContext,
 } from "./context.js";
@@ -21,7 +24,9 @@ import {
   diagramBody,
   groupBlock,
   insertAfter,
+  insertBeforeStatement,
   insertDeclaration,
+  insertIntoBlock,
   isDeclaration,
   isKeyword,
   verifyNoNewErrors,
@@ -32,6 +37,7 @@ import { insertViewNote } from "./c4.js";
 import { insertPlacements, requireNewId, type OperationOf } from "./plan.js";
 import { endpointText, requireEndPosition } from "./routes.js";
 import { isEventStatement } from "./sequence.js";
+import { formatStyleValue } from "./styles.js";
 import { formatPoint, quoteString } from "./text.js";
 
 /** Labels of new elements created without one, in English; `defaultLabel` gives them by language. */
@@ -130,13 +136,24 @@ export function createElement(ctx: EditContext, op: OperationOf<"createElement">
   if (ctx.diagram.type === "sequence" && (op.at || op.size)) {
     reject("edit.invalid-value", reasons().elements.participantsNotPlaced);
   }
+  if (op.layout !== undefined) {
+    if (ctx.diagram.type !== "free")
+      reject("edit.invalid-value", reasons().lists.freeOnly("layout"));
+    if (kind !== "group") reject("edit.invalid-value", reasons().lists.kindLayout(kind));
+    if (!(LIST_LAYOUTS as readonly string[]).includes(op.layout)) {
+      reject("edit.invalid-value", reasons().lists.notValue(op.layout, "layout", LIST_LAYOUTS));
+    }
+  }
+  if (op.index !== undefined) requireIndex(op.index);
   const id = op.id ?? freeId(ctx, kind);
   requireNewId(ctx, id);
   const label = sourced
     ? op.source!
     : (op.label ?? defaultLabel(kind) ?? declared?.elements[kind]?.label ?? kind);
   const text =
-    declarationText(kind, id, label, ctx.diagram.type) +
+    (op.layout !== undefined
+      ? `group ${id} ${quoteString(label)} { layout ${op.layout} }`
+      : declarationText(kind, id, label, ctx.diagram.type)) +
     (op.attachedTo !== undefined ? ` on ${op.attachedTo}` : "");
   const { block, owner } = op.parent
     ? groupBlock(ctx, op.parent)
@@ -152,28 +169,38 @@ export function createElement(ctx: EditContext, op: OperationOf<"createElement">
       reject("edit.invalid-value", reasons().elements.notShape(op.shape, BOX_SHAPES));
     }
   }
-  // The icon and the shape go in a style statement: on the next line in the diagram body, or with
-  // the diagram's style statements when the element goes into a group, which takes none. `rounded`
-  // is the shape a box has without one.
+  // The icon, the shape and the fill go in a style statement: on the next line in the diagram
+  // body, or with the diagram's style statements when the element goes into a group, which takes
+  // none. `rounded` is the shape a box has without one.
   const properties = [
     ...(op.icon !== undefined ? [`icon ${quoteString(op.icon)}`] : []),
     ...(op.shape !== undefined && op.shape !== "rounded" ? [`shape ${op.shape}`] : []),
+    ...(op.fill !== undefined ? [`fill ${formatStyleValue("fill", op.fill)}`] : []),
   ];
   const styled = properties.length > 0 ? `style ${id} { ${properties.join("; ")} }` : undefined;
   const beside = styled !== undefined && !op.parent ? styled : undefined;
+  const render = (indent: string | null) =>
+    beside === undefined
+      ? text
+      : indent === null
+        ? `${text}; ${beside}`
+        : `${text}${ctx.eol}${indent}${beside}`;
+  // Before the declaration at `index`; else after the last one, or a group's own statements.
+  const before =
+    op.index !== undefined ? block.statements.filter(isDeclaration)[op.index] : undefined;
   const edits: TextEdit[] = [
     ctx.diagram.type === "c4"
       ? insertViewNote(ctx, text)
-      : insertDeclaration(ctx, block, owner, (indent) =>
-          beside === undefined
-            ? text
-            : indent === null
-              ? `${text}; ${beside}`
-              : `${text}${ctx.eol}${indent}${beside}`,
-        ),
+      : before
+        ? insertBeforeStatement(ctx, block, before, render)
+        : op.parent
+          ? insertIntoBlock(ctx, block, owner, false, render)
+          : insertDeclaration(ctx, block, owner, render),
   ];
+  // A list places its children: a new one gets no place.
+  const listed = isListGroup(ctx, op.parent);
   const placement: string[] = [];
-  if (op.at) {
+  if (op.at && !listed) {
     const at = { x: Math.round(op.at.x), y: Math.round(op.at.y) };
     requireNumbers(at.x, at.y);
     placement.push(`place ${id} at ${formatPoint(at)}`);

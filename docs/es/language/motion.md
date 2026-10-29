@@ -43,23 +43,26 @@ conserva el color de su línea, porque anima la línea misma.
 
 ## Destinos y canales
 
-| Efecto  | Dibuja                                                                                              | Destinos                                                                                   |
-| ------- | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `flow`  | partículas a lo largo del conector, bajo su etiqueta                                                | relaciones con nombre, líneas libres, mensajes de secuencia y relaciones C4                |
-| `dash`  | un trazo de 8 y un hueco de 6 que se mueven a lo largo de la línea o del contorno                   | relaciones con nombre, líneas libres y elementos con contorno, notas y textos con contorno |
-| `pulse` | un halo que crece un 15 % y se desvanece, o un resplandor a lo largo de una relación o de una línea | elementos, relaciones con nombre, líneas libres, y notas y fragmentos con nombre           |
-| `trace` | un resaltado que llena el conector desde su inicio y luego se desvanece                             | relaciones con nombre, líneas libres, mensajes de secuencia y relaciones C4                |
+| Efecto  | Dibuja                                                                                              | Destinos                                                                                                             |
+| ------- | --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `flow`  | partículas a lo largo del conector, bajo su etiqueta                                                | relaciones con nombre, líneas libres, lápices, mensajes de secuencia y relaciones C4                                 |
+| `dash`  | un trazo de 8 y un hueco de 6 que se mueven a lo largo de la línea o del contorno                   | relaciones con nombre, líneas libres, lápices y elementos con contorno, notas, textos y notas adhesivas con contorno |
+| `pulse` | un halo que crece un 15 % y se desvanece, o un resplandor a lo largo de una relación o de una línea | elementos, relaciones con nombre, líneas libres, lápices, y notas y fragmentos con nombre                            |
+| `trace` | un resaltado que llena el conector desde su inicio y luego se desvanece                             | relaciones con nombre, líneas libres, lápices, mensajes de secuencia y relaciones C4                                 |
 
-Una `line` libre ([free.md](free.md#líneas)) se anima como una relación: las partículas, el trazo,
-el resplandor y el recorrido avanzan por su línea dibujada, desde su punto `from` hasta su punto
-`to` (al revés con `direction reverse`). Cualquier otro destino es `animate.invalid-target`:
-partículas o un recorrido en una caja, cuyo mensaje dice que recorren relaciones y líneas, un trazo
-en movimiento en un icono o en una nota o un texto sin contorno. Cada efecto controla un canal, así que un destino puede
+Una `line` libre ([free.md](free.md#líneas)) o un lápiz ([free.md](free.md#trazos-de-lápiz)) se
+anima como una relación: las partículas, el trazo, el resplandor y el recorrido avanzan por su
+línea dibujada, desde su primer punto hasta el último (al revés con `direction reverse`); en un
+lápiz siguen la curva suavizada, no los tramos rectos entre sus puntos. Cualquier otro destino es
+`animate.invalid-target`: partículas o un recorrido en una caja o en un texto, cuyo mensaje dice
+que recorren relaciones, líneas y lápices, un trazo en movimiento en un icono o en una nota, un
+texto o una nota adhesiva sin contorno. Cada efecto controla un canal, así que un destino puede
 tener a la vez partículas, un trazo en movimiento, un pulso y un recorrido, pero un segundo
 efecto del mismo tipo en el mismo destino es `animate.conflict`, dondequiera que esté escrito. Una
 nota o un texto tiene contorno para un trazo en movimiento cuando un `style`, una clase o una `rule`
-del diagrama fija su `fill`, `stroke` o `pattern`; los iconos, las imágenes y las figuras de palitos
-de los diagramas de secuencia nunca lo tienen.
+del diagrama fija su `fill`, `stroke` o `pattern`, y una nota adhesiva, siempre rellena, cuando
+fijan su `stroke`; los iconos, las imágenes y las figuras de palitos de los diagramas de secuencia
+nunca lo tienen.
 
 Las animaciones son la última capa de la precedencia de estilos: mientras un efecto se ejecuta, su
 trazo reemplaza el estilo de línea escrito del destino; fuera de su ventana de tiempo, el destino se

@@ -1,0 +1,59 @@
+language "0.2"
+
+// A whiteboard: a heading marked with the highlighter, two stickies, an arrow drawn by hand and a
+// line, under the sketch theme. Draw more with the pen (P) and the highlighter (H) on the canvas;
+// every stroke is a `pen` with its points. The story below draws the strokes again, one after
+// another, and reveals the stickies: play it, or export it as a video.
+diagram whiteboard: free {
+  title "Why a cache is fast"
+  theme "sketch.light"
+  preset board
+  layout manual
+
+  pen marker [(236, 78), (300.4, 79.2), (372.6, 77.8), (441.2, 79.5), (508.8, 78.1), (564, 79)]
+  text heading "Why a cache is fast"
+
+  sticky ask "Ask the cache first"
+  sticky miss "Only a miss goes to the database"
+
+  pen arrow [
+    (294, 228), (299.5, 223.9), (305.3, 219.4), (312, 214.2), (320.6, 208.6), (330, 201.3),
+    (341.5, 195), (355.3, 186.9), (370.2, 183), (385.2, 178.9), (400.5, 177), (417, 179.6),
+    (432.1, 185.1), (446.4, 192.8), (460, 201.6), (471.6, 209.7), (481.5, 217.5), (489.7, 224),
+    (496.9, 230.4), (502.7, 235.3), (508, 240)
+  ]
+
+  line divider from (80, 380) to (720, 380)
+  text takeaway "Most requests never reach the database"
+
+  placement {
+    place heading at (400, 70)
+    place ask at (200, 250)
+    place miss at (600, 250)
+    place takeaway at (400, 420)
+  }
+
+  style heading { fontSize 36; fontWeight 700 }
+  style marker { stroke highlight; width 20; opacity 0.35 }
+  style ask { rotation 357 }
+  style miss { fill "#f8bbd0"; rotation 2 }
+  style arrow { arrowhead triangle }
+  style divider { line dashed; stroke muted }
+  style takeaway { color muted }
+}
+
+// The explanation as it was given: the heading marked, the question, the arrow to the answer and
+// the takeaway under the line.
+story walkthrough for whiteboard {
+  title "Why a cache is fast, step by step"
+
+  scene explain {
+    draw marker over 600ms
+    reveal ask over 500ms
+    draw arrow over 1200ms
+    reveal miss over 500ms
+    draw divider over 700ms
+    reveal takeaway over 500ms
+    hold 1500ms
+  }
+}

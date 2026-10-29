@@ -56,6 +56,8 @@ function open(text: string) {
   return {
     send,
     text: () => current,
+    /** Sends an action at the current revision, planned or refused. */
+    act: (action: CanvasAction) => send({ type: "action", revision: rev, action }),
     apply: (action: CanvasAction) => {
       const result = send({ type: "action", revision: rev, action });
       if (!result.plan) throw new Error(JSON.stringify(result.messages));
@@ -93,7 +95,13 @@ describe("style strip", () => {
     const canvas = open(SHEET.replace("  layout manual", '  theme "brand"\n  layout manual'));
     canvas.send({ type: "select", ids: ["db"] });
     const fill = canvas.inspector().fields.find((f) => f.name === "style.fill")!;
-    expect(fill.swatches).toHaveLength(16);
+    // The sixteen colours and the three of whiteboards.
+    expect(fill.swatches).toHaveLength(19);
+    expect(fill.swatches!.map((s) => s.token).slice(16)).toEqual([
+      "highlight",
+      "sticky",
+      "stickyText",
+    ]);
     expect(fill.swatches!.map((s) => s.token).slice(0, 3)).toEqual([
       "background",
       "surface",
@@ -570,5 +578,310 @@ describe("the Icon field", () => {
     expect(result.plan!.operation.kind).toBe("batch");
     expect(canvas.text()).toContain('style api { icon "tabler:server" }');
     expect(canvas.text()).toContain('style save { icon "tabler:server" }');
+  });
+});
+
+describe("whiteboard objects", () => {
+  const BOARD = [
+    'language "0.2"',
+    "",
+    "diagram board: free {",
+    "  layout manual",
+    '  group todo "To do" {',
+    "    layout column",
+    '    sticky a "Write the plan"',
+    '    sticky b "Ship it"',
+    "  }",
+    '  group plain "Plain" {',
+    '    box inner "Inner"',
+    "  }",
+    '  box api "API"',
+    '  sticky solo "Alone"',
+    "  line rule from (0, 500) to (200, 500)",
+    "  pen mark [(10, 10), (40, 20), (80, 10)]",
+    "  api -> inner as call",
+    "  placement {",
+    "    place todo at (200, 200)",
+    "    place plain at (600, 200)",
+    "    size plain (240, 160)",
+    "    place inner at (100, 60)",
+    "    place api at (900, 200)",
+    "    place solo at (900, 400)",
+    "  }",
+    "}",
+    "",
+  ].join("\n");
+
+  function board(text = BOARD) {
+    const canvas = open(text);
+    canvas.send({ type: "pickDiagram", diagram: "board" });
+    return canvas;
+  }
+
+  const field = (model: InspectorModel, name: string) => model.fields.find((f) => f.name === name);
+  const fields = (model: InspectorModel) =>
+    model.fields.filter((f) => f.section !== "strip").map((f) => f.name);
+  /** The refusal of a field written with an action, which leaves the text as it is. */
+  const refusal = (
+    canvas: ReturnType<typeof board>,
+    ids: string[],
+    name: string,
+    value: string | number | null,
+  ) => canvas.act({ kind: "setField", ids, field: name, value }).messages[0];
+
+  it("shows a pen's stroke, width, opacity, line and heads, and no geometry", () => {
+    const canvas = board();
+    canvas.send({ type: "select", ids: ["mark"] });
+    const model = canvas.inspector();
+    expect(model.title).toBe("pen mark");
+    expect(strip(model)).toEqual([
+      "style.stroke",
+      "style.line",
+      "style.width",
+      "style.opacity",
+      "style.arrowtail",
+      "style.arrowhead",
+      "effect.flow",
+      "effect.dash",
+      "effect.pulse",
+      "effect.trace",
+    ]);
+    // The inspector's own fields: no kind, no text, no group to pick, no ports, place or size.
+    expect(fields(model)).toEqual(["id", "description", "classes", "layer", "link", "url"]);
+    expect(field(model, "style.stroke")).toMatchObject({ value: null, placeholder: "ink" });
+    expect(field(model, "style.stroke")!.swatches).toHaveLength(19);
+    expect(field(model, "style.width")).toMatchObject({
+      label: "Stroke width",
+      value: null,
+      placeholder: "3",
+      range: { min: 1, max: 64, step: 1 },
+    });
+    expect(field(model, "style.opacity")).toMatchObject({
+      label: "Opacity",
+      type: "number",
+      value: null,
+      placeholder: "1",
+      range: { min: 0, max: 1, step: 0.05 },
+    });
+    // Both heads greyed as none, drawn as pictures.
+    expect(field(model, "style.arrowtail")).toMatchObject({
+      placeholder: "none",
+      glyphs: "arrowStart",
+    });
+    expect(field(model, "style.arrowhead")).toMatchObject({
+      placeholder: "none",
+      glyphs: "arrowEnd",
+    });
+    for (const name of ["style.fill", "style.radius", "style.rotation", "style.routing"]) {
+      expect(field(model, name), name).toBeUndefined();
+    }
+  });
+
+  it("writes a pen's stroke, width, opacity and head, and refuses a width of 0", () => {
+    const canvas = board();
+    canvas.apply({ kind: "setField", ids: ["mark"], field: "style.stroke", value: "danger" });
+    canvas.apply({ kind: "setField", ids: ["mark"], field: "style.width", value: 8 });
+    canvas.apply({ kind: "setField", ids: ["mark"], field: "style.opacity", value: 0.35 });
+    canvas.apply({ kind: "setField", ids: ["mark"], field: "style.arrowhead", value: "triangle" });
+    expect(canvas.text()).toContain(
+      "style mark { stroke danger; width 8; opacity 0.35; arrowhead triangle }",
+    );
+    canvas.send({ type: "select", ids: ["mark"] });
+    expect(field(canvas.inspector(), "style.width")).toMatchObject({ value: 8 });
+    expect(field(canvas.inspector(), "style.opacity")).toMatchObject({ value: 0.35 });
+    const before = canvas.text();
+    expect(refusal(canvas, ["mark"], "style.width", 0)).toMatchObject({
+      type: "rejected",
+      reason: "Write a number from 1 to 64.",
+    });
+    expect(canvas.text()).toBe(before);
+    // A free line's heads are written the same way.
+    canvas.apply({ kind: "setField", ids: ["rule"], field: "style.arrowtail", value: "circle" });
+    expect(canvas.text()).toContain("style rule { arrowtail circle }");
+  });
+
+  it("shows a sticky's fill row with the six colours before the theme's, and its text", () => {
+    const canvas = board();
+    canvas.send({ type: "select", ids: ["solo"] });
+    const model = canvas.inspector();
+    expect(model.title).toBe("sticky solo");
+    expect(strip(model)).toEqual([
+      "style.fill",
+      "style.stroke",
+      "style.color",
+      "style.line",
+      "style.width",
+      "style.opacity",
+      "style.radius",
+      "style.rotation",
+      "style.fontSize",
+      "style.fontWeight",
+      "style.textAlign",
+      "style.verticalAlign",
+      // A sticky's fill is no line to dash: only pulse, until a stroke is written.
+      "effect.pulse",
+    ]);
+    const fill = field(model, "style.fill")!;
+    expect(fill).toMatchObject({ value: null, placeholder: "sticky" });
+    expect(fill.swatches!.slice(0, 6)).toEqual(
+      ["#fff59d", "#f8bbd0", "#c8e6c9", "#bbdefb", "#ffe0b2", "#e1bee7"].map((hex) => ({
+        token: hex,
+        color: hex,
+      })),
+    );
+    // Then the theme's tokens, its sticky colour among them.
+    expect(fill.swatches!.slice(6).map((s) => s.token)).toContain("sticky");
+    expect(fill.swatches).toHaveLength(25);
+    // The text's colour row has the theme's tokens only.
+    expect(field(model, "style.color")).toMatchObject({ placeholder: "stickyText" });
+    expect(field(model, "style.color")!.swatches).toHaveLength(19);
+    expect(field(model, "style.radius")).toMatchObject({ value: null, placeholder: "2" });
+    expect(field(model, "style.textAlign")).toMatchObject({ placeholder: "center" });
+    expect(field(model, "style.verticalAlign")).toMatchObject({ placeholder: "middle" });
+    expect(field(model, "style.fontSize")).toMatchObject({ label: "Text size", section: "strip" });
+    expect(field(model, "style.shape")).toBeUndefined();
+    expect(field(model, "style.iconPosition")).toBeUndefined();
+    // The inspector: its text over several lines, and its geometry.
+    expect(fields(model)).toEqual(
+      expect.arrayContaining(["id", "kind", "label", "description", "classes", "layer", "link"]),
+    );
+    expect(fields(model)).toEqual(expect.arrayContaining(["url", "x", "y", "w", "h"]));
+    expect(field(model, "label")).toMatchObject({ type: "multiline", value: "Alone" });
+    expect(field(model, "kind")).toMatchObject({ value: "sticky", readonly: true });
+    expect(field(model, "x")).toMatchObject({ value: 900 });
+    expect(field(model, "x")!.readonly).toBeUndefined();
+    // With a written stroke, its outline dashes.
+    canvas.apply({ kind: "setField", ids: ["solo"], field: "style.stroke", value: "danger" });
+    canvas.send({ type: "select", ids: ["solo"] });
+    expect(strip(canvas.inspector()).filter((name) => name.startsWith("effect."))).toEqual([
+      "effect.dash",
+      "effect.pulse",
+    ]);
+  });
+
+  it("writes a fixed colour from a sticky's fill row and shows it chosen", () => {
+    const canvas = board();
+    canvas.apply({ kind: "setField", ids: ["solo"], field: "style.fill", value: "#f8bbd0" });
+    expect(canvas.text()).toContain('style solo { fill "#f8bbd0" }');
+    canvas.send({ type: "select", ids: ["solo"] });
+    expect(field(canvas.inspector(), "style.fill")).toMatchObject({ value: "#f8bbd0" });
+    canvas.apply({ kind: "setField", ids: ["solo"], field: "style.fontSize", value: 24 });
+    canvas.apply({ kind: "setField", ids: ["solo"], field: "style.textAlign", value: "left" });
+    expect(canvas.text()).toContain('style solo { fill "#f8bbd0"; fontSize 24; textAlign left }');
+  });
+
+  it("keeps the text size in the strip of stickies only", () => {
+    const canvas = board();
+    canvas.send({ type: "select", ids: ["api"] });
+    const box = canvas.inspector();
+    expect(field(box, "style.fontSize")!.section).toBeUndefined();
+    expect(field(box, "style.fill")!.swatches).toHaveLength(19);
+    // Two stickies share the row and the strip.
+    canvas.send({ type: "select", ids: ["a", "solo"] });
+    const both = canvas.inspector();
+    expect(field(both, "style.fill")!.swatches).toHaveLength(25);
+    expect(field(both, "style.fontSize")!.section).toBe("strip");
+  });
+
+  it("shows a list's Layout, Spacing and Align, with what applies greyed", () => {
+    const canvas = board();
+    canvas.send({ type: "select", ids: ["todo"] });
+    const model = canvas.inspector();
+    expect(field(model, "layout")).toMatchObject({
+      label: "Layout",
+      type: "enum",
+      value: "column",
+      placeholder: "none",
+      options: ["column", "row"],
+    });
+    expect(field(model, "spacing")).toMatchObject({
+      label: "Spacing",
+      type: "number",
+      value: null,
+      range: { min: 0, max: 400, step: 1 },
+    });
+    expect(field(model, "spacing")!.placeholder).toMatch(/^\d+(\.\d+)?$/);
+    expect(field(model, "align")).toMatchObject({
+      label: "Align",
+      type: "enum",
+      value: null,
+      placeholder: "start",
+      options: ["start", "center", "end", "stretch"],
+    });
+    // A list sets where its children go: their place is shown, not written.
+    canvas.send({ type: "select", ids: ["a"] });
+    expect(field(canvas.inspector(), "x")).toMatchObject({ value: null, readonly: true });
+    expect(field(canvas.inspector(), "x")!.placeholder).toBeDefined();
+    expect(refusal(canvas, ["a"], "x", 40)).toMatchObject({
+      type: "rejected",
+      reason: "`todo` places `a`: drag it between its neighbours, or press Alt+Up or Alt+Down.",
+    });
+  });
+
+  it("writes a list's spacing and alignment, and removes them with its layout", () => {
+    const canvas = board();
+    canvas.apply({ kind: "setField", ids: ["todo"], field: "spacing", value: 12 });
+    canvas.apply({ kind: "setField", ids: ["todo"], field: "align", value: "stretch" });
+    expect(canvas.text()).toContain("    layout column\n    spacing 12\n    align stretch\n");
+    canvas.send({ type: "select", ids: ["todo"] });
+    expect(field(canvas.inspector(), "spacing")).toMatchObject({ value: 12 });
+    expect(field(canvas.inspector(), "align")).toMatchObject({ value: "stretch" });
+    const before = canvas.text();
+    expect(refusal(canvas, ["todo"], "spacing", 900)).toMatchObject({
+      reason: "Write a number from 0 to 400.",
+    });
+    expect(canvas.text()).toBe(before);
+    canvas.apply({ kind: "setField", ids: ["todo"], field: "layout", value: null });
+    expect(canvas.text()).not.toMatch(/layout column|spacing|align/);
+  });
+
+  it("offers a plain group a layout and no list fields, and makes it a row", () => {
+    const canvas = board();
+    canvas.send({ type: "select", ids: ["plain"] });
+    const model = canvas.inspector();
+    expect(field(model, "layout")).toMatchObject({ value: null, placeholder: "none" });
+    expect(field(model, "spacing")).toBeUndefined();
+    expect(field(model, "align")).toBeUndefined();
+    canvas.apply({ kind: "setField", ids: ["plain"], field: "layout", value: "row" });
+    expect(canvas.text()).toContain('  group plain "Plain" {\n    layout row\n');
+    canvas.send({ type: "select", ids: ["plain"] });
+    expect(field(canvas.inspector(), "align")).toMatchObject({ value: null, placeholder: "start" });
+    // Writing none takes the list away.
+    canvas.apply({ kind: "setField", ids: ["plain"], field: "layout", value: "none" });
+    expect(canvas.text()).toContain('  group plain "Plain" {\n    box inner "Inner"\n');
+  });
+
+  it("moves an element into a list from Inside without a place", () => {
+    const canvas = board();
+    canvas.apply({ kind: "setField", ids: ["solo"], field: "inside", value: "todo" });
+    expect(canvas.text()).toContain('    sticky b "Ship it"\n    sticky solo "Alone"\n  }\n');
+    expect(canvas.text()).not.toContain("place solo");
+  });
+
+  it("offers opacity on free boxes, groups and lines, not on relations nor in a flow diagram", () => {
+    const canvas = board();
+    for (const id of ["api", "plain", "rule"]) {
+      canvas.send({ type: "select", ids: [id] });
+      expect(field(canvas.inspector(), "style.opacity"), id).toMatchObject({
+        placeholder: "1",
+        range: { min: 0, max: 1, step: 0.05 },
+        section: "strip",
+      });
+    }
+    canvas.send({ type: "select", ids: ["call"] });
+    expect(field(canvas.inspector(), "style.opacity")).toBeUndefined();
+    // A box and a relation together share no opacity either.
+    canvas.send({ type: "select", ids: ["api", "call"] });
+    expect(field(canvas.inspector(), "style.opacity")).toBeUndefined();
+    canvas.apply({ kind: "setField", ids: ["api"], field: "style.opacity", value: 0.5 });
+    expect(canvas.text()).toContain("style api { opacity 0.5 }");
+    const before = canvas.text();
+    expect(refusal(canvas, ["api"], "style.opacity", 1.5)).toMatchObject({
+      reason: "Write a number from 0 to 1.",
+    });
+    expect(canvas.text()).toBe(before);
+    const flow = open(SHEET);
+    flow.send({ type: "select", ids: ["db"] });
+    expect(field(flow.inspector(), "style.opacity")).toBeUndefined();
   });
 });

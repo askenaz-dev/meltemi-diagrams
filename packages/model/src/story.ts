@@ -30,7 +30,7 @@ import type {
 } from "./types.js";
 
 /** Actions that name targets. */
-const TARGETED = new Set(["reveal", "hide", "highlight", "focus", "camera", "trace"]);
+const TARGETED = new Set(["reveal", "hide", "highlight", "focus", "camera", "trace", "draw"]);
 const ACTIONS = new Set([...TARGETED, "hold", "parallel"]);
 
 interface Interval {
@@ -412,6 +412,16 @@ export function analyzeStory(
           );
           continue;
         }
+        // `draw` replays pens, free lines and named relations; a view not resolved is not checked.
+        if (kind === "draw" && sceneView.diagram && !drawTargetKind(ref.text, sceneView.diagram)) {
+          const element = sceneView.diagram.elementsById.get(ref.text);
+          error(
+            "story.invalid-target",
+            messages().diagnostics.story.drawTarget(ref.text, element?.kind ?? null),
+            spanOf(ref),
+          );
+          continue;
+        }
         const target: StoryTarget = { id: ref.text, kind: found, range: range(spanOf(ref)) };
         targets.push(target);
         if (sceneView.diagram) {
@@ -457,15 +467,28 @@ export function analyzeStory(
   }
 
   function checkChannels(action: StoryAction, sceneView: StoryView): void {
-    const channel =
+    // A drawn target appears as it is drawn, on the channel of a trace.
+    const channels =
       action.kind === "reveal" || action.kind === "hide"
-        ? "visibility"
-        : action.kind === "highlight" || action.kind === "trace"
-          ? action.kind
-          : action.kind === "focus" || action.kind === "camera"
-            ? action.kind
-            : null;
-    if (!channel) return;
+        ? ["visibility"]
+        : action.kind === "draw"
+          ? ["visibility", "trace"]
+          : action.kind === "highlight" || action.kind === "trace"
+            ? [action.kind]
+            : action.kind === "focus" || action.kind === "camera"
+              ? [action.kind]
+              : [];
+    // One conflict per target and action, however many of its channels clash (`draw p, p`).
+    const reported = new Set<string>();
+    for (const channel of channels) checkChannel(action, sceneView, channel, reported);
+  }
+
+  function checkChannel(
+    action: StoryAction,
+    sceneView: StoryView,
+    channel: string,
+    reported: Set<string>,
+  ): void {
     const keys =
       channel === "focus" || channel === "camera"
         ? [`${channel}:${sceneView.name}`]
@@ -479,12 +502,14 @@ export function analyzeStory(
           ? i.start === action.startMs
           : action.startMs < i.end && i.start < end,
       );
-      if (clash) {
+      const target = key.split(":").pop()!;
+      if (clash && !reported.has(target)) {
+        reported.add(target);
         const m = messages();
         bag.add({
           code: "story.conflict",
           severity: "error",
-          message: m.diagnostics.story.conflict(action.kind, channel, key.split(":").pop()!),
+          message: m.diagnostics.story.conflict(action.kind, channel, target),
           span,
           related: [{ message: m.related.earlierAction, span: clash.at }],
           hints: [m.hints.story.conflict],
@@ -522,4 +547,19 @@ export function storyTargetKind(id: string, diagram: FlowDiagram | null): Target
   const event = diagram.eventsByKey.get(id);
   if (event && event.id === id && event.kind !== "message") return "event";
   return null;
+}
+
+/** What `draw` replays: a pen stroke, a free line or a named relation. */
+export type DrawTargetKind = "pen" | "line" | "relation";
+
+/**
+ * What a target of `draw` names in a view, drawn from its first point to its last: a pen, a free
+ * line or a named relation; null for anything else, which `draw` refuses. Story targets keep the
+ * kind `storyTargetKind` gives them (`element` for pens and lines).
+ */
+export function drawTargetKind(id: string, diagram: FlowDiagram): DrawTargetKind | null {
+  const element = diagram.elementsById.get(id);
+  if (element) return element.kind === "pen" || element.kind === "line" ? element.kind : null;
+  const relation = diagram.relationsByKey.get(id);
+  return relation && relation.id === id ? "relation" : null;
 }

@@ -44,6 +44,17 @@ export function formatNumber(value: number): string {
   return String(Object.is(rounded, -0) ? 0 : rounded);
 }
 
+/** Formats a pen coordinate: rounded to a tenth, without a decimal when whole. */
+export function formatTenth(value: number): string {
+  const rounded = Math.round(value * 10) / 10;
+  return String(Object.is(rounded, -0) ? 0 : rounded);
+}
+
+/** Columns a text takes on a line, a tab counting for four as the formatter counts it. */
+export function columnsOf(text: string): number {
+  return text.length + (text.split("\t").length - 1) * 3;
+}
+
 export function sameNumber(a: number, b: number): boolean {
   return formatNumber(a) === formatNumber(b);
 }

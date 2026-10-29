@@ -83,7 +83,9 @@ export const FREE_ELEMENT_KINDS = [
   "icon",
   "image",
   "note",
+  "sticky",
   "line",
+  "pen",
   "group",
 ] as const;
 /** Participant kinds of sequence diagrams. */
@@ -133,6 +135,9 @@ export const ALL_ELEMENT_KINDS = [
   "text",
   "icon",
   "image",
+  "sticky",
+  "line",
+  "pen",
   ...PARTICIPANT_KINDS,
   ...ENTITY_KINDS,
 ] as const;
@@ -224,7 +229,19 @@ export const CORNERS = ["sharp", "rounded"] as const;
 export const SKETCH_LEVELS = ["none", "light", "rough"] as const;
 /** Targets of `rule <kind> { }`: the element kinds of every profile, `relation` and `fragment`. */
 export const RULE_KINDS = [...ALL_ELEMENT_KINDS, "relation", "fragment"] as const;
-export const PRESETS = ["document", "slide"] as const;
+/**
+ * Canvas presets: a document warns past 1,200 px, a slide keeps 16:9, and a board grows with what
+ * is drawn on it, unreported.
+ */
+export const PRESETS = ["document", "slide", "board"] as const;
+/** How a list group (`layout column|row` in a free group block) arranges its children. */
+export const LIST_LAYOUTS = ["column", "row"] as const;
+/** Where the children of a list sit across its axis (`align` in a free group block). */
+export const LIST_ALIGNS = ["start", "center", "end", "stretch"] as const;
+/** The distance a list's `spacing` may write between its children, in pixels. */
+export const LIST_SPACING_RANGE = { min: 0, max: 400 } as const;
+/** The properties of a free group block that make it a list. */
+export const LIST_PROPERTIES = ["layout", "spacing", "align"] as const;
 /**
  * Where the icon of a node, decision, data store or box goes: beside, above or below its text, or
  * at the centre as the picture of the box, the label at the edge `labelPosition` names.
@@ -281,10 +298,11 @@ export const ROTATION_RANGE = { min: 0, max: 360 } as const;
 
 /**
  * The element kinds `rotation` turns: every element of flow diagrams and free compositions but
- * groups, which hold other elements, and lines, whose points are written as they are drawn.
+ * groups, which hold other elements, and lines and pens, whose points are written as they are
+ * drawn.
  */
 export function takesRotation(kind: string): boolean {
-  return kind !== "group" && kind !== "line";
+  return kind !== "group" && kind !== "line" && kind !== "pen";
 }
 
 /** Whether a profile's elements take `rotation`: sequence diagrams and C4 views do not. */
@@ -314,6 +332,12 @@ export const BUILT_IN_THEMES = [
 ] as const;
 export const DEFAULT_THEME = "technical.light";
 
+/**
+ * The colour tokens of whiteboards: highlighter strokes, the default fill of stickies and their
+ * text. Colour tokens like the others; the theme panel groups them apart.
+ */
+export const THEME_WHITEBOARD_TOKENS = ["highlight", "sticky", "stickyText"] as const;
+
 /** Colour tokens of a theme, in the order they are documented. */
 export const THEME_COLOR_TOKENS = [
   "background",
@@ -332,6 +356,7 @@ export const THEME_COLOR_TOKENS = [
   "warning",
   "danger",
   "info",
+  ...THEME_WHITEBOARD_TOKENS,
 ] as const;
 
 /**
@@ -408,14 +433,16 @@ export const THEME_TOKENS: PropertyTable = {
 };
 
 /**
- * Style properties that only free diagrams accept: the size and weight of text, and where it sits
- * across (`textAlign`) and down (`verticalAlign`) its box.
+ * Style properties that only free diagrams accept: the size and weight of text, where it sits
+ * across (`textAlign`) and down (`verticalAlign`) its box, and the `opacity` of elements, groups,
+ * lines and pens (0 is invisible, 1 opaque).
  */
 export const FREE_STYLE_PROPERTIES: PropertyTable = {
   fontSize: { kind: "number", min: 6, max: 160 },
   fontWeight: { kind: "number", min: 400, max: 700, values: FONT_WEIGHTS },
   textAlign: { kind: "enum", values: TEXT_ALIGNS },
   verticalAlign: { kind: "enum", values: VERTICAL_ALIGNS },
+  opacity: { kind: "number", min: 0, max: 1 },
 };
 
 /**
@@ -428,7 +455,8 @@ export const STYLE_PROPERTIES: PropertyTable = {
   stroke: { kind: "color", tokens: true },
   color: { kind: "color", tokens: true },
   line: { kind: "enum", values: LINE_STYLES },
-  width: { kind: "number", min: 0, max: 16 },
+  /** An outline, a connector or a pen stroke; a pen refuses 0 (`PEN_WIDTH_RANGE`). */
+  width: { kind: "number", min: 0, max: 64 },
   pattern: { kind: "enum", values: PATTERNS },
   arrowhead: { kind: "enum", values: ARROWHEADS },
   arrowtail: { kind: "enum", values: ARROWHEADS },
@@ -466,6 +494,67 @@ export const RELATION_ONLY_PROPERTIES: readonly string[] = [
   "routing",
   "corners",
 ];
+
+/**
+ * Style properties a free line refuses: the element properties but `opacity`, which fades a line as
+ * it fades a box. A line takes the relation properties.
+ */
+export const LINE_REFUSED_PROPERTIES: readonly string[] = ELEMENT_ONLY_PROPERTIES.filter(
+  (name) => name !== "opacity",
+);
+
+/** The style properties a pen stroke takes. */
+export const PEN_PROPERTIES: readonly string[] = [
+  "stroke",
+  "width",
+  "line",
+  "opacity",
+  "arrowhead",
+  "arrowtail",
+];
+
+/**
+ * Style properties a pen refuses: a box's fill, shape, radius and pattern, a connector's routing
+ * and corners, the icon properties and the text properties. `rotation` is refused apart, as a
+ * line's is: a pen's points are written in its statement.
+ */
+export const PEN_REFUSED_PROPERTIES: readonly string[] = Object.keys(STYLE_PROPERTIES).filter(
+  (name) => !PEN_PROPERTIES.includes(name) && name !== "rotation",
+);
+
+/** The `width` of a pen stroke: one pixel at least, unlike outlines and connectors. */
+export const PEN_WIDTH_RANGE = { min: 1, max: 64 } as const;
+
+/**
+ * The style properties a sticky takes: its card's fill and outline, its text, an icon at the top
+ * left, rotation and opacity.
+ */
+export const STICKY_PROPERTIES: readonly string[] = [
+  "fill",
+  "stroke",
+  "color",
+  "line",
+  "width",
+  "fontSize",
+  "fontWeight",
+  "textAlign",
+  "verticalAlign",
+  "radius",
+  "rotation",
+  "opacity",
+  "icon",
+  "iconColor",
+  "iconSize",
+];
+
+/**
+ * Style properties a sticky refuses: a box's `pattern`, the icon placements of a box (its icon
+ * sits at the top left) and the relation properties. `shape` is refused apart, naming the kinds
+ * that take it.
+ */
+export const STICKY_REFUSED_PROPERTIES: readonly string[] = Object.keys(STYLE_PROPERTIES).filter(
+  (name) => !STICKY_PROPERTIES.includes(name) && name !== "shape",
+);
 
 /**
  * Classes every built-in theme provides. Colours are token names, so the classes follow the
@@ -613,6 +702,10 @@ export const FREE_PROFILE: ProfileSchema = {
     layer: { kind: "name" },
     link: { kind: "link" },
     url: { kind: "url" },
+    // A list: the children in source order along a column or a row.
+    layout: { kind: "enum", values: LIST_LAYOUTS },
+    spacing: { kind: "number", ...LIST_SPACING_RANGE },
+    align: { kind: "enum", values: LIST_ALIGNS },
   },
   relationProperties: {
     description: { kind: "string" },
@@ -797,6 +890,7 @@ export const STORY_ACTIONS = [
   "focus",
   "camera",
   "trace",
+  "draw",
   "hold",
   "parallel",
 ] as const;
@@ -809,6 +903,7 @@ export const STORY_DEFAULT_TIMES = {
   camera: 800,
   highlight: 1000,
   trace: 1200,
+  draw: 800,
   hold: 0,
   parallel: 0,
   cut: 0,

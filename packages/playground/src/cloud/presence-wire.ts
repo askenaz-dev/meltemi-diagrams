@@ -7,7 +7,9 @@
 //
 //   page to room   { "<my client id>": { file?, caret?: { anchor, head },
 //                                         canvas?: { selection, pointer?: { x, y, diagram? },
-//                                                    laser?: { diagram?, points: [{ x, y, t }] } } } }
+//                                                    laser?: { diagram?, points: [{ x, y, t }],
+//                                                              pen?: { width, colour, opacity,
+//                                                                      stroke, cancel? } } } } }
 //   room to page   { "<client id>": { file?, caret?, canvas?,
 //                                     user: { sub, name, picture, colour, guest } } }
 //                  { "<client id>": null }                     (that client left or fell silent)
@@ -16,12 +18,18 @@
 // in that file's text, `selection` the ids selected on the canvas, `pointer` where the person's
 // pointer is over the canvas, in diagram units, and over which diagram, and `laser` the points
 // of the Pointer tool's trail made since the last message (at most `MAX_LASER_POINTS`, `t` the
-// milliseconds since the first, 0 to `MAX_LASER_MS`). `guest` marks a person
+// milliseconds since the first, 0 to `MAX_LASER_MS`). A batch with `pen` holds the points of a
+// stroke being drawn with the pen or the highlighter (`live-collaboration`, "Strokes being drawn in
+// presence"): `width` an integer from 1 to 64, `colour` at most 32 characters, `opacity` from 0
+// to 1, `stroke` the number of the stroke (an integer from 0 to 2,147,483,647, the same for every
+// batch of one stroke) and `cancel` true on the batch, maybe of no points, that ends a stroke
+// cancelled with Escape, the bounds of the canvas's `PRESENCE_PEN_LIMITS`. `guest` marks a person
 // without an account (`live-sessions`), set by the room alone. The identity is the room's: it
 // replaces `user` on everything it relays, so the page never sends one and never reads a person's
 // identity from anywhere else. Everything read here comes from a peer through the room and is
 // untrusted: it is checked, capped, and a payload that does not fit is ignored, never thrown at.
 
+import { isPresencePen, type PresencePen } from "@meltemi/diagrams-editor/canvas";
 import * as Y from "yjs";
 import { FILE_ID } from "./doc.js";
 import { avatarUrl } from "./session.js";
@@ -65,10 +73,33 @@ export interface LaserPoint {
   readonly t: number;
 }
 
-/** The points a stroke of the Pointer tool made since the last state, and the diagram they are on. */
+/**
+ * The points a stroke of the Pointer tool made since the last state, and the diagram they are on.
+ * `pen` is set when they are a stroke of the pen or the highlighter: how it looks, for the others to
+ * draw it growing in that width, colour and opacity rather than as a fading trail.
+ */
 export interface LaserBatch {
   readonly diagram?: string;
   readonly points: readonly LaserPoint[];
+  readonly pen?: PresencePen;
+}
+
+/**
+ * The look of a stroke being drawn, as a part of a batch: its `width`, `colour`, `opacity`, its
+ * number `stroke` and its `cancel` when it is set, and nothing else, or undefined when it does not
+ * fit `PRESENCE_PEN_LIMITS` (`width` an integer from 1 to 64, `colour` a string of at most 32
+ * characters, `opacity` from 0 to 1, `stroke` an integer from 0 to 2,147,483,647, `cancel` true or
+ * absent).
+ */
+export function readPen(value: unknown): PresencePen | undefined {
+  if (!isPresencePen(value)) return undefined;
+  return {
+    width: value.width,
+    colour: value.colour,
+    opacity: value.opacity,
+    stroke: value.stroke,
+    ...(value.cancel === true ? { cancel: true } : {}),
+  };
 }
 
 /** What the page publishes about the person: where they are, never who they are. */
@@ -103,7 +134,10 @@ export interface RemoteState {
   readonly selection: readonly string[];
   /** Where the person's pointer is over their canvas, while it moves there. */
   readonly pointer: PointerPosition | undefined;
-  /** The points of the person's Pointer trail in this message, when it carries a batch. */
+  /**
+   * The points of the person's Pointer trail, or of the stroke they are drawing (`pen`), in this
+   * message, when it carries a batch.
+   */
   readonly laser: LaserBatch | undefined;
 }
 
@@ -207,8 +241,9 @@ export function readPointer(value: unknown): PointerPosition | undefined {
 
 /**
  * A peer's Pointer trail batch: at most `MAX_LASER_POINTS` points, each `x` and `y` finite within
- * the pointer bound and `t` an integer 0 to `MAX_LASER_MS`, and maybe the diagram. A batch that does
- * not fit is no batch at all: the rest of the state is still read.
+ * the pointer bound and `t` an integer 0 to `MAX_LASER_MS`, maybe the diagram, and maybe the `pen`
+ * part of a stroke being drawn (`readPen`). A batch that does not fit, its pen part included, is no
+ * batch at all: the rest of the state is still read.
  */
 export function readLaser(value: unknown): LaserBatch | undefined {
   if (!isObject(value) || !Array.isArray(value["points"])) return undefined;
@@ -225,10 +260,21 @@ export function readLaser(value: unknown): LaserBatch | undefined {
       return undefined;
     points.push({ x, y, t });
   }
+  // A stroke in a look out of bounds is not drawn at all, and never as a Pointer's trail.
+  let pen: PresencePen | undefined;
+  const look = value["pen"];
+  if (look !== undefined && look !== null) {
+    pen = readPen(look);
+    if (!pen) return undefined;
+  }
   const diagram = value["diagram"];
-  return typeof diagram === "string" && diagram !== "" && diagram.length <= MAX_ID_LENGTH
-    ? { diagram, points }
-    : { points };
+  return {
+    ...(typeof diagram === "string" && diagram !== "" && diagram.length <= MAX_ID_LENGTH
+      ? { diagram }
+      : {}),
+    points,
+    ...(pen ? { pen } : {}),
+  };
 }
 
 function readSelection(value: unknown): string[] {

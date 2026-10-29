@@ -51,6 +51,16 @@ export const TEMPLATES = {
     description: "A slide composed freely: text, boxes, an icon and a group",
     contents: contents({ diagrams: 1 }),
   },
+  kanban: {
+    title: "Kanban board",
+    description: "A board of columns and sticky cards",
+    contents: contents({ diagrams: 1 }),
+  },
+  whiteboard: {
+    title: "Whiteboard",
+    description: "A sketched board with strokes, stickies and a story that draws them",
+    contents: contents({ diagrams: 1, stories: 1 }),
+  },
   purchase: {
     title: "Purchase example",
     description:

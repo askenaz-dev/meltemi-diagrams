@@ -213,6 +213,10 @@ the range, and the text stays as it was.
 | Press just outside a box's border and drag onto another box               | `a -> b` with its start pinned to that point; onto the border, its end too                                                                                                                           |
 | Relation tool (R): click the source, then the target                      | `a -> b`, or the arrow kind chosen (`->`, `-->`, `--`, `---`, `<->`, `<-->`), selected; Shift on the second click flips solid and dashed; Escape cancels                                             |
 | Relation tool (R) on a free diagram: drag on empty canvas                 | `line line1 from (x, y) to (x, y)` and the current kind's styles, inside the group under the press, selected; snapped to the grid, Shift for 45° steps, Escape cancels ([lines](#free-compositions)) |
+| Pen (P) or highlighter (H): drag on the canvas                            | `pen pen1 [(x, y), …]` inside the innermost group that holds the stroke and is not a list, with a `style` for what differs from the defaults ([whiteboard tools](#whiteboard-tools))                 |
+| Eraser (E): drag across strokes                                           | Removes the strokes it crossed, with their styles                                                                                                                                                    |
+| Drag a stroke, or one of its handles                                      | Every point of the `pen` statement, moved or scaled                                                                                                                                                  |
+| Drag cards over a list (a group with `layout`)                            | Their declarations move to the bar's place in the list, and their `place` goes                                                                                                                       |
 | Drag an end or a bend of a selected line, or the middle of a stretch      | That point of the `line` statement, snapped to the grid; dragging a middle adds a bend to `via`                                                                                                      |
 | Double-click a bend of a line                                             | Removes it from `via`; the last one takes `via` with it                                                                                                                                              |
 | Drag a line by its stroke                                                 | Every point of the `line` statement, by the same amount                                                                                                                                              |
@@ -367,6 +371,9 @@ canvas.
 | R while the relation tool is armed                            | The next arrow kind: `->`, `-->`, `--`, `---`, `<->`, `<-->`                                                                          |
 | N, D, S, O, T, G                                              | Flow: create a node (of the current shape), decision, data store, note, tag or group (of the current kind) near the centre            |
 | B, T, M, O, G                                                 | Free: create a box (of the current shape), text, image, note or group (of the current kind) near the centre                           |
+| P, H, E, S                                                    | Free: arm the pen, the highlighter or the eraser; create a sticky near the centre                                                     |
+| Ctrl+Enter                                                    | Free: add a sticky (or a column) after the selected card of a list                                                                    |
+| Alt+Up, Alt+Down                                              | Free: move the selected card of a list before or after its neighbour                                                                  |
 | A, O                                                          | C4: add an entity of the model to the view; create a note in the view                                                                 |
 | F                                                             | Flow and free: open the shapes grid (type to filter, arrows to move, Enter to create, Escape to close)                                |
 | I                                                             | Flow and free: open or close the icon picker, for the selection or to place an icon; in its search field I is typed ([icons](#icons)) |
@@ -656,8 +663,8 @@ alone; sending the inner box to the back turns it into a `layout.overlap`.
 ## Free compositions
 
 The palette follows the diagram: flow diagrams offer node, decision, data store, note, tag, group
-and icon; free diagrams offer box, text, icon, image, note and group, and the arrow tool also draws
-lines.
+and icon; free diagrams offer box, text, sticky, icon, image, note, group, pen and eraser
+([whiteboard tools](#whiteboard-tools)), and the arrow tool also draws lines.
 The box and node buttons open the shapes ([shapes and containers](#shapes-and-containers)).
 
 - **Drawing a line.** Arm the relation tool (R, or a kind from the arrow button's menu), press on
@@ -717,6 +724,58 @@ at 30%`). The strip shows a relation's rows: stroke, line, width, both heads wit
   copies the flow diagram shown into a new free diagram in the same file, as drawn, with a link
   from each object to its source, and shows the copy.
 - **Copying.** A child copied without its group carries the position it is drawn at.
+
+### Whiteboard tools
+
+A free composition is also a whiteboard: freehand strokes, highlighter marks, sticky notes and lists
+of cards ([pen strokes](language/free.md#pen-strokes), [stickies](language/free.md#stickies),
+[lists](language/free.md#lists)). Every tool writes statements, one undo step each.
+
+- **Pen and highlighter.** P arms the pen and H the highlighter. The pen button shows the one last
+  chosen, in its colour; its arrow opens a menu with the tool, the width (the default 3, thin 2,
+  medium 4 or thick 8; the highlighter's is always 20) and the theme's colours, kept between
+  sessions. The tool stays in the hand after each stroke, until Escape, another tool, K or its
+  button again. Press and drag: the stroke follows the pointer as it will be drawn, Shift keeps it
+  straight and Escape cancels it. The release writes `pen pen1 [(x, y), …]`, simplified and to a
+  tenth of a unit, inside the innermost group that holds the whole stroke and is not a list (at the
+  top level when none does, so a stroke never resizes a column), with `style pen1 { … }` only for
+  what differs from the defaults, such as `stroke danger; width 8`, or
+  `stroke highlight; width 20; opacity 0.35` for the highlighter. A press without moving draws a
+  dot. The new stroke is not selected, so the next one starts at once, and the status line says how
+  many points it has.
+- **Eraser.** E arms the eraser, whose cursor is a small circle. Every stroke it crosses fades out,
+  and the release removes them, with their own styles and effects, in one undo step; Escape brings
+  them back. It erases strokes only: boxes, stickies and lines stay.
+- **Stylus.** A tablet's pen draws with the pen or the highlighter while touches of the palm are
+  ignored, and its barrel button erases.
+- **A selected stroke.** A press on a stroke, or a selection rectangle around it, selects it. Its
+  frame is its bounds, with eight handles that scale its points, and it has no rotation or
+  connection handles. Dragging it by its stroke, or the arrow keys, moves every point, off the
+  grid. The strip shows its stroke colour, line, width, opacity and both heads. Enter, F2 and a
+  double click open nothing, since a stroke has no text; Shift+F2 renames it, and Delete removes it
+  with its style.
+- **Stickies.** S, or the sticky button, makes `sticky sticky1 "Sticky"` near the centre with its
+  editor open, and dragging the button places it under the pointer. The button's arrow picks the
+  card's colour: the theme's, or yellow, pink, green, blue, orange or purple, written as
+  `style sticky1 { fill "#f8bbd0" }` and kept between sessions. The editor wraps the words at the
+  card's width and at the size they will be drawn; Enter commits and Shift+Enter breaks a line. The
+  strip offers the six colours first, then the theme's.
+- **Columns and rows.** The group button's menu adds **Column** and **Row**, which write
+  `group group1 "Column" { layout column }`. Drag cards over a list and a bar shows where they will
+  go while the other cards make room; the drop moves their declarations there and removes their
+  `place`. Dragging a card within its list reorders it, and dragging it out onto the canvas writes
+  its `place`. A hovered or selected list shows a **+** at its end that adds a sticky to a column,
+  or a column to a row, with its editor open. Ctrl+Enter adds one after the selected card, or at the
+  end of a selected list, and in a card's editor it commits the text and adds the next card; Alt+Up
+  and Alt+Down move the selected card before or after its neighbour. The arrow keys alone do not
+  move a card, since the list places it. A list grows downward or to the right from its top-left
+  corner, which the canvas keeps by rewriting the outermost list's `place`, so the cards already
+  there stay put. The inspector shows the list's **Layout**, **Spacing** and **Align**.
+- **Others' strokes.** In a room, a stroke someone draws appears on your canvas while they draw it,
+  in the colour and width of their pen, and their `pen` takes its place when their edit arrives
+  ([working together](playground.md#working-together)).
+- **Replaying a drawing.** A story's `draw` action draws strokes, lines and relations one after
+  another as they were drawn ([stories](language/stories.md)), and the story panel offers it.
 
 ## Sequence diagrams
 

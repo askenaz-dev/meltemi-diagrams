@@ -78,14 +78,19 @@ export function setStyleProperty(
   op: OperationOf<"setStyleProperty">,
 ): TextEdit[] {
   if (op.targetKind === "element" || op.targetKind === "event") {
-    if (op.targetKind === "element") requireElement(ctx, op.target);
-    else {
+    // A free line and a pen take a connector's heads (a line its routing and corners too): the
+    // model refuses what they do not take once the edit is made.
+    let stroke = false;
+    if (op.targetKind === "element") {
+      const kind = requireElement(ctx, op.target).kind;
+      stroke = kind === "line" || kind === "pen";
+    } else {
       const event = ctx.diagram.eventsByKey.get(op.target);
       if (!event || event.id !== op.target || event.kind === "message") {
         reject("edit.unsafe-target", reasons().styles.unnamedEvent(op.target));
       }
     }
-    if (RELATION_ONLY_PROPERTIES.includes(op.property)) {
+    if (!stroke && RELATION_ONLY_PROPERTIES.includes(op.property)) {
       reject("edit.invalid-value", reasons().styles.relationsOnly(op.property));
     }
   } else {

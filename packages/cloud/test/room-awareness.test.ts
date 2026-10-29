@@ -13,6 +13,10 @@ import {
   AwarenessRate,
   MAX_LASER_MS,
   MAX_LASER_POINTS,
+  MAX_PEN_COLOUR,
+  MAX_PEN_STROKE,
+  MAX_PEN_WIDTH,
+  MIN_PEN_WIDTH,
   attachmentBytes,
   fitRecord,
   parseAwareness,
@@ -370,5 +374,136 @@ describe("parseAwareness: the Pointer trail", () => {
     }));
     const bytes = encode({ k: { file: FILE, canvas: { selection: [], laser: { points: edge } } } });
     expect(bytes.length).toBeLessThan(AWARENESS_MESSAGE_BYTES / 2);
+  });
+});
+
+describe("parseAwareness: a stroke being drawn", () => {
+  const points = Array.from({ length: 10 }, (_, i) => ({ x: 120 + i * 4, y: 80, t: i * 20 }));
+  const pen = { width: 4, colour: "#e03131", opacity: 1, stroke: 7 };
+  /** A message whose canvas part holds a batch with `look` as its pen part, beside a selection. */
+  const stroke = (look: unknown) =>
+    parseAwareness(
+      encode({ k: { file: FILE, canvas: { selection: ["n1"], laser: { points, pen: look } } } }),
+    );
+
+  it("are 1 to 64 pixels wide, a colour of at most 32 characters, an opacity of 0 to 1 and a number", () => {
+    expect([MIN_PEN_WIDTH, MAX_PEN_WIDTH, MAX_PEN_COLOUR]).toEqual([1, 64, 32]);
+    expect(MAX_PEN_STROKE).toBe(2_147_483_647);
+  });
+
+  it("reads the stroke's number, and the cancel of the batch that ends it, maybe with no points", () => {
+    for (const number of [0, 1, MAX_PEN_STROKE]) {
+      const look = { ...pen, stroke: number };
+      expect(stroke(look), String(number)).toEqual({
+        state: { file: FILE, canvas: { selection: ["n1"], laser: { points, pen: look } } },
+      });
+    }
+    const cancelled = { ...pen, cancel: true };
+    expect(stroke(cancelled)).toEqual({
+      state: { file: FILE, canvas: { selection: ["n1"], laser: { points, pen: cancelled } } },
+    });
+    expect(
+      parseAwareness(encode({ k: { canvas: { laser: { points: [], pen: cancelled } } } })),
+    ).toEqual({ state: { canvas: { selection: [], laser: { points: [], pen: cancelled } } } });
+  });
+
+  it("is invalid, whole, for a stroke's number or a cancel out of bounds", () => {
+    for (const look of [
+      { width: 4, colour: "#e03131", opacity: 1 },
+      { ...pen, stroke: -1 },
+      { ...pen, stroke: MAX_PEN_STROKE + 1 },
+      { ...pen, stroke: 7.5 },
+      { ...pen, stroke: "7" },
+      { ...pen, stroke: null },
+      { ...pen, cancel: false },
+      { ...pen, cancel: "true" },
+      { ...pen, cancel: 1 },
+      { ...pen, cancel: null },
+    ]) {
+      expect(stroke(look), JSON.stringify(look)).toBeUndefined();
+    }
+  });
+
+  it("reads the pen part beside the points and the diagram, and relays it as it came", () => {
+    expect(
+      parseAwareness(encode({ k: { canvas: { laser: { diagram: "flow", points, pen } } } })),
+    ).toEqual({ state: { canvas: { selection: [], laser: { diagram: "flow", points, pen } } } });
+    expect(stroke(pen)).toEqual({
+      state: { file: FILE, canvas: { selection: ["n1"], laser: { points, pen } } },
+    });
+  });
+
+  it("reads the highlighter's translucent 20 px stroke", () => {
+    const highlighter = { width: 20, colour: "#ffd43b", opacity: 0.35, stroke: 7 };
+    expect(stroke(highlighter)).toEqual({
+      state: { file: FILE, canvas: { selection: ["n1"], laser: { points, pen: highlighter } } },
+    });
+  });
+
+  it("takes every edge of the bounds", () => {
+    for (const look of [
+      { width: MIN_PEN_WIDTH, colour: "#000", opacity: 0, stroke: 7 },
+      { width: MAX_PEN_WIDTH, colour: "c".repeat(MAX_PEN_COLOUR), opacity: 1, stroke: 7 },
+      { width: 3, colour: "", opacity: 0.5, stroke: 7 },
+    ]) {
+      expect(stroke(look), JSON.stringify(look)).toBeDefined();
+    }
+  });
+
+  it("is invalid, whole, for a pen part over the bounds or of the wrong shape: the selection is lost with it", () => {
+    for (const look of [
+      { width: 0, colour: "#e03131", opacity: 1, stroke: 7 },
+      { width: 65, colour: "#e03131", opacity: 1, stroke: 7 },
+      { width: 900, colour: "#e03131", opacity: 1, stroke: 7 },
+      { width: 2.5, colour: "#e03131", opacity: 1, stroke: 7 },
+      { width: -4, colour: "#e03131", opacity: 1, stroke: 7 },
+      { width: "4", colour: "#e03131", opacity: 1, stroke: 7 },
+      { colour: "#e03131", opacity: 1, stroke: 7 },
+      { width: 4, colour: "c".repeat(MAX_PEN_COLOUR + 1), opacity: 1, stroke: 7 },
+      { width: 4, colour: "c".repeat(100), opacity: 1, stroke: 7 },
+      { width: 4, colour: 255, opacity: 1, stroke: 7 },
+      { width: 4, opacity: 1, stroke: 7 },
+      { width: 4, colour: "#e03131", opacity: 1.5, stroke: 7 },
+      { width: 4, colour: "#e03131", opacity: -0.1, stroke: 7 },
+      { width: 4, colour: "#e03131", opacity: "1", stroke: 7 },
+      { width: 4, colour: "#e03131", stroke: 7 },
+      "pen",
+      [4, "#e03131", 1],
+      true,
+    ]) {
+      expect(stroke(look), JSON.stringify(look)).toBeUndefined();
+    }
+  });
+
+  it("is no part when it is null: the batch is a Pointer's trail", () => {
+    expect(stroke(null)).toEqual({
+      state: { file: FILE, canvas: { selection: ["n1"], laser: { points } } },
+    });
+  });
+
+  it("keeps no other field of the pen part", () => {
+    expect(stroke({ ...pen, user: "Ana", dash: [4, 2] })).toEqual({
+      state: { file: FILE, canvas: { selection: ["n1"], laser: { points, pen } } },
+    });
+  });
+
+  it("fits a full batch with its pen part and the longest colour in a message, far under the cap", () => {
+    const edge = Array.from({ length: MAX_LASER_POINTS }, (_, i) => ({
+      x: 999_999.9 - i,
+      y: -999_999.9 + i,
+      t: 999,
+    }));
+    const look = {
+      width: MAX_PEN_WIDTH,
+      colour: "c".repeat(MAX_PEN_COLOUR),
+      opacity: 0.35,
+      stroke: MAX_PEN_STROKE,
+      cancel: true,
+    };
+    const bytes = encode({
+      k: { file: FILE, canvas: { selection: [], laser: { points: edge, pen: look } } },
+    });
+    expect(bytes.length).toBeLessThan(AWARENESS_MESSAGE_BYTES / 2);
+    expect(parseAwareness(bytes)).toBeDefined();
   });
 });

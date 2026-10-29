@@ -880,6 +880,15 @@ parte de un estado es opcional (una persona sin ningún archivo abierto envía `
   puntos. Una tanda que pasa de esos límites, o un punto de forma incorrecta, invalida todo el
   mensaje. Una estela va en el mismo mensaje que el puntero y se retransmite una sola vez: la sala
   nunca la guarda, y un estado que retransmita después no la lleva.
+- `canvas.laser.pen`, cuando está, dice que la tanda es un trazo que se dibuja con el lápiz o el
+  marcador, no la estela del Puntero: `{ "width", "colour", "opacity", "stroke", "cancel"? }`, el
+  ancho un entero de 1 a 64, el color un texto de 32 caracteres como máximo, la opacidad un número
+  de 0 a 1, `stroke` un entero de 0 a 2.147.483.647 que la página de la persona aumenta con cada
+  trazo (todas las tandas de un trazo llevan el mismo número) y `cancel`, cuando está, `true`: la
+  tanda, que puede no tener puntos, termina un trazo cancelado con Escape. Los demás lienzos dibujan
+  las tandas de un número como un solo trazo que crece y no se desvanece, nunca unido al trazo
+  anterior, hasta que llega el dibujo que contiene el `pen` escrito; una cancelación lo quita al
+  instante. Una parte que pasa de esos límites invalida todo el mensaje.
 
 Una parte del lienzo lleva una selección, un puntero, una estela o cualquiera de ellos.
 

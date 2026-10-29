@@ -2,10 +2,11 @@
 
 [English](../../language/free.md)
 
-Una composición libre es una diapositiva o una explicación que no encaja en una notación estricta.
-Colocas cajas, textos, iconos, imágenes, líneas y grupos donde quieras, los conectas y los ordenas
-en capas. Cada ajuste es código, y las mismas reglas se aplican en la línea de comandos, en el
-editor y en cada exportación.
+Una composición libre es una diapositiva, una pizarra o una explicación que no encaja en una
+notación estricta. Colocas cajas, textos, iconos, imágenes, notas adhesivas, líneas, trazos de
+lápiz y grupos donde quieras, los conectas, pones tarjetas en columnas y filas, y los ordenas en
+capas. Cada ajuste es código, y las mismas reglas se aplican en la línea de comandos, en el editor
+y en cada exportación.
 
 ```text
 language "0.2"
@@ -52,30 +53,41 @@ predeterminado: cada objeto tiene un `place`.
 | `icon <id> "<pack>:<name>"`                                   | un icono de los paquetes ([assets.md](assets.md)), sin texto; un icono con etiqueta es una caja con `shape icon` ([más abajo](#iconos-como-formas))            | 48 × 48                                                                         |
 | `image <id> "<path>"`                                         | un archivo de imagen del proyecto; `description` es su texto alternativo                                                                                       | su tamaño en píxeles, con un ancho máximo de 640; 160 × 120 cuando no se conoce |
 | `note <id> "Text" [on <element>] [{ … }]`                     | una anotación: unas líneas de texto, con contorno solo cuando se le da estilo, y una guía punteada hasta el elemento al que está adjunta ([más abajo](#notas)) | la extensión de su texto                                                        |
-| `group <id> ["Label"] { … }`                                  | una banda con un título, o un contenedor simple si no tiene título, que contiene hijos                                                                         | escrito, o derivado de sus hijos (más abajo)                                    |
+| `sticky <id> "Text" [{ … }]`                                  | una nota adhesiva: una tarjeta cuadrada cuyo texto se reparte en líneas y se encoge hasta caber en ella ([más abajo](#notas-adhesivas))                        | 160 × 160                                                                       |
+| `group <id> ["Label"] { … }`                                  | una banda con un título, o un contenedor simple si no tiene título, que contiene hijos; una columna o una fila de ellos con `layout` ([más abajo](#listas))    | escrito, o derivado de sus hijos (más abajo)                                    |
 | `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), …]]` | una línea que no une ningún elemento: un separador, un corchete, un subrayado ([más abajo](#líneas))                                                           | el rectángulo que envuelve sus puntos                                           |
+| `pen <id> [(x, y), (x, y), …] [{ … }]`                        | un trazo a mano alzada por sus puntos: una palabra, una flecha o una marca de marcador dibujadas a mano ([más abajo](#trazos-de-lápiz))                        | el rectángulo que envuelve sus puntos, ampliado la mitad de su ancho            |
 
 `node`, `decision`, `data` y `tag` pertenecen a los diagramas de flujo; en una composición
-libre son `prop.unknown`, con una pista que lista los tipos libres, `note` entre ellos. Un elemento que solo menciona
-una relación es una caja. Las relaciones aceptan los seis símbolos de los diagramas de flujo, entre
-ellos las líneas sin puntas `--` y `---` ([gramática](grammar-0.2.md#reglas-léxicas)).
+libre son `prop.unknown`, con una pista que lista los tipos libres, `note`, `sticky` y `pen` entre
+ellos. Un elemento que solo menciona una relación es una caja. Las relaciones aceptan los seis
+símbolos de los diagramas de flujo, entre ellos las líneas sin puntas `--` y `---`
+([gramática](grammar-0.2.md#reglas-léxicas)).
 
 ### Texto y formas
 
 `shape` se aplica a las cajas y a los nodos de los diagramas de flujo; los textos, los iconos, las
-imágenes y las líneas la rechazan con `prop.invalid-value`. `radius` se aplica a los elementos y
-los grupos de ambos perfiles ([styles.md](styles.md)); `fontSize`, `fontWeight`, `textAlign` y
-`verticalAlign`, solo a las composiciones libres, y los diagramas de flujo los rechazan con
-`prop.invalid-value` (decisiones 0043 y 0058).
+imágenes, las notas, las notas adhesivas, las líneas y los lápices la rechazan con
+`prop.invalid-value`. `radius` se aplica a los elementos y los grupos de ambos perfiles
+([styles.md](styles.md)); `fontSize`, `fontWeight`, `textAlign`, `verticalAlign` y `opacity`, solo
+a las composiciones libres, y los diagramas de flujo los rechazan con `prop.invalid-value`
+(decisiones 0043, 0058 y 0064).
 
-| Propiedad       | Valores                                 | Predeterminado                                                   |
-| --------------- | --------------------------------------- | ---------------------------------------------------------------- |
-| `shape`         | una de las veinticuatro formas de abajo | `rounded`                                                        |
-| `radius`        | de 0 a 64, el radio de las esquinas     | el `radius` del tema; `groupRadius` para los grupos (8 y 14)     |
-| `fontSize`      | de 6 a 160                              | el tamaño de etiqueta del tema; 1,6 veces ese tamaño para `text` |
-| `fontWeight`    | 400, 500, 600, 700                      | el grosor de etiqueta del tema                                   |
-| `textAlign`     | `left`, `center`, `right`               | `center` para las cajas, `left` para el texto                    |
-| `verticalAlign` | `top`, `middle`, `bottom`               | `middle`; solo cajas                                             |
+| Propiedad       | Valores                                 | Predeterminado                                                                                                     |
+| --------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `shape`         | una de las veinticuatro formas de abajo | `rounded`                                                                                                          |
+| `radius`        | de 0 a 64, el radio de las esquinas     | el `radius` del tema; `groupRadius` para los grupos (8 y 14); 2 para las notas adhesivas                           |
+| `fontSize`      | de 6 a 160                              | el tamaño de etiqueta del tema; 1,6 veces ese tamaño para `text` y 1,2 veces para una nota adhesiva, que se encoge |
+| `fontWeight`    | 400, 500, 600, 700                      | el grosor de etiqueta del tema; 400 para una nota adhesiva                                                         |
+| `textAlign`     | `left`, `center`, `right`               | `center` para las cajas y las notas adhesivas, `left` para el texto                                                |
+| `verticalAlign` | `top`, `middle`, `bottom`               | `middle`; solo cajas y notas adhesivas                                                                             |
+| `opacity`       | de 0 (invisible) a 1 (opaco), un número | 1; elementos, grupos, líneas y lápices, no relaciones                                                              |
+
+`opacity` atenúa un objeto, un grupo con todo lo que contiene, una línea o un lápiz:
+`style draft { opacity 0.5 }`. Se multiplica por la visibilidad de una historia, así que una caja
+atenuada sigue atenuada cuando una escena la revela. En una relación es `prop.invalid-value`, con
+la pista de que se aplica a los elementos, los grupos, las líneas y los lápices; fuera del rango de
+0 a 1 es `prop.invalid-value` y nombra el rango.
 
 | Forma           | Tamaño predeterminado               | Texto                                        | Los conectores terminan en        |
 | --------------- | ----------------------------------- | -------------------------------------------- | --------------------------------- |
@@ -169,8 +181,8 @@ Las líneas de texto están separadas 1,25 veces el tamaño de la fuente, y `\n`
 nueva en un texto y en la etiqueta de una caja o de un nodo de flujo. Un texto, un icono o una
 imagen con `fill`, `stroke` o `pattern` recibe un recuadro con la mitad del margen interior del tema
 por dentro. Los iconos toman `iconColor` y, si no, `color`. Las reglas aceptan los tipos de las
-composiciones libres: `rule box { shape pill }`, `rule text { color muted }`; solo `rule box` y
-`rule node` pueden fijar `shape`.
+composiciones libres: `rule box { shape pill }`, `rule text { color muted }`,
+`rule pen { width 4 }`; solo `rule box` y `rule node` pueden fijar `shape`.
 
 ### Iconos como formas
 
@@ -252,6 +264,69 @@ y conserva las notas. En `layout auto`, y para una nota sin `place` en `layout a
 disposición mantiene la nota cerca de su elemento. Una nota con contorno acepta un trazo en movimiento
 (`animate remark { effect dash }`); una sin contorno solo acepta un pulso.
 
+### Notas adhesivas
+
+`sticky <id> "Text" [{ … }]` es una nota adhesiva: una tarjeta de papel cuadrada con unas pocas
+palabras, la tarjeta de una lluvia de ideas o de un tablero kanban. Su texto es obligatorio y `\n`
+parte las líneas. A diferencia de una caja, una nota adhesiva nunca crece por su texto: el texto se
+reparte en líneas y se encoge hasta caber en la tarjeta.
+
+```text
+diagram ideas: free {
+  sticky cache "Cache the catalogue at the edge before the sale"
+  sticky retry "Retry payments\nonce"
+  sticky metrics "Measure checkout time"
+
+  cache -> metrics
+
+  placement {
+    place cache at (120, 120)
+    place retry at (320, 120)
+    place metrics at (120, 340)
+    size metrics (240, 120)
+  }
+
+  style retry { fill "#f8bbd0"; rotation 4 }
+  style metrics { fill "#c8e6c9"; textAlign left; verticalAlign top }
+}
+```
+
+- **Tamaño.** 160 × 160 con la etiqueta de 13 px, y escala con `labelSize`, o su `size` escrito.
+- **Texto.** El texto se parte en líneas por los espacios al ancho interior de la tarjeta (su ancho
+  menos dos veces el `padding` del tema); una palabra más larga que ese ancho se corta, y `\n`
+  conserva sus saltos. Las líneas están separadas 1,25 veces el tamaño de la fuente. El tamaño de
+  la fuente es `fontSize` o, si no, 1,2 veces el tamaño de etiqueta (15,6 px en los temas
+  técnicos), con `fontWeight` 400 salvo que se le dé estilo. Cuando el texto repartido es más alto
+  que el alto interior, el tamaño baja de 1 en 1 px hasta que cabe, hasta un mínimo de 8 px. Un
+  texto que no cabe ni a 8 px es `layout.text-overflow` (advertencia), cuya pista da un tamaño de
+  las mismas proporciones en el que cabe, y se dibuja desde arriba, recortado a la tarjeta.
+- **Colores.** La tarjeta toma el color `sticky` del tema y el texto su color `stickyText`
+  (`#fff59d` y `#1f2328` en los temas claros; `fill` y `color` los sustituyen). El texto sigue
+  casi negro también en los temas oscuros: una nota adhesiva es papel, no una superficie del tema.
+  Una sombra suave queda 3 px debajo de la tarjeta, negra al 15 %; la tarjeta solo tiene contorno
+  cuando se le da `stroke` (con `width` y `line`), y esquinas de `radius` 2.
+- **Alineación.** `textAlign` (`center` de forma predeterminada) y `verticalAlign` (`middle`)
+  colocan el texto en la tarjeta, dentro del margen interior. Un `icon` va arriba a la izquierda,
+  dentro del margen, en una fila propia encima del texto (`iconColor`, `iconSize`).
+- **Estilos.** Una nota adhesiva acepta `fill`, `stroke`, `color`, `line`, `width`, `fontSize`,
+  `fontWeight`, `textAlign`, `verticalAlign`, `radius`, `rotation`, `opacity`, `icon`, `iconColor`
+  e `iconSize`. `shape` es `prop.invalid-value`, y nombra `node` y `box`, igual que `pattern`,
+  `iconPosition`, `labelPosition` y las propiedades de las relaciones. `rule sticky { … }` da
+  estilo a todas las notas adhesivas; el bloque acepta `description`, `class`, `layer`, `link` y
+  `url`.
+- **Como objeto.** Una nota adhesiva acepta `place`, `size`, puertos, las restricciones, el orden z
+  y el giro como una caja. Es un extremo de relaciones: los conectores, los imanes, los puertos,
+  `layout.overlap` y la auditoría de etiquetas tratan la tarjeta como un rectángulo. Es un elemento
+  de las historias y acepta un pulso, y un trazo en movimiento sobre su tarjeta cuando un `style`,
+  una clase o una `rule` del diagrama le dan un `stroke` (su relleno no es un contorno; sin él, el
+  trazo es `animate.invalid-target`). Con un tema de boceto, su texto se dibuja con la fuente
+  manuscrita, y un contorno con estilo se pinta a mano como el de una caja.
+
+`sticky s` sin su texto es `prop.invalid-value` con la pista `sticky <id> "Text"`. Los diagramas
+de flujo, de secuencia y C4 rechazan `sticky` con `prop.unknown`. En el editor, la herramienta de
+nota adhesiva crea una con su editor abierto, y al escribir el texto se reparte como lo hará en la
+tarjeta ([el editor](../editor.md#herramientas-de-pizarra)).
+
 ## Grupos y coordenadas interiores
 
 El `place` de un objeto dentro de un grupo es relativo al **interior** del grupo: la esquina superior
@@ -271,8 +346,8 @@ placement {
 }
 ```
 
-- Un grupo necesita un `place`. Sin `size`, mide
-  `groupPadding + rightmost child edge + groupPadding` por
+- Un grupo necesita un `place`, salvo que lo coloque una lista ([más abajo](#listas)). Sin `size`,
+  mide `groupPadding + rightmost child edge + groupPadding` por
   `header + lowest child edge + groupPadding`, medido desde el interior; un grupo con título nunca
   es más estrecho que su título.
 - Los objetos de nivel superior y los puntos de paso de las rutas usan coordenadas del diagrama.
@@ -317,6 +392,86 @@ diagram nested: free {
 Los diagramas de flujo dibujan igual los grupos sin título, en todos los modos de disposición; el
 motor deja `groupPadding` encima de sus hijos. Una etiqueta vacía con una `description` o un icono
 conserva la banda, que entonces los contiene.
+
+### Listas
+
+Un grupo cuyo bloque escribe `layout column` o `layout row` es una **lista**: coloca a sus hijos
+por sí mismo, uno tras otro en el orden del código, como las columnas de un tablero kanban
+contienen sus tarjetas. Una fila de columnas es el tablero:
+
+```text
+diagram board: free {
+  preset board
+
+  group kanban "" {
+    layout row
+    spacing 24
+    align stretch
+
+    group todo "To do" {
+      layout column
+      spacing 12
+      sticky cache "Cache the catalogue"
+      sticky retry "Retry payments once"
+    }
+    group doing "Doing" {
+      layout column
+      spacing 12
+      sticky search "Search by SKU"
+    }
+    group done "Done" {
+      layout column
+      spacing 12
+      sticky login "Sign in with passkeys"
+      sticky orders "Export orders as CSV"
+      sticky audit "Keep an audit log"
+    }
+  }
+
+  placement {
+    place kanban at (360, 300)
+  }
+
+  style retry, orders { fill "#f8bbd0" }
+}
+```
+
+El `layout` del bloque del grupo es la disposición propia del grupo; el
+`layout manual|assisted|auto` del diagrama es otra instrucción.
+
+- **Orden.** La lista coloca sus elementos y sus grupos en el orden del código a lo largo de su
+  eje, desde su origen interior: una columna de arriba abajo, una fila de izquierda a derecha, cada
+  hijo donde termina el anterior más `spacing`. Mover una declaración en el archivo mueve la
+  tarjeta.
+- **Separación.** `spacing <n>` es la distancia entre dos hijos, de 0 a 400; la mitad de
+  `groupPadding` (8 en los temas técnicos) cuando no se escribe.
+- **Alineación.** `align` coloca a los hijos en sentido transversal al eje: `start` (el valor
+  predeterminado) al principio del interior, `center` en su centro, `end` al final, y `stretch`
+  hace que un hijo sin `size` escrito sea tan ancho como el interior en una columna, o tan alto en
+  una fila. `align stretch` en una fila de columnas dibuja las columnas a la misma altura.
+- **Tamaños.** Cada hijo conserva su `size` escrito o su tamaño predeterminado. Sin `size`, una
+  lista se deriva de sus hijos como cualquier grupo; un `size` escrito es su tamaño mínimo, y la
+  lista crece cuando sus hijos necesitan más, así que una columna de diez tarjetas nunca esconde
+  ocho.
+- **Posiciones.** Un `place` en un hijo de una lista es `layout.place-ignored` (advertencia), sobre
+  la instrucción `place`, con la pista de quitarlo o de quitar el `layout` del grupo; el hijo se
+  dibuja donde lo pone la lista. Una lista dentro de una lista no necesita `place`. Un grupo que no
+  es una lista, dentro de una lista, coloca a sus propios hijos con `place` como siempre.
+- **Líneas y lápices.** Una línea o un lápiz dentro de una lista conserva sus puntos escritos en el
+  interior de la lista: la lista no lo coloca, y su caja cuenta para el tamaño de la lista.
+- **Modos de disposición.** El motor de disposición trata una lista como una sola caja de su
+  tamaño en todos los modos y nunca organiza a sus hijos. En `layout auto` organiza la lista con
+  las demás cajas, y `meltemi-diagrams layout` y los comandos Organizar escriben un `place` para la
+  lista, nada para sus hijos y ningún `size` para la lista, cuyo tamaño sigue derivándose de sus
+  hijos.
+- **Errores.** `spacing` o `align` sin `layout` es `prop.invalid-value`, con la pista de escribir
+  `layout column` o `layout row`. Otro valor (`layout grid`) es `prop.invalid-value` y enumera los
+  valores, y `layout auto` en el bloque de un grupo dice que es una instrucción del diagrama. En el
+  bloque de un elemento, los tres son `prop.unknown`; los diagramas de flujo los rechazan con
+  `prop.invalid-value` y nombran las composiciones libres.
+
+En el editor, una tarjeta arrastrada sobre una lista muestra dónde quedará y las demás le hacen
+sitio; al soltarla se mueve su declaración ([el editor](../editor.md#herramientas-de-pizarra)).
 
 ## Líneas
 
@@ -366,10 +521,10 @@ diagram phases: free {
 - **Estilos.** Una línea acepta las propiedades de una relación: `stroke` (el `connector` del tema
   de forma predeterminada), `width` (`connectorWidth`), `line` (`dashed`, `dotted`), `arrowhead` y
   `arrowtail` (ninguna de forma predeterminada), `routing` (`polyline` de forma predeterminada,
-  `orthogonal`, `bezier`), `corners`, y `color`, `fill` e `icon` para su píldora. Las propiedades
-  de una caja (`shape`, `radius`, `pattern`, `iconPosition`, `labelPosition`, `iconSize`, las
-  propiedades del texto) son `prop.invalid-value`. `rule line { … }` da estilo a todas las líneas;
-  su bloque acepta `description`, `class`, `layer` y `url`.
+  `orthogonal`, `bezier`), `corners`, `color`, `fill` e `icon` para su píldora, y `opacity`. Las
+  propiedades de una caja (`shape`, `radius`, `pattern`, `iconPosition`, `labelPosition`,
+  `iconSize`, las propiedades del texto) son `prop.invalid-value`. `rule line { … }` da estilo a
+  todas las líneas; su bloque acepta `description`, `class`, `layer` y `url`.
 - **Trazado.** Los puntos son los anclajes y los puntos de paso de la línea; cómo pasan
   `orthogonal` y `bezier` por ellos se explica en [layout.md](layout.md#conectores). Una línea no
   tiene carriles ni desvíos y no participa en las comprobaciones de composición entre cajas.
@@ -389,6 +544,96 @@ diagram phases: free {
 Los diagramas de flujo, de secuencia y C4 rechazan `line` con `prop.unknown`; ahí, una línea entre
 dos cajas es una relación escrita `--` o `---`.
 
+## Trazos de lápiz
+
+Un `pen` es un trazo a mano alzada: una palabra escrita a mano, una flecha dibujada en una pizarra,
+un círculo alrededor de una caja, una marca de marcador bajo un título. Sus puntos están en la
+instrucción, así que no necesita `place`:
+
+```text
+diagram explain: free {
+  preset board
+  theme "sketch.light"
+
+  pen marker [(40, 70), (280, 70)]
+  text heading "Why the cache helps"
+  box api "API"
+  box db "Orders DB"
+
+  pen arrow [(216, 140), (250, 128.5), (290, 130), (336, 140)]
+  pen dot [(400, 60)]
+
+  group notes "Notes" {
+    text remark "Reads hit the cache first"
+    pen underline [(0, 24), (90, 27.5), (180, 25)]
+  }
+
+  placement {
+    place heading at (160, 60)
+    place api at (120, 140)
+    place db at (440, 140)
+    place notes at (280, 300)
+    size notes (260, 120)
+    place remark at (100, 8)
+  }
+
+  style marker { stroke highlight; width 20; opacity 0.35 }
+  style arrow { width 4; arrowhead triangle }
+  style dot { width 8; stroke danger }
+  style remark { fontSize 14 }
+  animate arrow { effect trace }
+}
+```
+
+- **Puntos.** `pen <id> [(x, y), (x, y), …]` enumera al menos una tupla de dos números sin
+  unidades; los decimales se conservan (`128.5`), y la lista continúa en varias líneas como una
+  lista `via`. Los puntos están en las coordenadas interiores del grupo del lápiz, igual que los de
+  una línea: `underline` se dibuja bajo `remark` y se mueve con `notes`. Una lista que falta o está
+  vacía, o un elemento que no es una tupla así (`pen p [10, 20, 30]`), es `prop.invalid-value` con
+  la forma en la pista. Un lápiz no tiene etiqueta: una cadena después de su id es
+  `prop.invalid-value`. `place`, `size` y `rotation` se rechazan en un lápiz, con la pista de que
+  sus puntos se escriben en su instrucción.
+- **La curva.** Un trazo es un solo trazado: desde el primer punto, una curva cuadrática hasta el
+  punto medio de cada par de puntos consecutivos, con el punto que comparten como control, y luego
+  en línea recta hasta el último punto, con extremos y uniones redondeados y sin relleno. Dos
+  puntos son un segmento; un punto, o puntos que coinciden todos, un punto tan ancho como el
+  trazo. El lienzo, `export`, el reproductor y el video dibujan la misma curva. La caja de un lápiz
+  es el rectángulo que envuelve sus puntos, ampliado la mitad de su ancho por cada lado.
+- **Estilos.** `stroke` (el `ink` del tema de forma predeterminada), `width` (de 1 a 64, 3 de forma
+  predeterminada; `width 0` es `prop.invalid-value`), `line` (`dashed`, `dotted`), `opacity` (de 0
+  a 1), y `arrowhead` y `arrowtail` (ninguna de forma predeterminada), que se recortan del trazo y
+  se dibujan a lo largo de sus tramos finales como las puntas de una línea. Cualquier otra
+  propiedad de estilo (`fill`, `shape`, `radius`, `pattern`, `routing`, `corners`, las propiedades
+  de los iconos y del texto) es `prop.invalid-value` y nombra las que acepta un lápiz.
+  `rule pen { … }` da estilo a todos los lápices, también a sus puntas; el bloque acepta
+  `description`, `class`, `layer`, `link` y `url`.
+- **El marcador.** Una marca de marcador es un lápiz con
+  `stroke highlight; width 20; opacity 0.35`: el color `highlight` del tema (`#ffe600` en los temas
+  claros, `#ffd600` en los oscuros) al 35 %. Es un solo trazado, así que un trazo que se cruza
+  consigo mismo no se oscurece donde se superpone, y el texto que tiene debajo sigue legible.
+  Decláralo antes del texto que marca, como `mark` arriba, o ponlo en una capa del fondo, para que
+  el texto se pinte encima.
+- **Efectos.** `flow`, `dash`, `pulse` y `trace` recorren un lápiz igual que una línea, desde su
+  primer punto hasta el último ([motion.md](motion.md)); la acción `draw` de una historia lo vuelve
+  a dibujar ([stories.md](stories.md)).
+- **Orden y comprobaciones.** Un lápiz es un objeto: en su capa se pinta en el orden del código con
+  las cajas. Su caja cuenta para la selección con un rectángulo, para un grupo que se deriva de sus
+  hijos y para el tamaño del lienzo, pero un lápiz no participa en las comprobaciones de
+  composición (`layout.overlap`, `layout.connector-crossing`, la auditoría de etiquetas), así que
+  un trazo puede cruzar cajas y etiquetas. Una lista no lo coloca: un lápiz dentro de una lista
+  conserva sus puntos ([más arriba](#listas)).
+- **Temas de boceto.** `sketch light` y `sketch rough` pintan un lápiz tal como está escrito, sin
+  sus dos pasadas: un trazo ya dibujado a mano, con dos pasadas de temblor, sería otro dibujo.
+- **Formato.** `meltemi-diagrams format` imprime la lista de un lápiz en una línea cuando la
+  instrucción cabe en 100 columnas y, si no, rellenada en varias líneas, así que un trazo de
+  cuarenta puntos ocupa unas pocas líneas ([formatting.md](formatting.md)).
+- **En el editor.** El lápiz y el marcador dibujan trazos en el lienzo y los escriben como
+  instrucciones `pen`, simplificados y redondeados a la décima, y el borrador quita los trazos que
+  cruza ([el editor](../editor.md#herramientas-de-pizarra)).
+
+Los diagramas de flujo, de secuencia y C4 rechazan `pen` con `prop.unknown`, con la pista de que
+los lápices pertenecen a las composiciones libres.
+
 ## Capas y orden
 
 ```text
@@ -401,8 +646,9 @@ text label "Front" { layer front }
 se lista; los objetos y las relaciones sin `layer` están en ella. Una capa no declarada es
 `ref.unknown-layer`. La escena se pinta capa por capa; dentro de una capa, primero los grupos (los
 exteriores antes que los interiores), luego los demás objetos en el orden del código fuente, también
-las líneas, y luego las relaciones. Las cajas y los grupos de capas distintas no se comprueban entre sí, y un conector
-ni rodea ni se informa como que atraviesa una caja de una capa distinta de la suya. En el editor,
+las líneas y los lápices, y luego las relaciones. Las cajas y los grupos de capas distintas no se
+comprueban entre sí, y un conector ni rodea ni se informa como que atraviesa una caja de una capa
+distinta de la suya. En el editor,
 Traer al frente y Enviar al fondo mueven la declaración dentro de su bloque, y el panel Capas
 agrega, renombra, oculta y quita capas. Los diagramas de flujo admiten `layers` y `layer` con las
 mismas reglas; los diagramas de secuencia y las vistas C4 los rechazan.
@@ -507,12 +753,14 @@ enlace es solo identidad: nada se mantiene sincronizado entre las vistas.
 
 | Modo                      | Composiciones libres                                                                                                                                                 |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `manual` (predeterminado) | Cada objeto y cada grupo tiene un `place`.                                                                                                                           |
+| `manual` (predeterminado) | Cada objeto y cada grupo tiene un `place`, salvo lo que coloca una lista.                                                                                            |
 | `assisted`                | Los objetos colocados se quedan; ELK organiza los demás. Un grupo con hijos colocados necesita un `place`; un grupo colocado y con tamaño ni se organiza ni estorba. |
-| `auto`                    | ELK organiza todo; los grupos se ajustan a sus hijos. Al escribir las posiciones, los grupos reciben una posición y un tamaño.                                       |
+| `auto`                    | ELK organiza todo; los grupos se ajustan a sus hijos, y una lista es una sola caja. Al escribir las posiciones, los grupos reciben una posición y un tamaño.         |
 
-`meltemi-diagrams layout` y los comandos Organizar del editor escriben los hijos relativos a su
-grupo y dan a cada grupo un `place` y un `size`.
+En todos los modos, las líneas y los lápices conservan sus puntos escritos y las listas colocan a
+sus hijos ([Listas](#listas)). `meltemi-diagrams layout` y los comandos Organizar del editor
+escriben los hijos relativos a su grupo y dan a cada grupo un `place` y un `size`, pero no
+escriben ningún `place` para lo que coloca una lista ni ningún `size` para una lista.
 
 ## Convertir un diagrama de flujo
 

@@ -65,6 +65,51 @@ describe("the layout's words", () => {
     });
   });
 
+  it("tell a sticky whose text is clipped in Spanish, with the size a fix writes", () => {
+    const text = Array.from({ length: 400 }, (_, i) => ["move", "the", "cache"][i % 3]).join(" ");
+    const { english, spanish } = both(
+      `diagram d: free {\n  sticky s "${text}"\n  placement {\n    place s at (100, 100)\n  }\n}\n`,
+    );
+    const before = find(english, "layout.text-overflow");
+    const after = find(spanish, "layout.text-overflow");
+    const { width, height } = before.data!.size as { width: number; height: number };
+    expect(width).toBe(height);
+    expect(before.message).toBe(
+      `The text of \`s\` does not fit its 160 × 160 px card even at 8 px, and is clipped: it needs ${width} × ${height} px.`,
+    );
+    expect(after.message).toBe(
+      `El texto de \`s\` no cabe en su tarjeta de 160 × 160 px ni a 8 px, y se recorta: necesita ${width} × ${height} px.`,
+    );
+    expect(after.hints).toEqual([`Usa \`size s (${width}, ${height})\` o acorta el texto.`]);
+  });
+
+  it("tell a place that a list ignores in Spanish, with the ids a fix reads", () => {
+    const { english, spanish } = both(
+      'diagram d: free {\n  group todo "To do" {\n    layout column\n    sticky a "A"\n  }\n  placement {\n    place todo at (300, 300)\n    place a at (40, 40)\n  }\n}\n',
+    );
+    const before = find(english, "layout.place-ignored");
+    const after = find(spanish, "layout.place-ignored");
+    expect(before.severity).toBe("warning");
+    expect(after.message).toBe(
+      "Se ignora el `place` de `a`: la lista `todo` coloca a sus hijos en orden.",
+    );
+    expect(after.hints).toEqual([
+      "Quita `place a`, o quita `layout` de `todo` para colocar tú a sus hijos.",
+    ]);
+    expect(after.data).toEqual({ ids: ["a", "todo"] });
+  });
+
+  it("tell what a plain group in a list holds without a place in Spanish", () => {
+    const { spanish } = both(
+      'diagram d: free {\n  group col "Column" {\n    layout column\n    group g "G" {\n      box a "A"\n    }\n  }\n  placement {\n    place col at (300, 300)\n  }\n}\n',
+    );
+    const missing = find(spanish, "layout.missing-placement");
+    expect(missing.message).toBe(
+      "`a` no tiene una instrucción `place`; dentro de la lista `col`, el grupo `g` no es una lista y necesita una posición para cada hijo.",
+    );
+    expect(missing.hints).toEqual(["Agrega `place a at (x, y)` a un bloque `placement`."]);
+  });
+
   it("tell a text that needs a taller shape in Spanish", () => {
     const { english, spanish } = both(
       sheet(

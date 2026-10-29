@@ -76,6 +76,41 @@ describe("the relay", () => {
     expect(ben.closed).toBeUndefined();
   });
 
+  it("relays a stroke being drawn with its points and its pen's look", async () => {
+    const w = await setup();
+    const { ana, ben } = await three(w);
+    const laser = {
+      diagram: "board",
+      points: [
+        { x: 10, y: 20, t: 0 },
+        { x: 30.5, y: 22, t: 40 },
+      ],
+      pen: { width: 20, colour: "#ffe600", opacity: 0.35, stroke: 12 },
+    };
+
+    await ben.awareness({ file: A, canvas: { selection: [], laser } });
+
+    expect(ana.peers).toEqual([
+      { [idOf(ben)]: { user: userOf(BEN), file: A, canvas: { selection: [], laser } } },
+    ]);
+  });
+
+  it("relays the batch that ends a stroke cancelled with Escape, with no points", async () => {
+    const w = await setup();
+    const { ana, ben } = await three(w);
+    const laser = {
+      diagram: "board",
+      points: [],
+      pen: { width: 4, colour: "#e03131", opacity: 1, stroke: 12, cancel: true },
+    };
+
+    await ben.awareness({ file: A, canvas: { selection: [], laser } });
+
+    expect(ana.peers).toEqual([
+      { [idOf(ben)]: { user: userOf(BEN), file: A, canvas: { selection: [], laser } } },
+    ]);
+  });
+
   it("sends each client's state as it is, one message per state", async () => {
     const w = await setup();
     const { ana, ben, cy } = await three(w);
@@ -464,6 +499,34 @@ describe("a message that is not a state", () => {
     ["a file that is not an id", () => awarenessFrame({ k: { file: "a.meltemi" } })],
     ["a caret with no head", () => awarenessFrame({ k: { caret: { anchor: "AQID" } } })],
     ["a selection of numbers", () => awarenessFrame({ k: { canvas: { selection: [1] } } })],
+    [
+      "a stroke whose pen is 0 wide",
+      () =>
+        awarenessFrame({
+          k: {
+            canvas: {
+              laser: {
+                points: [{ x: 1, y: 1, t: 0 }],
+                pen: { width: 0, colour: "#e03131", opacity: 1 },
+              },
+            },
+          },
+        }),
+    ],
+    [
+      "a stroke whose pen colour is 33 characters long",
+      () =>
+        awarenessFrame({
+          k: {
+            canvas: {
+              laser: {
+                points: [{ x: 1, y: 1, t: 0 }],
+                pen: { width: 4, colour: "#".repeat(33), opacity: 1 },
+              },
+            },
+          },
+        }),
+    ],
   ];
 
   it.each(MALFORMED)(

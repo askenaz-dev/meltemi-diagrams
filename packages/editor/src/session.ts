@@ -14,11 +14,12 @@ import {
   type PlanResult,
 } from "@meltemi/diagrams-edit";
 import { applyTextEdits, isIdentifierText } from "@meltemi/diagrams-language";
-import { layoutDiagram, type Box } from "@meltemi/diagrams-layout";
+import { DEFAULT_PEN_WIDTH, layoutDiagram, type Box } from "@meltemi/diagrams-layout";
 import {
   MAIN_LAYER,
   compile,
   type Compilation,
+  type Element as ModelElement,
   type ElementKind,
   type EntityKind,
   type FlowDiagram,
@@ -29,16 +30,24 @@ import {
 } from "@meltemi/diagrams-model";
 import { diagramView, type DiagramView, type DocumentAnalysis } from "./analysis.js";
 import {
+  alignable,
   arrangeAttempt,
   containerOperation,
   convertOperation,
+  keepsPoints,
+  penOperations,
+  placingList,
   stackedAfterMove,
   interiorOf,
   materializeOperation,
   steadyGroups,
+  steadySize,
+  strokeParent,
+  unlistedOperations,
 } from "./arrange.js";
 import { alignBoxes, distributeBoxes } from "./canvas/arrange.js";
 import { center } from "./canvas/geometry.js";
+import { scalePenPoints } from "./canvas/pens.js";
 import { carriedChildren } from "./canvas/selection.js";
 import {
   isCanvasMessage,
@@ -61,7 +70,7 @@ import {
 import { DEFAULT_GRID, snapValue, writtenCenter } from "./canvas/snapping.js";
 import { copyFragment, pasteOperations } from "./clipboard.js";
 import { iconGroups, takesIcon, writtenIcon } from "./icons.js";
-import { fieldOperations, inspect, namedRelation } from "./inspector.js";
+import { fieldOperations, inspect, namedRelation, themeSwatches } from "./inspector.js";
 import { freshModelRelationId, freshRelationId, nameable } from "./targets.js";
 // The editor's catalog; `messages` names the host messages in this file.
 import { messages as wording } from "./messages/index.js";
@@ -150,6 +159,19 @@ const GEOMETRY: ReadonlySet<CanvasAction["kind"]> = new Set([
   "distribute",
   "paste",
   "duplicate",
+]);
+
+/**
+ * Actions that can make a list grow or shrink: a card created, moved, pasted, duplicated,
+ * removed or resized, whose outermost placed list keeps its top-left corner (`listCorners`).
+ */
+const LIST_RESIZING: ReadonlySet<CanvasAction["kind"]> = new Set([
+  "create",
+  "move",
+  "remove",
+  "paste",
+  "duplicate",
+  "resize",
 ]);
 
 /**
@@ -450,6 +472,19 @@ export class CanvasSession {
         drawn: connector.line,
         via: connector.via,
       };
+      // A pen stroke: where its points are drawn, and its bounds.
+      const stroke = element.kind === "pen" ? view.layout?.pens?.get(element.id) : undefined;
+      const pen = stroke && { points: stroke.points, bounds: stroke.bounds, width: stroke.width };
+      // A list group: how it arranges its children, defaults filled in.
+      const arranged = element.kind === "group" ? view.layout?.lists?.get(element.id) : undefined;
+      const list = arranged && {
+        layout: arranged.layout,
+        spacing: arranged.spacing,
+        align: arranged.align,
+        children: arranged.children,
+      };
+      // A group its list places has no `place` and resizes all the same: it writes its size.
+      const listed = placingList(diagram, element) !== undefined;
       elements.push({
         id: element.id,
         kind: element.kind,
@@ -457,7 +492,10 @@ export class CanvasSession {
         parent: element.groupPath[element.groupPath.length - 1] ?? null,
         box,
         placed,
-        sized: element.kind === "group" ? placed && (sized || diagram.type === "free") : true,
+        sized:
+          element.kind === "group"
+            ? (placed || listed) && (sized || diagram.type === "free")
+            : true,
         layer: element.layer,
         shape: geometry.shapes.get(element.id) ?? "rounded",
         ...(rotation !== undefined ? { rotation } : {}),
@@ -468,6 +506,8 @@ export class CanvasSession {
         icon: writtenIcon(diagram, element.id, "element"),
         ...(labelBox ? { labelBox } : {}),
         ...(line ? { line } : {}),
+        ...(pen ? { pen } : {}),
+        ...(list ? { list } : {}),
       });
     }
     const relations: RelationInfo[] = [];
@@ -546,6 +586,8 @@ export class CanvasSession {
               guide: view.layout.theme.guide ?? view.layout.theme.accent,
               accent: view.layout.theme.accent,
             },
+            // The pen menu's colours, and what a stroke in progress resolves its token with.
+            swatches: themeSwatches(view.layout.theme),
           }
         : {}),
     };
@@ -1014,7 +1056,10 @@ export class CanvasSession {
   ): SessionResult {
     const steps = this.modelSteps(view, kind, operations, retry);
     if (steps) return steps;
-    const result = this.plan(view, kind, operations);
+    const result = this.plan(view, kind, [
+      ...operations,
+      ...this.listCorners(view, kind, operations),
+    ]);
     if (!result) return NONE;
     if (!result.ok) {
       this.pendingSelection = undefined;
@@ -1028,6 +1073,142 @@ export class CanvasSession {
       };
     }
     return { messages: [], plan: result.plan };
+  }
+
+  /**
+   * The `setPosition` operations that keep the top-left corner of every list that `operations`
+   * make grow or shrink where it is drawn, so that a column grows downward, a row to the right,
+   * and the cards already there stay: each outermost list with a `place` (a list whose own parent
+   * is not a list) whose drawn size the operations change gets its place moved by half the
+   * change, in its parent's interior. The groups without `size` around it, which grow about their
+   * centre with it, keep their corner the same way, so that the interior it is placed in stays.
+   * The lists inside it need nothing: it places them. Nothing for an `auto` diagram, whose engine
+   * places everything, and nothing for a list or group the operations move or size themselves.
+   * The planned text is laid out once, and once more for each level of groups around a list.
+   */
+  private listCorners(
+    view: DiagramView,
+    kind: CanvasAction["kind"],
+    operations: readonly EditOperation[],
+  ): EditOperation[] {
+    const diagram = view.diagram;
+    const before = view.layout?.boxes;
+    const origins = view.layout?.origins;
+    if (
+      !LIST_RESIZING.has(kind) ||
+      diagram.type !== "free" ||
+      view.mode === "auto" ||
+      !before ||
+      operations.length === 0
+    ) {
+      return [];
+    }
+    const parentOf = (e: { readonly groupPath: readonly string[] }) =>
+      e.groupPath[e.groupPath.length - 1] ?? null;
+    const placeOf = (d: FlowDiagram, id: string) =>
+      d.placement.find((p): p is PlaceEntry => p.statement === "place" && p.target === id);
+    const sized = (d: FlowDiagram, id: string) =>
+      d.placement.some((p) => p.statement === "size" && p.target === id);
+    // What the operations themselves place, size or move keeps what they write.
+    const touched = new Set(
+      operations.flatMap((op) =>
+        "element" in op && typeof op.element === "string" ? [op.element] : [],
+      ),
+    );
+    const outermost = (d: FlowDiagram, id: string) => {
+      const element = d.elementsById.get(id);
+      const parent = element ? parentOf(element) : null;
+      return Boolean(element?.list) && (parent === null || !d.elementsById.get(parent)?.list);
+    };
+    if (!diagram.elements.some((e) => outermost(diagram, e.id) && placeOf(diagram, e.id))) {
+      return [];
+    }
+    const analysis = this.analysis!;
+    const corners = new Map<string, Point>();
+    const operationsWith = () => [
+      ...operations,
+      ...[...corners].map(([element, at]): EditOperation => ({
+        kind: "setPosition",
+        diagram: view.id,
+        element,
+        x: at.x,
+        y: at.y,
+      })),
+    ];
+    const laidOut = () => {
+      const result = this.plan(view, kind, operationsWith());
+      if (!result?.ok) return undefined;
+      const compilation = compile(
+        applyTextEdits(analysis.compilation.text, result.plan.edits),
+        analysis.compilation.options,
+      );
+      const copy = compilation.document.diagrams.find((d) => d.id === view.id);
+      if (!copy) return undefined;
+      const boxes = layoutDiagram(compilation, copy, analysis.layoutOptions).boxes;
+      return boxes ? { diagram: copy, boxes } : undefined;
+    };
+    let after = laidOut();
+    if (!after) return [];
+    const next = after.diagram;
+    // Whether a group keeps the place and the group it had: the operations leave it where it is.
+    const kept = (id: string) => {
+      const was = diagram.elementsById.get(id);
+      const now = next.elementsById.get(id);
+      const old = placeOf(diagram, id);
+      const place = placeOf(next, id);
+      return (
+        was !== undefined &&
+        now !== undefined &&
+        !touched.has(id) &&
+        parentOf(was) === parentOf(now) &&
+        old !== undefined &&
+        place !== undefined &&
+        old.x === place.x &&
+        old.y === place.y &&
+        before.has(id)
+      );
+    };
+    // The lists, and the groups without size around each up to the first that is not one.
+    const levels = new Map<number, Set<string>>();
+    for (const element of next.elements) {
+      if (!outermost(next, element.id) || !kept(element.id)) continue;
+      let id: string | null = element.id;
+      while (id !== null) {
+        const group: ModelElement = next.elementsById.get(id)!;
+        const depth = group.groupPath.length;
+        levels.set(depth, (levels.get(depth) ?? new Set<string>()).add(id));
+        const parent = parentOf(group);
+        const outer = parent === null ? undefined : next.elementsById.get(parent);
+        id =
+          outer && outer.list === null && !sized(next, outer.id) && kept(outer.id)
+            ? outer.id
+            : null;
+      }
+    }
+    const depths = [...levels.keys()].sort((a, b) => b - a);
+    for (const [i, depth] of depths.entries()) {
+      if (i > 0 && corners.size > 0) {
+        after = laidOut();
+        if (!after) return [];
+      }
+      for (const id of levels.get(depth)!) {
+        const old = before.get(id)!;
+        const box = after.boxes.get(id);
+        if (
+          !box ||
+          (Math.abs(box.width - old.width) < 1e-6 && Math.abs(box.height - old.height) < 1e-6)
+        ) {
+          continue;
+        }
+        // Its corner where it is drawn, in its parent's interior, which the outer levels keep.
+        const origin = origins?.get(id) ?? { x: 0, y: 0 };
+        corners.set(id, {
+          x: old.x + box.width / 2 - origin.x,
+          y: old.y + box.height / 2 - origin.y,
+        });
+      }
+    }
+    return operationsWith().slice(operations.length);
   }
 
   /**
@@ -1583,13 +1764,21 @@ export class CanvasSession {
       }
       case "move": {
         if (diagram.type === "sequence") {
-          ops.push(...sequenceMove(view, action.ids, action.delta));
+          ops.push(...sequenceMove(view, action.ids, action.delta ?? { x: 0, y: 0 }));
           this.pendingSelection = [...this.selection];
           break;
         }
+        const refused = this.moveRefusal(view, action);
+        if (refused) {
+          return { messages: [{ type: "rejected", code: "edit.invalid-value", reason: refused }] };
+        }
         ops.push(...this.moveOperations(view, action));
         // A box dropped on a box stays a drawing on top of it: say how to make it a container.
-        const stack = stackedAfterMove(view, action.ids, action.delta);
+        // Into a list it lands where the list puts it, on nothing.
+        const stack =
+          action.delta && !this.intoList(view, action)
+            ? stackedAfterMove(view, action.ids, action.delta)
+            : undefined;
         if (stack) {
           const planned = this.planned(view, action.kind, ops);
           return planned.plan
@@ -1674,6 +1863,52 @@ export class CanvasSession {
           ...(styles.length > 0 ? { styles } : {}),
         });
         this.pendingSelection = [id];
+        break;
+      }
+      case "createPen": {
+        // In the group under the first point, or the nearest one around it, that holds the whole
+        // stroke and is no list (a list would grow with it and move its children), else at the
+        // top level; its points in that group's interior as drawn, not snapped, and a group
+        // without size kept as drawn, so that its interior stays where the stroke was drawn.
+        // Nothing is selected and no editor opens: the next stroke starts at once.
+        const style =
+          action.style && Object.keys(action.style).length > 0 ? action.style : undefined;
+        const parent = strokeParent(
+          view,
+          action.parent ?? null,
+          action.points,
+          style?.width ?? DEFAULT_PEN_WIDTH,
+        );
+        const origin = interiorOf(view, parent);
+        ops.push(
+          {
+            kind: "createPen",
+            diagram: d,
+            points: action.points.map((p) => ({ x: p.x - origin.x, y: p.y - origin.y })),
+            ...(parent !== null ? { parent } : {}),
+            ...(style ? { style } : {}),
+          },
+          ...steadySize(view, parent),
+        );
+        break;
+      }
+      case "setPenPoints": {
+        // In its group's interior, kept as drawn; out of a list. The edit refuses an element that
+        // is not a pen.
+        const element = diagram.elementsById.get(action.element);
+        if (!element) break;
+        if (element.kind !== "pen") {
+          const origin = interiorOf(view, element.groupPath[element.groupPath.length - 1] ?? null);
+          ops.push({
+            kind: "setPenPoints",
+            diagram: d,
+            element: element.id,
+            points: action.points.map((p) => ({ x: p.x - origin.x, y: p.y - origin.y })),
+          });
+          break;
+        }
+        const drawn = penOperations(view, element, action.points);
+        ops.push(...drawn.operations, ...steadySize(view, drawn.parent));
         break;
       }
       case "setLinePoints": {
@@ -1774,24 +2009,59 @@ export class CanvasSession {
           this.pendingEdit = id;
           break;
         }
+        // A position among a list's children, as a position among the declarations of its block.
+        let index: number | undefined;
+        if (action.index !== undefined) {
+          const children = this.listChildren(view, action.parent);
+          if (!children) {
+            return {
+              messages: [
+                {
+                  type: "rejected",
+                  code: "edit.invalid-value",
+                  reason: words.session.notList(action.parent ?? ""),
+                },
+              ],
+            };
+          }
+          // Before the child there, else right after the last one: the strokes and lines declared
+          // after the children stay painted above the new one.
+          const declared = this.declarations(view, action.parent!);
+          const anchor = children[action.index];
+          const last = children[children.length - 1];
+          if (anchor !== undefined) index = declared.indexOf(anchor);
+          else if (last !== undefined) index = declared.indexOf(last) + 1;
+        }
         // A note dropped on an element goes beside it; anything else where it was dropped.
         const snapped = kind === "note" ? this.notePlace(view, action) : this.snap(action.at);
         // Groups too go inside the group under the point, so groups nest.
         const origin = interiorOf(view, action.parent ?? null);
-        // A library element keeps its label; a shape from the palette, the keys or the grid is empty.
-        const label = action.label ?? (EMPTY_KINDS.has(kind) ? "" : undefined);
+        // A library element keeps its label; a shape from the palette, the keys or the grid is
+        // empty; a column or a row is named so in the interface language; a text or a sticky gets
+        // its default text from the edit.
+        const label =
+          action.label ??
+          (action.layout !== undefined
+            ? words.written[action.layout]
+            : EMPTY_KINDS.has(kind)
+              ? ""
+              : undefined);
         ops.push({
           kind: "createElement",
           diagram: d,
           elementKind: kind,
           id,
+          // A list places its children: the edit writes no place for one.
           at: { x: snapped.x - origin.x, y: snapped.y - origin.y },
           ...(kind === "group" ? { size: NEW_GROUP_SIZE } : {}),
           ...(action.parent ? { parent: action.parent } : {}),
+          ...(index !== undefined ? { index } : {}),
           ...(action.source !== undefined ? { source: action.source } : {}),
           ...(label !== undefined ? { label } : {}),
           ...(action.icon !== undefined ? { icon: action.icon } : {}),
           ...(action.shape !== undefined ? { shape: action.shape } : {}),
+          ...(action.fill !== undefined ? { fill: action.fill } : {}),
+          ...(action.layout !== undefined ? { layout: action.layout } : {}),
           ...(action.attachedTo !== undefined ? { attachedTo: action.attachedTo } : {}),
         });
         this.pendingSelection = [id];
@@ -1953,6 +2223,25 @@ export class CanvasSession {
         // The label is what the person would have typed: in the interface language.
         const label = defaultLabel("group")!;
         ops.push({ kind: "groupElements", diagram: d, elements: ids, id, label });
+        // Cards of a list go into a list of the same layout where the first of them was, which
+        // keeps them arranged: a plain group would need a place for each.
+        // (The edit refuses elements of different groups.)
+        const path = diagram.elementsById.get(ids[0]!)!.groupPath;
+        const owner = path[path.length - 1];
+        const layout =
+          diagram.type === "free" && owner !== undefined
+            ? diagram.elementsById.get(owner)?.list?.layout
+            : undefined;
+        if (layout !== undefined) {
+          ops.push({
+            kind: "setElementProperty",
+            diagram: d,
+            target: id,
+            targetKind: "element",
+            property: "layout",
+            value: layout,
+          });
+        }
         this.pendingSelection = [id];
         break;
       }
@@ -1976,6 +2265,13 @@ export class CanvasSession {
       }
       case "ungroup": {
         ops.push({ kind: "ungroup", diagram: d, group: action.id });
+        // A list's children had no place: they get one where they are drawn, in the interior of
+        // the group they go up to, which is kept as drawn; another list takes them in order.
+        const group = diagram.elementsById.get(action.id);
+        if (diagram.type === "free" && group?.list) {
+          const parent = group.groupPath[group.groupPath.length - 1] ?? null;
+          ops.push(...unlistedOperations(view, group.id, parent), ...steadySize(view, parent));
+        }
         this.pendingSelection = diagram.elements
           .filter((e) => e.groupPath[e.groupPath.length - 1] === action.id)
           .map((e) => e.id);
@@ -1987,10 +2283,9 @@ export class CanvasSession {
         for (const id of action.ids) {
           const element = diagram.elementsById.get(id);
           const box = boxes.get(id);
-          // Lines have no edges to align: they keep their points.
-          if (element && element.kind !== "group" && element.kind !== "line" && box) {
-            selected.set(id, box);
-          }
+          // Lines and pens have no edges to align: they keep their points; a list places its
+          // children.
+          if (element && alignable(diagram, element) && box) selected.set(id, box);
         }
         const centres =
           action.kind === "align"
@@ -2050,8 +2345,11 @@ export class CanvasSession {
         // Moving into a group of a free diagram writes the place in the group's interior, and a
         // group left empty gets its place and size.
         // A rotation turns a box in place: an `auto` diagram keeps its arrangement first.
+        // A list that stops placing its children writes their places, as a move does.
         const geometric =
           ["x", "y", "w", "h", "style.rotation"].includes(action.field) ||
+          (action.field === "layout" &&
+            result.operations.some((op) => op.kind === "setPosition")) ||
           (action.field === "inside" &&
             (diagram.type === "free" ||
               result.operations.some((op) => op.kind === "setPosition" || op.kind === "setSize")));
@@ -2187,8 +2485,116 @@ export class CanvasSession {
   }
 
   /**
+   * Why a move is refused before it is planned, or undefined: an `index` into a group that is no
+   * list, or a child of a list moved by a delta that leaves it in its list (a nudge, an Alt-drag,
+   * a drop back into its own list without a position), which would write a `place` the list
+   * ignores.
+   */
+  private moveRefusal(view: DiagramView, action: MoveAction): string | undefined {
+    const words = wording().session;
+    const diagram = view.diagram;
+    if (action.index !== undefined && !this.intoList(view, action)) {
+      return words.notList(action.parent ?? "");
+    }
+    if (action.index !== undefined) return undefined;
+    const moved = new Set(action.ids);
+    for (const id of action.ids) {
+      const element = diagram.elementsById.get(id);
+      if (!element || element.groupPath.some((g) => moved.has(g))) continue;
+      const list = placingList(diagram, element);
+      if (list === undefined) continue;
+      // Dropped into another group or onto the top level, it leaves its list with a place.
+      if (action.parent !== undefined && action.parent !== list) continue;
+      return words.listPlaces(id, list);
+    }
+    return undefined;
+  }
+
+  /** Whether a move drops its elements into a list group, which places them. */
+  private intoList(view: DiagramView, action: MoveAction): boolean {
+    return this.listChildren(view, action.parent) !== undefined;
+  }
+
+  /**
+   * The children a list group places, in their order (`ElementInfo.list`), or undefined when
+   * `group` is not a list group of the free diagram.
+   */
+  private listChildren(
+    view: DiagramView,
+    group: string | null | undefined,
+  ): readonly string[] | undefined {
+    if (group === undefined || group === null || view.diagram.type !== "free") return undefined;
+    if (!view.diagram.elementsById.get(group)?.list) return undefined;
+    return view.layout?.lists?.get(group)?.children ?? [];
+  }
+
+  /**
+   * The ids declared in a group's block in source order, as `moveElement` and `createElement`
+   * count positions: every declaration, its lines and pens included.
+   */
+  private declarations(view: DiagramView, group: string): string[] {
+    return view.diagram.elements
+      .filter((e) => e.node && e.groupPath[e.groupPath.length - 1] === group)
+      .sort((a, b) => a.node!.start - b.node!.start)
+      .map((e) => e.id);
+  }
+
+  /**
+   * The `moveElement` operations that put `ids` into the list group `list`, one after another in
+   * that order, before the child at `index` among its children once the moved ones are taken out,
+   * or after the last of them without one (so that the strokes and lines declared after the
+   * children stay painted above them). Each position counts the declarations of the list's block
+   * as the text has them after the moves before it. A drop that leaves the list's order as it is
+   * writes nothing.
+   */
+  private listMoves(
+    view: DiagramView,
+    list: string,
+    ids: readonly string[],
+    index: number | undefined,
+  ): EditOperation[] {
+    const diagram = view.diagram;
+    const moving = new Set(ids);
+    const children = this.listChildren(view, list) ?? [];
+    const remaining = children.filter((id) => !moving.has(id));
+    const anchor = index === undefined ? undefined : remaining[index];
+    const order =
+      anchor === undefined
+        ? [...remaining, ...ids]
+        : [...remaining.slice(0, index), ...ids, ...remaining.slice(index)];
+    const kept =
+      order.length === children.length &&
+      order.every((id, i) => children[i] === id) &&
+      !ids.some((id) => isPlaced(diagram, id));
+    if (kept) return [];
+    const declared = this.declarations(view, list);
+    // Before the anchor, else after the last child placed so far.
+    let after = anchor === undefined ? remaining[remaining.length - 1] : undefined;
+    const position = () =>
+      anchor !== undefined
+        ? declared.indexOf(anchor)
+        : after !== undefined
+          ? declared.indexOf(after) + 1
+          : declared.length;
+    const ops: EditOperation[] = [];
+    for (const id of ids) {
+      const own = declared.indexOf(id);
+      const at = position();
+      const stays = own >= 0 && (at === own || at === own + 1);
+      if (!stays || isPlaced(diagram, id)) {
+        ops.push({ kind: "moveElement", diagram: view.id, element: id, parent: list, index: at });
+      }
+      if (own >= 0) declared.splice(own, 1);
+      declared.splice(position(), 0, id);
+      if (anchor === undefined) after = id;
+    }
+    return ops;
+  }
+
+  /**
    * The operations of a move of elements of a flow or free diagram or a C4 view, as the drop
-   * writes them: new places, and the declarations of those that land in another group.
+   * writes them: new places, and the declarations of those that land in another group. Into a
+   * list group they are declared at the position it gives them, with no place.
    */
   private moveOperations(view: DiagramView, action: MoveAction): EditOperation[] {
     const diagram = view.diagram;
@@ -2200,15 +2606,36 @@ export class CanvasSession {
       return box ? center(box) : undefined;
     };
     const moved = new Set(action.ids.filter((id) => diagram.elementsById.has(id)));
+    const delta = action.delta;
     const landed = (id: string) => {
       const c = centreOf(id);
-      return c ? { x: c.x + action.delta.x, y: c.y + action.delta.y } : undefined;
+      return c && delta ? { x: c.x + delta.x, y: c.y + delta.y } : undefined;
+    };
+    const parentOf = (id: string) => {
+      const path = diagram.elementsById.get(id)?.groupPath ?? [];
+      return path[path.length - 1] ?? null;
     };
     // The outermost moved elements whose parent differs go into the target group, placed where
     // they land in its interior; what a moved group holds stays in it, and so do all the
     // children of a group without place, which moves with them.
     const reparented = new Set<string>();
-    if (action.parent !== undefined) {
+    if (action.parent !== undefined && this.intoList(view, action)) {
+      // A list places what it takes, in the order given: those already in it are reordered.
+      const target = action.parent!;
+      const entering = [...moved].filter((id) => {
+        const element = diagram.elementsById.get(id)!;
+        return !keepsPoints(element) && !element.groupPath.some((g) => moved.has(g));
+      });
+      ops.push(...this.listMoves(view, target, entering, action.index));
+      for (const id of entering) reparented.add(id);
+      ops.push(
+        ...steadyGroups(
+          view,
+          entering.filter((id) => parentOf(id) !== target),
+          target,
+        ),
+      );
+    } else if (action.parent !== undefined) {
       const target = action.parent;
       const origin = interiorOf(view, target);
       const carried = carriedChildren(
@@ -2216,15 +2643,16 @@ export class CanvasSession {
           id: e.id,
           kind: e.kind,
           parent: e.groupPath[e.groupPath.length - 1] ?? null,
-          placed: isPlaced(diagram, e.id),
+          // A list does not follow its children: it places them.
+          placed: isPlaced(diagram, e.id) || e.list !== null,
         })),
         [...moved],
       );
       for (const id of moved) {
         const element = diagram.elementsById.get(id)!;
         const parent = element.groupPath[element.groupPath.length - 1] ?? null;
-        // A free line stays in its group: its points are written there.
-        if (element.kind === "line") continue;
+        // A free line or a pen stays in its group: its points are written there.
+        if (keepsPoints(element)) continue;
         if (parent === target || carried.has(id) || element.groupPath.some((g) => moved.has(g)))
           continue;
         reparented.add(id);
@@ -2245,15 +2673,17 @@ export class CanvasSession {
       ops.push(...steadyGroups(view, [...reparented], target));
     }
     if (diagram.type === "free") {
+      // The groups strokes end in, kept as drawn once.
+      const steady = new Set<string | null>();
       // Children are placed inside their group, so a moved group carries them.
       for (const id of moved) {
         const element = diagram.elementsById.get(id)!;
-        if (reparented.has(id) || element.groupPath.some((g) => moved.has(g))) continue;
+        if (!delta || reparented.has(id) || element.groupPath.some((g) => moved.has(g))) continue;
         // A free line moves every point by the same amount, in its own coordinates.
         if (element.kind === "line" && element.line) {
           const by = (p: Point) => ({
-            x: Math.round(p.x + action.delta.x),
-            y: Math.round(p.y + action.delta.y),
+            x: Math.round(p.x + delta.x),
+            y: Math.round(p.y + delta.y),
           });
           ops.push({
             kind: "setLinePoints",
@@ -2265,6 +2695,33 @@ export class CanvasSession {
           });
           continue;
         }
+        // A pen moves every point too, as dragged: the grid does not apply to a stroke. Its group
+        // stays as drawn, and out of a list it lands where it is dropped.
+        if (element.kind === "pen" && element.pen) {
+          const stroke = view.layout?.pens?.get(id);
+          if (!stroke) {
+            ops.push({
+              kind: "setPenPoints",
+              diagram: d,
+              element: id,
+              points: element.pen.points.map((p) => ({ x: p.x + delta.x, y: p.y + delta.y })),
+            });
+            continue;
+          }
+          const drawn = penOperations(
+            view,
+            element,
+            stroke.points.map((p) => ({ x: p.x + delta.x, y: p.y + delta.y })),
+          );
+          ops.push(...drawn.operations);
+          if (!steady.has(drawn.parent)) {
+            steady.add(drawn.parent);
+            ops.push(...steadySize(view, drawn.parent));
+          }
+          continue;
+        }
+        // A list places its children (`moveRefusal` turns such a move down).
+        if (placingList(diagram, element) !== undefined) continue;
         const to = landed(id);
         if (!to) continue;
         const at = this.written(view, id, to);
@@ -2272,6 +2729,7 @@ export class CanvasSession {
       }
       return ops;
     }
+    if (!delta) return ops;
     const ids = new Set<string>();
     for (const id of action.ids) {
       const element = diagram.elementsById.get(id);
@@ -2294,14 +2752,17 @@ export class CanvasSession {
         kind: "setPosition",
         diagram: d,
         element: id,
-        x: Math.round(c.x + action.delta.x),
-        y: Math.round(c.y + action.delta.y),
+        x: Math.round(c.x + delta.x),
+        y: Math.round(c.y + delta.y),
       });
     }
     return ops;
   }
 
-  /** The operations of a resize of an element of a flow or free diagram or a C4 view. */
+  /**
+   * The operations of a resize of an element of a flow or free diagram or a C4 view: its size and
+   * its place, its size alone in a list, or a pen's points scaled to the box.
+   */
   private resizeOperations(view: DiagramView, action: ResizeAction): EditOperation[] {
     const diagram = view.diagram;
     const d = view.id;
@@ -2316,6 +2777,18 @@ export class CanvasSession {
       const c = writtenCenter(action.box);
       return [size, { kind: "setPosition", diagram: d, element: action.id, x: c.x, y: c.y }];
     }
+    const element = diagram.elementsById.get(action.id);
+    // A pen scales its points from its bounds to the box, its width kept: one `setPenPoints`, its
+    // group kept as drawn, out of a list first.
+    const stroke = element?.kind === "pen" ? view.layout?.pens?.get(action.id) : undefined;
+    if (element && stroke) {
+      const points = scalePenPoints(stroke.points, stroke.bounds, action.box, stroke.width);
+      const drawn = penOperations(view, element, points);
+      return [...drawn.operations, ...steadySize(view, drawn.parent)];
+    }
+    // A child of a list keeps the place its list gives it, and its own children theirs: a list
+    // itself writes the size as its least size.
+    if (element && placingList(diagram, element) !== undefined) return [size];
     const at = this.written(view, action.id, writtenCenter(action.box));
     const ops: EditOperation[] = [
       size,
@@ -2363,8 +2836,11 @@ export class CanvasSession {
     if (diagram.type === "sequence") return none;
     if (diagram.type === "c4" && refusal(wording().c4Refused, action, diagram)) return none;
     let operations: EditOperation[];
-    if (action.kind === "move") operations = this.moveOperations(view, action);
-    else if (action.kind === "resize") operations = this.resizeOperations(view, action);
+    if (action.kind === "move") {
+      // A move the drop would refuse has no drawing; a drop into a list shows it making room.
+      if (this.moveRefusal(view, action)) return none;
+      operations = this.moveOperations(view, action);
+    } else if (action.kind === "resize") operations = this.resizeOperations(view, action);
     else {
       // A rotation handle's angle, as its release writes it.
       const field = fieldOperations(
@@ -2378,7 +2854,12 @@ export class CanvasSession {
       operations = [...field.operations];
     }
     // A rotation previews as its release writes it: after the arrangement of an `auto` diagram.
-    const result = this.plan(view, action.kind === "setField" ? "move" : action.kind, operations);
+    // A list that grows or shrinks keeps its corner, as on the drop.
+    const kind = action.kind === "setField" ? "move" : action.kind;
+    const result = this.plan(view, kind, [
+      ...operations,
+      ...this.listCorners(view, kind, operations),
+    ]);
     if (!result?.ok) return none;
     const compilation = compile(
       applyTextEdits(analysis.compilation.text, result.plan.edits),

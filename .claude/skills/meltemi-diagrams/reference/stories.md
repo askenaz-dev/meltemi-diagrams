@@ -1,7 +1,7 @@
 # Stories
 
 A `story` tells a diagram step by step for a walkthrough, a talk or a recorded demo. It never
-changes the diagram: scenes reveal, hide, highlight, focus, frame and trace parts of it on one
+changes the diagram: scenes reveal, hide, highlight, focus, frame, trace and draw parts of it on one
 deterministic clock, and may switch to another view of the same system. Write the diagram first,
 then the story below it (or in another file that imports the diagram).
 
@@ -27,19 +27,20 @@ story purchase for checkout {
 
 ## Vocabulary
 
-| Statement                                   | Default | Meaning                                                                           |
-| ------------------------------------------- | ------- | --------------------------------------------------------------------------------- |
-| `scene <id> ["Title"] { ... }`              |         | a step; scenes run one after the other                                            |
-| `view <diagram>`                            |         | first in a scene: the diagram it shows from now on                                |
-| `transition cut\|fade\|morph [over <time>]` | 800 ms  | needed when the view changes; `morph` moves boxes with the same id, `cut` takes 0 |
-| `reveal a, b [over <time>]`                 | 600 ms  | fades in; targets first revealed start hidden                                     |
-| `hide a, b [over <time>]`                   | 600 ms  | fades out                                                                         |
-| `highlight a [over <time>]`                 | 1 s     | accent outline for the action's time                                              |
-| `focus a, b` / `focus all`                  | 600 ms  | dims the rest to 25 % until the end of the scene; `all` clears it                 |
-| `camera a, b` / `camera all`                | 800 ms  | frames the targets plus 40 px; `all` frames the whole view                        |
-| `trace r [over <time>]`                     | 1.2 s   | draws one named relation from source to target in the accent colour               |
-| `hold <time>`                               |         | waits                                                                             |
-| `parallel { ... }`                          |         | actions that start together; lasts as long as the longest                         |
+| Statement                                   | Default | Meaning                                                                                                                    |
+| ------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `scene <id> ["Title"] { ... }`              |         | a step; scenes run one after the other                                                                                     |
+| `view <diagram>`                            |         | first in a scene: the diagram it shows from now on                                                                         |
+| `transition cut\|fade\|morph [over <time>]` | 800 ms  | needed when the view changes; `morph` moves boxes with the same id, `cut` takes 0                                          |
+| `reveal a, b [over <time>]`                 | 600 ms  | fades in; targets first revealed start hidden                                                                              |
+| `hide a, b [over <time>]`                   | 600 ms  | fades out                                                                                                                  |
+| `highlight a [over <time>]`                 | 1 s     | accent outline for the action's time                                                                                       |
+| `focus a, b` / `focus all`                  | 600 ms  | dims the rest to 25 % until the end of the scene; `all` clears it                                                          |
+| `camera a, b` / `camera all`                | 800 ms  | frames the targets plus 40 px; `all` frames the whole view                                                                 |
+| `trace r [over <time>]`                     | 1.2 s   | draws one named relation from source to target in the accent colour                                                        |
+| `draw a, b [over <time>]`                   | 800 ms  | replays pens, free lines and named relations as drawn, one after another, and keeps them; targets first drawn start hidden |
+| `hold <time>`                               |         | waits                                                                                                                      |
+| `parallel { ... }`                          |         | actions that start together; lasts as long as the longest                                                                  |
 
 Targets are ids of the scene's view: elements, named relations (`as <id>`), named notes and
 fragments; entity paths (`shop.api`) in C4 views. Times are `800ms` or `1.5s`, up to `600s`.
@@ -47,6 +48,9 @@ fragments; entity paths (`shop.api`) in C4 views. Times are `800ms` or `1.5s`, u
 ## Rules that save iterations
 
 - Name every relation you want to trace: `api -> db: "SQL" as save`.
+- A whiteboard's explanation is a `draw` of its pens in the order they were written
+  (`draw title, arrow over 2s`): each takes a share of the time proportional to its length, in its
+  own colour, and stays drawn ([free.md](free.md#pen-strokes)).
 - Reveal everything that should appear; anything never revealed is visible from the start. An
   arrow appears with its two ends, so reveal the boxes, not the relations.
 - Two actions on the same target and channel must not overlap (`story.conflict`): put a `reveal`
@@ -57,15 +61,15 @@ fragments; entity paths (`shop.api`) in C4 views. Times are `800ms` or `1.5s`, u
 
 ## Diagnostics
 
-| Code                       | Fix                                                                   |
-| -------------------------- | --------------------------------------------------------------------- |
-| `story.unknown-diagram`    | the diagram after `for` or `view` is not in the file or imported      |
-| `ref.unknown-element`      | the target is not an id of the scene's view; use the suggested id     |
-| `story.invalid-target`     | `trace` needs a named relation                                        |
-| `story.missing-transition` | add `transition cut`, `fade` or `morph` after `view`                  |
-| `story.conflict`           | two overlapping actions on one target and channel; sequence them      |
-| `story.empty-scene`        | warning: give the scene an action or remove it                        |
-| `prop.invalid-value`       | a time without `ms` or `s`, beyond 600 s, or a statement out of place |
+| Code                       | Fix                                                                           |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| `story.unknown-diagram`    | the diagram after `for` or `view` is not in the file or imported              |
+| `ref.unknown-element`      | the target is not an id of the scene's view; use the suggested id             |
+| `story.invalid-target`     | `trace` needs a named relation; `draw` a pen, a free line or a named relation |
+| `story.missing-transition` | add `transition cut`, `fade` or `morph` after `view`                          |
+| `story.conflict`           | two overlapping actions on one target and channel; sequence them              |
+| `story.empty-scene`        | warning: give the scene an action or remove it                                |
+| `prop.invalid-value`       | a time without `ms` or `s`, beyond 600 s, or a statement out of place         |
 
 ## Checking a story
 

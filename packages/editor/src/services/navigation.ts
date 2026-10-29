@@ -9,7 +9,7 @@ import {
   type TargetKind,
 } from "@meltemi/diagrams-model";
 import type { DocumentAnalysis } from "../analysis.js";
-import { kindWord, serviceMessages } from "../messages/services.js";
+import { elementDetail, kindWord, serviceMessages } from "../messages/services.js";
 import { referenceAt } from "../syntax.js";
 import { entityAt, entityReferencesIn } from "./entities.js";
 import { linkAt } from "./hover.js";
@@ -39,6 +39,10 @@ export interface SymbolNode {
   readonly children: readonly SymbolNode[];
 }
 
+/**
+ * An element of the outline, its children nested as written; its detail is its kind word ("pen",
+ * "sticky" in English) and its label's first line when the label says more than its id.
+ */
 function elementSymbol(diagram: FlowDiagram, element: Element): SymbolNode {
   const children =
     element.kind === "group"
@@ -46,10 +50,9 @@ function elementSymbol(diagram: FlowDiagram, element: Element): SymbolNode {
           .filter((e) => e.groupPath[e.groupPath.length - 1] === element.id)
           .map((e) => elementSymbol(diagram, e))
       : [];
-  const kind = kindWord(element.kind);
   return {
     name: element.id,
-    detail: element.label === element.id ? kind : `${kind} · ${element.label}`,
+    detail: element.label === element.id ? kindWord(element.kind) : elementDetail(element),
     kind: element.kind === "group" ? "group" : "element",
     range: element.range,
     selectionRange: element.idRange,

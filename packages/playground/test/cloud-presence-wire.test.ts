@@ -12,6 +12,7 @@ import {
   fromBase64,
   positionIn,
   readLaser,
+  readPen,
   readState,
   toBase64,
 } from "../src/cloud/presence-wire.js";
@@ -331,5 +332,117 @@ describe("a Pointer trail batch", () => {
     expect(readLaser({ points, diagram: "" })).toEqual({ points });
     expect(readLaser({ points, diagram: "x".repeat(MAX_ID_LENGTH + 1) })).toEqual({ points });
     expect(readLaser({ points, diagram: 5 })).toEqual({ points });
+  });
+});
+
+describe("the pen part of a stroke being drawn", () => {
+  const points = Array.from({ length: 10 }, (_, i) => ({ x: 120 + i * 4, y: 80, t: i * 20 }));
+  const pen = { width: 4, colour: "#e03131", opacity: 1, stroke: 7 };
+
+  it("goes out in the batch, beside the points, and comes back as the peer's", () => {
+    const sent = JSON.parse(
+      new TextDecoder().decode(
+        encodeLocal("c7", {
+          file: FILE,
+          canvas: { selection: ["api"], laser: { diagram: "d", points, pen } },
+        }),
+      ),
+    ) as { c7: { canvas: { laser: unknown } } };
+    expect(sent.c7.canvas.laser).toEqual({ diagram: "d", points, pen });
+    const state = readState({ ...sent.c7, user: user() }, PAGE);
+    expect(state?.laser).toEqual({ diagram: "d", points, pen });
+    expect(state?.selection).toEqual(["api"]);
+  });
+
+  it("keeps the highlighter's look as it came", () => {
+    const highlighter = { width: 20, colour: "#ffd43b", opacity: 0.35, stroke: 7 };
+    expect(readLaser({ points, pen: highlighter })).toEqual({ points, pen: highlighter });
+  });
+
+  it("takes every edge of the bounds: 1 to 64 pixels, 32 characters, an opacity of 0 to 1", () => {
+    for (const look of [
+      { width: 1, colour: "#000", opacity: 0, stroke: 7 },
+      { width: 64, colour: "c".repeat(32), opacity: 1, stroke: 7 },
+      { width: 3, colour: "", opacity: 0.5, stroke: 7 },
+    ]) {
+      expect(readPen(look), JSON.stringify(look)).toEqual(look);
+      expect(readLaser({ points, pen: look })?.pen).toEqual(look);
+    }
+  });
+
+  it("drops the batch, and reads the rest of the state, when the part does not fit", () => {
+    for (const bad of [
+      { width: 0, colour: "#e03131", opacity: 1, stroke: 7 },
+      { width: 65, colour: "#e03131", opacity: 1, stroke: 7 },
+      { width: 900, colour: "#e03131", opacity: 1, stroke: 7 },
+      { width: 2.5, colour: "#e03131", opacity: 1, stroke: 7 },
+      { width: "4", colour: "#e03131", opacity: 1, stroke: 7 },
+      { width: 4, colour: "c".repeat(33), opacity: 1, stroke: 7 },
+      { width: 4, colour: 255, opacity: 1, stroke: 7 },
+      { width: 4, colour: "#e03131", opacity: 1.5, stroke: 7 },
+      { width: 4, colour: "#e03131", opacity: -0.1, stroke: 7 },
+      { width: 4, colour: "#e03131", stroke: 7 },
+      "pen",
+      7,
+    ]) {
+      expect(readPen(bad), JSON.stringify(bad)).toBeUndefined();
+      expect(readLaser({ points, pen: bad }), JSON.stringify(bad)).toBeUndefined();
+      const state = readState(
+        { file: FILE, canvas: { selection: ["api"], laser: { points, pen: bad } }, user: user() },
+        PAGE,
+      );
+      expect(state?.laser, JSON.stringify(bad)).toBeUndefined();
+      expect(state?.selection).toEqual(["api"]);
+    }
+  });
+
+  it("is no part when it is absent or null: the batch is a Pointer's trail", () => {
+    expect(readLaser({ points })).toEqual({ points });
+    expect(readLaser({ points, pen: null })).toEqual({ points });
+    expect("pen" in readLaser({ points, pen: null })!).toBe(false);
+  });
+
+  it("keeps the width, the colour, the opacity and the number, and no other field", () => {
+    expect(readLaser({ points, pen: { ...pen, user: "Ana", dash: [4, 2] } })?.pen).toEqual(pen);
+    expect(Object.keys(readPen({ ...pen, user: "Ana" })!).sort()).toEqual([
+      "colour",
+      "opacity",
+      "stroke",
+      "width",
+    ]);
+  });
+
+  it("reads the stroke's number at its edges, and the cancel of a batch of no points", () => {
+    for (const stroke of [0, 1, 2_147_483_647]) {
+      expect(readPen({ ...pen, stroke }), String(stroke)).toEqual({ ...pen, stroke });
+    }
+    const cancelled = { ...pen, cancel: true };
+    expect(readPen(cancelled)).toEqual(cancelled);
+    expect(readLaser({ points: [], pen: cancelled })).toEqual({ points: [], pen: cancelled });
+    const state = readState(
+      {
+        file: FILE,
+        canvas: { selection: [], laser: { points: [], pen: cancelled } },
+        user: user(),
+      },
+      PAGE,
+    );
+    expect(state?.laser).toEqual({ points: [], pen: cancelled });
+  });
+
+  it("drops the batch for a number or a cancel that does not fit", () => {
+    for (const bad of [
+      { width: 4, colour: "#e03131", opacity: 1 },
+      { ...pen, stroke: -1 },
+      { ...pen, stroke: 2_147_483_648 },
+      { ...pen, stroke: 1.5 },
+      { ...pen, stroke: "7" },
+      { ...pen, cancel: false },
+      { ...pen, cancel: "true" },
+      { ...pen, cancel: null },
+    ]) {
+      expect(readPen(bad), JSON.stringify(bad)).toBeUndefined();
+      expect(readLaser({ points, pen: bad }), JSON.stringify(bad)).toBeUndefined();
+    }
   });
 });

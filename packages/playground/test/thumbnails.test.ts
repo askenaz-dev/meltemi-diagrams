@@ -45,6 +45,15 @@ describe("the template thumbnails", () => {
     60_000,
   );
 
+  it("draws a template in the theme its diagram names: the whiteboard by hand, light and dark", () => {
+    const { light, dark } = templateThumbnails("whiteboard", templateFiles("whiteboard"), "1.9.0");
+    // The sketch themes write the hand font first; the text falls back to the system's.
+    for (const svg of [light, dark])
+      expect(svg).toMatch(/^<svg[^>]*font-family="&quot;Patrick Hand/);
+    const kanban = templateThumbnails("kanban", templateFiles("kanban"), "1.9.0");
+    expect(kanban.light).not.toContain("Patrick Hand");
+  });
+
   it("refuses a template without a diagram", () => {
     expect(() =>
       templateThumbnails("empty", { "project.json": "{}", "notes.md": "# Notes" }, "1.9.0"),

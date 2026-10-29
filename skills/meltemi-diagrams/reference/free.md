@@ -1,9 +1,10 @@
 # Free compositions
 
-Use `diagram <id>: free { }` for a slide, an executive picture or an explanation that does not fit
-a flow notation. Objects are placed by hand (`layout manual` is the default); relations,
-`placement`, constraints, `style`, `class`, `rule`, `animate`, themes, `preset` and `canvas` work
-as in flow diagrams.
+Use `diagram <id>: free { }` for a slide, an executive picture, a whiteboard, a kanban board or an
+explanation that does not fit a flow notation. Objects are placed by hand (`layout manual` is the
+default); relations, `placement`, constraints, `style`, `class`, `rule`, `animate`, themes,
+`preset` and `canvas` work as in flow diagrams. A whiteboard writes `preset board`: the canvas
+grows with its content and never reports `layout.too-large`.
 
 ## Objects
 
@@ -15,11 +16,13 @@ as in flow diagrams.
 | `icon <id> "tabler:server"`       | an icon of the packs; find names with `pnpm mdg assets icons <w>`                                            | 48 × 48                               |
 | `image <id> "img/logo.png"`       | a PNG, JPEG, GIF, WebP or SVG file of the project, relative to the file                                      | its pixel size, at most 640 wide      |
 | `note <id> "Text" [on <element>]` | an annotation: text with no frame until styled, and a dotted leader to the element it is attached to (below) | its text's extent                     |
-| `group <id> "Label" { ... }`      | a band holding objects and relations; `group <id> "" { }` is plain                                           | written, or fitted to children        |
+| `sticky <id> "Text"`              | a sticky note: a square card whose text wraps and shrinks to fit (below)                                     | 160 × 160, never grown                |
+| `group <id> "Label" { ... }`      | a band holding objects and relations; `group <id> "" { }` is plain; `layout column` makes it a list (below)  | written, or fitted to children        |
 | `line <id> from (x, y) to (x, y)` | a line that joins no element: a divider, a bracket, an underline (below)                                     | the bounding box of its points        |
+| `pen <id> [(x, y), (x, y), ...]`  | a freehand stroke: handwriting, a drawn arrow, a highlighter mark (below)                                    | its points' box plus half its width   |
 
-`node`, `decision`, `data` and `tag` are flow kinds and are refused here; `note` is a free kind.
-Relations take the lines without heads `a -- b` and `a --- b` too.
+`node`, `decision`, `data` and `tag` are flow kinds and are refused here; `note`, `sticky` and
+`pen` are free kinds. Relations take the lines without heads `a -- b` and `a --- b` too.
 
 ## Notes
 
@@ -32,6 +35,29 @@ any other element of the diagram: a dotted leader joins them, `layout auto` keep
 other, renaming the element rewrites the clause, and deleting the element leaves the note. An
 unknown target is `ref.unknown-element`; a note on itself, `prop.invalid-value`. A note with an
 outline can take `animate remark { effect dash }`; without one, only a pulse.
+
+## Stickies
+
+```text
+sticky cache "Cache the catalogue at the edge before the sale"
+sticky retry "Retry payments\nonce"
+style retry { fill "#f8bbd0"; rotation 4 }
+```
+
+- A 160 × 160 card (scaled with the theme's `labelSize`, or its `size`) that never grows: the
+  text wraps at spaces inside the theme's `padding`, at `fontSize` or 1.2 × the label size
+  (15.6 px), and shrinks 1 px at a time down to 8 px until it fits. Text that still does not fit
+  is `layout.text-overflow` (warning) and clipped: shorten it or use the `size` in the hint.
+- Colours: the theme's `sticky` card (`#fff59d` on light themes) and `stickyText` text; `fill`
+  and `color` override them. Common fills: yellow `#fff59d`, pink `#f8bbd0`, green `#c8e6c9`,
+  blue `#bbdefb`, orange `#ffe0b2`, purple `#e1bee7`. A soft shadow, `radius` 2, an outline only
+  with `stroke`. Text is centred (`textAlign`, `verticalAlign`); an `icon` sits top left.
+- Takes `fill`, `stroke`, `color`, `line`, `width`, `fontSize`, `fontWeight`, `textAlign`,
+  `verticalAlign`, `radius`, `rotation`, `opacity`, `icon`, `iconColor`, `iconSize`; `shape`,
+  `pattern`, `iconPosition` and `labelPosition` are `prop.invalid-value`. `rule sticky { }` styles
+  them all.
+- A sticky is a box for everything else: `place`, `size`, ports, constraints, relation endpoints
+  (`cache -> retry`), stories and effects. `sticky s` without text is `prop.invalid-value`.
 
 ## Shapes and corners
 
@@ -77,6 +103,8 @@ Free-only text properties (refused in flow diagrams):
   cylinders keep it between the rims, documents above the wave, callouts above the tail. On
   `triangle`, `pentagon`, `star`, `person`, `agent` and `icon` shapes, with `iconPosition center`,
   and on texts, icons, images, groups and lines it moves nothing (`layout.vertical-align-ignored`);
+- `opacity 0..1` fades an element, a group, a line or a pen (`style draft { opacity 0.5 }`);
+  relations refuse it;
 - a text, icon or image with `fill`, `stroke` or `pattern` gets a frame.
 
 ## Lines
@@ -105,6 +133,34 @@ style bracket { routing orthogonal; corners rounded; arrowhead triangle }
   `trace` run along a line.
 - A line whose points coincide is drawn as a dot: `layout.degenerate-line`. Flow, sequence and C4
   diagrams refuse `line` (`prop.unknown`).
+
+## Pen strokes
+
+```text
+pen marker [(40, 70), (280, 70)]                                // declared first: under the text
+text heading "Why the cache helps"
+pen arrow [(216, 140), (250, 128.5), (290, 130), (336, 140)]
+pen dot [(400, 60)]                                             // one point is a dot
+style marker { stroke highlight; width 20; opacity 0.35 }       // a highlighter mark
+style arrow { width 4; arrowhead triangle }
+```
+
+- A freehand stroke: one smooth path through the midpoints of its points (round caps and joins).
+  Use it for handwriting, drawn arrows, circles and underlines; use a `line` for a straight
+  divider and a relation between two boxes.
+- `pen <id> [(x, y), ...]`: at least one tuple of plain numbers, decimals kept, in the parent
+  group's interior like `place`; no label, no `place`, `size` or `rotation`
+  (`prop.invalid-value`). `pen p [10, 20]`, `pen p []` and `pen p` are `prop.invalid-value` with
+  the form `pen <id> [(x, y), (x, y), ...]` in the hint.
+- Styles: `stroke` (the theme's `ink`), `width` 1..64 (3; `width 0` is refused), `line`,
+  `opacity`, `arrowhead`, `arrowtail` (none). Anything else (`fill`, `shape`, `routing`, text
+  properties) is `prop.invalid-value`. `rule pen { }` styles every pen.
+- The highlighter is `stroke highlight; width 20; opacity 0.35`; declare it before the text it
+  marks so the text is painted over it.
+- Pens take no part in `layout.overlap` or the label checks, are never moved by the engine or a
+  list, are not jittered by sketch themes, and run `flow`, `dash`, `pulse` and `trace` like a line.
+  A story's `draw a, b over 2s` replays them ([stories.md](stories.md)).
+- `pnpm mdg format` prints a long point list filled to 100 columns, not one point per line.
 
 ## Icons in boxes and as shapes
 
@@ -186,6 +242,49 @@ style band { fill "#f5f5f5"; radius 0 }
   each other, and connectors cross them straight. In `layout auto` a group's `place` is ignored:
   make the band a group holding its boxes.
 
+## Lists and kanban boards
+
+```text
+diagram board: free {
+  preset board
+  group kanban "" {
+    layout row                       // the columns side by side
+    spacing 24
+    align stretch                    // every column as tall as the tallest
+    group todo "To do" {
+      layout column                  // the cards top to bottom, in source order
+      spacing 12
+      sticky cache "Cache the catalogue"
+      sticky retry "Retry payments once"
+    }
+    group done "Done" {
+      layout column
+      sticky login "Sign in with passkeys"
+    }
+  }
+  placement {
+    place kanban at (360, 300)       // only the outer list needs a place
+  }
+}
+```
+
+- `layout column|row` in a free group block makes the group a list: its elements and groups go one
+  after the other in source order from the interior's corner, `spacing <n>` apart (0..400; half
+  `groupPadding`, 8, by default). To reorder cards, reorder their declarations.
+- `align start|center|end|stretch` places children across the axis (`start` by default);
+  `stretch` gives a child without a written `size` the interior's full width (column) or height
+  (row).
+- Children keep their size; the list is derived from them, and a written `size` on the list is
+  only its least size. A list inside a list needs no `place`.
+- A `place` on a child of a list is `layout.place-ignored` (warning): remove it. Lines and pens in a
+  list keep their written points. A group that is not a list, inside a list, still places its own
+  children with `place`.
+- The engine treats a list as one box in every mode; `pnpm mdg layout` writes a `place` for it and
+  nothing for its children.
+- `spacing` or `align` without `layout` is `prop.invalid-value` (add `layout column`); `layout grid`
+  lists `column, row`; `layout auto` belongs to the diagram, not to a group. Flow diagrams refuse
+  the three.
+
 ## Layers, order and links
 
 - `layers back, main, front` lists layers back to front; `main` is the default and comes last
@@ -207,18 +306,21 @@ Edit the copy freely; the flow diagram is unchanged.
 
 ## Diagnostics
 
-| Code                            | Fix                                                                                                                                                                              |
-| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ref.unknown-layer`             | add the layer to `layers` (the hint gives the statement) or fix its name                                                                                                         |
-| `ref.unknown-link`              | the diagram or element does not exist; fix the name or remove the `link`                                                                                                         |
-| `asset.outside-project`         | image paths are relative, use `/`, no URLs, and stay inside the project                                                                                                          |
-| `asset.unknown-image`           | the file does not exist next to the path written                                                                                                                                 |
-| `asset.unsupported-image`       | not a PNG, JPEG, GIF, WebP or SVG image, broken, or over 8 MB                                                                                                                    |
-| `layout.image-unavailable`      | the host could not read the image; a placeholder is drawn                                                                                                                        |
-| `layout.missing-placement`      | an object or a group has no `place`                                                                                                                                              |
-| `layout.overlap`                | boxes overlap partly, or a stack is declared inner first: declare the outer box first                                                                                            |
-| `layout.icon-missing`           | `shape icon` without an `icon` style: add `icon "pack:name"` or choose another shape                                                                                             |
-| `layout.label-position-ignored` | `labelPosition` only moves the label of `iconPosition center` and `shape icon` elements                                                                                          |
-| `layout.vertical-align-ignored` | `verticalAlign` moves nothing on this shape or kind: choose a shape with a text band (`rectangle`, `ellipse`, `cylinder`), set `labelPosition` with a centred icon, or remove it |
-| `layout.degenerate-line`        | a line's points coincide: move an end or add a bend with `via`                                                                                                                   |
-| `prop.invalid-value`            | `fontSize`, `fontWeight`, `textAlign` and `verticalAlign` are free-only; `shape` is for `node` and `box` only; a line takes no `place` or `size`                                 |
+| Code                            | Fix                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ref.unknown-layer`             | add the layer to `layers` (the hint gives the statement) or fix its name                                                                                                                                                                                                                                                                     |
+| `ref.unknown-link`              | the diagram or element does not exist; fix the name or remove the `link`                                                                                                                                                                                                                                                                     |
+| `asset.outside-project`         | image paths are relative, use `/`, no URLs, and stay inside the project                                                                                                                                                                                                                                                                      |
+| `asset.unknown-image`           | the file does not exist next to the path written                                                                                                                                                                                                                                                                                             |
+| `asset.unsupported-image`       | not a PNG, JPEG, GIF, WebP or SVG image, broken, or over 8 MB                                                                                                                                                                                                                                                                                |
+| `layout.image-unavailable`      | the host could not read the image; a placeholder is drawn                                                                                                                                                                                                                                                                                    |
+| `layout.missing-placement`      | an object or a group has no `place` (children of a list need none; a group that is not a list, inside a list, places its own children)                                                                                                                                                                                                       |
+| `layout.place-ignored`          | a child of a list (`layout column\|row`) has a `place`, which the list overrides: remove the `place`, or the group's `layout`                                                                                                                                                                                                                |
+| `layout.text-overflow`          | a `size` too narrow for a box's text, or a sticky whose text does not fit even at 8 px: shorten the text or use the size in the hint                                                                                                                                                                                                         |
+| `layout.too-large`              | the content exceeds `preset document` or `preset slide`: split it into views, or write `preset board` for a whiteboard                                                                                                                                                                                                                       |
+| `layout.overlap`                | boxes overlap partly, or a stack is declared inner first: declare the outer box first                                                                                                                                                                                                                                                        |
+| `layout.icon-missing`           | `shape icon` without an `icon` style: add `icon "pack:name"` or choose another shape                                                                                                                                                                                                                                                         |
+| `layout.label-position-ignored` | `labelPosition` only moves the label of `iconPosition center` and `shape icon` elements                                                                                                                                                                                                                                                      |
+| `layout.vertical-align-ignored` | `verticalAlign` moves nothing on this shape or kind: choose a shape with a text band (`rectangle`, `ellipse`, `cylinder`), set `labelPosition` with a centred icon, or remove it                                                                                                                                                             |
+| `layout.degenerate-line`        | a line's points coincide: move an end or add a bend with `via`                                                                                                                                                                                                                                                                               |
+| `prop.invalid-value`            | `fontSize`, `fontWeight`, `textAlign`, `verticalAlign` and `opacity` are free-only; `shape` is for `node` and `box` only; a line or a pen takes no `place`, `size` or `rotation`; a pen needs `[(x, y), ...]` and `width` 1..64; a sticky needs its text; `spacing` and `align` need `layout column\|row`; `opacity` is refused on relations |

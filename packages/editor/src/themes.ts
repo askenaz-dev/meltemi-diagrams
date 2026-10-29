@@ -7,6 +7,7 @@ import {
   THEME_CANVAS_TOKENS,
   THEME_COLOR_TOKENS,
   THEME_TOKENS,
+  THEME_WHITEBOARD_TOKENS,
   type ThemeDefinition,
 } from "@meltemi/diagrams-model";
 import type { DiagramView, DocumentAnalysis } from "./analysis.js";
@@ -71,6 +72,9 @@ function baseTheme(definition: ThemeDefinition, themes: readonly ThemeDefinition
 
 type ThemeWords = ReturnType<typeof messages>["themePanel"];
 
+/** The colour tokens the panel shows in its Whiteboard group rather than with the others. */
+const WHITEBOARD: ReadonlySet<string> = new Set(THEME_WHITEBOARD_TOKENS);
+
 /**
  * The token groups of the theme panel, in the order the language reference lists them; their
  * titles are looked up when the panel is built.
@@ -80,7 +84,12 @@ const GROUPS: readonly {
   readonly tokens: readonly string[];
 }[] = [
   { group: "base", tokens: ["extends"] },
-  { group: "colours", tokens: [...THEME_COLOR_TOKENS] },
+  {
+    group: "colours",
+    tokens: THEME_COLOR_TOKENS.filter((token) => !WHITEBOARD.has(token)),
+  },
+  // The highlighter's colour and the stickies' fill and text, apart from the surfaces and lines.
+  { group: "whiteboard", tokens: [...THEME_WHITEBOARD_TOKENS] },
   { group: "fonts", tokens: ["font", "mono"] },
   {
     group: "type",
