@@ -18,10 +18,23 @@ export const ACCOUNT_SECTIONS = [
   "devices",
   "tokens",
   "usage",
+  "administration",
   "danger",
 ] as const;
 
 export type AccountSection = (typeof ACCOUNT_SECTIONS)[number];
+
+/**
+ * The sections a person sees: Administration only for an owner, an administrator, or a person with
+ * a pending invitation to administer; every other section for everybody.
+ */
+export function visibleSections(user: {
+  readonly administration: unknown;
+  readonly administrationInvitation: unknown;
+}): AccountSection[] {
+  const administers = user.administration !== null || user.administrationInvitation !== null;
+  return ACCOUNT_SECTIONS.filter((section) => section !== "administration" || administers);
+}
 
 /** The panel's words in a language. */
 export type AccountWords = (typeof en)["accountPanel"];

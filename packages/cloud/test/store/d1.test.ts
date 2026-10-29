@@ -12,6 +12,7 @@ import { d1Store } from "../../src/store/d1.js";
 import {
   MAX_TOKENS,
   type CliCode,
+  type AdminAction,
   type CloudStore,
   type NewBlob,
   type NewProject,
@@ -432,6 +433,49 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
       expect(await spy.setUnbrandedExports(evil, true, evil, T)).toBe("set");
       expect(await spy.setUnbrandedExports(evil + "9", true, evil, T)).toBe("missing");
       expect((await spy.entitledUsers()).map((u) => u.sub)).toEqual([evil]);
+      expect(await spy.usersByEmail(evil)).toEqual([]);
+      // Administration: every statement, with the injected text where a value can be text.
+      const hex = (n: number) => String(n).padStart(32, "0");
+      const logOf = (n: number, action: AdminAction) => ({
+        id: hex(n),
+        at: T,
+        bySub: evil,
+        action,
+        targetSub: evil,
+        targetEmail: evil,
+        detail: evil,
+      });
+      const adminInvitation = {
+        id: hex(1),
+        email: "x');drop table users;--@example.com",
+        invitedBy: evil,
+        createdAt: T,
+        expiresAt: LATER,
+        acceptedAt: null,
+        declinedAt: null,
+        revokedAt: null,
+      };
+      expect(await spy.createAdminInvitation(adminInvitation, 10, logOf(1, "invite"))).toBe(
+        "created",
+      );
+      expect(await spy.adminInvitations(T)).toEqual([adminInvitation]);
+      expect(await spy.adminInvitationFor(adminInvitation.email, T)).toEqual(adminInvitation);
+      expect(
+        await spy.acceptAdminInvitation(
+          hex(1),
+          evil,
+          adminInvitation.email,
+          T,
+          20,
+          logOf(2, "accept"),
+        ),
+      ).toBe("accepted");
+      expect((await spy.administrator(evil))?.invitedBy).toBe(evil);
+      expect((await spy.administrators()).map((a) => a.sub)).toEqual([evil]);
+      expect(await spy.declineAdminInvitation(hex(1), evil, T, logOf(3, "decline"))).toBe(false);
+      expect(await spy.revokeAdminInvitation(hex(1), T, logOf(4, "revoke-invitation"))).toBe(false);
+      expect(await spy.removeAdministrator(evil, logOf(5, "remove"))).toBe(true);
+      expect((await spy.adminLog(10)).map((e) => e.action)).toEqual(["remove", "accept", "invite"]);
       const published = {
         projectId: P1,
         handle: "evil-handle",
@@ -738,6 +782,8 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
         "DELETE FROM invitations WHERE email = ?",
         "DELETE FROM tokens WHERE sub = ?",
         "DELETE FROM cli_codes WHERE sub = ?",
+        "DELETE FROM administrators WHERE sub = ?",
+        "DELETE FROM admin_invitations WHERE invited_by = ? AND accepted_at IS NULL AND declined_at IS NULL AND revoked_at IS NULL",
         "DELETE FROM users WHERE sub = ?",
       ]);
       expect(ran.map((q) => q.values)).toEqual([
@@ -758,8 +804,10 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
         ["u1"],
         ["u1"],
         ["u1"],
+        ["u1"],
+        ["u1"],
       ]);
-      // The reads ran alone; the fifteen writes ran in one transaction.
+      // The reads ran alone; the seventeen writes ran in one transaction.
       expect(ran[0]?.batch).toBeNull();
       expect(ran[1]?.batch).toBeNull();
       expect(ran[2]?.batch).not.toBeNull();
@@ -1211,12 +1259,14 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
         "DELETE FROM cli_failures WHERE at < ?",
         "DELETE FROM processed_events WHERE at < ?",
         "DELETE FROM publish_log WHERE at < ?",
+        "DELETE FROM admin_log WHERE at < ?",
       ]);
       expect(ran.map((q) => q.values)).toEqual([
         ["2026-10-14T12:00:00.000Z"],
         ["2026-10-14T11:00:00.000Z"],
         ["2026-09-13T12:00:00.000Z"],
         ["2026-10-14T11:00:00.000Z"],
+        ["2025-10-14T12:00:00.000Z"],
       ]);
       expect(ran[0]?.batch).not.toBeNull();
       expect(new Set(ran.map((q) => q.batch)).size).toBe(1);

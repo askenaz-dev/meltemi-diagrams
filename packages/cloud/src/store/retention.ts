@@ -61,3 +61,22 @@ export function invitationExpiresAt(createdAt: Iso): Iso {
 export function invitationCutoff(now: Iso): Iso {
   return new Date(Date.parse(now) - INVITATION_LIFETIME_MS).toISOString();
 }
+
+/** How long an entry of the administration log is kept: 365 days. */
+export const ADMIN_LOG_KEEP_MS = 365 * 24 * 60 * 60 * 1000;
+
+/**
+ * The time before which the administration log's entries are dropped by a sweep at `now`: 365 days
+ * earlier. An entry exactly that old is kept; one a millisecond older goes. Both stores use it.
+ */
+export function adminLogCutoff(now: Iso): Iso {
+  return new Date(Date.parse(now) - ADMIN_LOG_KEEP_MS).toISOString();
+}
+
+/** How long an invitation to administer can be accepted: seven days from the moment it was made. */
+export const ADMIN_INVITATION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** The time an invitation to administer made at `createdAt` expires: seven days later. */
+export function adminInvitationExpiresAt(createdAt: Iso): Iso {
+  return new Date(Date.parse(createdAt) + ADMIN_INVITATION_LIFETIME_MS).toISOString();
+}

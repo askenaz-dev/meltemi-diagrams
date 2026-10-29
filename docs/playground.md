@@ -258,10 +258,10 @@ the controls of the HTML player and the headings of the catalog, whose pages car
 the catalog section too; **Download → Catalog** uses the project's language
 ([projects](language/projects.md#language-of-exports)).
 
-**Without the Meltemi branding.** An account that an administrator entitled
-([entitlements](cloud.md#entitlements)), and every administrator, finds **Export without the Meltemi
-branding** under **Theme**, for every format: checked, the pictures leave out the strip at the foot
-of the sheet (the Meltemi mark, the wordmark and the diagram's title), and the message after the
+**Without the Meltemi branding.** An account that an owner or an administrator entitled
+([entitlements](cloud.md#entitlements)), and every owner and administrator, finds **Export without
+the Meltemi branding** under **Theme**, for every format: checked, the pictures leave out the strip
+at the foot of the sheet (the Meltemi mark, the wordmark and the diagram's title), and the message after the
 download ends with "Without the Meltemi branding." The catalog button of the same dialog follows
 the box for the catalog's pictures, while its footer still names the tool. The box starts unchecked
 each time the dialog opens, and the file's profiles and **Download → Catalog** keep the theme's
@@ -321,13 +321,16 @@ something an administrator grants your account shows at the next load.
 `id.meltemi.dev`, and brings you back to the page you were on; before leaving, the page keeps your
 project in the browser. Everything else works as before and nothing is sent.
 
-**Signed in**, the header shows your avatar and name, with a menu of three entries:
+**Signed in**, the header shows your avatar and name, with a menu of three entries, and a fourth for
+the people who administer the service or are invited to:
 
-| Entry          | Does                                                             |
-| -------------- | ---------------------------------------------------------------- |
-| **Account**    | Opens the account panel at Profile, in this page                 |
-| **API tokens** | Opens the account panel at API tokens                            |
-| **Sign out**   | Ends the session at the identity service and returns to the page |
+| Entry                        | Does                                                                                               |
+| ---------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Account**                  | Opens the account panel at Profile, in this page                                                   |
+| **API tokens**               | Opens the account panel at API tokens                                                              |
+| **Administration**           | For an owner or an administrator of the service: opens the account panel at Administration         |
+| **Invitation to administer** | For a person an owner invited to administer the service: opens the account panel at the invitation |
+| **Sign out**                 | Ends the session at the identity service and returns to the page                                   |
 
 Under the entries the menu shows what your account holds, read when the menu opens: how many of the
 100 projects it may hold and how much of its 200 MiB of storage it uses, as in "3 of 100 projects"
@@ -341,14 +344,15 @@ left and the one chosen beside it, or, on a narrow screen, a sheet over the whol
 sections as a strip of tabs above. The arrows, Home and End move between the sections; Escape and
 the close button return to the page.
 
-| Section         | Holds                                                                                                                                                                                                                                                                                                                         |
-| --------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Profile**     | Your picture and name, the emails of your sign-ins, the publishing handle (3 to 30 lowercase letters, digits or hyphens; it cannot change while a page is published under it), your account id with **Copy** (what an administrator asks you for), whether your account may export without the Meltemi branding, and Sign out |
-| **Sign-ins**    | GitHub and Google as you sign in with them: the account, whether the provider verified its email, when it was linked; Unlink, after a question, while another one is left; Link the other                                                                                                                                     |
-| **Devices**     | Where you are signed in, this device marked; Sign out of one device or of all the others, after a question                                                                                                                                                                                                                    |
-| **API tokens**  | The tokens that let the command line and scripts act as you (below)                                                                                                                                                                                                                                                           |
-| **Usage**       | Your projects and storage against their limits, and the limits of a project's files, size and versions and of an image                                                                                                                                                                                                        |
-| **Danger zone** | Deleting the account: what it removes, and the way to the identity service's page where you confirm it                                                                                                                                                                                                                        |
+| Section            | Holds                                                                                                                                                                                                                                                                                                                         |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Profile**        | Your picture and name, the emails of your sign-ins, the publishing handle (3 to 30 lowercase letters, digits or hyphens; it cannot change while a page is published under it), your account id with **Copy** (what an administrator asks you for), whether your account may export without the Meltemi branding, and Sign out |
+| **Sign-ins**       | GitHub and Google as you sign in with them: the account, whether the provider verified its email, when it was linked; Unlink, after a question, while another one is left; Link the other                                                                                                                                     |
+| **Devices**        | Where you are signed in, this device marked; Sign out of one device or of all the others, after a question                                                                                                                                                                                                                    |
+| **API tokens**     | The tokens that let the command line and scripts act as you (below)                                                                                                                                                                                                                                                           |
+| **Usage**          | Your projects and storage against their limits, and the limits of a project's files, size and versions and of an image                                                                                                                                                                                                        |
+| **Administration** | Only for the people who administer the service, or are invited to (below): the administrators, the invitations, the permissions of accounts, the takedown of a publication and the recent changes                                                                                                                             |
+| **Danger zone**    | Deleting the account: what it removes, and the way to the identity service's page where you confirm it                                                                                                                                                                                                                        |
 
 Sign-ins and Devices are what the identity service holds; the page asks its own origin, whose Worker
 asks the identity service on your behalf ([the identity data](cloud.md#the-identity-data)). When the
@@ -369,6 +373,28 @@ after a confirmation. A new token is shown once, with a button to copy it, and i
 panel closes; the service keeps only a hash of it. An account holds at most 20. A token
 authenticates the service's API as `Authorization: Bearer`, which is how the command line's cloud
 commands use it ([the API tokens](cloud.md#api-tokens), [the command line](cli.md#the-cloud-commands)).
+
+**Administration** is there only for the owners of the service, the accounts its configuration
+names, for the administrators an owner invited, and for a person with an invitation to administer;
+nobody else sees the tab, and `?account=administration` opens Profile for them
+([administration](cloud.md#administration)). An owner or an administrator finds five parts:
+
+| Part                        | Holds                                                                                                                                                                                                                      |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Administrators**          | The owners, marked **Owner**, then the administrators with who invited them and since when. An owner removes an administrator, after a question naming them; an administrator leaves, from their own row                   |
+| **Invitations**             | For the owners: an email to invite and **Invite**, and the pending invitations with who invited and when each expires, and **Revoke**. No mail is sent: tell the person, who signs in with that email                      |
+| **Permissions**             | Each permission, first **Export without the Meltemi branding**, with the accounts that hold it, who granted it and when, and **Revoke**; **Grant to** takes an account id, `@handle` or the email the person signs in with |
+| **Take down a publication** | The address of a published page and a reason; after a confirmation naming the address the page is gone and its owner sees it removed by the service                                                                        |
+| **Recent changes**          | The last fifty acts of administration, the newest first: who invited, accepted, removed, granted, revoked or took down what, and when                                                                                      |
+
+There is no list of the accounts of the service: an account is found only by its id, its handle or
+the one email it signs in with, so a person who has never signed in, or an email two accounts share,
+is answered in words (ask the person to sign in once, or for the account id their Profile shows).
+A person invited sees only the invitation: who invited them, what administrators can do (grant
+permissions to accounts, take any publication down), when it expires, **Accept** and **Decline**.
+Accepting reads the session again and shows the whole section; declining removes the tab. Signing
+in alone makes nobody an administrator, and an administrator who is removed loses the tab at their
+next action.
 
 Signing in adds your cloud projects to the explorer's Projects panel
 ([projects in the cloud](#projects-in-the-cloud)) and changes nothing else: the project in your browser stays where it is, nothing is uploaded until you

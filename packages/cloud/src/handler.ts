@@ -13,9 +13,15 @@ import {
   usageRoute,
 } from "./routes/account.js";
 import {
-  entitlementsListRoute,
-  entitlementsRoute,
-  setEntitlementsRoute,
+  acceptAdminInvitationRoute,
+  accountPermissionRoute,
+  administrationRoute,
+  declineAdminInvitationRoute,
+  inviteAdministratorRoute,
+  permissionHoldersRoute,
+  removeAdministratorRoute,
+  revokeAdminInvitationRoute,
+  setAccountPermissionRoute,
   takedownRoute,
 } from "./routes/admin.js";
 import { cliAuthApprove, cliAuthPage, cliAuthStyle, cliAuthToken } from "./routes/cli-auth.js";
@@ -364,7 +370,14 @@ export const ROUTES: readonly RouteEntry[] = [
     principal: true,
     route: identityRevokeOneRoute,
   },
-  // The administrators' route: it answers 404 to everybody else, and the `Origin` rule covers it.
+  // The administration of the service: they answer 404 to everybody but an owner or an
+  // administrator (and, for accept and decline, the invitee), and the `Origin` rule covers them.
+  {
+    method: "GET",
+    path: /^\/api\/admin$/,
+    principal: true,
+    route: administrationRoute,
+  },
   {
     method: "DELETE",
     path: /^\/api\/admin\/publications\/([^/]+)\/([^/]+)$/,
@@ -372,26 +385,61 @@ export const ROUTES: readonly RouteEntry[] = [
     principal: true,
     route: takedownRoute,
   },
-  // The entitlement to export without the branding: an account's, read and set, and the list.
+  {
+    method: "POST",
+    path: /^\/api\/admin\/invitations$/,
+    principal: true,
+    route: inviteAdministratorRoute,
+  },
+  {
+    method: "DELETE",
+    path: /^\/api\/admin\/invitations\/([^/]+)$/,
+    params: ["id"],
+    principal: true,
+    route: revokeAdminInvitationRoute,
+  },
+  {
+    method: "POST",
+    path: /^\/api\/admin\/invitations\/([^/]+)\/accept$/,
+    params: ["id"],
+    principal: true,
+    route: acceptAdminInvitationRoute,
+  },
+  {
+    method: "POST",
+    path: /^\/api\/admin\/invitations\/([^/]+)\/decline$/,
+    params: ["id"],
+    principal: true,
+    route: declineAdminInvitationRoute,
+  },
+  {
+    method: "DELETE",
+    path: /^\/api\/admin\/administrators\/([^/]+)$/,
+    params: ["sub"],
+    principal: true,
+    route: removeAdministratorRoute,
+  },
+  // The permissions of the catalog: a permission's holders, and an account's, read and set.
   {
     method: "GET",
-    path: /^\/api\/admin\/accounts\/([^/]+)\/entitlements$/,
-    params: ["account"],
+    path: /^\/api\/admin\/permissions\/([^/]+)$/,
+    params: ["permission"],
     principal: true,
-    route: entitlementsRoute,
+    route: permissionHoldersRoute,
+  },
+  {
+    method: "GET",
+    path: /^\/api\/admin\/accounts\/([^/]+)\/permissions\/([^/]+)$/,
+    params: ["account", "permission"],
+    principal: true,
+    route: accountPermissionRoute,
   },
   {
     method: "PUT",
-    path: /^\/api\/admin\/accounts\/([^/]+)\/entitlements$/,
-    params: ["account"],
+    path: /^\/api\/admin\/accounts\/([^/]+)\/permissions\/([^/]+)$/,
+    params: ["account", "permission"],
     principal: true,
-    route: setEntitlementsRoute,
-  },
-  {
-    method: "GET",
-    path: /^\/api\/admin\/entitlements$/,
-    principal: true,
-    route: entitlementsListRoute,
+    route: setAccountPermissionRoute,
   },
   // Development only: serves a publication from this origin; the route answers 404 anywhere else.
   {

@@ -183,6 +183,17 @@ function accountMenu(
     { type: "button", class: "pg-menu-item", role: "menuitem", tabindex: "-1" },
     entry(m.tokens),
   );
+  // An owner or an administrator reaches the Administration section from here; an invitee, their
+  // invitation. Nobody else has the entry.
+  const administers = user.administration !== null;
+  const administration =
+    administers || user.administrationInvitation !== null
+      ? h(
+          "button",
+          { type: "button", class: "pg-menu-item", role: "menuitem", tabindex: "-1" },
+          entry(administers ? m.administration : m.administrationInvitation),
+        )
+      : undefined;
   // Sign out is a plain form the identity service reads: its `return_to` is the page, and the
   // policy's `form-action` allows the identity origin the page was built with.
   const returnTo = h("input", { type: "hidden", name: "return_to" });
@@ -209,6 +220,7 @@ function accountMenu(
     { class: "account-menu", role: "menu", id, "aria-label": m.menu },
     accountItem,
     tokens,
+    ...(administration ? [administration] : []),
     h("div", { class: "pg-menu-separator", role: "separator" }),
     form,
   );
@@ -298,6 +310,10 @@ function accountMenu(
   tokens.addEventListener("click", () => {
     close();
     openPanel("tokens");
+  });
+  administration?.addEventListener("click", () => {
+    close();
+    openPanel("administration");
   });
   return wrapper;
 }

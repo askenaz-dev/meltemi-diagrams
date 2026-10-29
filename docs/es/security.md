@@ -116,7 +116,7 @@ persona llega al servicio, y solo cuando ella lo decide. Seis cosas los mantiene
 ## Compartir y publicar
 
 Compartir y publicar (decisión 0042, [cloud](cloud.md)) hacen que el trabajo de una persona llegue a
-otras, de nuevo solo cuando ella lo decide, y un proyecto nuevo es privado. Cuatro cosas lo
+otras, de nuevo solo cuando ella lo decide, y un proyecto nuevo es privado. Cinco cosas lo
 mantienen seguro:
 
 - **Una sola comprobación de permisos.** Quién puede abrir un proyecto, y como qué (`owner`,
@@ -153,11 +153,24 @@ mantienen seguro:
   del propio catálogo, que permite script y estilo en línea e imágenes y fuentes de `data:` y
   `blob:`, y nada más; el servicio no comprueba que el HTML sea un catálogo, y el aislamiento no
   depende de ello. Una página tiene como máximo 16 MiB y un proyecto puede publicarse diez veces por
-  hora; el propietario despublica, y los administradores de `ADMIN_SUBS` retiran una página
-  ([retirada](cloud.md#retirada)) y habilitan una cuenta para exportar sin la marca
-  ([habilitaciones](cloud.md#habilitaciones)), con rutas que responden `404` a todos los demás. La ruta de
-  desarrollo que sirve una página desde el propio origen del servicio responde `404` salvo que
-  `DEV` esté definido.
+  hora; el propietario despublica, y los propietarios y los administradores del servicio retiran
+  una página ([retirada](cloud.md#retirada)), con rutas que responden `404` a todos los demás. La
+  ruta de desarrollo que sirve una página desde el propio origen del servicio responde `404` salvo
+  que `DEV` esté definido.
+- **Administración por invitación, sin una lista de usuarios.** Los propietarios son las cuentas
+  que nombra el secreto `ADMIN_SUBS`, y la página no puede añadirlos ni quitarlos. Invitan
+  administradores por correo; una invitación no envía ningún correo, dura siete días y solo hace
+  administradora a la persona que inicia sesión con ese correo verificado y elige Aceptar, nunca por
+  iniciar sesión sin más. Los propietarios y los administradores conceden y revocan permisos, como
+  exportar sin la marca, y retiran páginas; solo los propietarios invitan y quitan administradores,
+  y un administrador puede irse. Cada ruta de administración toma la cookie de sesión en el propio
+  origen de la página y responde `404` a todos los demás, también a un token de API de un
+  propietario, y el rol se lee en cada solicitud, así que quitar a alguien cuenta al instante.
+  Ninguna ruta lista, busca ni cuenta las cuentas: una cuenta se nombra por su identificador, su
+  alias o el único correo con el que inició sesión verificado, y solo un propietario o un
+  administrador sabe si un correo tiene cuenta. Cada acto se escribe en un registro con quién lo hizo
+  y cuándo, en el mismo paso que el acto; el registro guarda los correos de las invitaciones y se
+  barre un año después de cada entrada ([administración](cloud.md#administración)).
 
 ## La línea de comandos y la nube
 

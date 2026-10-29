@@ -483,6 +483,102 @@ const ANAS_USAGE = {
 };
 
 /** The usage API in memory: how many times the page asked, and what it is answered. */
+/**
+ * The administration of the service, as `/api/admin` answers it: an owner (or, once `role` changes,
+ * an administrator), invitations, the one permission with its holders, takedowns and the log. The
+ * accounts the email lookup knows are Ben's alone.
+ */
+class AdminDouble {
+  role: "owner" | "administrator" = "owner";
+  /** The person was removed: every route answers 404, as the Worker does. */
+  gone = false;
+  onAccept: () => void = () => {};
+  readonly requests: { method: string; path: string; body: unknown }[] = [];
+  readonly takedowns: { path: string; reason: string }[] = [];
+  private readonly invitations: { id: string; email: string }[] = [];
+  private readonly holders: { sub: string; email: string; name: string }[] = [];
+  private readonly log: { action: string; target: unknown; detail: string }[] = [];
+
+  private view() {
+    const ref = { sub: "u-ana", name: "Ana" };
+    const at = "2026-10-29T12:00:00.000Z";
+    return {
+      role: this.role,
+      owners: [{ sub: "u-ana", name: "Ana", handle: null, email: "ana@meltemi.dev" }],
+      administrators: [],
+      invitations:
+        this.role === "owner"
+          ? this.invitations.map((i) => ({
+              ...i,
+              invitedBy: ref,
+              createdAt: at,
+              expiresAt: "2026-11-05T12:00:00.000Z",
+            }))
+          : [],
+      permissions: [
+        {
+          id: "unbranded-exports",
+          holders: this.holders.map((holder) => ({ ...holder, handle: null, by: ref, at })),
+        },
+      ],
+      log: [...this.log].reverse().map((entry) => ({ ...entry, at, by: ref })),
+      publishHost: "meltemi.page",
+    };
+  }
+
+  readonly handle = async (route: Route): Promise<void> => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname.replace(/^.*\/api\/admin/, "");
+    const body = request.postData() ? (JSON.parse(request.postData()!) as unknown) : null;
+    this.requests.push({ method: request.method(), path, body });
+    if (this.gone) {
+      return route.fulfill({
+        status: 404,
+        contentType: "application/json",
+        body: JSON.stringify({ code: "not-found", message: "There is nothing at this address." }),
+      });
+    }
+    const json = (status: number, value: unknown) =>
+      route.fulfill({ status, contentType: "application/json", body: JSON.stringify(value) });
+    const done = () => route.fulfill({ status: 204 });
+    const missing = () => json(404, { code: "not-found", message: "There is no such account." });
+    if (request.method() === "GET" && path === "") return json(200, this.view());
+    if (request.method() === "POST" && path === "/invitations") {
+      const email = String((body as { email?: unknown }).email);
+      this.invitations.push({ id: "0".repeat(31) + String(this.invitations.length + 1), email });
+      this.log.push({ action: "invite", target: { email }, detail: "" });
+      return json(201, {});
+    }
+    if (request.method() === "POST" && /^\/invitations\/[0-9a-f]{32}\/accept$/.test(path)) {
+      this.onAccept();
+      return done();
+    }
+    const permission = /^\/accounts\/([^/]+)\/permissions\/unbranded-exports$/.exec(path);
+    if (request.method() === "PUT" && permission) {
+      const account = decodeURIComponent(permission[1]!);
+      if (account !== "ben@example.com" && account !== "u-ben") return missing();
+      if ((body as { granted?: unknown }).granted === true) {
+        this.holders.push({ sub: "u-ben", email: "ben@example.com", name: "Ben" });
+        this.log.push({
+          action: "grant",
+          target: { sub: "u-ben", name: "Ben" },
+          detail: "unbranded-exports",
+        });
+      }
+      return json(200, {});
+    }
+    const publication = /^\/publications\/([^/]+)\/([^/]+)$/.exec(path);
+    if (request.method() === "DELETE" && publication) {
+      const reason = String((body as { reason?: unknown } | null)?.reason ?? "");
+      const address = `${publication[1]}/${publication[2]}`;
+      this.takedowns.push({ path: address, reason });
+      this.log.push({ action: "takedown", target: null, detail: `${address}: ${reason}` });
+      return done();
+    }
+    return missing();
+  };
+}
+
 class UsageDouble {
   requests = 0;
 
@@ -4258,6 +4354,179 @@ const tests: Test[] = [
     },
   }),
   signedIn({
+    name: "administration: the owner invites, grants by email and takes down a publication",
+    // The browser notes in its console the refusals the double answers.
+    allowedErrors: [/status of 404/],
+    answer: (origin) => cookieAnswer(origin, { administration: { role: "owner" } }),
+    async run({ page, context }) {
+      const admin = new AdminDouble();
+      await context.route(/\/api\/admin(\/[^?]*)?(\?.*)?$/, admin.handle);
+      await page.goto(new URL("?account=administration", page.url()).href);
+      await ready(page);
+      const panel = page.locator("dialog.settings[open]");
+      const a = en.accountPanel.administration;
+      await panel.getByRole("heading", { name: a.administratorsTitle }).waitFor();
+      assert.equal(
+        await panel.locator('[role="tab"][aria-selected="true"]').getAttribute("data-section"),
+        "administration",
+      );
+      assert.match(
+        (await panel.locator('[data-part="administrators"]').textContent()) ?? "",
+        /Owner/,
+      );
+      // Not an email: nothing is sent.
+      const invitations = panel.locator('[data-part="invitations"]');
+      await invitations.getByLabel(a.email).fill("ana");
+      await invitations.getByRole("button", { name: a.invite }).click();
+      assert.equal(await invitations.locator(".field-problem").textContent(), a.notEmail);
+      assert.equal(admin.requests.filter((r) => r.method === "POST").length, 0);
+      // The owner invites.
+      await invitations.getByLabel(a.email).fill("ana@example.com");
+      await invitations.getByRole("button", { name: a.invite }).click();
+      await invitations.locator("[data-invitation]").first().waitFor();
+      assert.match((await invitations.textContent()) ?? "", /ana@example\.com/);
+      assert.match(
+        (await panel.locator('[data-part="log"]').textContent()) ?? "",
+        /Ana invited ana@example\.com|invited ana@example\.com/,
+      );
+      // Grant by email, and an email nobody signed in with.
+      const permission = panel.locator('[data-permission="unbranded-exports"]');
+      await permission.getByLabel(a.grantTo).fill("nobody@example.com");
+      await permission.getByRole("button", { name: a.grant }).click();
+      await permission.locator(".field-problem", { hasText: a.noAccount }).waitFor();
+      await permission.getByLabel(a.grantTo).fill("ben@example.com");
+      await permission.getByRole("button", { name: a.grant }).click();
+      await permission.locator('[data-sub="u-ben"]').waitFor();
+      // Another host, then a takedown with a reason.
+      const takedown = panel.locator('[data-part="takedown"]');
+      await takedown.getByLabel(a.address).fill("https://example.com/tienda/precios");
+      await takedown.getByRole("button", { name: a.takedown }).click();
+      assert.equal(await takedown.locator(".field-problem").textContent(), a.notAddress);
+      await takedown.getByLabel(a.address).fill("https://meltemi.page/tienda/precios");
+      await takedown.getByLabel(a.reason).fill("Phishing");
+      await takedown.getByRole("button", { name: a.takedown }).click();
+      await page
+        .locator("dialog[open]")
+        .getByRole("button", { name: a.takedownConfirm })
+        .last()
+        .click();
+      await panel
+        .locator('[data-part="log"]')
+        .getByText(/took down tienda\/precios: Phishing/)
+        .waitFor();
+      assert.deepEqual(admin.takedowns, [{ path: "tienda/precios", reason: "Phishing" }]);
+      await page.screenshot({ path: join(output, "account-administration.png") });
+    },
+  }),
+  signedIn({
+    name: "administration: an invitee accepts, and a plain person has no Administration",
+    answer: (origin) =>
+      cookieAnswer(origin, {
+        administrationInvitation: {
+          id: "0123456789abcdef0123456789abcdef",
+          invitedBy: { name: "Guillmar Ortiz" },
+          expiresAt: "2026-11-05T12:00:00.000Z",
+        },
+      }),
+    async run({ page, context, origin }) {
+      const admin = new AdminDouble();
+      await context.route(/\/api\/admin(\/[^?]*)?(\?.*)?$/, admin.handle);
+      const a = en.accountPanel.administration;
+      // A plain person first: no tab, and the deep link opens Profile.
+      await context.unroute("**/api/session");
+      await context.route("**/api/session", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(cookieAnswer(origin)),
+        }),
+      );
+      await page.goto(new URL("?account=administration", page.url()).href);
+      await ready(page);
+      const panel = page.locator("dialog.settings[open]");
+      await panel.waitFor();
+      assert.equal(
+        await panel.locator('[role="tab"][aria-selected="true"]').getAttribute("data-section"),
+        "profile",
+      );
+      assert.equal(await panel.locator('[role="tab"][data-section="administration"]').count(), 0);
+      assert.equal(admin.requests.length, 0);
+      // The invitee: the invitation alone, accepted.
+      let accepted = false;
+      await context.unroute("**/api/session");
+      await context.route("**/api/session", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(
+            accepted
+              ? cookieAnswer(origin, { administration: { role: "administrator" } })
+              : cookieAnswer(origin, {
+                  administrationInvitation: {
+                    id: "0123456789abcdef0123456789abcdef",
+                    invitedBy: { name: "Guillmar Ortiz" },
+                    expiresAt: "2026-11-05T12:00:00.000Z",
+                  },
+                }),
+          ),
+        }),
+      );
+      admin.onAccept = () => {
+        accepted = true;
+        admin.role = "administrator";
+      };
+      await page.goto(new URL("?account=administration", page.url()).href);
+      await ready(page);
+      const section = page.locator(
+        'dialog.settings[open] [data-section="administration"].account-section',
+      );
+      await section.getByText(a.invitationBody("Guillmar Ortiz")).waitFor();
+      await section.getByRole("button", { name: a.accept }).click();
+      await page
+        .locator('dialog.settings[open] [data-part="administrators"]')
+        .waitFor({ timeout: 10_000 });
+      assert.equal(
+        await page.locator('dialog.settings[open] [data-part="invitations"]').count(),
+        0,
+        "an administrator has no Invitations part",
+      );
+    },
+  }),
+  signedIn({
+    name: "administration: an administrator removed while the page is open loses the tab at the next action",
+    allowedErrors: [/status of 404/],
+    answer: (origin) => cookieAnswer(origin, { administration: { role: "administrator" } }),
+    async run({ page, context, origin }) {
+      const admin = new AdminDouble();
+      admin.role = "administrator";
+      await context.route(/\/api\/admin(\/[^?]*)?(\?.*)?$/, admin.handle);
+      await page.goto(new URL("?account=administration", page.url()).href);
+      await ready(page);
+      const a = en.accountPanel.administration;
+      const permission = page.locator(
+        'dialog.settings[open] [data-permission="unbranded-exports"]',
+      );
+      await permission.waitFor();
+      // The owner removes the person: the Worker answers 404, and the session says no role.
+      admin.gone = true;
+      await context.unroute("**/api/session");
+      await context.route("**/api/session", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(cookieAnswer(origin)),
+        }),
+      );
+      await permission.getByLabel(a.grantTo).fill("ben@example.com");
+      await permission.getByRole("button", { name: a.grant }).click();
+      const panel = page.locator("dialog.settings[open]");
+      await panel
+        .locator('[role="tab"][aria-selected="true"][data-section="profile"]')
+        .waitFor({ timeout: 10_000 });
+      assert.equal(await panel.locator('[role="tab"][data-section="administration"]').count(), 0);
+    },
+  }),
+  signedIn({
     name: "the account panel says when the identity service cannot be reached, and tries again",
     allowedErrors: [/status of 502/],
     async run({ page, account }) {
@@ -4412,7 +4681,10 @@ const tests: Test[] = [
       await panel.waitFor();
       assert.deepEqual(
         await panel.getByRole("tab").allTextContents(),
-        Object.values(es.accountPanel.sections),
+        // Ana has no role: no Administration tab.
+        Object.entries(es.accountPanel.sections)
+          .filter(([section]) => section !== "administration")
+          .map(([, name]) => name),
       );
       await panel.getByRole("tab", { name: es.accountPanel.sections.devices }).click();
       await panel.getByText("Firefox en Android").waitFor();

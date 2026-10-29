@@ -8,6 +8,7 @@ import {
 } from "./d1-publications.js";
 import {
   PUBLISH_WINDOW_MS,
+  adminLogCutoff,
   cliFailureCutoff,
   deletionCutoff,
   invitationCutoff,
@@ -16,6 +17,10 @@ import {
 import { capacity } from "./shared.js";
 import type {
   Accepted,
+  AdminAcceptance,
+  AdminInvitation,
+  AdminLogEntry,
+  Administrator,
   BlobRow,
   CliCode,
   CloudStore,
@@ -163,6 +168,60 @@ const toUser = (row: UserRecord): User => ({
   unbrandedExports: row.unbranded_exports === 1,
   unbrandedExportsBy: row.unbranded_exports_by,
   unbrandedExportsAt: row.unbranded_exports_at,
+});
+
+interface AdministratorRecord {
+  sub: string;
+  invited_by: string;
+  since: string;
+}
+
+interface AdminInvitationRecord {
+  id: string;
+  email: string;
+  invited_by: string;
+  created_at: string;
+  expires_at: string;
+  accepted_at: string | null;
+  declined_at: string | null;
+  revoked_at: string | null;
+}
+
+interface AdminLogRecord {
+  id: string;
+  at: string;
+  by_sub: string;
+  action: AdminLogEntry["action"];
+  target_sub: string | null;
+  target_email: string | null;
+  detail: string;
+}
+
+const toAdministrator = (row: AdministratorRecord): Administrator => ({
+  sub: row.sub,
+  invitedBy: row.invited_by,
+  since: row.since,
+});
+
+const toAdminInvitation = (row: AdminInvitationRecord): AdminInvitation => ({
+  id: row.id,
+  email: row.email,
+  invitedBy: row.invited_by,
+  createdAt: row.created_at,
+  expiresAt: row.expires_at,
+  acceptedAt: row.accepted_at,
+  declinedAt: row.declined_at,
+  revokedAt: row.revoked_at,
+});
+
+const toAdminLog = (row: AdminLogRecord): AdminLogEntry => ({
+  id: row.id,
+  at: row.at,
+  bySub: row.by_sub,
+  action: row.action,
+  targetSub: row.target_sub,
+  targetEmail: row.target_email,
+  detail: row.detail,
 });
 
 const toToken = (row: TokenRecord): TokenRow => ({
@@ -538,6 +597,68 @@ const INSERT_TAKEDOWN = `INSERT INTO takedowns (${TAKEDOWN_COLUMNS}) SELECT ?, ?
 const DELETE_PUBLICATION_AT = "DELETE FROM publications WHERE handle = ? AND slug = ?";
 const SELECT_TAKEDOWNS = `SELECT ${TAKEDOWN_COLUMNS} FROM takedowns WHERE handle = ? ORDER BY at DESC, slug`;
 
+// ---- Administration ----------------------------------------------------------------------
+// A log entry goes in only when its act happens, in the same batch: each insert is conditioned on
+// the state the act needs (the row it removes, before it goes) or leaves (the row it made, after).
+
+const ADMINISTRATOR_COLUMNS = "sub, invited_by, since";
+const ADMIN_INVITATION_COLUMNS =
+  "id, email, invited_by, created_at, expires_at, accepted_at, declined_at, revoked_at";
+const ADMIN_LOG_COLUMNS = "id, at, by_sub, action, target_sub, target_email, detail";
+const SELECT_ADMINISTRATORS = `SELECT ${ADMINISTRATOR_COLUMNS} FROM administrators ORDER BY since, sub`;
+const SELECT_ADMINISTRATOR = `SELECT ${ADMINISTRATOR_COLUMNS} FROM administrators WHERE sub = ?`;
+const DELETE_ADMINISTRATOR = "DELETE FROM administrators WHERE sub = ?";
+/** An invitation still open at the time bound to its `?`. */
+const PENDING_ADMIN =
+  "accepted_at IS NULL AND declined_at IS NULL AND revoked_at IS NULL AND expires_at > ?";
+const INSERT_ADMIN_INVITATION_UNDER_LIMIT = `INSERT INTO admin_invitations (id, email, invited_by, created_at, expires_at) SELECT ?, ?, ?, ?, ? WHERE (SELECT COUNT(*) FROM admin_invitations WHERE ${PENDING_ADMIN}) < ?`;
+const SELECT_ADMIN_INVITATIONS = `SELECT ${ADMIN_INVITATION_COLUMNS} FROM admin_invitations WHERE ${PENDING_ADMIN} ORDER BY created_at, rowid`;
+const SELECT_ADMIN_INVITATION_FOR = `SELECT ${ADMIN_INVITATION_COLUMNS} FROM admin_invitations WHERE email = ? AND ${PENDING_ADMIN} ORDER BY created_at DESC, rowid DESC LIMIT 1`;
+const REVOKE_ADMIN_INVITATION = `UPDATE admin_invitations SET revoked_at = ? WHERE id = ? AND ${PENDING_ADMIN}`;
+const DECLINE_ADMIN_INVITATION = `UPDATE admin_invitations SET declined_at = ? WHERE id = ? AND email = ? AND ${PENDING_ADMIN}`;
+// The administrator's row comes from the invitation, while it is open and addressed to the email,
+// the person has no row yet and fewer than the limit exist; the mark follows the row.
+const INSERT_ADMINISTRATOR_FROM = `INSERT INTO administrators (${ADMINISTRATOR_COLUMNS}) SELECT ?, invited_by, ? FROM admin_invitations WHERE id = ? AND email = ? AND ${PENDING_ADMIN} AND NOT EXISTS (SELECT 1 FROM administrators WHERE sub = ?) AND (SELECT COUNT(*) FROM administrators) < ?`;
+const MARK_ADMIN_INVITATION_ACCEPTED =
+  "UPDATE admin_invitations SET accepted_at = ? WHERE id = ? AND accepted_at IS NULL AND declined_at IS NULL AND revoked_at IS NULL AND EXISTS (SELECT 1 FROM administrators WHERE sub = ? AND since = ?)";
+const ADMIN_INVITATION_OPEN_FOR = `SELECT 1 AS open FROM admin_invitations WHERE id = ? AND email = ? AND ${PENDING_ADMIN}`;
+const INSERT_ADMIN_LOG = `INSERT INTO admin_log (${ADMIN_LOG_COLUMNS}) SELECT ?, ?, ?, ?, ?, ?, ?`;
+const LOG_IF_ADMINISTRATOR = `${INSERT_ADMIN_LOG} WHERE EXISTS (SELECT 1 FROM administrators WHERE sub = ?)`;
+const LOG_IF_INVITATION = `${INSERT_ADMIN_LOG} WHERE EXISTS (SELECT 1 FROM admin_invitations WHERE id = ?)`;
+const LOG_IF_OPEN_INVITATION = `${INSERT_ADMIN_LOG} WHERE EXISTS (SELECT 1 FROM admin_invitations WHERE id = ? AND ${PENDING_ADMIN})`;
+const LOG_IF_OPEN_INVITATION_TO = `${INSERT_ADMIN_LOG} WHERE EXISTS (SELECT 1 FROM admin_invitations WHERE id = ? AND email = ? AND ${PENDING_ADMIN})`;
+// Between the row and the mark: the invitation is still unanswered only when this batch made the row.
+const LOG_IF_ADMITTED = `${INSERT_ADMIN_LOG} WHERE EXISTS (SELECT 1 FROM admin_invitations WHERE id = ? AND accepted_at IS NULL AND declined_at IS NULL AND revoked_at IS NULL) AND EXISTS (SELECT 1 FROM administrators WHERE sub = ? AND since = ?)`;
+const LOG_IF_USER = `${INSERT_ADMIN_LOG} WHERE EXISTS (SELECT 1 FROM users WHERE sub = ?)`;
+const LOG_IF_PUBLICATION = `${INSERT_ADMIN_LOG} WHERE EXISTS (SELECT 1 FROM publications WHERE handle = ? AND slug = ?)`;
+// The newest first; of two at the same instant, the later written.
+const SELECT_ADMIN_LOG = `SELECT ${ADMIN_LOG_COLUMNS} FROM admin_log ORDER BY at DESC, rowid DESC LIMIT ?`;
+const SWEEP_ADMIN_LOG = "DELETE FROM admin_log WHERE at < ?";
+// SQLite's lower() folds ASCII letters only; `memoryStore()` folds the same.
+const SELECT_USERS_BY_EMAIL = `SELECT ${USER_COLUMNS} FROM users WHERE lower(email) = ? AND email_verified = 1 ORDER BY created_at, sub`;
+// The invitations to administer a deleted person made and nobody answered.
+const DELETE_OPEN_ADMIN_INVITATIONS_BY =
+  "DELETE FROM admin_invitations WHERE invited_by = ? AND accepted_at IS NULL AND declined_at IS NULL AND revoked_at IS NULL";
+
+/** The values of a log entry, in the order of `ADMIN_LOG_COLUMNS`. */
+const logValues = (log: AdminLogEntry): unknown[] => [
+  log.id,
+  log.at,
+  log.bySub,
+  log.action,
+  log.targetSub,
+  log.targetEmail,
+  log.detail,
+];
+
+/** How many rows a statement of a batch changed, as D1 reports it. */
+function changesOf(answer: unknown): number {
+  const changes = (answer as { meta?: { changes?: unknown } } | null | undefined)?.meta?.changes;
+  // Guessing would turn a driver that does not report the count into a wrong answer to the person.
+  if (typeof changes !== "number") throw new Error("the database did not report the rows changed");
+  return changes;
+}
+
 /** The role the owner has in the list of projects; a member's comes from their row. */
 const OWNER: ProjectRole = "owner";
 /** The role that wins when a person already a member is invited again. */
@@ -639,6 +760,8 @@ export function d1Store(db: D1Like): CloudStore {
           ...(mailed ? [db.prepare(DELETE_INVITATIONS_TO).bind(mailed.email.toLowerCase())] : []),
           db.prepare("DELETE FROM tokens WHERE sub = ?").bind(sub),
           db.prepare("DELETE FROM cli_codes WHERE sub = ?").bind(sub),
+          db.prepare(DELETE_ADMINISTRATOR).bind(sub),
+          db.prepare(DELETE_OPEN_ADMIN_INVITATIONS_BY).bind(sub),
           db.prepare("DELETE FROM users WHERE sub = ?").bind(sub),
         ]);
       } catch (error) {
@@ -748,6 +871,7 @@ export function d1Store(db: D1Like): CloudStore {
         db.prepare("DELETE FROM cli_failures WHERE at < ?").bind(cliFailureCutoff(now)),
         db.prepare("DELETE FROM processed_events WHERE at < ?").bind(deletionCutoff(now)),
         db.prepare(SWEEP_PUBLISH_LOG).bind(publishCutoff(now)),
+        db.prepare(SWEEP_ADMIN_LOG).bind(adminLogCutoff(now)),
       ]);
     },
 
@@ -1196,13 +1320,99 @@ export function d1Store(db: D1Like): CloudStore {
       return row ? toUser(row) : undefined;
     },
 
-    async setUnbrandedExports(sub, on, by, at) {
-      const changed = await runCounting(db.prepare(SET_UNBRANDED).bind(bit(on), by, at, sub));
-      return changed > 0 ? "set" : "missing";
+    async setUnbrandedExports(sub, on, by, at, log) {
+      const set = db.prepare(SET_UNBRANDED).bind(bit(on), by, at, sub);
+      if (!log) return (await runCounting(set)) > 0 ? "set" : "missing";
+      const answers = await db.batch([set, db.prepare(LOG_IF_USER).bind(...logValues(log), sub)]);
+      return changesOf(answers[0]) > 0 ? "set" : "missing";
     },
     async entitledUsers() {
       const { results } = await db.prepare(SELECT_ENTITLED).all<UserRecord>();
       return results.map(toUser);
+    },
+    async usersByEmail(email) {
+      const { results } = await db.prepare(SELECT_USERS_BY_EMAIL).bind(email).all<UserRecord>();
+      return results.map(toUser);
+    },
+
+    async administrators() {
+      const { results } = await db.prepare(SELECT_ADMINISTRATORS).all<AdministratorRecord>();
+      return results.map(toAdministrator);
+    },
+    async administrator(sub) {
+      const row = await db.prepare(SELECT_ADMINISTRATOR).bind(sub).first<AdministratorRecord>();
+      return row ? toAdministrator(row) : undefined;
+    },
+    async removeAdministrator(sub, log) {
+      const answers = await db.batch([
+        db.prepare(LOG_IF_ADMINISTRATOR).bind(...logValues(log), sub),
+        db.prepare(DELETE_ADMINISTRATOR).bind(sub),
+      ]);
+      return changesOf(answers[1]) > 0;
+    },
+    async createAdminInvitation(invitation, limit, log) {
+      const answers = await db.batch([
+        db
+          .prepare(INSERT_ADMIN_INVITATION_UNDER_LIMIT)
+          .bind(
+            invitation.id,
+            invitation.email,
+            invitation.invitedBy,
+            invitation.createdAt,
+            invitation.expiresAt,
+            invitation.createdAt,
+            capacity(limit),
+          ),
+        db.prepare(LOG_IF_INVITATION).bind(...logValues(log), invitation.id),
+      ]);
+      return changesOf(answers[0]) > 0 ? "created" : "limit";
+    },
+    async adminInvitations(now) {
+      const { results } = await db
+        .prepare(SELECT_ADMIN_INVITATIONS)
+        .bind(now)
+        .all<AdminInvitationRecord>();
+      return results.map(toAdminInvitation);
+    },
+    async adminInvitationFor(email, now) {
+      const row = await db
+        .prepare(SELECT_ADMIN_INVITATION_FOR)
+        .bind(email, now)
+        .first<AdminInvitationRecord>();
+      return row ? toAdminInvitation(row) : undefined;
+    },
+    async revokeAdminInvitation(id, now, log) {
+      const answers = await db.batch([
+        db.prepare(LOG_IF_OPEN_INVITATION).bind(...logValues(log), id, now),
+        db.prepare(REVOKE_ADMIN_INVITATION).bind(now, id, now),
+      ]);
+      return changesOf(answers[1]) > 0;
+    },
+    async acceptAdminInvitation(id, sub, email, now, limit, log): Promise<AdminAcceptance> {
+      const answers = await db.batch([
+        db.prepare(INSERT_ADMINISTRATOR_FROM).bind(sub, now, id, email, now, sub, capacity(limit)),
+        db.prepare(LOG_IF_ADMITTED).bind(...logValues(log), id, sub, now),
+        db.prepare(MARK_ADMIN_INVITATION_ACCEPTED).bind(now, id, sub, now),
+      ]);
+      if (changesOf(answers[0]) > 0) return "accepted";
+      // Nothing was written: the limit, when the invitation is open to this person who has no row.
+      const open = await db.prepare(ADMIN_INVITATION_OPEN_FOR).bind(id, email, now).first();
+      if (!open) return "none";
+      return (await db.prepare(SELECT_ADMINISTRATOR).bind(sub).first()) ? "none" : "limit";
+    },
+    async declineAdminInvitation(id, email, now, log) {
+      const answers = await db.batch([
+        db.prepare(LOG_IF_OPEN_INVITATION_TO).bind(...logValues(log), id, email, now),
+        db.prepare(DECLINE_ADMIN_INVITATION).bind(now, id, email, now),
+      ]);
+      return changesOf(answers[1]) > 0;
+    },
+    async adminLog(limit) {
+      const { results } = await db
+        .prepare(SELECT_ADMIN_LOG)
+        .bind(capacity(limit))
+        .all<AdminLogRecord>();
+      return results.map(toAdminLog);
     },
 
     async publicationsOf(projectId) {
@@ -1282,8 +1492,8 @@ export function d1Store(db: D1Like): CloudStore {
       };
     },
 
-    async takeDown(takedown) {
-      // One transaction: the publication read is the one removed, and the record goes in only for it.
+    async takeDown(takedown, log) {
+      // One transaction: the publication read is the one removed, and the records go in only for it.
       const answers = await db.batch([
         db.prepare(SELECT_PUBLICATION).bind(takedown.handle, takedown.slug),
         db
@@ -1297,6 +1507,9 @@ export function d1Store(db: D1Like): CloudStore {
             takedown.handle,
             takedown.slug,
           ),
+        ...(log
+          ? [db.prepare(LOG_IF_PUBLICATION).bind(...logValues(log), takedown.handle, takedown.slug)]
+          : []),
         db.prepare(DELETE_PUBLICATION_AT).bind(takedown.handle, takedown.slug),
       ]);
       const row = rowsOf<PublicationRecord>(answers[0])[0];

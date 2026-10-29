@@ -12,6 +12,7 @@ import {
   type TokenRow,
   type UserProfile,
 } from "../../src/store/types.js";
+import { defineAdministrationConformance } from "./conformance-administration.js";
 import { defineProjectConformance } from "./conformance-projects.js";
 import { defineSharingConformance } from "./conformance-sharing.js";
 import { DAY, HOUR, MINUTE, SECOND, at, present, sha } from "./fixtures.js";
@@ -995,6 +996,8 @@ export function runStoreConformance(
     defineProjectConformance(() => store);
     // The link level, members, invitations, handles, publications and takedowns: conformance-sharing.ts.
     defineSharingConformance(() => store);
+    // Administrators, invitations to administer, the log and the lookup by email: conformance-administration.ts.
+    defineAdministrationConformance(() => store);
 
     describe("many operations at once", () => {
       it("never lets racing creates take a person past the limit", async () => {

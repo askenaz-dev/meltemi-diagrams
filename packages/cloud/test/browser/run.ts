@@ -98,6 +98,7 @@ import {
   withoutDownloads,
 } from "./support.js";
 import type { Device, Person, Run, Scenario } from "./scenario.js";
+import { administrationScenarios } from "./scenarios-administration.js";
 import { binaryScenarios } from "./scenarios-binaries.js";
 import { cliScenarios } from "./scenarios-cli.js";
 import { collaborationRoomScenarios } from "./scenarios-collaboration-room.js";
@@ -442,6 +443,8 @@ const scenarios: Scenario[] = [
           picture: `${origin}/favicon.svg`,
           handle: null,
           entitlements: { unbranded: false },
+          administration: null,
+          administrationInvitation: null,
         },
         account: `${IDENTITY}/account`,
         signOut: `${IDENTITY}/logout`,
@@ -1004,6 +1007,7 @@ scenarios.push(
   ...sharingScenarios,
   ...publishDialogScenarios,
   ...unbrandedScenarios,
+  ...administrationScenarios,
   ...limitScenarios,
   ...collaborationScenarios,
   ...collaborationRoomScenarios,

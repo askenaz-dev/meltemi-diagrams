@@ -208,9 +208,9 @@ Desde la primera solicitud autenticada con la cookie, el Worker guarda una fila 
 `sub`, con una copia del `name`, el `picture`, el `email` y el `email_verified` del token. Cada
 solicitud los compara con la fila y la actualiza cuando difieren, así que un nuevo inicio de sesión
 con otro nombre u otra imagen la actualiza. La fila guarda además lo que el token no lleva: el
-alias de la persona, una vez que lo eligió ([Alias](#alias)), y si un administrador habilitó la
-cuenta para exportar sin la marca de Meltemi, con quién lo hizo y cuándo
-([Habilitaciones](#habilitaciones)). La fila de una persona eliminada se borra, no se marca.
+alias de la persona, una vez que lo eligió ([Alias](#alias)), y los permisos que un propietario o
+un administrador concedió a la cuenta, como exportar sin la marca de Meltemi, con quién lo hizo y
+cuándo ([Habilitaciones](#habilitaciones)). La fila de una persona eliminada se borra, no se marca.
 
 ## La regla de Origin
 
@@ -248,7 +248,7 @@ Los rechazos de la propia sala llegan a una persona de dos maneras: como el JSON
 
 | Código                 | Estado | Significado                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ---------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `not-found`            | 404    | Ninguna ruta responde: un path desconocido bajo un prefijo reservado, un path conocido con otro método, una solicitud a un socket que no es un upgrade, cualquier path de otro host, un id de token que no es tuyo, un blob que el proyecto no tiene, una miniatura que no tiene, una imagen o fuente que no está en el path que nombra un borrado, un miembro, una invitación o una publicación que una ruta nombra y que no existe, la ruta de los administradores consultada por quien no lo es, y una publicación que la ruta de desarrollo no encuentra (sin `DEV`, cualquier path bajo `/_published/`)                                                                                                                                                                                                                                                              |
+| `not-found`            | 404    | Ninguna ruta responde: un path desconocido bajo un prefijo reservado, un path conocido con otro método, una solicitud a un socket que no es un upgrade, cualquier path de otro host, un id de token que no es tuyo, un blob que el proyecto no tiene, una miniatura que no tiene, una imagen o fuente que no está en el path que nombra un borrado, un miembro, una invitación o una publicación que una ruta nombra y que no existe, las rutas de administración consultadas por quien no es propietario ni administrador (una invitación a administrar aceptada o rechazada por quien no es su destinatario), y una publicación que la ruta de desarrollo no encuentra (sin `DEV`, cualquier path bajo `/_published/`)                                                                                                                                                  |
 | `project.not-found`    | 404    | Un proyecto que no existe o que quien pregunta no puede abrir en absoluto, como uno privado que no es suyo (una misma respuesta para ambos, para que nadie sepa cuáles existen), y `/p/<id>` con un id que no puede ser el de un proyecto; en un socket, la sala de un proyecto que se eliminó                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `request.invalid`      | 400    | El cuerpo no es lo que lee la ruta: no es un objeto JSON, el nombre de un token vacío, de más de 60 caracteres o con caracteres de control, un evento de más de 8 KiB o sin su `id`, `type`, `sub` y `at`; el nombre de un proyecto vacío, de más de 100 caracteres o con caracteres de control, una descripción de más de 500, una etiqueta de más de 80; una plantilla que no existe o que se da junto con archivos; archivos, binarios o un push que no son objetos de texto por path; un hash de binario que no son 64 caracteres hexadecimales en minúscula; un nivel de enlace que no es `private`, `view` ni `edit`, un rol que no es `viewer` ni `editor`, un correo vacío, de más de 254 caracteres o sin un dominio con punto, el propio correo del propietario como invitación; el motivo de una retirada de más de 500 caracteres o con caracteres de control |
 | `auth.required`        | 401    | La ruta necesita una persona y la solicitud no trae ninguna (sin credenciales, o con una cookie no válida o caducada); en un proyecto cuyo enlace admite a personas anónimas, una solicitud que iniciar sesión permitiría (un push cuando el enlace es `edit`) o que necesita una cuenta de todos modos (una copia, salir); un upgrade de socket sin una cookie válida, porque en un socket no se admite un token bearer                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
@@ -290,6 +290,9 @@ Los rechazos de la propia sala llegan a una persona de dos maneras: como el JSON
 | `awareness.rate`       | 429    | Un cliente que ha enviado más de 100 mensajes de presencia en un segundo: se le avisa en el socket y el socket se cierra con `4429` ([Presencia](#presencia-awareness)); ninguna ruta lo responde                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | `connections.limit`    | 429    | La undécima conexión abierta sin cuenta desde una misma dirección de cliente: se le avisa en el socket y el socket se cierra con `4428` ([Sesiones en vivo](#sesiones-en-vivo)); ninguna ruta lo responde                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `session.ended`        | 410    | La sesión en vivo que admitió una conexión terminó (su propietario la terminó, pasaron sus 24 horas, o su sala estuvo vacía una hora): el socket se cierra con `4410` ([Sesiones en vivo](#sesiones-en-vivo)); ninguna ruta lo responde                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `admin.already`        | 409    | Una invitación a administrar para el correo de un propietario o de un administrador ([Administración](#administración))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `admin.limit`          | 409    | Una undécima invitación a administrar pendiente, o una aceptación cuando el servicio ya tiene veinte administradores ([Administración](#administración))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `account.ambiguous`    | 409    | Una ruta de administración nombró una cuenta por un correo con el que inició sesión, verificado, más de una cuenta: nómbrala por su id ([Administración](#administración))                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `identity.last`        | 409    | El servicio de identidad conserva la única forma de iniciar sesión de una persona: desvincular el último proveedor desde el panel de la cuenta; no cambia nada                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `provider.unknown`     | 400    | Un proveedor con el que el servicio de identidad no inicia sesión (solo `github` y `google`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `session.current`      | 409    | La sesión con la que llega la solicitud, a la que se pide cerrar desde el panel de la cuenta: termina con Cerrar sesión                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
@@ -303,30 +306,36 @@ que muestran el código, en inglés o en español, en lugar de JSON.
 
 ## Rutas
 
-| Ruta                                                | Quién puede llamarla                                                 | Respuesta                                                                                |
-| --------------------------------------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| `GET /api/session`                                  | cualquiera                                                           | `200`, para quién es la página                                                           |
-| `POST /api/tokens`                                  | una persona con sesión iniciada en la página                         | `201 { id, name, token }`                                                                |
-| `GET /api/tokens`                                   | una persona, con la cookie o con un token                            | `200 { tokens }`                                                                         |
-| `DELETE /api/tokens/<id>`                           | una persona, con la cookie o con un token                            | `204`                                                                                    |
-| `POST /_identity/events`                            | el servicio de identidad                                             | `200 { status }`                                                                         |
-| `GET /cli-auth`                                     | cualquiera; aprueba una persona con sesión iniciada                  | la página de aprobación, o una redirección para iniciar sesión                           |
-| `POST /cli-auth`                                    | una persona con sesión iniciada en la página                         | `303` al listener de la línea de comandos                                                |
-| `POST /cli-auth/token`                              | la línea de comandos                                                 | `200 { id, name, token }`                                                                |
-| `GET /cli-auth/style.css`                           | cualquiera                                                           | la hoja de estilo de la página de aprobación                                             |
-| `GET /p/<id>`                                       | cualquiera                                                           | `302` a `/?project=<id>`                                                                 |
-| `GET /rooms/<id>`                                   | quien admita el proyecto, o el token de una sesión en vivo           | `101`, un socket a la sala del proyecto                                                  |
-| `PATCH /api/account`                                | una persona, con la cookie o un token                                | `200 { handle }`                                                                         |
-| `GET /api/account/identity`                         | una persona con sesión iniciada en la página                         | `200`, los inicios de sesión y las sesiones de la persona según el servicio de identidad |
-| `POST /api/account/identity/unlink`                 | una persona con sesión iniciada en la página                         | `200`, lo mismo sin el proveedor                                                         |
-| `POST /api/account/identity/sessions/revoke-others` | una persona con sesión iniciada en la página                         | `200`, lo mismo con esta sesión sola                                                     |
-| `POST /api/account/identity/sessions/<sid>/revoke`  | una persona con sesión iniciada en la página                         | `200`, lo mismo sin esa sesión                                                           |
-| `POST /api/invitations/<token>/accept`              | una persona, con la cookie o con un token                            | `200`, el proyecto, con el rol que la persona tiene ahora                                |
-| `DELETE /api/admin/publications/<handle>/<slug>`    | un administrador, con la cookie; cualquier otra persona recibe `404` | `204`                                                                                    |
-| `GET /api/admin/accounts/<account>/entitlements`    | un administrador, con la cookie; cualquier otra persona recibe `404` | `200`, la habilitación de la cuenta                                                      |
-| `PUT /api/admin/accounts/<account>/entitlements`    | un administrador, con la cookie; cualquier otra persona recibe `404` | `200`, la habilitación de la cuenta                                                      |
-| `GET /api/admin/entitlements`                       | un administrador, con la cookie; cualquier otra persona recibe `404` | `200`, las cuentas habilitadas                                                           |
-| `GET` y `HEAD /_published/<handle>/<slug>/`         | cualquiera; solo en desarrollo                                       | `200`, la página publicada                                                               |
+| Ruta                                                 | Quién puede llamarla                                                                    | Respuesta                                                                                |
+| ---------------------------------------------------- | --------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `GET /api/session`                                   | cualquiera                                                                              | `200`, para quién es la página                                                           |
+| `POST /api/tokens`                                   | una persona con sesión iniciada en la página                                            | `201 { id, name, token }`                                                                |
+| `GET /api/tokens`                                    | una persona, con la cookie o con un token                                               | `200 { tokens }`                                                                         |
+| `DELETE /api/tokens/<id>`                            | una persona, con la cookie o con un token                                               | `204`                                                                                    |
+| `POST /_identity/events`                             | el servicio de identidad                                                                | `200 { status }`                                                                         |
+| `GET /cli-auth`                                      | cualquiera; aprueba una persona con sesión iniciada                                     | la página de aprobación, o una redirección para iniciar sesión                           |
+| `POST /cli-auth`                                     | una persona con sesión iniciada en la página                                            | `303` al listener de la línea de comandos                                                |
+| `POST /cli-auth/token`                               | la línea de comandos                                                                    | `200 { id, name, token }`                                                                |
+| `GET /cli-auth/style.css`                            | cualquiera                                                                              | la hoja de estilo de la página de aprobación                                             |
+| `GET /p/<id>`                                        | cualquiera                                                                              | `302` a `/?project=<id>`                                                                 |
+| `GET /rooms/<id>`                                    | quien admita el proyecto, o el token de una sesión en vivo                              | `101`, un socket a la sala del proyecto                                                  |
+| `PATCH /api/account`                                 | una persona, con la cookie o un token                                                   | `200 { handle }`                                                                         |
+| `GET /api/account/identity`                          | una persona con sesión iniciada en la página                                            | `200`, los inicios de sesión y las sesiones de la persona según el servicio de identidad |
+| `POST /api/account/identity/unlink`                  | una persona con sesión iniciada en la página                                            | `200`, lo mismo sin el proveedor                                                         |
+| `POST /api/account/identity/sessions/revoke-others`  | una persona con sesión iniciada en la página                                            | `200`, lo mismo con esta sesión sola                                                     |
+| `POST /api/account/identity/sessions/<sid>/revoke`   | una persona con sesión iniciada en la página                                            | `200`, lo mismo sin esa sesión                                                           |
+| `POST /api/invitations/<token>/accept`               | una persona, con la cookie o con un token                                               | `200`, el proyecto, con el rol que la persona tiene ahora                                |
+| `GET /api/admin`                                     | un propietario o un administrador, con la cookie; cualquier otra persona recibe `404`   | `200`, lo que muestra la sección Administración                                          |
+| `DELETE /api/admin/publications/<handle>/<slug>`     | un propietario o un administrador, con la cookie; cualquier otra persona recibe `404`   | `204`                                                                                    |
+| `POST /api/admin/invitations`                        | un propietario, con la cookie; cualquier otra persona recibe `404`                      | `201`, la invitación (`200`, la que ya estaba pendiente)                                 |
+| `DELETE /api/admin/invitations/<id>`                 | un propietario, con la cookie; cualquier otra persona recibe `404`                      | `204`                                                                                    |
+| `POST /api/admin/invitations/<id>/accept`            | el invitado, con la cookie y el correo verificado; cualquier otra persona recibe `404`  | `204`                                                                                    |
+| `POST /api/admin/invitations/<id>/decline`           | el invitado, con la cookie y el correo verificado; cualquier otra persona recibe `404`  | `204`                                                                                    |
+| `DELETE /api/admin/administrators/<sub>`             | un propietario, o ese administrador, con la cookie; cualquier otra persona recibe `404` | `204`                                                                                    |
+| `GET /api/admin/permissions/<id>`                    | un propietario o un administrador, con la cookie; cualquier otra persona recibe `404`   | `200`, quienes tienen el permiso                                                         |
+| `GET /api/admin/accounts/<account>/permissions/<id>` | un propietario o un administrador, con la cookie; cualquier otra persona recibe `404`   | `200`, el permiso de la cuenta                                                           |
+| `PUT /api/admin/accounts/<account>/permissions/<id>` | un propietario o un administrador, con la cookie; cualquier otra persona recibe `404`   | `200`, el permiso de la cuenta                                                           |
+| `GET` y `HEAD /_published/<handle>/<slug>/`          | cualquiera; solo en desarrollo                                                          | `200`, la página publicada                                                               |
 
 Las rutas de los proyectos nombran cada una el rol que necesitan: el del propietario, el de un
 editor o, para lo que solo lee, el de un lector, que el enlace del proyecto puede dar a cualquiera,
@@ -404,7 +413,9 @@ de enlace) y el de una retirada se lee hasta 8 KiB como el resto.
     "name": "Ana",
     "picture": "https://avatars.githubusercontent.com/u/1",
     "handle": "ana",
-    "entitlements": { "unbranded": false }
+    "entitlements": { "unbranded": false },
+    "administration": null,
+    "administrationInvitation": null
   },
   "account": "https://id.meltemi.dev/account",
   "signOut": "https://id.meltemi.dev/logout"
@@ -413,14 +424,21 @@ de enlace) y el de una retirada se lee hasta 8 KiB como el resto.
 
 `handle` es el nombre bajo el que la persona publica, o `null` hasta que lo elige
 ([Alias](#alias)). `entitlements.unbranded` dice si la cuenta puede exportar sin la marca de
-Meltemi: `true` cuando un administrador la habilitó, y para todo administrador
-([Habilitaciones](#habilitaciones)). Antes de responder, una cookie cuyo correo verificó el servicio de identidad ve
-cómo cada invitación pendiente para ese correo se convierte en una membresía
-([Invitaciones](#invitaciones)); un correo que no está verificado no resuelve nada. `account` es la
+Meltemi: `true` cuando un propietario o un administrador se lo concedió, y para todo propietario y
+todo administrador ([Habilitaciones](#habilitaciones)). `administration` es `{ "role": "owner" }`
+o `{ "role": "administrator" }` para las personas que administran el servicio, y `null` para todas
+las demás ([Administración](#administración)). `administrationInvitation` es la invitación a
+administrar pendiente dirigida al correo del propio token de la sesión, cuando el servicio de
+identidad lo verificó, como `{ "id", "invitedBy": { "name" }, "expiresAt" }`, y `null` si no, siempre
+para un propietario o un administrador; la persona la acepta o la rechaza en el panel de la cuenta.
+Antes de responder, una cookie cuyo correo verificó el servicio de identidad ve cómo cada invitación
+pendiente para ese correo se convierte en una membresía ([Invitaciones](#invitaciones)); un correo
+que no está verificado no resuelve nada. Iniciar sesión no hace administrador a nadie. `account` es la
 página del servicio de identidad y `signOut` la dirección a la que un formulario envía, con el
 campo `return_to`, para terminar la sesión. Un token bearer, para que la línea de comandos sepa qué
-token tiene, sin `account` ni `signOut`; lleva también el alias, pero no resuelve ninguna
-invitación, porque solo la cookie tiene un correo verificado:
+token tiene, sin `account` ni `signOut` ni los dos campos de administración, porque un programa no
+administra; lleva también el alias, pero no resuelve ninguna invitación, porque solo la cookie tiene
+un correo verificado:
 
 ```json
 {
@@ -531,11 +549,15 @@ y se comprueba antes de leer el cuerpo como JSON (`401 signature.invalid`). El c
   guarda para el `sub` (el usuario, sus tokens y sus códigos de aprobación pendientes, sus
   proyectos con sus filas de archivos, subidas, versiones y archivos de versiones, miembros,
   invitaciones, publicaciones y solicitudes de publicación; las membresías de la persona en los
-  proyectos de otras, cuyos sockets abiertos allí se cortan; y las invitaciones dirigidas al correo de su fila de usuario cuando el
-  servicio de identidad lo había verificado) y registra el evento: su id, el `sub` y su hora. Luego
-  responde `200` con el estado `applied`. Las filas de `blobs` se comparten por contenido y se
-  quedan; la [recolección](#la-recolección-de-blobs) semanal se lleva las que nada más referencia.
-  Las retiradas también se quedan: son el registro del servicio ([Retirada](#retirada)). La entrega
+  proyectos de otras, cuyos sockets abiertos allí se cortan; las invitaciones dirigidas al correo de
+  su fila de usuario cuando el servicio de identidad lo había verificado; su fila de administrador y
+  las invitaciones a administrar que hizo y nadie respondió) y registra el evento: su id, el `sub` y
+  su hora. Luego responde `200` con el estado `applied`. Las filas de `blobs` se comparten por
+  contenido y se quedan; la [recolección](#la-recolección-de-blobs) semanal se lleva las que nada más
+  referencia. Las retiradas y el registro de administración también se quedan: son el registro del
+  servicio ([Retirada](#retirada), [El registro de administración](#el-registro-de-administración)).
+  Una invitación a administrar dirigida al correo de la persona se queda hasta que caduca: un correo
+  no es una cuenta. La entrega
   es al menos una vez, así que la repetición del mismo id de evento no cambia nada y responde `200`
   con el estado `duplicate`; y la repetición de un evento que ya se atendió no toca las salas ni las
   páginas de una persona que inició sesión de nuevo y creó proyectos desde entonces. Todos los pasos
@@ -550,8 +572,8 @@ El registro del evento es lo que rechaza las sesiones antiguas de la persona eli
 antes cuenta como nadie, y una emitida en un segundo posterior es una persona que inicia sesión de
 nuevo. El registro se guarda 31 días, porque una sesión dura treinta y el servicio de identidad
 reintenta un evento durante siete; el barrido elimina los más antiguos. De una persona eliminada
-queda su `sub`, que es opaco, y la hora de la eliminación y, cuando el servicio retiró una página
-suya, el registro de esa retirada; nada más.
+queda su `sub`, que es opaco, la hora de la eliminación, el registro de la retirada de una página
+suya y las entradas del registro de administración que la nombran; nada más.
 
 ### El inicio de sesión de la línea de comandos
 
@@ -611,7 +633,8 @@ fallos; un éxito y una negativa por cuota no lo son. Los fallos de un solicitan
 se borran cuando vuelve a fallar. Además, cada intercambio fallido y cada aprobación empiezan por
 barrer lo que nadie vuelve a buscar, sea de quien sea: los fallos de cualquier solicitante de más de
 una hora, los códigos de aprobación que han caducado, los registros de eliminación de más de 31
-días y, ya que publicar también barre antes, las solicitudes de publicación de más de una hora. Un
+días, las entradas del registro de administración de más de 365 días y, ya que publicar también
+barre antes, las solicitudes de publicación de más de una hora. Un
 código que nadie intercambia y un solicitante que no vuelve se quedarían para siempre, y
 una avalancha de cualquiera de los dos haría crecer las tablas sin fin; con el barrido guardan los
 últimos minutos y la última hora. El cron semanal también barre, para que un despliegue en el que
@@ -1133,6 +1156,9 @@ D1 guarda los metadatos, R2 los bytes, y cada sala su documento.
 | `invitations`                              | `id`, `project_id`, `email` (en minúscula), `role`, `token`, `created_by`, `created_at` y `accepted_at`, nulo mientras la invitación está pendiente                                                                                     |
 | `publications`                             | `(project_id, slug)` a `handle`, `published_at` y `bytes`, con `(handle, slug)` único: la dirección de cada página que publica un proyecto                                                                                              |
 | `takedowns`                                | `handle`, `slug`, `by_sub`, `reason`, `at` y `project_id`: lo que retiró un administrador, y por qué                                                                                                                                    |
+| `administrators`                           | `sub` a `invited_by` y `since`: una persona que aceptó la invitación de un propietario a administrar el servicio. Los propietarios no son filas                                                                                         |
+| `admin_invitations`                        | `id`, `email` (en minúscula), `invited_by`, `created_at`, `expires_at` (siete días después), y `accepted_at`, `declined_at` y `revoked_at`, con una de ellas como mucho: la invitación de un propietario a administrar                  |
+| `admin_log`                                | `id`, `at`, `by_sub`, `action`, `target_sub`, `target_email` y `detail`: cada acto de administración, añadido junto con él y nunca cambiado                                                                                             |
 | `publish_log`                              | `project_id` y `at`, una fila por cada solicitud de publicación de la última hora: lo que limita la frecuencia de publicar                                                                                                              |
 | `meta`, `doc_chunks` (una sala)            | La revisión de la sala y su documento codificado en fragmentos, en el SQLite de su Durable Object                                                                                                                                       |
 | R2, `blobs/<sha-256>`                      | Los bytes de cada blob: textos, imágenes y fuentes, por el SHA-256 hexadecimal en minúscula de su contenido                                                                                                                             |
@@ -1160,6 +1186,17 @@ recuperarse. Es una capacidad del mismo tipo que el enlace de un proyecto que es
 muestra al propietario, nunca se registra, funciona una vez y durante treinta días, y se va
 con su proyecto. Un token de API y un código de aprobación son distintos: de ellos solo se guardan
 los hashes ([Tokens de API](#tokens-de-api)).
+
+`0006_administrators.sql` añade lo que guarda la administración del servicio, con las mismas
+convenciones: tres tablas (`administrators`, `admin_invitations` y `admin_log`), todas `STRICT`, y
+ninguna clave foránea. Los propietarios no se guardan: son el secreto `ADMIN_SUBS`, que se lee en
+cada solicitud. La base de datos rechaza el correo de una invitación que no está en minúscula, un id
+que no son 32 caracteres hexadecimales en minúscula, una invitación terminada de dos maneras y una
+acción del registro que no conoce. Sus tres índices sirven una consulta cada uno: la invitación
+pendiente de un correo (`admin_invitations_email`), las invitaciones que hizo una persona eliminada
+(`admin_invitations_invited_by`) y las últimas entradas del registro y su barrido (`admin_log_at`).
+Una invitación a administrar no tiene token: su destinatario es quien inicia sesión con su correo
+verificado.
 
 El uso por cuenta es la suma de `blobs.size` sobre los hashes distintos que referencian sus
 `project_files`, `project_blobs` y `version_files`: un blob compartido por dos proyectos, o por un
@@ -1456,8 +1493,8 @@ necesita cualquier rol que el proyecto admita, o el token de una sesión en vivo
 ([El socket](#el-socket)). `GET /api/projects/<id>` y `GET` y `HEAD …/blobs/<hash>` también toman
 `read` del token vigente de una sesión en vivo en `X-Meltemi-Live`; ninguna otra ruta lee esa
 cabecera. `PATCH /api/account { handle }`
-necesita una persona, con la cookie o un token, y las rutas de los administradores una cookie que
-`ADMIN_SUBS` liste. Las rutas
+necesita una persona, con la cookie o un token, y las rutas de administración la cookie de un
+propietario o de un administrador ([Administración](#administración)). Las rutas
 sobre la propia cuenta de quien pregunta (`GET` y `POST /api/projects`, `GET /api/account/usage`)
 necesitan una persona.
 
@@ -1841,16 +1878,16 @@ API es justo lo que el host de publicación existe para evitar.
 
 ### Retirada
 
-Un administrador del servicio retira cualquier publicación con
+Un propietario o un administrador del servicio ([Administración](#administración)) retira
+cualquier publicación, desde la sección Administración del panel de la cuenta o con
 `DELETE /api/admin/publications/<handle>/<slug>`, con un `{ "reason" }` opcional (de 500
 caracteres como máximo, con saltos de línea y tabuladores permitidos y ningún otro carácter de
-control). Los administradores son los `sub` que lista `ADMIN_SUBS`, una variable separada por
-comas; sin definir, no lo es nadie. Quien llama debe ser una persona de la lista con la cookie, así
-que se aplica la regla de `Origin`: no se acepta un token de API ni siquiera de un administrador,
-porque un token es para programas y se roba con más facilidad. Todos los demás, con sesión iniciada
-o sin ella, reciben `404 not-found`, la respuesta de una ruta que no existe, y no `403`, que le diría
-a un desconocido que la ruta está ahí. En la página, con la sesión iniciada, un administrador la
-llama desde la consola del navegador, que envía la cookie y el `Origin`:
+control). Quien llama debe ser uno de ellos con la cookie, así que se aplica la regla de `Origin`:
+no se acepta un token de API ni siquiera de un propietario, porque un token es para programas y se
+roba con más facilidad. Todos los demás, con sesión iniciada o sin ella, reciben `404 not-found`, la
+respuesta de una ruta que no existe, y no `403`, que le diría a un desconocido que la ruta está ahí.
+La sección pide la dirección de la publicación y un motivo, y confirma; la misma llamada desde la
+consola del navegador en la página, con la sesión iniciada, envía la cookie y el `Origin`:
 
 ```js
 await fetch("/api/admin/publications/ana/purchase", {
@@ -1863,63 +1900,13 @@ await fetch("/api/admin/publications/ana/purchase", {
 
 La página se elimina primero y la retirada se escribe después, en un solo paso con la eliminación de
 la fila: `takedowns (handle, slug, by_sub, reason, at, project_id)`, siendo el proyecto aquel desde el
-que se publicó la página. Un fallo del bucket deja todo como estaba y
+que se publicó la página, y la entrada `takedown` del registro de administración con
+`<handle>/<slug>` y el motivo ([El registro de administración](#el-registro-de-administración)). Un
+fallo del bucket deja todo como estaba y
 el administrador lo intenta de nuevo; un fallo posterior deja una fila sin página, que el host de
 publicación no sirve y un segundo intento completa. La dirección responde entonces `404`, y el
 propietario del proyecto ve la página, en `GET …/publish`, como retirada por el servicio. Las
 retiradas son el registro del servicio y se quedan cuando se elimina una cuenta.
-
-### Habilitaciones
-
-Un administrador habilita una cuenta para exportar sin la marca de Meltemi, y lo revoca: el diálogo
-de exportación de una persona habilitada ofrece **Exportar sin la marca de Meltemi**
-([el playground](playground.md#exportaciones-en-el-navegador)). Tres rutas, con las reglas de la
-retirada (una persona de la lista con la cookie, primero la regla de `Origin`, `404 not-found` para
-todos los demás y para un token de API): `GET /api/admin/entitlements` lista las cuentas
-habilitadas, primero la habilitada antes, como `{ "accounts": [...] }`;
-`GET /api/admin/accounts/<account>/entitlements` lee la de una cuenta, y `PUT` en la misma ruta con
-`{ "unbranded": true }` o `{ "unbranded": false }` la fija, registrando al administrador (`by`) y el
-momento (`at`). Ambas responden la cuenta:
-
-```json
-{
-  "sub": "u_7d3f",
-  "handle": "ana",
-  "name": "Ana",
-  "entitlements": { "unbranded": true, "by": "u_admin", "at": "2026-10-28T12:00:00.000Z" }
-}
-```
-
-`<account>` es el identificador de la cuenta, que cada persona lee en el Perfil del panel de la
-cuenta, o `@<handle>` para una persona que eligió un alias; una cuenta sin fila (nadie inició
-sesión con ella todavía) o un alias que nadie tiene es `404`, y no se crea nada. Otro cuerpo es
-`400 request.invalid`. Los administradores están habilitados en la respuesta de la sesión sin que
-nadie los habilite; su propia fila dice solo lo que se fijó en ella. La persona ve una habilitación
-o una revocación en la siguiente carga de la página, que lee la sesión una vez, y una cuenta
-eliminada se lleva su habilitación. Desde la consola del navegador en la página, con la sesión
-iniciada, la lista, una habilitación y una revocación:
-
-```js
-await fetch("/api/admin/entitlements", { credentials: "same-origin" }).then((r) => r.json());
-```
-
-```js
-await fetch("/api/admin/accounts/@ana/entitlements", {
-  method: "PUT",
-  credentials: "same-origin",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ unbranded: true }),
-}).then((r) => r.json());
-```
-
-```js
-await fetch("/api/admin/accounts/@ana/entitlements", {
-  method: "PUT",
-  credentials: "same-origin",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ unbranded: false }),
-}).then((r) => r.json());
-```
 
 ### Publicaciones y eliminación
 
@@ -1927,6 +1914,206 @@ Eliminar un proyecto elimina sus páginas (primero los objetos, después las fil
 proyecto); eliminar la cuenta lo hace con cada proyecto de la persona
 ([Eventos de eliminación](#eventos-de-eliminación)). Despublicar y eliminar son del propietario: un
 editor no puede publicar, ni tampoco un lector.
+
+## Administración
+
+Dos roles administran el servicio. Los **propietarios** son los `sub` que lista el secreto
+`ADMIN_SUBS`, que se lee en cada solicitud ([Variables y secretos](#variables-y-secretos)): siempre
+son administradores, la página nunca los quita, y son los únicos que invitan y quitan
+administradores; sin definir o vacío, el servicio no tiene propietario. Los **administradores** son
+las personas que un propietario invitó y que aceptaron, filas de `administrators`
+([Almacenamiento](#almacenamiento)); un `sub` que lista `ADMIN_SUBS` y que además tiene fila es un
+propietario. Lo hacen desde la sección Administración del panel de la cuenta
+([el playground](playground.md#el-panel-de-la-cuenta)), que lee y llama a las rutas de abajo.
+
+| Acto                                                | Propietario | Administrador |
+| --------------------------------------------------- | ----------- | ------------- |
+| Leer la sección, sus listas y el registro           | sí          | sí            |
+| Conceder y revocar un permiso                       | sí          | sí            |
+| Retirar una publicación                             | sí          | sí            |
+| Invitar un correo, revocar una invitación pendiente | sí          | no            |
+| Quitar a un administrador                           | sí          | no            |
+| Irse (quitar su propia fila)                        | no          | sí            |
+
+Cada ruta de administración toma la cookie de sesión en el propio origen de la página, así que la
+regla de `Origin` se aplica antes de que corra. Quien llama sin sesión, cualquier otra persona y
+cualquier token de API, incluido el de un propietario, reciben `404 not-found`, la respuesta de una
+ruta que no existe, y no `403`, que le diría a un desconocido que las rutas están ahí; un acto que es
+de los propietarios le responde lo mismo a un administrador. El rol se lee en cada solicitud, así
+que la siguiente solicitud de un administrador al que quitaron recibe `404`.
+
+### Invitaciones a administrar
+
+Un propietario invita un correo con `POST /api/admin/invitations { "email" }`. El correo se recorta
+y se pasa a minúscula, tiene 254 caracteres como máximo y un dominio con punto, como el de una
+invitación a un proyecto ([Invitaciones](#invitaciones)), y si no es `400 request.invalid`. El
+correo de un propietario o de un administrador (el del propio propietario, o el correo verificado de
+su fila) es `409 admin.already`; un correo que ya tiene una invitación pendiente responde esa con
+`200`; con diez invitaciones pendientes, la undécima es `409 admin.limit`. Si no, la invitación se
+registra, con quién invitó y cuándo, y se responde con `201`:
+
+```json
+{
+  "id": "3f9a0c1d2e4b5a6978c0d1e2f3a4b5c6",
+  "email": "beto@example.com",
+  "invitedBy": { "sub": "u_owner", "name": "Olga" },
+  "createdAt": "2026-10-29T12:00:00.000Z",
+  "expiresAt": "2026-11-05T12:00:00.000Z"
+}
+```
+
+**No se envía ningún correo**, y no hay enlace ni token: el invitado es quien inicia sesión con ese
+correo verificado, e iniciar sesión, por sí solo, no hace administrador a nadie. La respuesta de la
+sesión le da al invitado la invitación como `user.administrationInvitation`
+([La respuesta de sesión](#la-respuesta-de-sesión)), y elige en el panel de la cuenta:
+`POST /api/admin/invitations/<id>/accept` lo hace administrador, salvo que el servicio ya tenga
+veinte (`409 admin.limit`), y `POST /api/admin/invitations/<id>/decline` la rechaza; ambas responden
+`204`. Cualquiera de las dos actúa solo sobre una invitación pendiente, hecha hace menos de siete
+días, dirigida al correo del propio token de la sesión cuando el servicio de identidad lo verificó;
+cualquier otra cosa (otro correo, un correo sin verificar, una invitación aceptada, rechazada,
+revocada o de siete días, un token de API) es `404 not-found`, así que una invitación no se le
+confirma a nadie más que a su destinatario. Una invitación funciona una vez. Un propietario revoca
+una pendiente con `DELETE /api/admin/invitations/<id>`: `204`, o `404 not-found` cuando no está
+pendiente.
+
+### Quitar e irse
+
+`DELETE /api/admin/administrators/<sub>` quita la fila de un administrador y responde `204`: un
+propietario quita a cualquier administrador, y un administrador solo su propia fila, que es irse. El
+`sub` de un propietario, un `sub` sin fila y el `sub` de otro administrador pedido por un
+administrador son `404 not-found`, y no se quita nada. Un propietario deja de serlo solo con un
+cambio de `ADMIN_SUBS`.
+
+### Una cuenta, sin una lista de usuarios
+
+Ninguna ruta lista, busca ni cuenta las cuentas del servicio: la sección lista solo los
+propietarios, los administradores, las invitaciones pendientes y quienes tienen cada permiso. Donde
+una ruta de administración nombra una cuenta (`<account>`) es una de tres: un identificador de
+cuenta (de uno a doscientos caracteres, sin caracteres de control), que cada persona lee en el
+Perfil del panel de la cuenta; `@` y un alias, para la persona que lo tiene; o un correo, que se
+reconoce por una `@` después de su primer carácter, para la única cuenta cuya fila lo tiene
+verificado, comparado en minúscula. Ninguna cuenta es `404 not-found`; un correo con el que
+iniciaron sesión, verificado, dos o más cuentas es `409 account.ambiguous`, y el identificador de la
+cuenta nombra una de ellas. Una consulta no crea nada. Le dice a un propietario o a un administrador
+si un correo tiene cuenta, y a nadie más.
+
+### Habilitaciones
+
+Un permiso es una entrada de un catálogo en el código (`packages/cloud/src/permissions.ts`),
+guardada en columnas propias de `users`. El primero y único es `unbranded-exports`, exportar sin la
+marca de Meltemi: el diálogo de exportación de una persona habilitada ofrece **Exportar sin la marca
+de Meltemi** ([el playground](playground.md#exportaciones-en-el-navegador)). Los propietarios y los
+administradores tienen todos los permisos sin que nadie se los conceda, como dice la respuesta de la
+sesión; su propia fila dice solo lo que se fijó en ella. Tres rutas, para un propietario o un
+administrador por igual: `GET /api/admin/permissions/<id>` lista las cuentas cuya fila tiene el
+permiso, primero la que lo recibió antes, como `{ "id", "holders": [...] }`, cada una con `sub`,
+`handle`, `name`, `email`, quién lo concedió (`by`, como `{ "sub", "name" }`) y cuándo (`at`);
+`GET /api/admin/accounts/<account>/permissions/<id>` lee el de una cuenta, y `PUT` en la misma ruta
+con `{ "granted": true }` o `{ "granted": false }` lo fija, registrando quién (`by`) y cuándo (`at`),
+en un solo paso con su entrada en el registro
+([El registro de administración](#el-registro-de-administración)). Ambas responden la cuenta:
+
+```json
+{
+  "sub": "u_7d3f",
+  "handle": "ana",
+  "name": "Ana",
+  "email": "ana@example.com",
+  "permission": {
+    "id": "unbranded-exports",
+    "granted": true,
+    "by": "u_admin",
+    "at": "2026-10-28T12:00:00.000Z"
+  }
+}
+```
+
+`<account>` es un identificador de cuenta, `@<handle>` o un correo
+([Una cuenta, sin una lista de usuarios](#una-cuenta-sin-una-lista-de-usuarios)); un permiso
+desconocido es `404 not-found`, y otro cuerpo `400 request.invalid`. La persona ve una concesión o
+una revocación en la siguiente carga de la página, que lee la sesión una vez, y una cuenta eliminada
+se lleva sus permisos. **Permisos**, en la sección, concede y revoca; las mismas llamadas desde la
+consola del navegador en la página, con la sesión iniciada, son quienes tienen el permiso, una
+concesión por correo y una revocación por alias:
+
+```js
+await fetch("/api/admin/permissions/unbranded-exports", { credentials: "same-origin" }).then((r) =>
+  r.json(),
+);
+```
+
+```js
+await fetch("/api/admin/accounts/ana%40example.com/permissions/unbranded-exports", {
+  method: "PUT",
+  credentials: "same-origin",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ granted: true }),
+}).then((r) => r.json());
+```
+
+```js
+await fetch("/api/admin/accounts/@ana/permissions/unbranded-exports", {
+  method: "PUT",
+  credentials: "same-origin",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ granted: false }),
+}).then((r) => r.json());
+```
+
+### El registro de administración
+
+Cada invitación, invitación revocada, aceptación, rechazo, retiro de un administrador, salida,
+concesión, permiso revocado y retirada añade una fila a `admin_log`, en el mismo paso atómico que el
+acto y solo cuando el acto ocurrió: una solicitud rechazada no añade nada. Una fila guarda quién
+(`by_sub`), cuándo (`at`), qué (`invite`, `revoke-invitation`, `accept`, `decline`, `remove`,
+`leave`, `grant`, `revoke` o `takedown`), a quién (`target_sub`, o el `target_email` invitado) y un
+`detail`: el id del permiso, o el `<handle>/<slug>` de la publicación y el motivo. Las filas nunca
+cambian, se quedan cuando se eliminan las personas que nombran y se barren 365 días después de
+escribirse.
+
+### La respuesta de administración
+
+`GET /api/admin` responde a un propietario o a un administrador, con `Cache-Control: no-store`, todo
+lo que muestra la sección Administración:
+
+```json
+{
+  "role": "owner",
+  "owners": [{ "sub": "u_owner", "name": "Olga", "handle": null, "email": "olga@example.com" }],
+  "administrators": [
+    {
+      "sub": "u_9a1c",
+      "name": "Beto",
+      "handle": "beto",
+      "email": "beto@example.com",
+      "invitedBy": { "sub": "u_owner", "name": "Olga" },
+      "since": "2026-10-29T12:30:00.000Z"
+    }
+  ],
+  "invitations": [],
+  "permissions": [{ "id": "unbranded-exports", "holders": [] }],
+  "log": [
+    {
+      "at": "2026-10-29T12:30:00.000Z",
+      "by": { "sub": "u_9a1c", "name": "Beto" },
+      "action": "accept",
+      "target": { "sub": "u_9a1c", "name": "Beto" },
+      "detail": ""
+    }
+  ],
+  "publishHost": "meltemi.page"
+}
+```
+
+`owners` y `administrators` son personas, con su `sub`, `name`, `handle` y `email` (un propietario
+que nunca hizo una solicitud tiene cadenas vacías), los administradores con quién los invitó y desde
+cuándo; `invitations` son las pendientes, primero la más antigua, como las responde
+`POST /api/admin/invitations`, para un propietario, y `[]` para un administrador; `permissions` son
+los del catálogo, cada uno con quienes lo tienen; `log` son las últimas cincuenta entradas, primero
+la más reciente, con `by` y `target` como `{ "sub", "name" }`, una cuenta eliminada después como
+`{ "sub", "name": "", "deleted": true }` y un correo invitado como `{ "email" }`; y `publishHost` es
+`PUBLISH_HOST`, o `null` cuando no está definida, contra el que el formulario de retirada de la
+sección comprueba la dirección de una publicación.
 
 ## Cuotas y límites
 
@@ -2014,7 +2201,7 @@ como cadenas, que siempre ganan a un binding.
 | `IDENTITY_EVENTS_SECRET` | secreto (Store)     | El secreto de este producto con el servicio de identidad, su `EVENTS_SECRET_DIAGRAMS`: verifica los eventos de eliminación y firma las llamadas de [los datos de identidad](#los-datos-de-identidad)                                                                 |
 | `FORMS_SECRET`           | secreto (Store)     | Firma el `csrf` de la página de aprobación y es la clave del hash de una dirección en el límite de frecuencia                                                                                                                                                        |
 | `PUBLISH_HOST`           | variable, opcional  | El host que sirve las publicaciones, como `meltemi.page`: un nombre de host en minúscula de un dominio propio, nunca el host del servicio ni uno bajo el dominio de la cookie. `meltemi.page` en `wrangler.jsonc`; sin definir, publicar funciona solo en desarrollo |
-| `ADMIN_SUBS`             | secreto (Store)     | Los `sub` de los administradores del servicio, separados por comas: quién puede retirar una publicación y habilitar cuentas para exportar sin la marca, como lo están ellos mismos. Sin definir o vacía, nadie                                                       |
+| `ADMIN_SUBS`             | secreto (Store)     | Los `sub` de los propietarios del servicio, separados por comas: siempre administradores, y los únicos que invitan y quitan administradores ([Administración](#administración)). Sin definir o vacía, nadie administra el servicio                                   |
 | `DEV`                    | solo en `.dev.vars` | `"true"` activa el modo de desarrollo, más abajo                                                                                                                                                                                                                     |
 | `IDENTITY_JWKS`          | solo en `.dev.vars` | Un conjunto de claves en línea, `{"keys":[…]}`, para desarrollo y pruebas                                                                                                                                                                                            |
 
@@ -2037,7 +2224,7 @@ ejecución son el paquete de identidad, el paquete de proyectos de este reposito
 Fuera del desarrollo, `ORIGIN`, `IDENTITY_ISSUER` e `IDENTITY_JWKS_URL` deben ser direcciones
 `https:`; si no, cada solicitud es `500 internal` y el registro nombra la variable. `PUBLISH_HOST` y
 `ADMIN_SUBS` son distintas: ninguna detiene el servicio, y cada una cuesta solo su propia función
-cuando falta o no se puede usar (publicar, y las retiradas).
+cuando falta o no se puede usar (publicar, y la administración del servicio).
 
 El host de publicación tiene su propia configuración, `packages/cloud/wrangler.publish.jsonc`, y
 enlaza solo `DB` y `BLOBS`, la misma base de datos y el mismo bucket de arriba, para leerlos: ni
@@ -2211,9 +2398,10 @@ Compartir y publicar no necesitan nada más. Una publicación hecha desde la pá
 `http://localhost:8788/_published/<handle>/<slug>/`, donde la página muestra su dirección. Para
 probar las invitaciones por correo, inicia sesión con una segunda cuenta (otro perfil del navegador)
 cuyo correo haya verificado el proveedor; el enlace de una invitación funciona para cualquier
-persona con sesión iniciada. Para probar una retirada, pon tu `sub` en `ADMIN_SUBS` de `.dev.vars` y
-llama a la ruta de los administradores desde el propio origen de la página, ya que se le aplica la
-regla de `Origin`.
+persona con sesión iniciada. Para probar la administración, pon tu `sub` en `ADMIN_SUBS` de
+`.dev.vars`: el panel de la cuenta muestra entonces Administración, y una invitación a administrar la
+acepta una segunda cuenta cuyo correo haya verificado el proveedor. Las rutas aplican la regla de
+`Origin`, así que es el propio origen de la página el que las llama.
 
 ### Sin él: una sesión generada
 

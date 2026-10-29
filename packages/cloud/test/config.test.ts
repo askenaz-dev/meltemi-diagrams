@@ -242,16 +242,16 @@ describe("the administrators and the publish host", () => {
 
   it("lists nobody when ADMIN_SUBS is not set, or is empty or only separators", () => {
     for (const ADMIN_SUBS of [undefined, "", "  ", ",", " , ,, "]) {
-      expect([...configOf(ADMIN_SUBS === undefined ? {} : { ADMIN_SUBS }).admins]).toEqual([]);
+      expect([...configOf(ADMIN_SUBS === undefined ? {} : { ADMIN_SUBS }).owners]).toEqual([]);
     }
   });
 
   it("lists the subs of ADMIN_SUBS, comma separated and trimmed, each exactly", () => {
-    const { admins } = configOf({ ADMIN_SUBS: " u_7d3f ,u_9a1c,, u_7d3f , " });
-    expect([...admins].sort()).toEqual(["u_7d3f", "u_9a1c"]);
-    expect(admins.has("u_7d3")).toBe(false);
-    expect(admins.has("U_7D3F")).toBe(false);
-    expect(admins.has("")).toBe(false);
+    const { owners } = configOf({ ADMIN_SUBS: " u_7d3f ,u_9a1c,, u_7d3f , " });
+    expect([...owners].sort()).toEqual(["u_7d3f", "u_9a1c"]);
+    expect(owners.has("u_7d3")).toBe(false);
+    expect(owners.has("U_7D3F")).toBe(false);
+    expect(owners.has("")).toBe(false);
   });
 
   it("reads PUBLISH_HOST trimmed, and none when it is empty", () => {

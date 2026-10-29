@@ -26,7 +26,12 @@ const NOBODY: Session = { kind: "anonymous", signIn: OWN_LINK };
 const PICTURE = "https://avatars.githubusercontent.com/u/1?v=4";
 const ANA = { sub: "u1", name: "Ana", picture: PICTURE, handle: null };
 /** Ana as the page reads her: an answer without `entitlements` entitles nobody. */
-const PARSED_ANA = { ...ANA, entitlements: { unbranded: false } };
+const PARSED_ANA = {
+  ...ANA,
+  entitlements: { unbranded: false },
+  administration: null,
+  administrationInvitation: null,
+};
 /** What the Worker answers a browser with a session cookie. */
 const COOKIE = { user: ANA, account: `${IDENTITY}/account`, signOut: `${IDENTITY}/logout` };
 /** What it answers a bearer token. */
@@ -291,6 +296,33 @@ describe("parseSession", () => {
     expect(unbranded({ ...ANA, entitlements: "unbranded" })).toBe(false);
     // Beside the user, not inside it: not the person's.
     expect(unbranded(ANA, { entitlements: { unbranded: true } })).toBe(false);
+  });
+
+  it("reads the role and the invitation to administer strictly, and null for anything else", () => {
+    const user = (extra: Record<string, unknown>) => {
+      const session = parse({ ...COOKIE, user: { ...ANA, ...extra } });
+      return session.kind === "cookie" ? session.user : undefined;
+    };
+    expect(user({ administration: { role: "owner" } })?.administration).toEqual({ role: "owner" });
+    expect(user({ administration: { role: "administrator" } })?.administration).toEqual({
+      role: "administrator",
+    });
+    for (const odd of [{ role: "root" }, "owner", null, 1]) {
+      expect(user({ administration: odd })?.administration).toBeNull();
+    }
+    const id = "0123456789abcdef0123456789abcdef";
+    const expiresAt = "2026-11-05T12:00:00.000Z";
+    expect(
+      user({ administrationInvitation: { id, invitedBy: { name: "Guillmar Ortiz" }, expiresAt } })
+        ?.administrationInvitation,
+    ).toEqual({ id, invitedBy: "Guillmar Ortiz", expiresAt });
+    for (const odd of [
+      { id: "short", invitedBy: { name: "X" }, expiresAt },
+      { id, invitedBy: { name: "X" }, expiresAt: "soon" },
+      "invited",
+    ]) {
+      expect(user({ administrationInvitation: odd })?.administrationInvitation).toBeNull();
+    }
   });
 
   it("leaves a picture out, and keeps the person, when it is not one the page may draw", () => {

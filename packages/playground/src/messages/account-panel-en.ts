@@ -13,6 +13,7 @@ export const accountPanel = {
     devices: "Devices",
     tokens: "API tokens",
     usage: "Usage",
+    administration: "Administration",
     danger: "Danger zone",
   },
   tabsLabel: "Sections of the account",
@@ -101,6 +102,106 @@ export const accountPanel = {
   dangerHint:
     "You confirm it on the identity service's page, and come back here signed out. Your work in this browser stays.",
   deleteAccount: "Delete account",
+
+  // Administration: owners and administrators, and an invitee
+  administration: {
+    intro: "Who administers Meltemi Diagrams, what accounts may do, and what was done.",
+    owner: "Owner",
+    administratorsTitle: "Administrators",
+    since: (name: string, when: string) => `Invited by ${name}, administrator since ${when}`,
+    remove: "Remove",
+    removeLabel: (name: string) => `Remove ${name}`,
+    removeTitle: "Remove the administrator?",
+    removeMessage: (name: string) => `${name} stops administering the service at once.`,
+    removeConfirm: "Remove",
+    removed: (name: string) => `${name} no longer administers the service.`,
+    leave: "Leave",
+    leaveTitle: "Stop administering the service?",
+    leaveMessage: "You stop at once. An owner can invite you again.",
+    leaveConfirm: "Leave",
+    left: "You no longer administer the service.",
+    invitationsTitle: "Invitations",
+    invitationsIntro:
+      "Invite an email: the person signs in with it and chooses Accept. No mail is sent, so tell them.",
+    email: "Email",
+    invite: "Invite",
+    invited: (email: string) => `${email} is invited for seven days.`,
+    notEmail: "That is not an email address.",
+    already: "That person administers the service already.",
+    invitationsLimit: "Ten invitations are pending already: revoke one first.",
+    administratorsLimit:
+      "The service has twenty administrators already: ask an owner to remove one.",
+    pending: (by: string, until: string) => `Invited by ${by}, open until ${until}`,
+    noInvitations: "No invitation is pending.",
+    revoke: "Revoke",
+    revokeLabel: (email: string) => `Revoke the invitation of ${email}`,
+    revoked: (email: string) => `The invitation of ${email} was revoked.`,
+    permissionsTitle: "Permissions",
+    permissions: {
+      "unbranded-exports": {
+        name: "Export without the Meltemi branding",
+        description:
+          "The export dialog offers to leave out the strip at the foot of the sheet: the mark, the wordmark and the title.",
+      },
+    } as Record<string, { name: string; description: string }>,
+    implicit: "Owners and administrators hold every permission.",
+    holders: "Accounts with it",
+    noHolders: "No account has it.",
+    grantedBy: (name: string, when: string) => `Granted by ${name}, ${when}`,
+    grantTo: "Grant to",
+    grantHint: "An account id, @handle or the email the person signs in with.",
+    grant: "Grant",
+    granted: (who: string, permission: string) => `${who}: ${permission}.`,
+    revokePermissionLabel: (who: string) => `Revoke from ${who}`,
+    revokedPermission: (who: string, permission: string) => `${who} no longer has ${permission}.`,
+    noAccount:
+      "No account signed in with this email, handle or id yet: ask the person to sign in once, or for the account id Profile shows.",
+    ambiguous: "Several accounts signed in with this email: ask for the account id.",
+    takedownTitle: "Take down a publication",
+    takedownIntro:
+      "Removes a published page at once, with the reason you give; its owner sees that the service removed it.",
+    address: "Address",
+    addressHint: (host: string) =>
+      host === "" ? "handle/page" : `https://${host}/handle/page, or handle/page`,
+    reason: "Reason",
+    takedown: "Take down",
+    notAddress: "That is not the address of a publication of this service.",
+    takedownConfirmTitle: "Take down the publication?",
+    takedownMessage: (address: string) =>
+      `${address} stops answering at once. It cannot be undone; its owner may publish again.`,
+    takedownConfirm: "Take down",
+    takenDown: (address: string) => `${address} was taken down.`,
+    noPublication: "There is no publication at that address.",
+    logTitle: "Recent changes",
+    noLog: "Nothing yet.",
+    /** The entries of the log: who, to whom, and the permission or the publication. */
+    log: {
+      invite: (by: string, target: string) => `${by} invited ${target}`,
+      "revoke-invitation": (by: string, target: string) =>
+        `${by} revoked the invitation of ${target}`,
+      accept: (by: string) => `${by} became an administrator`,
+      decline: (by: string) => `${by} declined to administer`,
+      remove: (by: string, target: string) => `${by} removed ${target}`,
+      leave: (by: string) => `${by} stopped administering`,
+      grant: (by: string, target: string, detail: string) => `${by} granted ${detail} to ${target}`,
+      revoke: (by: string, target: string, detail: string) =>
+        `${by} revoked ${detail} from ${target}`,
+      takedown: (by: string, _target: string, detail: string) => `${by} took down ${detail}`,
+    } as Record<string, (by: string, target: string, detail: string) => string>,
+    deleted: "a deleted account",
+    invitationTitle: "Invitation to administer",
+    invitationBody: (name: string) =>
+      `${name === "" ? "An owner" : name} invited you to administer Meltemi Diagrams.`,
+    invitationPowers:
+      "Administrators grant permissions to accounts and can take down any publication.",
+    invitationUntil: (when: string) => `The invitation is open until ${when}.`,
+    accept: "Accept",
+    decline: "Decline",
+    accepted: "You administer the service now.",
+    declined: "You declined the invitation.",
+    gone: "That invitation is no longer open.",
+    loadFailed: "The administration could not be read.",
+  },
 
   // The identity service, through this product
   loading: "Loading…",

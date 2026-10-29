@@ -1,7 +1,7 @@
-import type { Config } from "../config.js";
 import type { Route } from "../context.js";
 import { json } from "../http.js";
 import type { User } from "../store/types.js";
+import { roleOf, type AdminRole } from "./admin.js";
 
 /** The longest `return_to` the identity service accepts; a longer one is refused and nothing starts. */
 const MAX_RETURN_TO_LENGTH = 2048;
@@ -30,22 +30,22 @@ function pageAddress(origin: string, referer: string | null): string {
 
 /**
  * The person in a signed-in answer: who they are, their handle (null until they choose one), and
- * what their account may do. An administrator is entitled to export without the branding with no
- * grant; anyone else when an administrator entitled their account.
+ * what their account may do. An owner or an administrator is entitled to export without the
+ * branding with no grant; anyone else when an administrator entitled their account.
  */
 function userShape(
   sub: string,
   name: string,
   picture: string,
   user: User | undefined,
-  config: Config,
+  role: AdminRole | null,
 ) {
   return {
     sub,
     name,
     picture,
     handle: user?.handle ?? null,
-    entitlements: { unbranded: (user?.unbrandedExports ?? false) || config.admins.has(sub) },
+    entitlements: { unbranded: (user?.unbrandedExports ?? false) || role !== null },
   };
 }
 
@@ -58,6 +58,11 @@ function userShape(
  * for that email turned into a membership (`project-sharing`, "Invitations": the session is where
  * "invite by email" is resolved). The email is the session token's own claim, never the cached
  * row's, and an unverified one resolves nothing: anyone can claim an address they do not own.
+ *
+ * The cookie shape also says what the person is to the administration of the service
+ * (`user.administration`: the role, or null) and, for a person with no role, the pending invitation
+ * to administer addressed to that same verified claim (`user.administrationInvitation`), which they
+ * accept or decline in the account panel; signing in alone makes nobody an administrator.
  */
 export const sessionRoute: Route = async (ctx) => {
   const { principal, config, deps, request } = ctx;
@@ -71,8 +76,25 @@ export const sessionRoute: Route = async (ctx) => {
       );
     }
     const user = await deps.store.user(sub);
+    const role = await roleOf(sub, config, deps.store);
+    const verified = profile.emailVerified && profile.email !== "";
+    const invitation =
+      role === null && verified
+        ? await deps.store.adminInvitationFor(profile.email.toLowerCase(), deps.now().toISOString())
+        : undefined;
+    const inviter = invitation ? await deps.store.user(invitation.invitedBy) : undefined;
     return json({
-      user: userShape(sub, profile.name, profile.picture, user, config),
+      user: {
+        ...userShape(sub, profile.name, profile.picture, user, role),
+        administration: role === null ? null : { role },
+        administrationInvitation: invitation
+          ? {
+              id: invitation.id,
+              invitedBy: { name: inviter?.name ?? "" },
+              expiresAt: invitation.expiresAt,
+            }
+          : null,
+      },
       account: `${config.issuer}/account`,
       signOut: `${config.issuer}/logout`,
     });
@@ -80,7 +102,13 @@ export const sessionRoute: Route = async (ctx) => {
   if (principal?.via === "token") {
     const user = await deps.store.user(principal.sub);
     return json({
-      user: userShape(principal.sub, user?.name ?? "", user?.picture ?? "", user, config),
+      user: userShape(
+        principal.sub,
+        user?.name ?? "",
+        user?.picture ?? "",
+        user,
+        await roleOf(principal.sub, config, deps.store),
+      ),
       token: { id: principal.tokenId, name: principal.tokenName },
     });
   }

@@ -81,6 +81,8 @@ describe("GET /api/session", () => {
         picture,
         handle: null,
         entitlements: { unbranded: false },
+        administration: null,
+        administrationInvitation: null,
       },
       account: `${ISSUER}/account`,
       signOut: `${ISSUER}/logout`,

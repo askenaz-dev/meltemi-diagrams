@@ -1,5 +1,6 @@
-// The entitlement to export without the Meltemi branding (`cloud-accounts`, "Entitlements"): the
-// administrators' three routes and what the session answer says of it.
+// The entitlement to export without the Meltemi branding (`cloud-accounts`, "Entitlements"), the
+// permission `unbranded-exports` of the catalog (`service-administration`, "Permissions"): its
+// three routes and what the session answer says of it.
 
 import { describe, expect, it } from "vitest";
 import { jsonOf } from "./support/index.js";
@@ -16,7 +17,8 @@ interface Entitlement {
   sub: string;
   handle: string | null;
   name: string;
-  entitlements: { unbranded: boolean; by: string | null; at: string | null };
+  email: string;
+  permission: { id: string; granted: boolean; by: string | null; at: string | null };
 }
 
 interface Session {
@@ -39,18 +41,18 @@ const ask = (p: Projects, who: string, method: string, path: string, body?: unkn
 };
 
 const accountUrl = (account: string) =>
-  `/api/admin/accounts/${encodeURIComponent(account)}/entitlements`;
+  `/api/admin/accounts/${encodeURIComponent(account)}/permissions/unbranded-exports`;
 const grant = (p: Projects, account: string, unbranded = true, who = ADMIN) =>
-  ask(p, who, "PUT", accountUrl(account), { unbranded });
+  ask(p, who, "PUT", accountUrl(account), { granted: unbranded });
+const HOLDERS = "/api/admin/permissions/unbranded-exports";
 const list = async (p: Projects) =>
-  (await jsonOf<{ accounts: Entitlement[] }>(await ask(p, ADMIN, "GET", "/api/admin/entitlements")))
-    .accounts;
+  (await jsonOf<{ holders: { sub: string }[] }>(await ask(p, ADMIN, "GET", HOLDERS))).holders;
 const sessionOf = async (p: Projects, sub: string) =>
   (await jsonOf<Session>(await ask(p, sub, "GET", "/api/session"))).user;
 const codeOf = async (response: Response) =>
   (await jsonOf<{ code?: string }>(response.clone())).code;
 
-describe("PUT /api/admin/accounts/<account>/entitlements", () => {
+describe("PUT /api/admin/accounts/<account>/permissions/unbranded-exports", () => {
   it("entitles an account, records who and when, and the person's session then says so", async () => {
     const p = await service(ANA);
     expect((await sessionOf(p, ANA))?.entitlements).toEqual({ unbranded: false });
@@ -63,7 +65,13 @@ describe("PUT /api/admin/accounts/<account>/entitlements", () => {
       sub: ANA,
       handle: null,
       name: ANA,
-      entitlements: { unbranded: true, by: ADMIN, at: p.h.clock.now().toISOString() },
+      email: expect.any(String),
+      permission: {
+        id: "unbranded-exports",
+        granted: true,
+        by: ADMIN,
+        at: p.h.clock.now().toISOString(),
+      },
     });
     expect((await sessionOf(p, ANA))?.entitlements).toEqual({ unbranded: true });
   });
@@ -76,7 +84,7 @@ describe("PUT /api/admin/accounts/<account>/entitlements", () => {
 
     expect(response.status).toBe(200);
     const body = await jsonOf<Entitlement>(response);
-    expect([body.sub, body.handle, body.entitlements.unbranded]).toEqual([BETO, "tienda", true]);
+    expect([body.sub, body.handle, body.permission.granted]).toEqual([BETO, "tienda", true]);
     // The GET answers the same, by either name.
     expect(await jsonOf(await ask(p, ADMIN, "GET", accountUrl(BETO)))).toEqual(body);
     expect(await jsonOf(await ask(p, ADMIN, "GET", accountUrl("@tienda")))).toEqual(body);
@@ -94,8 +102,9 @@ describe("PUT /api/admin/accounts/<account>/entitlements", () => {
 
     const revoked = await jsonOf<Entitlement>(await grant(p, CARLA, false));
 
-    expect(revoked.entitlements).toEqual({
-      unbranded: false,
+    expect(revoked.permission).toEqual({
+      id: "unbranded-exports",
+      granted: false,
       by: ADMIN,
       at: p.h.clock.now().toISOString(),
     });
@@ -107,8 +116,8 @@ describe("PUT /api/admin/accounts/<account>/entitlements", () => {
     const p = await service(ADMIN);
     expect((await sessionOf(p, ADMIN))?.entitlements).toEqual({ unbranded: true });
     expect(
-      (await jsonOf<Entitlement>(await ask(p, ADMIN, "GET", accountUrl(ADMIN)))).entitlements,
-    ).toEqual({ unbranded: false, by: null, at: null });
+      (await jsonOf<Entitlement>(await ask(p, ADMIN, "GET", accountUrl(ADMIN)))).permission,
+    ).toEqual({ id: "unbranded-exports", granted: false, by: null, at: null });
     expect(await list(p)).toEqual([]);
   });
 
@@ -120,14 +129,15 @@ describe("PUT /api/admin/accounts/<account>/entitlements", () => {
     expect((await jsonOf<Session>(response)).user?.entitlements).toEqual({ unbranded: true });
   });
 
-  it("is 404 not-found for everybody who is not an administrator, on the three routes", async () => {
+  it("is 404 not-found for everybody who is not an administrator, on the routes", async () => {
     const p = await service(ANA, BETO);
     const unknown = await jsonOf(await ask(p, ADMIN, "GET", "/api/admin/nothing"));
     for (const who of [ANA, NOBODY]) {
       for (const [method, path, body] of [
         ["GET", accountUrl(BETO), undefined],
-        ["PUT", accountUrl(BETO), { unbranded: true }],
-        ["GET", "/api/admin/entitlements", undefined],
+        ["PUT", accountUrl(BETO), { granted: true }],
+        ["GET", HOLDERS, undefined],
+        ["GET", "/api/admin", undefined],
       ] as const) {
         const response = await ask(p, who, method, path, body);
         expect(response.status, `${who} ${method} ${path}`).toBe(404);
@@ -145,10 +155,10 @@ describe("PUT /api/admin/accounts/<account>/entitlements", () => {
       bearer(token, {
         method: "PUT",
         headers: JSON_TYPE,
-        body: JSON.stringify({ unbranded: true }),
+        body: JSON.stringify({ granted: true }),
       }),
     );
-    const listed = await p.h.request("/api/admin/entitlements", bearer(token));
+    const listed = await p.h.request(HOLDERS, bearer(token));
     expect([put.status, await codeOf(put)]).toEqual([404, "not-found"]);
     expect(listed.status).toBe(404);
     expect((await sessionOf(p, ANA))?.entitlements).toEqual({ unbranded: false });
@@ -160,7 +170,7 @@ describe("PUT /api/admin/accounts/<account>/entitlements", () => {
     const response = await p.h.request(accountUrl(ANA), {
       method: "PUT",
       headers: { Cookie: cookie, Origin: "https://evil.example", ...JSON_TYPE },
-      body: JSON.stringify({ unbranded: true }),
+      body: JSON.stringify({ granted: true }),
     });
     expect([response.status, await codeOf(response)]).toEqual([403, "request.forbidden"]);
     expect((await sessionOf(p, ANA))?.entitlements).toEqual({ unbranded: false });
@@ -172,18 +182,20 @@ describe("PUT /api/admin/accounts/<account>/entitlements", () => {
     ["a handle nobody holds", "@nobody-here"],
     ["a handle that is not one", "@Tienda"],
     ["a sub with a control character", "u\u00071"],
+    ["an email nobody signed in with", "nobody@example.com"],
   ])("is 404 not-found for %s, and creates nothing", async (_name, account) => {
     const p = await service(ANA);
     const response = await grant(p, account);
     expect([response.status, await codeOf(response)]).toEqual([404, "not-found"]);
     expect(await list(p)).toEqual([]);
-    if (!account.startsWith("@")) expect(await p.h.store.user(account)).toBeUndefined();
+    if (!account.includes("@")) expect(await p.h.store.user(account)).toBeUndefined();
   });
 
   it.each([
-    ["a flag that is not a boolean", { unbranded: "yes" }],
+    ["a flag that is not a boolean", { granted: "yes" }],
     ["no flag", {}],
-    ["another field beside it", { unbranded: true, extra: 1 }],
+    ["another field beside it", { granted: true, extra: 1 }],
+    ["the former body", { unbranded: true }],
     ["a body that is not JSON", "nope"],
     ["a body that is a list", "[]"],
   ])("is 400 request.invalid for %s, and leaves who and when as they were", async (_name, body) => {

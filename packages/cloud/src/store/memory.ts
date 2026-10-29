@@ -1,5 +1,6 @@
 import {
   PUBLISH_WINDOW_MS,
+  adminLogCutoff,
   cliFailureCutoff,
   deletionCutoff,
   invitationCutoff,
@@ -8,6 +9,9 @@ import {
 import { capacity, compareBinary } from "./shared.js";
 import type {
   Accepted,
+  AdminInvitation,
+  AdminLogEntry,
+  Administrator,
   BlobRow,
   CliCode,
   CloudStore,
@@ -66,6 +70,22 @@ export function memoryStore(): CloudStore {
   const versions = new Map<string, VersionEntry[]>();
   // `users.storage_bytes`; a person with no entry has 0.
   const storage = new Map<string, number>();
+  // Administration: the administrators by sub, the invitations and the log in the order they were
+  // stored (`seq` stands for the rowid that breaks the ties of their time in `d1Store`).
+  const administrators = new Map<string, Administrator>();
+  const adminInvitations: { invitation: AdminInvitation; seq: number }[] = [];
+  const adminLog: { entry: AdminLogEntry; seq: number }[] = [];
+  let adminSeq = 0;
+  const logAdmin = (entry: AdminLogEntry) =>
+    adminLog.push({ entry: { ...entry }, seq: adminSeq++ });
+  /** An invitation still open at `now`. */
+  const open = (invitation: AdminInvitation, now: Iso): boolean =>
+    invitation.acceptedAt === null &&
+    invitation.declinedAt === null &&
+    invitation.revokedAt === null &&
+    invitation.expiresAt > now;
+  const findOpen = (id: string, now: Iso) =>
+    adminInvitations.find((entry) => entry.invitation.id === id && open(entry.invitation, now));
 
   const ownedBy = (sub: string) =>
     [...projects.values()].filter((entry) => entry.project.ownerSub === sub);
@@ -203,6 +223,15 @@ export function memoryStore(): CloudStore {
       users.delete(sub);
       for (const [id, token] of tokens) if (token.sub === sub) tokens.delete(id);
       for (const [hash, code] of codes) if (code.sub === sub) codes.delete(hash);
+      administrators.delete(sub);
+      dropWhere(
+        adminInvitations,
+        ({ invitation }) =>
+          invitation.invitedBy === sub &&
+          invitation.acceptedAt === null &&
+          invitation.declinedAt === null &&
+          invitation.revokedAt === null,
+      );
       return "applied";
     },
     async deletedSince(sub, since) {
@@ -273,7 +302,9 @@ export function memoryStore(): CloudStore {
       const cutoff = cliFailureCutoff(now);
       const eventsCutoff = deletionCutoff(now);
       const publishesCutoff = publishCutoff(now);
+      const logCutoff = adminLogCutoff(now);
       dropWhere(publishLog, (entry) => entry.at < publishesCutoff);
+      dropWhere(adminLog, ({ entry }) => entry.at < logCutoff);
       for (const [hash, code] of codes) if (code.expiresAt <= now) codes.delete(hash);
       for (const [id, event] of events) if (event.at < eventsCutoff) events.delete(id);
       for (let i = failures.length - 1; i >= 0; i--) {
@@ -708,9 +739,10 @@ export function memoryStore(): CloudStore {
       return undefined;
     },
 
-    async setUnbrandedExports(sub, on, by, at) {
+    async setUnbrandedExports(sub, on, by, at, log) {
       const person = users.get(sub);
       if (!person) return "missing";
+      if (log) logAdmin(log);
       users.set(sub, {
         ...person,
         unbrandedExports: on,
@@ -731,6 +763,89 @@ export function memoryStore(): CloudStore {
           )
           .map((user) => ({ ...user }))
       );
+    },
+    async usersByEmail(email) {
+      // As SQLite's lower(): ASCII letters only.
+      const fold = (text: string) => text.replace(/[A-Z]/g, (c) => c.toLowerCase());
+      return [...users.values()]
+        .filter((user) => user.emailVerified && fold(user.email) === email)
+        .sort((a, b) => binary(a.createdAt, b.createdAt) || binary(a.sub, b.sub))
+        .map((user) => ({ ...user }));
+    },
+
+    async administrators() {
+      return [...administrators.values()]
+        .sort((a, b) => binary(a.since, b.since) || binary(a.sub, b.sub))
+        .map((administrator) => ({ ...administrator }));
+    },
+    async administrator(sub) {
+      const administrator = administrators.get(sub);
+      return administrator && { ...administrator };
+    },
+    async removeAdministrator(sub, log) {
+      if (!administrators.has(sub)) return false;
+      logAdmin(log);
+      administrators.delete(sub);
+      return true;
+    },
+    async createAdminInvitation(invitation, limit, log) {
+      const pending = adminInvitations.filter((entry) =>
+        open(entry.invitation, invitation.createdAt),
+      ).length;
+      // Written so that a limit that is not a number refuses, as `d1Store` does.
+      if (!(pending < limit)) return "limit";
+      adminInvitations.push({
+        invitation: {
+          ...invitation,
+          acceptedAt: null,
+          declinedAt: null,
+          revokedAt: null,
+        },
+        seq: adminSeq++,
+      });
+      logAdmin(log);
+      return "created";
+    },
+    async adminInvitations(now) {
+      return adminInvitations
+        .filter((entry) => open(entry.invitation, now))
+        .sort((a, b) => binary(a.invitation.createdAt, b.invitation.createdAt) || a.seq - b.seq)
+        .map((entry) => ({ ...entry.invitation }));
+    },
+    async adminInvitationFor(email, now) {
+      const found = adminInvitations
+        .filter((entry) => entry.invitation.email === email && open(entry.invitation, now))
+        .sort((a, b) => binary(b.invitation.createdAt, a.invitation.createdAt) || b.seq - a.seq)[0];
+      return found && { ...found.invitation };
+    },
+    async revokeAdminInvitation(id, now, log) {
+      const entry = findOpen(id, now);
+      if (!entry) return false;
+      logAdmin(log);
+      entry.invitation = { ...entry.invitation, revokedAt: now };
+      return true;
+    },
+    async acceptAdminInvitation(id, sub, email, now, limit, log) {
+      const entry = findOpen(id, now);
+      if (!entry || entry.invitation.email !== email || administrators.has(sub)) return "none";
+      if (!(administrators.size < limit)) return "limit";
+      administrators.set(sub, { sub, invitedBy: entry.invitation.invitedBy, since: now });
+      entry.invitation = { ...entry.invitation, acceptedAt: now };
+      logAdmin(log);
+      return "accepted";
+    },
+    async declineAdminInvitation(id, email, now, log) {
+      const entry = findOpen(id, now);
+      if (!entry || entry.invitation.email !== email) return false;
+      logAdmin(log);
+      entry.invitation = { ...entry.invitation, declinedAt: now };
+      return true;
+    },
+    async adminLog(limit) {
+      return [...adminLog]
+        .sort((a, b) => binary(b.entry.at, a.entry.at) || b.seq - a.seq)
+        .slice(0, Math.max(0, capacity(limit)))
+        .map(({ entry }) => ({ ...entry }));
     },
 
     async publicationsOf(projectId) {
@@ -800,11 +915,12 @@ export function memoryStore(): CloudStore {
       return { status: "claimed" };
     },
 
-    async takeDown(takedown) {
+    async takeDown(takedown, log) {
       const at = publications.findIndex(
         (p) => p.handle === takedown.handle && p.slug === takedown.slug,
       );
       if (at < 0) return undefined;
+      if (log) logAdmin(log);
       const [removed] = publications.splice(at, 1);
       takedowns.push({ ...takedown, projectId: removed?.projectId ?? null });
       return removed && { ...removed };

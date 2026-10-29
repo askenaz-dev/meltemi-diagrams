@@ -71,6 +71,8 @@ export const es: typeof en = {
     menu: "Cuenta",
     account: "Cuenta",
     tokens: "Tokens de API",
+    administration: "Administración",
+    administrationInvitation: "Invitación a administrar",
     signOut: "Cerrar sesión",
   },
 

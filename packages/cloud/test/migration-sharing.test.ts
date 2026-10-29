@@ -20,6 +20,10 @@ const THIRD_FILE = "0003_sharing.sql";
 const FOURTH_FILE = "0004_takedown_project.sql";
 /** The next one entitles accounts to export without the branding (`0005_unbranded_exports.sql`). */
 const FIFTH_FILE = "0005_unbranded_exports.sql";
+const SIXTH_FILE = "0006_administrators.sql";
+
+/** The migrations up to the fifth: the schema this file describes, before the administrators' tables. */
+const throughFifth = () => migrationFiles().filter((file) => file.name < SIXTH_FILE);
 
 /** The tables 0003 makes, with their columns in order. */
 const NEW_TABLES: Record<string, readonly Column[]> = {
@@ -118,6 +122,7 @@ describe("the sharing migration file", () => {
       THIRD_FILE,
       FOURTH_FILE,
       FIFTH_FILE,
+      SIXTH_FILE,
     ]);
   });
 
@@ -148,7 +153,7 @@ describe("the sharing migration file", () => {
 
 describe.skipIf(!sqliteAvailable)("the sharing migration", () => {
   it("creates the five tables beside the eleven of the first two, and nothing else", () => {
-    const db = openDatabase();
+    const db = openDatabase({ migrations: throughFifth() });
     const tables = db.raw
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
       .all()
@@ -267,7 +272,7 @@ describe.skipIf(!sqliteAvailable)("the sharing migration", () => {
   });
 
   it("makes exactly six indexes beyond the keys: members by person, invitations by project and by email, the handle, and the publish log by project and by time", () => {
-    const db = openDatabase();
+    const db = openDatabase({ migrations: throughFifth() });
     const indexes = db.raw
       .prepare(
         "SELECT name, tbl_name, sql FROM sqlite_master WHERE type = 'index' AND sql IS NOT NULL ORDER BY name",

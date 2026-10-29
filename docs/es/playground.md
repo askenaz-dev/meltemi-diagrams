@@ -275,10 +275,10 @@ catálogo, cuyas páginas lo llevan como su `lang`. Empieza en el `"locale"` del
 inglés, y también se aplica a los perfiles del archivo y a la sección del catálogo; **Descargar →
 Catálogo** usa el idioma del proyecto ([proyectos](language/projects.md#idioma-de-las-exportaciones)).
 
-**Sin la marca de Meltemi.** Una cuenta que un administrador habilitó
-([habilitaciones](cloud.md#habilitaciones)), y todo administrador, encuentra **Exportar sin la marca
-de Meltemi** bajo **Tema**, para todos los formatos: marcada, las imágenes omiten la franja al pie
-de la hoja (el símbolo de Meltemi, el logotipo y el título del diagrama), y el mensaje tras la
+**Sin la marca de Meltemi.** Una cuenta que un propietario o un administrador habilitó
+([habilitaciones](cloud.md#habilitaciones)), y todo propietario y administrador, encuentra
+**Exportar sin la marca de Meltemi** bajo **Tema**, para todos los formatos: marcada, las imágenes
+omiten la franja al pie de la hoja (el símbolo de Meltemi, el logotipo y el título del diagrama), y el mensaje tras la
 descarga termina con "Sin la marca de Meltemi." El botón del catálogo del mismo diálogo sigue a la
 casilla en las imágenes del catálogo, mientras su pie todavía nombra la herramienta. La casilla
 empieza sin marcar cada vez que se abre el diálogo, y los perfiles del archivo y **Descargar →
@@ -344,13 +344,16 @@ administrador habilite en tu cuenta se ve en la siguiente carga.
 de identidad, `id.meltemi.dev`, y te devuelve a la página en la que estabas; antes de salir, la
 página guarda tu proyecto en el navegador. Todo lo demás funciona como antes y no se envía nada.
 
-**Con la sesión iniciada**, la cabecera muestra tu avatar y tu nombre, con un menú de tres entradas:
+**Con la sesión iniciada**, la cabecera muestra tu avatar y tu nombre, con un menú de tres entradas,
+y una cuarta para las personas que administran el servicio o están invitadas a hacerlo:
 
-| Entrada           | Hace                                                               |
-| ----------------- | ------------------------------------------------------------------ |
-| **Cuenta**        | Abre el panel de la cuenta en Perfil, en esta página               |
-| **Tokens de API** | Abre el panel de la cuenta en Tokens de API                        |
-| **Cerrar sesión** | Termina la sesión en el servicio de identidad y vuelve a la página |
+| Entrada                      | Hace                                                                                                      |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Cuenta**                   | Abre el panel de la cuenta en Perfil, en esta página                                                      |
+| **Tokens de API**            | Abre el panel de la cuenta en Tokens de API                                                               |
+| **Administración**           | Para un propietario o un administrador del servicio: abre el panel de la cuenta en Administración         |
+| **Invitación a administrar** | Para una persona a la que un propietario invitó a administrar el servicio: abre el panel en la invitación |
+| **Cerrar sesión**            | Termina la sesión en el servicio de identidad y vuelve a la página                                        |
 
 Debajo de las entradas el menú muestra lo que contiene tu cuenta, leído al abrir el menú: cuántos de
 los 100 proyectos que admite tiene y cuánto de sus 200 MiB de almacenamiento usa, como en "3 de 100
@@ -372,6 +375,7 @@ sección a otra; Escape y el botón de cerrar vuelven a la página.
 | **Dispositivos**      | Dónde tienes la sesión iniciada, con este dispositivo marcado; cerrar la sesión de un dispositivo o de todos los demás, tras una pregunta                                                                                                                                                                                                             |
 | **Tokens de API**     | Los tokens que permiten que la línea de comandos y los scripts actúen como tú (más abajo)                                                                                                                                                                                                                                                             |
 | **Uso**               | Tus proyectos y tu almacenamiento frente a sus límites, y los límites de los archivos, el tamaño y las versiones de un proyecto y de una imagen                                                                                                                                                                                                       |
+| **Administración**    | Solo para las personas que administran el servicio, o están invitadas a hacerlo (más abajo): los administradores, las invitaciones, los permisos de las cuentas, la retirada de una publicación y los cambios recientes                                                                                                                               |
 | **Zona de peligro**   | Eliminar la cuenta: lo que borra, y el camino a la página del servicio de identidad donde lo confirmas                                                                                                                                                                                                                                                |
 
 Inicios de sesión y Dispositivos son lo que guarda el servicio de identidad; la página le pregunta a
@@ -395,6 +399,29 @@ vez, con un botón para copiarlo, y desaparece cuando se cierra el panel; el ser
 un hash. Una cuenta tiene como máximo 20. Un token autentica la API del servicio como
 `Authorization: Bearer`, que es como lo usan los comandos de la nube de la línea de comandos
 ([los tokens de API](cloud.md#tokens-de-api), [la línea de comandos](cli.md#los-comandos-de-la-nube)).
+
+**Administración** solo está para los propietarios del servicio, las cuentas que nombra su
+configuración, para los administradores que invitó un propietario y para una persona con una
+invitación a administrar; nadie más ve la pestaña, y `?account=administration` le abre Perfil
+([administración](cloud.md#administración)). Un propietario o un administrador encuentra cinco
+partes:
+
+| Parte                       | Contiene                                                                                                                                                                                                                                       |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Administradores**         | Los propietarios, marcados como **Propietario**, y después los administradores con quién los invitó y desde cuándo. Un propietario quita a un administrador, tras una pregunta que lo nombra; un administrador se va, desde su propia fila     |
+| **Invitaciones**            | Para los propietarios: un correo que invitar e **Invitar**, y las invitaciones pendientes con quién invitó y cuándo caduca cada una, y **Revocar**. No se envía ningún correo: avisa a la persona, que inicia sesión con ese correo            |
+| **Permisos**                | Cada permiso, primero **Exportar sin la marca de Meltemi**, con las cuentas que lo tienen, quién lo concedió y cuándo, y **Revocar**; **Conceder a** toma un identificador de cuenta, `@alias` o el correo con el que la persona inicia sesión |
+| **Retirar una publicación** | La dirección de una página publicada y un motivo; tras una confirmación que nombra la dirección la página desaparece y su propietario la ve retirada por el servicio                                                                           |
+| **Cambios recientes**       | Los últimos cincuenta actos de administración, primero el más reciente: quién invitó, aceptó, quitó, concedió, revocó o retiró qué, y cuándo                                                                                                   |
+
+No hay una lista de las cuentas del servicio: una cuenta se encuentra solo por su identificador, su
+alias o el único correo con el que inicia sesión, así que una persona que nunca inició sesión, o un
+correo que comparten dos cuentas, se responde con palabras (pide a la persona que inicie sesión una
+vez, o el identificador de cuenta que muestra su Perfil). Una persona invitada ve solo la
+invitación: quién la invitó, lo que pueden hacer los administradores (conceder permisos a cuentas,
+retirar cualquier publicación), cuándo caduca, **Aceptar** y **Rechazar**. Aceptar vuelve a leer la
+sesión y muestra la sección entera; rechazar quita la pestaña. Iniciar sesión, por sí solo, no hace
+administrador a nadie, y un administrador al que quitan pierde la pestaña en su siguiente acción.
 
 Iniciar sesión añade tus proyectos en la nube al panel Proyectos del explorador
 ([proyectos en la nube](#proyectos-en-la-nube)) y no cambia nada más: el proyecto de tu navegador se queda donde está, no se sube nada hasta que

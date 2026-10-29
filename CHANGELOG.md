@@ -90,17 +90,39 @@ stays 0.2: `spacing`, the sides, the negative `gap`, call blocks and `return` ar
   the message says so, and the dialog's catalog button builds its pictures the same way. Profile
   shows every person their account id with Copy, and an entitled person what the account may do
   ([decision 0061](docs/decisions/0061-unbranded-exports.md)).
+- The account panel has an **Administration** section for the owners and administrators of the
+  service, and for a person invited to be one: **Administrators** (owners marked, remove, leave),
+  **Invitations** (owners only: invite an email, revoke), **Permissions** (each permission's
+  holders, revoke, and **Grant to** an account id, `@handle` or email), **Take down a publication**
+  and **Recent changes**. An invitee sees the invitation with **Accept** and **Decline**; the
+  avatar's menu offers **Administration** or **Invitation to administer**, and
+  `?account=administration` opens it for them alone. The section never lists the other accounts.
 - Two templates, **Kanban board** and **Whiteboard** (a sketched board with a story that draws its
   strokes), among the New project cards; their thumbnails are drawn in each template's own theme.
 
 ### Account
 
-- Administrators entitle an account to export without the Meltemi branding, revoke it and list the
-  entitled accounts, from the page's console: `GET /api/admin/entitlements`, and `GET` and `PUT` on
-  `/api/admin/accounts/<account>/entitlements`, by account id or `@<handle>`, recording who and
-  when. `GET /api/session` answers `user.entitlements.unbranded`, true for every administrator.
-  Migration 0005 adds the three columns to `users`.
+- Owners and administrators entitle an account to export without the Meltemi branding, revoke it
+  and list the entitled accounts, recording who and when. `GET /api/session` answers
+  `user.entitlements.unbranded`, true for every owner and administrator. Migration 0005 adds the
+  three columns to `users`.
 - Exports take `branding: "none"` and layouts `frame: "none"`: the theme without its frame.
+- The service has two roles. The accounts of `ADMIN_SUBS` are the **owners**, administrators by
+  default; they invite administrators by email (`POST /api/admin/invitations`), revoke a pending
+  invitation and remove an administrator. An invitation sends no mail, lasts seven days and works
+  once: the person who signs in with that email verified accepts or declines it
+  (`POST /api/admin/invitations/<id>/accept` and `…/decline`), and signing in alone makes nobody an
+  administrator; at most ten pending and twenty administrators. Owners and administrators grant
+  and revoke permissions, a catalog whose first entry is `unbranded-exports`, with
+  `GET /api/admin/permissions/<id>` and `GET` and `PUT /api/admin/accounts/<account>/permissions/<id>`
+  (`{ "granted": boolean }`), which replace the three `…/entitlements` routes; `<account>` is an
+  account id, `@<handle>` or the one email an account signed in with verified, and no route lists
+  accounts. Every act, takedowns included, is written to a log, swept after a year.
+  `GET /api/admin` answers the section's data, and `GET /api/session` the person's role
+  (`user.administration`) and pending invitation (`user.administrationInvitation`). Migration 0006
+  adds `administrators`, `admin_invitations` and `admin_log`; new errors `admin.already`,
+  `admin.limit` and `account.ambiguous`
+  ([decision 0065](docs/decisions/0065-administrators-and-permissions.md)).
 
 ### Canvas (VS Code and the playground)
 

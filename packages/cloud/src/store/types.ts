@@ -7,6 +7,12 @@ export const MAX_TOKENS = 20;
 /** The most members plus pending invitations a project may hold (the owner is not counted). */
 export const MAX_MEMBERS = 50;
 
+/** The most administrators the service may have; the owners are not counted. */
+export const MAX_ADMINISTRATORS = 20;
+
+/** The most invitations to administer that may be pending at once. */
+export const MAX_ADMIN_INVITATIONS = 10;
+
 /** What the service caches of a person from the session token. */
 export interface UserProfile {
   readonly sub: string;
@@ -122,6 +128,61 @@ export interface Publication {
   /** The size of the stored HTML. */
   readonly bytes: number;
 }
+
+/** A person an owner invited, who accepted (`service-administration`). */
+export interface Administrator {
+  readonly sub: string;
+  /** The owner who invited them. */
+  readonly invitedBy: string;
+  /** When they accepted. */
+  readonly since: Iso;
+}
+
+/** An owner's invitation of an email to administer the service, as the store keeps it. */
+export interface AdminInvitation {
+  /** 32 lowercase hexadecimal characters; names the invitation, and is no secret. */
+  readonly id: string;
+  /** Lower-case. */
+  readonly email: string;
+  readonly invitedBy: string;
+  readonly createdAt: Iso;
+  /** Seven days after `createdAt`; pending before it, expired from it on. */
+  readonly expiresAt: Iso;
+  readonly acceptedAt: Iso | null;
+  readonly declinedAt: Iso | null;
+  readonly revokedAt: Iso | null;
+}
+
+/** What an administration act was. */
+export type AdminAction =
+  | "invite"
+  | "revoke-invitation"
+  | "accept"
+  | "decline"
+  | "remove"
+  | "leave"
+  | "grant"
+  | "revoke"
+  | "takedown";
+
+/**
+ * An administration act as the log keeps it, appended in the same atomic step as the act: who,
+ * when, what, to whom (an account, or the invited email), and the permission id or the
+ * publication and its reason.
+ */
+export interface AdminLogEntry {
+  /** 32 lowercase hexadecimal characters. */
+  readonly id: string;
+  readonly at: Iso;
+  readonly bySub: string;
+  readonly action: AdminAction;
+  readonly targetSub: string | null;
+  readonly targetEmail: string | null;
+  readonly detail: string;
+}
+
+/** What accepting an invitation to administer did. */
+export type AdminAcceptance = "accepted" | "limit" | "none";
 
 /** A publication an administrator of the service removes, and why: what `takeDown` is given. */
 export interface NewTakedown {
@@ -265,7 +326,8 @@ export interface CloudStore {
    * atomic step. The invitations the person created are on projects they own, and go with them
    * (only an owner invites). A repeat of the same event id changes nothing and answers
    * `"duplicate"`. The `blobs` rows are content-addressed and shared, so they stay for the weekly
-   * collection; the `takedowns` stay, they are the service's record. The caller reads
+   * collection; the `takedowns` and the administration log stay, they are the service's record.
+   * The person's administrator row and the pending invitations to administer they made go too. The caller reads
    * `projectIdsOf(sub)` and `publicationsOwnedBy(sub)` first, to destroy the rooms, the thumbnails
    * and the published pages.
    */
@@ -299,7 +361,8 @@ export interface CloudStore {
    * Removes what nothing else would, whoever it belongs to: the approval codes that expired at or
    * before `now`, the failed exchanges more than an hour older than `now` (one exactly an hour
    * old stays), the handled deletion events more than 31 days older (one exactly that old
-   * stays) and the publish requests more than an hour older (one exactly an hour old stays). A
+   * stays), the publish requests more than an hour older (one exactly an hour old stays) and the
+   * administration log's entries more than 365 days older (one exactly that old stays). A
    * code is taken by its exchange and a caller's failures are pruned when that caller fails
    * again, so a code nobody exchanges, or a caller who never returns, would stay for ever.
    * The routes that add such rows call this first, so that a flood of them leaves the tables the
@@ -543,9 +606,64 @@ export interface CloudStore {
    * administrator and the time, in one statement: `"missing"` for a person with no row, who is
    * then not written.
    */
-  setUnbrandedExports(sub: string, on: boolean, by: string, at: Iso): Promise<"set" | "missing">;
+  setUnbrandedExports(
+    sub: string,
+    on: boolean,
+    by: string,
+    at: Iso,
+    log?: AdminLogEntry,
+  ): Promise<"set" | "missing">;
   /** The people entitled to export without the branding, the earliest grant first. */
   entitledUsers(): Promise<User[]>;
+  /**
+   * The people whose cached email is `email` (compared in lower case) and verified, in the order
+   * their rows were made: an administrator's lookup of one account by email. No index serves it:
+   * it is rare, and an index would be written with every refresh of a profile.
+   */
+  usersByEmail(email: string): Promise<User[]>;
+
+  // ---- Administration ------------------------------------------------------------------------
+  // Every write below that has a `log` appends it in the same atomic step as its change, and only
+  // when the change happened.
+
+  /** The administrators, the earliest to accept first. */
+  administrators(): Promise<Administrator[]>;
+  administrator(sub: string): Promise<Administrator | undefined>;
+  /** Removes an administrator's row; false when there was none, and then nothing is logged. */
+  removeAdministrator(sub: string, log: AdminLogEntry): Promise<boolean>;
+  /**
+   * Records an invitation unless `limit` invitations are pending (unaccepted, undeclined,
+   * unrevoked and unexpired at `invitation.createdAt`), in one statement with its log entry.
+   */
+  createAdminInvitation(
+    invitation: AdminInvitation,
+    limit: number,
+    log: AdminLogEntry,
+  ): Promise<"created" | "limit">;
+  /** The invitations pending and unexpired at `now`, the earliest first. */
+  adminInvitations(now: Iso): Promise<AdminInvitation[]>;
+  /** The pending, unexpired invitation addressed to `email` (lower-case) at `now`, if any. */
+  adminInvitationFor(email: string, now: Iso): Promise<AdminInvitation | undefined>;
+  /** Revokes a pending, unexpired invitation; false when there is none. */
+  revokeAdminInvitation(id: string, now: Iso, log: AdminLogEntry): Promise<boolean>;
+  /**
+   * Accepts the pending, unexpired invitation `id` addressed to `email` for `sub`: the
+   * administrator's row and the invitation's mark in one atomic step, unless `limit`
+   * administrators exist (`"limit"`, nothing written). `"none"` when there is no such
+   * invitation, or `sub` already has a row.
+   */
+  acceptAdminInvitation(
+    id: string,
+    sub: string,
+    email: string,
+    now: Iso,
+    limit: number,
+    log: AdminLogEntry,
+  ): Promise<AdminAcceptance>;
+  /** Declines the pending, unexpired invitation `id` addressed to `email`; false when there is none. */
+  declineAdminInvitation(id: string, email: string, now: Iso, log: AdminLogEntry): Promise<boolean>;
+  /** The latest `limit` entries of the log, the newest first. */
+  adminLog(limit: number): Promise<AdminLogEntry[]>;
 
   // ---- Publications ------------------------------------------------------------------------
 
@@ -590,7 +708,7 @@ export interface CloudStore {
    * to, in one atomic step; answers the publication removed (whose object the caller deletes), or
    * undefined when there is none and then records nothing.
    */
-  takeDown(takedown: NewTakedown): Promise<Publication | undefined>;
+  takeDown(takedown: NewTakedown, log?: AdminLogEntry): Promise<Publication | undefined>;
   /** The takedowns of a handle, the latest first. */
   takedownsOf(handle: string): Promise<Takedown[]>;
 }

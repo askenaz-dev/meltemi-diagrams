@@ -23,6 +23,42 @@ export interface SessionUser {
    * administrator grants. True only when the answer says exactly that.
    */
   readonly entitlements: { readonly unbranded: boolean };
+  /**
+   * What the person is to the administration of the service: an owner, an administrator, or
+   * nothing (null). The cookie shape carries it; anything else reads as null.
+   */
+  readonly administration: { readonly role: "owner" | "administrator" } | null;
+  /**
+   * The pending invitation to administer addressed to the person's verified email, which the
+   * Administration section of the account panel accepts or declines; null when there is none.
+   */
+  readonly administrationInvitation: AdministrationInvitation | null;
+}
+
+/** An invitation to administer, as the session answer gives it to its addressee. */
+export interface AdministrationInvitation {
+  readonly id: string;
+  /** The name of the owner who invited; may be empty. */
+  readonly invitedBy: string;
+  readonly expiresAt: string;
+}
+
+/** The role an answer gives, or null for anything that is not exactly one. */
+function administrationOf(value: unknown): SessionUser["administration"] {
+  if (!isObject(value)) return null;
+  const role = value["role"];
+  return role === "owner" || role === "administrator" ? { role } : null;
+}
+
+/** The pending invitation an answer gives, or null for anything that is not one. */
+function invitationOf(value: unknown): AdministrationInvitation | null {
+  if (!isObject(value)) return null;
+  const { id, invitedBy, expiresAt } = value;
+  if (typeof id !== "string" || !/^[0-9a-f]{32}$/.test(id)) return null;
+  if (typeof expiresAt !== "string" || Number.isNaN(Date.parse(expiresAt))) return null;
+  const name =
+    isObject(invitedBy) && typeof invitedBy["name"] === "string" ? invitedBy["name"] : "";
+  return { id, invitedBy: name, expiresAt };
 }
 
 /**
@@ -111,7 +147,8 @@ function webAddress(value: unknown): string | undefined {
 
 function userOf(value: unknown, page: string): SessionUser | undefined {
   if (!isObject(value)) return undefined;
-  const { sub, name, picture, handle, entitlements } = value;
+  const { sub, name, picture, handle, entitlements, administration, administrationInvitation } =
+    value;
   if (typeof sub !== "string" || sub === "" || typeof name !== "string") return undefined;
   return {
     sub,
@@ -121,6 +158,8 @@ function userOf(value: unknown, page: string): SessionUser | undefined {
     entitlements: {
       unbranded: isObject(entitlements) && entitlements["unbranded"] === true,
     },
+    administration: administrationOf(administration),
+    administrationInvitation: invitationOf(administrationInvitation),
   };
 }
 

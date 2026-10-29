@@ -15,8 +15,11 @@ export interface Config extends IdentitySettings {
   /** The service's own origin: `ORIGIN`, or the request's own in development. */
   readonly origin: string;
   readonly host: string;
-  /** The `sub`s listed in `ADMIN_SUBS`: who may take a publication down. Empty when it is unset. */
-  readonly admins: ReadonlySet<string>;
+  /**
+   * The owners of the service: the `sub`s listed in `ADMIN_SUBS`, always administrators and the only
+   * ones who invite or remove administrators (`service-administration`). Empty when it is unset.
+   */
+  readonly owners: ReadonlySet<string>;
   /**
    * `PUBLISH_HOST` as given, trimmed; undefined when unset or empty. It is checked only where an
    * address is built (`publishHostOf`), so a value the service cannot use costs publishing and
@@ -69,8 +72,8 @@ export function readIdentity(env: Env): IdentitySettings {
   return { issuer, jwksUrl, dev, inlineJwks };
 }
 
-/** The administrators of the service: `ADMIN_SUBS` is a comma separated list of `sub`s; unset or empty is nobody. */
-function readAdmins(value: string | undefined): ReadonlySet<string> {
+/** The owners of the service: `ADMIN_SUBS` is a comma separated list of `sub`s; unset or empty is nobody. */
+function readOwners(value: string | undefined): ReadonlySet<string> {
   return new Set(
     (value ?? "")
       .split(",")
@@ -89,7 +92,7 @@ export function readConfig(env: Env, request: Request): Config {
     ...identity,
     origin,
     host: new URL(origin).host,
-    admins: readAdmins(env.ADMIN_SUBS),
+    owners: readOwners(env.ADMIN_SUBS),
     publishHost: publishHost === "" ? undefined : publishHost,
   };
 }

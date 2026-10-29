@@ -105,7 +105,7 @@ only when they choose it. Six things keep them safe:
 ## Sharing and publishing
 
 Sharing and publishing (decision 0042, [cloud](cloud.md)) let a person's work reach other people,
-again only when they choose it, and a new project is private. Four things keep them safe:
+again only when they choose it, and a new project is private. Five things keep them safe:
 
 - **One permission check.** Who may open a project, and as what (`owner`, `editor` or `viewer`), is
   decided in one function that every route and the socket ask ([roles](cloud.md#roles)). A project
@@ -137,10 +137,22 @@ again only when they choose it, and a new project is private. Four things keep t
   catalog's own policy, which allows inline script and style and pictures and fonts from `data:` and
   `blob:`, and nothing else; the service does not check that the HTML is a catalog, and the
   isolation does not depend on it. A page is at most 16 MiB and a project may publish ten times an
-  hour; the owner unpublishes, and the administrators listed in `ADMIN_SUBS` take a page down
-  ([takedown](cloud.md#takedown)) and entitle an account to export without the branding
-  ([entitlements](cloud.md#entitlements)), routes that answer `404` to everybody else. The development
+  hour; the owner unpublishes, and the owners and administrators of the service take a page down
+  ([takedown](cloud.md#takedown)), with routes that answer `404` to everybody else. The development
   route that serves a page from the service's own origin answers `404` unless `DEV` is set.
+- **Administration by invitation, with no list of users.** The owners are the accounts the
+  `ADMIN_SUBS` secret names, and the page cannot add or remove them. They invite administrators by
+  email; an invitation sends no mail, lasts seven days, and makes an administrator only of the person
+  who signs in with that email verified and chooses Accept, never by signing in alone. Owners and
+  administrators grant and revoke permissions, such as exporting without the branding, and take
+  pages down; only owners invite and remove administrators, and an administrator may leave. Every
+  administration route takes the session cookie on the page's own origin and answers `404` to
+  everybody else, to an API token of an owner too, and the role is read on every request, so a
+  removal counts at once. No route lists, searches or counts the accounts: an account is named by
+  its id, its handle or the one email it signed in with verified, and only an owner or an
+  administrator learns whether an email has an account. Every act is written to a log with who did
+  it and when, in the same step as the act; the log keeps the emails of invitations and is swept a
+  year after each entry ([administration](cloud.md#administration)).
 
 ## The command line and the cloud
 

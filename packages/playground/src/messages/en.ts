@@ -80,6 +80,8 @@ export const en = {
     menu: "Account",
     account: "Account",
     tokens: "API tokens",
+    administration: "Administration",
+    administrationInvitation: "Invitation to administer",
     signOut: "Sign out",
   },
 

@@ -16,12 +16,12 @@ const BOX = "Export without the Meltemi branding";
 const NOTICE = "Without the Meltemi branding.";
 const HEADING = "Exports without the Meltemi branding";
 
-/** The account's entitlement, set by the administrator through the Worker. */
+/** The account's permission `unbranded-exports`, set by the administrator through the Worker. */
 async function entitle(admin: Person, account: string, unbranded = true): Promise<void> {
   const answer = await admin.api(
     "PUT",
-    `/api/admin/accounts/${encodeURIComponent(account)}/entitlements`,
-    { unbranded },
+    `/api/admin/accounts/${encodeURIComponent(account)}/permissions/unbranded-exports`,
+    { granted: unbranded },
   );
   assert.equal(answer.status, 200, answer.text);
 }
@@ -154,14 +154,14 @@ export const unbrandedScenarios: Scenario[] = [
       assert.equal(chosen.status, 200, chosen.text);
       await entitle(admin, "@suite-unbranded");
 
-      const listed = await admin.api("GET", "/api/admin/entitlements");
-      const accounts = (listed.json()["accounts"] ?? []) as {
+      const listed = await admin.api("GET", "/api/admin/permissions/unbranded-exports");
+      const accounts = (listed.json()["holders"] ?? []) as {
         sub: string;
-        entitlements: { by: string };
+        by: { sub: string };
       }[];
       const mine = accounts.find((account) => account.sub === t.me.sub);
       assert.ok(mine, "the list holds the person");
-      assert.equal(mine.entitlements.by, ADMIN_SUB);
+      assert.equal(mine.by.sub, ADMIN_SUB);
 
       await t.open("/");
       assert.equal(await (await openExport(page)).getByLabel(BOX).count(), 1);
@@ -169,8 +169,8 @@ export const unbrandedScenarios: Scenario[] = [
       await noDialog(page);
 
       await entitle(admin, "@suite-unbranded", false);
-      const after = await admin.api("GET", "/api/admin/entitlements");
-      const still = ((after.json()["accounts"] ?? []) as { sub: string }[]).map((a) => a.sub);
+      const after = await admin.api("GET", "/api/admin/permissions/unbranded-exports");
+      const still = ((after.json()["holders"] ?? []) as { sub: string }[]).map((a) => a.sub);
       assert.equal(still.includes(t.me.sub), false);
       await t.open("/");
       assert.equal(await (await openExport(page)).getByLabel(/branding/i).count(), 0);

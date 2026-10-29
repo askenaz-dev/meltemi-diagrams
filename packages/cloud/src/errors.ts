@@ -78,6 +78,12 @@ export const ERROR_STATUS = {
   "awareness.rate": 429,
   /** Ten connections without an account are open from the client's address already (`4428` on the socket). */
   "connections.limit": 429,
+  /** An invitation to administer for the email of a person who already administers the service. */
+  "admin.already": 409,
+  /** Ten invitations to administer pending, or twenty administrators, already. */
+  "admin.limit": 409,
+  /** An email that more than one account signed in with: the account id names one. */
+  "account.ambiguous": 409,
   /** The live session that admitted the connection ended (`4410` on the socket). */
   "session.ended": 410,
   /** The identity service keeps the last way a person signs in. */
@@ -158,6 +164,9 @@ const MESSAGES: Record<ErrorCode, string> = {
   "room.full": "The project is open on as many devices and by as many guests as it may be.",
   "awareness.rate": "Too many presence updates in a second.",
   "connections.limit": "Too many connections without an account from this network.",
+  "admin.already": "That person administers the service already.",
+  "admin.limit": "The administration of the service is at its limit.",
+  "account.ambiguous": "Several accounts signed in with this email; name one by its id.",
   "session.ended": "The live session ended.",
   "identity.last": "This is the only way you sign in; link another provider first.",
   "provider.unknown": "Meltemi signs you in with GitHub or Google only.",

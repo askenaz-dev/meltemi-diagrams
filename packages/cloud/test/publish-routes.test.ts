@@ -1145,6 +1145,57 @@ describe("DELETE /api/admin/publications/:handle/:slug (the takedown)", () => {
     expect((await visit(w, "/ana/keep/")).status).toBe(200);
   });
 
+  it("logs the takedown with the address and the reason", async () => {
+    const w = await published();
+    w.h.clock.advance(HOUR);
+    await w.ask(ADMIN, "DELETE", url(), { reason: "spam" });
+    expect(await w.h.store.adminLog(10)).toMatchObject([
+      { bySub: ADMIN, action: "takedown", targetSub: null, detail: "ana/purchase: spam" },
+    ]);
+  });
+
+  it("is open to an administrator an owner invited, not listed in ADMIN_SUBS", async () => {
+    const w = await published();
+    const at = w.h.clock.now().toISOString();
+    const id = "0123456789abcdef0123456789abcdef";
+    const log = (n: number, action: "invite" | "accept") => ({
+      id: String(n).padStart(32, "0"),
+      at,
+      bySub: ADMIN,
+      action,
+      targetSub: null,
+      targetEmail: null,
+      detail: "",
+    });
+    await w.h.store.createAdminInvitation(
+      {
+        id,
+        email: "carla@example.com",
+        invitedBy: ADMIN,
+        createdAt: at,
+        expiresAt: new Date(Date.parse(at) + HOUR).toISOString(),
+        acceptedAt: null,
+        declinedAt: null,
+        revokedAt: null,
+      },
+      10,
+      log(1, "invite"),
+    );
+    await w.h.store.acceptAdminInvitation(
+      id,
+      "u-carla",
+      "carla@example.com",
+      at,
+      20,
+      log(2, "accept"),
+    );
+
+    const response = await w.ask("u-carla", "DELETE", url(), { reason: "spam" });
+
+    expect(response.status).toBe(204);
+    expect((await w.h.store.takedownsOf("ana"))[0]?.bySub).toBe("u-carla");
+  });
+
   it("shows the owner the publication as removed by the service, with the reason", async () => {
     const w = await published();
     w.h.clock.advance(HOUR);
