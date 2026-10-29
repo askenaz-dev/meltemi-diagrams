@@ -81,6 +81,43 @@ describe("lists in the semantic diff", () => {
   });
 });
 
+describe("tags in the semantic diff", () => {
+  const sheet = (block: string) =>
+    `diagram pay: sequence {\n  participant api\n  participant bank\n  api -> bank: "Authorize" as authorize${block}\n}\n`;
+  const changes = (before: string, after: string) =>
+    diffDocuments(compile(before).document, compile(after).document).map((c) => describeChange(c));
+
+  it("reports that the tags of a message changed when one is added, and nothing else", () => {
+    const after = diffDocuments(
+      compile(sheet("")).document,
+      compile(sheet(' { tag "PKCE" }')).document,
+    );
+    expect(after).toHaveLength(1);
+    expect(after[0]).toMatchObject({ kind: "changed", subject: "relation", id: "authorize" });
+    expect(after[0]!.facts).toEqual([{ fact: "changed", part: "tags" }]);
+    expect(after[0]!.details).toEqual(["tags changed"]);
+    expect(changes(sheet(""), sheet(' { tag "PKCE" }'))).toEqual([
+      "~ relation authorize (api → bank: Authorize): tags changed",
+    ]);
+    // Reordered tags are other tags; a participant's are compared as a message's.
+    expect(changes(sheet(' { tag "A"; tag "B" }'), sheet(' { tag "B"; tag "A" }'))).toEqual([
+      "~ relation authorize (api → bank: Authorize): tags changed",
+    ]);
+    expect(
+      changes(
+        sheet(""),
+        sheet("").replace("participant bank", 'participant bank { tag "external" }'),
+      ),
+    ).toEqual(["~ element bank: tags changed"]);
+  });
+
+  it("lists nothing when only a comment beside a tag changes, or its statement is reformatted", () => {
+    const before = sheet(' { tag "PKCE" // first\n  }');
+    expect(changes(before, sheet(' { tag "PKCE" // second\n  }'))).toEqual([]);
+    expect(changes(before, sheet(' {\n    tag "PKCE"\n  }'))).toEqual([]);
+  });
+});
+
 describe("semantic diff", () => {
   it("finds nothing between equal versions, whatever the comments and layout of the text", () => {
     expect(diff(BASE)).toEqual([]);

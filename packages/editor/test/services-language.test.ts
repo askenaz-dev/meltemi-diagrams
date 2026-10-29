@@ -123,6 +123,11 @@ const SCENARIOS: Record<string, () => { analysis: DocumentAnalysis; offset: numb
       "diagram s: sequence {\n  a -> b\n  deactivate b\n  activate ghost\n}\n",
       "ref.unknown-element",
     ),
+  "a misspelt tag": () =>
+    atDiagnostic(
+      'diagram s: sequence {\n  a -> b: "Ask" {\n    tga "PKCE"\n  }\n}\n',
+      "prop.unknown",
+    ),
   "an unknown layer": () => at('diagram s: free {\n  box a "A" { layer fr|ont }\n}\n'),
   "an unknown link": () =>
     at('diagram f: flow {\n  api["API"]\n}\ndiagram s: free {\n  box a "A" { link f.ap|x }\n}\n'),
@@ -197,6 +202,84 @@ describe("the words of the language services", () => {
     } finally {
       setLocale("en");
     }
+  });
+});
+
+describe("tags in the sequence language services", () => {
+  const SHEET = `diagram s: sequence {
+  group core "Core" {
+    participant api "API"
+  }
+  participant bank "Bank" {
+    tag "external"
+  }
+  customer -> api: "Pay" {
+    kind async
+  }
+  api -> bank: "Authorize" as authorize {
+    tag "PKCE"
+  }
+}
+`;
+  const labels = (source: string) => {
+    const { analysis, offset } = at(source);
+    return completions(analysis, offset).map((i) => i.label);
+  };
+
+  it("offers `tag` in a call block with the message's properties and events", () => {
+    const items = labels(SHEET.replace("    kind async\n", "    kind async\n    |\n"));
+    expect(items).toEqual(
+      expect.arrayContaining(["return", "kind", "description", "assumption", "class", "tag"]),
+    );
+    expect(items).toEqual(expect.arrayContaining(["alt", "loop", "note"]));
+  });
+
+  it("offers `tag` in a participant block, never in a group block or a fragment", () => {
+    const participant = labels(
+      SHEET.replace('    tag "external"\n', '    tag "external"\n    |\n'),
+    );
+    expect(participant).toEqual(expect.arrayContaining(["tag", "description", "class", "link"]));
+    const group = labels(
+      SHEET.replace('    participant api "API"\n', '    participant api "API"\n    |\n'),
+    );
+    expect(group).not.toContain("tag");
+    const fragment = labels(SHEET.replace("  }\n}\n", '  }\n  alt check "OK" {\n    |\n  }\n}\n'));
+    expect(fragment).toContain("note");
+    expect(fragment).not.toContain("tag");
+    // In a flow diagram `tag` declares a pill of its own, at the top.
+    const flow = labels('diagram f: flow {\n  api["API"] {\n    |\n  }\n}\n');
+    expect(flow).not.toContain("tag");
+  });
+
+  it("says what a tag marks: its message or its participant", () => {
+    const hovered = (marker: string, source = SHEET) => {
+      const { analysis, offset } = at(source.replace(marker, `|${marker}`));
+      return hover(analysis, offset + 1)!.markdown;
+    };
+    expect(hovered('"PKCE"')).toBe("**tag** “PKCE” — a tag of the message `authorize`");
+    expect(hovered('tag "PKCE"')).toBe("**tag** “PKCE” — a tag of the message `authorize`");
+    expect(hovered('"external"')).toBe("**tag** “external” — a tag of the participant `bank`");
+    // An anonymous message by its ends.
+    const anonymous = SHEET.replace("    kind async\n", '    kind async\n    tag "v2"\n');
+    expect(hovered('"v2"', anonymous)).toBe(
+      "**tag** “v2” — a tag of the message `customer -> api`",
+    );
+    setLocale("es");
+    try {
+      expect(hovered('"PKCE"')).toBe("**marca** “PKCE” — una marca del mensaje `authorize`");
+    } finally {
+      setLocale("en");
+    }
+  });
+
+  it("corrects a misspelt `tag` in a message block", () => {
+    const { analysis, offset } = atDiagnostic(
+      SHEET.replace('    tag "PKCE"\n', '    tga "PKCE"\n'),
+      "prop.unknown",
+    );
+    expect(codeActions(analysis, { start: offset, end: offset }).map((a) => a.title)).toContain(
+      "Change to `tag`",
+    );
   });
 });
 

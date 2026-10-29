@@ -10,7 +10,7 @@ import { takesShape, type ElementKind } from "@meltemi/diagrams-model";
 import { insertStatement, reject, requireElement, type EditContext } from "./context.js";
 import { declarationText } from "./create.js";
 import { deleteStatements } from "./delete.js";
-import { diagramBody, insertDeclaration, isKeyword } from "./insert.js";
+import { declareImplicit, isKeyword } from "./insert.js";
 import type { OperationOf } from "./plan.js";
 import { requireRelation } from "./relations.js";
 import { setStyleProperty } from "./styles.js";
@@ -18,11 +18,6 @@ import { reasons } from "./messages/index.js";
 import { quoteString } from "./text.js";
 
 type Declaration = ShorthandDeclaration | KeywordStatement;
-
-/** Declares an implicit element, so that it can carry a label, a description or a kind. */
-function declareImplicit(ctx: EditContext, text: string): TextEdit {
-  return insertDeclaration(ctx, diagramBody(ctx), ctx.diagram.node.start, () => text);
-}
 
 /** The string literal that holds the label of a declaration, if it is written. */
 function labelToken(node: Declaration): { start: number; end: number; text: string } | undefined {
@@ -43,7 +38,11 @@ export function setElementLabel(ctx: EditContext, op: OperationOf<"setElementLab
   const node = element.node;
   if (!node) {
     return [
-      declareImplicit(ctx, declarationText(element.kind, element.id, op.label, ctx.diagram.type)),
+      declareImplicit(
+        ctx,
+        element,
+        declarationText(element.kind, element.id, op.label, ctx.diagram.type),
+      ),
     ];
   }
   const token = labelToken(node);
@@ -71,6 +70,7 @@ export function setDescription(ctx: EditContext, op: OperationOf<"setDescription
       return [
         declareImplicit(
           ctx,
+          element,
           `${declarationText(element.kind, element.id, element.label, ctx.diagram.type)} { description ${quoteString(op.description)} }`,
         ),
       ];
@@ -147,7 +147,11 @@ export function setElementKind(ctx: EditContext, op: OperationOf<"setElementKind
   const node = element.node;
   if (!node) {
     return [
-      declareImplicit(ctx, declarationText(kind, element.id, element.label, ctx.diagram.type)),
+      declareImplicit(
+        ctx,
+        element,
+        declarationText(kind, element.id, element.label, ctx.diagram.type),
+      ),
       ...unshaped,
     ];
   }
@@ -177,6 +181,7 @@ export function setClasses(ctx: EditContext, op: OperationOf<"setClasses">): Tex
       return [
         declareImplicit(
           ctx,
+          element,
           `${declarationText(element.kind, element.id, element.label, ctx.diagram.type)} { ${text} }`,
         ),
       ];

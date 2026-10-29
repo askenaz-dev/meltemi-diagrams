@@ -15,6 +15,7 @@ import type {
   StoryAction,
   StoryDefinition,
   StoryScene,
+  TagUse,
   ThemeDefinition,
 } from "./types.js";
 
@@ -88,7 +89,8 @@ export type ChangedPart =
   | "actions"
   | "assumption"
   | "ends"
-  | "heads";
+  | "heads"
+  | "tags";
 
 /** States a change can leave something in. */
 export type ChangeState =
@@ -247,6 +249,14 @@ function elementSimilarity(b: FlowDiagram, be: Element, a: FlowDiagram, ae: Elem
   return score;
 }
 
+/** Whether two owners write the same tags in the same order, wherever they are written. */
+function sameTags(before: readonly TagUse[], after: readonly TagUse[]): boolean {
+  return same(
+    before.map((t) => t.text),
+    after.map((t) => t.text),
+  );
+}
+
 function elementDetails(b: FlowDiagram, be: Element, a: FlowDiagram, ae: Element): ChangeFact[] {
   const details: ChangeFact[] = [];
   value(details, "kind", be.kind, ae.kind);
@@ -261,6 +271,7 @@ function elementDetails(b: FlowDiagram, be: Element, a: FlowDiagram, ae: Element
   const bc = be.classes.map((c) => c.name);
   const ac = ae.classes.map((c) => c.name);
   if (!same(bc, ac)) details.push({ fact: "classes", before: bc, after: ac });
+  if (!sameTags(be.tags, ae.tags)) details.push({ fact: "changed", part: "tags" });
   const bg = be.groupPath.at(-1) ?? null;
   const ag = ae.groupPath.at(-1) ?? null;
   if (bg !== ag) details.push({ fact: "group", from: bg, to: ag });
@@ -336,6 +347,7 @@ function relationDetails(b: FlowDiagram, br: Relation, a: FlowDiagram, ar: Relat
   const bc = br.classes.map((c) => c.name);
   const ac = ar.classes.map((c) => c.name);
   if (!same(bc, ac)) details.push({ fact: "classes", before: bc, after: ac });
+  if (!sameTags(br.tags, ar.tags)) details.push({ fact: "changed", part: "tags" });
   if (!same(placementOf(b, br.key, "route"), placementOf(a, ar.key, "route"))) {
     details.push({ fact: "state", state: "rerouted" });
   }

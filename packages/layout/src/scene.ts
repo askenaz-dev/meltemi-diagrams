@@ -2,7 +2,7 @@ import type { Point } from "@meltemi/diagrams-model";
 
 export type FontRole = "body" | "mono";
 export type SceneRole =
-  "element" | "relation" | "label" | "frame" | "icon" | "lifeline" | "event" | "motion";
+  "element" | "relation" | "label" | "frame" | "icon" | "lifeline" | "event" | "motion" | "tag";
 export type TextAnchor = "start" | "middle" | "end";
 
 /** How a stroke is drawn: solid (`false`), dashed (`true`) or with round dots. */
@@ -137,6 +137,12 @@ export interface GroupItem extends Classed {
   readonly track?: readonly Point[];
   /** Elements and events: the box as drawn. */
   readonly bounds?: SceneBounds;
+  /**
+   * Tags of sequence messages and participants (role `tag`): the index of the pill among its
+   * owner's tags, in source order. The group's id is its owner's id or key, and it is drawn inside
+   * the owner's group, so whatever shows, hides or highlights the owner takes its tags with it.
+   */
+  readonly tag?: number;
   /** Stories: how visible the group is, from 0 to 1. */
   readonly opacity?: number;
   /**

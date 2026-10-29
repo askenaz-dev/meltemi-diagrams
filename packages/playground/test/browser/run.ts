@@ -1390,6 +1390,60 @@ const tests: Test[] = [
     },
   },
   {
+    name: "sequence: Activate on the toolbar writes the pair, and T writes a tag on the message",
+    async run({ page }) {
+      await page
+        .locator(".code-input")
+        .fill(
+          'language "0.2"\n\ndiagram s: sequence {\n  participant a "A"\n  participant b "B"\n  a -> b: "Ask" as ask\n  b --> a: "OK" as ok\n}\n',
+        );
+      await analysed(page);
+      // The message's group: its arrow alone is a line with no height, which never counts as shown.
+      await page.locator('#app .content g[data-id="ask"][data-role="relation"]').first().waitFor();
+      const arrow = page
+        .locator('#app .content g[data-id="ask"][data-role="relation"] polyline')
+        .first();
+      const press = async () => {
+        const box = (await arrow.boundingBox())!;
+        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      };
+      const activate = page.locator('#app .toolbar button[aria-label="Activate the receiver"]');
+      assert.equal(await activate.getAttribute("title"), "Activate the receiver (Alt+A)");
+      assert.equal(await activate.isDisabled(), true);
+      await press();
+      await until(page, "Activate enabled by the selected message", () => {
+        const button = document.querySelector(
+          '#app .toolbar button[aria-label="Activate the receiver"]',
+        );
+        return button instanceof HTMLButtonElement && !button.disabled;
+      });
+      await activate.click();
+      await until(page, "the activation pair written into the code", () =>
+        /as ask\n {2}activate b\n {2}b --> a: "OK" as ok\n {2}deactivate b\n/.test(
+          (document.querySelector(".code-input") as HTMLTextAreaElement).value,
+        ),
+      );
+      assert.equal(await activate.getAttribute("aria-pressed"), "true");
+      // T on the selected message adds a tag and opens its pill's editor.
+      await press();
+      await page.keyboard.press("t");
+      const editor = page.locator("#app textarea.inline");
+      await editor.waitFor();
+      assert.equal(await editor.inputValue(), "Tag");
+      await page.keyboard.type("PKCE");
+      await page.keyboard.press("Enter");
+      await until(page, "the tag written into the code", () =>
+        (document.querySelector(".code-input") as HTMLTextAreaElement).value.includes(
+          'a -> b: "Ask" as ask { tag "PKCE" }',
+        ),
+      );
+      await page
+        .locator('#app .content g[data-id="ask"][data-role="tag"][data-tag="0"]')
+        .first()
+        .waitFor();
+    },
+  },
+  {
     name: "draws a free line with the arrow tool and selects it",
     async run({ page }) {
       await page

@@ -85,6 +85,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -154,6 +155,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -200,6 +202,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -253,6 +256,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -306,6 +310,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -363,6 +368,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -424,6 +430,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -609,6 +616,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -694,6 +702,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -815,6 +824,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -861,6 +871,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -909,6 +920,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -978,6 +990,7 @@
           "classes": [
             "caption"
           ],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -1026,6 +1039,7 @@
           "classes": [
             "caption"
           ],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -1074,6 +1088,7 @@
           "classes": [
             "caption"
           ],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -1122,6 +1137,7 @@
           "classes": [
             "caption"
           ],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -1170,6 +1186,7 @@
           "classes": [
             "caption"
           ],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,

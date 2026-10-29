@@ -6,6 +6,7 @@ import {
 } from "@meltemi/diagrams-assets";
 import {
   CREATABLE_DIAGRAMS,
+  activationPair,
   defaultLabel,
   newDiagramId,
   planEdit,
@@ -13,7 +14,7 @@ import {
   type EditPlan,
   type PlanResult,
 } from "@meltemi/diagrams-edit";
-import { applyTextEdits, isIdentifierText } from "@meltemi/diagrams-language";
+import { applyTextEdits, isIdentifierText, type TextEdit } from "@meltemi/diagrams-language";
 import { DEFAULT_PEN_WIDTH, layoutDiagram, type Box } from "@meltemi/diagrams-layout";
 import {
   MAIN_LAYER,
@@ -22,11 +23,13 @@ import {
   type Element as ModelElement,
   type ElementKind,
   type EntityKind,
+  type EventPlace,
   type FlowDiagram,
   type LabelEntry,
   type PlaceEntry,
   type Point,
   type RouteEntry,
+  type SequenceEvent,
 } from "@meltemi/diagrams-model";
 import { diagramView, type DiagramView, type DocumentAnalysis } from "./analysis.js";
 import {
@@ -66,6 +69,8 @@ import {
   type MoveAction,
   type PreviewedAction,
   type ResizeAction,
+  type TagInfo,
+  type TextPlace,
 } from "./canvas/protocol.js";
 import { DEFAULT_GRID, snapValue, writtenCenter } from "./canvas/snapping.js";
 import { copyFragment, pasteOperations } from "./clipboard.js";
@@ -77,7 +82,14 @@ import { messages as wording } from "./messages/index.js";
 import { baseName, themeLocation, themePanel, themeTokenOperation } from "./themes.js";
 import { renderDiagram, renderLayout } from "./render.js";
 import { selectionAt } from "./services/navigation.js";
-import { eventInfos, sequenceAction, sequenceMove } from "./sequence.js";
+import {
+  activationOf,
+  allEvents,
+  eventInfos,
+  movedEvent,
+  sequenceAction,
+  sequenceMove,
+} from "./sequence.js";
 import {
   allowedKinds,
   copiedEntities,
@@ -186,12 +198,29 @@ export class CanvasSession {
   private readonly rendered = new Map<string, HostMessage>();
   private pendingSelection: string[] | undefined;
   private pendingEdit: string | undefined;
+  /** With `pendingEdit`, the index of the tag of that owner whose pill the editor opens on. */
+  private pendingTag: number | undefined;
   /** A status line to show after the next render and the selection it brings. */
   private pendingStatus: string | undefined;
   /** The participant whose gap a head drag just wrote, and the amount: said with the render. */
   private pendingGap: { readonly participant: string; readonly amount: number } | undefined;
   /** The diagram to show once it exists, after a conversion. */
   private pendingDiagram: string | undefined;
+  /**
+   * The event whose statement the last planned edit moves, by its key before the edit, with the
+   * spans of the edited text that the edit writes and the revision it was planned on: the next
+   * analysis finds it there (`movedEvent`) and the selection follows it to its key, since counted
+   * keys (`activate#2`) follow the order of the statements.
+   */
+  private pendingMove:
+    | {
+        readonly diagram: string;
+        readonly key: string;
+        readonly kind: SequenceEvent["kind"];
+        readonly written: readonly TextEdit[];
+        readonly revision: number;
+      }
+    | undefined;
   /**
    * True while the canvas shows the diagram's effects running: from the start, so a diagram with
    * effects opens animated; the canvas pauses it from the choice it remembers per diagram.
@@ -343,8 +372,14 @@ export class CanvasSession {
       });
     }
     if (render && this.pendingEdit) {
-      messages.push({ type: "select", ids: [this.pendingEdit] });
+      const tag = this.pendingTag;
+      messages.push({
+        type: "select",
+        ids: [this.pendingEdit],
+        ...(tag !== undefined ? { tag } : {}),
+      });
       this.pendingEdit = undefined;
+      this.pendingTag = undefined;
     }
     // A head drag says the gap it wrote, and what the layout drew when the floor won.
     if (render && this.pendingGap !== undefined) {
@@ -464,6 +499,17 @@ export class CanvasSession {
     if (!rendered) return undefined;
     const diagram = view.diagram;
     const geometry = rendered.geometry;
+    /** The drawn tags of a participant or a message, with their pills; none when it has none. */
+    const tagsOf = (owner: string, tags: readonly { readonly text: string }[]) => {
+      const boxes = geometry.tags.get(owner) ?? [];
+      const places: readonly (TextPlace | undefined)[] = geometry.texts.tags.get(owner) ?? [];
+      const drawn = tags.flatMap((tag, i): TagInfo[] => {
+        const box = boxes[i];
+        const place = places[i];
+        return box ? [{ text: tag.text, box, ...(place ? { place } : {}) }] : [];
+      });
+      return drawn.length > 0 ? { tags: drawn } : {};
+    };
     const elements: ElementInfo[] = [];
     for (const element of diagram.elements) {
       const box = geometry.boxes.get(element.id);
@@ -521,6 +567,7 @@ export class CanvasSession {
         ...(line ? { line } : {}),
         ...(pen ? { pen } : {}),
         ...(list ? { list } : {}),
+        ...tagsOf(element.id, element.tags),
       });
     }
     const relations: RelationInfo[] = [];
@@ -528,6 +575,7 @@ export class CanvasSession {
       const connector = geometry.connectors.get(relation.key);
       if (!connector) continue;
       const text = geometry.texts.relations.get(relation.key);
+      const activation = diagram.type === "sequence" ? activationOf(diagram, relation) : undefined;
       relations.push({
         key: relation.key,
         named: relation.id !== null,
@@ -544,6 +592,8 @@ export class CanvasSession {
         layer: relation.layer,
         ...(text ? { text } : {}),
         ...(relation.returns !== null ? { returns: relation.returns } : {}),
+        ...tagsOf(relation.key, relation.tags),
+        ...(activation ? { activation } : {}),
       });
     }
     const events = (
@@ -557,6 +607,18 @@ export class CanvasSession {
       ...relations.map((r) => r.key),
       ...events.map((e) => e.key),
     ]);
+    // An event the last edit moved keeps its place in the selection under the key it has now.
+    const move = this.pendingMove;
+    if (move && move.revision !== analysis.revision) {
+      this.pendingMove = undefined;
+      const now = move.diagram === diagram.id ? movedEvent(diagram, move.kind, move.written) : null;
+      if (now && now.key !== move.key) {
+        const follow = (ids: readonly string[]) =>
+          ids.map((id) => (id === move.key ? now.key : id));
+        if (this.pendingSelection) this.pendingSelection = follow(this.pendingSelection);
+        else this.selection = follow(this.selection);
+      }
+    }
     if (this.pendingSelection) {
       this.selection = this.pendingSelection.filter((id) => valid.has(id));
       this.pendingSelection = undefined;
@@ -1078,6 +1140,8 @@ export class CanvasSession {
     if (!result.ok) {
       this.pendingSelection = undefined;
       this.pendingEdit = undefined;
+      this.pendingTag = undefined;
+      this.pendingMove = undefined;
       this.pendingStatus = undefined;
       this.pendingDiagram = undefined;
       return {
@@ -1718,6 +1782,8 @@ export class CanvasSession {
   }
 
   private act(action: CanvasAction): SessionResult {
+    // Only the action that adds a tag opens the editor on a pill.
+    this.pendingTag = undefined;
     const story = this.storyAction(action);
     if (story) return story;
     // A file without diagrams can have one created.
@@ -1754,6 +1820,8 @@ export class CanvasSession {
       return box ? center(box) : undefined;
     };
     const ops: EditOperation[] = [];
+    /** An event whose statement the operations move, which the selection follows. */
+    let follow: SequenceEvent | undefined;
     if (diagram.type === "c4") {
       const result = this.c4Action(view, action);
       if (result) return result;
@@ -1767,8 +1835,16 @@ export class CanvasSession {
       case "unnestCall":
       case "addReturn":
       case "insertEvent":
-      case "wrap": {
-        if (diagram.type !== "sequence") break;
+      case "wrap":
+      case "moveActivation":
+      case "addTag":
+      case "setTag":
+      case "removeTag": {
+        // Tags are planned on any diagram, so that the edit says why only sequence diagrams
+        // take them.
+        const tagging =
+          action.kind === "addTag" || action.kind === "setTag" || action.kind === "removeTag";
+        if (diagram.type !== "sequence" && !tagging) break;
         const result = sequenceAction(view, action);
         if (!result.ok) {
           return {
@@ -1776,6 +1852,12 @@ export class CanvasSession {
           };
         }
         if (result.select) this.pendingSelection = result.select;
+        if (result.follow) follow = diagram.eventsByKey.get(result.follow);
+        if (result.editTag) {
+          // The editor opens on the new pill once it is drawn.
+          this.pendingEdit = result.editTag.owner;
+          this.pendingTag = result.editTag.index;
+        }
         ops.push(...result.operations);
         break;
       }
@@ -2132,21 +2214,54 @@ export class CanvasSession {
         const gone = new Set(elements);
         for (const id of elements)
           ops.push({ kind: "removeElement", diagram: d, element: id, cascade: action.cascade });
+        // Messages and other events go unless a selected fragment or call around them goes with
+        // its block; an activation goes with its other end, and so does one with an end inside a
+        // fragment or a call that goes, so that no bar is left closing nothing. Both ends are read
+        // here, on the text as it is, and each is removed alone: a removal planned before it in
+        // the batch cannot pair it with another bar's end. The last statement goes first, so that
+        // the keys of the ones before it, which count statements in order, stay what they are.
+        const removed = new Set(action.ids);
+        const inRemoved = (e: { readonly path: readonly EventPlace[] }) =>
+          e.path.some((p) => removed.has("fragment" in p ? p.fragment : p.message));
+        const removals = new Map<string, { readonly start: number; readonly op: EditOperation }>();
+        /** An event removed by its exact key; an end of an activation without its other end. */
+        const removeExactly = (event: SequenceEvent) => {
+          const activation = event.kind === "activate" || event.kind === "deactivate";
+          removals.set(event.key, {
+            start: event.node.start,
+            op: {
+              kind: "removeEvent",
+              diagram: d,
+              event: event.key,
+              ...(activation ? { alone: true } : {}),
+            },
+          });
+        };
         for (const key of action.ids) {
           const relation = diagram.relationsByKey.get(key);
-          if (!relation || gone.has(relation.from) || gone.has(relation.to)) continue;
-          ops.push({ kind: "removeRelation", diagram: d, relation: key });
+          if (relation) {
+            const message = diagram.eventsByKey.get(key);
+            if (gone.has(relation.from) || gone.has(relation.to)) continue;
+            if (message && inRemoved(message)) continue;
+            removals.set(key, {
+              start: relation.range.start.offset,
+              op: { kind: "removeRelation", diagram: d, relation: key },
+            });
+            continue;
+          }
+          const found = diagram.eventsByKey.get(key);
+          if (!found || found.kind === "message") continue;
+          for (const event of [found, activationPair(diagram, found)]) {
+            if (event && !inRemoved(event)) removeExactly(event);
+          }
         }
-        // Events other than messages, unless a selected fragment around them goes too; the last
-        // first, so that a `deactivate` goes before its `activate`.
-        const removed = new Set(action.ids);
-        const events = action.ids
-          .map((key) => diagram.eventsByKey.get(key))
-          .filter((e) => e !== undefined && e.kind !== "message")
-          .filter((e) => !e!.path.some((p) => "fragment" in p && removed.has(p.fragment)))
-          .sort((a, b) => b!.node.start - a!.node.start);
-        for (const event of events)
-          ops.push({ kind: "removeEvent", diagram: d, event: event!.key });
+        // The other end, outside, of an activation with an end in a fragment or call that goes.
+        for (const event of allEvents(diagram.events)) {
+          if (!inRemoved(event)) continue;
+          const pair = activationPair(diagram, event);
+          if (pair && !inRemoved(pair)) removeExactly(pair);
+        }
+        for (const { op } of [...removals.values()].sort((a, b) => b.start - a.start)) ops.push(op);
         if (!action.cascade) {
           // Ask before removing what depends on the elements.
           const dependents: DependentInfo[] = [];
@@ -2485,7 +2600,25 @@ export class CanvasSession {
         break;
       }
     }
-    return this.planned(view, action.kind, ops);
+    const planned = this.planned(view, action.kind, ops);
+    if (action.kind === "moveActivation" && planned.plan?.edits.length === 0) {
+      // A bar's end dropped where it is writes nothing: the drawing as it is answers, so a canvas
+      // that dropped before its preview came back waits for no edit.
+      this.pendingSelection = undefined;
+      const shown = this.rendered.get(view.id);
+      return { messages: shown?.type === "render" ? [shown] : [] };
+    }
+    if (follow && planned.plan && planned.plan.edits.length > 0) {
+      this.pendingMove = {
+        diagram: d,
+        key: follow.key,
+        kind: follow.kind,
+        // The inverse edits span, in the edited text, what the edit wrote.
+        written: planned.plan.inverse,
+        revision: this.analysis!.revision,
+      };
+    }
+    return planned;
   }
 
   /** Writes a new empty diagram of `type`, shown once the host has applied the edit. */
@@ -2848,7 +2981,8 @@ export class CanvasSession {
    * the document (its project's imports) and the shown diagram laid out with the document's layout
    * options and drawn as the stage draws it. Nothing is written, sent or kept: the session's
    * state stays as it was. The drawing is null when the drop would be refused, the copy has more
-   * errors than the text, or the diagram is a sequence diagram.
+   * errors than the text, or the diagram is a sequence diagram, whose only preview is the end of
+   * an activation bar (`moveActivation`): refused, it carries the reason the drop would get.
    */
   private preview(token: number, action: PreviewedAction): SessionResult {
     const none: SessionResult = { messages: [{ type: "preview", token, svg: null }] };
@@ -2856,11 +2990,21 @@ export class CanvasSession {
     const view = this.view();
     if (!view?.layout?.scene) return none;
     const diagram = view.diagram;
-    // Sequence diagrams move their own events live; only they preview scenarios.
-    if (diagram.type === "sequence") return none;
+    // Sequence diagrams move their own events live; only they preview scenarios. The end of an
+    // activation bar is the one gesture they preview, as the session writes it, with the reason
+    // when the order rules refuse it.
+    if ((diagram.type === "sequence") !== (action.kind === "moveActivation")) return none;
     if (diagram.type === "c4" && refusal(wording().c4Refused, action, diagram)) return none;
+    if (action.kind === "moveActivation" && this.scenarioOf(view)) return none;
+    const refused = (reason: string): SessionResult => ({
+      messages: [{ type: "preview", token, svg: null, reason }],
+    });
     let operations: EditOperation[];
-    if (action.kind === "move") {
+    if (action.kind === "moveActivation") {
+      const planned = sequenceAction(view, action);
+      if (!planned.ok) return refused(planned.reason);
+      operations = [...planned.operations];
+    } else if (action.kind === "move") {
       // A move the drop would refuse has no drawing; a drop into a list shows it making room.
       if (this.moveRefusal(view, action)) return none;
       operations = this.moveOperations(view, action);
@@ -2880,11 +3024,21 @@ export class CanvasSession {
     // A rotation previews as its release writes it: after the arrangement of an `auto` diagram.
     // A list that grows or shrinks keeps its corner, as on the drop.
     const kind = action.kind === "setField" ? "move" : action.kind;
+    if (operations.length === 0 && action.kind === "moveActivation") {
+      // A bar's end left where it is: the drawing as it is.
+      const shown = this.rendered.get(view.id);
+      if (shown?.type !== "render") return none;
+      const { svg, width, height, offset } = shown;
+      return { messages: [{ type: "preview", token, svg, width, height, offset }] };
+    }
     const result = this.plan(view, kind, [
       ...operations,
       ...this.listCorners(view, kind, operations),
     ]);
-    if (!result?.ok) return none;
+    if (!result?.ok) {
+      // The order rule the move breaks, which the canvas says while the handle is there.
+      return result && action.kind === "moveActivation" ? refused(result.rejection.reason) : none;
+    }
     const compilation = compile(
       applyTextEdits(analysis.compilation.text, result.plan.edits),
       analysis.compilation.options,

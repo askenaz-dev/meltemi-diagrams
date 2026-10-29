@@ -118,6 +118,16 @@ body {
   border-color: var(--mdg-border);
 }
 
+/* A tool that has nothing to act on (Tag and Activate without a message or participant). */
+.toolbar button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.toolbar button:disabled:hover {
+  background: transparent;
+}
+
 .toolbar svg {
   width: 16px;
   height: 16px;
@@ -453,7 +463,9 @@ body {
 
 .content [data-role="element"],
 .content [data-role="relation"],
-.content [data-role="label"] {
+.content [data-role="label"],
+.content [data-role="lifeline"] [data-role="event"],
+.content [data-role="tag"] {
   cursor: pointer;
 }
 
@@ -556,6 +568,89 @@ body {
   stroke-width: 1;
   pointer-events: none;
   animation: mdg-fade-in var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+/*
+ * What the pointer rests on, before it is pressed: a written activation bar, or the owner of a
+ * tag's pill. A thin outline in the selection colour fades in over --mdg-motion-fast.
+ */
+.overlay .hover-outline {
+  fill: none;
+  stroke: var(--mdg-select);
+  stroke-width: 1;
+  opacity: 0.55;
+}
+
+.overlay .hover-outline:not(.held) {
+  animation: mdg-fade-in var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+/*
+ * The handles of a selected activation bar, a pill above its top and one below its bottom: they
+ * fade and grow in from --mdg-pop-scale over --mdg-motion-fast as the bar is selected.
+ */
+.overlay .handle.bar-handle {
+  cursor: ns-resize;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    fill var(--mdg-motion-fast) var(--mdg-ease),
+    transform var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.overlay .handle.bar-handle:not(.held) {
+  animation: mdg-pop-in var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.overlay .handle.bar-handle:hover {
+  fill: var(--mdg-select);
+  transform: scale(1.15);
+}
+
+/*
+ * The end of a bar being dragged: its handle on the boundary below the row it snaps to and a guide
+ * across the lifelines there, sliding from row to row over --mdg-motion-fast; in the theme's
+ * `danger` colour (--mdg-danger) while the session refuses the row.
+ */
+.bar-drag {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+  display: none;
+}
+
+.bar-drag.shown {
+  display: block;
+  animation: mdg-fade-in var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.bar-drag .bar-guide {
+  stroke: var(--mdg-select);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  transition:
+    transform var(--mdg-motion-fast) var(--mdg-ease),
+    stroke var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.bar-drag .bar-handle {
+  fill: var(--mdg-select);
+  stroke: var(--vscode-editor-background, #fff);
+  stroke-width: 1.5;
+  transition:
+    transform var(--mdg-motion-fast) var(--mdg-ease),
+    fill var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.bar-drag[data-refused] .bar-guide {
+  stroke: var(--mdg-danger, var(--vscode-errorForeground, #d1242f));
+}
+
+.bar-drag[data-refused] .bar-handle {
+  fill: var(--mdg-danger, var(--vscode-errorForeground, #d1242f));
 }
 
 /*
@@ -1054,6 +1149,23 @@ body {
   overflow-wrap: break-word;
 }
 
+/*
+ * A sequence message's label pulled narrower than its line: exactly as wide as the room between
+ * its lifelines, it wraps there, keeps its first line where the drawing's is and grows down with
+ * each line at once (no transition: the text stays where the caret is). A soft backdrop of the
+ * drawing's own background (the theme's `background`, set by the canvas as --mdg-paper) keeps the
+ * lines legible over the arrow and the rows they grow over until the commit redraws.
+ */
+.inline.growing {
+  --mdg-backdrop: color-mix(
+    in srgb,
+    var(--mdg-paper, var(--vscode-editor-background, #fff)) 85%,
+    transparent
+  );
+  background: var(--mdg-backdrop);
+  box-shadow: 0 0 0 2px var(--mdg-backdrop);
+}
+
 /* The drawn text an open editor types over. */
 .content .mdg-editing {
   visibility: hidden;
@@ -1442,6 +1554,72 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/*
+ * A yes-or-no field (**Activates the receiver**): the platform's checkbox with its label beside
+ * it, in the field's text colour, and the reason under it when it is read-only.
+ */
+.panel .check-field label.check {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  cursor: pointer;
+}
+
+.panel .check-field input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  accent-color: var(--vscode-checkbox-selectBackground, var(--mdg-select));
+}
+
+.panel .check-field:has(input:disabled) label.check {
+  cursor: default;
+}
+
+.panel .check-field .note {
+  margin: 0 0 0 20px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--mdg-muted);
+}
+
+.panel .note code,
+.panel .tag-row input.tag-text {
+  font-family: var(--vscode-editor-font-family, ui-monospace, Menlo, Consolas, monospace);
+}
+
+/*
+ * **Tags** of a sequence message or participant: one list under its heading, a text box per tag
+ * with its Remove button, then the box that adds one at the end.
+ */
+.panel .tag-list {
+  display: grid;
+  gap: 4px;
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel .tag-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.panel .tag-row input.tag-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.panel .tag-row.tag-add input.tag-text {
+  border-style: dashed;
+}
+
+.panel .tag-row.tag-add input.tag-text:focus {
+  border-style: solid;
 }
 
 .panel button.toggle,
@@ -3333,6 +3511,11 @@ body {
 .content svg g.mdg-pop {
   transform-box: view-box;
   animation: mdg-pop-in var(--mdg-motion) var(--mdg-ease);
+}
+
+/* A tag removed from its pill's menu or its emptied editor fades out while the edit is drawn. */
+.content svg g.mdg-fading {
+  animation: mdg-fade-out var(--mdg-motion-fast) var(--mdg-ease-in) forwards;
 }
 
 /* Buttons, chips, items and fields change colour smoothly. */

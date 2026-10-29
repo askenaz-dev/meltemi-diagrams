@@ -1,7 +1,7 @@
 language "0.2"
 
-// A negative gap closer than the heads and the label between them allow: the layout keeps
-// the floor and says how far apart it drew them.
+// A negative gap closer than the heads allow: the label between them wraps to the room left, but
+// the heads keep their floor and the layout says how far apart it drew them.
 diagram checkout: sequence {
   participant customer "Customer"
   participant api "API"

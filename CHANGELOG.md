@@ -20,6 +20,15 @@ a head drag that writes the gap, and a call's block that holds the events it cau
 `return` ([decision 0060](docs/decisions/0060-sequence-spacing-and-nested-calls.md)). The language
 stays 0.2: `spacing`, the sides, the negative `gap`, call blocks and `return` are additive.
 
+A sequence message's label keeps its line and wraps between its lifelines when a `gap` or the
+`spacing` pulls its participants closer, so a dragged head lands where it is dropped, down to the
+room of its heads and of the longest word; messages and participants carry tags, drawn as
+pills on the arrow and badges over the head; and an activation is a button, an inspector checkbox
+and a bar on the canvas to select, stretch and remove
+([decision 0065](docs/decisions/0065-sequence-wrap-tags-and-activation.md)). The language stays
+0.2: `tag "Text"` in a block is additive, and a `\n` in a message label, drawn as a space until
+now, breaks the line.
+
 ### Language
 
 - Pen strokes: `pen <id> [(x, y), (x, y), …]` is a freehand stroke of free diagrams, its points in
@@ -73,6 +82,33 @@ stays 0.2: `spacing`, the sides, the negative `gap`, call blocks and `return` ar
   `return` in the same list, is `sequence.return`; a `return` in a branch ends that branch.
   Scenarios, numbering, styles, animations, completion, hover, the formatter and the VS Code
   grammar know the nesting.
+- A sequence message's label stays on one line and holds its pair apart as before, its natural
+  distance. A pull, a negative sum of a pair's two `gap`s or a `spacing` below the default, brings
+  the pair closer than that by its amount, down to a floor (the heads, the longest word of each
+  label between them, a message's tags, self-calls and side notes), and the labels between them
+  wrap at the room left between the lifelines (their distance less 12 on each side, and less the
+  number's disc under `autonumber`), their lines 1.25 times the size apart; the row grows down,
+  the arrow is drawn under the last line, and `label … at` moves the whole block. `\n` in a label
+  breaks it. A self-call's label stays beside its loop, broken at `\n` only. `layout.gap-floor`
+  fires when a word, the heads or a message's tags do not fit, naming the amount drawn from the
+  natural distance, and the label audit checks each drawn line. Drawings without a pull do not
+  change; a negative `gap` beside long labels now draws its pair closer, as written.
+- `tag "Text"` in the block of a sequence message (a self-call or a `return` too) or participant
+  marks it with a short word, several in order: a message's tags are pills on its arrow next to
+  its source end, its label lifted to make room, and a participant's are badges centred over the
+  top edge of its head, the row of heads lower when any participant has one. They take the flow
+  tag's look (the theme's `tag` and `tagText`, `tagSize`, mono), have no id and go with their
+  owner in effects and stories. An empty text or a line break, another form (`tag t1 "PKCE"`) and
+  the same text twice on one owner (`prop.duplicate`) are refused, and so is `tag` at the diagram
+  level, in a group block or in a fragment (`prop.unknown`, with a hint saying where tags go).
+  Completion offers `tag` in those blocks, and hover names its owner.
+- The model JSON gives every element and relation `tags` after `classes`, `[{ "text", "range" }]`
+  and empty when none; the version stays 0.1. The model diff reports changed tags.
+- Layout results gain `messageTexts` (the room, lines and size of each message label), `bars`
+  (every activation bar with its participant, depth and ends) and `tags` (the pills of every
+  owner). Each activation bar is drawn as its own group of role `event` in its lifeline's group
+  (`<g data-id="activate#1" data-role="event">`), the written ones also in `boxes`, and each tag as
+  a group of role `tag` in its owner's (`data-tag` its index).
 
 ### Playground
 
@@ -146,6 +182,29 @@ stays 0.2: `spacing`, the sides, the negative `gap`, call blocks and `return` ar
   Alt+Down move events into and out of call blocks, a call dragged down moves its block with it,
   removing a call removes its block with what names the events in it, and the inspector shows a
   `return`'s **Message**, **From** and **To** read-only.
+- A sequence message's label is typed where it wraps: the inline editor is as wide as the room
+  between the lifelines at the zoom, wraps there, keeps its first line in place and grows down;
+  Shift+Enter writes `\n`. A self-call's label keeps its one-line editor.
+- The sequence palette gains **Activate** ("Activate the receiver (Alt+A)"), which toggles the
+  receiver's `activate`/`deactivate` pair after the selected message as Alt+A does and is pressed
+  while the receiver is activated after it, and the message inspector gains **Activates the
+  receiver**, a checkbox for the same pair, checked and read-only with the reason on a call whose
+  block activates the receiver.
+- Activation bars are objects: a press on a written bar selects its `activate`, outlined, and the
+  status line names the participant and the messages the bar spans. Handles above and below a
+  selected bar drag its `activate` or `deactivate` to another row, the session's drawing of the
+  move shown before the release; an end the order rules refuse turns the handle `danger` with the
+  reason, and the bottom handle of an open bar writes its `deactivate`. Delete and the bar's
+  **Remove activation** remove the pair in one undo step, and a press on the bar of a call's block
+  selects the call. The edit package's `moveEvent` takes a destination
+  (`to: { after | before: <event> }`), and `removeEvent` of an `activate` or a `deactivate`
+  removes its pair.
+- Tags on sequence diagrams: T and the palette's **Tag** add `tag "Tag"` ("Marca" in Spanish) to
+  the selected message, else participant, and open the editor on the new pill; a double click
+  edits a pill in place and emptying it removes it; the pill's context menu offers **Edit tag** and
+  **Remove tag**; the inspector of a message or a participant lists its **Tags** with **Remove**
+  and a field that adds one. A press on a pill selects its owner. The edit package's `addTag`,
+  `setTag` and `removeTag` write the statements, creating and removing the block as needed.
 - Pen (P), Highlighter (H) and Eraser (E) on free diagrams. The pen button is a split button whose
   menu holds Pen and Highlighter, the widths and the theme's colours, kept between sessions; the
   tools stay in the hand after each stroke. A stroke is drawn as the layout will draw it while the
@@ -181,6 +240,11 @@ stays 0.2: `spacing`, the sides, the negative `gap`, call blocks and `return` ar
   template named.
 - The `gap` of a sequence diagram's first participant draws, as room left of it inside the
   drawing; the layout read it and drew nothing.
+- A sequence participant's head dragged towards its neighbour landed short, the status line saying
+  `-300 written, 106 drawn: the labels need the room`, when a long message label crossed between
+  them: the label was kept on one line and held the pair apart at its whole width. The gap now
+  counts from the distance the label holds, the label wraps at the narrower room, and the head
+  lands where it is dropped.
 - The agent setup prompt is served as `text/markdown; charset=utf-8`. Without the charset, a client
   that does not assume UTF-8, such as PowerShell's `Invoke-WebRequest`, read its dashes and
   ellipses as Latin-1.

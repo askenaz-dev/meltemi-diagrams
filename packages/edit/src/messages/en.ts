@@ -557,6 +557,40 @@ export const en = {
       /** `edit.invalid-value`: the number of branches of the fragment. */
       singleBranchFor: (operator: string, key: string, branches: number) =>
         `\`${operator}\` has a single branch and \`${key}\` has ${branches}; remove the others first.`,
+      /** `edit.invalid-value`: `moveEvent` given both `direction` and `to`, or neither. */
+      moveForm:
+        "`moveEvent` moves an event by a `direction` or to a destination `to`: give exactly one of them.",
+      /** `edit.invalid-value`: a destination that is not `{ after }` or `{ before }`. */
+      destinationForm: "A destination is `{ after: <event> }` or `{ before: <event> }`.",
+      /** `edit.unsafe-target`: the destination is the moved event. */
+      moveBesideItself: (key: string) => `\`${key}\` cannot move after or before itself.`,
+      /** `edit.unsafe-target`: the destination is inside the moved fragment or call. */
+      moveIntoItself: (key: string, destination: string) =>
+        `\`${destination}\` is inside \`${key}\`, which cannot move into itself.`,
+    },
+
+    /** Tags of sequence participants and messages: `tag "Text"` statements in their blocks. */
+    tags: {
+      /** `edit.unsafe-target`. */
+      notSequence: (diagram: string) =>
+        `Tags go on the participants and messages of sequence diagrams, and \`${diagram}\` is not one.`,
+      /** `edit.unsafe-target`. */
+      notOwner: (target: string, diagram: string) =>
+        `\`${target}\` is neither a participant nor a message of \`${diagram}\`; tags go on participants and messages.`,
+      /** `edit.unsafe-target`: the index given and the number of tags of the owner. */
+      noTag: (target: string, index: number, count: number) =>
+        count === 0
+          ? `\`${target}\` has no tags.`
+          : `\`${target}\` has no tag at index ${index}; its tags are numbered from 0 to ${count - 1}.`,
+      /** `edit.unsafe-target`: an `addTag` index that is not a whole number from 0. */
+      badIndex: (index: number) =>
+        `${index} is no place among the tags; give a whole number from 0, or none to add the tag last.`,
+      /** `edit.invalid-value`: an empty text, or one with a line break. */
+      oneLine: "A tag is one line of text, not empty.",
+      /** `edit.invalid-value`: the owner already has a tag with this text. */
+      repeated: (target: string, text: string) => `\`${target}\` already has the tag "${text}".`,
+      /** `edit.unsafe-target`. */
+      unreadable: "The text of the tag cannot be read.",
     },
 
     /** C4 views and models. */

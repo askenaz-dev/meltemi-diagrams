@@ -287,7 +287,7 @@ class SequenceAnalyzer extends FlowAnalyzer {
         this.relationIdTokens.set(id, idToken);
       }
     }
-    const { description, classes, layer, layerRange, values } = this.elementBlock(
+    const { description, classes, tags, layer, layerRange, values } = this.elementBlock(
       blockOf(stmt.block),
       this.profile.relationProperties,
       "Relation",
@@ -312,6 +312,7 @@ class SequenceAnalyzer extends FlowAnalyzer {
       assumption: typeof values.assumption === "string" ? values.assumption : null,
       data: {},
       classes,
+      tags,
       layer,
       layerRange,
       groupPath: [],
@@ -324,13 +325,27 @@ class SequenceAnalyzer extends FlowAnalyzer {
   }
 
   protected override statementCandidates(keyword: string): readonly string[] {
+    // A tag belongs in a block: no statement here replaces it.
+    if (keyword === "tag") return [];
     return OTHER_DECLARATIONS.includes(keyword)
       ? [...PARTICIPANT_KINDS, "group"]
       : [...PARTICIPANT_KINDS, ...SEQUENCE_STATEMENTS];
   }
 
+  protected override misplacedHint(keyword: string): string | undefined {
+    return keyword === "tag" ? messages().hints.sequence.tagPlace : undefined;
+  }
+
+  /** A message's block names its properties, `tag`, and the events a call's block holds. */
+  protected override blockHint(owner: "Element" | "Relation", words: readonly string[]): string {
+    if (owner === "Element") return super.blockHint(owner, words);
+    return messages().hints.sequence.messageBlock(words, SEQUENCE_PROFILE.events);
+  }
+
   protected override statementHints(keyword: string): string[] {
     const hints = messages().hints.sequence;
+    const misplaced = this.misplacedHint(keyword);
+    if (misplaced) return [misplaced];
     if (OTHER_DECLARATIONS.includes(keyword)) {
       const profile = ["box", "text", "icon", "image", "pen", "sticky"].includes(keyword)
         ? "free"
@@ -510,15 +525,14 @@ class SequenceAnalyzer extends FlowAnalyzer {
           (stmt.kind === "KeywordStatement" &&
             (PARTICIPANTS.has(stmt.keyword.text) || stmt.keyword.text === "group"));
         const m = messages();
+        const word = stmt.kind === "KeywordStatement" ? stmt.keyword.text : "";
         this.error(
           "prop.unknown",
           declaration
             ? m.diagnostics.sequence.participantsAtTop
-            : m.diagnostics.sequence.unknownInFragment(
-                stmt.kind === "KeywordStatement" ? stmt.keyword.text : "",
-              ),
+            : m.diagnostics.sequence.unknownInFragment(word),
           keyword,
-          { hints: [m.hints.sequence.fragmentContents] },
+          { hints: [this.misplacedHint(word) ?? m.hints.sequence.fragmentContents] },
         );
         continue;
       }

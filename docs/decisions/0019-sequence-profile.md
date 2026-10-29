@@ -72,3 +72,6 @@ destruction, notes, every fragment, dividers, delays and numbering.
   `spacing`, gives `space` and `gap` a side and lets `gap` go negative down to a reported floor,
   writes a `gap` from a short head drag, and lets a call's block hold the events it causes, with
   `return` answering the call.
+- [Decision 0065](0065-sequence-wrap-tags-and-activation.md) wraps message labels between their
+  lifelines, adds `tag "Text"` to the blocks of messages and participants, and makes activation
+  bars objects of the canvas with an **Activate** button and an inspector checkbox.

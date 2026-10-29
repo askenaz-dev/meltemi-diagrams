@@ -12,8 +12,10 @@ import {
   FRAGMENT_OPERATORS,
   PARTICIPANT_KINDS,
   relationNameAnchor,
+  type FlowDiagram,
   type FragmentEvent,
   type MessageEvent,
+  type ParticipantEvent,
   type PlacementEntry,
   type SequenceEvent,
 } from "@meltemi/diagrams-model";
@@ -21,10 +23,12 @@ import { insertStatement, reject, requireElement, type EditContext } from "./con
 import { declarationText, usedIds } from "./create.js";
 import { deleteStatements } from "./delete.js";
 import {
+  commentsAbove,
   diagramBody,
   groupBlock,
   insertAfter,
   insertBefore,
+  insertBeforeStatement,
   insertDeclaration,
   isDeclaration,
   reindent,
@@ -33,7 +37,7 @@ import {
 import { reasons } from "./messages/index.js";
 import { insertPlacements, removeListItems, requireNewId, type OperationOf } from "./plan.js";
 import { relationDependents } from "./relations.js";
-import { formatNumber, lineIndent, quoteString } from "./text.js";
+import { formatNumber, isCommentTrivia, lineIndent, lineStart, quoteString } from "./text.js";
 import { renameInStories } from "./stories.js";
 
 const PARTICIPANTS: ReadonlySet<string> = new Set(PARTICIPANT_KINDS);
@@ -202,7 +206,11 @@ export function reorderParticipant(
 
 export function moveEvent(ctx: EditContext, op: OperationOf<"moveEvent">): TextEdit[] {
   requireSequence(ctx);
+  if ((op.direction === undefined) === (op.to === undefined)) {
+    reject("edit.invalid-value", reasons().sequence.moveForm);
+  }
   const event = requireEvent(ctx, op.event);
+  if (op.to !== undefined) return moveTo(ctx, event, op.to);
   const statement = event.node;
   const { block } = containerOf(ctx, event);
   const list = siblings(block);
@@ -280,6 +288,116 @@ export function moveEvent(ctx: EditContext, op: OperationOf<"moveEvent">): TextE
   }
   verifyNoNewErrors(ctx, edits);
   return edits;
+}
+
+/**
+ * Moves an event's statement right after or right before the statement of another event, in the
+ * block that holds that one, at its indentation; checked once on the result. A statement with its
+ * lines to itself takes the comment lines right above it and the comment that ends its line.
+ */
+function moveTo(
+  ctx: EditContext,
+  event: SequenceEvent,
+  to: NonNullable<OperationOf<"moveEvent">["to"]>,
+): TextEdit[] {
+  const written = to as { readonly after?: unknown; readonly before?: unknown };
+  const after = typeof to === "object" && to !== null ? written.after : undefined;
+  const before = typeof to === "object" && to !== null ? written.before : undefined;
+  const key = after ?? before;
+  if ((after === undefined) === (before === undefined) || typeof key !== "string") {
+    reject("edit.invalid-value", reasons().sequence.destinationForm);
+  }
+  const anchor = requireEvent(ctx, key);
+  if (anchor === event) {
+    reject("edit.unsafe-target", reasons().sequence.moveBesideItself(event.key));
+  }
+  if (anchor.path.some((p) => ("fragment" in p ? p.fragment : p.message) === event.key)) {
+    reject("edit.unsafe-target", reasons().sequence.moveIntoItself(event.key, anchor.key));
+  }
+  const { block } = containerOf(ctx, anchor);
+  const statement = event.node;
+  // Already there: nothing to write.
+  const at = block.statements.indexOf(anchor.node);
+  if (block.statements[after !== undefined ? at + 1 : at - 1] === statement) return [];
+  const own = ownLines(ctx, containerOf(ctx, event).block, statement);
+  const oldIndent = lineIndent(ctx.text, statement.start);
+  // The comments go along only when the statement lands on a line of its own.
+  let inline = false;
+  const render = (indent: string | null) => {
+    if (indent === null) {
+      inline = true;
+      return moved(ctx, statement, lineIndent(ctx.text, anchor.node.start));
+    }
+    if (!own) return moved(ctx, statement, indent);
+    const from = own.from + lineIndent(ctx.text, own.from).length;
+    return reindent(ctx.text.slice(from, own.to), oldIndent, indent);
+  };
+  const insertion =
+    after !== undefined
+      ? insertAfter(ctx, block, anchor.node, render)
+      : insertBeforeStatement(ctx, block, anchor.node, render);
+  const edits =
+    own && !inline
+      ? [{ start: own.from, end: own.end, newText: "" }, insertion]
+      : [...deleteStatements(ctx.text, ctx.compilation.parse.root, [statement]), insertion];
+  verifyNoNewErrors(ctx, edits);
+  return edits;
+}
+
+/**
+ * The lines of a statement that has them to itself: from the comment lines right above it to the
+ * line break that ends it (`from`, `end`), the text to move ending with the comment that ends its
+ * line (`to`). Undefined when it shares a line with another statement.
+ */
+function ownLines(
+  ctx: EditContext,
+  block: Block,
+  statement: Statement,
+): { from: number; to: number; end: number } | undefined {
+  const start = lineStart(ctx.text, statement.start);
+  if (start + lineIndent(ctx.text, start).length !== statement.start) return undefined;
+  const children = block.children;
+  let terminator: Token | undefined;
+  for (let i = children.indexOf(statement) + 1; i < children.length; i++) {
+    const child = children[i]!;
+    if (isToken(child) && child.kind === "Semicolon") continue;
+    if (isToken(child) && child.kind === "Newline") terminator = child;
+    break;
+  }
+  if (!terminator) return undefined;
+  const above = commentsAbove(block, statement)[0];
+  const trailing = terminator.leadingTrivia.filter(isCommentTrivia);
+  return {
+    from: above ? lineStart(ctx.text, above.start) : start,
+    to: trailing.length > 0 ? trailing[trailing.length - 1]!.end : statement.end,
+    end: terminator.end,
+  };
+}
+
+/**
+ * The other end of an activation: the `deactivate` that closes an `activate` (the participant's
+ * first `deactivate` at the same depth after it, in order, fragments and calls included), or the
+ * `activate` that a `deactivate` closes; null for an activation open to the end, a `deactivate`
+ * that closes none, and every other event.
+ */
+export function activationPair(
+  diagram: FlowDiagram,
+  event: SequenceEvent,
+): ParticipantEvent | null {
+  if (event.kind !== "activate" && event.kind !== "deactivate") return null;
+  const order = withNested(diagram.events).filter(
+    (e): e is ParticipantEvent =>
+      (e.kind === "activate" || e.kind === "deactivate") && e.participant === event.participant,
+  );
+  const step = event.kind === "activate" ? 1 : -1;
+  let depth = 0;
+  for (let i = order.indexOf(event) + step; i >= 0 && i < order.length; i += step) {
+    const other = order[i]!;
+    if (other.kind === event.kind) depth++;
+    else if (depth === 0) return other;
+    else depth--;
+  }
+  return null;
 }
 
 /** A fresh id for a note, a fragment or a message, as `createElement` would choose ids. */
@@ -591,8 +709,10 @@ export function removeEvent(ctx: EditContext, op: OperationOf<"removeEvent">): T
   if (event.kind === "message") {
     reject("edit.unsafe-target", reasons().sequence.removeMessage);
   }
-  // A fragment goes with its events, and everything goes with what names them.
+  // A fragment goes with its events, an activation with its other end (unless it goes alone), and
+  // everything goes with what names them.
   const all = withNested([event]);
+  const pair = op.alone === true ? null : activationPair(ctx.diagram, event);
   const events = eventDependents(ctx, eventIdsOf(all));
   const relations = relationDependents(
     ctx,
@@ -601,6 +721,7 @@ export function removeEvent(ctx: EditContext, op: OperationOf<"removeEvent">): T
   const edits = [
     ...deleteStatements(ctx.text, ctx.compilation.parse.root, [
       event.node,
+      ...(pair ? [pair.node] : []),
       ...events.statements,
       ...relations.statements,
     ]),
@@ -736,18 +857,7 @@ export function toggleActivation(
   let edits: TextEdit[];
   if (next?.kind === "activate" && next.participant === element.id) {
     // The matching `deactivate`: the first one at the same depth, at any later point in order.
-    const order = withNested(ctx.diagram.events);
-    let depth = 0;
-    let match: SequenceEvent | undefined;
-    for (const event of order.slice(order.indexOf(next) + 1)) {
-      if (event.kind !== "activate" && event.kind !== "deactivate") continue;
-      if (event.participant !== element.id) continue;
-      if (event.kind === "activate") depth++;
-      else if (depth === 0) {
-        match = event;
-        break;
-      } else depth--;
-    }
+    const match = activationPair(ctx.diagram, next);
     edits = deleteStatements(
       ctx.text,
       ctx.compilation.parse.root,

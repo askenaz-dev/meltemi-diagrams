@@ -6,6 +6,7 @@ import {
   type CanvasRender,
   type HostMessage,
 } from "../src/index.js";
+import { textPlaces } from "../src/text-places.js";
 
 const PLAIN = 'theme plain {\n  extends "technical.light"\n  frame none\n}\n\n';
 
@@ -181,6 +182,117 @@ describe("where labels are drawn, for the inline editor", () => {
   });
 });
 
+describe("where a sequence message's label is drawn, for the inline editor", () => {
+  // `bank` is pulled 80 closer to `api`: the label between them wraps. Nothing pulls `customer`
+  // and `api`: theirs keeps its line and pushes them apart.
+  const SHEET = `diagram p: sequence {
+  theme "technical.light"
+  actor c "Customer"
+  participant a "API"
+  participant b "Bank"
+  a -> b: "Esto es una prueba de un texto Largo" as long
+  c -> a: "Una etiqueta larga que nada acerca" as natural
+  a -> a: "Validate\\nthe card" as self
+  a -> b as bare
+  placement {
+    gap b -80
+  }
+}
+`;
+  const analysis = analyzeDocument({ text: SHEET, revision: 1 });
+  const render = rendered(SHEET);
+  const view = diagramView(analysis, "p")!;
+  const layout = view.layout!;
+  const relation = (key: string) => render.relations.find((r) => r.key === key)!;
+
+  it("types a wrapped label in the room between its lifelines, growing down", () => {
+    const wrapped = layout.messageTexts!.get("long")!;
+    expect(wrapped.wraps).toBe(true);
+    expect(wrapped.lines.length).toBeGreaterThan(1);
+    const text = relation("long").text!;
+    // The room, from the top of the block of lines, and the anchor on the block's middle.
+    expect(text.area).toEqual(wrapped.area);
+    expect(text.anchor.x).toBeCloseTo(wrapped.area.x + wrapped.area.width / 2, 5);
+    expect(text.anchor.y).toBeCloseTo(wrapped.area.y + wrapped.area.height / 2, 5);
+    expect(text).toMatchObject({
+      wrap: "grow",
+      lines: true,
+      align: "center",
+      size: wrapped.size,
+      line: wrapped.line,
+      weight: 400,
+    });
+    // The room is wider than the block's widest line: the label wraps where it runs out of it.
+    expect(text.area.width).toBeGreaterThan(layout.labels!.get("long")!.width - 8);
+  });
+
+  it("keeps a self-call's label beside its loop, without wrapping", () => {
+    const text = relation("self").text!;
+    expect(text.wrap).toBeUndefined();
+    expect(text.lines).toBe(true);
+    expect(text.area).toEqual(layout.messageTexts!.get("self")!.area);
+    expect(text.area).toEqual(layout.labels!.get("self"));
+  });
+
+  it("types a label nothing pulls without wrapping, on its line", () => {
+    // The editor wraps exactly where the layout does: only a label whose pair is pulled closer.
+    for (const key of ["natural", "long", "bare"]) {
+      const drawn = layout.messageTexts!.get(key)!;
+      expect(relation(key).text!.wrap, key).toBe(drawn.wraps ? "grow" : undefined);
+    }
+    // A label the layout keeps on its line (`wraps` false) is typed without wrapping, in the
+    // same place and font.
+    const natural = layout.messageTexts!.get("natural")!;
+    const kept = textPlaces(
+      view.diagram,
+      layout.scene!,
+      layout.offset!,
+      layout.theme!,
+      layout.connectors!,
+      layout.shapes,
+      layout.stickies,
+      new Map([["natural", { ...natural, wraps: false }]]),
+    ).relations.get("natural")!;
+    expect(kept.wrap).toBeUndefined();
+    expect(kept).toMatchObject({ lines: true, area: natural.area, size: natural.size });
+    expect({ ...kept, wrap: undefined }).toEqual({ ...relation("natural").text!, wrap: undefined });
+  });
+
+  it("places a new label where the drawing will put it", () => {
+    const text = relation("bare").text!;
+    const room = layout.messageTexts!.get("bare")!;
+    expect(room.lines).toEqual([]);
+    expect(text).toMatchObject({ area: room.area, size: room.size, lines: true });
+    // Above its arrow.
+    expect(text.anchor.y).toBeLessThan(relation("bare").points[0]!.y);
+  });
+
+  it("places the text of every tag pill on its pill", () => {
+    const tagged = rendered(`diagram p: sequence {
+  participant a "API" { tag "v2" }
+  participant b "Bank"
+  a -> b: "Ask" as ask {
+    tag "PKCE"
+    tag "idempotent"
+  }
+}
+`);
+    const ask = tagged.relations.find((r) => r.key === "ask")!;
+    expect(ask.tags!.map((t) => t.text)).toEqual(["PKCE", "idempotent"]);
+    for (const tag of [...ask.tags!, ...tagged.elements.find((e) => e.id === "a")!.tags!]) {
+      expect(tag.place).toMatchObject({ align: "center", lines: false, weight: 500 });
+      expect(tag.place!.area).toEqual(tag.box);
+      expect(tag.place!.anchor.x).toBeCloseTo(tag.box.x + tag.box.width / 2, 0);
+      expect(tag.place!.anchor.y).toBeCloseTo(tag.box.y + tag.box.height / 2, 0);
+      expect(tag.place!.background).toMatch(/^#/);
+    }
+    // The two pills of `ask` in a row, the first nearer its source end.
+    const [first, second] = ask.tags!;
+    expect(first!.box.x).toBeLessThan(second!.box.x);
+    expect(tagged.elements.find((e) => e.id === "b")!.tags).toBeUndefined();
+  });
+});
+
 describe("where a sticky's text is drawn, for the inline editor", () => {
   const WORDS = "Cache the catalogue before the sale starts and warm it again";
   const sheet = (text: string, style = "") => `${PLAIN}diagram s: free {
@@ -218,6 +330,8 @@ ${style}  placement {
       align: "center",
       lines: true,
       color: "#1f2328",
+      // Its text shrinks to the card.
+      wrap: "shrink",
     });
     expect(text.anchor.x).toBeCloseTo(card.box.x + card.box.width / 2, 5);
     expect(text.anchor.y).toBeCloseTo(card.box.y + card.box.height / 2, 5);

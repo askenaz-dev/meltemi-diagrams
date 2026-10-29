@@ -40,5 +40,26 @@
       "Flow diagrams accept element declarations, relations, `direction`, `layout`, `theme`, `title`, `description`, `preset`, `canvas`, `routing`, `placement`, `style`, `animate`, `class` and `rule`."
     ],
     "related": []
+  },
+  {
+    "code": "prop.unknown",
+    "severity": "error",
+    "message": "Unknown statement `tag` in a sequence diagram.",
+    "range": {
+      "start": {
+        "offset": 258,
+        "line": 15,
+        "column": 3
+      },
+      "end": {
+        "offset": 261,
+        "line": 15,
+        "column": 6
+      }
+    },
+    "hints": [
+      "A tag goes in the block of a message or a participant, such as `api -> bank: \"Authorize\" { tag \"PKCE\" }` or `participant bank \"Bank\" { tag \"external\" }`."
+    ],
+    "related": []
   }
 ]

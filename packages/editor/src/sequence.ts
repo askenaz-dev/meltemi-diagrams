@@ -1,4 +1,10 @@
-import { defaultLabel, quoteString, type EditOperation } from "@meltemi/diagrams-edit";
+import {
+  activationPair,
+  defaultLabel,
+  quoteString,
+  type EditOperation,
+} from "@meltemi/diagrams-edit";
+import type { TextEdit } from "@meltemi/diagrams-language";
 import type { Box, LayoutResult } from "@meltemi/diagrams-layout";
 import {
   FRAGMENT_BRANCH_KEYWORDS,
@@ -10,6 +16,7 @@ import {
   type FragmentOperator,
   type Relation,
   type SequenceEvent,
+  type TagUse,
 } from "@meltemi/diagrams-model";
 import type { DiagramView } from "./analysis.js";
 import type { CanvasAction, EventInfo, InspectorField } from "./canvas/protocol.js";
@@ -34,6 +41,22 @@ export function allEvents(events: readonly SequenceEvent[]): SequenceEvent[] {
   };
   visit(events);
   return all;
+}
+
+/**
+ * The event of `kind` whose statement starts in text that an edit wrote: `written` are the
+ * spans of the edited text that the edit's insertions hold (its plan's inverse edits), so this
+ * is an event the edit moved, under the key it has now. The first in order: a moved fragment
+ * rather than an event inside it.
+ */
+export function movedEvent(
+  diagram: FlowDiagram,
+  kind: SequenceEvent["kind"],
+  written: readonly TextEdit[],
+): SequenceEvent | undefined {
+  return allEvents(diagram.events).find(
+    (e) => e.kind === kind && written.some((s) => e.node.start >= s.start && e.node.start < s.end),
+  );
 }
 
 /** Whether an event takes a `space`: messages, notes and fragments. */
@@ -77,7 +100,10 @@ function outerSide(diagram: FlowDiagram, participant: string, side: "before" | "
 const placeKey = (place: EventPlace | undefined): string | null =>
   place === undefined ? null : "fragment" in place ? place.fragment : place.message;
 
-/** The events of a sequence diagram for the canvas, in order, with their rows and frames. */
+/**
+ * The events of a sequence diagram for the canvas, in order, with their rows and frames: a note's
+ * or a fragment's frame, the bar an `activate` opens, and the other end of every activation.
+ */
 export function eventInfos(diagram: FlowDiagram, layout: LayoutResult | null): EventInfo[] {
   const rows = layout?.events;
   if (!rows) return [];
@@ -86,12 +112,18 @@ export function eventInfos(diagram: FlowDiagram, layout: LayoutResult | null): E
     const row = rows.get(event.key);
     if (!row) continue;
     const framed = event.kind === "note" || event.kind === "fragment";
+    const box = framed
+      ? (layout?.boxes?.get(event.key) ?? null)
+      : event.kind === "activate"
+        ? (layout?.bars?.get(event.key)?.box ?? null)
+        : null;
     infos.push({
       key: event.key,
       kind: event.kind,
       y: row.y,
       height: row.height,
-      box: framed ? (layout?.boxes?.get(event.key) ?? null) : null,
+      box,
+      pair: activationPair(diagram, event)?.key ?? null,
       parent: placeKey(event.path[event.path.length - 1]),
       participant:
         event.kind === "activate" ||
@@ -183,6 +215,14 @@ export type SequenceResult =
       readonly operations: readonly EditOperation[];
       /** The selection after the edit. */
       readonly select?: string[];
+      /** The pill whose inline editor opens after the edit: the tag just added, by its owner. */
+      readonly editTag?: { readonly owner: string; readonly index: number };
+      /**
+       * The event whose statement the operations move: the selection follows it to the key it
+       * has after the edit, since counted keys (`activate#2`, `a->b#1`) follow the order of the
+       * statements (`movedEvent`).
+       */
+      readonly follow?: string;
     }
   | { readonly ok: false; readonly reason: string };
 
@@ -214,6 +254,54 @@ function siblingsOf(diagram: FlowDiagram, event: SequenceEvent): readonly Sequen
 
 const isReturn = (diagram: FlowDiagram, event: SequenceEvent): boolean =>
   event.kind === "message" && diagram.relationsByKey.get(event.relation)?.returns != null;
+
+/**
+ * Whether a message's receiver is activated after it: `written` when the next event of its block
+ * is `activate <receiver>`, which `toggleActivation` removes; `block` when the message is a call
+ * whose block activates the receiver, which it refuses; undefined otherwise.
+ */
+export function activationOf(
+  diagram: FlowDiagram,
+  relation: Relation,
+): "written" | "block" | undefined {
+  const message = diagram.eventsByKey.get(relation.key);
+  if (message?.kind !== "message") return undefined;
+  if (message.events.length > 0) return "block";
+  const siblings = siblingsOf(diagram, message);
+  const next = siblings[siblings.indexOf(message) + 1];
+  return next?.kind === "activate" && next.participant === relation.to ? "written" : undefined;
+}
+
+/**
+ * The owner of the tags an action or a field names: the selected message (a `return` included),
+ * else the selected participant. On another kind of diagram any selected element or relation, so
+ * that the edit refuses it with its own reason.
+ */
+function tagOwner(
+  diagram: FlowDiagram,
+  ids: readonly string[],
+):
+  | {
+      readonly target: string;
+      readonly targetKind: "element" | "relation";
+      readonly tags: readonly TagUse[];
+    }
+  | undefined {
+  const relation = ids.map((id) => diagram.relationsByKey.get(id)).find((r) => r !== undefined);
+  if (relation) return { target: relation.key, targetKind: "relation", tags: relation.tags };
+  const element = ids
+    .map((id) => diagram.elementsById.get(id))
+    .find((e) => (diagram.type === "sequence" ? isParticipant(e) : e !== undefined));
+  return element ? { target: element.id, targetKind: "element", tags: element.tags } : undefined;
+}
+
+/** The first of `word`, `word 2`, `word 3`… that is not among `taken`. */
+function freshTag(word: string, taken: readonly TagUse[]): string {
+  const texts = new Set(taken.map((t) => t.text));
+  let text = word;
+  for (let n = 2; texts.has(text); n++) text = `${word} ${n}`;
+  return text;
+}
 
 /**
  * The selected call, or the call around the selection: a selected message that is not a
@@ -281,7 +369,11 @@ export function sequenceAction(
         | "unnestCall"
         | "addReturn"
         | "insertEvent"
-        | "wrap";
+        | "wrap"
+        | "moveActivation"
+        | "addTag"
+        | "setTag"
+        | "removeTag";
     }
   >,
 ): SequenceResult {
@@ -289,6 +381,89 @@ export function sequenceAction(
   const d = diagram.id;
   const reasons = messages().sequence.reasons;
   switch (action.kind) {
+    case "moveActivation": {
+      // The bar's `activate`, from either of its ends.
+      const found = diagram.eventsByKey.get(action.id);
+      const activate =
+        found?.kind === "deactivate" ? activationPair(diagram, found) : (found ?? null);
+      if (activate?.kind !== "activate") return { ok: false, reason: reasons.selectBar };
+      const row = diagram.eventsByKey.get(action.row);
+      if (!row) return { ok: false, reason: reasons.dropOnRow };
+      const select = [activate.key];
+      const none: SequenceResult = { ok: true, operations: [], select };
+      if (action.end === "start") {
+        // On a call with a block, the bar starts at the call's arrow: first in its block.
+        const first = row.kind === "message" ? row.events[0] : undefined;
+        if (row.key === activate.key || first?.key === activate.key) return none;
+        return {
+          ok: true,
+          operations: [
+            {
+              kind: "moveEvent",
+              diagram: d,
+              event: activate.key,
+              to: first ? { before: first.key } : { after: row.key },
+            },
+          ],
+          select,
+          // Moved past another participant's `activate`, the bar's own is counted anew.
+          follow: activate.key,
+        };
+      }
+      const deactivate = activationPair(diagram, activate);
+      if (deactivate?.key === row.key) return none;
+      return {
+        ok: true,
+        operations: [
+          deactivate
+            ? { kind: "moveEvent", diagram: d, event: deactivate.key, to: { after: row.key } }
+            : // A bar open to the end is closed at the row.
+              {
+                kind: "insertEvent",
+                diagram: d,
+                statement: `deactivate ${activate.participant}`,
+                after: row.key,
+              },
+        ],
+        select,
+      };
+    }
+    case "addTag":
+    case "setTag":
+    case "removeTag": {
+      const owner = tagOwner(diagram, action.ids);
+      if (!owner) return { ok: false, reason: reasons.selectToTag };
+      const { target, targetKind } = owner;
+      const select = [...action.ids];
+      if (action.kind === "addTag") {
+        // The word in the interface language, numbered when the owner has it already.
+        const text = freshTag(messages().written.tag, owner.tags);
+        return {
+          ok: true,
+          operations: [{ kind: "addTag", diagram: d, target, targetKind, text }],
+          select: [target],
+          editTag: { owner: target, index: owner.tags.length },
+        };
+      }
+      // An emptied tag goes.
+      const remove = action.kind === "removeTag" || action.text.trim() === "";
+      return {
+        ok: true,
+        operations: [
+          remove
+            ? { kind: "removeTag", diagram: d, target, targetKind, index: action.index }
+            : {
+                kind: "setTag",
+                diagram: d,
+                target,
+                targetKind,
+                index: action.index,
+                text: action.text,
+              },
+        ],
+        select,
+      };
+    }
     case "moveEvent": {
       const event = diagram.eventsByKey.get(action.id);
       if (!event) return { ok: false, reason: reasons.selectEvent };
@@ -298,6 +473,7 @@ export function sequenceAction(
           { kind: "moveEvent", diagram: d, event: event.key, direction: action.direction },
         ],
         select: [event.key],
+        follow: event.key,
       };
     }
     case "toggleActivation": {
@@ -442,6 +618,52 @@ const spaceFields = (diagram: FlowDiagram, event: SequenceEvent | undefined): In
     placeholder: "0",
   }));
 
+/**
+ * **Tags** of a participant or a message: a text field per tag in order (`tag.<n>`), which
+ * rewrites it and, emptied, removes it, with a **Remove** button (`removeTag`); then the empty
+ * `tag.new`, whose text adds a tag at the end. The canvas draws the run as one list.
+ */
+function tagFields(owner: string, tags: readonly TagUse[]): InspectorField[] {
+  const words = messages().sequence.fields;
+  return [
+    ...tags.map((tag, index): InspectorField => ({
+      name: `tag.${index}`,
+      label: words.tagAt(index + 1),
+      type: "text",
+      value: tag.text,
+      button: {
+        label: words.removeTag,
+        action: { kind: "removeTag", ids: [owner], index },
+      },
+    })),
+    {
+      name: "tag.new",
+      label: words.newTag,
+      type: "text",
+      value: null,
+      placeholder: words.addTag,
+    },
+  ];
+}
+
+/**
+ * **Activates the receiver** of a message: checked when an `activate` of its receiver follows it,
+ * or, read-only with the reason under it, when the call's block activates the receiver.
+ */
+function activatesField(diagram: FlowDiagram, relation: Relation): InspectorField {
+  const words = messages().sequence;
+  const activation = activationOf(diagram, relation);
+  return {
+    name: "activates",
+    label: words.fields.activates,
+    type: "boolean",
+    value: activation ? "on" : "off",
+    ...(activation === "block"
+      ? { readonly: true, note: words.blockActivates(relation.key, relation.to) }
+      : {}),
+  };
+}
+
 /** Fields of a participant or a participant group, before the style fields. */
 export function participantFields(diagram: FlowDiagram, element: Element): InspectorField[] {
   const group = element.kind === "group";
@@ -488,6 +710,7 @@ export function participantFields(diagram: FlowDiagram, element: Element): Inspe
             value: gapOf(diagram, element.id, side) !== 0 ? gapOf(diagram, element.id, side) : null,
             placeholder: "0",
           })),
+          ...tagFields(element.id, element.tags),
         ]),
   ];
 }
@@ -539,6 +762,9 @@ export function messageFields(diagram: FlowDiagram, relation: Relation): Inspect
       ...fixed,
     },
     ...spaceFields(diagram, diagram.eventsByKey.get(relation.key)),
+    // A `return` answers its call: it activates nothing.
+    ...(answers ? [] : [activatesField(diagram, relation)]),
+    ...tagFields(relation.key, relation.tags),
   ];
 }
 
@@ -661,8 +887,9 @@ export function sequenceDiagramFields(
 }
 
 /**
- * The operations that write a sequence field: participant gaps, message kinds and spacing,
- * events; undefined for the fields every profile shares.
+ * The operations that write a sequence field: participant gaps, message kinds and spacing, a
+ * message's **Activates the receiver**, the **Tags** of messages and participants, events;
+ * undefined for the fields every profile shares.
  */
 export function sequenceFieldOperations(
   diagram: FlowDiagram,
@@ -674,6 +901,31 @@ export function sequenceFieldOperations(
   const text = value === null ? null : String(value);
   const number = value === null || value === "" ? null : Number(value);
   const reasons = messages().sequence.reasons;
+  // **Tags**: `tag.<n>` rewrites or, emptied, removes a tag; `tag.new` adds one at the end.
+  const tag = /^tag\.(\d+|new)$/.exec(field);
+  if (tag) {
+    const owner = tagOwner(diagram, [id]);
+    if (!owner) return undefined;
+    const { target, targetKind } = owner;
+    const written = text?.trim() ?? "";
+    if (tag[1] === "new") {
+      return written === ""
+        ? { ok: true, operations: [] }
+        : {
+            ok: true,
+            operations: [{ kind: "addTag", diagram: d, target, targetKind, text: text! }],
+          };
+    }
+    const index = Number(tag[1]);
+    return {
+      ok: true,
+      operations: [
+        written === ""
+          ? { kind: "removeTag", diagram: d, target, targetKind, index }
+          : { kind: "setTag", diagram: d, target, targetKind, index, text: text! },
+      ],
+    };
+  }
   const element = diagram.elementsById.get(id);
   if (element) {
     if (field !== "gap" && field !== "gapAfter") return undefined;
@@ -716,6 +968,24 @@ export function sequenceFieldOperations(
           amount: number,
           side: field === "space" ? "before" : "after",
         },
+      ],
+    };
+  }
+  if (event.kind === "message" && field === "activates") {
+    // **Activates the receiver**: the pair `toggleActivation` writes or removes.
+    const relation = diagram.relationsByKey.get(event.relation)!;
+    const on = text === "on" || text === "true";
+    const activation = activationOf(diagram, relation);
+    if (activation === "block") {
+      return on
+        ? { ok: true, operations: [] }
+        : { ok: false, reason: messages().sequence.blockActivates(relation.key, relation.to) };
+    }
+    if (on === (activation === "written")) return { ok: true, operations: [] };
+    return {
+      ok: true,
+      operations: [
+        { kind: "toggleActivation", diagram: d, participant: relation.to, after: event.key },
       ],
     };
   }

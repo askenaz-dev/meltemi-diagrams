@@ -270,7 +270,10 @@ export type EditOperation =
       readonly line: LineStyle;
     }
   | {
-      /** Sets the label of an element; an implicit element gains a declaration. */
+      /**
+       * Sets the label of an element; an implicit element gains a declaration where it keeps its
+       * place in the order of elements (a sequence diagram's columns).
+       */
       readonly kind: "setElementLabel";
       readonly diagram: string;
       readonly element: string;
@@ -519,11 +522,20 @@ export type EditOperation =
       readonly index: number;
     }
   | {
-      /** Sequence diagrams: moves an event past its neighbour, into or out of fragments; validated. */
+      /**
+       * Sequence diagrams: moves an event past its neighbour, into or out of fragments and calls
+       * (`direction`), or right after or right before another event (`to`); validated. Exactly one
+       * of `direction` and `to` is given.
+       */
       readonly kind: "moveEvent";
       readonly diagram: string;
       readonly event: string;
-      readonly direction: "up" | "down";
+      readonly direction?: "up" | "down";
+      /**
+       * The destination: the statement goes right after or right before the statement of the
+       * named event (a key), in the block that holds it, at its indentation and with its comments.
+       */
+      readonly to?: { readonly after: string } | { readonly before: string };
     }
   | {
       /** Sequence diagrams: writes or (with 0 or null) removes `space <event>` or `gap <participant>`. */
@@ -736,10 +748,60 @@ export type EditOperation =
       readonly after: string;
     }
   | {
-      /** Sequence diagrams: removes an activation, lifecycle event, note, divider, delay or fragment. */
+      /**
+       * Sequence diagrams: removes an activation, lifecycle event, note, divider, delay or fragment.
+       * An `activate` goes with its `deactivate` and a `deactivate` with its `activate`, in the
+       * same edit (`activationPair`); an `activate` open to the end goes alone.
+       */
       readonly kind: "removeEvent";
       readonly diagram: string;
       readonly event: string;
+      /**
+       * True removes an `activate` or a `deactivate` without its other end: for a caller that
+       * read the pairs before a batch and removes the other end itself, or with the fragment or
+       * call that holds it. A result with new errors is refused as always.
+       */
+      readonly alone?: boolean;
+    }
+  | {
+      /**
+       * Sequence diagrams: writes `tag "<text>"` in the block of a participant (`element`) or a
+       * message (`relation`, a `return` included): before the tag at `index` when it is given,
+       * else after the owner's last tag, else after the block's last property (before its
+       * events), else first. A statement without a block gains ` { tag "<text>" }`, an implicit
+       * participant is declared with that block where it keeps its column (before the statement
+       * that names it first when the declarations come earlier in the order), and a block written
+       * on one line opens onto lines when it gains a second statement.
+       */
+      readonly kind: "addTag";
+      readonly diagram: string;
+      readonly target: string;
+      readonly targetKind: "element" | "relation";
+      /** One line of text, not empty, that the owner does not have yet. */
+      readonly text: string;
+      /** The position among the owner's tags, from 0; past the last tag is the end. */
+      readonly index?: number;
+    }
+  | {
+      /** Sequence diagrams: rewrites the text of the owner's tag at `index` (from 0). */
+      readonly kind: "setTag";
+      readonly diagram: string;
+      readonly target: string;
+      readonly targetKind: "element" | "relation";
+      readonly index: number;
+      /** One line of text, not empty, that no other tag of the owner has. */
+      readonly text: string;
+    }
+  | {
+      /**
+       * Sequence diagrams: deletes the owner's tag at `index` (from 0), and the block too when it
+       * held nothing else: no other statement and no comment.
+       */
+      readonly kind: "removeTag";
+      readonly diagram: string;
+      readonly target: string;
+      readonly targetKind: "element" | "relation";
+      readonly index: number;
     }
   | {
       /**

@@ -171,6 +171,8 @@ export const es: typeof en = {
     fragment: "Fragmento alrededor de los eventos seleccionados",
     divider: "Separador",
     delay: "Retraso",
+    tag: "Marca",
+    activate: "Activar el receptor",
     zoom: "Zoom",
     zoomOut: "Alejar",
     zoomIn: "Acercar",
@@ -420,12 +422,19 @@ export const es: typeof en = {
     listEnd: (id, list, first) => `${id} ya está al ${first ? "principio" : "final"} de ${list}.`,
     noListToAdd: "Selecciona una lista, o una tarjeta de una lista, para añadirle algo.",
     noListToMove: "Selecciona una tarjeta de una lista para moverla entre sus vecinas.",
+    activation: (participant, from, to) =>
+      `Activación de ${participant} desde ${from ?? "el principio"} hasta ${to ?? "el final"} seleccionada.`,
+    barEndAt: (participant, end, row) =>
+      `${end === "start" ? "Empezar" : "Terminar"} la activación de ${participant} después de ${row}: suelta para moverla, Esc cancela.`,
+    barEndMoved: (participant, end, row) =>
+      `La activación de ${participant} ahora ${end === "start" ? "empieza" : "termina"} después de ${row}.`,
   },
 
   inline: {
     label: (id) => `Etiqueta de ${id}`,
     text: (id) => `Texto de ${id}`,
     newId: (id) => `Nuevo id de ${id}`,
+    tag: (owner, index) => `Marca ${index} de ${owner}`,
     keys: (multiline) =>
       multiline
         ? "Entrar o Tab guarda el texto, Mayús+Entrar empieza una línea nueva, Esc cancela."
@@ -476,6 +485,9 @@ export const es: typeof en = {
     moveUp: "Subir",
     moveDown: "Bajar",
     activateReceiver: "Activar el receptor",
+    removeActivation: "Quitar la activación",
+    editTag: "Editar la marca",
+    removeTag: "Quitar la marca",
     nestInCall: "Anidar en la llamada",
     unnestCall: "Desanidar la llamada",
     addReturn: "Devolver a quien llama",
@@ -524,6 +536,8 @@ export const es: typeof en = {
     iconMissing: (name) => `${name} (no encontrado)`,
     iconMissingTitle: (reference) =>
       `Ningún paquete tiene el icono ${reference}: revisa su nombre o elige otro.`,
+    tags: "Marcas",
+    removeTagTitle: (text) => `Quitar la marca ${text}`,
     clear: "Borrar",
     clearTitle: "Quitar el valor escrito: se aplica el predeterminado",
     options: {
@@ -586,6 +600,11 @@ export const es: typeof en = {
     degrees: (angle) => `${angle}°`,
     status: (angle) => `Giro de ${angle}°. Suelta para conservarlo; Escape cancela.`,
     done: (id, angle) => (angle === 0 ? `${id} vuelve a estar recto.` : `${id} girado ${angle}°.`),
+  },
+
+  bars: {
+    start: "Inicio de la activación: arrástralo a otra fila",
+    end: "Fin de la activación: arrástralo a otra fila",
   },
 
   pen: {

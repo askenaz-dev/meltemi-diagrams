@@ -177,6 +177,8 @@ export const KEY_BINDINGS: readonly KeyBinding[] = [
   bind({ key: "o", command: "createNote", profile: "free" }),
   bind({ key: "o", command: "createNote", profile: "c4" }),
   bind({ key: "t", command: "createTag", profile: "flow" }),
+  // On a sequence diagram T tags the selected message or participant (`addTag`).
+  bind({ key: "t", command: "createTag", profile: "sequence" }),
   // The icon picker, on flow and free diagrams: I again closes it.
   bind({ key: "i", command: "createIcon", profile: "flow" }),
   bind({ key: "b", command: "createBox", profile: "free" }),

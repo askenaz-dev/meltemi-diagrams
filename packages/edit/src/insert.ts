@@ -291,6 +291,41 @@ export function insertIntoBlock(
 }
 
 /**
+ * Declares an implicit element with `text`, where the declaration keeps the order of the
+ * diagram's elements. The model orders them by where each is named first: a declared element by
+ * its declaration's id, an implicit one by its first mention, which is a sequence diagram's
+ * column order and a list's order of children. The declaration goes in the block that holds the
+ * first mention (a group's, or the diagram body): after the block's declarations, as a new one
+ * goes, when no other element is named between there and the first mention; else right before
+ * the statement of the block that holds the mention, after the declarations of the implicit
+ * elements that the statement names first before it, in their order.
+ */
+export function declareImplicit(ctx: EditContext, element: Element, text: string): TextEdit {
+  const group = element.groupPath[element.groupPath.length - 1];
+  const { block, owner } = group
+    ? groupBlock(ctx, group)
+    : { block: diagramBody(ctx), owner: ctx.diagram.node.start };
+  const mention = element.idToken.start;
+  const usual = insertIntoBlock(ctx, block, owner, group === undefined, () => text);
+  const at = usual.start;
+  const others = ctx.diagram.elements.filter((other) => other !== element);
+  const crossed = others.some((other) => {
+    const named = other.idToken.start;
+    return at <= mention ? named >= at && named < mention : named > mention && named < at;
+  });
+  const statement = block.statements.find((s) => s.start <= mention && mention < s.end);
+  if (!crossed || !statement) return usual;
+  const earlier = others.filter(
+    (other) =>
+      !other.node && other.idToken.start >= statement.start && other.idToken.start < mention,
+  );
+  const lines = [...earlier.map((other) => `${other.kind} ${other.id}`), text];
+  return insertBeforeStatement(ctx, block, statement, (indent) =>
+    lines.join(indent === null ? "; " : ctx.eol + indent),
+  );
+}
+
+/**
  * Inserts a `style` statement with the diagram's: after the last `style` statement of the body,
  * else as its last statement. A group takes no `style` statement, so its children's go here.
  */

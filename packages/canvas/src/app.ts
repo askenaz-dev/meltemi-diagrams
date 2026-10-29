@@ -76,6 +76,7 @@ import {
   type PreviewedAction,
   type RelationInfo,
   type ShapeOptions,
+  type TagInfo,
   type TextPlace,
   type Viewport,
   type IconChoiceInfo,
@@ -85,7 +86,8 @@ import { ICONS, ariaKeyshortcuts, clear, h, icon, s } from "./dom.js";
 import { glyph, repaintSticky, shapeIcon, stickyGlyph, type IconPlacement } from "./glyphs.js";
 import { IconPicker } from "./icon-picker.js";
 import { AddIconsDialog, pickedRefusal, type PickedIcon } from "./add-icons.js";
-import { InlineEditor, boxPlace, drawnLines, wrappedLines } from "./inline.js";
+import { barEndY, barRowAt, barSpan } from "./bars.js";
+import { InlineEditor, boxPlace, drawnLines, labelLines, wrappedLines } from "./inline.js";
 import { Inspector, ThemePanel } from "./inspector.js";
 import { LayersPanel } from "./layers.js";
 import { LibraryPanel } from "./library.js";
@@ -195,11 +197,15 @@ export interface CanvasHostApi {
   readonly keys?: { readonly inspector?: string };
 }
 
-/** What an inline editor edits: the label (or the id) of an element, a relation or an event. */
+/**
+ * What an inline editor edits: the label (or the id) of an element, a relation or an event, or a
+ * tag of a sequence participant or message (`id` its owner, `index` the tag's, from 0).
+ */
 interface InlineTarget {
-  readonly kind: "element" | "relation" | "event";
+  readonly kind: "element" | "relation" | "event" | "tag";
   readonly id: string;
   readonly rename: boolean;
+  readonly index?: number;
 }
 
 /**
@@ -281,6 +287,9 @@ const FALLBACK_TOKENS: Readonly<Record<string, string>> = {
  * comes later is someone else's, or the text's, and is just drawn.
  */
 const POP_WAIT_MS = 2000;
+
+/** The canvases made on this page, for ids that must be unique in it. */
+let canvases = 0;
 
 type Drag =
   | { kind: "pan"; start: Point; viewport: Viewport }
@@ -390,6 +399,23 @@ type Drag =
   /** Sequence diagrams: a message, note or fragment dragged up or down, never above its space. */
   | { kind: "event"; key: string; start: Point; delta: number; min: number; moving: boolean }
   /**
+   * Sequence diagrams: an end of a written activation bar (`id`, its `activate`) dragged by its
+   * handle: snapped below the event row under the pointer (`row`, the boundary at `y`), previewed
+   * by the session, refused with the session's `reason` while the order rules forbid the row, and
+   * `unchanged` while the drop would leave the bar as it is.
+   */
+  | {
+      kind: "barEnd";
+      id: string;
+      end: "start" | "end";
+      start: Point;
+      y: number;
+      row?: string;
+      moving: boolean;
+      reason?: string;
+      unchanged?: boolean;
+    }
+  /**
    * A stroke of the pen or the highlighter (`tool`) by the pointer `pointer`: the raw positions
    * from the press in diagram units (coalesced events included), drawn on the overlay as they
    * come; `straight` while Shift keeps it a segment from the press; `moving` once the pointer has
@@ -435,6 +461,10 @@ const LONG_PRESS_MS = 450;
 
 /** The steps of the rotation handle, in degrees; Alt turns them off. */
 const ROTATION_STEP = 15;
+
+/** The handle of an end of an activation bar, a pill in screen pixels, and its distance from it. */
+const BAR_HANDLE = { width: 18, height: 8 } as const;
+const BAR_HANDLE_GAP = 8;
 
 /** The pictures of a C4 view's entity tools, by kind; the others draw a box. */
 const C4_TOOL_ICONS: Readonly<Record<string, string>> = {
@@ -725,6 +755,12 @@ export class CanvasApp {
    * selection again, so the status line does not keep the old text.
    */
   private relabelled: string | undefined;
+  /**
+   * A Move up or Move down of an event on its way, with the key the event had: said once its
+   * drawing comes, under the key the event has there (the render's selection, which the session
+   * keeps on it), since counted keys such as `activate#2` follow the order of the statements.
+   */
+  private movedVertically: { readonly id: string; readonly direction: "up" | "down" } | undefined;
   /** The midpoint chain of each pen of the drawing as a polyline, measured once per render. */
   private penSamples = new Map<string, Point[]>();
   /** The relation tool's source, once its first element is clicked. */
@@ -843,6 +879,32 @@ export class CanvasApp {
   /** The palette's relation tool ("Message" on sequence diagrams). */
   private relationButton!: HTMLButtonElement;
   /**
+   * Sequence diagrams: **Tag** (T), which tags the selected message or participant, and
+   * **Activate** (Alt+A), pressed while the selected message's receiver is activated after it.
+   * Both are disabled while no message and no participant is selected.
+   */
+  private tagButton!: HTMLButtonElement;
+  private activateButton!: HTMLButtonElement;
+  /**
+   * The end of an activation bar being dragged, with the guide across the row it snaps to: drawn
+   * apart from the overlay, which is redrawn at every move, so that it slides from row to row.
+   */
+  private readonly barDrag = s(
+    "svg",
+    { class: "bar-drag", "aria-hidden": "true" },
+    s("line", { class: "bar-guide" }),
+    s("rect", { class: "bar-handle", width: 14, height: 6, rx: 3 }),
+  );
+  /**
+   * What the pointer rests on without a drag, outlined so that it reads as an object before it is
+   * pressed: a written activation bar (its `activate`), or the owner of a tag's pill.
+   */
+  private hovered: string | undefined;
+  /** The bar whose handles the last overlay drew: they fade in once, not at every redraw. */
+  private barHandlesShown: string | undefined;
+  /** The pill a context menu was opened on: its owner and the tag's index. */
+  private menuPill: { readonly owner: string; readonly index: number } | undefined;
+  /**
    * The shape the box (free) and node (flow) tools place, B and N included: `rounded` until one is
    * chosen in the shapes grid, kept while the canvas is open and never written.
    */
@@ -924,6 +986,8 @@ export class CanvasApp {
   private readonly ghostIcons = new Map<string, SVGSVGElement>();
   /** The target outlines of the last overlay: kept ones do not fade in again. */
   private outlined = new Set<string>();
+  /** The ids of the overlay's pill masks, unique among the canvases of one page. */
+  private readonly maskPrefix = `mdg-pills-${++canvases}`;
   private readonly tooltips: Tooltips;
 
   constructor(
@@ -987,6 +1051,7 @@ export class CanvasApp {
       this.content,
       this.presenceLayer.element,
       this.overlay,
+      this.barDrag,
       this.listAdds,
       this.banner,
       this.empty,
@@ -1055,6 +1120,7 @@ export class CanvasApp {
         this.queuedSlide = undefined;
         // A + or a move in a list cannot be written until the errors are fixed.
         this.afterRender = [];
+        this.movedVertically = undefined;
         this.settling = undefined;
         // Strokes and erasures not written yet cannot be, until the errors are fixed.
         if (this.penQueue.length > 0) {
@@ -1085,6 +1151,7 @@ export class CanvasApp {
         this.emptyCreatable = message.creatable ?? [];
         // No render of a pending edit will come.
         this.pending = false;
+        this.movedVertically = undefined;
         this.queued = { x: 0, y: 0 };
         this.queuedSlide = undefined;
         // Nothing is shown any more, so what others had selected in it is gone with it.
@@ -1108,6 +1175,8 @@ export class CanvasApp {
         // A label refused is drawn as it was, and the selection keeps its text.
         if (!this.inline) this.showDrawnText();
         this.relabelled = undefined;
+        // A move refused is said by its reason.
+        this.movedVertically = undefined;
         this.queued = { x: 0, y: 0 };
         this.queuedSlide = undefined;
         this.turnPending = undefined;
@@ -1155,6 +1224,12 @@ export class CanvasApp {
         break;
       case "select":
         this.select([...message.ids], false);
+        // A tag just added: its pill pops in with its editor over it.
+        if (message.tag !== undefined && message.ids.length === 1 && !this.readOnly) {
+          this.popPill(message.ids[0]!, message.tag);
+          this.editTag(message.ids[0]!, message.tag);
+          break;
+        }
         if (message.ids.length === 1 && !this.readOnly) {
           // A new shape is empty until a double click, Enter or F2 adds its text; a new icon or
           // image has no label to type. Texts, notes, tags and groups open their editor.
@@ -1940,13 +2015,15 @@ export class CanvasApp {
     if (
       edited &&
       (previous?.diagram !== render.diagram ||
-        !(
-          edited.kind === "element"
-            ? this.elements
-            : edited.kind === "relation"
-              ? this.relations
-              : this.events
-        ).has(edited.id))
+        (edited.kind === "tag"
+          ? this.tagsOf(edited.id)?.[edited.index ?? 0] === undefined
+          : !(
+              edited.kind === "element"
+                ? this.elements
+                : edited.kind === "relation"
+                  ? this.relations
+                  : this.events
+            ).has(edited.id)))
     ) {
       this.closeInline();
     }
@@ -1983,6 +2060,17 @@ export class CanvasApp {
     // The tools and the panels of this drawing take their room first (after an empty file they
     // were out of sight), so that the fit below measures the stage they leave.
     this.updateToolbar();
+    this.syncSequenceButtons();
+    // The theme's `danger` colour, for an end of an activation bar the order rules refuse, and its
+    // `background`, behind an editor that grows over the drawing.
+    for (const [name, token] of [
+      ["--mdg-danger", "danger"],
+      ["--mdg-paper", "background"],
+    ] as const) {
+      const color = render.swatches?.find((swatch) => swatch.token === token)?.color;
+      if (color) this.stage.style.setProperty(name, color);
+      else this.stage.style.removeProperty(name);
+    }
     this.refreshLayers();
     if (previous && previous.diagram === render.diagram) {
       this.viewport = keepOrigin(this.viewport, previous.offset, render.offset);
@@ -2013,6 +2101,13 @@ export class CanvasApp {
     const relabelled = this.relabelled;
     this.relabelled = undefined;
     if (relabelled !== undefined && this.selection.includes(relabelled)) this.announceSelection();
+    // A Move up or Move down is said with the key the moved event has in this drawing.
+    const moved = this.movedVertically;
+    this.movedVertically = undefined;
+    if (moved) {
+      const key = this.selection.length === 1 ? this.selection[0]! : moved.id;
+      this.announce(messages().announcements.movedVertically(key, moved.direction));
+    }
     // A stroke or an erasure that waited for this render goes now.
     this.flushPen();
     // A + or a move in a list that waited for this render goes now, one per render.
@@ -2654,6 +2749,15 @@ export class CanvasApp {
     }
     const event = this.events.get(id);
     const box = event ? this.eventBox(event) : undefined;
+    // A bar whose end is dragged reaches the row its handle snapped to.
+    if (box && drag?.kind === "barEnd" && drag.id === id && drag.moving && drag.row !== undefined) {
+      const top = drag.end === "start" ? drag.y : box.y;
+      const bottom = drag.end === "end" ? drag.y : box.y + box.height;
+      return {
+        kind: "box",
+        box: { ...box, y: Math.min(top, bottom), height: Math.abs(bottom - top) },
+      };
+    }
     return box ? { kind: "box", box: { ...box, y: box.y + shift } } : undefined;
   }
 
@@ -3376,13 +3480,52 @@ export class CanvasApp {
       if (element) outline(element, "highlight");
     }
     const drag = this.drag;
+    // A message's outline runs along its arrow and stops at its tags' pills, which stay readable
+    // over it: a mask with a hole for each pill, moved with the message while it is dragged.
+    let masks = 0;
+    const route = (id: string, points: readonly Point[], cls: string) => {
+      const line = s("polyline", {
+        class: cls,
+        points: points.map((p) => `${p.x},${p.y}`).join(" "),
+      });
+      const tags = this.relations.get(id)?.tags ?? [];
+      if (tags.length > 0) {
+        const shift = drag?.kind === "event" && drag.moving && drag.key === id ? drag.delta : 0;
+        const mask = s("mask", {
+          id: `${this.maskPrefix}-${masks++}`,
+          maskUnits: "userSpaceOnUse",
+          x: -1e5,
+          y: -1e5,
+          width: 2e5,
+          height: 2e5,
+        });
+        mask.append(s("rect", { x: -1e5, y: -1e5, width: 2e5, height: 2e5, fill: "white" }));
+        for (const tag of tags) {
+          const pill = this.screenBox({ ...tag.box, y: tag.box.y + shift });
+          mask.append(
+            s("rect", {
+              x: pill.x,
+              y: pill.y,
+              width: pill.width,
+              height: pill.height,
+              rx: pill.height / 2,
+              fill: "black",
+            }),
+          );
+        }
+        add(mask);
+        line.setAttribute("mask", `url(#${mask.id})`);
+      }
+      add(line);
+    };
     const primary = this.selection[this.selection.length - 1];
     for (const id of this.selection) {
       const shape = this.shapeOf(id);
       if (shape?.kind === "line") {
-        const points = shape.points.map((p) => this.screenOf(p));
-        add(
-          s("polyline", { class: "outline", points: points.map((p) => `${p.x},${p.y}`).join(" ") }),
+        route(
+          id,
+          shape.points.map((p) => this.screenOf(p)),
+          "outline",
         );
       } else if (shape) {
         const turned = this.elements.get(id);
@@ -3410,15 +3553,40 @@ export class CanvasApp {
         }
       }
     }
+    // What the pointer rests on: a bar, or the owner of a pill, outlined thinly until pressed.
+    const hovered =
+      !drag && this.hovered !== undefined && !this.selection.includes(this.hovered)
+        ? this.hovered
+        : undefined;
+    const hoverShape = hovered === undefined ? undefined : this.shapeOf(hovered);
+    if (hoverShape) {
+      const key = `hover ${hovered}`;
+      outlined.add(key);
+      const cls = this.outlined.has(key) ? "hover-outline held" : "hover-outline";
+      if (hoverShape.kind === "line") {
+        route(
+          hovered!,
+          hoverShape.points.map((p) => this.screenOf(p)),
+          cls,
+        );
+      } else rect(this.screenBox(hoverShape.box), cls);
+    }
     // The handles resize, bend and connect: a canvas that only shows draws the outline alone.
+    const barShown = this.barHandlesShown;
+    this.barHandlesShown = undefined;
     if (!drag && this.selection.length === 1 && !this.readOnly) {
       const element = this.elements.get(this.selection[0]!);
       const relation = this.relations.get(this.selection[0]!);
+      const event = this.events.get(this.selection[0]!);
       const sequence = r.profile === "sequence";
       // A free line has the handles of its points instead of a frame's.
       if (element?.line && !this.stale) this.drawLineHandles(element);
       else if (element && !this.stale) this.drawElementHandles(element);
       if (relation && !this.stale && !sequence) this.drawRouteHandles(relation);
+      // A written activation bar: a handle above its top and one below its bottom.
+      if (event?.kind === "activate" && event.box && sequence && !this.stale && !r.scenario) {
+        this.drawBarHandles(event, event.box, barShown === event.key);
+      }
     }
     if (drag?.kind === "linePoint" && drag.moving) {
       // The line as the drop will write it, its points as handles that follow the pointer.
@@ -3642,6 +3810,80 @@ export class CanvasApp {
       add(path);
     }
     this.outlined = outlined;
+    this.syncBarDrag();
+  }
+
+  /**
+   * The handles of a selected written activation bar: a pill above its top and one below its
+   * bottom, outside the bar so that a short one keeps both in reach. They fade and grow in when
+   * the bar is selected (`held` once drawn).
+   */
+  private drawBarHandles(event: EventInfo, bar: Box, held: boolean): void {
+    this.barHandlesShown = event.key;
+    const box = this.screenBox(bar);
+    const words = messages().bars;
+    const x = box.x + box.width / 2;
+    for (const end of ["start", "end"] as const) {
+      const y = end === "start" ? box.y - BAR_HANDLE_GAP : box.y + box.height + BAR_HANDLE_GAP;
+      this.overlay.append(
+        s(
+          "rect",
+          {
+            class: held ? "handle bar-handle held" : "handle bar-handle",
+            x: x - BAR_HANDLE.width / 2,
+            y: y - BAR_HANDLE.height / 2,
+            width: BAR_HANDLE.width,
+            height: BAR_HANDLE.height,
+            rx: BAR_HANDLE.height / 2,
+            "data-handle": `barEnd:${end}`,
+            "data-id": event.key,
+          },
+          s("title", {}, document.createTextNode(words[end])),
+        ),
+      );
+    }
+  }
+
+  /**
+   * The end of an activation bar being dragged: its handle on the boundary below the row it snaps
+   * to, and a guide across the lifelines there, which slide from row to row; in the theme's
+   * `danger` colour while the session refuses the row. Hidden when no bar's end is dragged.
+   */
+  private syncBarDrag(): void {
+    const layer = this.barDrag;
+    const drag = this.drag;
+    const box = drag?.kind === "barEnd" ? this.events.get(drag.id)?.box : undefined;
+    if (drag?.kind !== "barEnd" || !drag.moving || drag.row === undefined || !box) {
+      layer.classList.remove("shown");
+      layer.removeAttribute("data-refused");
+      return;
+    }
+    const [guide, handle] = [...layer.children] as [SVGLineElement, SVGRectElement];
+    const heads = [...this.elements.values()].filter((e) => e.kind !== "group").map((e) => e.box);
+    const left = this.screenOf({ x: Math.min(box.x, ...heads.map((b) => b.x)), y: drag.y });
+    const right = this.screenOf({
+      x: Math.max(box.x + box.width, ...heads.map((b) => b.x + b.width)),
+      y: drag.y,
+    });
+    const centre = this.screenOf({ x: box.x + box.width / 2, y: drag.y });
+    const fresh = !layer.classList.contains("shown");
+    // Shown again, it starts where it is: it slides only from row to row.
+    if (fresh) for (const part of [guide, handle]) part.style.transition = "none";
+    guide.setAttribute("x1", String(left.x));
+    guide.setAttribute("x2", String(right.x));
+    guide.style.transform = `translateY(${left.y}px)`;
+    handle.setAttribute("x", String(-BAR_HANDLE.width / 2));
+    handle.setAttribute("y", String(-BAR_HANDLE.height / 2));
+    handle.setAttribute("width", String(BAR_HANDLE.width));
+    handle.setAttribute("height", String(BAR_HANDLE.height));
+    handle.setAttribute("rx", String(BAR_HANDLE.height / 2));
+    handle.style.transform = `translate(${centre.x}px, ${centre.y}px)`;
+    layer.toggleAttribute("data-refused", drag.reason !== undefined);
+    layer.classList.add("shown");
+    if (fresh) {
+      layer.getBoundingClientRect();
+      for (const part of [guide, handle]) part.style.transition = "";
+    }
   }
 
   private isMoving(id: string): boolean {
@@ -4064,21 +4306,27 @@ export class CanvasApp {
       !!this.render &&
       ((drag?.kind === "move" && drag.moving) ||
         drag?.kind === "resize" ||
-        (drag?.kind === "rotate" && drag.moving))
+        (drag?.kind === "rotate" && drag.moving) ||
+        (drag?.kind === "barEnd" && drag.moving))
     );
   }
 
   /**
    * The action the drop of the gesture under way would send, which a preview asks the drawing
-   * of: none when the drop would send nothing, on a sequence diagram (which moves its own events
-   * live), on a canvas that only shows or while the text has errors.
+   * of: none when the drop would send nothing, on a canvas that only shows or while the text has
+   * errors. A sequence diagram moves its own events live: its one previewed gesture is the end of
+   * an activation bar, which the session draws, or refuses with the reason.
    */
   private previewAction(): PreviewedAction | undefined {
     const drag = this.drag;
     const profile = this.render?.profile;
-    if (!this.previewing() || profile === "sequence" || this.readOnly || this.stale) {
-      return undefined;
+    if (!this.previewing() || this.readOnly || this.stale) return undefined;
+    if (drag?.kind === "barEnd") {
+      return drag.row === undefined
+        ? undefined
+        : { kind: "moveActivation", id: drag.id, end: drag.end, row: drag.row };
     }
+    if (profile === "sequence") return undefined;
     if (drag?.kind === "move") {
       // Into a list: the move the drop sends, which makes room for the selection there; nothing
       // while the drop would leave the list as it is.
@@ -4199,6 +4447,19 @@ export class CanvasApp {
       this.followPointer();
       this.followRotation();
     });
+    // The end of an activation bar: refused, the handle turns `danger` and the status line says
+    // why; the drawing as it is means the drop would leave the bar alone.
+    const drag = this.drag;
+    if (drag?.kind === "barEnd" && !waiting.gone) {
+      drag.reason = message.svg === null ? message.reason : undefined;
+      drag.unchanged = message.svg !== null && message.svg === r.svg;
+      const participant = this.events.get(drag.id)?.participant ?? drag.id;
+      if (drag.reason !== undefined) this.announce(drag.reason, true);
+      else if (drag.row !== undefined) {
+        this.announce(messages().announcements.barEndAt(participant, drag.end, drag.row));
+      }
+      this.drawOverlay();
+    }
     // The bar goes to the middle of the room made.
     this.syncInsertion();
     if (this.previewAgain) {
@@ -4312,6 +4573,8 @@ export class CanvasApp {
     this.drag = undefined;
     if (back) this.glide(back, this.motion("--mdg-motion"));
     this.drawOverlay();
+    // The end of a bar let go of: the bar is said again, as it stays.
+    if (drag?.kind === "barEnd" && drag.moving) this.announceSelection();
   }
 
   /** Where an event of a sequence diagram is drawn, in diagram coordinates. */
@@ -4526,6 +4789,22 @@ export class CanvasApp {
     const delay = sequence(
       this.button(words.toolbar.delay, ICONS.delay, () => this.command("createDelay")),
     );
+    // The selected message or participant: a tag (T), and the activation of the receiver after
+    // the message (Alt+A), which the button shows pressed while it is there.
+    this.tagButton = sequence(
+      this.button(words.toolbar.tag, ICONS.tag, () => this.command("createTag"), "T"),
+    );
+    this.activateButton = sequence(
+      this.button(
+        words.toolbar.activate,
+        ICONS.activate,
+        () => this.command("toggleActivation"),
+        "Alt+A",
+      ),
+    );
+    this.activateButton.setAttribute("aria-pressed", "false");
+    const tag = this.tagButton;
+    const activate = this.activateButton;
     // C4 views: entities come from the model.
     const addEntity: HTMLButtonElement = this.button(
       words.commands.addFromModel,
@@ -4600,6 +4879,8 @@ export class CanvasApp {
       fragment,
       divider,
       delay,
+      tag,
+      activate,
       addEntity,
       separator(),
       this.button(words.toolbar.zoomOut, ICONS.zoomOut, () => this.command("zoomOut"), "-"),
@@ -4676,6 +4957,8 @@ export class CanvasApp {
       fragment,
       divider,
       delay,
+      tag,
+      activate,
       addEntity,
       arrange,
       this.playButton,
@@ -4698,6 +4981,8 @@ export class CanvasApp {
       fragment,
       divider,
       delay,
+      tag,
+      activate,
       addEntity,
       arrange,
       this.toggles.get("snap")!,
@@ -4717,6 +5002,8 @@ export class CanvasApp {
       fragment,
       divider,
       delay,
+      tag,
+      activate,
       addEntity,
       arrange,
       this.playButton,
@@ -5491,6 +5778,32 @@ export class CanvasApp {
           : words.mode.manual;
   }
 
+  /**
+   * The sequence palette's **Tag** and **Activate** as the selection is: enabled while a message or
+   * a participant is selected (not in a scenario's preview, which is read-only), and **Activate**
+   * pressed while the selected message's receiver is activated after it, by a written `activate`
+   * or by the call's block (`RelationInfo.activation`).
+   */
+  private syncSequenceButtons(): void {
+    const r = this.render;
+    const message = [...this.selection]
+      .reverse()
+      .map((id) => this.relations.get(id))
+      .find((relation) => relation !== undefined);
+    const participant = this.selection.some((id) => {
+      const element = this.elements.get(id);
+      return element !== undefined && element.kind !== "group";
+    });
+    const enabled =
+      r?.profile === "sequence" && r.scenario === null && (message !== undefined || participant);
+    this.tagButton.disabled = !enabled;
+    this.activateButton.disabled = !enabled;
+    this.activateButton.setAttribute(
+      "aria-pressed",
+      String(enabled && message?.activation !== undefined),
+    );
+  }
+
   private syncZoomSelect(): void {
     const zoom = this.viewport.zoom;
     const preset = ZOOM_PRESETS.find((z) => Math.abs(z - zoom) < 1e-6);
@@ -5530,6 +5843,8 @@ export class CanvasApp {
       if (this.stylusMenuShut(e)) return;
       const hit = this.hit(e.target);
       if (hit?.id && !this.selection.includes(hit.id)) this.select([hit.id]);
+      // A pill's menu edits or removes its tag, then offers its owner's.
+      this.menuPill = this.pillOf(e.target);
       this.openMenu(this.pointOf(e));
     });
     stage.addEventListener("keydown", (e) => this.keyDown(e));
@@ -5545,9 +5860,10 @@ export class CanvasApp {
         this.borderStart = undefined;
         stage.classList.remove("connecting");
       }
-      // No list is under a pointer that left; a selected one keeps its +.
+      // No list is under a pointer that left; a selected one keeps its +. Nothing is hovered.
       this.hoveredLists = [];
       this.listAddHover = undefined;
+      this.hovered = undefined;
       this.drawOverlay();
     });
     // The stage never scrolls; a browser revealing a focused child must not shift it.
@@ -5631,8 +5947,46 @@ export class CanvasApp {
     if (!owner || !this.content.contains(owner)) return undefined;
     const id = owner.getAttribute("data-id")!;
     const role = owner.getAttribute("data-role");
-    if (role === "event") return this.events.has(id) ? { kind: "event", id } : undefined;
+    if (role === "event") {
+      // The bar a call's block draws on its receiver's lifeline is the call's doing: it selects
+      // the call. A written bar is its `activate`.
+      if (this.relations.has(id) && owner.parentElement?.closest('[data-role="lifeline"]')) {
+        return { kind: "relation", id };
+      }
+      return this.events.has(id) ? { kind: "event", id } : undefined;
+    }
+    // A tag's pill belongs to its owner: the participant's head or the message.
     return role === "element" ? { kind: "element", id } : { kind: "relation", id };
+  }
+
+  /** The tag's pill under the pointer on a sequence diagram: its owner and the tag's index. */
+  private pillOf(
+    target: EventTarget | null,
+  ): { readonly owner: string; readonly index: number } | undefined {
+    if (this.render?.profile !== "sequence" || !(target instanceof Element)) return undefined;
+    const pill = target.closest('[data-role="tag"]');
+    if (!pill || !this.content.contains(pill)) return undefined;
+    const owner = pill.getAttribute("data-id");
+    const index = Number(pill.getAttribute("data-tag"));
+    return owner && Number.isInteger(index) ? { owner, index } : undefined;
+  }
+
+  /**
+   * What the pointer rests on, outlined while nothing is dragged: a written activation bar (its
+   * `activate`), or the owner of a tag's pill, so that each reads as an object before it is
+   * pressed. Redraws the overlay when it changes.
+   */
+  private hoverAt(target: EventTarget | null): void {
+    let next: string | undefined;
+    if (this.render?.profile === "sequence" && !this.drag && target instanceof Element) {
+      const bar = target.closest('[data-role="lifeline"] [data-role="event"]');
+      const id = bar && this.content.contains(bar) ? bar.getAttribute("data-id") : null;
+      if (id !== null) next = this.events.get(id)?.box ? id : undefined;
+      else next = this.pillOf(target)?.owner;
+    }
+    if (next === this.hovered) return;
+    this.hovered = next;
+    this.drawOverlay();
   }
 
   /**
@@ -5756,6 +6110,21 @@ export class CanvasApp {
         return;
       }
       const [kind, arg] = hit.handle.split(":") as [string, string];
+      if (kind === "barEnd") {
+        // An end of a selected written activation bar, dragged to another event row.
+        const box = this.events.get(hit.id)?.box;
+        if (!box) return;
+        const end = arg === "start" ? "start" : "end";
+        this.drag = {
+          kind: "barEnd",
+          id: hit.id,
+          end,
+          start: at,
+          y: end === "start" ? box.y : box.y + box.height,
+          moving: false,
+        };
+        return;
+      }
       if (kind === "linePoint" || kind === "lineSegment") {
         if (!this.elements.get(hit.id)?.line) return;
         this.drag = {
@@ -5919,6 +6288,8 @@ export class CanvasApp {
         this.hoverLists(e);
         // Over a +, the pointer is on no border.
         if ((e.target as Element | null)?.closest?.(".list-add")) return;
+        // A bar or a pill shows what a press would take.
+        this.hoverAt(e.target);
         this.hoverBorder(this.diagramOf(point), e.altKey, this.hit(e.target) !== undefined);
       }
       return;
@@ -6144,6 +6515,30 @@ export class CanvasApp {
         const step = free || !this.snap ? 1 : this.settings.grid;
         drag.delta = Math.max(drag.min, Math.round(raw / step) * step);
         this.previewEvent(drag.key, drag.delta);
+        break;
+      }
+      case "barEnd": {
+        if (!drag.moving && Math.abs(at.y - drag.start.y) * this.viewport.zoom < DRAG_THRESHOLD) {
+          return;
+        }
+        if (this.stale) return;
+        drag.moving = true;
+        // Snapped below the event row under the pointer; the session draws the bar's new end.
+        const row = barRowAt([...this.events.values()], at.y);
+        if (row && row.key !== drag.row) {
+          drag.row = row.key;
+          // The bar ends where the layout will end it: at the arrow of a message its participant
+          // sends or receives, else on the boundary below the row.
+          const participant = this.events.get(drag.id)?.participant ?? null;
+          const relation = this.relations.get(row.key);
+          drag.y = barEndY(relation, participant) ?? row.y;
+          drag.reason = undefined;
+          drag.unchanged = false;
+          this.announce(
+            messages().announcements.barEndAt(participant ?? drag.id, drag.end, row.key),
+          );
+          this.requestPreview();
+        }
         break;
       }
       case "minimap":
@@ -6417,6 +6812,27 @@ export class CanvasApp {
         }
         if (drag.moving) this.resetPreview();
         break;
+      case "barEnd": {
+        this.endPreview();
+        // A row the order rules refuse, or the bar's end where it is, writes nothing; the drawing
+        // of a move written stays until the edit's render replaces it.
+        const row = drag.row;
+        const written =
+          drag.moving &&
+          row !== undefined &&
+          drag.reason === undefined &&
+          !drag.unchanged &&
+          this.act({ kind: "moveActivation", id: drag.id, end: drag.end, row });
+        if (written) {
+          const participant = this.events.get(drag.id)?.participant ?? drag.id;
+          this.announce(messages().announcements.barEndMoved(participant, drag.end, row!));
+        } else {
+          if (this.previewShown) this.restoreDrawing();
+          if (drag.reason !== undefined) this.announce(drag.reason, true);
+          else if (drag.moving) this.announceSelection();
+        }
+        break;
+      }
       default:
         break;
     }
@@ -7226,7 +7642,14 @@ export class CanvasApp {
     // quick dots of the pen or presses of the eraser.
     if (this.storyPanel.active || e.altKey || this.pointing || isDrawing(this.tool)) return;
     // Pointer capture sends the double click to the stage; what is under the pointer counts.
-    const hit = this.hit(document.elementFromPoint(e.clientX, e.clientY) ?? e.target);
+    const under = document.elementFromPoint(e.clientX, e.clientY) ?? e.target;
+    // A tag's pill is edited in place, over the pill.
+    const pill = this.pillOf(under);
+    if (pill) {
+      this.editTag(pill.owner, pill.index);
+      return;
+    }
+    const hit = this.hit(under);
     if (!hit) return;
     // A stroke has no text: a double click on it opens nothing and leaves it selected.
     if (hit.kind === "element" && this.elements.get(hit.id)?.pen) return;
@@ -7603,8 +8026,10 @@ export class CanvasApp {
           return;
         }
         const direction = command === "moveEventUp" ? "up" : "down";
-        this.act({ kind: "moveEvent", id: primary, direction });
-        this.announce(messages().announcements.movedVertically(primary, direction));
+        // Said with the drawing of the move, where the event may have another key.
+        if (this.act({ kind: "moveEvent", id: primary, direction })) {
+          this.movedVertically = { id: primary, direction };
+        }
         return;
       }
       case "toggleLayers":
@@ -7638,6 +8063,13 @@ export class CanvasApp {
       case "createBox":
       case "createText":
       case "createImage": {
+        // On a sequence diagram a tag belongs to the selected message or participant; the session
+        // says what to select when neither is.
+        if (command === "createTag" && this.render?.profile === "sequence") {
+          this.setPointing(false);
+          this.act({ kind: "addTag", ids: this.selection });
+          return;
+        }
         const kind = (
           {
             createNode: "node",
@@ -7690,6 +8122,7 @@ export class CanvasApp {
       }
       case "contextMenu": {
         if (this.pointing) return;
+        this.menuPill = undefined;
         const element = primary ? this.elements.get(primary) : undefined;
         this.openMenu(element ? this.screenOf(centerOf(element.box)) : this.centre());
         return;
@@ -8130,6 +8563,7 @@ export class CanvasApp {
   private select(ids: string[], reveal = false): void {
     this.selection = ids;
     this.post({ type: "select", ids });
+    this.syncSequenceButtons();
     if (this.showLayers) this.refreshLayers();
     if (reveal && ids.length > 0 && this.render) {
       const box = this.elements.get(ids[ids.length - 1]!)?.box;
@@ -8159,7 +8593,17 @@ export class CanvasApp {
         words.selectedRelation(relation.from, relation.to, this.render?.profile === "sequence"),
       );
     } else if (last && this.events.has(last)) {
-      this.announce(words.selectedEvent(this.events.get(last)!.kind, last));
+      // A written bar is said by its participant and the messages it spans.
+      const event = this.events.get(last)!;
+      const span =
+        event.kind === "activate" && event.box
+          ? barSpan([...this.events.values()], last)
+          : undefined;
+      this.announce(
+        span
+          ? words.activation(span.participant, span.from, span.to)
+          : words.selectedEvent(event.kind, last),
+      );
     }
   }
 
@@ -8225,20 +8669,84 @@ export class CanvasApp {
     );
   }
 
+  /** The tags of a sequence participant or message, as drawn; undefined for anything else. */
+  private tagsOf(owner: string): readonly TagInfo[] | undefined {
+    return this.relations.get(owner)?.tags ?? this.elements.get(owner)?.tags;
+  }
+
   /**
-   * Opens the editor over the text of an element, a relation or an event: in the drawing's font,
-   * size, weight, colour and alignment, the drawn text hidden while it is open. Ids and the texts
-   * the drawing writes on one line take no line break.
+   * The editor over a tag's pill, in the pill's font, size and colour on its fill: Enter writes
+   * the text (`setTag`), an empty text removes the tag, Escape writes nothing.
+   */
+  private editTag(owner: string, index: number): void {
+    if (this.readOnly) {
+      this.announce(messages().readOnly.refused);
+      return;
+    }
+    if (this.stale || this.render?.scenario !== null) return;
+    const tag = this.tagsOf(owner)?.[index];
+    if (!tag?.place) return;
+    this.openInline(
+      { kind: "tag", id: owner, rename: false, index },
+      tag.text,
+      messages().inline.tag(owner, index + 1),
+    );
+  }
+
+  /** The group of a tag's pill in the drawing shown. */
+  private pillGroup(owner: string, index: number): SVGGElement | null {
+    return (
+      this.content
+        .querySelector("svg")
+        ?.querySelector<SVGGElement>(
+          `g[data-id="${cssEscape(owner)}"][data-role="tag"][data-tag="${index}"]`,
+        ) ?? null
+    );
+  }
+
+  /**
+   * Pops a new pill in, as a new sticky note does: it grows from `--mdg-pop-scale` about its centre
+   * and fades in over `--mdg-motion`, in a group that goes when the animation ends.
+   */
+  private popPill(owner: string, index: number): void {
+    const g = this.pillGroup(owner, index);
+    const box = this.tagsOf(owner)?.[index]?.box;
+    const r = this.render;
+    if (!g || !box || !r) return;
+    const centre = centerOf(box);
+    const wrapper = s("g", {
+      class: "mdg-pop",
+      style: `transform-origin: ${centre.x + r.offset.x}px ${centre.y + r.offset.y}px`,
+    });
+    g.replaceWith(wrapper);
+    wrapper.append(g);
+    wrapper.addEventListener("animationend", (e) => {
+      if (e.target === wrapper) wrapper.replaceWith(g);
+    });
+  }
+
+  /** Removes a tag: its pill fades out over `--mdg-motion-fast` while the edit is drawn. */
+  private removeTag(owner: string, index: number): void {
+    if (!this.act({ kind: "removeTag", ids: [owner], index })) return;
+    this.pillGroup(owner, index)?.classList.add("mdg-fading");
+  }
+
+  /**
+   * Opens the editor over the text of an element, a relation, an event or a tag's pill: in the
+   * drawing's font, size, weight, colour and alignment, the drawn text hidden while it is open.
+   * Ids and the texts the drawing writes on one line take no line break. It wraps as the drawing
+   * wraps the text (`TextPlace.wrap`): a sticky note's words at the card, shrinking to fit; a
+   * sequence message's label pulled narrower at the room between its lifelines, growing down.
    */
   private openInline(target: InlineTarget, value: string, label: string): void {
     this.closeInline();
     const place = this.textPlace(target);
-    const multiline = !target.rename && place.lines;
-    // A sticky note's words wrap at its card and shrink to fit: its editor does the same.
-    const wrap =
-      !target.rename &&
-      target.kind === "element" &&
-      this.elements.get(target.id)?.kind === "sticky";
+    const multiline = !target.rename && target.kind !== "tag" && place.lines;
+    const wrap = target.rename || target.kind === "tag" ? undefined : place.wrap;
+    // A label that grows down starts where the first of its drawn lines is.
+    const root = this.content.querySelector("svg");
+    const drawnLines =
+      wrap === "grow" && root ? Math.max(1, labelLines(root, target.id).length) : undefined;
     // A card of a list: Ctrl+Enter keeps its text and adds the next card after it, as on the stage.
     const parent = target.kind === "element" ? this.elements.get(target.id)?.parent : undefined;
     const inList = !target.rename && parent ? this.elements.get(parent)?.list : undefined;
@@ -8248,7 +8756,8 @@ export class CanvasApp {
       rename: target.rename,
       value,
       multiline,
-      wrap,
+      ...(wrap ? { wrap } : {}),
+      ...(drawnLines !== undefined ? { drawnLines } : {}),
       label,
       keys: inList ? `${keys.keys(multiline)} ${keys.nextCard}` : keys.keys(multiline),
       commit: () => this.commitInline(),
@@ -8274,6 +8783,11 @@ export class CanvasApp {
    * group, an event without text) gets the middle of its box.
    */
   private textPlace(target: InlineTarget): TextPlace {
+    if (target.kind === "tag") {
+      // A tag's text on its pill; the pill's middle when the drawing holds no such pill.
+      const tag = this.tagsOf(target.id)?.[target.index ?? 0];
+      return tag?.place ?? boxPlace(tag?.box ?? { x: 0, y: 0, width: 0, height: 0 }, ID_FONT);
+    }
     const element = target.kind === "element" ? this.elements.get(target.id) : undefined;
     const relation = target.kind === "relation" ? this.relations.get(target.id) : undefined;
     const event = target.kind === "event" ? this.events.get(target.id) : undefined;
@@ -8307,11 +8821,18 @@ export class CanvasApp {
         : target.kind === "relation"
           ? ["label"]
           : ["event", "label"];
-    // A sticky note's lines are wrapped by the layout, not the label's own: every one is hidden.
+    // A sticky note's lines are wrapped by the layout, not the label's own, and so are a sequence
+    // message's: every one is hidden. A tag's pill keeps its fill under the editor.
     const nodes =
-      turned?.kind === "sticky"
-        ? wrappedLines(root, target.id)
-        : drawnLines(root, target.id, roles, this.drawnText(target));
+      target.kind === "tag"
+        ? [...(this.pillGroup(target.id, target.index ?? 0)?.children ?? [])].filter(
+            (node) => node.tagName.toLowerCase() !== "rect",
+          )
+        : turned?.kind === "sticky"
+          ? wrappedLines(root, target.id)
+          : target.kind === "relation" && this.render?.profile === "sequence"
+            ? labelLines(root, target.id)
+            : drawnLines(root, target.id, roles, this.drawnText(target));
     for (const node of nodes) node.classList.add("mdg-editing");
   }
 
@@ -8358,6 +8879,17 @@ export class CanvasApp {
       this.stage.focus({ preventScroll: true });
       const newId = value.trim();
       if (newId && newId !== id) this.act({ kind: "renameId", id, newId });
+      return;
+    }
+    if (target.kind === "tag") {
+      // A tag is one line of text: rewritten, or removed when emptied.
+      const index = target.index ?? 0;
+      const text = value.trim();
+      const current = this.tagsOf(id)?.[index]?.text;
+      this.closeInline(text !== "" && text !== current);
+      this.stage.focus({ preventScroll: true });
+      if (text === "") this.removeTag(id, index);
+      else if (text !== current) this.act({ kind: "setTag", ids: [id], index, text });
       return;
     }
     const element = this.elements.get(id);
@@ -8685,6 +9217,51 @@ export class CanvasApp {
     const { menu: words, commands, keys } = messages();
     const items: (MenuItem | "-")[] = [];
     const preview = this.render?.scenario !== null;
+    // The menu of a tag's pill edits or removes the tag first, then offers its owner's.
+    const pill = this.menuPill;
+    this.menuPill = undefined;
+    if (pill && pill.owner === primary && this.tagsOf(pill.owner)?.[pill.index]) {
+      items.push(
+        {
+          label: words.editTag,
+          disabled: preview,
+          run: () => this.editTag(pill.owner, pill.index),
+        },
+        {
+          label: words.removeTag,
+          disabled: preview,
+          run: () => this.removeTag(pill.owner, pill.index),
+        },
+        "-",
+      );
+    }
+    // A written activation bar: removed with its `deactivate`, or its `activate` moved.
+    if (event?.kind === "activate" && event.box) {
+      items.push(
+        {
+          label: words.removeActivation,
+          key: keys.delete,
+          disabled: preview,
+          run: () => this.act({ kind: "remove", ids: [event.key], cascade: false }),
+        },
+        { label: words.moveUp, key: `Alt+${keys.up}`, disabled: preview, run: run("moveEventUp") },
+        {
+          label: words.moveDown,
+          key: `Alt+${keys.down}`,
+          disabled: preview,
+          run: run("moveEventDown"),
+        },
+        "-",
+        { label: words.addNote, key: "O", disabled: preview, run: run("createSequenceNote") },
+        {
+          label: words.showInText,
+          run: () => this.post({ type: "focusText", id: event.key }),
+        },
+        { label: commands.exportSvg, run: () => this.post({ type: "export" }) },
+      );
+      this.menu.open(items, this.mainPoint(at), this.main.getBoundingClientRect());
+      return;
+    }
     if (element || relation || event) {
       items.push(
         { label: words.editLabel, key: keys.enter, disabled: preview, run: run("editLabel") },

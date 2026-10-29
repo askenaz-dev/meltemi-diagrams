@@ -130,6 +130,33 @@ export interface TextPlace {
    * is typed, as it does not cross the drawn label. Absent for the others: they have none.
    */
   readonly background?: string;
+  /**
+   * How the drawing wraps the text in `area`, for an editor that wraps as it does; absent when the
+   * drawing does not wrap it. `shrink`: a sticky's text, wrapped at the area's width and shrunk to
+   * fit the card (from `fullSize`). `grow`: the label of a sequence message whose participants are
+   * pulled closer than their natural distance (`MessageText.wraps`), wrapped at the area's width
+   * (the room between its lifelines) at `size`, never shrunk; the block keeps its top (`area.y`,
+   * the top of the first line) and grows down by `line` with each line, as the row grows. A
+   * message at its natural distance (its label pushes the pair apart) and a self-call have none.
+   */
+  readonly wrap?: "shrink" | "grow";
+}
+
+/**
+ * A tag of a sequence participant or message (`tag "Text"` in its block), as drawn: a pill of the
+ * owner, which a press selects and a drag drags with it.
+ */
+export interface TagInfo {
+  /** The text written in the tag. */
+  readonly text: string;
+  /** The pill, in diagram coordinates. */
+  readonly box: Box;
+  /**
+   * Where the pill's text is drawn, for the inline editor of the tag: its mono font, size, weight
+   * and colour, centred on the pill, the pill's fill as its background. Absent when the drawing
+   * holds no such pill.
+   */
+  readonly place?: TextPlace;
 }
 
 /** What the canvas knows about an element. */
@@ -222,6 +249,11 @@ export interface ElementInfo {
     readonly align: "start" | "center" | "end" | "stretch";
     readonly children: readonly string[];
   };
+  /**
+   * Sequence diagrams: the tags of a participant, in source order, each with its badge as drawn
+   * over the head; absent when it has none.
+   */
+  readonly tags?: readonly TagInfo[];
 }
 
 /** What the canvas knows about a relation. */
@@ -247,6 +279,18 @@ export interface RelationInfo {
   readonly text?: TextPlace;
   /** Sequence diagrams: the key of the call a `return` answers; absent on other messages. */
   readonly returns?: string;
+  /**
+   * Sequence diagrams: the tags of a message, in source order, each with its pill as drawn on the
+   * arrow next to the source end; absent when it has none.
+   */
+  readonly tags?: readonly TagInfo[];
+  /**
+   * Sequence diagrams: whether the message's receiver is activated after it: `written` when the
+   * next event of its block is `activate <receiver>` (Alt+A and **Activate** remove that pair),
+   * `block` when the message is a call whose block activates the receiver (they refuse); absent
+   * otherwise.
+   */
+  readonly activation?: "written" | "block";
 }
 
 /** What the canvas knows about an event of a sequence diagram. */
@@ -257,8 +301,17 @@ export interface EventInfo {
   /** The row of the event, in diagram coordinates. */
   readonly y: number;
   readonly height: number;
-  /** The frame of a note or a fragment, in diagram coordinates. */
+  /**
+   * The frame of a note or a fragment, or the bar an `activate` opens (`activate#1`), which a
+   * press on it selects and its outline is; in diagram coordinates. Null for the others.
+   */
   readonly box: Box | null;
+  /**
+   * The other end of an activation: an `activate`'s `deactivate`, a `deactivate`'s `activate`.
+   * Null for an `activate` open to the end, a `deactivate` that closes nothing and every other
+   * event.
+   */
+  readonly pair: string | null;
   /** The fragment or the call around the event, or null. */
   readonly parent: string | null;
   /** The participant of an activation or a lifecycle event. */
@@ -348,8 +401,21 @@ export interface CanvasSettings {
   readonly readOnly?: boolean;
 }
 
+/**
+ * The control of a field. `boolean` is a checkbox whose value is `on` when checked and `off` when
+ * not; checking or clearing it sends `setField` with `on` or `off`.
+ */
 export type FieldType =
-  "id" | "text" | "multiline" | "number" | "enum" | "color" | "icon" | "classes" | "ports";
+  | "id"
+  | "text"
+  | "multiline"
+  | "number"
+  | "enum"
+  | "color"
+  | "icon"
+  | "classes"
+  | "ports"
+  | "boolean";
 
 /** One editable property in the inspector. */
 export interface InspectorField {
@@ -403,9 +469,14 @@ export interface InspectorField {
   readonly thumbnail?: IconChoiceInfo;
   /**
    * A button the canvas draws beside the field, which sends `action`: Convert to container
-   * beside Inside. Canvases that only show leave it out.
+   * beside Inside, **Remove** beside a tag (`removeTag`). Canvases that only show leave it out.
    */
   readonly button?: { readonly label: string; readonly action: CanvasAction };
+  /**
+   * A sentence the canvas shows under the field, such as why it is read-only: "The block of `pay`
+   * activates `api`." under a call's **Activates the receiver**.
+   */
+  readonly note?: string;
 }
 
 /**
@@ -706,6 +777,12 @@ export type HostMessage =
       readonly offset?: Point;
       /** For a rotation, the turned element's box in the drawing, in diagram coordinates. */
       readonly box?: Box;
+      /**
+       * Without a drawing, why the drop would be refused, when the session knows it: the order
+       * rule a `moveActivation` breaks ("`b` is not active here."). The canvas says it while the
+       * gesture goes on, and its drop writes nothing.
+       */
+      readonly reason?: string;
     }
   | {
       readonly type: "rejected";
@@ -716,7 +793,12 @@ export type HostMessage =
       readonly retry?: CanvasAction;
     }
   | { readonly type: "highlight"; readonly ids: readonly string[] }
-  | { readonly type: "select"; readonly ids: readonly string[] }
+  /**
+   * The selection after an edit. One id alone opens the inline editor of what was just created;
+   * with `tag`, the editor opens on the pill at that index of the selected participant or
+   * message (`TagInfo.place`), the tag that `addTag` just wrote, instead of its label.
+   */
+  | { readonly type: "select"; readonly ids: readonly string[]; readonly tag?: number }
   /**
    * The other people of a shared project and what each has selected (`live-collaboration`). Each
    * message is the whole picture and replaces the last one. The canvas clears it when `people` is
@@ -835,6 +917,22 @@ export interface ResizeAction {
   readonly kind: "resize";
   readonly id: string;
   readonly box: Box;
+}
+
+/**
+ * Sequence diagrams: an end of a written activation bar dragged to the boundary below an event
+ * row (a bar handle's drop). `id` is the bar's `activate` (its `deactivate` is taken as its
+ * `activate`); `row` is the key of the event whose row the handle snapped below. The session writes
+ * it as `moveEvent` with a destination: `start` puts the `activate` right after `row`, or first in
+ * the block of `row` when it is a call with a block, so the bar starts at that call's arrow; `end`
+ * puts the `deactivate` right after `row`, and on a bar open to the end writes `deactivate
+ * <participant>` there. A move the order rules forbid is refused with the rule's reason.
+ */
+export interface MoveActivationAction {
+  readonly kind: "moveActivation";
+  readonly id: string;
+  readonly end: "start" | "end";
+  readonly row: string;
 }
 
 /**
@@ -1054,6 +1152,27 @@ export type CanvasAction =
   | { readonly kind: "moveEvent"; readonly id: string; readonly direction: "up" | "down" }
   /** Sequence diagrams: the activation of a participant after the selected message. */
   | { readonly kind: "toggleActivation"; readonly ids: readonly string[] }
+  /** Sequence diagrams: an end of an activation bar to another event row. */
+  | MoveActivationAction
+  /**
+   * Sequence diagrams: `tag "Tag"` (the word in the interface language, "Tag 2" when the owner has
+   * "Tag" already) added last to the selected message, else to the selected participant; the
+   * session selects the owner and opens the editor on the new pill (`select` with `tag`). Refused
+   * with a reason when neither is selected.
+   */
+  | { readonly kind: "addTag"; readonly ids: readonly string[] }
+  /**
+   * Sequence diagrams: the text of the tag at `index` (from 0) of the selected message, else the
+   * selected participant; an empty text removes the tag (`removeTag`).
+   */
+  | {
+      readonly kind: "setTag";
+      readonly ids: readonly string[];
+      readonly index: number;
+      readonly text: string;
+    }
+  /** Sequence diagrams: removes the tag at `index` of the selected message, else participant. */
+  | { readonly kind: "removeTag"; readonly ids: readonly string[]; readonly index: number }
   /** Sequence diagrams: the selected events into the block of the call right before them. */
   | { readonly kind: "nestInCall"; readonly ids: readonly string[] }
   /** Sequence diagrams: the events of the selected call, or of the call around the selection, out. */
@@ -1097,7 +1216,8 @@ export type CanvasAction =
   /**
    * The drawing the move, resize or rotation `action` would give on the drop, while the gesture
    * goes on. Nothing is written: no plan, no history, no new revision. The session answers with a
-   * `preview` host message carrying the same `token` (flow and free diagrams and C4 views).
+   * `preview` host message carrying the same `token` (flow and free diagrams and C4 views; on
+   * sequence diagrams, a bar handle's `moveActivation`, with the reason when it is refused).
    */
   | {
       readonly kind: "preview";
@@ -1113,8 +1233,11 @@ export interface RotationAction {
   readonly value: number | null;
 }
 
-/** The gestures a canvas previews: moves, resizes and rotations. */
-export type PreviewedAction = MoveAction | ResizeAction | RotationAction;
+/**
+ * The gestures a canvas previews: moves, resizes and rotations, and the end of an activation bar
+ * dragged on a sequence diagram.
+ */
+export type PreviewedAction = MoveAction | ResizeAction | RotationAction | MoveActivationAction;
 
 export type CanvasMessage =
   | { readonly type: "ready" }
@@ -1307,6 +1430,9 @@ const isMove = (a: Record<string, unknown>): boolean =>
   (a.index === undefined || (isIndex(a.index) && isString(a.parent)));
 const isResize = (a: Record<string, unknown>): boolean =>
   isString(a.id) && isBox(a.box) && a.box.width > 0 && a.box.height > 0;
+/** An end of an activation bar to an event row. */
+const isMoveActivation = (a: Record<string, unknown>): boolean =>
+  isString(a.id) && oneOf(a.end, ["start", "end"]) && isString(a.row);
 
 function isAction(a: unknown): a is CanvasAction {
   if (!isObject(a)) return false;
@@ -1323,6 +1449,7 @@ function isAction(a: unknown): a is CanvasAction {
         isObject(a.action) &&
         ((a.action.kind === "move" && isMove(a.action)) ||
           (a.action.kind === "resize" && isResize(a.action)) ||
+          (a.action.kind === "moveActivation" && isMoveActivation(a.action)) ||
           (a.action.kind === "setField" &&
             a.action.field === "style.rotation" &&
             isStrings(a.action.ids) &&
@@ -1464,7 +1591,14 @@ function isAction(a: unknown): a is CanvasAction {
     case "nestInCall":
     case "unnestCall":
     case "addReturn":
+    case "addTag":
       return isStrings(a.ids);
+    case "moveActivation":
+      return isMoveActivation(a);
+    case "setTag":
+      return isStrings(a.ids) && isIndex(a.index) && isString(a.text);
+    case "removeTag":
+      return isStrings(a.ids) && isIndex(a.index);
     case "insertEvent":
       return isStrings(a.ids) && oneOf(a.eventKind, ["note", "divider", "delay"]);
     case "wrap":

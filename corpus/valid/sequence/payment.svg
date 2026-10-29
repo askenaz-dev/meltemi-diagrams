@@ -9,7 +9,9 @@
   </g>
   <g data-id="api" data-role="lifeline">
     <polyline points="159,80 159,400" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
-    <rect x="154" y="126" width="10" height="266" rx="0" fill="#ffffff" stroke="#5b6570" stroke-width="1"/>
+    <g data-id="activate#1" data-role="event">
+      <rect x="154" y="126" width="10" height="266" rx="0" fill="#ffffff" stroke="#5b6570" stroke-width="1"/>
+    </g>
   </g>
   <g data-id="bank" data-role="lifeline">
     <polyline points="295,80 295,400" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>

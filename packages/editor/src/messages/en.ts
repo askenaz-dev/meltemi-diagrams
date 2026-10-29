@@ -210,10 +210,22 @@ export const en = {
       condition: "Condition",
       participant: "Participant",
       numberFrom: "Number messages from",
+      /** The checkbox of a message: an `activate`/`deactivate` pair of its receiver after it. */
+      activates: "Activates the receiver",
+      /** The field of a message's or a participant's tag, by its place in the list (from 1). */
+      tagAt: (n: number) => `Tag ${n}`,
+      /** The empty field under the tags, whose text adds one. */
+      newTag: "New tag",
+      addTag: "Add a tag",
+      /** The button beside a tag. */
+      removeTag: "Remove",
     },
     /** The condition of a later branch, with its keyword: `else 1`, or `branch 1` without one. */
     branchCondition: (keyword: string | undefined, branch: number) =>
       `Condition (${keyword ?? "branch"} ${branch})`,
+    /** Under a call's **Activates the receiver**, read-only: its block draws the bar. */
+    blockActivates: (call: string, participant: string) =>
+      `The block of ${code(call)} activates ${code(participant)}.`,
     /** Why a sequence action or field cannot be written. */
     reasons: {
       selectEvent: "Select a message, note, fragment or event.",
@@ -225,6 +237,12 @@ export const en = {
       messageKind: "A message is a call, a reply or async.",
       nestAfterCall: "Select the events right after the call they belong to.",
       selectCall: "Select a call, or an event inside one.",
+      /** T or **Tag** with nothing to tag selected. */
+      selectToTag: "Select a message or a participant to tag.",
+      /** An end of a bar that is not a written activation's. */
+      selectBar: "Select an activation bar.",
+      /** An end of a bar dropped where there is no event. */
+      dropOnRow: "Drop the end of the bar on the row of an event.",
     },
   },
 
@@ -238,6 +256,8 @@ export const en = {
     /** The label of a group created as a list: the group menu's Column and Row. */
     column: "Column",
     row: "Row",
+    /** The text of a new tag of a sequence message or participant (T, **Tag**). */
+    tag: "Tag",
   },
 
   /** C4 views: the fields of entities, relations and the view, and the kinds of entities. */

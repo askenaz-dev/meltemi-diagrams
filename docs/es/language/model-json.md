@@ -15,8 +15,9 @@ lo descarga, y los motores de disposición y las pruebas lo leen. El nombre del 
 - Cada elemento, relación e instrucción lleva el `range` de su instrucción en el código fuente.
 - Las relaciones anónimas aparecen con su `key` sintética (`<from>-><to>#<n>`) e `id: null`.
 - Dentro de una versión las claves se agregan, nunca cambian: `heads` en las relaciones y `line`
-  en los elementos llegaron en 1.10.0, `pen` y `list` en los elementos y `spacing`, `side`,
-  `returns` y los `events` de los mensajes en 1.11.0, y la versión sigue siendo `0.1`.
+  en los elementos llegaron en 1.10.0, `pen` y `list` en los elementos, `tags` en los elementos y
+  las relaciones, y `spacing`, `side`, `returns` y los `events` de los mensajes en 1.11.0, y la
+  versión sigue siendo `0.1`.
 - Todos los perfiles de diagrama se compilan; los bloques `story` y `export` todavía no están en el
   JSON.
 
@@ -115,6 +116,7 @@ en 1. `end` es exclusivo.
 | `description` | cadena o null | De un bloque de elemento o de grupo.                                                                                                                                                                                             |
 | `url`         | cadena o null | La `url` del bloque, o la de la entidad en las vistas C4.                                                                                                                                                                        |
 | `classes`     | lista         | Nombres de las clases aplicadas en el bloque de la declaración, en orden.                                                                                                                                                        |
+| `tags`        | lista         | Las instrucciones `tag "Text"` del bloque de un participante de secuencia en el orden del código fuente, cada una `{ "text", "range" }` con el rango de su instrucción; vacía en todos los demás elementos.                      |
 | `ports`       | lista         | Puertos con nombre: `{ "name", "side", "position" }`.                                                                                                                                                                            |
 | `layer`       | cadena o null | La `layer` del bloque (composiciones libres).                                                                                                                                                                                    |
 | `link`        | objeto o null | `{ "binding", "diagram", "element" }`; `binding` es null en los enlaces dentro del mismo archivo.                                                                                                                                |
@@ -130,23 +132,24 @@ en 1. `end` es exclusivo.
 
 ### Relación
 
-| Clave         | Tipo          | Significado                                                                                      |
-| ------------- | ------------- | ------------------------------------------------------------------------------------------------ |
-| `key`         | cadena        | El id, o `<from>-><to>#<n>` si es anónima.                                                       |
-| `id`          | cadena o null | El nombre de `as <id>`.                                                                          |
-| `from`, `to`  | cadena        | Ids de elementos.                                                                                |
-| `line`        | cadena        | `solid` (`->`, `--`, `<->`) o `dashed` (`-->`, `---`, `<-->`).                                   |
-| `twoWay`      | booleano      | Escrita con `<->` o `<-->`.                                                                      |
-| `heads`       | cadena        | `end` (`->`, `-->`), `both` (`<->`, `<-->`) o `none` (`--`, `---`), en todos los perfiles.       |
-| `async`       | booleano      | `kind async` en un mensaje de secuencia.                                                         |
-| `returns`     | cadena o null | La clave de la llamada a la que responde un `return` de secuencia; null en las demás relaciones. |
-| `label`       | cadena o null | Texto después de `:`.                                                                            |
-| `description` | cadena o null | Del bloque de la relación.                                                                       |
-| `classes`     | lista         | Nombres de las clases aplicadas en el bloque de la relación.                                     |
-| `layer`       | cadena o null | La `layer` del bloque (composiciones libres).                                                    |
-| `groupPath`   | lista         | Grupos que contienen la instrucción de la relación.                                              |
-| `range`       | rango         | La instrucción de la relación.                                                                   |
-| `idRange`     | rango o null  | El identificador de `as <id>`.                                                                   |
+| Clave         | Tipo          | Significado                                                                                                                                                                              |
+| ------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `key`         | cadena        | El id, o `<from>-><to>#<n>` si es anónima.                                                                                                                                               |
+| `id`          | cadena o null | El nombre de `as <id>`.                                                                                                                                                                  |
+| `from`, `to`  | cadena        | Ids de elementos.                                                                                                                                                                        |
+| `line`        | cadena        | `solid` (`->`, `--`, `<->`) o `dashed` (`-->`, `---`, `<-->`).                                                                                                                           |
+| `twoWay`      | booleano      | Escrita con `<->` o `<-->`.                                                                                                                                                              |
+| `heads`       | cadena        | `end` (`->`, `-->`), `both` (`<->`, `<-->`) o `none` (`--`, `---`), en todos los perfiles.                                                                                               |
+| `async`       | booleano      | `kind async` en un mensaje de secuencia.                                                                                                                                                 |
+| `returns`     | cadena o null | La clave de la llamada a la que responde un `return` de secuencia; null en las demás relaciones.                                                                                         |
+| `label`       | cadena o null | Texto después de `:`.                                                                                                                                                                    |
+| `description` | cadena o null | Del bloque de la relación.                                                                                                                                                               |
+| `classes`     | lista         | Nombres de las clases aplicadas en el bloque de la relación.                                                                                                                             |
+| `tags`        | lista         | Las instrucciones `tag "Text"` del bloque de un mensaje de secuencia (también de un `return`) en el orden del código fuente, como en los elementos; vacía en todas las demás relaciones. |
+| `layer`       | cadena o null | La `layer` del bloque (composiciones libres).                                                                                                                                            |
+| `groupPath`   | lista         | Grupos que contienen la instrucción de la relación.                                                                                                                                      |
+| `range`       | rango         | La instrucción de la relación.                                                                                                                                                           |
+| `idRange`     | rango o null  | El identificador de `as <id>`.                                                                                                                                                           |
 
 ### Entradas de colocación
 

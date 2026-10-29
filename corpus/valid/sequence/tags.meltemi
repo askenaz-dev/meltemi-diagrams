@@ -1,0 +1,33 @@
+language "0.2"
+
+// Tags mark a message or a participant: pills on a message's arrow next to its source end, and
+// badges over a participant's head. Numbered messages start their pills past the number.
+diagram signin: sequence {
+  theme "technical.light"
+  autonumber
+
+  actor customer "Customer" { tag "VIP" }
+  participant web "Web app"
+  participant api "API" { tag "v2" }
+  participant bank "Bank" {
+    tag "external"
+    tag "legacy"
+  }
+  participant audit "Audit log" { tag "new" }
+
+  customer -> web: "Sign in" as signin {
+    tag "passkey"
+  }
+  web -> api: "Authorize" as authorize {
+    tag "PKCE"
+    api -> api: "Validate" as validate { tag "cached" }
+    api -> bank: "Check the account" as check {
+      tag "idempotent"
+      return "OK" as ok { tag "200" }
+    }
+    return "Token" as token
+  }
+  create audit
+  api -> audit: "Record" as record { tag "async" }
+  web --> customer: "Welcome" as welcome { tag "v2" }
+}

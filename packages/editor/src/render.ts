@@ -27,6 +27,11 @@ export interface RenderGeometry {
   readonly rotations: ReadonlyMap<string, number>;
   /** The corner radius of every element drawn with one, by id. */
   readonly radii: ReadonlyMap<string, number>;
+  /**
+   * Sequence diagrams: the pills of the tags of every participant and message that has some, by
+   * participant id or message key, in source order.
+   */
+  readonly tags: ReadonlyMap<string, readonly Box[]>;
   /** Where the labels are drawn, for the inline editor. */
   readonly texts: TextPlaces;
 }
@@ -103,8 +108,9 @@ export function renderLayout(
       elementLabels: layout.elementLabels ?? new Map(),
       rotations: layout.rotations ?? new Map(),
       radii: layout.radii ?? new Map(),
+      tags: layout.tags ?? new Map(),
       // The drawing without effects: the text lies where the editor types it, a sticky's in the
-      // room the layout wrapped it in.
+      // room the layout wrapped it in, a message's label in the room between its lifelines.
       texts: layout.theme
         ? textPlaces(
             diagram,
@@ -114,6 +120,7 @@ export function renderLayout(
             connectors,
             layout.shapes,
             layout.stickies,
+            layout.messageTexts,
           )
         : NO_TEXT_PLACES,
     },

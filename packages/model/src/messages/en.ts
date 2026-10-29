@@ -58,6 +58,7 @@ export const en = {
       names: "one or more names",
       link: "a reference `<diagram>.<element>`",
       url: 'a quoted URL such as "https://example.com"',
+      tag: 'one line of quoted text such as "PKCE"',
     },
     /** The forms of a sequence note and of `choose`, which offer alternatives. */
     noteForm:
@@ -427,6 +428,10 @@ export const en = {
       /** `sequence.activation`: a `deactivate` that would end the bar of a call's block. */
       activeForCall: (participant: string, call: string) =>
         `\`${participant}\` is active for the call \`${call}\`; its bar ends with the block.`,
+      /** `prop.invalid-value` on the string of a `tag` that is empty or holds a line break. */
+      tagOneLine: "A tag is one line of text; it cannot be empty or hold a line break.",
+      /** `prop.duplicate` on a `tag` whose text its owner already has. */
+      tagRepeated: (text: string) => `The tag "${text}" is already written in this block.`,
       divider: 'Expected `divider "Label"`.',
       delay: 'Expected `delay` or `delay "Label"`.',
       /** `left` or `right`. */
@@ -742,6 +747,12 @@ export const en = {
       declareParticipant: (id: string) =>
         `Declare it first, for example \`participant ${id} "${id}"\`.`,
       fragmentContents: "Fragments hold messages and the other events, and nested fragments.",
+      /** Where a `tag` goes in a sequence diagram. */
+      tagPlace:
+        'A tag goes in the block of a message or a participant, such as `api -> bank: "Authorize" { tag "PKCE" }` or `participant bank "Bank" { tag "external" }`.',
+      /** The statements of a message's block: its properties, then what a call's block holds. */
+      messageBlock: (properties: readonly string[], events: readonly string[]) =>
+        `Message blocks accept ${and(properties.map(code))}; a call's block also holds messages and the events ${and(events.map(code))}.`,
       returnInCall: 'Write it inside the call\'s block: `a -> b: "Pay" { return "OK" }`.',
       activate: (participant: string) =>
         `Add \`activate ${participant}\` before it, or remove this \`deactivate\`.`,

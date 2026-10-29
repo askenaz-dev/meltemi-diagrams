@@ -59,8 +59,8 @@ the brand frame work as in the other profiles. Their own statements are below.
 `id["Label"]` declares a `participant` and `id[("Label")]` a `database`. A participant that only
 messages mention is an implicit `participant`, labelled with its id. Participants stand in the
 order of the source: declared ones where they are declared, implicit ones at their first mention.
-Participant blocks take `description`, `class` and `link`; groups hold participant declarations
-only.
+Participant blocks take `description`, `class`, `link` and `tag` ([tags](#tags)); groups hold
+participant declarations only.
 
 ## Messages
 
@@ -76,9 +76,29 @@ a <-> c: "Sync"                 // two-way: the same head at both ends
 ([styles.md](styles.md#arrow-heads)). A message is a call or a reply, so the lines without heads,
 `--` and `---`, are not messages: `prop.invalid-value` on the token names the four arrows.
 
-`kind sync` is the default and is never written. Messages take `description`, `class` and
-`kind`; `label <message> at 50% offset (dx, dy)` in `placement` moves a label along its arrow.
-`autonumber` numbers the messages from 1 in small discs; `autonumber 10` starts at 10.
+`kind sync` is the default and is never written. Messages take `description`, `class`, `kind` and
+`tag` ([tags](#tags)); `label <message> at 50% offset (dx, dy)` in `placement` moves a label, all
+its lines, along its arrow. `autonumber` numbers the messages from 1 in small discs; `autonumber 10`
+starts at 10.
+
+A message's label stays on one line and holds its two participants apart as far as it needs
+([columns](#layout)). When a negative `gap`, or a `spacing` below the default, pulls them closer,
+the label wraps at the room left between their lifelines: their distance less 12 units on each
+side, and less the number's disc under `autonumber`. It breaks at spaces, a word wider than the
+room between its letters, and `\n` written in the label always starts a line. The lines are 1.25
+times the label's size apart, the arrow is drawn under the last one and the events below move
+down, so a pulled pair makes a taller row instead of refusing the gap. Moving a label with
+`label … at` keeps its lines. A self-call's label stays beside its loop, broken only where `\n` is
+written.
+
+```text
+customer -> api: "Pay for the order with the saved card" as pay   // one line, api further right
+api -> bank: "Authorize\nthe card" as authorize                    // two lines, always
+
+placement {
+  gap api -40   // api 40 closer than the label held it: the label of pay wraps
+}
+```
 
 ### Calls and returns
 
@@ -102,8 +122,49 @@ customer -> api: "Pay" as pay {
   list; a `return` in a branch of a fragment ends that branch only.
 - A `return` outside a call's block, or an event after a `return` in the same list, is
   `sequence.return`.
-- A call's block holds its properties (`kind`, `description`, `class`) and its events; a
+- A call's block holds its properties (`kind`, `description`, `class`, `tag`) and its events; a
   `return`'s own block takes properties only.
+
+## Tags
+
+`tag "Text"` in the block of a message or a participant marks it with a short word: a protocol, a
+version, a property ("PKCE", "v2", "idempotent", "external").
+
+```text
+participant bank "Bank" { tag "external" }   // a badge over the head
+
+api -> bank: "Authorize" as authorize {
+  tag "PKCE"                                 // pills on the arrow, next to its source
+  tag "v2"
+}
+```
+
+- A block takes any number of tags, in order, among its other properties. Every message takes
+  them, a self-call and a `return` too; in a call's block a tag is the call's, before or after its
+  events, never an event.
+- A message's tags are pills on its arrow, left to right in source order, 4 units apart, next to
+  its source end: 6 units from the arrow's start, 12 when the message is numbered. Its label sits
+  higher by half a pill and 2, so they never meet. A self-call's pills sit on the top of its loop,
+  and its label after them.
+- A participant's tags are badges centred over its head: their middle on the top edge of a box
+  (participant, database, collections, queue), their bottom 4 units above a figure (actor,
+  boundary, control, entity). When any participant has tags, the row of heads starts lower to
+  make room for them, and so does a head drawn by `create`.
+- Pills look like a flow tag: the theme's `tag` fill and `tagText` colour, at `tagSize` in the
+  mono font. A tag has no id, so `style`, `class`, `rule`, `animate`, `link` and stories never
+  name it; an effect, a highlight or a story that shows, hides or focuses its owner takes its tags
+  with it.
+
+| Written                                                       | Reported                                             |
+| ------------------------------------------------------------- | ---------------------------------------------------- |
+| `tag ""`, or a text with a line break                         | `prop.invalid-value`: a tag is one line of text      |
+| `tag t1 "PKCE"`, `tag 12`, `tag "A" "B"`, a block             | `prop.invalid-value`, naming the form `tag "Text"`   |
+| the same text twice on one owner                              | `prop.duplicate` on the second, related to the first |
+| `tag` at the diagram level, in a group block or in a fragment | `prop.unknown`, with a hint saying where tags go     |
+
+`tag <id> "Text"` stays the flow profile's pill ([grammar-0.2.md](grammar-0.2.md#flow-vocabulary)),
+and `tag "Text"` in a block of a flow, free or C4 diagram is `prop.unknown`. The model JSON lists
+the tags of every element and relation as `tags` ([model-json.md](model-json.md#element)).
 
 ## Events
 
@@ -215,26 +276,45 @@ the canvas toolbar previews a scenario read-only.
 Sequence diagrams are laid out without an engine, deterministically:
 
 - **Columns.** Heads are measured from their labels. Adjacent centres are half of each head plus
-  `spacing` (40) apart, plus the `gap` after the left one and the `gap` before the right one, a
-  negative gap taking away. A pair never comes closer than its floor: half of each head plus 8, a
-  message's label width plus 24 between its columns, and the room self-calls and side notes need
-  beside their column. When a negative gap would bring a pair closer than that, the floor wins and
-  `layout.gap-floor` warns on the `gap` with the amount drawn. A `gap` before the first participant
-  or after the last adds room on that side of the diagram.
-- **Rows.** Events go top to bottom: messages with their label above the arrow, self-calls 24
-  taller, notes, fragment headers and branch separators, dividers and delays. `space` adds its
+  `spacing` (40) apart, plus the `gap` after the left one and the `gap` before the right one when
+  their sum is positive, and pushed further apart as far as the messages between them need on one
+  line: each label's width plus 24 (and 22 more under `autonumber`), a message's row of pills plus
+  24, the disc and the arrowhead, and the room self-calls and side notes need beside their column.
+  That is the pair's natural distance. A pull brings the pair closer than it by its amount: a
+  negative sum of the two `gap`s, and a `spacing` below 40 by the difference, so a dragged head
+  lands where it is dropped. A pull stops at the pair's floor: half of each head plus 8 (a head
+  counting as the wider of itself and its badges), the longest word of each message's label
+  between its columns plus 24 (and the disc), the row of pills, self-calls and side notes; the
+  labels between the pair wrap at the room they are left. When a negative gap would bring a pair
+  closer than the floor, the floor wins and `layout.gap-floor` warns on the `gap` with the amount
+  drawn, measured from the natural distance. A `gap` before the first participant or after the
+  last adds room on that side of the diagram.
+- **Rows.** Events go top to bottom: messages with their label above the arrow, the row taller by
+  each wrapped line after the first and by half a pill and 2 when the message has tags, self-calls
+  24 taller, notes, fragment headers and branch separators, dividers and delays. `space` adds its
   amount above an event, `space … after` below it. A call's block takes its rows right after the
-  call's, and its `return` is drawn from the edge of the receiver's bar to the caller.
-- **Composition checks** do not apply: rows and columns cannot overlap.
+  call's, and its `return` is drawn from the edge of the receiver's bar to the caller. When any
+  participant has tags, the row of heads starts lower by their room: half a pill over a box, a
+  pill and 4 over a figure.
+- **Composition checks** do not apply: rows and columns cannot overlap. The label audit measures
+  each line of a wrapped label, and a tag's text against its pill.
 - **Drawing.** Heads, activation bars, notes and fragment frames are stroked with the theme's
   `muted` colour on a `surface` fill, and lifelines are dashed in `muted` at half strength, so the
   messages, drawn in `connector`, stay in front. A `stroke` written for a participant colours its
   head and its lifeline. Boxes are 40 units tall, at the bottom of the head row when an actor or
   another figure makes the row taller.
 
-`LayoutResult.boxes` holds the heads as drawn, the notes and the fragment frames (by event key);
-`shapes` and `radii` the outline of each head that is a box (`rounded` with the theme's radius, a
-database `cylinder`); `connectors` and `labels` the messages; `events` the row of every event.
+`LayoutResult.boxes` holds the heads as drawn, the notes, the fragment frames and the written
+activation bars (by event key); `shapes` and `radii` the outline of each head that is a box
+(`rounded` with the theme's radius, a database `cylinder`); `connectors` and `labels` the messages,
+a label's box holding all its lines; `messageTexts` the room each message's label wraps at, its
+lines as drawn, their size and distance, and whether it wraps (when a pull caps its room; not on a
+self-call nor at the natural distance); `bars` every
+activation bar by the key of its `activate` or of the call whose block draws it, with its
+participant, box, depth and the `deactivate` that ends it; `tags` the pills of every tagged
+participant and message; `events` the row of every event. In the scene, each bar is a group of role
+`event` inside its lifeline's group (`<g data-id="activate#1" data-role="event">`), and each tag a
+group of role `tag` inside its owner's (`<g data-id="authorize" data-role="tag" data-tag="0">`).
 Editors use them to select, drag and hit-test.
 
 ## Editing
@@ -251,5 +331,16 @@ Edits keep the order of events (see [editor.md](../editor.md)):
 - Alt+N nests the selected events in the call right before them, Alt+Shift+N moves the events of a
   call out after it, each `return` written as a reply, and Alt+R adds a `return` at the end of the
   call's block;
-- activations, notes and fragments stay with their messages; removing a participant lists its
-  messages, events and spacing first, and removing a call removes its block's events with it.
+- Alt+A, the **Activate** button and the inspector's **Activates the receiver** write or remove the
+  `activate`/`deactivate` pair of the receiver after a message; a written activation bar is
+  selected by a press, its top and bottom handles move its `activate` or its `deactivate` after
+  another event (refused with the reason when the order-checked rules forbid it), and Delete
+  removes the pair;
+- T, the **Tag** button and the inspector's **Tags** add, rewrite and remove `tag` statements,
+  creating the block when the statement has none and removing it when nothing else is left; a
+  double click on a pill edits it in place;
+- a message's label is typed where it wraps: the editor is as wide as the room between the
+  lifelines and grows down, and Shift+Enter writes `\n`;
+- activations, notes and fragments stay with their messages; removing an `activate` or a
+  `deactivate` removes its pair; removing a participant lists its messages, events and spacing
+  first, and removing a call removes its block's events with it.

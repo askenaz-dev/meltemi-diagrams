@@ -17,6 +17,7 @@ import type {
   SequenceScenario,
   StyleEntry,
   StyleProperties,
+  TagUse,
   ThemeDefinition,
   StoryAction,
   StoryDefinition,
@@ -256,6 +257,12 @@ export interface ScenarioJson {
   range: RangeJson;
 }
 
+/** A sequence tag: its text and the range of its `tag` statement. */
+export interface TagJson {
+  text: string;
+  range: RangeJson;
+}
+
 export interface ElementJson {
   id: string;
   kind: string;
@@ -267,6 +274,8 @@ export interface ElementJson {
   description: string | null;
   url: string | null;
   classes: string[];
+  /** Sequence participants: their `tag "Text"` statements in source order; empty elsewhere. */
+  tags: TagJson[];
   ports: { name: string; side: string; position: number }[];
   layer: string | null;
   link: {
@@ -329,6 +338,8 @@ export interface RelationJson {
   assumption: string | null;
   data?: Record<string, string | number | boolean>;
   classes: string[];
+  /** Sequence messages: their `tag "Text"` statements in source order; empty elsewhere. */
+  tags: TagJson[];
   layer: string | null;
   groupPath: string[];
   range: RangeJson;
@@ -731,6 +742,7 @@ function elementJson(element: Element): ElementJson {
     description: element.description,
     url: element.url,
     classes: element.classes.map((c) => c.name),
+    tags: element.tags.map(tagJson),
     ports: element.ports.map((p) => ({ name: p.name, side: p.side, position: p.position })),
     layer: element.layer,
     link: element.link
@@ -766,6 +778,10 @@ function elementJson(element: Element): ElementJson {
   };
 }
 
+function tagJson(tag: TagUse): TagJson {
+  return { text: tag.text, range: rangeJson(tag.range) };
+}
+
 function relationJson(relation: Relation): RelationJson {
   return {
     key: relation.key,
@@ -785,6 +801,7 @@ function relationJson(relation: Relation): RelationJson {
     assumption: relation.assumption,
     ...(Object.keys(relation.data).length > 0 ? { data: { ...relation.data } } : {}),
     classes: relation.classes.map((c) => c.name),
+    tags: relation.tags.map(tagJson),
     layer: relation.layer,
     groupPath: [...relation.groupPath],
     range: rangeJson(relation.range),

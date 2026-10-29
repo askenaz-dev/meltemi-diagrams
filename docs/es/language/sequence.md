@@ -60,8 +60,8 @@ funcionan como en los demás perfiles. Sus instrucciones propias están a contin
 `id["Label"]` declara un `participant` e `id[("Label")]`, un `database`. Un participante que solo
 mencionan los mensajes es un `participant` implícito, con su id como etiqueta. Los participantes se
 ubican en el orden del código fuente: los declarados, donde se declaran; los implícitos, en su
-primera mención. Los bloques de participante aceptan `description`, `class` y `link`; los grupos
-solo contienen declaraciones de participantes.
+primera mención. Los bloques de participante aceptan `description`, `class`, `link` y `tag`
+([marcas](#marcas)); los grupos solo contienen declaraciones de participantes.
 
 ## Mensajes
 
@@ -79,9 +79,28 @@ líneas sin puntas, `--` y `---`, no son mensajes: `prop.invalid-value` sobre el
 cuatro flechas.
 
 `kind sync` es el valor predeterminado y nunca se escribe. Los mensajes aceptan `description`,
-`class` y `kind`; `label <message> at 50% offset (dx, dy)` en `placement` mueve una etiqueta a lo
-largo de su flecha. `autonumber` numera los mensajes desde 1 en pequeños discos; `autonumber 10`
-empieza en 10.
+`class`, `kind` y `tag` ([marcas](#marcas)); `label <message> at 50% offset (dx, dy)` en
+`placement` mueve una etiqueta, con todas sus líneas, a lo largo de su flecha. `autonumber` numera
+los mensajes desde 1 en pequeños discos; `autonumber 10` empieza en 10.
+
+La etiqueta de un mensaje queda en una línea y separa a sus dos participantes tanto como necesita
+([columnas](#disposición)). Cuando un `gap` negativo, o un `spacing` menor que el de por defecto,
+los acerca, la etiqueta se ajusta al espacio que queda entre sus líneas de vida: su distancia menos
+12 unidades a cada lado, y menos el disco del número con `autonumber`. Se parte en los espacios,
+una palabra más ancha que el espacio entre sus letras, y un `\n` escrito en la etiqueta siempre
+empieza una línea. Las líneas se separan 1,25 veces el tamaño de la etiqueta, la flecha se dibuja
+debajo de la última y los eventos de abajo bajan, así que un par acercado da una fila más alta en
+vez de rechazar el gap. Mover una etiqueta con `label … at` conserva sus líneas. La etiqueta de una
+autollamada se queda junto a su bucle, partida solo donde se escribe `\n`.
+
+```text
+customer -> api: "Pay for the order with the saved card" as pay   // una línea, api más a la derecha
+api -> bank: "Authorize\nthe card" as authorize                    // dos líneas, siempre
+
+placement {
+  gap api -40   // api 40 más cerca de lo que la etiqueta lo separaba: la etiqueta de pay se ajusta
+}
+```
 
 ### Llamadas y respuestas
 
@@ -105,8 +124,52 @@ customer -> api: "Pay" as pay {
   su lista; un `return` en una rama de un fragmento termina solo esa rama.
 - Un `return` fuera del bloque de una llamada, o un evento después de un `return` en la misma
   lista, es `sequence.return`.
-- El bloque de una llamada contiene sus propiedades (`kind`, `description`, `class`) y sus eventos;
-  el bloque propio de un `return` solo acepta propiedades.
+- El bloque de una llamada contiene sus propiedades (`kind`, `description`, `class`, `tag`) y sus
+  eventos; el bloque propio de un `return` solo acepta propiedades.
+
+## Marcas
+
+`tag "Text"` en el bloque de un mensaje o de un participante lo marca con una palabra corta: un
+protocolo, una versión, una propiedad ("PKCE", "v2", "idempotent", "external").
+
+```text
+participant bank "Bank" { tag "external" }   // una insignia sobre la cabecera
+
+api -> bank: "Authorize" as authorize {
+  tag "PKCE"                                 // píldoras sobre la flecha, junto a su origen
+  tag "v2"
+}
+```
+
+- Un bloque acepta cualquier cantidad de marcas, en orden, entre sus demás propiedades. Todos los
+  mensajes las aceptan, también una autollamada y un `return`; en el bloque de una llamada, una
+  marca es de la llamada, antes o después de sus eventos, nunca un evento.
+- Las marcas de un mensaje son píldoras sobre su flecha, de izquierda a derecha en el orden del
+  código fuente, a 4 unidades una de otra, junto a su extremo de origen: a 6 unidades del comienzo
+  de la flecha, a 12 cuando el mensaje está numerado. Su etiqueta sube media píldora y 2, así que
+  nunca se tocan. Las píldoras de una autollamada van en la parte de arriba de su bucle, y su
+  etiqueta después de ellas.
+- Las marcas de un participante son insignias centradas sobre su cabecera: con su centro en el
+  borde superior de una caja (participant, database, collections, queue) y su base 4 unidades por
+  encima de una figura (actor, boundary, control, entity). Cuando algún participante tiene marcas,
+  la fila de cabeceras empieza más abajo para dejarles lugar, y también una cabecera que dibuja
+  `create`.
+- Las píldoras se ven como una marca de flujo: el relleno `tag` y el color `tagText` del tema, a
+  `tagSize` en la fuente monoespaciada. Una marca no tiene id, así que `style`, `class`, `rule`,
+  `animate`, `link` y las historias nunca la nombran; un efecto, un resaltado o una historia que
+  muestra, oculta o enfoca a su dueño lleva consigo sus marcas.
+
+| Escrito                                                                    | Informado                                                   |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `tag ""`, o un texto con un salto de línea                                 | `prop.invalid-value`: una marca es una línea de texto       |
+| `tag t1 "PKCE"`, `tag 12`, `tag "A" "B"`, un bloque                        | `prop.invalid-value`, que nombra la forma `tag "Text"`      |
+| el mismo texto dos veces en un mismo dueño                                 | `prop.duplicate` en el segundo, relacionado con el primero  |
+| `tag` en el nivel del diagrama, en el bloque de un grupo o en un fragmento | `prop.unknown`, con una pista que dice dónde van las marcas |
+
+`tag <id> "Text"` sigue siendo la píldora del perfil de flujo
+([grammar-0.2.md](grammar-0.2.md#vocabulario-flow)), y `tag "Text"` en un bloque de un diagrama de
+flujo, libre o C4 es `prop.unknown`. El JSON del modelo enumera las marcas de cada elemento y cada
+relación como `tags` ([model-json.md](model-json.md#elemento)).
 
 ## Eventos
 
@@ -225,19 +288,31 @@ Los diagramas de secuencia se disponen sin motor, de forma determinista:
 
 - **Columnas.** Las cabeceras se miden a partir de sus etiquetas. Los centros contiguos están
   separados por la mitad de cada cabecera más `spacing` (40), más el `gap` después de la de la
-  izquierda y el `gap` antes de la de la derecha; un gap negativo resta. Un par nunca se acerca más
-  que su mínimo: la mitad de cada cabecera más 8, el ancho de la etiqueta de un mensaje más 24 entre
-  sus columnas, y el espacio que necesitan las autollamadas y las notas laterales junto a su
-  columna. Cuando un gap negativo acercaría un par más que eso, gana el mínimo y `layout.gap-floor`
-  avisa en el `gap` con la cantidad dibujada. Un `gap` antes del primer participante o después del
-  último agrega espacio en ese lado del diagrama.
-- **Filas.** Los eventos van de arriba abajo: los mensajes con su etiqueta sobre la flecha, las
-  autollamadas 24 más altas, las notas, los encabezados de los fragmentos y las separaciones entre
-  ramas, los separadores y los retrasos. `space` agrega su cantidad sobre un evento, y
-  `space … after`, debajo. El bloque de una llamada ocupa sus filas justo después de la de la
-  llamada, y su `return` se dibuja desde el borde de la barra del receptor hasta quien llama.
+  izquierda y el `gap` antes de la de la derecha cuando su suma es positiva, y se separan más
+  cuanto necesiten los mensajes entre ellas en una línea: el ancho de cada etiqueta más 24 (y 22
+  más con `autonumber`), la fila de píldoras de un mensaje más 24, el disco y la punta de la
+  flecha, y el espacio que necesitan las autollamadas y las notas laterales junto a su columna. Esa
+  es la distancia natural del par. Un acercamiento lo acerca más que ella en su cantidad: una suma
+  negativa de los dos `gap`, y un `spacing` menor que 40 en la diferencia, así que una cabecera
+  arrastrada queda donde se suelta. Un acercamiento se detiene en el mínimo del par: la mitad de
+  cada cabecera más 8 (una cabecera cuenta como la más ancha entre ella y sus insignias), la
+  palabra más larga de la etiqueta de cada mensaje entre sus columnas más 24 (y el disco), la fila
+  de píldoras, las autollamadas y las notas laterales; las etiquetas entre el par se ajustan al
+  espacio que les queda. Cuando un gap negativo acercaría un par más que el mínimo, gana el mínimo
+  y `layout.gap-floor` avisa en el `gap` con la cantidad dibujada, medida desde la distancia
+  natural. Un `gap` antes del primer participante o después del último agrega espacio en ese lado
+  del diagrama.
+- **Filas.** Los eventos van de arriba abajo: los mensajes con su etiqueta sobre la flecha, con la
+  fila más alta por cada línea ajustada después de la primera y por media píldora y 2 cuando el
+  mensaje tiene marcas, las autollamadas 24 más altas, las notas, los encabezados de los fragmentos
+  y las separaciones entre ramas, los separadores y los retrasos. `space` agrega su cantidad sobre
+  un evento, y `space … after`, debajo. El bloque de una llamada ocupa sus filas justo después de
+  la de la llamada, y su `return` se dibuja desde el borde de la barra del receptor hasta quien
+  llama. Cuando algún participante tiene marcas, la fila de cabeceras empieza más abajo por el
+  lugar que necesitan: media píldora sobre una caja, una píldora y 4 sobre una figura.
 - **Las comprobaciones de composición** no se aplican: las filas y las columnas no se pueden
-  superponer.
+  superponer. La auditoría de etiquetas mide cada línea de una etiqueta ajustada, y el texto de una
+  marca contra su píldora.
 - **Dibujo.** Las cabeceras, las barras de activación, las notas y los marcos de los fragmentos se
   trazan con el color `muted` del tema sobre un relleno `surface`, y las líneas de vida van
   discontinuas en `muted` a media intensidad, para que los mensajes, dibujados en `connector`,
@@ -245,11 +320,20 @@ Los diagramas de secuencia se disponen sin motor, de forma determinista:
   Las cajas miden 40 unidades de alto, al pie de la fila de cabeceras cuando un actor u otra figura
   la hace más alta.
 
-`LayoutResult.boxes` contiene las cabeceras tal como se dibujan, las notas y los marcos de los
-fragmentos (por clave de evento); `shapes` y `radii`, el contorno de cada cabecera que es una caja
-(`rounded` con el radio del tema, `cylinder` para una base de datos); `connectors` y `labels`, los
-mensajes; `events`, la fila de cada evento. Los editores los usan para seleccionar, arrastrar y
-saber qué hay bajo el puntero.
+`LayoutResult.boxes` contiene las cabeceras tal como se dibujan, las notas, los marcos de los
+fragmentos y las barras de activación escritas (por clave de evento); `shapes` y `radii`, el
+contorno de cada cabecera que es una caja (`rounded` con el radio del tema, `cylinder` para una base
+de datos); `connectors` y `labels`, los mensajes, con la caja de una etiqueta abarcando todas sus
+líneas; `messageTexts`, el espacio al que se ajusta la etiqueta de cada mensaje, sus líneas tal
+como se dibujan, su tamaño y su separación, y si se ajusta (cuando un acercamiento limita su
+espacio; no en una autollamada ni a la distancia natural); `bars`, cada
+barra de activación por la clave de su `activate` o de la llamada cuyo bloque la dibuja, con su
+participante, su caja, su profundidad y el `deactivate` que la termina; `tags`, las píldoras de
+cada participante y cada mensaje con marcas; `events`, la fila de cada evento. En la escena, cada
+barra es un grupo de rol `event` dentro del grupo de su línea de vida
+(`<g data-id="activate#1" data-role="event">`), y cada marca un grupo de rol `tag` dentro del de su
+dueño (`<g data-id="authorize" data-role="tag" data-tag="0">`). Los editores los usan para
+seleccionar, arrastrar y saber qué hay bajo el puntero.
 
 ## Edición
 
@@ -265,6 +349,16 @@ Las ediciones mantienen el orden de los eventos (consulta [editor.md](../editor.
 - Alt+N anida los eventos seleccionados en la llamada que los precede, Alt+Mayús+N saca los eventos
   de una llamada detrás de ella, cada `return` escrito como una respuesta, y Alt+R agrega un
   `return` al final del bloque de la llamada;
-- las activaciones, las notas y los fragmentos se quedan con sus mensajes; quitar un participante
-  enumera primero sus mensajes, sus eventos y su espaciado, y quitar una llamada quita con ella los
-  eventos de su bloque.
+- Alt+A, el botón **Activar** y la casilla **Activa el receptor** del inspector escriben o quitan
+  el par `activate`/`deactivate` del receptor después de un mensaje; una barra de activación
+  escrita se selecciona con un clic, sus tiradores de arriba y de abajo mueven su `activate` o su
+  `deactivate` detrás de otro evento (se rechaza indicando el motivo cuando las reglas comprobadas
+  según el orden lo impiden), y Supr quita el par;
+- T, el botón **Marca** y la lista **Marcas** del inspector agregan, reescriben y quitan
+  instrucciones `tag`, y crean el bloque cuando la instrucción no lo tiene y lo quitan cuando no
+  queda nada más en él; un doble clic en una píldora la edita en su sitio;
+- la etiqueta de un mensaje se escribe donde se ajusta: el editor es tan ancho como el espacio
+  entre las líneas de vida y crece hacia abajo, y Mayús+Entrar escribe `\n`;
+- las activaciones, las notas y los fragmentos se quedan con sus mensajes; quitar un `activate` o
+  un `deactivate` quita su par; quitar un participante enumera primero sus mensajes, sus eventos y
+  su espaciado, y quitar una llamada quita con ella los eventos de su bloque.

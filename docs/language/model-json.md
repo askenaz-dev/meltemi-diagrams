@@ -14,8 +14,8 @@ describes version `0.1`. A breaking change increases the version.
 - Every element, relation and statement carries the `range` of its statement in the source.
 - Anonymous relations appear with their synthetic `key` (`<from>-><to>#<n>`) and `id: null`.
 - Keys are added within a version, never changed: `heads` on relations and `line` on elements
-  came in 1.10.0, `pen` and `list` on elements and `spacing`, `side`, `returns` and the
-  `events` of messages in 1.11.0, and the version stays `0.1`.
+  came in 1.10.0, `pen` and `list` on elements, `tags` on elements and relations, and `spacing`,
+  `side`, `returns` and the `events` of messages in 1.11.0, and the version stays `0.1`.
 - Every diagram profile compiles; `story` and `export` blocks are not in the JSON yet.
 
 ## Document
@@ -113,6 +113,7 @@ exclusive.
 | `description` | string or null | From an element or group block.                                                                                                                                                                           |
 | `url`         | string or null | The `url` of the block, or of the entity in C4 views.                                                                                                                                                     |
 | `classes`     | array          | Class names applied in the declaration block, in order.                                                                                                                                                   |
+| `tags`        | array          | The `tag "Text"` statements of a sequence participant's block in source order, each `{ "text", "range" }` with the range of its statement; empty on every other element.                                  |
 | `ports`       | array          | Named ports: `{ "name", "side", "position" }`.                                                                                                                                                            |
 | `layer`       | string or null | The `layer` of the block (free diagrams).                                                                                                                                                                 |
 | `link`        | object or null | `{ "binding", "diagram", "element" }`; `binding` is null for links in the same file.                                                                                                                      |
@@ -128,23 +129,24 @@ exclusive.
 
 ### Relation
 
-| Key           | Type           | Meaning                                                                                |
-| ------------- | -------------- | -------------------------------------------------------------------------------------- |
-| `key`         | string         | The id, or `<from>-><to>#<n>` when anonymous.                                          |
-| `id`          | string or null | The `as <id>` name.                                                                    |
-| `from`, `to`  | string         | Element ids.                                                                           |
-| `line`        | string         | `solid` (`->`, `--`, `<->`) or `dashed` (`-->`, `---`, `<-->`).                        |
-| `twoWay`      | boolean        | Written `<->` or `<-->`.                                                               |
-| `heads`       | string         | `end` (`->`, `-->`), `both` (`<->`, `<-->`) or `none` (`--`, `---`), in every profile. |
-| `async`       | boolean        | `kind async` on a sequence message.                                                    |
-| `returns`     | string or null | The key of the call a sequence `return` answers; null on every other relation.         |
-| `label`       | string or null | Text after `:`.                                                                        |
-| `description` | string or null | From the relation block.                                                               |
-| `classes`     | array          | Class names applied in the relation block.                                             |
-| `layer`       | string or null | The `layer` of the block (free diagrams).                                              |
-| `groupPath`   | array          | Groups that contain the relation statement.                                            |
-| `range`       | range          | The relation statement.                                                                |
-| `idRange`     | range or null  | The `as <id>` identifier.                                                              |
+| Key           | Type           | Meaning                                                                                                                                      |
+| ------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `key`         | string         | The id, or `<from>-><to>#<n>` when anonymous.                                                                                                |
+| `id`          | string or null | The `as <id>` name.                                                                                                                          |
+| `from`, `to`  | string         | Element ids.                                                                                                                                 |
+| `line`        | string         | `solid` (`->`, `--`, `<->`) or `dashed` (`-->`, `---`, `<-->`).                                                                              |
+| `twoWay`      | boolean        | Written `<->` or `<-->`.                                                                                                                     |
+| `heads`       | string         | `end` (`->`, `-->`), `both` (`<->`, `<-->`) or `none` (`--`, `---`), in every profile.                                                       |
+| `async`       | boolean        | `kind async` on a sequence message.                                                                                                          |
+| `returns`     | string or null | The key of the call a sequence `return` answers; null on every other relation.                                                               |
+| `label`       | string or null | Text after `:`.                                                                                                                              |
+| `description` | string or null | From the relation block.                                                                                                                     |
+| `classes`     | array          | Class names applied in the relation block.                                                                                                   |
+| `tags`        | array          | The `tag "Text"` statements of a sequence message's block (a `return`'s too) in source order, as on elements; empty on every other relation. |
+| `layer`       | string or null | The `layer` of the block (free diagrams).                                                                                                    |
+| `groupPath`   | array          | Groups that contain the relation statement.                                                                                                  |
+| `range`       | range          | The relation statement.                                                                                                                      |
+| `idRange`     | range or null  | The `as <id>` identifier.                                                                                                                    |
 
 ### Placement entries
 

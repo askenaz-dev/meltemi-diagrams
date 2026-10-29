@@ -21,3 +21,13 @@ diagram broken: flow {
 diagram strokes: free {
   pen p [10, 20]
 }
+
+// A tag of a sequence message without text.
+diagram tagged: sequence {
+  participant client "Client"
+  participant api "API"
+
+  client -> api: "Pay" as pay {
+    tag ""
+  }
+}

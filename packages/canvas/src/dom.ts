@@ -121,6 +121,10 @@ export const ICONS = {
   queue: "M3.5 5h9a1.5 3 0 0 1 0 6h-9a1.5 3 0 0 1 0-6z|M12.5 5a1.5 3 0 0 0 0 6",
   participants: "M2.5 2.5h4v3h-4z|M9.5 2.5h4v3h-4z|M4.5 5.5v8|M11.5 5.5v8",
   fragment: "M2.5 3.5h11v9h-11z|M2.5 6.5h4l1.5-1.5v-1.5",
+  /**
+   * Activate the receiver: a lifeline with its bar, and the message that comes into the bar.
+   */
+  activate: "M10.5 1.5v2.5|M10.5 12.5v2|M9 4h3v8.5H9z|M1.5 7h5.5|M5.5 5.5L7 7 5.5 8.5",
   divider: "M2.5 7h11|M2.5 9h11",
   delay: "M4 8h.01|M8 8h.01|M12 8h.01",
   person: "M8 2.5a2 2 0 1 1 0 4 2 2 0 0 1 0-4z|M3.5 13.5v-2.5a3 3 0 0 1 3-3h3a3 3 0 0 1 3 3v2.5z",

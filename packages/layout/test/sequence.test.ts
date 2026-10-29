@@ -10,8 +10,10 @@ import {
   layoutDiagram,
   type GroupItem,
   type LayoutOptions,
+  type LayoutResult,
   type Scene,
   type SceneItem,
+  type TextItem,
 } from "../src/index.js";
 
 function run(body: string, options: LayoutOptions = {}) {
@@ -34,6 +36,32 @@ function texts(items: readonly SceneItem[]): string[] {
   );
 }
 
+const LIGHT = THEMES["technical.light"]!;
+const metrics = new TextMetrics(estimateMeasurer, LIGHT);
+/** The width of a message label's line, as the layout measures it under technical.light. */
+const labelWidth = (text: string) => metrics.width(text, "body", 400, LIGHT.relationLabelSize);
+
+/** The text items of a message's label group, in drawing order. */
+function labelItems(result: LayoutResult, key: string): TextItem[] {
+  const message = groups(result.scene!, "relation").find((g) => g.id === key)!;
+  const label = message.items.find((i): i is GroupItem => i.kind === "group" && i.role === "label");
+  return (label?.items ?? []).filter((i): i is TextItem => i.kind === "text");
+}
+
+const labelLines = (result: LayoutResult, key: string) =>
+  labelItems(result, key).map((t) => t.text);
+
+/** The bars of a participant's lifeline: its groups of role `event`, each holding one rectangle. */
+function barGroups(scene: Scene, participant: string): GroupItem[] {
+  return groups(scene, "lifeline")
+    .find((g) => g.id === participant)!
+    .items.filter((i): i is GroupItem => i.kind === "group" && i.role === "event");
+}
+
+/** The rectangles of a participant's bars, in drawing order. */
+const barRects = (scene: Scene, participant: string) =>
+  barGroups(scene, participant).flatMap((g) => g.items.filter((i) => i.kind === "rect"));
+
 describe("an empty diagram", () => {
   it("lays out with a finite size, as a new diagram has no participant yet", () => {
     const result = run("");
@@ -50,20 +78,16 @@ describe("an empty diagram", () => {
 });
 
 describe("columns", () => {
-  it("orders participants as declared and keeps labels between them", () => {
-    const result = run(
-      '  participant a "A"\n  participant b "B"\n  a -> b: "A rather long message label" as m',
-    );
+  it("orders participants as declared and keeps a long word of a label between them", () => {
+    const word = "Authorization_with_a_long_identifier";
+    const result = run(`  participant a "A"\n  participant b "B"\n  a -> b: "${word}" as m`);
     const a = result.boxes!.get("a")!;
     const b = result.boxes!.get("b")!;
+    expect(a.x).toBeLessThan(b.x);
     const centre = (box: { x: number; width: number }) => box.x + box.width / 2;
-    const width = new TextMetrics(estimateMeasurer, THEMES["technical.light"]!).width(
-      "A rather long message label",
-      "body",
-      400,
-      THEMES["technical.light"]!.relationLabelSize,
-    );
-    expect(centre(b) - centre(a)).toBeGreaterThanOrEqual(width + 24);
+    expect(centre(b) - centre(a)).toBeGreaterThan(labelWidth(word) + 24 - 1e-9);
+    // The word is drawn whole, on one line.
+    expect(labelLines(result, "m")).toEqual([word]);
   });
 
   it("adds a gap before a participant", () => {
@@ -122,6 +146,547 @@ describe("columns", () => {
     const b = result.boxes!.get("b")!;
     expect(b.x - (a.x + a.width)).toBeGreaterThanOrEqual(8);
   });
+
+  const LONG = "Esto es una prueba de un texto Largo";
+
+  it("lets a negative gap bring a pair closer past a long label, which wraps between them", () => {
+    const loose = run(`  a -> b: "${LONG}" as m`);
+    const tight = run(`  a -> b: "${LONG}" as m\n  placement { gap b -20 }`);
+    // Without the gap the label holds the pair apart on one line: its natural distance.
+    expect(apart(loose, "a", "b")).toBeCloseTo(labelWidth(LONG) + 24, 6);
+    expect(labelLines(loose, "m")).toEqual([LONG]);
+    // The gap is taken from that distance, not from the heads'.
+    expect(apart(loose, "a", "b") - apart(tight, "a", "b")).toBeCloseTo(20, 6);
+    expect(labelLines(tight, "m").length).toBeGreaterThan(1);
+    expect(tight.diagnostics).toEqual([]);
+  });
+
+  it("pulls a labelled pair closer with a spacing below the default, the label wrapping", () => {
+    const loose = run(`  a -> b: "${LONG}" as m`);
+    const small = run(`  spacing 20\n  a -> b: "${LONG}" as m`);
+    expect(apart(loose, "a", "b") - apart(small, "a", "b")).toBeCloseTo(40 - 20, 6);
+    expect(labelLines(loose, "m")).toEqual([LONG]);
+    expect(labelLines(small, "m").length).toBeGreaterThan(1);
+    expect(small.diagnostics).toEqual([]);
+    // A pair that no label pushes ends at the heads and the spacing, as it always did.
+    expect(apart(run("  spacing 20\n  a -> b"), "a", "b")).toBe(96 + 20);
+  });
+
+  it("tells editors which labels a pull caps, and which hold their pair on one line", () => {
+    const result = run(
+      `  a -> b: "${LONG}" as m\n  b -> c: "${LONG}" as n\n  a -> c: "Across" as across\n  c -> c: "${LONG}" as self\n  placement { gap b -20 }`,
+    );
+    const wraps = (key: string) => result.messageTexts!.get(key)!.wraps;
+    // `a`-`b` is pulled: the label between them and the one across it wrap at their room.
+    expect(wraps("m")).toBe(true);
+    expect(wraps("across")).toBe(true);
+    // `b`-`c` is at its natural distance, and a self-call never wraps.
+    expect(wraps("n")).toBe(false);
+    expect(wraps("self")).toBe(false);
+    expect(labelLines(result, "n")).toEqual([LONG]);
+    expect(labelLines(result, "across")).toEqual(["Across"]);
+  });
+
+  it("lets the floor win when even the longest word does not fit, and says what it drew", () => {
+    const word = "Authorization_with_a_long_identifier";
+    const result = run(`  a -> b: "${word}"\n  placement { gap b -60 }`);
+    expect(apart(result, "a", "b")).toBeCloseTo(labelWidth(word) + 24, 6);
+    const floor = result.diagnostics.filter((d) => d.code === "layout.gap-floor");
+    expect(floor).toHaveLength(1);
+    // The amount drawn is measured from the natural distance, where the word held the pair.
+    const natural = apart(run(`  a -> b: "${word}"`), "a", "b");
+    const applied = Math.round(apart(result, "a", "b") - natural);
+    expect(applied).toBe(0);
+    expect(floor[0]!.data).toMatchObject({ gap: { participant: "b", written: -60, applied } });
+    expect(floor[0]!.message).toContain(`is ${applied} here, not -60`);
+  });
+
+  it("holds a pair apart by the row of a message's tags, with the arrowhead, and says so", () => {
+    const result = run(
+      '  a -> b: "Go" as go {\n    tag "idempotent"\n    tag "retry-safe"\n  }\n  placement { gap b -60 }',
+    );
+    const pills = result.tags!.get("go")!;
+    const row = pills.at(-1)!.x + pills.at(-1)!.width - pills[0]!.x;
+    expect(apart(result, "a", "b")).toBeGreaterThanOrEqual(row + 24 + LIGHT.arrowSize - 1e-9);
+    const floor = result.diagnostics.filter((d) => d.code === "layout.gap-floor");
+    expect(floor).toHaveLength(1);
+    expect(floor[0]!.data).toMatchObject({ gap: { participant: "b", written: -60 } });
+    // The row stays between the two ends, clear of the arrowhead.
+    const end = result.connectors!.get("go")!.points.at(-1)!.x;
+    expect(pills.at(-1)!.x + pills.at(-1)!.width).toBeLessThanOrEqual(end - LIGHT.arrowSize);
+  });
+
+  it("keeps heads apart by their rows of badges when those are wider than the heads", () => {
+    const body = (tags: string) =>
+      `  spacing 0\n  participant a "A"${tags}\n  participant b "B"${tags}\n  a -> b\n  placement { gap b -200 }`;
+    const result = run(body(' { tag "a-rather-long-badge" }'));
+    const [left, right] = [result.tags!.get("a")![0]!, result.tags!.get("b")![0]!];
+    expect(left.width).toBeGreaterThan(result.boxes!.get("a")!.width);
+    // Half of each row and the clearance, as half of each head and the clearance without them.
+    expect(right.x - (left.x + left.width)).toBeCloseTo(8, 6);
+    const plain = run(body(""));
+    expect(plain.boxes!.get("b")!.x - (plain.boxes!.get("a")!.x + 96)).toBe(8);
+  });
+
+  it("brings the owner's participant where its gap puts it, across a lifeline, the label wrapped", () => {
+    // An actor sends a long label to a participant two columns away; the gap tightens the pair on
+    // its right. The label no longer holds the participant: only its longest word could.
+    const body = `  actor customer "Customer"\n  actor clerk "Clerk"\n  participant participant1 "Participant 1"\n  customer -> participant1: "${LONG}" as test`;
+    const plain = run(body);
+    const tight = run(`${body}\n  placement { gap participant1 -24 }`);
+    expect(labelLines(plain, "test")).toEqual([LONG]);
+    expect(apart(plain, "clerk", "participant1") - apart(tight, "clerk", "participant1")).toBe(24);
+    expect(apart(tight, "customer", "clerk")).toBe(apart(plain, "customer", "clerk"));
+    expect(tight.diagnostics).toEqual([]);
+    const lines = labelItems(tight, "test");
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+    const arrow = tight.connectors!.get("test")!.points[0]!.y + tight.offset!.y;
+    for (const line of lines) expect(line.baseline).toBeLessThan(arrow);
+  });
+});
+
+describe("message labels wrap", () => {
+  const LONG = "Esto es una prueba de un texto Largo";
+  // Heads as close as they may be, so that the label is wider than the room between `customer`
+  // and `api` and wraps across the lifeline of `web`.
+  const FIRST = `  spacing 8\n  actor customer\n  participant web\n  participant api\n  customer -> api: "${LONG}" as test`;
+  const centre = (result: ReturnType<typeof run>, id: string) => {
+    const box = result.boxes!.get(id)!;
+    return box.x + box.width / 2;
+  };
+  const roomOf = (result: ReturnType<typeof run>, discRoom = 0) =>
+    Math.abs(centre(result, "api") - centre(result, "customer")) - 24 - discRoom;
+  const STEP = LIGHT.relationLabelSize * 1.25;
+
+  it("wraps a long label at the room between its lifelines, the arrow under its last line", () => {
+    const result = run(FIRST);
+    const room = roomOf(result);
+    const lines = labelItems(result, "test");
+    expect(lines.length).toBeGreaterThanOrEqual(2);
+    for (const line of lines) {
+      expect(labelWidth(line.text)).toBeLessThanOrEqual(room);
+      expect(line.anchor).toBe("middle");
+    }
+    expect(lines.map((l) => l.text).join(" ")).toBe(LONG);
+    for (let i = 1; i < lines.length; i++) {
+      expect(lines[i]!.baseline - lines[i - 1]!.baseline).toBeCloseTo(13.75, 6);
+    }
+    const arrow = result.connectors!.get("test")!.points[0]!.y + result.offset!.y;
+    expect(lines.at(-1)!.baseline).toBeLessThan(arrow);
+    // The row is a step taller for each line after the first.
+    const one = run(FIRST.replace(LONG, "Short"));
+    expect(result.events!.get("test")!.height - one.events!.get("test")!.height).toBeCloseTo(
+      (lines.length - 1) * STEP,
+      6,
+    );
+    // The first line is drawn where a one-line label is.
+    expect(lines[0]!.baseline).toBe(labelItems(one, "test")[0]!.baseline);
+  });
+
+  it("keeps a label on one line where nothing pulls its participants closer", () => {
+    const result = run(FIRST.replace("  spacing 8\n", ""));
+    expect(labelItems(result, "test").map((t) => t.text)).toEqual([LONG]);
+    expect(Math.abs(centre(result, "api") - centre(result, "customer"))).toBeGreaterThanOrEqual(
+      labelWidth(LONG) + 24 - 1e-9,
+    );
+    expect(result.messageTexts!.get("test")).toMatchObject({ lines: [LONG], wraps: false });
+  });
+
+  it("gives editors the room, the lines, the size and the step of every message", () => {
+    const result = run(FIRST);
+    const text = result.messageTexts!.get("test")!;
+    const block = result.labels!.get("test")!;
+    expect(text.lines).toEqual(labelLines(result, "test"));
+    expect(text).toMatchObject({ size: LIGHT.relationLabelSize, line: STEP, wraps: true });
+    expect(text.area.width).toBeCloseTo(roomOf(result), 6);
+    expect(text.area.x + text.area.width / 2).toBeCloseTo(block.x + block.width / 2, 6);
+    expect([text.area.y, text.area.height]).toEqual([block.y, block.height]);
+    // One label line high, and a step more for each line after the first.
+    const lineHeight = Math.round((LIGHT.relationLabelSize * 18) / 11);
+    expect(block.height).toBeCloseTo(lineHeight + (text.lines.length - 1) * STEP, 6);
+    // The block is as wide as its widest line plus 8.
+    expect(block.width).toBeCloseTo(Math.max(...text.lines.map(labelWidth)) + 8, 6);
+    // A message without a label has its room and no lines.
+    const bare = run(`${FIRST}\n  api --> customer as back`).messageTexts!.get("back")!;
+    expect(bare).toMatchObject({ lines: [], wraps: true });
+  });
+
+  it("breaks a label at a written line break, though it would fit on one line", () => {
+    const result = run('  a -> b: "One\\nTwo" as m');
+    expect(labelLines(result, "m")).toEqual(["One", "Two"]);
+    expect(result.messageTexts!.get("m")!.lines).toEqual(["One", "Two"]);
+  });
+
+  it("leaves the disc's room out of a numbered message's room", () => {
+    const plain = run(FIRST).messageTexts!.get("test")!;
+    const numbered = run(`  autonumber\n${FIRST}`);
+    const text = numbered.messageTexts!.get("test")!;
+    expect(text.area.width).toBeCloseTo(roomOf(numbered, 22), 6);
+    expect(roomOf(numbered, 0) - text.area.width).toBe(22);
+    expect(plain.area.width).toBeCloseTo(roomOf(run(FIRST)), 6);
+    for (const line of text.lines) expect(labelWidth(line)).toBeLessThanOrEqual(text.area.width);
+  });
+
+  it("keeps a self-call's label beside its loop on one line, broken at line breaks only", () => {
+    const label = "Validate the whole incoming request";
+    const result = run(`  a -> a: "${label}" as check`);
+    expect(labelLines(result, "check")).toEqual([label]);
+    expect(result.messageTexts!.get("check")).toMatchObject({ lines: [label], wraps: false });
+    const loop = result.connectors!.get("check")!.points;
+    expect(result.labels!.get("check")!.x).toBeGreaterThan(loop[1]!.x);
+    // Two lines centred on the loop's middle; the row grows when they are taller than the loop.
+    const one = run('  a -> a: "Validate" as check\n  a -> a as next');
+    const two = run('  a -> a: "Validate\\nthe request" as check\n  a -> a as next');
+    expect(labelLines(two, "check")).toEqual(["Validate", "the request"]);
+    const block = two.labels!.get("check")!;
+    const middle = (points: readonly { y: number }[]) => (points[0]!.y + points[3]!.y) / 2;
+    expect(block.y + block.height / 2).toBeCloseTo(middle(two.connectors!.get("check")!.points), 6);
+    const y = (result: ReturnType<typeof run>) => result.connectors!.get("next")!.points[0]!.y;
+    expect(y(two)).toBeGreaterThan(y(one));
+    // The label never rises above the row it starts.
+    expect(block.y).toBeGreaterThanOrEqual(two.events!.get("check")!.y);
+  });
+
+  it("moves the whole block with label … at … offset, its lines and room kept", () => {
+    const plain = run(FIRST);
+    const moved = run(`${FIRST}\n  placement { label test at 25% offset (0, -10) }`);
+    expect(labelLines(moved, "test")).toEqual(labelLines(plain, "test"));
+    const points = moved.connectors!.get("test")!.points;
+    const block = moved.labels!.get("test")!;
+    const quarter = points[0]!.x + (points[1]!.x - points[0]!.x) * 0.25;
+    expect(block.x + block.width / 2).toBeCloseTo(quarter, 6);
+    expect(plain.labels!.get("test")!.y - block.y).toBeCloseTo(10, 6);
+    expect(moved.messageTexts!.get("test")!.area.width).toBe(
+      plain.messageTexts!.get("test")!.area.width,
+    );
+  });
+
+  it("moves the rows below down by the extra lines", () => {
+    const body = (label: string) => `${FIRST.replace(LONG, label)}\n  api --> customer: "OK" as ok`;
+    const wrapped = run(body(LONG));
+    const one = run(body("Short"));
+    const extra = labelLines(wrapped, "test").length - 1;
+    expect(extra).toBeGreaterThan(0);
+    const y = (result: ReturnType<typeof run>) => result.connectors!.get("ok")!.points[0]!.y;
+    expect(y(wrapped) - y(one)).toBeCloseTo(extra * STEP, 6);
+  });
+
+  it("draws the head a creating message makes lower by the extra lines", () => {
+    const body = (label: string) =>
+      `  spacing 8\n  actor customer\n  participant web\n  customer -> web\n  create api\n  customer -> api: "${label}" as make`;
+    const wrapped = run(body(LONG));
+    const one = run(body("Short"));
+    const extra = labelLines(wrapped, "make").length - 1;
+    expect(extra).toBeGreaterThan(0);
+    expect(wrapped.boxes!.get("api")!.y - one.boxes!.get("api")!.y).toBeCloseTo(extra * STEP, 6);
+    // The label keeps its top, above the arrow that ends on the new head.
+    expect(wrapped.labels!.get("make")!.y).toBeCloseTo(one.labels!.get("make")!.y, 6);
+  });
+
+  it("gives a creating message's label the room of its arrow, which ends on the new head", () => {
+    const body = (pull: string) =>
+      `${pull}  participant a "A"\n  participant b "B"\n  create b\n  a -> b: "${LONG}" as make`;
+    for (const pull of ["", "  spacing 8\n"]) {
+      const result = run(body(pull));
+      const [start, end] = result.connectors!.get("make")!.points;
+      expect(end!.x).toBe(result.boxes!.get("b")!.x);
+      // The room is the arrow's length less 12 on each side, and the label stays inside it.
+      const text = result.messageTexts!.get("make")!;
+      expect(text.area.width, pull).toBeCloseTo(end!.x - start!.x - 24, 6);
+      const label = result.labels!.get("make")!;
+      expect(label.x, pull).toBeGreaterThanOrEqual(start!.x);
+      expect(label.x + label.width, pull).toBeLessThanOrEqual(end!.x);
+      expect(text.wraps, pull).toBe(pull !== "");
+      expect(text.lines.length > 1, pull).toBe(pull !== "");
+      for (const line of text.lines) expect(labelWidth(line)).toBeLessThanOrEqual(text.area.width);
+    }
+  });
+});
+
+describe("tags are drawn", () => {
+  const TAG_HEIGHT = Math.round((LIGHT.tagSize * 18) / 10.5);
+  /** The tag groups of an owner, in drawing order, wherever they are drawn. */
+  const tagGroups = (scene: Scene, owner: string): GroupItem[] => {
+    const found: GroupItem[] = [];
+    const walk = (items: readonly SceneItem[]) => {
+      for (const item of items) {
+        if (item.kind !== "group") continue;
+        if (item.role === "tag" && item.id === owner) found.push(item);
+        else walk(item.items);
+      }
+    };
+    walk(scene.items);
+    return found;
+  };
+  /** A box in scene coordinates. */
+  const inScene = (
+    result: LayoutResult,
+    box: { x: number; y: number; width: number; height: number },
+  ) => ({
+    x: box.x + result.offset!.x,
+    y: box.y + result.offset!.y,
+    width: box.width,
+    height: box.height,
+  });
+  const MESSAGE = '  api -> bank: "Authorize" as authorize {\n    tag "PKCE"\n    tag "v2"\n  }';
+
+  it("draws a message's pills on its arrow next to its source end, in source order", () => {
+    const result = run(MESSAGE);
+    const scene = result.scene!;
+    const start = result.connectors!.get("authorize")!.points[0]!;
+    const [pkce, v2] = result.tags!.get("authorize")!;
+    for (const pill of [pkce!, v2!]) {
+      expect(pill.height).toBe(TAG_HEIGHT);
+      expect(pill.y + pill.height / 2).toBe(start.y);
+    }
+    expect(TAG_HEIGHT).toBe(18);
+    expect(pkce!.x - start.x).toBe(6);
+    expect(v2!.x - (pkce!.x + pkce!.width)).toBe(4);
+    // Each pill is a group of role `tag` with the message's key and its index, after the label
+    // group inside the message's group, so that it covers the arrow.
+    const message = groups(scene, "relation").find((g) => g.id === "authorize")!;
+    const roles = message.items.flatMap((i) => (i.kind === "group" ? [[i.role, i.tag]] : []));
+    expect(roles).toEqual([
+      ["label", undefined],
+      ["tag", 0],
+      ["tag", 1],
+    ]);
+    const groupsOf = tagGroups(scene, "authorize");
+    expect(groupsOf.map((g) => g.tag)).toEqual([0, 1]);
+    const [rect, text] = groupsOf[0]!.items;
+    expect(rect).toMatchObject({
+      kind: "rect",
+      ...inScene(result, pkce!),
+      radius: TAG_HEIGHT / 2,
+      fill: LIGHT.tag,
+      stroke: LIGHT.tag,
+    });
+    expect(text).toMatchObject({
+      kind: "text",
+      text: "PKCE",
+      font: "mono",
+      size: 10.5,
+      weight: 500,
+      fill: LIGHT.tagText,
+      anchor: "middle",
+      x: inScene(result, pkce!).x + pkce!.width / 2,
+    });
+    // The pill is the flow tag's: its mono text and the theme's padding.
+    expect(pkce!.width).toBe(
+      Math.ceil(metrics.width("PKCE", "mono", 500, LIGHT.tagSize) + TAG_HEIGHT),
+    );
+  });
+
+  it("lifts a tagged message's label by half a pill and 2, its row that much taller", () => {
+    const tagged = run(`${MESSAGE}\n  bank --> api as ok`);
+    const plain = run('  api -> bank: "Authorize" as authorize\n  bank --> api as ok');
+    const above = (result: LayoutResult) =>
+      result.connectors!.get("authorize")!.points[0]!.y - result.labels!.get("authorize")!.y;
+    expect(above(tagged) - above(plain)).toBe(11);
+    // The label keeps its top; the arrow and the rows below move down.
+    expect(tagged.labels!.get("authorize")!.y).toBe(plain.labels!.get("authorize")!.y);
+    const ok = (result: LayoutResult) => result.connectors!.get("ok")!.points[0]!.y;
+    expect(ok(tagged) - ok(plain)).toBe(11);
+    // A wrapped label never meets the pills.
+    const long = run(
+      '  spacing 8\n  participant api\n  participant web\n  participant bank\n  api -> bank: "Authorize the payment of the whole basket now" as authorize { tag "PKCE" }',
+    );
+    const block = long.labels!.get("authorize")!;
+    const [pill] = long.tags!.get("authorize")!;
+    expect(labelLines(long, "authorize").length).toBeGreaterThan(1);
+    expect(block.y + block.height).toBeLessThan(pill!.y);
+  });
+
+  it("starts the row at the source end of a message from right to left", () => {
+    const result = run(
+      '  participant api\n  participant bank\n  bank --> api: "OK" as ok { tag "cached" }',
+    );
+    const start = result.connectors!.get("ok")!.points[0]!;
+    const [pill] = result.tags!.get("ok")!;
+    expect(start.x - (pill!.x + pill!.width)).toBe(6);
+    expect(result.connectors!.get("ok")!.points[1]!.x).toBeLessThan(start.x);
+  });
+
+  it("starts the row past the number's disc, and past the head a two-way message draws there", () => {
+    const numbered = run(`  autonumber\n${MESSAGE}`);
+    const start = numbered.connectors!.get("authorize")!.points[0]!;
+    expect(numbered.tags!.get("authorize")![0]!.x - start.x).toBe(12);
+    const both = run('  a <-> b: "Sync" as sync { tag "stream" }');
+    const from = both.connectors!.get("sync")!.points[0]!;
+    expect(both.tags!.get("sync")![0]!.x - from.x).toBe(6 + LIGHT.arrowSize);
+  });
+
+  it("puts a self-call's row on the loop's top segment and its label after it", () => {
+    const result = run('  a -> a: "Check" as check { tag "idempotent" }');
+    const loop = result.connectors!.get("check")!.points;
+    const [pill] = result.tags!.get("check")!;
+    expect(pill!.x - loop[0]!.x).toBe(6);
+    expect(pill!.y + pill!.height / 2).toBe(loop[0]!.y);
+    // The loop holds the row on its top segment, and the label starts after both.
+    expect(loop[1]!.x).toBeGreaterThanOrEqual(pill!.x + pill!.width);
+    expect(result.labels!.get("check")!.x).toBeGreaterThan(
+      Math.max(loop[1]!.x, pill!.x + pill!.width),
+    );
+    // An untagged self-call keeps its loop.
+    const plain = run('  a -> a: "Check" as check').connectors!.get("check")!.points;
+    expect(plain[1]!.x - plain[0]!.x).toBe(34);
+  });
+
+  it("centres a participant's badges on the top edge of its box, every head lower by their room", () => {
+    const body = (tags: string) =>
+      `  participant api "API"\n  participant bank "Bank"${tags}\n  api -> bank: "Pay" as pay`;
+    const tagged = run(body(' { tag "external" }'));
+    const plain = run(body(""));
+    const bank = tagged.boxes!.get("bank")!;
+    const [pill] = tagged.tags!.get("bank")!;
+    expect(pill!.x + pill!.width / 2).toBeCloseTo(bank.x + bank.width / 2, 6);
+    expect(pill!.y + pill!.height / 2).toBe(bank.y);
+    for (const id of ["api", "bank"]) {
+      expect(tagged.boxes!.get(id)!.y - plain.boxes!.get(id)!.y).toBe(9);
+    }
+    // The badge is drawn in the head's group, which effects and stories address.
+    const head = groups(tagged.scene!, "element").find((g) => g.id === "bank")!;
+    expect(head.items.at(-1)).toMatchObject({ kind: "group", role: "tag", id: "bank", tag: 0 });
+    // A diagram without tags keeps its heads where they were.
+    expect(run(body("")).boxes!.get("api")).toEqual(plain.boxes!.get("api"));
+  });
+
+  it("stands an actor's badge 4 above the figure", () => {
+    const result = run(
+      '  actor customer "Customer" { tag "VIP" }\n  participant api\n  customer -> api',
+    );
+    const figure = result.boxes!.get("customer")!;
+    const [pill] = result.tags!.get("customer")!;
+    expect(pill!.x + pill!.width / 2).toBeCloseTo(figure.x + figure.width / 2, 6);
+    // The figure fills the head's row: its top is the cell's.
+    expect(figure.y - (pill!.y + pill!.height)).toBe(4);
+  });
+
+  it("gives a created head the room of its own badges", () => {
+    const body = (tags: string) =>
+      `  participant a\n  participant b\n  participant c "C"${tags}\n  a -> b as first\n  create c\n  b -> c: "new" as make`;
+    const tagged = run(body(' { tag "new" }'));
+    const plain = run(body(""));
+    const c = tagged.boxes!.get("c")!;
+    const [pill] = tagged.tags!.get("c")!;
+    expect(pill!.y + pill!.height / 2).toBe(c.y);
+    // Its row starts below the previous one, and the head is lower by the badge's room.
+    expect(pill!.y).toBeGreaterThan(
+      tagged.events!.get("first")!.y + tagged.events!.get("first")!.height - 1e-9,
+    );
+    expect(c.y - tagged.events!.get("make")!.y).toBe(
+      plain.boxes!.get("c")!.y - plain.events!.get("make")!.y + 9,
+    );
+  });
+
+  it("keeps a creating message's pills off the head it makes, clear of the arrowhead", () => {
+    // The arrow ends on the new head's near edge: half a head short of its column.
+    const body = (tags: string) =>
+      `  participant a "A"\n  participant b "B"\n  create b\n  a -> b: "new" as make { ${tags} }`;
+    for (const tags of [
+      'tag "LONG-TAG-ONE"; tag "LONG-TAG-TWO"; tag "THREE"',
+      'tag "ONE-TAG"; tag "TWO-TAG"',
+    ]) {
+      const result = run(body(tags));
+      const head = result.boxes!.get("b")!;
+      const end = result.connectors!.get("make")!.points.at(-1)!.x;
+      expect(end).toBe(head.x);
+      const last = result.tags!.get("make")!.at(-1)!;
+      expect(last.x + last.width, tags).toBeLessThanOrEqual(end - LIGHT.arrowSize + 1e-9);
+    }
+    // From right to left too, a pull asking for less than the row being refused.
+    const back = run(
+      `  participant a "A"\n  participant b "B"\n  create a\n  b -> a: "new" as make { tag "LONG-TAG-ONE"; tag "LONG-TAG-TWO" }\n  placement { gap b -200 }`,
+    );
+    const head = back.boxes!.get("a")!;
+    const end = back.connectors!.get("make")!.points.at(-1)!.x;
+    expect(end).toBe(head.x + head.width);
+    // The row runs leftwards from the source end: its first pill is the one nearest the head.
+    expect(back.tags!.get("make")![0]!.x).toBeGreaterThanOrEqual(end + LIGHT.arrowSize - 1e-9);
+  });
+
+  it("refuses a tag in a group block before the layout", () => {
+    const compilation = compile(
+      'diagram s: sequence {\n  group edge "Edge" {\n    tag "core"\n    participant a\n  }\n  a -> a\n}\n',
+    );
+    expect(compilation.diagnostics.map((d) => d.code)).toContain("prop.unknown");
+    expect(compilation.document.diagrams[0]!.hasErrors).toBe(true);
+  });
+});
+
+describe("activation bars as objects", () => {
+  const payment = readFileSync(join(CORPUS_ROOT, "valid", "sequence", "payment.meltemi"), "utf8");
+  const lay = (text: string) => {
+    const compilation = compile(text);
+    return layoutDiagram(compilation, compilation.document.diagrams[0]!);
+  };
+
+  it("draws a written bar as a group of role `event` with its `activate` key and its box", () => {
+    const result = lay(payment);
+    const [bar] = barGroups(result.scene!, "api");
+    expect(bar).toMatchObject({ id: "activate#1", role: "event" });
+    const rect = bar!.items[0]!;
+    expect(bar!.items).toHaveLength(1);
+    expect(bar!.bounds).toEqual({
+      x: rect.kind === "rect" && rect.x,
+      y: rect.kind === "rect" && rect.y,
+      width: rect.kind === "rect" && rect.width,
+      height: rect.kind === "rect" && rect.height,
+      radius: 0,
+    });
+    const box = result.boxes!.get("activate#1")!;
+    expect({
+      x: box.x + result.offset!.x,
+      y: box.y + result.offset!.y,
+      width: box.width,
+      height: box.height,
+    }).toEqual({
+      x: bar!.bounds!.x,
+      y: bar!.bounds!.y,
+      width: bar!.bounds!.width,
+      height: bar!.bounds!.height,
+    });
+    expect(result.bars!.get("activate#1")).toEqual({
+      participant: "api",
+      box,
+      depth: 0,
+      from: "activate#1",
+      to: "deactivate#1",
+      block: false,
+    });
+  });
+
+  it("draws a call's bar under the call's key, absent from the boxes", () => {
+    const result = lay(
+      readFileSync(join(CORPUS_ROOT, "valid", "sequence", "calls.meltemi"), "utf8"),
+    );
+    expect(result.bars!.get("pay")).toMatchObject({
+      participant: "api",
+      from: "pay",
+      to: null,
+      block: true,
+      depth: 0,
+    });
+    expect(result.boxes!.has("pay")).toBe(false);
+    expect(barGroups(result.scene!, "api").map((g) => g.id)).toContain("pay");
+    // A nested call's bar sits on its own receiver, its own depth.
+    expect(result.bars!.get("authorize")).toMatchObject({ participant: "bank", block: true });
+  });
+
+  it("draws an open bar to the end of its lifeline, with no `deactivate`", () => {
+    const result = run("  a -> b as ask\n  activate b\n  b -> c as next");
+    const bar = result.bars!.get("activate#1")!;
+    expect(bar.to).toBeNull();
+    const line = groups(result.scene!, "lifeline").find((g) => g.id === "b")!.items[0]!;
+    const bottom = line.kind === "polyline" ? line.points[1]!.y : NaN;
+    expect(bar.box.y + bar.box.height + result.offset!.y).toBe(bottom);
+  });
+
+  it("refuses an unmatched deactivate before the layout", () => {
+    const compilation = compile("diagram s: sequence {\n  a -> b\n  deactivate b\n}\n");
+    expect(compilation.diagnostics.map((d) => d.code)).toContain("sequence.activation");
+    expect(compilation.document.diagrams[0]!.hasErrors).toBe(true);
+  });
 });
 
 describe("rows keep event order", () => {
@@ -168,8 +733,7 @@ describe("drawing", () => {
     const scene = result.scene!;
     const headers = groups(scene, "label").filter((g) => g.id === "result");
     expect(texts(headers)).toEqual(["alt", "[Aprobado]", "[Rechazado]"]);
-    const api = groups(scene, "lifeline").find((g) => g.id === "api")!;
-    expect(api.items.filter((i) => i.kind === "rect")).toHaveLength(1);
+    expect(barRects(scene, "api")).toHaveLength(1);
     const approved = groups(scene, "relation").find((g) => g.id === "approved")!;
     expect(approved.items[0]).toMatchObject({ kind: "polyline", dashed: true });
     expect(approved.items[1]).toMatchObject({ kind: "polyline", dashed: false });
@@ -180,9 +744,7 @@ describe("drawing", () => {
       '  customer -> api: "Pagar" as pay\n  activate api\n  api -> bank as auth\n  deactivate api',
     );
     const scene = result.scene!;
-    const bar = groups(scene, "lifeline")
-      .find((g) => g.id === "api")!
-      .items.find((i) => i.kind === "rect")!;
+    const bar = barRects(scene, "api")[0]!;
     const pay = result.connectors!.get("pay")!.points[0]!.y + result.offset!.y;
     const auth = result.connectors!.get("auth")!.points[0]!.y + result.offset!.y;
     expect(bar).toMatchObject({ y: pay });
@@ -194,10 +756,7 @@ describe("drawing", () => {
       '  customer -> api: "Pagar" as pay\n  activate api\n  api -> bank as auth\n  deactivate api',
     );
     const block = run('  customer -> api: "Pagar" as pay {\n    api -> bank as auth\n  }');
-    const barOf = (result: ReturnType<typeof run>, id: string) =>
-      groups(result.scene!, "lifeline")
-        .find((g) => g.id === id)!
-        .items.filter((i) => i.kind === "rect");
+    const barOf = (result: ReturnType<typeof run>, id: string) => barRects(result.scene!, id);
     // The same picture as the written activation pair.
     expect(barOf(block, "api")).toEqual(barOf(flat, "api"));
     expect(block.connectors!.get("auth")!.points).toEqual(flat.connectors!.get("auth")!.points);
@@ -207,16 +766,8 @@ describe("drawing", () => {
     const result = run(
       '  customer -> api: "Pay" as pay {\n    api -> bank: "Authorize" as authorize {\n      return "OK" as ok\n    }\n    return "Receipt" as receipt\n  }',
     );
-    expect(
-      groups(result.scene!, "lifeline")
-        .find((g) => g.id === "api")!
-        .items.filter((i) => i.kind === "rect"),
-    ).toHaveLength(1);
-    expect(
-      groups(result.scene!, "lifeline")
-        .find((g) => g.id === "bank")!
-        .items.filter((i) => i.kind === "rect"),
-    ).toHaveLength(1);
+    expect(barRects(result.scene!, "api")).toHaveLength(1);
+    expect(barRects(result.scene!, "bank")).toHaveLength(1);
     const ys = ["pay", "authorize", "ok", "receipt"].map(
       (key) => result.connectors!.get(key)!.points[0]!.y,
     );
@@ -331,7 +882,8 @@ describe("tokens of the drawing", () => {
     const result = layoutDiagram(compilation, compilation.document.diagrams[0]!);
     const scene = result.scene!;
     const lifeline = groups(scene, "lifeline").find((g) => g.id === "api")!;
-    const [line, bar] = lifeline.items;
+    const line = lifeline.items[0];
+    const bar = barRects(scene, "api")[0];
     const rect = groups(scene, "element")
       .find((g) => g.id === "api")!
       .items.find((i) => i.kind === "rect")!;

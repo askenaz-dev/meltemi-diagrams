@@ -89,3 +89,6 @@ reported anything but properties there.
   `invalid/sequence.return.meltemi`; every model JSON gains `returns`, `side` and `spacing`.
 - Open for later: a row spacing property (`spacing 40 20`), and nesting by dragging events onto a
   call.
+- [Decision 0065](0065-sequence-wrap-tags-and-activation.md) makes the floor of a negative `gap`
+  count a label's longest word instead of its whole width: message labels wrap at the room between
+  their lifelines, so a head drag comes as close as the heads allow.

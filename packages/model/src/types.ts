@@ -78,6 +78,18 @@ export interface ClassUse {
   readonly range: Range;
 }
 
+/**
+ * A `tag "Text"` statement in the block of a sequence message or participant: a short annotation
+ * of its owner, drawn as a pill. It has no id and is no target of styles, effects or stories.
+ */
+export interface TagUse {
+  readonly text: string;
+  /** Range of the `tag` statement. */
+  readonly range: Range;
+  /** Range of the string literal. */
+  readonly textRange: Range;
+}
+
 /** An `icon` value written in a style statement, class or rule, where it is written. */
 export interface IconUse {
   readonly reference: string;
@@ -176,6 +188,11 @@ export interface Element {
   readonly description: string | null;
   /** Classes applied in the declaration block, in the order written. */
   readonly classes: readonly ClassUse[];
+  /**
+   * Sequence participants: the `tag "Text"` statements of the block, in source order; empty when
+   * none is written and on every element of the other profiles.
+   */
+  readonly tags: readonly TagUse[];
   /** Named ports declared in the block, in the order written. */
   readonly ports: readonly PortDefinition[];
   /** The `layer` of the block (free diagrams), or null for the default layer. */
@@ -271,6 +288,11 @@ export interface Relation {
   readonly data: Readonly<Record<string, string | number | boolean>>;
   /** Classes applied in the relation block, in the order written. */
   readonly classes: readonly ClassUse[];
+  /**
+   * Sequence messages (`return` included): the `tag "Text"` statements of the block, in source
+   * order; empty when none is written and on every relation of the other profiles.
+   */
+  readonly tags: readonly TagUse[];
   /** The `layer` of the block (free diagrams), or null for the default layer. */
   readonly layer: string | null;
   readonly layerRange: Range | null;

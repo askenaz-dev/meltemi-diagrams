@@ -112,6 +112,17 @@ describe("label audit", () => {
     );
     expect(kinds(over)).toContain("overlap:text:b:a");
     expect(kinds(over)).toContain("overlap:box:a:b");
+    // A label lying on another text is reported on the label, wherever it starts.
+    const moved: SceneItem = {
+      kind: "group",
+      id: "r",
+      role: "label",
+      items: [text(60, 38, "moved label")],
+    };
+    expect(kinds(scene(element("a", 10, 10, 160, 56, text(90, 38, "Order API")), moved))).toEqual([
+      "overlap:text:r:a",
+      "overlap:box:r:a",
+    ]);
     const line: SceneItem = {
       kind: "group",
       id: "r",
@@ -197,6 +208,105 @@ describe("label audit of stacks", () => {
     expect(diagnostics[0]!.message).toBe(
       'The text "Inner" of `inner` overlaps the text "Outer" of `outer`.',
     );
+  });
+});
+
+describe("label audit of wrapped message labels", () => {
+  const LONG = "Esto es una prueba de un texto Largo";
+  const lay = (extra = "") => {
+    // Heads as close as they may be: the label wraps across the lifeline of `web`.
+    const compilation = compile(
+      `diagram s: sequence {\n  spacing 8\n  actor customer\n  participant web\n  participant api\n  customer -> api: "${LONG}" as test\n  note over web "Fraud check"\n${extra}}\n`,
+    );
+    expect(compilation.diagnostics).toEqual([]);
+    return layoutDiagram(compilation, compilation.document.diagrams[0]!);
+  };
+  const lines = (s: Scene) => {
+    const found: string[] = [];
+    const walk = (items: readonly SceneItem[], label: boolean) => {
+      for (const item of items) {
+        if (item.kind === "group") walk(item.items, item.role === "label" && item.id === "test");
+        else if (item.kind === "text" && label) found.push(item.text);
+      }
+    };
+    walk(s.items, false);
+    return found;
+  };
+
+  it("measures each drawn line of a wrapped label as its own text, and reports nothing", () => {
+    const result = lay();
+    expect(lines(result.scene!).length).toBeGreaterThanOrEqual(2);
+    expect(auditLabels(result.scene!, estimateMeasurer)).toEqual([]);
+    expect(result.diagnostics).toEqual([]);
+  });
+
+  it("reports a wrapped label moved onto a note on the label, naming the note's text", () => {
+    const result = lay("  placement { label test at 50% offset (0, 60) }\n");
+    const [first] = lines(result.scene!);
+    const problems = auditLabels(result.scene!, estimateMeasurer).filter(
+      (p) => p.kind === "overlap" && p.other.kind === "text",
+    );
+    expect(
+      problems.map((p) => p.kind === "overlap" && [p.text.owner, p.text.text, p.other]),
+    ).toEqual([["test", first, { kind: "text", owner: "note#1", text: "Fraud check" }]]);
+    const overlaps = result.diagnostics.filter((d) => d.code === "layout.label-overlap");
+    expect(overlaps.map((d) => [d.range.start.line, d.message])).toEqual([
+      [6, `The text "${first}" of \`test\` overlaps the text "Fraud check" of \`note#1\`.`],
+    ]);
+  });
+});
+
+describe("label audit of sequence tags", () => {
+  const pill = (owner: string, x: number, y: number, width: number, value: string): SceneItem => ({
+    kind: "group",
+    id: owner,
+    role: "tag",
+    tag: 0,
+    items: [rect(x, y, width, 18), text(x + width / 2, y + 9, value)],
+  });
+
+  it("holds a tag's text to its pill, and lets the pill lie on a box as a badge", () => {
+    // A badge over the top edge of its own head, and the pill of a message over another box.
+    const head = element("bank", 100, 100, 120, 40, text(160, 120, "Bank"));
+    expect(kinds(scene(head, pill("bank", 130, 91, 60, "ext")))).toEqual([]);
+    const api = element("api", 300, 100, 120, 40);
+    expect(kinds(scene(head, api, pill("pay", 330, 111, 60, "ext")))).toEqual([]);
+    // The same text drawn as a label is reported on the box.
+    const label: SceneItem = {
+      kind: "group",
+      id: "pay",
+      role: "label",
+      items: [rect(330, 111, 60, 18), text(360, 120, "ext")],
+    };
+    expect(kinds(scene(head, api, label))).toEqual(["overlap:box:pay:api"]);
+    // A text wider than its pill is cut by it, as a label is by its own.
+    expect(kinds(scene(pill("pay", 100, 300, 20, "a wide tag")))).toEqual(["cut:background:pay"]);
+  });
+
+  it("reports nothing for a badge over its head and a pill on a message", () => {
+    const compilation = compile(
+      'diagram s: sequence {\n  participant api "API"\n  participant bank "Bank" { tag "external" }\n  api -> bank: "Authorize" as authorize { tag "PKCE" }\n}\n',
+    );
+    expect(compilation.diagnostics).toEqual([]);
+    const result = layoutDiagram(compilation, compilation.document.diagrams[0]!);
+    // Each tag's text lies on its pill.
+    const pills: { rect: SceneItem; text: SceneItem }[] = [];
+    const walk = (items: readonly SceneItem[]) => {
+      for (const item of items) {
+        if (item.kind !== "group") continue;
+        if (item.role === "tag") pills.push({ rect: item.items[0]!, text: item.items[1]! });
+        else walk(item.items);
+      }
+    };
+    walk(result.scene!.items);
+    expect(pills.map((p) => p.text.kind === "text" && p.text.text)).toEqual(["PKCE", "external"]);
+    for (const { rect: r, text: t } of pills) {
+      if (r.kind !== "rect" || t.kind !== "text") throw new Error("a pill is a rect and a text");
+      expect(t.x).toBeCloseTo(r.x + r.width / 2, 1);
+      expect(t.y).toBeCloseTo(r.y + r.height / 2, 1);
+    }
+    expect(auditLabels(result.scene!, estimateMeasurer)).toEqual([]);
+    expect(result.diagnostics).toEqual([]);
   });
 });
 
