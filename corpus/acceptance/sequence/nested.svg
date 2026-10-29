@@ -33,7 +33,9 @@
   </g>
   <g data-id="settle" data-role="lifeline">
     <polyline points="206.5,92 206.5,706" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
-    <rect x="201.5" y="138" width="10" height="524" rx="0" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <g data-id="activate#1" data-role="event">
+      <rect x="201.5" y="138" width="10" height="524" rx="0" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    </g>
   </g>
   <g data-id="ledger" data-role="lifeline">
     <polyline points="345,92 345,706" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>

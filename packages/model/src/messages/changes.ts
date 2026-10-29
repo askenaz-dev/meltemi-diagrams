@@ -37,6 +37,7 @@ const en = {
     assumption: "assumption changed",
     ends: "ends changed",
     heads: "heads changed",
+    tags: "tags changed",
   } satisfies Record<ChangedPart, string>,
   /** New states. */
   states: {
@@ -91,6 +92,7 @@ const es: typeof en = {
     assumption: "cambió la suposición",
     ends: "cambiaron los extremos",
     heads: "cambiaron las puntas",
+    tags: "cambiaron las marcas",
   },
   states: {
     external: "ahora es externo",

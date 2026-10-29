@@ -438,6 +438,28 @@ export const es: typeof en = {
         `${code(operator)} no es un operador de fragmento; usa ${operators.map(code).join(", ")}.`,
       singleBranchFor: (operator, key, branches) =>
         `${code(operator)} tiene una sola rama y ${code(key)} tiene ${branches}; quita las demás primero.`,
+      moveForm:
+        "`moveEvent` mueve un evento por una dirección `direction` o a un destino `to`: da exactamente uno de los dos.",
+      destinationForm: "Un destino es `{ after: <evento> }` o `{ before: <evento> }`.",
+      moveBesideItself: (key) => `${code(key)} no puede moverse antes ni después de sí mismo.`,
+      moveIntoItself: (key, destination) =>
+        `${code(destination)} está dentro de ${code(key)}, que no puede moverse dentro de sí mismo.`,
+    },
+
+    tags: {
+      notSequence: (diagram) =>
+        `Las marcas van en los participantes y los mensajes de los diagramas de secuencia, y ${code(diagram)} no es uno.`,
+      notOwner: (target, diagram) =>
+        `${code(target)} no es un participante ni un mensaje de ${code(diagram)}; las marcas van en participantes y mensajes.`,
+      noTag: (target, index, n) =>
+        n === 0
+          ? `${code(target)} no tiene marcas.`
+          : `${code(target)} no tiene ninguna marca en el índice ${index}; sus marcas van del 0 al ${n - 1}.`,
+      badIndex: (index) =>
+        `${num(index)} no es un lugar entre las marcas; da un número entero desde 0, o ninguno para añadir la marca al final.`,
+      oneLine: "Una marca es una línea de texto, no vacía.",
+      repeated: (target, text) => `${code(target)} ya tiene la marca "${text}".`,
+      unreadable: "No se puede leer el texto de la marca.",
     },
 
     c4: {

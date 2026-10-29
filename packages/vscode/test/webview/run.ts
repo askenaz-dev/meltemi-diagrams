@@ -372,6 +372,104 @@ const CALLS = `diagram payment: sequence {
 }
 `;
 
+/**
+ * The owner's drawing (2026-10-29): the second actor sends a long label across the lifeline of
+ * `participant2` to `participant1`, which a head drag brings closer; a self-call beside it. The
+ * messages are numbered: the disc takes 22 of the room, so the label, which fits between the heads
+ * as they stand, needs all of it, and a pull of 24 wraps it.
+ */
+const OWNER = `diagram owner: sequence {
+  autonumber
+  actor actor1 "A1"
+  actor actor2 "A2"
+  participant participant2 "P2"
+  participant participant1 "P1"
+
+  actor1 -> participant2: "Hola" as hello
+  actor2 -> participant1: "Esto es una prueba de un texto Largo" as long
+  participant1 --> actor2: "OK" as ok
+  actor1 -> actor1: "Validate" as validate
+}
+`;
+
+/** `ask` and its reply, with a message between them that `b` sends: Activate pairs them. */
+const ASK = `diagram d: sequence {
+  participant a "A"
+  participant b "B"
+  participant c "C"
+
+  a -> b: "Ask" as ask
+  b -> c: "Fetch" as fetch
+  b --> a: "Reply" as reply
+}
+`;
+
+/** A written bar of `b` from `ask` to `fetch`: its top dragged below `reply` is refused. */
+const SHORT_BAR = `diagram d: sequence {
+  participant a "A"
+  participant b "B"
+  participant c "C"
+
+  a -> b: "Ask" as ask
+  activate b
+  b -> c: "Fetch" as fetch
+  deactivate b
+  b --> a: "Reply" as reply
+}
+`;
+
+/** A bar of `b` open to the end: its bottom handle writes the `deactivate`. */
+const OPEN_BAR = `diagram d: sequence {
+  participant a "A"
+  participant b "B"
+  participant c "C"
+
+  a -> b: "Ask" as ask
+  activate b
+  b -> c: "Fetch" as fetch
+  b -> c: "Store" as store
+}
+`;
+
+/** Two bars from the same row, `b`'s first: moving `c`'s up makes its `activate` the first. */
+const TWO_BARS = `diagram d: sequence {
+  participant a "A"
+  participant b "B"
+  participant c "C"
+
+  a -> b: "One" as m1
+  activate b
+  activate c
+  a -> b: "Three" as m3
+  deactivate b
+  a -> c: "Four" as m4
+  deactivate c
+}
+`;
+
+/** A call whose block activates its receiver (`corpus/valid/sequence/calls.meltemi`'s `pay`). */
+const BLOCK_CALL = `diagram payment: sequence {
+  actor customer "Customer"
+  participant api "API"
+  participant bank "Bank"
+
+  customer -> api: "Pay" as pay {
+    api -> bank: "Authorize" as authorize
+    bank --> api: "OK" as approved
+    return "Paid"
+  }
+}
+`;
+
+/** The payment canvas with a tag on `authorize` and a badge on `bank`. */
+const TAGGED = SEQUENCE.replace(
+  'participant bank "Bank"',
+  'participant bank "Bank" { tag "external" }',
+).replace(
+  'api -> bank: "Authorize" as authorize',
+  'api -> bank: "Authorize" as authorize { tag "PKCE" }',
+);
+
 /** A note with an outline, one without, and a text, each attached to a box. */
 const FREE_NOTES = `diagram s: free {
   box api "API"
@@ -899,6 +997,58 @@ async function drawnLines(h: Harness, id: string): Promise<string[]> {
 /** The text an element's drawing shows, its lines joined. */
 async function drawnText(h: Harness, id: string): Promise<string> {
   return (await drawnLines(h, id)).join("\n");
+}
+
+/** The lines a sequence message's label is drawn on, in order, with their page boxes. */
+async function messageLines(h: Harness, key: string): Promise<{ text: string; box: Rect }[]> {
+  return h.page
+    .locator(`.content g[data-id="${key}"][data-role="label"] > text`)
+    .evaluateAll((texts) =>
+      texts.map((t) => {
+        const r = t.getBoundingClientRect();
+        return {
+          text: t.textContent ?? "",
+          box: { x: r.x, y: r.y, width: r.width, height: r.height },
+        };
+      }),
+    );
+}
+
+/** The page centre of a sequence message's arrow. */
+async function arrowOf(h: Harness, key: string): Promise<{ x: number; y: number }> {
+  const box = await h.page
+    .locator(`.content g[data-id="${key}"][data-role="relation"] polyline`)
+    .first()
+    .boundingBox();
+  assert.ok(box, `no arrow for ${key}`);
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+/** The page box of an activation bar: a written one by its `activate`, a block's by its call. */
+async function barOf(h: Harness, key: string): Promise<Rect> {
+  const box = await h.page
+    .locator(`.content g[data-role="lifeline"] g[data-id="${key}"][data-role="event"] rect`)
+    .first()
+    .boundingBox();
+  assert.ok(box, `no bar for ${key}`);
+  return box;
+}
+
+/** The page centre of the handle at an end of the selected bar. */
+async function barHandle(h: Harness, end: "start" | "end"): Promise<{ x: number; y: number }> {
+  const box = await h.page.locator(`.overlay [data-handle="barEnd:${end}"]`).boundingBox();
+  assert.ok(box, `no ${end} handle`);
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+}
+
+/** The page box of a tag's pill. */
+async function pillOf(h: Harness, owner: string, index = 0): Promise<Rect> {
+  const box = await h.page
+    .locator(`.content g[data-id="${owner}"][data-role="tag"][data-tag="${index}"] rect`)
+    .first()
+    .boundingBox();
+  assert.ok(box, `no pill ${index} of ${owner}`);
+  return box;
 }
 
 /** The drawn box of a relation's connector, in page pixels. */
@@ -6440,6 +6590,574 @@ const tests: {
     async run(h) {
       await dragBy(h, "api", 180, 0);
       assert.equal(h.previews().length, 0);
+    },
+  },
+  // sequence-wrap-tags-and-activation: wrapped labels, Activate, bars and tags on the canvas.
+  {
+    name: "sequence wrap: a head dragged closer wraps the label, and lands where it is dropped",
+    text: OWNER,
+    async run(h) {
+      const page = h.page;
+      const zoom = await zoomOf(h);
+      const words = (lines: { text: string }[]) => lines.map((l) => l.text).join(" ");
+      // Nothing pulls the pair: the label keeps its line and holds them apart.
+      assert.equal((await messageLines(h, "long")).length, 1);
+      const before = await h.centre("participant1");
+      await dragBy(h, "participant1", -24 * zoom, 0);
+      assert.match(h.text, /\n {4}gap participant1 -24\n/);
+      const after = await h.centre("participant1");
+      nearly(after.x - before.x, -24 * zoom, 1.5, "the head lands 24 units left");
+      // The label wraps at the narrower room between the actor's and participant1's lifelines.
+      const lines = await messageLines(h, "long");
+      assert.ok(lines.length > 1, `the label wraps: ${JSON.stringify(words(lines))}`);
+      assert.equal(words(lines), "Esto es una prueba de un texto Largo");
+      const actor = await h.centre("actor2");
+      for (const line of lines) {
+        assert.ok(line.box.x > actor.x && line.box.x + line.box.width < after.x, line.text);
+      }
+      // The gap written, and no amount drawn: the floor did not win.
+      assert.equal(await page.locator(".status").textContent(), "Gap before participant1: -24.");
+    },
+  },
+  {
+    name: "sequence wrap: a message label is typed where it wraps, and a self-call's on its line",
+    text: OWNER.replace(
+      '  actor1 -> actor1: "Validate" as validate\n',
+      '  actor1 -> actor1: "Validate" as validate\n\n  placement {\n    gap participant1 -40\n  }\n',
+    ),
+    async run(h) {
+      const page = h.page;
+      const zoom = await zoomOf(h);
+      const editor = page.locator("textarea.inline");
+      const drawn = await messageLines(h, "long");
+      assert.ok(drawn.length > 1, "pulled closer, the label is drawn wrapped");
+      // The editor of a wrapped label: as wide as the room, its first line on the drawn first line.
+      const first = drawn[0]!.box;
+      await page.mouse.dblclick(first.x + first.width / 2, first.y + first.height / 2);
+      await h.settled();
+      assert.equal(await editor.count(), 1);
+      assert.equal(await editor.evaluate((e) => e.classList.contains("growing")), true);
+      const opened = await editorOf(h);
+      const line = 13.75 * zoom;
+      nearly(opened.box.y + line / 2, first.y + first.height / 2, 3, "its first line");
+      nearly(opened.box.height, drawn.length * line, 2, "as tall as the drawn lines");
+      // The room: the distance between the lifelines less 12 on each side and the number's disc.
+      const left = await h.centre("actor2");
+      const right = await h.centre("participant1");
+      nearly(opened.box.width, right.x - left.x - 46 * zoom, 2, "exactly the room's width");
+      // Typing wraps at the room and keeps the top; the block grows down.
+      await page.keyboard.press("Control+a");
+      await page.keyboard.type(
+        "Esto es una prueba de un texto Largo que crece hacia abajo con cada línea que se escribe",
+      );
+      const grown = await editorOf(h);
+      nearly(grown.box.y, opened.box.y, 0.5, "the top stays");
+      nearly(grown.box.width, opened.box.width, 0.5, "the width stays");
+      assert.ok(grown.box.height > opened.box.height + line / 2, "it grows down");
+      await page.screenshot({ path: join(output, "sequence-wrap.png") });
+      // Escape writes nothing and draws the label as before.
+      const untouched = h.text;
+      await page.keyboard.press("Escape");
+      await h.settled();
+      assert.equal(h.text, untouched);
+      assert.equal(await editor.count(), 0);
+      assert.deepEqual(
+        (await messageLines(h, "long")).map((l) => l.text),
+        drawn.map((l) => l.text),
+      );
+      // Shift+Enter writes a line break; Enter keeps the text.
+      await page.mouse.dblclick(first.x + first.width / 2, first.y + first.height / 2);
+      await h.settled();
+      await page.keyboard.press("Control+a");
+      await page.keyboard.type("Authorize");
+      await page.keyboard.press("Shift+Enter");
+      await page.keyboard.type("the card");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /actor2 -> participant1: "Authorize\\nthe card" as long/);
+      assert.deepEqual(
+        (await messageLines(h, "long")).map((l) => l.text),
+        ["Authorize", "the card"],
+      );
+      // A self-call's label, and one nothing pulls, keep the editor that does not wrap.
+      for (const key of ["validate", "hello"]) {
+        const [label] = await messageLines(h, key);
+        assert.ok(label, `${key} is drawn`);
+        await page.mouse.dblclick(label.box.x + label.box.width / 2, label.box.y + 2);
+        await h.settled();
+        assert.equal(await editor.count(), 1, key);
+        assert.equal(await editor.evaluate((e) => e.classList.contains("wrapping")), false, key);
+        await page.keyboard.press("Escape");
+        await h.settled();
+      }
+    },
+  },
+  {
+    name: "sequence activate: Activate on the toolbar pairs the receiver, pressed while it is",
+    text: ASK,
+    async run(h) {
+      const page = h.page;
+      const activate = page.getByRole("button", { name: "Activate the receiver", exact: true });
+      const tag = page.getByRole("button", { name: "Tag", exact: true });
+      // Decision 0062: the name says what it does; the title adds the key.
+      assert.equal(await activate.getAttribute("title"), "Activate the receiver (Alt+A)");
+      assert.equal(await activate.getAttribute("aria-keyshortcuts"), "Alt+A");
+      assert.equal(await tag.getAttribute("title"), "Tag (T)");
+      assert.equal(await tag.getAttribute("aria-keyshortcuts"), "T");
+      // Nothing selected: both are disabled, and Alt+A writes nothing.
+      assert.equal(await activate.isDisabled(), true);
+      assert.equal(await tag.isDisabled(), true);
+      await h.focusStage();
+      await page.keyboard.press("Alt+a");
+      await h.settled();
+      assert.equal(h.text, ASK);
+      const ask = await arrowOf(h, "ask");
+      await page.mouse.click(ask.x, ask.y);
+      await h.settled();
+      assert.equal(await activate.isDisabled(), false);
+      assert.equal(await tag.isDisabled(), false);
+      assert.equal(await activate.getAttribute("aria-pressed"), "false");
+      await activate.click();
+      await h.settled();
+      assert.match(h.text, /as ask\n {2}activate b\n/);
+      assert.match(h.text, /as reply\n {2}deactivate b\n/);
+      assert.equal(await activate.getAttribute("aria-pressed"), "true");
+      await page.locator("#mdg-field-activates").scrollIntoViewIfNeeded();
+      await page.screenshot({ path: join(output, "sequence-activate.png") });
+      // Pressed again: the text as it was, and the button released.
+      await activate.click();
+      await h.settled();
+      assert.equal(h.text, ASK);
+      assert.equal(await activate.getAttribute("aria-pressed"), "false");
+      // The inspector's checkbox writes and removes the same pair.
+      const box = page.locator("#mdg-field-activates");
+      assert.equal(await box.getAttribute("type"), "checkbox");
+      assert.equal(await box.isChecked(), false);
+      assert.equal(
+        (await page.locator('.inspector [data-field="activates"] label').textContent())?.trim(),
+        "Activates the receiver",
+      );
+      await box.check();
+      await h.settled();
+      assert.match(h.text, /as ask\n {2}activate b\n/);
+      assert.equal(await page.locator("#mdg-field-activates").isChecked(), true);
+      assert.equal(await activate.getAttribute("aria-pressed"), "true");
+      await page.locator("#mdg-field-activates").uncheck();
+      await h.settled();
+      assert.equal(h.text, ASK);
+    },
+  },
+  {
+    name: "sequence activate: a call whose block activates is pressed, refused and read-only",
+    text: BLOCK_CALL,
+    async run(h) {
+      const page = h.page;
+      const activate = page.getByRole("button", { name: "Activate the receiver", exact: true });
+      const pay = await arrowOf(h, "pay");
+      await page.mouse.click(pay.x, pay.y);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["pay"]);
+      assert.equal(await activate.getAttribute("aria-pressed"), "true");
+      await activate.click();
+      await h.settled();
+      assert.equal(h.text, BLOCK_CALL);
+      assert.match((await page.locator(".status").textContent()) ?? "", /block of `?pay`? .*api/);
+      // The inspector: checked, read-only, and the reason under it.
+      const box = page.locator("#mdg-field-activates");
+      assert.equal(await box.isChecked(), true);
+      assert.equal(await box.isDisabled(), true);
+      assert.equal(
+        await page.locator('.inspector [data-field="activates"] .note').textContent(),
+        "The block of pay activates api.",
+      );
+      assert.equal(await box.getAttribute("aria-describedby"), "mdg-field-activates-note");
+      // The bar the block draws selects the call, with no bar handles: the block decides its span.
+      await page.keyboard.press("Escape");
+      await h.settled();
+      const bar = await barOf(h, "pay");
+      await page.mouse.click(bar.x + bar.width / 2, bar.y + bar.height / 2);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["pay"]);
+      assert.equal(await page.locator(".overlay .bar-handle").count(), 0);
+    },
+  },
+  {
+    name: "sequence bars: a press selects a bar, outlined and said with the messages it spans",
+    text: SEQUENCE,
+    async run(h) {
+      const page = h.page;
+      const bar = await barOf(h, "activate#1");
+      // Hovered, it shows its outline before it is pressed.
+      await page.mouse.move(bar.x + bar.width / 2, bar.y + bar.height / 2);
+      await page.waitForTimeout(60);
+      assert.equal(await page.locator(".overlay .hover-outline").count(), 1);
+      await page.mouse.click(bar.x + bar.width / 2, bar.y + bar.height / 2);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["activate#1"]);
+      assert.equal(
+        await page.locator(".status").textContent(),
+        "Activation of api from pay to declined selected.",
+      );
+      const outline = await page.locator(".overlay rect.outline").boundingBox();
+      assert.ok(outline);
+      near(outline, bar, 2, "the outline is the bar");
+      // A handle above its top and one below its bottom, outside the bar.
+      const top = await barHandle(h, "start");
+      const bottom = await barHandle(h, "end");
+      assert.ok(top.y < bar.y && bottom.y > bar.y + bar.height);
+      nearly(top.x, bar.x + bar.width / 2, 1, "centred on the bar");
+    },
+  },
+  {
+    name: "sequence bars: the bottom handle shortens a bar, the drawing showing it before the release",
+    text: SEQUENCE,
+    async run(h) {
+      const page = h.page;
+      const bar = await barOf(h, "activate#1");
+      await page.mouse.click(bar.x + bar.width / 2, bar.y + bar.height / 2);
+      await h.settled();
+      const handle = await barHandle(h, "end");
+      const authorize = await arrowOf(h, "authorize");
+      await dragTo(h, handle, { x: handle.x, y: authorize.y - 4 }, async () => {
+        await h.settled();
+        const previews = h.previews().map((p) => p.action);
+        assert.deepEqual(previews[previews.length - 1], {
+          kind: "moveActivation",
+          id: "activate#1",
+          end: "end",
+          row: "authorize",
+        });
+        // The session's drawing: the bar ends at the arrow of `authorize` before the release.
+        const shown = await barOf(h, "activate#1");
+        assert.ok(shown.y + shown.height < bar.y + bar.height - 20, "drawn shorter");
+        assert.equal(await page.locator(".bar-drag.shown").count(), 1);
+        await page.screenshot({ path: join(output, "sequence-bar-drag.png") });
+      });
+      assert.match(h.text, /as authorize\n {2}deactivate api\n/);
+      assert.equal((h.text.match(/deactivate api/g) ?? []).length, 1);
+      assert.deepEqual(h.session.selected, ["activate#1"]);
+      const after = await barOf(h, "activate#1");
+      assert.ok(after.y + after.height < authorize.y + 12, "the bar ends at that arrow");
+    },
+  },
+  {
+    name: "sequence bars: an end the order rules refuse turns danger, and its drop writes nothing",
+    text: SHORT_BAR,
+    async run(h) {
+      const page = h.page;
+      const bar = await barOf(h, "activate#1");
+      await page.mouse.click(bar.x + bar.width / 2, bar.y + bar.height / 2);
+      await h.settled();
+      const handle = await barHandle(h, "start");
+      const reply = await arrowOf(h, "reply");
+      await dragTo(h, handle, { x: handle.x, y: reply.y - 4 }, async () => {
+        await h.settled();
+        assert.equal(await page.locator(".bar-drag[data-refused]").count(), 1);
+        const status = page.locator(".status");
+        assert.match((await status.textContent()) ?? "", /`?b`? is not active/);
+        assert.equal(await status.evaluate((e) => e.classList.contains("error")), true);
+      });
+      assert.equal(h.text, SHORT_BAR);
+    },
+  },
+  {
+    name: "sequence bars: the bottom handle of an open bar writes its deactivate",
+    text: OPEN_BAR,
+    async run(h) {
+      const page = h.page;
+      const bar = await barOf(h, "activate#1");
+      await page.mouse.click(bar.x + bar.width / 2, bar.y + bar.height / 2);
+      await h.settled();
+      assert.equal(
+        await page.locator(".status").textContent(),
+        "Activation of b from ask to the end selected.",
+      );
+      const handle = await barHandle(h, "end");
+      const fetch = await arrowOf(h, "fetch");
+      await dragTo(h, handle, { x: handle.x, y: fetch.y - 4 });
+      assert.match(h.text, /as fetch\n {2}deactivate b\n {2}b -> c: "Store" as store/);
+    },
+  },
+  {
+    name: "sequence bars: Delete and Remove activation take the activate and its deactivate in one edit",
+    text: SEQUENCE,
+    async run(h) {
+      const page = h.page;
+      const select = async () => {
+        const bar = await barOf(h, "activate#1");
+        await page.mouse.click(bar.x + bar.width / 2, bar.y + bar.height / 2);
+        await h.settled();
+        return bar;
+      };
+      await select();
+      let before = actions(h);
+      await page.keyboard.press("Delete");
+      await h.settled();
+      assert.doesNotMatch(h.text, /activate api/);
+      assert.equal(actions(h), before + 1, "one edit, one undo step");
+      // Again from the bar's context menu.
+      await h.type(SEQUENCE);
+      const bar = await select();
+      await page.mouse.click(bar.x + bar.width / 2, bar.y + bar.height / 2, { button: "right" });
+      const menu = page.locator(".menu");
+      assert.deepEqual(
+        (await menu.locator('[role="menuitem"]').allTextContents())
+          .slice(0, 3)
+          .map((t) => t.trim()),
+        ["Remove activationDelete", "Move upAlt+Up", "Move downAlt+Down"],
+      );
+      before = actions(h);
+      await menu.getByText("Remove activation").click();
+      await h.settled();
+      assert.doesNotMatch(h.text, /activate api/);
+      assert.equal(actions(h), before + 1, "one edit, one undo step");
+    },
+  },
+  {
+    name: "sequence bars: Move up and down keep the bar selected and say it by its new key",
+    text: TWO_BARS,
+    async run(h) {
+      const page = h.page;
+      const bar = await barOf(h, "activate#2");
+      await page.mouse.click(bar.x + bar.width / 2, bar.y + bar.height / 2);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["activate#2"]);
+      await page.mouse.click(bar.x + bar.width / 2, bar.y + bar.height / 2, { button: "right" });
+      await page.locator(".menu").getByText("Move up").click();
+      await h.settled();
+      assert.match(h.text, /as m1\n {2}activate c\n {2}activate b\n/);
+      // `c`'s `activate` comes first now: its bar stays selected, said under its new key.
+      assert.deepEqual(h.session.selected, ["activate#1"]);
+      assert.equal(await page.locator(".status").textContent(), "Moved activate#1 up.");
+      await h.focusStage();
+      await page.keyboard.press("Alt+ArrowDown");
+      await h.settled();
+      assert.equal(h.text, TWO_BARS);
+      assert.deepEqual(h.session.selected, ["activate#2"]);
+      assert.equal(await page.locator(".status").textContent(), "Moved activate#2 down.");
+    },
+  },
+  {
+    name: "sequence bars and tags: read-only selects a bar without handles, and hides Tag and Activate",
+    text: TAGGED,
+    readOnly: true,
+    async run(h) {
+      const page = h.page;
+      assert.equal(await page.getByRole("button", { name: "Tag", exact: true }).isVisible(), false);
+      assert.equal(
+        await page.getByRole("button", { name: "Activate the receiver", exact: true }).isVisible(),
+        false,
+      );
+      const bar = await barOf(h, "activate#1");
+      await page.mouse.click(bar.x + bar.width / 2, bar.y + bar.height / 2);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["activate#1"]);
+      assert.equal(await page.locator(".overlay .bar-handle").count(), 0);
+      const authorize = await arrowOf(h, "authorize");
+      await page.mouse.click(authorize.x, authorize.y);
+      await h.settled();
+      await page.keyboard.press("Alt+a");
+      await page.keyboard.press("t");
+      const pill = await pillOf(h, "authorize");
+      await page.mouse.dblclick(pill.x + pill.width / 2, pill.y + pill.height / 2);
+      await h.settled();
+      assert.equal(await page.locator("textarea.inline").count(), 0);
+      assert.equal(h.writes().length, 0);
+      assert.equal(h.text, TAGGED);
+    },
+  },
+  {
+    name: "sequence tags: T tags a message, typed on its new pill next to its source",
+    text: SEQUENCE,
+    async run(h) {
+      const page = h.page;
+      const authorize = await arrowOf(h, "authorize");
+      await page.mouse.click(authorize.x, authorize.y);
+      await h.settled();
+      await page.keyboard.press("t");
+      await h.settled();
+      assert.match(h.text, /as authorize \{ tag "Tag" \}/);
+      // The editor is open on the new pill, in its mono font, its word selected.
+      const editor = page.locator("textarea.inline");
+      assert.equal(await editor.count(), 1);
+      assert.equal(await editor.inputValue(), "Tag");
+      assert.match((await editorOf(h)).font, /mono|Consolas|Menlo/i);
+      await page.keyboard.type("PKCE");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /as authorize \{ tag "PKCE" \}/);
+      // The pill on the arrow, next to `api`, its source.
+      const pill = await pillOf(h, "authorize");
+      const api = await h.centre("api");
+      const bank = await h.centre("bank");
+      assert.ok(Math.abs(pill.x - api.x) < Math.abs(pill.x - bank.x), "next to the source end");
+      const arrow = await arrowOf(h, "authorize");
+      assert.ok(pill.y < arrow.y && pill.y + pill.height > arrow.y, "on the arrow's line");
+      // A press on the pill selects its owner.
+      await page.keyboard.press("Escape");
+      await h.settled();
+      await page.mouse.click(pill.x + pill.width / 2, pill.y + pill.height / 2);
+      await h.settled();
+      assert.deepEqual(h.session.selected, ["authorize"]);
+    },
+  },
+  {
+    name: "sequence tags: the Tag button tags a participant, drawn as a badge over its head",
+    text: SEQUENCE,
+    async run(h) {
+      const page = h.page;
+      const bank = await h.centre("bank");
+      await page.mouse.click(bank.x, bank.y);
+      await h.settled();
+      await page.getByRole("button", { name: "Tag", exact: true }).click();
+      await h.settled();
+      await page.keyboard.type("external");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /participant bank "Bank" \{ tag "external" \}/);
+      const badge = await pillOf(h, "bank");
+      const head = await boxOf(h, "bank");
+      nearly(badge.x + badge.width / 2, head.x + head.width / 2, 1.5, "centred on the head");
+      assert.ok(badge.y < head.y + 12, "over the head's top edge");
+    },
+  },
+  {
+    name: "sequence tags: a pill is edited in place, emptied it goes with its block",
+    text: TAGGED,
+    async run(h) {
+      const page = h.page;
+      const editor = page.locator("textarea.inline");
+      let pill = await pillOf(h, "authorize");
+      await page.mouse.dblclick(pill.x + pill.width / 2, pill.y + pill.height / 2);
+      await h.settled();
+      assert.equal(await editor.inputValue(), "PKCE");
+      await page.keyboard.type("OAuth");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /as authorize \{ tag "OAuth" \}/);
+      // Escape writes nothing.
+      pill = await pillOf(h, "authorize");
+      await page.mouse.dblclick(pill.x + pill.width / 2, pill.y + pill.height / 2);
+      await h.settled();
+      await page.keyboard.type("Other");
+      await page.keyboard.press("Escape");
+      await h.settled();
+      assert.match(h.text, /as authorize \{ tag "OAuth" \}/);
+      // Emptied: the tag and its block are gone.
+      await page.mouse.dblclick(pill.x + pill.width / 2, pill.y + pill.height / 2);
+      await h.settled();
+      await page.keyboard.press("Backspace");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /api -> bank: "Authorize" as authorize\n/);
+      assert.equal(
+        await page.locator('.content g[data-id="authorize"][data-role="tag"]').count(),
+        0,
+      );
+    },
+  },
+  {
+    name: "sequence tags: the pill's menu edits and removes its tag",
+    text: TAGGED,
+    async run(h) {
+      const page = h.page;
+      const menu = page.locator(".menu");
+      const pill = await pillOf(h, "bank");
+      await page.mouse.click(pill.x + pill.width / 2, pill.y + pill.height / 2, {
+        button: "right",
+      });
+      assert.deepEqual((await menu.locator('[role="menuitem"]').allTextContents()).slice(0, 2), [
+        "Edit tag",
+        "Remove tag",
+      ]);
+      assert.deepEqual(h.session.selected, ["bank"]);
+      await menu.getByText("Edit tag").click();
+      await h.settled();
+      assert.equal(await page.locator("textarea.inline").inputValue(), "external");
+      await page.keyboard.press("Escape");
+      await h.settled();
+      await page.mouse.click(pill.x + pill.width / 2, pill.y + pill.height / 2, {
+        button: "right",
+      });
+      await menu.getByText("Remove tag").click();
+      await h.settled();
+      assert.match(h.text, /\n {2}participant bank "Bank"\n/);
+      assert.equal(await page.locator('.content g[data-id="bank"][data-role="tag"]').count(), 0);
+    },
+  },
+  {
+    name: "sequence tags: T with nothing selected writes nothing and says what to select",
+    text: SEQUENCE,
+    async run(h) {
+      const page = h.page;
+      await h.focusStage();
+      await page.keyboard.press("Escape");
+      await page.keyboard.press("t");
+      await h.settled();
+      assert.equal(h.text, SEQUENCE);
+      assert.equal(
+        await page.locator(".status").textContent(),
+        "Select a message or a participant to tag.",
+      );
+    },
+  },
+  {
+    name: "sequence tags: T on a flow diagram still creates a flow tag",
+    async run(h) {
+      await h.focusStage();
+      await h.page.keyboard.press("t");
+      await h.settled();
+      assert.match(h.text, /\n {2}tag tag1 "Tag"/);
+    },
+  },
+  {
+    name: "sequence tags: the inspector lists Tags, adds, removes and refuses a repeated one",
+    text: SEQUENCE,
+    async run(h) {
+      const page = h.page;
+      const authorize = await arrowOf(h, "authorize");
+      await page.mouse.click(authorize.x, authorize.y);
+      await h.settled();
+      const tags = page.locator('.inspector [data-field="tags"]');
+      assert.equal(await tags.locator(".field-label").textContent(), "Tags");
+      const add = page.locator("#mdg-field-tag-new");
+      assert.equal(await add.getAttribute("placeholder"), "Add a tag");
+      await add.fill("PKCE");
+      await add.press("Enter");
+      await h.settled();
+      // The field comes back empty, focused, for the next tag.
+      assert.equal(await page.locator("#mdg-field-tag-new").inputValue(), "");
+      await page.keyboard.type("v2");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /as authorize \{\n {4}tag "PKCE"\n {4}tag "v2"\n {2}\}/);
+      assert.deepEqual(
+        await tags
+          .locator("input.tag-text")
+          .evaluateAll((inputs) => inputs.map((i) => (i as HTMLInputElement).value)),
+        ["PKCE", "v2", ""],
+      );
+      // The selection's outline runs along the arrow with a hole for each pill, never over its text.
+      const outline = page.locator(".overlay polyline.outline");
+      const mask = await outline.getAttribute("mask");
+      assert.match(mask ?? "", /^url\(#mdg-pills-\d+-\d+\)$/);
+      assert.equal(
+        await page.locator(`.overlay ${mask!.slice(4, -1)} rect[fill="black"]`).count(),
+        2,
+      );
+      await page.screenshot({ path: join(output, "sequence-tags.png") });
+      // A repeated tag: nothing written, and the reason.
+      const again = page.locator("#mdg-field-tag-new");
+      await again.fill("v2");
+      await again.press("Enter");
+      await h.settled();
+      assert.equal((h.text.match(/tag "v2"/g) ?? []).length, 1);
+      assert.match((await page.locator(".status").textContent()) ?? "", /already has the tag "v2"/);
+      // Remove takes PKCE away.
+      await page.getByRole("button", { name: "Remove the tag PKCE" }).click();
+      await h.settled();
+      assert.match(h.text, /as authorize \{\n {4}tag "v2"\n {2}\}/);
+      assert.doesNotMatch(h.text, /PKCE/);
     },
   },
   // Spanish: the page's `lang` sets the canvas's words. Only the canvas's own words are checked;

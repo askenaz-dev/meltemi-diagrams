@@ -317,15 +317,17 @@ editor grows with the text and stays centred where the text is drawn.
 | Escape                      | Cancel: the text is unchanged and the drawn label comes back           |
 
 - **Lines.** Shift+Enter breaks the labels of nodes, decisions, data stores, boxes and C4
-  elements, free texts and notes, sequence notes included. Relation labels, group titles, tags,
-  participants, fragment conditions, dividers and delays are drawn on one line: there Shift+Enter
-  keeps the text as Enter does, and a pasted line break becomes a space. Line breaks at the end
-  are dropped.
+  elements, free texts and notes, sequence notes and messages included. Other relation labels,
+  group titles, tags, participants, fragment conditions, dividers and delays are drawn on one
+  line: there Shift+Enter keeps the text as Enter does, and a pasted line break becomes a space.
+  Line breaks at the end are dropped.
 - **Empty text.** Emptying a labelled shape writes `""`; leaving an empty shape empty writes
   nothing.
 - **Ids.** Shift+F2 renames the id in the same editor, on one line in a monospace font, with
   `renameElement` or `renameRelation`.
-- **Sequence diagrams.** Notes, fragment conditions, dividers and delays use the same editor.
+- **Sequence diagrams.** Notes, fragment conditions, dividers, delays and tags use the same
+  editor. A message's label is typed at the width it wraps at and grows down
+  ([sequence diagrams](#sequence-diagrams)).
 
 ### Automatic and assisted layouts
 
@@ -384,7 +386,8 @@ canvas.
 | P, A, G                                                       | Sequence: create a participant or an actor at the right, or a group                                                                   |
 | O, F                                                          | Sequence: a note over the selection; a fragment around the selected events                                                            |
 | Alt+Up, Alt+Down                                              | Sequence: move the selected event before or after its neighbour                                                                       |
-| Alt+A                                                         | Sequence: activate the receiver after the selected message, or undo that                                                              |
+| T                                                             | Sequence: add a tag to the selected message, else to the selected participant, and type it on its pill                                |
+| Alt+A                                                         | Sequence: activate the receiver after the selected message, or undo that (the **Activate** button)                                    |
 | Alt+N                                                         | Sequence: nest the selected events in the block of the call right before them                                                         |
 | Alt+Shift+N                                                   | Sequence: move the events of the selected call, or of the call around the selection, out after it                                     |
 | Alt+R                                                         | Sequence: add a `return` at the end of the selected call's block, or of the call around the selection                                 |
@@ -430,6 +433,10 @@ The canvas moves briefly and always the same way, on the motion tokens of its st
   line being edited follow the pointer without easing too.
 - **Text alignment.** The pressed cell's highlight slides to the chosen cell over 120 ms, and a
   cell scales to 98 % while it is pressed, as chips do.
+- **Sequence tags and bars.** A new pill pops in with its editor over 160 ms and a removed one
+  fades out over 120 ms. A hovered bar shows its outline over 120 ms; a selected bar's handles fade
+  and scale in over 120 ms, slide from row to row over 120 ms while dragged, and turn `danger` over
+  the same time on a refused row. A wrapped label's editor takes each new line at once.
 
 When the system asks for reduced motion (`prefers-reduced-motion: reduce`), every duration is
 zero and nothing rises, slides or scales.
@@ -799,25 +806,59 @@ coordinates.
 
 - **Palette.** Participant (P), actor (A), the other participant kinds in **More participants**,
   message (C, or drag from a head's connection handle), note (O), fragment (F, which asks for the
-  operator), divider and delay, and group. A participant goes where it is dropped among the
-  others; notes, dividers and delays go after the selected event, or at the end.
+  operator), divider and delay, group, **Tag** (T) and **Activate** ("Activate the receiver
+  (Alt+A)", a lifeline with a bar). A participant goes where it is dropped among the others;
+  notes, dividers and delays go after the selected event, or at the end. **Tag** and **Activate**
+  act on the selected message or participant and are disabled without one; a read-only canvas and
+  story mode hide them.
+- **Message labels.** A message's label stays on one line and pushes its participants apart; once
+  a head is dragged closer (a negative `gap`) or the diagram's spacing is below the default, it
+  wraps at the room left between the two lifelines, on the canvas as in every export. Double-click
+  it, or press Enter or F2, to type it. Where it wraps, the editor is exactly as wide as the room at
+  the zoom, wraps there in the label's font, keeps its first line where the label's first line is
+  drawn and grows down as lines are added; elsewhere it grows on one line, as the label will.
+  Shift+Enter writes `\n`, Enter keeps the text and Escape writes nothing. A self-call's label is
+  typed on one line beside its loop, as before.
 - **Heads.** A participant, database, collections or queue is selected, outlined, pulsed and
   edited on the box it is drawn as, at the bottom of the row of heads, whether or not an actor
   shares the diagram; an actor and the other figures on their figure and name.
 - **Dragging.** Drag a head past a neighbour's centre to reorder the participant; no message
   changes. A shorter drag writes the distance dragged as its **Gap before** (`gap`), negative to the
-  left, never below 0 for the first participant; a drag under 3 pixels writes nothing. The status
-  line says the gap written, and when the heads or the labels between them need more room than the
-  gap leaves, the amount drawn too. Drag a message, note or fragment down to add `space` above it,
+  left, never below 0 for the first participant; a drag under 3 pixels writes nothing. The labels
+  between the two heads wrap at the narrower room, so the head lands where it is dropped. The
+  status line says the gap written, and when the heads, the longest word of a label or a message's
+  tags between them need more room than the gap leaves, the amount drawn too. Drag a message, note
+  or fragment down to add `space` above it,
   or up to take it away; it stops at its neighbour, so a drag never reorders events, and a call
   moves with its block. Alt drags without the grid.
 - **Moving events.** Alt+Up and Alt+Down move the selected event past its neighbour, into the
   nearest branch of an adjacent fragment or the block of an adjacent call, or out of the fragment
   or the call at its edge. A move that would deactivate a participant that is not active, break a
   lifecycle or leave a `return` outside its call is refused with the reason.
-- **Activations.** Alt+A on a selected message activates its receiver (or the selected
-  participant) right after it and deactivates it after its reply; again, it removes the pair. A
-  call whose block holds events already activates its receiver, so Alt+A refuses it.
+- **Activations.** Alt+A or **Activate** on a selected message activates its receiver (or the
+  selected participant) right after it and deactivates it after its reply; again, it removes the
+  pair. The button is pressed while the selected message's receiver is activated after it. A call
+  whose block holds events already activates its receiver: the button is pressed, and Alt+A and the
+  button refuse it with the reason in the status line.
+- **Activation bars.** A press on a written bar selects its `activate`: the outline is the bar, and
+  the status line names the participant and the messages the bar spans, or "to the end" for a bar
+  that no `deactivate` ends. A selected bar shows a handle above its top and one below its bottom.
+  Drag one to another event row: it snaps to the row under the pointer, the drawing shows the bar's
+  new end before the release, and the drop moves the `activate` or the `deactivate` right after
+  that row's event (the top handle on a call with a block goes before the block's first event, and
+  the bottom handle of an open bar writes its `deactivate`). An end the order rules refuse turns
+  the handle to the theme's `danger` colour and says the reason in the status line, and the drop
+  writes nothing. Delete, Backspace and **Remove activation** in the bar's context menu remove the
+  `activate` and its `deactivate` in one undo step. The bar a call's block draws selects the call,
+  with no handles: the block decides its span. A read-only canvas selects bars and shows no
+  handles.
+- **Tags.** T or **Tag** adds `tag "Tag"` (the word in the interface's language) to the selected
+  message, else to the selected participant, and opens the editor on the new pill: type the word
+  and press Enter. With nothing to tag selected, T writes nothing and the status line says to
+  select a message or a participant. A press on a pill selects its owner, and a drag drags the
+  owner. Double-click a pill to edit it in place, in its font, size and colour; emptying it removes
+  the tag, and the block when nothing else is left in it. The pill's context menu offers **Edit
+  tag** and **Remove tag**. On a flow diagram T keeps creating a flow tag.
 - **Call blocks.** Alt+N (**Nest in the call**) moves the selected events into the block of the
   call right before them, creating the block; the call is then selected, and Alt+R (**Return to the
   caller**) adds a `return` at the end of its block. Alt+Shift+N (**Unnest the call**) moves the
@@ -827,22 +868,30 @@ coordinates.
   receiver**.
 - **Arrow keys.** Left and Right swap the selected participant with its neighbour; Up and Down
   change the space above the selected message, note or fragment.
-- **Inspector.** Messages: **Message** (call, reply, async), **Space before** and **Space after**;
-  a `return` shows **Message** as `return`, with **From** and **To**, read-only, since they come
-  from its call. Notes: **Text**, **Position**, the participants, **Space before** and **Space
-  after**. Fragments: **Operator**, one **Condition** per branch, **Space before** and **Space
-  after**. Participants: **Kind**, **Gap before** and **Gap after**, negative to bring them closer
-  except on the outer side of the first and the last. The diagram: **Number messages from**
-  (`autonumber`) and **Participant spacing** (`spacing`, 40 when empty).
+- **Inspector.** Messages: **Message** (call, reply, async), **Space before**, **Space after**,
+  **Activates the receiver** and **Tags**; a `return` shows **Message** as `return`, with **From**
+  and **To**, read-only, since they come from its call, and no **Activates the receiver**. Notes:
+  **Text**, **Position**, the participants, **Space before** and **Space after**. Fragments:
+  **Operator**, one **Condition** per branch, **Space before** and **Space after**. Participants:
+  **Kind**, **Gap before** and **Gap after**, negative to bring them closer except on the outer
+  side of the first and the last, and **Tags**. The diagram: **Number messages from**
+  (`autonumber`) and **Participant spacing** (`spacing`, 40 when empty). **Activates the receiver**
+  is a checkbox that writes or removes the `activate`/`deactivate` pair of the receiver after the
+  message; on a call whose block activates the receiver it is checked and read-only, with the
+  reason under it. **Tags** lists one field per tag, which rewrites it and, emptied, removes it,
+  each with a **Remove** button, and an empty field whose text adds a tag at the end; an empty or
+  repeated tag is refused with the reason.
 - **Scenarios.** When the diagram has scenarios, the toolbar offers them beside **All events**.
   Picking one previews that path read-only; pick **All events** to edit again. **Export SVG** asks
   for "All events" or a scenario and writes `<file>.<scenario>.svg` for a scenario.
 - **Language features.** Completion knows the sequence statements, participants after arrows and in
   events, note positions, fragments and their conditions in scenarios, `kind async`, `return` and
-  the events in a call's block, `before` and `after` after the amount of `space` and `gap`, and
-  `spacing`. Hover describes events and scenarios, a `return` as the reply to its call and a nested
-  event's call; go to definition, references and rename follow the ids of notes and fragments;
-  quick fixes declare an unknown participant and remove a stray `deactivate`.
+  the events in a call's block, `tag` in the blocks of messages and participants (never in a group
+  block or a fragment), `before` and `after` after the amount of `space` and `gap`, and `spacing`.
+  Hover describes events and scenarios, a `return` as the reply to its call, a nested event's call
+  and a tag as a tag of its message or participant; go to definition, references and rename follow
+  the ids of notes and fragments; quick fixes declare an unknown participant and remove a stray
+  `deactivate`.
 
 ## C4 views
 

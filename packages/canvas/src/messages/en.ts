@@ -104,6 +104,13 @@ export const en = {
     fragment: "Fragment around the selected events",
     divider: "Divider",
     delay: "Delay",
+    /** Sequence diagrams: tags the selected message, else participant (its title adds T). */
+    tag: "Tag",
+    /**
+     * Sequence diagrams: activates the receiver of the selected message, or the selected
+     * participant, after it (its title adds Alt+A); pressed while it is activated there.
+     */
+    activate: "Activate the receiver",
     zoom: "Zoom",
     zoomOut: "Zoom out",
     zoomIn: "Zoom in",
@@ -392,6 +399,19 @@ export const en = {
     noListToAdd: "Select a list, or a card of one, to add to it.",
     /** Alt+Up or Alt+Down with nothing that is in a list selected. */
     noListToMove: "Select a card of a list to move it among its neighbours.",
+    /**
+     * A written activation bar selected: its participant and the messages it spans, from the one
+     * it starts at (null before the first message) to the last one before its end (null for a bar
+     * open to the end).
+     */
+    activation: (participant: string, from: string | null, to: string | null) =>
+      `Activation of ${participant} from ${from ?? "the start"} to ${to ?? "the end"} selected.`,
+    /** An end of an activation bar dragged to the row of `row`, said while the pointer is there. */
+    barEndAt: (participant: string, end: "start" | "end", row: string) =>
+      `${end === "start" ? "Start" : "End"} the activation of ${participant} after ${row}: release to move it, Escape cancels.`,
+    /** An end of an activation bar dropped on the row of `row`. */
+    barEndMoved: (participant: string, end: "start" | "end", row: string) =>
+      `The activation of ${participant} now ${end === "start" ? "starts" : "ends"} after ${row}.`,
   },
 
   /** The labels of the editor that opens in place over an element, a relation or an event. */
@@ -399,6 +419,8 @@ export const en = {
     label: (id: string) => `Label of ${id}`,
     text: (id: string) => `Text of ${id}`,
     newId: (id: string) => `New id for ${id}`,
+    /** The editor of a tag's pill of a sequence message or participant, counted from 1. */
+    tag: (owner: string, index: number) => `Tag ${index} of ${owner}`,
     /** The keys of the editor, said to assistive technology. */
     keys: (multiline: boolean): string =>
       multiline
@@ -457,6 +479,11 @@ export const en = {
     moveUp: "Move up",
     moveDown: "Move down",
     activateReceiver: "Activate the receiver",
+    /** Sequence diagrams: a selected bar's `activate` and its `deactivate`, in one edit. */
+    removeActivation: "Remove activation",
+    /** Sequence diagrams: the context menu of a tag's pill. */
+    editTag: "Edit tag",
+    removeTag: "Remove tag",
     /** Sequence diagrams: the selected events into the block of the call before them. */
     nestInCall: "Nest in the call",
     unnestCall: "Unnest the call",
@@ -527,6 +554,13 @@ export const en = {
     iconMissing: (name: string) => `${name} (not found)`,
     iconMissingTitle: (reference: string) =>
       `No pack has the icon ${reference}: check its name, or choose another.`,
+    /**
+     * Sequence diagrams: the heading of the list of a message's or a participant's tags, one field
+     * per tag with its Remove button, then the field that adds one.
+     */
+    tags: "Tags",
+    /** The title of a tag's Remove button: the tag it removes. */
+    removeTagTitle: (text: string) => `Remove the tag ${text}`,
     /** Takes a written value away, so the default applies again (the icon size). */
     clear: "Clear",
     clearTitle: "Remove the written value: the default applies",
@@ -611,6 +645,12 @@ export const en = {
     status: (angle: number) => `Rotation ${angle}°. Release to keep it; Escape cancels.`,
     done: (id: string, angle: number) =>
       angle === 0 ? `${id} is upright again.` : `${id} turned to ${angle}°.`,
+  },
+
+  /** The handles of a selected activation bar of a sequence diagram, above and below it. */
+  bars: {
+    start: "Start of the activation: drag it to another row",
+    end: "End of the activation: drag it to another row",
   },
 
   /**

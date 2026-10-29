@@ -12,6 +12,7 @@ import {
   type RouteEntry,
   type SequenceEvent,
   type SizeEntry,
+  type TagUse,
 } from "@meltemi/diagrams-model";
 import { diagramView, type DocumentAnalysis } from "../analysis.js";
 import { kindWord, serviceMessages } from "../messages/services.js";
@@ -367,6 +368,10 @@ export function hover(analysis: DocumentAnalysis, offset: number): Hover | undef
   const range = lines.range(token);
   const diagram = diagramAt(compilation, offset);
 
+  // A tag of a sequence message or participant, by its keyword or its text: what it marks.
+  const tagged = diagram?.type === "sequence" ? tagAt(diagram, offset) : undefined;
+  if (tagged) return { range: tagged.tag.range, markdown: tagHover(tagged) };
+
   // A port after a dot in a route, or a port declaration.
   const path = pathAt(compilation.parse.root, offset);
   const ref = [...path].reverse().find((n) => n.kind === "QualifiedRef");
@@ -458,6 +463,34 @@ export function hover(analysis: DocumentAnalysis, offset: number): Hover | undef
     if (doc) return { range, markdown: `**${token.text}** — ${doc}` };
   }
   return undefined;
+}
+
+/** The tag statement of a sequence participant or message at `offset`, with its owner. */
+function tagAt(
+  diagram: FlowDiagram,
+  offset: number,
+): { readonly tag: TagUse; readonly owner: Element | Relation } | undefined {
+  const inside = (tag: TagUse) =>
+    tag.range.start.offset <= offset && offset <= tag.range.end.offset;
+  for (const owner of [...diagram.elements, ...diagram.relations]) {
+    const tag = owner.tags.find(inside);
+    if (tag) return { tag, owner };
+  }
+  return undefined;
+}
+
+/** What a hover says about a tag: its text and the participant or the message it marks. */
+function tagHover({
+  tag,
+  owner,
+}: {
+  readonly tag: TagUse;
+  readonly owner: Element | Relation;
+}): string {
+  const t = serviceMessages().hover;
+  if (!("from" in owner)) return t.tagOf(tag.text, t.tagParticipant(owner.id));
+  const name = owner.id ?? `${owner.from} ${arrowToken(owner.line, owner.heads)} ${owner.to}`;
+  return t.tagOf(tag.text, t.tagMessage(name));
 }
 
 /**

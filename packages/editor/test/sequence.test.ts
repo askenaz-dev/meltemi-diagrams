@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { setLocale } from "@meltemi/diagrams-i18n";
 import { applyTextEdits } from "@meltemi/diagrams-language";
 import { compile } from "@meltemi/diagrams-model";
 import { CORPUS_ROOT } from "../../../test-support/corpus.js";
@@ -148,7 +149,8 @@ describe("sequence canvas", () => {
 
   it("says what the layout drew when a drag asks for less room than the labels need", () => {
     const canvas = open(
-      'diagram s: sequence {\n  participant a "A"\n  participant b "B"\n  a -> b: "A rather long message label"\n}\n',
+      // One long word: the label wraps nowhere, so it holds the pair at its own width.
+      'diagram s: sequence {\n  participant a "A"\n  participant b "B"\n  a -> b: "Authorization_and_capture_request"\n}\n',
     );
     const after = canvas.apply({ kind: "move", ids: ["b"], delta: { x: -60, y: 0 } });
     expect(after).toContain("gap b -60");
@@ -259,12 +261,98 @@ describe("sequence canvas", () => {
       'alt result "OK" {',
     );
     expect(canvas.text()).toContain('choose result "OK"');
+    // Both ends of a bar selected: the pair goes once.
     const removed = canvas.apply({
       kind: "remove",
       ids: ["activate#1", "deactivate#1"],
       cascade: true,
     });
     expect(removed).not.toContain("activate");
+  });
+
+  it("removes a bar by either end, with other events, each pair once", () => {
+    const text =
+      'diagram s: sequence {\n  a -> b as ask\n  activate b\n  b -> c as fetch\n  activate c\n  c --> b as data\n  deactivate c\n  deactivate b\n  note n over a "N"\n  b --> a as reply\n}\n';
+    // By the `activate`, by the `deactivate`, and both pairs (the inner one by both its ends)
+    // with a note in one selection.
+    for (const ids of [
+      ["activate#1"],
+      ["deactivate#2"],
+      ["deactivate#1", "activate#2", "activate#1", "n"],
+    ]) {
+      const canvas = open(text);
+      const result = canvas.act({ kind: "remove", ids, cascade: true });
+      expect(result.plan, ids.join()).toBeDefined();
+      const after = canvas.apply({ kind: "remove", ids, cascade: true });
+      if (ids.length === 1) {
+        // The outer pair goes, the inner one stays.
+        expect(lines(after, /activate/)).toEqual(["activate c", "deactivate c"]);
+      } else {
+        expect(after).not.toContain("activate");
+        expect(after).not.toContain("note");
+      }
+    }
+  });
+
+  it("removes a bar with the fragment that holds its other end, pairing on the text as it was", () => {
+    const nested =
+      'diagram s: sequence {\n  a -> b: "m1"\n  activate b\n  a -> b: "m2"\n  activate b\n  alt x "X" {\n    a -> b: "m3"\n    deactivate b\n  }\n  a -> b: "m4"\n  deactivate b\n}\n';
+    // The inner bar and the fragment that closes it: the outer bar keeps its `deactivate`.
+    expect(open(nested).apply({ kind: "remove", ids: ["activate#2", "x"], cascade: true })).toBe(
+      'diagram s: sequence {\n  a -> b: "m1"\n  activate b\n  a -> b: "m2"\n  a -> b: "m4"\n  deactivate b\n}\n',
+    );
+    // The fragment alone takes the bar it closes, by its exact `activate`: the outer bar keeps
+    // its `deactivate`, which the inner `activate` would otherwise take over.
+    expect(open(nested).apply({ kind: "remove", ids: ["x"], cascade: true })).toBe(
+      'diagram s: sequence {\n  a -> b: "m1"\n  activate b\n  a -> b: "m2"\n  a -> b: "m4"\n  deactivate b\n}\n',
+    );
+    // The outer bar and the fragment: both bars go, the inner one with the fragment.
+    expect(open(nested).apply({ kind: "remove", ids: ["x", "activate#1"], cascade: true })).toBe(
+      'diagram s: sequence {\n  a -> b: "m1"\n  a -> b: "m2"\n  a -> b: "m4"\n}\n',
+    );
+    // A fragment that opens a bar closed after it, removed with a note: the `deactivate` goes
+    // too, and the text keeps no error.
+    const opens =
+      'diagram s: sequence {\n  a -> b: "m1"\n  alt x "X" {\n    a -> b: "m3"\n    activate b\n  }\n  a -> b: "m4"\n  deactivate b\n  note n over a "N"\n}\n';
+    expect(open(opens).apply({ kind: "remove", ids: ["x", "n"], cascade: true })).toBe(
+      'diagram s: sequence {\n  a -> b: "m1"\n  a -> b: "m4"\n}\n',
+    );
+    // A bar inside the selected fragment goes with it, by either end.
+    const inner =
+      'diagram s: sequence {\n  a -> b: "m1"\n  alt x "X" {\n    activate b\n    a -> b: "m3"\n    deactivate b\n  }\n  a -> b: "m4"\n}\n';
+    for (const end of ["activate#1", "deactivate#1"]) {
+      expect(open(inner).apply({ kind: "remove", ids: [end, "x"], cascade: true })).toBe(
+        'diagram s: sequence {\n  a -> b: "m1"\n  a -> b: "m4"\n}\n',
+      );
+    }
+  });
+
+  it("removes a call with the bars and messages of its block", () => {
+    const closed =
+      'diagram s: sequence {\n  a -> b: "m0" as m0\n  a -> b: "call" as m {\n    activate c\n    b -> c: "x" as x\n    deactivate c\n  }\n  a -> b: "m6" as m6\n}\n';
+    const alone = open(closed).apply({ kind: "remove", ids: ["m"], cascade: true });
+    expect(alone).not.toContain("activate");
+    // A bar the block holds, by either end, and a message of the block go with the call.
+    for (const ids of [
+      ["m", "activate#1"],
+      ["deactivate#1", "m"],
+      ["x", "m"],
+    ]) {
+      expect(open(closed).apply({ kind: "remove", ids, cascade: true }), ids.join()).toBe(alone);
+    }
+    // A bar the block opens and a `deactivate` after the block closes: that `deactivate` goes
+    // too, whether the call is selected alone or with others, so the text keeps no error.
+    const opened =
+      'diagram s: sequence {\n  a -> b: "m0" as m0\n  a -> b: "call" as m {\n    activate c\n    b -> c: "x" as x\n  }\n  deactivate c\n  a -> b: "m6" as m6\n}\n';
+    for (const ids of [["m"], ["m", "deactivate#1"], ["activate#1", "m"]]) {
+      const after = open(opened).apply({ kind: "remove", ids, cascade: true });
+      expect(after, ids.join()).toBe(alone);
+      expect(compile(after).diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    }
+    // With another message selected beside it.
+    expect(open(opened).apply({ kind: "remove", ids: ["m0", "m"], cascade: true })).toBe(
+      alone.replace('  a -> b: "m0" as m0\n', ""),
+    );
   });
 
   it("refuses flow geometry with a reason", () => {
@@ -294,6 +382,261 @@ describe("sequence canvas", () => {
     expect(canvas.apply({ kind: "move", ids: ["authorize"], delta: { x: 0, y: 14 } })).toContain(
       "space authorize 14",
     );
+  });
+});
+
+describe("activations on the sequence canvas", () => {
+  const CHAIN =
+    "diagram s: sequence {\n  a -> b as ask\n  activate b\n  b -> c as fetch\n  deactivate b\n  b --> a as reply\n}\n";
+  const OPEN =
+    "diagram s: sequence {\n  a -> b as ask\n  activate b\n  b -> c as fetch\n  b -> c as store\n}\n";
+  /** The answer to a preview of a bar's end. */
+  const preview = (canvas: ReturnType<typeof open>, end: "start" | "end", row: string) =>
+    canvas.act({
+      kind: "preview",
+      token: 9,
+      action: { kind: "moveActivation", id: "activate#1", end, row },
+    }).messages[0] as HostMessage & { type: "preview" };
+
+  it("gives an activation its bar and its pair, and a message its activation", () => {
+    const render = open(payment).render();
+    const activate = render.events.find((e) => e.key === "activate#1")!;
+    const layout = analyzeDocument({ text: payment }).diagrams[0]!.layout!;
+    expect(activate.box).toEqual(layout.bars!.get("activate#1")!.box);
+    expect(activate.pair).toBe("deactivate#1");
+    const deactivate = render.events.find((e) => e.key === "deactivate#1")!;
+    expect(deactivate).toMatchObject({ box: null, pair: "activate#1" });
+    expect(render.events.find((e) => e.key === "pay")!.pair).toBeNull();
+    // `pay` is followed by `activate api`; nothing follows `authorize` but the fragment.
+    const relation = (key: string) => render.relations.find((r) => r.key === key)!;
+    expect(relation("pay").activation).toBe("written");
+    expect(relation("authorize").activation).toBeUndefined();
+    // A call whose block activates its receiver, and a `return` in it.
+    const calls = open('diagram s: sequence {\n  a -> b as ask {\n    return "OK" as ok\n  }\n}\n');
+    expect(calls.render().relations.find((r) => r.key === "ask")!.activation).toBe("block");
+    expect(calls.render().relations.find((r) => r.key === "ok")!.activation).toBeUndefined();
+    // An open bar has no pair.
+    expect(
+      open(OPEN)
+        .render()
+        .events.find((e) => e.key === "activate#1")!.pair,
+    ).toBeNull();
+  });
+
+  it("shortens a bar by its end, and starts it later by its top", () => {
+    const canvas = open(payment);
+    const shorter = canvas.apply({
+      kind: "moveActivation",
+      id: "activate#1",
+      end: "end",
+      row: "authorize",
+    });
+    expect(shorter).toContain('  api -> bank: "Autorizar" as authorize\n  deactivate api\n\n  alt');
+    expect(lines(shorter, /activate api$/)).toEqual(["activate api", "deactivate api"]);
+    expect(canvas.session.selected).toEqual(["activate#1"]);
+    // The top to the row of `authorize`: the bar starts at its arrow.
+    const later = canvas.apply({
+      kind: "moveActivation",
+      id: "deactivate#1",
+      end: "start",
+      row: "authorize",
+    });
+    expect(later).toContain("as authorize\n  activate api\n  deactivate api\n");
+  });
+
+  it("keeps the moved bar selected when moving renumbers the activations", () => {
+    const text =
+      'diagram s: sequence {\n  a -> b: "m1" as m1\n  activate b\n  a -> c: "m2" as m2\n  activate c\n  a -> b: "m3" as m3\n  deactivate b\n  a -> c: "m4" as m4\n  deactivate c\n}\n';
+    const canvas = open(text);
+    // `c`'s bar starts at `m1`, before `b`'s: its `activate` becomes `activate#1`.
+    canvas.apply({ kind: "moveActivation", id: "activate#2", end: "start", row: "m1" });
+    const participant = (key: string) =>
+      canvas.render().events.find((e) => e.key === key)?.participant;
+    expect(participant("activate#1")).toBe("c");
+    expect(canvas.session.selected).toEqual(["activate#1"]);
+    expect(canvas.render().selection).toEqual(["activate#1"]);
+    // Delete then removes `c`'s bar.
+    const removed = canvas.apply({
+      kind: "remove",
+      ids: [...canvas.session.selected],
+      cascade: false,
+    });
+    expect(lines(removed, /activate/)).toEqual(["activate b", "deactivate b"]);
+    // Move up and Move down, from the bar's menu or Alt+Up and Alt+Down.
+    const stacked =
+      'diagram s: sequence {\n  a -> b: "m1" as m1\n  activate b\n  activate c\n  a -> b: "m3" as m3\n  deactivate b\n  a -> c: "m4" as m4\n  deactivate c\n}\n';
+    const menu = open(stacked);
+    expect(menu.apply({ kind: "moveEvent", id: "activate#2", direction: "up" })).toContain(
+      "as m1\n  activate c\n  activate b\n",
+    );
+    expect(menu.session.selected).toEqual(["activate#1"]);
+    expect(menu.render().events.find((e) => e.key === "activate#1")?.participant).toBe("c");
+    menu.apply({ kind: "moveEvent", id: "activate#1", direction: "down" });
+    expect(menu.text()).toBe(stacked);
+    expect(menu.session.selected).toEqual(["activate#2"]);
+    // A key that stays is kept as it is.
+    const end = open(text);
+    end.apply({ kind: "moveActivation", id: "activate#2", end: "end", row: "m3" });
+    expect(end.session.selected).toEqual(["activate#2"]);
+  });
+
+  it("starts a bar at a call with a block, inside the block", () => {
+    const text =
+      'diagram s: sequence {\n  a -> b as ask\n  b -> c as fetch {\n    return "OK"\n  }\n  activate c\n  c -> d as store\n  deactivate c\n}\n';
+    const canvas = open(text);
+    expect(
+      canvas.apply({ kind: "moveActivation", id: "activate#1", end: "start", row: "fetch" }),
+    ).toContain('  b -> c as fetch {\n    activate c\n    return "OK"\n  }\n');
+  });
+
+  it("closes an open bar at a row", () => {
+    const canvas = open(OPEN);
+    expect(
+      canvas.apply({ kind: "moveActivation", id: "activate#1", end: "end", row: "fetch" }),
+    ).toBe(
+      "diagram s: sequence {\n  a -> b as ask\n  activate b\n  b -> c as fetch\n  deactivate b\n  b -> c as store\n}\n",
+    );
+  });
+
+  it("refuses an end the order rules forbid, with the rule's reason, and writes nothing", () => {
+    const canvas = open(CHAIN);
+    const answer = preview(canvas, "start", "reply");
+    expect(answer).toMatchObject({ type: "preview", token: 9, svg: null });
+    expect(answer.reason).toMatch(/`b`/);
+    const refused = canvas.act({
+      kind: "moveActivation",
+      id: "activate#1",
+      end: "start",
+      row: "reply",
+    });
+    expect(refused.plan).toBeUndefined();
+    expect(refused.messages[0]).toMatchObject({ type: "rejected", reason: answer.reason });
+    expect(canvas.text()).toBe(CHAIN);
+  });
+
+  it("previews the drop of a bar's end as the session writes it", () => {
+    const canvas = open(OPEN);
+    const answer = preview(canvas, "end", "fetch");
+    expect(answer.svg).toContain('data-id="activate#1"');
+    expect(answer.svg).not.toBe(canvas.render().svg);
+    expect(answer).toMatchObject({ width: expect.any(Number), offset: expect.any(Object) });
+    expect(answer.reason).toBeUndefined();
+    // Left where it is, the drawing as it is; a participant drag still has no preview.
+    expect(preview(open(CHAIN), "end", "fetch").svg).toBe(open(CHAIN).render().svg);
+    const drag = canvas.act({
+      kind: "preview",
+      token: 3,
+      action: { kind: "move", ids: ["b"], delta: { x: 20, y: 0 } },
+    });
+    expect(drag.messages).toEqual([{ type: "preview", token: 3, svg: null }]);
+    expect(canvas.text()).toBe(OPEN);
+  });
+
+  it("answers a bar's end dropped where it is with the drawing, writing nothing", () => {
+    const canvas = open(CHAIN);
+    const shown = canvas.render();
+    const answer = canvas.act({
+      kind: "moveActivation",
+      id: "activate#1",
+      end: "end",
+      row: "fetch",
+    });
+    expect(answer.plan).toBeUndefined();
+    expect(answer.messages).toHaveLength(1);
+    expect(answer.messages[0]).toMatchObject({ type: "render", svg: shown.svg });
+    expect(canvas.text()).toBe(CHAIN);
+  });
+
+  it("refuses a bar's end that names no activation or no row", () => {
+    const canvas = open(CHAIN);
+    expect(
+      canvas.act({ kind: "moveActivation", id: "fetch", end: "end", row: "reply" }).messages[0],
+    ).toMatchObject({ type: "rejected", reason: "Select an activation bar." });
+    expect(
+      canvas.act({ kind: "moveActivation", id: "activate#1", end: "end", row: "ghost" })
+        .messages[0],
+    ).toMatchObject({
+      type: "rejected",
+      reason: "Drop the end of the bar on the row of an event.",
+    });
+  });
+});
+
+describe("tags on the sequence canvas", () => {
+  const select = (canvas: ReturnType<typeof open>) =>
+    canvas.messages().find((m): m is HostMessage & { type: "select" } => m.type === "select");
+
+  it("tags the selected message with T, and opens the editor on the new pill", () => {
+    expect(commandFor(key("t"), false, "sequence")).toBe("createTag");
+    expect(commandFor(key("t"), false, "flow")).toBe("createTag");
+    const canvas = open(payment);
+    const tagged = canvas.apply({ kind: "addTag", ids: ["authorize"] });
+    expect(tagged).toContain('  api -> bank: "Autorizar" as authorize { tag "Tag" }\n');
+    expect(select(canvas)).toEqual({ type: "select", ids: ["authorize"], tag: 0 });
+    // The pill is drawn on its arrow, with the place its editor opens on.
+    const relation = canvas.render().relations.find((r) => r.key === "authorize")!;
+    const [pill] = relation.tags!;
+    expect(pill).toMatchObject({ text: "Tag" });
+    expect(pill!.place).toMatchObject({ align: "center", lines: false, area: pill!.box });
+    // Again: the next word, so that it is no repeated tag.
+    expect(canvas.apply({ kind: "addTag", ids: ["authorize"] })).toContain(
+      'as authorize {\n    tag "Tag"\n    tag "Tag 2"\n  }\n',
+    );
+    expect(select(canvas)).toMatchObject({ tag: 1 });
+  });
+
+  it("tags a participant when no message is selected, in the interface language", () => {
+    setLocale("es");
+    try {
+      const canvas = open(payment);
+      expect(canvas.apply({ kind: "addTag", ids: ["bank"] })).toContain(
+        '  participant bank "Banco" { tag "Marca" }\n',
+      );
+      expect(canvas.render().elements.find((e) => e.id === "bank")!.tags).toEqual([
+        expect.objectContaining({ text: "Marca" }),
+      ]);
+    } finally {
+      setLocale("en");
+    }
+  });
+
+  it("edits a pill in place, removes it emptied or from its menu", () => {
+    const canvas = open(payment.replace("as authorize\n", 'as authorize { tag "PKCE" }\n'));
+    expect(canvas.apply({ kind: "setTag", ids: ["authorize"], index: 0, text: "OAuth" })).toContain(
+      'as authorize { tag "OAuth" }\n',
+    );
+    expect(canvas.apply({ kind: "setTag", ids: ["authorize"], index: 0, text: "  " })).toContain(
+      '"Autorizar" as authorize\n',
+    );
+    const tagged = open(payment.replace('"Banco"', '"Banco" { tag "external" }'));
+    expect(tagged.apply({ kind: "removeTag", ids: ["bank"], index: 0 })).toContain(
+      '  participant bank "Banco"\n',
+    );
+  });
+
+  it("says to select a message or a participant when nothing is selected", () => {
+    const canvas = open(payment);
+    for (const ids of [[], ["result"]]) {
+      const result = canvas.act({ kind: "addTag", ids });
+      expect(result.plan).toBeUndefined();
+      expect(result.messages).toEqual([
+        {
+          type: "rejected",
+          code: "edit.invalid-value",
+          reason: "Select a message or a participant to tag.",
+        },
+      ]);
+    }
+  });
+
+  it("leaves tags to sequence diagrams", () => {
+    const canvas = open('diagram f: flow {\n  api["API"]\n}\n');
+    const result = canvas.act({ kind: "addTag", ids: ["api"] });
+    expect(result.plan).toBeUndefined();
+    expect(result.messages[0]).toMatchObject({
+      type: "rejected",
+      reason: expect.stringContaining("sequence diagrams"),
+    });
   });
 });
 
@@ -334,8 +677,119 @@ describe("sequence inspector", () => {
     });
     expect(field(model, "from")).toMatchObject({ value: "b", readonly: true });
     expect(field(model, "to")).toMatchObject({ value: "a", readonly: true });
+    // A return answers its call: it activates nothing.
+    expect(field(model, "activates")).toBeUndefined();
     const spaced = canvas.apply({ kind: "setField", ids: [key], field: "space", value: 12 });
     expect(spaced).toMatch(/return "OK" as (\w+)\n[\s\S]*space \1 12\n/);
+  });
+
+  it("writes and removes the activation of the receiver with a checkbox", () => {
+    const text = "diagram s: sequence {\n  a -> b as ask\n  b -> c\n  b --> a as reply\n}\n";
+    const canvas = open(text);
+    canvas.send({ type: "select", ids: ["ask"] });
+    expect(field(canvas.inspector(), "activates")).toEqual({
+      name: "activates",
+      label: "Activates the receiver",
+      type: "boolean",
+      value: "off",
+    });
+    const set = (value: string) =>
+      canvas.apply({ kind: "setField", ids: ["ask"], field: "activates", value });
+    expect(set("on")).toBe(
+      "diagram s: sequence {\n  a -> b as ask\n  activate b\n  b -> c\n  b --> a as reply\n  deactivate b\n}\n",
+    );
+    expect(field(canvas.inspector(), "activates")!.value).toBe("on");
+    // Checked again, nothing to write; cleared, the pair goes.
+    expect(
+      canvas.act({ kind: "setField", ids: ["ask"], field: "activates", value: "on" }).plan,
+    ).toBeUndefined();
+    expect(set("off")).toBe(text);
+  });
+
+  it("shows the activation of a call's block checked and read-only, with the reason", () => {
+    const calls = readFileSync(join(CORPUS_ROOT, "valid", "sequence", "calls.meltemi"), "utf8");
+    const canvas = open(calls);
+    canvas.send({ type: "select", ids: ["pay"] });
+    expect(field(canvas.inspector(), "activates")).toMatchObject({
+      type: "boolean",
+      value: "on",
+      readonly: true,
+      note: "The block of `pay` activates `api`.",
+    });
+    const refused = canvas.act({
+      kind: "setField",
+      ids: ["pay"],
+      field: "activates",
+      value: "off",
+    });
+    expect(refused.plan).toBeUndefined();
+    expect(refused.messages[0]).toMatchObject({
+      type: "rejected",
+      reason: "The block of `pay` activates `api`.",
+    });
+  });
+
+  it("lists the tags of a message, adds, rewrites and removes them", () => {
+    const canvas = open(payment);
+    canvas.send({ type: "select", ids: ["authorize"] });
+    const names = () => canvas.inspector().fields.map((f) => f.name);
+    expect(names().filter((n) => n.startsWith("tag."))).toEqual(["tag.new"]);
+    expect(field(canvas.inspector(), "tag.new")).toMatchObject({
+      label: "New tag",
+      type: "text",
+      value: null,
+      placeholder: "Add a tag",
+    });
+    const set = (name: string, value: string) =>
+      canvas.apply({ kind: "setField", ids: ["authorize"], field: name, value });
+    set("tag.new", "PKCE");
+    expect(set("tag.new", "v2")).toContain('as authorize {\n    tag "PKCE"\n    tag "v2"\n  }\n');
+    // Nothing typed adds nothing.
+    expect(
+      canvas.act({ kind: "setField", ids: ["authorize"], field: "tag.new", value: "" }).plan,
+    ).toBeUndefined();
+    const model = canvas.inspector();
+    expect(names().filter((n) => n.startsWith("tag."))).toEqual(["tag.0", "tag.1", "tag.new"]);
+    const pkce = model.fields.find((f) => f.name === "tag.0")!;
+    expect(pkce).toMatchObject({ label: "Tag 1", type: "text", value: "PKCE" });
+    expect(pkce.button).toEqual({
+      label: "Remove",
+      action: { kind: "removeTag", ids: ["authorize"], index: 0 },
+    });
+    // The Remove button of `PKCE`, as the canvas sends it.
+    expect(canvas.apply(pkce.button!.action)).toContain('as authorize {\n    tag "v2"\n  }\n');
+    // Rewritten, then emptied: the tag and its block go.
+    expect(set("tag.0", "v3")).toContain('as authorize {\n    tag "v3"\n  }\n');
+    expect(set("tag.0", "")).toContain('"Autorizar" as authorize\n');
+  });
+
+  it("refuses a tag the message already has, with the reason", () => {
+    const canvas = open(payment.replace("as authorize\n", 'as authorize { tag "v2" }\n'));
+    const result = canvas.act({
+      kind: "setField",
+      ids: ["authorize"],
+      field: "tag.new",
+      value: "v2",
+    });
+    expect(result.plan).toBeUndefined();
+    expect(result.messages[0]).toMatchObject({
+      type: "rejected",
+      code: "edit.invalid-value",
+      reason: expect.stringContaining('already has the tag "v2"'),
+    });
+  });
+
+  it("lists the tags of a participant, not of a group", () => {
+    const text =
+      'diagram s: sequence {\n  group core "Core" {\n    participant api "API" { tag "v2" }\n  }\n  participant bank "Bank"\n  api -> bank\n}\n';
+    const canvas = open(text);
+    canvas.send({ type: "select", ids: ["api"] });
+    expect(field(canvas.inspector(), "tag.0")).toMatchObject({ value: "v2" });
+    expect(
+      canvas.apply({ kind: "setField", ids: ["api"], field: "tag.new", value: "external" }),
+    ).toContain('participant api "API" {\n      tag "v2"\n      tag "external"\n    }\n');
+    canvas.send({ type: "select", ids: ["core"] });
+    expect(canvas.inspector().fields.some((f) => f.name.startsWith("tag."))).toBe(false);
   });
 
   it("shows fragments with their conditions and notes with their placement", () => {

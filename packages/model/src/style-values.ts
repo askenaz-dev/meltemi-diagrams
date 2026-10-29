@@ -142,6 +142,8 @@ export function describeSpec(spec: ValueSpec): string {
       return words.link;
     case "url":
       return words.url;
+    case "tag":
+      return words.tag;
   }
 }
 
@@ -267,7 +269,21 @@ export function checkArg(arg: Arg, spec: ValueSpec, name: string): ValueResult {
       if (arg.kind === "StringLiteral" && isSafeUrl(arg.value))
         return { ok: true, value: arg.value };
       return fail(expects(), [m.hints.values.url]);
+    case "tag":
+      if (arg.kind !== "StringLiteral") {
+        return fail(m.diagnostics.common.expected(TAG_FORM), [m.hints.example('tag "PKCE"')]);
+      }
+      if (!isTagText(arg.value)) return fail(m.diagnostics.sequence.tagOneLine);
+      return { ok: true, value: arg.value };
   }
+}
+
+/** The form of a sequence tag, as messages name it. */
+export const TAG_FORM = '`tag "Text"`';
+
+/** Whether a text may be a tag: one line, not empty. */
+export function isTagText(text: string): boolean {
+  return text.trim() !== "" && !/[\r\n]/.test(text);
 }
 
 /**

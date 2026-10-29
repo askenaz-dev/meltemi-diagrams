@@ -135,5 +135,24 @@
       "Form: `pen <id> [(x, y), (x, y), ...]`."
     ],
     "related": []
+  },
+  {
+    "code": "prop.invalid-value",
+    "severity": "error",
+    "message": "A tag is one line of text; it cannot be empty or hold a line break.",
+    "range": {
+      "start": {
+        "offset": 606,
+        "line": 31,
+        "column": 9
+      },
+      "end": {
+        "offset": 608,
+        "line": 31,
+        "column": 11
+      }
+    },
+    "hints": [],
+    "related": []
   }
 ]

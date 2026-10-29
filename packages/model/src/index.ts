@@ -25,7 +25,7 @@ export {
   relationNameAnchor,
   resolveScenario,
 } from "./scenario.js";
-export { headerHasError, isSafeUrl, singleIdent } from "./style-values.js";
+export { headerHasError, isSafeUrl, isTagText, singleIdent } from "./style-values.js";
 export { drawTargetKind, storyTargetKind, type DrawTargetKind } from "./story.js";
 export { BACKGROUND_WORDS, effectsEnd } from "./export.js";
 export {

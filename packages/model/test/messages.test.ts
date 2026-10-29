@@ -165,6 +165,25 @@ describe("the words of compilation", () => {
     expect(find(spanish, "sequence.scenario").message).toBe("Fragmento desconocido `ghost`.");
   });
 
+  it("tell tag errors of sequence diagrams in Spanish", () => {
+    const { spanish } = both(
+      'diagram s: sequence {\n  participant a { tag "" }\n  a -> b { tag "PKCE"; tag "PKCE"; place a at (1, 2) }\n  tag "v2"\n}\n',
+    );
+    expect(spanish.map((d) => [d.code, d.message])).toEqual([
+      [
+        "prop.invalid-value",
+        "Una marca es una línea de texto; no puede estar vacía ni contener un salto de línea.",
+      ],
+      ["prop.duplicate", 'La marca "PKCE" ya está escrita en este bloque.'],
+      ["prop.unknown", "Propiedad desconocida `place` en un bloque de relación."],
+      ["prop.unknown", "Instrucción desconocida `tag` en un diagrama de secuencia."],
+    ]);
+    expect(spanish[3]!.hints![0]).toMatch(/^Una marca va en el bloque de un mensaje/);
+    expect(spanish[2]!.hints![0]).toMatch(
+      /^Los bloques de mensaje aceptan .*`kind` y `tag`; el bloque de una llamada también contiene mensajes y los eventos .* y `return`\.$/,
+    );
+  });
+
   it("tell story errors in Spanish, warnings included", () => {
     const { spanish } = both(
       `${flow("  api -> db")}story tour for d {\n  scene one {\n    reveal apu\n  }\n  scene two {\n  }\n}\n`,

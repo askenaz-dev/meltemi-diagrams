@@ -351,6 +351,21 @@ describe("labels, descriptions and kinds", () => {
       `diagram d: flow {\n  a["A"]\n  a -> b\n}\n`,
     );
     expect(after).toBe(`diagram d: flow {\n  a["A"]\n  b["Billing"]\n  a -> b\n}\n`);
+    // Named first in a group's block: declared there, so it stays in the group and in its place.
+    const grouped = apply(
+      { kind: "setElementLabel", diagram: "d", element: "b", label: "Billing" },
+      `diagram d: flow {\n  a["A"]\n  group g "G" {\n    a -> b\n  }\n  b -> c\n}\n`,
+    );
+    expect(grouped).toBe(
+      `diagram d: flow {\n  a["A"]\n  group g "G" {\n    b["Billing"]\n    a -> b\n  }\n  b -> c\n}\n`,
+    );
+    const diagram = compile(grouped).document.diagrams[0]!;
+    expect(diagram.elements.map((e) => [e.id, e.groupPath])).toEqual([
+      ["a", []],
+      ["g", []],
+      ["b", ["g"]],
+      ["c", []],
+    ]);
   });
 
   it("sets, replaces and removes descriptions", () => {

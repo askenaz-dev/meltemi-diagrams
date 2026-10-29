@@ -113,6 +113,8 @@ Neutral Spanish, the same terms everywhere:
 | highlighter      | marcador                | eraser           | borrador                 |
 | sticky           | nota adhesiva           | list             | lista                    |
 | column           | columna                 | row              | fila                     |
+| activation (bar) | activación (barra)      | wrap (text)      | ajustar                  |
+| badge            | insignia                | tag (sequence)   | marca                    |
 
 ## Documentation
 

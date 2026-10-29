@@ -368,17 +368,22 @@ function interpolateBox(scene: Scene, from: Box | null, to: Box | null, p: numbe
   };
 }
 
-/** The groups of a scene with story opacities applied: visibility times focus. */
+/**
+ * The groups of a scene with story opacities applied: visibility times focus. `value` also gets
+ * the participant whose lifeline holds the group, for an activation bar of a sequence diagram (a
+ * group of role `event` inside a `lifeline` group).
+ */
 function withOpacity(
   items: readonly SceneItem[],
-  value: (group: GroupItem) => number,
+  value: (group: GroupItem, lifeline: string | undefined) => number,
+  lifeline?: string,
 ): SceneItem[] {
   return items.map((item) => {
     if (item.kind !== "group") return item;
-    const inner = withOpacity(item.items, value);
+    const inner = withOpacity(item.items, value, item.role === "lifeline" ? item.id : lifeline);
     const own =
       item.role === "element" || item.role === "relation" || item.role === "event"
-        ? value(item)
+        ? value(item, lifeline)
         : 1;
     const changed = inner.some((x, i) => x !== item.items[i]);
     if (own >= 1 && !changed) return item;
@@ -592,7 +597,7 @@ function drawView(data: StoryViewData, state: StoryState, t: number, accent: str
   };
   const overlays = storyOverlays(data.scene, state, accent);
   const drawn = withDrawings(withTraces(animated.items, overlays.traces), state.draws);
-  const items = withOpacity(drawn, (group) => {
+  const items = withOpacity(drawn, (group, lifeline) => {
     // A relation is drawn at the opacity of its least visible end, so no arrow points at a box
     // that is not there yet.
     const ends = group.role === "relation" ? data.ends[group.id] : undefined;
@@ -600,7 +605,12 @@ function drawView(data: StoryViewData, state: StoryState, t: number, accent: str
       state.opacity.get(group.id) ?? 1,
       ...(ends ?? []).map((end) => state.opacity.get(end) ?? 1),
     );
-    const dim = focused && !inFocus(group.id, group.role) ? lerp(1, 0.25, focused.level) : 1;
+    // An activation bar stands on its participant's lifeline: in focus when the participant is.
+    const bar = group.role === "event" && lifeline !== undefined;
+    const dim =
+      focused && !inFocus(group.id, group.role) && !(bar && focused.ids.has(lifeline))
+        ? lerp(1, 0.25, focused.level)
+        : 1;
     return visible * dim;
   });
   if (overlays.highlights.length > 0)

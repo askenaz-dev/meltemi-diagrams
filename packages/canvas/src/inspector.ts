@@ -111,10 +111,16 @@ function holdsTyping(
     const field = fields.find((f) => prefix + f.name === focused.dataset.slider);
     return field?.range !== undefined && focused.value !== sliderValue(field);
   }
+  // A checkbox writes as it is clicked, and holds nothing.
   const text =
     focused instanceof HTMLTextAreaElement ||
-    (focused instanceof HTMLInputElement && focused.type !== "color");
+    (focused instanceof HTMLInputElement &&
+      focused.type !== "color" &&
+      focused.type !== "checkbox");
   if (!text) return false;
+  // A tag's text just written (the field that adds one empties itself once it is added).
+  const sent = focused.dataset.sent;
+  if (sent !== undefined && (focused as HTMLInputElement).value === sent) return false;
   const field = fields.find((f) => keyOf(prefix + f.name) === focused.id);
   if (!field) return true;
   const written = field.value === null ? "" : String(field.value);
@@ -386,6 +392,141 @@ function plainField(field: InspectorField, send: Send, extra: readonly HTMLEleme
   const control = fieldControl(field, id, send);
   if (extra.length === 0) return h("div", { class: "field" }, label, control);
   return h("div", { class: "field" }, label, h("div", { class: "row" }, control, ...extra));
+}
+
+/** A sentence with code in backticks ("The block of `pay` activates `api`."), as nodes. */
+function codeText(text: string): (Node | string)[] {
+  return text
+    .split("`")
+    .map((part, i) => (i % 2 === 1 ? h("code", {}, part) : part))
+    .filter((part) => part !== "");
+}
+
+/** What the checkbox of a `boolean` field shows, and the sentence under it. */
+export interface CheckboxState {
+  /** The value is `on`. */
+  readonly checked: boolean;
+  /** The selection differs: neither checked nor clear. */
+  readonly mixed: boolean;
+  readonly disabled: boolean;
+  /** Why it is as it is, under it (`InspectorField.note`): the reason a field is read-only. */
+  readonly note: string | undefined;
+}
+
+/**
+ * The checkbox of a `boolean` field (**Activates the receiver**): checked when its value is `on`,
+ * mixed when the selection differs on it, disabled when it is read-only, with its note.
+ */
+export function checkboxState(
+  field: Pick<InspectorField, "value" | "mixed" | "readonly" | "note">,
+): CheckboxState {
+  const checked = field.value === "on";
+  return {
+    checked,
+    mixed: !checked && field.mixed === true,
+    disabled: field.readonly === true,
+    note: field.note,
+  };
+}
+
+/**
+ * A `boolean` field: the platform's checkbox with its label beside it, and the note under it (the
+ * reason a field is read-only), which the checkbox names as its description. A click writes `on`
+ * or `off` at once.
+ */
+function booleanField(field: InspectorField, send: Send): HTMLElement {
+  const id = keyOf(field.name);
+  const state = checkboxState(field);
+  const noteId = `${id}-note`;
+  const box = h("input", {
+    id,
+    type: "checkbox",
+    checked: state.checked,
+    disabled: state.disabled,
+    "aria-describedby": state.note ? noteId : undefined,
+  });
+  box.indeterminate = state.mixed;
+  box.addEventListener("change", () => send(box.checked ? "on" : "off"));
+  box.addEventListener("keydown", (e) => e.stopPropagation());
+  const element = h(
+    "div",
+    { class: "field check-field", "data-field": field.name },
+    h("label", { class: "check", for: id }, box, h("span", {}, field.label)),
+  );
+  if (state.note) element.append(h("p", { class: "note", id: noteId }, ...codeText(state.note)));
+  return element;
+}
+
+/** Whether a field is one of the **Tags** of a sequence message or participant: `tag.<n>`, `tag.new`. */
+export const isTagField = (name: string): boolean => /^tag\.(\d+|new)$/.test(name);
+
+/**
+ * A part of the inspector's body: a field on its own, or a run of tag fields drawn as one list
+ * under its heading, the tags in order (`tag.<n>`) and the field that adds one (`tag.new`).
+ */
+export type InspectorRow =
+  | { readonly kind: "field"; readonly field: InspectorField }
+  | {
+      readonly kind: "tags";
+      readonly tags: readonly InspectorField[];
+      readonly add: InspectorField | undefined;
+    };
+
+/** The fields of the inspector's body in order, each run of tag fields as one list. */
+export function inspectorRows(fields: readonly InspectorField[]): InspectorRow[] {
+  const rows: InspectorRow[] = [];
+  for (const field of fields) {
+    if (!isTagField(field.name)) {
+      rows.push({ kind: "field", field });
+      continue;
+    }
+    const last = rows[rows.length - 1];
+    const run = last?.kind === "tags" ? last : undefined;
+    const tags = field.name === "tag.new" ? (run?.tags ?? []) : [...(run?.tags ?? []), field];
+    const add = field.name === "tag.new" ? field : run?.add;
+    const next: InspectorRow = { kind: "tags", tags, add };
+    if (run) rows[rows.length - 1] = next;
+    else rows.push(next);
+  }
+  return rows;
+}
+
+/**
+ * The text box of a tag: committed on Enter or blur, Escape puts the written text back. What it
+ * sent stays marked (`data-sent`), so the render that brings it is drawn though the field that adds
+ * a tag comes back empty.
+ */
+function tagInput(field: InspectorField, id: string, send: Send): HTMLInputElement {
+  const input = h("input", {
+    id,
+    type: "text",
+    class: "tag-text",
+    placeholder: placeholderText(field),
+    disabled: field.readonly,
+    spellcheck: "false",
+    autocomplete: "off",
+    "aria-label": field.label,
+  });
+  input.value = field.value === null ? "" : String(field.value);
+  let sent = input.value;
+  const commit = () => {
+    if (input.value === sent) return;
+    sent = input.value;
+    input.dataset.sent = sent;
+    send(sent);
+  };
+  input.addEventListener("change", commit);
+  input.addEventListener("keydown", (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      commit();
+    } else if (e.key === "Escape") {
+      input.value = field.value === null ? "" : String(field.value);
+      input.blur();
+    }
+  });
+  return input;
 }
 
 /**
@@ -1235,8 +1376,12 @@ export class Inspector {
       }
       this.element.append(section);
     }
-    for (const field of fields) {
-      if (field.section !== "strip") this.element.append(this.field(field));
+    for (const row of inspectorRows(fields.filter((f) => f.section !== "strip"))) {
+      if (row.kind === "field") this.element.append(this.field(row.field));
+      // A canvas that only shows has nothing to list for an owner without tags.
+      else if (row.tags.length > 0 || !this.readOnly) {
+        this.element.append(this.tagList(row.tags, row.add));
+      }
     }
     this.element.append(this.rail);
     refocus(this.element, key);
@@ -1554,8 +1699,58 @@ export class Inspector {
     return wrapper;
   }
 
+  /**
+   * **Tags** of a sequence message or participant: one list under the heading, a text box per tag
+   * in order with its **Remove** button (the field's action), then the box whose text adds a tag at
+   * the end. A canvas that only shows lists the tags, without the buttons or the box that adds.
+   */
+  private tagList(tags: readonly InspectorField[], add: InspectorField | undefined): HTMLElement {
+    const words = messages().inspector;
+    const labelId = "mdg-tags-label";
+    const list = h("ul", { class: "tag-list", "aria-labelledby": labelId });
+    for (const field of tags) {
+      const input = tagInput(field, keyOf(field.name), this.send(field));
+      const row = h("li", { class: "tag-row", "data-field": field.name }, input);
+      const button = field.button;
+      if (button && !this.readOnly) {
+        const text = field.value === null ? "" : String(field.value);
+        const remove = h(
+          "button",
+          {
+            type: "button",
+            class: "choose small tag-remove",
+            "data-key": `${field.name}:button`,
+            title: words.removeTagTitle(text),
+            "aria-label": words.removeTagTitle(text),
+          },
+          button.label,
+        );
+        remove.addEventListener("click", () => this.actions.act(button.action));
+        remove.addEventListener("keydown", (e) => e.stopPropagation());
+        row.append(remove);
+      }
+      list.append(row);
+    }
+    if (add && !this.readOnly) {
+      list.append(
+        h(
+          "li",
+          { class: "tag-row tag-add", "data-field": add.name },
+          tagInput(add, keyOf(add.name), this.send(add)),
+        ),
+      );
+    }
+    return h(
+      "div",
+      { class: "field tags-field", "data-field": "tags" },
+      h("span", { class: "field-label", id: labelId }, words.tags),
+      list,
+    );
+  }
+
   private field(field: InspectorField): HTMLElement {
     const send = this.send(field);
+    if (field.type === "boolean") return booleanField(field, send);
     if (field.type === "icon") return this.iconField(field, send);
     if (field.glyphs && field.options) return glyphField(field, send);
     if (field.type === "number" && field.range) return rangeField(field, send, this.slide(field));

@@ -41,7 +41,12 @@ export type ValueSpec =
   /** A dotted reference to an element of another diagram: `<diagram>.<element>`. */
   | { readonly kind: "link" }
   /** A quoted `http:`, `https:` or `mailto:` URL, or a relative one. */
-  | { readonly kind: "url" };
+  | { readonly kind: "url" }
+  /**
+   * `tag "Text"`: one line of quoted text, not empty, written any number of times in a block (a
+   * sequence message's or participant's), each a pill of its owner.
+   */
+  | { readonly kind: "tag" };
 
 export type PropertyTable = Readonly<Record<string, ValueSpec>>;
 
@@ -751,6 +756,7 @@ export const SEQUENCE_PROFILE: ProfileSchema = {
     class: { kind: "classes" },
     link: { kind: "link" },
     url: { kind: "url" },
+    tag: { kind: "tag" },
   },
   groupProperties: {
     description: { kind: "string" },
@@ -763,6 +769,7 @@ export const SEQUENCE_PROFILE: ProfileSchema = {
     assumption: { kind: "string" },
     class: { kind: "classes" },
     kind: { kind: "enum", values: MESSAGE_KINDS },
+    tag: { kind: "tag" },
   },
   arrows: { "->": "solid", "-->": "dashed", "<->": "solid", "<-->": "dashed" },
   diagramBlocks: ["placement", "style", "animate", "class", "rule", "scenario"],

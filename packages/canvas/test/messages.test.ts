@@ -308,6 +308,26 @@ describe("the canvas catalog", () => {
     expect(es.menu.selectBelow).toBe("Seleccionar la forma de debajo");
     expect(es.keys.altClick).toBe("Alt+clic");
   });
+
+  it("names the sequence tags and activations as the docs do, in both languages", () => {
+    // The palette, the menus of a pill and of a bar, the editor of a pill and the bar's handles.
+    expect([en.toolbar.tag, en.toolbar.activate]).toEqual(["Tag", "Activate the receiver"]);
+    expect([es.toolbar.tag, es.toolbar.activate]).toEqual(["Marca", "Activar el receptor"]);
+    expect([en.menu.editTag, en.menu.removeTag, en.menu.removeActivation]).toEqual([
+      "Edit tag",
+      "Remove tag",
+      "Remove activation",
+    ]);
+    expect([es.menu.editTag, es.menu.removeTag, es.menu.removeActivation]).toEqual([
+      "Editar la marca",
+      "Quitar la marca",
+      "Quitar la activación",
+    ]);
+    expect(en.inline.tag("authorize", 1)).toBe("Tag 1 of authorize");
+    expect(es.inline.tag("authorize", 2)).toBe("Marca 2 de authorize");
+    expect(en.bars.end).toBe("End of the activation: drag it to another row");
+    expect(es.bars.start).toBe("Inicio de la activación: arrástralo a otra fila");
+  });
 });
 
 describe("the words of icons", () => {

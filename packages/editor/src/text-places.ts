@@ -6,6 +6,7 @@ import {
   type Box,
   type ConnectorGeometry,
   type GroupItem,
+  type MessageText,
   type RectItem,
   type ResolvedStyle,
   type Scene,
@@ -22,12 +23,18 @@ export interface TextPlaces {
   readonly elements: ReadonlyMap<string, TextPlace>;
   readonly relations: ReadonlyMap<string, TextPlace>;
   readonly events: ReadonlyMap<string, TextPlace>;
+  /**
+   * Sequence diagrams: where the text of every drawn tag pill is, by its owner's participant id or
+   * message key, in the order of the owner's tags.
+   */
+  readonly tags: ReadonlyMap<string, readonly TextPlace[]>;
 }
 
 export const NO_TEXT_PLACES: TextPlaces = {
   elements: new Map(),
   relations: new Map(),
   events: new Map(),
+  tags: new Map(),
 };
 
 /** Kinds whose label the drawing writes on one line: titles of groups and tags. */
@@ -50,6 +57,10 @@ const STICKY_FONT_SCALE = 1.2;
  * layout wrapped the text of every sticky (`LayoutResult.stickies`): the editor types over a
  * sticky in the room its text wraps in, at the size it shrank to, so that typing wraps as the
  * card will, and knows the size the words start from before they shrink (`fullSize`).
+ * `messageTexts` are how the layout drew the label of every message of a sequence diagram
+ * (`LayoutResult.messageTexts`): a label that wraps (its participants pulled closer) is typed in
+ * the room between its lifelines and grows down as the row will (`wrap: "grow"`); one at its
+ * natural distance, which pushes the pair apart, and a self-call's are typed without wrapping.
  */
 export function textPlaces(
   diagram: FlowDiagram,
@@ -59,12 +70,16 @@ export function textPlaces(
   connectors: ReadonlyMap<string, ConnectorGeometry>,
   shapes: ReadonlyMap<string, string> = new Map(),
   stickies: ReadonlyMap<string, StickyText> = new Map(),
+  messageTexts: ReadonlyMap<string, MessageText> = new Map(),
 ): TextPlaces {
   const scale = typeScale(theme);
   const styles = new StyleResolver(theme, diagram);
   const elements = new Map<string, TextPlace>();
   const relations = new Map<string, TextPlace>();
   const events = new Map<string, TextPlace>();
+  const tags = new Map<string, TextPlace[]>();
+  /** The drawn lines of every sequence message's label, by message key. */
+  const messageLines = new Map<string, readonly TextItem[]>();
   const toDiagram = (box: Box): Box => ({
     x: box.x - offset.x,
     y: box.y - offset.y,
@@ -193,6 +208,7 @@ export function textPlaces(
       color: first?.fill ?? styles.element(owner).color ?? theme.stickyText,
       line,
       lines: true,
+      wrap: "shrink",
     };
   };
 
@@ -305,6 +321,12 @@ export function textPlaces(
   const relationLabel = (group: GroupItem) => {
     const relation = diagram.relationsByKey.get(group.id);
     if (!relation || relations.has(relation.key)) return;
+    // A sequence message's label is placed from how the layout wrapped it, once every label is
+    // read: its drawn lines give its font and colour.
+    if (messageTexts.has(relation.key)) {
+      if (!messageLines.has(relation.key)) messageLines.set(relation.key, textsOf(group));
+      return;
+    }
     const pill = group.items.find((item): item is RectItem => item.kind === "rect");
     const [first] = textsOf(group);
     if (relation.label && first) {
@@ -320,6 +342,52 @@ export function textPlaces(
       anchor: { x: area.x + area.width / 2 - offset.x, y: area.y + area.height / 2 - offset.y },
       area: toDiagram(area),
     });
+  };
+
+  /**
+   * A sequence message's label as the layout drew it: the room between its lifelines (a
+   * self-call's block beside its loop), centred on the block's middle, every drawn line, in the
+   * font and colour of the drawn lines (the message's default label style when it has none);
+   * growing down as it wraps only when the layout wraps it (`MessageText.wraps`).
+   */
+  const messagePlace = (key: string, text: MessageText): TextPlace => {
+    const [first] = messageLines.get(key) ?? [];
+    const style = relationStyle(key);
+    const { area } = text;
+    return {
+      anchor: { x: area.x + area.width / 2, y: area.y + area.height / 2 },
+      area,
+      align: "center",
+      font: first ? fontOf(first) : style.font,
+      size: text.size,
+      weight: first?.weight ?? style.weight,
+      color: first?.fill ?? style.color,
+      line: text.line,
+      lines: true,
+      ...(text.wraps ? { wrap: "grow" as const } : {}),
+    };
+  };
+
+  /** A tag's pill: its text centred on it, in the pill's font and colour, on its fill. */
+  const tagPill = (group: GroupItem) => {
+    if (group.tag === undefined) return;
+    const pill = group.items.find((item): item is RectItem => item.kind === "rect");
+    const [label] = textsOf(group);
+    if (!pill || !label) return;
+    const placed = tags.get(group.id) ?? [];
+    placed[group.tag] = {
+      anchor: { x: label.x - offset.x, y: label.y - offset.y },
+      area: toDiagram(pill),
+      align: "center",
+      font: fontOf(label),
+      size: label.size,
+      weight: label.weight,
+      color: label.fill,
+      line: Math.round(label.size * 1.25),
+      lines: false,
+      background: pill.fill,
+    };
+    tags.set(group.id, placed);
   };
 
   const event = (group: GroupItem) => {
@@ -403,7 +471,7 @@ export function textPlaces(
       else if (item.role === "label" && diagram.relationsByKey.has(item.id)) relationLabel(item);
       else if (item.role === "label" && diagram.elementsById.get(item.id)?.kind === "line") {
         lineLabel(item);
-      }
+      } else if (item.role === "tag") tagPill(item);
       if ((item.role === "event" || item.role === "label") && diagram.eventsByKey.has(item.id)) {
         event(item);
       }
@@ -411,6 +479,11 @@ export function textPlaces(
     }
   };
   visit(scene.items);
+
+  // Every message of a sequence diagram, a label or none, where the layout wraps it.
+  for (const [key, text] of messageTexts) {
+    if (diagram.relationsByKey.has(key)) relations.set(key, messagePlace(key, text));
+  }
 
   // A relation without a label: a new one goes at the middle of its line.
   for (const [key, connector] of connectors) {
@@ -433,7 +506,7 @@ export function textPlaces(
       area: { x: middle.x, y: middle.y, width: 0, height: 0 },
     });
   }
-  return { elements, relations, events };
+  return { elements, relations, events, tags };
 }
 
 /** A zero-width box on a text's anchor, for a text drawn without a frame. */

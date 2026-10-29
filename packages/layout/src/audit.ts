@@ -145,12 +145,13 @@ interface Owner {
  * element that draws it (the inscribed rectangle of a shape other than a box, `SceneBounds.inner`,
  * or the label an icon shape draws outside its box, `SceneBounds.label`),
  * and inside the background drawn just before it (the pill of a relation's label, the band of a
- * guard). No text may overlap another element's text, the box of an element
- * it does not belong to (containers hold labels; annotations may sit on boxes), or a connector
- * other than its own. A container's own texts may lie over the boxes it holds; two texts that
- * coincide are still reported. Text boxes are measured with the scene's fonts, from the cap
- * height above the baseline to the descenders below it. Pen strokes (`GroupItem.freehand`) take no part:
- * they are drawn over what they mark.
+ * guard, the pill of a sequence tag). No text may overlap another element's text, the box of an
+ * element it does not belong to (containers hold labels; annotations, the tags of sequence messages
+ * and participants among them, may sit on boxes), or a connector other than its own. A container's own texts may lie over the boxes it holds; two texts that
+ * coincide are still reported, on the label when one of them is a label. Every text item is
+ * measured on its own, each line of a wrapped message label included. Text boxes are measured
+ * with the scene's fonts, from the cap height above the baseline to the descenders below it. Pen
+ * strokes (`GroupItem.freehand`) take no part: they are drawn over what they mark.
  */
 export function auditLabels(
   scene: Scene,
@@ -239,8 +240,9 @@ export function auditLabels(
         owner.lines.push(item.points);
         background = undefined;
       } else if (item.kind === "rect") {
-        // A rectangle drawn right before a text in a label is the background it sits on.
-        background = owner?.role === "label" ? item : undefined;
+        // A rectangle drawn right before a text in a label or a tag is the background it sits on:
+        // a relation's pill, a guard's band, a sequence tag's pill.
+        background = owner?.role === "label" || owner?.role === "tag" ? item : undefined;
       } else if (item.kind === "text") {
         if (item.text.trim() !== "") {
           const target: Owner = owner ?? { id: "scene", role: "frame", texts: [], lines: [] };
@@ -261,7 +263,9 @@ export function auditLabels(
     boxes.filter((o) => boxes.some((p) => p !== o && contains(o.box!, p.box!))).map((o) => o.id),
   );
 
-  // Labels against labels.
+  // Labels against labels: a label (of a relation, a line or a message) lying on another text is
+  // reported on itself, as `label <relation> at` is what moves it apart; two other texts on the
+  // one further right.
   const texts = owners.flatMap((o) => o.texts).sort((a, b) => a.box.x - b.box.x);
   for (let i = 0; i < texts.length; i++) {
     const a = texts[i]!;
@@ -270,10 +274,11 @@ export function auditLabels(
       if (b.box.x > a.box.x + a.box.width) break;
       if (a.owner === b.owner) continue;
       if (intersects(a.box, b.box)) {
+        const [text, other] = a.role === "label" && b.role !== "label" ? [a, b] : [b, a];
         problems.push({
           kind: "overlap",
-          text: b,
-          other: { kind: "text", owner: a.owner, text: a.text },
+          text,
+          other: { kind: "text", owner: other.owner, text: other.text },
         });
       }
     }
@@ -282,7 +287,8 @@ export function auditLabels(
   const sortedBoxes = [...boxes].sort((a, b) => a.box!.x - b.box!.x);
   const boxOf = new Map(boxes.map((o) => [o.id, o.box!]));
   for (const text of texts) {
-    if (annotations.has(text.owner)) continue;
+    // A sequence tag is an annotation of its owner, drawn on its arrow or over its head as a badge.
+    if (annotations.has(text.owner) || text.role === "tag") continue;
     // A container's own text may lie over the boxes it holds.
     const holder = containers.has(text.owner) ? boxOf.get(text.owner) : undefined;
     for (const owner of sortedBoxes) {

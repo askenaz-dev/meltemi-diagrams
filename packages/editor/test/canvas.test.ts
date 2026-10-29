@@ -682,6 +682,9 @@ describe("keys and messages", () => {
 
   it("maps the creation keys by profile and the order keys", () => {
     expect(commandFor(key("t"))).toBe("createTag");
+    // T tags the selected message or participant of a sequence diagram; C4 views have no tags.
+    expect(commandFor(key("t"), false, "sequence")).toBe("createTag");
+    expect(commandFor(key("t"), false, "c4")).toBeUndefined();
     expect(commandFor(key("t"), false, "free")).toBe("createText");
     expect(commandFor(key("b"), false, "free")).toBe("createBox");
     expect(commandFor(key("i"), false, "free")).toBe("createIcon");
@@ -704,6 +707,24 @@ describe("keys and messages", () => {
     expect(commandFor(bracket(false, "BracketRight"))).toBe("bringForward");
     expect(commandFor(bracket(true, "BracketLeft"))).toBe("sendToBack");
     expect(commandFor(bracket(false, "BracketLeft"))).toBe("sendBackward");
+  });
+
+  it("accepts the tags and bar ends of sequence diagrams, and nothing else", () => {
+    const action = (a: unknown) => isCanvasMessage({ type: "action", revision: 1, action: a });
+    const bar = { kind: "moveActivation", id: "activate#1", end: "end", row: "pay" };
+    expect(action(bar)).toBe(true);
+    expect(action({ ...bar, end: "start" })).toBe(true);
+    expect(action({ ...bar, end: "middle" })).toBe(false);
+    expect(action({ ...bar, row: 3 })).toBe(false);
+    expect(action({ kind: "preview", token: 1, action: bar })).toBe(true);
+    expect(action({ kind: "preview", token: 1, action: { ...bar, end: "top" } })).toBe(false);
+    expect(action({ kind: "addTag", ids: ["pay"] })).toBe(true);
+    expect(action({ kind: "addTag", ids: "pay" })).toBe(false);
+    expect(action({ kind: "setTag", ids: ["pay"], index: 0, text: "PKCE" })).toBe(true);
+    expect(action({ kind: "setTag", ids: ["pay"], index: -1, text: "PKCE" })).toBe(false);
+    expect(action({ kind: "setTag", ids: ["pay"], index: 0 })).toBe(false);
+    expect(action({ kind: "removeTag", ids: ["pay"], index: 1 })).toBe(true);
+    expect(action({ kind: "removeTag", ids: ["pay"], index: 0.5 })).toBe(false);
   });
 
   it("accepts each end of a connection pinned on its own, with its port", () => {

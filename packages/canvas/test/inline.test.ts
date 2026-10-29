@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   MIN_WRAPPED_SIZE,
   boxPlace,
+  grownFrame,
   inlineFrame,
   inlineValue,
+  labelLines,
   wrappedFrame,
   wrappedLines,
   wrappedSize,
@@ -195,5 +197,96 @@ describe("the editor of a sticky note's words", () => {
       nodes.map((n) => n.textContent || n.getAttribute("aria-label"));
     expect(said(wrappedLines(svg, "s1"))).toEqual(["Cache the", "catalogue", "drawn"]);
     expect(wrappedLines(svg, "s3")).toEqual([]);
+  });
+});
+
+/**
+ * The label of a sequence message whose participants are pulled closer: the room between its
+ * lifelines is 245 wide from x 160, its block one line high (18) from y 140, its lines 13.75 apart.
+ */
+const pulled: TextPlace = {
+  anchor: { x: 282.5, y: 149 },
+  area: { x: 160, y: 140, width: 245, height: 18 },
+  align: "center",
+  font: "Inter, sans-serif",
+  size: 11,
+  weight: 400,
+  color: "#0b1830",
+  line: 13.75,
+  lines: true,
+  wrap: "grow",
+};
+
+describe("the editor of a message label that wraps where it is drawn", () => {
+  it("is exactly as wide as the room at the zoom, its first line on the drawn first line", () => {
+    // At 200 %, the anchor (the middle of the drawn line) at (565, 298) on the screen.
+    const frame = grownFrame(pulled, 2, { x: 565, y: 298 }, 27.5, 1);
+    expect(frame).toEqual({ left: 320, top: 284.25, width: 490, height: 27.5 });
+  });
+
+  it("keeps its top and grows down with three lines at zoom 2", () => {
+    const one = grownFrame(pulled, 2, { x: 565, y: 298 }, 27.5, 1);
+    const three = grownFrame(pulled, 2, { x: 565, y: 298 }, 82.5, 1);
+    expect(three.top).toBe(one.top);
+    expect(three.left).toBe(one.left);
+    expect(three.width).toBe(one.width);
+    expect(three.top + three.height).toBe(one.top + 82.5);
+  });
+
+  it("starts at the first of several drawn lines, wherever the block's middle is", () => {
+    // Drawn on two lines: the block is 13.75 taller and its middle 6.875 lower; its first line is
+    // where the one-line block's is.
+    const two = {
+      ...pulled,
+      anchor: { x: 282.5, y: 155.875 },
+      area: { ...pulled.area, height: 31.75 },
+    };
+    const frame = grownFrame(two, 2, { x: 565, y: 311.75 }, 55, 2);
+    expect(frame.top).toBe(284.25);
+    expect(frame.height).toBe(55);
+  });
+
+  it("is one line tall while empty", () => {
+    expect(grownFrame(pulled, 1, pulled.anchor, 0, 0)).toEqual({
+      left: 160,
+      top: 149 - 13.75 / 2,
+      width: 245,
+      height: 13.75,
+    });
+  });
+
+  it("hides every line a message's label draws, which the layout wrapped and not the label", () => {
+    const node = (
+      tag: string,
+      attributes: Record<string, string> = {},
+      children: unknown[] = [],
+      text = "",
+    ) => ({
+      tagName: tag.toUpperCase(),
+      children,
+      textContent: text,
+      hasAttribute: (name: string) => Object.hasOwn(attributes, name),
+      getAttribute: (name: string) => attributes[name] ?? null,
+    });
+    const groups = [
+      node("g", { "data-id": "long", "data-role": "label" }, [
+        node("text", {}, [], "Esto es una prueba"),
+        node("text", {}, [], "de un texto Largo"),
+        node("path", { "aria-label": "drawn" }),
+        node("rect"),
+      ]),
+    ];
+    const svg = {
+      querySelectorAll: (selector: string) =>
+        groups.filter(
+          (g) =>
+            selector.includes(`"${g.getAttribute("data-id")}"`) &&
+            selector.includes(`"${g.getAttribute("data-role")}"`),
+        ),
+    } as unknown as Element;
+    expect(
+      labelLines(svg, "long").map((n) => n.textContent || n.getAttribute("aria-label")),
+    ).toEqual(["Esto es una prueba", "de un texto Largo", "drawn"]);
+    expect(labelLines(svg, "other")).toEqual([]);
   });
 });

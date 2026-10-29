@@ -371,6 +371,77 @@ describe("draw frames", () => {
   });
 });
 
+describe("sequence diagrams in a story", () => {
+  /**
+   * A participant with a badge and a written activation, a call whose block activates `bank`, a
+   * tagged message; a story that reveals `api` over a second, then focuses on it.
+   */
+  const SEQUENCE = [
+    'language "0.2"',
+    "diagram pay: sequence {",
+    '  participant customer "Customer"',
+    '  participant api "API" { tag "v2" }',
+    '  participant bank "Bank"',
+    '  customer -> api: "Pay" as pay { tag "PKCE" }',
+    "  activate api",
+    '  api -> bank: "Authorize" as authorize {',
+    '    return "OK" as ok',
+    "  }",
+    '  customer -> bank: "Audit" as audit { tag "async" }',
+    '  api --> customer: "Receipt" as receipt',
+    "  deactivate api",
+    "}",
+    "story tour for pay {",
+    "  scene one { reveal api over 1s }",
+    "  scene two { focus api over 200ms }",
+    "}",
+  ].join("\n");
+  /** The pill groups of an owner, inside its own group. */
+  const pills = (owner: GroupItem) =>
+    sceneGroups(owner.items).filter((g) => g.role === "tag" && g.id === owner.id);
+
+  it("Tags go with their owner", () => {
+    const { frame, views } = setup(SEQUENCE);
+    const still = views("pay")!.scene;
+    // The badge of `api` and the pill of `pay` are drawn inside their owners' groups.
+    expect(pills(group(still, "api")!).map((g) => g.tag)).toEqual([0]);
+    expect(pills(group(still, "pay", "relation")!).map((g) => g.tag)).toEqual([0]);
+    // Revealed halfway, the participant's group is half visible with its badge, which has no
+    // opacity of its own; the message to it follows its least visible end, its pill with it.
+    const half = frame(500);
+    const api = group(half, "api")!;
+    expect(api.opacity).toBe(0.5);
+    expect(pills(api).map((g) => g.opacity)).toEqual([undefined]);
+    const pay = group(half, "pay", "relation")!;
+    expect(pay.opacity).toBe(0.5);
+    expect(pills(pay)).toHaveLength(1);
+    // Focused on `api`, the message between `customer` and `bank` dims with its pill inside it.
+    const focused = frame(1200);
+    expect(group(focused, "api")!.opacity).toBeUndefined();
+    expect(pills(group(focused, "api")!)).toEqual(pills(group(still, "api")!));
+    const audit = group(focused, "audit", "relation")!;
+    expect(audit.opacity).toBe(0.25);
+    expect(pills(audit).map((g) => g.opacity)).toEqual([undefined]);
+  });
+
+  it("keeps a participant's activation bars in focus with it", () => {
+    const { frame, views } = setup(SEQUENCE);
+    const still = views("pay")!.scene;
+    // The written bar of `api` and the bar the block of `authorize` draws on `bank`.
+    expect(group(still, "api", "lifeline")!.items).toContainEqual(
+      expect.objectContaining({ kind: "group", id: "activate#1", role: "event" }),
+    );
+    expect(group(still, "bank", "lifeline")!.items).toContainEqual(
+      expect.objectContaining({ kind: "group", id: "authorize", role: "event" }),
+    );
+    const focused = frame(1200);
+    // Focused on `api`: its bar stays as its participant does; `bank`'s bar dims as `bank` does.
+    expect(group(focused, "activate#1", "event")!.opacity).toBeUndefined();
+    expect(group(focused, "bank")!.opacity).toBe(0.25);
+    expect(group(focused, "authorize", "event")!.opacity).toBe(0.25);
+  });
+});
+
 describe("camera bounds", () => {
   it("frames a group by its track when it has no bounds, however many points it holds", () => {
     const track = Array.from({ length: 130_000 }, (_, i) => ({

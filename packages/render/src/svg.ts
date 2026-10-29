@@ -330,8 +330,10 @@ function emit(
     case "group": {
       const transform = item.transform ? ` transform="${escapeXml(item.transform)}"` : "";
       const layer = item.layer ? ` data-layer="${escapeXml(item.layer)}"` : "";
+      // A sequence tag's pill says which of its owner's tags it is.
+      const tag = item.tag !== undefined ? ` data-tag="${item.tag}"` : "";
       out.push(
-        `${indent}<g data-id="${escapeXml(item.id)}" data-role="${item.role}"${layer}${transform}${opacityOf(groupOpacity(item))}${classOf(item)}>`,
+        `${indent}<g data-id="${escapeXml(item.id)}" data-role="${item.role}"${tag}${layer}${transform}${opacityOf(groupOpacity(item))}${classOf(item)}>`,
       );
       // A sticky's text that does not fit is clipped to its card, in the group's own coordinates;
       // its own texts take the clip, nested groups (its icon) do not.

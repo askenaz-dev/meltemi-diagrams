@@ -341,17 +341,18 @@ el texto y se mantiene centrado donde se dibuja el texto.
 | Esc                        | Cancelar: el texto no cambia y la etiqueta dibujada vuelve a verse             |
 
 - **Líneas.** Mayús+Entrar parte las etiquetas de los nodos, las decisiones, los almacenes de
-  datos, las cajas y los elementos C4, los textos libres y las notas, también las de secuencia. Las
-  etiquetas de las relaciones, los títulos de los grupos, las marcas, los participantes, las
-  condiciones de los fragmentos, los separadores y los retrasos se dibujan en una sola línea: ahí
-  Mayús+Entrar guarda el texto como Entrar, y un salto de línea pegado se convierte en un espacio.
-  Los saltos de línea del final se descartan.
+  datos, las cajas y los elementos C4, los textos libres y las notas, también las notas y los
+  mensajes de secuencia. Las demás etiquetas de relaciones, los títulos de los grupos, las marcas,
+  los participantes, las condiciones de los fragmentos, los separadores y los retrasos se dibujan
+  en una sola línea: ahí Mayús+Entrar guarda el texto como Entrar, y un salto de línea pegado se
+  convierte en un espacio. Los saltos de línea del final se descartan.
 - **Texto vacío.** Vaciar una forma con etiqueta escribe `""`; guardar sin texto una forma vacía
   no escribe nada.
 - **Ids.** Mayús+F2 cambia el id en el mismo editor, en una línea y con una fuente monoespaciada,
   con `renameElement` o `renameRelation`.
-- **Diagramas de secuencia.** Las notas, las condiciones de los fragmentos, los separadores y los
-  retrasos usan el mismo editor.
+- **Diagramas de secuencia.** Las notas, las condiciones de los fragmentos, los separadores, los
+  retrasos y las marcas usan el mismo editor. La etiqueta de un mensaje se escribe al ancho al que
+  se ajusta y crece hacia abajo ([diagramas de secuencia](#diagramas-de-secuencia)).
 
 ### Disposiciones automática y asistida
 
@@ -412,7 +413,8 @@ como en todas partes. Tab después del último elemento sale del lienzo.
 | P, A, G                                                                   | Secuencia: crear un participante o un actor a la derecha, o un grupo                                                                                     |
 | O, F                                                                      | Secuencia: una nota sobre la selección; un fragmento alrededor de los eventos seleccionados                                                              |
 | Alt+Arriba, Alt+Abajo                                                     | Secuencia: mover el evento seleccionado antes o después de su vecino                                                                                     |
-| Alt+A                                                                     | Secuencia: activar el receptor después del mensaje seleccionado, o deshacerlo                                                                            |
+| T                                                                         | Secuencia: agregar una marca al mensaje seleccionado, si no al participante seleccionado, y escribirla en su píldora                                     |
+| Alt+A                                                                     | Secuencia: activar el receptor después del mensaje seleccionado, o deshacerlo (el botón **Activar**)                                                     |
 | Alt+N                                                                     | Secuencia: anidar los eventos seleccionados en el bloque de la llamada que los precede                                                                   |
 | Alt+Mayús+N                                                               | Secuencia: sacar detrás de ella los eventos de la llamada seleccionada, o de la llamada que rodea a la selección                                         |
 | Alt+R                                                                     | Secuencia: agregar un `return` al final del bloque de la llamada seleccionada, o de la llamada que rodea a la selección                                  |
@@ -464,6 +466,12 @@ estilo (`--mdg-motion-fast` 120 ms, `--mdg-motion` 160 ms, `--mdg-motion-slow` 2
   tiradores de una línea que se edita también siguen al puntero sin suavizado.
 - **Alineación del texto.** El resaltado de la celda presionada se desliza hasta la celda elegida
   en 120 ms, y una celda se reduce al 98 % mientras se presiona, como las muestras.
+- **Marcas y barras de secuencia.** Una píldora nueva aparece con un pequeño salto junto con su
+  editor en 160 ms, y una que se quita se desvanece en 120 ms. Una barra bajo el puntero muestra su
+  contorno en 120 ms; los tiradores de una barra seleccionada aparecen con un fundido y una escala
+  en 120 ms, se deslizan de fila en fila en 120 ms mientras se arrastran y se vuelven `danger` en el
+  mismo tiempo sobre una fila rechazada. El editor de una etiqueta ajustada toma cada línea nueva
+  al instante.
 
 Cuando el sistema pide movimiento reducido (`prefers-reduced-motion: reduce`), todas las duraciones
 son cero y nada sube, se desliza ni cambia de escala.
@@ -868,18 +876,32 @@ coordenadas.
 
 - **Paleta.** Participante (P), actor (A), los demás tipos de participante en **Más
   participantes**, mensaje (C, o arrastrar desde el tirador de conexión de una cabecera), nota (O),
-  fragmento (F, que pide el operador), separador y retraso, y grupo. Un participante se coloca donde
+  fragmento (F, que pide el operador), separador y retraso, grupo, **Marca** (T) y **Activar**
+  ("Activar el receptor (Alt+A)", una línea de vida con una barra). Un participante se coloca donde
   se suelta entre los demás; las notas, los separadores y los retrasos van después del evento
-  seleccionado, o al final.
+  seleccionado, o al final. **Marca** y **Activar** actúan sobre el mensaje o el participante
+  seleccionado y se desactivan sin uno; un lienzo de solo lectura y el modo historia los ocultan.
+- **Etiquetas de los mensajes.** La etiqueta de un mensaje se queda en una línea y separa a sus
+  participantes; cuando se arrastra una cabecera para acercarla (un `gap` negativo) o el
+  espaciado del diagrama es menor que el predeterminado, se ajusta al espacio que queda entre sus
+  dos líneas de vida, en el lienzo como en todas las exportaciones. Haz doble clic en ella, o pulsa
+  Entrar o F2, para escribirla. Donde se ajusta, el editor es exactamente tan ancho como ese
+  espacio con el zoom, ajusta el texto ahí con la fuente de la etiqueta, mantiene su primera línea
+  donde se dibuja la primera línea de la etiqueta y crece hacia abajo a medida que se agregan
+  líneas; en los demás casos crece en una línea, como lo hará la etiqueta. Mayús+Entrar escribe
+  `\n`, Entrar guarda el texto y Esc no escribe nada. La etiqueta de una autollamada se escribe en
+  una línea junto a su bucle, como antes.
 - **Cabeceras.** Un participante, una base de datos, una colección o una cola se seleccionan, se
   resaltan, pulsan y editan sobre la caja con la que se dibujan, abajo en la fila de cabeceras,
   haya o no un actor en el diagrama; un actor y las demás figuras, sobre su figura y su nombre.
 - **Arrastrar.** Arrastra una cabecera más allá del centro de un vecino para reordenar el
   participante; ningún mensaje cambia. Un arrastre más corto escribe la distancia arrastrada como
   su **Separación antes** (`gap`), negativa hacia la izquierda, nunca menor que 0 en el primer
-  participante; un arrastre de menos de 3 píxeles no escribe nada. La línea de estado dice la
-  separación escrita y, cuando las cabeceras o las etiquetas entre ellas necesitan más lugar del que
-  deja, también la cantidad dibujada. Arrastra un mensaje, una nota o un fragmento hacia abajo para
+  participante; un arrastre de menos de 3 píxeles no escribe nada. Las etiquetas entre las dos
+  cabeceras se ajustan al espacio más estrecho, así que la cabecera queda donde se suelta. La línea
+  de estado dice la separación escrita y, cuando las cabeceras, la palabra más larga de una etiqueta
+  o las marcas de un mensaje entre ellas necesitan más lugar del que deja, también la cantidad
+  dibujada. Arrastra un mensaje, una nota o un fragmento hacia abajo para
   agregar `space` encima, o hacia arriba para quitarlo; se detiene en su vecino, así que un
   arrastre nunca reordena eventos, y una llamada se mueve con su bloque. Con Alt se arrastra sin la
   cuadrícula.
@@ -888,9 +910,32 @@ coordenadas.
   fragmento o de la llamada cuando está en su borde. Un movimiento que desactivaría un participante
   que no está activo, que rompería un ciclo de vida o que dejaría un `return` fuera de su llamada se
   rechaza indicando el motivo.
-- **Activaciones.** Alt+A sobre un mensaje seleccionado activa su receptor (o el participante
-  seleccionado) justo después y lo desactiva tras su respuesta; si se repite, quita el par. Una
-  llamada cuyo bloque contiene eventos ya activa a su receptor, así que Alt+A la rechaza.
+- **Activaciones.** Alt+A o **Activar** sobre un mensaje seleccionado activa su receptor (o el
+  participante seleccionado) justo después y lo desactiva tras su respuesta; si se repite, quita el
+  par. El botón queda pulsado mientras el receptor del mensaje seleccionado está activado después
+  de él. Una llamada cuyo bloque contiene eventos ya activa a su receptor: el botón queda pulsado, y
+  Alt+A y el botón la rechazan indicando el motivo en la línea de estado.
+- **Barras de activación.** Un clic en una barra escrita selecciona su `activate`: el contorno es
+  la barra, y la línea de estado nombra el participante y los mensajes que abarca la barra, o "hasta
+  el final" para una barra que ningún `deactivate` termina. Una barra seleccionada muestra un
+  tirador encima de su parte superior y otro debajo de su parte inferior. Arrastra uno hasta otra
+  fila de eventos: se ajusta a la fila bajo el puntero, el dibujo muestra el nuevo extremo de la
+  barra antes de soltar, y al soltar el `activate` o el `deactivate` pasa justo detrás del evento de
+  esa fila (el tirador de arriba en una llamada con bloque va antes del primer evento del bloque, y
+  el tirador de abajo de una barra abierta escribe su `deactivate`). Un extremo que las reglas del
+  orden rechazan pone el tirador del color `danger` del tema y dice el motivo en la línea de estado,
+  y al soltar no se escribe nada. Supr, Retroceso y **Quitar la activación** en el menú contextual
+  de la barra quitan el `activate` y su `deactivate` en un solo paso de deshacer. La barra que
+  dibuja el bloque de una llamada selecciona la llamada, sin tiradores: el bloque decide lo que
+  abarca. Un lienzo de solo lectura selecciona las barras y no muestra tiradores.
+- **Marcas.** T o **Marca** agrega `tag "Marca"` (la palabra en el idioma de la interfaz) al
+  mensaje seleccionado, si no al participante seleccionado, y abre el editor sobre la nueva
+  píldora: escribe la palabra y pulsa Entrar. Sin nada que marcar seleccionado, T no escribe nada y
+  la línea de estado pide seleccionar un mensaje o un participante. Un clic en una píldora
+  selecciona a su dueño, y un arrastre arrastra al dueño. Haz doble clic en una píldora para
+  editarla en su sitio, con su fuente, su tamaño y su color; vaciarla quita la marca, y el bloque
+  cuando no queda nada más en él. El menú contextual de la píldora ofrece **Editar la marca** y
+  **Quitar la marca**. En un diagrama de flujo, T sigue creando una marca de flujo.
 - **Bloques de llamada.** Alt+N (**Anidar en la llamada**) mueve los eventos seleccionados al bloque
   de la llamada que los precede, y crea el bloque; luego queda seleccionada la llamada, y Alt+R
   (**Devolver a quien llama**) agrega un `return` al final de su bloque. Alt+Mayús+N (**Desanidar la
@@ -900,14 +945,20 @@ coordenadas.
   contextual ofrece las tres después de **Activar el receptor**.
 - **Flechas.** Izquierda y Derecha intercambian el participante seleccionado con su vecino; Arriba y Abajo
   cambian el espacio encima del mensaje, la nota o el fragmento seleccionados.
-- **Inspector.** Mensajes: **Mensaje** (llamada, respuesta, asíncrono), **Espacio antes** y
-  **Espacio después**; un `return` muestra **Mensaje** como `return`, con **Origen** y **Destino**, de
-  solo lectura, porque vienen de su llamada. Notas: **Texto**, **Posición**, los participantes,
-  **Espacio antes** y **Espacio después**. Fragmentos: **Operador**, una **Condición** por rama,
-  **Espacio antes** y **Espacio después**. Participantes: **Tipo**, **Separación antes** y
-  **Separación después**, negativas para acercarlos salvo en el lado exterior del primero y del
-  último. El diagrama: **Numerar los mensajes desde** (`autonumber`) y **Separación entre
-  participantes** (`spacing`, 40 cuando está vacío).
+- **Inspector.** Mensajes: **Mensaje** (llamada, respuesta, asíncrono), **Espacio antes**,
+  **Espacio después**, **Activa el receptor** y **Marcas**; un `return` muestra **Mensaje** como
+  `return`, con **Origen** y **Destino**, de solo lectura, porque vienen de su llamada, y sin
+  **Activa el receptor**. Notas: **Texto**, **Posición**, los participantes, **Espacio antes** y
+  **Espacio después**. Fragmentos: **Operador**, una **Condición** por rama, **Espacio antes** y
+  **Espacio después**. Participantes: **Tipo**, **Separación antes** y **Separación después**,
+  negativas para acercarlos salvo en el lado exterior del primero y del último, y **Marcas**. El
+  diagrama: **Numerar los mensajes desde** (`autonumber`) y **Separación entre participantes**
+  (`spacing`, 40 cuando está vacío). **Activa el receptor** es una casilla que escribe o quita el
+  par `activate`/`deactivate` del receptor después del mensaje; en una llamada cuyo bloque activa
+  al receptor está marcada y es de solo lectura, con el motivo debajo. **Marcas** enumera un campo
+  por marca, que la reescribe y, vacío, la quita, cada uno con un botón **Quitar**, y un campo
+  vacío cuyo texto agrega una marca al final; una marca vacía o repetida se rechaza indicando el
+  motivo.
 - **Escenarios.** Cuando el diagrama tiene escenarios, la barra de herramientas los ofrece junto a
   **Todos los eventos**. Elegir uno muestra una vista previa de ese camino, de solo lectura; elige
   **Todos los eventos** para volver a editar. **Exportar SVG** pregunta por "Todos los eventos" o un
@@ -915,11 +966,13 @@ coordenadas.
 - **Funciones del lenguaje.** El autocompletado conoce las instrucciones de secuencia, los
   participantes después de las flechas y en los eventos, las posiciones de las notas, los
   fragmentos y sus condiciones en los escenarios, `kind async`, `return` y los eventos en el bloque
-  de una llamada, `before` y `after` después de la cantidad de `space` y `gap`, y `spacing`. La
-  información al pasar el puntero describe eventos y escenarios, un `return` como la respuesta a su
-  llamada y la llamada de un evento anidado; ir a la definición, las referencias y cambiar el nombre
-  siguen los ids de notas y fragmentos; las correcciones rápidas declaran un participante
-  desconocido y quitan un `deactivate` sobrante.
+  de una llamada, `tag` en los bloques de los mensajes y los participantes (nunca en el bloque de un
+  grupo ni en un fragmento), `before` y `after` después de la cantidad de `space` y `gap`, y
+  `spacing`. La información al pasar el puntero describe eventos y escenarios, un `return` como la
+  respuesta a su llamada, la llamada de un evento anidado y una marca como una marca de su mensaje
+  o de su participante; ir a la definición, las referencias y cambiar el nombre siguen los ids de
+  notas y fragmentos; las correcciones rápidas declaran un participante desconocido y quitan un
+  `deactivate` sobrante.
 
 ## Vistas C4
 

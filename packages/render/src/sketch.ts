@@ -35,6 +35,7 @@ const SKETCHED: ReadonlySet<SceneRole> = new Set<SceneRole>([
   "frame",
   "lifeline",
   "event",
+  "tag",
 ]);
 
 /** A turn sharper than this, in radians, is a corner the samples keep. */
@@ -45,12 +46,12 @@ const FLATTEN = 2;
 
 /**
  * The items of a scene with every stroke painted by hand: each stroked `rect`, `path` and
- * `polyline` of a group whose role is `element`, `relation`, `label`, `frame`, `lifeline` or
- * `event` becomes its fill alone (when it has one) followed by two stroke-only paths, its outline
+ * `polyline` of a group whose role is `element`, `relation`, `label`, `frame`, `lifeline`, `event`
+ * or `tag` becomes its fill alone (when it has one) followed by two stroke-only paths, its outline
  * sampled every 16 px (`light`) or 12 px (`rough`) and each sample moved along the outline's
  * normal by at most 0.6 px or 1.4 px. The jitter comes from a pseudo-random sequence seeded by the
- * group's id and the pass, so the same text paints the same bytes and an edit elsewhere leaves a
- * shape's wobble alone. Text, images, icons, gradient strokes and invisible overlays are kept, and
+ * group's id (with its index for a tag, whose group carries its owner's id) and the pass, so the
+ * same text paints the same bytes and an edit elsewhere leaves a shape's wobble alone. Text, images, icons, gradient strokes and invisible overlays are kept, and
  * so are pen strokes (`GroupItem.freehand`), whole.
  */
 export function sketchItems(items: readonly SceneItem[], level: SketchLevel): SceneItem[] {
@@ -60,7 +61,9 @@ export function sketchItems(items: readonly SceneItem[], level: SketchLevel): Sc
 function sketchGroup(group: GroupItem, level: SketchLevel): GroupItem {
   // A pen stroke is drawn by hand already: jittered twice, it would be another drawing.
   if (!SKETCHED.has(group.role) || group.freehand) return group;
-  const passes = [random(hash(`${group.id}\u0000${0}`)), random(hash(`${group.id}\u0000${1}`))];
+  // The pills of one owner carry its id: each wobbles its own way.
+  const seed = group.tag === undefined ? group.id : `${group.id}\u0000tag\u0000${group.tag}`;
+  const passes = [random(hash(`${seed}\u0000${0}`)), random(hash(`${seed}\u0000${1}`))];
   const items: SceneItem[] = [];
   for (const item of group.items) {
     if (item.kind === "group") {

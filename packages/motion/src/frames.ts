@@ -88,9 +88,15 @@ export function traceAt(effect: MotionEffect, phase: number): SceneItem[] {
   ];
 }
 
-/** The items of a relation's group with `extra` inserted before its label, so the label stays on top. */
+/**
+ * The items of a relation's group with `extra` inserted before its label and the pills of its
+ * tags (a sequence message's, drawn after the label), whichever comes first, so that they stay on
+ * top: a message without a label still has its pills over the particles.
+ */
 export function beforeLabel(items: readonly SceneItem[], extra: readonly SceneItem[]): SceneItem[] {
-  const label = items.findIndex((i) => i.kind === "group" && i.role === "label");
+  const label = items.findIndex(
+    (i) => i.kind === "group" && (i.role === "label" || i.role === "tag"),
+  );
   const at = label < 0 ? items.length : label;
   return [...items.slice(0, at), ...extra, ...items.slice(at)];
 }

@@ -1,7 +1,10 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createNodeFontLibrary } from "@meltemi/diagrams-fonts/node";
-import { layoutDiagram, type Scene } from "@meltemi/diagrams-layout";
+import { THEMES, layoutDiagram, type Scene } from "@meltemi/diagrams-layout";
 import { compile } from "@meltemi/diagrams-model";
+import { CORPUS_ROOT } from "../../../test-support/corpus.js";
 import { escapeXml, renderSvg } from "../src/index.js";
 
 function render(text: string): string {
@@ -371,6 +374,56 @@ describe("layers", () => {
     expect(svg).toContain(
       `<g data-id="api" data-role="element" transform="rotate(45 ${r(300 + x)} ${r(120 + y)})">`,
     );
+  });
+});
+
+describe("sequence diagrams", () => {
+  const sequence = (theme: string) =>
+    `diagram s: sequence {\n  theme "${theme}"\n  participant api "API"\n  participant bank "Bank" { tag "external" }\n  api -> bank: "Authorize" as authorize {\n    tag "PKCE"\n    tag "v2"\n  }\n}\n`;
+
+  it("mark each tag's group with its owner and its index", () => {
+    const svg = render(sequence("technical.light"));
+    expect(svg.match(/<g data-id="[^"]+" data-role="tag"[^>]*>/g)).toEqual([
+      '<g data-id="authorize" data-role="tag" data-tag="0">',
+      '<g data-id="authorize" data-role="tag" data-tag="1">',
+      '<g data-id="bank" data-role="tag" data-tag="0">',
+    ]);
+    // Only tags carry it.
+    expect(svg.match(/data-tag=/g)).toHaveLength(3);
+  });
+
+  it("draw a written activation bar in its own group inside the lifeline, the rectangle unchanged", () => {
+    const text = readFileSync(join(CORPUS_ROOT, "valid", "sequence", "payment.meltemi"), "utf8");
+    const compilation = compile(text);
+    const result = layoutDiagram(compilation, compilation.document.diagrams[0]!, {
+      theme: "technical.light",
+    });
+    const svg = renderSvg(result.scene!);
+    const box = result.boxes!.get("activate#1")!;
+    const x = box.x + result.offset!.x;
+    const y = box.y + result.offset!.y;
+    const light = THEMES["technical.light"]!;
+    expect(svg).toMatch(
+      new RegExp(
+        `<g data-id="api" data-role="lifeline">\\n\\s*<polyline [^>]*/>\\n\\s*<g data-id="activate#1" data-role="event">\\n\\s*<rect x="${x}" y="${y}" width="10" height="${box.height}" rx="0" fill="${light.surface}" stroke="${light.muted}" stroke-width="${light.strokeWidth}"/>\\n\\s*</g>\\n\\s*</g>`,
+      ),
+    );
+  });
+
+  it("sketch a tag's pill in two passes of its own, its text unchanged", () => {
+    const sketched = render(sequence("sketch.light"));
+    const pills = sketched.match(/<g data-id="authorize" data-role="tag"[^>]*>[^]*?<\/g>/g)!;
+    expect(pills).toHaveLength(2);
+    const passes = pills.map((pill) => pill.match(/<path d="M[^"]+" fill="none"[^>]*>/g)!);
+    for (const pass of passes) expect(pass).toHaveLength(2);
+    // The two pills of one owner wobble each their own way.
+    expect(passes[0]![0]!.replace(/d="[^"]+"/, "")).toBe(passes[1]![0]!.replace(/d="[^"]+"/, ""));
+    expect(passes[0]![0]).not.toBe(passes[1]![0]);
+    const texts = (svg: string) =>
+      svg
+        .match(/<g data-id="authorize" data-role="tag"[^>]*>[^]*?<\/g>/g)!
+        .map((pill) => pill.match(/<text[^]*?<\/text>/)![0]);
+    expect(texts(sketched).map((t) => />([^<]+)<\/text>/.exec(t)![1])).toEqual(["PKCE", "v2"]);
   });
 });
 

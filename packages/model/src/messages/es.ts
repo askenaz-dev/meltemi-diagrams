@@ -158,6 +158,7 @@ export const es: typeof en = {
       names: "uno o más nombres",
       link: "una referencia `<diagram>.<element>`",
       url: 'una URL entre comillas como "https://example.com"',
+      tag: 'una línea de texto entre comillas como "PKCE"',
     },
     noteForm:
       '`note [<id>] over <p>[, <p>] "Text"`, `note [<id>] left of <p> "Text"` o `note [<id>] right of <p> "Text"`',
@@ -448,6 +449,9 @@ export const es: typeof en = {
       afterReturn: (call) => `\`${call}\` ya respondió; mueve este evento antes del \`return\`.`,
       activeForCall: (participant, call) =>
         `\`${participant}\` está activo durante la llamada \`${call}\`; su barra termina con el bloque.`,
+      tagOneLine:
+        "Una marca es una línea de texto; no puede estar vacía ni contener un salto de línea.",
+      tagRepeated: (text) => `La marca "${text}" ya está escrita en este bloque.`,
       divider: 'Se esperaba `divider "Label"`.',
       delay: 'Se esperaba `delay` o `delay "Label"`.',
       noteSide: (position) => `Se esperaba \`${position} of <participant>\`.`,
@@ -722,6 +726,10 @@ export const es: typeof en = {
       declareParticipant: (id) => `Decláralo primero, por ejemplo \`participant ${id} "${id}"\`.`,
       fragmentContents:
         "Los fragmentos contienen mensajes, los demás eventos y fragmentos anidados.",
+      tagPlace:
+        'Una marca va en el bloque de un mensaje o de un participante, como `api -> bank: "Authorize" { tag "PKCE" }` o `participant bank "Bank" { tag "external" }`.',
+      messageBlock: (properties, events) =>
+        `Los bloques de mensaje aceptan ${list("es", properties.map(code))}; el bloque de una llamada también contiene mensajes y los eventos ${list("es", events.map(code))}.`,
       returnInCall: 'Escríbelo dentro del bloque de la llamada: `a -> b: "Pagar" { return "OK" }`.',
       activate: (participant) =>
         `Agrega \`activate ${participant}\` antes o quita este \`deactivate\`.`,

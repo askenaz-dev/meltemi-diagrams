@@ -93,7 +93,7 @@ import {
 } from "./free.js";
 import { layoutSequence } from "./sequence.js";
 import { IconPainter } from "./icons.js";
-import { brandFrame } from "./frame.js";
+import { brandFrame, textItem } from "./frame.js";
 import { markGradient } from "./mark.js";
 import {
   strokeDash,
@@ -187,13 +187,30 @@ export interface LayoutResult {
   readonly diagnostics: readonly Diagnostic[];
   /**
    * Boxes of the elements and groups in diagram coordinates, where `place` statements live, when
-   * there is a scene. The scene itself is moved to make room for margins and the frame.
+   * there is a scene. The scene itself is moved to make room for margins and the frame. Sequence
+   * diagrams add their notes, fragments and written activation bars by event key.
    */
   readonly boxes?: ReadonlyMap<string, Box>;
   /** Scene coordinates minus diagram coordinates, when there is a scene. */
   readonly offset?: Point;
   /** Label pills of the relations that have one, by relation key, in diagram coordinates. */
   readonly labels?: ReadonlyMap<string, Box>;
+  /**
+   * Sequence diagrams: how the label of every message is drawn, by message key, in diagram
+   * coordinates: the room it wraps in and the lines it wrapped to, which editors that type over it
+   * take so that their text wraps as the drawing's does. A message's block is in `labels`.
+   */
+  readonly messageTexts?: ReadonlyMap<string, MessageText>;
+  /**
+   * Sequence diagrams: every activation bar, by the key of the `activate` that opens it or of the
+   * call whose block draws it, in diagram coordinates. A written bar's box is also in `boxes`.
+   */
+  readonly bars?: ReadonlyMap<string, BarGeometry>;
+  /**
+   * Sequence diagrams: the pills of the tags of every message and participant that has some, by
+   * message key or participant id, in source order, in diagram coordinates.
+   */
+  readonly tags?: ReadonlyMap<string, readonly Box[]>;
   /** The route of every relation, by relation key, in diagram coordinates. */
   readonly connectors?: ReadonlyMap<string, ConnectorGeometry>;
   /**
@@ -312,6 +329,51 @@ export interface StickyText {
    * drawn from the area's top at that size, clipped to the card, and `layout.text-overflow` says so.
    */
   readonly fits: boolean;
+}
+
+/** How the label of a sequence message is drawn, for editors. */
+export interface MessageText {
+  /**
+   * The room the label wraps in: the top and height of its block of lines, and the distance
+   * between the two lifelines less 24 (and the number disc's 22 under `autonumber`) wide, centred
+   * on the block. A self-call's label does not wrap: its room is its block, beside the loop.
+   */
+  readonly area: Box;
+  /**
+   * The lines as drawn: the label broken at `\n`, and wrapped at spaces where the area is
+   * narrower than a line; a self-call's broken at `\n` only. Empty when the message has no label.
+   */
+  readonly lines: readonly string[];
+  /** The font size of the lines: the theme's relation label size, at weight 400. */
+  readonly size: number;
+  /** The distance between two lines: 1.25 times the size. */
+  readonly line: number;
+  /**
+   * Whether the label wraps at the area's width: true when a pull (a negative `gap`, a `spacing`
+   * below the default) brings a pair of columns between its two lifelines closer than the label
+   * held them, so the room caps it; false for a self-call and for a message whose columns are at
+   * their natural distance, whose label pushes them apart on one line instead.
+   */
+  readonly wraps: boolean;
+}
+
+/** Where an activation bar of a sequence diagram is drawn, for editors. */
+export interface BarGeometry {
+  /** The participant whose lifeline the bar stands on. */
+  readonly participant: string;
+  /** The bar's rectangle. */
+  readonly box: Box;
+  /** How many bars of the participant are open under it: 0 for the outermost. */
+  readonly depth: number;
+  /** The key of the `activate` that opens the bar, or of the call whose block draws it. */
+  readonly from: string;
+  /**
+   * The key of the `deactivate` that closes the bar; null for a bar open to the end of the
+   * lifeline (or to its `destroy`) and for the bar of a call's block.
+   */
+  readonly to: string | null;
+  /** Whether a call's block draws the bar, rather than an `activate` statement. */
+  readonly block: boolean;
 }
 
 /** The smallest size a sticky's text shrinks to before it is clipped to its card. */
@@ -510,6 +572,71 @@ export function typeScale(theme: Theme): TypeScale {
     frameTitle: Math.round(((theme.frameSize * 11) / 12) * 2) / 2,
     frameHeight: Math.round((theme.frameSize * 44) / 12),
     frameMark: Math.round(theme.frameSize * 2),
+  };
+}
+
+/**
+ * The width of a tag's pill: its text in the mono font at `tagSize`, weight 500, with `beside`
+ * more for an icon, plus `tagPadding`. A pill is `tagHeight` high. Flow tags and the tags of
+ * sequence messages and participants are measured alike.
+ */
+export function tagPillWidth(
+  metrics: TextMetrics,
+  scale: TypeScale,
+  text: string,
+  beside = 0,
+): number {
+  return Math.ceil(metrics.width(text, "mono", 500, scale.tag) + beside + scale.tagPadding);
+}
+
+/** How a tag's pill is painted: the theme's `tag` and `tagText` unless a flow style says otherwise. */
+export interface TagPaint {
+  readonly fill: string;
+  readonly stroke: string;
+  readonly strokeWidth: number;
+  readonly dashed: StrokeDash;
+  /** The text's colour. */
+  readonly color: string;
+}
+
+/**
+ * A tag's pill in `box`, in scene coordinates: its outline, as round as its shorter side allows
+ * (upright when the tag is taller than wide), and its text centred on it in the mono font at
+ * `tagSize`, weight 500. Flow tags and the tags of sequence messages and participants are drawn
+ * alike.
+ */
+export function tagPill(
+  metrics: TextMetrics,
+  scale: TypeScale,
+  box: Box,
+  text: string,
+  paint: TagPaint,
+): { readonly outline: RectItem; readonly label: TextItem } {
+  const center = boxCenter(box);
+  return {
+    outline: {
+      kind: "rect",
+      x: round(box.x),
+      y: round(box.y),
+      width: round(box.width),
+      height: round(box.height),
+      radius: cornerRadius(Infinity, box),
+      fill: paint.fill,
+      stroke: paint.stroke,
+      strokeWidth: paint.strokeWidth,
+      dashed: paint.dashed,
+    },
+    label: textItem(
+      metrics,
+      center.x,
+      center.y,
+      text,
+      scale.tag,
+      500,
+      paint.color,
+      "middle",
+      "mono",
+    ),
   };
 }
 
@@ -4456,7 +4583,7 @@ class Sizing {
         const width = metrics.width(element.label, "mono", 500, scale.tag) + beside;
         return {
           text: element.label,
-          width: Math.ceil(width + scale.tagPadding),
+          width: tagPillWidth(metrics, scale, element.label, beside),
           minimum: Math.ceil(width + 2 * MIN_TEXT_MARGIN),
         };
       }
@@ -5453,16 +5580,15 @@ class Emitter {
     const style = this.styles.element(element);
     const fill = style.fill ?? theme.tag;
     const center = boxCenter(box);
-    // A pill, upright when the tag is taller than wide.
-    const outline = this.rect(
-      box,
-      cornerRadius(Infinity, box),
-      fill,
-      style.stroke ?? fill,
-      style.width ?? theme.strokeWidth,
-      strokeDash(style.line),
-    );
     const color = style.color ?? theme.tagText;
+    // The pill sequence tags share, upright when the tag is taller than wide.
+    const { outline, label } = tagPill(this.metrics, scale, box, element.label, {
+      fill,
+      stroke: style.stroke ?? fill,
+      strokeWidth: style.width ?? theme.strokeWidth,
+      dashed: strokeDash(style.line),
+      color,
+    });
     const items: SceneItem[] = [outline, ...this.overlay(style, outline)];
     const icon = this.sizing.iconOf(element);
     if (icon) {
@@ -5482,9 +5608,7 @@ class Emitter {
         ),
       );
     } else {
-      items.push(
-        this.text(center.x, center.y, element.label, scale.tag, 500, color, "middle", "mono"),
-      );
+      items.push(label);
     }
     return { kind: "group", id: element.id, role: "element", items };
   }

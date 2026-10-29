@@ -1,5 +1,5 @@
 {
-  "description": "Spacing, gaps and label offsets never change the order of the messages.",
+  "description": "Spacing, gaps, label offsets, tags and activations never change the order of the messages.",
   "sheet": "sequence/parallel.meltemi",
   "steps": [
     {
@@ -45,6 +45,74 @@
       },
       "changed": [
         "label reserved1"
+      ],
+      "order": "parallel"
+    },
+    {
+      "name": "tag a message",
+      "operation": {
+        "kind": "addTag",
+        "diagram": "parallel",
+        "target": "reserve1",
+        "targetKind": "relation",
+        "text": "idempotent"
+      },
+      "changed": [
+        "^\\s*store -> inventory: \"Reserve item 1\" as reserve1( \\{ tag \"idempotent\" \\})?$"
+      ],
+      "present": [
+        "as reserve1 \\{ tag \"idempotent\" \\}\\n"
+      ],
+      "order": "parallel"
+    },
+    {
+      "name": "tag a participant",
+      "operation": {
+        "kind": "addTag",
+        "diagram": "parallel",
+        "target": "inventory",
+        "targetKind": "element",
+        "text": "external"
+      },
+      "changed": [
+        "^\\s*participant inventory \"Inventory\"( \\{ tag \"external\" \\})?$"
+      ],
+      "present": [
+        "participant inventory \"Inventory\" \\{ tag \"external\" \\}\\n"
+      ],
+      "order": "parallel"
+    },
+    {
+      "name": "activate the receiver",
+      "operation": {
+        "kind": "toggleActivation",
+        "diagram": "parallel",
+        "participant": "inventory",
+        "after": "reserve1"
+      },
+      "changed": [
+        "^\\s*activate inventory$",
+        "^\\s*deactivate inventory$"
+      ],
+      "present": [
+        "as reserve1 \\{ tag \"idempotent\" \\}\\n\\s*activate inventory\\n",
+        "as reserved1\\n\\s*deactivate inventory\\n"
+      ],
+      "order": "parallel"
+    },
+    {
+      "name": "remove the activation with its end",
+      "operation": {
+        "kind": "removeEvent",
+        "diagram": "parallel",
+        "event": "activate#1"
+      },
+      "changed": [
+        "^\\s*activate inventory$",
+        "^\\s*deactivate inventory$"
+      ],
+      "absent": [
+        "(de)?activate inventory"
       ],
       "order": "parallel"
     }

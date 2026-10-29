@@ -6,3 +6,12 @@ diagram broken: flow {
   }
   shape rounded
 }
+
+// A tag outside the block of a message or a participant of a sequence diagram.
+diagram tagged: sequence {
+  participant client "Client"
+  participant api "API"
+
+  tag "PKCE"
+  client -> api: "Pay" as pay
+}

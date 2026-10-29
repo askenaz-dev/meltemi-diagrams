@@ -28,6 +28,13 @@ delay "Two days later"
 autonumber                             // numbers every message from 1 (autonumber 10: from 10)
 ```
 
+A message label stays on one line and holds its two participants apart as far as it needs; a
+negative `gap` or a `spacing` below 40 pulls them closer than that by its amount, and the label then
+wraps at the room left between the lifelines, a taller row instead of a refused gap. Keep labels as
+sentences and never shorten them to fit. Write `\n` only for a break of your own
+(`"Authorize\nthe card"`). A self-call's label stays on one line beside its loop, broken only at
+`\n`. A pull stops where the heads or a label's longest word no longer fit.
+
 When a call causes other events, write them in the call's block and answer it with `return`: the
 receiver is active for the whole block (one bar, no `activate`/`deactivate` to balance), and
 `return` is the dashed reply to the caller.
@@ -44,6 +51,23 @@ customer -> api: "Pay" as pay {
 
 A block may hold properties (`kind async`) beside its events, fragments may sit inside it and
 calls with blocks inside fragments. `return` outside a call is an error.
+
+## Tags
+
+```text
+participant bank "Bank" { tag "external" }   // a badge over the head
+api -> bank: "Authorize" as authorize {
+  tag "PKCE"                                 // pills on the arrow, next to the source
+  tag "v2"
+}
+```
+
+`tag "Text"` marks a message (calls, replies, self-calls, `return`) or a participant with a short
+word: a protocol, a version, a property. Write it in the owner's block, one line of text, several
+in order, no id; in a call's block it belongs to the call, beside its events. Never write it at
+the diagram level, in a group block or in a fragment (`prop.unknown`), never empty, and never the
+same text twice on one owner (`prop.duplicate`). `tag <id> "Text"` is the flow profile's pill and
+is refused here. Tags take the theme's `tag` colours; there is no `style` or `rule` for them.
 
 ## Fragments
 
@@ -87,7 +111,7 @@ placement {
   space settled 20 after    // or below it (the last event lengthens the lifelines)
   gap bank 40               // more room left of a participant
   gap ledger 24 after       // or right of it
-  gap api -12               // a negative gap brings it closer, down to what the heads need
+  gap api -12               // a negative gap brings it closer, its labels wrapping, down to the heads
   label pay at 50% offset (0, -4)
 }
 style result { stroke accent }   // notes and fragments with ids take styles
@@ -101,11 +125,12 @@ rule fragment { stroke muted }
 | `sequence.activation` | `deactivate p` without an open `activate p`: add the `activate` or remove it |
 | `sequence.return`     | `return` outside a call's block, or an event after the `return`: move it     |
 | `sequence.lifecycle`  | an event after `destroy`, `create` after the participant appeared, or twice  |
-| `layout.gap-floor`    | (warning) a negative `gap` the heads or labels do not allow: drawn wider     |
-| `prop.invalid-value`  | a negative `gap` before the first participant or after the last, or `space`  |
+| `layout.gap-floor`    | (warning) a negative `gap` below what heads, words or tags need: drawn wider |
+| `prop.invalid-value`  | a negative `gap` on the outer side, or `space`; `tag ""` or `tag id "x"`     |
+| `prop.duplicate`      | the same `tag` text twice in one block                                       |
 | `sequence.scenario`   | the scenario names an unknown fragment, branch or loop count                 |
 | `ref.unknown-element` | declare the participant (`participant x "X"`); groups are not participants   |
-| `prop.unknown`        | a flow or free kind (`node`, `box`) or a declaration inside a fragment       |
+| `prop.unknown`        | a flow or free kind (`node`), a declaration in a fragment, a stray `tag`     |
 
 Branches of `alt`, `par` and `critical` are checked separately, each from the state before the
 fragment; the first branch's state continues after it. Activations open at the end are fine.

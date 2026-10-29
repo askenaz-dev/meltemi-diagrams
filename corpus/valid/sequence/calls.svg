@@ -12,16 +12,24 @@
   </g>
   <g data-id="api" data-role="lifeline">
     <polyline points="191,80 191,630" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
-    <rect x="186" y="126" width="10" height="338" rx="0" fill="#ffffff" stroke="#5b6570" stroke-width="1"/>
+    <g data-id="pay" data-role="event">
+      <rect x="186" y="126" width="10" height="338" rx="0" fill="#ffffff" stroke="#5b6570" stroke-width="1"/>
+    </g>
   </g>
   <g data-id="bank" data-role="lifeline">
     <polyline points="331,80 331,630" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
-    <rect x="326" y="162" width="10" height="72" rx="0" fill="#ffffff" stroke="#5b6570" stroke-width="1"/>
-    <rect x="326" y="534" width="10" height="36" rx="0" fill="#ffffff" stroke="#5b6570" stroke-width="1"/>
+    <g data-id="authorize" data-role="event">
+      <rect x="326" y="162" width="10" height="72" rx="0" fill="#ffffff" stroke="#5b6570" stroke-width="1"/>
+    </g>
+    <g data-id="status" data-role="event">
+      <rect x="326" y="534" width="10" height="36" rx="0" fill="#ffffff" stroke="#5b6570" stroke-width="1"/>
+    </g>
   </g>
   <g data-id="ledger" data-role="lifeline">
     <polyline points="483,80 483,630" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
-    <rect x="478" y="302" width="10" height="36" rx="0" fill="#ffffff" stroke="#5b6570" stroke-width="1"/>
+    <g data-id="record" data-role="event">
+      <rect x="478" y="302" width="10" height="36" rx="0" fill="#ffffff" stroke="#5b6570" stroke-width="1"/>
+    </g>
   </g>
   <g data-id="stock" data-role="label">
     <path d="M29.5 252 L60.94 252 L60.94 268 L54.94 274 L29.5 274 Z" fill="#ffffff" stroke="#5b6570" stroke-width="1"/>

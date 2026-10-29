@@ -426,6 +426,44 @@ describe("call blocks and returns", () => {
     ]);
   });
 
+  it("reports an unknown statement in a message block, naming the properties, tag and the events", () => {
+    const { compilation } = sequence('  customer -> api: "Pay" { place api at (1, 2) }');
+    const [d] = compilation.diagnostics;
+    expect(d!.code).toBe("prop.unknown");
+    expect(d!.range.start.column).toBe(28);
+    for (const word of ["kind", "description", "assumption", "class", "tag", "activate", "return"])
+      expect(d!.hints![0]).toContain(`\`${word}\``);
+  });
+
+  it("reads tags and properties in one block, with no events", () => {
+    const { diagram, codes } = sequence(
+      '  api -> bank: "Authorize" as authorize { tag "PKCE"; description "Card check" }',
+    );
+    expect(codes).toEqual([]);
+    const authorize = diagram.relationsByKey.get("authorize")!;
+    expect([authorize.tags.map((t) => t.text), authorize.description]).toEqual([
+      ["PKCE"],
+      "Card check",
+    ]);
+    const event = diagram.eventsByKey.get("authorize")!;
+    expect(event.kind === "message" && event.events).toEqual([]);
+  });
+
+  it("keeps a line break written in a label", () => {
+    const { diagram, codes } = sequence('  api -> bank: "Authorize\\nthe card" as authorize');
+    expect(codes).toEqual([]);
+    expect(diagram.relationsByKey.get("authorize")!.label).toBe("Authorize\nthe card");
+  });
+
+  it("refuses a label position out of range before the layout", () => {
+    const { compilation } = sequence(
+      '  a -> b: "Test" as test\n  placement { label test at 150% offset (0, 0) }',
+    );
+    const [d] = compilation.diagnostics;
+    expect(d!.code).toBe("prop.invalid-value");
+    expect(compilation.parse.text.slice(d!.range.start.offset, d!.range.end.offset)).toBe("150%");
+  });
+
   it("keeps a call's block in a scenario, repeated with the loop around it", () => {
     const { diagram } = sequence(
       '  loop poll "Until ready" {\n    a -> b as ask {\n      return "Not yet" as reply\n    }\n  }\n  scenario twice { repeat poll 2 }',
@@ -436,5 +474,131 @@ describe("call blocks and returns", () => {
     expect(second.key).toBe("ask@2");
     expect(second.kind === "message" && second.events.map((e) => e.key)).toEqual(["reply@2"]);
     expect(flattenEvents(diagram.events).map((e) => e.key)).toEqual(["poll", "ask", "reply"]);
+  });
+});
+
+describe("tags", () => {
+  const texts = (tags: readonly { readonly text: string }[]) => tags.map((t) => t.text);
+  const slice = (compilation: ReturnType<typeof sequence>["compilation"], index = 0) => {
+    const range = compilation.diagnostics[index]!.range;
+    return compilation.parse.text.slice(range.start.offset, range.end.offset);
+  };
+
+  it("reads the tags of a message and a participant in source order, with their ranges", () => {
+    const { compilation, diagram, codes } = sequence(
+      '  participant api\n  participant bank "Bank" { tag "external" }\n  api -> bank: "Authorize" as authorize { tag "PKCE"; tag "v2"; kind async }\n  bank --> api: "OK"',
+    );
+    expect(codes).toEqual([]);
+    expect(texts(diagram.elementsById.get("bank")!.tags)).toEqual(["external"]);
+    const authorize = diagram.relationsByKey.get("authorize")!;
+    expect(texts(authorize.tags)).toEqual(["PKCE", "v2"]);
+    expect(authorize.async).toBe(true);
+    const [pkce] = authorize.tags;
+    const text = compilation.parse.text;
+    expect(text.slice(pkce!.range.start.offset, pkce!.range.end.offset)).toBe('tag "PKCE"');
+    expect(text.slice(pkce!.textRange.start.offset, pkce!.textRange.end.offset)).toBe('"PKCE"');
+    expect(diagram.elementsById.get("api")!.tags).toEqual([]);
+    expect(diagram.relationsByKey.get("bank->api#1")!.tags).toEqual([]);
+  });
+
+  it("makes a tag in a call's block a property of the call, not an event", () => {
+    const { diagram, codes } = sequence(
+      '  customer -> api: "Pay" as pay { tag "idempotent"; api -> bank: "Authorize" as authorize; return "OK" }',
+    );
+    expect(codes).toEqual([]);
+    expect(texts(diagram.relationsByKey.get("pay")!.tags)).toEqual(["idempotent"]);
+    const pay = diagram.eventsByKey.get("pay")!;
+    expect(pay.kind === "message" && pay.events.map((e) => e.key)).toEqual([
+      "authorize",
+      "api->customer#1",
+    ]);
+    // A tag after the call's events is the call's too.
+    const after = sequence('  a -> b as call { b -> c; tag "late" }');
+    expect(after.codes).toEqual([]);
+    expect(texts(after.diagram.relationsByKey.get("call")!.tags)).toEqual(["late"]);
+  });
+
+  it("reads the tags of a return", () => {
+    const { diagram, codes } = sequence(
+      '  a -> b as call {\n    return "Receipt" as receipt { tag "cached" }\n  }',
+    );
+    expect(codes).toEqual([]);
+    expect(texts(diagram.relationsByKey.get("receipt")!.tags)).toEqual(["cached"]);
+  });
+
+  it("refuses an empty tag on its string, saying a tag is one line of text", () => {
+    const { compilation, diagram } = sequence('  a -> b as m { tag "" }');
+    expect(compilation.diagnostics.map((d) => d.code)).toEqual(["prop.invalid-value"]);
+    expect(compilation.diagnostics[0]!.message).toContain("A tag is one line of text");
+    expect(slice(compilation)).toBe('""');
+    expect(diagram.relationsByKey.get("m")!.tags).toEqual([]);
+    // A line break written in the text is refused the same way, and so is a blank text.
+    for (const written of ['"PKCE\\nv2"', '"  "']) {
+      const refused = sequence(`  a -> b { tag ${written} }`).compilation;
+      expect(refused.diagnostics.map((d) => [d.code, slice(refused)])).toEqual([
+        ["prop.invalid-value", written],
+      ]);
+    }
+  });
+
+  it("refuses an id, a number, a second string, a block and a chain, naming the form", () => {
+    const cases: [string, string][] = [
+      ['  participant a { tag t1 "external" }', "t1"],
+      ["  a -> b { tag 12 }", "12"],
+      ['  a -> b { tag "A" "B" }', '"B"'],
+      ["  a -> b { tag }", "tag"],
+      ['  a -> b { tag "A" { } }', "{ }"],
+    ];
+    for (const [body, at] of cases) {
+      const { compilation } = sequence(body);
+      expect(
+        compilation.diagnostics.map((d) => d.code),
+        body,
+      ).toEqual(["prop.invalid-value"]);
+      expect(compilation.diagnostics[0]!.message).toBe('Expected `tag "Text"`.');
+      expect(slice(compilation), body).toBe(at);
+    }
+  });
+
+  it("refuses the same tag twice on one owner, related to the first", () => {
+    const { compilation, diagram } = sequence(
+      '  a -> b as m {\n    tag "PKCE"\n    tag "PKCE"\n  }',
+    );
+    const [d] = compilation.diagnostics;
+    expect(compilation.diagnostics.map((x) => x.code)).toEqual(["prop.duplicate"]);
+    expect(d!.range.start.line).toBe(5);
+    expect(d!.related![0]!.range.start.line).toBe(4);
+    expect(texts(diagram.relationsByKey.get("m")!.tags)).toEqual(["PKCE"]);
+    // The same text on two owners is no repetition.
+    expect(sequence('  participant a { tag "v2" }\n  a -> b { tag "v2" }').codes).toEqual([]);
+  });
+
+  it("refuses a tag at the diagram level, in a group block and in a fragment, saying where it goes", () => {
+    const where = "A tag goes in the block of a message or a participant";
+    const top = sequence('  tag "PKCE"\n  a -> b').compilation.diagnostics;
+    expect(top.map((d) => d.code)).toEqual(["prop.unknown"]);
+    expect(top[0]!.hints![0]).toContain(where);
+    const grouped = sequence('  group core "Core" { tag "internal"; participant api }');
+    expect(grouped.codes).toEqual(["prop.unknown"]);
+    expect(grouped.compilation.diagnostics[0]!.hints![0]).toContain(where);
+    expect(grouped.diagram.elementsById.get("api")!.groupPath).toEqual(["core"]);
+    for (const body of ['  a -> b\n  opt "x" { tag "y" }', '  a -> b { opt "x" { tag "y" } }']) {
+      const fragment = sequence(body).compilation.diagnostics;
+      expect(
+        fragment.map((d) => d.code),
+        body,
+      ).toEqual(["prop.unknown"]);
+      expect(fragment[0]!.hints![0]).toContain(where);
+    }
+  });
+
+  it("keeps tag unknown in the blocks of flow, free and C4 diagrams", () => {
+    const flow = compile('diagram d: flow {\n  api["API"] { tag "v2" }\n  tag pkce "PKCE"\n}\n');
+    expect(flow.diagnostics.map((d) => d.code)).toEqual(["prop.unknown"]);
+    const diagram = flow.document.diagrams[0]!;
+    expect(diagram.elementsById.get("pkce")).toMatchObject({ kind: "tag", tags: [] });
+    expect(diagram.elementsById.get("api")!.tags).toEqual([]);
+    const free = compile('diagram d: free {\n  box a "A" { tag "v2" }\n}\n');
+    expect(free.diagnostics.map((d) => d.code)).toEqual(["prop.unknown"]);
   });
 });

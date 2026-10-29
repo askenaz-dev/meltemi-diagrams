@@ -66,6 +66,7 @@ import {
   refuseFreeProperties,
   singleIdent,
   spanOf,
+  TAG_FORM,
   targetHint,
   type ReportOptions,
   type Value,
@@ -106,6 +107,7 @@ import type {
   Routing,
   StyleEntry,
   StyleValue,
+  TagUse,
   TargetKind,
 } from "./types.js";
 
@@ -596,14 +598,17 @@ export class FlowAnalyzer {
           continue;
         }
         const m = messages();
-        const hints = otherKind
-          ? [otherKind]
-          : diagramStatements(this.profile).includes(keyword)
-            ? [m.hints.flow.diagramLevel(keyword)]
-            : [m.hints.flow.groupContents];
+        const misplaced = this.misplacedHint(keyword);
+        const hints = misplaced
+          ? [misplaced]
+          : otherKind
+            ? [otherKind]
+            : diagramStatements(this.profile).includes(keyword)
+              ? [m.hints.flow.diagramLevel(keyword)]
+              : [m.hints.flow.groupContents];
         const candidates = otherKind
           ? this.declarationWords()
-          : diagramStatements(this.profile).includes(keyword)
+          : misplaced || diagramStatements(this.profile).includes(keyword)
             ? []
             : [
                 "description",
@@ -632,6 +637,15 @@ export class FlowAnalyzer {
         { hints, data: { candidates: this.statementCandidates(keyword) } },
       );
     }
+  }
+
+  /**
+   * The profile's own hint for a statement written outside the block it belongs in (a sequence
+   * `tag` outside a message or participant block), in the interface language; undefined for every
+   * other statement.
+   */
+  protected misplacedHint(_keyword: string): string | undefined {
+    return undefined;
   }
 
   /** Hints for an unknown statement at the diagram level, in the interface language. */
@@ -801,7 +815,7 @@ export class FlowAnalyzer {
     }
     const block =
       kind === "group"
-        ? { ...this.groupBlock(stmt.block, idToken), ports: [], values: {} }
+        ? { ...this.groupBlock(stmt.block, idToken), ports: [], tags: [], values: {} }
         : {
             ...this.elementBlock(
               stmt.block,
@@ -1118,8 +1132,9 @@ export class FlowAnalyzer {
   }
 
   /**
-   * Reads an element or relation block: its description, applied classes, named ports, and the
-   * `layer` and `link` statements the profile accepts.
+   * Reads an element or relation block: its description, applied classes, named ports, the
+   * `layer` and `link` statements the profile accepts, and its `tag` statements where the table
+   * takes them (sequence messages and participants).
    */
   protected elementBlock(
     block: Block | undefined,
@@ -1133,15 +1148,27 @@ export class FlowAnalyzer {
     url: string | null;
     classes: ClassUse[];
     ports: PortDefinition[];
+    tags: TagUse[];
     values: Record<string, Value>;
   } & BlockExtras {
     const empty = { layer: null, layerRange: null, link: null };
     if (!block)
-      return { description: null, url: null, classes: [], ports: [], values: {}, ...empty };
+      return {
+        description: null,
+        url: null,
+        classes: [],
+        ports: [],
+        tags: [],
+        values: {},
+        ...empty,
+      };
     const ports: PortDefinition[] = [];
+    const tags: TagUse[] = [];
     const extras: BlockExtras = { ...empty };
     const seen = new Map<string, Token>();
     const portable = owner === "Element" && takesPorts && this.profile.ports.length > 0;
+    // Tags repeat, each an annotation of the owner: read apart, never a `prop.duplicate` keyword.
+    const tagged = table.tag?.kind === "tag";
     const rest = block.statements.filter((stmt) => {
       if (stmt.kind !== "KeywordStatement") return true;
       const keyword = stmt.keyword.text;
@@ -1153,16 +1180,17 @@ export class FlowAnalyzer {
         if (!headerHasError(stmt)) this.extra(stmt, extras, seen, ownerToken);
         return false;
       }
+      if (tagged && keyword === "tag") {
+        if (!headerHasError(stmt)) this.tag(stmt, tags);
+        return false;
+      }
       return true;
     });
     const words = Object.keys(table).concat(portable ? ["port"] : []);
     const { values, classes } = this.readProperties(
       { ...block, statements: rest },
       table,
-      () => {
-        const m = messages().hints.flow;
-        return owner === "Element" ? m.elementBlock(words) : m.relationBlock(words);
-      },
+      () => this.blockHint(owner, words),
       owner.toLowerCase(),
       words,
     );
@@ -1171,9 +1199,55 @@ export class FlowAnalyzer {
       url: typeof values.url === "string" ? values.url : null,
       classes,
       ports,
+      tags,
       values,
       ...extras,
     };
+  }
+
+  /** The hint of an unknown statement in an element or relation block, in the interface words. */
+  protected blockHint(owner: "Element" | "Relation", words: readonly string[]): string {
+    const m = messages().hints.flow;
+    return owner === "Element" ? m.elementBlock(words) : m.relationBlock(words);
+  }
+
+  /**
+   * Reads `tag "Text"` into the tags of a block: one line of text, not empty, and not a text the
+   * owner already has.
+   */
+  protected tag(stmt: KeywordStatement, tags: TagUse[]): void {
+    const m = messages();
+    const form = [m.hints.example('tag "PKCE"')];
+    if (stmt.block || stmt.chain) {
+      this.invalid(m.diagnostics.common.expected(TAG_FORM), stmt.block ?? stmt.chain!, form);
+      return;
+    }
+    const [arg, extra] = stmt.args;
+    // The first value that breaks the form: an id before the text, a number, a second string.
+    const wrong = !arg ? stmt.keyword : arg.kind !== "StringLiteral" ? arg : extra;
+    if (!arg || wrong) {
+      this.invalid(m.diagnostics.common.expected(TAG_FORM), wrong ?? stmt.keyword, form);
+      return;
+    }
+    const checked = checkArg(arg, { kind: "tag" }, "tag");
+    if (!checked.ok || typeof checked.value !== "string") {
+      if (!checked.ok) this.invalid(checked.message, arg, checked.hints);
+      return;
+    }
+    const text = checked.value;
+    const first = tags.find((t) => t.text === text);
+    if (first) {
+      this.error("prop.duplicate", m.diagnostics.sequence.tagRepeated(text), arg, {
+        related: [
+          {
+            message: m.related.firstWritten,
+            at: { start: first.textRange.start.offset, end: first.textRange.end.offset },
+          },
+        ],
+      });
+      return;
+    }
+    tags.push({ text, range: this.range(stmt), textRange: this.range(arg) });
   }
 
   /** Reads `layer <name>` or `link <diagram>.<element>` into the extras of a block. */
@@ -1443,7 +1517,7 @@ export class FlowAnalyzer {
         stmt.arrow,
       );
     }
-    const { description, classes, layer, layerRange, values } = this.elementBlock(
+    const { description, classes, tags, layer, layerRange, values } = this.elementBlock(
       stmt.block,
       this.profile.relationProperties,
       "Relation",
@@ -1467,6 +1541,7 @@ export class FlowAnalyzer {
       assumption: typeof values.assumption === "string" ? values.assumption : null,
       data: this.declared ? dataOf(values, this.declared.relations.properties) : {},
       classes,
+      tags,
       layer,
       layerRange,
       groupPath,
@@ -1514,6 +1589,7 @@ export class FlowAnalyzer {
       description: null,
       url: null,
       classes: [],
+      tags: [],
       ports: [],
       layer: null,
       layerRange: null,

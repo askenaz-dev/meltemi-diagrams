@@ -188,8 +188,15 @@ export const es: typeof en = {
       condition: "Condición",
       participant: "Participante",
       numberFrom: "Numerar los mensajes desde",
+      activates: "Activa el receptor",
+      tagAt: (n) => `Marca ${n}`,
+      newTag: "Nueva marca",
+      addTag: "Añadir una marca",
+      removeTag: "Quitar",
     },
     branchCondition: (keyword, branch) => `Condición (${keyword ?? "rama"} ${branch})`,
+    blockActivates: (call, participant) =>
+      `El bloque de ${code(call)} activa a ${code(participant)}.`,
     reasons: {
       selectEvent: "Selecciona un mensaje, una nota, un fragmento o un evento.",
       selectMessage: "Selecciona el mensaje tras el cual el participante está activo.",
@@ -200,6 +207,9 @@ export const es: typeof en = {
       messageKind: "Un mensaje es `call`, `reply` o `async`.",
       nestAfterCall: "Selecciona los eventos que siguen a la llamada a la que pertenecen.",
       selectCall: "Selecciona una llamada, o un evento dentro de una.",
+      selectToTag: "Selecciona un mensaje o un participante para marcarlo.",
+      selectBar: "Selecciona una barra de activación.",
+      dropOnRow: "Suelta el extremo de la barra en la fila de un evento.",
     },
   },
 
@@ -208,6 +218,7 @@ export const es: typeof en = {
     condition: "Condición",
     column: "Columna",
     row: "Fila",
+    tag: "Marca",
   },
 
   c4: {

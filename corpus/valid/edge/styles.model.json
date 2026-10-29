@@ -87,6 +87,7 @@
           "classes": [
             "hot"
           ],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -133,6 +134,7 @@
           "description": "owns the order lifecycle",
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -182,6 +184,7 @@
             "legacy",
             "deprecated"
           ],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -230,6 +233,7 @@
           "classes": [
             "external"
           ],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -276,6 +280,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -333,6 +338,7 @@
           "description": null,
           "assumption": null,
           "classes": [],
+          "tags": [],
           "layer": null,
           "groupPath": [],
           "range": {
@@ -379,6 +385,7 @@
           "classes": [
             "highlight"
           ],
+          "tags": [],
           "layer": null,
           "groupPath": [],
           "range": {
@@ -423,6 +430,7 @@
           "description": null,
           "assumption": null,
           "classes": [],
+          "tags": [],
           "layer": null,
           "groupPath": [],
           "range": {
@@ -467,6 +475,7 @@
           "description": null,
           "assumption": null,
           "classes": [],
+          "tags": [],
           "layer": null,
           "groupPath": [],
           "range": {

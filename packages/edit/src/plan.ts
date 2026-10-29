@@ -111,6 +111,7 @@ import {
   ungroup,
 } from "./structure.js";
 import { setDiagramProperty, setStyleProperty } from "./styles.js";
+import { addTag, removeTag, setTag } from "./tags.js";
 import { removeAnimation, setAnimation } from "./animate.js";
 import { createTheme, removeThemeToken, setThemeToken } from "./themes.js";
 import {
@@ -274,8 +275,11 @@ function run(
   if (["setPosition", "setSize", "setRoute", "arrange"].includes(operation.kind)) {
     refuseFlowGeometry(ctx, operation.kind);
   }
-  // A move between groups and a conversion to a container explain their own refusal in C4 views.
-  if (operation.kind !== "moveElement" && operation.kind !== "convertToContainer") {
+  // A move between groups, a conversion to a container and the tag operations explain their own
+  // refusal in C4 views.
+  if (
+    !["moveElement", "convertToContainer", "addTag", "setTag", "removeTag"].includes(operation.kind)
+  ) {
     refuseInView(ctx, operation);
   }
   if (
@@ -415,6 +419,12 @@ function run(
       return setNotePlacement(ctx, operation);
     case "setFragmentOperator":
       return setFragmentOperator(ctx, operation);
+    case "addTag":
+      return addTag(ctx, operation);
+    case "setTag":
+      return setTag(ctx, operation);
+    case "removeTag":
+      return removeTag(ctx, operation);
   }
 }
 

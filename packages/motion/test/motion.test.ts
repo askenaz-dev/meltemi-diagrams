@@ -735,6 +735,40 @@ describe("other profiles", () => {
     expect(particleItems(frame, "pay")).toHaveLength(1);
   });
 
+  it("runs particles and traces under a sequence message's pills, with or without a label", () => {
+    for (const label of ["", ': "Pay"']) {
+      for (const effect of ["flow", "trace"]) {
+        const text = [
+          'language "0.2"',
+          "diagram s: sequence {",
+          '  participant a "A"',
+          '  participant b "B"',
+          `  a -> b${label} as pay { tag "PKCE"; tag "v2" }`,
+          `  animate pay { effect ${effect} }`,
+          "}",
+        ].join("\n");
+        const compilation = compile(text);
+        expect(compilation.diagnostics).toEqual([]);
+        const diagram = compilation.document.diagrams[0]!;
+        const scene = layoutDiagram(compilation, diagram, {}).scene!;
+        const plan = planMotion(diagram, scene);
+        const case_ = `${effect}${label}`;
+        // The label and the pills close the message's group, the effect's items before them.
+        for (const drawn of [sceneAt(scene, plan, 300), animatedScene(scene, plan)]) {
+          const group = sceneGroups(drawn.items).find(
+            (g) => g.role === "relation" && g.id === "pay",
+          )!;
+          const roles = group.items.map((i) => (i.kind === "group" ? i.role : i.kind));
+          const top = roles.findIndex((r) => r === "label" || r === "tag");
+          expect(roles.slice(top), case_).toEqual(
+            label === "" ? ["tag", "tag"] : ["label", "tag", "tag"],
+          );
+          expect(top, case_).toBeGreaterThan(2);
+        }
+      }
+    }
+  });
+
   it("pulses a sequence participant on its drawn box beside an actor", () => {
     const text = [
       'language "0.2"',

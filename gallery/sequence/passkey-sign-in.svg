@@ -24,8 +24,12 @@
   </g>
   <g data-id="app" data-role="lifeline">
     <polyline points="319.13,80 319.13,508" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
-    <rect x="314.13" y="162" width="10" height="36" rx="0" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
-    <rect x="314.13" y="306" width="10" height="194" rx="0" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <g data-id="activate#1" data-role="event">
+      <rect x="314.13" y="162" width="10" height="36" rx="0" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    </g>
+    <g data-id="activate#2" data-role="event">
+      <rect x="314.13" y="306" width="10" height="194" rx="0" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    </g>
   </g>
   <g data-id="sessions" data-role="lifeline">
     <polyline points="458.13,80 458.13,508" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>

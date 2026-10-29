@@ -38,7 +38,7 @@ const en = {
       "A band holding declarations, relations and nested groups; in a sequence diagram, a box around participants.",
     note: 'Free text without a border: `note <id> "Line one\\nLine two" [on <element>]`; in a sequence diagram, a note on lifelines: `note [<id>] over a, b "Text"`, `left of a` or `right of a`.',
     on: 'Attaches a note to an element: `note <id> "Text" on <element>` draws a dotted leader from the note to the element and keeps them near each other in an automatic layout.',
-    tag: 'A small pill, often placed on a box corner: `tag <id> "PKCE"`.',
+    tag: 'A small pill, often placed on a box corner: `tag <id> "PKCE"`; in a sequence diagram, a pill of the message or participant whose block holds it: `tag "PKCE"`, one line of text.',
     box: 'A shape with a label in a free diagram: `box <id> "Label"`, or `<id>["Label"]`.',
     text: 'Measured text without a frame in a free diagram: `text <id> "Line one\\nLine two"`.',
     image: 'An image file of the project in a free diagram: `image <id> "logo.png"`.',
@@ -367,6 +367,10 @@ const en = {
     decidedBy: (scenarios: string) => `decided by ${scenarios}`,
     scenario: (id: string, label: string) => `**scenario** ${code(id)} — ${label}`,
     times: (count: number) => ` ${count} times`,
+    /** A tag of a sequence diagram: its text and its owner, one of the two below. */
+    tagOf: (text: string, owner: string) => `**tag** “${text}” — a tag of ${owner}`,
+    tagMessage: (name: string) => `the message ${code(name)}`,
+    tagParticipant: (id: string) => `the participant ${code(id)}`,
 
     /** Models, ports, icons, images, themes and links. */
     model: (name: string, entities: number, relations: number, imported: boolean) =>
@@ -536,7 +540,7 @@ const es: typeof en = {
       "Una banda que contiene declaraciones, relaciones y grupos anidados; en un diagrama de secuencia, una caja alrededor de participantes.",
     note: 'Texto libre sin borde: `note <id> "Line one\\nLine two" [on <element>]`; en un diagrama de secuencia, una nota sobre líneas de vida: `note [<id>] over a, b "Text"`, `left of a` o `right of a`.',
     on: 'Adjunta una nota a un elemento: `note <id> "Text" on <element>` dibuja una guía punteada de la nota al elemento y los mantiene cerca en una disposición automática.',
-    tag: 'Una pequeña píldora, a menudo colocada en la esquina de una caja: `tag <id> "PKCE"`.',
+    tag: 'Una pequeña píldora, a menudo colocada en la esquina de una caja: `tag <id> "PKCE"`; en un diagrama de secuencia, una píldora del mensaje o del participante en cuyo bloque está: `tag "PKCE"`, una línea de texto.',
     box: 'Una forma con una etiqueta en un diagrama libre: `box <id> "Label"`, o `<id>["Label"]`.',
     text: 'Texto medido sin marco en un diagrama libre: `text <id> "Line one\\nLine two"`.',
     image: 'Un archivo de imagen del proyecto en un diagrama libre: `image <id> "logo.png"`.',
@@ -862,6 +866,10 @@ const es: typeof en = {
     decidedBy: (scenarios) => `decidido por ${scenarios}`,
     scenario: (id, label) => `**escenario** ${code(id)} — ${label}`,
     times: (count) => ` ${count} ${plural("es", count, { one: "vez", other: "veces" })}`,
+    // "de" and the article join: "una marca del mensaje".
+    tagOf: (text, owner) => `**marca** “${text}” — una marca ${owner}`,
+    tagMessage: (name) => `del mensaje ${code(name)}`,
+    tagParticipant: (id) => `del participante ${code(id)}`,
 
     model: (name, entities, relations, imported) =>
       `**modelo** ${code(name)} — ${entities} ${plural("es", entities, { one: "entidad", other: "entidades" })}, ${relations} ${plural("es", relations, { one: "relación", other: "relaciones" })}${imported ? " (importado)" : ""}`,

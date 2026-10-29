@@ -79,6 +79,35 @@ export function wrappedFrame(
   };
 }
 
+/**
+ * Where the editor of a label that wraps at its room and grows down lies (`TextPlace.wrap` `grow`:
+ * a sequence message's whose participants are pulled closer), its anchor (the middle of the drawn
+ * lines) already on the screen: exactly as wide as the room at the zoom, so its words break where
+ * the drawing's do, its top where the first of the `drawn` lines is drawn, and `height` tall (its
+ * lines, measured). The top stays as lines are added, so the block grows down, as the row will;
+ * nothing shrinks.
+ */
+export function grownFrame(
+  place: TextPlace,
+  zoom: number,
+  anchor: Point,
+  height: number,
+  drawn: number,
+): {
+  readonly left: number;
+  readonly top: number;
+  readonly width: number;
+  readonly height: number;
+} {
+  const { area } = place;
+  return {
+    left: anchor.x + (area.x - place.anchor.x) * zoom,
+    top: anchor.y - (Math.max(1, drawn) * place.line * zoom) / 2,
+    width: area.width * zoom,
+    height: Math.max(height, place.line * zoom),
+  };
+}
+
 /** The smallest size a sticky note's words shrink to, in diagram units, as the layout's do. */
 export const MIN_WRAPPED_SIZE = 8;
 
@@ -183,6 +212,22 @@ export function wrappedLines(svg: Element, id: string): Element[] {
   );
 }
 
+/**
+ * Every line of a label group the drawing shows, in order: the lines of a sequence message's
+ * label, which the layout wraps at the room between its lifelines where the label has no line
+ * break, so they are not the label's lines. A line drawn as glyph outlines is a path that carries
+ * its text.
+ */
+export function labelLines(svg: Element, id: string): Element[] {
+  const selector = `g[data-id="${id.replace(/["\\]/g, "\\$&")}"][data-role="label"]`;
+  return [...svg.querySelectorAll(selector)].flatMap((group) =>
+    [...group.children].filter((node) => {
+      const tag = node.tagName.toLowerCase();
+      return tag === "text" || (tag === "path" && node.hasAttribute("aria-label"));
+    }),
+  );
+}
+
 /** What an inline editor edits and how it says so. */
 export interface InlineOptions {
   /** The element, relation key or event key. */
@@ -193,10 +238,18 @@ export interface InlineOptions {
   /** Whether Shift+Enter breaks a line: a label the drawing breaks at `\n`. */
   readonly multiline: boolean;
   /**
-   * The drawing wraps the text at its area's width and shrinks it to fit (a sticky note's): the
-   * editor wraps there too, at the drawn size, and shrinks as the text outgrows the area.
+   * How the drawing wraps the text in its area (`TextPlace.wrap`), which the editor does too:
+   * `shrink`, a sticky note's words, wrapped at the area's width at the drawn size and shrunk as
+   * the text outgrows the card; `grow`, a sequence message's label whose participants are pulled
+   * closer, wrapped at the room's width at its size, its first line kept where it is drawn and its
+   * block growing down as lines are added. Absent, the editor does not wrap.
    */
-  readonly wrap?: boolean;
+  readonly wrap?: "shrink" | "grow";
+  /**
+   * With `wrap` `grow`, how many lines the drawing shows for the text (at least one): the editor's
+   * first line goes where the first of them is drawn.
+   */
+  readonly drawnLines?: number;
   readonly label: string;
   /** The keys, said to assistive technology. */
   readonly keys: string;
@@ -225,7 +278,12 @@ export class InlineEditor {
 
   constructor(readonly options: InlineOptions) {
     const area = h("textarea", {
-      class: options.wrap ? "inline wrapping" : "inline",
+      class:
+        options.wrap === "grow"
+          ? "inline wrapping growing"
+          : options.wrap
+            ? "inline wrapping"
+            : "inline",
       "aria-label": options.label,
       "aria-description": options.keys,
       "aria-multiline": options.multiline ? "true" : "false",
@@ -310,7 +368,12 @@ export class InlineEditor {
     if (!place) return;
     const area = this.element;
     const style = area.style;
-    const frame = this.options.wrap ? this.wrapped(place) : this.unwrapped(place);
+    const frame =
+      this.options.wrap === "grow"
+        ? this.grown(place)
+        : this.options.wrap
+          ? this.wrapped(place)
+          : this.unwrapped(place);
     style.left = `${frame.left}px`;
     style.top = `${frame.top}px`;
     style.width = `${frame.width}px`;
@@ -360,6 +423,22 @@ export class InlineEditor {
       return height <= room + 0.5;
     });
     return wrappedFrame(place, zoom, this.anchor, height);
+  }
+
+  /**
+   * The frame of a label that wraps at its room and grows down (`grownFrame`): its lines measured
+   * at the drawn size in the room's width, its first line where the drawing's first line is. The
+   * height follows the lines at once, so the text is where the caret is; the commit redraws.
+   */
+  private grown(place: TextPlace): ReturnType<typeof grownFrame> {
+    const area = this.element;
+    const style = area.style;
+    const zoom = this.zoom;
+    style.fontSize = `${place.size * zoom}px`;
+    style.lineHeight = `${place.line * zoom}px`;
+    style.width = `${place.area.width * zoom}px`;
+    style.height = "0px";
+    return grownFrame(place, zoom, this.anchor, area.scrollHeight, this.options.drawnLines ?? 1);
   }
 
   /** Focuses the editor without scrolling the stage, its text selected. */

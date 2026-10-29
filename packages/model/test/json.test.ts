@@ -150,6 +150,70 @@ describe("model JSON", () => {
   });
 });
 
+describe("tags in JSON", () => {
+  const SHEET =
+    'diagram s: sequence {\n  actor customer\n  participant bank "Bank" { tag "external" }\n  customer -> bank: "Pay" as pay {\n    tag "idempotent"\n    tag "v2"\n    return "OK" as ok { tag "cached" }\n  }\n  bank --> customer: "Later"\n}\n';
+  const json = () => toJson(compile(SHEET)).diagrams[0]!;
+  const range = (line: number, start: number, end: number) => ({
+    start: { line, column: start },
+    end: { line, column: end },
+  });
+
+  it("writes the tags of messages and participants in source order, with their ranges", () => {
+    const { elements, relations } = json();
+    expect(elements.map((e) => [e.id, e.tags.map((t) => t.text)])).toEqual([
+      ["customer", []],
+      ["bank", ["external"]],
+    ]);
+    expect(relations.map((r) => [r.key, r.tags.map((t) => t.text)])).toEqual([
+      ["pay", ["idempotent", "v2"]],
+      ["ok", ["cached"]],
+      ["bank->customer#2", []],
+    ]);
+    // The range is the `tag` statement's.
+    expect(relations[0]!.tags.map((t) => t.range)).toMatchObject([
+      range(5, 5, 21),
+      range(6, 5, 13),
+    ]);
+    expect(elements[1]!.tags[0]!.range).toMatchObject(range(3, 29, 43));
+  });
+
+  it("writes tags after classes on every element and relation, and the same string twice", () => {
+    const { elements, relations } = json();
+    for (const item of [...elements, ...relations]) {
+      const keys = Object.keys(item);
+      expect(keys.indexOf("tags")).toBe(keys.indexOf("classes") + 1);
+    }
+    expect(stringifyJson(toJson(compile(SHEET)))).toBe(stringifyJson(toJson(compile(SHEET))));
+    expect(toJson(compile(SHEET)).version).toBe("0.1");
+  });
+
+  it("writes empty tags in the other profiles, a flow tag keeping its kind", () => {
+    const free = readFileSync(join(CORPUS_ROOT, "valid", "free", "overview.meltemi"), "utf8");
+    const tagged = 'diagram d: flow {\n  api["API"]\n  tag pkce "PKCE"\n  api -> pkce\n}\n';
+    for (const text of [checkout, free, tagged]) {
+      for (const diagram of toJson(compile(text)).diagrams) {
+        for (const item of [...diagram.elements, ...diagram.relations])
+          expect(item.tags).toEqual([]);
+      }
+    }
+    expect(toJson(compile(tagged)).diagrams[0]!.elements[1]).toMatchObject({
+      id: "pkce",
+      kind: "tag",
+      tags: [],
+    });
+  });
+
+  it("leaves out a sequence diagram whose tag is refused", () => {
+    const refused = toJson(compile('diagram s: sequence {\n  a -> b { tag "" }\n}\n'));
+    expect(refused.ok).toBe(false);
+    expect(refused.diagrams).toEqual([]);
+    expect(refused.diagnostics.map((d) => [d.code, d.range.start.column])).toEqual([
+      ["prop.invalid-value", 16],
+    ]);
+  });
+});
+
 describe("pens in JSON", () => {
   const SHEET =
     'diagram d: free {\n  box a "A"\n  line l from (0, 0) to (10, 0)\n  pen p [(0, 0), (12.5, -4)]\n}\n';

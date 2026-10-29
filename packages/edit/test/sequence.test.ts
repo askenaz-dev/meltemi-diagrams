@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { setLocale } from "@meltemi/diagrams-i18n";
 import { applyTextEdits } from "@meltemi/diagrams-language";
 import { compile } from "@meltemi/diagrams-model";
 import { CORPUS_ROOT } from "../../../test-support/corpus.js";
-import { planEdit, type EditOperation } from "../src/index.js";
+import { activationPair, planEdit, type EditOperation } from "../src/index.js";
 
 function run(text: string, operation: EditOperation): string {
   const result = planEdit(compile(text), operation);
@@ -504,6 +505,71 @@ describe("shared operations in sequence diagrams", () => {
       refused(payment, { kind: "setPosition", diagram: "payment", element: "api", x: 1, y: 2 }),
     ).toMatch(/^edit.invalid-value: `setPosition` does not apply to sequence diagrams/);
   });
+
+  it("declares an implicit participant where it keeps every column", () => {
+    const columns = (source: string) =>
+      compile(source).document.diagrams[0]!.elements.map((e) => e.id);
+    const bare = 'diagram s: sequence {\n  customer -> api: "Pay"\n  api -> bank: "Authorize"\n}\n';
+    // Named first by the second message: declared right before it.
+    const labelled = run(bare, {
+      kind: "setElementLabel",
+      diagram: "s",
+      element: "bank",
+      label: "Bank",
+    });
+    expect(labelled).toBe(
+      'diagram s: sequence {\n  customer -> api: "Pay"\n  participant bank "Bank"\n  api -> bank: "Authorize"\n}\n',
+    );
+    expect(columns(labelled)).toEqual(["customer", "api", "bank"]);
+    // Named first after `customer` in the same message: `customer` is declared before it.
+    const described = run(bare, {
+      kind: "setDescription",
+      diagram: "s",
+      target: "api",
+      targetKind: "element",
+      description: "REST",
+    });
+    expect(described).toBe(
+      'diagram s: sequence {\n  participant customer\n  participant api "api" { description "REST" }\n  customer -> api: "Pay"\n  api -> bank: "Authorize"\n}\n',
+    );
+    expect(columns(described)).toEqual(["customer", "api", "bank"]);
+    // After the declarations when nothing is named between them and the first mention.
+    const declared =
+      'diagram s: sequence {\n  participant customer "Customer"\n\n  customer -> api: "Pay"\n}\n';
+    const kind = run(declared, {
+      kind: "setElementKind",
+      diagram: "s",
+      element: "api",
+      elementKind: "database",
+    });
+    expect(kind).toBe(
+      'diagram s: sequence {\n  participant customer "Customer"\n  database api "api"\n\n  customer -> api: "Pay"\n}\n',
+    );
+    // A first mention in a call's block or a fragment: before the statement that holds it.
+    const nested =
+      'diagram s: sequence {\n  participant customer "Customer"\n  customer -> api: "Pay" as pay {\n    api -> bank: "Authorize"\n  }\n  alt ok "OK" {\n    api -> audit: "Log"\n  }\n}\n';
+    const classed = run(nested, {
+      kind: "setClasses",
+      diagram: "s",
+      target: "audit",
+      targetKind: "element",
+      classes: ["external"],
+    });
+    expect(classed).toContain(
+      '  }\n  participant audit "audit" { class external }\n  alt ok "OK" {',
+    );
+    expect(columns(classed)).toEqual(columns(nested));
+    const bank = run(nested, {
+      kind: "setElementLabel",
+      diagram: "s",
+      element: "bank",
+      label: "Bank",
+    });
+    expect(bank).toContain(
+      '  participant customer "Customer"\n  participant api\n  participant bank "Bank"\n  customer -> api',
+    );
+    expect(columns(bank)).toEqual(columns(nested));
+  });
 });
 
 describe("nesting calls", () => {
@@ -660,6 +726,561 @@ describe("removing calls", () => {
     expect(refused(call, { kind: "setRelationLine", ...op, line: "solid" })).toBe(answers);
     expect(refused(call, { kind: "reconnectRelation", ...op, end: "to", element: "b" })).toBe(
       answers,
+    );
+  });
+});
+
+/** The rejection of an operation, and the error a compilation of `wouldBe` reports with `code`. */
+function refusedAs(text: string, operation: EditOperation, wouldBe: string, code: string) {
+  const result = planEdit(compile(text), operation);
+  if (result.ok) throw new Error("expected a rejection");
+  const diagnostic = compile(wouldBe).diagnostics.find((d) => d.code === code);
+  expect(diagnostic).toBeDefined();
+  return { rejection: result.rejection, message: diagnostic!.message };
+}
+
+describe("explicit event moves to a destination", () => {
+  const lines = (...statements: string[]) =>
+    `diagram s: sequence {\n${statements.map((s) => `  ${s}\n`).join("")}}\n`;
+  const move = (event: string, to: { after: string } | { before: string }): EditOperation => ({
+    kind: "moveEvent",
+    diagram: "s",
+    event,
+    to,
+  });
+
+  it("A move to a destination: the deactivate follows fetch, everything else in place", () => {
+    const text = lines(
+      "a -> b as ask",
+      "activate b",
+      "b -> c as fetch",
+      "b -> c as store",
+      "b --> a as reply",
+      "deactivate b",
+    );
+    expect(run(text, move("deactivate#1", { after: "fetch" }))).toBe(
+      lines(
+        "a -> b as ask",
+        "activate b",
+        "b -> c as fetch",
+        "deactivate b",
+        "b -> c as store",
+        "b --> a as reply",
+      ),
+    );
+  });
+
+  it("A destination in a fragment branch: the note goes first in the branch, re-indented", () => {
+    const text = payment.replace(
+      "  }\n\n  deactivate api",
+      '  }\n  note over api "Checking"\n\n  deactivate api',
+    );
+    const after = run(text, {
+      kind: "moveEvent",
+      diagram: "payment",
+      event: "note#1",
+      to: { before: "approved" },
+    });
+    expect(after).toBe(
+      payment.replace(
+        '  alt result "Aprobado" {\n',
+        '  alt result "Aprobado" {\n    note over api "Checking"\n',
+      ),
+    );
+    const note = compile(after).document.diagrams[0]!.eventsByKey.get("note#1")!;
+    expect(note.path).toEqual([{ fragment: "result", branch: 0 }]);
+  });
+
+  it("A destination that breaks the order is refused naming sequence.activation", () => {
+    const text = lines(
+      "a -> b as ask",
+      "activate b",
+      "b -> c as fetch",
+      "deactivate b",
+      "b --> a as reply",
+    );
+    const wouldBe = lines(
+      "a -> b as ask",
+      "b -> c as fetch",
+      "deactivate b",
+      "b --> a as reply",
+      "activate b",
+    );
+    const { rejection, message } = refusedAs(
+      text,
+      move("activate#1", { after: "reply" }),
+      wouldBe,
+      "sequence.activation",
+    );
+    expect(rejection.code).toBe("edit.invalid-value");
+    expect(rejection.reason).toBe(message);
+  });
+
+  it("Two forms or a destination inside the event are refused", () => {
+    const text = lines(
+      "a -> b as ask",
+      'opt check "C" {',
+      "  b -> c as fetch",
+      "}",
+      "b --> a as reply",
+    );
+    expect(
+      refused(text, {
+        kind: "moveEvent",
+        diagram: "s",
+        event: "reply",
+        direction: "up",
+        to: { after: "ask" },
+      }),
+    ).toBe(
+      "edit.invalid-value: `moveEvent` moves an event by a `direction` or to a destination `to`: give exactly one of them.",
+    );
+    expect(refused(text, move("check", { after: "fetch" }))).toBe(
+      "edit.unsafe-target: `fetch` is inside `check`, which cannot move into itself.",
+    );
+  });
+
+  it("refuses neither form, a malformed destination, an unknown event and the event itself", () => {
+    const text = lines("a -> b as ask", "b -> c as fetch", "b --> a as reply");
+    expect(refused(text, { kind: "moveEvent", diagram: "s", event: "reply" })).toMatch(
+      /^edit.invalid-value: `moveEvent` moves an event by a `direction` or to a destination/,
+    );
+    expect(
+      refused(text, {
+        kind: "moveEvent",
+        diagram: "s",
+        event: "reply",
+        to: { after: "ask", before: "fetch" } as unknown as { after: string },
+      }),
+    ).toBe("edit.invalid-value: A destination is `{ after: <event> }` or `{ before: <event> }`.");
+    expect(refused(text, move("reply", { before: "nope" }))).toBe(
+      "edit.unsafe-target: Event `nope` does not exist in diagram `s`.",
+    );
+    expect(refused(text, move("reply", { after: "reply" }))).toBe(
+      "edit.unsafe-target: `reply` cannot move after or before itself.",
+    );
+  });
+
+  it("moves a fragment into a call's block, re-indented with its comments", () => {
+    const text =
+      'diagram s: sequence {\n  a -> b as call {\n    b -> c as inner\n    return "OK"\n  }\n  // The loop.\n  loop poll "Poll" { // each second\n    a -> c as ping\n  } // end\n}\n';
+    expect(run(text, move("poll", { before: "inner" }))).toBe(
+      'diagram s: sequence {\n  a -> b as call {\n    // The loop.\n    loop poll "Poll" { // each second\n      a -> c as ping\n    } // end\n    b -> c as inner\n    return "OK"\n  }\n}\n',
+    );
+    const crlf = text.replace(/\n/g, "\r\n");
+    expect(run(crlf, move("poll", { after: "inner" }))).toBe(
+      'diagram s: sequence {\n  a -> b as call {\n    b -> c as inner\n    // The loop.\n    loop poll "Poll" { // each second\n      a -> c as ping\n    } // end\n    return "OK"\n  }\n}\n'.replace(
+        /\n/g,
+        "\r\n",
+      ),
+    );
+  });
+
+  it("refuses a call moved into its own block", () => {
+    const text =
+      'diagram s: sequence {\n  a -> b as call {\n    b -> c as inner\n    return "OK"\n  }\n  a -> c as log\n}\n';
+    expect(refused(text, move("call", { before: "inner" }))).toMatch(
+      /^edit.unsafe-target: `inner` is inside `call`/,
+    );
+  });
+
+  it("takes the comment lines above and the comment that ends the line", () => {
+    const text = lines(
+      "a -> b as ask",
+      "activate b",
+      "b -> c as fetch",
+      "b -> c as store",
+      "// Done with b.",
+      "deactivate b // closes ask",
+      "b --> a as reply",
+    );
+    expect(run(text, move("deactivate#1", { after: "fetch" }))).toBe(
+      lines(
+        "a -> b as ask",
+        "activate b",
+        "b -> c as fetch",
+        "// Done with b.",
+        "deactivate b // closes ask",
+        "b -> c as store",
+        "b --> a as reply",
+      ),
+    );
+    // Before an event, above the comments that belong to it.
+    const commented = lines("a -> b as ask", "// Fetch it.", "b -> c as fetch", "b --> a as reply");
+    expect(run(commented, move("reply", { before: "fetch" }))).toBe(
+      lines("a -> b as ask", "b --> a as reply", "// Fetch it.", "b -> c as fetch"),
+    );
+  });
+
+  it("writes nothing when the event is already there, and joins a block written on one line", () => {
+    const text = lines("a -> b as ask", "b -> c as fetch", "b --> a as reply");
+    for (const to of [{ after: "ask" }, { before: "reply" }]) {
+      const result = planEdit(compile(text), move("fetch", to));
+      expect(result.ok && result.plan.edits).toEqual([]);
+    }
+    const call = lines('a -> b as call { b -> c as inner; return "OK" }', "a -> c as log");
+    expect(run(call, move("log", { before: "inner" }))).toBe(
+      lines('a -> b as call { a -> c as log; b -> c as inner; return "OK" }'),
+    );
+  });
+
+  it("A return cannot leave its call: refused naming sequence.return", () => {
+    const text =
+      'diagram s: sequence {\n  customer -> api: "Pay" as pay {\n    api -> bank: "Authorize"\n    return "OK"\n  }\n}\n';
+    const wouldBe =
+      'diagram s: sequence {\n  customer -> api: "Pay" as pay {\n    api -> bank: "Authorize"\n  }\n  return "OK"\n}\n';
+    const { rejection, message } = refusedAs(
+      text,
+      { kind: "moveEvent", diagram: "s", event: "api->customer#1", direction: "down" },
+      wouldBe,
+      "sequence.return",
+    );
+    expect(rejection.code).toBe("edit.invalid-value");
+    expect(rejection.reason).toBe(message);
+  });
+});
+
+describe("removing activations", () => {
+  const lines = (...statements: string[]) =>
+    `diagram s: sequence {\n${statements.map((s) => `  ${s}\n`).join("")}}\n`;
+  const remove = (event: string): EditOperation => ({ kind: "removeEvent", diagram: "s", event });
+
+  it("Remove an activation: the activate and its deactivate go in one edit", () => {
+    const text = lines("a -> b as ask", "activate b", "b -> c", "deactivate b", "b --> a as reply");
+    const result = planEdit(compile(text), remove("activate#1"));
+    expect(result.ok).toBe(true);
+    expect(run(text, remove("activate#1"))).toBe(
+      lines("a -> b as ask", "b -> c", "b --> a as reply"),
+    );
+  });
+
+  const nested = lines(
+    "a -> b as ask",
+    "activate b",
+    "b -> c as fetch",
+    "activate b",
+    "c --> b as data",
+    "deactivate b",
+    "deactivate b",
+    "b --> a as reply",
+  );
+
+  it("Remove by the deactivation: the outer pair goes, the inner pair stays", () => {
+    expect(run(nested, remove("deactivate#2"))).toBe(
+      lines(
+        "a -> b as ask",
+        "b -> c as fetch",
+        "activate b",
+        "c --> b as data",
+        "deactivate b",
+        "b --> a as reply",
+      ),
+    );
+    expect(run(nested, remove("activate#2"))).toBe(
+      lines(
+        "a -> b as ask",
+        "activate b",
+        "b -> c as fetch",
+        "c --> b as data",
+        "deactivate b",
+        "b --> a as reply",
+      ),
+    );
+  });
+
+  it("Remove an end alone, as a batch that read the pairs before it does", () => {
+    const text =
+      'diagram s: sequence {\n  a -> b: "m1"\n  activate b\n  a -> b: "m2"\n  activate b\n  alt x "X" {\n    a -> b: "m3"\n    deactivate b\n  }\n  a -> b: "m4"\n  deactivate b\n}\n';
+    // The fragment takes the inner bar's `deactivate`; its `activate` goes alone, so the outer
+    // bar keeps its own.
+    const alone = (event: string): EditOperation => ({
+      kind: "removeEvent",
+      diagram: "s",
+      event,
+      alone: true,
+    });
+    expect(run(text, { kind: "batch", operations: [remove("x"), alone("activate#2")] })).toBe(
+      'diagram s: sequence {\n  a -> b: "m1"\n  activate b\n  a -> b: "m2"\n  a -> b: "m4"\n  deactivate b\n}\n',
+    );
+    // A `deactivate` alone leaves its bar open to the end.
+    expect(run(text, alone("deactivate#2"))).toBe(
+      text.replace('  a -> b: "m4"\n  deactivate b\n', '  a -> b: "m4"\n'),
+    );
+    // An `activate` alone whose `deactivate` stays is refused: that `deactivate` would close
+    // nothing.
+    expect(refused(text, alone("activate#1"))).toBe("edit.invalid-value: `b` is not active here.");
+  });
+
+  it("Remove an open activation: only the activate goes", () => {
+    const text = lines("a -> b as ask", "activate b", "b -> c");
+    expect(run(text, remove("activate#1"))).toBe(lines("a -> b as ask", "b -> c"));
+  });
+
+  it("pairs activations across fragments and calls, as toggleActivation does", () => {
+    const text =
+      'diagram s: sequence {\n  a -> b as ask\n  activate b\n  opt check "C" {\n    b -> c as call {\n      activate c\n      return\n    }\n    deactivate c\n  }\n  deactivate b\n  activate a\n}\n';
+    const diagram = compile(text).document.diagrams[0]!;
+    const key = (k: string) => diagram.eventsByKey.get(k)!;
+    expect(activationPair(diagram, key("activate#1"))?.key).toBe("deactivate#2");
+    expect(activationPair(diagram, key("deactivate#2"))?.key).toBe("activate#1");
+    expect(activationPair(diagram, key("activate#2"))?.key).toBe("deactivate#1");
+    expect(activationPair(diagram, key("deactivate#1"))?.key).toBe("activate#2");
+    expect(activationPair(diagram, key("activate#3"))).toBeNull();
+    expect(activationPair(diagram, key("ask"))).toBeNull();
+    expect(run(text, remove("deactivate#1"))).toBe(
+      'diagram s: sequence {\n  a -> b as ask\n  activate b\n  opt check "C" {\n    b -> c as call {\n      return\n    }\n  }\n  deactivate b\n  activate a\n}\n',
+    );
+  });
+});
+
+describe("tag operations", () => {
+  afterEach(() => setLocale("en"));
+
+  const addTag = (
+    target: string,
+    targetKind: "element" | "relation",
+    text: string,
+    index?: number,
+  ): EditOperation => ({
+    kind: "addTag",
+    diagram: "s",
+    target,
+    targetKind,
+    text,
+    ...(index === undefined ? {} : { index }),
+  });
+  const tagsOf = (text: string, key: string) =>
+    compile(text)
+      .document.diagrams[0]!.relationsByKey.get(key)!
+      .tags.map((t) => t.text);
+
+  it("A tag on a message without a block", () => {
+    const text = 'diagram s: sequence {\n  a -> b: "Ask"\n}\n';
+    const after = run(text, addTag("a->b#1", "relation", "PKCE"));
+    expect(after).toBe('diagram s: sequence {\n  a -> b: "Ask" { tag "PKCE" }\n}\n');
+    expect(tagsOf(after, "a->b#1")).toEqual(["PKCE"]);
+  });
+
+  it("A tag on a call with events: after its properties, before its events", () => {
+    const text =
+      'diagram s: sequence {\n  customer -> api: "Pay" as pay {\n    kind async\n    api -> bank: "Authorize"\n    return "OK"\n  }\n}\n';
+    const after = run(text, addTag("pay", "relation", "v2"));
+    expect(after).toBe(
+      'diagram s: sequence {\n  customer -> api: "Pay" as pay {\n    kind async\n    tag "v2"\n    api -> bank: "Authorize"\n    return "OK"\n  }\n}\n',
+    );
+    const events = (source: string) => {
+      const call = compile(source).document.diagrams[0]!.eventsByKey.get("pay");
+      return call?.kind === "message" ? call.events.map((e) => e.key) : [];
+    };
+    expect(events(after)).toEqual(events(text));
+    // Without properties, first in the block.
+    const bare = text.replace("    kind async\n", "");
+    expect(run(bare, addTag("pay", "relation", "v2"))).toContain(
+      '"Pay" as pay {\n    tag "v2"\n    api -> bank: "Authorize"',
+    );
+  });
+
+  it("A tag on an implicit participant: declared among the participants with its block", () => {
+    const text =
+      'diagram s: sequence {\n  participant customer "Customer"\n  participant api "API"\n\n  customer -> api: "Pay"\n  api -> bank: "Authorize"\n}\n';
+    const after = run(text, addTag("bank", "element", "external"));
+    expect(after).toBe(text.replace('"API"\n', '"API"\n  participant bank { tag "external" }\n'));
+    const diagram = compile(after).document.diagrams[0]!;
+    expect(diagram.elements.map((e) => e.id)).toEqual(["customer", "api", "bank"]);
+    expect(diagram.elementsById.get("bank")!.tags.map((t) => t.text)).toEqual(["external"]);
+  });
+
+  it("A tag on an implicit participant keeps its column", () => {
+    const columns = (source: string) =>
+      compile(source).document.diagrams[0]!.elements.map((e) => e.id);
+    // Without declarations: right before the message that names it first.
+    const bare = 'diagram s: sequence {\n  customer -> api: "Pay"\n  api -> bank: "Authorize"\n}\n';
+    const bank = run(bare, addTag("bank", "element", "external"));
+    expect(bank).toBe(
+      'diagram s: sequence {\n  customer -> api: "Pay"\n  participant bank { tag "external" }\n  api -> bank: "Authorize"\n}\n',
+    );
+    expect(columns(bank)).toEqual(["customer", "api", "bank"]);
+    // Named first after another implicit participant: that one is declared before it.
+    const api = run(bare, addTag("api", "element", "v2"));
+    expect(api).toBe(
+      'diagram s: sequence {\n  participant customer\n  participant api { tag "v2" }\n  customer -> api: "Pay"\n  api -> bank: "Authorize"\n}\n',
+    );
+    expect(columns(api)).toEqual(["customer", "api", "bank"]);
+    // Declared participants, and an implicit one named before the tagged one.
+    const mixed =
+      'diagram s: sequence {\n  participant customer "Customer"\n  participant api "API"\n\n  customer -> api: "Pay"\n  api -> bank: "Authorize"\n  bank -> audit: "Log"\n}\n';
+    const audit = run(mixed, addTag("audit", "element", "external"));
+    expect(audit).toBe(
+      mixed.replace("  bank -> audit", '  participant audit { tag "external" }\n  bank -> audit'),
+    );
+    expect(columns(audit)).toEqual(["customer", "api", "bank", "audit"]);
+    // A message sharing its line: the declarations join it with `; `.
+    const shared = "diagram s: sequence {\n  a -> b; b -> c\n}\n";
+    const c = run(shared, addTag("c", "element", "t"));
+    expect(c).toBe('diagram s: sequence {\n  a -> b; participant c { tag "t" }; b -> c\n}\n');
+    expect(columns(c)).toEqual(["a", "b", "c"]);
+  });
+
+  it("A tag at an index: before the tag at that index, a one-line block opening onto lines", () => {
+    const text = 'diagram s: sequence {\n  a -> b as pay {\n    tag "v2"\n  }\n}\n';
+    const after = run(text, addTag("pay", "relation", "v1", 0));
+    expect(after).toBe(
+      'diagram s: sequence {\n  a -> b as pay {\n    tag "v1"\n    tag "v2"\n  }\n}\n',
+    );
+    expect(tagsOf(after, "pay")).toEqual(["v1", "v2"]);
+    const line = 'diagram s: sequence {\n  a -> b as pay { tag "v2" }\n}\n';
+    expect(run(line, addTag("pay", "relation", "v1", 0))).toBe(after);
+    // Past the last tag is the end.
+    expect(tagsOf(run(line, addTag("pay", "relation", "v3", 5)), "pay")).toEqual(["v2", "v3"]);
+    expect(run(line, addTag("pay", "relation", "v3"))).toBe(
+      'diagram s: sequence {\n  a -> b as pay {\n    tag "v2"\n    tag "v3"\n  }\n}\n',
+    );
+  });
+
+  it("Edit and remove", () => {
+    const text = 'diagram s: sequence {\n  a -> b: "Ask" { tag "PKCE" }\n}\n';
+    const edited = run(text, {
+      kind: "setTag",
+      diagram: "s",
+      target: "a->b#1",
+      targetKind: "relation",
+      index: 0,
+      text: "OAuth",
+    });
+    expect(edited).toBe('diagram s: sequence {\n  a -> b: "Ask" { tag "OAuth" }\n}\n');
+    expect(
+      run(edited, {
+        kind: "removeTag",
+        diagram: "s",
+        target: "a->b#1",
+        targetKind: "relation",
+        index: 0,
+      }),
+    ).toBe('diagram s: sequence {\n  a -> b: "Ask"\n}\n');
+  });
+
+  it("An empty or repeated tag is refused with edit.invalid-value", () => {
+    const text = 'diagram s: sequence {\n  a -> b: "Ask" { tag "PKCE" }\n}\n';
+    expect(refused(text, addTag("a->b#1", "relation", ""))).toBe(
+      "edit.invalid-value: A tag is one line of text, not empty.",
+    );
+    expect(refused(text, addTag("a->b#1", "relation", "PKCE"))).toBe(
+      'edit.invalid-value: `a->b#1` already has the tag "PKCE".',
+    );
+    expect(refused(text, addTag("a->b#1", "relation", "two\nlines"))).toMatch(/one line/);
+    expect(refused(text, addTag("a->b#1", "relation", "   "))).toMatch(/one line/);
+    const two = text.replace('{ tag "PKCE" }', '{ tag "PKCE"; tag "v2" }');
+    expect(
+      refused(two, {
+        kind: "setTag",
+        diagram: "s",
+        target: "a->b#1",
+        targetKind: "relation",
+        index: 1,
+        text: "PKCE",
+      }),
+    ).toMatch(/^edit.invalid-value: .*already has the tag "PKCE"/);
+    expect(
+      refused(two, {
+        kind: "setTag",
+        diagram: "s",
+        target: "a->b#1",
+        targetKind: "relation",
+        index: 1,
+        text: "",
+      }),
+    ).toMatch(/^edit.invalid-value: A tag is one line/);
+  });
+
+  it("A tag outside a sequence diagram, or at an index the owner has no tag at, is refused", () => {
+    const flow = 'diagram s: flow {\n  api["API"]\n}\n';
+    expect(refused(flow, addTag("api", "element", "v2"))).toBe(
+      "edit.unsafe-target: Tags go on the participants and messages of sequence diagrams, and `s` is not one.",
+    );
+    const text = 'diagram s: sequence {\n  a -> b: "Ask" { tag "PKCE" }\n  note n over a "N"\n}\n';
+    expect(
+      refused(text, {
+        kind: "removeTag",
+        diagram: "s",
+        target: "a->b#1",
+        targetKind: "relation",
+        index: 3,
+      }),
+    ).toBe(
+      "edit.unsafe-target: `a->b#1` has no tag at index 3; its tags are numbered from 0 to 0.",
+    );
+    expect(
+      refused(text, {
+        kind: "removeTag",
+        diagram: "s",
+        target: "a",
+        targetKind: "element",
+        index: 0,
+      }),
+    ).toBe("edit.unsafe-target: `a` has no tags.");
+    expect(refused(text, addTag("n", "element", "v2"))).toBe(
+      "edit.unsafe-target: `n` is neither a participant nor a message of `s`; tags go on participants and messages.",
+    );
+    expect(refused(text, addTag("a->b#1", "relation", "v2", -1))).toMatch(
+      /^edit.unsafe-target: -1 is no place among the tags/,
+    );
+  });
+
+  it("tags participants, declared and in groups, after their properties", () => {
+    const text =
+      'diagram s: sequence {\n  participant api "API"\n  group core "Core" {\n    participant db "DB" {\n      description "Store"\n    }\n  }\n  api -> db\n}\n';
+    const api = run(text, addTag("api", "element", "v2"));
+    expect(api).toContain('  participant api "API" { tag "v2" }\n');
+    const db = run(text, addTag("db", "element", "legacy"));
+    expect(db).toContain(
+      '    participant db "DB" {\n      description "Store"\n      tag "legacy"\n    }\n',
+    );
+    expect(refused(text, addTag("core", "element", "x"))).toMatch(
+      /^edit.unsafe-target: `core` is neither/,
+    );
+  });
+
+  it("tags a return, and keeps the comments of the block", () => {
+    const text =
+      'diagram s: sequence {\n  a -> b as call {\n    return "OK" { tag "cached" }\n  }\n}\n';
+    const key = "b->a#1";
+    expect(tagsOf(run(text, addTag(key, "relation", "fast")), key)).toEqual(["cached", "fast"]);
+    expect(
+      run(text, { kind: "removeTag", diagram: "s", target: key, targetKind: "relation", index: 0 }),
+    ).toBe('diagram s: sequence {\n  a -> b as call {\n    return "OK"\n  }\n}\n');
+    const commented =
+      'diagram s: sequence {\n  a -> b as ask {\n    // Why we tag it.\n    tag "PKCE" // the flow\n  }\n}\n';
+    const removed = run(commented, {
+      kind: "removeTag",
+      diagram: "s",
+      target: "ask",
+      targetKind: "relation",
+      index: 0,
+    });
+    expect(removed).toContain("// Why we tag it.");
+    expect(removed).toContain("// the flow");
+    expect(removed).not.toContain('tag "PKCE"');
+    const renamed = run(commented, {
+      kind: "setTag",
+      diagram: "s",
+      target: "ask",
+      targetKind: "relation",
+      index: 0,
+      text: 'Say "hi"',
+    });
+    expect(renamed).toContain('    tag "Say \\"hi\\"" // the flow\n');
+    const added = run(commented, addTag("ask", "relation", "v2"));
+    expect(added).toContain('    tag "PKCE" // the flow\n    tag "v2"\n');
+  });
+
+  it("gives its reasons in Spanish", () => {
+    setLocale("es");
+    const text = 'diagram s: sequence {\n  a -> b: "Ask" { tag "PKCE" }\n}\n';
+    expect(refused(text, addTag("a->b#1", "relation", "PKCE"))).toBe(
+      'edit.invalid-value: `a->b#1` ya tiene la marca "PKCE".',
+    );
+    expect(refused(text, addTag("a->b#1", "relation", ""))).toBe(
+      "edit.invalid-value: Una marca es una línea de texto, no vacía.",
     );
   });
 });

@@ -46,6 +46,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -92,6 +93,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -138,6 +140,7 @@
           "description": null,
           "url": null,
           "classes": [],
+          "tags": [],
           "ports": [],
           "layer": null,
           "link": null,
@@ -195,6 +198,7 @@
           "description": null,
           "assumption": null,
           "classes": [],
+          "tags": [],
           "layer": null,
           "groupPath": [],
           "range": {
@@ -239,6 +243,7 @@
           "description": null,
           "assumption": null,
           "classes": [],
+          "tags": [],
           "layer": null,
           "groupPath": [],
           "range": {
@@ -283,6 +288,7 @@
           "description": null,
           "assumption": null,
           "classes": [],
+          "tags": [],
           "layer": null,
           "groupPath": [],
           "range": {
@@ -327,6 +333,7 @@
           "description": null,
           "assumption": null,
           "classes": [],
+          "tags": [],
           "layer": null,
           "groupPath": [],
           "range": {
@@ -371,6 +378,7 @@
           "description": null,
           "assumption": null,
           "classes": [],
+          "tags": [],
           "layer": null,
           "groupPath": [],
           "range": {
@@ -415,6 +423,7 @@
           "description": null,
           "assumption": null,
           "classes": [],
+          "tags": [],
           "layer": null,
           "groupPath": [],
           "range": {

@@ -26,7 +26,9 @@
   </g>
   <g data-id="payments" data-role="lifeline">
     <polyline points="450,80 450,580" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
-    <rect x="445" y="198" width="10" height="374" rx="0" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <g data-id="activate#1" data-role="event">
+      <rect x="445" y="198" width="10" height="374" rx="0" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    </g>
   </g>
   <g data-id="provider" data-role="lifeline">
     <polyline points="610,80 610,580" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
