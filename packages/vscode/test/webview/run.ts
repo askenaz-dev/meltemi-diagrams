@@ -1838,10 +1838,29 @@ const tests: {
       assert.equal(await transform(), before, "the viewport stays");
       assert.equal(await focused(), "Show the properties panel", "the rail has the focus");
       await page.screenshot({ path: join(output, "inspector-rail.png") });
-      // A render while folded keeps the rail.
+      // A render while folded keeps the rail, never taking it out of the panel: a press on it that
+      // a render comes into the middle of still unfolds.
+      await page.evaluate(() => {
+        const panel = document.querySelector("#mdg-inspector")!;
+        const kept = panel.querySelector(".inspector-rail")!;
+        const w = window as { __railTaken?: number };
+        w.__railTaken = 0;
+        new MutationObserver((records) => {
+          for (const record of records) {
+            if ([...record.removedNodes].includes(kept)) w.__railTaken!++;
+          }
+        }).observe(panel, { childList: true });
+      });
+      const panelDrawn = () => page.locator("#mdg-inspector h2").textContent();
       await h.type(h.text.replace('title "Checkout"', 'title "Checkout, folded"'));
       assert.equal(await aside.getAttribute("data-collapsed"), "true");
       assert.equal(await rail.isVisible(), true);
+      assert.ok(await panelDrawn(), "the panel's fields were drawn again");
+      assert.equal(
+        await page.evaluate(() => (window as { __railTaken?: number }).__railTaken),
+        0,
+        "the rail stays in the panel",
+      );
       // The fold is kept over a reload.
       await h.reload();
       assert.equal(await aside.getAttribute("data-collapsed"), "true");

@@ -1329,12 +1329,8 @@ export class Inspector {
     }
     const key = inside ? (focused!.dataset.key ?? focused!.id) : undefined;
     this.model = model;
-    const datalist = this.element.querySelector("datalist")!;
-    clear(this.element);
-    this.element.append(
-      datalist,
-      h("div", { class: "panel-head" }, h("h2", {}, model.title), this.foldHead()),
-    );
+    this.clearFields();
+    this.rail.before(h("div", { class: "panel-head" }, h("h2", {}, model.title), this.foldHead()));
     // Read-only: the same fields, each one disabled, so the values can be read and nothing written.
     const fields: readonly InspectorField[] = this.readOnly
       ? model.fields.map((f) => ({ ...f, readonly: true }))
@@ -1374,16 +1370,15 @@ export class Inspector {
           section.append(this.effectCard(card, open, grown, targetKey));
         }
       }
-      this.element.append(section);
+      this.rail.before(section);
     }
     for (const row of inspectorRows(fields.filter((f) => f.section !== "strip"))) {
-      if (row.kind === "field") this.element.append(this.field(row.field));
+      if (row.kind === "field") this.rail.before(this.field(row.field));
       // A canvas that only shows has nothing to list for an owner without tags.
       else if (row.tags.length > 0 || !this.readOnly) {
-        this.element.append(this.tagList(row.tags, row.add));
+        this.rail.before(this.tagList(row.tags, row.add));
       }
     }
-    this.element.append(this.rail);
     refocus(this.element, key);
   }
 
@@ -1391,9 +1386,17 @@ export class Inspector {
   clear(): void {
     this.model = undefined;
     this.cards.clear();
-    const datalist = this.element.querySelector("datalist")!;
-    clear(this.element);
-    this.element.append(datalist, this.rail);
+    this.clearFields();
+  }
+
+  /**
+   * Removes the drawn fields, keeping the colour list and the rail where they are: a render that
+   * comes while the rail is pressed never takes its button out from under the pointer.
+   */
+  private clearFields(): void {
+    for (const child of [...this.element.children]) {
+      if (child.tagName !== "DATALIST" && child !== this.rail) child.remove();
+    }
   }
 
   /**
