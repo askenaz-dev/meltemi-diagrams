@@ -17,6 +17,14 @@ the template with that name and open it.
 - **WHEN** the anonymous flow project has been edited and the sequence card is created
 - **THEN** the page asks before replacing, and after a yes the tree shows `diagrams/sign-in` and the panel offers Previous project · Restore
 
+#### Scenario: A cloud project from a card
+- **WHEN** a signed-in person creates `Pagos` from the sequence card
+- **THEN** the service lists `Pagos` with the template's files, the page is bound to it and the header reads Pagos
+
+#### Scenario: An empty name
+- **WHEN** the name is emptied and Create is pressed
+- **THEN** the dialog says the project needs a name and nothing is created
+
 #### Scenario: A whiteboard from its card
 - **WHEN** the whiteboard card is created anonymously
 - **THEN** the tree shows `diagrams/whiteboard` and the canvas draws the strokes and stickies under `sketch.light`

@@ -116,7 +116,7 @@ A `placement { }` block SHALL accept `place <element> at (x, y)`, `size <element
 - `icon "<pack>:<name>"`;
 - `fill`, `stroke` and `color`, each a quoted colour or a colour token name;
 - `line` (`solid`, `dashed` or `dotted`);
-- `width` (a number from 0 to 16);
+- `width` (a number from 0 to 64);
 - `radius` (a number from 0 to 64, with or without `px`), on elements and groups;
 - `shape` (one of the shape names), on `node` targets;
 - `pattern` (`none`, `hatch`, `dots` or `cross`);
@@ -149,6 +149,10 @@ It SHALL apply the block to every listed target. `animate <target>[, <target>...
 #### Scenario: New properties
 - **WHEN** a diagram contains `style db { fill danger; width 2; pattern hatch; class critical }`
 - **THEN** the style entry of `db` has `fill` `@danger`, `width` 2 and `pattern` `hatch`, and its classes are `critical`
+
+#### Scenario: A wide outline
+- **WHEN** a diagram contains `style db { width 24 }` and `style api { width 80 }`
+- **THEN** the style entry of `db` has `width` 24, and `prop.invalid-value` is reported on `80` naming the range 0 to 64
 
 #### Scenario: Radius on a group and a node
 - **WHEN** a diagram contains `style backend { radius 0 }` on a group and `style api { radius 20; shape hexagon }` on a node

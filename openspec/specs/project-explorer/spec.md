@@ -185,7 +185,7 @@ the template with that name and open it.
 
 #### Scenario: The cards
 - **WHEN** New project… opens in Spanish
-- **THEN** five cards show, `c4` titled "Modelo C4" with "1 modelo · 2 vistas", `purchase` with "1 modelo · 2 vistas · 2 diagramas · 1 historia", each with its thumbnail
+- **THEN** seven cards show, `c4` titled "Modelo C4" with "1 modelo · 2 vistas", `kanban` titled "Tablero kanban" with "1 diagrama", `whiteboard` titled "Pizarra" with "1 diagrama · 1 historia", `purchase` with "1 modelo · 2 vistas · 2 diagramas · 1 historia", each with its thumbnail
 
 #### Scenario: Anonymous creation
 - **WHEN** the anonymous flow project has been edited and the sequence card is created
@@ -198,6 +198,10 @@ the template with that name and open it.
 #### Scenario: An empty name
 - **WHEN** the name is emptied and Create is pressed
 - **THEN** the dialog says the project needs a name and nothing is created
+
+#### Scenario: A whiteboard from its card
+- **WHEN** the whiteboard card is created anonymously
+- **THEN** the tree shows `diagrams/whiteboard` and the canvas draws the strokes and stickies under `sketch.light`
 
 ### Requirement: Importing and exporting a project
 **Export project (.zip)** SHALL download the project as the archive **Download → Project (.zip)**

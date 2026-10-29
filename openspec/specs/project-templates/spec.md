@@ -21,14 +21,14 @@ the next commands, and exit 2 on usage errors.
 - **THEN** it exits 2, names the file, and writes nothing
 
 ### Requirement: Templates
-The templates SHALL be `flow`, `c4`, `sequence`, `free` and `purchase`. Each SHALL validate without
+The templates SHALL be `flow`, `c4`, `sequence`, `free`, `kanban`, `whiteboard` and `purchase`. Each SHALL validate without
 diagnostics and build its catalog. `purchase` SHALL be the reference example: a model of a
 customer, a web store, an API gateway, orders, payments, an event bus, an orders database and an
 external payment provider; context and container views; a payment sequence linked to the model
 with approved and declined scenarios; an executive free composition linked to the model; an
 animated story from the context to the containers; and export profiles (PDF sheet, PNG slide, MP4
 video), with catalog settings. Its container view SHALL be laid out top to bottom so that it is no
-wider than twice its height, and its executive slide SHALL fit the shop group to its boxes. Their
+wider than twice its height, and its executive slide SHALL fit the shop group to its boxes. `kanban` SHALL be a free diagram with `preset board`: a row group with `align stretch` holding three column groups (To do, Doing, Done) of stickies in two colours. `whiteboard` SHALL be a free diagram under `sketch.light` with `preset board`: a heading, two stickies, a pen arrow with a head, a highlighter stroke under the heading, a line, and a story that draws the strokes and reveals the stickies. Their
 names, titles in words, descriptions, contents (the counts of models, of C4 views, of the other
 diagrams and of stories)
 and `project.json` SHALL come from `@meltemi/diagrams-project` (`TEMPLATES`, `templateManifest`),
@@ -52,7 +52,11 @@ theme and in the dark counterpart, each at most 200 KiB.
 
 #### Scenario: Listing the templates
 - **WHEN** `mdg init --list` runs
-- **THEN** it prints five lines, `c4` with its title, its description and "1 model, 2 views", and `purchase` with "1 model, 2 views, 2 diagrams, 1 story"
+- **THEN** it prints seven lines, `c4` with its title, its description and "1 model, 2 views", `kanban` with "1 diagram", `whiteboard` with "1 diagram, 1 story", and `purchase` with "1 model, 2 views, 2 diagrams, 1 story"
+
+#### Scenario: The kanban template
+- **WHEN** `mdg init board --template kanban` runs and the project is validated
+- **THEN** `Checked 1 file: 0 errors, 0 warnings.` is printed and its diagram holds a row group of three column groups with stickies
 
 #### Scenario: Thumbnails in the build
 - **WHEN** `pnpm playground:build` runs
