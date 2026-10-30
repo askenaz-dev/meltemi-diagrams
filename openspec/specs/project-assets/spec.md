@@ -74,7 +74,7 @@ Built-in packs SHALL be recorded by version. When the lock exists, project compi
 ### Requirement: Assets command
 `meltemi-diagrams assets` SHALL provide:
 
-- `list [path]`, which prints every pack (prefix, version, source, licence, redistribution, icon count) and font (family, weight, style, file, licence), and the aliases;
+- `list [path]`, which prints the bundled fonts (family, group, weights, licence) first, then every pack (prefix, version, source, licence, redistribution, icon count) and project font (family, weight, style, file, licence), and the aliases;
 - `icons <query> [--project <path>] [--limit <n>]`, which prints matching references one per line;
 - `lock [path]`.
 
@@ -83,6 +83,10 @@ Built-in packs SHALL be recorded by version. When the lock exists, project compi
 #### Scenario: List
 - **WHEN** `meltemi-diagrams assets list corpus/projects/valid/assets` runs
 - **THEN** stdout lists `tabler`, `brand` and `aws` with their licences, marks `aws` as not redistributable, and the exit code is 0
+
+#### Scenario: Bundled fonts listed
+- **WHEN** `meltemi-diagrams assets list` runs in a folder without a project
+- **THEN** stdout starts with a "Bundled fonts" table of seventeen rows, `Roboto` in group `sans` with weights `400 500 600 700` and licence `OFL-1.1`, `Comic Neue` in `hand` with `400 700`, and the exit code is 0
 
 #### Scenario: Search
 - **WHEN** `meltemi-diagrams assets icons "cloud upload" --limit 3` runs

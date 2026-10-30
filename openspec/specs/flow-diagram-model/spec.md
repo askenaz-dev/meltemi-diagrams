@@ -122,9 +122,10 @@ A `placement { }` block SHALL accept `place <element> at (x, y)`, `size <element
 - `pattern` (`none`, `hatch`, `dots` or `cross`);
 - `arrowhead` and `arrowtail` (`none`, `triangle`, `triangleOutline`, `open`, `diamond`, `diamondOutline`, `circle`, `circleOutline`, `bar`, `cross`, `many`, `oneOrMany`, `zeroOrMany`, `zeroOrOne` or `onlyOne`);
 - `routing` (`auto`, `orthogonal`, `polyline` or `bezier`) and `corners` (`sharp` or `rounded`);
+- `font` (a quoted, non-empty font stack), `fontSize` (a number from 6 to 160) and `fontWeight` (400, 500, 600 or 700), on targets that draw text (`style-classes-and-rules`, "Text properties in every profile");
 - `class <id>[, <id>…]`.
 
-It SHALL apply the block to every listed target. `animate <target>[, <target>...] { }` SHALL accept `effect` (one of `flow`, `pulse`, `dash`, `trace`), `duration <time>` (a number with unit `ms` or `s`) and `repeat` (`forever` or a positive integer). Targets MUST resolve to an element or a named relation. Unknown properties SHALL produce `prop.unknown`; wrong value types SHALL produce `prop.invalid-value`; `radius` on a relation and `shape` on a target that is not a node SHALL produce `prop.invalid-value`; a property set again for the same target by a later statement SHALL produce `prop.duplicate` on the later property. Style entries SHALL keep numbers as numbers, colour token names as `@<token>`, and classes in a separate list.
+It SHALL apply the block to every listed target. `animate <target>[, <target>...] { }` SHALL accept `effect` (one of `flow`, `pulse`, `dash`, `trace`), `duration <time>` (a number with unit `ms` or `s`) and `repeat` (`forever` or a positive integer). Targets MUST resolve to an element or a named relation. Unknown properties SHALL produce `prop.unknown`; wrong value types SHALL produce `prop.invalid-value`; `radius` on a relation and `shape` on a target that is not a node SHALL produce `prop.invalid-value`; a property set again for the same target by a later statement SHALL produce `prop.duplicate` on the later property. Style entries SHALL keep numbers as numbers, colour token names as `@<token>`, strings as strings, and classes in a separate list.
 
 #### Scenario: Valid style and animate
 - **WHEN** a diagram contains `style api { icon "tabler:server" }` and `animate request { effect flow; duration 1200ms; repeat forever }`
@@ -161,6 +162,14 @@ It SHALL apply the block to every listed target. `animate <target>[, <target>...
 #### Scenario: Radius out of range or on a relation
 - **WHEN** a diagram contains `style api { radius 99 }` and `style request { radius 4 }` on a relation
 - **THEN** `prop.invalid-value` is reported on `99` naming the range 0 to 64, and on the relation's `radius` with the hint that it applies to elements
+
+#### Scenario: Text properties in a flow style
+- **WHEN** a flow diagram contains `style api { font "Open Sans"; fontSize 15 }` on a node and `style request { fontWeight 600 }` on a relation
+- **THEN** the entry of `api` has `font` `Open Sans` and `fontSize` 15, the entry of `request` has `fontWeight` 600, and no diagnostic is reported
+
+#### Scenario: An empty font
+- **WHEN** a diagram contains `style api { font "" }`
+- **THEN** `prop.invalid-value` is reported on `""` naming a non-empty quoted font stack
 
 ### Requirement: Source map
 Every element, relation, placement, style and animate entry in the model SHALL carry the range of its declaring statement and the range of its identifier token, so that editors and the edit layer can locate it in the text.
