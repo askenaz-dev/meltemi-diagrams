@@ -1128,11 +1128,12 @@ const tests: Test[] = [
       await button.click();
       const picker = page.getByRole("dialog", { name: "Fonts" });
       await picker.waitFor({ state: "visible" });
-      // Every row is there at once, at one height, drawn in its face once its files arrive.
+      // Every row is there at once, at one height, drawn in its face once its files arrive. The
+      // layout height, which the popover's opening scale does not change.
       await picker.locator('[data-family="Caveat"]').waitFor();
       const heights = await picker
         .locator(".font-option[data-family]")
-        .evaluateAll((rows) => [...new Set(rows.map((r) => r.getBoundingClientRect().height))]);
+        .evaluateAll((rows) => [...new Set(rows.map((r) => (r as HTMLElement).offsetHeight))]);
       assert.equal(heights.length, 1, `one row height: ${heights.join(", ")}`);
       await until(
         page,
@@ -1144,7 +1145,29 @@ const tests: Test[] = [
       await page.keyboard.press("Enter");
       await analysed(page);
       assert.match(await code(page), /style api \{ font "Caveat" \}/);
-      await page.locator("#app .strip").screenshot({ path: join(output, "font-strip.png") });
+      // The button shows the family once the strip is drawn for it; Caveat's files, fetched for the
+      // label it now measures, draw the inspector again when they arrive, so the picture is taken
+      // after the page has nothing left to fetch, and again if a late drawing replaced the strip.
+      await page
+        .locator('#app .strip [data-field="style.font"] button.font-button[data-family="Caveat"]')
+        .waitFor();
+      await until(page, "nothing left to fetch", () => {
+        const studio = (
+          window as unknown as {
+            meltemiPlayground: { studio: { environment: { fonts: { busy: boolean } } } };
+          }
+        ).meltemiPlayground.studio;
+        return !studio.environment.fonts.busy;
+      });
+      for (let attempt = 1; ; attempt++) {
+        try {
+          await page.locator("#app .strip").screenshot({ path: join(output, "font-strip.png") });
+          break;
+        } catch (error) {
+          if (attempt === 3) throw error;
+          await page.waitForTimeout(200);
+        }
+      }
     },
   },
   {
