@@ -69,9 +69,10 @@ símbolos de los diagramas de flujo, entre ellos las líneas sin puntas `--` y `
 `shape` se aplica a las cajas y a los nodos de los diagramas de flujo; los textos, los iconos, las
 imágenes, las notas, las notas adhesivas, las líneas y los lápices la rechazan con
 `prop.invalid-value`. `radius` se aplica a los elementos y los grupos de ambos perfiles
-([styles.md](styles.md)); `fontSize`, `fontWeight`, `textAlign`, `verticalAlign` y `opacity`, solo
-a las composiciones libres, y los diagramas de flujo los rechazan con `prop.invalid-value`
-(decisiones 0043, 0058 y 0064).
+([styles.md](styles.md)); `font`, `fontSize` y `fontWeight`, a lo que dibuja texto en todos los
+perfiles ([fonts.md](fonts.md#la-fuente-el-tamaño-y-el-peso-de-un-texto), decisión 0067); y
+`textAlign`, `verticalAlign` y `opacity`, solo a las composiciones libres, y los diagramas de flujo
+los rechazan con `prop.invalid-value` (decisiones 0043, 0058 y 0064).
 
 | Propiedad       | Valores                                 | Predeterminado                                                                                                     |
 | --------------- | --------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |

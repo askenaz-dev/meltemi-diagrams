@@ -29,6 +29,8 @@ import {
   ROUTINGS,
   STICKY_PROPERTIES,
   STYLE_PROPERTIES,
+  TEXTLESS_KINDS,
+  TEXT_PROPERTIES,
   THEME_COLOR_TOKENS,
   takesRotation,
   takesShape,
@@ -52,6 +54,7 @@ import { DEFAULT_DURATIONS, themeDurations } from "@meltemi/diagrams-motion";
 import { diagramView, type DiagramView, type DocumentAnalysis } from "./analysis.js";
 import { interiorOf, placingList, steadyGroups, unlistedOperations } from "./arrange.js";
 import { STICKY_COLOURS } from "./canvas/palette.js";
+import { FONT_SIZE_STEPS, drawnText } from "./fonts.js";
 import type {
   ColorSwatch,
   FieldGlyphs,
@@ -69,7 +72,7 @@ import {
 import { drawnIconSize, iconChoice, iconKind } from "./icons.js";
 import { messages } from "./messages/index.js";
 import { freshRelationId, namedNotice, namedRelation, styleTargets } from "./targets.js";
-import { effectiveTheme, themeLocation } from "./themes.js";
+import { effectiveTheme, embeddableFamilies, themeLocation } from "./themes.js";
 
 export { freshRelationId, namedRelation };
 import {
@@ -236,12 +239,18 @@ const STYLE_FIELDS: readonly StyleField[] = [
 ];
 
 /**
- * Style fields of free diagrams: text, and the opacity of elements, groups, lines and pens as a
- * slider from 0 to 1.
+ * The text fields of every profile (decision 0067): the font, picked in the canvas's font picker,
+ * the size with the common sizes listed, and the weight as four chips. Everything that draws text
+ * takes them; icons, images and pens do not (`takesField`).
  */
-const FREE_STYLE_FIELDS: readonly StyleField[] = [
+const TEXT_STYLE_FIELDS: readonly StyleField[] = [
+  { name: "font", type: "font" },
   { name: "fontSize", type: "number" },
-  { name: "fontWeight", type: "enum", options: FONT_WEIGHTS.map(String) },
+  { name: "fontWeight", type: "enum", options: FONT_WEIGHTS.map(String), glyphs: "fontWeight" },
+];
+
+/** Style fields of free diagrams: the opacity of elements, groups, lines and pens, from 0 to 1. */
+const FREE_STYLE_FIELDS: readonly StyleField[] = [
   { name: "opacity", type: "number", range: OPACITY_RANGE },
 ];
 
@@ -281,6 +290,17 @@ const shown = (value: string | number | undefined): string | number | null =>
  */
 function takesField(diagram: FlowDiagram, target: StyleTarget, field: StyleField): boolean {
   if (diagram.type === "sequence" && NOT_IN_SEQUENCES.has(field.name)) return false;
+  // The text fields go wherever text is drawn: every element but icons, images and pens, the
+  // relations and free lines, and the notes and fragments of sequence diagrams.
+  if (TEXT_PROPERTIES.includes(field.name)) {
+    if (target.kind === "relation") return true;
+    if (target.kind === "event") {
+      const kind = diagram.eventsByKey.get(target.id)?.kind;
+      return kind === "note" || kind === "fragment";
+    }
+    const element = diagram.elementsById.get(target.id);
+    return element !== undefined && !TEXTLESS_KINDS.includes(element.kind);
+  }
   if (target.kind === "relation") {
     return !ELEMENT_ONLY_PROPERTIES.includes(field.name) && field.elements === undefined;
   }
@@ -301,7 +321,10 @@ function takesField(diagram: FlowDiagram, target: StyleTarget, field: StyleField
 
 function styleFields(diagram: FlowDiagram, targets: readonly StyleTarget[]): InspectorField[] {
   const styles = targets.map((t) => writtenStyle(diagram, t.id, t.kind));
-  const fields = diagram.type === "free" ? [...STYLE_FIELDS, ...FREE_STYLE_FIELDS] : STYLE_FIELDS;
+  const fields =
+    diagram.type === "free"
+      ? [...STYLE_FIELDS, ...TEXT_STYLE_FIELDS, ...FREE_STYLE_FIELDS]
+      : [...STYLE_FIELDS, ...TEXT_STYLE_FIELDS];
   const labels = messages().style;
   // A pen's stroke is one pixel wide at least, which its slider shows.
   const pens =
@@ -323,8 +346,58 @@ function styleFields(diagram: FlowDiagram, targets: readonly StyleTarget[]): Ins
         ...(options ? { options } : {}),
         ...(f.glyphs ? { glyphs: f.glyphs } : {}),
         ...(range ? { range } : {}),
+        ...(f.name === "fontSize" ? { list: FONT_SIZE_STEPS } : {}),
       };
     });
+}
+
+/**
+ * The text fields with what applies when the selection writes none, greyed as their placeholder:
+ * the family, size and weight its rules and classes give, else the theme's for its kind, when the
+ * selected items share it.
+ */
+function withTextDefaults(
+  model: InspectorModel,
+  view: DiagramView,
+  theme: Theme,
+  families: readonly string[],
+): InspectorModel {
+  const diagram = view.diagram;
+  const ids = model.target.ids;
+  if (ids.length === 0 || !model.fields.some((f) => f.name === "style.font")) return model;
+  // The styles the targets would take without their own `style` statements.
+  const inherited = new StyleResolver(theme, {
+    ...diagram,
+    styles: diagram.styles.filter((entry) => !ids.includes(entry.target)),
+  });
+  const faces = ids.map((id) => {
+    const kind = diagram.elementsById.has(id)
+      ? "element"
+      : diagram.relationsByKey.has(id)
+        ? "relation"
+        : "event";
+    return drawnText(theme, diagram, { id, kind }, inherited);
+  });
+  const shared = <T>(values: readonly (T | undefined)[]): T | undefined =>
+    values.length > 0 && values.every((v) => v !== undefined && v === values[0])
+      ? values[0]
+      : undefined;
+  const placeholders: Readonly<Record<string, string | undefined>> = {
+    "style.font": shared(faces.map((f) => f?.family)),
+    "style.fontSize": shared(faces.map((f) => f?.size))?.toString(),
+    "style.fontWeight": shared(faces.map((f) => f?.weight))?.toString(),
+  };
+  return {
+    ...model,
+    fields: model.fields.map((field) => {
+      const placeholder = placeholders[field.name];
+      // The font picker's families, which tell a family it lists from a stack written by hand.
+      const listed = field.name === "style.font" ? { options: families } : {};
+      return placeholder === undefined
+        ? { ...field, ...listed }
+        : { ...field, ...listed, placeholder };
+    }),
+  };
 }
 
 /**
@@ -1120,7 +1193,9 @@ export function inspect(
   const styles = new StyleResolver(theme, view.diagram);
   const elements = model.target.ids.flatMap((id) => view.diagram.elementsById.get(id) ?? []);
   const some = elements.length > 0;
-  return withStrip(withIcons(model, view, analysis.icons), theme, themes, {
+  const families = embeddableFamilies(analysis);
+  const texts = withTextDefaults(withIcons(model, view, analysis.icons), view, theme, families);
+  return withStrip(texts, theme, themes, {
     iconed: some && elements.every((e) => styles.element(e).icon !== undefined),
     stickies: some && elements.every((e) => e.kind === "sticky"),
   });
@@ -1188,14 +1263,15 @@ const STRIP = [
   "style.radius",
   "style.rotation",
   "style.shape",
-  // Stickies only: the size and weight their text starts from before it shrinks to the card.
-  "style.fontSize",
-  "style.fontWeight",
   // Free boxes, stickies and texts: one grid of cells for the two.
   "style.textAlign",
   "style.verticalAlign",
   // For elements with an icon only.
   "style.iconPosition",
+  // Everything that draws text: the Text group, its font, size and weight (decision 0067).
+  "style.font",
+  "style.fontSize",
+  "style.fontWeight",
   ...EFFECT_ORDER.flatMap((effect) => [
     `effect.${effect}`,
     ...EFFECT_PROPERTIES.map((property) => `effect.${effect}.${property}`),
@@ -1225,8 +1301,7 @@ function withStrip(
   const inStrip = (name: string) =>
     STRIP.includes(name) &&
     !(arrow && name === "style.line") &&
-    !(name === "style.iconPosition" && !targets.iconed) &&
-    !((name === "style.fontSize" || name === "style.fontWeight") && !targets.stickies);
+    !(name === "style.iconPosition" && !targets.iconed);
   const fields = model.fields.map((field): InspectorField => {
     if (!inStrip(field.name)) return field;
     // A field of an effect that is on belongs to the card of its toggle.

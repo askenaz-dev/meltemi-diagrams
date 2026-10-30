@@ -2,7 +2,9 @@
 
 Status: accepted (lines-and-text-alignment change, 24 October 2026). Extends decisions 0003,
 0007, 0012, 0013, 0018 and 0043. Pen strokes, which the sketch passes leave as drawn, are
-[decision 0064](0064-whiteboard-tools.md).
+[decision 0064](0064-whiteboard-tools.md). The text sizes and weights leave the free-only
+properties, and thirteen more families are bundled, in
+[decision 0067](0067-font-families-and-text-size.md).
 
 ## Context
 

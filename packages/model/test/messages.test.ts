@@ -281,7 +281,7 @@ describe("the words of compilation", () => {
         "story tour for w {\n  scene one {\n    draw p, t\n  }\n}\n",
     );
     const TAKES =
-      "Una nota adhesiva admite `fill`, `stroke`, `color`, `line`, `width`, `fontSize`, `fontWeight`, `textAlign`, `verticalAlign`, `radius`, `rotation`, `opacity`, `icon`, `iconColor` y `iconSize`.";
+      "Una nota adhesiva admite `fill`, `stroke`, `color`, `line`, `width`, `font`, `fontSize`, `fontWeight`, `textAlign`, `verticalAlign`, `radius`, `rotation`, `opacity`, `icon`, `iconColor` y `iconSize`.";
     expect(spanish.map((d) => [d.code, d.message, d.hints])).toEqual([
       [
         "prop.invalid-value",

@@ -28,7 +28,7 @@ import {
   type MessageText,
   type TypeScale,
 } from "./layout.js";
-import type { TextMetrics } from "./measure.js";
+import { textFont, writtenStack, type TextFont, type TextMetrics } from "./measure.js";
 import { markGradient } from "./mark.js";
 import { messages as words } from "./messages/index.js";
 import type { BoxShape } from "./shapes.js";
@@ -94,7 +94,8 @@ interface MessageGeo {
    * The label's block: its box (one line high per line, the lines `line` apart) and the lines as
    * drawn, wrapped at the room between the lifelines or, on a self-call, broken at `\n` only.
    */
-  readonly label: { box: Box; lines: readonly string[]; line: number } | undefined;
+  readonly label:
+    { box: Box; lines: readonly string[]; line: number; text: SequenceLabelText } | undefined;
   readonly number: number | null;
   /** The pills of the message's tags, in source order. */
   readonly tags: readonly Box[];
@@ -137,12 +138,22 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
   const column = new Map(participants.map((p, i) => [p.id, i]));
 
   // ---------------------------------------------------------------- measures
-  const labelLine = Math.round(scale.label * 1.5);
-  const boxHeight = Math.round(40 * f);
+  // A head's label is in the theme's label size and weight unless its style writes them; the row
+  // of heads grows to the largest label written (decision 0067).
+  const headText = (p: Element) => sequenceText(styles.element(p), scale.label, scale.labelWeight);
+  const headSizes = participants
+    .map((p) => styles.element(p).fontSize)
+    .filter((size): size is number => size !== undefined && size > scale.label);
+  const largest = Math.max(scale.label, ...headSizes);
+  const labelLine = Math.round(largest * 1.5);
+  const boxHeight = Math.max(Math.round(40 * f), Math.round((40 * largest) / 13));
   const figureHeight = Math.round(34 * f);
   const hasFigures = participants.some((p) => !BOX_KINDS.has(p.kind));
   const headHeight = Math.max(boxHeight, hasFigures ? figureHeight + 6 + labelLine : 0);
-  const labelWidth = (p: Element) => metrics.width(p.label, "body", scale.labelWeight, scale.label);
+  const labelWidth = (p: Element) => {
+    const text = headText(p);
+    return metrics.width(p.label, text.font, text.weight, text.size);
+  };
   const widths = participants.map((p) =>
     BOX_KINDS.has(p.kind)
       ? Math.max(Math.round(96 * f), Math.ceil(labelWidth(p) + 2 * theme.padding)) +
@@ -154,22 +165,31 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
   // Between two lifelines it holds its columns apart on one line, and wraps at the room they leave
   // it when a pull brings them closer; a self-call's stays beside its loop. Its lines are 1.25
   // times the size apart, as a sticky's are.
-  const measureLabel = (line: string) => metrics.width(line, "body", 400, scale.relationLabel);
-  const labelStep = scale.relationLabel * 1.25;
+  const messageText = (relation: Relation) =>
+    labelText(sequenceText(styles.relation(relation), scale.relationLabel, 400));
+  const measureLabel = (relation: Relation) => {
+    const text = messageText(relation);
+    return (line: string) => metrics.width(line, text.font, text.weight, text.size);
+  };
   /** The widest word of a label, words split at spaces and line breaks: the least room it needs. */
   const longestWord = (relation: Relation) =>
-    relation.label === null ? 0 : Math.max(0, ...relation.label.split(/[ \n]+/).map(measureLabel));
+    relation.label === null
+      ? 0
+      : Math.max(0, ...relation.label.split(/[ \n]+/).map(measureLabel(relation)));
   /** The widest line of a label broken at `\n` only: the room it takes unwrapped. */
   const lineWidth = (relation: Relation) =>
-    relation.label === null ? 0 : Math.max(0, ...splitLines(relation.label).map(measureLabel));
+    relation.label === null
+      ? 0
+      : Math.max(0, ...splitLines(relation.label).map(measureLabel(relation)));
   const noteLines = (note: NoteEvent) => splitLines(note.text);
   const noteSize = (note: NoteEvent) => {
     const lines = noteLines(note);
+    const text = noteText(styles, scale, note);
     const width = Math.max(
-      ...lines.map((line) => metrics.width(line, "body", 400, scale.note)),
+      ...lines.map((line) => metrics.width(line, text.font, text.weight, text.size)),
       24,
     );
-    return { width: Math.ceil(width + 16), height: lines.length * scale.noteLine + 12 };
+    return { width: Math.ceil(width + 16), height: lines.length * text.line + 12 };
   };
   const numbered = diagram.properties.autonumber !== null;
   const discRoom = numbered ? 22 : 0;
@@ -405,9 +425,15 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
   }
 
   // ---------------------------------------------------------------- rows
-  const groupTitle = groups.length > 0 ? labelLine + 12 : 0;
+  // The groups' titles share a band as tall as the largest title written, the head's line at least.
+  const groupTitle =
+    groups.length > 0
+      ? Math.max(
+          labelLine,
+          ...groups.map((g) => Math.round((styles.element(g).fontSize ?? 0) * 1.5)),
+        ) + 12
+      : 0;
   const rowGap = Math.round(14 * f);
-  const labelHeight = scale.relationLabelHeight;
   // The heads' row, below the groups' titles and the room of the badges over the heads.
   const headTop = groupTitle + badgeRoom;
   let y = headTop + headHeight + Math.round(24 * f);
@@ -499,12 +525,16 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
                   Math.abs(xs[column.get(b)!]! - xs[column.get(a)!]!) - made - 24 - discRoom,
                 );
             const wraps = !self && pulled(column.get(a)!, column.get(b)!);
+            const written = messageText(relation);
+            const measure = measureLabel(relation);
+            const labelHeight = written.height;
+            const labelStep = written.step;
             const lines =
               text === ""
                 ? []
                 : self || lineWidth(relation) <= room + ROUNDING
                   ? splitLines(text)
-                  : wrapLines(text, room, measureLabel);
+                  : wrapLines(text, room, measure);
             // The block of lines: one label line high, and a step more for each line after it.
             const block = labelHeight + Math.max(0, lines.length - 1) * labelStep;
             // A message's tags sit on its arrow: its label stands higher by half a pill and 2, and
@@ -565,7 +595,7 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
             const lastPoint = points[points.length - 1]!;
             const at = entry ? entry.at / 100 : 0.5;
             const offset = entry?.offset ?? { x: 0, y: 0 };
-            const width = Math.max(Math.max(0, ...lines.map(measureLabel)) + 8, 8);
+            const width = Math.max(Math.max(0, ...lines.map(measure)) + 8, 8);
             const anchor = self
               ? { x: first.x + loop + 8 + width / 2, y: first.y + SELF_HEIGHT / 2 }
               : { x: first.x + (lastPoint.x - first.x) * at, y: arrowY - block / 2 - 1 - lift };
@@ -576,15 +606,19 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
               height: block,
             };
             const label: MessageGeo["label"] =
-              text !== "" || numbered ? { box, lines, line: labelStep } : undefined;
+              text !== "" || numbered ? { box, lines, line: labelStep, text: written } : undefined;
             messageTexts.set(event.key, {
               area: self
                 ? box
                 : { x: box.x + box.width / 2 - room / 2, y: box.y, width: room, height: block },
               lines,
-              size: scale.relationLabel,
+              size: written.size,
               line: labelStep,
               wraps,
+              weight: written.weight,
+              ...(writtenStack(written.font) !== undefined
+                ? { font: writtenStack(written.font) }
+                : {}),
             });
             // The row of tags on the arrow, its end nearest the source `tagStart` from the
             // arrow's start: rightwards from it, or leftwards on a message from right to left.
@@ -740,7 +774,7 @@ export function layoutSequence(input: SequenceInput): LayoutResult {
             }
             open.pop();
             const bottom = y + 4;
-            const headerText = fragmentHeader(event, metrics, scale);
+            const headerText = fragmentHeader(event, metrics, scale, styles);
             if (!Number.isFinite(frame.minX)) {
               frame.minX = xs[0]! - 24;
               frame.maxX = xs[xs.length - 1]! + 24;
@@ -1006,13 +1040,58 @@ function messageHeads(
   return { start: style.arrowtail ?? (relation.heads === "both" ? end : "none"), end };
 }
 
+/** A sequence text's size, weight and font: its kind's in the theme, or what its style writes. */
+interface SequenceText {
+  readonly size: number;
+  readonly weight: number;
+  readonly font: TextFont;
+}
+
+/** A message label's text with its line step and the height of its first line. */
+interface SequenceLabelText extends SequenceText {
+  readonly step: number;
+  readonly height: number;
+}
+
+function sequenceText(style: ResolvedStyle, size: number, weight: number): SequenceText {
+  return {
+    size: style.fontSize ?? size,
+    weight: style.fontWeight ?? weight,
+    font: textFont(style.font),
+  };
+}
+
+/** A label's lines 1.25 times its size apart, its first line as tall as a relation label's. */
+function labelText(text: SequenceText): SequenceLabelText {
+  return { ...text, step: text.size * 1.25, height: Math.round((text.size * 18) / 11) };
+}
+
+/** A note's text: the theme's note size at 400 or its style's, its lines the note scale's ratio. */
+function noteText(
+  styles: StyleResolver,
+  scale: TypeScale,
+  note: { readonly id: string | null; readonly key: string },
+): SequenceText & { readonly line: number } {
+  const text = sequenceText(styles.event(note.id ?? note.key, "note"), scale.note, 400);
+  return { ...text, line: Math.round((text.size * scale.noteLine) / scale.note) };
+}
+
+/** A fragment's text: its operator's size (the relation label size) and font. */
+function fragmentText(styles: StyleResolver, scale: TypeScale, event: FragmentEvent, key: string) {
+  return sequenceText(styles.event(event.id ?? key, "fragment"), scale.relationLabel, 600);
+}
+
 /** Width of a fragment's header: the operator tab and the first condition. */
-function fragmentHeader(event: FragmentEvent, metrics: TextMetrics, scale: TypeScale): number {
-  const tab = metrics.width(event.operator, "body", 600, scale.relationLabel) + 18;
+function fragmentHeader(
+  event: FragmentEvent & { readonly key: string },
+  metrics: TextMetrics,
+  scale: TypeScale,
+  styles: StyleResolver,
+): number {
+  const text = fragmentText(styles, scale, event, event.key);
+  const tab = metrics.width(event.operator, text.font, text.weight, text.size) + 18;
   const condition = event.branches[0]?.condition;
-  return (
-    tab + (condition ? metrics.width(`[${condition}]`, "body", 400, scale.relationLabel) + 12 : 0)
-  );
+  return tab + (condition ? metrics.width(`[${condition}]`, text.font, 400, text.size) + 12 : 0);
 }
 
 class SequenceEmitter {
@@ -1053,8 +1132,9 @@ class SequenceEmitter {
     weight: number,
     fill: string,
     anchor: TextItem["anchor"] = "middle",
+    font: TextFont = "body",
   ): TextItem {
-    return textItem(this.metrics, x + this.dx, y + this.dy, text, size, weight, fill, anchor);
+    return textItem(this.metrics, x + this.dx, y + this.dy, text, size, weight, fill, anchor, font);
   }
 
   private rect(
@@ -1108,12 +1188,13 @@ class SequenceEmitter {
       ),
       this.text(
         box.x + 12,
-        box.y + 14,
+        box.y + 14 + Math.max(0, (style.fontSize ?? scale.groupTitle) - scale.groupTitle) / 2,
         group.label,
-        scale.groupTitle,
-        scale.labelWeight,
+        style.fontSize ?? scale.groupTitle,
+        style.fontWeight ?? scale.labelWeight,
         style.color ?? theme.ink,
         "start",
+        textFont(style.font),
       ),
     ];
     return {
@@ -1190,6 +1271,7 @@ class SequenceEmitter {
   ): GroupItem {
     const { theme, scale } = this;
     const style = this.styles.element(participant);
+    const text = sequenceText(style, scale.label, scale.labelWeight);
     const fill = style.fill ?? theme.surface;
     const stroke = style.stroke ?? theme.muted;
     const strokeWidth = style.width ?? theme.strokeWidth;
@@ -1243,9 +1325,11 @@ class SequenceEmitter {
           cx - capRoom,
           box.y + box.height / 2,
           participant.label,
-          scale.label,
-          scale.labelWeight,
+          text.size,
+          text.weight,
           color,
+          "middle",
+          text.font,
         ),
       );
     } else {
@@ -1286,9 +1370,11 @@ class SequenceEmitter {
           cx,
           head.y + head.height - labelLine / 2,
           participant.label,
-          scale.label,
-          scale.labelWeight,
+          text.size,
+          text.weight,
           color,
+          "middle",
+          text.font,
         ),
       );
     }
@@ -1348,7 +1434,7 @@ class SequenceEmitter {
     }
     if (message.label && message.label.lines.length > 0) {
       // One text a line, centred, the first where a one-line label is drawn.
-      const { box, lines, line } = message.label;
+      const { box, lines, line, text: written } = message.label;
       items.push({
         kind: "group",
         id: message.key,
@@ -1356,11 +1442,13 @@ class SequenceEmitter {
         items: lines.map((text, i) =>
           this.text(
             box.x + box.width / 2,
-            box.y + scale.relationLabelHeight / 2 + i * line,
+            box.y + written.height / 2 + i * line,
             text,
-            scale.relationLabel,
-            400,
+            written.size,
+            written.weight,
             style.color ?? theme.ink,
+            "middle",
+            written.font,
           ),
         ),
       });
@@ -1419,16 +1507,18 @@ class SequenceEmitter {
         strokeDash(style.line),
       ),
     ];
+    const text = noteText(this.styles, scale, { id: note.event.id, key: note.key });
     splitLines(note.event.text).forEach((line, i) => {
       items.push(
         this.text(
           b.x + 8,
-          b.y + 6 + scale.noteLine / 2 + i * scale.noteLine,
+          b.y + 6 + text.line / 2 + i * text.line,
           line,
-          scale.note,
-          400,
+          text.size,
+          text.weight,
           style.color ?? theme.ink,
           "start",
+          text.font,
         ),
       );
     });
@@ -1476,14 +1566,16 @@ class SequenceEmitter {
     const style = this.styles.event(event.id ?? frame.key, "fragment");
     const b = frame.box;
     const stroke = style.stroke ?? theme.muted;
-    const size = scale.relationLabel;
+    const written = fragmentText(this.styles, scale, event, frame.key);
+    const size = written.size;
+    const operatorWeight = written.weight;
     const color = style.color ?? theme.ink;
     const muted = style.color ?? theme.muted;
     const first = event.branches[0]?.condition ?? null;
     const h = frame.headerHeight;
     const items: SceneItem[] = [];
     const label = (x: number, y: number, text: string, weight: number, fill: string) => {
-      const width = metrics.width(text, "body", weight, size) + 6;
+      const width = metrics.width(text, written.font, weight, size) + 6;
       items.push(
         this.rect(
           { x: x - 3, y: y - h / 2 + 4, width, height: h - 8 },
@@ -1493,17 +1585,28 @@ class SequenceEmitter {
           0,
         ),
       );
-      items.push(this.text(x, y, text, size, weight, fill, "start"));
+      items.push(this.text(x, y, text, size, weight, fill, "start", written.font));
     };
     if (event.operator === "region") {
-      if (first) label(b.x + 8, b.y + h / 2, first, 600, color);
+      if (first) label(b.x + 8, b.y + h / 2, first, operatorWeight, color);
     } else {
-      const tabWidth = metrics.width(event.operator, "body", 600, size) + 18;
+      const tabWidth = metrics.width(event.operator, written.font, operatorWeight, size) + 18;
       const s = this.box(b);
       const n = (v: number) => String(round2(v));
       const tab = `M${n(s.x)} ${n(s.y)} L${n(s.x + tabWidth)} ${n(s.y)} L${n(s.x + tabWidth)} ${n(s.y + h - 6)} L${n(s.x + tabWidth - 6)} ${n(s.y + h)} L${n(s.x)} ${n(s.y + h)} Z`;
       items.push(this.path(tab, theme.surface, stroke, style.width ?? theme.strokeWidth));
-      items.push(this.text(b.x + 8, b.y + h / 2, event.operator, size, 600, color, "start"));
+      items.push(
+        this.text(
+          b.x + 8,
+          b.y + h / 2,
+          event.operator,
+          size,
+          operatorWeight,
+          color,
+          "start",
+          written.font,
+        ),
+      );
       if (first) label(b.x + tabWidth + 8, b.y + h / 2, `[${first}]`, 400, muted);
     }
     for (const separator of frame.separators) {

@@ -54,3 +54,11 @@ A board that grows with its content (`preset board`): a highlighter mark under t
 ![Free: a whiteboard](free/whiteboard.svg)
 
 [Source](free/whiteboard.meltemi) · [SVG](free/whiteboard.svg) · [PNG](free/whiteboard.png) · [PDF](free/whiteboard.pdf)
+
+## Free: the bundled fonts
+
+A type specimen: the seventeen bundled families in their groups, each name in its own face with `font`, the four weights and a column of sizes; the exports embed or outline every family.
+
+![Free: the bundled fonts](free/typography.svg)
+
+[Source](free/typography.meltemi) · [SVG](free/typography.svg) · [PNG](free/typography.png) · [PDF](free/typography.pdf)

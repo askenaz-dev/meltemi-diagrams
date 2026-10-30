@@ -191,6 +191,19 @@ function vendorNotices(vendorFolder) {
     });
 }
 
+// The fonts' licence as their packages record it: one name when they share it.
+const fontLicenses = [
+  ...new Set(
+    FONT_PACKAGES.map((name) => {
+      const { license } = bundled.get(name).manifest;
+      return typeof license === "string" ? license : (license?.type ?? "unknown");
+    }),
+  ),
+];
+const fontsUnder =
+  fontLicenses.length === 1 && fontLicenses[0] === "OFL-1.1"
+    ? "The fonts are under the SIL Open Font License 1.1;"
+    : `The fonts are under ${fontLicenses.join(", ")};`;
 const sections = [...bundled.values()]
   .sort((a, b) => a.manifest.name.localeCompare(b.manifest.name))
   .map(({ root, manifest }) => {
@@ -220,7 +233,7 @@ writeFileSync(
     "# Third-party notices",
     "",
     "Meltemi Diagrams is MIT. This extension bundles the components below, each under its own",
-    "licence. The fonts are under the SIL Open Font License 1.1; elkjs is under the Eclipse Public",
+    `licence. ${fontsUnder} elkjs is under the Eclipse Public`,
     "License 2.0. The provider icon sets keep their vendors' terms, repeated below.",
     "",
     ...sections,

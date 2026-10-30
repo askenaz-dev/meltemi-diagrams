@@ -35,11 +35,12 @@ const files = (folder: string): string[] =>
     .sort();
 
 describe("gallery", () => {
-  it("has one sheet for each profile, a sketch and a whiteboard", () => {
+  it("has one sheet for each profile, a sketch, a whiteboard and the bundled fonts", () => {
     expect(GALLERY_SHEETS.map((s) => s.profile)).toEqual([
       "flow",
       "sequence",
       "c4",
+      "free",
       "free",
       "free",
       "free",

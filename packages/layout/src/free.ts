@@ -17,6 +17,8 @@ interface Size {
 export interface FrameTheme {
   readonly groupPadding: number;
   readonly groupHeader: number;
+  /** The theme's group title size, which the header's band is drawn for. */
+  readonly groupTitleSize?: number;
 }
 
 /** The innermost group declaring an element, or null. */
@@ -82,10 +84,15 @@ export function isUntitledGroup(
  */
 export function groupHeaderOf(
   group: Pick<Element, "label" | "description">,
-  style: Pick<ResolvedStyle, "icon">,
+  style: Pick<ResolvedStyle, "icon" | "fontSize">,
   theme: FrameTheme,
 ): number {
-  return isUntitledGroup(group, style) ? theme.groupPadding : theme.groupHeader;
+  if (isUntitledGroup(group, style)) return theme.groupPadding;
+  // A written title size larger than the theme's grows the band by the title's line, keeping
+  // the band's spare room around it (decision 0067).
+  if (style.fontSize === undefined || theme.groupTitleSize === undefined) return theme.groupHeader;
+  const spare = Math.round(theme.groupHeader - 1.25 * theme.groupTitleSize);
+  return Math.max(theme.groupHeader, Math.round(style.fontSize * 1.25) + spare);
 }
 
 /** A rectangle relative to an element's centre. */

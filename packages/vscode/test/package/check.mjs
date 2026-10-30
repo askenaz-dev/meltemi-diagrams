@@ -46,6 +46,7 @@ const required = [
   "extension/dist/assets/tabler/tabler-nodes-outline.json",
   "extension/dist/assets/fonts/inter-ui/web/Inter-Regular.woff2",
   "extension/dist/assets/fonts/@fontsource/cascadia-mono/unicode.json",
+  "extension/dist/assets/fonts/@fontsource/roboto/unicode.json",
   "extension/dist/assets/fonts/@fontsource/cascadia-mono/files/cascadia-mono-latin-400-normal.woff2",
   "extension/media/icon.png",
   "extension/syntaxes/meltemi.tmLanguage.json",

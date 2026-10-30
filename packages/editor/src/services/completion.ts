@@ -39,6 +39,7 @@ import {
   declaredProfile,
 } from "@meltemi/diagrams-model";
 import type { DocumentAnalysis } from "../analysis.js";
+import { fontFamilies } from "../fonts.js";
 import { elementDetail, kindWord, serviceMessages } from "../messages/services.js";
 import { keywordDoc, listDoc } from "./docs.js";
 import { blockAt, diagramAt, scopeAt, statementPrefix, wordBefore } from "../syntax.js";
@@ -461,6 +462,29 @@ function classNames(analysis: DocumentAnalysis, diagram: FlowDiagram | undefined
   return [...names].sort();
 }
 
+/**
+ * The families a font stack may name: the project's fonts first, then the bundled ones by group,
+ * each with its group; `quoted` writes the quotes, for a value typed after the keyword.
+ */
+function fontItems(
+  analysis: DocumentAnalysis,
+  range: CompletionItem["range"],
+  quoted: boolean,
+): CompletionItem[] {
+  const t = serviceMessages().completion;
+  const families = fontFamilies(analysis.fonts);
+  const ordered = [
+    ...families.filter((f) => f.source === "project"),
+    ...families.filter((f) => f.source !== "project"),
+  ];
+  return ordered.map((f) => ({
+    label: quoted ? `"${f.family}"` : f.family,
+    kind: "value" as const,
+    detail: t.fontGroup(f.group),
+    range,
+  }));
+}
+
 /** Themes in scope: built-in themes and the themes of the document and its imports. */
 function themeNames(analysis: DocumentAnalysis): string[] {
   const names = new Set<string>(BUILT_IN_THEMES);
@@ -542,6 +566,10 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
             ]
           : [],
       );
+    }
+    // A font stack in a style, a class, a rule or a theme: the families text can be measured with.
+    if (/^(font|mono)\s+"[^"]*$/.test(prefix) && /^(style|class|rule|theme)$/.test(scope)) {
+      return fontItems(analysis, inner, false);
     }
     if (/^image\s+[A-Za-z_]\w*\s+"[^"]*$/.test(prefix)) {
       const detail = serviceMessages().completion.imageFile;
@@ -854,6 +882,7 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
     case "class":
     case "rule": {
       const property = match(prefix, `(${ID})\\s+(${ID}\\s*,\\s*)*\\w*`);
+      if (property?.[1] === "font") return fontItems(analysis, range, true);
       if (property) {
         return words(styleValues(analysis, diagram, property[1]!), "value", range);
       }
@@ -930,6 +959,7 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
       }
       // The values of a token that takes words: `sketch light`, `corners rounded`, `frame none`.
       const token = new RegExp(`^(${ID})\\s+(${ID})?$`).exec(prefix);
+      if (token?.[1] === "font" || token?.[1] === "mono") return fontItems(analysis, range, true);
       const spec = token ? THEME_TOKENS[token[1]!] : undefined;
       if (spec?.kind === "enum") return words([...spec.values], "value", range);
       if (spec?.kind === "number" && spec.values)

@@ -215,10 +215,10 @@ describe("shape on flow nodes", () => {
     expect(codes).toEqual(["prop.invalid-value", "prop.invalid-value"]);
   });
 
-  it("still refuses the text properties of free diagrams", () => {
-    const { found } = flow('  api["API"]\n  style api { fontSize 20; shape pill }');
+  it("takes the text size beside the shape and still refuses free alignment", () => {
+    const { found } = flow('  api["API"]\n  style api { fontSize 20; shape pill; textAlign left }');
     expect(found).toEqual([
-      ["prop.invalid-value", "fontSize", "`fontSize` applies to free diagrams only."],
+      ["prop.invalid-value", "textAlign", "`textAlign` applies to free diagrams only."],
     ]);
   });
 
@@ -226,7 +226,8 @@ describe("shape on flow nodes", () => {
     const { diagnostics } = flow('  api["API"]\n  style api { shade "red" }');
     expect(diagnostics[0]!.hints![0]).toContain("`shape`");
     expect(diagnostics[0]!.hints![0]).toContain("`radius`");
-    expect(diagnostics[0]!.hints![0]).not.toContain("`fontSize`");
+    expect(diagnostics[0]!.hints![0]).toContain("`fontSize`");
+    expect(diagnostics[0]!.hints![0]).not.toContain("`textAlign`");
   });
 });
 
@@ -506,13 +507,13 @@ describe("the words of shape refusals", () => {
   it("are in Spanish too", () => {
     setLocale("es");
     const { found } = flow(
-      '  decision ok "OK?"\n  a -> ok as r\n  style ok { shape hexagon }\n  style r { shape pill }\n  rule tag { shape star }\n  style a { fontSize 20 }',
+      '  decision ok "OK?"\n  a -> ok as r\n  style ok { shape hexagon }\n  style r { shape pill }\n  rule tag { shape star }\n  style a { textAlign left }',
     );
     expect(found.map((f) => f[2])).toEqual([
       "`shape` no se aplica a los elementos `decision` como `ok`; se aplica a los elementos `node` y `box`.",
       "`shape` no se aplica a las relaciones como `r`; se aplica a los elementos `node` y `box`.",
       "`shape` no se aplica a los elementos `tag`; se aplica a los elementos `node` y `box`.",
-      "`fontSize` solo se aplica a las composiciones libres.",
+      "`textAlign` solo se aplica a las composiciones libres.",
     ]);
     expect(free('  icon i "tabler:server"\n  style i { shape star }').found).toEqual([
       [

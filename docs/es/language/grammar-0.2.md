@@ -269,9 +269,11 @@ valor predeterminado.
 | propiedades | como en los diagramas de flujo, con `layout manual` como valor predeterminado |                                                                                                             |
 
 Los bloques de elemento, de grupo y de relación también aceptan `layer <name>`. Las propiedades de
-estilo de las composiciones libres son `fontSize` (de 6 a 160), `fontWeight` (400, 500, 600, 700),
-`textAlign` (`left`, `center`, `right`), `verticalAlign` (`top`, `middle`, `bottom`) y `opacity`
-(de 0 a 1, no en las relaciones); los diagramas de flujo las rechazan. `shape` admite las
+estilo de las composiciones libres son `textAlign` (`left`, `center`, `right`), `verticalAlign`
+(`top`, `middle`, `bottom`) y `opacity` (de 0 a 1, no en las relaciones); los diagramas de flujo
+las rechazan. `font` (una pila de fuentes entre comillas), `fontSize` (de 6 a 160) y `fontWeight`
+(400, 500, 600, 700) se aplican en todos los perfiles a lo que dibuja texto
+([fonts.md](fonts.md#la-fuente-el-tamaño-y-el-peso-de-un-texto)). `shape` admite las
 veinticuatro formas en las cajas igual que en los nodos de flujo
 ([free.md](free.md#texto-y-formas)); los textos, los iconos, las imágenes, las notas, las notas
 adhesivas, las líneas y los lápices la rechazan. Las reglas aceptan los tipos de las composiciones

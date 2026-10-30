@@ -59,6 +59,13 @@ export const GALLERY_SHEETS = [
     about:
       "A board that grows with its content (`preset board`): a highlighter mark under the heading, a row of two lists of stickies that place themselves, and pen strokes drawn by hand, each a `pen` with its points.",
   },
+  {
+    profile: "free",
+    file: "free/typography.meltemi",
+    title: "Free: the bundled fonts",
+    about:
+      "A type specimen: the seventeen bundled families in their groups, each name in its own face with `font`, the four weights and a column of sizes; the exports embed or outline every family.",
+  },
 ] as const;
 
 /** The example's exports, by what they show. */

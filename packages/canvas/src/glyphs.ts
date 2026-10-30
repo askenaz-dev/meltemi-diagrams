@@ -27,6 +27,7 @@ export type GlyphFamily =
   | "sketch"
   | "textAlign"
   | "verticalAlign"
+  | "fontWeight"
   | "arrow";
 
 /**
@@ -354,6 +355,8 @@ function arrowShapes(kind: string): Shape[] {
  * icon and label positions.
  */
 export function glyph(family: GlyphFamily, value: string): SVGSVGElement {
+  // A weight is "Aa" drawn at it, in the interface's font.
+  if (family === "fontWeight") return weightGlyph(value);
   // The alignments are drawn as the alignment picker draws its cells.
   if (family === "textAlign") return alignGlyph(value);
   if (family === "verticalAlign") return alignGlyph("center", value);
@@ -403,6 +406,33 @@ const ALIGN_DOWN: Readonly<Record<string, number>> = { top: 5, middle: 8, bottom
  * A picture of a text alignment, 22 by 16: two lines of text in a box at `horizontal` across and
  * `vertical` down the box, or, without `vertical` (a free text), three lines aligned on their own.
  */
+/** "Aa" at a weight, 28 by 16, for the weight chips of the strip's Text group. */
+export function weightGlyph(weight: string): SVGSVGElement {
+  const svg = s("svg", {
+    viewBox: "0 0 28 16",
+    width: 28,
+    height: 16,
+    "aria-hidden": "true",
+    focusable: "false",
+    "data-glyph": `fontWeight:${weight}`,
+  });
+  svg.append(
+    s(
+      "text",
+      {
+        x: 14,
+        y: 12.5,
+        "text-anchor": "middle",
+        "font-size": 13,
+        "font-weight": weight,
+        fill: "currentColor",
+      },
+      document.createTextNode("Aa"),
+    ),
+  );
+  return svg;
+}
+
 export function alignGlyph(horizontal: string, vertical?: string): SVGSVGElement {
   const svg = s("svg", {
     viewBox: "0 0 22 16",
@@ -522,13 +552,15 @@ export function repaintSticky(svg: SVGSVGElement, fill: string): void {
 export function glyphName(value: string, family?: GlyphFamily): string {
   const words = messages();
   const names: Readonly<Record<string, string>> =
-    family === "shape"
-      ? words.shapes
-      : family === "arrow"
-        ? words.arrowKinds
-        : family !== undefined &&
-            (narrow(family) || family === "textAlign" || family === "verticalAlign")
-          ? words.positions
-          : words.glyphs;
+    family === "fontWeight"
+      ? words.inspector.weights
+      : family === "shape"
+        ? words.shapes
+        : family === "arrow"
+          ? words.arrowKinds
+          : family !== undefined &&
+              (narrow(family) || family === "textAlign" || family === "verticalAlign")
+            ? words.positions
+            : words.glyphs;
   return Object.hasOwn(names, value) ? names[value]! : value;
 }

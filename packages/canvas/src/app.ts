@@ -84,6 +84,7 @@ import {
 } from "@meltemi/diagrams-editor/canvas";
 import { ICONS, ariaKeyshortcuts, clear, h, icon, s } from "./dom.js";
 import { glyph, repaintSticky, shapeIcon, stickyGlyph, type IconPlacement } from "./glyphs.js";
+import { FontPicker } from "./font-picker.js";
 import { IconPicker } from "./icon-picker.js";
 import { AddIconsDialog, pickedRefusal, type PickedIcon } from "./add-icons.js";
 import { barEndY, barRowAt, barSpan } from "./bars.js";
@@ -802,6 +803,8 @@ export class CanvasApp {
   private readonly frame = h("div", { class: "frame" });
   private readonly inspector: Inspector;
   private readonly themePanel: ThemePanel;
+  /** The font picker of the strip's Font field and the theme panel's text and code fonts. */
+  private readonly fontPicker: FontPicker;
   private readonly layersPanel: LayersPanel;
   private readonly libraryPanel: LibraryPanel;
   private readonly menu = new Menu();
@@ -1000,6 +1003,7 @@ export class CanvasApp {
       commit: (ids, field, value) => this.act({ kind: "setField", ids, field, value }),
       slide: (ids, field, value) => this.slide(ids, field, value),
       pickIcon: (ids, field, anchor) => this.pickIconFor(ids, field, anchor),
+      pickFont: (ids, field, anchor, current) => this.pickFontFor(ids, field, anchor, current),
       newTheme: (current, project) =>
         this.dialog.newTheme(current, project, (id, scope) =>
           this.post({ type: "newTheme", id, scope }),
@@ -1012,6 +1016,10 @@ export class CanvasApp {
       token: (token, value) => this.post({ type: "themeToken", token, value }),
       close: () => this.post({ type: "editTheme", open: false }),
       fold: () => this.setInspectorCollapsed(true),
+      pickFont: (token, anchor, current) => this.pickThemeFont(token, anchor, current),
+    });
+    this.fontPicker = new FontPicker({
+      list: (token) => this.post({ type: "listFonts", token }),
     });
     this.inspector.setKey(this.inspectorKey);
     this.themePanel.setKey(this.inspectorKey);
@@ -1073,6 +1081,7 @@ export class CanvasApp {
       this.shapeGrid.element,
       this.penMenu.element,
       this.iconPicker.element,
+      this.fontPicker.element,
       this.addIconsDialog.element,
     );
     this.main = main;
@@ -1104,6 +1113,9 @@ export class CanvasApp {
         break;
       case "icons":
         this.iconPicker.received(message.token, message.groups);
+        break;
+      case "fonts":
+        this.fontPicker.received(message.token, message.families);
         break;
       case "iconsChecked":
         this.addIconsDialog.checked(message.token, message);
@@ -1254,6 +1266,8 @@ export class CanvasApp {
         this.inspector.show(message.model);
         // The Choose… that opened the icon picker, drawn anew, is marked as its opener again.
         this.iconPicker.syncOpener();
+        // The font button too; the families are asked for again, for the faces that arrived.
+        this.fontPicker.refresh();
         // The render of the pending edit came before its inspector: the slider's turn.
         this.flushSlide();
         break;
@@ -1524,6 +1538,68 @@ export class CanvasApp {
     this.addAfter = undefined;
     this.addTargets = [];
     if (added.length > 0 && after) this.afterIcons = { choice: added[0]!, run: after };
+  }
+
+  /**
+   * The strip's Font button: the font picker under it, for the selection's `style.font`; a family
+   * chosen is written for every target in one step, the theme row removes it.
+   */
+  private pickFontFor(
+    ids: readonly string[],
+    field: string,
+    anchor: HTMLElement,
+    current: string | null,
+  ): void {
+    if (this.readOnly) return;
+    if (this.fontPicker.isOpen && this.fontPicker.opener === anchor) {
+      this.fontPicker.close();
+      return;
+    }
+    this.iconPicker.close(false);
+    this.shapeGrid.close(false);
+    const key = anchor.dataset.key;
+    const find = (): HTMLElement | null =>
+      anchor.isConnected || !key
+        ? anchor
+        : this.inspector.element.querySelector<HTMLElement>(`[data-key="${cssEscape(key)}"]`);
+    this.fontPicker.open({
+      ...this.underControl(anchor),
+      bounds: this.main.getBoundingClientRect(),
+      opener: anchor,
+      findOpener: find,
+      current,
+      inherit: messages().fontPicker.theme,
+      choose: (family) => {
+        find()?.focus({ preventScroll: true });
+        this.act({ kind: "setField", ids, field, value: family });
+      },
+    });
+  }
+
+  /** The theme panel's Text font or Code font: the picker under it, writing the token. */
+  private pickThemeFont(token: string, anchor: HTMLElement, current: string | null): void {
+    if (this.readOnly) return;
+    if (this.fontPicker.isOpen && this.fontPicker.opener === anchor) {
+      this.fontPicker.close();
+      return;
+    }
+    const key = anchor.dataset.key;
+    const find = (): HTMLElement | null =>
+      anchor.isConnected || !key
+        ? anchor
+        : this.themePanel.element.querySelector<HTMLElement>(`[data-key="${cssEscape(key)}"]`);
+    this.fontPicker.open({
+      ...this.underControl(anchor),
+      bounds: this.main.getBoundingClientRect(),
+      opener: anchor,
+      findOpener: find,
+      current,
+      inherit: messages().themePanel.inherit,
+      choose: (family) => {
+        find()?.focus({ preventScroll: true });
+        this.post({ type: "themeToken", token, value: family });
+      },
+    });
   }
 
   /** The inspector's Choose…: the picker under the button, for an icon field of its targets. */
@@ -2241,6 +2317,7 @@ export class CanvasApp {
     this.picker.close();
     this.shapeGrid.close(false);
     this.iconPicker.close(false);
+    this.fontPicker.close(false);
     this.endIconDrag();
     this.armedIcon = undefined;
     this.selection = [];
@@ -2305,6 +2382,7 @@ export class CanvasApp {
       this.shapeGrid.close(false);
       this.penMenu.close(false);
       this.iconPicker.close(false);
+      this.fontPicker.close(false);
       this.endIconDrag();
       this.armedIcon = undefined;
       this.dialog.close();
@@ -2842,6 +2920,7 @@ export class CanvasApp {
       this.shapeGrid.close(false);
       this.penMenu.close(false);
       this.iconPicker.close(false);
+      this.fontPicker.close(false);
       this.borderStart = undefined;
       this.stage.classList.remove("connecting");
       if (this.selection.length > 0) this.select([]);
@@ -8046,6 +8125,17 @@ export class CanvasApp {
       case "addReturn":
         this.act({ kind: command, ids: this.selection });
         return;
+      case "growText":
+      case "shrinkText":
+        // The session says the new size, or why nothing changed, on the status line.
+        if (this.selection.length > 0) {
+          this.act({
+            kind: "stepTextSize",
+            ids: this.selection,
+            step: command === "growText" ? 1 : -1,
+          });
+        }
+        return;
       case "addEntity":
         this.addEntity(this.centre());
         return;
@@ -9109,6 +9199,20 @@ export class CanvasApp {
         label: words.distributeVertically,
         disabled: elementIds.length < 3,
         run: run("distributeVertical"),
+      },
+      "-",
+      // The text size of the selection, one common size up or down (decision 0067).
+      {
+        label: messages().inspector.larger,
+        key: `Ctrl+${keys.shift}+.`,
+        disabled: this.readOnly,
+        run: run("growText"),
+      },
+      {
+        label: messages().inspector.smaller,
+        key: `Ctrl+${keys.shift}+,`,
+        disabled: this.readOnly,
+        run: run("shrinkText"),
       },
       "-",
       {

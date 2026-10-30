@@ -91,6 +91,8 @@ const COMMANDS = {
   moveEventUp: false,
   moveEventDown: false,
   toggleActivation: false,
+  growText: false,
+  shrinkText: false,
   nestInCall: false,
   unnestCall: false,
   addReturn: false,
@@ -177,6 +179,7 @@ const ACTIONS: readonly CanvasAction[] = [
   { kind: "convert" },
   { kind: "moveEvent", id: "e", direction: "up" },
   { kind: "toggleActivation", ids: ["r"] },
+  { kind: "stepTextSize", ids: ["a"], step: 1 },
   { kind: "moveActivation", id: "activate#1", end: "end", row: "r" },
   { kind: "addTag", ids: ["r"] },
   { kind: "setTag", ids: ["r"], index: 0, text: "PKCE" },
@@ -217,6 +220,7 @@ const MESSAGES = {
   libraryItems: [{ message: { type: "libraryItems", library: "l", category: "c" }, writes: false }],
   librarySearch: [{ message: { type: "librarySearch", query: "q" }, writes: false }],
   searchIcons: [{ message: { type: "searchIcons", query: "q", token: 1 }, writes: false }],
+  listFonts: [{ message: { type: "listFonts", token: 1 }, writes: false }],
   // Checking the Add icon dialog's files writes nothing; adding them writes the project's files.
   checkIcons: [
     {
@@ -328,6 +332,7 @@ describe("the messages of a read-only canvas", () => {
       convert: 1,
       moveEvent: 1,
       toggleActivation: 1,
+      stepTextSize: 1,
       moveActivation: 1,
       addTag: 1,
       setTag: 1,

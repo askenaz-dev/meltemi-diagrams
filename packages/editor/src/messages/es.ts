@@ -99,6 +99,7 @@ export const es: typeof en = {
     radius: "Radio de las esquinas",
     rotation: "Rotación",
     shape: "Forma",
+    font: "Fuente",
     fontSize: "Tamaño del texto",
     fontWeight: "Grosor del texto",
     textAlign: "Alineación del texto",
@@ -281,6 +282,10 @@ export const es: typeof en = {
     ids.length === 1 ? `Se nombró ${code(ids[0]!)}.` : `Se nombraron ${list("es", ids.map(code))}.`,
 
   session: {
+    textSize: (size) => `Tamaño del texto ${size}.`,
+    textSizes: "Tamaños del texto cambiados.",
+    noTextSize: "Nada de lo seleccionado dibuja texto.",
+    textSizeEnd: "El texto está en el extremo de la lista de tamaños.",
     noDiagramStories: "No hay ningún diagrama en este archivo: reproduce una de sus historias.",
     noDiagram:
       "No hay ningún diagrama que dibujar: agrega `diagram <id>: flow { }`, `diagram <id>: free { }` o `diagram <id>: sequence { }` al archivo.",

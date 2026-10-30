@@ -86,7 +86,14 @@ export function textPlaces(
     width: box.width,
     height: box.height,
   });
-  const fontOf = (item: TextItem) => (item.font === "mono" ? scene.fonts.mono : scene.fonts.body);
+  // A text drawn in a written stack is typed in it, with the theme's stack after it as drawn.
+  const roleStack = (item: TextItem) =>
+    item.font === "mono" ? scene.fonts.mono : scene.fonts.body;
+  const fontOf = (item: TextItem) =>
+    item.stack !== undefined ? `${item.stack}, ${roleStack(item)}` : roleStack(item);
+  /** The stack a style writes, before the body font, or the body font. */
+  const styleFont = (style: ResolvedStyle) =>
+    style.font !== undefined ? `${style.font}, ${scene.fonts.body}` : scene.fonts.body;
 
   /** A place from the drawn lines of a label, the first of them `lines[0]`. */
   const place = (
@@ -119,8 +126,8 @@ export function textPlaces(
    * typed left of the square grows leftwards, right of it rightwards.
    */
   const iconShapeLabel = (style: ResolvedStyle, free: boolean, box: Box): TextPlace => {
-    const size = (free ? style.fontSize : undefined) ?? scale.label;
-    const weight = (free ? style.fontWeight : undefined) ?? scale.labelWeight;
+    const size = style.fontSize ?? scale.label;
+    const weight = style.fontWeight ?? scale.labelWeight;
     const line = Math.round(size * 1.25);
     const gap = Math.round(theme.padding / 2);
     const side = style.labelPosition ?? "bottom";
@@ -144,7 +151,7 @@ export function textPlaces(
       anchor: { x: x - offset.x, y: y - offset.y },
       area: toDiagram({ x: left, y: y - line / 2, width, height: line }),
       align,
-      font: scene.fonts.body,
+      font: styleFont(style),
       size,
       weight,
       color: style.color ?? theme.ink,
@@ -273,12 +280,13 @@ export function textPlaces(
     const relation = diagram.relationsByKey.get(key);
     const style = relation ? styles.relation(relation) : {};
     const sequence = diagram.type === "sequence";
+    const size = style.fontSize ?? scale.relationLabel;
     return {
-      font: scene.fonts.body,
-      size: scale.relationLabel,
-      weight: sequence ? 400 : 500,
+      font: styleFont(style),
+      size,
+      weight: style.fontWeight ?? (sequence ? 400 : 500),
       color: style.color ?? theme.ink,
-      line: Math.round(scale.relationLabel * 1.25),
+      line: Math.round(size * 1.25),
       lines: false,
       align: "center" as const,
       ...(sequence ? {} : { background: style.fill ?? theme.surface }),
@@ -289,12 +297,13 @@ export function textPlaces(
   const lineStyle = (id: string) => {
     const line = diagram.elementsById.get(id);
     const style = line ? styles.element(line) : {};
+    const size = style.fontSize ?? scale.relationLabel;
     return {
-      font: scene.fonts.body,
-      size: scale.relationLabel,
-      weight: 500,
+      font: styleFont(style),
+      size,
+      weight: style.fontWeight ?? 500,
       color: style.color ?? theme.ink,
-      line: Math.round(scale.relationLabel * 1.25),
+      line: Math.round(size * 1.25),
       lines: false,
       align: "center" as const,
       background: style.fill ?? theme.surface,

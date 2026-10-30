@@ -154,5 +154,47 @@
     },
     "hints": [],
     "related": []
+  },
+  {
+    "code": "prop.invalid-value",
+    "severity": "error",
+    "message": "`font` expects a non-empty quoted font stack such as \"Roboto\".",
+    "range": {
+      "start": {
+        "offset": 765,
+        "line": 39,
+        "column": 18
+      },
+      "end": {
+        "offset": 767,
+        "line": 39,
+        "column": 20
+      }
+    },
+    "hints": [
+      "Example: `font \"Roboto\"`."
+    ],
+    "related": []
+  },
+  {
+    "code": "prop.invalid-value",
+    "severity": "error",
+    "message": "`fontSize` does not apply to elements such as `logo`.",
+    "range": {
+      "start": {
+        "offset": 785,
+        "line": 40,
+        "column": 16
+      },
+      "end": {
+        "offset": 793,
+        "line": 40,
+        "column": 24
+      }
+    },
+    "hints": [
+      "`font`, `fontSize` and `fontWeight` apply to what draws text: boxes, nodes, groups, notes, tags, stickies, texts, participants, entities, relations and lines, not icons, images or pens."
+    ],
+    "related": []
   }
 ]

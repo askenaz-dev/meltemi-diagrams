@@ -68,6 +68,7 @@ export const en = {
     radius: "Corner radius",
     rotation: "Rotation",
     shape: "Shape",
+    font: "Font",
     fontSize: "Text size",
     fontWeight: "Text weight",
     textAlign: "Text alignment",
@@ -332,6 +333,11 @@ export const en = {
 
   /** What the canvas session says to the canvas and the host: notices, statuses and refusals. */
   session: {
+    /** The text size keys: what they wrote, or why nothing. */
+    textSize: (size: number) => `Text size ${size}.`,
+    textSizes: "Text sizes changed.",
+    noTextSize: "Nothing selected draws text.",
+    textSizeEnd: "The text is at the end of the size list.",
     noDiagramStories: "No diagram in this file: play one of its stories.",
     noDiagram:
       "No diagram to draw: add `diagram <id>: flow { }`, `diagram <id>: free { }` or `diagram <id>: sequence { }` to the file.",

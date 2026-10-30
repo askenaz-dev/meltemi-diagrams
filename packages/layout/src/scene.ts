@@ -79,6 +79,11 @@ export interface TextItem {
   readonly size: number;
   readonly weight: number;
   readonly font: FontRole;
+  /**
+   * The stack a style writes for this text (`font "Roboto"`): it is measured with it alone and
+   * drawn with it before the scene's stack of `font`. Absent for text in the theme's fonts.
+   */
+  readonly stack?: string;
   readonly anchor: TextAnchor;
   readonly fill: string;
 }

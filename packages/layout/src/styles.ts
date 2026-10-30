@@ -1,5 +1,7 @@
 import {
   ELEMENT_ONLY_PROPERTIES,
+  TEXTLESS_KINDS,
+  TEXT_PROPERTIES,
   LINE_REFUSED_PROPERTIES,
   PEN_REFUSED_PROPERTIES,
   RELATION_ONLY_PROPERTIES,
@@ -43,9 +45,11 @@ export interface ResolvedStyle {
   readonly radius?: number;
   /** Degrees the element is turned, clockwise about the centre of its box. */
   readonly rotation?: number;
-  /** Free diagrams only: text size, weight and alignment of boxes and text objects. */
+  /** The font stack, size and weight of the target's text, over the theme's (decision 0067). */
+  readonly font?: string;
   readonly fontSize?: number;
   readonly fontWeight?: number;
+  /** Free diagrams only: where the text sits across its box. */
   readonly textAlign?: "left" | "center" | "right";
   /** Free boxes: where the text block sits within the shape's text band; `middle` by default. */
   readonly verticalAlign?: "top" | "middle" | "bottom";
@@ -56,6 +60,8 @@ export interface ResolvedStyle {
 const COLOR_PROPERTIES = new Set(["fill", "stroke", "color", "iconColor"]);
 /** What a pen's style leaves out: the properties it refuses, and `rotation`. */
 const PEN_EXCLUDED: readonly string[] = [...PEN_REFUSED_PROPERTIES, "rotation"];
+/** What an icon's or an image's style leaves out: the relation and the text properties. */
+const TEXTLESS_EXCLUDED: readonly string[] = [...RELATION_ONLY_PROPERTIES, ...TEXT_PROPERTIES];
 /** What a sticky's style leaves out: the properties it refuses, and `shape`. */
 const STICKY_EXCLUDED: readonly string[] = [...STICKY_REFUSED_PROPERTIES, "shape"];
 const COLOR_TOKENS: ReadonlySet<string> = new Set(THEME_COLOR_TOKENS);
@@ -134,7 +140,7 @@ export class StyleResolver {
       element.id,
       (declared ? element.typeKind : element.kind) as RuleKind,
       element.classes,
-      RELATION_ONLY_PROPERTIES,
+      TEXTLESS_KINDS.includes(element.kind) ? TEXTLESS_EXCLUDED : RELATION_ONLY_PROPERTIES,
       c4Class(element),
       declared?.style,
     );

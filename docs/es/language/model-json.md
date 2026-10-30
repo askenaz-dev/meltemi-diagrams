@@ -189,7 +189,8 @@ Las propiedades de estilo conservan sus tipos: `width` es un número, las palabr
 `hatch` son cadenas, y un color escrito como nombre de un token del tema (`stroke danger`) es la
 cadena `@danger`. Un color entre comillas se conserva tal como se escribió, así que nunca empieza por
 `@`. `verticalAlign top` es la cadena `top`, igual que `textAlign left` es `left`, y
-`opacity 0.35` es el número `0.35`.
+`opacity 0.35` es el número `0.35`. `font "Roboto"` es la cadena `Roboto`, y `fontSize 16` el
+número `16`.
 
 ### Entradas de clase y de regla
 

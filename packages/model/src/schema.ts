@@ -5,7 +5,8 @@
 
 export type ValueSpec =
   | { readonly kind: "enum"; readonly values: readonly string[]; readonly default?: string }
-  | { readonly kind: "string" }
+  /** A quoted string; with `nonEmpty`, one with some text, such as a font stack. */
+  | { readonly kind: "string"; readonly nonEmpty?: boolean }
   | { readonly kind: "icon" }
   /** A quoted colour; with `tokens`, also the bare name of a colour token, stored as `@<name>`. */
   | { readonly kind: "color"; readonly tokens?: boolean }
@@ -439,13 +440,25 @@ export const THEME_TOKENS: PropertyTable = {
 };
 
 /**
- * Style properties that only free diagrams accept: the size and weight of text, where it sits
- * across (`textAlign`) and down (`verticalAlign`) its box, and the `opacity` of elements, groups,
- * lines and pens (0 is invisible, 1 opaque).
+ * The text properties of every profile (decision 0067): the font stack a target's text is
+ * measured and drawn with, and its size and weight. Every target that draws text takes them;
+ * icons, images and pens refuse them (`TEXTLESS_KINDS`).
  */
-export const FREE_STYLE_PROPERTIES: PropertyTable = {
+export const TEXT_STYLE_PROPERTIES: PropertyTable = {
+  font: { kind: "string", nonEmpty: true },
   fontSize: { kind: "number", min: 6, max: 160 },
   fontWeight: { kind: "number", min: 400, max: 700, values: FONT_WEIGHTS },
+};
+export const TEXT_PROPERTIES: readonly string[] = Object.keys(TEXT_STYLE_PROPERTIES);
+/** The element kinds that draw no text of their own, and so refuse the text properties. */
+export const TEXTLESS_KINDS: readonly string[] = ["icon", "image", "pen"];
+
+/**
+ * Style properties that only free diagrams accept: where text sits across (`textAlign`) and down
+ * (`verticalAlign`) its box, and the `opacity` of elements, groups, lines and pens (0 is
+ * invisible, 1 opaque).
+ */
+export const FREE_STYLE_PROPERTIES: PropertyTable = {
   textAlign: { kind: "enum", values: TEXT_ALIGNS },
   verticalAlign: { kind: "enum", values: VERTICAL_ALIGNS },
   opacity: { kind: "number", min: 0, max: 1 },
@@ -480,6 +493,7 @@ export const STYLE_PROPERTIES: PropertyTable = {
   radius: RADIUS,
   /** Degrees an element is turned, clockwise about the centre of its box. */
   rotation: { kind: "number", ...ROTATION_RANGE },
+  ...TEXT_STYLE_PROPERTIES,
   ...FREE_STYLE_PROPERTIES,
 };
 
@@ -541,6 +555,7 @@ export const STICKY_PROPERTIES: readonly string[] = [
   "color",
   "line",
   "width",
+  "font",
   "fontSize",
   "fontWeight",
   "textAlign",

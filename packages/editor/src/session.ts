@@ -15,7 +15,12 @@ import {
   type PlanResult,
 } from "@meltemi/diagrams-edit";
 import { applyTextEdits, isIdentifierText, type TextEdit } from "@meltemi/diagrams-language";
-import { DEFAULT_PEN_WIDTH, layoutDiagram, type Box } from "@meltemi/diagrams-layout";
+import {
+  DEFAULT_PEN_WIDTH,
+  StyleResolver,
+  layoutDiagram,
+  type Box,
+} from "@meltemi/diagrams-layout";
 import {
   MAIN_LAYER,
   compile,
@@ -79,7 +84,14 @@ import { fieldOperations, inspect, namedRelation, themeSwatches } from "./inspec
 import { freshModelRelationId, freshRelationId, nameable } from "./targets.js";
 // The editor's catalog; `messages` names the host messages in this file.
 import { messages as wording } from "./messages/index.js";
-import { baseName, themeLocation, themePanel, themeTokenOperation } from "./themes.js";
+import {
+  baseName,
+  effectiveTheme,
+  themeLocation,
+  themePanel,
+  themeTokenOperation,
+} from "./themes.js";
+import { drawnText, fontOptions, stepFontSize } from "./fonts.js";
 import { renderDiagram, renderLayout } from "./render.js";
 import { selectionAt } from "./services/navigation.js";
 import {
@@ -770,6 +782,51 @@ export class CanvasSession {
     };
   }
 
+  /**
+   * The text size keys: each selected item that draws text gets the common size one step up or
+   * down from the size it draws (its style's, its rules' and classes', or the theme's for its
+   * kind), in one edit. Items at the end of the list are left as they are.
+   */
+  private stepTextSize(view: DiagramView, ids: readonly string[], step: 1 | -1): SessionResult {
+    const words = wording().session;
+    const diagram = view.diagram;
+    const theme = effectiveTheme(this.analysis!, view);
+    const resolver = new StyleResolver(theme, diagram);
+    const operations: EditOperation[] = [];
+    const sizes: number[] = [];
+    let texts = 0;
+    for (const id of ids) {
+      const kind = diagram.elementsById.has(id)
+        ? "element"
+        : diagram.relationsByKey.has(id)
+          ? "relation"
+          : diagram.eventsByKey.has(id)
+            ? "event"
+            : undefined;
+      if (!kind) continue;
+      const drawn = drawnText(theme, diagram, { id, kind }, resolver);
+      if (!drawn) continue;
+      texts++;
+      const next = stepFontSize(drawn.size, step);
+      if (next === undefined) continue;
+      const result = fieldOperations(this.analysis!, view.diagram.id, [id], "style.fontSize", next);
+      if (!result.ok) continue;
+      operations.push(...result.operations);
+      sizes.push(next);
+    }
+    if (texts === 0) return { messages: [{ type: "status", message: words.noTextSize }] };
+    if (operations.length === 0)
+      return { messages: [{ type: "status", message: words.textSizeEnd }] };
+    this.pendingSelection = [...this.selection];
+    const planned = this.planned(view, "setField", operations);
+    const said = sizes.every((size) => size === sizes[0])
+      ? words.textSize(sizes[0]!)
+      : words.textSizes;
+    return planned.plan
+      ? { ...planned, messages: [...planned.messages, { type: "status", message: said }] }
+      : planned;
+  }
+
   /** Highlights the element or relation of the statement at a text offset. */
   selectAt(offset: number): HostMessage[] {
     if (!this.analysis) return [];
@@ -820,6 +877,12 @@ export class CanvasSession {
         return {
           messages: [
             { type: "icons", token: message.token, groups: this.searchIcons(message.query) },
+          ],
+        };
+      case "listFonts":
+        return {
+          messages: [
+            { type: "fonts", token: message.token, families: fontOptions(analysis.fonts) },
           ],
         };
       case "checkIcons":
@@ -1829,6 +1892,8 @@ export class CanvasSession {
     switch (action.kind) {
       case "includeEntity":
         break;
+      case "stepTextSize":
+        return this.stepTextSize(view, action.ids, action.step);
       case "moveEvent":
       case "toggleActivation":
       case "nestInCall":

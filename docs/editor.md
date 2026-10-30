@@ -370,6 +370,7 @@ canvas.
 | Delete, Backspace                                             | Delete the selection                                                                                                                  |
 | Ctrl+C, Ctrl+X, Ctrl+V, Ctrl+D                                | Copy, cut, paste, duplicate                                                                                                           |
 | Alt+G, Alt+Shift+G                                            | Group the selection, ungroup                                                                                                          |
+| Ctrl+Shift+., Ctrl+Shift+,                                    | Make the selection's text one common size larger or smaller                                                                           |
 | Ctrl+Shift+Left, Right, Up, Down                              | Align left, right, top or bottom edges                                                                                                |
 | Ctrl+Alt+H, Ctrl+Alt+V                                        | Distribute horizontally or vertically                                                                                                 |
 | C                                                             | Connect the selected element to… (type to filter, Enter to choose)                                                                    |
@@ -977,6 +978,19 @@ declared in that model, in this file or in the model's own file.
   Enter or Space chooses, and each cell is named by its pair ("centre, bottom"). Several selected
   boxes whose values differ show "mixed" with no cell pressed; flow nodes and other kinds have no
   picker, and a read-only canvas draws it disabled.
+- **Text.** Everything that draws text has a group headed **Text** in the strip, in every
+  profile: a node, a group's title, a note, a tag, a relation's label, a sticky, a participant, a
+  message or a C4 container. **Font** is a button showing the family in its own face (the theme's
+  greyed when none is written, "custom" for a stack written by hand); it opens the font picker: a
+  search field, the families in groups (Sans, Serif, Monospace, Handwriting, Project fonts), each
+  row its name and "Aa" drawn in the family, and **Theme** to inherit again. Type to filter, the
+  arrows move, Enter chooses, Escape closes; choosing writes `style api { font "Roboto" }` for
+  every selected item in one step. **Text size** is a field with the common sizes listed (8 to
+  96), − and + step every selected item one common size from what it draws, any size from 6 to
+  160 may be typed, and a size outside them is refused in place. **Text weight** is four chips of
+  "Aa" at 400, 500, 600 and 700 (Regular, Medium, Semibold, Bold). Ctrl+Shift+. and Ctrl+Shift+,
+  (Cmd on macOS) step the size from the keyboard, and the context menu has **Larger text** and
+  **Smaller text**. Icons, images and pens have no Text group.
 - **Tokens, colours and the theme.** The chips are the theme's sixteen colour tokens, drawn in the
   colours the diagram's theme gives them, so a custom theme shows its own. A chip writes the
   token (`style api { fill accent }`), which follows the theme when it changes; the colour picker
@@ -1006,8 +1020,9 @@ declared in that model, in this file or in the model's own file.
   the canvas redraws with the hand-drawn strokes while selections and handles keep the clean
   outlines. A change writes the token
   into the block, in the file that holds it (the status line names it); **Inherit** or an empty
-  value removes it. **Text font** and **Code font** offer the bundled families and the project's
-  `assets/fonts/`, which exports embed; a stack written by hand shows as "custom" and stays.
+  value removes it. **Text font** and **Code font** open the font picker on the bundled families
+  and the project's `assets/fonts/`, which exports embed; a stack written by hand shows as
+  "custom" and stays.
   Classes and rules stay in the code. **Done** returns to the inspector.
 
 ## Effects

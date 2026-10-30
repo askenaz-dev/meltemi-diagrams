@@ -51,7 +51,7 @@ Tokens (numbers without a unit or with `px`):
 | `background`, `surface`, `ink`, `muted`, `line`, `connector`, `band`, `bandLine`, `tag`, `tagText`, `accent`, `accentEnd` | quoted colour                                     |
 | `success`, `warning`, `danger`, `info`                                                                                    | quoted colour (signals)                           |
 | `highlight`, `sticky`, `stickyText`                                                                                       | quoted colour (highlighter strokes, stickies)     |
-| `font`, `mono`                                                                                                            | quoted font stack                                 |
+| `font`, `mono`                                                                                                            | quoted font stack; name a bundled family          |
 | `labelSize`, `descriptionSize`, `groupTitleSize`, `noteSize`, `tagSize`, `relationLabelSize`, `frameSize`                 | 6 to 48 (technical: 13, 11, 13, 11, 10.5, 11, 12) |
 | `labelWeight`                                                                                                             | 400, 500, 600 or 700                              |
 | `padding`, `groupPadding`, `groupHeader`, `margin`                                                                        | 0 to 200 (technical: 16, 16, 40, 20)              |
@@ -75,8 +75,14 @@ theme bare { extends "technical.light"; frame none }
 Company wordmark without the Meltemi mark:
 
 ```text
-theme acme { frame header; mark none; brand "Acme Architecture"; font "Georgia, serif" }
+theme acme { frame header; mark none; brand "Acme Architecture"; font "Merriweather" }
 ```
+
+The bundled families, which every export measures, embeds and outlines: sans Inter, IBM Plex
+Sans, Roboto, Open Sans, Lato, Montserrat, Poppins, Nunito; serif Merriweather, Lora, Playfair
+Display; mono Cascadia Mono, Roboto Mono, Source Code Pro; handwriting Patrick Hand, Caveat,
+Comic Neue. A system family (`Georgia`, `Arial`) is measured with estimates
+(`layout.unmeasured-font`) and left to the viewer.
 
 A whiteboard look: `theme "sketch.light"`, or `sketch rough` in a theme block
 (`theme hand { extends "technical.light"; sketch rough }`). Every outline, connector, head, pill

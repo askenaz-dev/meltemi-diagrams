@@ -37,6 +37,8 @@ import {
   RELATION_ONLY_PROPERTIES,
   STICKY_PROPERTIES,
   STICKY_REFUSED_PROPERTIES,
+  TEXTLESS_KINDS,
+  TEXT_PROPERTIES,
   diagramStatements,
   isFreeStyleProperty,
   profileTakesShape,
@@ -2302,6 +2304,8 @@ export class FlowAnalyzer {
       const line = element?.kind === "line";
       const pen = element?.kind === "pen";
       const sticky = element?.kind === "sticky";
+      // Icons and images draw no text: the text properties do not apply to them.
+      const textless = element !== undefined && TEXTLESS_KINDS.includes(element.kind);
       const misfit =
         kind !== "style"
           ? []
@@ -2313,7 +2317,9 @@ export class FlowAnalyzer {
                 ? [...PEN_REFUSED_PROPERTIES, "rotation"]
                 : sticky
                   ? STICKY_REFUSED_PROPERTIES
-                  : RELATION_ONLY_PROPERTIES;
+                  : textless
+                    ? [...RELATION_ONLY_PROPERTIES, ...TEXT_PROPERTIES]
+                    : RELATION_ONLY_PROPERTIES;
       for (const name of misfit) {
         const token = tokens[name];
         // `shape` is reported below, with the kinds that take it; a pen names what it takes.

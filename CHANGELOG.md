@@ -29,7 +29,31 @@ and a bar on the canvas to select, stretch and remove
 0.2: `tag "Text"` in a block is additive, and a `\n` in a message label, drawn as a space until
 now, breaks the line.
 
+Any text can take its own font, size and weight, in every profile: thirteen popular families join
+the four bundled ones (Roboto, Open Sans, Lato, Montserrat, Poppins, Nunito, Merriweather, Lora,
+Playfair Display, Roboto Mono, Source Code Pro, Caveat and Comic Neue), each measured, embedded and
+outlined like Inter; `font`, `fontSize` and `fontWeight` style a node, a group's title, a note, a
+tag, a relation's label, a participant, a message or a C4 container; and the canvas picks them
+from a font picker that shows each family in its own face, a size list with − and +, four weight
+chips and two keys ([decision 0067](docs/decisions/0067-font-families-and-text-size.md)). The
+language stays 0.2: `font` is a new style property, and `fontSize` and `fontWeight`, free-only
+until now, are additive elsewhere.
+
 ### Language
+
+- Text in every profile: `font "<stack>"` (a quoted, non-empty font stack), `fontSize` (6 to 160)
+  and `fontWeight` (400, 500, 600 or 700) style everything that draws text, in `style`
+  statements, classes and rules; icons, images and pens refuse them. A written stack is measured
+  with its first bundled or project family alone, estimated and reported once as
+  `layout.unmeasured-font` when it has none, and drawn before the theme's stack so that a viewer
+  without it falls back as the theme does. A written size scales what the theme's token scales: a
+  box's description, a pill's height and padding, a tag's pill, a note's lines, a group's title
+  band, a sequence head and its row; boxes without `size` grow to hold it, and a written `size`
+  too small is `layout.text-overflow`. `textAlign`, `verticalAlign` and `opacity` stay free-only.
+  Nothing changes where nothing is written: every stored picture is the same.
+- The model JSON carries `font` as a string in style entries; the version stays 0.1.
+- Completion offers the bundled and project families after `font` (and `mono` in a theme), each
+  with its group; hover on a stack names the family it is measured with, or says it is estimated.
 
 - Pen strokes: `pen <id> [(x, y), (x, y), …]` is a freehand stroke of free diagrams, its points in
   its group's interior like a line's, decimals kept; one point is a dot. It takes `stroke` (the
@@ -226,11 +250,31 @@ now, breaks the line.
 - The inspector's Opacity slider; the Canvas size field offers `board`.
 - Strokes of others: in a room, a stroke appears on the others' canvases while it is drawn, in its
   colour and width, and the written `pen` replaces it when the drawing arrives.
+- The strip's Text group, for everything that draws text in every profile: **Font**, a button
+  that opens the font picker (a search, the families in groups, each row drawn in its own face,
+  **Theme** to inherit again); **Text size**, a field with the common sizes listed and − and +
+  that step every selected item from the size it draws; **Text weight**, four "Aa" chips. The
+  theme panel's **Text font** and **Code font** open the same picker. Ctrl+Shift+. and
+  Ctrl+Shift+, (Cmd on macOS), and **Larger text** and **Smaller text** in the context menu, step
+  the selection's size. The editor in place types in the text's family and size.
 
 ### Command line
 
 - `init --template kanban` and `init --template whiteboard`; `init --list` prints seven templates.
-- The gallery gains `free/whiteboard`.
+- The gallery gains `free/whiteboard` and `free/typography`, a specimen of the bundled fonts.
+- `assets list` starts with the bundled fonts (family, group, weights, licence), and calls the
+  project's own fonts "Project fonts".
+
+### Fonts
+
+- `@meltemi/diagrams-fonts` bundles thirteen more families from their Fontsource packages (OFL-1.1),
+  in the weights each publishes among 400 to 700 (Lato and Comic Neue 400 and 700): sans Roboto,
+  Open Sans, Lato, Montserrat, Poppins, Nunito; serif Merriweather, Lora, Playfair Display;
+  monospace Roboto Mono, Source Code Pro; handwriting Caveat, Comic Neue. `BundledFamily` records
+  each family's `group` and `license`, `FONT_GROUPS` orders the groups, and `FontLibrary.families()`
+  lists the bundled families and the project's. The VS Code extension and the playground carry
+  their subset files (3.9 MB more); the playground fetches a family the first time a text names
+  it. The licence inventory and the notices list the new packages.
 
 ### Fixed
 

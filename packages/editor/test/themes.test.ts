@@ -136,9 +136,10 @@ describe("theme panel", () => {
     expect(ink.placeholder).toMatch(/^#/);
     expect(field(panel, "dashDuration")).toMatchObject({ value: 600 });
     expect(field(panel, "flowDuration")).toMatchObject({ value: null, placeholder: "1200" });
+    // The text font is the font picker's, offering every bundled family.
     const font = field(panel, "font");
-    expect(font.type).toBe("enum");
-    expect(font.options).toContain("Inter");
+    expect(font.type).toBe("font");
+    expect(font.options).toEqual(expect.arrayContaining(["Inter", "Roboto", "Lora", "Caveat"]));
     expect(field(panel, "labelWeight").options).toContain("600");
     // How strokes are painted, drawn as pictures, inherited as `none` from the technical base.
     expect(field(panel, "sketch")).toMatchObject({
@@ -201,10 +202,13 @@ describe("theme panel", () => {
     expect(field(canvas.panel()!, "font")).toMatchObject({ value: "Inter" });
   });
 
-  it("ignores the custom entry of a font written by hand", () => {
+  it("keeps a font written by hand, and ignores the custom entry", () => {
     const canvas = open(SHEET.replace("  dashDuration 600ms\n", '  font "Comic Mono, cursive"\n'));
     canvas.send({ type: "editTheme", open: true });
-    expect(field(canvas.panel()!, "font")).toMatchObject({ value: "custom" });
+    expect(field(canvas.panel()!, "font")).toMatchObject({
+      type: "font",
+      value: "Comic Mono, cursive",
+    });
     const before = canvas.text();
     expect(
       canvas.send({ type: "themeToken", token: "font", value: "custom" }).plan,

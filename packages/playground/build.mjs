@@ -275,13 +275,21 @@ const packages = [...bundled.values()].sort((a, b) =>
 );
 const licenseOf = (manifest) =>
   typeof manifest.license === "string" ? manifest.license : (manifest.license?.type ?? "unknown");
+// The fonts' licence as their packages record it: one name when they share it.
+const fontLicenses = [
+  ...new Set(FONT_PACKAGES.map((name) => licenseOf(bundled.get(name).manifest))),
+];
+const fontsUnder =
+  fontLicenses.length === 1 && fontLicenses[0] === "OFL-1.1"
+    ? "the fonts under the SIL Open Font License 1.1,"
+    : `the fonts under ${fontLicenses.join(", ")},`;
 writeFileSync(
   join(dist, "NOTICES.md"),
   [
     "# Notices",
     "",
     `Meltemi Diagrams playground ${version}. Meltemi Diagrams is MIT. This site bundles the`,
-    "components below, each under its own licence: the fonts under the SIL Open Font License 1.1,",
+    `components below, each under its own licence: ${fontsUnder}`,
     "elkjs under the Eclipse Public License 2.0, and the others as stated. The provider icon sets",
     "keep their vendors' terms, repeated below.",
     "",

@@ -229,8 +229,18 @@ function patternDef(pattern: ScenePattern): string[] {
   return [open, shape, "    </pattern>"];
 }
 
-function stackOf(item: TextItem, scene: Scene): string {
+/** The scene's stack of a text's role: the theme's body or mono font. */
+function roleStack(item: TextItem, scene: Scene): string {
   return item.font === "mono" ? scene.fonts.mono : scene.fonts.body;
+}
+
+/**
+ * The stack a text is embedded and outlined with: the one its style writes, alone, so that a
+ * written family nobody has is left to the viewer rather than drawn in the theme's font; else
+ * its role's.
+ */
+function stackOf(item: TextItem, scene: Scene): string {
+  return item.stack ?? roleStack(item, scene);
 }
 
 function textItems(items: readonly SceneItem[]): TextItem[] {
@@ -410,8 +420,14 @@ function emit(
         if (clipped) out.push(`${indent}</g>`);
         return;
       }
+      // A written stack comes first and the role's stack after it, so a viewer without the family
+      // falls back as the theme does; mono text names the mono stack; the rest inherits the svg's.
       const familyAttribute =
-        item.font === "mono" ? ` font-family="${escapeXml(scene.fonts.mono)}"` : "";
+        item.stack !== undefined
+          ? ` font-family="${escapeXml(`${item.stack}, ${roleStack(item, scene)}`)}"`
+          : item.font === "mono"
+            ? ` font-family="${escapeXml(scene.fonts.mono)}"`
+            : "";
       out.push(
         `${indent}<text x="${n(item.x)}" y="${n(item.baseline)}" text-anchor="${item.anchor}" font-size="${n(item.size)}" font-weight="${item.weight}"${familyAttribute} fill="${escapeXml(item.fill)}"${clipped}>${escapeXml(item.text)}</text>`,
       );

@@ -198,6 +198,10 @@ function readStyle(value: unknown, where: string, problems: string[]): StyleProp
         if (typeof v === "string" && /^[A-Za-z0-9_-]+:[A-Za-z0-9_.-]+$/.test(v)) style[name] = v;
         else problems.push(m.styleIcon(where));
         break;
+      case "font":
+        if (typeof v === "string" && v.trim() !== "") style[name] = v;
+        else problems.push(m.styleFont(where));
+        break;
       default:
         problems.push(m.styleUnknown(where, name));
     }

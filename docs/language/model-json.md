@@ -185,7 +185,8 @@ For `route` and `label`, `target` is the relation key; for `space`, the id of th
 Style properties keep their types: `width` is a number, words such as `dashed` or `hatch` are
 strings, and a colour written as a theme token name (`stroke danger`) is the string `@danger`. A
 quoted colour is kept as written, so it never starts with `@`. `verticalAlign top` is the string
-`top`, as `textAlign left` is `left`, and `opacity 0.35` the number `0.35`.
+`top`, as `textAlign left` is `left`, and `opacity 0.35` the number `0.35`. `font "Roboto"` is
+the string `Roboto`, and `fontSize 16` the number `16`.
 
 ### Class and rule entries
 

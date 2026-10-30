@@ -25,6 +25,8 @@ import {
   SEQUENCE_PROFILE,
   STICKY_PROPERTIES,
   STICKY_REFUSED_PROPERTIES,
+  TEXTLESS_KINDS,
+  TEXT_PROPERTIES,
   STYLE_PROPERTIES,
   THEME_COLOR_TOKENS,
   isFreeStyleProperty,
@@ -115,7 +117,7 @@ export function describeSpec(spec: ValueSpec): string {
     case "enum":
       return words.oneOf(spec.values);
     case "string":
-      return words.string;
+      return spec.nonEmpty ? words.fontStack : words.string;
     case "color":
       return spec.tokens ? words.colorOrToken : words.color;
     case "icon":
@@ -165,7 +167,14 @@ export function checkArg(arg: Arg, spec: ValueSpec, name: string): ValueResult {
       return fail(m.diagnostics.values.invalidEnum(describeArg(arg), name, spec.values));
     }
     case "string":
-      if (arg.kind === "StringLiteral") return { ok: true, value: arg.value };
+      if (arg.kind === "StringLiteral" && (!spec.nonEmpty || arg.value.trim() !== "")) {
+        return { ok: true, value: arg.value };
+      }
+      if (spec.nonEmpty) {
+        return fail(m.diagnostics.values.expects(name, m.words.spec.fontStack), [
+          m.hints.example(`${name} "Roboto"`),
+        ]);
+      }
       return fail(m.diagnostics.common.expectsString(name), [m.hints.example(`${name} "text"`)]);
     case "color": {
       if (arg.kind === "StringLiteral" && arg.value.trim() !== "") {
@@ -386,6 +395,7 @@ export interface PropertyBlock {
 export function targetHint(name: string): string {
   const hints = messages().hints.values;
   if (name === "opacity") return hints.opacityTargets;
+  if (TEXT_PROPERTIES.includes(name)) return hints.textTargets;
   return ELEMENT_ONLY_PROPERTIES.includes(name)
     ? hints.appliesToElements(name)
     : hints.appliesToRelations(name);
@@ -526,6 +536,7 @@ function ruleRefuses(kind: string): readonly string[] {
   if (kind === "line") return [];
   if (kind === "pen") return PEN_REFUSED_PROPERTIES;
   if (kind === "sticky") return STICKY_REFUSED_PROPERTIES;
+  if (TEXTLESS_KINDS.includes(kind)) return [...RELATION_ONLY_PROPERTIES, ...TEXT_PROPERTIES];
   return RELATION_ONLY_PROPERTIES;
 }
 

@@ -397,6 +397,7 @@ como en todas partes. Tab después del último elemento sale del lienzo.
 | Supr, Retroceso                                                           | Eliminar la selección                                                                                                                                    |
 | Ctrl+C, Ctrl+X, Ctrl+V, Ctrl+D                                            | Copiar, cortar, pegar, duplicar                                                                                                                          |
 | Alt+G, Alt+Mayús+G                                                        | Agrupar la selección, desagrupar                                                                                                                         |
+| Ctrl+Mayús+., Ctrl+Mayús+,                                                | Agrandar o reducir un tamaño habitual el texto de la selección                                                                                           |
 | Ctrl+Mayús+Izquierda, Derecha, Arriba, Abajo                              | Alinear a la izquierda, a la derecha, arriba o abajo                                                                                                     |
 | Ctrl+Alt+H, Ctrl+Alt+V                                                    | Distribuir horizontal o verticalmente                                                                                                                    |
 | C                                                                         | Conectar el elemento seleccionado con… (escribe para filtrar, Entrar para elegir)                                                                        |
@@ -1067,6 +1068,22 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
   cajas seleccionadas con valores distintos muestran "mixto" sin ninguna celda presionada; los
   nodos de flujo y los demás tipos no tienen selector, y un lienzo de solo lectura lo dibuja
   desactivado.
+- **Texto.** Todo lo que dibuja texto tiene en la barra un grupo titulado **Texto**, en todos los
+  perfiles: un nodo, el título de un grupo, una nota, una etiqueta, la etiqueta de una relación,
+  una nota adhesiva, un participante, un mensaje o un contenedor C4. **Fuente** es un botón que
+  muestra la familia en su propia cara (la del tema en gris cuando no hay ninguna escrita,
+  "personalizada" para una pila escrita a mano); abre el selector de fuentes: un campo de búsqueda,
+  las familias en grupos (Sin serifa, Con serifa, Monoespaciadas, Manuscritas, Fuentes del
+  proyecto), cada fila su nombre y "Aa" dibujados en la familia, y **Tema** para volver a heredar.
+  Escribir filtra, las flechas se mueven, Entrar elige y Escape cierra; elegir escribe
+  `style api { font "Roboto" }` para cada elemento seleccionado en un solo paso. **Tamaño del
+  texto** es un campo con los tamaños habituales en una lista (de 8 a 96), − y + cambian cada
+  elemento seleccionado un tamaño habitual desde el que dibuja, se puede escribir cualquier tamaño
+  de 6 a 160, y uno fuera de ese rango se rechaza en el propio campo. **Grosor del texto** son
+  cuatro muestras de "Aa" en 400, 500, 600 y 700 (Normal, Media, Seminegrita, Negrita).
+  Ctrl+Mayús+. y Ctrl+Mayús+, (Cmd en macOS) cambian el tamaño desde el teclado, y el menú
+  contextual tiene **Texto más grande** y **Texto más pequeño**. Los iconos, las imágenes y los
+  lápices no tienen grupo Texto.
 - **Tokens, colores y el tema.** Las muestras son los dieciséis tokens de color del tema, dibujados
   con los colores que les da el tema del diagrama, así que un tema personalizado muestra los suyos.
   Una muestra escribe el token (`style api { fill accent }`), que sigue al tema cuando este cambia;
@@ -1099,8 +1116,9 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
   los tiradores conservan los contornos limpios.
   Un cambio escribe el token en el bloque, en el archivo que lo contiene (la línea de estado lo
   nombra); **Heredar** o un valor vacío lo quita. **Fuente del texto** y **Fuente del código**
-  ofrecen las familias incluidas y las de `assets/fonts/` del proyecto, que las exportaciones
-  incrustan; una pila escrita a mano se muestra como "custom" y se mantiene. Las clases y las reglas
+  abren el selector de fuentes con las familias incluidas y las de `assets/fonts/` del proyecto,
+  que las exportaciones incrustan; una pila escrita a mano se muestra como "personalizada" y se
+  mantiene. Las clases y las reglas
   quedan en el código. **Listo** vuelve al inspector.
 
 ## Efectos

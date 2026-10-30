@@ -678,7 +678,15 @@ token was refused.
     noEmbedding: "embedding: no",
     packs: "Icon packs:",
     aliases: "Aliases:",
-    fonts: "Fonts:",
+    fonts: "Project fonts:",
+    /** The fonts every diagram can use, before the project's own. */
+    bundledFonts: "Bundled fonts:",
+    fontGroups: {
+      sans: "sans",
+      serif: "serif",
+      mono: "mono",
+      hand: "hand",
+    } as Readonly<Record<string, string>>,
     noWords: "give words to search for.",
     limit: "--limit must be a positive whole number.",
     noMatch: (query: string) => `No icon matches "${query}".`,

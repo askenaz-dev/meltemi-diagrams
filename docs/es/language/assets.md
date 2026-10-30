@@ -242,11 +242,11 @@ se escribe con las claves ordenadas, así que sus diferencias se leen con clarid
 
 ## Comandos
 
-| Comando                                   | Imprime o hace                                                                                     |
-| ----------------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `assets list [path]`                      | los paquetes, los alias y las fuentes con sus versiones, orígenes y licencias                      |
-| `assets icons <words> [--project <path>]` | las referencias que coinciden, primero los nombres exactos (`--limit`, 50 de forma predeterminada) |
-| `assets lock [path]`                      | escribe `assets.lock.json` en la raíz del proyecto                                                 |
+| Comando                                   | Imprime o hace                                                                                                          |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `assets list [path]`                      | las fuentes incluidas, luego los paquetes, los alias y las fuentes del proyecto con sus versiones, orígenes y licencias |
+| `assets icons <words> [--project <path>]` | las referencias que coinciden, primero los nombres exactos (`--limit`, 50 de forma predeterminada)                      |
+| `assets lock [path]`                      | escribe `assets.lock.json` en la raíz del proyecto                                                                      |
 
 ## Para herramientas
 

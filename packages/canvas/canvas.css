@@ -2620,6 +2620,277 @@ body {
   display: none;
 }
 
+/* Text group of the strip --------------------------------------------- */
+
+/* The font, size and weight of the selection's text, under a small heading (decision 0067). */
+.panel .text-group {
+  display: grid;
+  gap: 6px;
+  margin: 2px 0 8px;
+  padding-top: 6px;
+  border-top: 1px dashed color-mix(in srgb, var(--mdg-border) 80%, transparent);
+}
+
+.panel .text-group .group-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mdg-muted);
+}
+
+.panel .text-group .field {
+  margin-bottom: 0;
+}
+
+/* The Font button: the family's name drawn in the family, with a chevron. */
+.panel .font-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 28px;
+  padding: 0 6px 0 8px;
+  border: 1px solid var(--vscode-input-border, var(--mdg-border));
+  border-radius: 5px;
+  background: var(--vscode-input-background, #fff);
+  color: var(--vscode-input-foreground, var(--mdg-fg));
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color var(--mdg-motion-fast) var(--mdg-ease),
+    box-shadow var(--mdg-motion-fast) var(--mdg-ease),
+    background-color var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.panel .font-button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--mdg-select) 55%, var(--mdg-border));
+}
+
+.panel .font-button:focus-visible,
+.panel .font-button[aria-expanded="true"] {
+  outline: none;
+  border-color: var(--mdg-focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mdg-focus) 22%, transparent);
+}
+
+.panel .font-button:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.panel .font-button .font-button-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* What applies without a written family, a stack written by hand, a mixed selection: greyed. */
+.panel .font-button:is(.inherited, .custom, .mixed) .font-button-name {
+  color: var(--mdg-muted);
+}
+
+.panel .font-button.custom .font-button-name,
+.panel .font-button.mixed .font-button-name {
+  font-style: italic;
+}
+
+.panel .font-button svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--mdg-muted);
+  transition: transform var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.panel .font-button[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+/* The size: − and + around the field, and Theme. */
+.panel .size-row {
+  gap: 4px;
+}
+
+.panel .size-row .size-input {
+  flex: 1;
+  min-width: 44px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.panel .size-row .size-input[aria-invalid] {
+  border-color: var(--vscode-inputValidation-errorBorder, #d33);
+}
+
+.panel .size-row button.step {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--vscode-button-border, var(--mdg-border));
+  border-radius: 4px;
+  background: var(--vscode-button-secondaryBackground, transparent);
+  color: var(--vscode-button-secondaryForeground, inherit);
+  cursor: pointer;
+  transition:
+    background-color var(--mdg-motion-fast) var(--mdg-ease),
+    transform var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.panel .size-row button.step:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--mdg-select) 12%, transparent);
+}
+
+.panel .size-row button.step:active:not(:disabled) {
+  transform: scale(0.92);
+}
+
+.panel .size-row button.step:focus-visible {
+  outline: 2px solid var(--mdg-focus);
+  outline-offset: 1px;
+}
+
+.panel .size-row button.step svg {
+  width: 14px;
+  height: 14px;
+}
+
+.panel .field-note {
+  font-size: 11px;
+  color: var(--vscode-errorForeground, #d33);
+  animation: mdg-fade-in var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.panel .field-note[hidden] {
+  display: none;
+}
+
+/* Font picker ------------------------------------------------------------ */
+
+.font-picker {
+  position: absolute;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  max-width: calc(100% - 16px);
+  max-height: 440px;
+  padding-top: 8px;
+  overflow: hidden;
+  border: 1px solid var(--vscode-menu-border, var(--mdg-border));
+  border-radius: 8px;
+  background: var(--vscode-menu-background, #fff);
+  color: var(--vscode-menu-foreground, inherit);
+  box-shadow: var(--mdg-pop-shadow);
+}
+
+.font-results {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0 6px 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.font-group-title {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 6px 6px 3px;
+  background: var(--vscode-menu-background, #fff);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mdg-muted);
+}
+
+/* A row: the family's name and "Aa" in the family, one height whether its faces have arrived. */
+.font-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  cursor: pointer;
+  transition:
+    background-color var(--mdg-motion-fast) var(--mdg-ease),
+    border-color var(--mdg-motion-fast) var(--mdg-ease),
+    opacity var(--mdg-motion) var(--mdg-ease);
+}
+
+.font-option .font-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.font-option .font-sample {
+  flex: none;
+  font-size: 16px;
+  color: var(--mdg-muted);
+}
+
+.font-option svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  color: var(--mdg-muted);
+}
+
+/* A family whose faces are on their way: drawn in the interface font, a little faded. */
+.font-option.waiting .font-name,
+.font-option.waiting .font-sample {
+  opacity: 0.7;
+}
+
+.font-option.inherit {
+  margin-bottom: 2px;
+  color: var(--mdg-muted);
+  font-style: italic;
+}
+
+.font-option:hover,
+.font-option.active {
+  background: color-mix(in srgb, var(--mdg-select) 10%, transparent);
+}
+
+.font-option.active {
+  border-color: color-mix(in srgb, var(--mdg-focus) 45%, transparent);
+}
+
+.font-option[aria-selected="true"] {
+  border-color: color-mix(in srgb, var(--mdg-select) 55%, transparent);
+  background: color-mix(in srgb, var(--mdg-select) 15%, transparent);
+}
+
+.font-option:active {
+  transform: scale(0.98);
+}
+
+.font-picker-status {
+  padding: 8px 12px 10px;
+  font-size: 12px;
+  color: var(--mdg-muted);
+}
+
+.font-picker-status[hidden] {
+  display: none;
+}
+
 /* Icon picker ------------------------------------------------------------ */
 
 .icon-picker {
@@ -3442,7 +3713,7 @@ body {
  * diagram, kinds of group, Arrange), Connect to…, and the inspector's picture grids. They rise from
  * their anchor and fade in as they open, fade as they close, and take no presses while closing.
  */
-:is(.menu, .picker, .shape-menu, .pen-menu, .icon-picker, .panel .head-grid) {
+:is(.menu, .picker, .shape-menu, .pen-menu, .icon-picker, .font-picker, .panel .head-grid) {
   transform-origin: top left;
   transition:
     opacity var(--mdg-motion) var(--mdg-ease),
@@ -3450,11 +3721,19 @@ body {
     display var(--mdg-motion) allow-discrete;
 }
 
-:is(.menu, .picker, .shape-menu, .pen-menu, .icon-picker, .panel .head-grid)[data-side="top"] {
+:is(
+  .menu,
+  .picker,
+  .shape-menu,
+  .pen-menu,
+  .icon-picker,
+  .font-picker,
+  .panel .head-grid
+)[data-side="top"] {
   transform-origin: bottom left;
 }
 
-:is(.menu, .picker, .shape-menu, .pen-menu, .icon-picker, .panel .head-grid)[hidden] {
+:is(.menu, .picker, .shape-menu, .pen-menu, .icon-picker, .font-picker, .panel .head-grid)[hidden] {
   display: none;
   opacity: 0;
   transform: scale(var(--mdg-pop-scale));
@@ -3466,14 +3745,22 @@ body {
 }
 
 @starting-style {
-  :is(.menu, .picker, .shape-menu, .pen-menu, .icon-picker, .panel .head-grid):not([hidden]) {
+  :is(.menu, .picker, .shape-menu, .pen-menu, .icon-picker, .font-picker, .panel .head-grid):not(
+    [hidden]
+  ) {
     opacity: 0;
     transform: translateY(calc(-1 * var(--mdg-rise))) scale(var(--mdg-pop-scale));
   }
 
-  :is(.menu, .picker, .shape-menu, .pen-menu, .icon-picker, .panel .head-grid)[data-side="top"]:not(
-      [hidden]
-    ) {
+  :is(
+      .menu,
+      .picker,
+      .shape-menu,
+      .pen-menu,
+      .icon-picker,
+      .font-picker,
+      .panel .head-grid
+    )[data-side="top"]:not([hidden]) {
     transform: translateY(var(--mdg-rise)) scale(var(--mdg-pop-scale));
   }
 }

@@ -39,6 +39,8 @@ export const en = {
     spec: {
       oneOf: (values: readonly (string | number)[]) => `one of ${values.join(", ")}`,
       string: "a quoted string",
+      /** A style's `font`: a stack with at least one family. */
+      fontStack: 'a non-empty quoted font stack such as "Roboto"',
       color: "a quoted color",
       colorOrToken: "a quoted color or a color token",
       icon: 'an icon such as "tabler:server"',
@@ -670,7 +672,10 @@ export const en = {
       styleProperties: (names: readonly string[]) =>
         `Classes and rules accept ${names.map(code).join(", ")}.`,
       freeProperties:
-        "Flow, sequence and C4 diagrams set text in the theme's type scale; free diagrams choose its size, weight and alignment.",
+        "Flow, sequence and C4 diagrams place text where its shape puts it; free diagrams choose its alignment with `textAlign` and `verticalAlign`.",
+      /** A text property on an icon, an image or a pen. */
+      textTargets:
+        "`font`, `fontSize` and `fontWeight` apply to what draws text: boxes, nodes, groups, notes, tags, stickies, texts, participants, entities, relations and lines, not icons, images or pens.",
       /** `opacity` in a flow, sequence or C4 diagram. */
       freeOpacity:
         "Flow, sequence and C4 diagrams draw every element opaque; free diagrams fade elements, groups, lines and pens with `opacity`.",
@@ -818,6 +823,7 @@ export const en = {
       `${where}: \`${name}\` takes a colour token such as "@accent" or a CSS colour.`,
     styleNumber: (where: string, name: string) => `${where}: \`${name}\` takes a number in range.`,
     styleIcon: (where: string) => `${where}: \`icon\` takes a reference such as "tabler:table".`,
+    styleFont: (where: string) => `${where}: \`font\` takes a font stack such as "Roboto".`,
     styleUnknown: (where: string, name: string) => `${where}: unknown style property \`${name}\`.`,
     propertiesObject: (where: string) => `${where}: \`properties\` must be an object.`,
     propertyName: (where: string, name: string) => `${where}: \`${name}\` cannot name a property.`,

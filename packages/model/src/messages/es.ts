@@ -139,6 +139,7 @@ export const es: typeof en = {
     spec: {
       oneOf: (values) => `uno de estos valores: ${values.join(", ")}`,
       string: "una cadena entre comillas",
+      fontStack: 'una pila de fuentes no vacía entre comillas, como "Roboto"',
       color: "un color entre comillas",
       colorOrToken: "un color entre comillas o un token de color",
       icon: 'un icono como "tabler:server"',
@@ -651,7 +652,9 @@ export const es: typeof en = {
         "Las clases no pueden aplicar otras clases; lista cada clase donde se use.",
       styleProperties: (names) => `Las clases y las reglas aceptan ${names.map(code).join(", ")}.`,
       freeProperties:
-        "Los diagramas de flujo y de secuencia y las vistas C4 escriben el texto con la escala tipográfica del tema; las composiciones libres eligen su tamaño, su peso y su alineación.",
+        "Los diagramas de flujo y de secuencia y las vistas C4 colocan el texto donde lo pone su forma; las composiciones libres eligen su alineación con `textAlign` y `verticalAlign`.",
+      textTargets:
+        "`font`, `fontSize` y `fontWeight` se aplican a lo que dibuja texto: cajas, nodos, grupos, notas, etiquetas, notas adhesivas, textos, participantes, entidades, relaciones y líneas, no a iconos, imágenes ni trazos de lápiz.",
       freeOpacity:
         "Los diagramas de flujo y de secuencia y las vistas C4 dibujan cada elemento opaco; las composiciones libres atenúan elementos, grupos, líneas y trazos de lápiz con `opacity`.",
       opacityTargets: "`opacity` se aplica a elementos, grupos, líneas y trazos de lápiz.",
@@ -788,6 +791,7 @@ export const es: typeof en = {
       `${where}: ${code(name)} admite un token de color como "@accent" o un color CSS.`,
     styleNumber: (where, name) => `${where}: ${code(name)} admite un número dentro del rango.`,
     styleIcon: (where) => `${where}: \`icon\` admite una referencia como "tabler:table".`,
+    styleFont: (where) => `${where}: \`font\` admite una pila de fuentes como "Roboto".`,
     styleUnknown: (where, name) => `${where}: propiedad de estilo desconocida ${code(name)}.`,
     propertiesObject: (where) => `${where}: \`properties\` debe ser un objeto.`,
     propertyName: (where, name) => `${where}: ${code(name)} no puede nombrar una propiedad.`,

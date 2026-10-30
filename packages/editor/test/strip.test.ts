@@ -72,7 +72,7 @@ const strip = (model: InspectorModel) =>
   model.fields.filter((f) => f.section === "strip").map((f) => f.name);
 
 describe("style strip", () => {
-  it("comes first for a box: colours, line, width, corner radius, rotation, shape and its effects", () => {
+  it("comes first for a box: colours, line, width, corner radius, rotation, shape, text and effects", () => {
     const canvas = open(SHEET);
     canvas.send({ type: "select", ids: ["db"] });
     const model = canvas.inspector();
@@ -85,10 +85,13 @@ describe("style strip", () => {
       "style.radius",
       "style.rotation",
       "style.shape",
+      "style.font",
+      "style.fontSize",
+      "style.fontWeight",
       "effect.dash",
       "effect.pulse",
     ]);
-    expect(model.fields.slice(0, 10).every((f) => f.section === "strip")).toBe(true);
+    expect(model.fields.slice(0, 13).every((f) => f.section === "strip")).toBe(true);
   });
 
   it("offers the theme's colour tokens with the colours it resolves them to", () => {
@@ -125,6 +128,9 @@ describe("style strip", () => {
       "style.arrowhead",
       "style.routing",
       "style.corners",
+      "style.font",
+      "style.fontSize",
+      "style.fontWeight",
       "effect.flow",
       "effect.dash",
       "effect.dash.duration",
@@ -714,10 +720,11 @@ describe("whiteboard objects", () => {
       "style.opacity",
       "style.radius",
       "style.rotation",
-      "style.fontSize",
-      "style.fontWeight",
       "style.textAlign",
       "style.verticalAlign",
+      "style.font",
+      "style.fontSize",
+      "style.fontWeight",
       // A sticky's fill is no line to dash: only pulse, until a stroke is written.
       "effect.pulse",
     ]);
@@ -770,11 +777,11 @@ describe("whiteboard objects", () => {
     expect(canvas.text()).toContain('style solo { fill "#f8bbd0"; fontSize 24; textAlign left }');
   });
 
-  it("keeps the text size in the strip of stickies only", () => {
+  it("puts the text size in the strip of whatever draws text, stickies too", () => {
     const canvas = board();
     canvas.send({ type: "select", ids: ["api"] });
     const box = canvas.inspector();
-    expect(field(box, "style.fontSize")!.section).toBeUndefined();
+    expect(field(box, "style.fontSize")!.section).toBe("strip");
     expect(field(box, "style.fill")!.swatches).toHaveLength(19);
     // Two stickies share the row and the strip.
     canvas.send({ type: "select", ids: ["a", "solo"] });

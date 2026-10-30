@@ -538,6 +538,16 @@ export const es: typeof en = {
       `Ningún paquete tiene el icono ${reference}: revisa su nombre o elige otro.`,
     tags: "Marcas",
     removeTagTitle: (text) => `Quitar la marca ${text}`,
+    text: "Texto",
+    smaller: "Texto más pequeño",
+    larger: "Texto más grande",
+    sizeRange: (min, max) => `Un tamaño de ${min} a ${max}.`,
+    weights: {
+      "400": "Normal",
+      "500": "Media",
+      "600": "Seminegrita",
+      "700": "Negrita",
+    },
     clear: "Borrar",
     clearTitle: "Quitar el valor escrito: se aplica el predeterminado",
     options: {
@@ -644,6 +654,27 @@ export const es: typeof en = {
     hint: "Escribe para buscar una forma",
     typed: (query) => `Buscar: ${query}`,
     none: (query) => `Ninguna forma se llama «${query}».`,
+  },
+
+  fontPicker: {
+    label: "Fuentes",
+    results: "Fuentes",
+    search: "Buscar fuentes",
+    searchLabel: "Buscar fuentes",
+    theme: "Tema",
+    custom: "personalizada",
+    groups: {
+      sans: "Sin serifa",
+      serif: "Con serifa",
+      mono: "Monoespaciadas",
+      hand: "Manuscritas",
+      project: "Fuentes del proyecto",
+    },
+    restricted: (family) =>
+      `${family}: su licencia prohíbe incrustarla, así que las exportaciones miden el texto con ella pero solo la nombran`,
+    none: (query) => `Ninguna familia coincide con «${query}».`,
+    loading: "Cargando fuentes…",
+    button: (label, family) => `${label}: ${family}`,
   },
 
   iconPicker: {

@@ -1,0 +1,159 @@
+language "0.2"
+
+// A type specimen: the seventeen bundled families in their groups, each name drawn in its own
+// face, the four weights and a column of sizes. Every text is measured, embedded and outlined
+// with its family.
+diagram typography: free {
+  title "Bundled fonts"
+  canvas (1280, 720)
+  layout manual
+
+  text heading "Seventeen families, one file"
+  text subtitle "Written with font, fontSize and fontWeight on any text"
+
+  group sans "Sans" {
+    text inter "Inter"
+    text plex "IBM Plex Sans"
+    text roboto "Roboto"
+    text openSans "Open Sans"
+    text lato "Lato"
+    text montserrat "Montserrat"
+    text poppins "Poppins"
+    text nunito "Nunito"
+  }
+  group serif "Serif" {
+    text merriweather "Merriweather"
+    text lora "Lora"
+    text playfair "Playfair Display"
+  }
+  group mono "Monospace" {
+    text cascadia "Cascadia Mono"
+    text robotoMono "Roboto Mono"
+    text sourceCode "Source Code Pro"
+  }
+  group hand "Handwriting" {
+    text patrick "Patrick Hand"
+    text caveat "Caveat"
+    text comic "Comic Neue"
+  }
+  group weights "Weights" {
+    text regular "Regular 400"
+    text medium "Medium 500"
+    text semibold "Semibold 600"
+    text bold "Bold 700"
+  }
+  group sizes "Sizes" {
+    text size12 "Aa 12"
+    text size16 "Aa 16"
+    text size24 "Aa 24"
+    text size32 "Aa 32"
+    text size48 "Aa 48"
+  }
+
+  placement {
+    place heading at (640, 70)
+    size heading (1000, 56)
+    place subtitle at (640, 118)
+    size subtitle (1000, 26)
+    place sans at (200, 425)
+    size sans (280, 470)
+    place serif at (520, 305)
+    size serif (280, 230)
+    place mono at (520, 545)
+    size mono (280, 230)
+    place hand at (840, 305)
+    size hand (280, 230)
+    place weights at (840, 545)
+    size weights (280, 230)
+    place sizes at (1120, 425)
+    size sizes (220, 470)
+    place inter at (140, 40)
+    place plex at (140, 90)
+    place roboto at (140, 140)
+    place openSans at (140, 190)
+    place lato at (140, 240)
+    place montserrat at (140, 290)
+    place poppins at (140, 340)
+    place nunito at (140, 390)
+    place merriweather at (140, 40)
+    place lora at (140, 90)
+    place playfair at (140, 140)
+    place cascadia at (140, 40)
+    place robotoMono at (140, 90)
+    place sourceCode at (140, 140)
+    place patrick at (140, 40)
+    place caveat at (140, 90)
+    place comic at (140, 140)
+    place regular at (140, 35)
+    place medium at (140, 75)
+    place semibold at (140, 115)
+    place bold at (140, 155)
+    place size12 at (110, 30)
+    place size16 at (110, 70)
+    place size24 at (110, 125)
+    place size32 at (110, 195)
+    place size48 at (110, 290)
+    size inter (232, 40)
+    size plex (232, 40)
+    size roboto (232, 40)
+    size openSans (232, 40)
+    size lato (232, 40)
+    size montserrat (232, 40)
+    size poppins (232, 40)
+    size nunito (232, 40)
+    size merriweather (232, 40)
+    size lora (232, 40)
+    size playfair (232, 40)
+    size cascadia (232, 40)
+    size robotoMono (232, 40)
+    size sourceCode (232, 40)
+    size patrick (232, 40)
+    size caveat (232, 40)
+    size comic (232, 40)
+    size regular (232, 34)
+    size medium (232, 34)
+    size semibold (232, 34)
+    size bold (232, 34)
+    size size12 (172, 30)
+    size size16 (172, 30)
+    size size24 (172, 40)
+    size size32 (172, 50)
+    size size48 (172, 70)
+  }
+
+  rule text { fontSize 22; fontWeight 400; textAlign left }
+  style heading { font "Playfair Display"; fontSize 44; fontWeight 700; textAlign center }
+  style subtitle { fontSize 18; color muted; textAlign center }
+  style inter { font "Inter" }
+  style plex { font "IBM Plex Sans" }
+  style roboto { font "Roboto" }
+  style openSans { font "Open Sans" }
+  style lato { font "Lato" }
+  style montserrat { font "Montserrat" }
+  style poppins { font "Poppins" }
+  style nunito { font "Nunito" }
+  style merriweather { font "Merriweather" }
+  style lora { font "Lora" }
+  style playfair { font "Playfair Display" }
+  style cascadia { font "Cascadia Mono"; fontSize 20 }
+  style robotoMono { font "Roboto Mono"; fontSize 20 }
+  style sourceCode { font "Source Code Pro"; fontSize 20 }
+  style patrick { font "Patrick Hand"; fontSize 26 }
+  style caveat { font "Caveat"; fontSize 28 }
+  style comic { font "Comic Neue" }
+  style regular { fontSize 18 }
+  style medium { fontSize 18; fontWeight 500 }
+  style semibold { fontSize 18; fontWeight 600 }
+  style bold { fontSize 18; fontWeight 700 }
+  style size12 { fontSize 12 }
+  style size16 { fontSize 16 }
+  style size24 { fontSize 24 }
+  style size32 { fontSize 32 }
+  style size48 { fontSize 48; fontWeight 700 }
+  style sans { fill "#F4F7FB"; stroke "#C9D6E6" }
+  style serif { fill "#FBF6EE"; stroke "#E6D3B3" }
+  style mono { fill "#EEF6F3"; stroke "#B9DCCD" }
+  style hand { fill "#FFFBEA"; stroke "#EAD98A" }
+  style weights { fill "#F6F6F6"; stroke "#D7D7D7" }
+  style sizes { fill "#F3F1FA"; stroke "#CFC6EA" }
+}

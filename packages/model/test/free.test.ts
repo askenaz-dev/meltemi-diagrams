@@ -542,7 +542,7 @@ describe("opacity", () => {
 describe("stickies", () => {
   const FORM = 'Form: `sticky <id> "Text"`.';
   const TAKES =
-    "A sticky takes `fill`, `stroke`, `color`, `line`, `width`, `fontSize`, `fontWeight`, `textAlign`, `verticalAlign`, `radius`, `rotation`, `opacity`, `icon`, `iconColor` and `iconSize`.";
+    "A sticky takes `fill`, `stroke`, `color`, `line`, `width`, `font`, `fontSize`, `fontWeight`, `textAlign`, `verticalAlign`, `radius`, `rotation`, `opacity`, `icon`, `iconColor` and `iconSize`.";
 
   it("compiles a sticky with its text, a line break and a fill", () => {
     const { diagram, codes } = free(
@@ -940,19 +940,24 @@ describe("free objects", () => {
     ]);
   });
 
-  it("refuses the text properties in flow diagrams, naming free diagrams", () => {
-    const { compilation } = flow('  api["API"]\n  style api { fontSize 20 }');
+  it("takes the text size in flow diagrams and refuses the alignment, naming free diagrams", () => {
+    const { compilation } = flow(
+      '  api["API"]\n  style api { fontSize 20 }\n  style api { textAlign left }',
+    );
+    const diagram = compilation.document.diagrams[0] as FlowDiagram;
+    expect(diagram.styles[0]!.properties).toEqual({ fontSize: 20 });
     const [d] = compilation.diagnostics;
+    expect(compilation.diagnostics).toHaveLength(1);
     expect(d!.code).toBe("prop.invalid-value");
-    expect(d!.message).toBe("`fontSize` applies to free diagrams only.");
-    expect(d!.hints![0]).toContain("theme's type scale");
+    expect(d!.message).toBe("`textAlign` applies to free diagrams only.");
+    expect(d!.hints![0]).toContain("`textAlign` and `verticalAlign`");
   });
 
-  it("refuses the text properties in flow classes and rules, and takes shapes there", () => {
+  it("takes the text properties in flow classes and rules, refuses the alignment, takes shapes", () => {
     const { codes } = flow(
-      "  a -> b\n  class big { fontSize 20 }\n  rule node { textAlign left }\n  rule node { shape pill }",
+      '  a -> b\n  class big { fontSize 20; font "Lora" }\n  rule node { textAlign left }\n  rule node { shape pill; fontWeight 500 }',
     );
-    expect(codes).toEqual(["prop.invalid-value", "prop.invalid-value"]);
+    expect(codes).toEqual(["prop.invalid-value"]);
   });
 
   it("checks rule kinds against the profile", () => {

@@ -1,5 +1,5 @@
 import { markGroup } from "./mark.js";
-import type { TextMetrics } from "./measure.js";
+import { fontRole, writtenStack, type TextFont, type TextMetrics } from "./measure.js";
 import type { GroupItem, SceneItem, TextItem } from "./scene.js";
 import type { Theme } from "./theme.js";
 
@@ -18,8 +18,9 @@ export function textItem(
   weight: number,
   fill: string,
   anchor: TextItem["anchor"] = "middle",
-  font: TextItem["font"] = "body",
+  font: TextFont = "body",
 ): TextItem {
+  const stack = writtenStack(font);
   return {
     kind: "text",
     x: round2(x),
@@ -28,7 +29,8 @@ export function textItem(
     text,
     size,
     weight,
-    font,
+    font: fontRole(font),
+    ...(stack !== undefined ? { stack } : {}),
     anchor,
     fill,
   };

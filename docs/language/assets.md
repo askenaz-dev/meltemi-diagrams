@@ -225,11 +225,11 @@ integration. The file is written with sorted keys, so it diffs cleanly.
 
 ## Commands
 
-| Command                                   | Prints or does                                                 |
-| ----------------------------------------- | -------------------------------------------------------------- |
-| `assets list [path]`                      | packs, aliases and fonts with versions, sources and licences   |
-| `assets icons <words> [--project <path>]` | matching references, exact names first (`--limit`, default 50) |
-| `assets lock [path]`                      | writes `assets.lock.json` at the project root                  |
+| Command                                   | Prints or does                                                                               |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `assets list [path]`                      | the bundled fonts, then packs, aliases and project fonts with versions, sources and licences |
+| `assets icons <words> [--project <path>]` | matching references, exact names first (`--limit`, default 50)                               |
+| `assets lock [path]`                      | writes `assets.lock.json` at the project root                                                |
 
 ## For tools
 

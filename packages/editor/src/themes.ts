@@ -11,6 +11,7 @@ import {
   type ThemeDefinition,
 } from "@meltemi/diagrams-model";
 import type { DiagramView, DocumentAnalysis } from "./analysis.js";
+import { stackFamily } from "./fonts.js";
 import type { InspectorField, ThemePanelModel } from "./canvas/protocol.js";
 import { messages } from "./messages/index.js";
 
@@ -145,11 +146,6 @@ export function embeddableFamilies(analysis: DocumentAnalysis): string[] {
   return [...new Set([...BUNDLED_FAMILIES.map((f) => f.family), ...project])];
 }
 
-/** The first family of a CSS font stack, without quotes. */
-export function firstFamily(stack: string): string {
-  return (stack.split(",")[0] ?? "").trim().replace(/^["']|["']$/g, "");
-}
-
 /** The fields of one token: its written value, and what it inherits as placeholder. */
 function tokenField(
   token: string,
@@ -166,15 +162,15 @@ function tokenField(
     return { name: token, label, type: "enum", value, placeholder: DEFAULT_THEME, options: themes };
   }
   if (token === "font" || token === "mono") {
-    const shown = value === null ? null : firstFamily(String(value));
-    const known = shown === null || families.includes(shown);
+    // The font picker: the written stack, the base theme's family greyed, and the families the
+    // picker lists, which say whether the written one is "custom".
     return {
       name: token,
       label,
-      type: "enum",
-      value: known ? shown : "custom",
-      ...(placeholder ? { placeholder: firstFamily(placeholder) } : {}),
-      options: known ? families : [...families, "custom"],
+      type: "font",
+      value,
+      ...(placeholder ? { placeholder: stackFamily(placeholder) } : {}),
+      options: families,
     };
   }
   switch (spec.kind) {

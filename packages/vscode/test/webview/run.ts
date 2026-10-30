@@ -19,6 +19,8 @@ import { resolveLocale, setLocale } from "@meltemi/diagrams-i18n";
 import { compile, readDiagramType, type DiagramTypeDefinition } from "@meltemi/diagrams-model";
 import { applyTextEdits } from "@meltemi/diagrams-language";
 import { chromium, type Browser, type Locator, type Page } from "playwright-core";
+import type { FontLibrary } from "@meltemi/diagrams-fonts";
+import { createNodeFontLibrary } from "@meltemi/diagrams-fonts/node";
 import { browserPath } from "../../scripts/browser.mjs";
 import { IconRegistry, SvgFolderPack, librariesOf } from "@meltemi/diagrams-assets";
 import { planEdit } from "@meltemi/diagrams-edit";
@@ -582,6 +584,9 @@ class Harness {
   /** The icons added, by pack and name, as the host would write `assets/icons/<pack>/<name>.svg`. */
   readonly added = new Map<string, Map<string, string>>();
 
+  /** The bundled fonts, for a test that measures with them; estimates otherwise. */
+  fonts: FontLibrary | undefined;
+
   /** The analysis of a text, with the declared types of the test. */
   analyze(text: string, revision: number) {
     return analyzeDocument({
@@ -591,6 +596,7 @@ class Harness {
       layout: { icons: this.icons },
       icons: this.icons,
       libraries: LIBRARIES,
+      ...(this.fonts ? { fonts: this.fonts } : {}),
     });
   }
   /** A scenario `project` swaps it for a session of a document in a project. */
@@ -1778,6 +1784,8 @@ const tests: {
   readOnly?: boolean;
   /** The document belongs to a project: the canvas may add icons to it. */
   project?: boolean;
+  /** The text is measured with the bundled fonts, and the font picker gets their faces. */
+  fonts?: boolean;
 }[] = [
   {
     name: "renders the diagram, the toolbar, the inspector and the minimap",
@@ -11858,6 +11866,255 @@ story walk for s {
       assert.doesNotMatch(h.text, /draw p1/);
     },
   },
+  {
+    name: "text group: a node's size from the list, − and + steps, a weight for three, a size refused",
+    async run(h) {
+      const page = h.page;
+      const api = await h.centre("api");
+      await page.mouse.click(api.x, api.y);
+      await h.settled();
+      const group = page.locator(".strip .text-group");
+      assert.equal(await group.locator(".group-title").textContent(), "Text");
+      const size = group.locator('[data-field="style.fontSize"] input.size-input');
+      assert.equal(await size.getAttribute("placeholder"), "13");
+      const listed = await group
+        .locator('[data-field="style.fontSize"] datalist option')
+        .evaluateAll((options) => options.map((o) => (o as HTMLOptionElement).value));
+      assert.deepEqual(listed.slice(0, 6), ["8", "9", "10", "11", "12", "14"]);
+      const before = (await boxOf(h, "api")).height;
+      await size.fill("20");
+      await size.press("Enter");
+      await h.settled();
+      assert.match(h.text, /\n {2}style api \{ fontSize 20 \}\n/);
+      assert.ok((await boxOf(h, "api")).height >= before, "the box holds the larger label");
+      // − and + step along the common sizes from the size drawn, one edit each.
+      const larger = group.getByRole("button", { name: "Larger text" });
+      const smaller = group.getByRole("button", { name: "Smaller text" });
+      const edits = actions(h);
+      await larger.click();
+      await h.settled();
+      assert.match(h.text, /fontSize 24/);
+      await smaller.click();
+      await h.settled();
+      assert.match(h.text, /fontSize 20/);
+      assert.equal(actions(h), edits + 2);
+      // Out of range: refused in place, nothing written.
+      const typed = actions(h);
+      await size.fill("300");
+      await size.press("Enter");
+      assert.equal(
+        await group.locator('[data-field="style.fontSize"] .field-note').textContent(),
+        "A size from 6 to 160.",
+      );
+      assert.equal(actions(h), typed);
+      await page.keyboard.press("Escape");
+      // Semibold for three boxes in one step; the chip is pressed.
+      await page.keyboard.down("Shift");
+      for (const id of ["db", "cache"]) {
+        const at = await h.centre(id);
+        await page.mouse.click(at.x, at.y);
+        await h.settled();
+      }
+      await page.keyboard.up("Shift");
+      const weights = page.locator('.strip [data-field="style.fontWeight"]');
+      const many = actions(h);
+      await weights.getByRole("radio", { name: "Semibold", exact: true }).click();
+      await h.settled();
+      assert.equal(actions(h), many + 1, "one edit");
+      for (const id of ["api", "db", "cache"]) {
+        assert.match(h.text, new RegExp(`style ${id} \\{[^}]*fontWeight 600`));
+      }
+      assert.equal(
+        await weights
+          .getByRole("radio", { name: "Semibold", exact: true })
+          .getAttribute("aria-checked"),
+        "true",
+      );
+      // Sizes that differ are mixed.
+      assert.equal(
+        await page
+          .locator('.strip [data-field="style.fontSize"] input')
+          .getAttribute("placeholder"),
+        "mixed",
+      );
+      await page.locator(".strip").screenshot({ path: join(output, "text-group.png") });
+    },
+  },
+  {
+    name: "text size keys: Ctrl+Shift+. and Ctrl+Shift+, step the selection and say the size",
+    async run(h) {
+      const page = h.page;
+      const api = await h.centre("api");
+      await page.mouse.click(api.x, api.y);
+      await h.settled();
+      await page.keyboard.press("Control+Shift+Period");
+      await h.settled();
+      assert.match(h.text, /\n {2}style api \{ fontSize 14 \}\n/);
+      assert.equal(await page.locator(".status").textContent(), "Text size 14.");
+      await page.keyboard.press("Control+Shift+Comma");
+      await h.settled();
+      await page.keyboard.press("Control+Shift+Comma");
+      await h.settled();
+      assert.match(h.text, /\n {2}style api \{ fontSize 11 \}\n/);
+      // The context menu offers the same steps.
+      await page.mouse.click(api.x, api.y, { button: "right" });
+      await page.getByRole("menuitem", { name: /Larger text/ }).click();
+      await h.settled();
+      assert.match(h.text, /\n {2}style api \{ fontSize 12 \}\n/);
+    },
+  },
+  {
+    name: "font picker: opens under the Font button, finds, chooses and goes back to the theme",
+    fonts: true,
+    async run(h) {
+      const page = h.page;
+      const api = await h.centre("api");
+      await page.mouse.click(api.x, api.y);
+      await h.settled();
+      const button = page.locator('.strip [data-field="style.font"] button.font-button');
+      assert.equal(await button.textContent(), "Inter");
+      assert.match((await button.getAttribute("class")) ?? "", /inherited/);
+      await button.click();
+      const picker = page.getByRole("dialog", { name: "Fonts" });
+      await picker.waitFor({ state: "visible" });
+      assert.equal(await button.getAttribute("aria-expanded"), "true");
+      const titles = await picker.locator(".font-group-title").allTextContents();
+      assert.deepEqual(titles, ["Sans", "Serif", "Monospace", "Handwriting"]);
+      // Each row is drawn in its own family once the faces arrive.
+      await page.waitForFunction(() => document.fonts.check('14px "mdg-font Roboto"'));
+      const roboto = picker.locator('[data-family="Roboto"] .font-name');
+      assert.match(await roboto.evaluate((e) => getComputedStyle(e).fontFamily), /mdg-font Roboto/);
+      await page.screenshot({ path: join(output, "font-picker.png") });
+      // Typing filters; Down and Enter choose.
+      await page.keyboard.type("mer");
+      assert.deepEqual(await picker.locator('[role="option"]').allTextContents(), [
+        "MerriweatherAa",
+      ]);
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /\n {2}style api \{ font "Merriweather" \}\n/);
+      await picker.waitFor({ state: "hidden" });
+      assert.equal(
+        await page.locator('.strip [data-field="style.font"] button.font-button').textContent(),
+        "Merriweather",
+      );
+      // Nothing matches.
+      await page.locator('.strip [data-field="style.font"] button.font-button').click();
+      await page.keyboard.type("arial");
+      assert.equal(
+        await picker.locator(".font-picker-status").textContent(),
+        "No family matches “arial”.",
+      );
+      // The theme row takes the font away; Escape closes and gives the focus back.
+      await page.keyboard.press("Control+a");
+      await page.keyboard.press("Backspace");
+      await picker.locator(".font-option.inherit").click();
+      await h.settled();
+      assert.doesNotMatch(h.text, /font "/);
+      await page.locator('.strip [data-field="style.font"] button.font-button').click();
+      await page.keyboard.press("Escape");
+      await picker.waitFor({ state: "hidden" });
+      assert.equal(
+        await page.evaluate(() => document.activeElement?.classList.contains("font-button")),
+        true,
+      );
+    },
+  },
+  {
+    name: "theme panel: the text font is the font picker, and a stack written by hand is custom",
+    text: `theme brand {
+  extends "technical.light"
+  font "Georgia, serif"
+}
+
+diagram d: flow {
+  theme "brand"
+  layout manual
+  api["API"]
+  placement { place api at (126, 112) }
+}
+`,
+    async run(h) {
+      const page = h.page;
+      await page.getByRole("button", { name: "Edit theme…" }).click();
+      await h.settled();
+      const panel = page.getByRole("complementary", { name: "Theme" });
+      const font = panel.locator('[data-field="theme.font"] button.font-button');
+      assert.equal(await font.textContent(), "custom");
+      await font.click();
+      const picker = page.getByRole("dialog", { name: "Fonts" });
+      await picker.waitFor({ state: "visible" });
+      await picker.locator('[data-family="Lora"]').waitFor();
+      await page.keyboard.type("lora");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /\n {2}font "Lora"\n/);
+      await page.screenshot({ path: join(output, "theme-font-picker.png") });
+      const mono = panel.locator('[data-field="theme.mono"] button.font-button');
+      assert.equal(await mono.textContent(), "Cascadia Mono");
+      assert.match((await mono.getAttribute("class")) ?? "", /inherited/);
+    },
+  },
+  {
+    name: "text group: a read-only canvas shows the font, size and weight disabled",
+    readOnly: true,
+    text: SHEET.replace("  placement", "  style api { fontWeight 700; fontSize 18 }\n  placement"),
+    async run(h) {
+      const page = h.page;
+      const api = await h.centre("api");
+      await page.mouse.click(api.x, api.y);
+      await h.settled();
+      const group = page.locator(".strip .text-group");
+      assert.equal(await group.locator("button.font-button").isDisabled(), true);
+      assert.equal(await group.locator("input.size-input").isDisabled(), true);
+      assert.equal(await group.getByRole("button", { name: "Larger text" }).isDisabled(), true);
+      const bold = group.getByRole("radio", { name: "Bold", exact: true });
+      assert.equal(await bold.getAttribute("aria-checked"), "true");
+      assert.equal(await bold.isDisabled(), true);
+      const before = h.text;
+      await page.keyboard.press("Control+Shift+Period");
+      await h.settled();
+      assert.equal(h.text, before);
+    },
+  },
+  {
+    name: "text group: Spanish names the group Texto and the weights",
+    lang: "es",
+    async run(h) {
+      const page = h.page;
+      const api = await h.centre("api");
+      await page.mouse.click(api.x, api.y);
+      await h.settled();
+      const group = page.locator(".strip .text-group");
+      assert.equal(await group.locator(".group-title").textContent(), "Texto");
+      const names = await group
+        .locator('[data-field="style.fontWeight"] [role="radio"]')
+        .evaluateAll((chips) => chips.map((c) => c.getAttribute("aria-label")));
+      assert.deepEqual(names.slice(-4), ["Normal", "Media", "Seminegrita", "Negrita"]);
+    },
+  },
+  {
+    name: "inline editor: a heading in Caveat at 24 px opens in its family and size",
+    fonts: true,
+    text: `diagram s: free {
+  layout manual
+  text heading "Release notes"
+  placement { place heading at (300, 120) }
+  style heading { font "Caveat"; fontSize 24 }
+}
+`,
+    async run(h) {
+      const page = h.page;
+      const heading = await h.centre("heading");
+      await page.mouse.dblclick(heading.x, heading.y);
+      await page.locator("textarea.inline").waitFor();
+      const editor = await editorOf(h);
+      const zoom = await zoomOf(h);
+      assert.ok(Math.abs(editor.fontSize - 24 * zoom) < 0.05, `font ${editor.fontSize}`);
+      assert.match(editor.font, /^Caveat, /);
+      await page.keyboard.press("Escape");
+    },
+  },
 ];
 
 async function main(): Promise<void> {
@@ -11886,6 +12143,7 @@ async function main(): Promise<void> {
       harness.types = test.types ?? [];
       if (test.readOnly) harness.config = { ...harness.config, readOnly: true };
       if (test.project) harness.session = new CanvasSession({ grid: 14, project: () => true });
+      if (test.fonts) harness.fonts = createNodeFontLibrary();
       try {
         await harness.start(test.theme ?? "", test.lang);
         await test.run(harness);

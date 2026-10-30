@@ -31,3 +31,11 @@ diagram tagged: sequence {
     tag ""
   }
 }
+
+// An empty font stack, and a text size on an image, which draws no text.
+diagram typed: free {
+  box a "A"
+  image logo "logo.png"
+  style a { font "" }
+  style logo { fontSize 20 }
+}

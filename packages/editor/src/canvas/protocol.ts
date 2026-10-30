@@ -403,7 +403,9 @@ export interface CanvasSettings {
 
 /**
  * The control of a field. `boolean` is a checkbox whose value is `on` when checked and `off` when
- * not; checking or clearing it sends `setField` with `on` or `off`.
+ * not; checking or clearing it sends `setField` with `on` or `off`. `font` is a font stack chosen
+ * in the canvas's font picker (`listFonts`): its value is the written stack, its placeholder the
+ * family that applies, and its `options` the families the picker lists.
  */
 export type FieldType =
   | "id"
@@ -415,7 +417,8 @@ export type FieldType =
   | "icon"
   | "classes"
   | "ports"
-  | "boolean";
+  | "boolean"
+  | "font";
 
 /** One editable property in the inspector. */
 export interface InspectorField {
@@ -461,6 +464,11 @@ export interface InspectorField {
    */
   readonly range?: { readonly min: number; readonly max: number; readonly step: number };
   /**
+   * Number fields with values offered in a list beside the field, which its − and + buttons step
+   * along: the text size's common sizes. Any number in the property's bounds may still be typed.
+   */
+  readonly list?: readonly number[];
+  /**
    * Icon fields (`style.icon`, the `source` of an icon object): the icon they show, the written
    * one or else the one that applies (`placeholder`), with its readable name and a 24 px SVG
    * thumbnail, null while its pack loads, or `missing` when the reference names no icon the packs
@@ -495,7 +503,21 @@ export type FieldGlyphs =
   | "labelPosition"
   | "sketch"
   | "textAlign"
-  | "verticalAlign";
+  | "verticalAlign"
+  | "fontWeight";
+
+/**
+ * A family the font picker lists: its name and group, the weights it has files for, and the
+ * `@font-face` rules that draw its row ("<Family> Aa") in its own face, empty while its files are
+ * on their way or when it cannot be shown. A restricted project font measures text only.
+ */
+export interface FontOption {
+  readonly family: string;
+  readonly group: "sans" | "serif" | "mono" | "hand" | "project";
+  readonly weights: readonly number[];
+  readonly faces: readonly string[];
+  readonly restricted?: boolean;
+}
 
 /** The panel that edits a theme block: its tokens by group, written or inherited. */
 export interface ThemePanelModel {
@@ -820,6 +842,13 @@ export type HostMessage =
   | { readonly type: "status"; readonly message: string }
   /** The theme panel while it is open, or null to close it. */
   | { readonly type: "themePanel"; readonly panel: ThemePanelModel | null }
+  /**
+   * The answer to `listFonts`, with its `token`: the families the font picker lists, bundled ones
+   * by group, then the project's. A family whose faces are empty is drawn in the interface's font
+   * until a later answer brings them: the canvas asks again when a render arrives while the
+   * picker is open.
+   */
+  | { readonly type: "fonts"; readonly token: number; readonly families: readonly FontOption[] }
   /** The element libraries of the document, for the libraries panel. */
   | { readonly type: "libraries"; readonly libraries: readonly LibraryInfo[] }
   | {
@@ -1152,6 +1181,11 @@ export type CanvasAction =
   | { readonly kind: "moveEvent"; readonly id: string; readonly direction: "up" | "down" }
   /** Sequence diagrams: the activation of a participant after the selected message. */
   | { readonly kind: "toggleActivation"; readonly ids: readonly string[] }
+  /**
+   * The text size of every item of `ids` that takes `fontSize`, one step of the common sizes up
+   * (1) or down (-1) from what each draws, in one edit; nothing at the ends of the list.
+   */
+  | { readonly kind: "stepTextSize"; readonly ids: readonly string[]; readonly step: 1 | -1 }
   /** Sequence diagrams: an end of an activation bar to another event row. */
   | MoveActivationAction
   /**
@@ -1267,6 +1301,8 @@ export type CanvasMessage =
    * libraries, the first icons of Tabler).
    */
   | { readonly type: "searchIcons"; readonly query: string; readonly token: number }
+  /** The font picker's families, answered by a `fonts` message with the same `token`. */
+  | { readonly type: "listFonts"; readonly token: number }
   /**
    * The Add icon dialog's files and prefix, checked as they are typed: answered by `iconsChecked`
    * with the same `token`.
@@ -1593,6 +1629,8 @@ function isAction(a: unknown): a is CanvasAction {
     case "addReturn":
     case "addTag":
       return isStrings(a.ids);
+    case "stepTextSize":
+      return isStrings(a.ids) && (a.step === 1 || a.step === -1);
     case "moveActivation":
       return isMoveActivation(a);
     case "setTag":
@@ -1675,6 +1713,8 @@ export function isCanvasMessage(m: unknown): m is CanvasMessage {
       return isString(m.query);
     case "searchIcons":
       return typeof m.query === "string" && m.query.length <= 200 && isNumber(m.token);
+    case "listFonts":
+      return isNumber(m.token);
     case "checkIcons":
       return isNumber(m.token) && isPrefix(m.prefix) && isIconFiles(m.files);
     case "addIcons":

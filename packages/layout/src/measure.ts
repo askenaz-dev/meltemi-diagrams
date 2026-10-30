@@ -25,6 +25,27 @@ export const estimateMeasurer: TextMeasurer = {
   knows: () => true,
 };
 
+/**
+ * The font a text is measured and drawn with: the theme's stack of a role (`body` or `mono`), or a
+ * stack a style writes (`font "Roboto"`), measured as written and drawn before the role's stack.
+ */
+export type TextFont = FontRole | { readonly role: FontRole; readonly stack: string };
+
+/** The role of a text font, whose theme stack follows a written one. */
+export function fontRole(font: TextFont): FontRole {
+  return typeof font === "string" ? font : font.role;
+}
+
+/** The stack a style writes for a text, or undefined when it takes its role's. */
+export function writtenStack(font: TextFont): string | undefined {
+  return typeof font === "string" ? undefined : font.stack;
+}
+
+/** A text font from a written stack, or the role alone when none is written. */
+export function textFont(stack: string | undefined, role: FontRole = "body"): TextFont {
+  return stack === undefined ? role : { role, stack };
+}
+
 /** Horizontal padding of the default theme between a box edge and its text (the `padding` token). */
 export const TEXT_PADDING = 16;
 /** Smallest gap between text and a box edge before `layout.text-overflow` is reported. */
@@ -43,22 +64,33 @@ export class TextMetrics {
     private readonly theme: Theme,
   ) {}
 
-  private resolve(role: FontRole): { measurer: TextMeasurer; stack: string } {
-    const stack = role === "mono" ? this.theme.mono : this.theme.font;
+  /**
+   * The measurer and stack of a font: the theme's stack of a role, or a written stack alone, so
+   * that a stack with no known family is estimated and reported rather than measured with the
+   * theme's font.
+   */
+  private resolve(font: TextFont): { measurer: TextMeasurer; stack: string } {
+    const written = writtenStack(font);
+    const role = fontRole(font);
+    const stack = written ?? (role === "mono" ? this.theme.mono : this.theme.font);
     if (this.measurer.knows(stack)) return { measurer: this.measurer, stack };
     this.unknownFonts.add(stack);
-    return { measurer: estimateMeasurer, stack };
+    // Estimates tell monospace text by the stack's name; a written mono text keeps its role.
+    return {
+      measurer: estimateMeasurer,
+      stack: written !== undefined && role === "mono" ? `${stack}, monospace` : stack,
+    };
   }
 
-  width(text: string, role: FontRole, weight: number, size: number): number {
-    const { measurer, stack } = this.resolve(role);
+  width(text: string, font: TextFont, weight: number, size: number): number {
+    const { measurer, stack } = this.resolve(font);
     for (const ch of measurer.uncovered?.(text, stack) ?? []) this.uncovered.add(ch);
     return measurer.width(text, stack, weight, size);
   }
 
   /** The baseline of a text centred on `centreY`. */
-  baseline(centreY: number, role: FontRole, weight: number, size: number): number {
-    const { measurer, stack } = this.resolve(role);
+  baseline(centreY: number, font: TextFont, weight: number, size: number): number {
+    const { measurer, stack } = this.resolve(font);
     return centreY + (measurer.capHeight(stack, weight) * size) / 2;
   }
 }

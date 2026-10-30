@@ -27,6 +27,56 @@ with Inter, and outlined with it in `outlined` exports (an embedded export leave
 viewer's fallback). Their text is never drawn with the sketched strokes, so it stays readable at
 label size.
 
+## Popular families
+
+Thirteen more families are bundled for the text a person chooses, so that a heading, a note or a
+code box can take a face people know from slides and the web. They come from their Fontsource
+packages under the SIL Open Font License 1.1 and are measured, embedded and outlined like the four
+above, from their script subsets.
+
+| Group       | Families                                             | Weights                                   |
+| ----------- | ---------------------------------------------------- | ----------------------------------------- |
+| Sans        | Roboto, Open Sans, Lato, Montserrat, Poppins, Nunito | 400 to 700; Lato 400 and 700              |
+| Serif       | Merriweather, Lora, Playfair Display                 | 400 to 700                                |
+| Monospace   | Roboto Mono, Source Code Pro                         | 400 to 700                                |
+| Handwriting | Caveat, Comic Neue                                   | Caveat 400 to 700; Comic Neue 400 and 700 |
+
+A weight a family lacks is measured, outlined and embedded with its nearest weight (the heavier on
+a tie), and the embedded rule covers the weights asked for, so a browser never draws a synthesized
+bold. The monospace families have no ligatures, so a width measured from the advances is the
+width drawn. `meltemi-diagrams assets list` prints every bundled family with its group, weights
+and licence.
+
+## The font, size and weight of a text
+
+Three style properties set the text of anything that draws text, in every profile: nodes,
+decisions, data stores, groups (their title), notes, tags, relations and free lines (their
+label), free boxes, texts and stickies, sequence participants, messages, notes and fragments, and
+C4 entities and relations. Icons, images and pens draw no text and refuse them.
+
+```text
+style api { font "Roboto"; fontSize 16; fontWeight 500 }
+rule note { font "Caveat" }
+```
+
+- `font "<stack>"` is a quoted CSS font stack. The text is measured with the first bundled or
+  project family of the stack alone; a stack with none (`font "Comic Sans MS"`) is measured with
+  estimates and reported once per diagram as `layout.unmeasured-font`. The exported text names the
+  written stack followed by the theme's, so a viewer without the family falls back as the theme
+  does.
+- `fontSize` is a number from 6 to 160 and `fontWeight` one of 400, 500, 600 and 700. Without them
+  a text keeps its theme's size and weight: labels `labelSize` at `labelWeight`, free texts 1.6
+  times that, stickies 1.2 times at 400, group titles `groupTitleSize`, notes `noteSize` at 400,
+  tags `tagSize` at 500 in the mono font, relation labels `relationLabelSize` at 500 (400 on
+  sequence messages), a fragment's operator at 600.
+- A written size scales what the theme's token scales: a box's description at the theme's ratio
+  of description to label, a pill's height and padding, a tag's pill, a note's lines, a group's
+  title band. Boxes, heads, notes and pills without `size` grow to hold their text; a written
+  `size` that is too small is `layout.text-overflow` with a size that fits.
+
+The canvas sets them from the strip's Text group and its font picker, and Ctrl+Shift+. and
+Ctrl+Shift+, step the size of the selection ([editor guide](../editor.md)).
+
 A theme's `font` and `mono` tokens are CSS font stacks. The first family of the stack that is bundled
 is used for measuring (`"Inter", "Segoe UI", sans-serif` measures with Inter). A character the
 family lacks is measured with the next bundled family that has it, as browsers do; arrows such as

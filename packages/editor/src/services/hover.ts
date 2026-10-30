@@ -15,6 +15,7 @@ import {
   type TagUse,
 } from "@meltemi/diagrams-model";
 import { diagramView, type DocumentAnalysis } from "../analysis.js";
+import { measuredFamily } from "../fonts.js";
 import { kindWord, serviceMessages } from "../messages/services.js";
 import { diagramAt, pathAt, referenceAt, statementPrefix, tokenAt } from "../syntax.js";
 import { keywordDoc, listDoc } from "./docs.js";
@@ -407,6 +408,18 @@ export function hover(analysis: DocumentAnalysis, offset: number): Hover | undef
     if (/^(theme|extends)\s+$/.test(prefix)) {
       const markdown = themeHover(analysis, token.value);
       return markdown ? { range, markdown } : undefined;
+    }
+    // A font stack: the family its text is measured with, or that it is estimated.
+    if (/^(font|mono)\s+$/.test(prefix)) {
+      const family = measuredFamily(analysis.fonts, token.value);
+      return {
+        range,
+        markdown: !family
+          ? t.fontEstimated(token.value)
+          : family.source === "project"
+            ? t.fontProject(family.family)
+            : t.fontBundled(family.family, serviceMessages().completion.fontGroup(family.group)),
+      };
     }
     return undefined;
   }

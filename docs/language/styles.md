@@ -108,31 +108,32 @@ diagram checkout: flow {
 }
 ```
 
-| Property                 | Value                                                                                            | Applies to                            |
-| ------------------------ | ------------------------------------------------------------------------------------------------ | ------------------------------------- |
-| `fill`                   | quoted colour (`"none"` for no background) or colour token name                                  | elements, relation labels             |
-| `stroke`                 | quoted colour or colour token name                                                               | outlines, connectors and pens         |
-| `color`                  | quoted colour or colour token name                                                               | text                                  |
-| `line`                   | `solid`, `dashed` or `dotted`                                                                    | outlines, connectors and pens         |
-| `width`                  | number, 0 to 64 (1 to 64 on a pen)                                                               | outlines, connectors and pens         |
-| `opacity`                | number, 0 (invisible) to 1 (opaque)                                                              | free elements, groups, lines and pens |
-| `radius`                 | number, 0 to 64: the corner radius, over the theme's `radius` or `groupRadius`                   | elements and groups only              |
-| `rotation`               | number, 0 to 360: degrees the element turns, clockwise about its box's centre                    | flow and free elements                |
-| `shape`                  | one of the twenty-four shapes of [free.md](free.md#text-and-shapes)                              | flow nodes and free boxes             |
-| `pattern`                | `none`, `hatch`, `dots` or `cross`                                                               | elements only                         |
-| `arrowhead`              | the head at the target (below)                                                                   | relations, free lines and pens        |
-| `arrowtail`              | the head at the source (below)                                                                   | relations, free lines and pens        |
-| `routing`                | `auto`, `orthogonal`, `polyline` or `bezier` ([layout](layout.md))                               | relations and free lines              |
-| `corners`                | `sharp` or `rounded` bends of straight and elbow routes                                          | relations and free lines              |
-| `icon`                   | `"<pack>:<name>"` ([assets.md](assets.md))                                                       | elements and relations                |
-| `iconColor`              | quoted colour or colour token name                                                               | monochrome icons                      |
-| `iconPosition`           | `left`, `right`, `top`, `bottom` or `center` ([icons in boxes](#icons-in-boxes))                 | nodes, decisions, data, boxes         |
-| `labelPosition`          | `top`, `bottom`, `left` or `right`: the edge of the label around a centred icon                  | nodes, decisions, data, boxes         |
-| `iconSize`               | `auto`, or a number from 8 to 128: the side of the icon                                          | nodes, decisions, data, boxes         |
-| `fontSize`, `fontWeight` | the text's size, 6 to 160, and weight, 400, 500, 600 or 700 ([free.md](free.md#text-and-shapes)) | free boxes, texts and stickies        |
-| `textAlign`              | `left`, `center` or `right`: where the text sits across its box                                  | free boxes, texts and stickies        |
-| `verticalAlign`          | `top`, `middle` or `bottom`: where the text sits down its shape                                  | free boxes and stickies               |
-| `class`                  | one or more class ids, in `style` statements and declaration blocks                              | elements and relations                |
+| Property                 | Value                                                                                                                         | Applies to                            |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| `fill`                   | quoted colour (`"none"` for no background) or colour token name                                                               | elements, relation labels             |
+| `stroke`                 | quoted colour or colour token name                                                                                            | outlines, connectors and pens         |
+| `color`                  | quoted colour or colour token name                                                                                            | text                                  |
+| `line`                   | `solid`, `dashed` or `dotted`                                                                                                 | outlines, connectors and pens         |
+| `width`                  | number, 0 to 64 (1 to 64 on a pen)                                                                                            | outlines, connectors and pens         |
+| `opacity`                | number, 0 (invisible) to 1 (opaque)                                                                                           | free elements, groups, lines and pens |
+| `radius`                 | number, 0 to 64: the corner radius, over the theme's `radius` or `groupRadius`                                                | elements and groups only              |
+| `rotation`               | number, 0 to 360: degrees the element turns, clockwise about its box's centre                                                 | flow and free elements                |
+| `shape`                  | one of the twenty-four shapes of [free.md](free.md#text-and-shapes)                                                           | flow nodes and free boxes             |
+| `pattern`                | `none`, `hatch`, `dots` or `cross`                                                                                            | elements only                         |
+| `arrowhead`              | the head at the target (below)                                                                                                | relations, free lines and pens        |
+| `arrowtail`              | the head at the source (below)                                                                                                | relations, free lines and pens        |
+| `routing`                | `auto`, `orthogonal`, `polyline` or `bezier` ([layout](layout.md))                                                            | relations and free lines              |
+| `corners`                | `sharp` or `rounded` bends of straight and elbow routes                                                                       | relations and free lines              |
+| `icon`                   | `"<pack>:<name>"` ([assets.md](assets.md))                                                                                    | elements and relations                |
+| `iconColor`              | quoted colour or colour token name                                                                                            | monochrome icons                      |
+| `iconPosition`           | `left`, `right`, `top`, `bottom` or `center` ([icons in boxes](#icons-in-boxes))                                              | nodes, decisions, data, boxes         |
+| `labelPosition`          | `top`, `bottom`, `left` or `right`: the edge of the label around a centred icon                                               | nodes, decisions, data, boxes         |
+| `iconSize`               | `auto`, or a number from 8 to 128: the side of the icon                                                                       | nodes, decisions, data, boxes         |
+| `font`                   | a quoted font stack: the family the text is measured and drawn with ([fonts.md](fonts.md#the-font-size-and-weight-of-a-text)) | everything that draws text            |
+| `fontSize`, `fontWeight` | the text's size, 6 to 160, and weight, 400, 500, 600 or 700 ([fonts.md](fonts.md#the-font-size-and-weight-of-a-text))         | everything that draws text            |
+| `textAlign`              | `left`, `center` or `right`: where the text sits across its box                                                               | free boxes, texts and stickies        |
+| `verticalAlign`          | `top`, `middle` or `bottom`: where the text sits down its shape                                                               | free boxes and stickies               |
+| `class`                  | one or more class ids, in `style` statements and declaration blocks                                                           | elements and relations                |
 
 - A colour token name (`danger`, `accent`, `muted`, …) follows the theme: `stroke danger` is red in
   every theme, in that theme's red. A bare word that is not a colour token is
@@ -145,7 +146,8 @@ diagram checkout: flow {
   a free `box`, are `prop.invalid-value` in `style` statements and rules. A free line takes the
   properties of a relation and refuses those of a box ([free.md](free.md#lines)); a pen takes
   `stroke`, `width`, `line`, `opacity`, `arrowhead` and `arrowtail` and refuses the others
-  ([free.md](free.md#pen-strokes)). `fontSize`, `fontWeight`, `textAlign`, `verticalAlign` and
+  ([free.md](free.md#pen-strokes)). `font`, `fontSize` and `fontWeight` apply in every profile to
+  what draws text, and icons, images and pens refuse them; `textAlign`, `verticalAlign` and
   `opacity` are free-only: flow diagrams refuse them. A class may hold them all; each target takes
   what applies to it.
 - `width` is an outline's, a connector's or a pen stroke's width, from 0 to 64; a pen is drawn at

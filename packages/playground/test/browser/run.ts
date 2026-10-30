@@ -1119,6 +1119,110 @@ async function accountFlow(t: SignedIn, m: typeof en, shot: string): Promise<voi
 
 const tests: Test[] = [
   {
+    name: "fonts: the font picker's rows swap to their faces as the files arrive",
+    async run({ page }) {
+      await analysed(page);
+      const api = page.locator('#app .content g[data-id="api"][data-role="element"]');
+      await api.click();
+      const button = page.locator('#app .strip [data-field="style.font"] button.font-button');
+      await button.click();
+      const picker = page.getByRole("dialog", { name: "Fonts" });
+      await picker.waitFor({ state: "visible" });
+      // Every row is there at once, at one height, drawn in its face once its files arrive.
+      await picker.locator('[data-family="Caveat"]').waitFor();
+      const heights = await picker
+        .locator(".font-option[data-family]")
+        .evaluateAll((rows) => [...new Set(rows.map((r) => r.getBoundingClientRect().height))]);
+      assert.equal(heights.length, 1, `one row height: ${heights.join(", ")}`);
+      await until(
+        page,
+        "Caveat's row in its face",
+        () => document.querySelector('.font-picker [data-family="Caveat"]:not(.waiting)') !== null,
+      );
+      await page.waitForFunction(() => document.fonts.check('14px "mdg-font Caveat"'));
+      await page.keyboard.type("cav");
+      await page.keyboard.press("Enter");
+      await analysed(page);
+      assert.match(await code(page), /style api \{ font "Caveat" \}/);
+      await page.locator("#app .strip").screenshot({ path: join(output, "font-strip.png") });
+    },
+  },
+  {
+    name: "fonts: a family named in the code is fetched then, and the startup set stays the templates'",
+    async setup({ context }) {
+      const fonts: string[] = [];
+      (globalThis as { __fontRequests?: string[] }).__fontRequests = fonts;
+      context.on("request", (request) => {
+        const match = /\/assets\/fonts\/(.+)$/.exec(new URL(request.url()).pathname);
+        if (match) fonts.push(decodeURIComponent(match[1]!));
+      });
+    },
+    async run({ page }) {
+      const fonts = (globalThis as { __fontRequests?: string[] }).__fontRequests!;
+      await analysed(page);
+      const fresh = [
+        "roboto",
+        "open-sans",
+        "lato",
+        "montserrat",
+        "poppins",
+        "nunito",
+        "merriweather",
+        "lora",
+        "playfair-display",
+        "roboto-mono",
+        "source-code-pro",
+        "caveat",
+        "comic-neue",
+      ];
+      const ofFresh = (paths: readonly string[]) =>
+        paths.filter((p) => fresh.some((name) => p.startsWith(`@fontsource/${name}/`)));
+      assert.deepEqual(ofFresh(fonts), [], "no new family before a text names it");
+      const before = fonts.length;
+      await caretAfter(page, '  db[("Database")]');
+      await page.keyboard.type('\n  style api { font "Roboto" }');
+      await analysed(page);
+      await until(page, "api drawn in Roboto", () =>
+        [
+          ...document.querySelectorAll('#app .content g[data-id="api"][data-role="element"] text'),
+        ].some((t) => (t.getAttribute("font-family") ?? "").startsWith("Roboto")),
+      );
+      const asked = fonts.slice(before);
+      assert.ok(
+        asked.some((p) => p.startsWith("@fontsource/roboto/files/roboto-latin-")),
+        `a Roboto subset was fetched: ${asked.join(", ")}`,
+      );
+      assert.deepEqual(
+        ofFresh(asked).filter((p) => !p.startsWith("@fontsource/roboto/")),
+        [],
+        "only Roboto",
+      );
+    },
+  },
+  {
+    name: "fonts: a family whose files are missing is measured with the fallback, and the page works",
+    async setup({ context }) {
+      await context.route(/\/assets\/fonts\/@fontsource\/caveat\//, (route) =>
+        route.fulfill({ status: 404, body: "" }),
+      );
+    },
+    allowedErrors: [/404/],
+    async run({ page }) {
+      await analysed(page);
+      await caretAfter(page, '  db[("Database")]');
+      await page.keyboard.type('\n  style db { font "Caveat" }');
+      await analysed(page);
+      await until(page, "db drawn naming Caveat", () =>
+        [
+          ...document.querySelectorAll('#app .content g[data-id="db"][data-role="element"] text'),
+        ].some((t) => (t.getAttribute("font-family") ?? "").startsWith("Caveat")),
+      );
+      // The rest of the page goes on: the problems list and the other boxes.
+      assert.ok((await page.locator('#app .content g[data-role="element"]').count()) >= 3);
+      assert.equal(await page.locator("#problems-title").textContent(), "No problems");
+    },
+  },
+  {
     name: "opens the flow template with its code, the canvas and no problem",
     async run({ page }) {
       await expectOpen(page, "diagrams/overview.meltemi");

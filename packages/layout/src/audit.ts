@@ -1,5 +1,5 @@
 import type { Point } from "@meltemi/diagrams-model";
-import type { TextMeasurer } from "./measure.js";
+import { estimateMeasurer, type TextMeasurer } from "./measure.js";
 import type { GroupItem, Scene, SceneItem, TextItem } from "./scene.js";
 
 /** A rectangle in scene pixels. */
@@ -167,9 +167,12 @@ export function auditLabels(
   const view = scene.viewBox ?? { x: 0, y: 0, width: scene.width, height: scene.height };
 
   const place = (item: TextItem, owner: Owner, background: Box | undefined) => {
-    const stack = item.font === "mono" ? scene.fonts.mono : scene.fonts.body;
-    const width = measurer.width(item.text, stack, item.weight, item.size);
-    const cap = measurer.capHeight(stack, item.weight);
+    // A written stack is measured alone, with estimates when no family of it is known.
+    const written = item.stack !== undefined && !measurer.knows(item.stack);
+    const stack = item.stack ?? (item.font === "mono" ? scene.fonts.mono : scene.fonts.body);
+    const fonts = written ? estimateMeasurer : measurer;
+    const width = fonts.width(item.text, stack, item.weight, item.size);
+    const cap = fonts.capHeight(stack, item.weight);
     const top = item.baseline - (cap + 0.06) * item.size;
     const bottom = item.baseline + 0.22 * item.size;
     const x =

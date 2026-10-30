@@ -561,6 +561,20 @@ export const en = {
     tags: "Tags",
     /** The title of a tag's Remove button: the tag it removes. */
     removeTagTitle: (text: string) => `Remove the tag ${text}`,
+    /** The strip's group of the font, size and weight of text. */
+    text: "Text",
+    /** The size field's buttons, which step along the common sizes. */
+    smaller: "Smaller text",
+    larger: "Larger text",
+    /** A size typed outside the bounds of the property. */
+    sizeRange: (min: number, max: number) => `A size from ${min} to ${max}.`,
+    /** The weight chips, named by weight. */
+    weights: {
+      "400": "Regular",
+      "500": "Medium",
+      "600": "Semibold",
+      "700": "Bold",
+    } as Readonly<Record<string, string>>,
     /** Takes a written value away, so the default applies again (the icon size). */
     clear: "Clear",
     clearTitle: "Remove the written value: the default applies",
@@ -716,6 +730,31 @@ export const en = {
    * The icon picker that the icon tool (I), the inspector's Icon field and the context menu's
    * Icon… open: a search across the packs and the libraries, grouped, with thumbnails.
    */
+  /** The font picker, opened from a Font field of the strip or of the theme panel. */
+  fontPicker: {
+    label: "Fonts",
+    results: "Fonts",
+    search: "Search fonts",
+    searchLabel: "Search fonts",
+    /** The row that writes nothing in the strip, and what a button with nothing written says. */
+    theme: "Theme",
+    /** A stack written by hand whose first family the picker does not list. */
+    custom: "custom",
+    groups: {
+      sans: "Sans",
+      serif: "Serif",
+      mono: "Monospace",
+      hand: "Handwriting",
+      project: "Project fonts",
+    },
+    restricted: (family: string) =>
+      `${family}: its licence forbids embedding, so exports measure text with it but name it only`,
+    none: (query: string) => `No family matches “${query}”.`,
+    loading: "Loading fonts…",
+    /** The font button of a field, with the family it shows. */
+    button: (label: string, family: string) => `${label}: ${family}`,
+  },
+
   iconPicker: {
     label: "Icons",
     search: "Search icons: server, database, aws:lambda…",

@@ -113,31 +113,32 @@ diagram checkout: flow {
 }
 ```
 
-| Propiedad                | Valor                                                                                                 | Se aplica a                                  |
-| ------------------------ | ----------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| `fill`                   | color entre comillas (`"none"` para no tener fondo) o nombre de un token de color                     | elementos, etiquetas de relación             |
-| `stroke`                 | color entre comillas o nombre de un token de color                                                    | contornos, conectores y lápices              |
-| `color`                  | color entre comillas o nombre de un token de color                                                    | texto                                        |
-| `line`                   | `solid`, `dashed` o `dotted`                                                                          | contornos, conectores y lápices              |
-| `width`                  | número, de 0 a 64 (de 1 a 64 en un lápiz)                                                             | contornos, conectores y lápices              |
-| `opacity`                | número, de 0 (invisible) a 1 (opaco)                                                                  | elementos, grupos, líneas y lápices libres   |
-| `radius`                 | número, de 0 a 64: el radio de las esquinas, sobre el `radius` o el `groupRadius` del tema            | solo elementos y grupos                      |
-| `rotation`               | número, de 0 a 360: los grados que gira el elemento, en el sentido del reloj                          | elementos de flujo y libres                  |
-| `shape`                  | una de las veinticuatro formas de [free.md](free.md#texto-y-formas)                                   | nodos de flujo y cajas libres                |
-| `pattern`                | `none`, `hatch`, `dots` o `cross`                                                                     | solo elementos                               |
-| `arrowhead`              | la punta en el destino (más abajo)                                                                    | relaciones, líneas libres y lápices          |
-| `arrowtail`              | la punta en el origen (más abajo)                                                                     | relaciones, líneas libres y lápices          |
-| `routing`                | `auto`, `orthogonal`, `polyline` o `bezier` ([disposición](layout.md))                                | relaciones y líneas libres                   |
-| `corners`                | codos `sharp` o `rounded` de las rutas rectas y en codo                                               | relaciones y líneas libres                   |
-| `icon`                   | `"<pack>:<name>"` ([assets.md](assets.md))                                                            | elementos y relaciones                       |
-| `iconColor`              | color entre comillas o nombre de un token de color                                                    | iconos monocromos                            |
-| `iconPosition`           | `left`, `right`, `top`, `bottom` o `center` ([iconos en las cajas](#iconos-en-las-cajas))             | nodos, decisiones, almacenes de datos, cajas |
-| `labelPosition`          | `top`, `bottom`, `left` o `right`: el borde de la etiqueta alrededor de un icono centrado             | nodos, decisiones, almacenes de datos, cajas |
-| `iconSize`               | `auto`, o un número de 8 a 128: el lado del icono                                                     | nodos, decisiones, almacenes de datos, cajas |
-| `fontSize`, `fontWeight` | el tamaño del texto, de 6 a 160, y su grosor, 400, 500, 600 o 700 ([free.md](free.md#texto-y-formas)) | cajas, textos y notas adhesivas libres       |
-| `textAlign`              | `left`, `center` o `right`: dónde va el texto a lo ancho de su caja                                   | cajas, textos y notas adhesivas libres       |
-| `verticalAlign`          | `top`, `middle` o `bottom`: dónde va el texto a lo alto de su forma                                   | cajas libres y notas adhesivas               |
-| `class`                  | uno o más ids de clase, en instrucciones `style` y en bloques de declaración                          | elementos y relaciones                       |
+| Propiedad                | Valor                                                                                                                                             | Se aplica a                                  |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| `fill`                   | color entre comillas (`"none"` para no tener fondo) o nombre de un token de color                                                                 | elementos, etiquetas de relación             |
+| `stroke`                 | color entre comillas o nombre de un token de color                                                                                                | contornos, conectores y lápices              |
+| `color`                  | color entre comillas o nombre de un token de color                                                                                                | texto                                        |
+| `line`                   | `solid`, `dashed` o `dotted`                                                                                                                      | contornos, conectores y lápices              |
+| `width`                  | número, de 0 a 64 (de 1 a 64 en un lápiz)                                                                                                         | contornos, conectores y lápices              |
+| `opacity`                | número, de 0 (invisible) a 1 (opaco)                                                                                                              | elementos, grupos, líneas y lápices libres   |
+| `radius`                 | número, de 0 a 64: el radio de las esquinas, sobre el `radius` o el `groupRadius` del tema                                                        | solo elementos y grupos                      |
+| `rotation`               | número, de 0 a 360: los grados que gira el elemento, en el sentido del reloj                                                                      | elementos de flujo y libres                  |
+| `shape`                  | una de las veinticuatro formas de [free.md](free.md#texto-y-formas)                                                                               | nodos de flujo y cajas libres                |
+| `pattern`                | `none`, `hatch`, `dots` o `cross`                                                                                                                 | solo elementos                               |
+| `arrowhead`              | la punta en el destino (más abajo)                                                                                                                | relaciones, líneas libres y lápices          |
+| `arrowtail`              | la punta en el origen (más abajo)                                                                                                                 | relaciones, líneas libres y lápices          |
+| `routing`                | `auto`, `orthogonal`, `polyline` o `bezier` ([disposición](layout.md))                                                                            | relaciones y líneas libres                   |
+| `corners`                | codos `sharp` o `rounded` de las rutas rectas y en codo                                                                                           | relaciones y líneas libres                   |
+| `icon`                   | `"<pack>:<name>"` ([assets.md](assets.md))                                                                                                        | elementos y relaciones                       |
+| `iconColor`              | color entre comillas o nombre de un token de color                                                                                                | iconos monocromos                            |
+| `iconPosition`           | `left`, `right`, `top`, `bottom` o `center` ([iconos en las cajas](#iconos-en-las-cajas))                                                         | nodos, decisiones, almacenes de datos, cajas |
+| `labelPosition`          | `top`, `bottom`, `left` o `right`: el borde de la etiqueta alrededor de un icono centrado                                                         | nodos, decisiones, almacenes de datos, cajas |
+| `iconSize`               | `auto`, o un número de 8 a 128: el lado del icono                                                                                                 | nodos, decisiones, almacenes de datos, cajas |
+| `font`                   | una pila de fuentes entre comillas: la familia con que se mide y dibuja el texto ([fonts.md](fonts.md#la-fuente-el-tamaño-y-el-peso-de-un-texto)) | todo lo que dibuja texto                     |
+| `fontSize`, `fontWeight` | el tamaño del texto, de 6 a 160, y su grosor, 400, 500, 600 o 700 ([fonts.md](fonts.md#la-fuente-el-tamaño-y-el-peso-de-un-texto))                | todo lo que dibuja texto                     |
+| `textAlign`              | `left`, `center` o `right`: dónde va el texto a lo ancho de su caja                                                                               | cajas, textos y notas adhesivas libres       |
+| `verticalAlign`          | `top`, `middle` o `bottom`: dónde va el texto a lo alto de su forma                                                                               | cajas libres y notas adhesivas               |
+| `class`                  | uno o más ids de clase, en instrucciones `style` y en bloques de declaración                                                                      | elementos y relaciones                       |
 
 - Un nombre de token de color (`danger`, `accent`, `muted`, …) sigue al tema: `stroke danger` es rojo
   en todos los temas, con el rojo de cada tema. Una palabra sin comillas que no es un token de color
@@ -151,9 +152,11 @@ diagram checkout: flow {
   `node` de flujo o una `box` libre, son `prop.invalid-value` en las instrucciones `style` y en las
   reglas. Una línea libre acepta las propiedades de una relación y rechaza las de una caja
   ([free.md](free.md#líneas)); un lápiz acepta `stroke`, `width`, `line`, `opacity`, `arrowhead` y
-  `arrowtail` y rechaza las demás ([free.md](free.md#trazos-de-lápiz)). `fontSize`, `fontWeight`,
-  `textAlign`, `verticalAlign` y `opacity` son solo de las composiciones libres: los diagramas de
-  flujo las rechazan. Una clase puede contenerlos todos; cada destino toma lo que se le aplica.
+  `arrowtail` y rechaza las demás ([free.md](free.md#trazos-de-lápiz)). `font`, `fontSize` y
+  `fontWeight` se aplican en todos los perfiles a lo que dibuja texto, y los iconos, las imágenes y
+  los lápices las rechazan; `textAlign`, `verticalAlign` y `opacity` son solo de las composiciones
+  libres: los diagramas de flujo las rechazan. Una clase puede contenerlos todos; cada destino toma
+  lo que se le aplica.
 - `width` es el ancho de un contorno, de un conector o del trazo de un lápiz, de 0 a 64; un lápiz
   se dibuja con al menos 1 px de ancho, así que `width 0` en un lápiz es `prop.invalid-value`.
   `width 20` dibuja un trazo de marcador.

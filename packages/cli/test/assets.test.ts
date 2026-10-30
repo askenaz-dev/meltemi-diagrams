@@ -38,7 +38,8 @@ describe("meltemi-diagrams assets", () => {
   it("lists packs, aliases and fonts with their licences", async () => {
     const { code, stdout } = await mdg(REPO_ROOT, "assets", "list", ASSETS);
     expect(code).toBe(0);
-    expect(stdout).toMatch(/^Icon packs:\n/);
+    expect(stdout).toMatch(/^Bundled fonts:\n/);
+    expect(stdout).toMatch(/\nIcon packs:\n/);
     expect(stdout).toMatch(
       / {2}aws +2026\.10 +assets\/icons\/aws +LicenseRef-Corpus-Provider-Terms +2 icons +redistribute: no\n/,
     );
@@ -46,7 +47,22 @@ describe("meltemi-diagrams assets", () => {
     expect(stdout).toMatch(/ {2}tabler +3\.48\.0 +built-in +MIT +\d+ icons\n/);
     expect(stdout).toContain("Aliases:\n  cloud -> aws\n");
     expect(stdout).toMatch(
-      /Fonts:\n {2}Corpus Sans +400 +normal +assets\/fonts\/CorpusSans-Regular\.ttf +CC0-1\.0\n/,
+      /Project fonts:\n {2}Corpus Sans +400 +normal +assets\/fonts\/CorpusSans-Regular\.ttf +CC0-1\.0\n/,
+    );
+  });
+
+  it("lists the bundled fonts with their groups, weights and licence, outside a project too", async () => {
+    scratch = mkdtempSync(join(tmpdir(), "mdg-assets-"));
+    const { code, stdout } = await mdg(scratch, "assets", "list");
+    expect(code).toBe(0);
+    const table = stdout.slice(0, stdout.indexOf("Icon packs:")).trim().split("\n");
+    expect(table[0]).toBe("Bundled fonts:");
+    expect(table).toHaveLength(18);
+    expect(table).toContainEqual(
+      expect.stringMatching(/^ {2}Roboto +sans +400 500 600 700 +OFL-1\.1$/),
+    );
+    expect(table).toContainEqual(
+      expect.stringMatching(/^ {2}Comic Neue +hand +400 700 +OFL-1\.1$/),
     );
   });
 

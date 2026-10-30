@@ -74,8 +74,8 @@ style notify { routing bezier }
 | `tag`                 | text width + 18, height 18                                             | never, unless matching an original                     |
 | `note`                | longest line, 18 px per line                                           | never, unless matching an original                     |
 
-Text is measured with the bundled fonts (Inter, IBM Plex Sans, Cascadia Mono), so boxes without
-`size` always fit their label and descriptions. A `size` that is too narrow is reported as
+Text is measured with the bundled fonts (Inter, IBM Plex Sans, Cascadia Mono and the families a
+`font` names), at its `fontSize`, so boxes without `size` always fit their label and descriptions. A `size` that is too narrow is reported as
 `layout.text-overflow` with a hint that gives a width that fits: follow it. Aligned columns of boxes
 look best with one shared `size` that fits the longest label.
 

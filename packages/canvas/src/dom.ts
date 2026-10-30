@@ -110,6 +110,8 @@ export const ICONS = {
   story: "M2.5 4.5h11v7h-11z|M6.5 6.5l3.5 1.5-3.5 1.5z",
   close: "M4 4l8 8|M12 4l-8 8",
   search: "M7 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8z|M10 10l3.5 3.5",
+  lock: "M4.5 7.5h7v6h-7z|M6 7.5v-2a2 2 0 0 1 4 0v2",
+  minus: "M4 8h8",
   participant: "M4.5 2.5h7v4h-7z|M8 6.5v7",
   actor: "M8 2.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3z|M8 5.5v4|M5 7h6|M8 9.5l-2.5 4|M8 9.5l2.5 4",
   boundary: "M3 5v5|M3 7.5h2.5|M10 4.5a3 3 0 1 1 0 6 3 3 0 0 1 0-6z",

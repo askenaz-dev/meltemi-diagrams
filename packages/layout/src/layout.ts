@@ -108,7 +108,16 @@ import {
   type StrokeDash,
   type TextItem,
 } from "./scene.js";
-import { MIN_TEXT_MARGIN, TextMetrics, estimateMeasurer, type TextMeasurer } from "./measure.js";
+import {
+  MIN_TEXT_MARGIN,
+  TextMetrics,
+  estimateMeasurer,
+  fontRole,
+  textFont,
+  writtenStack,
+  type TextFont,
+  type TextMeasurer,
+} from "./measure.js";
 import {
   CORNERED_SHAPES,
   FIXED_TEXT_SHAPES,
@@ -318,6 +327,8 @@ export interface StickyText {
   /** The font size the lines are drawn at: `fontSize` or 1.2 times the label size, shrunk to fit. */
   readonly size: number;
   readonly weight: number;
+  /** The font the lines are measured and drawn in: the body font, or the style's stack. */
+  readonly font: TextFont;
   /** The distance between two lines: 1.25 times the size. */
   readonly line: number;
   /** The lines as drawn: the text wrapped at the area's width. */
@@ -344,10 +355,14 @@ export interface MessageText {
    * narrower than a line; a self-call's broken at `\n` only. Empty when the message has no label.
    */
   readonly lines: readonly string[];
-  /** The font size of the lines: the theme's relation label size, at weight 400. */
+  /** The font size of the lines: the theme's relation label size, or the message's `fontSize`. */
   readonly size: number;
   /** The distance between two lines: 1.25 times the size. */
   readonly line: number;
+  /** The weight of the lines: 400, or the message's `fontWeight`. */
+  readonly weight?: number;
+  /** The stack the message's style writes (`font`), when it writes one. */
+  readonly font?: string;
   /**
    * Whether the label wraps at the area's width: true when a pull (a negative `gap`, a `spacing`
    * below the default) brings a pair of columns between its two lifelines closer than the label
@@ -575,6 +590,79 @@ export function typeScale(theme: Theme): TypeScale {
   };
 }
 
+/** The text kinds whose size a style may write, each with the token it overrides. */
+export type TextScaleKind = "label" | "groupTitle" | "note" | "tag" | "relationLabel";
+
+/**
+ * The type scale of a target whose style writes `fontSize`: the theme's scale with the size of
+ * its kind and every measure derived from it, as the theme's token would give them: a label's
+ * description at the theme's ratio of description to label, a pill's height and padding, a tag's
+ * pill, a note's line (decision 0067). Without a written size, `scale` itself.
+ */
+export function writtenScale(
+  theme: Theme,
+  scale: TypeScale,
+  kind: TextScaleKind,
+  size: number | undefined,
+): TypeScale {
+  if (size === undefined) return scale;
+  switch (kind) {
+    case "label":
+      return {
+        ...scale,
+        ...pick(
+          typeScale({
+            ...theme,
+            labelSize: size,
+            descriptionSize: Math.round((size * theme.descriptionSize) / theme.labelSize),
+          }),
+          ["label", "description", "descriptionLine"],
+        ),
+      };
+    case "groupTitle":
+      return { ...scale, groupTitle: size };
+    case "note":
+      return { ...scale, ...pick(typeScale({ ...theme, noteSize: size }), ["note", "noteLine"]) };
+    case "tag":
+      return {
+        ...scale,
+        ...pick(typeScale({ ...theme, tagSize: size }), ["tag", "tagHeight", "tagPadding"]),
+      };
+    case "relationLabel":
+      return {
+        ...scale,
+        ...pick(typeScale({ ...theme, relationLabelSize: size }), [
+          "relationLabel",
+          "relationLabelHeight",
+          "relationLabelPadding",
+        ]),
+      };
+  }
+}
+
+function pick<T, K extends keyof T>(value: T, keys: readonly K[]): Pick<T, K> {
+  return Object.fromEntries(keys.map((key) => [key, value[key]])) as Pick<T, K>;
+}
+
+/** The text of a connector's label pill: its scale, weight and font. */
+export interface PillText {
+  readonly scale: TypeScale;
+  readonly weight: number;
+  readonly font: TextFont;
+}
+
+/**
+ * The text of a relation's or a free line's label pill from its resolved style: the theme's
+ * relation label size at weight 500 in the body font, or what the style writes.
+ */
+export function pillText(theme: Theme, scale: TypeScale, style: ResolvedStyle): PillText {
+  return {
+    scale: writtenScale(theme, scale, "relationLabel", style.fontSize),
+    weight: style.fontWeight ?? 500,
+    font: textFont(style.font),
+  };
+}
+
 /**
  * The width of a tag's pill: its text in the mono font at `tagSize`, weight 500, with `beside`
  * more for an icon, plus `tagPadding`. A pill is `tagHeight` high. Flow tags and the tags of
@@ -585,9 +673,19 @@ export function tagPillWidth(
   scale: TypeScale,
   text: string,
   beside = 0,
+  face: TagFace = DEFAULT_TAG_FACE,
 ): number {
-  return Math.ceil(metrics.width(text, "mono", 500, scale.tag) + beside + scale.tagPadding);
+  return Math.ceil(
+    metrics.width(text, face.font, face.weight, scale.tag) + beside + scale.tagPadding,
+  );
 }
+
+/** The font and weight of a tag's text: the mono font at 500 unless a style writes them. */
+export interface TagFace {
+  readonly font: TextFont;
+  readonly weight: number;
+}
+const DEFAULT_TAG_FACE: TagFace = { font: "mono", weight: 500 };
 
 /** How a tag's pill is painted: the theme's `tag` and `tagText` unless a flow style says otherwise. */
 export interface TagPaint {
@@ -611,6 +709,7 @@ export function tagPill(
   box: Box,
   text: string,
   paint: TagPaint,
+  face: TagFace = DEFAULT_TAG_FACE,
 ): { readonly outline: RectItem; readonly label: TextItem } {
   const center = boxCenter(box);
   return {
@@ -632,10 +731,10 @@ export function tagPill(
       center.y,
       text,
       scale.tag,
-      500,
+      face.weight,
       paint.color,
       "middle",
-      "mono",
+      face.font,
     ),
   };
 }
@@ -1731,7 +1830,7 @@ function layoutDrawing(
         routes,
         theme,
         (group) => sizing.headerOf(group),
-        (relation) => labelSize(relation, metrics, scale),
+        (relation) => labelSize(relation, metrics, sizing.relationPill(relation)),
         bands,
         minimums,
         extents,
@@ -2019,12 +2118,15 @@ function layoutDrawing(
   }
 
   // Relations with labels sit a label apart, so their pills do not overlap.
-  const laneSpacing = (relation: Relation) =>
-    relation.label !== null || relation.technology
-      ? scale.relationLabelHeight +
-        (relation.technology ? Math.round(technologySize(scale.relationLabel) * 1.25) : 0) +
-        4
-      : LANE_SPACING;
+  const laneSpacing = (relation: Relation) => {
+    if (relation.label === null && !relation.technology) return LANE_SPACING;
+    const pill = sizing.relationPill(relation).scale;
+    return (
+      pill.relationLabelHeight +
+      (relation.technology ? Math.round(technologySize(pill.relationLabel) * 1.25) : 0) +
+      4
+    );
+  };
   /** Labels placed by the layout, which may slide along their connectors to stay clear. */
   const movable: { index: number; along: readonly Point[]; width: number; height: number }[] = [];
   // Named ports and compass sides with a position are points of the box.
@@ -2274,25 +2376,28 @@ function layoutDrawing(
       const offset = entry ? entry.offset : { x: 0, y: 0 };
       const center = pointAlong(curve ? line : drawn, at);
       const text = relation.label ?? "";
-      const textWidth = text === "" ? 0 : metrics.width(text, "body", 500, scale.relationLabel);
+      const pill = sizing.relationPill(relation);
+      const pillScale = pill.scale;
+      const textWidth =
+        text === "" ? 0 : metrics.width(text, pill.font, pill.weight, pillScale.relationLabel);
       const iconWidth = icon ? icon.size + (text === "" ? 0 : icon.gap) : 0;
       // C4 relations show their technology on a second, smaller line.
-      const techSize = technologySize(scale.relationLabel);
-      const techWidth = technology ? metrics.width(technology, "body", 400, techSize) : 0;
-      const width = Math.max(textWidth + iconWidth, techWidth) + scale.relationLabelPadding;
-      const height = scale.relationLabelHeight + (technology ? Math.round(techSize * 1.25) : 0);
+      const techSize = technologySize(pillScale.relationLabel);
+      const techWidth = technology ? metrics.width(technology, pill.font, 400, techSize) : 0;
+      const width = Math.max(textWidth + iconWidth, techWidth) + pillScale.relationLabelPadding;
+      const height = pillScale.relationLabelHeight + (technology ? Math.round(techSize * 1.25) : 0);
       if (!entry) {
         movable.push({
           index,
           along: curve ? line : drawn,
-          width: Math.max(width, scale.relationLabelHeight),
+          width: Math.max(width, pillScale.relationLabelHeight),
           height,
         });
       }
       label = {
         box: boxFromCenter(
           { x: center.x + offset.x, y: center.y + offset.y },
-          Math.max(width, scale.relationLabelHeight),
+          Math.max(width, pillScale.relationLabelHeight),
           height,
         ),
         text,
@@ -2369,14 +2474,16 @@ function layoutDrawing(
       const offset = entry ? entry.offset : { x: 0, y: 0 };
       const center = pointAlong(curve ? line : points, at);
       const text = element.label;
-      const textWidth = text === "" ? 0 : metrics.width(text, "body", 500, scale.relationLabel);
+      const pill = sizing.linePill(element);
+      const textWidth =
+        text === "" ? 0 : metrics.width(text, pill.font, pill.weight, pill.scale.relationLabel);
       const iconWidth = icon ? icon.size + (text === "" ? 0 : icon.gap) : 0;
-      const width = textWidth + iconWidth + scale.relationLabelPadding;
+      const width = textWidth + iconWidth + pill.scale.relationLabelPadding;
       label = {
         box: boxFromCenter(
           { x: center.x + offset.x, y: center.y + offset.y },
-          Math.max(width, scale.relationLabelHeight),
-          scale.relationLabelHeight,
+          Math.max(width, pill.scale.relationLabelHeight),
+          pill.scale.relationLabelHeight,
         ),
         text,
       };
@@ -2445,6 +2552,7 @@ function layoutDrawing(
       (group) => sizing.untitled(group),
       outlines,
       elementLabels,
+      (group) => sizing.headerOf(group),
     ),
   );
 
@@ -2919,13 +3027,16 @@ function translatePath(d: string, dx: number, dy: number): string {
 function labelSize(
   relation: Relation,
   metrics: TextMetrics,
-  scale: TypeScale,
+  pill: PillText,
 ): { width: number; height: number } | null {
   const technology = relation.technology ? `[${relation.technology}]` : null;
   if (relation.label === null && !technology) return null;
+  const scale = pill.scale;
   const techSize = technologySize(scale.relationLabel);
-  const text = relation.label ? metrics.width(relation.label, "body", 500, scale.relationLabel) : 0;
-  const tech = technology ? metrics.width(technology, "body", 400, techSize) : 0;
+  const text = relation.label
+    ? metrics.width(relation.label, pill.font, pill.weight, scale.relationLabel)
+    : 0;
+  const tech = technology ? metrics.width(technology, pill.font, 400, techSize) : 0;
   return {
     width: Math.ceil(Math.max(text, tech) + scale.relationLabelPadding),
     height: scale.relationLabelHeight + (technology ? Math.round(techSize * 1.25) : 0),
@@ -3561,6 +3672,15 @@ interface LabelFont {
   readonly size: number;
   readonly weight: number;
   readonly line: number;
+  /** The font: the theme's body font, or a stack the style writes. */
+  readonly font: TextFont;
+}
+
+/** The size and line of an element's description lines, and the font it shares with the label. */
+interface DescriptionFont {
+  readonly size: number;
+  readonly line: number;
+  readonly font: TextFont;
 }
 
 /** Box sizes from measured text, icons and the theme's type scale. */
@@ -3594,13 +3714,54 @@ class Sizing {
    * times the size apart.
    */
   labelFont(element: Element): LabelFont {
-    const free = element.kind === "box" || element.kind === "text";
-    const style = free ? this.styles.element(element) : {};
+    const style = this.styles.element(element);
     const size =
-      (style as ResolvedStyle).fontSize ??
+      style.fontSize ??
       (element.kind === "text" ? Math.round(this.scale.label * 1.6) : this.scale.label);
-    const weight = (style as ResolvedStyle).fontWeight ?? this.scale.labelWeight;
-    return { size, weight, line: Math.round(size * 1.25) };
+    const weight = style.fontWeight ?? this.scale.labelWeight;
+    return { size, weight, line: Math.round(size * 1.25), font: textFont(style.font) };
+  }
+
+  /**
+   * The description lines of an element: the theme's description size and line, or, when its
+   * style writes `fontSize`, the description of that label size at the theme's ratio, in the
+   * label's font at weight 400.
+   */
+  descriptionFont(element: Element): DescriptionFont {
+    const style = this.styles.element(element);
+    const scale = writtenScale(this.theme, this.scale, "label", style.fontSize);
+    return { size: scale.description, line: scale.descriptionLine, font: textFont(style.font) };
+  }
+
+  /** The title of a group: the theme's group title size at the label weight, or the style's. */
+  groupFont(group: Element): LabelFont {
+    const style = this.styles.element(group);
+    const size = style.fontSize ?? this.scale.groupTitle;
+    return {
+      size,
+      weight: style.fontWeight ?? this.scale.labelWeight,
+      line: Math.round(size * 1.25),
+      font: textFont(style.font),
+    };
+  }
+
+  /** A tag's scale and face: its pill at the written size, in the mono font unless styled. */
+  tagText(element: Element): { scale: TypeScale; face: TagFace } {
+    const style = this.styles.element(element);
+    return {
+      scale: writtenScale(this.theme, this.scale, "tag", style.fontSize),
+      face: { font: textFont(style.font, "mono"), weight: style.fontWeight ?? 500 },
+    };
+  }
+
+  /** The text of a relation's label pill. */
+  relationPill(relation: Relation): PillText {
+    return pillText(this.theme, this.scale, this.styles.relation(relation));
+  }
+
+  /** The text of a free line's label pill. */
+  linePill(element: Element): PillText {
+    return pillText(this.theme, this.scale, this.styles.element(element));
   }
 
   /**
@@ -3713,9 +3874,10 @@ class Sizing {
   private columnWith(element: Element, icon: PlacedIcon | undefined): TextColumn {
     const block = this.blockWith(element, icon);
     const font = this.labelFont(element);
+    const description = this.descriptionFont(element);
     const lines = [
       ...block.labelOffsets.map((y) => ({ y, size: font.size })),
-      ...block.descriptionOffsets.map((y) => ({ y, size: this.scale.description })),
+      ...block.descriptionOffsets.map((y) => ({ y, size: description.size })),
     ];
     let top = Math.min(...lines.map((l) => l.y - l.size / 2));
     let bottom = Math.max(...lines.map((l) => l.y + l.size / 2));
@@ -3833,6 +3995,15 @@ class Sizing {
     return groupHeaderOf(group, this.styles.element(group), this.theme);
   }
 
+  /** The vertical centre of a group's title, from the group's top edge, inside its header. */
+  titleOffset(group: Element): number {
+    const header = this.headerOf(group);
+    // A larger title keeps the theme's band below it and its 45 % above.
+    return header === this.theme.groupHeader
+      ? this.theme.groupHeader * 0.45
+      : header - this.theme.groupHeader * 0.55;
+  }
+
   /** Horizontal alignment of a box or text label. */
   /**
    * A note's font: the theme's note size at weight 400, or a free note's `fontSize` and
@@ -3845,6 +4016,7 @@ class Sizing {
       size,
       weight: style.fontWeight ?? 400,
       line: Math.round((size * this.scale.noteLine) / this.scale.note),
+      font: textFont(style.font),
     };
   }
 
@@ -3871,17 +4043,19 @@ class Sizing {
     if (known) return known;
     const style = this.styles.element(element);
     const weight = style.fontWeight ?? STICKY_FONT_WEIGHT;
+    const face = textFont(style.font);
     const area = this.stickyArea(element, size);
     let font = style.fontSize ?? round(this.scale.label * STICKY_FONT_SCALE);
-    let laid = this.stickyLines(element.label, area, font, weight);
+    let laid = this.stickyLines(element.label, area, font, weight, face);
     while (!laid.fits && font > STICKY_MIN_FONT_SIZE) {
       font = Math.max(STICKY_MIN_FONT_SIZE, round(font - 1));
-      laid = this.stickyLines(element.label, area, font, weight);
+      laid = this.stickyLines(element.label, area, font, weight, face);
     }
     const text: StickyText = {
       area,
       size: font,
       weight,
+      font: face,
       line: laid.line,
       lines: laid.lines,
       align: this.alignOf(element),
@@ -3914,8 +4088,9 @@ class Sizing {
     area: Box,
     size: number,
     weight: number,
+    font: TextFont,
   ): { lines: string[]; line: number; fits: boolean } {
-    const measure = (line: string) => this.metrics.width(line, "body", weight, size);
+    const measure = (line: string) => this.metrics.width(line, font, weight, size);
     const lines = wrapLines(text, area.width, measure);
     const line = round(size * 1.25);
     const fits =
@@ -3951,8 +4126,13 @@ class Sizing {
     });
     const fitsAt = (width: number) => {
       const card = scaled(width);
-      return this.stickyLines(element.label, this.stickyArea(element, card), text.size, text.weight)
-        .fits;
+      return this.stickyLines(
+        element.label,
+        this.stickyArea(element, card),
+        text.size,
+        text.weight,
+        text.font,
+      ).fits;
     };
     let low = Math.max(1, Math.ceil(size.width));
     let high = low * 2;
@@ -4498,8 +4678,9 @@ class Sizing {
   }
 
   private blockWith(element: Element, icon: PlacedIcon | undefined): TextBlock {
-    const scale = this.scale;
     const font = this.labelFont(element);
+    const description = this.descriptionFont(element);
+    const scale = { description: description.size, descriptionLine: description.line };
     const label = font.size;
     const lines = splitLines(element.label).length;
     // How far the first line of the label lies above its last.
@@ -4536,14 +4717,15 @@ class Sizing {
 
   /** The widest of a box's label and description lines. */
   textWidth(element: Element): number {
-    const { metrics, scale } = this;
+    const { metrics } = this;
     const font = this.labelFont(element);
+    const description = this.descriptionFont(element);
     let width = 0;
     for (const line of splitLines(element.label)) {
-      width = Math.max(width, metrics.width(line, "body", font.weight, font.size));
+      width = Math.max(width, metrics.width(line, font.font, font.weight, font.size));
     }
     for (const line of element.description ? splitLines(element.description) : []) {
-      width = Math.max(width, metrics.width(line, "body", 400, scale.description));
+      width = Math.max(width, metrics.width(line, description.font, 400, description.size));
     }
     return width;
   }
@@ -4553,13 +4735,14 @@ class Sizing {
    * default sizes and hints), and the minimum width below which the content touches the edges.
    */
   textNeeds(element: Element): { text: string; width: number; minimum: number } {
-    const { metrics, scale, theme } = this;
+    const { metrics, theme } = this;
     const widest = (entries: { text: string; width: number }[]) =>
       entries.reduce((a, b) => (b.width > a.width ? b : a), { text: "", width: 0 });
+    const description = this.descriptionFont(element);
     const descriptions = (element.description ? splitLines(element.description) : []).map(
       (line) => ({
         text: line,
-        width: metrics.width(line, "body", 400, scale.description),
+        width: metrics.width(line, description.font, 400, description.size),
       }),
     );
     const icon = this.iconOf(element);
@@ -4573,17 +4756,19 @@ class Sizing {
         const best = widest(
           splitLines(element.label).map((line) => ({
             text: line,
-            width: metrics.width(line, "body", font.weight, font.size),
+            width: metrics.width(line, font.font, font.weight, font.size),
           })),
         );
         const width = Math.ceil(Math.max(best.width, 1) + 2 * this.frameInset(element));
         return { text: best.text, width, minimum: width };
       }
       case "tag": {
-        const width = metrics.width(element.label, "mono", 500, scale.tag) + beside;
+        const tag = this.tagText(element);
+        const width =
+          metrics.width(element.label, tag.face.font, tag.face.weight, tag.scale.tag) + beside;
         return {
           text: element.label,
-          width: tagPillWidth(metrics, scale, element.label, beside),
+          width: tagPillWidth(metrics, tag.scale, element.label, beside, tag.face),
           minimum: Math.ceil(width + 2 * MIN_TEXT_MARGIN),
         };
       }
@@ -4592,7 +4777,7 @@ class Sizing {
         const best = widest(
           splitLines(element.label).map((line) => ({
             text: line,
-            width: metrics.width(line, "body", font.weight, font.size),
+            width: metrics.width(line, font.font, font.weight, font.size),
           })),
         );
         const width = Math.ceil(Math.max(best.width + beside, 1));
@@ -4601,9 +4786,10 @@ class Sizing {
       case "group": {
         // An untitled group has no text, so no minimum width.
         if (this.untitled(element)) return { text: "", width: 0, minimum: 0 };
+        const font = this.groupFont(element);
         const title = {
           text: element.label,
-          width: metrics.width(element.label, "body", scale.labelWeight, scale.groupTitle) + beside,
+          width: metrics.width(element.label, font.font, font.weight, font.size) + beside,
         };
         const best = widest([title, ...descriptions]);
         const inset = theme.groupPadding + 4;
@@ -4626,16 +4812,17 @@ class Sizing {
 
   /** The widest of a box's label and description lines. */
   private widestLine(element: Element): string {
-    const { metrics, scale } = this;
+    const { metrics } = this;
     const font = this.labelFont(element);
+    const description = this.descriptionFont(element);
     const [first = "", ...rest] = splitLines(element.label);
-    let best = { text: first, width: metrics.width(first, "body", font.weight, font.size) };
+    let best = { text: first, width: metrics.width(first, font.font, font.weight, font.size) };
     for (const line of rest) {
-      const width = metrics.width(line, "body", font.weight, font.size);
+      const width = metrics.width(line, font.font, font.weight, font.size);
       if (width > best.width) best = { text: line, width };
     }
     for (const line of element.description ? splitLines(element.description) : []) {
-      const width = metrics.width(line, "body", 400, scale.description);
+      const width = metrics.width(line, description.font, 400, description.size);
       if (width > best.width) best = { text: line, width };
     }
     return best.text;
@@ -4664,7 +4851,7 @@ class Sizing {
     const needs = this.textNeeds(element);
     switch (element.kind) {
       case "tag":
-        return { width: needs.width, height: scale.tagHeight };
+        return { width: needs.width, height: this.tagText(element).scale.tagHeight };
       case "note":
         return {
           width: needs.width,
@@ -4917,9 +5104,10 @@ class Emitter {
     weight: number,
     fill: string,
     anchor: TextItem["anchor"] = "middle",
-    font: TextItem["font"] = "body",
+    font: TextFont = "body",
   ): TextItem {
     const baseline = round(this.metrics.baseline(y, font, weight, size));
+    const stack = writtenStack(font);
     return {
       kind: "text",
       x: round(x),
@@ -4928,7 +5116,8 @@ class Emitter {
       text,
       size,
       weight,
-      font,
+      font: fontRole(font),
+      ...(stack !== undefined ? { stack } : {}),
       anchor,
       fill,
     };
@@ -5010,7 +5199,11 @@ class Emitter {
       return { kind: "group", id: element.id, role: "element", items };
     }
     const inset = theme.groupPadding + 4;
-    const titleY = box.y + theme.groupHeader * 0.45;
+    const font = this.sizing.groupFont(element);
+    const title = this.sizing.titleOffset(element);
+    // The title band grows with a larger title; the description keeps its place under the title.
+    const below = title - theme.groupHeader * 0.45;
+    const titleY = box.y + title;
     const color = style.color ?? theme.ink;
     let titleX = box.x + inset;
     const icon = this.sizing.iconOf(element);
@@ -5019,30 +5212,25 @@ class Emitter {
       titleX += icon.size + icon.gap;
     }
     items.push(
-      this.text(titleX, titleY, element.label, scale.groupTitle, scale.labelWeight, color, "start"),
+      this.text(titleX, titleY, element.label, font.size, font.weight, color, "start", font.font),
     );
     // The title, and the description under it, are kept clear of connectors.
-    const titleWidth = this.metrics.width(
-      element.label,
-      "body",
-      scale.labelWeight,
-      scale.groupTitle,
-    );
+    const titleWidth = this.metrics.width(element.label, font.font, font.weight, font.size);
     const descriptionWidth = element.description
-      ? this.metrics.width(element.description, "body", 400, scale.description)
+      ? this.metrics.width(element.description, font.font, 400, scale.description)
       : 0;
     const right = Math.max(titleX + titleWidth, box.x + inset + descriptionWidth);
     this.titles.push({
       id: element.id,
       box: {
         x: box.x + inset - TITLE_GAP,
-        y: titleY - scale.groupTitle * 0.75 - TITLE_GAP,
+        y: titleY - font.size * 0.75 - TITLE_GAP,
         width: right - (box.x + inset) + 2 * TITLE_GAP,
         height:
           (element.description
-            ? box.y + theme.groupHeader * 0.85 + scale.description * 0.6
-            : titleY + scale.groupTitle * 0.6) -
-          (titleY - scale.groupTitle * 0.75) +
+            ? box.y + below + theme.groupHeader * 0.85 + scale.description * 0.6
+            : titleY + font.size * 0.6) -
+          (titleY - font.size * 0.75) +
           2 * TITLE_GAP,
       },
     });
@@ -5050,12 +5238,13 @@ class Emitter {
       items.push(
         this.text(
           box.x + inset,
-          box.y + theme.groupHeader * 0.85,
+          box.y + below + theme.groupHeader * 0.85,
           element.description,
           scale.description,
           400,
           style.color ?? theme.muted,
           "start",
+          font.font,
         ),
       );
     }
@@ -5163,6 +5352,7 @@ class Emitter {
           font.weight,
           style.color ?? this.theme.ink,
           anchor,
+          font.font,
         ),
       );
     });
@@ -5382,9 +5572,10 @@ class Emitter {
     block: TextBlock,
     align: "left" | "center" | "right" | TextItem["anchor"],
   ): void {
-    const { theme, scale } = this;
+    const { theme } = this;
     const style = this.styles.element(element);
     const font = this.sizing.labelFont(element);
+    const description = this.sizing.descriptionFont(element);
     const anchor: TextItem["anchor"] =
       align === "left"
         ? "start"
@@ -5403,6 +5594,7 @@ class Emitter {
           font.weight,
           style.color ?? theme.ink,
           anchor,
+          font.font,
         ),
       );
     });
@@ -5413,10 +5605,11 @@ class Emitter {
           x,
           y + block.descriptionOffsets[i]!,
           line,
-          scale.description,
+          description.size,
           400,
           style.color ?? theme.muted,
           anchor,
+          description.font,
         ),
       );
     });
@@ -5492,6 +5685,7 @@ class Emitter {
           font.weight,
           color,
           anchor,
+          font.font,
         ),
       );
     });
@@ -5559,7 +5753,16 @@ class Emitter {
       text.align === "left" ? "start" : text.align === "right" ? "end" : "middle";
     text.lines.forEach((content, i) => {
       items.push(
-        this.text(x, top + line / 2 + i * line, content, text.size, text.weight, color, anchor),
+        this.text(
+          x,
+          top + line / 2 + i * line,
+          content,
+          text.size,
+          text.weight,
+          color,
+          anchor,
+          text.font,
+        ),
       );
     });
     const group: GroupItem = { kind: "group", id: element.id, role: "element", items };
@@ -5576,23 +5779,31 @@ class Emitter {
   }
 
   private tag(element: Element, box: Box): GroupItem {
-    const { theme, scale } = this;
+    const { theme } = this;
     const style = this.styles.element(element);
     const fill = style.fill ?? theme.tag;
     const center = boxCenter(box);
     const color = style.color ?? theme.tagText;
+    const { scale, face } = this.sizing.tagText(element);
     // The pill sequence tags share, upright when the tag is taller than wide.
-    const { outline, label } = tagPill(this.metrics, scale, box, element.label, {
-      fill,
-      stroke: style.stroke ?? fill,
-      strokeWidth: style.width ?? theme.strokeWidth,
-      dashed: strokeDash(style.line),
-      color,
-    });
+    const { outline, label } = tagPill(
+      this.metrics,
+      scale,
+      box,
+      element.label,
+      {
+        fill,
+        stroke: style.stroke ?? fill,
+        strokeWidth: style.width ?? theme.strokeWidth,
+        dashed: strokeDash(style.line),
+        color,
+      },
+      face,
+    );
     const items: SceneItem[] = [outline, ...this.overlay(style, outline)];
     const icon = this.sizing.iconOf(element);
     if (icon) {
-      const textWidth = this.metrics.width(element.label, "mono", 500, scale.tag);
+      const textWidth = this.metrics.width(element.label, face.font, face.weight, scale.tag);
       const left = center.x - (icon.size + icon.gap + textWidth) / 2;
       items.push(this.icon(icon, left + icon.size / 2, center.y, style.iconColor ?? color));
       items.push(
@@ -5601,10 +5812,10 @@ class Emitter {
           center.y,
           element.label,
           scale.tag,
-          500,
+          face.weight,
           color,
           "start",
-          "mono",
+          face.font,
         ),
       );
     } else {
@@ -5773,7 +5984,9 @@ class Emitter {
     icon: PlacedIcon | undefined,
     curve: string | undefined,
   ): SceneItem[] {
-    const { theme, scale } = this;
+    const { theme } = this;
+    const face = pillText(theme, this.scale, style);
+    const scale = face.scale;
     const strokeWidth = style.width ?? theme.connectorWidth;
     const pieces = curve ? [] : splitAround(line, holes);
     const items: SceneItem[] = curve
@@ -5811,7 +6024,12 @@ class Emitter {
       if (icon && label.text === "") {
         pill.push(this.icon(icon, center.x, center.y, style.iconColor ?? color));
       } else if (icon) {
-        const textWidth = this.metrics.width(label.text, "body", 500, scale.relationLabel);
+        const textWidth = this.metrics.width(
+          label.text,
+          face.font,
+          face.weight,
+          scale.relationLabel,
+        );
         const left = center.x - (icon.size + icon.gap + textWidth) / 2;
         pill.push(this.icon(icon, left + icon.size / 2, center.y, style.iconColor ?? color));
         pill.push(
@@ -5820,18 +6038,39 @@ class Emitter {
             center.y,
             label.text,
             scale.relationLabel,
-            500,
+            face.weight,
             color,
             "start",
+            face.font,
           ),
         );
       } else if (label.text !== "") {
-        pill.push(this.text(center.x, center.y, label.text, scale.relationLabel, 500, color));
+        pill.push(
+          this.text(
+            center.x,
+            center.y,
+            label.text,
+            scale.relationLabel,
+            face.weight,
+            color,
+            "middle",
+            face.font,
+          ),
+        );
       }
       if (label.technology) {
         const y = label.text === "" && !icon ? box.y + box.height / 2 : center.y + techLine;
         pill.push(
-          this.text(center.x, y, label.technology, techSize, 400, style.color ?? theme.muted),
+          this.text(
+            center.x,
+            y,
+            label.technology,
+            techSize,
+            400,
+            style.color ?? theme.muted,
+            "middle",
+            face.font,
+          ),
         );
       }
       items.push({ kind: "group", id, role: "label", items: pill });

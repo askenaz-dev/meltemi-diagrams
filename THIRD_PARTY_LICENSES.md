@@ -10,9 +10,22 @@ or glyph outlines), which the SIL Open Font License 1.1 permits.
 | Package | Version | License | Notes | Homepage |
 | --- | --- | --- | --- | --- |
 | @fontsource/cascadia-mono | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/cascadia-mono |
+| @fontsource/caveat | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/caveat |
+| @fontsource/comic-neue | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/comic-neue |
 | @fontsource/ibm-plex-sans | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/ibm-plex-sans |
 | @fontsource/inter | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/inter |
+| @fontsource/lato | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/lato |
+| @fontsource/lora | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/lora |
+| @fontsource/merriweather | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/merriweather |
+| @fontsource/montserrat | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/montserrat |
+| @fontsource/nunito | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/nunito |
+| @fontsource/open-sans | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/open-sans |
 | @fontsource/patrick-hand | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/patrick-hand |
+| @fontsource/playfair-display | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/playfair-display |
+| @fontsource/poppins | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/poppins |
+| @fontsource/roboto | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/roboto |
+| @fontsource/roboto-mono | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/roboto-mono |
+| @fontsource/source-code-pro | 5.3.1 | OFL-1.1 | embedded | https://fontsource.org/fonts/source-code-pro |
 | @ibm/plex-sans | 1.1.0 | OFL-1.1 | embedded | https://github.com/ibm/plex#readme |
 | @ibm/telemetry-js | 1.12.0 | Apache-2.0 |  | https://github.com/ibm-telemetry/telemetry-js#readme |
 | @iconify-json/logos | 1.2.16 | CC0-1.0 |  | https://icon-sets.iconify.design/logos/ |

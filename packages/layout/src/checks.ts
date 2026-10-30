@@ -201,9 +201,12 @@ export function checkComposition(
   connectors: readonly CheckedConnector[],
   explicitGroups: ReadonlySet<string>,
   theme: { readonly groupPadding: number; readonly groupHeader: number },
+  /** Whether a group is untitled, or the height of its title band when it has one. */
   untitled: (group: Element) => boolean,
   outlines: ReadonlyMap<string, readonly Point[]> = new Map(),
   labels: ReadonlyMap<string, Box> = new Map(),
+  /** The header of each titled group: the theme's band, taller under a larger title. */
+  header?: (group: Element) => number,
 ): Diagnostic[] {
   const diagnostics: Diagnostic[] = [];
   // Messages are written in the interface language of the moment the checks run.
@@ -285,7 +288,7 @@ export function checkComposition(
     const area = boxes.get(group.id)!;
     const margin = theme.groupPadding / 2;
     // A titled group keeps its title band clear; an untitled one has no band.
-    const top = untitled(group) ? margin : theme.groupHeader;
+    const top = untitled(group) ? margin : (header?.(group) ?? theme.groupHeader);
     for (const shape of shapes) {
       if (!shape.groupPath.includes(group.id)) continue;
       // A group on another layer is a backdrop, as for the overlaps above.

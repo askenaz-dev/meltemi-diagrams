@@ -146,8 +146,9 @@ const en = {
       "Corner radius, 0 to 64: of a box, node, decision, note or group in a style, over the theme's `radius` (`groupRadius` for groups); it rounds the corners of `rounded`, `rectangle`, `square` and `framed` boxes and the vertices of polygons (none by default on them); ellipses, circles, pills, cylinders, clouds and documents ignore it. In a theme, the default of rounded boxes, nodes and notes.",
     rotation:
       "Degrees an element is turned, 0 to 360, clockwise about the centre of its box; its text and icon turn with it. Elements of flow diagrams and free compositions, not groups.",
-    fontSize: "Text size of a free box or text, 6 to 160.",
-    fontWeight: "Text weight of a free box or text: 400, 500, 600 or 700.",
+    font: 'Font stack of what draws text, in every profile: `font "Roboto"`, measured with its first bundled or project family. In a theme, the font of body text.',
+    fontSize: "Size of the text of what draws text, in every profile: 6 to 160.",
+    fontWeight: "Weight of the text of what draws text, in every profile: 400, 500, 600 or 700.",
     textAlign: "`left`, `center` or `right` alignment of a free box or text.",
     verticalAlign:
       "`top`, `middle` (default) or `bottom`: where a free box's text sits within its shape's text band.",
@@ -392,6 +393,13 @@ const en = {
     missingImage: (path: string) =>
       `**image** ${code(path)} — not found in the project, or not a PNG, JPEG, GIF, WebP or SVG file`,
     theme: (name: string) => `**theme** ${code(name)}`,
+    /** A font stack: what it is measured with. */
+    fontBundled: (family: string, group: string) =>
+      `**font** ${code(family)} — ${group}, bundled: measured, embedded and outlined with it`,
+    fontProject: (family: string) =>
+      `**font** ${code(family)} — project font from \`assets/fonts/\`, measured with it`,
+    fontEstimated: (stack: string) =>
+      `**font** ${code(stack)} — no bundled or project family matches: the text is measured with estimates`,
     extends: (theme: string, frame: string | undefined) =>
       `extends ${theme}${frame ? ` · frame ${frame}` : ""}`,
     builtInTheme: (name: string, background: string, font: string, frame: string) =>
@@ -445,6 +453,15 @@ const en = {
   completion: {
     noConditionBranch: "branch without a condition",
     imageFile: "image file",
+    /** The group of a font family in a completion's detail. */
+    fontGroup: (group: string) =>
+      ({
+        sans: "sans-serif font",
+        serif: "serif font",
+        mono: "monospace font",
+        hand: "handwriting font",
+        project: "project font",
+      })[group] ?? "font",
     port: (side: string, percent: number) => `port on ${side} at ${percent}%`,
     compassPort: "compass port",
     model: "model",
@@ -657,8 +674,10 @@ const es: typeof en = {
       "El radio de las esquinas, de 0 a 64: en un estilo, el de una caja, un nodo, una decisión, una nota o un grupo, en lugar del `radius` del tema (`groupRadius` en los grupos); redondea las esquinas de las cajas `rounded`, `rectangle`, `square` y `framed` y los vértices de los polígonos (ninguno por defecto en ellos); las elipses, los círculos, las píldoras, los cilindros, las nubes y los documentos lo ignoran. En un tema, el predeterminado de las cajas redondeadas, los nodos y las notas.",
     rotation:
       "Los grados que se gira un elemento, de 0 a 360, en el sentido de las agujas del reloj alrededor del centro de su caja; su texto y su icono giran con él. Elementos de los diagramas de flujo y las composiciones libres, no grupos.",
-    fontSize: "El tamaño del texto de una caja libre o de un texto, de 6 a 160.",
-    fontWeight: "El grosor del texto de una caja libre o de un texto: 400, 500, 600 o 700.",
+    font: 'La pila de fuentes de lo que dibuja texto, en todos los perfiles: `font "Roboto"`, medida con su primera familia incluida o del proyecto. En un tema, la fuente del texto.',
+    fontSize: "El tamaño del texto de lo que dibuja texto, en todos los perfiles: de 6 a 160.",
+    fontWeight:
+      "El grosor del texto de lo que dibuja texto, en todos los perfiles: 400, 500, 600 o 700.",
     textAlign: "Alineación `left`, `center` o `right` de una caja libre o de un texto.",
     verticalAlign:
       "`top`, `middle` (predeterminada) o `bottom`: dónde va el texto de una caja libre dentro de la franja de texto de su forma.",
@@ -890,6 +909,12 @@ const es: typeof en = {
     missingImage: (path) =>
       `**imagen** ${code(path)} — no está en el proyecto, o no es un archivo PNG, JPEG, GIF, WebP o SVG`,
     theme: (name) => `**tema** ${code(name)}`,
+    fontBundled: (family, group) =>
+      `**fuente** ${code(family)} — ${group}, incluida: se mide, incrusta y traza con ella`,
+    fontProject: (family) =>
+      `**fuente** ${code(family)} — fuente del proyecto en \`assets/fonts/\`, se mide con ella`,
+    fontEstimated: (stack) =>
+      `**fuente** ${code(stack)} — ninguna familia incluida o del proyecto coincide: el texto se mide con estimaciones`,
     extends: (theme, frame) => `extiende ${theme}${frame ? ` · marco ${frame}` : ""}`,
     builtInTheme: (name, background, font, frame) =>
       `**tema** ${code(name)} (integrado)\n\nfondo ${background} · fuente ${font} · marco ${frame}`,
@@ -939,6 +964,14 @@ const es: typeof en = {
   completion: {
     noConditionBranch: "rama sin condición",
     imageFile: "archivo de imagen",
+    fontGroup: (group) =>
+      ({
+        sans: "fuente sin serifa",
+        serif: "fuente con serifa",
+        mono: "fuente monoespaciada",
+        hand: "fuente manuscrita",
+        project: "fuente del proyecto",
+      })[group] ?? "fuente",
     port: (side, percent) => `puerto en ${side} al ${percent} %`,
     compassPort: "puerto cardinal",
     model: "modelo",

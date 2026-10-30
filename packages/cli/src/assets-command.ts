@@ -2,6 +2,7 @@ import { statSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { LOCK_NAME, formatLock, searchIcons } from "@meltemi/diagrams-assets";
+import { BUNDLED_FAMILIES, FONT_GROUPS } from "@meltemi/diagrams-fonts";
 import { joinPath, toProjectPath, type Workspace } from "@meltemi/diagrams-project";
 import { argumentsError, messages } from "./messages/index.js";
 
@@ -77,11 +78,28 @@ export function assetsCommand(args: readonly string[], context: AssetsContext): 
   }
 }
 
+/** `assets list`: the bundled fonts, the icon packs and aliases, and the project's fonts. */
 function list(context: AssetsContext, path: string | undefined): number {
   const workspace = project(context, path, "list");
   if (!workspace) return EXIT_USAGE;
   const assets = workspace.assets();
   const t = messages().assets;
+  // The families every diagram can be measured, embedded and outlined with (decision 0067).
+  const bundled = [...BUNDLED_FAMILIES]
+    .map((family, index) => ({ family, index }))
+    .sort(
+      (a, b) =>
+        FONT_GROUPS.indexOf(a.family.group) - FONT_GROUPS.indexOf(b.family.group) ||
+        a.index - b.index,
+    )
+    .map(({ family }) => [
+      family.family,
+      t.fontGroups[family.group],
+      family.weights.join(" "),
+      family.license,
+    ]);
+  context.stdout(`${t.bundledFonts}\n`);
+  context.stdout(table(bundled));
   const rows: string[][] = [];
   for (const pack of assets.registry.list()) {
     const meta = pack.metadata;

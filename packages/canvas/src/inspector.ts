@@ -6,6 +6,7 @@ import type {
   ThemePanelModel,
 } from "@meltemi/diagrams-editor/canvas";
 import { ICONS, ariaKeyshortcuts, clear, h, icon } from "./dom.js";
+import { fontShown, rowFamily } from "./font-picker.js";
 import { alignGlyph, glyph, glyphName, type GlyphFamily } from "./glyphs.js";
 import { messages } from "./messages/index.js";
 import { stickyColourName } from "./sticky.js";
@@ -50,6 +51,16 @@ export interface InspectorActions {
    * or the `source` of an icon object.
    */
   pickIcon(ids: readonly string[], field: string, anchor: HTMLElement): void;
+  /**
+   * Opens the canvas's font picker under `anchor` for the `style.font` of the targets, with the
+   * written stack (null when nothing is written).
+   */
+  pickFont(
+    ids: readonly string[],
+    field: string,
+    anchor: HTMLElement,
+    current: string | null,
+  ): void;
   /** Asks the id and place of a theme that extends `current`. */
   newTheme(current: string, project: boolean): void;
   /** Opens the theme panel on the diagram's theme. */
@@ -380,6 +391,54 @@ function rangeField(field: InspectorField, send: Send, slide: Send): HTMLElement
     row,
   );
 }
+
+/** The three fields of the strip's Text group. */
+const TEXT_FIELDS: readonly string[] = ["style.font", "style.fontSize", "style.fontWeight"];
+
+/** The bounds of a text size typed in the strip, as the language takes them. */
+const FONT_SIZE_RANGE = { min: 6, max: 160 } as const;
+
+/**
+ * The button of a font field: the family it shows, in that family once the picker has its faces,
+ * marked inherited, custom or mixed; a press opens the picker under it.
+ */
+function fontButton(
+  field: InspectorField,
+  current: string | null,
+  open: (anchor: HTMLElement) => void,
+): HTMLButtonElement {
+  const words = messages().fontPicker;
+  const shown = fontShown(current, field.placeholder, field.mixed === true, field.options);
+  const name = h(
+    "span",
+    {
+      class: "font-button-name",
+      style: shown.family ? `font-family:"${rowFamily(shown.family)}", system-ui` : undefined,
+    },
+    shown.text,
+  );
+  const button = h(
+    "button",
+    {
+      type: "button",
+      class: `font-button ${shown.state}`,
+      id: keyOf(field.name),
+      "data-key": `${field.name}:pick`,
+      "data-family": shown.family ?? "",
+      "aria-haspopup": "dialog",
+      "aria-expanded": "false",
+      "aria-label": words.button(field.label, shown.text),
+      disabled: field.readonly,
+    },
+    name,
+    icon(CHEVRON_DOWN),
+  );
+  button.addEventListener("click", () => open(button));
+  button.addEventListener("keydown", (e) => e.stopPropagation());
+  return button;
+}
+
+const CHEVRON_DOWN = "M4 6l4 4 4-4";
 
 /** A labelled field: the label, a swatch for a colour written as one, and the control. */
 function plainField(field: InspectorField, send: Send, extra: readonly HTMLElement[] = []) {
@@ -1360,6 +1419,13 @@ export class Inspector {
           );
           continue;
         }
+        // The font, size and weight are one group, headed Text, drawn where the font is.
+        if (TEXT_FIELDS.includes(field.name)) {
+          if (field.name === strip.find((f) => TEXT_FIELDS.includes(f.name))!.name) {
+            section.append(this.textGroup(strip.filter((f) => TEXT_FIELDS.includes(f.name))));
+          }
+          continue;
+        }
         if (!isToggle(field) && field.group === undefined) section.append(this.stripField(field));
       }
       if (toggles.length > 0) {
@@ -1649,6 +1715,155 @@ export class Inspector {
     return element;
   }
 
+  /** The strip's Text group: the font button, the size control and the weight chips. */
+  private textGroup(fields: readonly InspectorField[]): HTMLElement {
+    const words = messages().inspector;
+    const group = h(
+      "div",
+      { class: "text-group", role: "group", "aria-labelledby": "mdg-text-group" },
+      h("div", { class: "group-title", id: "mdg-text-group" }, words.text),
+    );
+    for (const field of fields) {
+      if (field.name === "style.font") group.append(this.fontField(field));
+      else if (field.name === "style.fontSize") group.append(this.sizeField(field));
+      else group.append(this.stripField(field));
+    }
+    return group;
+  }
+
+  /**
+   * A Font field: a button with the family written in that family, or the one that applies,
+   * greyed; "custom" for a stack the picker does not list; it opens the font picker.
+   */
+  private fontField(field: InspectorField): HTMLElement {
+    const ids = this.model!.target.ids;
+    const current = field.value === null ? null : String(field.value);
+    const button = fontButton(field, current, (anchor) =>
+      this.actions.pickFont(ids, field.name, anchor, current),
+    );
+    return h(
+      "div",
+      { class: "field font-field", "data-field": field.name },
+      h("label", { for: keyOf(field.name) }, field.label),
+      button,
+    );
+  }
+
+  /**
+   * A Text size field: the size written, or the one that applies as placeholder, with the common
+   * sizes listed; − and + step every selected item from the size it draws, as the keys do; a size
+   * typed outside the property's bounds is refused in place; "theme" removes it.
+   */
+  private sizeField(field: InspectorField): HTMLElement {
+    const send = this.send(field);
+    const ids = this.model!.target.ids;
+    const words = messages().inspector;
+    const id = keyOf(field.name);
+    const listId = `${id}-list`;
+    const note = h("div", { class: "field-note", role: "alert", hidden: true });
+    const input = h("input", {
+      id,
+      type: "text",
+      inputmode: "decimal",
+      class: "size-input",
+      placeholder: field.mixed ? words.mixed : (field.placeholder ?? ""),
+      list: listId,
+      disabled: field.readonly,
+      spellcheck: "false",
+      autocomplete: "off",
+      "aria-label": field.label,
+    });
+    input.value = field.value === null ? "" : String(field.value);
+    let sent = input.value;
+    const refuse = (on: boolean) => {
+      input.toggleAttribute("aria-invalid", on);
+      note.hidden = !on;
+      note.textContent = on ? words.sizeRange(FONT_SIZE_RANGE.min, FONT_SIZE_RANGE.max) : "";
+    };
+    const commit = () => {
+      if (input.value === sent) return;
+      const text = input.value.trim().replace(/px$/, "");
+      if (text === "") {
+        sent = input.value;
+        refuse(false);
+        send(null);
+        return;
+      }
+      const size = Number(text);
+      if (!Number.isFinite(size) || size < FONT_SIZE_RANGE.min || size > FONT_SIZE_RANGE.max) {
+        refuse(true);
+        return;
+      }
+      sent = input.value;
+      refuse(false);
+      send(size);
+    };
+    input.addEventListener("change", commit);
+    input.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Enter") {
+        e.preventDefault();
+        commit();
+      } else if (e.key === "Escape") {
+        input.value = field.value === null ? "" : String(field.value);
+        refuse(false);
+        input.blur();
+      }
+    });
+    const step = (direction: 1 | -1, label: string, path: string) => {
+      const button = h(
+        "button",
+        {
+          type: "button",
+          class: "step",
+          "data-key": `${field.name}:${direction > 0 ? "larger" : "smaller"}`,
+          "aria-label": label,
+          title: label,
+          disabled: field.readonly,
+        },
+        icon(path),
+      );
+      button.addEventListener("click", () => {
+        if (this.readOnly) return;
+        this.actions.act({ kind: "stepTextSize", ids, step: direction });
+      });
+      button.addEventListener("keydown", (e) => e.stopPropagation());
+      return button;
+    };
+    const inherit = h(
+      "button",
+      {
+        type: "button",
+        class: "quick",
+        "data-key": `${field.name}:theme`,
+        title: words.inheritTitle,
+        disabled: field.readonly || field.value === null,
+      },
+      words.themeChip,
+    );
+    inherit.addEventListener("click", () => send(null));
+    inherit.addEventListener("keydown", (e) => e.stopPropagation());
+    return h(
+      "div",
+      { class: "field size-field", "data-field": field.name },
+      h("label", { for: id }, field.label),
+      h(
+        "div",
+        { class: "row size-row" },
+        step(-1, words.smaller, ICONS.minus),
+        input,
+        step(1, words.larger, ICONS.plus),
+        inherit,
+        h(
+          "datalist",
+          { id: listId },
+          ...(field.list ?? []).map((size) => h("option", { value: String(size) })),
+        ),
+      ),
+      note,
+    );
+  }
+
   private stripField(field: InspectorField): HTMLElement {
     const send = this.send(field);
     if (field.type === "color" && field.swatches) return colorRow(field, send);
@@ -1781,6 +1996,8 @@ export interface ThemePanelActions {
   close(): void;
   /** Folds the properties to their rail, the theme panel with them. */
   fold(): void;
+  /** Opens the font picker under `anchor` for a font token, with its written stack or null. */
+  pickFont(token: string, anchor: HTMLElement, current: string | null): void;
 }
 
 /**
@@ -1864,6 +2081,18 @@ export class ThemePanel {
       if (value === field.value || (value === "" && field.value === null)) return;
       this.actions.token(field.name, value === "" ? null : value);
     };
+    if (field.type === "font") {
+      const current = field.value === null ? null : String(field.value);
+      const button = fontButton(named, current, (anchor) =>
+        this.actions.pickFont(field.name, anchor, current),
+      );
+      return h(
+        "div",
+        { class: "field font-field", "data-field": named.name },
+        h("label", { for: keyOf(named.name) }, field.label),
+        button,
+      );
+    }
     if (field.type !== "color") return plainField(named, send);
     // A colour of the theme: its resolved colour, the value, a picker and "inherit".
     const id = keyOf(named.name);

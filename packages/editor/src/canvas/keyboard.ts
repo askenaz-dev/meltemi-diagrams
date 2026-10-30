@@ -26,6 +26,9 @@ export type CanvasCommand =
   | "tallerGrid"
   | "editLabel"
   | "renameId"
+  /** The text size of the selection, one common size up or down (decision 0067). */
+  | "growText"
+  | "shrinkText"
   | "delete"
   | "copy"
   | "cut"
@@ -150,6 +153,9 @@ export const KEY_BINDINGS: readonly KeyBinding[] = [
   bind({ key: "Enter", command: "editLabel" }),
   bind({ key: "F2", command: "editLabel" }),
   bind({ key: "F2", shift: true, command: "renameId" }),
+  // The keys slide tools give the text size; by the key's place, whatever Shift types there.
+  bind({ key: "Period", primary: true, shift: true, command: "growText" }),
+  bind({ key: "Comma", primary: true, shift: true, command: "shrinkText" }),
   bind({ key: "Delete", command: "delete" }),
   bind({ key: "Backspace", command: "delete" }),
   bind({ key: "c", primary: true, command: "copy" }),

@@ -164,6 +164,12 @@ diagram checkout: flow {
 - A box with named ports (`bus["Bus"] { port in west 30% }`) is entered at that exact point with
   `route r from a.east to bus.in`. `routing orthogonal|polyline|bezier` changes the connector
   shape for the diagram or, in a `style`, for one relation.
+- Text takes a font, size and weight in every profile: `style api { font "Roboto"; fontSize 16;
+fontWeight 600 }`, also in classes and rules (`rule note { font "Caveat" }`); icons, images and
+  pens refuse them. Name a bundled family, never a system one: Inter, IBM Plex Sans, Roboto, Open
+  Sans, Lato, Montserrat, Poppins, Nunito, Merriweather, Lora, Playfair Display, Cascadia Mono,
+  Roboto Mono, Source Code Pro, Patrick Hand, Caveat, Comic Neue (`pnpm mdg assets list` prints
+  them). A family nobody has is `layout.unmeasured-font` and measured with estimates.
 - Dashed means proposed: one statement, `style a, b, c { line dashed }`.
 - Numbered steps are relation labels `"1"`, `"2"` with `label r1 at 50% offset (16, 0)` and a
   dark style; the narrative goes in comments next to the relations.

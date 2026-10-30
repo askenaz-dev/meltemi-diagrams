@@ -743,7 +743,7 @@ describe("free language services", () => {
     expect(labels).not.toContain("decision");
   });
 
-  it("completes the text properties in free diagrams only, and shapes and radius in both", () => {
+  it("completes the alignment in free diagrams only, and text, shapes and radius in both", () => {
     const labels = (source: string) => {
       const { analysis, offset } = at(source);
       return completions(analysis, offset).map((c) => c.label);
@@ -751,9 +751,9 @@ describe("free language services", () => {
     const free = labels('diagram s: free {\n  box a "A"\n  style a { | }\n}\n');
     expect(free).toEqual(expect.arrayContaining(["shape", "radius", "fontSize", "textAlign"]));
     const flow = labels('diagram s: flow {\n  a["A"]\n  style a { | }\n}\n');
-    expect(flow).toEqual(expect.arrayContaining(["shape", "radius"]));
-    expect(flow).not.toContain("fontSize");
-    expect(flow).not.toContain("fontWeight");
+    expect(flow).toEqual(
+      expect.arrayContaining(["shape", "radius", "font", "fontSize", "fontWeight"]),
+    );
     expect(flow).not.toContain("textAlign");
     const shapes = labels('diagram s: free {\n  box a "A"\n  style a { shape | }\n}\n');
     expect(shapes).toHaveLength(24);

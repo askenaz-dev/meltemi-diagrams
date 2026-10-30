@@ -2,13 +2,16 @@
 /// <reference path="./fontkit.d.ts" />
 import * as fontkit from "fontkit";
 import {
+  BUNDLED_FAMILIES,
   FALLBACK_FAMILIES,
+  FONT_GROUPS,
   bundledFamily,
   formatUnicodeRange,
   nearestWeight,
   parseUnicodeRange,
   resolveFontStack,
   type BundledFamily,
+  type FontGroup,
 } from "./families.js";
 import { messages } from "./messages/index.js";
 
@@ -44,6 +47,22 @@ export interface ProjectFont {
   /** True when the font's `fsType` forbids embedding; it is used for measurement only. */
   readonly restricted: boolean;
   readonly source: string;
+}
+
+/**
+ * A family the library measures with, for pickers and listings: a bundled family in its group, or
+ * a project font in the group `project`.
+ */
+export interface FamilyInfo {
+  readonly family: string;
+  readonly group: FontGroup | "project";
+  /** The weights the family has files for, ascending. */
+  readonly weights: readonly number[];
+  /** The licence of a bundled family; a project font's licence is the project's to record. */
+  readonly license: string | null;
+  readonly source: "bundled" | "project";
+  /** True for a project font whose `fsType` forbids embedding: it measures text only. */
+  readonly restricted: boolean;
 }
 
 export type AddFontResult =
@@ -170,6 +189,36 @@ export class FontLibrary {
     return [...this.project.values()].flatMap((entry) =>
       [...entry.faces.values()].map((f) => f.info),
     );
+  }
+
+  /**
+   * Every family text can be measured with: the bundled families in the order of `FONT_GROUPS`,
+   * then the project fonts in the order they were added.
+   */
+  families(): FamilyInfo[] {
+    const rank = (group: FontGroup) => FONT_GROUPS.indexOf(group);
+    const bundled = [...BUNDLED_FAMILIES]
+      .map((family, index) => ({ family, index }))
+      .sort((a, b) => rank(a.family.group) - rank(b.family.group) || a.index - b.index)
+      .map(({ family }): FamilyInfo => ({
+        family: family.family,
+        group: family.group,
+        weights: [...family.weights],
+        license: family.license,
+        source: "bundled",
+        restricted: false,
+      }));
+    const project = [...this.project.values()].map((entry): FamilyInfo => ({
+      family: entry.family,
+      group: "project",
+      weights: [...new Set([...entry.faces.values()].map((f) => f.info.weight))].sort(
+        (a, b) => a - b,
+      ),
+      license: null,
+      source: "project",
+      restricted: !this.embeddable(entry.family),
+    }));
+    return [...bundled, ...project];
   }
 
   /** Whether a family's text may be embedded or outlined; false for restricted project fonts. */

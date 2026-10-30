@@ -254,9 +254,10 @@ A free diagram places objects by hand ([free.md](free.md)). It shares relations,
 | properties | as in flow, with `layout manual` default                                  |                                                                                              |
 
 Element, group and relation blocks also take `layer <name>`. The free style properties are
-`fontSize` (6 to 160), `fontWeight` (400, 500, 600, 700), `textAlign` (`left`, `center`,
-`right`), `verticalAlign` (`top`, `middle`, `bottom`) and `opacity` (0 to 1, not on relations);
-flow diagrams refuse them. `shape` takes the twenty-four shapes on boxes as on flow nodes
+`textAlign` (`left`, `center`, `right`), `verticalAlign` (`top`, `middle`, `bottom`) and
+`opacity` (0 to 1, not on relations); flow diagrams refuse them. `font` (a quoted font stack),
+`fontSize` (6 to 160) and `fontWeight` (400, 500, 600, 700) apply in every profile to what draws
+text ([fonts.md](fonts.md#the-font-size-and-weight-of-a-text)). `shape` takes the twenty-four shapes on boxes as on flow nodes
 ([free.md](free.md#text-and-shapes)); texts, icons, images, notes, stickies, lines and pens refuse
 it. Rules take the free kinds: `rule box { ... }`, `rule sticky { ... }`, `rule line { ... }`,
 `rule pen { ... }`.
