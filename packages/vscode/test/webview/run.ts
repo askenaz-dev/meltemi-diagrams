@@ -629,10 +629,14 @@ class Harness {
 
   /**
    * Opens the webview again over the state it kept, as VS Code does when a panel comes back, and
-   * with a new session, as after a restart of the extension.
+   * with a new session, as after a restart of the extension. `patch` changes that state as it is
+   * taken, in the same step: written into the page beforehand, it could be overwritten by the
+   * canvas, which keeps its whole state again each time it repaints the view.
    */
-  async reload(): Promise<void> {
-    const state = await this.page.evaluate(() => (window as { __state?: unknown }).__state);
+  async reload(patch?: Record<string, unknown>): Promise<void> {
+    const kept = await this.page.evaluate(() => (window as { __state?: unknown }).__state);
+    const state =
+      patch === undefined ? kept : { ...(kept as Record<string, unknown> | undefined), ...patch };
     (this as { session: CanvasSession }).session = new CanvasSession({ grid: 14 });
     await this.page.setContent(this.html(state));
     await this.settled();
@@ -1896,11 +1900,7 @@ const tests: {
       assert.equal(await motion(), "width 0s");
       await page.emulateMedia({ reducedMotion: "no-preference" });
       // A kept value that is not a boolean opens the panel, and the next fold writes a boolean.
-      await page.evaluate(() => {
-        const w = window as { __state?: Record<string, unknown> };
-        w.__state = { ...w.__state, inspector: "no" };
-      });
-      await h.reload();
+      await h.reload({ inspector: "no" });
       assert.equal(await aside.getAttribute("data-collapsed"), "false");
       assert.equal(await toggle.getAttribute("aria-pressed"), "true");
       await fold.click();
