@@ -40,7 +40,7 @@
 - [x] 6.1 `packages/cloud/test/browser/scenarios-administration.ts` (new), run by `test/browser/run.ts` against `wrangler dev`: the owner invites, a second session with the invited verified email accepts, grants a permission by email, the first session sees it in Recent changes, the owner removes the administrator; `scenarios-unbranded.ts` follows the permission routes
 - [x] 6.2 `docs/cloud.md` and `docs/es/cloud.md`: the roles, `ADMIN_SUBS` as the owners, the session fields, the routes table, the section "Administration" (invitations, lookup, permissions, the log), "Entitlements" rewritten around the section with the console calls on the permission routes, the tables of migration 0006, deletion
 - [x] 6.3 `docs/playground.md` and `docs/es/playground.md` (the Administration section and the invitee's view), `docs/security.md` and `docs/es/security.md` (who can do what, why no route lists accounts, the log's year of emails)
-- [x] 6.4 `docs/decisions/0065-administrators-and-permissions.md` (context, decision, the alternatives of the design, consequences), linked from `docs/decisions/0042-*.md` and `0061-unbranded-exports.md`; `CHANGELOG.md`: an "Account" entry and a "Playground" entry in the next version's section
+- [x] 6.4 `docs/decisions/0068-administrators-and-permissions.md` (context, decision, the alternatives of the design, consequences), linked from `docs/decisions/0042-*.md` and `0061-unbranded-exports.md`; `CHANGELOG.md`: an "Account" entry and a "Playground" entry in the next version's section
 
 ## 7. Gates
 

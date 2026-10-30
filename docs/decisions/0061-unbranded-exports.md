@@ -70,7 +70,7 @@ administrator action, the takedown, called from the page's own origin with the s
 - A grant shows at the person's next load of the page, which reads the session once.
 - The control is a convenience, not a lock: a theme with `frame none` exports without the brand for
   anybody, and the docs say so.
-- [Decision 0065](0065-administrators-and-permissions.md) makes the entitlement the permission
+- [Decision 0068](0068-administrators-and-permissions.md) makes the entitlement the permission
   `unbranded-exports` of a catalog, granted by owners and invited administrators from the account
   panel's Administration section, and replaces the three `…/entitlements` routes with routes by
   permission id.

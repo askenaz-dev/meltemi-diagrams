@@ -71,7 +71,7 @@ the branding one first. Post-1.0 change, outside the roadmap (`docs/roadmap-1.0.
 - **Documentation.** `docs/cloud.md` (roles, routes, the section's data, the log, "Entitlements"
   rewritten around the section), `docs/playground.md` (the Administration section),
   `docs/security.md` (who can do what, why there is no list of users) and their Spanish copies; the
-  changelog; decision 0065, linked from decisions 0042 and 0061.
+  changelog; decision 0068 (renumbered from 0065, which the sequence change had reserved), linked from decisions 0042 and 0061.
 
 ## Non-goals
 
@@ -122,4 +122,4 @@ the branding one first. Post-1.0 change, outside the roadmap (`docs/roadmap-1.0.
   `test/account-panel-model.test.ts`, `test/account-messages.test.ts`, `test/browser/run.ts`.
 - `docs/cloud.md`, `docs/es/cloud.md`, `docs/playground.md`, `docs/es/playground.md`,
   `docs/security.md`, `docs/es/security.md`, `CHANGELOG.md`,
-  `docs/decisions/0065-administrators-and-permissions.md`.
+  `docs/decisions/0068-administrators-and-permissions.md`.

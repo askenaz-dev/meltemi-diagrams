@@ -182,7 +182,7 @@ until now, are additive elsewhere.
   (`user.administration`) and pending invitation (`user.administrationInvitation`). Migration 0006
   adds `administrators`, `admin_invitations` and `admin_log`; new errors `admin.already`,
   `admin.limit` and `account.ambiguous`
-  ([decision 0065](docs/decisions/0065-administrators-and-permissions.md)).
+  ([decision 0068](docs/decisions/0068-administrators-and-permissions.md)).
 
 ### Canvas (VS Code and the playground)
 

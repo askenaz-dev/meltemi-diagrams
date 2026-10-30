@@ -1,4 +1,4 @@
-# 0065. Owners invite administrators, and administrators grant permissions from the account panel
+# 0068. Owners invite administrators, and administrators grant permissions from the account panel
 
 Status: accepted (administrators-and-permissions change, 29 October 2026). Extends decisions 0042
 and 0061.

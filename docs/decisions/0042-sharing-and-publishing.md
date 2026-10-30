@@ -80,6 +80,6 @@ API with the cookie attached. User-authored content therefore cannot live under 
   has `mdg publish` (the `cli-cloud` change), which uses the same routes.
 - [Decision 0061](0061-unbranded-exports.md) gives the administrators a second action beside the
   takedown: entitling an account to export without the Meltemi branding.
-- [Decision 0065](0065-administrators-and-permissions.md) makes the accounts of `ADMIN_SUBS` the
+- [Decision 0068](0068-administrators-and-permissions.md) makes the accounts of `ADMIN_SUBS` the
   owners, who invite administrators by email, and moves the takedown and the permissions into the
   account panel's Administration section.
