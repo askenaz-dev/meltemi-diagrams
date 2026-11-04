@@ -749,6 +749,40 @@ const tests: {
     },
   },
   {
+    name: "a zoom moves the drawing as a layer of its own, painted sharp again once the view rests",
+    html: playerPage(purchase, script),
+    async run(page) {
+      // A lasting will-change kept the drawing at the scale it was first painted at: blurred.
+      const hint = () =>
+        page.evaluate(() => {
+          const root = document.querySelector("meltemi-player")!.shadowRoot!;
+          return getComputedStyle(root.querySelector(".content")!).willChange;
+        });
+      const rested = () =>
+        page.waitForFunction(
+          () => {
+            const root = document.querySelector("meltemi-player")!.shadowRoot!;
+            return getComputedStyle(root.querySelector(".content")!).willChange === "auto";
+          },
+          null,
+          { timeout: 2000 },
+        );
+      await rested();
+      const before = (await viewer(page)).zoom;
+      const box = await page.evaluate(() => {
+        const r = document.querySelector("meltemi-player")!.getBoundingClientRect();
+        return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+      });
+      await page.mouse.move(box.x, box.y);
+      await page.keyboard.down("Control");
+      await page.mouse.wheel(0, -120);
+      await page.keyboard.up("Control");
+      assert.equal(await hint(), "transform", "moving: a layer the browser scales");
+      await rested();
+      assert.ok((await viewer(page)).zoom > before, "zoomed in");
+    },
+  },
+  {
     name: "leaves a plain wheel to the page while the drawing fits, and pans it once zoomed",
     html: playerPage(purchase, script).replace(
       "</body>",
