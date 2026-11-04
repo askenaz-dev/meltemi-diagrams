@@ -4,7 +4,7 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
-## 1.11.5
+## 1.11.6
 
 The web app at diagrams.meltemi.dev is called Meltemi Diagrams, no longer the playground: its tab,
 its header, which reads Web beside the name, About, its hints and the Worker's pages say so in

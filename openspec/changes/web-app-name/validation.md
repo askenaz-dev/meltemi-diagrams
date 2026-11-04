@@ -43,6 +43,6 @@ Run on 4 November 2026 in the worktree of branch `web-app-name`, from `origin/ma
   `docs/quality/results.md` carry the same label. Two more specs named the guide's file, so the
   change gained MODIFIED deltas for `localized-documentation` and `agent-skill`; the open changes
   `unbranded-by-donation`, `playground-sea` and `gantt-diagrams` now name `docs/web-app.md`.
-- 3.4: the changelog's entry sits under 1.11.5, the version the next main commit takes if this one
+- 3.4: the changelog's entry sits under 1.11.6, the version the next main commit takes if this one
   lands next; correct the heading at merge if another commit lands first.
 - 4.1: https://github.com/askenaz-dev/meltemi-web/pull/19, CI green, not merged.
