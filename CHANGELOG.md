@@ -1,0 +1,1176 @@
+# Changelog
+
+Every package of Meltemi Diagrams, the CLI and the VS Code extension share one version
+([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
+([language policy](docs/language/policy.md)).
+
+## 1.11.0
+
+A free composition becomes a whiteboard: freehand strokes and highlighter marks, sticky notes whose
+words fit the card, columns and rows that order their cards into a kanban board, a board that grows
+with what is drawn on it, and a story action that replays the strokes as they were drawn. Everything
+is still a statement of the sheet, drawn by hand on the canvas with a pen, a highlighter and an
+eraser, and seen by the room while it is drawn
+([decision 0064](docs/decisions/0064-whiteboard-tools.md)). The language stays 0.2: `pen`,
+`sticky`, the list properties, `opacity`, `preset board`, the three tokens and `draw` are additive.
+
+Sequence diagrams set the distance between participants and say which calls happen inside which:
+`spacing` for the whole diagram, a `gap` on either side of a participant that may bring it closer,
+a head drag that writes the gap, and a call's block that holds the events it causes, answered by
+`return` ([decision 0060](docs/decisions/0060-sequence-spacing-and-nested-calls.md)). The language
+stays 0.2: `spacing`, the sides, the negative `gap`, call blocks and `return` are additive.
+
+A sequence message's label keeps its line and wraps between its lifelines when a `gap` or the
+`spacing` pulls its participants closer, so a dragged head lands where it is dropped, down to the
+room of its heads and of the longest word; messages and participants carry tags, drawn as
+pills on the arrow and badges over the head; and an activation is a button, an inspector checkbox
+and a bar on the canvas to select, stretch and remove
+([decision 0065](docs/decisions/0065-sequence-wrap-tags-and-activation.md)). The language stays
+0.2: `tag "Text"` in a block is additive, and a `\n` in a message label, drawn as a space until
+now, breaks the line.
+
+Any text can take its own font, size and weight, in every profile: thirteen popular families join
+the four bundled ones (Roboto, Open Sans, Lato, Montserrat, Poppins, Nunito, Merriweather, Lora,
+Playfair Display, Roboto Mono, Source Code Pro, Caveat and Comic Neue), each measured, embedded and
+outlined like Inter; `font`, `fontSize` and `fontWeight` style a node, a group's title, a note, a
+tag, a relation's label, a participant, a message or a C4 container; and the canvas picks them
+from a font picker that shows each family in its own face, a size list with − and +, four weight
+chips and two keys ([decision 0067](docs/decisions/0067-font-families-and-text-size.md)). The
+language stays 0.2: `font` is a new style property, and `fontSize` and `fontWeight`, free-only
+until now, are additive elsewhere.
+
+### Language
+
+- Text in every profile: `font "<stack>"` (a quoted, non-empty font stack), `fontSize` (6 to 160)
+  and `fontWeight` (400, 500, 600 or 700) style everything that draws text, in `style`
+  statements, classes and rules; icons, images and pens refuse them. A written stack is measured
+  with its first bundled or project family alone, estimated and reported once as
+  `layout.unmeasured-font` when it has none, and drawn before the theme's stack so that a viewer
+  without it falls back as the theme does. A written size scales what the theme's token scales: a
+  box's description, a pill's height and padding, a tag's pill, a note's lines, a group's title
+  band, a sequence head and its row; boxes without `size` grow to hold it, and a written `size`
+  too small is `layout.text-overflow`. `textAlign`, `verticalAlign` and `opacity` stay free-only.
+  Nothing changes where nothing is written: every stored picture is the same.
+- The model JSON carries `font` as a string in style entries; the version stays 0.1.
+- Completion offers the bundled and project families after `font` (and `mono` in a theme), each
+  with its group; hover on a stack names the family it is measured with, or says it is estimated.
+
+- Pen strokes: `pen <id> [(x, y), (x, y), …]` is a freehand stroke of free diagrams, its points in
+  its group's interior like a line's, decimals kept; one point is a dot. It takes `stroke` (the
+  theme's `ink` by default), `width` (1 to 64, 3 by default), `line`, `opacity`, `arrowhead` and
+  `arrowtail`, and refuses a box's properties, `place`, `size` and `rotation`; `rule pen { }` styles
+  every stroke. It is drawn as one smooth path through the midpoints of its points, left alone by
+  the sketch themes, outside every composition check, and `flow`, `dash`, `pulse` and `trace` run
+  along it. The formatter prints a long stroke's points filled to 100 columns.
+- Stickies: `sticky <id> "Text"` is a square card (160 × 160 at the default label size, or its
+  `size`) that never grows: its text wraps at the card's width, shrinks down to 8 px to fit, and is
+  `layout.text-overflow` (warning) and clipped when it still does not. It has a soft shadow, the
+  theme's new `sticky` fill and `stickyText` colour, takes the text properties, `rotation`,
+  `opacity` and an icon, refuses `shape`, and is an endpoint of relations like a box.
+- Lists: a group block of a free diagram takes `layout column` or `layout row`, `spacing <n>` and
+  `align start|center|end|stretch`, and the group then places its children in source order along
+  its axis; a written `size` is its least size and it grows with its children. A `place` on a
+  child of a list is `layout.place-ignored` (warning). Lines and pens inside a list keep their
+  points, the engine treats a list as one box, and a row of columns with `align stretch` is a
+  kanban board.
+- `opacity <0..1>` is a style property of free diagrams (elements, groups, lines and pens), and
+  `width` takes 0 to 64 on every target. `rule line { }` and `rule pen { }` take heads.
+- `preset board` sizes the canvas from its content with no `layout.too-large`; the warning of
+  `preset document` and `preset slide` names it.
+- Themes gain the colour tokens `highlight`, `sticky` and `stickyText`, set in the eight built-in
+  themes and shown in the theme panel's new Whiteboard group.
+- Stories: `draw a, b [over <time>]` replays pens, free lines and named relations from their first
+  point to their last, one after another in proportion to their lengths, and leaves them drawn; a
+  target first shown by `draw` starts hidden. The player, the catalog and video exports show it.
+- The model JSON gives every element `pen` after `line` and `list` after `pen`; the version stays
+  0.1.
+- `spacing <n>` sets the distance between neighbouring heads of a sequence diagram, 0 to 400
+  diagram units, before their gaps; without it the layout keeps 40, scaled by the theme. The model
+  JSON writes `properties.spacing`, null without it.
+- `space <event> <n> [before|after]` and `gap <participant> <n> [before|after]` take a side,
+  `before` by default; both sides of a pair add up, and `space … after` on the last event lengthens
+  the lifelines. `placement.duplicate` is keyed on the target and the side, and the model JSON
+  writes `side` on every `space` and `gap`.
+- A `gap` may be negative, down to a floor: the two heads' halves and 8 units, and the room the
+  labels between them need. When the floor wins, `layout.gap-floor` (warning) on the `gap` names
+  the amount drawn. A negative gap before the first participant or after the last is
+  `prop.invalid-value`; a negative `space` stays an error.
+- A message's block holds the events the call causes (messages, notes, fragments, activations,
+  lifecycle events, dividers and delays) beside its properties. The receiver is active for the
+  block: one bar from the call's arrow to the block's last event, which a `deactivate` cannot end
+  (`sequence.activation`); explicit activations inside nest deeper.
+- `return ["Label"] [as <id>] [{ … }]` in a call's block is the dashed reply from the receiver to
+  the caller. It is a relation like any other, keyed with the other relations of its pair, so no
+  key moves, and the model JSON gives every relation `returns` after `async` (the call's key, or
+  null) and every message event its `events`. A `return` outside a call, or an event after a
+  `return` in the same list, is `sequence.return`; a `return` in a branch ends that branch.
+  Scenarios, numbering, styles, animations, completion, hover, the formatter and the VS Code
+  grammar know the nesting.
+- A sequence message's label stays on one line and holds its pair apart as before, its natural
+  distance. A pull, a negative sum of a pair's two `gap`s or a `spacing` below the default, brings
+  the pair closer than that by its amount, down to a floor (the heads, the longest word of each
+  label between them, a message's tags, self-calls and side notes), and the labels between them
+  wrap at the room left between the lifelines (their distance less 12 on each side, and less the
+  number's disc under `autonumber`), their lines 1.25 times the size apart; the row grows down,
+  the arrow is drawn under the last line, and `label … at` moves the whole block. `\n` in a label
+  breaks it. A self-call's label stays beside its loop, broken at `\n` only. `layout.gap-floor`
+  fires when a word, the heads or a message's tags do not fit, naming the amount drawn from the
+  natural distance, and the label audit checks each drawn line. Drawings without a pull do not
+  change; a negative `gap` beside long labels now draws its pair closer, as written.
+- `tag "Text"` in the block of a sequence message (a self-call or a `return` too) or participant
+  marks it with a short word, several in order: a message's tags are pills on its arrow next to
+  its source end, its label lifted to make room, and a participant's are badges centred over the
+  top edge of its head, the row of heads lower when any participant has one. They take the flow
+  tag's look (the theme's `tag` and `tagText`, `tagSize`, mono), have no id and go with their
+  owner in effects and stories. An empty text or a line break, another form (`tag t1 "PKCE"`) and
+  the same text twice on one owner (`prop.duplicate`) are refused, and so is `tag` at the diagram
+  level, in a group block or in a fragment (`prop.unknown`, with a hint saying where tags go).
+  Completion offers `tag` in those blocks, and hover names its owner.
+- The model JSON gives every element and relation `tags` after `classes`, `[{ "text", "range" }]`
+  and empty when none; the version stays 0.1. The model diff reports changed tags.
+- Layout results gain `messageTexts` (the room, lines and size of each message label), `bars`
+  (every activation bar with its participant, depth and ends) and `tags` (the pills of every
+  owner). Each activation bar is drawn as its own group of role `event` in its lifeline's group
+  (`<g data-id="activate#1" data-role="event">`), the written ones also in `boxes`, and each tag as
+  a group of role `tag` in its owner's (`data-tag` its index).
+
+### Playground
+
+- The properties panel at the right of the canvas folds to a rail, as the explorer and the code
+  pane do: from the button in its head, the toolbar's **Show the properties** toggle or Ctrl+Alt+B
+  (Cmd+Alt+B), and unfolds from the rail's button, the toggle or Ctrl+Alt+B again. The page
+  remembers the fold, and a first visit on a screen narrower than 1100 pixels starts with the rail.
+- Every icon button of the page shows its name and its key in the canvas's bubble after a moment
+  ("Undo (Ctrl+Z)", "Hide the code (Ctrl+J)"), and says the key to assistive technology; names no
+  longer hold keys, and the theme switch says which theme a press gives. The explorer, the code
+  pane and the properties each have their own picture
+  ([decision 0062](docs/decisions/0062-inspector-collapse-and-tooltips.md)).
+- An account an administrator entitled finds **Export without the Meltemi branding** under Theme
+  in the export dialog: the pictures, of every format, leave out the strip at the foot of the sheet,
+  the message says so, and the dialog's catalog button builds its pictures the same way. Profile
+  shows every person their account id with Copy, and an entitled person what the account may do
+  ([decision 0061](docs/decisions/0061-unbranded-exports.md)).
+- The account panel has an **Administration** section for the owners and administrators of the
+  service, and for a person invited to be one: **Administrators** (owners marked, remove, leave),
+  **Invitations** (owners only: invite an email, revoke), **Permissions** (each permission's
+  holders, revoke, and **Grant to** an account id, `@handle` or email), **Take down a publication**
+  and **Recent changes**. An invitee sees the invitation with **Accept** and **Decline**; the
+  avatar's menu offers **Administration** or **Invitation to administer**, and
+  `?account=administration` opens it for them alone. The section never lists the other accounts.
+- Two templates, **Kanban board** and **Whiteboard** (a sketched board with a story that draws its
+  strokes), among the New project cards; their thumbnails are drawn in each template's own theme.
+
+### Account
+
+- Owners and administrators entitle an account to export without the Meltemi branding, revoke it
+  and list the entitled accounts, recording who and when. `GET /api/session` answers
+  `user.entitlements.unbranded`, true for every owner and administrator. Migration 0005 adds the
+  three columns to `users`.
+- Exports take `branding: "none"` and layouts `frame: "none"`: the theme without its frame.
+- The service has two roles. The accounts of `ADMIN_SUBS` are the **owners**, administrators by
+  default; they invite administrators by email (`POST /api/admin/invitations`), revoke a pending
+  invitation and remove an administrator. An invitation sends no mail, lasts seven days and works
+  once: the person who signs in with that email verified accepts or declines it
+  (`POST /api/admin/invitations/<id>/accept` and `…/decline`), and signing in alone makes nobody an
+  administrator; at most ten pending and twenty administrators. Owners and administrators grant
+  and revoke permissions, a catalog whose first entry is `unbranded-exports`, with
+  `GET /api/admin/permissions/<id>` and `GET` and `PUT /api/admin/accounts/<account>/permissions/<id>`
+  (`{ "granted": boolean }`), which replace the three `…/entitlements` routes; `<account>` is an
+  account id, `@<handle>` or the one email an account signed in with verified, and no route lists
+  accounts. Every act, takedowns included, is written to a log, swept after a year.
+  `GET /api/admin` answers the section's data, and `GET /api/session` the person's role
+  (`user.administration`) and pending invitation (`user.administrationInvitation`). Migration 0006
+  adds `administrators`, `admin_invitations` and `admin_log`; new errors `admin.already`,
+  `admin.limit` and `account.ambiguous`
+  ([decision 0068](docs/decisions/0068-administrators-and-permissions.md)).
+
+### Canvas (VS Code and the playground)
+
+- The inspector has a head with a fold button and folds to a 36 px rail whose button unfolds it,
+  in step with the toolbar's toggle and kept with the canvas's state; the theme panel folds with
+  it. The fold writes nothing to the document and works on a read-only canvas. In VS Code it has
+  no key, since the workbench owns Ctrl+Alt+B.
+- Toolbar buttons are named without their key, which their tooltips show in parentheses and
+  `aria-keyshortcuts` says: "Show the layers (L)", the palette's "Node (N)" and "Icon (I)", the
+  split arrows' "More shapes (F)". The package exports `Tooltips` and `ariaKeyshortcuts` for hosts.
+- A participant's head dragged sideways and dropped short of a neighbour's centre writes its
+  `gap` before it, never below 0 on the first participant, instead of snapping back; dropped past
+  the centre it still reorders. When the floor wins, the status line says what was written and what
+  is drawn. The inspector gains **Participant spacing** on a sequence diagram, **Gap after** on a
+  participant, accepting a negative number except on the outer side, and **Space after** on an
+  event.
+- Alt+N nests the selected events in the call right before them, Alt+Shift+N moves the events of
+  the selected call (or of the call around the selection) out after it, writing each `return` as a
+  reply, and Alt+R appends a `return` to the call; the context menu lists **Nest in the call**,
+  **Unnest the call** and **Return to the caller** after **Activate the receiver**. Alt+Up and
+  Alt+Down move events into and out of call blocks, a call dragged down moves its block with it,
+  removing a call removes its block with what names the events in it, and the inspector shows a
+  `return`'s **Message**, **From** and **To** read-only.
+- A sequence message's label is typed where it wraps: the inline editor is as wide as the room
+  between the lifelines at the zoom, wraps there, keeps its first line in place and grows down;
+  Shift+Enter writes `\n`. A self-call's label keeps its one-line editor.
+- The sequence palette gains **Activate** ("Activate the receiver (Alt+A)"), which toggles the
+  receiver's `activate`/`deactivate` pair after the selected message as Alt+A does and is pressed
+  while the receiver is activated after it, and the message inspector gains **Activates the
+  receiver**, a checkbox for the same pair, checked and read-only with the reason on a call whose
+  block activates the receiver.
+- Activation bars are objects: a press on a written bar selects its `activate`, outlined, and the
+  status line names the participant and the messages the bar spans. Handles above and below a
+  selected bar drag its `activate` or `deactivate` to another row, the session's drawing of the
+  move shown before the release; an end the order rules refuse turns the handle `danger` with the
+  reason, and the bottom handle of an open bar writes its `deactivate`. Delete and the bar's
+  **Remove activation** remove the pair in one undo step, and a press on the bar of a call's block
+  selects the call. The edit package's `moveEvent` takes a destination
+  (`to: { after | before: <event> }`), and `removeEvent` of an `activate` or a `deactivate`
+  removes its pair.
+- Tags on sequence diagrams: T and the palette's **Tag** add `tag "Tag"` ("Marca" in Spanish) to
+  the selected message, else participant, and open the editor on the new pill; a double click
+  edits a pill in place and emptying it removes it; the pill's context menu offers **Edit tag** and
+  **Remove tag**; the inspector of a message or a participant lists its **Tags** with **Remove**
+  and a field that adds one. A press on a pill selects its owner. The edit package's `addTag`,
+  `setTag` and `removeTag` write the statements, creating and removing the block as needed.
+- Pen (P), Highlighter (H) and Eraser (E) on free diagrams. The pen button is a split button whose
+  menu holds Pen and Highlighter, the widths and the theme's colours, kept between sessions; the
+  tools stay in the hand after each stroke. A stroke is drawn as the layout will draw it while the
+  pointer moves, Shift keeps it straight, Escape cancels it, and the release writes a simplified
+  `pen` inside the innermost group that holds the whole stroke and is not a list, so a stroke never
+  resizes a column, with a `style` only for what differs from the defaults (the highlighter writes
+  `stroke highlight; width 20; opacity 0.35`). A stylus draws with palm rejection and erases with
+  its barrel button. The eraser takes every stroke it crosses, with its style, in one undo step, and
+  nothing else.
+- A selected stroke shows its bounds with resize handles that scale its points, moves by its
+  stroke and the arrow keys, and takes the strip's stroke, width, opacity, line and heads.
+- Sticky (S): a split button whose arrow picks the theme's colour or one of six fixed colours,
+  kept between sessions; the card's editor wraps the text as the card will.
+- The group menu adds Column and Row. Dragging cards over a list shows an insertion bar and the
+  cards make room before the drop; the drop moves the declaration to that place and removes its
+  `place`. A hovered or selected list shows a **+** that adds a sticky to a column or a column to a
+  row; Ctrl+Enter adds after the selected card and Alt+Up and Alt+Down move it among its siblings.
+  The inspector shows Layout, Spacing and Align.
+- The inspector's Opacity slider; the Canvas size field offers `board`.
+- Strokes of others: in a room, a stroke appears on the others' canvases while it is drawn, in its
+  colour and width, and the written `pen` replaces it when the drawing arrives.
+- The strip's Text group, for everything that draws text in every profile: **Font**, a button
+  that opens the font picker (a search, the families in groups, each row drawn in its own face,
+  **Theme** to inherit again); **Text size**, a field with the common sizes listed and − and +
+  that step every selected item from the size it draws; **Text weight**, four "Aa" chips. The
+  theme panel's **Text font** and **Code font** open the same picker. Ctrl+Shift+. and
+  Ctrl+Shift+, (Cmd on macOS), and **Larger text** and **Smaller text** in the context menu, step
+  the selection's size. The editor in place types in the text's family and size.
+
+### Command line
+
+- `init --template kanban` and `init --template whiteboard`; `init --list` prints seven templates.
+- The gallery gains `free/whiteboard` and `free/typography`, a specimen of the bundled fonts.
+- `assets list` starts with the bundled fonts (family, group, weights, licence), and calls the
+  project's own fonts "Project fonts".
+
+### Fonts
+
+- `@meltemi/diagrams-fonts` bundles thirteen more families from their Fontsource packages (OFL-1.1),
+  in the weights each publishes among 400 to 700 (Lato and Comic Neue 400 and 700): sans Roboto,
+  Open Sans, Lato, Montserrat, Poppins, Nunito; serif Merriweather, Lora, Playfair Display;
+  monospace Roboto Mono, Source Code Pro; handwriting Caveat, Comic Neue. `BundledFamily` records
+  each family's `group` and `license`, `FONT_GROUPS` orders the groups, and `FontLibrary.families()`
+  lists the bundled families and the project's. The VS Code extension and the playground carry
+  their subset files (3.9 MB more); the playground fetches a family the first time a text names
+  it. The licence inventory and the notices list the new packages.
+
+### Fixed
+
+- Ungrouping a group that a story named left the story pointing at nothing; the group now leaves
+  the story's actions, as it leaves its styles.
+- The playground's template thumbnails were drawn in the technical theme whatever theme the
+  template named.
+- The `gap` of a sequence diagram's first participant draws, as room left of it inside the
+  drawing; the layout read it and drew nothing.
+- A sequence participant's head dragged towards its neighbour landed short, the status line saying
+  `-300 written, 106 drawn: the labels need the room`, when a long message label crossed between
+  them: the label was kept on one line and held the pair apart at its whole width. The gap now
+  counts from the distance the label holds, the label wraps at the narrower room, and the head
+  lands where it is dropped.
+- The agent setup prompt is served as `text/markdown; charset=utf-8`. Without the charset, a client
+  that does not assume UTF-8, such as PowerShell's `Invoke-WebRequest`, read its dashes and
+  ellipses as Latin-1.
+- The agent setup prompt tells the agent to stop when Node is missing or older than 22.12, and never
+  to install or download Node or another tool itself: an agent whose sandbox could not run the
+  machine's Node downloaded one ([decision 0063](docs/decisions/0063-agent-setup-prompt.md)).
+
+The `examples/` folder holds the purchase project only; the first converted sheet is no longer
+part of the repository, and the file theme that the documentation, the corpus and the skill use as
+an example is called `acme`.
+
+## 1.10.0 (2026-10-28)
+
+The playground's project in one place: an explorer of folders and diagrams in the first column,
+with the project's switcher at its top, as VS Code lists a workspace
+([decision 0048](docs/decisions/0048-project-explorer.md)).
+
+Lines that are only lines, between two boxes or joining nothing, a hand-drawn look for whiteboards,
+and text at the top or the bottom of a shape, drawn from the canvas with the arrow tool and one
+alignment picker ([decision 0058](docs/decisions/0058-lines-sketch-and-text-alignment.md)). The
+language stays 0.2: the line tokens, `line`, `sketch` and `verticalAlign` are additive.
+
+A pointer for explaining a diagram, and notes that point at what they are about: K turns on a laser
+that draws a fading trail and edits nothing, and a `note` joins free compositions and C4 views with
+an `on <element>` clause that attaches it with a dotted leader
+([decision 0059](docs/decisions/0059-pointer-and-notes.md)). The language stays 0.2: `note` in free
+diagrams and views and the `on` clause are additive.
+
+One prompt sets up a coding agent: pasted into Claude Code, Codex or another agent, it has the
+agent read `https://diagrams.meltemi.dev/agent-setup/prompt.md`, install the `meltemi-diagrams`
+skill in the folders each agent reads and prove it with a validated sequence diagram
+([decision 0063](docs/decisions/0063-agent-setup-prompt.md)). Codex reads `.agents/skills`, no
+longer `.codex/skills`: a project whose skill 1.9.0 installed runs `skill install` again, and the
+old `.codex/skills/meltemi-diagrams` folder is yours to delete.
+
+### Language
+
+- Two relation tokens draw lines without heads: `a -- b` (solid) and `a --- b` (dashed), beside
+  `->`, `-->`, `<->` and `<-->`. The lexer takes the longest match, so `--->` is an error whose hint
+  names the six tokens. A line draws no head unless `arrowhead` or `arrowtail` is written. Flow and
+  free diagrams take the six; sequence diagrams the four arrows and C4 views `->` and `-->`, and
+  the others are `prop.invalid-value` naming the tokens they take. Relations record `heads`
+  (`end`, `both` or `none`), written to the model JSON after `twoWay`; completion, hover (which
+  now prints the token as written), the outline, the formatter and the VS Code grammar know them.
+- Free lines: `line <id> ["Label"] from (x, y) to (x, y) [via [(x, y), ...]]` draws a line that
+  joins no element (a divider, a bracket, an underline), its points in its group's interior like
+  `place`. It takes a relation's styles (`stroke`, `line`, `width`, `arrowhead` and `arrowtail`,
+  none by default, `routing`, `polyline` by default, `corners`, and the label pill's `color`,
+  `fill` and `icon`) and refuses a box's, `place`, `size` and `rotation`; `label <id> at …` moves
+  its pill, `rule line { }` styles every line, and `flow`, `dash`, `pulse` and `trace` run along
+  it. A line whose points coincide is drawn as a dot and reported as `layout.degenerate-line`
+  (warning). The model JSON gives every element `line` after `shape`.
+- `sketch none|light|rough`, a theme token, paints every outline, connector, head, label pill,
+  group band and the frame as a clean fill and two stroke passes with a small seeded wobble; text,
+  icons and images stay crisp, the layout is unchanged, the same text renders the same bytes, and
+  every export and the canvas show it. Two built-in themes, `sketch.light` and `sketch.dark`, are
+  the technical pair with `sketch light` and `corners rounded`, with Patrick Hand, a bundled hand
+  font, for the text: eight built-in themes in
+  all, and `sketch` is a reserved import name.
+- `verticalAlign top|middle|bottom`, a free style property beside `textAlign`, puts a box's text
+  block at the top or the bottom of its shape's text band, the theme's padding from its edge; in a
+  narrowing shape a wide block moves back towards the middle until it fits. Flow diagrams refuse
+  it. Where it moves nothing (the triangle, pentagon, star, person, agent and icon shapes, a centred
+  icon, texts, icons, images, groups and lines) it is `layout.vertical-align-ignored` (warning),
+  once per statement.
+- Notes: `note <id> "Text" [on <element>]` is a free kind and the one declaration a C4 view holds
+  (`on` takes the entity path the view draws). A free note is text at the theme's note size with no
+  frame until a style gives it a `fill`, `stroke` or `pattern`, and takes `fontSize`, `fontWeight`,
+  `textAlign`, `radius`, `color`, `icon` and `rotation`, and `description`, `class`, `layer`, `link`
+  and `url` in its block; `shape` is refused as on a text. `on` attaches the note to any other
+  element: the model records `attachedTo` (after `line` in the model JSON, null on every other
+  kind), renames rewrite the clause, a leader of dots joins the note to its element, and in
+  `layout auto` the arrangement keeps them near each other. An unknown target is
+  `ref.unknown-element`, a note on itself `prop.invalid-value`.
+- A moving dash runs on a note or a text that has an outline (a `fill`, `stroke` or `pattern` from
+  its styles, classes or a `rule`), and `animate.invalid-target` says so for one that has none.
+
+### Playground
+
+- The agent setup page, `https://diagrams.meltemi.dev/agent-setup/` and its Spanish twin
+  `es/agent-setup/`: the one prompt a person pastes into a coding agent, which has the agent read
+  `agent-setup/prompt.md`, install the skill and prove it with a validated sequence diagram; the
+  agents and their folders; and what the agent never does. A static page with no script and its
+  own policy, built beside the playground. The About dialog links it as "Drawing with coding
+  agents", and Continue locally lists `meltemi-diagrams skill install`
+  ([decision 0063](docs/decisions/0063-agent-setup-prompt.md)).
+- The code pane folds to a rail: the button at the end of the file's path, a double click on the
+  divider or Ctrl+J fold it to 36 px and the canvas takes the width, keeping its zoom and its
+  place; the rail's button or Ctrl+J unfold it at the share it had, which the page remembers with
+  the fold. The rail counts the open file's errors. Show in text, a definition, a problem's line and
+  a quick fix unfold it; opening a file and selecting on the canvas do not. On a phone the code
+  stays a tab ([decision 0057](docs/decisions/0057-panel-and-effects-polish.md)).
+- The explorer: a tree of the project's folders, diagrams and images; a file with several diagrams
+  or stories lists them, and a click shows one on the canvas. Errors and warnings are counted on each
+  file, and summed on a closed folder. The keys of a tree (arrows, Home, End, Enter, a letter, F2,
+  Delete, Ctrl+D, Shift+F10), drag and drop of rows and of files from your computer, a menu on
+  every row. Ctrl+B hides it to a rail, Ctrl+Shift+E goes to it; its width is dragged or set from
+  the keyboard and kept. On a phone it is the Files tab.
+- New diagram asks a name and a kind (flow, free composition, sequence) and writes an empty diagram
+  titled with the name; New folder, New file (for other files), rename, move, duplicate, download
+  (a folder as a `.zip`) and delete.
+- Renaming or moving a `.meltemi` file rewrites the imports that name it and its own, in one step
+  that Ctrl+Z undoes from any file, in the browser's project as in a cloud project.
+- `project.json` and the other files that describe the project are hidden until **Show all files**;
+  a hidden file with a problem says so; **Project settings** opens `project.json`, made when the
+  project has none. The project's name is edited in the explorer's header.
+- The Projects panel replaces the drawer, the header's Projects button and the Templates menu: New
+  project, Import project, Export project (.zip), Save this project to the cloud, Project settings,
+  this browser's project and the previous one, and the cloud projects with a filter above eight.
+- New project shows a card per template with a picture of its first diagram, its title, what it is
+  for and what it holds; signed in, a project is made in the account or, when chosen, in this
+  browser.
+- A project archive, opened, imported or dropped, asks where it goes: a new project in the account,
+  this browser, or the files of the open cloud project.
+- The path of the open file above the code; menus and dialogs fade in, folders open by their height,
+  rows made or moved flash once, and none of it moves with reduced motion.
+- Pointer trails in a room: the points of a Pointer stroke ride in the same presence message as the
+  pointer (`canvas.laser`, at most 64 points of at most a second, relayed once and never kept by
+  the room), and the others see the trail in the person's colour, point by point at the pace it was
+  drawn. The canvas is told the person's own colour (`me`) so the stroke and the dot cursor match
+  what the others see.
+
+### Account
+
+- The account panel: the avatar's Account and API tokens open one panel in the page, with Profile
+  (picture, name, the emails of your sign-ins, the publishing handle, Sign out), Sign-ins (unlink
+  one, link the other), Devices (sign out one device or all the others), API tokens (the dialog,
+  now a section), Usage (the limits too) and the Danger zone. Nothing opens a tab, a popup or a
+  frame; on a phone the panel is a sheet with its sections as tabs
+  ([decision 0049](docs/decisions/0049-account-panel.md)).
+- Linking a provider and deleting the account go to the identity service in the same tab, the work
+  kept first, and come back to the section they left (`?account=<section>`).
+- The Worker reads and changes the identity service's sign-ins and sessions on the person's behalf
+  (`/api/account/identity…`), signed as this product and carrying the person's session, so the page
+  keeps talking to its own origin only; it needs `@meltemi/identity` 0.2.0. New codes:
+  `identity.last`, `provider.unknown`, `session.current`, `session.not-found`, `rate.limited` and
+  `identity.unavailable`.
+- The publish dialog says what your handle is and that it changes in the account.
+
+### Canvas (VS Code and the playground)
+
+- Six arrow kinds: the arrow button's menu lists `->`, `-->`, `--` (line), `---` (dashed line),
+  `<->` and `<-->` with their pictures, the lines drawn without heads; R cycles the six and Shift
+  on the second click flips `--` and `---` as it flips `->` and `-->`. The strip shows the heads of
+  a line greyed as `none`, and its line row rewrites the token keeping the heads
+  ([decision 0058](docs/decisions/0058-lines-sketch-and-text-alignment.md)).
+- Drawing a line: on a free diagram, the armed relation tool dragged on empty canvas draws a line,
+  a ghost with the kind's dashes and heads snapped to the grid, Shift for 45°, Escape to cancel.
+  The release writes `line line1 from … to …` inside the group under the press, with the kind's
+  styles (`line dashed`, and the theme's arrowhead for the heads) in one edit, and selects it. A
+  press on an element still starts a relation.
+- Editing a line: a selected line shows its outline and a handle at each end, bend and middle of a
+  stretch. Dragging an end or a bend moves it, a middle adds a bend, a double click removes one,
+  and dragging the stroke or the arrow keys move the whole line, each drop rewriting the statement
+  in one undo step. Its label is typed in place and its pill dragged; the strip shows a relation's
+  rows.
+- The alignment picker: free boxes get a 3 × 3 **Text alignment** grid after **Shape**, free texts
+  a row of three, the written pair pressed and the default greyed. A cell writes `textAlign` and
+  `verticalAlign` in one step, the **Theme** chip removes both, and the arrows, Enter and Space
+  work it from the keyboard.
+- The theme panel's shapes and lines group gains **Sketch**, three pictures from a straight to a
+  rough line, and the strip's light and dark switch works on the sketch themes.
+- The settings of an effect sit with its toggle: under the strip's Effects row, one card per
+  effect that is on, headed by its name and its duration, holding repeat, delay, direction,
+  particles and colour as they apply; the card of an effect just turned on opens, the others start
+  closed, and a card opened or closed by hand stays so while the canvas lasts. Nothing of an effect
+  is listed after the element's other fields any more. The colour of flow particles, a pulse and a
+  trace is a row of the theme's chips with the picker, as fill and stroke are, and says that
+  `accent` applies without a written colour
+  ([decision 0057](docs/decisions/0057-panel-and-effects-polish.md)).
+- Effects that can be seen: flow particles and pulse halos take the theme's `accent`, as traces
+  did, instead of the target's own stroke (a grey dot on a grey line, a halo the colour of a pale
+  border), and a particle grows to `max(4, 1.5 × width)` and rides under its relation's label. The
+  canvas, the animated SVG, the players and the videos change with it; a written `color` still wins
+  and a moving dash keeps its line's colour
+  ([decision 0055](docs/decisions/0055-export-defaults-and-visible-effects.md)).
+- The relations of a C4 view are edited in its model from the canvas: a connection writes `a -> b`
+  into the model, dragging an end of an arrow onto another entity moves that end of the model
+  relation, and Delete removes the model relation with what names it, asking first when another
+  view draws it or an entity leaves the view with it. A style, an effect, a route or a label on a
+  relation the model did not name first names it there (`as shop_api_db`). When the model is in
+  another file of the project, both files change in one undo step, and the inspector writes the
+  model's fields there too ([decision 0051](docs/decisions/0051-c4-relations-from-the-canvas.md)).
+- Effects on what an import leaves anonymous: the Effects section shows for every relation of a C4
+  view and every message, note and fragment of a sequence diagram, and turning one on names the
+  target first (`as customer_web`, `note1`, `alt1`), as it does for flow relations.
+- Effects play from the moment a diagram is shown. The toolbar's **Pause effects** shows the
+  static drawing and becomes **Play effects**; the choice is kept per diagram of the file, so a
+  pause holds over a reload, and reduced motion starts paused. The style strip heads the toggles
+  with an **Effects** row like the route kind's, saying "off" or the effects that are on
+  ([decision 0052](docs/decisions/0052-canvas-feel-and-naming.md)).
+- The rotation handle turns an element by as much as the pointer turns about its centre since the
+  press, after the pointer has moved a few pixels: a click on the handle no longer writes
+  `rotation 60`. The element, its outline and its connectors follow the pointer without easing,
+  agree at every frame, and keep their place in a diagram with `layout auto`.
+- Sequence diagrams: a participant, database, collections or queue beside an actor is selected,
+  pulsed, highlighted in stories and edited on the box it is drawn as, not on the empty row above
+  it. Heads, activation bars, notes and lifelines are drawn in the theme's `muted` colour (lifelines
+  at half opacity) instead of the faint `line`, so the diagram reads at a glance.
+- A relation, message, note or fragment named by an edit (a label, a layer, a dotted line, a label
+  position, a moved label, a dragged end or bend, a style) stays selected under its new id; a style
+  on an unnamed note or fragment and the label position of an anonymous relation name it instead of
+  refusing.
+- C4 views grow from the canvas: the palette offers the kinds the view's level draws (persons and
+  systems; containers and data stores in a container view; components in a component view), and a
+  click declares the entity in the model, inside the view's scope where it belongs, includes and
+  places it, and opens its label, which goes into the model. Copy, paste and Duplicate declare
+  copies of entities, without their relations. A combination without an id is named in the view
+  for a style, an effect, a route or a label, and the C4 context menu's entry reads **Connect
+  to…** ([decision 0053](docs/decisions/0053-c4-entities-and-routes.md)).
+- Icons of your own: **Add icon…** at the foot of the icon picker and of the Libraries panel, in a
+  file of a project, picks SVG files and shows a dialog with the pack (`project` by default), the
+  licence of a new pack and a row per file with its preview, its name and what is wrong. Adding
+  writes `assets/icons/<pack>/<name>.svg`, the pack's licence and the Project library in one undo
+  step; the selected elements take the first icon, or the icon tool is armed with it. An empty
+  search of the picker shows the project's own packs before the Technology library
+  ([decision 0054](docs/decisions/0054-custom-icons.md)).
+- The problems of the assets (a pack without licence, an icon the sanitiser refuses) show in the
+  playground's explorer, on the file and its folders, and in VS Code's Problems view.
+- The Pointer tool: a toggle before the grid's, the key K and the status line announce it. While it
+  is on, a press and drag draws a trail 3 px wide tapering to 1 px that fades 800 ms after each
+  point, in the theme's accent, with a dot for a cursor; nothing is selected, moved, created,
+  connected, edited or opened, and Space-drag and the wheel still pan and zoom. It works on a
+  read-only canvas, is no part of the document, an export or the HTML views, and under reduced
+  motion the stroke holds until the pointer lifts.
+- Notes on flow, free and C4 canvases: the note button and O make a note with its editor open (on a
+  sequence diagram O still writes a note over the selection). Dropping the note tool on an element,
+  or clicking with it armed on one, attaches the note at the element's east edge, outlining the
+  element while the tool is over it; **Attached to** in the inspector writes or removes the
+  clause; Delete on an element lists the attached notes and keeps them; Copy, Paste and Duplicate
+  keep the attachment when the element is copied with the note; **Convert to Free Composition**
+  keeps notes as notes. A C4 note's inspector shows its own fields and none of an entity's, and
+  its text, id and removal are edited in the view.
+- The dash toggle appears on a note or a text that has an outline.
+
+### Command line
+
+- Exports take a default instead of asking: a video of effects that repeat forever lasts one loop
+  of their cycles (6 s with the engine's defaults; the longest cycle when the loop would pass 10 s),
+  a diagram without moving effects lasts 1 s, a transparent MP4 is drawn over the theme's
+  background, and a picture or video over 16384 pixels a side is made as large as fits. Each export
+  says what it chose after `Wrote`, on stderr; VS Code says it after Export Video, which no longer
+  asks for a length, and the playground shows the length greyed in its Duration field. Profiles
+  without `duration`, and MP4 profiles with `background transparent`, are no longer errors:
+  `export.missing-duration` is gone.
+- `init --list` prints each template's title, description and contents ("1 model, 2 views").
+- `skill install [folder]` gives a project's coding agents the skill that draws Meltemi diagrams,
+  in the folders the agents read: `.claude/skills/meltemi-diagrams/` for Claude Code and
+  `.agents/skills/meltemi-diagrams/` for Codex, Cursor, GitHub Copilot, Gemini CLI, Devin Desktop
+  and any other agent that reads `.agents/skills`. `--agent` takes `claude`, `codex`, `cursor`,
+  `copilot`, `gemini`, `windsurf`, `devin`, `agents` or `all` (the default), several as a
+  comma-separated list, and writes each folder once; `--user` writes your own folders and `--force`
+  replaces a copy. It writes skill folders only, with the commands named as they are installed
+  (`mdg validate`, `mdg preview`). `skill prompt` prints the agent setup prompt, the text an agent
+  follows to install the skill and prove it draws, which the package ships beside the skill. The
+  skill's front matter gains `license` and `metadata.version`, its description fits the Agent
+  Skills limit with when to use it first, its workflow opens with how to check the command line,
+  where sheets go and the token rule, and the cloud commands move to `reference/cloud.md`
+  ([drawing with coding agents](docs/agents.md),
+  [decision 0056](docs/decisions/0056-agent-skill-install.md),
+  [decision 0063](docs/decisions/0063-agent-setup-prompt.md)).
+- An SVG icon whose file name a reference cannot write (`My Logo (1).svg`) is left out of its pack
+  with the warning `asset.unusable-name`, which names the file to rename it to (`My-Logo-1.svg`).
+- `convert --to free` keeps notes as notes, with their `on` clause, instead of turning them into
+  texts with a `from_note` class, and the model JSON gives every element `attachedTo`.
+
+### Import
+
+- Links without heads become the line tokens instead of relations styled `arrowhead none`: Mermaid
+  `---` and `===` (with `width 3`) become `--`, `-.-` becomes `---`, architecture edges `a:R -- L:b`
+  become named `--` lines with their routes, and block-beta open links become lines; PlantUML
+  headless arrows become `--` (`---` when dotted), `*--` and the other UML heads on the left alone
+  become `--` with `arrowtail`, and note links `---`. Relations that were named only for that style
+  are anonymous now.
+
+### Fixed
+
+- An empty sequence diagram drew with an unknown width (`NaN`) on the canvas.
+- Moving an end of a C4 relation left the views' `route` statements at the old entity, so the next
+  edit of a view laid out with Arrange answered "The `route` statement for `uses` … is invalid"
+  and the canvas refused every edit. The move now rewrites the routes of every view of the
+  project, and refuses when it would break a view of another file.
+- PNG, PDF and video exports give a browser that is starting two minutes to answer, not thirty
+  seconds: a first start builds the browser's caches, which on a fresh or busy Linux machine took
+  longer and failed the export with "The browser did not answer Browser.getVersion".
+
+## 1.9.0 (2026-10-21)
+
+The first version published: on npm (`@meltemi/diagrams-*`), the Visual Studio Marketplace and
+Open VSX, with the hosted service at `https://diagrams.meltemi.dev`. It carries 1.8.0 and every
+version below, which were not published on their own.
+
+HTML diagrams that explain themselves: every drawing of the player, the catalog and the published
+page zooms and pans, shows a card when the pointer rests on a box or a line, opens a panel of
+details on a click, and opens what a box holds with a double click or its plus sign, the camera
+moving to the box and the view morphing into the one it opens
+([decision 0047](docs/decisions/0047-interactive-html-views.md)). The language stays 0.2: nothing
+is written to open a view; C4 views with `level` and `scope`, and `link`, are what boxes open.
+
+### Player and catalog
+
+- Zoom and pan in every HTML drawing: Ctrl or Cmd and the wheel (or a pinch) zoom around the
+  pointer from 10 % to 800 %, a plain wheel pans a drawing larger than its window and scrolls the
+  page otherwise, a drag pans, and `+`, `-`, `0` (fit), `1` (actual size) and Shift with an arrow
+  work from the keyboard; a zoom cluster joins the controls. The drawing first shows whole, never
+  above actual size. Zoom is never part of the frame: **Download SVG** and exports are unchanged.
+- The 100 ms step of the player moved from Shift with Left or Right to `,` and `.`.
+- Hover cards: the label, the C4 type and technology, the description (three lines) and the link
+  of an element; the label, ends, technology, description and assumption of a relation.
+- A detail panel on a click or a tap: type, technology, the full description, **Open link**, the
+  relations in and out, and in the catalog the stories that show the element, its entity and the
+  views scoped to it. Up and Down walk the elements, Enter shows their details, Escape closes. A
+  click on an element with a `url` selects it; Ctrl or Cmd and a click follows the link.
+- Drill-down: a plus sign marks a system whose container view exists, a container whose component
+  view exists, or an element whose `link` names a diagram; a double click, the plus sign or Enter
+  opens it with a camera move and a morph (a cross-fade when the boxes differ), a cut under
+  reduced motion. A trail names the views above; **Up**, Backspace and its crumbs go back.
+- `meltemi-diagrams export --format html` of a diagram bundles every view a drill-down reaches
+  across the project and says how many (`Wrote commerce.context.html (3 views)`); VS Code's
+  **Export HTML Player** writes the same page.
+- Player documents are at version 2 (`views` for diagrams, `details` per view) and catalog data at
+  version 2 (what elements open, the stories that show each element and relation, parents).
+- `<meltemi-player interactive="false">` draws the frame and the playback controls only.
+- The catalog no longer leaves the page on a click: a click selects, a double click or **Open**
+  goes to the opened view's page, which morphs in from the box; Back and Forward play the same
+  moves. Breadcrumbs name the views above a C4 view, the elements table says what each element
+  opens, an entity's page lists the views scoped to it, and `?element=` selects the element.
+- The viewport math of the canvas is shared with the player as `@meltemi/diagrams-layout/viewport`.
+
+## 1.8.0
+
+Plain containers, deliberate stacks and bands behind boxes, a corner radius per element, and
+twenty-four shapes that connectors meet and text fits, an AI agent among them, picked from the
+canvas by their pictures, created empty and given their text where it is drawn
+([decision 0043](docs/decisions/0043-containers-shapes-and-corners.md)); icons on any side or at
+the centre of a box, sized per element or drawn as the shape itself, found with one icon picker
+and dropped onto shapes; and short transitions on every popover, menu and panel of the canvas. The
+language stays 0.2: `radius`, `labelPosition`, `iconSize` and the new `shape` and `iconPosition`
+values are additive, flow nodes take `shape`, which they refused, and an untitled group changes no
+statement.
+
+### Language
+
+- `radius <n>` (0 to 64, with or without `px`) sets the corner radius of nodes, `rounded` boxes,
+  notes, framed texts, icons and images, and groups, over the theme's `radius` and `groupRadius`,
+  in styles, classes, rules (`rule group { radius 0 }`) and plugin kind styles; relations refuse
+  it.
+- `radius` also rounds the corners of `rectangle`, `square` and `framed` boxes and nodes, the
+  vertices of the polygons (`diamond` and decisions, `triangle`, `parallelogram`, `trapezoid`,
+  `pentagon`, `hexagon`, `octagon`, `star`, `arrow`, `flag`, `callout`) and the bodies of `person`
+  and `agent`; without it they keep square corners and sharp vertices
+  ([decision 0045](docs/decisions/0045-rotation-and-corner-radius.md)). Ellipses, circles, pills,
+  cylinders, clouds and documents have no corners and ignore it.
+- `rotation <degrees>` (0 to 360) turns an element of a flow diagram or a free composition
+  clockwise about the centre of its box, its text, icon and outside label with it, in styles,
+  classes and rules; `place` and `size` keep describing the unturned box. Groups, sequence
+  diagrams and C4 views refuse it with `prop.invalid-value`.
+- `shape` takes twenty-four values: `rounded`, `rectangle`, `square`, `ellipse`, `circle`,
+  `diamond`, `cylinder`, `pill`, `triangle`, `parallelogram`, `trapezoid`, `pentagon`, `hexagon`,
+  `octagon`, `star`, `cloud`, `document`, `callout`, `arrow`, `framed`, `flag`, `person`, `agent`,
+  an AI agent (`style planner { shape agent }`), and `icon`, the element drawn as its icon with
+  its label outside (`style fn { icon "aws:lambda"; shape icon }`). Flow `node`s take it as free
+  boxes do, and `rule node` and `rule box` may set it; decisions, data stores, notes, tags,
+  groups, free texts, icons and images, sequence participants and C4 entities refuse it with
+  `prop.invalid-value` naming `node` and `box`, in `style` statements as in rules. `fontSize`,
+  `fontWeight` and `textAlign` stay free-only.
+- `group <id> ""` without a description or an icon is untitled: a plain container whose interior
+  starts `groupPadding` below its top edge.
+- `iconPosition` takes `left`, `right`, `top`, `bottom` and `center` on nodes, decisions, data
+  stores and boxes, as a style property and as a theme token. `labelPosition` (`top`, `bottom` by
+  default, `left` or `right`) is the edge of the label when the icon is the centre piece
+  (`iconPosition center` or `shape icon`). `iconSize auto | <n>` (8 to 128, with or without `px`)
+  sizes an element's icon; the theme token keeps its 8 to 64. Relations and relation rules refuse
+  the three with the hint that they apply to elements, and `iconSize 200` is `prop.invalid-value`.
+  Plugin kind styles take them too.
+- The model JSON writes `shape` after `source` on every element: the shape the declaration
+  implies, such as `cylinder` for `id[("…")]`, or null. Its version stays 0.1.
+
+### Layout
+
+- Untitled groups draw only their outline, with no title, icon, description or gap in the
+  connectors that cross them; their children keep half the padding from every edge, and the
+  engine leaves `groupPadding` above them. Children of an untitled group are drawn 24 px higher
+  than before in the technical themes.
+- A box lying strictly inside a box declared before it on the same layer is a stack, not
+  `layout.overlap`; partial overlaps and coinciding boxes are still reported, and so are stacks
+  declared inner first, with a hint to declare the outer box first. Boxes and groups on different
+  layers are not checked against each other, `layout.container-margin` included, and connectors
+  are neither checked against nor routed around boxes on another layer or the boxes and groups
+  that hold one of their ends. A container's own label may lie over the boxes it holds.
+- A group with `place` and `size` is neither arranged nor an obstacle in `layout assisted`, so an
+  untitled group on a back layer is a band behind the boxes the engine places; a placed and sized
+  group with no children, and the relations that end on it, are left out of the engine's request.
+- Every shape has a default size, a text area that sizing, `layout.text-overflow` and the label
+  audit use, and an outline that connector ends meet: anchors, pinned points, named ports, lanes
+  and engine routes slide along their side's normal onto it, while the text keeps `side n%`.
+  Decisions with long labels grow until the label is inside the diamond, and connector ends on
+  decisions, data stores and tags now touch their outline. `layout.connector-crossing` follows the
+  outline, so a line through a diamond's empty corner is not reported.
+- `agent` is drawn as a robot head, a rounded square with two eyes, a mouth and an antenna ending
+  in a dot, over a rounded body that holds the text; 160 × 120 by default. The head and antenna
+  take at most a third of the height, so connectors spread along a side meet the body, and an end
+  on the north side meets the top of the head.
+- The labels of nodes, decisions, data stores, boxes and C4 entities break at `\n` into lines, as
+  descriptions, notes and texts did, and the box grows to hold them; one-line labels are drawn as
+  before.
+- In `layout auto`, a placed and sized group at the top level with nothing inside is a band drawn
+  where it is written, out of the engine's way, and its `place` is not reported as ignored; a
+  group's written `size` is the least size the engine gives it, its children centred inside
+  ([decision 0044](docs/decisions/0044-containers-from-the-canvas-and-arrangements-that-keep-the-picture.md)).
+  The engine interface passes it as `groups[].minimum` and returns the boxes of the groups.
+- Free ends of connectors drawn by the anchor rules that land less than a lane apart on one side of
+  a box spread a lane apart, ordered by where their other ends are, and a straight connector moves
+  whole; two connectors into one side no longer share an anchor and an arrowhead.
+- Rounded polygons are drawn with a curve through each vertex, cut `radius` along both edges, and
+  connectors, magnets, hit tests and text areas follow the rounded outline. A turned element's
+  scene group carries `transform="rotate(...)"`; connectors meet its turned outline (ports and
+  pinned points turn with it), and the engine, derived groups, obstacles, the checks and the
+  canvas size use the turned drawing's bounding box. `LayoutResult.rotations` and `radii` give the
+  angles and radii.
+- `meltemi-diagrams layout --all` writes the bends of the connectors the engine draws as `route …
+via [...]` with free ends, naming anonymous relations `<from>_<to>`, so the file keeps the
+  drawing of `layout auto`.
+- Icons at the `right` of the text or `bottom` mirror `left` and `top`, the icon and the text one
+  row or column centred in the text area. A written `iconSize` grows a box without `size` to hold
+  the icon with its text, taller for a large icon beside it; in a box with a written `size` a
+  number is clamped to the room the text leaves and `auto` fills it. With `iconPosition center`
+  the label takes a band at the `labelPosition` edge inside the box and the icon is centred in
+  the rest, as large as fits; such a node, decision, data store or box without `size` starts at
+  120 × 120, wider for a long label, and shapes other than rectangles grow until their inscribed
+  rectangle holds both. In a written `size` the centred icon keeps half the padding around it when
+  the room is short, and a `size` without room for an 8 px icon is `layout.text-overflow`. C4
+  entities take `left`, `right`, `top` and `bottom`, and draw `center` as `top`. Drawings without
+  these properties are unchanged.
+- `shape icon` draws the element's icon alone, filling its square: 64 × 64 at the 13 px label
+  size, or a written `iconSize`, and a `size` wins with the icon fitted inside. `fill`, `stroke`
+  or `pattern` frame it, and the frame grows the square by half the padding on each side, so the
+  icon keeps its size. The label and the description are drawn outside at `labelPosition`,
+  half the padding away, aligned by `textAlign`. Anchors, magnets, ports and compass sides use the
+  square; the engine, the composition checks, group margins, derived groups, connector obstacles
+  and the canvas size count the label too, the engine's routes end on the square, and the
+  element's own connectors pass under its label. `LayoutResult.elementLabels` gives the label box
+  of each icon shape.
+- New warnings: `layout.icon-missing`, on the `shape` of an element drawn as its icon without one,
+  which draws a dashed placeholder with the id; and `layout.label-position-ignored`, on a
+  `labelPosition` where the icon is not the centre piece, groups included, and once, on the
+  diagram's `theme`, for one a theme gives; on groups, tags, notes, texts, icons, images and C4
+  entities, whose icon is never the centre piece, its hint is to remove it. An icon shape whose
+  written `size` leaves its icon under 8 px is `layout.text-overflow`, with a size that holds it.
+
+### Canvas (VS Code and the playground)
+
+- The box and node buttons are split: the main part creates the current shape, the arrow opens a
+  grid of the twenty-four shapes with their pictures and names, and the choice is written as
+  `style <id> { shape … }` in the same edit. F opens the grid from the keyboard (type to filter,
+  Enter to create), B and N repeat the current shape, and a read-only canvas shows no arrows.
+- Nodes, decisions, data stores and boxes are created empty, as in draw.io and Excalidraw: the
+  palette, a drop, N, D, S, B and the shapes grid write `node1[""]`, `decision decision1 ""`,
+  `data1[("")]` or `box box1 ""` and select it without opening the label editor, and a
+  double-click, Enter or F2 adds the text. Notes, tags and free texts keep their default text and
+  open the editor, groups keep "Group", and library elements keep their label and open no editor.
+- Text is edited where it is drawn: a borderless text area over the shape's text area (the body of
+  `person` and `agent`), the label box, a group's title or a relation's label, in the drawing's
+  font, size at the zoom, weight, colour and alignment, with the drawn text hidden meanwhile and
+  the browser's autocomplete, spelling and correction off. It grows with its lines; Enter, Tab or
+  a click outside keeps the text, Shift+Enter starts a new line (written `\n`) in labels drawn on
+  several lines, and Escape cancels. Shift+F2 renames the id in the same editor, and sequence
+  notes, fragment conditions, dividers and delays use it too.
+- The arrow button is split for `->`, `-->`, `<->` and `<-->`; R cycles the kinds while the
+  relation tool is armed, and the status line names the current one.
+- Dragging a selection into a group, or out of its group, moves the declarations into that block
+  and writes their places in its interior, in one undo step (`moveElement`); Alt keeps the groups
+  and nudges never change them. A group dropped from the palette inside a group nests in it. The
+  inspector's Inside field moves an element too.
+- Alt+click and **Select the shape below** reach covered shapes; Ctrl with the arrows prefers the
+  nested shape. Clicks, magnets, the border point and the highlight follow a shape's outline.
+- The strip's **Shape** shows pictures, for free boxes and flow nodes only. **Corner radius** is a
+  slider from 0 to 64 with the radius drawn greyed, shown only where a radius is drawn: `rounded`
+  boxes and nodes, notes, the frames of free texts, icons and images, and groups.
+- A file without diagrams offers **Flow diagram**, **Free composition** and **Sequence diagram**
+  buttons and clears the diagram picker, the inspector, the minimap and the badges of the last
+  drawing; **New diagram** (+) beside the picker offers the same kinds in any file. Each writes
+  `diagram <id>: <type> { }` with the first free `diagram<n>`, after `language "0.2"` when the
+  file has none, in one undo step (`createDiagram`), and shows it. Read-only canvases and story
+  mode offer neither.
+- The diagram's **Canvas** field chooses fit to content, `document`, `slide` or a custom width and
+  height from 100 to 10000, writing `preset` or `canvas (w, h)` and removing the other in one undo
+  step.
+- The arrow part of a split button is a chevron at full contrast inside one outline with the main
+  part, with hover and focus states and the tooltips "More shapes (F)" and "Kinds of arrow (R
+  cycles)"; a right-click or a 450 ms press on the main part opens the same menu, and a short click
+  arms the tool.
+- While boxes of a flow diagram, a free composition or a C4 view are dragged or resized, their
+  connectors, labels and groups follow as the drop will draw them: the session plans the drop on a
+  copy of the text and answers the canvas's `preview` with the drawing, writing nothing. Escape
+  brings back the drawing from before the gesture.
+- The canvas protocol has the actions `createDiagram` and `preview`, the host message `preview`,
+  `creatable` on `empty`, and `text` on elements, relations and events (where their text is drawn
+  and in which font); hosts pass them on unchanged.
+- Completion and hover know the twenty-four shapes and `radius` in both profiles; completion
+  offers `auto` for `iconSize`, and the highlighting knows `labelPosition`, `iconSize` and
+  `shape icon`.
+- The group button is split: **Group** writes a titled group and **Container** an untitled one,
+  created with its place and size and selected without opening the label editor; G creates the
+  current kind. **Convert to container**, in the context menu and beside **Inside**, turns a flow
+  node or a free box into a group holding the boxes stacked on it, in one undo step
+  (`convertToContainer`): its `shape` goes (`square` and `rectangle` become `radius 0`) and its
+  size is kept. A box dropped on a box that is not a group is stacked on it, and the status line
+  says how to make that box its container.
+- **Recompute Layout** keeps the picture: it writes the engine's bends as waypoints, keeps bands
+  and container sizes, and says in the status line why when the diagram cannot be arranged.
+- A selected element shows a rotation handle beyond its top-right corner: dragging it turns the
+  element in 15° steps (Alt for any angle), live with its connectors, and the release writes
+  `rotation` in one undo step; Escape cancels. A turned element's selection, handles, magnets,
+  hit tests, resizing and text editor work in its own frame. The strip has **Rotation** (0 to 359)
+  and **Corner radius** wherever corners are drawn, polygons and rectangles included; the context
+  menu has **Rotate 90°** and **Reset rotation**.
+- One icon picker, a popover opened by I and the icon button on flow and free diagrams, by
+  **Icon…** in the context menu and by **Choose…** on the inspector's Icon field: it searches the
+  packs and the libraries as you type, groups the results with 24 px thumbnails and names, puts a
+  typed `pack:name` first and, with nothing typed, the icons chosen while the canvas is open, then
+  the Technology library's first category. Arrows move, Enter chooses, and Escape or the icon
+  button closes it; I typed in its search field is part of the query; read-only canvases never
+  open it, and on C4 views only **Choose…** does, with the packs' icons alone. With nodes,
+  decisions, data stores or boxes selected, a choice sets their icon in one undo step; without
+  them, the placement control (**Icon**, **In a box**, and **Only the icon** on free diagrams)
+  arms a tool whose ghost shows the icon: a click on a node, a decision, a data store or a box
+  gives it the icon, a click on empty canvas places it empty (`node1[""]` with
+  `style node1 { icon "aws:lambda"; shape icon }`), and Enter places it near the centre; on free
+  diagrams, **Only the icon** writes an `icon` object.
+- Icons of the picker and the Libraries panel dropped onto a node, a decision, a data store or a
+  box give it that icon and nothing else, the target outlined during the drag; dropped on empty
+  canvas they create the element. **Remove icon** in the context menu takes an element's own
+  icon away.
+- The Libraries panel has the same placement control, shared with the picker, and creates an
+  element drawn as its icon by default: `lambda1["AWS Lambda"]` with
+  `style lambda1 { icon "aws:lambda"; shape icon }`; **In a box** writes a node or a box of the
+  current shape with the icon beside its label. Its toggle's tooltip is "Libraries (U)".
+- The inspector's Icon field shows the icon's thumbnail, name and reference with **Choose…** and
+  **Remove**, and opens the canvas's picker on flow diagrams, free compositions and C4 views;
+  **Icon position** (also in the strip, after Shape) and **Label position** are picked from
+  pictures, the latter only when the icon is the centre piece, and C4 entities, which draw
+  `center` as `top`, get the other four positions; **Icon size** is a slider from 8 to 128 with
+  the drawn size greyed, **Auto** and **Clear**.
+- Icon shapes are selected, resized and connected on their square, while their label counts for
+  presses, the selection rectangle and connection drops; their label is edited in place outside
+  the square. Choosing `icon` in the shapes grid opens the icon picker.
+- Popovers and menus open from their anchor with a fade, a 4 px rise and a slight scale over
+  160 ms and close with a 120 ms fade; the Libraries and Layers panels slide in from the left, the
+  inspector and the theme panel from the right; tooltips appear after 400 ms; drop and connection
+  targets and the inline editor's outline fade in; buttons and chips change colour smoothly. They
+  run on the motion tokens of `canvas.css` (`--mdg-motion-fast`, `--mdg-motion`,
+  `--mdg-motion-slow`, `--mdg-ease`); when the system asks for reduced motion the durations are
+  zero and nothing moves.
+- The canvas protocol has the message `searchIcons`, answered by `icons`, the actions `setIcon`
+  and `removeIcon`, `create` with `icon` and `shape: "icon"`, and `takesIcon`, `icon` and
+  `labelBox` on elements; hosts pass them on unchanged. Hosts pick images only: icons are chosen
+  in the canvas, and the playground's icon dialog and the extension's icon list are removed.
+
+### Import
+
+- Mermaid flowcharts and block diagrams keep hexagons, parallelograms, trapezoids, circles,
+  stadiums, subroutines, flags, documents and triangles as `shape` styles; mirrored and double
+  forms are approximated to the nearest shape. Block arrows are boxes with `shape arrow`,
+  approximated when they do not point right, and nested blocks are untitled groups placed from
+  their padding.
+- PlantUML `cloud`, `hexagon`, `usecase`, `interface`, `circle`, `actor`, `person`, `card`, `file`
+  and `folder` keep a shape of their own instead of being approximated.
+
+### Fixed
+
+- Converting a flow diagram to a free one, and pasting a fragment, dropped `layers` and `layer`.
+- The shorthand `id[("…")]` lost its cylinder in the model JSON.
+- C4 entities were never checked for overlaps, crossings or margins inside their boundaries.
+- Changing a node with a `shape` into a decision, a data store, a note or a tag left a `shape` the
+  new kind refuses; the change now removes it.
+- Double-clicking a selected relation's label did not edit it: the handle in the middle of the
+  line took the second click.
+- The context menu, the Arrange menu and **Connect to…** opened a side panel's width away from
+  the pointer while the Libraries or Layers panel was open.
+
+### Delivery
+
+- The repository is public at `https://github.com/askenaz-dev/meltemi-diagrams`; every package,
+  the extension and the documents name it ([decision 0046](docs/decisions/0046-delivery.md)).
+- The hosted playground and its service run at `https://diagrams.meltemi.dev`, deployed from `main`
+  by `deploy.yml`; published pages are served at `https://meltemi.page/<handle>/<page>/`.
+- Releases are published by `release.yml` from a tag: the npm packages with provenance, the
+  extension on the Visual Studio Marketplace and Open VSX, and the GitHub release
+  ([releasing](RELEASING.md)).
+- The service's assets are served without running the Worker, which runs first only for its own
+  paths; the playground's build writes `_headers` with the two headers the Worker added.
+- The service reads its secrets from the family's Secrets Store; `ADMIN_SUBS` is a secret, no longer
+  a variable. Its infrastructure is Terraform in the Meltemi Web repository; nothing is configured
+  by hand.
+
+## 1.7.0
+
+Element libraries with the providers' icons, layers in flow diagrams, and connectors selected and
+outlined as drawn ([decision 0041](docs/decisions/0041-element-libraries.md)). The language stays
+0.2: `layers` and `layer`, which free compositions had, now work in flow diagrams too; nothing
+else changes in the text.
+
+### Icons and libraries
+
+- Built-in packs `aws` (AWS Architecture Icons), `azure` (Azure architecture icons), `gcp`
+  (Google Cloud icons), `kubernetes` (Kubernetes icons) and `logos` (SVG Logos), beside `tabler`,
+  with each icon's label and the vendors' categories; `pnpm vendor:icons` converts a new vendor
+  release. The vendors' terms are in `THIRD_PARTY_LICENSES.md` and in the notices of the
+  extension and the playground; `aws`, `azure` and `gcp` are marked as not freely redistributable.
+  A project pack may replace a built-in provider pack.
+- The **Libraries** panel (toolbar toggle, U): AWS, Azure, Google Cloud, Kubernetes and Tabler by
+  category, Technology from the logos, a project's `assets/libraries/*.json` and a plugin's
+  `libraries`, with a search box; a click or a drag creates a node (a box in free compositions)
+  with its label and `style <id> { icon "…" }`.
+- Iconify packs may carry `labels`; the playground fetches a provider pack the first time a
+  document or the panel needs it.
+
+### Layers
+
+- `layers` and `layer` in flow diagrams, painted layer by layer with groups first, then elements,
+  relations and tags; the inspector's Layer and Layers fields show there too.
+- The **Layers** panel (toolbar toggle, L): add, rename, remove, reorder, hide or show layers, and
+  move the selection to one. Hiding is a view of the canvas and writes nothing.
+- Element and relation groups on a layer other than `main` carry `data-layer` in the SVG.
+
+### Canvas
+
+- A selected connector's outline and its midpoint handle follow the connector as drawn: a Bézier
+  route's curve, rounded corners, detours.
+- The selection rectangle selects the connectors fully inside it, with the boxes.
+
+### Projects
+
+- `assets.lock.json` records the built-in provider packs: run `meltemi-diagrams assets lock` once
+  after upgrading.
+
+## 1.6.0
+
+Connectors go around boxes whatever their ends, and the canvas takes its colours from the theme
+([decision 0040](docs/decisions/0040-detours-and-canvas-colours.md)). The language stays 0.2: two
+theme tokens are added; drawings change only where a connector ran through a box.
+
+### Layout
+
+- In every layout mode, an `auto` or `orthogonal` connector without waypoints or lane whose route
+  — the engine's or the anchor rules' — runs through another box goes around it: free ends first
+  try the L and Z routes between side middles, then the shortest orthogonal detour that keeps the
+  connector's own ends and sides, pinned ones included.
+
+### Canvas (VS Code and the playground)
+
+- The handle that adds a bend sits on the connector as drawn, halfway along its stretch.
+- The selection, handles and guides take the diagram theme's `accent`, or its new `selection` and
+  `guide` tokens (theme panel › Canvas). Exports never use them, and styles cannot name them.
+
+### Fixed
+
+- **Recompute Layout** failed with "Text edits overlap" when it removed the last routes of the
+  `placement` block, and the playground could not start with such a file kept: the new places are
+  now written where the removed routes were.
+
+## 1.5.0
+
+Connectors meet boxes at any point of their border, and recomputing the layout lets the engine
+choose those points again ([decision 0039](docs/decisions/0039-border-connection-points.md)). The language stays 0.2: routes already took any percentage; no drawing
+of an existing file changes.
+
+### Canvas (VS Code and the playground)
+
+- Dragging a connector's end, or a new connection, over a box or within 12 px outside it shows the
+  box's outline and its magnets (the middle of each side, the corners and its named ports). The end
+  takes any point of the nearest side, to 1 %, or a magnet within 6 px; Alt turns the magnets off.
+- Hovering within 8 px outside a box's border shows the point a connection would start from; a
+  drag from there to another box creates the relation with its start pinned to that point, and its
+  end pinned when dropped on the target's border.
+- The canvas protocol's `connect` pins its start and its end independently.
+
+### Edits and the CLI
+
+- `arrange` with scope `all` (**Recompute Layout**, `meltemi-diagrams layout --all`) also frees
+  route ends: compass sides and points go, named ports stay, and a route left with nothing is
+  removed, so the engine chooses where connectors meet the boxes.
+
+## 1.4.0
+
+Connector ends pinned to points of sides
+([decision 0038](docs/decisions/0038-pinned-connector-ends.md)). The language stays 0.2: no valid
+file could write a percentage after a route end before, and no drawing of an existing file changes.
+
+### Language
+
+- `route save from api.east 50% to db.north 25%`: a percentage after a compass side pins the end
+  to that point of the side, like a named port, in every layout mode; bends do not move it. The
+  model JSON writes `position` on pinned ends.
+
+### Canvas (VS Code and the playground)
+
+- Dragging a connector's end, or a new connection, over a box shows its points (the middle and
+  the quarters of each side, and its named ports) and snaps to them; near a side the end takes the
+  pointer's point to 5 %, or 1 % with Alt; inside the box it is free again.
+- A connection dropped on one of the target's points pins both ends.
+- A double click on an end hands it back to the layout; a route left with nothing else goes.
+
+### Fixed
+
+- A double click on a bend removes it again: handles are redrawn between the two clicks, which
+  browsers did not count as a double click.
+- Removing a route's last bend no longer leaves `via []` behind.
+
+## 1.3.0
+
+English and Spanish ([decision 0037](docs/decisions/0037-languages.md)). The interface follows the
+person's language; exported files follow the project's, never the machine's, so the same sources
+still export the same bytes everywhere. English output is unchanged. The language stays 0.2.
+
+### Projects and exports
+
+- `project.json` takes `"locale": "en" | "es"`: the language of the words the tool adds to
+  exports, such as the type lines of C4 entities (`[Contenedor: Go]`), the controls and summary of
+  HTML players and the headings and search of catalogs, whose pages carry it as their `lang`.
+- Every command takes `--lang en|es`, for its files and its messages.
+- `@meltemi/diagrams-i18n`, the nineteenth public package: locales, typed catalogs in English and
+  Spanish, and formatting by language.
+
+### Editor, canvas and playground
+
+- VS Code: `meltemi.language` (`auto` follows VS Code's display language); command titles and
+  setting descriptions in both languages; changing the setting redraws open canvases.
+- The canvas, its inspector, theme panel, menus, announcements and story timeline in both
+  languages; words written into files, such as the label of a new node ("Nodo"), follow the
+  interface.
+- The playground follows the browser's language or the globe menu in its header, which reloads
+  the page keeping the work; the export dialog chooses the language of the export.
+- The inspector says "mixed" and "theme" through flags (`mixed`, `fromTheme`), so translating them
+  cannot change behaviour.
+
+### Messages
+
+- Diagnostics, hints and related notes, quick-fix titles, hover and completion, the reasons an
+  edit is refused, import findings and the command line's help and messages in the interface
+  language; codes, severities and ranges unchanged.
+- Diagnostics carry `data` (the ids they name, the alternatives a fix may write, the size that
+  fits a text), and quick fixes read it instead of words.
+
+### Documentation
+
+- The guides, the language reference, the tracks and the import pages in Spanish under
+  `docs/es/`, and `README.es.md`; every page links to its other language, and a test keeps both
+  in step (headings, code, links).
+
+### Fixed
+
+- The fix of an unknown theme rewrites the theme's value in a single file too.
+- The inline label editor no longer scrolls the canvas sideways near its right edge.
+
+## 1.2.0
+
+Arrow ends and shapes, and the trace effect
+([decision 0035](docs/decisions/0035-trace-effect.md),
+[decision 0036](docs/decisions/0036-connector-ends-and-shapes.md)). The language stays 0.2: every
+addition is something no valid file could contain before, and no drawing of an existing file
+changes. The model JSON keeps version 0.1 and gains `twoWay` on relations.
+
+### Language
+
+- Two-way arrows: `a <-> b` and `a <--> b` draw the head at both ends, in flow, free and sequence
+  diagrams.
+- `arrowtail` sets the head at a relation's source. `arrowhead` and `arrowtail` (and the theme
+  token `arrowhead`) take fifteen heads: `triangle`, `open`, `none`, `triangleOutline`,
+  `diamond`, `diamondOutline`, `circle`, `circleOutline`, `bar`, `cross`, and the crow's feet
+  `many`, `oneOrMany`, `onlyOne`, `zeroOrOne` and `zeroOrMany`.
+- `line dotted` draws round dots; `corners rounded` (style and theme token) rounds the bends of
+  straight and elbow connectors.
+- `effect trace`: a highlight that fills a relation from its start to its end, then fades and
+  starts again; `traceDuration` sets its default speed (1500 ms).
+
+### Canvas (VS Code and the playground)
+
+- The strip shows the line, the route kind, the corners and both heads as pictures; each head
+  opens a grid of every head. Dotted is written as a style, solid and dashed as the arrow.
+- A **Trace** toggle with its speed beside the other effects.
+
+### Import
+
+- Mermaid `<-->`, `o--o`, `x--x`, `--o`, `--x`, link curves and sequence `<<->>` and PlantUML
+  two-headed arrows, hollow triangles, diamonds, crosses and crow's feet are kept instead of
+  approximated.
+
+### Fixed
+
+- The new-theme dialog accepted ids with `-`, which the language refuses.
+
+## 1.1.0
+
+Styling and custom themes on the canvas
+([decision 0034](docs/decisions/0034-canvas-styling-and-themes.md)). The language stays 0.2: the
+new theme tokens are additions no valid file could contain before. The model JSON and the APIs
+are unchanged, and no drawing of an existing file changes.
+
+### Language
+
+- `flowDuration`, `dashDuration` and `pulseDuration`: a theme sets the default speed of each
+  effect, written with `ms` or `s` from 100 ms to 60 s. An effect's own `duration` still wins;
+  built-in themes write none, so the engine's 1200, 1000 and 1000 ms stay the defaults.
+
+### Canvas (VS Code and the playground)
+
+- The style strip at the top of the inspector: fill, stroke and text colour as chips of the
+  theme's sixteen colour tokens in the theme's own colours, a colour picker for a fixed colour,
+  **Theme** to inherit again; line, width and arrowhead; the effects as toggles with their speed
+  and the theme's default greyed; for the diagram, the theme with its light or dark counterpart.
+  Several items are styled in one edit.
+- Styles and effects on an anonymous relation name it first, as labels and routes do; relations
+  have a classes field.
+- **Choose…** on the Icon field picks an icon for elements and relations of every profile.
+- The relation tool (R; **Message** on sequence diagrams): click the source, then the target,
+  Shift for a dashed line; the new relation is selected.
+- **New theme from this one…** creates a theme that extends the diagram's, in the file or for the
+  project (`themes/<id>.meltemi` and the default in `project.json`, kept as formatted).
+- The theme panel edits a theme's tokens by group, in the file that holds the theme, with the
+  bundled and project fonts for text and code.
+
+### Edits
+
+- `createTheme`, `setThemeToken` and `removeThemeToken` operations, with minimal edits, inverse
+  plans and fixtures.
+
+## 1.0.0
+
+The first public version: the complete product described in the proposal.
+
+### Language and model
+
+- The `.meltemi` language 0.2: a lossless parser, stable diagnostics, comments and formatting kept
+  by every edit, and the formatter.
+- Four profiles in one model: `flow` diagrams, `free` compositions, `sequence` diagrams with
+  scenarios, and architecture models with C4 context, container and component views.
+- Projects with `project.json`, imports with namespaces, shared themes, models and stories across
+  files, assets with a lock, plugins that declare diagram types and icon packs as data, and limits
+  for untrusted repositories.
+- The model JSON interchange format (`convert --to json`).
+
+### Drawing
+
+- Six themes, a full token set, classes and rules, document and slide presets.
+- Bundled open fonts with measured text, embedded subsets or outlines.
+- The Tabler icon pack, Iconify and SVG packs, sanitised project images.
+- Automatic (ELK), assisted and manual layout, named ports, constraints, lanes, orthogonal,
+  straight and curved connectors that go around boxes, labels that slide clear, composition
+  checks and a label audit.
+
+### Motion and stories
+
+- Effects on a deterministic clock, the animated SVG profile and frames at any time.
+- Stories with scenes, reveals, highlights, camera, traces and transitions.
+- The HTML player, as a page or an embeddable fragment, accessible by keyboard and with reduced
+  motion.
+
+### Exports and delivery
+
+- SVG, PNG, PDF (vector, with fonts, text and links), MP4, WebM and GIF, through the installed
+  browser and FFmpeg, and export profiles in the sources.
+- The offline HTML catalog of a project.
+- Exports verified in Edge, Chrome and Firefox, deterministic by content, with a kit for slide
+  applications.
+
+### Tools
+
+- The `meltemi-diagrams` command (alias `mdg`): `init` with five templates, `preview`, `validate`,
+  `format`, `layout`, `convert`, `import`, `export`, `build catalog`, `review`, `assets`,
+  `plugins` and `assist`, with CI workflows for GitHub and GitLab.
+- Mermaid and PlantUML importers with coverage reports and re-import that keeps adjustments.
+- The VS Code extension: every language feature and a canvas beside the code where every gesture
+  is a small edit of the text.
+- The playground: templates, code and the same canvas in a static web page, every export, with no
+  account.
+- Optional AI assistance with Anthropic or OpenAI-compatible endpoints, as reviewable proposals.
+
+### Quality
+
+- The acceptance corpus, visual regression, determinism, performance targets on the reference
+  machine and the browser matrix, run together by `pnpm acceptance`.
+- The conformance suite (`pnpm conformance`) and the language change policy.
+- The release check (`pnpm release:check`).

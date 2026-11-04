@@ -1,0 +1,16 @@
+language "0.2"
+
+// The label of `save`, placed by hand, lies on the box of `cache`.
+diagram checkout: flow {
+  layout manual
+  api["API"]
+  db["Orders DB"]
+  cache["Cache"]
+  api -> db: "save order" as save
+  placement {
+    place api at (100, 100)
+    place db at (500, 100)
+    place cache at (300, 200)
+    label save at 50% offset (0, 100)
+  }
+}

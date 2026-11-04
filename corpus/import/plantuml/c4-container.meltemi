@@ -1,0 +1,30 @@
+language "0.2"
+
+// Imported from c4-container.puml (plantuml) by meltemi-diagrams.
+
+model shop_containers_model {
+  person user "User" { description "Buys things" }
+  system shop "Shop" {
+    container api "API" {
+      description "Orders"
+      technology "Kotlin"
+    }
+    datastore db "DB" { technology "PostgreSQL" }
+    container events "Events" { technology "Kafka" }
+  }
+  system bank "Bank" { external }
+
+  user -> shop.api: "Uses" { technology "HTTPS" }
+  shop.api -> shop.db: "Reads"
+  shop.api -> shop.events: "Publishes"
+  shop.api -> bank: "Pays"
+  bank -> shop.api: "Pays"
+}
+
+diagram shop_containers: c4 using shop_containers_model {
+  title "Shop containers"
+  level container
+  scope shop
+  include user, shop.api, shop.db, shop.events, bank
+  direction LR
+}

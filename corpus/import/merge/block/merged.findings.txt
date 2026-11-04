@@ -1,0 +1,3 @@
+20:5 info import.merge `place c at (84, 126)` was dropped: `c` is no longer in the source.
+21:5 info import.merge `size c (140, 56)` was dropped: `c` is no longer in the source.
+28:3 info import.merge `style c { shape rectangle }` was dropped: `c` is no longer in the source.

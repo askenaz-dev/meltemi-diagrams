@@ -1,0 +1,21 @@
+language "0.2"
+
+import "../themes/company.meltemi" as company
+
+diagram payment: flow {
+  title "Payment"
+  theme "company.base"
+  layout manual
+
+  api["API Gateway"]
+  payments["Payments"]
+  tag pci "PCI"
+
+  api -> payments: "authorize" as authorize
+
+  placement {
+    place api at (120, 60)
+    place payments at (360, 60)
+    place pci at (420, 26)
+  }
+}

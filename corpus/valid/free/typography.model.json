@@ -1,0 +1,809 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "typography",
+      "type": "free",
+      "range": {
+        "start": {
+          "offset": 188,
+          "line": 5,
+          "column": 1
+        },
+        "end": {
+          "offset": 1064,
+          "line": 34,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": null,
+        "title": "Typography",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null,
+        "spacing": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "heading",
+          "kind": "text",
+          "label": "Release notes",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 255,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 283,
+              "line": 9,
+              "column": 31
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 260,
+              "line": 9,
+              "column": 8
+            },
+            "end": {
+              "offset": 267,
+              "line": 9,
+              "column": 15
+            }
+          }
+        },
+        {
+          "id": "serif",
+          "kind": "box",
+          "label": "Merriweather heading",
+          "implicit": false,
+          "description": "Serif body",
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 286,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 347,
+              "line": 10,
+              "column": 64
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 290,
+              "line": 10,
+              "column": 7
+            },
+            "end": {
+              "offset": 295,
+              "line": 10,
+              "column": 12
+            }
+          }
+        },
+        {
+          "id": "mono",
+          "kind": "box",
+          "label": "npm run build",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 350,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 374,
+              "line": 11,
+              "column": 27
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 354,
+              "line": 11,
+              "column": 7
+            },
+            "end": {
+              "offset": 358,
+              "line": 11,
+              "column": 11
+            }
+          }
+        },
+        {
+          "id": "sans",
+          "kind": "box",
+          "label": "Montserrat, bold",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 377,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 404,
+              "line": 12,
+              "column": 30
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 381,
+              "line": 12,
+              "column": 7
+            },
+            "end": {
+              "offset": 385,
+              "line": 12,
+              "column": 11
+            }
+          }
+        },
+        {
+          "id": "idea",
+          "kind": "sticky",
+          "label": "Ship the fonts first",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 407,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 441,
+              "line": 13,
+              "column": 37
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 414,
+              "line": 13,
+              "column": 10
+            },
+            "end": {
+              "offset": 418,
+              "line": 13,
+              "column": 14
+            }
+          }
+        },
+        {
+          "id": "remark",
+          "kind": "note",
+          "label": "Measured with the bundled fonts",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 444,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 489,
+              "line": 14,
+              "column": 48
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 449,
+              "line": 14,
+              "column": 8
+            },
+            "end": {
+              "offset": 455,
+              "line": 14,
+              "column": 14
+            }
+          }
+        }
+      ],
+      "relations": [],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "heading",
+          "x": 360,
+          "y": 40,
+          "range": {
+            "start": {
+              "offset": 509,
+              "line": 17,
+              "column": 5
+            },
+            "end": {
+              "offset": 535,
+              "line": 17,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 515,
+              "line": 17,
+              "column": 11
+            },
+            "end": {
+              "offset": 522,
+              "line": 17,
+              "column": 18
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "serif",
+          "x": 160,
+          "y": 160,
+          "range": {
+            "start": {
+              "offset": 540,
+              "line": 18,
+              "column": 5
+            },
+            "end": {
+              "offset": 565,
+              "line": 18,
+              "column": 30
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 546,
+              "line": 18,
+              "column": 11
+            },
+            "end": {
+              "offset": 551,
+              "line": 18,
+              "column": 16
+            }
+          }
+        },
+        {
+          "statement": "size",
+          "target": "serif",
+          "width": 240,
+          "height": 72,
+          "range": {
+            "start": {
+              "offset": 570,
+              "line": 19,
+              "column": 5
+            },
+            "end": {
+              "offset": 590,
+              "line": 19,
+              "column": 25
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 575,
+              "line": 19,
+              "column": 10
+            },
+            "end": {
+              "offset": 580,
+              "line": 19,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "mono",
+          "x": 460,
+          "y": 160,
+          "range": {
+            "start": {
+              "offset": 595,
+              "line": 20,
+              "column": 5
+            },
+            "end": {
+              "offset": 619,
+              "line": 20,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 601,
+              "line": 20,
+              "column": 11
+            },
+            "end": {
+              "offset": 605,
+              "line": 20,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "size",
+          "target": "mono",
+          "width": 200,
+          "height": 56,
+          "range": {
+            "start": {
+              "offset": 624,
+              "line": 21,
+              "column": 5
+            },
+            "end": {
+              "offset": 643,
+              "line": 21,
+              "column": 24
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 629,
+              "line": 21,
+              "column": 10
+            },
+            "end": {
+              "offset": 633,
+              "line": 21,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "sans",
+          "x": 720,
+          "y": 160,
+          "range": {
+            "start": {
+              "offset": 648,
+              "line": 22,
+              "column": 5
+            },
+            "end": {
+              "offset": 672,
+              "line": 22,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 654,
+              "line": 22,
+              "column": 11
+            },
+            "end": {
+              "offset": 658,
+              "line": 22,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "size",
+          "target": "sans",
+          "width": 220,
+          "height": 56,
+          "range": {
+            "start": {
+              "offset": 677,
+              "line": 23,
+              "column": 5
+            },
+            "end": {
+              "offset": 696,
+              "line": 23,
+              "column": 24
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 682,
+              "line": 23,
+              "column": 10
+            },
+            "end": {
+              "offset": 686,
+              "line": 23,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "idea",
+          "x": 200,
+          "y": 360,
+          "range": {
+            "start": {
+              "offset": 701,
+              "line": 24,
+              "column": 5
+            },
+            "end": {
+              "offset": 725,
+              "line": 24,
+              "column": 29
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 707,
+              "line": 24,
+              "column": 11
+            },
+            "end": {
+              "offset": 711,
+              "line": 24,
+              "column": 15
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "remark",
+          "x": 520,
+          "y": 340,
+          "range": {
+            "start": {
+              "offset": 730,
+              "line": 25,
+              "column": 5
+            },
+            "end": {
+              "offset": 756,
+              "line": 25,
+              "column": 31
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 736,
+              "line": 25,
+              "column": 11
+            },
+            "end": {
+              "offset": 742,
+              "line": 25,
+              "column": 17
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [
+        {
+          "target": "heading",
+          "targetKind": "element",
+          "properties": {
+            "font": "Playfair Display",
+            "fontSize": 32,
+            "fontWeight": 700
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 764,
+              "line": 28,
+              "column": 3
+            },
+            "end": {
+              "offset": 834,
+              "line": 28,
+              "column": 73
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 770,
+              "line": 28,
+              "column": 9
+            },
+            "end": {
+              "offset": 777,
+              "line": 28,
+              "column": 16
+            }
+          }
+        },
+        {
+          "target": "serif",
+          "targetKind": "element",
+          "properties": {
+            "font": "Merriweather"
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 837,
+              "line": 29,
+              "column": 3
+            },
+            "end": {
+              "offset": 872,
+              "line": 29,
+              "column": 38
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 843,
+              "line": 29,
+              "column": 9
+            },
+            "end": {
+              "offset": 848,
+              "line": 29,
+              "column": 14
+            }
+          }
+        },
+        {
+          "target": "mono",
+          "targetKind": "element",
+          "properties": {
+            "font": "Roboto Mono",
+            "fontSize": 14
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 875,
+              "line": 30,
+              "column": 3
+            },
+            "end": {
+              "offset": 921,
+              "line": 30,
+              "column": 49
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 881,
+              "line": 30,
+              "column": 9
+            },
+            "end": {
+              "offset": 885,
+              "line": 30,
+              "column": 13
+            }
+          }
+        },
+        {
+          "target": "sans",
+          "targetKind": "element",
+          "properties": {
+            "font": "Montserrat",
+            "fontWeight": 700
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 924,
+              "line": 31,
+              "column": 3
+            },
+            "end": {
+              "offset": 972,
+              "line": 31,
+              "column": 51
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 930,
+              "line": 31,
+              "column": 9
+            },
+            "end": {
+              "offset": 934,
+              "line": 31,
+              "column": 13
+            }
+          }
+        },
+        {
+          "target": "idea",
+          "targetKind": "element",
+          "properties": {
+            "font": "Caveat",
+            "fontSize": 24
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 975,
+              "line": 32,
+              "column": 3
+            },
+            "end": {
+              "offset": 1016,
+              "line": 32,
+              "column": 44
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 981,
+              "line": 32,
+              "column": 9
+            },
+            "end": {
+              "offset": 985,
+              "line": 32,
+              "column": 13
+            }
+          }
+        },
+        {
+          "target": "remark",
+          "targetKind": "element",
+          "properties": {
+            "font": "Nunito",
+            "fontSize": 12
+          },
+          "classes": [],
+          "range": {
+            "start": {
+              "offset": 1019,
+              "line": 33,
+              "column": 3
+            },
+            "end": {
+              "offset": 1062,
+              "line": 33,
+              "column": 46
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 1025,
+              "line": 33,
+              "column": 9
+            },
+            "end": {
+              "offset": 1031,
+              "line": 33,
+              "column": 15
+            }
+          }
+        }
+      ],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

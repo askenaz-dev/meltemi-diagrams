@@ -1,0 +1,9 @@
+language "0.2"
+
+model commerce {
+  system shop "Commerce"
+}
+
+diagram context: c4 using comerce {
+  level context
+}

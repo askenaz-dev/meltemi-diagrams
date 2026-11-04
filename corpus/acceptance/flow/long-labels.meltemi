@@ -1,0 +1,28 @@
+language "0.2"
+
+// Long labels: names, descriptions and relation labels far longer than a default box, with
+// accents, laid out automatically from left to right.
+diagram longLabels: flow {
+  title "Integración de pagos con proveedores externos"
+  description "Cada etiqueta es más larga que una caja por omisión"
+  direction LR
+
+  customer["Cliente con cuenta empresarial verificada"] {
+    description "Compra desde la aplicación móvil o la web"
+  }
+  gateway["API Gateway de pagos y autorización"] {
+    description "Valida firmas, límites y la identidad del comercio"
+  }
+  decision review "¿Requiere revisión manual por cumplimiento?"
+  provider["Proveedor externo de tarjetas y transferencias"]
+  ledger[("Libro mayor de transacciones conciliadas")] {
+    description "PostgreSQL con réplicas de lectura"
+  }
+  note audit "Toda decisión de riesgo queda registrada\ncon su motivo y su autor"
+
+  customer -> gateway: "Solicita autorización del cargo con un token de un solo uso" as authorize
+  gateway -> review: "Evalúa el riesgo de la operación" as assess
+  review -> provider: "Aprobado automáticamente por las reglas de riesgo" as approve
+  review --> ledger: "Pendiente de conciliación manual" as hold
+  provider -> ledger: "Confirma la liquidación del pago" as settle
+}

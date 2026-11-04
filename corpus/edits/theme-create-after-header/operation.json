@@ -1,0 +1,8 @@
+{
+  "operation": {
+    "kind": "createTheme",
+    "theme": "brand",
+    "extends": "editorial.light"
+  },
+  "diagram": "d"
+}

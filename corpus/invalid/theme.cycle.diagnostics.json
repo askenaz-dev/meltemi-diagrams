@@ -1,0 +1,44 @@
+[
+  {
+    "code": "theme.cycle",
+    "severity": "error",
+    "message": "Theme `a` inherits from itself through `extends`.",
+    "range": {
+      "start": {
+        "offset": 22,
+        "line": 3,
+        "column": 7
+      },
+      "end": {
+        "offset": 23,
+        "line": 3,
+        "column": 8
+      }
+    },
+    "hints": [
+      "Make one theme of the chain extend a built-in theme instead."
+    ],
+    "related": []
+  },
+  {
+    "code": "theme.cycle",
+    "severity": "error",
+    "message": "Theme `b` inherits from itself through `extends`.",
+    "range": {
+      "start": {
+        "offset": 49,
+        "line": 7,
+        "column": 7
+      },
+      "end": {
+        "offset": 50,
+        "line": 7,
+        "column": 8
+      }
+    },
+    "hints": [
+      "Make one theme of the chain extend a built-in theme instead."
+    ],
+    "related": []
+  }
+]

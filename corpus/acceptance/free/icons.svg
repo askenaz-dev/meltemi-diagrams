@@ -1,0 +1,188 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1008" height="751" viewBox="0 0 1008 751" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Serverless checkout</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1008" height="751" fill="#07111F"/>
+  <g data-id="cloud" data-role="element">
+    <rect x="162" y="106" width="560" height="360" rx="14" fill="#0B1830" stroke="#183149" stroke-width="1"/>
+    <text x="182" y="128.73" text-anchor="start" font-size="13" font-weight="600" fill="#F7FBFF">AWS</text>
+  </g>
+  <g data-id="heading" data-role="element">
+    <text x="412.5" y="44.73" text-anchor="start" font-size="24" font-weight="600" fill="#F7FBFF">Serverless checkout</text>
+  </g>
+  <g data-id="shopper" data-role="element">
+    <g data-id="tabler:user" data-role="icon" transform="translate(20 204) scale(2.667)">
+      <path d="M8 7A4 4 0 1 0 16 7A4 4 0 0 0 8 7" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M6 21L6 19A4 4 0 0 1 10 15L14 15A4 4 0 0 1 18 19L18 21" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="52" y="287.23" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">Shopper</text>
+  </g>
+  <g data-id="cdn" data-role="element">
+    <g data-id="aws:cloudfront" data-role="icon" transform="translate(226 204) scale(0.8)">
+      <path d="M0 0L80 0L80 80L0 80Z" fill-rule="evenodd" fill="#8C4FFF" stroke="none" stroke-width="0"/>
+      <path d="M55.122 52.123C55.122 50.469 53.776 49.123 52.122 49.123C50.468 49.123 49.122 50.469 49.122 52.123C49.122 53.777 50.468 55.123 52.122 55.123C53.776 55.123 55.122 53.777 55.122 52.123L55.122 52.123ZM57.122 52.123C57.122 54.88 54.879 57.123 52.122 57.123C49.365 57.123 47.122 54.88 47.122 52.123C47.122 49.366 49.365 47.123 52.122 47.123C54.879 47.123 57.122 49.366 57.122 52.123L57.122 52.123ZM30.392 37.692C30.392 36.038 29.046 34.692 27.392 34.692C25.737 34.692 24.392 36.038 24.392 37.692C24.392 39.346 25.737 40.692 27.392 40.692C29.046 40.692 30.392 39.346 30.392 37.692L30.392 37.692ZM32.392 37.692C32.392 40.449 30.148 42.692 27.392 42.692C24.635 42.692 22.392 40.449 22.392 37.692C22.392 34.935 24.635 32.692 27.392 32.692C30.148 32.692 32.392 34.935 32.392 37.692L32.392 37.692ZM39.73 22.007C39.73 23.661 41.076 25.007 42.73 25.007C44.385 25.007 45.73 23.661 45.73 22.007C45.73 20.352 44.385 19.007 42.73 19.007C41.076 19.007 39.73 20.352 39.73 22.007L39.73 22.007ZM37.73 22.007C37.73 19.25 39.974 17.007 42.73 17.007C45.487 17.007 47.73 19.25 47.73 22.007C47.73 24.764 45.487 27.007 42.73 27.007C39.974 27.007 37.73 24.764 37.73 22.007L37.73 22.007ZM66 40C66 30.727 61.028 22.148 53.012 17.509C51.575 17.799 50.185 18.196 48.451 18.823L47.771 16.942C48.676 16.616 49.486 16.352 50.266 16.126C47.046 14.737 43.548 14 40 14C38.311 14 36.649 14.175 35.025 14.492C36.201 15.18 37.244 15.866 38.257 16.634L37.048 18.227C35.62 17.145 34.14 16.228 32.197 15.21C22.378 18.298 15.306 26.958 14.183 37.128C16.242 36.711 18.219 36.484 20.414 36.43L20.463 38.429C18.163 38.486 16.187 38.73 14.027 39.205C14.018 39.47 14 39.738 14 40C14 48.658 18.283 56.636 25.327 61.447C24.074 57.716 23.45 54.19 23.45 50.746C23.45 48.782 23.788 47.169 24.145 45.462C24.228 45.067 24.312 44.665 24.394 44.248L26.357 44.635C26.273 45.059 26.187 45.47 26.103 45.873C25.753 47.545 25.45 48.989 25.45 50.746C25.45 54.654 26.308 58.695 28.054 63.083C31.773 65.014 35.789 66 40 66C42.756 66 45.446 65.56 48.012 64.714C49.019 62.727 49.766 60.852 50.39 58.699L52.311 59.256C51.855 60.826 51.332 62.253 50.709 63.677C52.323 62.951 53.85 62.053 55.283 61.005C54.938 60.159 54.568 59.318 54.159 58.499L55.948 57.604C56.296 58.3 56.615 59.012 56.92 59.728C62.705 54.775 66 47.66 66 40L66 40ZM68 40C68 48.727 64.034 56.799 57.121 62.149C55.409 63.479 53.552 64.583 51.589 65.472C50.756 65.85 49.908 66.2 49.036 66.494C46.156 67.493 43.113 68 40 68C35.4 68 30.832 66.854 26.788 64.686C17.667 59.806 12 50.347 12 40C12 39.314 12.018 38.792 12.059 38.309C12.74 26.625 20.756 16.512 32.001 13.166C34.562 12.393 37.255 12 40 12C44.808 12 49.539 13.238 53.684 15.579C62.513 20.525 68 29.884 68 40L68 40ZM37.314 25.463L36 23.956C33.758 25.912 32.014 27.989 29.977 31.126L31.655 32.215C33.583 29.244 35.223 27.288 37.314 25.463L37.314 25.463ZM34.275 38.427L33.625 40.318C38.218 41.895 42.225 44.411 46.234 48.236L47.615 46.789C43.389 42.758 39.15 40.101 34.275 38.427L34.275 38.427ZM47.646 26.668C51.398 32.39 53.511 38.671 53.925 45.338L51.929 45.462C51.536 39.146 49.533 33.192 45.975 27.765L47.646 26.668Z" fill-rule="evenodd" fill="#FFFFFF" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="258" y="287.23" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">CloudFront</text>
+  </g>
+  <g data-id="api" data-role="element">
+    <g data-id="aws:api-gateway" data-role="icon" transform="translate(386 204) scale(0.8)">
+      <path d="M0 0L80 0L80 80L0 80Z" fill="#8C4FFF" stroke="none" stroke-width="0"/>
+      <path d="M34.065 55.632L37 55.632L37 53.615L34.065 53.615L34.065 55.632ZM39 55.632L42 55.632L42 53.615L39 53.615L39 55.632ZM27 14.63L14 21.082L14 61.193L27 65.59L27 14.63ZM29 27.393L29 53.615L32 53.615L32 55.632L29 55.632L29 66.992C29 67.316 28.845 67.621 28.584 67.81C28.412 67.936 28.207 68 28 68C27.894 68 27.786 67.983 27.682 67.948L12.682 62.876C12.274 62.738 12 62.352 12 61.92L12 20.454C12 20.071 12.217 19.719 12.559 19.549L27.559 12.104C27.868 11.95 28.235 11.968 28.528 12.153C28.821 12.336 29 12.66 29 13.009L29 25.376L32 25.376L32 27.393L29 27.393ZM44 55.632L47 55.632L47 53.615L44 53.615L44 55.632ZM44.065 27.393L47 27.393L47 25.376L44.065 25.376L44.065 27.393ZM39.065 27.393L42 27.393L42 25.376L39.065 25.376L39.065 27.393ZM34.065 27.393L37 27.393L37 25.376L34.065 25.376L34.065 27.393ZM66 21.082L53 14.63L53 65.59L66 61.193L66 21.082ZM68 61.92C68 62.352 67.726 62.738 67.318 62.876L52.318 67.948C52.214 67.983 52.106 68 52 68C51.793 68 51.588 67.936 51.416 67.81C51.155 67.621 51 67.316 51 66.992L51 55.632L49.065 55.632L49.065 53.615L51 53.615L51 27.393L49.065 27.393L49.065 25.376L51 25.376L51 13.009C51 12.66 51.179 12.336 51.472 12.153C51.765 11.968 52.131 11.95 52.441 12.104L67.441 19.549C67.783 19.719 68 20.071 68 20.454L68 61.92ZM42.934 33.807L41.066 33.083L36.066 46.194L37.934 46.918L42.934 33.807ZM49.707 40.209C50.098 39.815 50.098 39.176 49.707 38.783L45.707 34.749L44.293 36.175L47.586 39.496L44.293 42.817L45.707 44.243L49.707 40.209ZM34.293 44.243L30.293 40.209C29.902 39.815 29.902 39.176 30.293 38.783L34.293 34.749L35.707 36.175L32.414 39.496L35.707 42.817L34.293 44.243Z" fill-rule="evenodd" fill="white" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="418" y="287.23" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">API Gateway</text>
+  </g>
+  <g data-id="checkout" data-role="element">
+    <g data-id="aws:lambda" data-role="icon" transform="translate(546 204) scale(0.8)">
+      <path d="M0 0L80 0L80 80L0 80Z" fill-rule="evenodd" fill="#ED7100" stroke="none" stroke-width="0"/>
+      <path d="M28.008 66L15.591 66L29.324 37.296L35.546 50.106L28.008 66ZM30.22 34.553C30.051 34.208 29.7 33.989 29.318 33.989L29.315 33.989C28.929 33.99 28.578 34.211 28.412 34.558L13.098 66.569C12.95 66.879 12.971 67.243 13.155 67.534C13.337 67.824 13.658 68 14.002 68L28.642 68C29.03 68 29.382 67.777 29.548 67.428L37.564 50.528C37.693 50.254 37.692 49.937 37.559 49.665L30.22 34.553ZM64.995 66L52.659 66L32.867 24.57C32.701 24.222 32.349 24 31.962 24L23.89 24L23.899 14L39.72 14L59.42 55.429C59.586 55.777 59.939 56 60.326 56L64.995 56L64.995 66ZM65.998 54L60.96 54L41.259 12.571C41.094 12.223 40.741 12 40.353 12L22.898 12C22.345 12 21.896 12.447 21.895 12.999L21.884 24.999C21.884 25.265 21.989 25.519 22.178 25.707C22.365 25.895 22.62 26 22.887 26L31.329 26L51.122 67.43C51.289 67.778 51.639 68 52.026 68L65.998 68C66.552 68 67 67.552 67 67L67 55C67 54.448 66.552 54 65.998 54L65.998 54Z" fill-rule="evenodd" fill="#FFFFFF" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="578" y="192.93" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">Checkout</text>
+  </g>
+  <g data-id="orders" data-role="element">
+    <g data-id="aws:dynamodb" data-role="icon" transform="translate(546 354) scale(0.8)">
+      <path d="M0 0L80 0L80 80L0 80Z" fill-rule="evenodd" fill="#C925D1" stroke="none" stroke-width="0"/>
+      <path d="M52.086 54.85C48.748 57.549 41.745 58.975 35.044 58.975C28.342 58.975 21.337 57.548 18 54.849L18 60.285L18.001 60.285C18.001 62.995 25 66.016 35.044 66.016C45.08 66.016 52.075 62.999 52.086 60.29L52.086 54.85ZM52.087 44.522L54.087 44.511L54.087 44.522C54.087 45.73 53.482 46.858 52.304 47.891C53.732 49.147 54.087 50.38 54.087 51.258C54.087 51.264 54.086 51.269 54.086 51.275L54.086 60.285L54.087 60.285C54.087 65.295 44.275 68 35.044 68C25.835 68 16.05 65.307 16.003 60.319C16.003 60.314 16 60.309 16 60.304L16 51.255C16 51.253 16.002 51.25 16.002 51.247C16.005 50.369 16.361 49.141 17.787 47.888C16.37 46.636 16.01 45.415 16.001 44.544L16.002 44.544C16.002 44.54 16 44.537 16 44.533L16 35.484C16 35.481 16.002 35.478 16.002 35.475C16.005 34.597 16.362 33.369 17.788 32.117C16.37 30.865 16.01 29.643 16.001 28.773L16.002 28.773C16.002 28.769 16 28.765 16 28.761L16 19.713C16 19.71 16.002 19.707 16.002 19.704C16.019 14.7 25.82 12 35.044 12C40.255 12 45.261 12.828 48.778 14.272L48.013 16.105C44.73 14.757 40.003 13.984 35.044 13.984C25 13.984 18.001 17.005 18.001 19.717C18.001 22.429 25 25.45 35.044 25.45C35.315 25.453 35.58 25.45 35.848 25.44L35.932 27.422C35.636 27.434 35.34 27.434 35.044 27.434C28.342 27.434 21.337 26.007 18 23.308L18 28.74L18.001 28.74L18.001 28.763C18.011 29.803 19.078 30.712 19.972 31.289C22.662 33.004 27.482 34.175 32.857 34.418L32.766 36.4C27.321 36.153 22.553 35.023 19.484 33.292C18.728 33.857 18.001 34.622 18.001 35.489C18.001 38.2 25 41.221 35.044 41.221C36.029 41.221 37.007 41.189 37.952 41.123L38.091 43.102C37.101 43.17 36.075 43.205 35.044 43.205C28.342 43.205 21.337 41.778 18 39.079L18 44.511L18.001 44.511C18.011 45.575 19.078 46.482 19.972 47.06C23.048 49.023 28.824 50.245 35.044 50.245L35.484 50.245L35.484 52.229L35.044 52.229C28.725 52.229 22.982 51.055 19.47 49.073C18.718 49.637 18.001 50.398 18.001 51.258C18.001 53.97 25 56.992 35.044 56.992C45.08 56.992 52.075 53.974 52.086 51.265L52.086 51.255L52.086 51.254C52.084 50.392 51.364 49.631 50.61 49.067C50.122 49.344 49.599 49.61 49.004 49.855L48.238 48.022C48.964 47.724 49.594 47.402 50.111 47.062C51.013 46.474 52.087 45.555 52.087 44.522L52.087 44.522ZM60.653 30.017L55.049 30.017C54.718 30.017 54.407 29.854 54.222 29.582C54.035 29.31 53.997 28.964 54.119 28.66L57.528 20.138L44.619 20.138L38.619 32.04L45.001 32.04C45.32 32.04 45.62 32.192 45.809 32.447C45.996 32.703 46.051 33.031 45.954 33.333L40.258 51.089L60.653 30.017ZM63.722 29.712L38.723 55.54C38.528 55.74 38.266 55.844 38.001 55.844C37.825 55.844 37.648 55.799 37.49 55.705C37.09 55.469 36.907 54.992 37.048 54.552L43.634 34.024L37.001 34.024C36.654 34.024 36.333 33.846 36.15 33.554C35.968 33.261 35.951 32.896 36.107 32.589L43.107 18.703C43.276 18.367 43.622 18.154 44.001 18.154L59.001 18.154C59.332 18.154 59.643 18.318 59.828 18.589C60.015 18.862 60.053 19.207 59.931 19.512L56.522 28.033L63 28.033C63.4 28.033 63.763 28.271 63.92 28.636C64.077 29.002 63.999 29.426 63.722 29.712L63.722 29.712ZM19.455 60.674C20.872 61.473 22.656 62.144 24.757 62.668L25.245 60.744C23.346 60.271 21.686 59.65 20.443 58.95L19.455 60.674ZM24.757 46.799L25.245 44.875C23.346 44.401 21.686 43.78 20.443 43.08L19.455 44.805C20.872 45.603 22.655 46.275 24.757 46.799L24.757 46.799ZM19.455 28.936L20.443 27.211C21.684 27.911 23.345 28.531 25.245 29.006L24.757 30.929C22.653 30.404 20.87 29.733 19.455 28.936L19.455 28.936Z" fill-rule="evenodd" fill="#FFFFFF" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="656.78" y="390.73" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">Orders table</text>
+  </g>
+  <g data-id="events" data-role="element">
+    <g data-id="aws:simple-queue-service" data-role="icon" transform="translate(386 354) scale(0.8)">
+      <path d="M0 0L80 0L80 80L0 80Z" fill-rule="evenodd" fill="#E7157B" stroke="none" stroke-width="0"/>
+      <path d="M28.717 43.688L31.719 40.722C31.907 40.536 32.013 40.283 32.014 40.02C32.015 39.756 31.91 39.503 31.723 39.316L28.721 36.316L27.302 37.718L28.59 39.006L24.009 39.006L24.009 40.994L28.606 40.994L27.306 42.278L28.717 43.688ZM51.628 43.778L55.63 40.793C55.88 40.605 56.03 40.311 56.03 39.999C56.03 39.686 55.88 39.391 55.629 39.203L51.627 36.222L50.426 37.813L52.027 39.006L48.024 39.006L48.024 40.994L52.026 40.994L50.425 42.187L51.628 43.778ZM35.208 40C35.208 42.111 34.843 44.101 34.16 45.833C35.961 45.141 37.991 44.795 40.019 44.795C42.048 44.795 44.078 45.141 45.877 45.833C45.196 44.101 44.83 42.111 44.83 40C44.83 37.889 45.196 35.9 45.877 34.167C42.278 35.55 37.761 35.55 34.16 34.167C34.843 35.9 35.208 37.889 35.208 40L35.208 40ZM30.306 49.651C30.111 49.457 30.013 49.203 30.013 48.948C30.013 48.694 30.111 48.439 30.306 48.245C32.122 46.441 33.207 43.358 33.207 40C33.207 36.642 32.122 33.559 30.306 31.755C30.111 31.561 30.013 31.306 30.013 31.052C30.013 30.797 30.111 30.543 30.306 30.349C30.697 29.96 31.33 29.96 31.721 30.349C35.598 34.202 44.44 34.202 48.318 30.349C48.709 29.96 49.341 29.96 49.733 30.349C49.928 30.543 50.026 30.797 50.026 31.052C50.026 31.306 49.928 31.561 49.733 31.755C47.916 33.559 46.832 36.642 46.832 40C46.832 43.358 47.916 46.441 49.733 48.245C49.928 48.439 50.026 48.694 50.026 48.948C50.026 49.203 49.928 49.457 49.733 49.651C49.537 49.845 49.281 49.943 49.025 49.943C48.769 49.943 48.513 49.845 48.318 49.651C44.44 45.798 35.598 45.798 31.721 49.651C31.33 50.04 30.697 50.04 30.306 49.651L30.306 49.651ZM66.001 40.005C66.001 39.078 65.638 38.207 64.978 37.552C64.298 36.875 63.403 36.538 62.51 36.538C61.616 36.538 60.722 36.875 60.041 37.552C58.679 38.904 58.679 41.105 60.041 42.458C61.402 43.81 63.615 43.811 64.978 42.458C65.638 41.803 66.001 40.932 66.001 40.005L66.001 40.005ZM66.393 43.864C65.323 44.928 63.917 45.459 62.51 45.459C61.103 45.459 59.697 44.928 58.626 43.864C56.484 41.736 56.484 38.274 58.626 36.146C60.769 34.017 64.253 34.019 66.393 36.146C68.536 38.274 68.536 41.736 66.393 43.864L66.393 43.864ZM20.98 40.028C20.98 39.101 20.617 38.23 19.957 37.575C19.298 36.92 18.421 36.559 17.489 36.559C16.557 36.559 15.681 36.92 15.02 37.575C14.361 38.23 13.999 39.101 13.999 40.028C13.999 40.953 14.361 41.824 15.02 42.481C16.34 43.79 18.639 43.79 19.957 42.481C20.617 41.824 20.98 40.953 20.98 40.028L20.98 40.028ZM21.372 43.887C20.302 44.95 18.896 45.482 17.489 45.482C16.083 45.482 14.677 44.95 13.605 43.887C11.465 41.759 11.465 38.297 13.605 36.169C15.748 34.041 19.231 34.041 21.372 36.169C23.514 38.297 23.514 41.759 21.372 43.887L21.372 43.887ZM54.896 54.856C50.901 58.826 45.589 61.011 39.939 61.011C34.288 61.011 28.976 58.826 24.982 54.856C22.242 52.135 20.734 48.883 19.951 46.635L18.06 47.285C18.912 49.731 20.558 53.273 23.567 56.262C27.939 60.608 33.753 63 39.939 63C46.124 63 51.938 60.608 56.311 56.262C58.837 53.753 60.85 50.564 61.979 47.282L60.086 46.638C59.053 49.638 57.21 52.557 54.896 54.856L54.896 54.856ZM19.95 33.366L18.061 32.714C19.272 29.25 21.229 26.061 23.573 23.733C27.943 19.391 33.755 17 39.939 17C46.123 17 51.935 19.391 56.305 23.733C58.771 26.184 60.84 29.457 61.977 32.714L60.088 33.366C59.044 30.384 57.15 27.385 54.89 25.139C50.898 21.172 45.588 18.989 39.939 18.989C34.29 18.989 28.98 21.172 24.988 25.139C22.854 27.26 21.065 30.182 19.95 33.366L19.95 33.366Z" fill-rule="evenodd" fill="#FFFFFF" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="418" y="437.23" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">Order events</text>
+  </g>
+  <g data-id="mailer" data-role="element">
+    <g data-id="aws:simple-email-service" data-role="icon" transform="translate(226 354) scale(0.8)">
+      <path d="M0 0L80 0L80 80L0 80Z" fill-rule="evenodd" fill="#DD344C" stroke="none" stroke-width="0"/>
+      <path d="M57 61C57 59.374 55.626 58 54 58C52.374 58 51 59.374 51 61C51 62.626 52.374 64 54 64C55.626 64 57 62.626 57 61L57 61ZM40 60C38.374 60 37 61.374 37 63C37 64.626 38.374 66 40 66C41.626 66 43 64.626 43 63C43 61.374 41.626 60 40 60L40 60ZM26 58C24.374 58 23 59.374 23 61C23 62.626 24.374 64 26 64C27.626 64 29 62.626 29 61C29 59.374 27.626 58 26 58L26 58ZM28.605 43L51.395 43L43.739 36.11L40.649 38.758C40.463 38.919 40.23 38.999 39.999 38.999C39.768 38.999 39.535 38.919 39.349 38.758L36.26 36.11L28.605 43ZM27 28.173L27 41.755L34.729 34.798L27 28.173ZM51.297 26.999L28.703 26.999L39.999 36.682L51.297 26.999ZM53 41.755L53 28.173L45.271 34.797L53 41.755ZM59 61C59 63.71 56.71 66 54 66C51.29 66 49 63.71 49 61C49 58.631 50.75 56.584 53 56.106L53 53L41 53L41 58.106C43.25 58.584 45 60.631 45 63C45 65.71 42.71 68 40 68C37.29 68 35 65.71 35 63C35 60.631 36.75 58.584 39 58.106L39 53L27 53L27 56.106C29.25 56.584 31 58.631 31 61C31 63.71 28.71 66 26 66C23.29 66 21 63.71 21 61C21 58.631 22.75 56.584 25 56.106L25 52C25 51.448 25.447 51 26 51L39 51L39 45L26 45C25.447 45 25 44.552 25 44L25 25.999C25 25.447 25.447 24.999 26 24.999L54 24.999C54.553 24.999 55 25.447 55 25.999L55 44C55 44.552 54.553 45 54 45L41 45L41 51L54 51C54.553 51 55 51.448 55 52L55 56.106C57.25 56.584 59 58.631 59 61L59 61ZM68 40C68 45.907 66.177 51.56 62.727 56.345L61.104 55.175C64.307 50.732 66 45.485 66 40C66 25.664 54.337 14 40.001 14C25.664 14 14 25.664 14 40C14 45.485 15.693 50.732 18.896 55.175L17.273 56.345C13.823 51.56 12 45.907 12 40C12 24.561 24.561 12 39.999 12C55.438 12 68 24.561 68 40L68 40Z" fill-rule="evenodd" fill="#FFFFFF" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="198.45" y="390.73" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">Mailer</text>
+  </g>
+  <g data-id="payments" data-role="element">
+    <rect x="772" y="150" width="200" height="72" rx="8" fill="#0F1B2D" stroke="#183149" stroke-width="1"/>
+    <g data-id="tabler:credit-card" data-role="icon" transform="translate(860.137 158) scale(2.333)">
+      <path d="M3 8A3 3 0 0 1 6 5L18 5A3 3 0 0 1 21 8L21 16A3 3 0 0 1 18 19L6 19A3 3 0 0 1 3 16L3 8" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M3 10L21 10" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M7 15L7.01 15" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M11 15L13 15" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="788" y="190.73" text-anchor="start" font-size="13" font-weight="600" fill="#F7FBFF">Payments</text>
+  </g>
+  <g data-id="fraud" data-role="element">
+    <rect x="792" y="285.5" width="160" height="81" rx="8" fill="#0F1B2D" stroke="#183149" stroke-width="1"/>
+    <g data-id="tabler:shield-check" data-role="icon" transform="translate(856 321.5) scale(1.333)">
+      <path d="M11.46 20.846A12 12 0 0 1 3.5 6A12 12 0 0 0 12 3A12 12 0 0 0 20.5 6A12 12 0 0 1 20.41 13.06" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M15 19L17 21L21 17" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="872" y="309.73" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">Fraud check</text>
+  </g>
+  <g data-id="stock" data-role="element">
+    <rect x="92" y="536" width="120" height="120" rx="0" fill="#0F1B2D" stroke="#183149" stroke-width="1"/>
+    <g data-id="tabler:packages" data-role="icon" transform="translate(122.5 581) scale(2.458)">
+      <path d="M7 16.5L2 13.5L7 10.5L12 13.5L12 19L7 22L7 16.5" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M2 13.5L2 19L7 22" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M7 16.545L12 13.515" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M17 16.5L12 13.5L17 10.5L22 13.5L22 19L17 22L17 16.5" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M12 19L17 22" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M17 16.5L22 13.5" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M12 13.5L12 8L7 5L12 2L17 5L17 10.5" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M7 5.03L7 10.485" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M12 8L17 5" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="152" y="563.23" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">Stock</text>
+  </g>
+  <g data-id="ledger" data-role="element">
+    <path d="M379 596 A63 63 0 1 0 505 596 A63 63 0 1 0 379 596 Z" fill="#0F1B2D" stroke="#183149" stroke-width="1"/>
+    <g data-id="tabler:database" data-role="icon" transform="translate(412 555.5) scale(2.5)">
+      <path d="M4 6A8 3 0 1 0 20 6A8 3 0 1 0 4 6" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M4 6L4 12A8 3 0 0 0 20 12L20 6" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M4 12L4 18A8 3 0 0 0 20 18L20 12" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="442" y="636.1" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">Ledger</text>
+  </g>
+  <g data-id="alerts" data-role="element">
+    <rect x="704" y="528" width="56" height="56" rx="8" fill="#0F1B2D" stroke="#3B82F6" stroke-width="1"/>
+    <g data-id="tabler:bell" data-role="icon" transform="translate(712 536) scale(1.667)">
+      <path d="M10 5A2 2 0 1 1 14 5A7 7 0 0 1 18 11L18 14A4 4 0 0 0 20 17L4 17A4 4 0 0 0 6 14L6 11A7 7 0 0 1 10 5" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M9 17L9 18A3 3 0 0 0 15 18L15 17" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="786.78" y="560.73" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">Alerts</text>
+  </g>
+  <g data-id="audit" data-role="element">
+    <rect x="652" y="625.5" width="160" height="61" rx="8" fill="#0F1B2D" stroke="#183149" stroke-width="1"/>
+    <g data-id="tabler:file-search" data-role="icon" transform="translate(724 638.5) scale(0.667)">
+      <path d="M14 3L14 7A1 1 0 0 0 15 8L19 8" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M12 21L7 21A2 2 0 0 1 5 19L5 5A2 2 0 0 1 7 3L14 3L19 8L19 12.5" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M14 17.5A2.5 2.5 0 1 0 19 17.5A2.5 2.5 0 1 0 14 17.5" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M18.5 19.5L21 22" fill="none" stroke="#F7FBFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="732" y="671.73" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">Audit</text>
+  </g>
+  <g data-id="spark" data-role="element">
+    <g data-id="tabler:sparkles" data-role="icon" transform="translate(956 20) scale(1.333)">
+      <path d="M16 18A2 2 0 0 1 18 20A2 2 0 0 1 20 18A2 2 0 0 1 18 16A2 2 0 0 1 16 18M16 6A2 2 0 0 1 18 8A2 2 0 0 1 20 6A2 2 0 0 1 18 4A2 2 0 0 1 16 6M9 18A6 6 0 0 1 15 12A6 6 0 0 1 9 6A6 6 0 0 1 3 12A6 6 0 0 1 9 18" fill="none" stroke="#22D3EE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+  <g data-id="shopper-&gt;cdn#1" data-role="relation">
+    <polyline points="84,236 218,236" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M226 236 L218 239.5 L218 232.5 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="cdn-&gt;api#1" data-role="relation">
+    <polyline points="290,236 378,236" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M386 236 L378 239.5 L378 232.5 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="api-&gt;checkout#1" data-role="relation">
+    <polyline points="450,228 538,228" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M546 228 L538 231.5 L538 224.5 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="checkout-&gt;orders#1" data-role="relation">
+    <polyline points="578,268 578,346" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M578 354 L574.5 346 L581.5 346 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="checkout-&gt;events#1" data-role="relation">
+    <polyline points="546,244 498,244 498,386 458,386" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M450 386 L458 382.5 L458 389.5 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="events-&gt;mailer#1" data-role="relation">
+    <polyline points="386,386 298,386" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M290 386 L298 382.5 L298 389.5 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="pay" data-role="relation">
+    <polyline points="610,213 764,213" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M772 213 L764 216.5 L764 209.5 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="payments-&gt;fraud#1" data-role="relation">
+    <polyline points="872,222 872,277.5" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M872 285.5 L868.5 277.5 L875.5 277.5 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="fraud-&gt;ledger#1" data-role="relation">
+    <polyline points="872,366.5 872,596 513,596" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M505 596 L513 592.5 L513 599.5 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="stock-&gt;ledger#1" data-role="relation">
+    <polyline points="212,596 371,596" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M379 596 L371 599.5 L371 592.5 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="ledger-&gt;alerts#1" data-role="relation">
+    <polyline points="492.62,558.5 696,558.5" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M704 558.5 L696 562 L696 555 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="ledger-&gt;audit#1" data-role="relation">
+    <polyline points="484.78,642.25 644,642.25" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M652 642.25 L644 645.75 L644 638.75 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,707.5 988,707.5" fill="none" stroke="#183149" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 717) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="733.37" text-anchor="start" font-size="12" font-weight="600" fill="#F7FBFF">Meltemi Diagrams</text>
+    <text x="988" y="733" text-anchor="end" font-size="11" font-weight="400" fill="#88A0B9">Serverless checkout</text>
+  </g>
+</svg>

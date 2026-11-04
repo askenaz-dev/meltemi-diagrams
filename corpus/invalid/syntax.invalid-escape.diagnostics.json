@@ -1,0 +1,23 @@
+[
+  {
+    "code": "syntax.invalid-escape",
+    "severity": "error",
+    "message": "Unknown escape sequence `\\i` in string.",
+    "range": {
+      "start": {
+        "offset": 50,
+        "line": 4,
+        "column": 12
+      },
+      "end": {
+        "offset": 52,
+        "line": 4,
+        "column": 14
+      }
+    },
+    "hints": [
+      "Supported escapes are \\\", \\\\, \\n and \\t."
+    ],
+    "related": []
+  }
+]

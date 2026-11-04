@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="284" viewBox="0 0 680 284" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Commerce overview</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#6A4FD0"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+    <pattern id="pattern-1" patternUnits="userSpaceOnUse" width="8" height="8">
+      <circle cx="4" cy="4" r="1.2" fill="#88A0B9" fill-opacity="0.35"/>
+    </pattern>
+  </defs>
+  <rect x="0" y="0" width="680" height="284" fill="#07111F"/>
+  <g data-id="shop" data-role="element">
+    <rect x="20" y="20" width="160" height="56" rx="8" fill="#0F1B2D" stroke="#183149" stroke-width="1"/>
+    <text x="100" y="52.73" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">Shop</text>
+  </g>
+  <g data-id="payments" data-role="element">
+    <rect x="260" y="20" width="160" height="56" rx="8" fill="#0F1B2D" stroke="#F87171" stroke-width="2"/>
+    <text x="340" y="52.73" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">Payments</text>
+  </g>
+  <g data-id="bank" data-role="element">
+    <rect x="500" y="20" width="160" height="56" rx="8" fill="#0F1B2D" stroke="#6A4FD0" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="580" y="52.73" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">Bank</text>
+  </g>
+  <g data-id="ledger" data-role="element">
+    <path d="M260 164 L260 212 A80 8 0 0 0 420 212 L420 164 A80 8 0 0 1 260 164 Z" fill="#0F1B2D" stroke="#183149" stroke-width="1"/>
+    <path d="M260 164 L260 212 A80 8 0 0 0 420 212 L420 164 A80 8 0 0 1 260 164 Z" fill="url(#pattern-1)" stroke="none" stroke-width="0"/>
+    <path d="M260 164 A80 8 0 0 1 420 164 A80 8 0 0 1 260 164 Z" fill="#0F1B2D" stroke="#183149" stroke-width="1"/>
+    <text x="340" y="196.73" text-anchor="middle" font-size="13" font-weight="600" fill="#F7FBFF">Ledger</text>
+  </g>
+  <g data-id="pay" data-role="relation">
+    <polyline points="180,48 252,48" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M260 48 L252 51.5 L252 44.5 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+    <g data-id="pay" data-role="label">
+      <rect x="204.35" y="39" width="31.31" height="18" rx="9" fill="#0F1B2D" stroke="#183149" stroke-width="1"/>
+      <text x="220" y="52" text-anchor="middle" font-size="11" font-weight="500" fill="#F7FBFF">pay</text>
+    </g>
+  </g>
+  <g data-id="settle" data-role="relation">
+    <polyline points="420,48 492,48" fill="none" stroke="#6A4FD0" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <path d="M500 48 L492 51.5 L492 44.5 Z" fill="#6A4FD0" stroke="none" stroke-width="0"/>
+    <g data-id="settle" data-role="label">
+      <rect x="439.46" y="39" width="41.08" height="18" rx="9" fill="#0F1B2D" stroke="#6A4FD0" stroke-width="1"/>
+      <text x="460" y="52" text-anchor="middle" font-size="11" font-weight="500" fill="#F7FBFF">settle</text>
+    </g>
+  </g>
+  <g data-id="record" data-role="relation">
+    <polyline points="340,76 340,148" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M340 156 L336.5 148 L343.5 148 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,240.5 660,240.5" fill="none" stroke="#183149" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 250) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="266.37" text-anchor="start" font-size="12" font-weight="600" fill="#F7FBFF">Commerce · Meltemi Diagrams</text>
+    <text x="660" y="266" text-anchor="end" font-size="11" font-weight="400" fill="#88A0B9">Commerce overview</text>
+  </g>
+</svg>

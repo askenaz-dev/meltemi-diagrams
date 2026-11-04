@@ -1,0 +1,28 @@
+{
+  "status": "complete",
+  "format": "mermaid",
+  "diagrams": [
+    {
+      "id": "storage_service",
+      "type": "flow",
+      "model": null,
+      "kind": "architecture-beta",
+      "lines": [
+        1,
+        21
+      ]
+    }
+  ],
+  "findings": [
+    "11:5 warning import.unsupported-construct [architecture.icon dropped] The icon `logos:aws-lambda` is not in the project's packs; it is not drawn.",
+    "12:5 info import.approximated [architecture.junction approximated] A junction becomes a small node without text that its edges meet at."
+  ],
+  "coverage": [
+    {
+      "diagram": "storage_service",
+      "mapped": 31,
+      "approximated": 1,
+      "dropped": 1
+    }
+  ]
+}

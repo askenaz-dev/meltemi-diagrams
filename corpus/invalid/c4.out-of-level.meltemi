@@ -1,0 +1,15 @@
+language "0.2"
+
+model commerce {
+  system shop "Commerce" {
+    container api "API" {
+      component orders "Pedidos"
+    }
+  }
+}
+
+diagram containers: c4 using commerce {
+  level container
+  scope shop
+  include shop.api, shop.api.orders
+}

@@ -1,0 +1,59 @@
+language "0.2"
+
+// Imported from block.mmd (mermaid) by meltemi-diagrams.
+
+diagram block: free {
+  class blue { fill "#66f"; color "#fff" }
+
+  box front "Front end"
+  box api "API"
+  box db "Database"
+  box wide "A wide block across two columns"
+  box cache "Cache" { class blue }
+  box queue "Queue"
+  group services "" {
+    box orders "Orders"
+    box billing "Billing"
+  }
+  box arrow "Flow"
+  box mail "Mail"
+
+  front -> api
+  api -> db
+  orders -> billing: "bills"
+
+  placement {
+    place front at (84, 42)
+    size front (140, 56)
+    place api at (252, 42)
+    size api (140, 56)
+    place db at (420, 42)
+    size db (140, 56)
+    place wide at (168, 126)
+    size wide (308, 56)
+    place cache at (420, 126)
+    size cache (140, 56)
+    place queue at (420, 210)
+    size queue (140, 56)
+    place services at (252, 324)
+    size services (476, 116)
+    place orders at (111, 42)
+    size orders (194, 56)
+    place billing at (333, 42)
+    size billing (194, 56)
+    place arrow at (84, 438)
+    size arrow (140, 56)
+    place mail at (420, 438)
+    size mail (140, 56)
+  }
+
+  style front { shape rectangle }
+  style db { shape cylinder }
+  style wide { shape rectangle }
+  style cache { shape circle }
+  style queue { shape hexagon; fill "#eee"; line dashed }
+  style orders { shape pill }
+  style billing { shape diamond }
+  style arrow { shape arrow }
+  style mail { shape flag }
+}

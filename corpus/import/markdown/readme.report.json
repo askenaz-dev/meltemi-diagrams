@@ -1,0 +1,60 @@
+{
+  "status": "partial",
+  "format": "markdown",
+  "diagrams": [
+    {
+      "id": "checkout_flow",
+      "type": "flow",
+      "model": null,
+      "kind": "flowchart",
+      "lines": [
+        8,
+        10
+      ]
+    },
+    {
+      "id": "payment",
+      "type": "sequence",
+      "model": null,
+      "kind": "sequence",
+      "lines": [
+        16,
+        19
+      ]
+    },
+    {
+      "id": "checkout_flow_2",
+      "type": "flow",
+      "model": null,
+      "kind": "description",
+      "lines": [
+        36,
+        36
+      ]
+    }
+  ],
+  "findings": [
+    "1:1 warning import.partial [import] 1 essential construct was not imported; the sheet is incomplete.",
+    "29:1 error import.unsupported-diagram [mermaid.classDiagram dropped essential] Mermaid `classDiagram` diagrams are not imported."
+  ],
+  "coverage": [
+    {
+      "diagram": "checkout_flow",
+      "mapped": 7,
+      "approximated": 0,
+      "dropped": 0
+    },
+    {
+      "diagram": "payment",
+      "mapped": 2,
+      "approximated": 0,
+      "dropped": 0
+    },
+    {
+      "diagram": "checkout_flow_2",
+      "mapped": 3,
+      "approximated": 0,
+      "dropped": 0
+    }
+  ]
+}

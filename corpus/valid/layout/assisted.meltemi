@@ -1,0 +1,31 @@
+language "0.2"
+
+// `layout assisted`: placed boxes stay where they are; ELK places the others around them,
+// and constraints line them up.
+diagram checkout: flow {
+  title "Checkout"
+  direction LR
+  layout assisted
+  routing orthogonal
+  theme "editorial.light"
+
+  client["Client"]
+  api["API"]
+  orders["Orders"]
+  stock["Stock"]
+  db[("Orders DB")]
+  mail["Mailer"]
+
+  client -> api as request
+  api -> orders as create
+  api -> stock as reserve
+  orders -> db as save
+  orders --> mail as confirm
+
+  placement {
+    place api at (400, 200)
+    place orders at (700, 200)
+    row api, orders, db
+    column api, stock
+  }
+}

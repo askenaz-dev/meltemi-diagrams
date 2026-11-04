@@ -1,0 +1,12 @@
+language "0.2"
+
+diagram checkout: flow {
+  // Elements
+  orders["Orders"]
+
+  /* Relations */
+
+  placement {
+    place orders at (700, 180)
+  }
+}

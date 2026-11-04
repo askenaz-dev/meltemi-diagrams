@@ -1,0 +1,82 @@
+language "0.2"
+
+// A dark architecture drawn with icons: icon shapes with their labels on each side, connected from
+// every side, in a group that holds their labels; centred icons in tiles; icons beside, above and
+// below the text at several sizes; a framed icon shape and a bare icon.
+diagram icons: free {
+  title "Serverless checkout"
+  theme "technical.dark"
+  layout manual
+  routing orthogonal
+
+  text heading "Serverless checkout"
+  box shopper "Shopper"
+  group cloud "AWS" {
+    box cdn "CloudFront"
+    box api "API Gateway"
+    box checkout "Checkout"
+    box orders "Orders table"
+    box events "Order events"
+    box mailer "Mailer"
+  }
+  box payments "Payments"
+  box fraud "Fraud check"
+  box stock "Stock"
+  box ledger "Ledger"
+  box alerts "Alerts"
+  box audit "Audit"
+  icon spark "tabler:sparkles"
+
+  shopper -> cdn
+  cdn -> api
+  api -> checkout
+  checkout -> orders
+  checkout -> events
+  events -> mailer
+  checkout -> payments as pay
+  payments -> fraud
+  fraud -> ledger
+  stock -> ledger
+  ledger -> alerts
+  ledger -> audit
+
+  placement {
+    place heading at (560, 40)
+    place shopper at (80, 240)
+    place cloud at (470, 290)
+    size cloud (560, 360)
+    place cdn at (80, 90)
+    place api at (240, 90)
+    place checkout at (400, 90)
+    place orders at (400, 240)
+    place events at (240, 240)
+    place mailer at (80, 240)
+    place payments at (900, 190)
+    size payments (200, 72)
+    place fraud at (900, 330)
+    place stock at (180, 600)
+    place ledger at (470, 600)
+    place alerts at (760, 560)
+    place audit at (760, 660)
+    place spark at (1000, 40)
+    size spark (32, 32)
+    route pay from checkout.east to payments.west
+  }
+
+  rule box { shape icon }
+  style heading { fontSize 24 }
+  style shopper { icon "tabler:user"; labelPosition bottom }
+  style cdn { icon "aws:cloudfront" }
+  style api { icon "aws:api-gateway" }
+  style checkout { icon "aws:lambda"; labelPosition top }
+  style orders { icon "aws:dynamodb"; labelPosition right }
+  style events { icon "aws:simple-queue-service" }
+  style mailer { icon "aws:simple-email-service"; labelPosition left }
+  style payments { shape rounded; icon "tabler:credit-card"; iconPosition right; iconSize auto; textAlign left }
+  style fraud { shape rounded; icon "tabler:shield-check"; iconPosition bottom; iconSize 32 }
+  style stock { shape square; icon "tabler:packages"; iconPosition center; labelPosition top }
+  style ledger { shape circle; icon "tabler:database"; iconPosition center }
+  style alerts { icon "tabler:bell"; iconSize 40; labelPosition right; fill surface; stroke accent }
+  style audit { shape rounded; icon "tabler:file-search"; iconPosition top; iconSize 16 }
+  style spark { iconColor accentEnd }
+}

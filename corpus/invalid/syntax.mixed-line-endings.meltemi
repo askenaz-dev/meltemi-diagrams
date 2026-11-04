@@ -1,0 +1,6 @@
+language "0.2"
+
+diagram mixed: flow {
+  a -> b
+  b -> c
+}

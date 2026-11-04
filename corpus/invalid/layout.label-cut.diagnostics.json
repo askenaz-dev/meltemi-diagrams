@@ -1,0 +1,44 @@
+[
+  {
+    "code": "layout.label-cut",
+    "severity": "warning",
+    "message": "The text \"Order API\" of `api` goes 2 px beyond its shape.",
+    "range": {
+      "start": {
+        "offset": 148,
+        "line": 6,
+        "column": 3
+      },
+      "end": {
+        "offset": 210,
+        "line": 6,
+        "column": 65
+      }
+    },
+    "hints": [
+      "Shorten the text, or give the element a `size` that fits it."
+    ],
+    "related": []
+  },
+  {
+    "code": "layout.label-cut",
+    "severity": "warning",
+    "message": "The text \"Validates and stores orders\" of `api` goes 5 px beyond its shape.",
+    "range": {
+      "start": {
+        "offset": 148,
+        "line": 6,
+        "column": 3
+      },
+      "end": {
+        "offset": 210,
+        "line": 6,
+        "column": 65
+      }
+    },
+    "hints": [
+      "Shorten the text, or give the element a `size` that fits it."
+    ],
+    "related": []
+  }
+]

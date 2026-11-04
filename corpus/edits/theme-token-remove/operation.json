@@ -1,0 +1,8 @@
+{
+  "operation": {
+    "kind": "removeThemeToken",
+    "theme": "brand",
+    "token": "radius"
+  },
+  "diagram": "d"
+}

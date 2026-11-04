@@ -1,0 +1,12 @@
+language "0.2"
+
+// Imported from include-missing.puml (plantuml) by meltemi-diagrams.
+
+diagram include_missing: flow {
+  layout auto
+
+  node Web
+  node API
+
+  Web -> API
+}

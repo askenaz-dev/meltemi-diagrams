@@ -1,0 +1,29 @@
+@startuml
+title Components
+package "Front end" {
+  [Web app] as web
+  () "REST" as rest
+}
+package Backend {
+  component API as api
+  component "Billing" as billing <<service>>
+  queue Events as events
+  storage Files as files
+}
+node "Cluster" as cluster {
+  hexagon Gateway as gw
+}
+rectangle Legacy #ffcccc
+web --> rest
+rest - api
+api --> billing : charge
+api ..> events : publish
+billing <|-- api
+api --> files
+gw --> api
+api --> Legacy
+together {
+  [Report]
+}
+[Report] --> files
+@enduml

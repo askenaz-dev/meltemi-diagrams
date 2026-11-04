@@ -1,0 +1,1 @@
+{ "operation": { "kind": "setRoute", "diagram": "checkout", "relation": "create", "via": [{ "x": 500, "y": 180 }, { "x": 500, "y": 260 }] }, "expect": { "edits": 1 } }

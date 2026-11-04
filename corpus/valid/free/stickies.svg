@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="806" height="547" viewBox="0 0 806 547" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Stickies</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="806" height="547" fill="#F7FBFF"/>
+  <g data-id="heading" data-role="element">
+    <text x="350.89" y="47.69" text-anchor="start" font-size="28" font-weight="700" fill="#0B1830">Stickies</text>
+  </g>
+  <g data-id="theme" data-role="element">
+    <rect x="25.39" y="90.5" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="25.39" y="87.5" width="160" height="160" rx="2" fill="#fff59d" stroke="none" stroke-width="0"/>
+    <text x="105.39" y="163.42" text-anchor="middle" font-size="15.6" font-weight="500" fill="#1f2328">The theme's</text>
+    <text x="105.39" y="182.92" text-anchor="middle" font-size="15.6" font-weight="500" fill="#1f2328">colour</text>
+  </g>
+  <g data-id="yellow" data-role="element">
+    <rect x="225.39" y="90.5" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="225.39" y="87.5" width="160" height="160" rx="2" fill="#fff59d" stroke="none" stroke-width="0"/>
+    <text x="305.39" y="173.17" text-anchor="middle" font-size="15.6" font-weight="500" fill="#1f2328">Yellow</text>
+  </g>
+  <g data-id="pink" data-role="element">
+    <rect x="425.39" y="90.5" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="425.39" y="87.5" width="160" height="160" rx="2" fill="#f8bbd0" stroke="none" stroke-width="0"/>
+    <text x="505.39" y="124.83" text-anchor="middle" font-size="12.6" font-weight="500" fill="#1f2328">Pink, with a long text</text>
+    <text x="505.39" y="140.58" text-anchor="middle" font-size="12.6" font-weight="500" fill="#1f2328">that wraps at the</text>
+    <text x="505.39" y="156.33" text-anchor="middle" font-size="12.6" font-weight="500" fill="#1f2328">inner width of the</text>
+    <text x="505.39" y="172.08" text-anchor="middle" font-size="12.6" font-weight="500" fill="#1f2328">card and shrinks a</text>
+    <text x="505.39" y="187.83" text-anchor="middle" font-size="12.6" font-weight="500" fill="#1f2328">pixel at a time until</text>
+    <text x="505.39" y="203.58" text-anchor="middle" font-size="12.6" font-weight="500" fill="#1f2328">every word of it fits</text>
+    <text x="505.39" y="219.33" text-anchor="middle" font-size="12.6" font-weight="500" fill="#1f2328">inside the card</text>
+  </g>
+  <g data-id="green" data-role="element">
+    <rect x="625.39" y="90.5" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="625.39" y="87.5" width="160" height="160" rx="2" fill="#c8e6c9" stroke="none" stroke-width="0"/>
+    <text x="705.39" y="163.42" text-anchor="middle" font-size="15.6" font-weight="500" fill="#1f2328">Green, with an</text>
+    <text x="705.39" y="182.92" text-anchor="middle" font-size="15.6" font-weight="500" fill="#1f2328">icon</text>
+  </g>
+  <g data-id="blue" data-role="element" transform="rotate(356 105.39 397.5)">
+    <rect x="25.39" y="320.5" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="25.39" y="317.5" width="160" height="160" rx="2" fill="#bbdefb" stroke="none" stroke-width="0"/>
+    <text x="105.39" y="403.17" text-anchor="middle" font-size="15.6" font-weight="500" fill="#1f2328">Blue, turned</text>
+  </g>
+  <g data-id="orange" data-role="element">
+    <rect x="285.39" y="320.5" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="285.39" y="317.5" width="160" height="160" rx="2" fill="#ffe0b2" stroke="none" stroke-width="0"/>
+    <text x="365.39" y="403.17" text-anchor="middle" font-size="15.6" font-weight="500" fill="#1f2328">Orange</text>
+  </g>
+  <g data-id="purple" data-role="element">
+    <rect x="525.39" y="320.5" width="240" height="120" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="525.39" y="317.5" width="240" height="120" rx="2" fill="#e1bee7" stroke="none" stroke-width="0"/>
+    <text x="541.39" y="348.92" text-anchor="start" font-size="15.6" font-weight="500" fill="#1f2328">Purple, sized and aligned</text>
+    <text x="541.39" y="368.42" text-anchor="start" font-size="15.6" font-weight="500" fill="#1f2328">to the top left</text>
+  </g>
+  <g data-id="next" data-role="relation">
+    <polyline points="185.58,397.5 277.39,397.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M285.39 397.5 L277.39 401 L277.39 394 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="next" data-role="label">
+      <rect x="217.76" y="388.5" width="35.45" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="235.48" y="401.5" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">then</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,503.5 786,503.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 513) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="529.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="786" y="529" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Stickies</text>
+  </g>
+</svg>

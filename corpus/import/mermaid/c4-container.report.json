@@ -1,0 +1,33 @@
+{
+  "status": "complete",
+  "format": "mermaid",
+  "diagrams": [
+    {
+      "id": "container_diagram_for_internet_banking",
+      "type": "c4",
+      "model": "container_diagram_for_internet_banking_model",
+      "kind": "C4Container",
+      "lines": [
+        1,
+        29
+      ]
+    }
+  ],
+  "findings": [
+    "4:1 warning import.unsupported-construct [mermaid.c4.tags dropped] Tags are not imported.",
+    "5:1 warning import.unsupported-construct [mermaid.c4.tags dropped] Tags are not imported.",
+    "7:1 info import.approximated [mermaid.c4.Container_Boundary approximated] A container boundary around containers is read as the boundary of their system.",
+    "9:5 info import.approximated [mermaid.c4.Container_Ext approximated] Only persons and systems are marked external.",
+    "12:5 info import.approximated [mermaid.c4.ContainerDb_Ext approximated] Only persons and systems are marked external.",
+    "18:1 warning import.unsupported-construct [mermaid.c4.UpdateRelStyle dropped] `UpdateRelStyle` only changes the drawing; it is not imported.",
+    "28:1 warning import.unsupported-construct [mermaid.c4.UpdateLayoutConfig dropped] `UpdateLayoutConfig` only changes the drawing; it is not imported."
+  ],
+  "coverage": [
+    {
+      "diagram": "container_diagram_for_internet_banking",
+      "mapped": 18,
+      "approximated": 3,
+      "dropped": 4
+    }
+  ]
+}

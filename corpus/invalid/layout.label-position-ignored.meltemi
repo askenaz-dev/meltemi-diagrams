@@ -1,0 +1,11 @@
+language "0.2"
+
+// The label moves to an edge only when the icon is the centre piece.
+diagram services: flow {
+  layout manual
+  api["API"]
+  style api { icon "tabler:server"; labelPosition top }
+  placement {
+    place api at (100, 80)
+  }
+}

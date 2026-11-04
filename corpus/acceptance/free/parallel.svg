@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1168" height="657" viewBox="0 0 1168 657" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Request and replies</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1168" height="657" fill="#F7FBFF"/>
+  <g data-id="heading" data-role="element">
+    <text x="483.5" y="40.64" text-anchor="start" font-size="21" font-weight="600" fill="#0B1830">Request and replies</text>
+  </g>
+  <g data-id="client" data-role="element">
+    <rect x="24" y="353" width="240" height="240" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="144" y="477.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Client</text>
+  </g>
+  <g data-id="server" data-role="element">
+    <rect x="904" y="353" width="240" height="240" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1024" y="477.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Server</text>
+  </g>
+  <g data-id="request" data-role="relation">
+    <polyline points="264,418 896,418" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M904 418 L896 421.5 L896 414.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="request" data-role="label">
+      <rect x="557.97" y="409" width="52.05" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="584" y="422" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">request</text>
+    </g>
+  </g>
+  <g data-id="retry" data-role="relation">
+    <polyline points="264,440 896,440" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M904 440 L896 443.5 L896 436.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="retry" data-role="label">
+      <rect x="565.5" y="431" width="37" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="584" y="444" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">retry</text>
+    </g>
+  </g>
+  <g data-id="cancel" data-role="relation">
+    <polyline points="264,462 896,462" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M904 462 L896 465.5 L896 458.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="cancel" data-role="label">
+      <rect x="560.55" y="453" width="46.9" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="584" y="466" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">cancel</text>
+    </g>
+  </g>
+  <g data-id="response" data-role="relation">
+    <polyline points="904,484 272,484" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M264 484 L272 480.5 L272 487.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="response" data-role="label">
+      <rect x="553.56" y="475" width="60.88" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="584" y="488" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">response</text>
+    </g>
+  </g>
+  <g data-id="progress" data-role="relation">
+    <polyline points="904,506 272,506" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M264 506 L272 502.5 L272 509.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="progress" data-role="label">
+      <rect x="554.67" y="497" width="58.66" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="584" y="510" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">progress</text>
+    </g>
+  </g>
+  <g data-id="heartbeat" data-role="relation">
+    <polyline points="904,528 272,528" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <path d="M264 528 L272 524.5 L272 531.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="heartbeat" data-role="label">
+      <rect x="552.51" y="519" width="62.99" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="584" y="532" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">heartbeat</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,613.5 1148,613.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 623) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="639.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="1148" y="639" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Request and replies</text>
+  </g>
+</svg>

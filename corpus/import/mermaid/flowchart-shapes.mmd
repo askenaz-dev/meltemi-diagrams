@@ -1,0 +1,21 @@
+flowchart TD
+  rect[Rectangle] --> round(Rounded)
+  round --> stadium([Stadium])
+  stadium --> sub[[Subroutine]]
+  sub --> cyl[(Database)]
+  cyl --> circle((Circle))
+  circle --> dbl(((Double)))
+  dbl --> asym>Flag]
+  asym --> rhombus{Decision}
+  rhombus --> hex{{Hexagon}}
+  hex --> lean[/Input/]
+  lean --> leanb[\Output\]
+  leanb --> trap[/Trapezoid\]
+  trap --> inv[\Inverted/]
+  inv --> named@{ shape: diam, label: "Named decision" }
+  named --> store@{ shape: lin-cyl, label: "Disk" }
+  store --> remark@{ shape: comment, label: "A remark" }
+  remark --> other@{ shape: bolt, label: "Bolt", icon: "fa:bolt" }
+  other --> html["<b>Bold</b> and<br/>two lines"]
+  html --> md["`**Markdown** label`"]
+  md --> fa[fa:fa-car Car #quot;quoted#quot;]

@@ -1,0 +1,26 @@
+language "0.2"
+
+// Parallel relations: several relations between the same two containers in both directions, each
+// with its own description and technology, in an assisted view placed by hand.
+model messaging {
+  system chat "Chat" {
+    container client "Client" { technology "Swift" }
+    container server "Server" { technology "Elixir" }
+  }
+
+  chat.client -> chat.server: "Sends messages" as send { technology "WebSocket" }
+  chat.client -> chat.server: "Uploads files" as upload { technology "HTTPS" }
+  chat.server -> chat.client: "Pushes messages" as push { technology "WebSocket" }
+  chat.server -> chat.client: "Notifies" as notify { technology "APNs" }
+}
+
+diagram containers: c4 using messaging {
+  level container
+  scope chat
+  layout assisted
+
+  placement {
+    place chat.client at (160, 200)
+    place chat.server at (640, 200)
+  }
+}

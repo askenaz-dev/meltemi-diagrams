@@ -1,0 +1,64 @@
+language "0.2"
+
+// Imported from sequence-payment.mmd (mermaid) by meltemi-diagrams.
+
+diagram card_payment: sequence {
+  title "Card payment"
+  autonumber
+
+  actor Customer "Shopper"
+  participant Web "Checkout page"
+  control Api
+  group bank_side "Bank side" {
+    boundary Bank
+    database Ledger
+  }
+  participant Courier
+
+  // The customer starts
+  Customer -> Web: "Pay"
+  Web -> Api: "Create payment"
+  activate Api
+  Api -> Bank: "Authorize"
+  alt alt1 "approved" {
+    Bank --> Api: "OK"
+    Api -> Ledger: "Record" { kind async }
+  } else "declined" {
+    Bank --> Api: "Declined"
+    loop loop1 "until a card works" {
+      Api --> Web: "Ask again"
+      Web -> Api: "New card"
+    }
+  }
+  Api --> Web: "Receipt"
+  deactivate Api
+  note over Web, Api "The page never sees the card number"
+  note right of Bank "Timeout 3 s"
+  par par1 "notify" {
+    Api --> Customer: "Mail" { kind async }
+  } and "audit" {
+    Api -> Ledger: "Audit"
+  }
+  critical critical1 "settle" {
+    Api -> Bank: "Settle"
+  } option "bank down" {
+    Api -> Api: "Retry later"
+  }
+  opt opt1 "coupon" {
+    Web -> Api: "Coupon"
+  }
+  break break1 "fraud" {
+    Api -> Web: "Blocked"
+  }
+  region region1 {
+    Web -> Api: "Poll"
+    Api --> Web: "Status"
+  }
+  create Courier
+  Api -> Courier: "Ship"
+  Courier --> Api: "Delivered"
+  destroy Courier
+  Web <-> Api: "Sync"
+
+  style region1 { fill "rgb(240, 240, 255)" }
+}

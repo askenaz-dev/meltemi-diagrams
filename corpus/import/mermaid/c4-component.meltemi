@@ -1,0 +1,58 @@
+language "0.2"
+
+// Imported from c4-component.mmd (mermaid) by meltemi-diagrams.
+
+model component_diagram_for_internet_banking_model {
+  system component_diagram_for_internet_banking "Component diagram for Internet Banking System - API Application" {
+    container api "API Application" {
+      component sign "Sign In Controller" {
+        description "Allows users to sign in to the internet banking system"
+        technology "MVC Rest Controller"
+      }
+      component accounts "Accounts Summary Controller" {
+        description "Provides customers with a summary of their bank accounts"
+        technology "MVC Rest Controller"
+      }
+      component security "Security Component" {
+        description "Provides functionality related to singing in, changing passwords, etc."
+        technology "Spring Bean"
+      }
+      component mbsfacade "Mainframe Banking System Facade" {
+        description "A facade onto the mainframe banking system."
+        technology "Spring Bean"
+      }
+    }
+    container spa "Single Page Application" {
+      description "Provides all the internet banking functionality to customers via their web browser."
+      technology "javascript and angular"
+    }
+    container ma "Mobile App" {
+      description "Provides a limited subset to the internet banking functionality to customers via their mobile device."
+      technology "Xamarin"
+    }
+    datastore db "Database" {
+      description "Stores user registration information, hashed authentication credentials, access logs, etc."
+      technology "Relational Database Schema"
+    }
+  }
+  system mbs "Mainframe Banking System" {
+    description "Stores all of the core banking information about customers, accounts, transactions, etc."
+    external
+  }
+
+  component_diagram_for_internet_banking.api.sign -> component_diagram_for_internet_banking.api.security: "Uses"
+  component_diagram_for_internet_banking.api.accounts -> component_diagram_for_internet_banking.api.mbsfacade: "Uses"
+  component_diagram_for_internet_banking.api.security -> component_diagram_for_internet_banking.db: "Read & write to" { technology "JDBC" }
+  component_diagram_for_internet_banking.api.mbsfacade -> mbs: "Uses" { technology "XML/HTTPS" }
+  component_diagram_for_internet_banking.api.sign -> component_diagram_for_internet_banking.spa: "Uses" { technology "JSON/HTTPS" }
+  component_diagram_for_internet_banking.spa -> component_diagram_for_internet_banking.api.accounts: "Uses" { technology "JSON/HTTPS" }
+  component_diagram_for_internet_banking.ma -> component_diagram_for_internet_banking.api.sign: "Uses" { technology "JSON/HTTPS" }
+  component_diagram_for_internet_banking.ma -> component_diagram_for_internet_banking.api.accounts: "Uses" { technology "JSON/HTTPS" }
+}
+
+diagram component_diagram_for_internet_banking: c4 using component_diagram_for_internet_banking_model {
+  title "Component diagram for Internet Banking System - API Application"
+  level component
+  scope component_diagram_for_internet_banking.api
+  include component_diagram_for_internet_banking.spa, component_diagram_for_internet_banking.ma, component_diagram_for_internet_banking.db, mbs, component_diagram_for_internet_banking.api.sign, component_diagram_for_internet_banking.api.accounts, component_diagram_for_internet_banking.api.security, component_diagram_for_internet_banking.api.mbsfacade
+}

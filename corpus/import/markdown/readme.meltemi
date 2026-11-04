@@ -1,0 +1,32 @@
+language "0.2"
+
+// Imported from readme.md (markdown) by meltemi-diagrams.
+
+diagram checkout_flow: flow {
+  direction LR
+  layout auto
+
+  node cart "Cart"
+  decision pay "Paid?"
+  node done "Done"
+
+  cart -> pay
+  pay -> done: "yes"
+}
+
+diagram payment: sequence {
+  participant Alice
+  participant Bob
+
+  Alice -> Bob: "pay"
+  Bob --> Alice: "receipt"
+}
+
+diagram checkout_flow_2: flow {
+  layout auto
+
+  node Cart
+  node Payment
+
+  Cart -> Payment
+}

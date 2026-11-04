@@ -1,0 +1,36 @@
+{
+  "status": "complete",
+  "format": "mermaid",
+  "diagrams": [
+    {
+      "id": "flowchart_shapes",
+      "type": "flow",
+      "model": null,
+      "kind": "flowchart",
+      "lines": [
+        1,
+        22
+      ]
+    }
+  ],
+  "findings": [
+    "7:14 info import.approximated [flowchart.shape.doublecircle approximated] The double circle shape is drawn as a circle.",
+    "12:12 info import.approximated [flowchart.shape.lean_left approximated] The lean left shape is drawn as a parallelogram.",
+    "14:12 info import.approximated [flowchart.shape.inv_trapezoid approximated] The inverted trapezoid shape is drawn as a trapezoid.",
+    "16:13 info import.approximated [flowchart.shape.h_cylinder approximated] The stored-data shape is drawn as a data store.",
+    "17:13 info import.approximated [flowchart.shape.text approximated] A text or comment shape becomes a note.",
+    "18:14 info import.approximated [flowchart.shape.named approximated] The shape `bolt` is drawn as a node.",
+    "18:14 warning import.unsupported-construct [flowchart.meta dropped] The node attribute `icon` is not imported.",
+    "19:13 info import.approximated [mermaid.label.html approximated] HTML formatting in a label is kept as plain text.",
+    "20:12 info import.approximated [mermaid.label.markdown approximated] Markdown emphasis in a label is kept as plain text.",
+    "21:10 info import.approximated [mermaid.label.icon approximated] Font Awesome icons in labels are not drawn; the text is kept."
+  ],
+  "coverage": [
+    {
+      "diagram": "flowchart_shapes",
+      "mapped": 36,
+      "approximated": 9,
+      "dropped": 1
+    }
+  ]
+}

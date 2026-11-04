@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1160" height="332" viewBox="0 0 1160 332" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Node shapes</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1160" height="332" fill="#F7FBFF"/>
+  <g data-id="client" data-role="element">
+    <rect x="20" y="32" width="160" height="56" rx="4" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="100" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Client</text>
+  </g>
+  <g data-id="api" data-role="element">
+    <path d="M289.17 30.83 Q292 28 296 28 L384 28 Q388 28 390.83 30.83 L417.17 57.17 Q420 60 417.17 62.83 L390.83 89.17 Q388 92 384 92 L296 92 Q292 92 289.17 89.17 L262.83 62.83 Q260 60 262.83 57.17 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="340" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">API</text>
+  </g>
+  <g data-id="valid" data-role="element">
+    <path d="M580 20 L660 60 L580 100 L500 60 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="580" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Valid?</text>
+  </g>
+  <g data-id="queue" data-role="element">
+    <rect x="740" y="32" width="160" height="56" rx="28" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="820" y="64.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Queue</text>
+  </g>
+  <g data-id="db" data-role="element">
+    <path d="M980 36 L980 84 A80 8 0 0 0 1140 84 L1140 36 A80 8 0 0 1 980 36 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M980 36 A80 8 0 0 1 1140 36 A80 8 0 0 1 980 36 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1060" y="68.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Orders DB</text>
+  </g>
+  <g data-id="audit" data-role="element">
+    <rect x="500" y="212" width="160" height="56" rx="0" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="580" y="244.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Audit</text>
+  </g>
+  <g data-id="order" data-role="relation">
+    <polyline points="180,60 253.41,60" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M261.41 60 L253.41 63.5 L253.41 56.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="order" data-role="label">
+      <rect x="200.61" y="51" width="40.2" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="220.71" y="64" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">order</text>
+    </g>
+  </g>
+  <g data-id="check" data-role="relation">
+    <polyline points="418.59,60 492,60" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M500 60 L492 63.5 L492 56.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="accept" data-role="relation">
+    <polyline points="660,60 732,60" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M740 60 L732 63.5 L732 56.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="accept" data-role="label">
+      <rect x="684.75" y="51" width="30.5" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="700" y="64" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">yes</text>
+    </g>
+  </g>
+  <g data-id="store" data-role="relation">
+    <polyline points="900,60 972,60" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M980 60 L972 63.5 L972 56.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="reject" data-role="relation">
+    <polyline points="580,100 580,204" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M580 212 L576.5 204 L583.5 204 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="reject" data-role="label">
+      <rect x="567.37" y="147" width="25.26" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="580" y="160" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">no</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,288.5 1140,288.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 298) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="314.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="1140" y="314" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Node shapes</text>
+  </g>
+</svg>

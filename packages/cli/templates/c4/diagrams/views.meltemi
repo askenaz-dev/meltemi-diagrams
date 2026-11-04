@@ -1,0 +1,16 @@
+language "0.2"
+
+import system from "../models/system.meltemi"
+
+// Two views of the same model: the product in its context, and the containers inside it.
+diagram context: c4 using system {
+  title "System context"
+  level context
+}
+
+diagram containers: c4 using system {
+  title "Containers"
+  level container
+  scope product
+  direction LR
+}

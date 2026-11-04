@@ -1,0 +1,1270 @@
+{
+  "id": "tech",
+  "title": "Technology",
+  "categories": [
+    {
+      "id": "databases",
+      "title": "Databases",
+      "items": [
+        {
+          "icon": "logos:postgresql",
+          "label": "PostgreSQL"
+        },
+        {
+          "icon": "logos:mysql-icon",
+          "label": "MySQL"
+        },
+        {
+          "icon": "logos:mariadb-icon",
+          "label": "MariaDB"
+        },
+        {
+          "icon": "logos:sqlite",
+          "label": "SQLite"
+        },
+        {
+          "icon": "logos:oracle",
+          "label": "Oracle Database"
+        },
+        {
+          "icon": "logos:mongodb-icon",
+          "label": "MongoDB"
+        },
+        {
+          "icon": "logos:redis",
+          "label": "Redis"
+        },
+        {
+          "icon": "logos:valkey-icon",
+          "label": "Valkey"
+        },
+        {
+          "icon": "logos:memcached",
+          "label": "Memcached"
+        },
+        {
+          "icon": "logos:cassandra",
+          "label": "Cassandra"
+        },
+        {
+          "icon": "logos:hbase",
+          "label": "HBase"
+        },
+        {
+          "icon": "logos:couchdb-icon",
+          "label": "CouchDB"
+        },
+        {
+          "icon": "logos:couchbase",
+          "label": "Couchbase"
+        },
+        {
+          "icon": "logos:neo4j",
+          "label": "Neo4j"
+        },
+        {
+          "icon": "logos:arangodb-icon",
+          "label": "ArangoDB"
+        },
+        {
+          "icon": "logos:dgraph-icon",
+          "label": "Dgraph"
+        },
+        {
+          "icon": "logos:elasticsearch",
+          "label": "Elasticsearch"
+        },
+        {
+          "icon": "logos:opensearch-icon",
+          "label": "OpenSearch"
+        },
+        {
+          "icon": "logos:solr",
+          "label": "Apache Solr"
+        },
+        {
+          "icon": "logos:meilisearch",
+          "label": "Meilisearch"
+        },
+        {
+          "icon": "logos:influxdb-icon",
+          "label": "InfluxDB"
+        },
+        {
+          "icon": "logos:snowflake-icon",
+          "label": "Snowflake"
+        },
+        {
+          "icon": "logos:aws-dynamodb",
+          "label": "Amazon DynamoDB"
+        },
+        {
+          "icon": "logos:aws-rds",
+          "label": "Amazon RDS"
+        },
+        {
+          "icon": "logos:aws-aurora",
+          "label": "Amazon Aurora"
+        },
+        {
+          "icon": "logos:aws-redshift",
+          "label": "Amazon Redshift"
+        },
+        {
+          "icon": "logos:aws-neptune",
+          "label": "Amazon Neptune"
+        },
+        {
+          "icon": "logos:aws-elasticache",
+          "label": "Amazon ElastiCache"
+        },
+        {
+          "icon": "logos:supabase-icon",
+          "label": "Supabase"
+        },
+        {
+          "icon": "logos:firebase-icon",
+          "label": "Firebase"
+        },
+        {
+          "icon": "logos:planetscale",
+          "label": "PlanetScale"
+        },
+        {
+          "icon": "logos:neon-icon",
+          "label": "Neon"
+        },
+        {
+          "icon": "logos:singlestore-icon",
+          "label": "SingleStore"
+        },
+        {
+          "icon": "logos:yugabyte-icon",
+          "label": "YugabyteDB"
+        },
+        {
+          "icon": "logos:surrealdb-icon",
+          "label": "SurrealDB"
+        },
+        {
+          "icon": "logos:milvus-icon",
+          "label": "Milvus"
+        },
+        {
+          "icon": "logos:pinecone-icon",
+          "label": "Pinecone"
+        },
+        {
+          "icon": "logos:qdrant-icon",
+          "label": "Qdrant"
+        },
+        {
+          "icon": "logos:weaviate-icon",
+          "label": "Weaviate"
+        },
+        {
+          "icon": "logos:chroma",
+          "label": "Chroma"
+        }
+      ]
+    },
+    {
+      "id": "messaging",
+      "title": "Messaging and streaming",
+      "items": [
+        {
+          "icon": "logos:kafka-icon",
+          "label": "Apache Kafka"
+        },
+        {
+          "icon": "logos:rabbitmq-icon",
+          "label": "RabbitMQ"
+        },
+        {
+          "icon": "logos:nats-icon",
+          "label": "NATS"
+        },
+        {
+          "icon": "logos:aws-sqs",
+          "label": "Amazon SQS"
+        },
+        {
+          "icon": "logos:aws-sns",
+          "label": "Amazon SNS"
+        },
+        {
+          "icon": "logos:aws-eventbridge",
+          "label": "Amazon EventBridge"
+        },
+        {
+          "icon": "logos:aws-kinesis",
+          "label": "Amazon Kinesis"
+        },
+        {
+          "icon": "logos:aws-msk",
+          "label": "Amazon MSK"
+        },
+        {
+          "icon": "logos:aws-mq",
+          "label": "Amazon MQ"
+        },
+        {
+          "icon": "logos:aws-step-functions",
+          "label": "AWS Step Functions"
+        },
+        {
+          "icon": "logos:redis",
+          "label": "Redis Streams"
+        },
+        {
+          "icon": "logos:rsmq",
+          "label": "RSMQ"
+        },
+        {
+          "icon": "logos:vernemq",
+          "label": "VerneMQ"
+        },
+        {
+          "icon": "logos:apache-flink-icon",
+          "label": "Apache Flink"
+        },
+        {
+          "icon": "logos:apache-spark",
+          "label": "Apache Spark"
+        },
+        {
+          "icon": "logos:risingwave-icon",
+          "label": "RisingWave"
+        },
+        {
+          "icon": "logos:akka",
+          "label": "Akka"
+        },
+        {
+          "icon": "logos:reactivex",
+          "label": "ReactiveX"
+        },
+        {
+          "icon": "logos:temporal-icon",
+          "label": "Temporal"
+        },
+        {
+          "icon": "logos:airflow-icon",
+          "label": "Apache Airflow"
+        },
+        {
+          "icon": "logos:sidekiq-icon",
+          "label": "Sidekiq"
+        },
+        {
+          "icon": "logos:socket-io",
+          "label": "Socket.IO"
+        },
+        {
+          "icon": "logos:websocket",
+          "label": "WebSocket"
+        },
+        {
+          "icon": "logos:webrtc",
+          "label": "WebRTC"
+        },
+        {
+          "icon": "logos:grpc",
+          "label": "gRPC"
+        },
+        {
+          "icon": "logos:webhooks",
+          "label": "Webhooks"
+        },
+        {
+          "icon": "logos:pusher-icon",
+          "label": "Pusher"
+        },
+        {
+          "icon": "logos:livekit-icon",
+          "label": "LiveKit"
+        },
+        {
+          "icon": "logos:twilio-icon",
+          "label": "Twilio"
+        },
+        {
+          "icon": "logos:sendgrid-icon",
+          "label": "SendGrid"
+        },
+        {
+          "icon": "logos:mailgun-icon",
+          "label": "Mailgun"
+        },
+        {
+          "icon": "logos:aws-ses",
+          "label": "Amazon SES"
+        },
+        {
+          "icon": "logos:onesignal",
+          "label": "OneSignal"
+        },
+        {
+          "icon": "logos:segment-icon",
+          "label": "Segment"
+        },
+        {
+          "icon": "logos:n8n-icon",
+          "label": "n8n"
+        },
+        {
+          "icon": "logos:zapier-icon",
+          "label": "Zapier"
+        }
+      ]
+    },
+    {
+      "id": "languages",
+      "title": "Languages",
+      "items": [
+        {
+          "icon": "logos:typescript-icon",
+          "label": "TypeScript"
+        },
+        {
+          "icon": "logos:javascript",
+          "label": "JavaScript"
+        },
+        {
+          "icon": "logos:python",
+          "label": "Python"
+        },
+        {
+          "icon": "logos:java",
+          "label": "Java"
+        },
+        {
+          "icon": "logos:go",
+          "label": "Go"
+        },
+        {
+          "icon": "logos:rust",
+          "label": "Rust"
+        },
+        {
+          "icon": "logos:c",
+          "label": "C"
+        },
+        {
+          "icon": "logos:c-plusplus",
+          "label": "C++"
+        },
+        {
+          "icon": "logos:c-sharp",
+          "label": "C#"
+        },
+        {
+          "icon": "logos:fsharp",
+          "label": "F#"
+        },
+        {
+          "icon": "logos:kotlin-icon",
+          "label": "Kotlin"
+        },
+        {
+          "icon": "logos:swift",
+          "label": "Swift"
+        },
+        {
+          "icon": "logos:dart",
+          "label": "Dart"
+        },
+        {
+          "icon": "logos:ruby",
+          "label": "Ruby"
+        },
+        {
+          "icon": "logos:php",
+          "label": "PHP"
+        },
+        {
+          "icon": "logos:scala",
+          "label": "Scala"
+        },
+        {
+          "icon": "logos:clojure",
+          "label": "Clojure"
+        },
+        {
+          "icon": "logos:coffeescript",
+          "label": "CoffeeScript"
+        },
+        {
+          "icon": "logos:erlang",
+          "label": "Erlang"
+        },
+        {
+          "icon": "logos:haskell-icon",
+          "label": "Haskell"
+        },
+        {
+          "icon": "logos:ocaml",
+          "label": "OCaml"
+        },
+        {
+          "icon": "logos:lua",
+          "label": "Lua"
+        },
+        {
+          "icon": "logos:r-lang",
+          "label": "R"
+        },
+        {
+          "icon": "logos:julia",
+          "label": "Julia"
+        },
+        {
+          "icon": "logos:perl",
+          "label": "Perl"
+        },
+        {
+          "icon": "logos:zig",
+          "label": "Zig"
+        },
+        {
+          "icon": "logos:nim-lang",
+          "label": "Nim"
+        },
+        {
+          "icon": "logos:crystal",
+          "label": "Crystal"
+        },
+        {
+          "icon": "logos:elm",
+          "label": "Elm"
+        },
+        {
+          "icon": "logos:gleam",
+          "label": "Gleam"
+        },
+        {
+          "icon": "logos:solidity",
+          "label": "Solidity"
+        },
+        {
+          "icon": "logos:bash-icon",
+          "label": "Bash"
+        },
+        {
+          "icon": "logos:fortran",
+          "label": "Fortran"
+        },
+        {
+          "icon": "logos:webassembly",
+          "label": "WebAssembly"
+        },
+        {
+          "icon": "logos:html-5",
+          "label": "HTML5"
+        },
+        {
+          "icon": "logos:css-3",
+          "label": "CSS3"
+        },
+        {
+          "icon": "logos:graphql",
+          "label": "GraphQL"
+        },
+        {
+          "icon": "logos:sass",
+          "label": "Sass"
+        },
+        {
+          "icon": "logos:markdown",
+          "label": "Markdown"
+        },
+        {
+          "icon": "logos:yaml",
+          "label": "YAML"
+        }
+      ]
+    },
+    {
+      "id": "frameworks",
+      "title": "Frameworks and runtimes",
+      "items": [
+        {
+          "icon": "logos:nodejs-icon",
+          "label": "Node.js"
+        },
+        {
+          "icon": "logos:deno",
+          "label": "Deno"
+        },
+        {
+          "icon": "logos:bun",
+          "label": "Bun"
+        },
+        {
+          "icon": "logos:react",
+          "label": "React"
+        },
+        {
+          "icon": "logos:vue",
+          "label": "Vue.js"
+        },
+        {
+          "icon": "logos:angular-icon",
+          "label": "Angular"
+        },
+        {
+          "icon": "logos:svelte-icon",
+          "label": "Svelte"
+        },
+        {
+          "icon": "logos:solidjs-icon",
+          "label": "SolidJS"
+        },
+        {
+          "icon": "logos:preact",
+          "label": "Preact"
+        },
+        {
+          "icon": "logos:alpinejs-icon",
+          "label": "Alpine.js"
+        },
+        {
+          "icon": "logos:htmx-icon",
+          "label": "htmx"
+        },
+        {
+          "icon": "logos:lit-icon",
+          "label": "Lit"
+        },
+        {
+          "icon": "logos:nuxt-icon",
+          "label": "Nuxt"
+        },
+        {
+          "icon": "logos:qwik-icon",
+          "label": "Qwik"
+        },
+        {
+          "icon": "logos:remix-icon",
+          "label": "Remix"
+        },
+        {
+          "icon": "logos:astro-icon",
+          "label": "Astro"
+        },
+        {
+          "icon": "logos:gatsby",
+          "label": "Gatsby"
+        },
+        {
+          "icon": "logos:express",
+          "label": "Express"
+        },
+        {
+          "icon": "logos:nestjs",
+          "label": "NestJS"
+        },
+        {
+          "icon": "logos:fastify-icon",
+          "label": "Fastify"
+        },
+        {
+          "icon": "logos:hono",
+          "label": "Hono"
+        },
+        {
+          "icon": "logos:django-icon",
+          "label": "Django"
+        },
+        {
+          "icon": "logos:flask",
+          "label": "Flask"
+        },
+        {
+          "icon": "logos:fastapi-icon",
+          "label": "FastAPI"
+        },
+        {
+          "icon": "logos:spring-icon",
+          "label": "Spring"
+        },
+        {
+          "icon": "logos:quarkus-icon",
+          "label": "Quarkus"
+        },
+        {
+          "icon": "logos:ktor-icon",
+          "label": "Ktor"
+        },
+        {
+          "icon": "logos:dotnet",
+          "label": ".NET"
+        },
+        {
+          "icon": "logos:rails",
+          "label": "Ruby on Rails"
+        },
+        {
+          "icon": "logos:laravel",
+          "label": "Laravel"
+        },
+        {
+          "icon": "logos:symfony",
+          "label": "Symfony"
+        },
+        {
+          "icon": "logos:phoenix",
+          "label": "Phoenix"
+        },
+        {
+          "icon": "logos:gin",
+          "label": "Gin"
+        },
+        {
+          "icon": "logos:flutter-icon",
+          "label": "Flutter"
+        },
+        {
+          "icon": "logos:expo-icon",
+          "label": "Expo"
+        },
+        {
+          "icon": "logos:electron",
+          "label": "Electron"
+        },
+        {
+          "icon": "logos:tauri",
+          "label": "Tauri"
+        },
+        {
+          "icon": "logos:pytorch-icon",
+          "label": "PyTorch"
+        },
+        {
+          "icon": "logos:tensorflow",
+          "label": "TensorFlow"
+        }
+      ]
+    },
+    {
+      "id": "devops",
+      "title": "DevOps and tools",
+      "items": [
+        {
+          "icon": "logos:docker-icon",
+          "label": "Docker"
+        },
+        {
+          "icon": "logos:kubernetes",
+          "label": "Kubernetes"
+        },
+        {
+          "icon": "logos:helm",
+          "label": "Helm"
+        },
+        {
+          "icon": "logos:openshift",
+          "label": "OpenShift"
+        },
+        {
+          "icon": "logos:rancher-icon",
+          "label": "Rancher"
+        },
+        {
+          "icon": "logos:terraform-icon",
+          "label": "Terraform"
+        },
+        {
+          "icon": "logos:pulumi-icon",
+          "label": "Pulumi"
+        },
+        {
+          "icon": "logos:ansible",
+          "label": "Ansible"
+        },
+        {
+          "icon": "logos:chef",
+          "label": "Chef"
+        },
+        {
+          "icon": "logos:puppet-icon",
+          "label": "Puppet"
+        },
+        {
+          "icon": "logos:packer",
+          "label": "Packer"
+        },
+        {
+          "icon": "logos:vagrant-icon",
+          "label": "Vagrant"
+        },
+        {
+          "icon": "logos:vault-icon",
+          "label": "HashiCorp Vault"
+        },
+        {
+          "icon": "logos:consul",
+          "label": "Consul"
+        },
+        {
+          "icon": "logos:nomad-icon",
+          "label": "Nomad"
+        },
+        {
+          "icon": "logos:etcd",
+          "label": "etcd"
+        },
+        {
+          "icon": "logos:jenkins",
+          "label": "Jenkins"
+        },
+        {
+          "icon": "logos:github-actions",
+          "label": "GitHub Actions"
+        },
+        {
+          "icon": "logos:gitlab-icon",
+          "label": "GitLab CI/CD"
+        },
+        {
+          "icon": "logos:circleci",
+          "label": "CircleCI"
+        },
+        {
+          "icon": "logos:travis-ci",
+          "label": "Travis CI"
+        },
+        {
+          "icon": "logos:argo-icon",
+          "label": "Argo CD"
+        },
+        {
+          "icon": "logos:prometheus",
+          "label": "Prometheus"
+        },
+        {
+          "icon": "logos:grafana",
+          "label": "Grafana"
+        },
+        {
+          "icon": "logos:datadog-icon",
+          "label": "Datadog"
+        },
+        {
+          "icon": "logos:new-relic-icon",
+          "label": "New Relic"
+        },
+        {
+          "icon": "logos:sentry-icon",
+          "label": "Sentry"
+        },
+        {
+          "icon": "logos:opentelemetry-icon",
+          "label": "OpenTelemetry"
+        },
+        {
+          "icon": "logos:kibana",
+          "label": "Kibana"
+        },
+        {
+          "icon": "logos:logstash",
+          "label": "Logstash"
+        },
+        {
+          "icon": "logos:dynatrace-icon",
+          "label": "Dynatrace"
+        },
+        {
+          "icon": "logos:pagerduty-icon",
+          "label": "PagerDuty"
+        },
+        {
+          "icon": "logos:nginx",
+          "label": "Nginx"
+        },
+        {
+          "icon": "logos:apache-http",
+          "label": "Apache HTTP Server"
+        },
+        {
+          "icon": "logos:traefik-proxy-icon",
+          "label": "Traefik"
+        },
+        {
+          "icon": "logos:envoy-icon",
+          "label": "Envoy"
+        },
+        {
+          "icon": "logos:linkerd",
+          "label": "Linkerd"
+        },
+        {
+          "icon": "logos:kong-icon",
+          "label": "Kong"
+        },
+        {
+          "icon": "logos:letsencrypt",
+          "label": "Let's Encrypt"
+        },
+        {
+          "icon": "logos:snyk",
+          "label": "Snyk"
+        }
+      ]
+    },
+    {
+      "id": "platforms",
+      "title": "Clouds and platforms",
+      "items": [
+        {
+          "icon": "logos:aws",
+          "label": "AWS"
+        },
+        {
+          "icon": "logos:google-cloud",
+          "label": "Google Cloud"
+        },
+        {
+          "icon": "logos:microsoft-azure",
+          "label": "Microsoft Azure"
+        },
+        {
+          "icon": "logos:digital-ocean-icon",
+          "label": "DigitalOcean"
+        },
+        {
+          "icon": "logos:linode",
+          "label": "Linode"
+        },
+        {
+          "icon": "logos:vultr-icon",
+          "label": "Vultr"
+        },
+        {
+          "icon": "logos:heroku-icon",
+          "label": "Heroku"
+        },
+        {
+          "icon": "logos:vercel-icon",
+          "label": "Vercel"
+        },
+        {
+          "icon": "logos:netlify-icon",
+          "label": "Netlify"
+        },
+        {
+          "icon": "logos:fly-icon",
+          "label": "Fly.io"
+        },
+        {
+          "icon": "logos:railway",
+          "label": "Railway"
+        },
+        {
+          "icon": "logos:cloudflare-icon",
+          "label": "Cloudflare"
+        },
+        {
+          "icon": "logos:cloudflare-workers-icon",
+          "label": "Cloudflare Workers"
+        },
+        {
+          "icon": "logos:fastly",
+          "label": "Fastly"
+        },
+        {
+          "icon": "logos:akamai",
+          "label": "Akamai"
+        },
+        {
+          "icon": "logos:bunny-net-icon",
+          "label": "Bunny.net"
+        },
+        {
+          "icon": "logos:ibm",
+          "label": "IBM Cloud"
+        },
+        {
+          "icon": "logos:codesandbox-icon",
+          "label": "CodeSandbox"
+        },
+        {
+          "icon": "logos:openstack-icon",
+          "label": "OpenStack"
+        },
+        {
+          "icon": "logos:rackspace-icon",
+          "label": "Rackspace"
+        },
+        {
+          "icon": "logos:aws-ec2",
+          "label": "Amazon EC2"
+        },
+        {
+          "icon": "logos:aws-s3",
+          "label": "Amazon S3"
+        },
+        {
+          "icon": "logos:aws-lambda",
+          "label": "AWS Lambda"
+        },
+        {
+          "icon": "logos:aws-eks",
+          "label": "Amazon EKS"
+        },
+        {
+          "icon": "logos:aws-ecs",
+          "label": "Amazon ECS"
+        },
+        {
+          "icon": "logos:aws-fargate",
+          "label": "AWS Fargate"
+        },
+        {
+          "icon": "logos:aws-api-gateway",
+          "label": "Amazon API Gateway"
+        },
+        {
+          "icon": "logos:aws-cloudfront",
+          "label": "Amazon CloudFront"
+        },
+        {
+          "icon": "logos:aws-route53",
+          "label": "Amazon Route 53"
+        },
+        {
+          "icon": "logos:aws-iam",
+          "label": "AWS IAM"
+        },
+        {
+          "icon": "logos:aws-cognito",
+          "label": "Amazon Cognito"
+        },
+        {
+          "icon": "logos:aws-amplify",
+          "label": "AWS Amplify"
+        },
+        {
+          "icon": "logos:aws-elastic-beanstalk",
+          "label": "AWS Elastic Beanstalk"
+        },
+        {
+          "icon": "logos:google-cloud-run",
+          "label": "Google Cloud Run"
+        },
+        {
+          "icon": "logos:appwrite-icon",
+          "label": "Appwrite"
+        },
+        {
+          "icon": "logos:replit-icon",
+          "label": "Replit"
+        },
+        {
+          "icon": "logos:hugging-face-icon",
+          "label": "Hugging Face"
+        },
+        {
+          "icon": "logos:openai-icon",
+          "label": "OpenAI"
+        },
+        {
+          "icon": "logos:anthropic-icon",
+          "label": "Anthropic"
+        }
+      ]
+    },
+    {
+      "id": "os",
+      "title": "Operating systems and browsers",
+      "items": [
+        {
+          "icon": "logos:ubuntu",
+          "label": "Ubuntu"
+        },
+        {
+          "icon": "logos:debian",
+          "label": "Debian"
+        },
+        {
+          "icon": "logos:fedora",
+          "label": "Fedora"
+        },
+        {
+          "icon": "logos:centos-icon",
+          "label": "CentOS"
+        },
+        {
+          "icon": "logos:redhat-icon",
+          "label": "Red Hat"
+        },
+        {
+          "icon": "logos:rocky-linux-icon",
+          "label": "Rocky Linux"
+        },
+        {
+          "icon": "logos:archlinux",
+          "label": "Arch Linux"
+        },
+        {
+          "icon": "logos:manjaro",
+          "label": "Manjaro"
+        },
+        {
+          "icon": "logos:linux-mint",
+          "label": "Linux Mint"
+        },
+        {
+          "icon": "logos:elementary",
+          "label": "elementary OS"
+        },
+        {
+          "icon": "logos:suse",
+          "label": "SUSE"
+        },
+        {
+          "icon": "logos:zorin-os",
+          "label": "Zorin OS"
+        },
+        {
+          "icon": "logos:freebsd",
+          "label": "FreeBSD"
+        },
+        {
+          "icon": "logos:gnu",
+          "label": "GNU"
+        },
+        {
+          "icon": "logos:microsoft-windows-icon",
+          "label": "Windows"
+        },
+        {
+          "icon": "logos:macosx",
+          "label": "macOS"
+        },
+        {
+          "icon": "logos:apple",
+          "label": "Apple"
+        },
+        {
+          "icon": "logos:android-icon",
+          "label": "Android"
+        },
+        {
+          "icon": "logos:ios",
+          "label": "iOS"
+        },
+        {
+          "icon": "logos:wearos",
+          "label": "Wear OS"
+        },
+        {
+          "icon": "logos:fuchsia",
+          "label": "Fuchsia"
+        },
+        {
+          "icon": "logos:raspberry-pi",
+          "label": "Raspberry Pi"
+        },
+        {
+          "icon": "logos:chrome",
+          "label": "Chrome"
+        },
+        {
+          "icon": "logos:firefox",
+          "label": "Firefox"
+        },
+        {
+          "icon": "logos:microsoft-edge",
+          "label": "Microsoft Edge"
+        },
+        {
+          "icon": "logos:opera",
+          "label": "Opera"
+        },
+        {
+          "icon": "logos:brave",
+          "label": "Brave"
+        },
+        {
+          "icon": "logos:vivaldi-icon",
+          "label": "Vivaldi"
+        },
+        {
+          "icon": "logos:arc",
+          "label": "Arc"
+        },
+        {
+          "icon": "logos:tor-browser",
+          "label": "Tor Browser"
+        },
+        {
+          "icon": "logos:internetexplorer",
+          "label": "Internet Explorer"
+        },
+        {
+          "icon": "logos:webkit",
+          "label": "WebKit"
+        },
+        {
+          "icon": "logos:gnome-icon",
+          "label": "GNOME"
+        },
+        {
+          "icon": "logos:kde",
+          "label": "KDE"
+        }
+      ]
+    },
+    {
+      "id": "collaboration",
+      "title": "Collaboration",
+      "items": [
+        {
+          "icon": "logos:github-icon",
+          "label": "GitHub"
+        },
+        {
+          "icon": "logos:git-icon",
+          "label": "Git"
+        },
+        {
+          "icon": "logos:gitlab-icon",
+          "label": "GitLab"
+        },
+        {
+          "icon": "logos:bitbucket",
+          "label": "Bitbucket"
+        },
+        {
+          "icon": "logos:slack-icon",
+          "label": "Slack"
+        },
+        {
+          "icon": "logos:discord-icon",
+          "label": "Discord"
+        },
+        {
+          "icon": "logos:mattermost-icon",
+          "label": "Mattermost"
+        },
+        {
+          "icon": "logos:telegram",
+          "label": "Telegram"
+        },
+        {
+          "icon": "logos:whatsapp-icon",
+          "label": "WhatsApp"
+        },
+        {
+          "icon": "logos:zoom-icon",
+          "label": "Zoom"
+        },
+        {
+          "icon": "logos:loom-icon",
+          "label": "Loom"
+        },
+        {
+          "icon": "logos:jira",
+          "label": "Jira"
+        },
+        {
+          "icon": "logos:confluence",
+          "label": "Confluence"
+        },
+        {
+          "icon": "logos:trello",
+          "label": "Trello"
+        },
+        {
+          "icon": "logos:asana-icon",
+          "label": "Asana"
+        },
+        {
+          "icon": "logos:monday-icon",
+          "label": "monday.com"
+        },
+        {
+          "icon": "logos:linear-icon",
+          "label": "Linear"
+        },
+        {
+          "icon": "logos:clickup-icon",
+          "label": "ClickUp"
+        },
+        {
+          "icon": "logos:basecamp-icon",
+          "label": "Basecamp"
+        },
+        {
+          "icon": "logos:youtrack",
+          "label": "YouTrack"
+        },
+        {
+          "icon": "logos:notion-icon",
+          "label": "Notion"
+        },
+        {
+          "icon": "logos:obsidian-icon",
+          "label": "Obsidian"
+        },
+        {
+          "icon": "logos:airtable",
+          "label": "Airtable"
+        },
+        {
+          "icon": "logos:google-workspace",
+          "label": "Google Workspace"
+        },
+        {
+          "icon": "logos:google-gmail",
+          "label": "Gmail"
+        },
+        {
+          "icon": "logos:microsoft-onedrive",
+          "label": "OneDrive"
+        },
+        {
+          "icon": "logos:dropbox",
+          "label": "Dropbox"
+        },
+        {
+          "icon": "logos:figma",
+          "label": "Figma"
+        },
+        {
+          "icon": "logos:sketch",
+          "label": "Sketch"
+        },
+        {
+          "icon": "logos:miro-icon",
+          "label": "Miro"
+        },
+        {
+          "icon": "logos:penpot-icon",
+          "label": "Penpot"
+        },
+        {
+          "icon": "logos:zendesk-icon",
+          "label": "Zendesk"
+        },
+        {
+          "icon": "logos:intercom-icon",
+          "label": "Intercom"
+        },
+        {
+          "icon": "logos:hubspot",
+          "label": "HubSpot"
+        },
+        {
+          "icon": "logos:salesforce",
+          "label": "Salesforce"
+        },
+        {
+          "icon": "logos:stackoverflow-icon",
+          "label": "Stack Overflow"
+        }
+      ]
+    }
+  ]
+}

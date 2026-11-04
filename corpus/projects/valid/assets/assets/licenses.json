@@ -1,0 +1,19 @@
+{
+  "icons": {
+    "aws": {
+      "title": "Provider icons (corpus stand-ins)",
+      "version": "2026.10",
+      "license": "LicenseRef-Corpus-Provider-Terms",
+      "url": "https://example.com/provider-icons",
+      "author": "Meltemi Diagrams",
+      "redistribute": false
+    }
+  },
+  "fonts": {
+    "Corpus Sans": {
+      "version": "1.000",
+      "license": "CC0-1.0",
+      "author": "Meltemi Diagrams"
+    }
+  }
+}

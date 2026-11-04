@@ -1,0 +1,218 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1666" height="937" viewBox="0 0 1666 937" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Twenty-four shapes</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1666" height="937" fill="#F7FBFF"/>
+  <g data-id="heading" data-role="element">
+    <text x="730.5" y="40.64" text-anchor="start" font-size="21" font-weight="600" fill="#0B1830">Twenty-four shapes</text>
+  </g>
+  <g data-id="rounded" data-role="element">
+    <rect x="153" y="155" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="233" y="187.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Rounded</text>
+  </g>
+  <g data-id="rectangle" data-role="element">
+    <rect x="393" y="155" width="160" height="56" rx="0" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="473" y="187.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Rectangle</text>
+  </g>
+  <g data-id="square" data-role="element">
+    <rect x="653" y="123" width="120" height="120" rx="0" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="713" y="187.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Square</text>
+  </g>
+  <g data-id="ellipse" data-role="element">
+    <path d="M873 183 A80 36 0 1 0 1033 183 A80 36 0 1 0 873 183 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="953" y="187.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Ellipse</text>
+  </g>
+  <g data-id="circle" data-role="element">
+    <path d="M1133 183 A60 60 0 1 0 1253 183 A60 60 0 1 0 1133 183 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1193" y="187.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Circle</text>
+  </g>
+  <g data-id="diamond" data-role="element">
+    <path d="M1433 143 L1513 183 L1433 223 L1353 183 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1433" y="187.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Diamond</text>
+  </g>
+  <g data-id="cylinder" data-role="element">
+    <path d="M1353 369 L1353 417 A80 8 0 0 0 1513 417 L1513 369 A80 8 0 0 1 1353 369 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M1353 369 A80 8 0 0 1 1513 369 A80 8 0 0 1 1353 369 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1433" y="401.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Cylinder</text>
+  </g>
+  <g data-id="pill" data-role="element">
+    <rect x="1113" y="365" width="160" height="56" rx="28" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1193" y="397.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Pill</text>
+  </g>
+  <g data-id="triangle" data-role="element">
+    <path d="M953 345 L1033 441 L873 441 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="953" y="413.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Triangle</text>
+  </g>
+  <g data-id="parallelogram" data-role="element">
+    <path d="M661 365 L793 365 L765 421 L633 421 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="713" y="397.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Parallelogram</text>
+  </g>
+  <g data-id="trapezoid" data-role="element">
+    <path d="M425 361 L521 361 L553 425 L393 425 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="473" y="397.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Trapezoid</text>
+  </g>
+  <g data-id="pentagon" data-role="element">
+    <path d="M233 345 L313 381.48 L282.6 441 L183.4 441 L153 381.48 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="233" y="402.53" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Pentagon</text>
+  </g>
+  <g data-id="hexagon" data-role="element">
+    <path d="M185 571 L281 571 L313 603 L281 635 L185 635 L153 603 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="233" y="607.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Hexagon</text>
+  </g>
+  <g data-id="octagon" data-role="element">
+    <path d="M413.88 567 L532.12 567 L553 587.88 L553 618.12 L532.12 639 L413.88 639 L393 618.12 L393 587.88 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="473" y="607.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Octagon</text>
+  </g>
+  <g data-id="star" data-role="element">
+    <path d="M713 543 L729.64 588.83 L783.5 588.84 L739.93 617.16 L756.57 663 L713 634.67 L669.43 663 L686.07 617.16 L642.5 588.84 L696.36 588.83 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="713" y="614.06" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Star</text>
+  </g>
+  <g data-id="cloud" data-role="element">
+    <path d="M894.36 591.89 C856.96 574.95 898.44 551.65 928.57 572.66 C924.86 545.69 985.96 546.89 978.91 573.65 C1012.09 554.05 1051.38 580.37 1011.28 595.33 C1059.48 596.42 1049.53 631.73 1003.1 624.39 C1030.95 646.84 965.55 665.57 949.61 639.7 C933.48 665.19 878.53 650.13 904.34 627.29 C857.64 635.57 845.4 592.13 894.36 591.89 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="953" y="607.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Cloud</text>
+  </g>
+  <g data-id="document" data-role="element">
+    <path d="M1113 567 L1273 567 L1273 630.36 C1193 600.43 1193 660.29 1113 630.36 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1193" y="603.41" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Document</text>
+  </g>
+  <g data-id="callout" data-role="element">
+    <path d="M1353 567 L1513 567 L1513 623 L1409 623 L1377 639 L1385 623 L1353 623 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1433" y="599.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Callout</text>
+  </g>
+  <g data-id="arrow" data-role="element">
+    <path d="M1353 799 L1457 799 L1457 785 L1513 813 L1457 841 L1457 827 L1353 827 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1419" y="817.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Arrow</text>
+  </g>
+  <g data-id="framed" data-role="element">
+    <rect x="1113" y="785" width="160" height="56" rx="0" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M1121 785 L1121 841 M1265 785 L1265 841" fill="none" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1193" y="817.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Framed</text>
+  </g>
+  <g data-id="flag" data-role="element">
+    <path d="M873 785 L1033 785 L1033 841 L873 841 L897 813 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="965" y="817.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Flag</text>
+  </g>
+  <g data-id="person" data-role="element">
+    <rect x="633" y="786.6" width="160" height="78.4" rx="24" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M697 777 A16 16 0 1 0 729 777 A16 16 0 1 0 697 777 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="713" y="835.33" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Person</text>
+  </g>
+  <g data-id="agent" data-role="element">
+    <path d="M405 791.4 L541 791.4 A12 12 0 0 1 553 803.4 L553 861 A12 12 0 0 1 541 873 L405 873 A12 12 0 0 1 393 861 L393 803.4 A12 12 0 0 1 405 791.4 Z M465.51 762.6 L480.49 762.6 A6.91 6.91 0 0 1 487.4 769.51 L487.4 784.49 A6.91 6.91 0 0 1 480.49 791.4 L465.51 791.4 A6.91 6.91 0 0 1 458.6 784.49 L458.6 769.51 A6.91 6.91 0 0 1 465.51 762.6 Z M464.07 774.7 A3.17 3.17 0 1 1 470.41 774.7 A3.17 3.17 0 1 1 464.07 774.7 Z M475.59 774.7 A3.17 3.17 0 1 1 481.93 774.7 A3.17 3.17 0 1 1 475.59 774.7 Z M468.97 783.91 L477.03 783.91 M473 762.6 L473 758.38 M470.31 755.69 A2.69 2.69 0 1 1 475.69 755.69 A2.69 2.69 0 1 1 470.31 755.69 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="473" y="836.93" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Agent</text>
+  </g>
+  <g data-id="icon" data-role="element">
+    <g data-id="tabler:photo" data-role="icon" transform="translate(201 781) scale(2.667)">
+      <path d="M15 8L15.01 8" fill="none" stroke="#0B1830" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M3 6A3 3 0 0 1 6 3L18 3A3 3 0 0 1 21 6L21 18A3 3 0 0 1 18 21L6 21A3 3 0 0 1 3 18L3 6" fill="none" stroke="#0B1830" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M3 16L8 11C8.928 10.107 10.072 10.107 11 11L16 16" fill="none" stroke="#0B1830" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M14 14L15 13C15.928 12.107 17.072 12.107 18 13L21 16" fill="none" stroke="#0B1830" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <text x="233" y="864.23" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Icon</text>
+  </g>
+  <g data-id="rounded-&gt;rectangle#1" data-role="relation">
+    <polyline points="313,183 385,183" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M393 183 L385 186.5 L385 179.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="rectangle-&gt;square#1" data-role="relation">
+    <polyline points="553,183 645,183" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M653 183 L645 186.5 L645 179.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="toEllipse" data-role="relation">
+    <polyline points="773,183 823,183 823,168.6 871.68,168.6" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M879.68 168.6 L871.68 172.1 L871.68 165.1 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="fromEllipse" data-role="relation">
+    <polyline points="1026.32,197.4 1083,197.4 1083,183 1125,183" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1133 183 L1125 186.5 L1125 179.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="toDiamond" data-role="relation">
+    <polyline points="1253,183 1303,183 1303,167 1377,167" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1385 167 L1377 170.5 L1377 163.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="fromDiamond" data-role="relation">
+    <polyline points="1401,207 1401,292 1433,292 1433,353" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1433 361 L1429.5 353 L1436.5 353 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="cylinder-&gt;pill#1" data-role="relation">
+    <polyline points="1353,393 1281,393" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1273 393 L1281 389.5 L1281 396.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="pill-&gt;triangle#1" data-role="relation">
+    <polyline points="1113,393 1001,393" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M993 393 L1001 389.5 L1001 396.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="triangle-&gt;parallelogram#1" data-role="relation">
+    <polyline points="913,393 787,393" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M779 393 L787 389.5 L787 396.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="parallelogram-&gt;trapezoid#1" data-role="relation">
+    <polyline points="647,393 545,393" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M537 393 L545 389.5 L545 396.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="trapezoid-&gt;pentagon#1" data-role="relation">
+    <polyline points="409,393 315.12,393" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M307.12 393 L315.12 389.5 L315.12 396.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="pentagon-&gt;hexagon#1" data-role="relation">
+    <polyline points="233,441 233,563" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M233 571 L229.5 563 L236.5 563 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="hexagon-&gt;octagon#1" data-role="relation">
+    <polyline points="313,603 385,603" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M393 603 L385 606.5 L385 599.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="octagon-&gt;star#1" data-role="relation">
+    <polyline points="553,603 656.28,603" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M664.28 603 L656.28 606.5 L656.28 599.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="star-&gt;cloud#1" data-role="relation">
+    <polyline points="761.72,603 856.97,603" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M864.97 603 L856.97 606.5 L856.97 599.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="cloud-&gt;document#1" data-role="relation">
+    <polyline points="1038.85,603 1105,603" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1113 603 L1105 606.5 L1105 599.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="document-&gt;callout#1" data-role="relation">
+    <polyline points="1273,603 1345,603" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1353 603 L1345 606.5 L1345 599.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="callout-&gt;arrow#1" data-role="relation">
+    <polyline points="1433,623 1433,791" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1433 799 L1429.5 791 L1436.5 791 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="arrow-&gt;framed#1" data-role="relation">
+    <polyline points="1353,813 1281,813" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1273 813 L1281 809.5 L1281 816.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="framed-&gt;flag#1" data-role="relation">
+    <polyline points="1113,813 1041,813" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1033 813 L1041 809.5 L1041 816.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="flag-&gt;person#1" data-role="relation">
+    <polyline points="897,813 801,813" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M793 813 L801 809.5 L801 816.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="person-&gt;agent#1" data-role="relation">
+    <polyline points="633,813 561,813" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M553 813 L561 809.5 L561 816.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="agent-&gt;icon#1" data-role="relation">
+    <polyline points="393,813 273,813" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M265 813 L273 809.5 L273 816.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,893.5 1646,893.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 903) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="919.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="1646" y="919" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Twenty-four shapes</text>
+  </g>
+</svg>

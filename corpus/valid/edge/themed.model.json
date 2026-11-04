@@ -1,0 +1,412 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "themed",
+      "type": "flow",
+      "range": {
+        "start": {
+          "offset": 291,
+          "line": 15,
+          "column": 1
+        },
+        "end": {
+          "offset": 618,
+          "line": 33,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "manual",
+        "theme": "acme",
+        "title": "Themed sheet",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null,
+        "spacing": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "edge",
+          "kind": "group",
+          "label": "Edge",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 371,
+              "line": 20,
+              "column": 3
+            },
+            "end": {
+              "offset": 449,
+              "line": 22,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 377,
+              "line": 20,
+              "column": 9
+            },
+            "end": {
+              "offset": 381,
+              "line": 20,
+              "column": 13
+            }
+          }
+        },
+        {
+          "id": "api",
+          "kind": "node",
+          "label": "API Gateway",
+          "implicit": false,
+          "description": "validates JWT",
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "edge"
+          ],
+          "range": {
+            "start": {
+              "offset": 395,
+              "line": 21,
+              "column": 5
+            },
+            "end": {
+              "offset": 445,
+              "line": 21,
+              "column": 55
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 395,
+              "line": 21,
+              "column": 5
+            },
+            "end": {
+              "offset": 398,
+              "line": 21,
+              "column": 8
+            }
+          }
+        },
+        {
+          "id": "client",
+          "kind": "node",
+          "label": "Client",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 452,
+              "line": 23,
+              "column": 3
+            },
+            "end": {
+              "offset": 468,
+              "line": 23,
+              "column": 19
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 452,
+              "line": 23,
+              "column": 3
+            },
+            "end": {
+              "offset": 458,
+              "line": 23,
+              "column": 9
+            }
+          }
+        },
+        {
+          "id": "t",
+          "kind": "tag",
+          "label": "JWT",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 471,
+              "line": 24,
+              "column": 3
+            },
+            "end": {
+              "offset": 482,
+              "line": 24,
+              "column": 14
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 475,
+              "line": 24,
+              "column": 7
+            },
+            "end": {
+              "offset": 476,
+              "line": 24,
+              "column": 8
+            }
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "request",
+          "id": "request",
+          "from": "client",
+          "to": "api",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": false,
+          "label": "1",
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 486,
+              "line": 26,
+              "column": 3
+            },
+            "end": {
+              "offset": 515,
+              "line": 26,
+              "column": 32
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 508,
+              "line": 26,
+              "column": 25
+            },
+            "end": {
+              "offset": 515,
+              "line": 26,
+              "column": 32
+            }
+          }
+        }
+      ],
+      "placement": [
+        {
+          "statement": "place",
+          "target": "client",
+          "x": 100,
+          "y": 60,
+          "range": {
+            "start": {
+              "offset": 535,
+              "line": 29,
+              "column": 5
+            },
+            "end": {
+              "offset": 560,
+              "line": 29,
+              "column": 30
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 541,
+              "line": 29,
+              "column": 11
+            },
+            "end": {
+              "offset": 547,
+              "line": 29,
+              "column": 17
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "api",
+          "x": 400,
+          "y": 60,
+          "range": {
+            "start": {
+              "offset": 565,
+              "line": 30,
+              "column": 5
+            },
+            "end": {
+              "offset": 587,
+              "line": 30,
+              "column": 27
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 571,
+              "line": 30,
+              "column": 11
+            },
+            "end": {
+              "offset": 574,
+              "line": 30,
+              "column": 14
+            }
+          }
+        },
+        {
+          "statement": "place",
+          "target": "t",
+          "x": 480,
+          "y": 32,
+          "range": {
+            "start": {
+              "offset": 592,
+              "line": 31,
+              "column": 5
+            },
+            "end": {
+              "offset": 612,
+              "line": 31,
+              "column": 25
+            }
+          },
+          "targetRange": {
+            "start": {
+              "offset": 598,
+              "line": 31,
+              "column": 11
+            },
+            "end": {
+              "offset": 599,
+              "line": 31,
+              "column": 12
+            }
+          }
+        }
+      ],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null
+    }
+  ],
+  "themes": [
+    {
+      "id": "acme",
+      "extends": "technical.light",
+      "tokens": {
+        "accent": "#6a4fd0",
+        "accentEnd": "#a594f0",
+        "band": "#f6f3fe",
+        "bandLine": "#6a4fd0",
+        "brand": "Acme · Meltemi Diagrams",
+        "frame": "footer",
+        "tag": "#6a4fd0"
+      },
+      "classes": [],
+      "rules": [],
+      "range": {
+        "start": {
+          "offset": 103,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 289,
+          "line": 13,
+          "column": 2
+        }
+      }
+    }
+  ],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

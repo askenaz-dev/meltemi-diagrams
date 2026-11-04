@@ -1,0 +1,21 @@
+[
+  {
+    "code": "layout.label-under-connector",
+    "severity": "warning",
+    "message": "The label of `save` lies on the connector of `notify`.",
+    "range": {
+      "start": {
+        "offset": 184,
+        "line": 10,
+        "column": 3
+      },
+      "end": {
+        "offset": 215,
+        "line": 10,
+        "column": 34
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

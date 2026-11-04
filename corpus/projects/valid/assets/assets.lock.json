@@ -1,0 +1,49 @@
+{
+  "lockVersion": 1,
+  "icons": {
+    "aws": {
+      "version": "2026.10",
+      "source": "assets/icons/aws",
+      "license": "LicenseRef-Corpus-Provider-Terms",
+      "integrity": "sha256-P77SDNFV57zsPhMiNuaYpakAh5Ct5ikL2JGnwOulDEI="
+    },
+    "azure": {
+      "version": "V24",
+      "source": "built-in",
+      "license": "LicenseRef-Microsoft-Azure-Icons"
+    },
+    "brand": {
+      "version": "1.0.0",
+      "source": "assets/icons/brand.json",
+      "license": "CC0-1.0",
+      "integrity": "sha256-oDHc9LU5SALGySJMa5zinnO6vcnwspGzmW9xKdEHnJM="
+    },
+    "gcp": {
+      "version": "2026-10-14",
+      "source": "built-in",
+      "license": "LicenseRef-Google-Cloud-Icons"
+    },
+    "kubernetes": {
+      "version": "2026-10-14",
+      "source": "built-in",
+      "license": "Apache-2.0"
+    },
+    "logos": {
+      "version": null,
+      "source": "built-in",
+      "license": "CC0-1.0"
+    },
+    "tabler": {
+      "version": "3.48.0",
+      "source": "built-in",
+      "license": "MIT"
+    }
+  },
+  "fonts": {
+    "assets/fonts/CorpusSans-Regular.ttf": {
+      "family": "Corpus Sans",
+      "license": "CC0-1.0",
+      "integrity": "sha256-jjuiXf3hn15rVjbrA+ZJHToDUslTofwmbzLzTpDa9Pg="
+    }
+  }
+}

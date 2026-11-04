@@ -1,0 +1,7 @@
+language "0.2"
+
+model commerce {
+  system shop "Commerce" {
+    component orders "Pedidos"
+  }
+}

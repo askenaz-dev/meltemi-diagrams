@@ -1,0 +1,23 @@
+{
+  "project.json": [
+    {
+      "code": "plugin.not-found",
+      "severity": "error",
+      "message": "The plugin `erd` has no meltemi-plugin.json in `plugins/erd`.",
+      "range": {
+        "start": {
+          "offset": 63,
+          "line": 5,
+          "column": 5
+        },
+        "end": {
+          "offset": 68,
+          "line": 5,
+          "column": 10
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ]
+}

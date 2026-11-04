@@ -1,0 +1,9 @@
+{
+  "status": "failed",
+  "format": "mermaid",
+  "diagrams": [],
+  "findings": [
+    "1:1 error import.unsupported-diagram [mermaid.classDiagram dropped essential] Mermaid `classDiagram` diagrams are not imported."
+  ],
+  "coverage": []
+}

@@ -1,0 +1,7 @@
+{
+  "$schema": "../../../../schemas/project.schema.json",
+  "name": "architecture",
+  "language": "0.2",
+  "tools": { "meltemi-diagrams": "^1.0.0" },
+  "sources": ["models", "diagrams", "stories"]
+}

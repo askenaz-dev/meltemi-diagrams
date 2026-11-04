@@ -1,0 +1,21 @@
+[
+  {
+    "code": "export.missing-format",
+    "severity": "error",
+    "message": "The profile `slide` needs a `format`: svg, png, pdf, html, mp4, webm, gif.",
+    "range": {
+      "start": {
+        "offset": 105,
+        "line": 8,
+        "column": 8
+      },
+      "end": {
+        "offset": 110,
+        "line": 8,
+        "column": 13
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

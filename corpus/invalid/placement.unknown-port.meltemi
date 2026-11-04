@@ -1,0 +1,17 @@
+language "0.2"
+
+// A route names a port the element does not declare.
+diagram events: flow {
+  layout manual
+  api["API"]
+  bus["Event bus"] {
+    port in west
+    port out east 30%
+  }
+  api -> bus as publish
+  placement {
+    place api at (120, 100)
+    place bus at (420, 100)
+    route publish from api.east to bus.input
+  }
+}

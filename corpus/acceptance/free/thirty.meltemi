@@ -1,0 +1,103 @@
+language "0.2"
+
+// Thirty boxes on a slide in five rows, each leading to the next: the size the performance targets name.
+diagram thirty: free {
+  title "Data pipeline"
+  preset slide
+  layout manual
+  routing orthogonal
+
+  box ingest "Ingest"
+  box validate "Validate"
+  box enrich "Enrich"
+  box dedupe "Dedupe"
+  box score "Score"
+  box route "Route"
+  box queue "Queue"
+  box store "Store"
+  box index "Index"
+  box search "Search"
+  box report "Report"
+  box alert "Alert"
+  box notify "Notify"
+  box archive "Archive"
+  box purge "Purge"
+  box audit "Audit"
+  box export "Export"
+  box import "Import"
+  box transform "Transform"
+  box join "Join"
+  box aggregate "Aggregate"
+  box sample "Sample"
+  box train "Train"
+  box predict "Predict"
+  box explain "Explain"
+  box review "Review"
+  box approve "Approve"
+  box publish "Publish"
+  box monitor "Monitor"
+  box retire "Retire"
+
+  ingest -> validate as s1
+  validate -> enrich as s2
+  enrich -> dedupe as s3
+  dedupe -> score as s4
+  score -> route as s5
+  route -> queue as s6
+  queue -> store as s7
+  store -> index as s8
+  index -> search as s9
+  search -> report as s10
+  report -> alert as s11
+  alert -> notify as s12
+  notify -> archive as s13
+  archive -> purge as s14
+  purge -> audit as s15
+  audit -> export as s16
+  export -> import as s17
+  import -> transform as s18
+  transform -> join as s19
+  join -> aggregate as s20
+  aggregate -> sample as s21
+  sample -> train as s22
+  train -> predict as s23
+  predict -> explain as s24
+  explain -> review as s25
+  review -> approve as s26
+  approve -> publish as s27
+  publish -> monitor as s28
+  monitor -> retire as s29
+
+  placement {
+    place ingest at (220, 160)
+    place validate at (516, 160)
+    place enrich at (812, 160)
+    place dedupe at (1108, 160)
+    place score at (1404, 160)
+    place route at (1700, 160)
+    place queue at (1700, 356)
+    place store at (1404, 356)
+    place index at (1108, 356)
+    place search at (812, 356)
+    place report at (516, 356)
+    place alert at (220, 356)
+    place notify at (220, 552)
+    place archive at (516, 552)
+    place purge at (812, 552)
+    place audit at (1108, 552)
+    place export at (1404, 552)
+    place import at (1700, 552)
+    place transform at (1700, 748)
+    place join at (1404, 748)
+    place aggregate at (1108, 748)
+    place sample at (812, 748)
+    place train at (516, 748)
+    place predict at (220, 748)
+    place explain at (220, 944)
+    place review at (516, 944)
+    place approve at (812, 944)
+    place publish at (1108, 944)
+    place monitor at (1404, 944)
+    place retire at (1700, 944)
+  }
+}

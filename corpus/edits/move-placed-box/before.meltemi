@@ -1,0 +1,12 @@
+language "0.2"
+
+diagram checkout: flow {
+  api["API Gateway"]
+  orders["Orders"]
+  api -> orders as create
+
+  placement {
+    place api at (360, 180) // keep near the gateway
+    place orders at (700, 180)
+  }
+}

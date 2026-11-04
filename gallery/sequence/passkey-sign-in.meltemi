@@ -1,0 +1,40 @@
+language "0.2"
+
+// Sign-in with a passkey: the server's challenge, the person's touch, and a session only when the
+// signature is valid. Each outcome is a scenario that exports on its own.
+diagram signin: sequence {
+  title "Sign-in with a passkey"
+  description "The server's challenge, the person's touch, and a session only for a valid signature."
+
+  actor person "Person"
+  participant browser "Browser"
+  participant app "App server"
+  database sessions "Sessions"
+
+  person -> browser: "Opens the app" as open
+  browser -> app: "Asks for a challenge" as ask
+  activate app
+  app --> browser: "Challenge" as challenge
+  deactivate app
+  browser -> person: "Asks for a fingerprint" as prompt
+  person --> browser: "Touches the sensor" as touch
+  browser -> app: "Signed challenge" as assertion
+  activate app
+
+  alt check "Valid signature" {
+    app -> sessions: "Create a session" as create
+    app --> browser: "Signed in" as signedIn
+  } else "Invalid signature" {
+    app --> browser: "Refused" as refused
+  }
+
+  deactivate app
+
+  scenario success "Signed in" {
+    choose check "Valid signature"
+  }
+
+  scenario failure "Refused" {
+    choose check "Invalid signature"
+  }
+}

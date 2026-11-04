@@ -1,0 +1,8 @@
+language "0.2"
+
+theme brand { accent "#6A4FD0"; flowDuration 800ms }
+
+// The checkout.
+diagram d: flow {
+  a -> b
+}

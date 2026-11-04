@@ -1,0 +1,30 @@
+language "0.2"
+
+// Imported from block.mmd (mermaid) by meltemi-diagrams.
+
+diagram block: free {
+  layers back, main
+
+  box a
+  box b
+  box e
+  box d { layer back }
+
+  a -> d
+
+  placement {
+    place e at (84, 126)
+    size e (140, 56)
+    place a at (84, 200)
+    size a (140, 56)
+    place b at (252, 42)
+    size b (140, 56)
+    place d at (300, 160)
+    size d (200, 80)
+  }
+
+  style e { shape rectangle }
+  style a { shape rectangle }
+  style b { shape ellipse; fill "#ffe" }
+  style d { shape rectangle }
+}

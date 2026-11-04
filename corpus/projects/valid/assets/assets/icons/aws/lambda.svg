@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- A stand-in for a provider icon, drawn for the corpus: flat colours, full bleed. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <title>Function</title>
+  <rect width="64" height="64" rx="6" fill="#ED7100"/>
+  <path fill="#FFFFFF" d="M18 50h8l7-15 9 15h6L35 26l4-12h-8l-3 9-5-9h-7l9 15z"/>
+</svg>

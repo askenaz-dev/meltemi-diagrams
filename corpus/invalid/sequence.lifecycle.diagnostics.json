@@ -1,0 +1,21 @@
+[
+  {
+    "code": "sequence.lifecycle",
+    "severity": "error",
+    "message": "`session` was destroyed before this message.",
+    "range": {
+      "start": {
+        "offset": 97,
+        "line": 6,
+        "column": 3
+      },
+      "end": {
+        "offset": 127,
+        "line": 6,
+        "column": 33
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

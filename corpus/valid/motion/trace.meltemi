@@ -1,0 +1,29 @@
+language "0.2"
+
+// A trace fills a relation from its start to its end, then starts again; a theme can set its
+// default speed, and it combines with the other effects on the same relation.
+theme calm {
+  extends "technical.light"
+  traceDuration 2s
+}
+
+diagram checkout: flow {
+  theme "calm"
+  layout manual
+
+  client["Client"]
+  api["API"]
+  db[("Database")]
+  client -> api: "HTTPS" as request
+  api -> db: "Reads and writes" as store
+
+  placement {
+    place client at (100, 80)
+    place api at (380, 80)
+    place db at (660, 80)
+  }
+
+  animate request { effect trace }
+  animate store { effect trace; duration 1200ms; direction reverse; color warning }
+  animate store { effect pulse }
+}

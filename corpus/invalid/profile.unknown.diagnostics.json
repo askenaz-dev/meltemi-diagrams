@@ -1,0 +1,21 @@
+[
+  {
+    "code": "profile.unknown",
+    "severity": "error",
+    "message": "Unknown diagram type `mindmap`; expected one of flow, sequence, c4, free.",
+    "range": {
+      "start": {
+        "offset": 31,
+        "line": 3,
+        "column": 16
+      },
+      "end": {
+        "offset": 38,
+        "line": 3,
+        "column": 23
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

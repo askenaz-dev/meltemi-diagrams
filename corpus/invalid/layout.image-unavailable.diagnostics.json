@@ -1,0 +1,23 @@
+[
+  {
+    "code": "layout.image-unavailable",
+    "severity": "warning",
+    "message": "The image \"logo.png\" of `logo` cannot be drawn; a placeholder is drawn instead.",
+    "range": {
+      "start": {
+        "offset": 51,
+        "line": 4,
+        "column": 14
+      },
+      "end": {
+        "offset": 61,
+        "line": 4,
+        "column": 24
+      }
+    },
+    "hints": [
+      "Hosts pass `LayoutOptions.images`; the command line and the editor read the project's images."
+    ],
+    "related": []
+  }
+]

@@ -1,0 +1,33 @@
+{
+  "status": "complete",
+  "format": "mermaid",
+  "diagrams": [
+    {
+      "id": "card_payment",
+      "type": "sequence",
+      "model": null,
+      "kind": "sequenceDiagram",
+      "lines": [
+        1,
+        55
+      ]
+    }
+  ],
+  "findings": [
+    "7:3 warning import.unsupported-construct [sequence.box.colour dropped] Box colours are not kept.",
+    "42:5 info import.approximated [sequence.message.-x approximated] A cross at the end is drawn as an arrowhead.",
+    "45:5 info import.approximated [sequence.message.-> approximated] A line without arrowhead is drawn as a call.",
+    "46:5 info import.approximated [sequence.message.--> approximated] A line without arrowhead is drawn as a reply.",
+    "51:3 info import.approximated [sequence.message.--x approximated] A cross at the end is drawn as an arrowhead.",
+    "53:3 warning import.unsupported-construct [sequence.links dropped] Participant menus (`link`, `links`) are not imported.",
+    "54:3 warning import.unsupported-construct [sequence.autonumber.off dropped] `autonumber off` is not kept; numbering runs through the diagram."
+  ],
+  "coverage": [
+    {
+      "diagram": "card_payment",
+      "mapped": 41,
+      "approximated": 4,
+      "dropped": 3
+    }
+  ]
+}

@@ -1,0 +1,436 @@
+# web-playground Specification
+
+## Purpose
+The playground: a static web page with in-memory projects and templates, visible code with language services beside the shared canvas, one undo history, import, share links, kept work, no account and no network.
+## Requirements
+### Requirement: Templates and projects in the browser
+The page SHALL hold a project in memory: `project.json` and its files under one root, compiled by
+the same project compiler as the CLI and the editor (imports, models, themes, stories, assets,
+profiles, plugins, limits). The explorer (`project-explorer`) SHALL list the project's files as
+folders and diagrams, switch between them, and create, rename, move, duplicate and delete files and
+folders; its **New project** SHALL open the `init` templates `flow`, `c4`, `sequence`, `free` and
+`purchase` with the `project.json` that `init` writes. **Open** SHALL open files the person
+chooses: `.meltemi` files, images and a `project.json` are added beside the open file; a project
+`.zip` goes to the import dialog, which never replaces the open project without that choice. A new
+visit with no kept work and no link SHALL open the `flow` template.
+
+#### Scenario: Reference example
+- **WHEN** the person opens the `purchase` template
+- **THEN** the explorer lists its five `.meltemi` files under `diagrams`, `models` and `stories`, shows `diagrams/architecture.meltemi` with no error, and its story plays in the canvas
+
+#### Scenario: Opening a project archive
+- **WHEN** the person opens a `.zip` holding `project.json` and `diagrams/a.meltemi` with **Open**
+- **THEN** the import dialog names the archive and its one diagram, and after This browser is chosen the page shows `diagrams/a.meltemi`
+
+### Requirement: Importing Mermaid and PlantUML
+The page SHALL import Mermaid, PlantUML or Markdown text, pasted or from a chosen file, with the
+same importer as `meltemi-diagrams import`: it SHALL add the sheet as a new `.meltemi` file of the
+project, show the import's status and findings with their lines, and offer the report as Markdown.
+A source that cannot be imported SHALL add nothing and show why.
+
+#### Scenario: Mermaid flowchart
+- **WHEN** the person pastes `flowchart LR\n  a[Shop] --> b[(Orders)]` and imports it
+- **THEN** a new file opens with a flow diagram of `a` and `b`, and the status reads complete
+
+### Requirement: Visible code with language services
+The page SHALL show the source of the open file beside the canvas, editable as text, with line
+numbers, highlighting (keywords, ids, strings, numbers, comments, arrows) and the editor's language
+services: diagnostics underlined and listed with their lines; completion (Ctrl+Space, and while
+typing a word); hover with the keyword's or element's documentation and the diagnostics there;
+quick fixes (Ctrl+.); formatting (Shift+Alt+F); rename (F2) through the edit planner; and go to
+definition (F12), across files of the project. Tab and Shift+Tab SHALL indent and unindent, and
+Enter SHALL keep the line's indentation. Analysis SHALL follow typing after a pause of 250 ms.
+
+#### Scenario: Diagnostic in the code
+- **WHEN** the person types `style missing { fill "#fff" }` in a flow diagram without `missing`
+- **THEN** after the pause `missing` is underlined, the problems list names `ref.unknown-element` with its line, and the canvas shows the last drawable state as stale
+
+#### Scenario: Completion
+- **WHEN** the caret is after `shape ` in a `style` block and Ctrl+Space is pressed
+- **THEN** a list of shapes opens, and Enter writes the chosen one
+
+### Requirement: The same canvas
+The page SHALL draw and edit the open file with the canvas of `@meltemi/diagrams-canvas` and a
+`CanvasSession`, as VS Code does: palette, selection, moves, routes, labels, inspector, minimap,
+grid and snapping, layout actions, sequence and C4 tools, effects and story playback. Plans from the
+canvas SHALL become text edits of the open file; selecting in the canvas SHALL select the element's
+text in the code pane, and moving the caret in the code SHALL highlight the element in the canvas. The
+canvas's icon chooser SHALL search the Tabler pack; its image chooser SHALL add the chosen image to
+the project beside the file. Copy and paste SHALL use the system clipboard when the browser allows
+it, and the page's own otherwise.
+
+#### Scenario: Canvas edit writes code
+- **WHEN** the person drags an element of a `layout manual` diagram on the canvas
+- **THEN** its `place` line in the code pane changes to the new position
+
+#### Scenario: Caret highlights
+- **WHEN** the caret moves into the id of an element in the code pane
+- **THEN** the canvas highlights that element
+
+### Requirement: One undo history
+Every change of a file (typing, canvas edits, quick fixes, formatting, renames, imports) SHALL go
+through one history per file. Ctrl+Z SHALL undo, and Ctrl+Shift+Z and Ctrl+Y redo, wherever the
+focus is in the page, so that a canvas edit and the typing around it undo in order. Typing SHALL
+coalesce into one step until a pause of 700 ms or a line break. In a cloud project the history
+SHALL hold the person's own transactions only, grouped by the same rules, and changes that
+arrive from the room SHALL never be undone by the person.
+
+#### Scenario: Undo a canvas edit from the code
+- **WHEN** the person moves an element on the canvas, focuses the code pane and presses Ctrl+Z
+- **THEN** the element's previous position is back in the text and on the canvas
+
+#### Scenario: Only one's own edits in a cloud project
+- **WHEN** a remote change arrives after the person's edit and the person presses Ctrl+Z
+- **THEN** the person's edit is undone and the remote change stays
+
+### Requirement: Share links
+For the anonymous project the page SHALL make a link that carries the project's text files in
+the URL fragment (`#p=` followed by the base64url of the raw-deflated JSON `{ v: 1, open,
+files }`), copied to the clipboard, with the size shown and a warning above 32 KiB. Images SHALL
+not travel in links, and the dialog SHALL say so. Opening a link SHALL decompress at most 4 MiB,
+refuse more files than the project limit, keep the work it replaces as the previous project the
+person can restore, and open the linked project as the anonymous project, whether or not the
+person is signed in. A link that cannot be read SHALL leave the work as it is and say why. For a
+cloud project the share action SHALL open the sharing dialog with the project's own link instead
+(`project-sharing`).
+
+#### Scenario: Round trip
+- **WHEN** a link made from a two-file project is opened in a new page
+- **THEN** the page shows the same two files with the same text, and the same file open
+
+#### Scenario: Oversized link
+- **WHEN** a link whose content decompresses beyond 4 MiB is opened
+- **THEN** the page keeps its current work and reports that the link is too large
+
+#### Scenario: A fragment link while signed in
+- **WHEN** a signed-in person opens a `#p=` link
+- **THEN** it opens as the anonymous project and the switcher's panel offers to save it to the cloud
+
+### Requirement: Work kept in the browser
+The page SHALL keep the anonymous project in the browser's storage after each change, text
+files and images up to 512 KiB each, and open it on the next visit. It SHALL work when storage
+is unavailable or full, saying that the work will not be kept. "New from template" SHALL ask
+before replacing work that differs from every template. Cloud projects SHALL be kept as their
+documents in IndexedDB, so a cloud project opens from there when the room cannot be reached, and
+the anonymous project and the cloud projects SHALL never replace each other. The page itself
+does not load without a connection (it has no service worker).
+
+#### Scenario: Next visit
+- **WHEN** the person edits a file and reloads the page
+- **THEN** the edited text is open
+
+#### Scenario: A cloud project reopens offline
+- **WHEN** a signed-in person had a cloud project open, the connection to the room drops, and the person reloads the page or opens the project again
+- **THEN** the project opens from IndexedDB with its last state and the status line says offline
+
+#### Scenario: Storage full
+- **WHEN** the browser refuses to store the anonymous project
+- **THEN** the page keeps working and says the work will not be kept
+
+### Requirement: Continuing locally
+The page SHALL download the project as a `.zip` with `project.json` and every file at its path,
+which `meltemi-diagrams validate` and VS Code open as is, and SHALL show how to continue: the CLI's
+`init`, `validate`, `export`, `build catalog` and `skill install` commands (the last labelled
+"Give your coding agents the skill", in the page's language) and the VS Code extension.
+
+#### Scenario: Archive validates
+- **WHEN** the `c4` template is downloaded as `.zip` and extracted
+- **THEN** `meltemi-diagrams validate` on the folder reports no diagnostic
+
+#### Scenario: The skill in the commands
+- **WHEN** the Continue locally dialog opens, in English and then in Spanish
+- **THEN** its commands list ends with `meltemi-diagrams skill install` under "Give your coding agents the skill" and under "Dar la skill a tus agentes de programación"
+
+#### Scenario: A project without a manifest
+- **WHEN** the dialog opens on a project whose files hold no `project.json`
+- **THEN** the commands name the folder `diagrams` and still list `skill install`, which takes no folder
+
+### Requirement: Accessible and responsive page
+The page SHALL use landmarks and labelled controls, keep a visible focus, reach every action by
+keyboard, announce changes in the problems of the open file and export outcomes in a polite live
+region, follow the system's light or dark scheme with a switch that the page remembers, use no
+transitions or animations of its own when reduced motion is asked (exported players honour it as
+they do everywhere), and work at 375 pixels wide by showing the code and the canvas as tabs, the
+Canvas tab first.
+
+#### Scenario: Narrow screen
+- **WHEN** the page is 375 pixels wide
+- **THEN** the code and the canvas are tabs, the Canvas tab is shown with its drawing fitted to
+  its stage, and the page does not scroll sideways
+
+### Requirement: Notices and versions
+The page SHALL show its version and the generator's name, and an About dialog with the licence of
+the product (MIT) and of every bundled component, linking to `NOTICES.md`: EPL-2.0 for elkjs with
+its source link, OFL-1.1 for the fonts, MIT for the others, and linking "Drawing with coding
+agents" (in the page's language) to the agent setup page in that language, `agent-setup/` or
+`es/agent-setup/`, a relative address that resolves under the Worker and under a static server's
+sub-path. `pnpm licenses:inventory
+--check` SHALL cover the playground's bundled packages.
+
+#### Scenario: Notices
+- **WHEN** `NOTICES.md` of the built site is read
+- **THEN** it names elkjs under EPL-2.0 with a link to its source and Inter under OFL-1.1
+
+#### Scenario: The agents link
+- **WHEN** the About dialog opens
+- **THEN** it holds a link named "Drawing with coding agents" whose `href` is `agent-setup/`, and `agent-setup/prompt.md` fetched from the page's origin starts with `# Set up Meltemi Diagrams for a coding agent`
+
+#### Scenario: The agents link in Spanish
+- **WHEN** the About dialog opens in the Spanish interface
+- **THEN** its link is named "Dibujar con agentes de programación" and its `href` is `es/agent-setup/`
+
+#### Scenario: The list cannot be read
+- **WHEN** `notices.json` cannot be fetched or is not JSON
+- **THEN** the dialog says the list could not be read and points at `NOTICES.md`, and the agents link is still there
+
+### Requirement: Browser test suite
+`pnpm playground:test-browser` SHALL build the site, serve it on the loopback interface and drive it
+in the installed Edge or Chrome through `playwright-core`, checking templates and the New project
+cards, the explorer (the tree, its actions, drag and drop, Show all files, the switcher, import and
+export), the code pane and its services, canvas edits in both directions, undo, import, share
+links, kept work, every export format, keyboard access, the narrow layout, and that no request
+leaves the page's origin.
+
+#### Scenario: Suite
+- **WHEN** `pnpm playground:test-browser` runs on a machine with Edge or Chrome
+- **THEN** every check passes and the suite prints the number of checks
+
+### Requirement: A static page, an optional account, one origin
+`pnpm playground:build` SHALL write a static site to `packages/playground/dist/` that any static
+server can serve: `index.html`, the bundles, the stylesheets, `templates.json`, the font, icon and
+runtime assets, `NOTICES.md`, and `api/session` holding `{ "user": null }`. The page SHALL need
+no account and no server code: served by a static server it SHALL work entirely as a local
+page. Served by the cloud Worker (`packages/cloud`), it SHALL offer sign-in through the
+family's identity service as a navigation, and the account SHALL add to the page without
+taking anything away. Its Content-Security-Policy SHALL be `default-src 'none'` with scripts,
+styles, fonts and connections from the page's own origin only (plus `data:` and `blob:` images
+and fonts, inline styles for drawn SVG, and the providers' avatar hosts
+`https://avatars.githubusercontent.com` and `https://*.googleusercontent.com` in `img-src`),
+`frame-src 'self'`, `base-uri 'none'` and `form-action 'self'` plus the origin of the identity
+service the page was built with (`PLAYGROUND_IDENTITY`, default `https://id.meltemi.dev`). The
+page SHALL make no request to another origin, whatever the project holds; signing in and out
+are navigations, not requests the page makes.
+
+#### Scenario: Only its own origin
+- **WHEN** the browser test opens the page, loads every template, exports every format, opens a share link, and (against the Worker) signs in with a session minted with a `picture` under the Worker's own origin
+- **THEN** every request the page made, the avatar included, went to the page's own origin
+
+#### Scenario: Policy in the page
+- **WHEN** `dist/index.html` is read after a build with the default identity origin
+- **THEN** it declares a Content-Security-Policy starting with `default-src 'none'`, no `connect-src` other than `'self'`, and `form-action 'self' https://id.meltemi.dev`
+
+#### Scenario: Without a server
+- **WHEN** the page is opened from a static server with no `/api` route
+- **THEN** `api/session` answers the static `{ "user": null }`, every feature of this specification works, and the header offers sign-in as a link the page built from the identity origin it was built with
+
+### Requirement: Asset problems are shown
+The playground SHALL count and list the diagnostics of `Workspace.assets()` with the problems of the project: each on the asset file or folder it concerns (`assets/licenses.json`, a pack file or folder, a font file), in the explorer's badge of the file when it is shown and of its folders (a folder counting its own problems with its children's), with the existing offer to show hidden files that have problems, and in the problems list of an asset file when it is open, with its code and hint. The counts SHALL refresh when anything under `assets/` changes, including files added by the Add icon dialog, dropped into the explorer or imported from an archive.
+
+#### Scenario: Missing licence shown
+- **WHEN** a project with `assets/icons/brand/logo.svg` and no `brand` entry in `assets/licenses.json` is opened
+- **THEN** the explorer's `brand` and `assets` folders carry the count of `asset.missing-license`, whose hint shows the entry to add
+
+#### Scenario: Unsafe icon dropped into the explorer
+- **WHEN** `bad.svg` holding a `<script>` is dropped into `assets/icons/brand/`
+- **THEN** within the next analysis the file's row and its folders count `asset.unsafe-svg`, and the other icons of `brand` keep working
+
+#### Scenario: Problem resolved
+- **WHEN** the missing `brand` entry is added to `assets/licenses.json`
+- **THEN** the diagnostic disappears from the list and the badge
+
+### Requirement: Collapsible code pane
+On a wide screen the playground SHALL fold the code pane to a 36 px rail and unfold it again: a
+button at the right end of the code-path bar (**Hide the code**, titled "Hide the code (Ctrl+J)",
+`aria-keyshortcuts="Control+J"`, `aria-expanded`, drawing a frame with code chevrons inside) and a
+double click on the divider fold it; the rail SHALL hold one button (**Show the code**, titled
+"Show the code (Ctrl+J)", `aria-keyshortcuts="Control+J"`, `aria-expanded`,
+`aria-controls="code-pane"`, the same glyph) that unfolds it, and beneath it the open file's
+error count when the file has errors, with the problems' summary as its title, and nothing
+otherwise. Ctrl+J (Cmd+J) SHALL toggle the pane from anywhere in the page, the code's own
+textarea included, except while a dialog is open or the focus is in a native input, a select, a
+contenteditable field or a textarea other than the code's, claiming the key from the browser as
+Ctrl+S is claimed. Whether the pane is folded SHALL be kept with the page's settings beside the code's
+share, read as folded only when the kept value is a boolean `true`; unfolding SHALL restore the
+kept share. Folding from inside the pane SHALL move the focus to the rail's button and unfolding
+SHALL put it in the code. The grid's columns SHALL move with the page's transition and none under
+reduced motion; the canvas SHALL keep its viewport (no fit, no zoom) as its pane grows or shrinks;
+the divider SHALL keep its column, hidden and inert, while the pane is folded. A reveal that asks
+for the focus (**Show in text** from the canvas's menus, go to definition, a problem's line, a
+quick fix) SHALL unfold the pane; opening a file from the explorer and a canvas selection SHALL
+leave it folded. Go to definition, Ctrl+click and the problems list live inside the pane and fire
+only while it is open. On a narrow screen the code SHALL stay the Code
+tab, whole, whatever is kept, the bar button and the rail SHALL not be shown, and Ctrl+J SHALL
+show the Code tab when another is shown and the Canvas tab otherwise.
+
+#### Scenario: Fold from the bar and keep it
+- **WHEN** the code-path bar's **Hide the code** button is pressed and the page is reloaded
+- **THEN** the code pane is a 36 px rail with one button and the canvas takes the width, the canvas's zoom and offset are what they were, and after the reload the pane is still a rail
+
+#### Scenario: The fold buttons' names and titles
+- **WHEN** the code pane is open
+- **THEN** the bar's button has `aria-label` "Hide the code", title "Hide the code (Ctrl+J)" and `aria-keyshortcuts` "Control+J", and once folded the rail's button has "Show the code", "Show the code (Ctrl+J)" and "Control+J"; in Spanish "Ocultar el código", "Ocultar el código (Ctrl+J)" and "Mostrar el código", "Mostrar el código (Ctrl+J)"
+
+#### Scenario: Ctrl+J unfolds and focuses the code
+- **WHEN** Ctrl+J is pressed on a folded pane
+- **THEN** the pane is open at its kept share, the divider's `aria-valuenow` is that share and the code's textarea has the focus
+
+#### Scenario: Double click on the divider
+- **WHEN** the divider is double-clicked with the code at 60 % of the width
+- **THEN** the pane folds, no share is written, and unfolding brings it back to 60 %
+
+#### Scenario: Errors on the rail
+- **WHEN** the pane is folded and the open file gains `style missing { fill "#fff" }` without `missing`
+- **THEN** the rail shows 1 under its button, titled with the problems' summary, and the live region announces the summary; fixing the line removes the number
+
+#### Scenario: A reveal with focus unfolds
+- **WHEN** the pane is folded and **Show in text** is chosen in the canvas's context menu for `api`
+- **THEN** the pane unfolds at its kept share and `api`'s declaration is selected in the code with the focus
+
+#### Scenario: Opening a file leaves it folded
+- **WHEN** the pane is folded and another diagram is opened from the explorer
+- **THEN** the canvas shows that diagram and the pane stays a rail, its badge counting that file's errors
+
+#### Scenario: A canvas selection leaves it folded
+- **WHEN** the pane is folded and an element is selected on the canvas
+- **THEN** the pane stays a rail, and its text is selected in the code when the pane unfolds
+
+#### Scenario: Narrow screen keeps the tabs
+- **WHEN** the page is 375 pixels wide with a kept folded state
+- **THEN** the tabs are Files, Code and Canvas, the Code tab shows the whole code with no rail and no bar button, the page does not scroll sideways, and Ctrl+J shows the Canvas tab
+
+#### Scenario: Reduced motion
+- **WHEN** the system asks for reduced motion and the pane is folded
+- **THEN** the columns change with a transition of 0 s, while without it they take 0.18 s
+
+#### Scenario: A kept value that is not a boolean
+- **WHEN** the kept settings hold `"code": { "collapsed": "yes" }`
+- **THEN** the page opens with the code pane open and keeps working
+
+#### Scenario: Ctrl+J in a native input
+- **WHEN** Ctrl+J is pressed while the explorer's rename box or a dialog's field has the focus
+- **THEN** the pane does not change and the field keeps its text
+
+### Requirement: Agent setup page
+`pnpm playground:build` SHALL write `agent-setup/index.html` (English) and `es/agent-setup/index.html` (Spanish) to `dist/`, from `packages/playground/agent-setup/en.html` and `es.html`, beside `agent-setup/agent-setup.css` and `agent-setup/prompt.md` (the command line's prompt, copied unchanged). Each page SHALL be static: no script, no inline style, no resource from another origin, a `meta` Content-Security-Policy of exactly `default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'`, its `lang`, `rel="alternate"` links to its twin and the product version in its generator meta. Each SHALL hold, in its language, what the skill does, the one-line prompt in a `pre > code` block, the commands `npm install --global @meltemi/diagrams-cli` and `npx @meltemi/diagrams-cli@latest skill install --agent <names>`, a table of the agents with their `--agent` names and folders equal to the command line's `SKILL_AGENTS`, what the agent never does, and links to `prompt.md`, to the documentation for agents and to the playground; every `pre > code` block of the page SHALL be a fenced block of `docs/agents.md`; the two twins SHALL hold the same code blocks and the same external links; the page SHALL not scroll sideways at 375 pixels. Served by the cloud Worker, the four files SHALL carry `Content-Security-Policy: frame-ancestors 'self'` and `X-Content-Type-Options: nosniff` from the build's `_headers`, and `prompt.md` SHALL be served as `text/markdown; charset=utf-8`.
+
+#### Scenario: The build writes the page
+- **WHEN** `pnpm playground:build` runs
+- **THEN** `dist/agent-setup/index.html`, `dist/es/agent-setup/index.html`, `dist/agent-setup/agent-setup.css` and `dist/agent-setup/prompt.md` exist, the two pages declare the policy above and no `<script`, and `prompt.md` equals `packages/cli/agent-setup/prompt.md`
+
+#### Scenario: The page in the browser
+- **WHEN** the browser suite opens `agent-setup/` and `es/agent-setup/`
+- **THEN** each shows its heading and the one-line prompt, links `prompt.md`, logs no console error, and at 375 pixels wide does not scroll sideways
+
+#### Scenario: Served by the Worker
+- **WHEN** `/agent-setup/`, `/es/agent-setup/`, `/agent-setup/prompt.md` and `/agent-setup/agent-setup.css` are requested on the Worker's origin
+- **THEN** each answers `200` with `Content-Security-Policy: frame-ancestors 'self'` and `X-Content-Type-Options: nosniff`, and the prompt is served as `text/markdown; charset=utf-8` with the package's file as its body
+
+#### Scenario: The page's commands are the documentation's
+- **WHEN** the agent-setup test reads `en.html` and `docs/agents.md`
+- **THEN** every `pre > code` block of the page is one of the page's fenced blocks, the one-line prompt and `npx @meltemi/diagrams-cli@latest skill install --agent <names>` among them, and the agents table's rows are `SKILL_AGENTS`'s names and folders
+
+#### Scenario: A command the documentation does not have
+- **WHEN** `en.html` gains a `pre > code` block whose text is in no fenced block of `docs/agents.md`, or a row of its agents table names a folder `SKILL_AGENTS` does not
+- **THEN** the agent-setup test fails naming the page and the block or the row
+
+#### Scenario: A twin that differs
+- **WHEN** the English page's one-line prompt block gains a word the Spanish page's does not, or a page gains an external link its twin lacks
+- **THEN** the agent-setup test fails naming the two files and the block or the link
+
+#### Scenario: A script or an inline style in a page
+- **WHEN** `en.html` gains a `<script>` tag or a `style=` attribute
+- **THEN** the agent-setup test fails naming the file and the tag or attribute
+
+### Requirement: Collapsible properties panel
+Ctrl+Alt+B (Cmd+Alt+B) SHALL fold the canvas's properties panel to its rail or unfold it from anywhere in the page, the code's own textarea included, except while a dialog is open or the focus is in a native input, a select, a contenteditable field or a textarea other than the code's, claiming the key from the browser as Ctrl+J is claimed; on a narrow screen it SHALL fold or unfold the panel inside the Canvas tab without switching tabs. The page SHALL name the chord to the canvas, so the toolbar's **Show the properties** toggle and the panel's fold and rail buttons show "(Ctrl+Alt+B)" ("(Cmd+Alt+B)" on Apple systems) in their tooltips. Whether the panel is folded SHALL be kept with the canvas's state under the page's settings, as the toolbar's toggle is kept today, read as a boolean only; the page SHALL give the canvas `inspector: false` as its default when the window is narrower than 1100 px at load, so a first visit there starts with the rail, and a kept choice SHALL win over the default. The canvas SHALL keep its viewport (no fit, no zoom) as its stage grows or shrinks.
+
+#### Scenario: Ctrl+Alt+B from the code
+- **WHEN** the code's textarea has the focus and Ctrl+Alt+B is pressed, then pressed again
+- **THEN** the properties panel is a 36 px rail after the first press, open after the second, the canvas's zoom and offset are what they were, and the toolbar's **Show the properties** toggle follows with `aria-pressed`
+
+#### Scenario: The chord in the tooltips
+- **WHEN** the pointer rests on the toolbar's **Show the properties** toggle
+- **THEN** the bubble reads "Show the properties (Ctrl+Alt+B)" ("Mostrar las propiedades (Ctrl+Alt+B)" in Spanish) and the toggle's `aria-keyshortcuts` is "Control+Alt+B"
+
+#### Scenario: Kept across a reload
+- **WHEN** the panel is folded from its header button and the page is reloaded
+- **THEN** the panel is still a rail and its button **Show the properties panel** is visible
+
+#### Scenario: A first visit below 1100 px
+- **WHEN** the page opens at 1000 px wide with nothing kept
+- **THEN** the properties panel is a rail and the explorer is a rail; after the rail's button is pressed and the page reloaded at the same width, the panel is open
+
+#### Scenario: Narrow screen
+- **WHEN** the page is 375 px wide with a kept open panel and the Canvas tab is shown
+- **THEN** the panel shows beside the stage, Ctrl+Alt+B folds it to the rail without changing the tab, and the page does not scroll sideways
+
+#### Scenario: Ctrl+Alt+B in a native input
+- **WHEN** Ctrl+Alt+B is pressed while the explorer's rename box, a dialog's field or a field of the inspector has the focus
+- **THEN** the panel does not change and the field keeps its text
+
+#### Scenario: A kept value that is not a boolean
+- **WHEN** the kept settings hold `"canvas": { "inspector": "no" }`
+- **THEN** the page opens with the panel shown on a wide window and keeps working
+
+### Requirement: Tooltips of the page's controls
+Every icon-only button of the page (the header's Undo, Redo, Format, theme switch and About, the explorer's bar, head and rail buttons, the project switcher's rename and close buttons and the tree rows' ⋯, the code bar's and the code rail's buttons) SHALL have an accessible name that says what it does without naming a key, a `title` equal to that name followed by the key in parentheses when the control has one, and `aria-keyshortcuts` holding the key as ARIA writes it ("Control+Z", "Control+Shift+Z", "Shift+Alt+F", "Control+B", "Control+J"; "Meta" for Cmd on Apple systems); the page SHALL draw their tooltips with the canvas's bubble, scoped so the canvas's own bubble keeps `#app`, shown 400 ms after the pointer rests and fading in, the control keeping its `title`. The theme switch SHALL be named per state, **Switch to the dark theme** while the page is light and **Switch to the light theme** while it is dark. The three pane glyphs SHALL differ: the explorer's a frame with a bar at the left, the code pane's a frame with code chevrons inside, the properties' a frame with a bar at the right holding two rows. Every word SHALL exist in English and Spanish.
+
+#### Scenario: Undo's tooltip
+- **WHEN** the pointer rests on the header's Undo button
+- **THEN** no bubble shows at once, the page's bubble shows "Undo (Ctrl+Z)" within a second, the button's `aria-label` is "Undo", its `aria-keyshortcuts` "Control+Z", and the button still has its `title` after the pointer leaves
+
+#### Scenario: Format without the key in its name
+- **WHEN** the header is drawn
+- **THEN** the Format button's `aria-label` is "Format the file", its title "Format the file (Shift+Alt+F)" and its `aria-keyshortcuts` "Shift+Alt+F"; in Spanish "Dar formato al archivo", "Dar formato al archivo (Mayús+Alt+F)" and "Shift+Alt+F"
+
+#### Scenario: The theme switch says what it will do
+- **WHEN** the page is light and the theme switch is pressed
+- **THEN** the button was named "Switch to the dark theme" before the press and is named "Switch to the light theme" after it, with the sun glyph
+
+#### Scenario: One bubble per region
+- **WHEN** the pointer rests on the toolbar's Zoom in button inside the canvas
+- **THEN** exactly one bubble shows, "Zoom in (+)", drawn by the canvas's own tooltips and not by the page's
+
+#### Scenario: The pane glyphs differ
+- **WHEN** the explorer's fold button, the code bar's fold button and the properties' fold button are drawn
+- **THEN** their SVG path data are three different strings
+
+#### Scenario: A button added without a name is caught
+- **WHEN** an icon-only button of the header is drawn without an `aria-label` or a `title`
+- **THEN** the browser suite's check of the header's buttons fails naming the button
+
+### Requirement: Popular families on demand
+The playground's built site SHALL carry every file of `bundledFontFiles()`, its startup set SHALL stay the files the templates measure with, and a family another text names (a theme's `font` or `mono`, a style's `font`) SHALL be fetched the first time a text needs it: the text is drawn when the files arrive, the picker's row for it is drawn in its face, and the About dialog's notices list the new packages under OFL-1.1. A family whose files cannot be fetched SHALL leave its text measured with the fallback families (Inter, then IBM Plex Sans), as the text of a family not yet fetched is, and the page SHALL keep working.
+
+#### Scenario: A family fetched when named
+- **WHEN** the page loads and `style api { font "Roboto" }` is typed in the code pane
+- **THEN** no Roboto file was requested before the typing, the Roboto subset files the label needs are requested after it, and once they arrive `api` is drawn in Roboto with its box fitted to the measured width
+
+#### Scenario: Startup set unchanged
+- **WHEN** the page loads a template
+- **THEN** the font files requested before the first render are the startup set (Inter and IBM Plex Sans complete files and their tables) and nothing of the thirteen new families
+
+#### Scenario: A file that cannot be fetched
+- **WHEN** the server answers 404 for Caveat's files and a sticky has `font "Caveat"`
+- **THEN** the sticky is drawn with its text measured with Inter, its `font-family` still names Caveat first, and the rest of the diagram and the page work
+
+### Requirement: Compact header on a narrow screen
+Below 768 pixels wide the header SHALL be one row from 360 pixels wide: the logo and the buttons'
+pictures, their words kept for assistive technology, and a **More** menu holding the theme switch,
+About and the language choices, which the row SHALL not show otherwise. More SHALL not show on a
+wider screen. The canvas's toolbar SHALL be one row there that scrolls sideways, its menus opening
+in view.
+
+#### Scenario: One row on a phone
+- **WHEN** the page is 360, 375 or 412 pixels wide
+- **THEN** the header and the canvas's toolbar are one row each, and the page does not scroll
+  sideways
+
+#### Scenario: More
+- **WHEN** More is pressed on a narrow screen
+- **THEN** its menu lists the theme switch, About, Automatic, English and Español, inside the
+  screen, and choosing the theme switch changes the theme
+
+#### Scenario: A wide screen
+- **WHEN** the page is 1024 pixels wide
+- **THEN** the theme switch, About and the language are buttons of the header, and More is not shown

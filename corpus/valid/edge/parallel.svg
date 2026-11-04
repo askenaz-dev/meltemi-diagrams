@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="550" height="206" viewBox="0 0 550 206" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="550" height="206" fill="#F7FBFF"/>
+  <g data-id="orders" data-role="element">
+    <rect x="20" y="85.2" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="100" y="117.93" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">orders</text>
+  </g>
+  <g data-id="db" data-role="element">
+    <rect x="370" y="44.6" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="450" y="77.33" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">db</text>
+  </g>
+  <g data-id="orders-&gt;db#1" data-role="relation">
+    <polyline points="180,96.4 200,96.4 200,29 320,29 320,55.8 362,55.8" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M370 55.8 L362 59.3 L362 52.3 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="orders-&gt;db#1" data-role="label">
+      <rect x="235.54" y="20" width="38.33" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="254.7" y="33" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">write</text>
+    </g>
+  </g>
+  <g data-id="orders-&gt;db#2" data-role="relation">
+    <polyline points="180,107.6 216,107.6 216,67 362,67" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M370 67 L362 70.5 L362 63.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="orders-&gt;db#2" data-role="label">
+      <rect x="236.87" y="58" width="35.66" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="254.7" y="71" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">read</text>
+    </g>
+  </g>
+  <g data-id="audit" data-role="relation">
+    <polyline points="180,118.8 232,118.8 232,109 320,109 320,78.2 362,78.2" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M370 78.2 L362 81.7 L362 74.7 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="db-&gt;orders#1" data-role="relation">
+    <polyline points="370,89.4 336,89.4 336,130 188,130" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <path d="M180 130 L188 126.5 L188 133.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="db-&gt;orders#1" data-role="label">
+      <rect x="271.79" y="121" width="47.01" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="295.3" y="134" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">events</text>
+    </g>
+  </g>
+  <g data-id="orders-&gt;orders#1" data-role="relation">
+    <polyline points="73.33,85.2 73.33,75.2 126.67,75.2 126.67,77.2" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M126.67 85.2 L123.17 77.2 L130.17 77.2 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="orders-&gt;orders#1" data-role="label">
+      <rect x="81.5" y="66.2" width="37" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="100" y="79.2" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">retry</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,162.5 530,162.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 172) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="188.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+  </g>
+</svg>

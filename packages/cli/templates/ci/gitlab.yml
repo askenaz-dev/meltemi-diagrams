@@ -1,0 +1,53 @@
+# Meltemi Diagrams: validate the project, review what changed in merge requests, and build the
+# catalog. Written by `meltemi-diagrams init --ci gitlab`; edit it freely.
+meltemi-diagrams:
+  image: node:22
+  variables:
+    PROJECT: "{{project}}"
+    MELTEMI_DIAGRAMS: "@meltemi/diagrams-cli@{{version}}"
+    # The review compares with the target branch, so the history is needed.
+    GIT_DEPTH: "0"
+  script:
+    - npx --yes --package "$MELTEMI_DIAGRAMS" meltemi-diagrams validate "$PROJECT" --strict
+    - |
+      if [ -n "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" ]; then
+        git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+        npx --yes --package "$MELTEMI_DIAGRAMS" meltemi-diagrams review "$PROJECT" --base "origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --out review
+      fi
+    - npx --yes --package "$MELTEMI_DIAGRAMS" meltemi-diagrams build catalog "$PROJECT" --out catalog
+  artifacts:
+    paths:
+      - catalog
+      - review
+    expose_as: "Diagrams"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# {{cloud-begin}}
+# The job below is written by `meltemi-diagrams init --ci gitlab --cloud` only: it mirrors the
+# project in the Meltemi cloud on every pipeline of the default branch, so that the page, the share
+# links and the published catalog follow the repository.
+#
+# The repository is the truth, so this job pushes with --force: CI cannot answer the question a push
+# asks when the cloud holds something the folder lacks (a diagram somebody drew in the page), and a
+# job that waits for an answer would hang. --strict refuses a project with errors. What differs in
+# the cloud is overwritten; pull it first if it should survive.
+#
+# MELTEMI_TOKEN is an API token kept as a CI/CD variable of this project (Settings, CI/CD,
+# Variables), masked and protected; create it in the page, under API tokens in the account menu.
+# It is never written in this file. MELTEMI_HOST is optional: a variable that names another service
+# than https://diagrams.meltemi.dev.
+meltemi-diagrams-cloud:
+  # One push to the cloud at a time: with --force a slow job for an older commit would otherwise
+  # overwrite the newer commit's push.
+  resource_group: meltemi-cloud
+  image: node:22
+  variables:
+    PROJECT: "{{project}}"
+    MELTEMI_DIAGRAMS: "@meltemi/diagrams-cli@{{version}}"
+  script:
+    - npx --yes --package "$MELTEMI_DIAGRAMS" meltemi-diagrams push "$PROJECT" --force --strict
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+# {{cloud-end}}

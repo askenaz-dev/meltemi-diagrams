@@ -1,0 +1,116 @@
+language "0.2"
+
+// Every shape of a box, connected in rows that turn at their ends, with connector ends pinned to
+// points of the ellipse and the diamond; every end is drawn on the shape's outline.
+diagram shapes: free {
+  title "Twenty-four shapes"
+  preset slide
+  layout manual
+
+  text heading "Twenty-four shapes"
+
+  box rounded "Rounded"
+  box rectangle "Rectangle"
+  box square "Square"
+  box ellipse "Ellipse"
+  box circle "Circle"
+  box diamond "Diamond"
+  box cylinder "Cylinder"
+  box pill "Pill"
+  box triangle "Triangle"
+  box parallelogram "Parallelogram"
+  box trapezoid "Trapezoid"
+  box pentagon "Pentagon"
+  box hexagon "Hexagon"
+  box octagon "Octagon"
+  box star "Star"
+  box cloud "Cloud"
+  box document "Document"
+  box callout "Callout"
+  box arrow "Arrow"
+  box framed "Framed"
+  box flag "Flag"
+  box person "Person"
+  box agent "Agent"
+  box icon "Icon"
+
+  rounded -> rectangle
+  rectangle -> square
+  square -> ellipse as toEllipse
+  ellipse -> circle as fromEllipse
+  circle -> diamond as toDiamond
+  diamond -> cylinder as fromDiamond
+  cylinder -> pill
+  pill -> triangle
+  triangle -> parallelogram
+  parallelogram -> trapezoid
+  trapezoid -> pentagon
+  pentagon -> hexagon
+  hexagon -> octagon
+  octagon -> star
+  star -> cloud
+  cloud -> document
+  document -> callout
+  callout -> arrow
+  arrow -> framed
+  framed -> flag
+  flag -> person
+  person -> agent
+  agent -> icon
+
+  placement {
+    place heading at (960, 110)
+    place rounded at (360, 260)
+    place rectangle at (600, 260)
+    place square at (840, 260)
+    place ellipse at (1080, 260)
+    place circle at (1320, 260)
+    place diamond at (1560, 260)
+    place cylinder at (1560, 470)
+    place pill at (1320, 470)
+    place triangle at (1080, 470)
+    place parallelogram at (840, 470)
+    place trapezoid at (600, 470)
+    place pentagon at (360, 470)
+    place hexagon at (360, 680)
+    place octagon at (600, 680)
+    place star at (840, 680)
+    place cloud at (1080, 680)
+    place document at (1320, 680)
+    place callout at (1560, 680)
+    place arrow at (1560, 890)
+    place framed at (1320, 890)
+    place flag at (1080, 890)
+    place person at (840, 890)
+    place agent at (600, 890)
+    place icon at (360, 890)
+    route toEllipse from square.east to ellipse.west 30%
+    route fromEllipse from ellipse.east 70% to circle.west
+    route toDiamond from circle.east to diamond.west 30%
+    route fromDiamond from diamond.south 30% to cylinder.north
+  }
+
+  style rectangle { shape rectangle }
+  style square { shape square }
+  style ellipse { shape ellipse }
+  style circle { shape circle }
+  style diamond { shape diamond }
+  style cylinder { shape cylinder }
+  style pill { shape pill }
+  style triangle { shape triangle }
+  style parallelogram { shape parallelogram }
+  style trapezoid { shape trapezoid }
+  style pentagon { shape pentagon }
+  style hexagon { shape hexagon }
+  style octagon { shape octagon }
+  style star { shape star }
+  style cloud { shape cloud }
+  style document { shape document }
+  style callout { shape callout }
+  style arrow { shape arrow }
+  style framed { shape framed }
+  style flag { shape flag }
+  style person { shape person }
+  style agent { shape agent }
+  style icon { icon "tabler:photo"; shape icon }
+}

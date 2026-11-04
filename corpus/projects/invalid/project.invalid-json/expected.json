@@ -1,0 +1,23 @@
+{
+  "project.json": [
+    {
+      "code": "project.invalid-json",
+      "severity": "error",
+      "message": "project.json is not valid JSON: Trailing comma before `}`.",
+      "range": {
+        "start": {
+          "offset": 42,
+          "line": 3,
+          "column": 20
+        },
+        "end": {
+          "offset": 43,
+          "line": 3,
+          "column": 21
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+language "0.2"
+
+import corporate from "../themes/company.meltemi"
+
+diagram checkout: flow {
+  title "Checkout"
+  theme "corporate"
+  layout manual
+
+  client["Client"] { description "web & mobile" }
+  api["API Gateway"]
+  data orders "Orders"
+
+  client -> api: "HTTPS" as request
+  api -> orders: "SQL" as persist
+
+  placement {
+    place client at (120, 60)
+    place api at (360, 60)
+    place orders at (360, 200)
+  }
+}

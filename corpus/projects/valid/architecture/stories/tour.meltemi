@@ -1,0 +1,25 @@
+language "0.2"
+
+import context from "../diagrams/context.meltemi"
+import "../diagrams/containers.meltemi" as views
+
+// A tour from the context to the containers of the shop: the change of view morphs the
+// entities both views draw, matched by their paths.
+story tour for context {
+  title "Commerce in two steps"
+
+  scene who {
+    reveal customer, shop, bank over 600ms
+    highlight buys
+    hold 1s
+  }
+
+  scene inside {
+    view views.containers
+    transition morph over 900ms
+    reveal shop.web, shop.api, shop.db
+    trace request over 1200ms
+    camera shop.api, shop.db
+    hold 1500ms
+  }
+}

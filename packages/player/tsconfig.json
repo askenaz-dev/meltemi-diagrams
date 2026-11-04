@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": ["src", "test"],
+  "exclude": [
+    "src/runtime.ts",
+    "src/dom.ts",
+    "src/cards.ts",
+    "src/stage.ts",
+    "src/style.ts",
+    "test/browser"
+  ]
+}

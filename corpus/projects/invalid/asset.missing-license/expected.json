@@ -1,0 +1,25 @@
+{
+  "assets/icons/local": [
+    {
+      "code": "asset.missing-license",
+      "severity": "error",
+      "message": "The icon pack `local` has no licence.",
+      "range": {
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        }
+      },
+      "hints": [
+        "Add `\"local\": { \"license\": \"<SPDX id or LicenseRef-name>\" }` under `\"icons\"` in assets/licenses.json."
+      ],
+      "related": []
+    }
+  ]
+}

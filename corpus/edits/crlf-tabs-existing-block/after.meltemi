@@ -1,0 +1,9 @@
+language "0.2"
+
+diagram tabs: flow {
+	web -> api
+	placement {
+		place web at (100, 100)
+		size web (240, 120)
+	}
+}

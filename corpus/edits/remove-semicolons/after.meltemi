@@ -1,0 +1,4 @@
+diagram d: flow {
+  a["A"]; c["C"]
+  a -> c
+}

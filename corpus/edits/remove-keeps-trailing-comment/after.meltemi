@@ -1,0 +1,7 @@
+diagram d: flow {
+  node a
+  placement {
+    // b goes right
+    place a at (1, 1)
+  }
+}

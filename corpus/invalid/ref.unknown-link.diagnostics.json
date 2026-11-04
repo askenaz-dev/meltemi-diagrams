@@ -1,0 +1,23 @@
+[
+  {
+    "code": "ref.unknown-link",
+    "severity": "error",
+    "message": "`checkout` has no element `gateway`.",
+    "range": {
+      "start": {
+        "offset": 147,
+        "line": 9,
+        "column": 41
+      },
+      "end": {
+        "offset": 154,
+        "line": 9,
+        "column": 48
+      }
+    },
+    "hints": [
+      "Elements of `checkout`: api, db."
+    ],
+    "related": []
+  }
+]

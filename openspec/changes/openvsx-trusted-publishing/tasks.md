@@ -1,0 +1,24 @@
+## Implementation
+
+- [x] 1. Verify the official registration requirements, published CLI pin and duplicate behavior.
+- [x] 2. Add the constrained Open VSX OIDC job and document its registration and recovery.
+- [x] 3. Add workflow guards and validate focused delivery tests.
+- [x] 4. Run typecheck, lint and the full unit suite.
+- [ ] 5. Open a pull request and verify green CI before integration.
+
+## Production verification
+
+- [x] 6. Confirm the owner configured the main-only environment and matching Open VSX registration.
+- [ ] 7. After merge authorization, verify the automatic release's OIDC publication and public VSIX.
+
+## Evidence
+
+- `npx --yes ovsx@1.3.0 publish --help` exposes both required flags; its published source obtains
+  OIDC before the duplicate catch. Independent review confirmed failures propagate.
+- `workflows.test.ts` and `automatic-release.test.ts`: 33 passing tests.
+- `openspec validate openvsx-trusted-publishing --strict`, `pnpm typecheck` and `pnpm lint` passed.
+- `pnpm test`: 333 files passed, 9936 tests passed and one skipped.
+- The owner confirmed the saved Open VSX registration and GitHub's single `main` branch rule;
+  independent read-only API review confirmed the environment policy.
+
+Do not archive until the applicable gates pass. Production publication remains pending.

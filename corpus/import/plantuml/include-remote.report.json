@@ -1,0 +1,28 @@
+{
+  "status": "partial",
+  "format": "plantuml",
+  "diagrams": [
+    {
+      "id": "include_remote",
+      "type": "flow",
+      "model": null,
+      "kind": "description",
+      "lines": [
+        1,
+        4
+      ]
+    }
+  ],
+  "findings": [
+    "1:1 warning import.partial [import] 1 essential construct was not imported; the sheet is incomplete.",
+    "2:1 warning import.include [plantuml.include.error dropped essential] `https://example.com/styles.puml` is a remote include; the importer never fetches files."
+  ],
+  "coverage": [
+    {
+      "diagram": "include_remote",
+      "mapped": 3,
+      "approximated": 0,
+      "dropped": 0
+    }
+  ]
+}

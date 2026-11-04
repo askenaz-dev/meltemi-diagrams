@@ -1,0 +1,30 @@
+{
+  "status": "complete",
+  "format": "mermaid",
+  "diagrams": [
+    {
+      "id": "checkout",
+      "type": "flow",
+      "model": null,
+      "kind": "flowchart",
+      "lines": [
+        1,
+        25
+      ]
+    }
+  ],
+  "findings": [
+    "4:1 warning import.unsupported-construct [mermaid.init dropped] `%%{init}%%` directives (themes, configuration) are not imported.",
+    "11:3 info import.renamed-id [id] `order-api` is not a valid id; it is written as `order_api`.",
+    "20:3 warning import.unsupported-construct [flowchart.css dropped] The CSS property `font-size` has no equivalent.",
+    "24:3 warning import.unsupported-construct [flowchart.click dropped] Interactions (`click`) are not imported."
+  ],
+  "coverage": [
+    {
+      "diagram": "checkout",
+      "mapped": 24,
+      "approximated": 0,
+      "dropped": 3
+    }
+  ]
+}

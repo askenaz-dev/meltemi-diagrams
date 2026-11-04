@@ -1,0 +1,14 @@
+language "0.2"
+
+// `api` sits in the title band of its placed and sized group.
+diagram checkout: flow {
+  layout manual
+  group backend "Backend" {
+    api["API"]
+  }
+  placement {
+    place backend at (300, 200)
+    size backend (400, 240)
+    place api at (300, 110)
+  }
+}

@@ -1,0 +1,10 @@
+language "0.2"
+
+// Several statements per line, joined with semicolons.
+diagram compact: flow {
+  layout manual
+  a["A"]; b["B"]; c["C"]
+  a -> b as ab; b -> c as bc
+  placement { place a at (0, 0); place b at (200, 0); place c at (400, 0) }
+  animate ab { effect dash; duration 2s; repeat 3 }
+}

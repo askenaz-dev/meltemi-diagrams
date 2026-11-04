@@ -1,0 +1,26 @@
+language "0.2"
+
+// Cycles: requests that come back to their caller, a self-call, a callback and a loop that
+// repeats the exchange.
+diagram cycles: sequence {
+  title "Polling and callbacks"
+
+  participant client "Client"
+  participant api "API"
+  participant worker "Worker"
+
+  client -> api: "Start export" as start
+  api -> worker: "Queue job" as queue { kind async }
+  api --> client: "Job id" as accepted
+
+  loop polling "Until done" {
+    client -> api: "Status?" as status
+    api -> api: "Read job" as read
+    api --> client: "Running" as running
+  }
+
+  worker -> api: "Done" as done { kind async }
+  api -> client: "Callback" as callback
+  client -> api: "Download" as download
+  api --> client: "File" as file
+}

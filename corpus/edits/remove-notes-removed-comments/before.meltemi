@@ -1,0 +1,8 @@
+diagram d: flow {
+  a["A"]
+  b["B"]
+  style a {
+    // brand color
+    fill "#f00"
+  }
+}

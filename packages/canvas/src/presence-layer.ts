@@ -1,0 +1,306 @@
+import type { Point } from "@meltemi/diagrams-editor/canvas";
+import { clear, h, s } from "./dom.js";
+import { trailSegments, type TrailPoint } from "./trail.js";
+import {
+  TAG_HEIGHT,
+  lineWidth,
+  outlineBox,
+  tagPlacement,
+  type CursorMark,
+  type PresenceMark,
+} from "./presence.js";
+
+/** How wide a tag grows before its name is cut with an ellipsis, in pixels. */
+const TAG_MAX_WIDTH = 180;
+
+/** The cursor's arrow, as in a pointer: its tip at (1, 1) of a 16 by 20 box. */
+const ARROW = "M1 1 L1 16.5 L5.2 12.6 L8 18.8 L10.9 17.5 L8.2 11.4 L13.8 11.4 Z";
+
+/** A trail to stroke: its points in diagram units, its colour, and how long a point lives. */
+export interface DrawnTrail {
+  readonly points: readonly TrailPoint[];
+  readonly colour: string;
+  /** Milliseconds a point lives; 0 draws the whole stroke (reduced motion). */
+  readonly fade: number;
+}
+
+/**
+ * Another person's stroke of the pen or the highlighter to draw: its points shown so far in diagram
+ * units, its colour, its width in screen pixels (the pen's at the zoom) and its opacity.
+ */
+export interface DrawnStroke {
+  readonly points: readonly Point[];
+  readonly colour: string;
+  readonly width: number;
+  readonly opacity: number;
+}
+
+/** A cursor drawn, and the diagram point it was last drawn at. */
+interface Drawn {
+  readonly element: HTMLElement;
+  readonly tag: HTMLElement;
+  scene: { readonly x: number; readonly y: number };
+}
+
+/**
+ * The layer that draws other people's selections and pointers over the scene (`live-collaboration`):
+ * an outline in each person's colour around what they selected and a tag with their name, and a
+ * cursor in their colour with the name at its tail where their pointer is. It is a sibling of the
+ * scene and of the selection's overlay, never inside them, so it is not part of anything the canvas
+ * copies, exports or posts; its nodes carry no `data-id` and no `data-role`, so no hit test can find
+ * them, and the stylesheet gives them `pointer-events: none`. It is hidden from assistive technology:
+ * who is here is the host's to say.
+ *
+ * A cursor is kept from one drawing to the next for the same person, so that it glides to where
+ * their pointer went (200 ms, the stylesheet's) instead of jumping four times a second; when only the
+ * view moved (a pan, a zoom) it follows at once, so that it stays on the point it shows.
+ *
+ * Names are the one thing a person controls, and they are only ever put in with `append(string)`,
+ * which makes a text node: a name that looks like markup shows as its characters.
+ */
+export class PresenceLayer {
+  readonly element = h("div", { class: "presence", "aria-hidden": "true" });
+  private readonly outlines = s("svg", {
+    class: "presence-outlines",
+    "aria-hidden": "true",
+    focusable: "false",
+  });
+  /**
+   * The Pointer trails and the strokes others draw with the pen or the highlighter, at the device's
+   * resolution; between the outlines and the cursors.
+   */
+  private readonly trails = h("canvas", { class: "presence-trails", "aria-hidden": "true" });
+  private readonly cursorLayer = h("div", { class: "presence-cursors" });
+  private readonly cursors = new Map<string, Drawn>();
+  /** Whether the trails canvas holds anything: cleared once when the last point is gone. */
+  private trailsDrawn = false;
+
+  /** How many marks are drawn: the canvas clears on every redraw, which is free when it is none. */
+  private drawn = 0;
+
+  constructor() {
+    this.element.append(this.outlines, this.trails, this.cursorLayer);
+    // The canvas follows the stage's size at the device's resolution; a resize clears it.
+    if (typeof ResizeObserver !== "undefined") {
+      new ResizeObserver(() => this.sizeTrails()).observe(this.element);
+    }
+  }
+
+  private sizeTrails(): void {
+    const ratio = globalThis.devicePixelRatio || 1;
+    const width = Math.max(1, Math.round(this.element.clientWidth * ratio));
+    const height = Math.max(1, Math.round(this.element.clientHeight * ratio));
+    if (this.trails.width !== width) this.trails.width = width;
+    if (this.trails.height !== height) this.trails.height = height;
+  }
+
+  /**
+   * Strokes the Pointer trails at `now`, replacing what was drawn: each segment with round caps and
+   * joins in its trail's colour, at its own opacity and width. Other people's pen strokes go first,
+   * under the trails (`drawStrokes`). `toScreen` puts a point of the diagram on the stage, so a pan
+   * or a zoom keeps a trail on the diagram.
+   */
+  drawTrails(
+    trails: readonly DrawnTrail[],
+    toScreen: (point: Point) => Point,
+    now: number,
+    strokes: readonly DrawnStroke[] = [],
+  ): void {
+    const context = this.trails.getContext("2d");
+    if (!context) return;
+    this.sizeTrails();
+    const ratio = globalThis.devicePixelRatio || 1;
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.clearRect(0, 0, this.trails.width, this.trails.height);
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    context.lineCap = "round";
+    context.lineJoin = "round";
+    let drew = this.drawStrokes(context, strokes, toScreen);
+    for (const trail of trails) {
+      context.strokeStyle = trail.colour;
+      for (const segment of trailSegments(trail.points, now, trail.fade)) {
+        const from = toScreen(segment.from);
+        const to = toScreen(segment.to);
+        context.globalAlpha = segment.opacity;
+        context.lineWidth = segment.width;
+        context.beginPath();
+        context.moveTo(from.x, from.y);
+        context.lineTo(to.x, to.y);
+        context.stroke();
+        drew = true;
+      }
+    }
+    context.globalAlpha = 1;
+    this.trailsDrawn = drew;
+  }
+
+  /**
+   * Strokes other people's pen and highlighter strokes as the layout will draw their pens: one path
+   * each through the midpoints of consecutive points (a quadratic curve at every inner point, the
+   * last one reached by a segment), round caps and joins, in the stroke's colour and width, with
+   * its opacity on the whole path, so a highlighter crossing itself does not darken. One point is a
+   * dot as wide as the stroke. Returns whether anything was drawn.
+   */
+  private drawStrokes(
+    context: CanvasRenderingContext2D,
+    strokes: readonly DrawnStroke[],
+    toScreen: (point: Point) => Point,
+  ): boolean {
+    let drew = false;
+    for (const stroke of strokes) {
+      const points = stroke.points.map(toScreen);
+      const first = points[0];
+      if (!first || stroke.opacity <= 0) continue;
+      context.globalAlpha = stroke.opacity;
+      context.beginPath();
+      if (points.length === 1) {
+        context.fillStyle = stroke.colour;
+        context.arc(first.x, first.y, stroke.width / 2, 0, 2 * Math.PI);
+        context.fill();
+      } else {
+        context.strokeStyle = stroke.colour;
+        context.lineWidth = stroke.width;
+        context.moveTo(first.x, first.y);
+        for (let i = 1; i < points.length - 1; i++) {
+          const p = points[i]!;
+          const next = points[i + 1]!;
+          context.quadraticCurveTo(p.x, p.y, (p.x + next.x) / 2, (p.y + next.y) / 2);
+        }
+        const last = points[points.length - 1]!;
+        context.lineTo(last.x, last.y);
+        context.stroke();
+      }
+      drew = true;
+    }
+    context.globalAlpha = 1;
+    return drew;
+  }
+
+  /** Whether the trails canvas holds a stroke now. */
+  get hasTrails(): boolean {
+    return this.trailsDrawn;
+  }
+
+  /** Removes every outline, tag and cursor. */
+  clear(): void {
+    this.clearMarks();
+    if (this.cursors.size === 0) return;
+    this.cursors.clear();
+    clear(this.cursorLayer);
+  }
+
+  private clearMarks(): void {
+    if (this.drawn === 0) return;
+    this.drawn = 0;
+    clear(this.outlines);
+    for (const tag of this.element.querySelectorAll(".presence-tag")) tag.remove();
+  }
+
+  /** Draws the marks and the cursors, replacing whatever was drawn. */
+  draw(marks: readonly PresenceMark[], cursors: readonly CursorMark[] = []): void {
+    this.clearMarks();
+    const tags = document.createDocumentFragment();
+    for (const mark of marks) {
+      this.outlines.append(this.outline(mark));
+      if (mark.person.name !== "") tags.append(this.tag(mark));
+    }
+    this.element.insertBefore(tags, this.cursorLayer);
+    this.drawn = marks.length;
+    this.drawCursors(cursors);
+  }
+
+  /**
+   * Moves each person's cursor to its tip: it glides when their pointer moved in the diagram, and
+   * follows the view at once when only the view moved. Cursors of people no longer pointing go.
+   */
+  private drawCursors(cursors: readonly CursorMark[]): void {
+    const kept = new Set<string>();
+    for (const cursor of cursors) {
+      kept.add(cursor.key);
+      let drawn = this.cursors.get(cursor.key);
+      const fresh = drawn === undefined;
+      if (!drawn) {
+        drawn = this.cursor(cursor);
+        this.cursors.set(cursor.key, drawn);
+        this.cursorLayer.append(drawn.element);
+      }
+      const moved = drawn.scene.x !== cursor.scene.x || drawn.scene.y !== cursor.scene.y;
+      drawn.element.classList.toggle("gliding", !fresh && moved);
+      drawn.scene = cursor.scene;
+      // The arrow's tip is one pixel into its box.
+      drawn.element.style.transform = `translate(${cursor.tip.x - 1}px, ${cursor.tip.y - 1}px)`;
+      drawn.element.style.setProperty("--presence-colour", cursor.person.colour);
+      drawn.tag.style.backgroundColor = cursor.person.colour;
+      drawn.tag.style.color = cursor.person.text;
+    }
+    for (const [key, drawn] of this.cursors) {
+      if (kept.has(key)) continue;
+      this.cursors.delete(key);
+      drawn.element.remove();
+    }
+  }
+
+  private cursor(mark: CursorMark): Drawn {
+    const arrow = s(
+      "svg",
+      {
+        class: "presence-cursor-arrow",
+        width: 16,
+        height: 20,
+        viewBox: "0 0 16 20",
+        "aria-hidden": "true",
+        focusable: "false",
+      },
+      s("path", { d: ARROW }),
+    );
+    // `h` appends the name as a string, which makes a text node.
+    const tag = h("span", { class: "presence-cursor-tag" }, mark.person.name);
+    tag.style.maxWidth = `${TAG_MAX_WIDTH}px`;
+    tag.hidden = mark.person.name === "";
+    const element = h("div", { class: "presence-cursor" }, arrow, tag);
+    return { element, tag, scene: mark.scene };
+  }
+
+  private outline(mark: PresenceMark): SVGElement {
+    const common = {
+      class: "presence-outline",
+      stroke: mark.person.colour,
+      "data-target": mark.target,
+    };
+    if (mark.shape.kind === "line") {
+      return s("polyline", {
+        ...common,
+        points: mark.shape.points.map((p) => `${p.x},${p.y}`).join(" "),
+        "stroke-width": lineWidth(mark),
+        "stroke-linejoin": "round",
+        "stroke-linecap": "round",
+      });
+    }
+    // The stroke is centred on the rectangle, which lies one pixel in, so two pixels of it are
+    // inside the border of the box.
+    const box = outlineBox(mark.shape.box, mark.rank);
+    return s("rect", {
+      ...common,
+      x: box.x + 1,
+      y: box.y + 1,
+      width: Math.max(0, box.width - 2),
+      height: Math.max(0, box.height - 2),
+      rx: 3,
+      "stroke-width": 2,
+    });
+  }
+
+  private tag(mark: PresenceMark): HTMLElement {
+    const at = tagPlacement(mark);
+    // `h` appends the name as a string, which makes a text node.
+    const tag = h("span", { class: "presence-tag", "data-target": mark.target }, mark.person.name);
+    tag.style.left = `${at.x}px`;
+    tag.style.top = `${at.y}px`;
+    tag.style.height = `${TAG_HEIGHT}px`;
+    tag.style.lineHeight = `${TAG_HEIGHT}px`;
+    tag.style.maxWidth = `${TAG_MAX_WIDTH}px`;
+    tag.style.backgroundColor = mark.person.colour;
+    tag.style.color = mark.person.text;
+    return tag;
+  }
+}

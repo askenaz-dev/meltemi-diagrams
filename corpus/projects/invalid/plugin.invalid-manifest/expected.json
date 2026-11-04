@@ -1,0 +1,42 @@
+{
+  "plugins/erd/meltemi-plugin.json": [
+    {
+      "code": "plugin.invalid-manifest",
+      "severity": "error",
+      "message": "diagram type `flow`: `type` must be a lower-case word that is not a word of the language.",
+      "range": {
+        "start": {
+          "offset": 319,
+          "line": 14,
+          "column": 19
+        },
+        "end": {
+          "offset": 379,
+          "line": 19,
+          "column": 4
+        }
+      },
+      "hints": [],
+      "related": []
+    },
+    {
+      "code": "plugin.invalid-manifest",
+      "severity": "error",
+      "message": "diagram type `flow`: `elements` must name at least one kind.",
+      "range": {
+        "start": {
+          "offset": 319,
+          "line": 14,
+          "column": 19
+        },
+        "end": {
+          "offset": 379,
+          "line": 19,
+          "column": 4
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ]
+}

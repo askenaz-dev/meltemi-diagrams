@@ -1,0 +1,41 @@
+language "0.2"
+
+// Corner radius on every shape with corners: a rounded square, a rectangle, a hexagon, a star, a
+// decision and a flag, with connectors meeting their rounded corners; a circle ignores it.
+diagram roundedShapes: flow {
+  title "Rounded shapes"
+  layout manual
+
+  square[""]
+  rect["Rectangle"]
+  hex["Hexagon"]
+  star["Star"]
+  decision ok "OK?"
+  flag["Flag"]
+  round["Circle"]
+
+  square -> hex as a
+  rect -> hex as b
+  hex -> ok as c
+  ok -> flag as d
+  ok -> star as e
+  star -> round as f
+
+  placement {
+    place square at (100, 100)
+    place rect at (100, 280)
+    place hex at (360, 190)
+    place ok at (600, 190)
+    place flag at (840, 100)
+    place star at (840, 300)
+    place round at (1080, 300)
+  }
+
+  style square { shape square; radius 16 }
+  style rect { shape rectangle; radius 6 }
+  style hex { shape hexagon; radius 10 }
+  style star { shape star; radius 4 }
+  style ok { radius 10 }
+  style flag { shape flag; radius 6 }
+  style round { shape circle; radius 12 }
+}

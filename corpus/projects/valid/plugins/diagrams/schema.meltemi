@@ -1,0 +1,24 @@
+language "0.2"
+
+// A diagram type declared by the erd plugin: its kinds, properties and allowed relations.
+diagram schema: erd {
+  title "Orders schema"
+
+  entity customer "Customer" { owner "Sales" }
+  entity orders "Orders" {
+    owner "Sales"
+    rows 120000
+  }
+  entity lines "Order lines" {
+    owner "Sales"
+    archived false
+  }
+  view open_orders "Open orders"
+
+  customer -> orders: "places" as places { cardinality one_to_many }
+  orders -> lines: "holds" as holds { cardinality one_to_many }
+  open_orders -> orders: "reads" as reads
+
+  style orders { icon "erd:key" }
+  rule view { color muted }
+}

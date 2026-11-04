@@ -1,0 +1,60 @@
+language "0.2"
+
+// The source flow: the slide below links each of its boxes to these elements.
+diagram checkout: flow {
+  layout manual
+
+  client["Client app"]
+  api["Order API"]
+  data orders "Orders DB"
+
+  client -> api: "HTTPS" as request
+  api -> orders as persist
+
+  placement {
+    place client at (120, 60)
+    place api at (380, 60)
+    place orders at (640, 60)
+  }
+}
+
+// A free composition: text, shapes, an icon, a group placed by its interior, and two layers.
+diagram slide: free {
+  title "Checkout at a glance"
+  preset slide
+  routing orthogonal
+  layers main, front
+
+  text heading "Checkout at a glance"
+  text lead "Every order passes through one API" { class muted }
+
+  box client "Client app" { link checkout.client }
+  group backend "Backend" {
+    box api "Order API" { description "REST · validates input"; link checkout.api }
+    box orders "Orders DB" { link checkout.orders }
+    api -> orders as persist
+  }
+  icon secure "tabler:lock" { layer front }
+  text secureNote "TLS everywhere" { layer front }
+
+  client -> api: "HTTPS" as request
+
+  placement {
+    place heading at (960, 140)
+    place lead at (960, 210)
+    place client at (420, 560)
+    place backend at (1180, 560)
+    size backend (640, 240)
+    place api at (140, 92)
+    place orders at (460, 92)
+    place secure at (420, 420)
+    place secureNote at (420, 470)
+  }
+
+  class muted { color muted; fontSize 28; fontWeight 400 }
+  style heading { fontSize 56; fontWeight 700; textAlign center }
+  style lead { textAlign center }
+  style client { shape pill }
+  style orders { shape cylinder }
+  style secureNote { textAlign center }
+}

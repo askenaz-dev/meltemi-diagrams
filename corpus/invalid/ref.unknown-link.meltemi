@@ -1,0 +1,14 @@
+language "0.2"
+
+diagram checkout: flow {
+  api["API Gateway"]
+  api -> db
+}
+
+diagram checkout_free: free {
+  box api "API Gateway" { link checkout.gateway }
+
+  placement {
+    place api at (200, 120)
+  }
+}

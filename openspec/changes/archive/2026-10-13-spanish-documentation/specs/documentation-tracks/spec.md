@@ -1,0 +1,32 @@
+## MODIFIED Requirements
+
+### Requirement: Documentation index and getting started
+`docs/README.md` SHALL index the documentation: getting started, the three tracks, the features,
+the language reference, the editor, the CLI, exports, the player, the catalog, the playground,
+assistance, plugins and safety, quality, compatibility, contributing, the release process and
+decisions. `docs/getting-started.md` SHALL take a person from installation (npm, the extension,
+the playground) through a first project from a template, validation, export, the canvas, and a
+label changed on the canvas that changes the code. Both SHALL exist in Spanish
+(`docs/es/README.md`, `docs/es/getting-started.md`), and the README SHALL link to `README.es.md`.
+
+#### Scenario: From the README
+- **WHEN** a person opens the README
+- **THEN** it shows what the product is, the editing demo, installation, a first diagram, the
+  gallery and a link to the documentation index
+
+#### Scenario: In Spanish
+- **WHEN** a person opens `README.es.md`
+- **THEN** it shows the same sections in Spanish and links to `docs/es/README.md`
+
+### Requirement: Tracks by origin
+`docs/tracks/from-mermaid.md`, `docs/tracks/from-plantuml.md` and
+`docs/tracks/from-visual-editors.md` SHALL each explain what is the same and what differs, map the
+constructs people know to `.meltemi` in a table, show how to import existing files and read the
+import report, and list the first things to try. A construct a track presents as imported SHALL be
+mapped or approximated in the importer's coverage table. The tracks SHALL exist in Spanish under
+`docs/es/tracks/`, listing the same constructs.
+
+#### Scenario: Track and importer agree
+- **WHEN** the tests run
+- **THEN** every construct the Mermaid and PlantUML tracks list as imported, in either language,
+  has the status mapped or approximated in the coverage tables

@@ -1,0 +1,38 @@
+language "0.2"
+
+// Text sizes, weights and fonts in a flow diagram (decision 0067): a node, a decision, a data
+// store, a tag, a group's title and a relation's label, each with its own font, size or weight,
+// and a rule that sets the weight of every node.
+diagram typography: flow {
+  title "Typography"
+  layout manual
+
+  web["Web shop"]
+  group checkout "Checkout" {
+    api["Orders API"] { description "Validates the basket" }
+    decision paid "Paid?"
+  }
+  db[("Orders")] { description "PostgreSQL" }
+  tag beta "beta"
+
+  web -> api: "Places the order" as order
+  api -> paid
+  paid -> db: "Yes" as store
+
+  placement {
+    place web at (120, 200)
+    place api at (420, 200)
+    place paid at (680, 200)
+    place db at (960, 200)
+    place beta at (960, 110)
+    label order at 50% offset (0, -18)
+  }
+
+  rule node { fontWeight 500 }
+  style api { font "Roboto"; fontSize 16 }
+  style paid { font "Lora"; fontWeight 700 }
+  style db { font "Source Code Pro" }
+  style checkout { font "Playfair Display"; fontSize 20 }
+  style beta { fontSize 13 }
+  style order { font "Open Sans"; fontSize 12; fontWeight 600 }
+}

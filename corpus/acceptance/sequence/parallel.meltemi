@@ -1,0 +1,31 @@
+language "0.2"
+
+// Parallel messages: the same two participants exchange several messages in a row, some at once
+// in a parallel block, some asynchronous, with spacing adjusted by hand.
+diagram parallel: sequence {
+  title "Inventory sync"
+
+  participant store "Store"
+  participant inventory "Inventory"
+
+  store -> inventory: "Reserve item 1" as reserve1
+  store -> inventory: "Reserve item 2" as reserve2
+  store -> inventory: "Reserve item 3" as reserve3
+  inventory --> store: "Reserved 1" as reserved1
+  inventory --> store: "Reserved 2" as reserved2
+
+  par {
+    store -> inventory: "Price check" as price { kind async }
+  } and "Stock" {
+    store -> inventory: "Stock check" as stock { kind async }
+  } and "Hold" {
+    inventory -> store: "Hold notice" as hold { kind async }
+  }
+
+  inventory --> store: "Reserved 3" as reserved3
+
+  placement {
+    space reserve2 8
+    gap inventory 40
+  }
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "code": "layout.label-position-ignored",
+    "severity": "warning",
+    "message": "The `labelPosition` of `api` has no effect: its icon is not the centre piece.",
+    "range": {
+      "start": {
+        "offset": 176,
+        "line": 7,
+        "column": 37
+      },
+      "end": {
+        "offset": 193,
+        "line": 7,
+        "column": 54
+      }
+    },
+    "hints": [
+      "Set `iconPosition center` or `shape icon` to put the label at an edge, or remove `labelPosition`."
+    ],
+    "related": []
+  }
+]

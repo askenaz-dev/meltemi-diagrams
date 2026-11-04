@@ -1,0 +1,12 @@
+@startuml checkout
+[Cart] --> [Payment]
+@enduml
+
+@startuml payment
+Alice -> Bob : pay
+Bob --> Alice : receipt
+@enduml
+
+@startgantt
+[Design] lasts 5 days
+@endgantt

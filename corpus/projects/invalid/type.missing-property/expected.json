@@ -1,0 +1,25 @@
+{
+  "diagrams/a.meltemi": [
+    {
+      "code": "type.missing-property",
+      "severity": "error",
+      "message": "Entity `a` needs `owner`.",
+      "range": {
+        "start": {
+          "offset": 47,
+          "line": 4,
+          "column": 10
+        },
+        "end": {
+          "offset": 48,
+          "line": 4,
+          "column": 11
+        }
+      },
+      "hints": [
+        "Entity relationship diagrams require `owner` on every entity."
+      ],
+      "related": []
+    }
+  ]
+}

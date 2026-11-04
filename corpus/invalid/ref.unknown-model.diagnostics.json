@@ -1,0 +1,23 @@
+[
+  {
+    "code": "ref.unknown-model",
+    "severity": "error",
+    "message": "Unknown model `comerce`.",
+    "range": {
+      "start": {
+        "offset": 87,
+        "line": 7,
+        "column": 27
+      },
+      "end": {
+        "offset": 94,
+        "line": 7,
+        "column": 34
+      }
+    },
+    "hints": [
+      "Models: commerce."
+    ],
+    "related": []
+  }
+]

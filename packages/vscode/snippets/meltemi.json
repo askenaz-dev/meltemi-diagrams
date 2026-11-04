@@ -1,0 +1,118 @@
+{
+  "Flow diagram": {
+    "prefix": "diagram",
+    "description": "A new flow diagram",
+    "body": [
+      "language \"0.2\"",
+      "",
+      "diagram ${1:id}: flow {",
+      "  title \"${2:Title}\"",
+      "  layout ${3|auto,assisted,manual|}",
+      "",
+      "  ${4:client}[\"${5:Client}\"]",
+      "  ${6:api}[\"${7:API}\"]",
+      "  ${4:client} -> ${6:api}: \"${8:HTTPS}\"",
+      "  $0",
+      "}"
+    ]
+  },
+  "Free diagram": {
+    "prefix": "free",
+    "description": "A new free composition",
+    "body": [
+      "diagram ${1:id}: free {",
+      "  canvas (${2:1600}, ${3:900})",
+      "",
+      "  text ${4:heading} \"${5:Title}\"",
+      "  box ${6:a} \"${7:Box}\"",
+      "  $0",
+      "",
+      "  placement {",
+      "    place ${4:heading} at (${8:800}, ${9:90})",
+      "    place ${6:a} at (${10:800}, ${11:400})",
+      "  }",
+      "}"
+    ]
+  },
+  "Sequence diagram": {
+    "prefix": "sequence",
+    "description": "A new sequence diagram",
+    "body": [
+      "diagram ${1:id}: sequence {",
+      "  actor ${2:user} \"${3:User}\"",
+      "  participant ${4:api} \"${5:API}\"",
+      "",
+      "  ${2:user} -> ${4:api}: \"${6:Request}\" as ${7:request}",
+      "  activate ${4:api}",
+      "  ${4:api} --> ${2:user}: \"${8:Response}\"",
+      "  deactivate ${4:api}",
+      "  $0",
+      "}"
+    ]
+  },
+  "Model": {
+    "prefix": "model",
+    "description": "An architecture model shared by C4 views",
+    "body": [
+      "model ${1:id} {",
+      "  person ${2:customer} \"${3:Customer}\"",
+      "  system ${4:shop} \"${5:Shop}\" {",
+      "    container ${6:api} \"${7:API}\" { technology \"${8:HTTP}\" }",
+      "  }",
+      "",
+      "  ${2:customer} -> ${4:shop}.${6:api}: \"${9:Uses}\"",
+      "  $0",
+      "}"
+    ]
+  },
+  "C4 view": {
+    "prefix": "c4",
+    "description": "A C4 view of a model",
+    "body": [
+      "diagram ${1:id}: c4 using ${2:model} {",
+      "  level ${3|context,container,component|}",
+      "  scope ${4:system}",
+      "  $0",
+      "}"
+    ]
+  },
+  "Alternatives": {
+    "prefix": "alt",
+    "description": "Alternatives of a sequence diagram",
+    "body": ["alt ${1:id} \"${2:Condition}\" {", "  $3", "} else \"${4:Otherwise}\" {", "  $0", "}"]
+  },
+  "Fragment": {
+    "prefix": "fragment",
+    "description": "An opt, loop, par, break, critical or region fragment",
+    "body": ["${1|opt,loop,par,break,critical,region|} ${2:id} \"${3:Condition}\" {", "  $0", "}"]
+  },
+  "Sequence note": {
+    "prefix": "note over",
+    "description": "A note on lifelines",
+    "body": ["note ${1:id} ${2|over,left of,right of|} ${3:participant} \"${4:Text}\""]
+  },
+  "Scenario": {
+    "prefix": "scenario",
+    "description": "One path through the alternatives and loops",
+    "body": [
+      "scenario ${1:id} \"${2:Label}\" {",
+      "  ${3|choose,repeat,skip,take|} ${4:fragment} $0",
+      "}"
+    ]
+  },
+  "Group": {
+    "prefix": "group",
+    "description": "A group of elements",
+    "body": ["group ${1:id} \"${2:Label}\" {", "  $0", "}"]
+  },
+  "Placement block": {
+    "prefix": "placement",
+    "description": "Positions, sizes, routes and label anchors",
+    "body": ["placement {", "  place ${1:element} at (${2:0}, ${3:0})", "  $0", "}"]
+  },
+  "Style block": {
+    "prefix": "style",
+    "description": "Visual properties of elements or named relations",
+    "body": ["style ${1:target} {", "  ${2|fill,stroke,color,line,width,pattern,icon|} $3", "}"]
+  }
+}

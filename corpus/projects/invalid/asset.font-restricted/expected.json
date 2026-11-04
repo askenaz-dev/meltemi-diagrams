@@ -1,0 +1,23 @@
+{
+  "assets/fonts/LockedSans-Regular.ttf": [
+    {
+      "code": "asset.font-restricted",
+      "severity": "warning",
+      "message": "The licence of `Locked Sans` forbids embedding; it is used to measure text, and exports name it without embedding or outlining it.",
+      "range": {
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ]
+}

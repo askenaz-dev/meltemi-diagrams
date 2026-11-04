@@ -1,0 +1,123 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ci_run_id:
+        description: "Successful main push CI run to deploy (must still be current main)"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  authorize:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      sha: ${{ steps.ci.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - id: ci
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+        run: node scripts/ci-run.mjs
+
+  deploy:
+    needs: authorize
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+      SECRETS_STORE_ID: ${{ vars.SECRETS_STORE_ID }}
+    defaults:
+      run:
+        working-directory: source
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: delivery
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.sha }}
+          fetch-depth: 0
+          path: source
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: source/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: source/pnpm-lock.yaml
+      - name: Verify source is on main history
+        env:
+          SOURCE_SHA: ${{ needs.authorize.outputs.sha }}
+        run: git merge-base --is-ancestor "$SOURCE_SHA" origin/main
+      - run: pnpm install --frozen-lockfile
+      - name: Stamp the same source-ordered version without reserving a tag
+        env:
+          SOURCE_SHA: ${{ needs.authorize.outputs.sha }}
+        run: node ../delivery/scripts/automatic-release.mjs stamp
+      - run: pnpm skills:sync
+      - name: The Workers' configurations with Terraform's ids
+        run: node scripts/deploy-config.mjs packages/cloud/wrangler.jsonc packages/cloud/wrangler.publish.jsonc
+      - run: pnpm playground:build
+      - name: Skip a source superseded by main before any mutation
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ needs.authorize.outputs.sha }}
+        run: node ../delivery/scripts/ci-run.mjs current
+      - name: Migrations
+        if: steps.current.outputs.current == 'true'
+        working-directory: source/packages/cloud
+        run: pnpm exec wrangler d1 migrations apply DB --remote -c wrangler.deploy.json
+      - name: The main Worker
+        if: steps.current.outputs.current == 'true'
+        working-directory: source/packages/cloud
+        run: pnpm exec wrangler deploy -c wrangler.deploy.json
+      - name: The publish Worker
+        if: steps.current.outputs.current == 'true'
+        working-directory: source/packages/cloud
+        run: pnpm exec wrangler deploy -c wrangler.publish.deploy.json
+      - name: Deployment result
+        env:
+          CURRENT: ${{ steps.current.outputs.current }}
+          SOURCE_SHA: ${{ needs.authorize.outputs.sha }}
+        run: |
+          if [ "$CURRENT" = true ]; then
+            echo "Deployed CI-verified source $SOURCE_SHA." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Skipped $SOURCE_SHA because main has advanced; no deployment mutation ran." >> "$GITHUB_STEP_SUMMARY"
+          fi

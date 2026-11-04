@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="460" height="140" viewBox="0 0 460 140" font-family="Georgia, serif">
+  <title>Shipping</title>
+  <rect x="0" y="0" width="460" height="140" fill="#F7FBFF"/>
+  <g data-id="orders" data-role="element">
+    <rect x="20" y="64" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="100" y="96.55" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Orders</text>
+  </g>
+  <g data-id="warehouse" data-role="element">
+    <rect x="280" y="64" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="360" y="96.55" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Warehouse</text>
+  </g>
+  <g data-id="orders-&gt;warehouse#1" data-role="relation">
+    <polyline points="180,92 272,92" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M280 92 L272 95.5 L272 88.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="orders-&gt;warehouse#1" data-role="label">
+      <rect x="213" y="83" width="34" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="230" y="95.85" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">pick</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,43.5 440,43.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <text x="20" y="26.2" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Acme Architecture</text>
+    <text x="440" y="25.85" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Shipping</text>
+  </g>
+</svg>

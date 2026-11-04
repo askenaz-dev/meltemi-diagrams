@@ -1,0 +1,21 @@
+[
+  {
+    "code": "story.empty-scene",
+    "severity": "warning",
+    "message": "The scene `two` has no actions and takes no time.",
+    "range": {
+      "start": {
+        "offset": 194,
+        "line": 14,
+        "column": 9
+      },
+      "end": {
+        "offset": 197,
+        "line": 14,
+        "column": 12
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

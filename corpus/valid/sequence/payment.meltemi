@@ -1,0 +1,32 @@
+language "0.2"
+
+// Payment sequence from the product proposal ("Diagramas de secuencia").
+diagram payment: sequence {
+  theme "editorial.light"
+
+  actor customer "Cliente"
+  participant api "API"
+  participant bank "Banco"
+
+  customer -> api: "Pagar" as pay
+  activate api
+  api -> bank: "Autorizar" as authorize
+
+  alt result "Aprobado" {
+    bank --> api: "OK" as approved
+    api --> customer: "Confirmación" as success
+  } else "Rechazado" {
+    bank --> api: "Rechazo" as declined
+    api --> customer: "Reintentar" as retry
+  }
+
+  deactivate api
+
+  scenario approved "Pago aprobado" {
+    choose result "Aprobado"
+  }
+
+  scenario rejected "Pago rechazado" {
+    choose result "Rechazado"
+  }
+}

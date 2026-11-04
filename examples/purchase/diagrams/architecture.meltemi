@@ -1,0 +1,36 @@
+language "0.2"
+
+import commerce from "../models/commerce.meltemi"
+
+// The general architecture: the shop in its context, then its containers.
+diagram context: c4 using commerce {
+  title "The shop in context"
+  level context
+}
+
+diagram containers: c4 using commerce {
+  title "Inside the shop"
+  level container
+  scope shop
+  layout assisted
+
+  // Two rows inside the shop: the order's way in above, its data and events below.
+  placement {
+    place customer at (130, 70)
+    place shop.web at (130, 300)
+    place shop.gateway at (450, 300)
+    place shop.orders at (770, 300)
+    place shop.payments at (1090, 300)
+    place shop.db at (450, 520)
+    place shop.events at (770, 520)
+    place provider at (1090, 760)
+    route store from shop.orders.south to shop.db.north via [(730, 410), (450, 410)]
+    route publish from shop.payments.south to shop.events.east via [(1050, 520)]
+    label authorise at 75%
+  }
+}
+
+// A document page of the containers.
+export sheet for containers {
+  format pdf
+}

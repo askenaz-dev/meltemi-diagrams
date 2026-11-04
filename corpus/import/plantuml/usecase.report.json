@@ -1,0 +1,27 @@
+{
+  "status": "complete",
+  "format": "plantuml",
+  "diagrams": [
+    {
+      "id": "usecase",
+      "type": "flow",
+      "model": null,
+      "kind": "description",
+      "lines": [
+        1,
+        19
+      ]
+    }
+  ],
+  "findings": [
+    "9:3 info import.renamed-id [id] `Manage stock` is not a valid id; it is written as `Manage_stock`."
+  ],
+  "coverage": [
+    {
+      "diagram": "usecase",
+      "mapped": 13,
+      "approximated": 0,
+      "dropped": 0
+    }
+  ]
+}

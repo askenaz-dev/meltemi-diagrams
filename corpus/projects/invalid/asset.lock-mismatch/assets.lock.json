@@ -1,0 +1,17 @@
+{
+  "lockVersion": 1,
+  "icons": {
+    "local": {
+      "version": null,
+      "source": "assets/icons/local",
+      "license": "CC0-1.0",
+      "integrity": "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+    },
+    "tabler": {
+      "version": "3.0.0",
+      "source": "built-in",
+      "license": "MIT"
+    }
+  },
+  "fonts": {}
+}

@@ -1,0 +1,62 @@
+language "0.2"
+
+// Imported from flowchart-shapes.mmd (mermaid) by meltemi-diagrams.
+
+diagram flowchart_shapes: flow {
+  direction TB
+  layout auto
+
+  node rect "Rectangle"
+  node round "Rounded"
+  node stadium "Stadium"
+  node sub "Subroutine"
+  data cyl "Database"
+  node circle "Circle"
+  node dbl "Double"
+  node asym "Flag"
+  decision rhombus "Decision"
+  node hex "Hexagon"
+  node lean "Input"
+  node leanb "Output"
+  node trap "Trapezoid"
+  node inv "Inverted"
+  decision named "Named decision"
+  data store "Disk"
+  note remark "A remark"
+  node other "Bolt"
+  node html "Bold and\ntwo lines"
+  node md "Markdown label"
+  node fa "Car \"quoted\""
+
+  rect -> round
+  round -> stadium
+  stadium -> sub
+  sub -> cyl
+  cyl -> circle
+  circle -> dbl
+  dbl -> asym
+  asym -> rhombus
+  rhombus -> hex
+  hex -> lean
+  lean -> leanb
+  leanb -> trap
+  trap -> inv
+  inv -> named
+  named -> store
+  store -> remark
+  remark -> other
+  other -> html
+  html -> md
+  md -> fa
+
+  style stadium { shape pill }
+  style sub { shape framed }
+  style circle { shape circle }
+  style dbl { shape circle }
+  style asym { shape flag }
+  style hex { shape hexagon }
+  style lean { shape parallelogram }
+  style leanb { shape parallelogram }
+  style trap { shape trapezoid }
+  style inv { shape trapezoid }
+}

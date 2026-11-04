@@ -1,0 +1,1 @@
+{ "operation": { "kind": "removeElement", "diagram": "d", "element": "ciba", "cascade": true }, "expect": { "edits": 2 } }

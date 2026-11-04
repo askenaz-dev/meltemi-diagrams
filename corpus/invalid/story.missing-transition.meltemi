@@ -1,0 +1,23 @@
+language "0.2"
+
+// A change of view between scenes needs an explicit transition.
+diagram checkout: flow {
+  node api
+  node db
+  api -> db as save
+}
+
+diagram later: flow {
+  node api
+  node cache
+}
+
+story tour for checkout {
+  scene one {
+    reveal api, db
+  }
+  scene two {
+    view later
+    reveal cache
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://meltemi.dev/schemas/diagrams/project.schema.json",
+  "title": "Meltemi Diagrams project",
+  "description": "project.json marks the root of a Meltemi Diagrams project. See docs/language/projects.md.",
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Schema location, for editors."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Project name, shown in catalogs and reports."
+    },
+    "language": {
+      "type": "string",
+      "enum": ["0.2"],
+      "description": "Language version used by every .meltemi file of the project."
+    },
+    "tools": {
+      "type": "object",
+      "description": "Version ranges of the tools that may build the project.",
+      "properties": {
+        "meltemi-diagrams": {
+          "type": "string",
+          "description": "Exact version, ^x.y.z, ~x.y.z, comparators such as \">=0.3.0 <1.0.0\", or *."
+        }
+      },
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": ["."],
+      "description": "Folders or files, relative to project.json, whose .meltemi files are compiled."
+    },
+    "exclude": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "default": [],
+      "description": "Paths, relative to project.json, that are never compiled. node_modules and hidden folders are always excluded."
+    },
+    "format": {
+      "type": "object",
+      "description": "Formatter settings used by meltemi-diagrams format and editors.",
+      "properties": {
+        "indent": {
+          "description": "Spaces per indentation level, or \"tab\".",
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 8
+            },
+            {
+              "const": "tab"
+            }
+          ],
+          "default": 2
+        }
+      },
+      "additionalProperties": false
+    },
+    "theme": {
+      "type": "string",
+      "anyOf": [
+        {
+          "enum": [
+            "technical.light",
+            "technical.dark",
+            "editorial.light",
+            "editorial.dark",
+            "stage.light",
+            "stage.dark"
+          ]
+        },
+        {
+          "pattern": "^[^#]+\\.meltemi#[A-Za-z_][A-Za-z0-9_-]*$"
+        }
+      ],
+      "description": "Default theme of diagrams without a theme property: a built-in theme, or \"<path>#<theme id>\" relative to project.json."
+    },
+    "locale": {
+      "enum": ["en", "es"],
+      "default": "en",
+      "description": "The language of the words the tool adds to exported drawings, HTML players and catalogs: English or Spanish."
+    },
+    "icons": {
+      "type": "object",
+      "description": "Icon pack aliases: \"cloud\": \"aws\" lets diagrams write cloud:lambda for aws:lambda.",
+      "propertyNames": {
+        "pattern": "^[a-z0-9][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "catalog": {
+      "type": "object",
+      "description": "What meltemi-diagrams build catalog writes and leaves out. See docs/catalog.md.",
+      "properties": {
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Title of the catalog; the project name by default."
+        },
+        "description": {
+          "type": "string",
+          "description": "Text shown on the catalog's home page."
+        },
+        "out": {
+          "type": "string",
+          "minLength": 1,
+          "default": "catalog",
+          "description": "Folder (which receives index.html) or .html file inside the project, relative to project.json."
+        },
+        "exclude": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": [],
+          "description": "Folders or files left out of the catalog, or \"<file>.meltemi#<id>\" for one diagram or story."
+        },
+        "source": {
+          "type": "boolean",
+          "default": false,
+          "description": "Include the text of each catalogued file, comments included."
+        }
+      },
+      "additionalProperties": false
+    },
+    "plugins": {
+      "type": "object",
+      "description": "Plugins installed explicitly: their folders inside the project, exact versions and the permissions granted. Plugins are data; their code is never run. See docs/plugins.md.",
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9-]*$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The plugin's folder, relative to project.json, holding meltemi-plugin.json."
+          },
+          "version": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+(-[0-9A-Za-z.-]+)?$",
+            "description": "The exact version installed."
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "enum": ["diagram-types", "icons"]
+            },
+            "description": "What the project lets the plugin contribute."
+          }
+        },
+        "required": ["path", "version"],
+        "additionalProperties": false
+      }
+    },
+    "cloud": {
+      "type": "object",
+      "description": "The cloud project this folder mirrors: the service's address and the project's id. meltemi-diagrams push --create and pull write it; push, pull, publish and review --base cloud read it. See docs/cli.md.",
+      "properties": {
+        "host": {
+          "type": "string",
+          "pattern": "^(https://[^/?#@\\s\\\\]+|http://(127\\.0\\.0\\.1|localhost|\\[::1\\])(:[0-9]+)?)/?$",
+          "description": "The service's origin, such as \"https://diagrams.meltemi.dev\"; http: only for 127.0.0.1, localhost or [::1]. It never chooses where a token goes: a command whose host differs from this one fails."
+        },
+        "project": {
+          "type": "string",
+          "pattern": "^[0-9a-z]{20}$",
+          "description": "The cloud project's id: 20 lower-case letters and digits."
+        }
+      },
+      "required": ["host", "project"],
+      "additionalProperties": false
+    }
+  },
+  "required": ["name", "language"],
+  "additionalProperties": false
+}

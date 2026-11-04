@@ -1,0 +1,53 @@
+{
+  "description": "A move in one view leaves the other view as it was; a rename in the model reaches both.",
+  "sheet": "edits/c4-views.meltemi",
+  "steps": [
+    {
+      "name": "move in the overview",
+      "operation": {
+        "kind": "setPosition",
+        "diagram": "overview",
+        "element": "store.api",
+        "x": 720,
+        "y": 360
+      },
+      "changed": [
+        "place store.api at"
+      ],
+      "unmoved": {
+        "stacked": [
+          "buyer",
+          "store.web",
+          "store.api",
+          "store.db"
+        ]
+      }
+    },
+    {
+      "name": "rename in the model",
+      "operation": {
+        "kind": "renameEntity",
+        "model": "shop",
+        "entity": "store.api",
+        "newId": "orders"
+      },
+      "changed": [
+        "\\bapi\\b",
+        "\\borders\\b"
+      ],
+      "absent": [
+        "store\\.api\\b"
+      ],
+      "present": [
+        "store\\.orders"
+      ],
+      "unmoved": {
+        "stacked": [
+          "buyer",
+          "store.web",
+          "store.db"
+        ]
+      }
+    }
+  ]
+}

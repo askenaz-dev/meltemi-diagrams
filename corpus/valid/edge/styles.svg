@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="853" height="480" viewBox="0 0 853 480" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Styles</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+    <pattern id="pattern-1" patternUnits="userSpaceOnUse" width="8" height="8" patternTransform="rotate(45)">
+      <path d="M0 0V8" stroke="#3D4A5C" stroke-width="1.5" stroke-opacity="0.35" fill="none"/>
+    </pattern>
+    <pattern id="pattern-2" patternUnits="userSpaceOnUse" width="8" height="8">
+      <circle cx="4" cy="4" r="1.2" fill="#3D4A5C" fill-opacity="0.35"/>
+    </pattern>
+  </defs>
+  <rect x="0" y="0" width="853" height="480" fill="#FFFFFF"/>
+  <g data-id="gateway" data-role="element">
+    <rect x="48" y="138" width="197" height="69" rx="10" fill="#FFFFFF" stroke="#B91C1C" stroke-width="2"/>
+    <text x="146.5" y="178.32" text-anchor="middle" font-size="16" font-weight="600" fill="#0A0F1A">Gateway</text>
+  </g>
+  <g data-id="orders" data-role="element">
+    <rect x="328" y="138" width="197" height="69" rx="10" fill="#FFFFFF" stroke="#9AA8B8" stroke-width="1.5"/>
+    <text x="426.5" y="169.07" text-anchor="middle" font-size="16" font-weight="600" fill="#0A0F1A">Orders</text>
+    <text x="426.5" y="188.48" text-anchor="middle" font-size="13" font-weight="400" fill="#3D4A5C">owns the order lifecycle</text>
+  </g>
+  <g data-id="billing" data-role="element">
+    <rect x="608" y="138" width="197" height="69" rx="10" fill="#FFF7ED" stroke="#3D4A5C" stroke-width="1.5"/>
+    <rect x="608" y="138" width="197" height="69" rx="10" fill="url(#pattern-1)" stroke="none" stroke-width="0"/>
+    <text x="706.5" y="178.32" text-anchor="middle" font-size="16" font-weight="600" fill="#3D4A5C">Billing</text>
+  </g>
+  <g data-id="partner" data-role="element">
+    <rect x="48" y="318" width="197" height="69" rx="10" fill="#FFFFFF" stroke="#3D4A5C" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="146.5" y="358.32" text-anchor="middle" font-size="16" font-weight="600" fill="#0A0F1A">Partner</text>
+  </g>
+  <g data-id="db" data-role="element">
+    <path d="M328 321 L328 384 A98.5 8 0 0 0 525 384 L525 321 A98.5 8 0 0 1 328 321 Z" fill="#FFFFFF" stroke="#9AA8B8" stroke-width="1.5"/>
+    <path d="M328 321 L328 384 A98.5 8 0 0 0 525 384 L525 321 A98.5 8 0 0 1 328 321 Z" fill="url(#pattern-2)" stroke="none" stroke-width="0"/>
+    <path d="M328 321 A98.5 8 0 0 1 525 321 A98.5 8 0 0 1 328 321 Z" fill="#FFFFFF" stroke="#9AA8B8" stroke-width="1.5"/>
+    <text x="426.5" y="362.32" text-anchor="middle" font-size="16" font-weight="600" fill="#0A0F1A">Orders DB</text>
+  </g>
+  <g data-id="create" data-role="relation">
+    <polyline points="245,172.5 328,172.5" fill="none" stroke="#3D4A5C" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="318,176.88 328,172.5 318,168.13" fill="none" stroke="#3D4A5C" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="create" data-role="label">
+      <rect x="259.82" y="162" width="53.36" height="21" rx="10.5" fill="#FFFFFF" stroke="#9AA8B8" stroke-width="1.5"/>
+      <text x="286.5" y="177.23" text-anchor="middle" font-size="13" font-weight="500" fill="#0A0F1A">create</text>
+    </g>
+  </g>
+  <g data-id="persist" data-role="relation">
+    <polyline points="426.5,207 426.5,313" fill="none" stroke="#1D4ED8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="422.13,303 426.5,313 430.88,303" fill="none" stroke="#1D4ED8" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+  <g data-id="invoice" data-role="relation">
+    <polyline points="525,172.5 608,172.5" fill="none" stroke="#3D4A5C" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="598,176.88 608,172.5 598,168.13" fill="none" stroke="#3D4A5C" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="invoice" data-role="label">
+      <rect x="537.31" y="162" width="58.38" height="21" rx="10.5" fill="#FFFFFF" stroke="#9AA8B8" stroke-width="1.5"/>
+      <text x="566.5" y="177.23" text-anchor="middle" font-size="13" font-weight="500" fill="#0A0F1A">invoice</text>
+    </g>
+  </g>
+  <g data-id="notify" data-role="relation">
+    <polyline points="146.5,207 146.5,318" fill="none" stroke="#3D4A5C" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="48,50.5 805,50.5" fill="none" stroke="#9AA8B8" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(48 11.5) scale(0.1094)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="84" y="30.59" text-anchor="start" font-size="14" font-weight="600" fill="#0A0F1A">Platform review</text>
+    <text x="805" y="30.23" text-anchor="end" font-size="13" font-weight="400" fill="#3D4A5C">Styles</text>
+  </g>
+</svg>

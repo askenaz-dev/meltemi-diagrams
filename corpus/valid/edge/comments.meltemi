@@ -1,0 +1,19 @@
+language "0.2" // version header
+
+/* File-level comment
+   spanning lines. */
+diagram commented: flow {
+  layout manual
+  // Elements
+  api["API"] // trailing comment
+  /* before a statement */ db[("DB")]
+
+  /* between statements */
+
+  api -> db: "SQL" as query /* after a relation */
+  placement {
+    // positions are logical units
+    place api at (100, 100) // keep left
+    place db at (/* x */ 400, 100)
+  }
+}

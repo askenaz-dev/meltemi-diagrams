@@ -1,0 +1,56 @@
+language "0.2"
+
+// A whiteboard under the sketch theme on a board that grows with it: a heading marked with the
+// highlighter, three stickies joined by arrows drawn by hand (one dashed), a line, and a number
+// underlined with the pen. The strokes are painted as written, the sticky cards by hand.
+diagram whiteboard: free {
+  title "Where a request is answered"
+  theme "sketch.light"
+  preset board
+  layout manual
+
+  pen marker [
+    (300, 78), (345.7, 76.9), (391.4, 76.6), (437.1, 77.4), (482.9, 78.6), (528.6, 79.4),
+    (574.3, 79.1), (620, 78)
+  ]
+  text heading "Where a request is answered"
+
+  sticky browser "Browser cache"
+  sticky edge "CDN edge"
+  sticky origin "Origin server"
+
+  pen ask [
+    (254, 266), (272.7, 253.7), (291.3, 244.3), (310, 240), (328.7, 241.6), (347.3, 248.3),
+    (366, 258)
+  ]
+  pen forward [
+    (554, 266), (572.7, 253.7), (591.3, 244.3), (610, 240), (628.7, 241.6), (647.3, 248.3),
+    (666, 258)
+  ]
+  text onMiss "only on a miss"
+
+  line divider from (60, 400) to (860, 400)
+  text hit "A hit at the edge: 20 ms"
+  text miss "A miss: 300 ms"
+  pen underline [(184, 470), (222, 468.8), (260, 470), (298, 471.2), (336, 470)]
+
+  placement {
+    place heading at (460, 70)
+    place browser at (160, 260)
+    place edge at (460, 260)
+    place origin at (760, 260)
+    place onMiss at (610, 210)
+    place hit at (260, 450)
+    place miss at (660, 450)
+  }
+
+  style heading { fontSize 32; fontWeight 700 }
+  style marker { stroke highlight; width 20; opacity 0.35 }
+  style edge { fill "#bbdefb" }
+  style origin { fill "#f8bbd0" }
+  style ask { width 3; arrowhead triangle }
+  style forward { width 3; line dashed; arrowhead triangle }
+  style onMiss { color muted; fontSize 14 }
+  style divider { line dashed; stroke muted }
+  style underline { stroke danger; width 3 }
+}

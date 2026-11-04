@@ -1,0 +1,9 @@
+{
+  "operation": {
+    "kind": "setThemeToken",
+    "theme": "brand",
+    "token": "flowDuration",
+    "value": 800
+  },
+  "diagram": "d"
+}

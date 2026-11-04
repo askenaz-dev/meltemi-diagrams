@@ -1,0 +1,6 @@
+language "0.2"
+
+// A profile must name a diagram or a story of the file, or an imported diagram.
+export slide for checkot {
+  format png
+}

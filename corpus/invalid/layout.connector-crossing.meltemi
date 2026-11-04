@@ -1,0 +1,16 @@
+language "0.2"
+
+// A straight connector from `web` to `db` runs through `api`, which stands between them.
+diagram checkout: flow {
+  layout manual
+  routing polyline
+  web["Web"]
+  api["API"]
+  db["Orders DB"]
+  web -> db as query
+  placement {
+    place web at (100, 100)
+    place api at (350, 100)
+    place db at (600, 100)
+  }
+}

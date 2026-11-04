@@ -1,0 +1,39 @@
+[
+  {
+    "code": "animate.conflict",
+    "severity": "error",
+    "message": "`save` already has a `flow` effect; one target takes one effect of each kind.",
+    "range": {
+      "start": {
+        "offset": 172,
+        "line": 9,
+        "column": 11
+      },
+      "end": {
+        "offset": 176,
+        "line": 9,
+        "column": 15
+      }
+    },
+    "hints": [
+      "Remove one of the statements, or merge their properties into one."
+    ],
+    "related": [
+      {
+        "message": "The first effect.",
+        "range": {
+          "start": {
+            "offset": 141,
+            "line": 8,
+            "column": 11
+          },
+          "end": {
+            "offset": 145,
+            "line": 8,
+            "column": 15
+          }
+        }
+      }
+    ]
+  }
+]

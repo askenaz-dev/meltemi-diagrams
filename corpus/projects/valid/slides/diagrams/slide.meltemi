@@ -1,0 +1,45 @@
+language "0.2"
+
+import "./views.meltemi" as views
+
+// A free composition: text, boxes, an icon, an image and a group with interior coordinates,
+// on three layers, linked to the checkout flow.
+diagram slide: free {
+  title "Checkout at a glance"
+  canvas (1280, 720)
+  layers back, main, front
+
+  text heading "Checkout at a glance"
+  image logo "img/logo.svg" { description "Company logo" }
+
+  group platform "Platform" {
+    layer back
+    box api "API Gateway" { link views.checkout.api }
+    box orders "Orders" { link views.checkout.orders }
+    api -> orders: "SQL" as persist
+  }
+
+  box client "Client" { link views.checkout.client }
+  icon server "tabler:server" { layer front }
+  text caption "Every request goes\nthrough the gateway" { layer front }
+
+  client -> api: "HTTPS" as request
+
+  placement {
+    place heading at (640, 70)
+    place logo at (1140, 70)
+    place platform at (760, 360)
+    size platform (560, 200)
+    place api at (120, 70)
+    place orders at (400, 70)
+    place client at (200, 360)
+    place server at (760, 520)
+    place caption at (760, 600)
+  }
+
+  style heading { fontSize 36; fontWeight 700 }
+  style orders { shape cylinder }
+  style client { shape pill }
+  style caption { textAlign center; color muted }
+  animate request { effect flow; duration 1200ms; repeat forever }
+}

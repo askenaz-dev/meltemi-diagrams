@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-labelledby="meltemi-diagrams-file-icon-title">
+  <title id="meltemi-diagrams-file-icon-title">Meltemi Diagrams file icon</title>
+  <desc>File-type icon for .meltemi sources: the Meltemi Diagrams glyph on Meltemi Night, in the proportions of the Meltemi app icon.</desc>
+  <defs>
+    <linearGradient id="meltemi-diagrams-file-gradient" x1="36" y1="220" x2="220" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="#07111F"/>
+  <g transform="translate(38 38) scale(0.703125)">
+    <g fill="none" stroke="url(#meltemi-diagrams-file-gradient)" stroke-width="22" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="36" y="148" width="72" height="72" rx="18"/>
+      <rect x="148" y="36" width="72" height="72" rx="18"/>
+      <path d="M108 184C154 184 184 154 184 108"/>
+    </g>
+  </g>
+</svg>

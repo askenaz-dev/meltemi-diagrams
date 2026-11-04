@@ -1,0 +1,25 @@
+{
+  "project.json": [
+    {
+      "code": "project.missing-field",
+      "severity": "error",
+      "message": "project.json has no `name` field.",
+      "range": {
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 1,
+          "line": 1,
+          "column": 2
+        }
+      },
+      "hints": [
+        "Add `\"name\": \"<project name>\"`."
+      ],
+      "related": []
+    }
+  ]
+}

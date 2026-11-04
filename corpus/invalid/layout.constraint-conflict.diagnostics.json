@@ -1,0 +1,23 @@
+[
+  {
+    "code": "layout.constraint-conflict",
+    "severity": "error",
+    "message": "`row` cannot hold for `api`, `db`: the middle of `db` is 80 px off `api`.",
+    "range": {
+      "start": {
+        "offset": 236,
+        "line": 12,
+        "column": 5
+      },
+      "end": {
+        "offset": 247,
+        "line": 12,
+        "column": 16
+      }
+    },
+    "hints": [
+      "Placed elements never move; change a `place` or the constraint."
+    ],
+    "related": []
+  }
+]

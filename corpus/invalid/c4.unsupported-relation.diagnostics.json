@@ -1,0 +1,23 @@
+[
+  {
+    "code": "c4.unsupported-relation",
+    "severity": "error",
+    "message": "No relation of the model goes from `shop` to `customer`; a view draws no arrow for convenience.",
+    "range": {
+      "start": {
+        "offset": 182,
+        "line": 11,
+        "column": 3
+      },
+      "end": {
+        "offset": 207,
+        "line": 11,
+        "column": 28
+      }
+    },
+    "hints": [
+      "Add the relation to the model, or remove this one."
+    ],
+    "related": []
+  }
+]

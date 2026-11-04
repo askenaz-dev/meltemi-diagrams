@@ -1,0 +1,23 @@
+[
+  {
+    "code": "layout.missing-placement",
+    "severity": "error",
+    "message": "`cache` has no `place` statement; `layout manual` needs a position for every element.",
+    "range": {
+      "start": {
+        "offset": 70,
+        "line": 6,
+        "column": 3
+      },
+      "end": {
+        "offset": 84,
+        "line": 6,
+        "column": 17
+      }
+    },
+    "hints": [
+      "Add `place cache at (x, y)` to a placement block."
+    ],
+    "related": []
+  }
+]

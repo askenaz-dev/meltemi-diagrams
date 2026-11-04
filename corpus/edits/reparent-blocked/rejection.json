@@ -1,0 +1,1 @@
+{ "code": "edit.unsafe-target", "reason": "`outer` cannot be moved into `inner`" }

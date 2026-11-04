@@ -1,0 +1,39 @@
+[
+  {
+    "code": "ref.duplicate-id",
+    "severity": "error",
+    "message": "`api` is already declared in this diagram.",
+    "range": {
+      "start": {
+        "offset": 102,
+        "line": 7,
+        "column": 8
+      },
+      "end": {
+        "offset": 105,
+        "line": 7,
+        "column": 11
+      }
+    },
+    "hints": [
+      "Elements and relations share one namespace per diagram."
+    ],
+    "related": [
+      {
+        "message": "First declared here.",
+        "range": {
+          "start": {
+            "offset": 41,
+            "line": 4,
+            "column": 3
+          },
+          "end": {
+            "offset": 44,
+            "line": 4,
+            "column": 6
+          }
+        }
+      }
+    ]
+  }
+]

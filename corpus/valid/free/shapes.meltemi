@@ -1,0 +1,92 @@
+language "0.2"
+
+// Every shape of a box at its default size, a few connectors whose ends meet the outlines (two
+// pinned to points of the ellipse and the diamond), and a corner radius on the rounded box.
+diagram shapes: free {
+  title "Shapes"
+  layout manual
+
+  box rounded "Rounded"
+  box rectangle "Rectangle"
+  box square "Square"
+  box ellipse "Ellipse"
+  box circle "Circle"
+  box diamond "Diamond"
+  box cylinder "Cylinder"
+  box pill "Pill"
+  box triangle "Triangle"
+  box parallelogram "Parallelogram"
+  box trapezoid "Trapezoid"
+  box pentagon "Pentagon"
+  box hexagon "Hexagon"
+  box octagon "Octagon"
+  box star "Star"
+  box cloud "Cloud"
+  box document "Document"
+  box callout "Callout"
+  box arrow "Arrow"
+  box framed "Framed"
+  box flag "Flag"
+  box person "Person"
+  box agent "Agent"
+
+  rounded -> ellipse as toEllipse
+  ellipse -> diamond as toDiamond
+  cylinder -> pill
+  star -> cloud
+  hexagon -> octagon
+  flag -> person
+  person -> agent
+
+  placement {
+    place rounded at (120, 100)
+    place rectangle at (340, 100)
+    place square at (560, 100)
+    place ellipse at (780, 100)
+    place circle at (1000, 100)
+    place diamond at (1220, 100)
+    place cylinder at (120, 300)
+    place pill at (340, 300)
+    place triangle at (560, 300)
+    place parallelogram at (780, 300)
+    place trapezoid at (1000, 300)
+    place pentagon at (1220, 300)
+    place hexagon at (120, 500)
+    place octagon at (340, 500)
+    place star at (560, 500)
+    place cloud at (780, 500)
+    place document at (1000, 500)
+    place callout at (1220, 500)
+    place arrow at (120, 700)
+    place framed at (340, 700)
+    place flag at (560, 700)
+    place person at (780, 700)
+    place agent at (1000, 700)
+    route toEllipse from rounded.north to ellipse.north 30% via [(120, 20), (748, 20)]
+    route toDiamond from ellipse.south 70% to diamond.south 30% via [(812, 180), (1188, 180)]
+  }
+
+  style rounded { radius 20 }
+  style rectangle { shape rectangle }
+  style square { shape square }
+  style ellipse { shape ellipse }
+  style circle { shape circle }
+  style diamond { shape diamond }
+  style cylinder { shape cylinder }
+  style pill { shape pill }
+  style triangle { shape triangle }
+  style parallelogram { shape parallelogram }
+  style trapezoid { shape trapezoid }
+  style pentagon { shape pentagon }
+  style hexagon { shape hexagon }
+  style octagon { shape octagon }
+  style star { shape star }
+  style cloud { shape cloud }
+  style document { shape document }
+  style callout { shape callout }
+  style arrow { shape arrow }
+  style framed { shape framed }
+  style flag { shape flag }
+  style person { shape person }
+  style agent { shape agent }
+}

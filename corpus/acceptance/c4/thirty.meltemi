@@ -1,0 +1,76 @@
+language "0.2"
+
+// Thirty entities in a model and its container view: the size the performance targets name.
+model commerce {
+  person shopper "Shopper"
+  person agent "Support agent"
+  system store "Online store" {
+    container web "Web" { technology "Service" }
+    container mobile "Mobile" { technology "Service" }
+    container bff "Bff" { technology "Service" }
+    container catalog "Catalog" { technology "Service" }
+    container search "Search" { technology "Service" }
+    container cart "Cart" { technology "Service" }
+    container checkout "Checkout" { technology "Service" }
+    container orders "Orders" { technology "Service" }
+    container inventory "Inventory" { technology "Service" }
+    container pricing "Pricing" { technology "Service" }
+    container promotions "Promotions" { technology "Service" }
+    container reviews "Reviews" { technology "Service" }
+    datastore catalogDb "CatalogDb" { technology "PostgreSQL" }
+    datastore ordersDb "OrdersDb" { technology "PostgreSQL" }
+    datastore events "Events" { technology "PostgreSQL" }
+  }
+  system pay "Payments" {
+    container gateway "Gateway" { technology "Service" }
+    container fraud "Fraud" { technology "Service" }
+    container tokens "Tokens" { technology "Service" }
+    container ledger "Ledger" { technology "Service" }
+    container payouts "Payouts" { technology "Service" }
+    container refunds "Refunds" { technology "Service" }
+    datastore ledgerDb "Ledger DB" { technology "PostgreSQL" }
+  }
+  system ship "Shipping" {
+    container rates "Rates" { technology "Service" }
+    container labels "Labels" { technology "Service" }
+    container tracking "Tracking" { technology "Service" }
+    container returns "Returns" { technology "Service" }
+  }
+  system bank "Bank" { external }
+  system carrier "Carrier" { external }
+  shopper -> store.web: "Browses" as r1
+  shopper -> store.mobile: "Shops" as r2
+  agent -> store.orders: "Helps" as r3
+  store.web -> store.bff as r4
+  store.mobile -> store.bff as r5
+  store.bff -> store.catalog as r6
+  store.bff -> store.search as r7
+  store.bff -> store.cart as r8
+  store.cart -> store.pricing as r9
+  store.pricing -> store.promotions as r10
+  store.bff -> store.checkout as r11
+  store.checkout -> store.orders as r12
+  store.orders -> store.inventory as r13
+  store.catalog -> store.catalogDb as r14
+  store.orders -> store.ordersDb as r15
+  store.orders -> store.events: "Publishes" as r16
+  store.catalog -> store.reviews as r17
+  store.checkout -> pay.gateway: "Pays" as r18
+  pay.gateway -> pay.fraud as r19
+  pay.gateway -> pay.tokens as r20
+  pay.gateway -> pay.ledger as r21
+  pay.ledger -> pay.ledgerDb as r22
+  pay.ledger -> pay.payouts as r23
+  pay.refunds -> pay.ledger as r24
+  pay.gateway -> bank: "Authorises" as r25
+  store.events -> ship.rates as r26
+  ship.rates -> ship.labels as r27
+  ship.labels -> carrier: "Books" as r28
+  carrier -> ship.tracking: "Updates" as r29
+  ship.returns -> pay.refunds as r30
+}
+
+diagram containers: c4 using commerce {
+  level container
+  scope store
+}

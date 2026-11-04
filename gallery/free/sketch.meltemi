@@ -1,0 +1,51 @@
+language "0.2"
+
+// A first architecture on the whiteboard: the sketch theme paints every stroke by hand while the
+// text stays crisp, and a free line divides what runs today from what comes next.
+diagram whiteboard: free {
+  title "First sketch"
+  theme "sketch.light"
+  layout manual
+
+  text heading "Checkout, first sketch"
+  text today "Today"
+  text later "Next"
+
+  box web "Web app"
+  box api "API"
+  box orders "Orders"
+  box events "Events"
+  group payments "Payments" {
+    box provider "Provider"
+    box ledger "Ledger"
+  }
+
+  web -> api: "HTTPS" as call
+  api -> orders as store
+  api -> provider: "charge" as charge
+  provider -> ledger as book
+  api --> events: "publish" as publish
+
+  line divider from (40, 280) to (880, 280)
+
+  placement {
+    place heading at (460, 40)
+    place today at (80, 100)
+    place later at (80, 320)
+    place web at (160, 180)
+    place api at (460, 180)
+    place orders at (760, 180)
+    place events at (160, 500)
+    place payments at (640, 510)
+    size payments (440, 170)
+    place provider at (130, 70)
+    place ledger at (330, 70)
+  }
+
+  style heading { fontSize 28; fontWeight 700 }
+  style today { color muted }
+  style later { color muted }
+  style orders { shape cylinder }
+  style events { shape pill }
+  style divider { line dashed; stroke muted }
+}

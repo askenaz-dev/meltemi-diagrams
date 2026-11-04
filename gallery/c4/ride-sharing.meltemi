@@ -1,0 +1,62 @@
+language "0.2"
+
+// A ride-sharing platform: one model of people, containers and external systems, and its
+// container view. Other views of the same model would share every entity and relation.
+model rides {
+  person rider "Rider" { description "Books a ride" }
+  person driver "Driver" { description "Accepts trips" }
+
+  system platform "Ride platform" {
+    description "Matches riders with drivers"
+    container riderApp "Rider app" { technology "Swift and Kotlin" }
+    container driverApp "Driver app" { technology "Swift and Kotlin" }
+    container api "API" { technology "Go" }
+    container matching "Matching" { technology "Go" }
+    container trips "Trips" { technology "Java" }
+    container positions "Positions" { technology "Kafka" }
+    datastore tripsDb "Trips database" { technology "PostgreSQL" }
+  }
+
+  system maps "Maps provider" {
+    description "Routes and arrival times"
+    external
+  }
+  system payments "Payment processor" {
+    description "Charges cards"
+    external
+  }
+
+  rider -> platform.riderApp: "Books rides" as books
+  driver -> platform.driverApp: "Accepts trips" as accepts
+  platform.riderApp -> platform.api: "Requests a ride" as request { technology "HTTPS" }
+  platform.driverApp -> platform.positions: "Sends positions" as sends { technology "MQTT" }
+  platform.api -> platform.matching: "Finds a driver" as find
+  platform.matching -> platform.positions: "Reads positions" as reads
+  platform.matching -> maps: "Gets arrival times" as eta
+  platform.api -> platform.trips: "Creates the trip" as create
+  platform.trips -> platform.tripsDb: "Stores" as store
+  platform.trips -> payments: "Charges the fare" as charge
+}
+
+diagram containers: c4 using rides {
+  title "Ride platform: containers"
+  level container
+  scope platform
+  layout assisted
+
+  // Riders above, drivers below, the platform's core between them, external systems on the right.
+  placement {
+    place rider at (130, 120)
+    place driver at (130, 560)
+    place platform.riderApp at (440, 120)
+    place platform.driverApp at (440, 560)
+    place platform.api at (760, 120)
+    place platform.matching at (760, 340)
+    place platform.positions at (760, 560)
+    place platform.trips at (1080, 120)
+    place platform.tripsDb at (1080, 340)
+    place payments at (1420, 120)
+    place maps at (1420, 560)
+    route eta from platform.matching.south to maps.north via [(800, 450), (1420, 450)]
+  }
+}

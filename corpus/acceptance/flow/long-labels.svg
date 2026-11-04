@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="3138" height="234" viewBox="0 0 3138 234" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Integración de pagos con proveedores externos</title>
+  <desc>Cada etiqueta es más larga que una caja por omisión</desc>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="3138" height="234" fill="#F7FBFF"/>
+  <g data-id="customer" data-role="element">
+    <rect x="20" y="33.33" width="294" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="167" y="58.06" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Cliente con cuenta empresarial verificada</text>
+    <text x="167" y="75.33" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">Compra desde la aplicación móvil o la web</text>
+  </g>
+  <g data-id="gateway" data-role="element">
+    <rect x="775" y="33.33" width="282" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="916" y="58.06" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">API Gateway de pagos y autorización</text>
+    <text x="916" y="75.33" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">Valida firmas, límites y la identidad del comercio</text>
+  </g>
+  <g data-id="review" data-role="element">
+    <path d="M1565.5 21.33 L1755 61.33 L1565.5 101.33 L1376 61.33 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1565.5" y="66.06" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">¿Requiere revisión manual por cumplimiento?</text>
+  </g>
+  <g data-id="provider" data-role="element">
+    <rect x="2179" y="20" width="324" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="2341" y="52.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Proveedor externo de tarjetas y transferencias</text>
+  </g>
+  <g data-id="ledger" data-role="element">
+    <path d="M2825 34.67 L2825 82.67 A146.5 8 0 0 0 3118 82.67 L3118 34.67 A146.5 8 0 0 1 2825 34.67 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M2825 34.67 A146.5 8 0 0 1 3118 34.67 A146.5 8 0 0 1 2825 34.67 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="2971.5" y="59.4" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Libro mayor de transacciones conciliadas</text>
+    <text x="2971.5" y="76.67" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">PostgreSQL con réplicas de lectura</text>
+  </g>
+  <g data-id="audit" data-role="element">
+    <text x="59" y="142.33" text-anchor="start" font-size="11" font-weight="400" fill="#526579">Toda decisión de riesgo queda registrada</text>
+    <text x="59" y="160.33" text-anchor="start" font-size="11" font-weight="400" fill="#526579">con su motivo y su autor</text>
+  </g>
+  <g data-id="authorize" data-role="relation">
+    <polyline points="314,61.33 767,61.33" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M775 61.33 L767 64.83 L767 57.83 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="authorize" data-role="label">
+      <rect x="384.09" y="52.33" width="320.83" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="544.5" y="65.33" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Solicita autorización del cargo con un token de un solo uso</text>
+    </g>
+  </g>
+  <g data-id="assess" data-role="relation">
+    <polyline points="1057,61.33 1368,61.33" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1376 61.33 L1368 64.83 L1368 57.83 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="assess" data-role="label">
+      <rect x="1127.18" y="52.33" width="178.64" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="1216.5" y="65.33" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Evalúa el riesgo de la operación</text>
+    </g>
+  </g>
+  <g data-id="approve" data-role="relation">
+    <polyline points="1691.85,48 2171,48" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M2179 48 L2171 51.5 L2171 44.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="approve" data-role="label">
+      <rect x="1793.46" y="39" width="283.93" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="1935.42" y="52" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Aprobado automáticamente por las reglas de riesgo</text>
+    </g>
+  </g>
+  <g data-id="hold" data-role="relation">
+    <polyline points="1691.8,74.67 1775,74.67 1775,116 2775,116 2775,69.33 2817,69.33" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <path d="M2825 69.33 L2817 72.83 L2817 65.83 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="hold" data-role="label">
+      <rect x="2167.05" y="107" width="188.04" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="2261.07" y="120" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Pendiente de conciliación manual</text>
+    </g>
+  </g>
+  <g data-id="settle" data-role="relation">
+    <polyline points="2503,48 2817,48" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M2825 48 L2817 51.5 L2817 44.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="settle" data-role="label">
+      <rect x="2573.36" y="39" width="181.27" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="2664" y="52" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Confirma la liquidación del pago</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,190.5 3118,190.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 200) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="216.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="3118" y="216" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Integración de pagos con proveedores externos</text>
+  </g>
+</svg>

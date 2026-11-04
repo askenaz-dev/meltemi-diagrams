@@ -1,0 +1,7 @@
+{
+  "operation": {
+    "kind": "createTheme",
+    "theme": "brand",
+    "extends": "technical.light"
+  }
+}

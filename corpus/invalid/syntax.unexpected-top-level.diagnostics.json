@@ -1,0 +1,24 @@
+[
+  {
+    "code": "syntax.unexpected-top-level",
+    "severity": "error",
+    "message": "Unexpected `A` at the top level of the file.",
+    "range": {
+      "start": {
+        "offset": 16,
+        "line": 3,
+        "column": 1
+      },
+      "end": {
+        "offset": 17,
+        "line": 3,
+        "column": 2
+      }
+    },
+    "hints": [
+      "Elements and relations belong inside a `diagram <id>: flow { ... }` block.",
+      "Top-level statements are `language`, `import`, `model`, `diagram`, `story`, `export` and `theme`."
+    ],
+    "related": []
+  }
+]

@@ -1,0 +1,5 @@
+diagram early: flow {
+  a -> b
+}
+
+language "0.2"

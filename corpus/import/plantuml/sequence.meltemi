@@ -1,0 +1,68 @@
+language "0.2"
+
+// Imported from sequence.puml (plantuml) by meltemi-diagrams.
+
+diagram payment: sequence {
+  title "Card payment"
+  autonumber
+
+  actor C "Customer"
+  participant api "Payments API"
+  control Router
+  entity Order
+  database Ledger
+  collections Logs
+  queue Events
+  group bank "Bank" {
+    boundary Bank
+  }
+  participant outside
+
+  // Pay
+  C -> api: "Pay"
+  activate api
+  api -> Bank: "Authorize"
+  alt alt1 "approved" {
+    Bank --> api: "OK"
+    api -> Ledger: "record"
+  } else "declined" {
+    Bank --> api: "No"
+    loop loop1 "3 times" {
+      api -> Bank: "retry"
+    }
+  }
+  api --> C: "Receipt"
+  deactivate api
+  divider "Fulfilment"
+  delay "2 days later"
+  api -> C: "Shipped" { kind async }
+  create Order
+  api -> Order: "create"
+  api -> Order: "close"
+  destroy Order
+  api -> Events: "lost"
+  note over api, Bank "Timeouts 3 s"
+  note left of C "multi\nline"
+  note over Router "idle"
+  note over api, Ledger "ref: Settlement"
+  outside -> api: "webhook"
+  api -> outside: "forward"
+  api -> Logs: "log"
+  region region1 "retries" {
+    api -> Router: "route"
+  }
+  par par1 {
+    api -> Logs: "a"
+  } and {
+    api -> Events: "b"
+  }
+  opt opt1 "coupon" {
+    C -> api: "coupon"
+  }
+  break break1 "fraud" {
+    api -> C: "blocked"
+  }
+  critical critical1 "audit" {
+    api -> Ledger: "audit"
+  }
+}

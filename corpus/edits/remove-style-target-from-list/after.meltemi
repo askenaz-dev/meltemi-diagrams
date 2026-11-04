@@ -1,0 +1,5 @@
+diagram d: flow {
+  obo["OBO"]
+  cimd["CIMD"]
+  style obo, cimd { line dashed }
+}

@@ -1,0 +1,28 @@
+language "0.2"
+
+// Stacked containers: untitled groups indented with tabs.
+diagram stack: free {
+	group outer "" {
+		box base "Base"
+	}
+	group inner "" {
+		// The front of the stack
+		box top "Top"
+		group core "" {
+			box seed "Seed"
+		}
+	}
+	base -> seed
+
+	placement {
+		place outer at (300, 200)
+		size outer (440, 320)
+		place base at (100, 60)
+		place inner at (700, 200)
+		size inner (220, 220)
+		place top at (110, 40)
+		place core at (110, 130)
+		size core (160, 80)
+		place seed at (80, 40)
+	}
+}

@@ -1,0 +1,230 @@
+name: Release
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      ci_run_id:
+        description: "Successful main push CI run to recover"
+        type: string
+        required: true
+      release_run_id:
+        description: "Original Release run whose checked artifact should be reused (no rebuild)"
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  check:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    outputs:
+      sha: ${{ steps.plan.outputs.sha }}
+      version: ${{ steps.plan.outputs.version }}
+      tag: ${{ steps.plan.outputs.tag }}
+      latest: ${{ steps.plan.outputs.latest }}
+      artifact: ${{ steps.plan.outputs.artifact }}
+    defaults:
+      run:
+        working-directory: source
+    steps:
+      - name: Trusted delivery code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: delivery
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate CI authorization through GitHub
+        id: ci
+        working-directory: delivery
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CI_RUN_ID: ${{ inputs.ci_run_id }}
+        run: node scripts/ci-run.mjs
+      - name: Exact source that passed CI
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.ci.outputs.sha }}
+          fetch-depth: 0
+          path: source
+      - name: Reserve immutable version and stamp the build checkout
+        id: plan
+        env:
+          SOURCE_SHA: ${{ steps.ci.outputs.sha }}
+          CI_RUN_ID: ${{ steps.ci.outputs.ci_run_id }}
+          RELEASE_PLAN: ${{ runner.temp }}/release-plan.json
+          RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+        run: node ../delivery/scripts/automatic-release.mjs
+      - name: Recover the original checked artifact
+        if: ${{ inputs.release_run_id != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_RUN_ID: ${{ inputs.release_run_id }}
+          RELEASE_PLAN: ${{ runner.temp }}/release-plan.json
+        run: node ../delivery/scripts/recover-release.mjs "$RELEASE_PLAN" release
+      - uses: pnpm/action-setup@v4
+        if: ${{ inputs.release_run_id == '' }}
+        with:
+          package_json_file: source/package.json
+      - uses: actions/setup-node@v4
+        if: ${{ inputs.release_run_id == '' }}
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: source/pnpm-lock.yaml
+      - name: FFmpeg for the installed command line's MP4 export
+        if: ${{ inputs.release_run_id == '' }}
+        run: sudo apt-get update && sudo apt-get install --yes ffmpeg
+      - run: pnpm install --frozen-lockfile
+        if: ${{ inputs.release_run_id == '' }}
+      - run: pnpm skills:sync
+        if: ${{ inputs.release_run_id == '' }}
+      - name: Let Chrome use its sandbox
+        if: ${{ inputs.release_run_id == '' }}
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - run: pnpm release:check
+        if: ${{ inputs.release_run_id == '' }}
+        env:
+          SOURCE_DATE_EPOCH: ${{ steps.plan.outputs.source_date_epoch }}
+      - name: Record source, CI and release notes with the checked files
+        if: ${{ inputs.release_run_id == '' }}
+        env:
+          RELEASE_PLAN: ${{ runner.temp }}/release-plan.json
+        run: node ../delivery/scripts/automatic-release.mjs metadata "$RELEASE_PLAN" release
+      - name: Check artifact integrity before publishing jobs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_PLAN: ${{ runner.temp }}/release-plan.json
+        run: node ../delivery/scripts/preflight-release.mjs "$RELEASE_PLAN" release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.plan.outputs.artifact }}
+          path: source/release/
+          if-no-files-found: error
+
+  npm:
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: delivery
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.check.outputs.artifact }}
+          path: release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+      - name: Publish and safely promote npm packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node delivery/scripts/publish-npm.mjs
+
+  marketplace:
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    # The Marketplace trusted-publishing policy leaves its Environment field empty.
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.check.outputs.artifact }}
+          path: release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Visual Studio Marketplace through OIDC
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
+        run: npx --yes @vscode/vsce@4.1.0 publish --packagePath "release/meltemi-diagrams-${VERSION}.vsix" --oidc --skip-duplicate
+
+  openvsx:
+    needs: check
+    runs-on: ubuntu-latest
+    # Match the Open VSX trusted publisher; this environment permits main only.
+    environment: open-vsx
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.check.outputs.artifact }}
+          path: release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Open VSX
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
+        run: npx --yes ovsx@1.3.0 publish "release/meltemi-diagrams-${VERSION}.vsix" --trusted-publishing --skip-duplicate
+
+  github:
+    needs: check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: delivery
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.check.outputs.artifact }}
+          path: release
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Complete and verify the draft before publishing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node delivery/scripts/publish-github.mjs
+
+  summary:
+    if: ${{ always() && needs.check.result != 'skipped' }}
+    needs: [check, npm, marketplace, openvsx, github]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All channels must complete
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync } from 'node:fs';
+          const results = JSON.parse(process.env.RESULTS);
+          const rows = Object.entries(results).map(([job, value]) => `| ${job} | ${value.result} |`);
+          appendFileSync(process.env.GITHUB_STEP_SUMMARY, `| Channel | Result |\n|---|---|\n${rows.join('\n')}\n`);
+          if (Object.values(results).some(value => value.result !== 'success')) process.exitCode = 1;
+          NODE

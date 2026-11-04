@@ -1,0 +1,87 @@
+{
+  "name": "erd",
+  "version": "1.1.0",
+  "description": "Entity-relationship diagrams and organisation charts",
+  "license": "MIT",
+  "homepage": "https://example.com/meltemi-erd",
+  "compatibility": {
+    "model": "^1.0.0",
+    "renderer": "^1.0.0"
+  },
+  "permissions": [
+    "diagram-types"
+  ],
+  "diagramTypes": [
+    {
+      "type": "erd",
+      "title": "Entity relationship",
+      "description": "Tables of a database and how they relate",
+      "layout": {
+        "mode": "auto",
+        "algorithm": "layered",
+        "direction": "LR"
+      },
+      "elements": {
+        "entity": {
+          "label": "Entity",
+          "description": "A table",
+          "style": {
+            "shape": "rectangle",
+            "fill": "@surface",
+            "stroke": "@accent",
+            "width": 2
+          },
+          "properties": {
+            "owner": "string",
+            "rows": "number",
+            "archived": "boolean"
+          },
+          "required": [
+            "owner"
+          ]
+        },
+        "view": {
+          "label": "View",
+          "description": "A query over tables",
+          "style": {
+            "shape": "rounded",
+            "line": "dashed",
+            "stroke": "@muted"
+          }
+        }
+      },
+      "relations": {
+        "allowed": [
+          [
+            "entity",
+            "entity"
+          ],
+          [
+            "view",
+            "entity"
+          ]
+        ],
+        "properties": {
+          "cardinality": {
+            "kind": "enum",
+            "values": [
+              "one_to_one",
+              "one_to_many",
+              "many_to_many"
+            ]
+          }
+        }
+      },
+      "tools": [
+        {
+          "kind": "entity",
+          "label": "Entity"
+        },
+        {
+          "kind": "view",
+          "label": "View"
+        }
+      ]
+    }
+  ]
+}

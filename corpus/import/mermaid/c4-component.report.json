@@ -1,0 +1,30 @@
+{
+  "status": "complete",
+  "format": "mermaid",
+  "diagrams": [
+    {
+      "id": "component_diagram_for_internet_banking",
+      "type": "c4",
+      "model": "component_diagram_for_internet_banking_model",
+      "kind": "C4Component",
+      "lines": [
+        1,
+        25
+      ]
+    }
+  ],
+  "findings": [
+    "4:1 info import.approximated [mermaid.c4.Container approximated] A container outside a system boundary is placed in a system named after the diagram.",
+    "5:1 info import.approximated [mermaid.c4.Container approximated] A container outside a system boundary is placed in a system named after the diagram.",
+    "6:1 info import.approximated [mermaid.c4.ContainerDb approximated] A container outside a system boundary is placed in a system named after the diagram.",
+    "9:1 info import.approximated [mermaid.c4.Container_Boundary approximated] A container boundary outside a system is placed in a system named after the diagram."
+  ],
+  "coverage": [
+    {
+      "diagram": "component_diagram_for_internet_banking",
+      "mapped": 18,
+      "approximated": 4,
+      "dropped": 0
+    }
+  ]
+}

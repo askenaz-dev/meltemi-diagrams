@@ -1,0 +1,66 @@
+language "0.2"
+
+// Pen strokes: three dots (one point, a wide one, two points that coincide), a short tick, a long
+// wave written filled over several lines, a highlighter mark under the heading, an arrow with
+// heads, a dashed loop, a stroke inside a group that moves with it, and a rule for every pen.
+diagram pens: free {
+  title "Pen strokes"
+  layout manual
+
+  pen marker [(318, 52), (362.5, 53.4), (401.2, 51.8), (440.8, 53.1), (482, 52)]
+  text heading "Pen strokes"
+
+  pen dot [(60, 130)]
+  pen spot [(100, 130)]
+  pen twice [(140, 130), (140, 130)]
+  pen tick [(196, 126), (208, 140), (236, 108)]
+  pen wave [
+    (330, 130), (342.7, 121.1), (355.5, 113.4), (368.2, 108.2), (380.9, 106), (393.6, 107.3),
+    (406.4, 111.9), (419.1, 119), (431.8, 127.7), (444.5, 136.8), (457.3, 144.8), (470, 150.8),
+    (482.7, 153.8), (495.5, 153.3), (508.2, 149.5), (520.9, 143), (533.6, 134.5), (546.4, 125.5),
+    (559.1, 117), (571.8, 110.5), (584.5, 106.7), (597.3, 106.2), (610, 109.2), (622.7, 115.2),
+    (635.5, 123.2), (648.2, 132.3), (660.9, 141), (673.6, 148.1), (686.4, 152.7), (699.1, 154),
+    (711.8, 151.8), (724.5, 146.6), (737.3, 138.9), (750, 130)
+  ]
+
+  pen arrow [
+    (60, 310), (88.8, 288.6), (117.5, 270), (146.2, 256.3), (175, 249), (203.8, 248.8),
+    (232.5, 255), (261.2, 266.1), (290, 280)
+  ]
+  pen loop [
+    (420, 252), (441.3, 252.9), (459.4, 260.3), (470.5, 271.5), (477, 283.6), (479.6, 296.7),
+    (474, 309.8), (459.1, 319.5), (439.8, 324.5), (420, 326.8), (399.1, 326.3), (379.9, 320.3),
+    (367.8, 309.1), (363.1, 296.4), (362.3, 283.6), (366.8, 270.5), (380, 259.8), (399.6, 254.4)
+  ]
+
+  group notes "In a group" {
+    text remark "Underlined by hand"
+    pen underline [(6, 30), (58, 32.5), (112, 30.4), (162, 31.2)]
+  }
+
+  text dots "dots" { class caption }
+  text short "a short stroke" { class caption }
+  text long "a long stroke, filled over lines" { class caption }
+  text heads "heads" { class caption }
+  text dashed "dashed" { class caption }
+
+  placement {
+    place heading at (400, 40)
+    place dots at (100, 184)
+    place short at (216, 184)
+    place long at (540, 184)
+    place heads at (175, 354)
+    place dashed at (420, 354)
+    place notes at (640, 290)
+    place remark at (84, 14)
+  }
+
+  class caption { color muted; fontSize 14 }
+  rule pen { width 4 }
+  style heading { fontSize 28; fontWeight 700 }
+  style remark { fontSize 16 }
+  style marker { stroke highlight; width 20; opacity 0.35 }
+  style spot { width 12; stroke danger }
+  style arrow { stroke accent; arrowhead triangle; arrowtail circle }
+  style loop { line dashed; stroke muted }
+}

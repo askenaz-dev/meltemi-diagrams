@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="197" viewBox="0 0 960 197" font-family="&quot;IBM Plex Sans&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Checkout</title>
+  <rect x="0" y="0" width="960" height="197" fill="#ffffff"/>
+  <g data-id="client" data-role="element">
+    <rect x="20" y="24" width="160" height="56" rx="6" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>
+    <text x="100" y="56.54" text-anchor="middle" font-size="13" font-weight="600" fill="#1b1f23">Client</text>
+  </g>
+  <g data-id="api" data-role="element">
+    <rect x="250" y="24" width="160" height="56" rx="6" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>
+    <text x="330" y="56.54" text-anchor="middle" font-size="13" font-weight="600" fill="#1b1f23">API</text>
+  </g>
+  <g data-id="orders" data-role="element">
+    <rect x="550" y="24" width="160" height="56" rx="6" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>
+    <text x="630" y="56.54" text-anchor="middle" font-size="13" font-weight="600" fill="#1b1f23">Orders</text>
+  </g>
+  <g data-id="stock" data-role="element">
+    <rect x="250" y="120" width="160" height="56" rx="6" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>
+    <text x="330" y="152.54" text-anchor="middle" font-size="13" font-weight="600" fill="#1b1f23">Stock</text>
+  </g>
+  <g data-id="db" data-role="element">
+    <path d="M780 28 L780 76 A80 8 0 0 0 940 76 L940 28 A80 8 0 0 1 780 28 Z" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>
+    <path d="M780 28 A80 8 0 0 1 940 28 A80 8 0 0 1 780 28 Z" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>
+    <text x="860" y="60.54" text-anchor="middle" font-size="13" font-weight="600" fill="#1b1f23">Orders DB</text>
+  </g>
+  <g data-id="mail" data-role="element">
+    <rect x="780" y="114.67" width="160" height="56" rx="6" fill="#ffffff" stroke="#c7cdd2" stroke-width="1"/>
+    <text x="860" y="147.21" text-anchor="middle" font-size="13" font-weight="600" fill="#1b1f23">Mailer</text>
+  </g>
+  <g data-id="request" data-role="relation">
+    <polyline points="180,52 250,52" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="243,55.06 250,52 243,48.94" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+  <g data-id="create" data-role="relation">
+    <polyline points="410,52 550,52" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="543,55.06 550,52 543,48.94" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+  <g data-id="reserve" data-role="relation">
+    <polyline points="330,80 330,120" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="326.94,113 330,120 333.06,113" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+  <g data-id="save" data-role="relation">
+    <polyline points="710,52 780,52" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="773,55.06 780,52 773,48.94" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+  <g data-id="confirm" data-role="relation">
+    <polyline points="630,80 630,97.34 860,97.34 860,114.67" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="856.94,107.67 860,114.67 863.06,107.67" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+</svg>

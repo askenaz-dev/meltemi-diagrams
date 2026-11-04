@@ -1,0 +1,41 @@
+language "0.2"
+
+// Edits on a model and two views of it, each with its own composition.
+model shop {
+  person buyer "Buyer"
+  system store "Store" {
+    container web "Web" { technology "React" }
+    container api "API" { technology "Kotlin" }
+    datastore db "Database" { technology "PostgreSQL" }
+  }
+
+  buyer -> store.web: "Buys" as buy
+  store.web -> store.api: "Calls" as call
+  store.api -> store.db: "Stores" as save
+}
+
+// The overview, laid out from left to right.
+diagram overview: c4 using shop {
+  level container
+  scope store
+  layout assisted
+  placement {
+    place buyer at (120, 200)
+    place store.web at (420, 200)
+    place store.api at (720, 200)
+    place store.db at (1020, 200)
+  }
+}
+
+// The same containers stacked for a slide.
+diagram stacked: c4 using shop {
+  level container
+  scope store
+  layout assisted
+  placement {
+    place buyer at (200, 100)
+    place store.web at (200, 340)
+    place store.api at (200, 560)
+    place store.db at (200, 780)
+  }
+}

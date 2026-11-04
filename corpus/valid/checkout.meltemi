@@ -1,0 +1,34 @@
+language "0.2"
+
+// Checkout flow from the product proposal ("Diagramas de flujo").
+diagram checkout: flow {
+  direction LR
+  theme "editorial.light"
+  layout assisted
+
+  client["Cliente"]
+  api["API Gateway"]
+  orders["Pedidos"]
+  db[("PostgreSQL")]
+
+  client -> api: "HTTPS" as request
+  api -> orders: "Crear pedido" as create
+  orders -> db: "Persistir" as save
+
+  placement {
+    place api at (360, 180)
+    place orders at (700, 180)
+    route create from api.east to orders.west via [(520, 180)]
+    label create at 50% offset (0, -16)
+  }
+
+  style api {
+    icon "tabler:server"
+  }
+
+  animate request {
+    effect flow
+    duration 1200ms
+    repeat forever
+  }
+}

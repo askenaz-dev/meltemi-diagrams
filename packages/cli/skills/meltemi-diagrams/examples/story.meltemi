@@ -1,0 +1,53 @@
+language "0.2"
+
+// A checkout flow and the story that walks through a purchase. Export any instant with
+// pnpm mdg export story.meltemi --story purchase --at 2.4s
+diagram checkout: flow {
+  title "Checkout"
+  layout manual
+
+  client["Client app"]
+  api["Order API"]
+  orders["Orders service"]
+  data db "Orders DB"
+
+  client -> api: "HTTPS" as request
+  api -> orders: "Create order" as create
+  orders -> db: "Persist" as save
+
+  placement {
+    place client at (120, 80)
+    place api at (380, 80)
+    place orders at (640, 80)
+    place db at (640, 220)
+  }
+
+  animate request { effect flow }
+}
+
+story purchase for checkout {
+  title "A purchase"
+  description "From the client's request to the stored order."
+
+  scene overview "The pieces" {
+    reveal client, api, orders, db over 800ms
+    hold 1s
+  }
+
+  scene request "The request" {
+    focus client, api
+    trace request over 1200ms
+    camera api, orders
+    trace create over 1200ms
+  }
+
+  scene stored "Stored" {
+    focus all
+    camera all
+    parallel {
+      trace save over 1200ms
+      highlight db over 1200ms
+    }
+    hold 2s
+  }
+}

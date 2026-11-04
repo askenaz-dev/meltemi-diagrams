@@ -1,0 +1,21 @@
+[
+  {
+    "code": "layout.overlap",
+    "severity": "warning",
+    "message": "`api` and `db` overlap.",
+    "range": {
+      "start": {
+        "offset": 114,
+        "line": 7,
+        "column": 3
+      },
+      "end": {
+        "offset": 129,
+        "line": 7,
+        "column": 18
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

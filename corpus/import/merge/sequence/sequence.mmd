@@ -1,0 +1,14 @@
+sequenceDiagram
+  participant Web
+  participant Api
+  participant Bank
+  Web->>Api: Pay
+  Api->>Bank: Authorize
+  alt ok
+    Api-->>Web: Receipt
+  else declined
+    Api-->>Web: Declined
+  end
+  loop retries
+    Web->>Api: Retry
+  end

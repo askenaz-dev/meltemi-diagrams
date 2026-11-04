@@ -1,0 +1,44 @@
+{
+  "assets/icons/local/bad.svg": [
+    {
+      "code": "asset.unsafe-svg",
+      "severity": "error",
+      "message": "Icon `local:bad` cannot be used: `<script>` is not allowed in icons.",
+      "range": {
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ],
+  "a.meltemi": [
+    {
+      "code": "asset.unsafe-svg",
+      "severity": "error",
+      "message": "Icon `local:bad` cannot be used: `<script>` is not allowed in icons.",
+      "range": {
+        "start": {
+          "offset": 109,
+          "line": 9,
+          "column": 10
+        },
+        "end": {
+          "offset": 120,
+          "line": 9,
+          "column": 21
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+diagram d: flow {
+  a["A"]; b["B"]
+  placement { place a at (1, 1); place b at (2, 2) }
+}

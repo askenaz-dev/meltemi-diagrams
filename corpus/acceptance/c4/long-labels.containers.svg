@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2913" height="268" viewBox="0 0 2913 268" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Contenedores de la plataforma de pagos</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="2913" height="268" fill="#F7FBFF"/>
+  <g data-id="platform" data-role="element">
+    <rect x="671" y="20" width="1623" height="148.67" rx="14" fill="#EAF1F8" stroke="#526579" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="691" y="42.73" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">Plataforma de pagos y conciliación [Software System]</text>
+  </g>
+  <g data-id="merchant" data-role="element">
+    <rect x="20" y="88.27" width="242" height="78.4" rx="24" fill="#0891B2" stroke="#0891B2" stroke-width="1"/>
+    <path d="M125 78.67 A16 16 0 1 0 157 78.67 A16 16 0 1 0 125 78.67 Z" fill="#0891B2" stroke="#0891B2" stroke-width="1"/>
+    <text x="141" y="121" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Comercio con varias sucursales</text>
+    <text x="141" y="138.27" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[Person]</text>
+    <text x="141" y="154.27" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">Cobra a sus clientes en tienda y en línea</text>
+  </g>
+  <g data-id="platform.portal" data-role="element">
+    <rect x="687" y="76.67" width="358" height="76" rx="8" fill="#0369A1" stroke="#0369A1" stroke-width="1"/>
+    <text x="866" y="111.4" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Portal de administración del comercio</text>
+    <text x="866" y="128.67" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[Container: TypeScript y React con renderizado en el servidor]</text>
+  </g>
+  <g data-id="platform.processor" data-role="element">
+    <rect x="1407" y="76.67" width="298" height="76" rx="8" fill="#0369A1" stroke="#0369A1" stroke-width="1"/>
+    <text x="1556" y="111.4" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Procesador de cargos y devoluciones</text>
+    <text x="1556" y="128.67" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[Container: Kotlin sobre la máquina virtual de Java]</text>
+  </g>
+  <g data-id="platform.ledger" data-role="element">
+    <path d="M1993 68 L1993 136 A142.5 8 0 0 0 2278 136 L2278 68 A142.5 8 0 0 1 1993 68 Z" fill="#0369A1" stroke="#0369A1" stroke-width="1"/>
+    <path d="M1993 68 A142.5 8 0 0 1 2278 68 A142.5 8 0 0 1 1993 68 Z" fill="#0369A1" stroke="#0369A1" stroke-width="1"/>
+    <text x="2135.5" y="102.73" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Libro mayor de movimientos conciliados</text>
+    <text x="2135.5" y="120" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[Container: PostgreSQL con réplicas de lectura]</text>
+  </g>
+  <g data-id="acquirer" data-role="element">
+    <rect x="2645" y="124" width="248" height="80" rx="8" fill="#526579" stroke="#526579" stroke-width="1" stroke-dasharray="5 4"/>
+    <text x="2769" y="152.73" text-anchor="middle" font-size="13" font-weight="600" fill="#FFFFFF">Banco adquirente y red de tarjetas</text>
+    <text x="2769" y="170" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">[External Software System]</text>
+    <text x="2769" y="186" text-anchor="middle" font-size="11" font-weight="400" fill="#FFFFFF">Autoriza y liquida los cargos con tarjeta</text>
+  </g>
+  <g data-id="consult" data-role="relation">
+    <polyline points="262,114.67 679,114.67" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M687 114.67 L679 118.17 L679 111.17 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="consult" data-role="label">
+      <rect x="344.23" y="105.67" width="260.54" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="474.5" y="118.67" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Consulta ventas, devoluciones y conciliaciones</text>
+    </g>
+  </g>
+  <g data-id="refunds" data-role="relation">
+    <polyline points="1045,114.67 1399,114.67" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1407 114.67 L1399 118.17 L1399 111.17 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="refunds" data-role="label">
+      <rect x="1115.16" y="100.17" width="221.68" height="29" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="1226" y="113.17" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Solicita devoluciones parciales y totales</text>
+      <text x="1226" y="123.44" text-anchor="middle" font-size="9" font-weight="400" fill="#526579">[HTTPS y JSON con firma]</text>
+    </g>
+  </g>
+  <g data-id="record" data-role="relation">
+    <polyline points="1705,102 1985,102" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1993 102 L1985 105.5 L1985 98.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="record" data-role="label">
+      <rect x="1775.02" y="93" width="147.96" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="1849" y="106" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Registra cada movimiento</text>
+    </g>
+  </g>
+  <g data-id="settle" data-role="relation">
+    <polyline points="1705,127.33 1725,127.33 1725,164 2637,164" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M2645 164 L2637 167.5 L2637 160.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="settle" data-role="label">
+      <rect x="2055.41" y="155" width="202.51" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="2156.67" y="168" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">Envía autorizaciones y liquidaciones</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,224.5 2893,224.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 234) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="250.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="2893" y="250" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Contenedores de la plataforma de pagos</text>
+  </g>
+</svg>

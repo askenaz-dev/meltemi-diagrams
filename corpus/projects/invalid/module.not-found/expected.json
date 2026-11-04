@@ -1,0 +1,25 @@
+{
+  "a.meltemi": [
+    {
+      "code": "module.not-found",
+      "severity": "error",
+      "message": "No file at `Themes.meltemi`.",
+      "range": {
+        "start": {
+          "offset": 22,
+          "line": 1,
+          "column": 23
+        },
+        "end": {
+          "offset": 40,
+          "line": 1,
+          "column": 41
+        }
+      },
+      "hints": [
+        "`themes.meltemi` exists; import paths are case-sensitive."
+      ],
+      "related": []
+    }
+  ]
+}

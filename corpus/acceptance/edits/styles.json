@@ -1,0 +1,79 @@
+{
+  "description": "Text fonts, sizes and weights written from the canvas on a node and on a relation label: one style statement each, nothing moved, a size out of range refused.",
+  "sheet": "flow/typography.meltemi",
+  "steps": [
+    {
+      "name": "give the web shop a font",
+      "operation": {
+        "kind": "setStyleProperty",
+        "diagram": "typography",
+        "target": "web",
+        "targetKind": "element",
+        "property": "font",
+        "value": "Roboto"
+      },
+      "changed": [
+        "^\\s*style web \\{ font \"Roboto\" \\}$"
+      ],
+      "unmoved": {
+        "typography": [
+          "web",
+          "api",
+          "paid",
+          "db"
+        ]
+      }
+    },
+    {
+      "name": "and a size in the same statement",
+      "operation": {
+        "kind": "setStyleProperty",
+        "diagram": "typography",
+        "target": "web",
+        "targetKind": "element",
+        "property": "fontSize",
+        "value": 16
+      },
+      "changed": [
+        "^\\s*style web \\{"
+      ],
+      "unmoved": {
+        "typography": [
+          "web",
+          "api",
+          "paid",
+          "db"
+        ]
+      },
+      "present": [
+        "style web \\{ font \"Roboto\"; fontSize 16 \\}"
+      ]
+    },
+    {
+      "name": "a weight on a relation's label",
+      "operation": {
+        "kind": "setStyleProperty",
+        "diagram": "typography",
+        "target": "store",
+        "targetKind": "relation",
+        "property": "fontWeight",
+        "value": 700
+      },
+      "changed": [
+        "^\\s*style store \\{ fontWeight 700 \\}$"
+      ]
+    },
+    {
+      "name": "a size out of range is refused",
+      "operation": {
+        "kind": "setStyleProperty",
+        "diagram": "typography",
+        "target": "web",
+        "targetKind": "element",
+        "property": "fontSize",
+        "value": 300
+      },
+      "rejected": "edit.invalid-value"
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+language "0.2"
+
+theme a {
+  extends "b"
+}
+
+theme b {
+  extends "a"
+}

@@ -1,0 +1,7 @@
+language "0.2"
+
+diagram schema: erd {
+  entity a "A" { owner "x" }
+  view v "V"
+  a -> v
+}

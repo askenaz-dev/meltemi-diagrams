@@ -1,0 +1,8 @@
+@startuml
+!procedure $loop($n)
+$loop($n)
+!endprocedure
+[A] --> [B]
+$loop(1)
+[C] --> [D]
+@enduml

@@ -1,0 +1,12 @@
+language "0.2"
+
+diagram d: flow {
+  layout manual
+  api["API"]
+  style api {
+    icon "brand:pin"
+  }
+  placement {
+    place api at (100, 100)
+  }
+}

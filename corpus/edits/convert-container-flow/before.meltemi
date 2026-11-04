@@ -1,0 +1,23 @@
+language "0.2"
+
+// A square drawn behind the database, which the owner meant as its container.
+diagram overview: flow {
+  layout assisted
+  client["Client"]
+  api["API"] { description "Handles requests" }
+  node3[""]
+  db[("Database")]
+  style node3 { shape square; line dashed; fill "#DBBDBD" }
+
+  client -> api: "HTTPS" as request
+  api -> db: "Reads and writes" as store
+  db -> client: "Aja?" as back
+
+  placement {
+    place client at (322, 280)
+    place api at (798, 336)
+    place node3 at (770, 68)
+    size node3 (238, 196)
+    place db at (784, 56)
+  }
+}

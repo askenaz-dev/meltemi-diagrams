@@ -1,0 +1,6 @@
+import corporate from "./Themes.meltemi"
+
+diagram d: flow {
+  theme "corporate"
+  a -> b
+}

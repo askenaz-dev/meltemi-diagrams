@@ -1,0 +1,32 @@
+language "0.2"
+
+// Imported from shop.puml (plantuml) by meltemi-diagrams.
+
+model shop_model {
+  person user "User"
+  system shop "Shop" {
+    container api "API" { technology "Kotlin" }
+    datastore db "DB" { technology "PostgreSQL" }
+    container cache "Cache" { technology "Redis" }
+  }
+
+  user -> shop.api: "Uses" { technology "HTTPS" }
+  shop.api -> shop.db: "Reads"
+  shop.api -> shop.cache: "Caches"
+}
+
+diagram shop: c4 using shop_model {
+  level container
+  scope shop
+  include user, shop.api, shop.db, shop.cache
+  label shop.api "Order API"
+  layout assisted
+  theme "technical.dark"
+
+  placement {
+    place shop.api at (400, 200)
+  }
+
+  style shop.db { fill accent }
+  style user { stroke "#888" }
+}

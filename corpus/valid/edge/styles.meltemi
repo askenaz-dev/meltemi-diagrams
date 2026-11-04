@@ -1,0 +1,60 @@
+language "0.2"
+
+// Classes, kind rules, token colours, patterns and arrowheads on the stage theme, as a slide.
+theme talk {
+  extends "stage.light"
+  brand "Platform review"
+
+  class legacy {
+    pattern hatch
+    stroke muted
+    color muted
+  }
+
+  rule relation {
+    arrowhead open
+  }
+}
+
+diagram styles: flow {
+  title "Styles"
+  theme "talk"
+  layout manual
+  preset slide
+
+  class hot {
+    stroke danger
+    width 2
+  }
+
+  rule data {
+    pattern dots
+  }
+
+  gateway["Gateway"] { class hot }
+  orders["Orders"] { description "owns the order lifecycle" }
+  billing["Billing"] { class legacy, deprecated }
+  partner["Partner"] { class external }
+  data db "Orders DB"
+
+  gateway -> orders: "create" as create
+  orders -> db as persist { class highlight }
+  orders -> billing: "invoice" as invoice
+  gateway -> partner as notify
+
+  style notify {
+    arrowhead none
+    line dashed
+  }
+  style billing {
+    fill "#FFF7ED"
+  }
+
+  placement {
+    place gateway at (140, 80)
+    place orders at (420, 80)
+    place db at (420, 260)
+    place billing at (700, 80)
+    place partner at (140, 260)
+  }
+}

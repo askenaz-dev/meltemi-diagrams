@@ -1,0 +1,8 @@
+{
+  "$schema": "../../../../schemas/project.schema.json",
+  "name": "commerce",
+  "language": "0.2",
+  "tools": { "meltemi-diagrams": "^1.0.0" },
+  "sources": ["diagrams", "themes"],
+  "theme": "themes/company.meltemi#corporate"
+}

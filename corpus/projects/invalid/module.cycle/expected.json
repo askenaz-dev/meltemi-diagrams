@@ -1,0 +1,25 @@
+{
+  "b.meltemi": [
+    {
+      "code": "module.cycle",
+      "severity": "error",
+      "message": "Import cycle: a.meltemi → b.meltemi → a.meltemi.",
+      "range": {
+        "start": {
+          "offset": 7,
+          "line": 1,
+          "column": 8
+        },
+        "end": {
+          "offset": 20,
+          "line": 1,
+          "column": 21
+        }
+      },
+      "hints": [
+        "Move the shared blocks to a file that both import, or remove one import."
+      ],
+      "related": []
+    }
+  ]
+}

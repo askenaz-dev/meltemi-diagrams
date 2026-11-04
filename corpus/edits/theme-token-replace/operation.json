@@ -1,0 +1,12 @@
+{
+  "operation": {
+    "kind": "setThemeToken",
+    "theme": "brand",
+    "token": "padding",
+    "value": 24
+  },
+  "diagram": "d",
+  "expect": {
+    "edits": 1
+  }
+}

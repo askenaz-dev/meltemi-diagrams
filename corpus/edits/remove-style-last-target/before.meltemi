@@ -1,0 +1,7 @@
+diagram d: flow {
+  obo["OBO"]
+  ciba["CIBA"]
+  cimd["CIMD"]
+  style obo, ciba, cimd { line dashed }
+  animate cimd, obo { effect pulse; duration 1s }
+}

@@ -1,0 +1,6 @@
+diagram d: flow {
+  api -> orders as create
+  placement {
+    place api at (0, 0)
+  }
+}

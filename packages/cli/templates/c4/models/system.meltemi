@@ -1,0 +1,23 @@
+language "0.2"
+
+// The architecture model: people, systems, containers and how they talk. Views choose what to
+// show; renaming an entity here renames it in every view.
+model system {
+  person user "User" { description "Uses the product" }
+
+  system product "Product" {
+    description "What the team builds"
+    container web "Web app" { technology "TypeScript" }
+    container api "API" { technology "Kotlin" }
+    datastore db "Database" { technology "PostgreSQL" }
+  }
+  system email "Email service" {
+    description "Sends notifications"
+    external
+  }
+
+  user -> product.web: "Uses" as uses
+  product.web -> product.api: "Calls" as calls { technology "JSON/HTTPS" }
+  product.api -> product.db: "Reads and writes" as stores
+  product.api -> email: "Sends emails" as notifies
+}

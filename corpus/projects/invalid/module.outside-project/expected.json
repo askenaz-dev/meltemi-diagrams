@@ -1,0 +1,25 @@
+{
+  "a.meltemi": [
+    {
+      "code": "module.outside-project",
+      "severity": "error",
+      "message": "`../themes.meltemi` resolves outside the project.",
+      "range": {
+        "start": {
+          "offset": 22,
+          "line": 1,
+          "column": 23
+        },
+        "end": {
+          "offset": 41,
+          "line": 1,
+          "column": 42
+        }
+      },
+      "hints": [
+        "Imports stay inside the folder that holds project.json, or the file's folder without one."
+      ],
+      "related": []
+    }
+  ]
+}

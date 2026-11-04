@@ -1,0 +1,23 @@
+{
+  "plugins/erd/meltemi-plugin.json": [
+    {
+      "code": "plugin.code-ignored",
+      "severity": "warning",
+      "message": "`main` is ignored: plugins are data, and Meltemi Diagrams never runs their code.",
+      "range": {
+        "start": {
+          "offset": 1867,
+          "line": 87,
+          "column": 3
+        },
+        "end": {
+          "offset": 1873,
+          "line": 87,
+          "column": 9
+        }
+      },
+      "hints": [],
+      "related": []
+    }
+  ]
+}

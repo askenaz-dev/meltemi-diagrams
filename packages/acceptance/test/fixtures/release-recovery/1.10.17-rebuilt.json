@@ -1,0 +1,105 @@
+{
+  "version": "1.10.17",
+  "files": [
+    {
+      "file": "meltemi-diagrams-1.10.17.vsix",
+      "bytes": 12124383,
+      "sha256": "df21c6216ec90bc15a3ccc92aa083f8189b15a14fd6dc540ff76c5c16029985a"
+    },
+    {
+      "file": "meltemi-diagrams-assets-1.10.17.tgz",
+      "bytes": 927089,
+      "sha256": "ba1331656bff75835df63f68ac373b947c7eb4131efad328c249f5888e3b0d06"
+    },
+    {
+      "file": "meltemi-diagrams-assist-1.10.17.tgz",
+      "bytes": 48038,
+      "sha256": "b1955c865a4129c001b59ae95a3d389e9a25bf79737fa1c6843dc2a5f9eca45b"
+    },
+    {
+      "file": "meltemi-diagrams-canvas-1.10.17.tgz",
+      "bytes": 400564,
+      "sha256": "39d1fb8caea325b4532cccae5635559650ff37fb4cf98f86dfa19e16117222b1"
+    },
+    {
+      "file": "meltemi-diagrams-capture-1.10.17.tgz",
+      "bytes": 12133,
+      "sha256": "f54c061cef85c71aafac7fcd4ba1d0104d831413bc43d8edb757d0b7fb2028d3"
+    },
+    {
+      "file": "meltemi-diagrams-catalog-1.10.17.tgz",
+      "bytes": 114371,
+      "sha256": "cb652d409a02d52ca206712745545e393451dd5f9f255a29b346a8cf6e6e96d1"
+    },
+    {
+      "file": "meltemi-diagrams-cli-1.10.17.tgz",
+      "bytes": 254783,
+      "sha256": "0643ab5f31d4782edb8ee17ed7f6e233385640c30188dd09529f46a49b25727a"
+    },
+    {
+      "file": "meltemi-diagrams-edit-1.10.17.tgz",
+      "bytes": 188160,
+      "sha256": "ac2c3ed628d27dc727c9f0dbc98ee2f8059fba2bcf37d7784f704dedbdf9dc80"
+    },
+    {
+      "file": "meltemi-diagrams-editor-1.10.17.tgz",
+      "bytes": 415366,
+      "sha256": "dab99849014ea0a81181f388f01d2085720cb234ffeab0e5c1e2b825e32db4b8"
+    },
+    {
+      "file": "meltemi-diagrams-fonts-1.10.17.tgz",
+      "bytes": 20320,
+      "sha256": "47eca955bcb00e5fe76b610932c69a6ad84f53269b1287332961265dff8de126"
+    },
+    {
+      "file": "meltemi-diagrams-i18n-1.10.17.tgz",
+      "bytes": 7182,
+      "sha256": "60e66721f8cd13c82be6e54f9a423029d4aa2bb8580384b4eac6a9d493f6c111"
+    },
+    {
+      "file": "meltemi-diagrams-import-1.10.17.tgz",
+      "bytes": 180695,
+      "sha256": "3d23b6a07248bdfdf5a3bf1537ae986da7f265ec2a420142c9e127efcf9a5bdb"
+    },
+    {
+      "file": "meltemi-diagrams-language-1.10.17.tgz",
+      "bytes": 48188,
+      "sha256": "ba6086ea48136c89831beb0c28c3174a2d2134af2382eea054fa9d1696dfdd35"
+    },
+    {
+      "file": "meltemi-diagrams-layout-1.10.17.tgz",
+      "bytes": 243465,
+      "sha256": "183eca1a82c5d53449df922e37893093bf3411a1940850b59d5a8e5e3b87f8d2"
+    },
+    {
+      "file": "meltemi-diagrams-layout-elk-1.10.17.tgz",
+      "bytes": 10629,
+      "sha256": "57badd85b34241a4fc44914d2b17c342008bd2623b0a966434581f4dcf2c5eab"
+    },
+    {
+      "file": "meltemi-diagrams-model-1.10.17.tgz",
+      "bytes": 240070,
+      "sha256": "8d15d49e6a83ce9692a4b6cfe9c5a58945759fe19686b76fd7359c58739bd9af"
+    },
+    {
+      "file": "meltemi-diagrams-motion-1.10.17.tgz",
+      "bytes": 36418,
+      "sha256": "4a7e2fa31da11bc3f2c76169b4f95780a2cda887e713d8b65f1fc7e9eb8e4477"
+    },
+    {
+      "file": "meltemi-diagrams-player-1.10.17.tgz",
+      "bytes": 102523,
+      "sha256": "af3df578eae7c953329a341777984ffe84bc46b4b7a21ba6ee1184e1fe5aed03"
+    },
+    {
+      "file": "meltemi-diagrams-project-1.10.17.tgz",
+      "bytes": 97557,
+      "sha256": "ff801c11f94f2b658dc0b6fb65948a947356c222d14b83d7be94eaf9571d2bc5"
+    },
+    {
+      "file": "meltemi-diagrams-render-1.10.17.tgz",
+      "bytes": 23733,
+      "sha256": "1f934f4a89044ef89c972dac2dd1b090dbeb20cfd92370f5c755bd9ee4e81a41"
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+block-beta
+  columns 3
+  front["Front end"] api(API) db[(Database)]
+  wide["A wide block across two columns"]:2 cache((Cache))
+  space:2 queue{{Queue}}
+  block:services:3
+    columns 2
+    orders([Orders]) billing{Billing}
+  end
+  arrow<["Flow"]>(right) space mail>Mail]
+  front --> api
+  api --> db
+  orders -- "bills" --> billing
+  classDef blue fill:#66f,color:#fff
+  class cache blue
+  style queue fill:#eee,stroke-dasharray:4 4

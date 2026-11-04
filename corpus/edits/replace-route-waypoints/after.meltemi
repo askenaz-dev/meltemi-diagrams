@@ -1,0 +1,9 @@
+language "0.2"
+
+diagram checkout: flow {
+  api -> orders: "Crear pedido" as create
+
+  placement {
+    route create from api.east to orders.west via [(500, 180), (500, 260)]
+  }
+}

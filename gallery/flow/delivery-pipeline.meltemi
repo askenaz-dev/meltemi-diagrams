@@ -1,0 +1,41 @@
+language "0.2"
+
+// A delivery pipeline: every change is built, tested in parallel, packaged and released after an
+// approval. Laid out automatically; icons from the built-in Tabler pack; the release flows.
+diagram pipeline: flow {
+  title "Delivery pipeline"
+  description "Every change is built, tested in parallel, packaged and released after an approval."
+  direction LR
+
+  group integration "Continuous integration" {
+    commit["Commit"]
+    build["Build"]
+    unit["Unit tests"]
+    contract["Contract tests"]
+    package["Package"]
+  }
+
+  group delivery "Continuous delivery" {
+    staging["Staging"]
+    decision approved "Approved?"
+    production["Production"]
+  }
+
+  commit -> build
+  build -> unit
+  build -> contract
+  unit -> package
+  contract -> package
+  package -> staging: "deploy" as deploy
+  staging -> approved
+  approved -> production: "release" as release
+
+  style commit { icon "tabler:git-commit" }
+  style build { icon "tabler:hammer" }
+  style unit, contract { icon "tabler:flask" }
+  style package { icon "tabler:package" }
+  style staging { icon "tabler:server" }
+  style production { icon "tabler:rocket"; fill "#E8F5EE"; stroke "#2F8F5B" }
+
+  animate release { effect flow; duration 1200ms; repeat forever }
+}

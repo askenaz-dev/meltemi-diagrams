@@ -1,0 +1,13 @@
+language "0.2"
+
+diagram checkout: flow {
+  group backend "Backend" {
+    node api "API" {
+      description "Public endpoints"
+    }
+    db[("PostgreSQL")]
+  }
+  client["Client"]
+  client -> api
+  api -> db: "SQL"
+}

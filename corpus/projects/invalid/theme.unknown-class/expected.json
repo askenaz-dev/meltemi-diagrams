@@ -1,0 +1,25 @@
+{
+  "a.meltemi": [
+    {
+      "code": "theme.unknown-class",
+      "severity": "warning",
+      "message": "Class `hot` is not declared in the diagram, its theme or the built-in classes.",
+      "range": {
+        "start": {
+          "offset": 71,
+          "line": 5,
+          "column": 22
+        },
+        "end": {
+          "offset": 74,
+          "line": 5,
+          "column": 25
+        }
+      },
+      "hints": [
+        "Classes in scope: critical, deprecated, external, highlight, proposed."
+      ],
+      "related": []
+    }
+  ]
+}

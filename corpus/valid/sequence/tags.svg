@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="719" height="620" viewBox="0 0 719 620" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="719" height="620" fill="#F7FBFF"/>
+  <g data-id="customer" data-role="lifeline">
+    <polyline points="55,102 55,548" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
+  </g>
+  <g data-id="web" data-role="lifeline">
+    <polyline points="178,102 178,548" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
+  </g>
+  <g data-id="api" data-role="lifeline">
+    <polyline points="314,102 314,548" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
+    <g data-id="authorize" data-role="event">
+      <rect x="309" y="206" width="10" height="184" rx="0" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    </g>
+  </g>
+  <g data-id="bank" data-role="lifeline">
+    <polyline points="514.35,102 514.35,548" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
+    <g data-id="check" data-role="event">
+      <rect x="509.35" y="307" width="10" height="47" rx="0" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    </g>
+  </g>
+  <g data-id="audit" data-role="lifeline">
+    <polyline points="650.35,479 650.35,548" fill="none" stroke="#526579" stroke-width="1" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4" opacity="0.5"/>
+  </g>
+  <g data-id="signin" data-role="relation">
+    <polyline points="55,159 170,159" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M178 159 L170 162.5 L170 155.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="47" y="151" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="55" y="162.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">1</text>
+    <g data-id="signin" data-role="label">
+      <text x="116.5" y="142" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Sign in</text>
+    </g>
+    <g data-id="signin" data-role="tag" data-tag="0">
+      <rect x="67" y="150" width="62" height="18" rx="9" fill="#2563EB" stroke="#2563EB" stroke-width="1"/>
+      <text x="98" y="162.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#FFFFFF">passkey</text>
+    </g>
+  </g>
+  <g data-id="authorize" data-role="relation">
+    <polyline points="178,206 306,206" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M314 206 L306 209.5 L306 202.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="170" y="198" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="178" y="209.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">2</text>
+    <g data-id="authorize" data-role="label">
+      <text x="246" y="189" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Authorize</text>
+    </g>
+    <g data-id="authorize" data-role="tag" data-tag="0">
+      <rect x="190" y="197" width="43" height="18" rx="9" fill="#2563EB" stroke="#2563EB" stroke-width="1"/>
+      <text x="211.5" y="209.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#FFFFFF">PKCE</text>
+    </g>
+  </g>
+  <g data-id="validate" data-role="relation">
+    <polyline points="319,238 392,238 392,260 327,260" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M319 260 L327 256.5 L327 263.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="311" y="230" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="319" y="241.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">3</text>
+    <g data-id="validate" data-role="label">
+      <text x="424.68" y="253" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Validate</text>
+    </g>
+    <g data-id="validate" data-role="tag" data-tag="0">
+      <rect x="331" y="229" width="55" height="18" rx="9" fill="#2563EB" stroke="#2563EB" stroke-width="1"/>
+      <text x="358.5" y="241.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#FFFFFF">cached</text>
+    </g>
+  </g>
+  <g data-id="check" data-role="relation">
+    <polyline points="319,307 506.35,307" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M514.35 307 L506.35 310.5 L506.35 303.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="311" y="299" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="319" y="310.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">4</text>
+    <g data-id="check" data-role="label">
+      <text x="416.68" y="290" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Check the account</text>
+    </g>
+    <g data-id="check" data-role="tag" data-tag="0">
+      <rect x="331" y="298" width="80" height="18" rx="9" fill="#2563EB" stroke="#2563EB" stroke-width="1"/>
+      <text x="371" y="310.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#FFFFFF">idempotent</text>
+    </g>
+  </g>
+  <g data-id="ok" data-role="relation">
+    <polyline points="509.35,354 319,354" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="327,350.5 319,354 327,357.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="501.35" y="346" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="509.35" y="357.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">5</text>
+    <g data-id="ok" data-role="label">
+      <text x="414.18" y="337" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">OK</text>
+    </g>
+    <g data-id="ok" data-role="tag" data-tag="0">
+      <rect x="460.35" y="345" width="37" height="18" rx="9" fill="#2563EB" stroke="#2563EB" stroke-width="1"/>
+      <text x="478.85" y="357.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#FFFFFF">200</text>
+    </g>
+  </g>
+  <g data-id="token" data-role="relation">
+    <polyline points="309,390 178,390" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="186,386.5 178,390 186,393.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="301" y="382" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="309" y="393.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">6</text>
+    <g data-id="token" data-role="label">
+      <text x="243.5" y="384" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Token</text>
+    </g>
+  </g>
+  <g data-id="record" data-role="relation">
+    <polyline points="314,459 594.35,459" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M602.35 459 L594.35 462.5 L594.35 455.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <rect x="306" y="451" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="314" y="462.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">7</text>
+    <g data-id="record" data-role="label">
+      <text x="458.18" y="442" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Record</text>
+    </g>
+    <g data-id="record" data-role="tag" data-tag="0">
+      <rect x="326" y="450" width="49" height="18" rx="9" fill="#2563EB" stroke="#2563EB" stroke-width="1"/>
+      <text x="350.5" y="462.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#FFFFFF">async</text>
+    </g>
+  </g>
+  <g data-id="welcome" data-role="relation">
+    <polyline points="178,526 55,526" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <polyline points="63,522.5 55,526 63,529.5" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <rect x="170" y="518" width="16" height="16" rx="8" fill="#0B1830" stroke="none" stroke-width="0"/>
+    <text x="178" y="529.27" text-anchor="middle" font-size="9" font-weight="700" fill="#FFFFFF">8</text>
+    <g data-id="welcome" data-role="label">
+      <text x="116.5" y="509" text-anchor="middle" font-size="11" font-weight="400" fill="#0B1830">Welcome</text>
+    </g>
+    <g data-id="welcome" data-role="tag" data-tag="0">
+      <rect x="135" y="517" width="31" height="18" rx="9" fill="#2563EB" stroke="#2563EB" stroke-width="1"/>
+      <text x="150.5" y="529.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#FFFFFF">v2</text>
+    </g>
+  </g>
+  <g data-id="customer" data-role="element">
+    <path d="M55 56 m-6 0 a6 6 0 1 0 12 0 a6 6 0 1 0 -12 0 M55 62 L55 68 M45 63 L65 63 M55 68 L47 76 M55 68 L63 76" fill="none" stroke="#0B1830" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="55" y="96.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Customer</text>
+    <g data-id="customer" data-role="tag" data-tag="0">
+      <rect x="36.5" y="20" width="37" height="18" rx="9" fill="#2563EB" stroke="#2563EB" stroke-width="1"/>
+      <text x="55" y="32.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#FFFFFF">VIP</text>
+    </g>
+  </g>
+  <g data-id="web" data-role="element">
+    <rect x="130" y="62" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <text x="178" y="86.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Web app</text>
+  </g>
+  <g data-id="api" data-role="element">
+    <rect x="266" y="62" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <text x="314" y="86.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">API</text>
+    <g data-id="api" data-role="tag" data-tag="0">
+      <rect x="298.5" y="53" width="31" height="18" rx="9" fill="#2563EB" stroke="#2563EB" stroke-width="1"/>
+      <text x="314" y="65.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#FFFFFF">v2</text>
+    </g>
+  </g>
+  <g data-id="bank" data-role="element">
+    <rect x="466.35" y="62" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <text x="514.35" y="86.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Bank</text>
+    <g data-id="bank" data-role="tag" data-tag="0">
+      <rect x="450.85" y="53" width="68" height="18" rx="9" fill="#2563EB" stroke="#2563EB" stroke-width="1"/>
+      <text x="484.85" y="65.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#FFFFFF">external</text>
+    </g>
+    <g data-id="bank" data-role="tag" data-tag="1">
+      <rect x="522.85" y="53" width="55" height="18" rx="9" fill="#2563EB" stroke="#2563EB" stroke-width="1"/>
+      <text x="550.35" y="65.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#FFFFFF">legacy</text>
+    </g>
+  </g>
+  <g data-id="audit" data-role="element">
+    <rect x="602.35" y="439" width="96" height="40" rx="8" fill="#FFFFFF" stroke="#526579" stroke-width="1"/>
+    <text x="650.35" y="463.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Audit log</text>
+    <g data-id="audit" data-role="tag" data-tag="0">
+      <rect x="631.85" y="430" width="37" height="18" rx="9" fill="#2563EB" stroke="#2563EB" stroke-width="1"/>
+      <text x="650.35" y="442.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#FFFFFF">new</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,576.5 699,576.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 586) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="602.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+  </g>
+</svg>

@@ -1,0 +1,124 @@
+# c4-editing Specification
+
+## Purpose
+Edit operations change a model's entities and relations and a view's lists, labels and composition, and rename entities in every view and link.
+## Requirements
+### Requirement: Model edit operations
+`createEntity`, `renameEntity`, `removeEntity`, `setEntityProperty` (`label`, `description`, `technology`, `external`), `createModelRelation`, `reconnectModelRelation`, `removeModelRelation` and `setModelRelationProperty` (`label`, `technology`, `description`, `id`) SHALL edit a model block with minimal text edits, and every result SHALL compile without new errors. `removeEntity` without cascade SHALL list child entities, model relations, view references and links as dependents. `reconnectModelRelation { model, relation, end, entity, port? }` SHALL rewrite one end of a relation statement with the entity's path from the root, keeping its label, id and block, and SHALL be refused when the result is `model.invalid-relation` or names an unknown entity; in the same edit it SHALL rewrite the moved end of every `route <id>` statement of the file's views that draw the relation to the entity lifted to what that view draws, dropping that end's named port and point, carrying a compass port over, keeping the other end and `via`, writing `port` into the edited view's route when given (naming the relation first when it has none), leaving untouched a route whose lifted end does not change, and removing a route whose ends would meet; the file SHALL compile without `placement.route-mismatch` afterwards. `removeModelRelation { model, relation, cascade }` without cascade SHALL list as dependents every statement that names the relation (styles, animations, placement, routes, local labels and combinations standing for it alone) and every other view of the file that draws it, and with cascade SHALL remove the relation with those statements. `setModelRelationProperty` with `id` on an anonymous relation SHALL insert `as <id>` after its label.
+
+#### Scenario: Add a container
+- **WHEN** `createEntity { model: "commerce", parent: "shop", kind: "container", id: "worker" }` runs
+- **THEN** `container worker "Worker"` is inserted after the last child of `shop`
+
+#### Scenario: Move an end of a relation
+- **WHEN** `reconnectModelRelation { model: "commerce", relation: "visit", end: "to", entity: "bank" }` runs on `customer -> shop.web: "Compra" as visit`
+- **THEN** the statement reads `customer -> bank: "Compra" as visit` and the file compiles without errors
+
+#### Scenario: A routed relation keeps a valid route
+- **WHEN** the view `containers` has `route visit from customer.south to shop.web via [(200, 300)]` and `reconnectModelRelation` moves the `to` end of `visit` to `bank`
+- **THEN** the route reads `route visit from customer.south to bank via [(200, 300)]`, the model statement ends at `bank`, and the file compiles without `placement.route-mismatch`
+
+#### Scenario: A pinned port is dropped, a compass port carries over
+- **WHEN** the view has `route visit from customer.east 25% to shop.web.north 30%` and the `to` end moves to `bank`
+- **THEN** the route reads `route visit from customer.east 25% to bank.north`: the compass side carries over, the point of the old entity's side does not, and the other end keeps its point (C4 entities declare no named ports, so only compass sides can be written)
+
+#### Scenario: A route in a lifted view
+- **WHEN** the context view draws `visit` lifted as `customer -> shop` with `route visit from customer to shop` and the `to` end of the model relation moves from `shop.web` to `shop.api`
+- **THEN** the context view's route is unchanged, because its lifted end is still `shop`
+
+#### Scenario: An end onto its own ancestor is refused
+- **WHEN** `reconnectModelRelation` moves the `to` end of `shop.web -> shop.api` to `shop`
+- **THEN** the operation is refused with `edit.invalid-value` naming `model.invalid-relation`, and the text is unchanged
+
+#### Scenario: An unknown entity is refused
+- **WHEN** `reconnectModelRelation` moves an end to `warehouse`, which the model does not declare
+- **THEN** the operation is refused with `edit.unsafe-target` naming `warehouse`, and no route is rewritten
+
+#### Scenario: Remove a relation that views name
+- **WHEN** `removeModelRelation { model: "commerce", relation: "visit", cascade: false }` runs while `context` has `style visit { width 2 }` and `containers` draws the relation
+- **THEN** the operation is refused with `edit.has-dependents` listing the style and "drawn in `containers`", and with `cascade: true` the relation and the style are removed and the file compiles without errors
+
+#### Scenario: Name an anonymous relation
+- **WHEN** `setModelRelationProperty { model: "commerce", relation: "customer->shop.web#1", property: "id", value: "customer_shop_web" }` runs
+- **THEN** the statement reads `customer -> shop.web: "Uses" as customer_shop_web`
+
+### Requirement: Renames reach every view
+`renameEntity` SHALL rewrite the entity's declaration, the model relations that name it, every view reference (`scope`, `include`, `exclude`, `label`, relations, placement, styles) and every link of the file. The project SHALL plan the same rename for every file of the project that resolves the model.
+
+#### Scenario: Rename a container
+- **WHEN** `shop.api` is renamed to `orders` in the commerce file
+- **THEN** the declaration, `shop.web -> shop.orders`, `include … shop.orders` and `place shop.orders at …` are rewritten and the file compiles without errors
+
+### Requirement: View edit operations
+`includeEntity` SHALL add an entity to `include` (or remove it from `exclude`), `excludeEntity` SHALL remove it from `include` (or add it to `exclude` when the view has no `include`) and remove the view statements that only target it, and `setLocalLabel` SHALL write, change or remove `label <target> "Text"`. Placement, constraint, style, animation and arrange operations SHALL accept qualified ids. A view statement planned for a drawn relation whose model relation has no id (`setStyleProperty`, `setAnimation`, `setRoute`, `setLocalLabel`, `moveLabel` and the placement of its label) SHALL be planned after `setModelRelationProperty { property: "id" }` naming the model relation `<from>_<to>` (entity paths with `_` for `.`, then `_2`, `_3`…), in the same plan. Operations that would write entity declarations into a view SHALL be refused with `edit.invalid-value` naming the model and view operations; a relation created in a C4 view SHALL be `createModelRelation` in its model.
+
+#### Scenario: Exclude from a view
+- **WHEN** `excludeEntity { diagram: "containers", entity: "shop.db" }` runs on the commerce file
+- **THEN** `shop.db` leaves the `include` list and its `place` is removed, and the model is unchanged
+
+#### Scenario: Move in one view only
+- **WHEN** `shop.api` is moved in the view `containers`
+- **THEN** only the `place` of `containers` changes
+
+#### Scenario: A style on an anonymous model relation
+- **WHEN** the width of the drawn relation `customer->shop#1` of the view `context` is set to 2 and its model relation `customer -> shop: "Uses"` has no id
+- **THEN** one plan gives the model `customer -> shop: "Uses" as customer_shop` and the view `style customer_shop { width 2 }`, and the text compiles without errors
+
+#### Scenario: A declaration in a view is refused
+- **WHEN** `createElement { diagram: "context", kind: "node" }` runs on a C4 view
+- **THEN** it is refused with `edit.invalid-value` naming `createEntity` and `includeEntity`
+
+### Requirement: Model edits planned over the files of a project
+`ProjectSessions.planSteps(documentPath, steps)` SHALL plan an ordered list of steps `{ file, operation }`, where `file` is a path of the project or null for the document itself: consecutive steps of one file SHALL become one batch plan against that file, the planned text SHALL stand as that file's content for the steps that follow, so a later file's statements resolve what an earlier file's steps wrote, and the result SHALL be the edits of every file against its current text, in one result, or the first rejection's reason. `renameEntity`, `removeModelRelation` and `reconnectModelRelation` steps SHALL reach every file of the project whose views resolve the model: a reconnect SHALL rewrite the moved end of the `route <id>` statements of those files' views as it does in the model's own file. After planning, every file of the project whose views resolve the model SHALL be compiled with the planned texts, and a new error in any of them SHALL refuse the whole plan with its reason. Planning SHALL leave the project's files as they were.
+
+#### Scenario: A style on a relation of a model in another file
+- **WHEN** the steps are `setModelRelationProperty { id }` on `models/commerce.meltemi` and `setStyleProperty` on the view's file naming the new id
+- **THEN** the result holds the `as` edit for the model's file and the `style` edit for the view's file, and both files compile together without errors when applied
+
+#### Scenario: A removal reaches the views of other files
+- **WHEN** the step is `removeModelRelation { cascade: true }` on `models/commerce.meltemi` and `views/context.meltemi` has `animate uses { effect flow }`
+- **THEN** the result holds edits for both files and the project compiles without errors when they are applied
+
+#### Scenario: A reconnect reaches the routes of other files
+- **WHEN** the step is `reconnectModelRelation { relation: "uses", end: "to", entity: "product.api" }` on `models/system.meltemi` and `diagrams/views.meltemi` has `route uses from user to product.web via [(300, 200)]` in its container view
+- **THEN** the result holds the model edit and a rewrite of that route to `route uses from user to product.api via [(300, 200)]`, and every file compiles without errors when they are applied
+
+#### Scenario: A created entity reaches the view
+- **WHEN** the steps are `createEntity { entityKind: "container", parent: "product", label: "" }` on `models/system.meltemi`, then `includeEntity` and `setPosition` of the new path on the view's file
+- **THEN** the result holds the declaration in the model's file and, when the view lists `include`, the path appended there with its `place`, and the project compiles without errors when they are applied
+
+#### Scenario: A refused step plans nothing
+- **WHEN** the second step names an entity the model does not have
+- **THEN** the result is the rejection's reason, no edit is returned for the first file, and the project's texts are unchanged
+
+#### Scenario: A file nobody wrote would break
+- **WHEN** a reconnect step is planned and a view of a third file, which no step wrote, would compile with a new error against the planned model
+- **THEN** the result is that error's reason and nothing is returned for any file
+
+### Requirement: Note operations in views
+`createElement { diagram, elementKind: "note", label?, at?, size?, attachedTo? }` on a C4 view SHALL declare `note <id> "Text" [on <path>]` in the view after its last note (or after the lists and before the blocks when it has none), with `place` and `size` as in other profiles, and SHALL be the one `createElement` a view accepts: every other kind SHALL stay refused with `edit.invalid-value` naming `createEntity` and `includeEntity`. `attachNote { diagram, note, element }` SHALL write, change or remove the `on` clause of a note of the view, the element an entity path the view draws (`edit.unsafe-target` otherwise). `excludeEntity` SHALL list the notes of the view attached to the entity as dependents of kind `attachment` and, cascading, SHALL strip their `on <path>` and keep the notes; `removeEntity` SHALL do the same in every view of the file for the removed entity and its descendants. `renameEntity` SHALL rewrite the attachment targets of every view of the file, and the project SHALL plan the same for every file that resolves the model. Paste and Duplicate on a view SHALL copy a note as a note of the view, keeping `on` when its target is drawn in the view.
+
+#### Scenario: Create a note in a view
+- **WHEN** `createElement { diagram: "containers", elementKind: "note", label: "Cached", at: (600, 80), attachedTo: "shop.api" }` runs on the commerce file
+- **THEN** the view gains `note note1 "Cached" on shop.api` and `place note1 at (600, 80)`, and the model is unchanged
+
+#### Scenario: A node in a view is still refused
+- **WHEN** `createElement { diagram: "containers", elementKind: "node" }` runs
+- **THEN** it is refused with `edit.invalid-value` naming `createEntity` and `includeEntity`
+
+#### Scenario: Exclude an entity with a note
+- **WHEN** the view has `note cache "Cached" on shop.api` and `excludeEntity { diagram: "containers", entity: "shop.api", cascade: false }` runs
+- **THEN** it is refused with `edit.has-dependents` listing the attachment of `cache`, and with `cascade: true` the view reads `note cache "Cached"`, `shop.api` leaves the `include` list, and the file compiles without errors
+
+#### Scenario: Remove an entity from the model
+- **WHEN** `removeEntity { model: "commerce", entity: "shop.api", cascade: true }` runs while two views attach notes to `shop.api` and `shop.api.orders`
+- **THEN** both notes lose their `on` clause and the file compiles without errors
+
+#### Scenario: Rename reaches the attachment
+- **WHEN** `shop.api` is renamed to `orders` while a view has `note cache "Cached" on shop.api`
+- **THEN** the view reads `note cache "Cached" on shop.orders`
+
+#### Scenario: Attach to an entity the view does not draw
+- **WHEN** `attachNote { diagram: "context", note: "n", element: "shop.api" }` runs
+- **THEN** it is refused with `edit.unsafe-target` naming `shop.api` and the view `context`
+

@@ -1,0 +1,8 @@
+{
+  "operation": {
+    "kind": "setThemeToken",
+    "theme": "brand",
+    "token": "brand1",
+    "value": "#FF0000"
+  }
+}

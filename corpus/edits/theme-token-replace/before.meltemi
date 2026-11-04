@@ -1,0 +1,12 @@
+language "0.2"
+
+theme brand {
+  extends "editorial.light"
+  padding 20 // roomy
+  radius 4
+}
+
+// The checkout.
+diagram d: flow {
+  a -> b
+}

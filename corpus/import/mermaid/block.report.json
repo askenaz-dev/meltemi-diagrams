@@ -1,0 +1,25 @@
+{
+  "status": "complete",
+  "format": "mermaid",
+  "diagrams": [
+    {
+      "id": "block",
+      "type": "free",
+      "model": null,
+      "kind": "block-beta",
+      "lines": [
+        1,
+        17
+      ]
+    }
+  ],
+  "findings": [],
+  "coverage": [
+    {
+      "diagram": "block",
+      "mapped": 22,
+      "approximated": 0,
+      "dropped": 0
+    }
+  ]
+}

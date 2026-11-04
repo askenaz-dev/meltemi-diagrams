@@ -1,0 +1,23 @@
+[
+  {
+    "code": "layout.placement-ignored",
+    "severity": "warning",
+    "message": "`layout auto` arranges every element, so `place` statements and route waypoints are ignored.",
+    "range": {
+      "start": {
+        "offset": 192,
+        "line": 10,
+        "column": 5
+      },
+      "end": {
+        "offset": 213,
+        "line": 10,
+        "column": 26
+      }
+    },
+    "hints": [
+      "Use `layout assisted` to keep placed elements where they are."
+    ],
+    "related": []
+  }
+]

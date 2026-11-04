@@ -1,0 +1,8 @@
+{
+  "operation": {
+    "kind": "setThemeToken",
+    "theme": "brand",
+    "token": "labelSize",
+    "value": 80
+  }
+}

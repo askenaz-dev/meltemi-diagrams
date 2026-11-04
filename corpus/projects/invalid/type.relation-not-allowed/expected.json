@@ -1,0 +1,25 @@
+{
+  "diagrams/a.meltemi": [
+    {
+      "code": "type.relation-not-allowed",
+      "severity": "error",
+      "message": "Entity relationship diagrams do not allow relations from `entity` to `view`.",
+      "range": {
+        "start": {
+          "offset": 82,
+          "line": 6,
+          "column": 3
+        },
+        "end": {
+          "offset": 88,
+          "line": 6,
+          "column": 9
+        }
+      },
+      "hints": [
+        "Allowed: entity -> entity, view -> entity."
+      ],
+      "related": []
+    }
+  ]
+}

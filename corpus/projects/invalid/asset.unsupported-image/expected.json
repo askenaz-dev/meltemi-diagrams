@@ -1,0 +1,25 @@
+{
+  "a.meltemi": [
+    {
+      "code": "asset.unsupported-image",
+      "severity": "error",
+      "message": "`notes.png` cannot be used: the file is not a PNG, JPEG, GIF, WebP or SVG image.",
+      "range": {
+        "start": {
+          "offset": 51,
+          "line": 4,
+          "column": 14
+        },
+        "end": {
+          "offset": 62,
+          "line": 4,
+          "column": 25
+        }
+      },
+      "hints": [
+        "Images are PNG, JPEG, GIF, WebP or SVG files of at most 8 MB."
+      ],
+      "related": []
+    }
+  ]
+}

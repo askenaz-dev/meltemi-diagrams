@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="840" height="507" viewBox="0 0 840 507" font-family="&quot;Patrick Hand&quot;, &quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Where a request is answered</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="840" height="507" fill="#F7FBFF"/>
+  <g data-id="marker" data-role="element" opacity="0.35">
+    <path d="M 260 48 Q 305.7 46.9 328.55 46.75 Q 351.4 46.6 374.25 47 Q 397.1 47.4 420 48 Q 442.9 48.6 465.75 49 Q 488.6 49.4 511.45 49.25 Q 534.3 49.1 557.15 48.55 L 580 48" fill="none" stroke="#ffe600" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g data-id="heading" data-role="element">
+    <text x="257" y="50.58" text-anchor="start" font-size="32" font-weight="700" fill="#0B1830">Where a request is answered</text>
+  </g>
+  <g data-id="browser" data-role="element">
+    <rect x="40" y="153" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="40" y="150" width="160" height="160" rx="2" fill="#fff59d" stroke="none" stroke-width="0"/>
+    <text x="120" y="235.16" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Browser cache</text>
+  </g>
+  <g data-id="edge" data-role="element">
+    <rect x="340" y="153" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="340" y="150" width="160" height="160" rx="2" fill="#bbdefb" stroke="none" stroke-width="0"/>
+    <text x="420" y="235.16" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">CDN edge</text>
+  </g>
+  <g data-id="origin" data-role="element">
+    <rect x="640" y="153" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="640" y="150" width="160" height="160" rx="2" fill="#f8bbd0" stroke="none" stroke-width="0"/>
+    <text x="720" y="235.16" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Origin server</text>
+  </g>
+  <g data-id="ask" data-role="element">
+    <path d="M 214 236 Q 232.7 223.7 242 219 Q 251.3 214.3 260.65 212.15 Q 270 210 279.35 210.8 Q 288.7 211.6 298 214.95 Q 307.3 218.3 312.66 221.08 L 318.01 223.86" fill="none" stroke="#0B1830" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M326 228 L316.2 227.35 L319.82 220.36 Z" fill="#0B1830" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="forward" data-role="element">
+    <path d="M 514 236 Q 532.7 223.7 542 219 Q 551.3 214.3 560.65 212.15 Q 570 210 579.35 210.8 Q 588.7 211.6 598 214.95 Q 607.3 218.3 612.66 221.08 L 618.01 223.86" fill="none" stroke="#0B1830" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="6 7"/>
+    <path d="M626 228 L616.2 227.35 L619.82 220.36 Z" fill="#0B1830" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="onMiss" data-role="element">
+    <text x="533.5" y="184.63" text-anchor="start" font-size="14" font-weight="600" fill="#526579">only on a miss</text>
+  </g>
+  <g data-id="divider" data-role="element">
+    <path d="M20 370.34 L28 370.14 Q36 369.93 44 369.76 Q52 369.58 60 369.59 Q68 369.6 76 369.98 Q84 370.36 92 369.9 Q100 369.44 108 369.49 Q116 369.54 124 370 Q132 370.45 140 370.07 Q148 369.68 156 369.77 Q164 369.86 172 370.09 Q180 370.31 188 370.33 Q196 370.35 204 370.31 Q212 370.26 220 369.85 Q228 369.43 236 369.5 Q244 369.57 252 369.94 Q260 370.3 268 370.05 Q276 369.79 284 369.69 Q292 369.59 300 370.01 Q308 370.43 316 370.06 Q324 369.7 332 369.68 Q340 369.67 348 369.59 Q356 369.5 364 369.82 Q372 370.15 380 370.34 Q388 370.54 396 370.4 Q404 370.26 412 370.37 Q420 370.48 428 369.96 Q436 369.45 444 369.64 Q452 369.82 460 369.66 Q468 369.49 476 369.81 Q484 370.12 492 369.88 Q500 369.63 508 369.96 Q516 370.3 524 370.39 Q532 370.48 540 370.04 Q548 369.61 556 370.01 Q564 370.41 572 370.29 Q580 370.17 588 370.34 Q596 370.52 604 370.45 Q612 370.39 620 370.39 Q628 370.39 636 370.19 Q644 370 652 369.83 Q660 369.65 668 370.03 Q676 370.42 684 370.48 Q692 370.54 700 370.26 Q708 369.99 716 370.1 Q724 370.21 732 370.05 Q740 369.89 748 369.71 Q756 369.53 764 369.94 Q772 370.34 780 369.93 Q788 369.51 796 369.6 Q804 369.69 820 370.13" fill="none" stroke="#526579" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/>
+    <path d="M20 369.91 L28 370.23 Q36 370.55 44 370.33 Q52 370.1 60 370.19 Q68 370.28 76 370.37 Q84 370.47 92 370.43 Q100 370.38 108 370.05 Q116 369.71 124 369.96 Q132 370.21 140 370.37 Q148 370.54 156 370.5 Q164 370.46 172 370.41 Q180 370.37 188 370.07 Q196 369.78 204 369.86 Q212 369.94 220 370.19 Q228 370.44 236 369.98 Q244 369.53 252 369.84 Q260 370.14 268 369.98 Q276 369.82 284 369.69 Q292 369.56 300 369.62 Q308 369.68 316 369.76 Q324 369.83 332 369.93 Q340 370.03 348 370.2 Q356 370.38 364 370.07 Q372 369.76 380 369.61 Q388 369.46 396 369.49 Q404 369.51 412 369.77 Q420 370.03 428 370.04 Q436 370.05 444 370.05 Q452 370.06 460 369.73 Q468 369.4 476 369.88 Q484 370.35 492 369.99 Q500 369.62 508 370.08 Q516 370.53 524 370.39 Q532 370.24 540 370.4 Q548 370.56 556 370.11 Q564 369.65 572 369.93 Q580 370.21 588 370.11 Q596 370 604 369.81 Q612 369.62 620 369.99 Q628 370.35 636 370.18 Q644 370 652 370.01 Q660 370.02 668 369.88 Q676 369.74 684 369.64 Q692 369.53 700 369.89 Q708 370.24 716 370.31 Q724 370.39 732 370.33 Q740 370.28 748 370.4 Q756 370.51 764 369.97 Q772 369.43 780 369.98 Q788 370.53 796 370.39 Q804 370.25 820 370.37" fill="none" stroke="#526579" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="hit" data-role="element">
+    <text x="129.5" y="426.94" text-anchor="start" font-size="21" font-weight="600" fill="#0B1830">A hit at the edge: 20 ms</text>
+  </g>
+  <g data-id="miss" data-role="element">
+    <text x="562" y="426.94" text-anchor="start" font-size="21" font-weight="600" fill="#0B1830">A miss: 300 ms</text>
+  </g>
+  <g data-id="underline" data-role="element">
+    <path d="M 144 440 Q 182 438.8 201 439.4 Q 220 440 239 440.6 Q 258 441.2 277 440.6 L 296 440" fill="none" stroke="#B91C1C" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <path d="M20 463.05 L28 463.43 Q36 463.82 44 463.4 Q52 462.98 60 463.16 Q68 463.34 76 463.35 Q84 463.36 92 463.31 Q100 463.25 108 463.55 Q116 463.84 124 463.41 Q132 462.98 140 463.49 Q148 464 156 463.93 Q164 463.86 172 463.89 Q180 463.92 188 463.6 Q196 463.28 204 463.28 Q212 463.28 220 463.65 Q228 464.02 236 463.59 Q244 463.17 252 463.23 Q260 463.29 268 463.61 Q276 463.93 284 463.84 Q292 463.75 300 463.75 Q308 463.75 316 463.53 Q324 463.3 332 463.24 Q340 463.17 348 463.33 Q356 463.48 364 463.24 Q372 462.99 380 463.5 Q388 464.01 396 463.63 Q404 463.25 412 463.68 Q420 464.1 428 463.79 Q436 463.49 444 463.52 Q452 463.55 460 463.24 Q468 462.93 476 463 Q484 463.08 492 463.17 Q500 463.26 508 463.59 Q516 463.92 524 463.54 Q532 463.15 540 463.4 Q548 463.65 556 463.38 Q564 463.11 572 463.28 Q580 463.44 588 463.5 Q596 463.56 604 463.81 Q612 464.05 620 463.57 Q628 463.09 636 463.48 Q644 463.87 652 463.96 Q660 464.04 668 463.86 Q676 463.68 684 463.88 Q692 464.07 700 463.82 Q708 463.58 716 463.69 Q724 463.79 732 463.43 Q740 463.06 748 463.05 Q756 463.05 764 463.45 Q772 463.85 780 463.44 Q788 463.03 796 463.52 Q804 464 820 463.55" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M20 463.96 L28 463.55 Q36 463.13 44 463.2 Q52 463.27 60 463.4 Q68 463.54 76 463.55 Q84 463.56 92 463.28 Q100 463 108 463.37 Q116 463.73 124 463.46 Q132 463.18 140 463.48 Q148 463.77 156 463.7 Q164 463.63 172 463.57 Q180 463.52 188 463.63 Q196 463.74 204 463.71 Q212 463.68 220 463.74 Q228 463.8 236 463.73 Q244 463.66 252 463.32 Q260 462.97 268 463.14 Q276 463.3 284 463.67 Q292 464.03 300 463.62 Q308 463.21 316 463.49 Q324 463.77 332 463.78 Q340 463.78 348 463.42 Q356 463.06 364 463.09 Q372 463.12 380 463.47 Q388 463.83 396 463.62 Q404 463.4 412 463.39 Q420 463.38 428 463.31 Q436 463.24 444 463.38 Q452 463.52 460 463.77 Q468 464.03 476 463.87 Q484 463.71 492 463.87 Q500 464.03 508 463.85 Q516 463.66 524 463.87 Q532 464.07 540 463.88 Q548 463.7 556 463.59 Q564 463.49 572 463.48 Q580 463.46 588 463.58 Q596 463.7 604 463.8 Q612 463.9 620 463.81 Q628 463.73 636 463.79 Q644 463.86 652 463.48 Q660 463.11 668 463.08 Q676 463.05 684 463.34 Q692 463.62 700 463.57 Q708 463.51 716 463.31 Q724 463.12 732 463.17 Q740 463.21 748 463.38 Q756 463.54 764 463.69 Q772 463.83 780 463.62 Q788 463.42 796 463.6 Q804 463.79 820 464.08" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 473) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="488.97" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="820" y="488.64" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Where a request is answered</text>
+  </g>
+</svg>

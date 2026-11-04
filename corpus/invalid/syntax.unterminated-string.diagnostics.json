@@ -1,0 +1,23 @@
+[
+  {
+    "code": "syntax.unterminated-string",
+    "severity": "error",
+    "message": "String is not closed with `\"` before the end of the line.",
+    "range": {
+      "start": {
+        "offset": 45,
+        "line": 4,
+        "column": 7
+      },
+      "end": {
+        "offset": 58,
+        "line": 4,
+        "column": 20
+      }
+    },
+    "hints": [
+      "Strings cannot span lines; use \\n for a line break inside a label."
+    ],
+    "related": []
+  }
+]

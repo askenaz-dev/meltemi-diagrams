@@ -1,0 +1,25 @@
+{
+  "a.meltemi": [
+    {
+      "code": "module.unknown-member",
+      "severity": "error",
+      "message": "`themes.meltemi` does not define `dark`.",
+      "range": {
+        "start": {
+          "offset": 7,
+          "line": 1,
+          "column": 8
+        },
+        "end": {
+          "offset": 11,
+          "line": 1,
+          "column": 12
+        }
+      },
+      "hints": [
+        "It defines corporate."
+      ],
+      "related": []
+    }
+  ]
+}

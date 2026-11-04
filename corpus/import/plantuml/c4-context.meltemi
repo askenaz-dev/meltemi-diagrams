@@ -1,0 +1,27 @@
+language "0.2"
+
+// Imported from c4-context.puml (plantuml) by meltemi-diagrams.
+
+model system_context_model {
+  person customer "Personal Banking Customer" { description "A customer of the bank, with personal bank accounts." }
+  system banking_system "Internet Banking System" { description "Allows customers to view information about their bank accounts, and make payments." }
+  system mail_system "E-mail system" {
+    description "The internal Microsoft Exchange e-mail system."
+    external
+  }
+  system mainframe "Mainframe Banking System" {
+    description "Stores all of the core banking information about customers, accounts, transactions, etc."
+    external
+  }
+
+  customer -> banking_system: "Uses"
+  mail_system -> customer: "Sends e-mails to"
+  banking_system -> mail_system: "Sends e-mails" { technology "SMTP" }
+  banking_system -> mainframe: "Uses"
+}
+
+diagram system_context: c4 using system_context_model {
+  title "System context"
+  level context
+  include customer, banking_system, mail_system, mainframe
+}

@@ -1,0 +1,23 @@
+[
+  {
+    "code": "ref.unknown-entity",
+    "severity": "error",
+    "message": "Unknown entity `shop.apu` in the model `commerce`.",
+    "range": {
+      "start": {
+        "offset": 130,
+        "line": 8,
+        "column": 15
+      },
+      "end": {
+        "offset": 138,
+        "line": 8,
+        "column": 23
+      }
+    },
+    "hints": [
+      "Did you mean `shop.api`?"
+    ],
+    "related": []
+  }
+]

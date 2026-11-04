@@ -1,0 +1,9 @@
+language "0.2"
+
+diagram stack: free {
+  group outer "" {
+    group inner "" {
+      box seed "Seed"
+    }
+  }
+}

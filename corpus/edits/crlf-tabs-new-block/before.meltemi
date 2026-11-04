@@ -1,0 +1,7 @@
+language "0.2"
+
+diagram tabs: flow {
+	web["Web"]
+	api["API"]
+	web -> api
+}

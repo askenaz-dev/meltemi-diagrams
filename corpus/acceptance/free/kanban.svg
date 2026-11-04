@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1008" height="770" viewBox="0 0 1008 770" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Release board</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#22D3EE"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1008" height="770" fill="#07111F"/>
+  <g data-id="board" data-role="element">
+    <rect x="20" y="114" width="968" height="592" rx="14" fill="#0B1830" stroke="#183149" stroke-width="1"/>
+  </g>
+  <g data-id="backlog" data-role="element">
+    <rect x="36" y="130" width="192" height="560" rx="14" fill="#0B1830" stroke="#183149" stroke-width="1"/>
+    <text x="56" y="152.73" text-anchor="start" font-size="13" font-weight="600" fill="#F7FBFF">Backlog</text>
+  </g>
+  <g data-id="todo" data-role="element">
+    <rect x="284" y="130" width="192" height="560" rx="14" fill="#0B1830" stroke="#183149" stroke-width="1"/>
+    <text x="304" y="152.73" text-anchor="start" font-size="13" font-weight="600" fill="#F7FBFF">To do</text>
+  </g>
+  <g data-id="doing" data-role="element">
+    <rect x="532" y="130" width="192" height="560" rx="14" fill="#0B1830" stroke="#183149" stroke-width="1"/>
+    <text x="552" y="152.73" text-anchor="start" font-size="13" font-weight="600" fill="#F7FBFF">Doing</text>
+  </g>
+  <g data-id="done" data-role="element">
+    <rect x="780" y="130" width="192" height="560" rx="14" fill="#0B1830" stroke="#183149" stroke-width="1"/>
+    <text x="800" y="152.73" text-anchor="start" font-size="13" font-weight="600" fill="#F7FBFF">Done</text>
+  </g>
+  <g data-id="heading" data-role="element">
+    <text x="412" y="51.64" text-anchor="start" font-size="32" font-weight="700" fill="#F7FBFF">Release 2.4</text>
+  </g>
+  <g data-id="darkMode" data-role="element">
+    <rect x="52" y="173" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="52" y="170" width="160" height="160" rx="2" fill="#e1bee7" stroke="none" stroke-width="0"/>
+    <text x="132" y="245.92" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Dark mode for</text>
+    <text x="132" y="265.42" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">the settings page</text>
+  </g>
+  <g data-id="export" data-role="element">
+    <rect x="52" y="345" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="52" y="342" width="160" height="160" rx="2" fill="#e1bee7" stroke="none" stroke-width="0"/>
+    <text x="132" y="408.17" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Export the</text>
+    <text x="132" y="427.67" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">monthly reports</text>
+    <text x="132" y="447.17" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">as CSV</text>
+  </g>
+  <g data-id="audit" data-role="element">
+    <rect x="300" y="173" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="300" y="170" width="160" height="160" rx="2" fill="#f8bbd0" stroke="none" stroke-width="0"/>
+    <text x="380" y="245.92" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Keep an audit log</text>
+    <text x="380" y="265.42" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">of every refund</text>
+  </g>
+  <g data-id="search" data-role="element">
+    <rect x="300" y="345" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="300" y="342" width="160" height="160" rx="2" fill="#f3e37c" stroke="none" stroke-width="0"/>
+    <text x="380" y="417.92" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Search by order</text>
+    <text x="380" y="437.42" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">number</text>
+  </g>
+  <g data-id="limits" data-role="element">
+    <rect x="300" y="517" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="300" y="514" width="160" height="160" rx="2" fill="#bbdefb" stroke="none" stroke-width="0"/>
+    <text x="380" y="589.92" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Rate limits per</text>
+    <text x="380" y="609.42" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">API key</text>
+  </g>
+  <g data-id="refunds" data-role="element">
+    <rect x="548" y="173" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="548" y="170" width="160" height="160" rx="2" fill="#ffe0b2" stroke="none" stroke-width="0"/>
+    <text x="628" y="245.92" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Refunds in one</text>
+    <text x="628" y="265.42" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">click</text>
+  </g>
+  <g data-id="passkeys" data-role="element">
+    <rect x="796" y="173" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="796" y="170" width="160" height="160" rx="2" fill="#c8e6c9" stroke="none" stroke-width="0"/>
+    <text x="876" y="245.92" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Sign in with</text>
+    <text x="876" y="265.42" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">passkeys</text>
+  </g>
+  <g data-id="invoices" data-role="element">
+    <rect x="796" y="345" width="160" height="160" rx="2" fill="#000000" stroke="none" stroke-width="0" opacity="0.15"/>
+    <rect x="796" y="342" width="160" height="160" rx="2" fill="#c8e6c9" stroke="none" stroke-width="0"/>
+    <text x="876" y="427.67" text-anchor="middle" font-size="15.6" font-weight="400" fill="#1f2328">Invoices as PDF</text>
+  </g>
+  <g data-id="blocks" data-role="relation">
+    <polyline points="460,250 540,250" fill="none" stroke="#88A0B9" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M548 250 L540 253.5 L540 246.5 Z" fill="#88A0B9" stroke="none" stroke-width="0"/>
+    <g data-id="blocks" data-role="label">
+      <rect x="480.68" y="241" width="46.64" height="18" rx="9" fill="#0F1B2D" stroke="#183149" stroke-width="1"/>
+      <text x="504" y="254" text-anchor="middle" font-size="11" font-weight="500" fill="#F7FBFF">blocks</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,726.5 988,726.5" fill="none" stroke="#183149" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 736) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="752.37" text-anchor="start" font-size="12" font-weight="600" fill="#F7FBFF">Meltemi Diagrams</text>
+    <text x="988" y="752" text-anchor="end" font-size="11" font-weight="400" fill="#88A0B9">Release board</text>
+  </g>
+</svg>

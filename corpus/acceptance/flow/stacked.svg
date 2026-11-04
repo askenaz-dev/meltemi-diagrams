@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1666" height="404" viewBox="0 0 1666 404" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Containers, stacks and bands</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1666" height="404" fill="#F7FBFF"/>
+  <g data-id="band" data-role="element" data-layer="back">
+    <rect x="878" y="100" width="768" height="160" rx="0" fill="#f5f5f5" stroke="#666666" stroke-width="1" stroke-dasharray="5 4"/>
+  </g>
+  <g data-id="blue" data-role="element">
+    <rect x="20" y="20" width="400" height="320" rx="0" fill="#dae8fc" stroke="#6c8ebf" stroke-width="1"/>
+  </g>
+  <g data-id="pink" data-role="element">
+    <rect x="60" y="60" width="320" height="240" rx="0" fill="#f8cecc" stroke="#b85450" stroke-width="1"/>
+  </g>
+  <g data-id="yellow" data-role="element">
+    <rect x="100" y="100" width="240" height="160" rx="0" fill="#fff2cc" stroke="#d6b656" stroke-width="1"/>
+  </g>
+  <g data-id="core" data-role="element">
+    <rect x="140" y="152" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="220" y="184.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Core</text>
+  </g>
+  <g data-id="base" data-role="element">
+    <rect x="500" y="80" width="240" height="200" rx="8" fill="#d5e8d4" stroke="#82b366" stroke-width="1"/>
+    <text x="620" y="184.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830"></text>
+  </g>
+  <g data-id="tray" data-role="element">
+    <rect x="525" y="105" width="190" height="150" rx="8" fill="#e1d5e7" stroke="#9673a6" stroke-width="1"/>
+    <text x="620" y="184.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830"></text>
+  </g>
+  <g data-id="chip" data-role="element">
+    <rect x="550" y="130" width="140" height="100" rx="8" fill="#ffe6cc" stroke="#d79b00" stroke-width="1"/>
+    <text x="620" y="184.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830"></text>
+  </g>
+  <g data-id="intake" data-role="element">
+    <rect x="901" y="152" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="981" y="184.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Intake</text>
+  </g>
+  <g data-id="review" data-role="element">
+    <path d="M1211 140 L1291 180 L1211 220 L1131 180 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1211" y="184.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Approved?</text>
+  </g>
+  <g data-id="ledger" data-role="element">
+    <path d="M1462 156 L1462 204 A80 8 0 0 0 1622 204 L1622 156 A80 8 0 0 1 1462 156 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M1462 156 A80 8 0 0 1 1622 156 A80 8 0 0 1 1462 156 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1542" y="188.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Ledger</text>
+  </g>
+  <g data-id="feed" data-role="relation">
+    <polyline points="300,180 542,180" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M550 180 L542 183.5 L542 176.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="feed" data-role="label">
+      <rect x="404.24" y="171" width="41.52" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="425" y="184" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">feeds</text>
+    </g>
+  </g>
+  <g data-id="handover" data-role="relation">
+    <polyline points="690,180 893,180" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M901 180 L893 183.5 L893 176.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="handover" data-role="label">
+      <rect x="760.3" y="171" width="70.4" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="795.5" y="184" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">hands over</text>
+    </g>
+  </g>
+  <g data-id="check" data-role="relation">
+    <polyline points="1061,180 1123,180" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1131 180 L1123 183.5 L1123 176.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="keep" data-role="relation">
+    <polyline points="1291,180 1454,180" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1462 180 L1454 183.5 L1454 176.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="keep" data-role="label">
+      <rect x="1361.25" y="171" width="30.5" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="1376.5" y="184" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">yes</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,360.5 1646,360.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 370) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="386.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="1646" y="386" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Containers, stacks and bands</text>
+  </g>
+</svg>

@@ -1,0 +1,20 @@
+{
+  "name": "erd",
+  "version": "1.0.0",
+  "description": "Entity-relationship diagrams and organisation charts",
+  "license": "MIT",
+  "homepage": "https://example.com/meltemi-erd",
+  "compatibility": {
+    "model": "^1.0.0",
+    "renderer": "^1.0.0"
+  },
+  "permissions": [
+    "diagram-types"
+  ],
+  "diagramTypes": [
+    {
+      "type": "flow",
+      "elements": {}
+    }
+  ]
+}

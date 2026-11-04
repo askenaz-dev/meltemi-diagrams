@@ -1,0 +1,12 @@
+language "0.2"
+
+// `layout auto` arranges every box, so a written place is ignored.
+diagram checkout: flow {
+  layout auto
+  api["API"]
+  db["Orders DB"]
+  api -> db as save
+  placement {
+    place api at (10, 10)
+  }
+}

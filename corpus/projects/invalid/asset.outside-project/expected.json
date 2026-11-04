@@ -1,0 +1,25 @@
+{
+  "a.meltemi": [
+    {
+      "code": "asset.outside-project",
+      "severity": "error",
+      "message": "`../outside.png` leaves the project folder.",
+      "range": {
+        "start": {
+          "offset": 51,
+          "line": 4,
+          "column": 14
+        },
+        "end": {
+          "offset": 67,
+          "line": 4,
+          "column": 30
+        }
+      },
+      "hints": [
+        "Keep images inside the project folder, next to the diagrams that use them."
+      ],
+      "related": []
+    }
+  ]
+}

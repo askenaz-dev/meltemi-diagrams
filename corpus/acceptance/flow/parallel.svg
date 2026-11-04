@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="620" height="369" viewBox="0 0 620 369" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Service and its store</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="620" height="369" fill="#F7FBFF"/>
+  <g data-id="api" data-role="element">
+    <rect x="20" y="28.04" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="100" y="60.76" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Order API</text>
+  </g>
+  <g data-id="db" data-role="element">
+    <path d="M440 32.04 L440 80.04 A80 8 0 0 0 600 80.04 L600 32.04 A80 8 0 0 1 440 32.04 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M440 32.04 A80 8 0 0 1 600 32.04 A80 8 0 0 1 440 32.04 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="520" y="64.76" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Orders DB</text>
+  </g>
+  <g data-id="cache" data-role="element">
+    <rect x="20" y="248.04" width="160" height="56" rx="8" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="100" y="280.76" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Cache</text>
+  </g>
+  <g data-id="insert" data-role="relation">
+    <polyline points="180,28.04 434.73,29.91" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M442.73 29.96 L434.7 33.41 L434.75 26.41 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="insert" data-role="label">
+      <rect x="290.38" y="20" width="41.96" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="311.36" y="33" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">insert</text>
+    </g>
+  </g>
+  <g data-id="update" data-role="relation">
+    <polyline points="180,45.04 432,45.04" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M440 45.04 L432 48.54 L432 41.54 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="update" data-role="label">
+      <rect x="223.32" y="36.04" width="48.56" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="247.6" y="49.04" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">update</text>
+    </g>
+  </g>
+  <g data-id="rows" data-role="relation">
+    <polyline points="440,67.04 188,67.04" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M180 67.04 L188 63.54 L188 70.54 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="rows" data-role="label">
+      <rect x="291.22" y="58.04" width="37.55" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="310" y="71.04" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">rows</text>
+    </g>
+  </g>
+  <g data-id="changes" data-role="relation">
+    <polyline points="442.73,82.11 188,83.98" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="5 4"/>
+    <path d="M180 84.04 L187.97 80.48 L188.03 87.48 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="changes" data-role="label">
+      <rect x="329.89" y="73.61" width="89.05" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="374.42" y="86.61" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">change events</text>
+    </g>
+  </g>
+  <g data-id="warm" data-role="relation">
+    <polyline points="89,84.04 89,240.04" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M89 248.04 L85.5 240.04 L92.5 240.04 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="warm" data-role="label">
+      <rect x="68.24" y="157.04" width="41.52" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="89" y="170.04" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">warm</text>
+    </g>
+  </g>
+  <g data-id="hit" data-role="relation">
+    <polyline points="111,248.04 111,92.04" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M111 84.04 L114.5 92.04 L107.5 92.04 Z" fill="#526579" stroke="none" stroke-width="0"/>
+    <g data-id="hit" data-role="label">
+      <rect x="98.43" y="183.28" width="25.13" height="18" rx="9" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+      <text x="111" y="196.28" text-anchor="middle" font-size="11" font-weight="500" fill="#0B1830">hit</text>
+    </g>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,325.5 600,325.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 335) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="351.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="600" y="351" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Service and its store</text>
+  </g>
+</svg>

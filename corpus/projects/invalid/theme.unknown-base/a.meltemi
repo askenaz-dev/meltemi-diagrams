@@ -1,0 +1,5 @@
+import "./themes.meltemi" as company
+
+theme local {
+  extends "company.missing"
+}

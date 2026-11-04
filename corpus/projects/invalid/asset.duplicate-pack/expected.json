@@ -1,0 +1,25 @@
+{
+  "assets/icons/tabler": [
+    {
+      "code": "asset.duplicate-pack",
+      "severity": "error",
+      "message": "The pack `tabler` is already defined by the built-in packs.",
+      "range": {
+        "start": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        },
+        "end": {
+          "offset": 0,
+          "line": 1,
+          "column": 1
+        }
+      },
+      "hints": [
+        "Rename the file or folder; the prefix is the name diagrams write before the colon."
+      ],
+      "related": []
+    }
+  ]
+}

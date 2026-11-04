@@ -1,0 +1,7 @@
+{
+  "name": "invalid",
+  "language": "0.2",
+  "tools": {
+    "meltemi-diagrams": "^9.0.0"
+  }
+}

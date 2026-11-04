@@ -1,0 +1,44 @@
+language "0.2"
+
+// `layout auto`: ELK arranges every box and the groups fit their children.
+diagram platform: flow {
+  title "Order platform"
+  direction LR
+  layout auto
+  theme "technical.light"
+
+  client["Web app"]
+  group backend "Backend" {
+    gateway["API gateway"]
+    orders["Orders"]
+    payments["Payments"]
+  }
+  bus["Event bus"] {
+    port in west
+    port out east
+  }
+  group data "Data" {
+    db[("Orders DB")]
+    ledger[("Ledger")]
+  }
+  audit["Audit"]
+
+  client -> gateway: "HTTPS" as request
+  gateway -> orders as create
+  gateway -> payments as charge
+  orders -> db as save
+  payments -> ledger as book
+  orders -> bus as publish
+  payments --> bus as notify
+  bus -> audit as record
+
+  placement {
+    route publish from orders.east to bus.in
+    route notify from payments.east to bus.in
+    route record from bus.out to audit.west
+  }
+
+  style notify {
+    routing bezier
+  }
+}

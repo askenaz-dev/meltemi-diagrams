@@ -1,0 +1,61 @@
+language "0.2"
+
+// Containers and stacks in a flow diagram: three plain square containers nested in each other,
+// three nodes stacked outer first, and a band on a back layer behind nodes the engine arranges.
+diagram stacked: flow {
+  title "Containers, stacks and bands"
+  direction LR
+  layout assisted
+  layers back, main
+
+  // Plain containers: untitled groups, filled and square.
+  group blue "" {
+    group pink "" {
+      group yellow "" {
+        core["Core"]
+      }
+    }
+  }
+
+  // A stack: the outer node first, so the inner ones paint over it.
+  node base ""
+  node tray ""
+  node chip ""
+
+  // A band behind the nodes the engine arranges: placed and sized, on the back layer.
+  group band "" { layer back }
+  intake["Intake"]
+  decision review "Approved?"
+  ledger[("Ledger")]
+
+  core -> chip: "feeds" as feed
+  chip -> intake: "hands over" as handover
+  intake -> review as check
+  review -> ledger: "yes" as keep
+
+  placement {
+    place blue at (240, 220)
+    size blue (400, 320)
+    place pink at (240, 220)
+    size pink (320, 240)
+    place yellow at (240, 220)
+    size yellow (240, 160)
+    place core at (240, 220)
+    place base at (640, 220)
+    size base (240, 200)
+    place tray at (640, 220)
+    size tray (190, 150)
+    place chip at (640, 220)
+    size chip (140, 100)
+    place band at (1282, 220)
+    size band (768, 160)
+  }
+
+  style blue { fill "#dae8fc"; stroke "#6c8ebf"; radius 0 }
+  style pink { fill "#f8cecc"; stroke "#b85450"; radius 0 }
+  style yellow { fill "#fff2cc"; stroke "#d6b656"; radius 0 }
+  style base { fill "#d5e8d4"; stroke "#82b366" }
+  style tray { fill "#e1d5e7"; stroke "#9673a6" }
+  style chip { fill "#ffe6cc"; stroke "#d79b00" }
+  style band { fill "#f5f5f5"; stroke "#666666"; line dashed; radius 0 }
+}

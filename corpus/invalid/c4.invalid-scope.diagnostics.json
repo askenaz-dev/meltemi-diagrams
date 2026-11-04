@@ -1,0 +1,21 @@
+[
+  {
+    "code": "c4.invalid-scope",
+    "severity": "error",
+    "message": "`shop.db` is a datastore; datastores have no components.",
+    "range": {
+      "start": {
+        "offset": 160,
+        "line": 11,
+        "column": 9
+      },
+      "end": {
+        "offset": 167,
+        "line": 11,
+        "column": 16
+      }
+    },
+    "hints": [],
+    "related": []
+  }
+]

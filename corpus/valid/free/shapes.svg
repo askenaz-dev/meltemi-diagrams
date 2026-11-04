@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1300" height="824" viewBox="0 0 1300 824" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Shapes</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1300" height="824" fill="#F7FBFF"/>
+  <g data-id="rounded" data-role="element">
+    <rect x="20" y="72" width="160" height="56" rx="20" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="100" y="104.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Rounded</text>
+  </g>
+  <g data-id="rectangle" data-role="element">
+    <rect x="240" y="72" width="160" height="56" rx="0" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="320" y="104.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Rectangle</text>
+  </g>
+  <g data-id="square" data-role="element">
+    <rect x="480" y="40" width="120" height="120" rx="0" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="540" y="104.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Square</text>
+  </g>
+  <g data-id="ellipse" data-role="element">
+    <path d="M680 100 A80 36 0 1 0 840 100 A80 36 0 1 0 680 100 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="760" y="104.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Ellipse</text>
+  </g>
+  <g data-id="circle" data-role="element">
+    <path d="M920 100 A60 60 0 1 0 1040 100 A60 60 0 1 0 920 100 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="980" y="104.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Circle</text>
+  </g>
+  <g data-id="diamond" data-role="element">
+    <path d="M1200 60 L1280 100 L1200 140 L1120 100 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1200" y="104.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Diamond</text>
+  </g>
+  <g data-id="cylinder" data-role="element">
+    <path d="M20 276 L20 324 A80 8 0 0 0 180 324 L180 276 A80 8 0 0 1 20 276 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M20 276 A80 8 0 0 1 180 276 A80 8 0 0 1 20 276 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="100" y="308.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Cylinder</text>
+  </g>
+  <g data-id="pill" data-role="element">
+    <rect x="240" y="272" width="160" height="56" rx="28" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="320" y="304.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Pill</text>
+  </g>
+  <g data-id="triangle" data-role="element">
+    <path d="M540 252 L620 348 L460 348 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="540" y="320.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Triangle</text>
+  </g>
+  <g data-id="parallelogram" data-role="element">
+    <path d="M708 272 L840 272 L812 328 L680 328 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="760" y="304.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Parallelogram</text>
+  </g>
+  <g data-id="trapezoid" data-role="element">
+    <path d="M932 268 L1028 268 L1060 332 L900 332 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="980" y="304.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Trapezoid</text>
+  </g>
+  <g data-id="pentagon" data-role="element">
+    <path d="M1200 252 L1280 288.48 L1249.6 348 L1150.4 348 L1120 288.48 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1200" y="309.53" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Pentagon</text>
+  </g>
+  <g data-id="hexagon" data-role="element">
+    <path d="M52 468 L148 468 L180 500 L148 532 L52 532 L20 500 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="100" y="504.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Hexagon</text>
+  </g>
+  <g data-id="octagon" data-role="element">
+    <path d="M260.88 464 L379.12 464 L400 484.88 L400 515.12 L379.12 536 L260.88 536 L240 515.12 L240 484.88 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="320" y="504.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Octagon</text>
+  </g>
+  <g data-id="star" data-role="element">
+    <path d="M540 440 L556.64 485.83 L610.5 485.84 L566.93 514.16 L583.57 560 L540 531.67 L496.43 560 L513.07 514.16 L469.5 485.84 L523.36 485.83 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="540" y="511.06" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Star</text>
+  </g>
+  <g data-id="cloud" data-role="element">
+    <path d="M701.36 488.89 C663.96 471.95 705.44 448.65 735.57 469.66 C731.86 442.69 792.96 443.89 785.91 470.65 C819.09 451.05 858.38 477.37 818.28 492.33 C866.48 493.42 856.53 528.73 810.1 521.39 C837.95 543.84 772.55 562.57 756.61 536.7 C740.48 562.19 685.53 547.13 711.34 524.29 C664.64 532.57 652.4 489.13 701.36 488.89 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="760" y="504.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Cloud</text>
+  </g>
+  <g data-id="document" data-role="element">
+    <path d="M900 464 L1060 464 L1060 527.36 C980 497.43 980 557.29 900 527.36 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="980" y="500.41" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Document</text>
+  </g>
+  <g data-id="callout" data-role="element">
+    <path d="M1120 464 L1280 464 L1280 520 L1176 520 L1144 536 L1152 520 L1120 520 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="1200" y="496.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Callout</text>
+  </g>
+  <g data-id="arrow" data-role="element">
+    <path d="M20 686 L124 686 L124 672 L180 700 L124 728 L124 714 L20 714 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="86" y="704.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Arrow</text>
+  </g>
+  <g data-id="framed" data-role="element">
+    <rect x="240" y="672" width="160" height="56" rx="0" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M248 672 L248 728 M392 672 L392 728" fill="none" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="320" y="704.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Framed</text>
+  </g>
+  <g data-id="flag" data-role="element">
+    <path d="M460 672 L620 672 L620 728 L460 728 L484 700 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="552" y="704.73" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Flag</text>
+  </g>
+  <g data-id="person" data-role="element">
+    <rect x="680" y="673.6" width="160" height="78.4" rx="24" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <path d="M744 664 A16 16 0 1 0 776 664 A16 16 0 1 0 744 664 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="760" y="722.33" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Person</text>
+  </g>
+  <g data-id="agent" data-role="element">
+    <path d="M912 678.4 L1048 678.4 A12 12 0 0 1 1060 690.4 L1060 748 A12 12 0 0 1 1048 760 L912 760 A12 12 0 0 1 900 748 L900 690.4 A12 12 0 0 1 912 678.4 Z M972.51 649.6 L987.49 649.6 A6.91 6.91 0 0 1 994.4 656.51 L994.4 671.49 A6.91 6.91 0 0 1 987.49 678.4 L972.51 678.4 A6.91 6.91 0 0 1 965.6 671.49 L965.6 656.51 A6.91 6.91 0 0 1 972.51 649.6 Z M971.07 661.7 A3.17 3.17 0 1 1 977.41 661.7 A3.17 3.17 0 1 1 971.07 661.7 Z M982.59 661.7 A3.17 3.17 0 1 1 988.93 661.7 A3.17 3.17 0 1 1 982.59 661.7 Z M975.97 670.91 L984.03 670.91 M980 649.6 L980 645.38 M977.31 642.69 A2.69 2.69 0 1 1 982.69 642.69 A2.69 2.69 0 1 1 977.31 642.69 Z" fill="#FFFFFF" stroke="#DCE5ED" stroke-width="1"/>
+    <text x="980" y="723.93" text-anchor="middle" font-size="13" font-weight="600" fill="#0B1830">Agent</text>
+  </g>
+  <g data-id="toEllipse" data-role="relation">
+    <polyline points="100,72 100,20 728,20 728,59.01" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M728 67.01 L724.5 59.01 L731.5 59.01 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="toDiamond" data-role="relation">
+    <polyline points="792,132.99 792,180 1168,180 1168,132" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1168 124 L1171.5 132 L1164.5 132 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="cylinder-&gt;pill#1" data-role="relation">
+    <polyline points="180,300 232,300" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M240 300 L232 303.5 L232 296.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="star-&gt;cloud#1" data-role="relation">
+    <polyline points="588.72,500 663.97,500" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M671.97 500 L663.97 503.5 L663.97 496.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="hexagon-&gt;octagon#1" data-role="relation">
+    <polyline points="180,500 232,500" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M240 500 L232 503.5 L232 496.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="flag-&gt;person#1" data-role="relation">
+    <polyline points="620,700 672,700" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M680 700 L672 703.5 L672 696.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="person-&gt;agent#1" data-role="relation">
+    <polyline points="840,700 892,700" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M900 700 L892 703.5 L892 696.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,780.5 1280,780.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 790) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="806.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="1280" y="806" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Shapes</text>
+  </g>
+</svg>

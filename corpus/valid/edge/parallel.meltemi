@@ -1,0 +1,11 @@
+language "0.2"
+
+// Parallel relations between the same elements and a self-relation.
+// Anonymous relations get keys such as orders->db#1 in the model.
+diagram parallel: flow {
+  orders -> db: "write"
+  orders -> db: "read"
+  orders -> db as audit
+  db --> orders: "events"
+  orders -> orders: "retry"
+}

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="{{policy}}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Meltemi Diagrams playground: write diagrams as code, adjust them on a canvas and export them, in your browser. No account needed."
+    />
+    <meta name="generator" content="Meltemi Diagrams {{version}}" />
+    <title>Meltemi Diagrams Playground</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="canvas.css" />
+    <link rel="stylesheet" href="playground.css" />
+    <script type="module" src="playground.js"></script>
+  </head>
+  <body>
+    <div id="playground" class="loading">
+      <p class="boot" role="status">Loading the playground…</p>
+      <noscript
+        ><p class="boot">The playground runs in your browser and needs JavaScript.</p></noscript
+      >
+    </div>
+  </body>
+</html>

@@ -1,0 +1,44 @@
+@startuml deployment
+!include common/defs.iuml
+!include_once common/defs.iuml
+!procedure $svc($id, $label = "Service")
+  component "$label" as $id
+!endprocedure
+!function $double($a)
+!return $a + $a
+!endfunction
+!$prod = 1
+title Order platform
+left to right direction
+skinparam componentStyle rectangle
+skinparam node {
+  BackgroundColor #eeeeee
+}
+' The public edge
+node "Server" as srv {
+  [API] as api <<$tech>>
+  database "DB" as db #lightblue;line:navy;text:black
+  SERVICE(auth, "Auth Service")
+  $svc(cache)
+  frame "Workers" as workers {
+    artifact "mailer.jar" as mailer
+  }
+}
+cloud Internet
+!if $prod == 1
+Internet --> api : HTTPS $double(2)
+!else
+Internet --> db
+!endif
+api ..> db : SQL
+api -[#red,bold]-> auth
+api -[hidden]-> cache
+api -left-> mailer
+Internet "1" --> "*" srv
+note right of api : Rate limited
+note "Shared\nstore" as N1
+N1 .. db
+legend right
+  Production only
+endlegend
+@enduml

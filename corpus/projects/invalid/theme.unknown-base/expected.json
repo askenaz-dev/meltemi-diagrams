@@ -1,0 +1,25 @@
+{
+  "a.meltemi": [
+    {
+      "code": "theme.unknown-base",
+      "severity": "error",
+      "message": "\"company.missing\" does not name a theme in the imported files.",
+      "range": {
+        "start": {
+          "offset": 62,
+          "line": 4,
+          "column": 11
+        },
+        "end": {
+          "offset": 79,
+          "line": 4,
+          "column": 28
+        }
+      },
+      "hints": [
+        "Themes in scope: company.corporate, local."
+      ],
+      "related": []
+    }
+  ]
+}

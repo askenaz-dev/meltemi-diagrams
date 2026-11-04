@@ -1,0 +1,31 @@
+language "0.2"
+
+// Cycles between containers: services that call each other in a ring and back, and a system that
+// calls back into the platform.
+model logistics {
+  person planner "Planner"
+  system platform "Logistics platform" {
+    container orders "Orders" { technology "Go" }
+    container routing "Routing" { technology "Rust" }
+    container fleet "Fleet" { technology "Go" }
+    datastore state "State" { technology "Redis" }
+  }
+  system carrier "Carrier" { external }
+
+  planner -> platform.orders: "Plans" as plan
+  platform.orders -> platform.routing: "Requests routes" as route
+  platform.routing -> platform.fleet: "Assigns trucks" as assign
+  platform.fleet -> platform.orders: "Reports capacity" as capacity
+  platform.routing -> platform.state: "Caches" as cache
+  platform.fleet -> carrier: "Books" as book
+  carrier -> platform.fleet: "Confirms" as confirm
+}
+
+diagram context: c4 using logistics {
+  level context
+}
+
+diagram containers: c4 using logistics {
+  level container
+  scope platform
+}

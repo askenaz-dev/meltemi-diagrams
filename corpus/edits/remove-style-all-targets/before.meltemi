@@ -1,0 +1,8 @@
+diagram d: flow {
+  group g "G" {
+    obo["OBO"]
+    ciba["CIBA"]
+  }
+  web["Web"]
+  style obo, ciba { line dashed }
+}
