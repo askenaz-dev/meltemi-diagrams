@@ -24,7 +24,7 @@
     "vendor:icons": "tsx --conditions=@meltemi/diagrams-source scripts/vendor-icons.ts",
     "licenses:inventory": "node scripts/licenses.mjs",
     "vscode:build": "tsx --conditions=@meltemi/diagrams-source packages/vscode/build.mjs",
-    "vscode:package": "pnpm --filter meltemi-diagrams run package",
+    "vscode:package": "pnpm --filter ./packages/vscode run package",
     "vscode:test": "tsx --conditions=@meltemi/diagrams-source packages/vscode/build.mjs && node packages/vscode/test/vscode/run.mjs",
     "vscode:test-webview": "tsx --conditions=@meltemi/diagrams-source packages/vscode/build.mjs && tsx --conditions=@meltemi/diagrams-source packages/vscode/test/webview/run.ts",
     "player:test-browser": "tsx --conditions=@meltemi/diagrams-source packages/player/test/browser/run.ts",

@@ -4,7 +4,7 @@
 
 The Open VSX publishing job SHALL request GitHub OIDC with `id-token: write` in environment
 `open-vsx`, restricted to `main`. Its registry registration SHALL name `askenaz-dev`,
-`meltemi-diagrams`, `release.yml` and `open-vsx` for `meltemi.meltemi-diagrams`. The pinned CLI
+`meltemi-diagrams`, `release.yml` and `open-vsx` for `meltemi.diagrams`. The pinned CLI
 SHALL require trusted publishing and SHALL NOT receive a personal access token.
 
 #### Scenario: A checked main release publishes

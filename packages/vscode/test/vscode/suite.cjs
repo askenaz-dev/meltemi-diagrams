@@ -40,7 +40,7 @@ async function open(name) {
 test("activates for .meltemi files", async () => {
   const { document } = await open("checkout.meltemi");
   assert.equal(document.languageId, "meltemi");
-  const extension = vscode.extensions.getExtension("meltemi.meltemi-diagrams");
+  const extension = vscode.extensions.getExtension("meltemi.diagrams");
   assert.ok(extension, "the extension is installed");
   api = await extension.activate();
   assert.ok(api.analyses && api.host, "the extension exposes its analyses");
@@ -646,7 +646,7 @@ test("imports a selection of a Markdown file", async () => {
 });
 
 test("speaks the language of meltemi.language in messages and canvases", async () => {
-  const extension = vscode.extensions.getExtension("meltemi.meltemi-diagrams");
+  const extension = vscode.extensions.getExtension("meltemi.diagrams");
   const setting = extension.packageJSON.contributes.configuration.properties["meltemi.language"];
   assert.deepEqual(setting.enum, ["auto", "en", "es"]);
   assert.equal(setting.default, "auto");

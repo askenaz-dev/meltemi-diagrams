@@ -5,7 +5,7 @@
 The Open VSX job in `.github/workflows/release.yml` declares `environment: open-vsx` and
 `contents: read` / `id-token: write`. The environment permits only `main`. The registry's
 GitHub registration names owner `askenaz-dev`, repository `meltemi-diagrams`, workflow filename
-`release.yml` and environment `open-vsx`, for extension `meltemi.meltemi-diagrams`.
+`release.yml` and environment `open-vsx`, for extension `meltemi.diagrams`.
 
 The existing CI authorization and artifact preflight remain prerequisites. The environment
 adds a registry-matched identity boundary; an arbitrary ref of the workflow cannot use it.

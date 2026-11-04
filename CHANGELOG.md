@@ -4,6 +4,13 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
+## 1.11.1
+
+The VS Code extension has a new identifier, `meltemi.diagrams`, on the Visual Studio Marketplace and on
+Open VSX; its name in the editor is still Meltemi Diagrams. Install it with
+`code --install-extension meltemi.diagrams`. The former identifier is no longer published: remove it and
+install the new one, your settings keep their names.
+
 ## 1.11.0
 
 A free composition becomes a whiteboard: freehand strokes and highlighter marks, sticky notes whose
