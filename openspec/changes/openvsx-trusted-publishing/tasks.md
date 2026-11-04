@@ -11,6 +11,13 @@
 - [x] 6. Confirm the owner configured the main-only environment and matching Open VSX registration.
 - [ ] 7. After merge authorization, verify the automatic release's OIDC publication and public VSIX.
 
+## First version of a new or removed extension
+
+- [x] 8. Ask the registry whether the VSIX's extension exists; publish its first version with
+  `OVSX_PAT` in a separate step, and through OIDC otherwise; guard both in `workflows.test.ts`.
+- [ ] 9. Register the trusted publisher after that first version and verify that the next version
+  publishes through OIDC.
+
 ## Evidence
 
 - `npx --yes ovsx@1.3.0 publish --help` exposes both required flags; its published source obtains

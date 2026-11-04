@@ -47,14 +47,14 @@ registries use separate GitHub OIDC registrations.
   repository **meltemi-diagrams**, workflow **release.yml**, **Environment empty**. The job has no
   environment and uses `id-token: write` with pinned `@vscode/vsce@4.1.0 publish --oidc`.
   There is no `VSCE_PAT`; the installed CLI exposes `--oidc` and `--skip-duplicate`.
-- **Open VSX:** verified namespace **meltemi**, extension **meltemi-diagrams**. In Open VSX
+- **Open VSX:** verified namespace **meltemi**, extension **meltemi-diagrams-vscode**. In Open VSX
   Settings → Trusted Publishers register GitHub owner **askenaz-dev**, repository
   **meltemi-diagrams**, workflow filename **release.yml**, environment **open-vsx**. Configure
   that GitHub environment's deployment branches as **Selected branches and tags**, with one
   **Branch: main** rule and no tag rules. The job uses that environment, `id-token: write` and
   pinned `ovsx@1.3.0 publish --trusted-publishing --skip-duplicate` on Node 24. The registry
-  exchanges the job identity for a short-lived token scoped to this extension. No `OVSX_PAT`
-  is injected: a PAT would take precedence over OIDC. Missing/mismatched registration or identity
+  exchanges the job identity for a short-lived token scoped to this extension. `OVSX_PAT` is
+  never set in that step: a PAT would take precedence over OIDC. Missing/mismatched registration or identity
   fails this channel; an existing version is a successful retry. Other channels remain independent.
 - **GitHub:** create a draft, upload and verify every required asset digest, then publish. A partial
   draft can be completed. A public release is read-only; missing/different assets fail instead of
@@ -66,9 +66,12 @@ and [GitHub concurrency](https://docs.github.com/en/actions/reference/workflows-
 
 Open VSX registration requires namespace ownership (contributor access is insufficient), the
 publisher agreement and an existing extension with an active version. The first publication
-therefore needs a bootstrap PAT. Meltemi has already completed that bootstrap and its namespace
-claim [was granted](https://github.com/EclipseFdn/open-vsx.org/issues/15211). Keep at least one
-active version. The `open-vsx` environment restriction is intentional: without an environment,
+therefore needs a token, and the release job does it: when the registry's public API has no
+extension with the VSIX's identifier, a separate step publishes that version with `OVSX_PAT`,
+which Terraform distributes, and leaves a notice to register the trusted publisher. Once it is
+registered, later versions publish through OIDC. The namespace claim
+[was granted](https://github.com/EclipseFdn/open-vsx.org/issues/15211). Deleting every version
+of the extension disables its registration, and the next release bootstraps it again. The `open-vsx` environment restriction is intentional: without an environment,
 the registry trusts any ref running the registered workflow. Recovery dispatched from main uses
 the same identity and original checked VSIX; it does not restore the old PAT-based job.
 

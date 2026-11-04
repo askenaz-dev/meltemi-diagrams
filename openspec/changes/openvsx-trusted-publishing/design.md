@@ -14,8 +14,12 @@ Marketplace keeps its separate registration with an empty environment.
 ## CLI and recovery
 
 Keep the exact `ovsx@1.3.0` pin, verified against the published CLI help and source. Node 24
-satisfies its Node >=22 requirement. Pass `--trusted-publishing`; do not inject `OVSX_PAT`,
-whose presence would take precedence over OIDC. The CLI obtains the GitHub token for the
+satisfies its Node >=22 requirement. Pass `--trusted-publishing` and keep `OVSX_PAT` out of that
+step: its presence would take precedence over OIDC. A registration needs an extension with an
+active version, so the job first asks the registry's public API whether the VSIX's extension
+exists. When it does not, a separate step publishes that first version with `OVSX_PAT`, which
+Terraform distributes, and leaves a notice to register the trusted publisher. Any answer other
+than found or missing fails the channel. The CLI obtains the GitHub token for the
 default Open VSX audience, exchanges it and publishes the already checked VSIX.
 
 An already published version remains a successful retry; authentication or exchange failures
