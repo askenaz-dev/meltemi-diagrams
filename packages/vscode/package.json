@@ -1,6 +1,6 @@
 {
   "name": "meltemi-diagrams-vscode",
-  "displayName": "Meltemi Diagrams",
+  "displayName": "Meltemi Diagrams for VS Code",
   "description": "%description%",
   "version": "1.11.0",
   "publisher": "meltemi",
