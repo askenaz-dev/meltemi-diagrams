@@ -220,7 +220,7 @@ strip, which is how the editorial themes behave. The strip spans the whole canva
 with role `frame`, outside the diagram's elements, and the canvas grows to fit the wordmark and
 title. The editor's exports can also leave the strip out by request, whatever the theme says,
 keeping every other token; the hosted page offers it to the accounts an administrator entitled
-([the playground](../playground.md#exports-in-the-browser)).
+([the web app](../web-app.md#exports-in-the-browser)).
 
 ### Sketched strokes
 

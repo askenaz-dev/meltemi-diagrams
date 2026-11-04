@@ -91,7 +91,7 @@ async function playgroundPath(): Promise<FirstExport | undefined> {
   }
   const totalMs = steps.reduce((n, s) => n + s.ms, 0);
   return {
-    path: "playground, flow template",
+    path: "web app, flow template",
     steps,
     totalMs,
     passed: totalMs < TARGETS.firstExport,

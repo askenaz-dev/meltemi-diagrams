@@ -89,7 +89,7 @@ export const explorer: typeof en = {
     empty: "Ponle un nombre.",
     invalid: "Un nombre no puede empezar con un punto ni llevar /, \\ o :.",
     extension: "Mantén la extensión del archivo.",
-    editable: "El playground edita archivos .meltemi, .json y .md.",
+    editable: "La app edita archivos .meltemi, .json y .md.",
     exists: (path) => `${path} ya existe.`,
     itself: "Una carpeta no puede moverse dentro de sí misma.",
     created: (path) => `Se creó ${path}.`,

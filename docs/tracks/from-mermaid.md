@@ -4,7 +4,7 @@
 
 You already write diagrams as text next to your code, and a tool draws them. Meltemi Diagrams
 keeps that: `.meltemi` files are plain text in your repository, reviewed in pull requests and
-drawn by the command line, the editor and the playground. This page shows what changes, how to
+drawn by the command line, the editor and the web app. This page shows what changes, how to
 bring your Mermaid diagrams over, and what to try first.
 
 ## What stays the same

@@ -12,11 +12,11 @@ const counts = (errors: number, warnings: number) =>
 /** The playground's words in Spanish, entry for entry as in `en.ts`. */
 export const es: typeof en = {
   page: {
-    title: "Playground de Meltemi Diagrams",
+    title: "Meltemi Diagrams",
     description:
-      "Playground de Meltemi Diagrams: escribe diagramas como código, ajústalos en un lienzo y expórtalos, en tu navegador. Sin necesidad de cuenta.",
-    loading: "Cargando el playground…",
-    failed: (reason) => `El playground no pudo iniciarse: ${reason}`,
+      "Meltemi Diagrams: escribe diagramas como código, ajústalos en un lienzo y expórtalos, en tu navegador. Sin necesidad de cuenta.",
+    loading: "Cargando Meltemi Diagrams…",
+    failed: (reason) => `Meltemi Diagrams no pudo iniciarse: ${reason}`,
     templatesUnreadable: (status) => `No se pudieron leer las plantillas (${status}).`,
   },
 
@@ -29,8 +29,8 @@ export const es: typeof en = {
     inspector: "Ctrl+Alt+B",
   },
   header: {
-    tag: "Playground",
-    actions: "Playground",
+    tag: "Web",
+    actions: "Meltemi Diagrams",
     open: "Abrir",
     openTitle: "Abrir archivos o el .zip de un proyecto",
     import: "Importar",
@@ -45,7 +45,7 @@ export const es: typeof en = {
     download: "Descargar",
     themeToDark: "Cambiar al tema oscuro",
     themeToLight: "Cambiar al tema claro",
-    about: "Acerca del playground",
+    about: "Acerca de Meltemi Diagrams",
     more: "Más",
     views: "Vista",
     code: "Código",
@@ -196,7 +196,7 @@ export const es: typeof en = {
     kept: "Guardado en este navegador.",
     keptHere: "Guardado en este navegador. Descarga el proyecto para conservarlo en otro lugar.",
     archiveUnreadable: (name) => `No se pudo leer ${name}.`,
-    noneOpenable: "Ninguno de los archivos se puede abrir en el playground.",
+    noneOpenable: "Ninguno de los archivos se puede abrir en la app.",
     replaceTitle: "¿Reemplazar archivos?",
     replaceMessage: (paths) =>
       `Se ${plural("es", paths.length, { one: "reemplazará", other: "reemplazarán" })} ${list("es", paths)}.`,
@@ -291,17 +291,17 @@ export const es: typeof en = {
     selectIt: "Selecciona el enlace y cópialo.",
     damaged: "El enlace está dañado.",
     tooLarge: "El proyecto del enlace supera los 4 MiB; no se abre.",
-    otherVersion: "El enlace se hizo con otra versión del playground.",
+    otherVersion: "El enlace se hizo con otra versión de la app.",
     tooMany: (files, most) => `El enlace contiene ${files} archivos; como máximo, ${most}.`,
     unopenable: (path) => `El enlace contiene un archivo que no se puede abrir: ${path}`,
   },
 
   about: {
-    title: "Acerca del playground",
+    title: "Acerca de Meltemi Diagrams",
     loading: "Cargando la lista de componentes…",
     unreadable: "No se pudo leer la lista; consulta NOTICES.md.",
     text: (version) =>
-      `**Meltemi Diagrams ${version}**: diagramas como código, un lienzo para componerlos y exportaciones para documentos, diapositivas y video.\n\nEl playground se ejecuta por completo en tu navegador. No hay cuenta, nada de lo que escribes se envía a ningún sitio y tu trabajo se queda en este navegador hasta que lo descargas.\n\nMeltemi Diagrams tiene licencia MIT. El playground incluye los componentes siguientes con sus propias licencias: las fuentes con la SIL Open Font License 1.1, elkjs con la Eclipse Public License 2.0 (código fuente en github.com/kieler/elkjs) y los demás según se indica.`,
+      `**Meltemi Diagrams ${version}**: diagramas como código, un lienzo para componerlos y exportaciones para documentos, diapositivas y video.\n\nMeltemi Diagrams funciona en tu navegador. Sin una cuenta, nada de lo que escribes se envía a ningún sitio y tu trabajo se queda en este navegador hasta que lo descargas. Con una cuenta, tus proyectos pueden guardarse en la nube y compartirse.\n\nMeltemi Diagrams tiene licencia MIT. La app incluye los componentes siguientes con sus propias licencias: las fuentes con la SIL Open Font License 1.1, elkjs con la Eclipse Public License 2.0 (código fuente en github.com/kieler/elkjs) y los demás según se indica.`,
     notices: "Leer todas las licencias (NOTICES.md)",
     agents: "Dibujar con agentes de programación",
     agentsPage: "es/agent-setup/",

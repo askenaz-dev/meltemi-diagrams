@@ -47,8 +47,8 @@
       `messages/account-panel-{en,es}.ts`. Verify the panel model tests and the browser suite
       cover the donor's Profile, the Google-only hint, the claim without reload, the unclaimed
       sponsorship row and the placeholder, and no part without sponsorships.
-- [ ] 3.3 Update `docs/playground.md` (the donation path in the export dialog and Profile; the
-      Administration section's Sponsorships) and `docs/es/playground.md`. Verify the docs link
+- [ ] 3.3 Update `docs/web-app.md` (the donation path in the export dialog and Profile; the
+      Administration section's Sponsorships) and `docs/es/web-app.md`. Verify the docs link
       test is green.
 
 ## 4. The family's configuration and site

@@ -2,7 +2,7 @@
 
 The canvas: the browser application that draws a diagram beside its code and turns every gesture
 (move, resize, route, label, group, align, play) into a small edit of the text. It runs in a host
-that implements `CanvasHostApi`, such as the VS Code webview or the playground, and styles itself
+that implements `CanvasHostApi`, such as the VS Code webview or the web app, and styles itself
 with `canvas.css`.
 
 It is part of [Meltemi Diagrams](https://github.com/askenaz-dev/meltemi-diagrams#readme), diagrams as code with a canvas, motion and
@@ -71,19 +71,19 @@ The properties panel folds to a rail from the button in its head and unfolds fro
 button or the toolbar's toggle, one choice kept with the canvas's state (`PersistedState.inspector`,
 read as a boolean only). A host folds it too with `app.setInspectorCollapsed(collapsed)` and reads
 `app.inspectorCollapsed`; a host that binds a key of its own for it names the key in
-`host.keys.inspector` (the playground passes "Ctrl+Alt+B"), and the canvas's tooltips show it.
+`host.keys.inspector` (the web app passes "Ctrl+Alt+B"), and the canvas's tooltips show it.
 
 Every toolbar button's name says what it does, without its key; its `title` adds the key in
 parentheses and `aria-keyshortcuts` says it. The package exports the bubble that shows those titles,
 `Tooltips` (`new Tooltips(root, { except })`, 400 ms after the pointer rests, `TOOLTIP_DELAY`), so a
-host draws its own controls' tooltips the same way (the playground uses `{ except: "#app" }`, and
+host draws its own controls' tooltips the same way (the web app uses `{ except: "#app" }`, and
 the canvas keeps its own), and `ariaKeyshortcuts(shown)`, which writes a shown key ("Ctrl+Alt+B",
 "Mayús+1") as `aria-keyshortcuts` wants it ("Control+Alt+B", "Shift+1").
 
 ## Documentation
 
 - [Editor guide](https://github.com/askenaz-dev/meltemi-diagrams/blob/main/docs/editor.md)
-- [Playground](https://github.com/askenaz-dev/meltemi-diagrams/blob/main/docs/playground.md)
+- [The web app](https://github.com/askenaz-dev/meltemi-diagrams/blob/main/docs/web-app.md)
 - [All documentation](https://github.com/askenaz-dev/meltemi-diagrams/blob/main/docs/README.md)
 
 ## Licence

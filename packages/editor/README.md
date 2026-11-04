@@ -2,8 +2,7 @@
 
 Host-neutral editor services: diagnostics, completion, hover, definitions, references, rename,
 formatting, quick fixes, symbols and semantic tokens; project sessions; the canvas session and its
-protocol; exports and catalogs (`./node`). The VS Code extension and the playground are built on
-it.
+protocol; exports and catalogs (`./node`). The VS Code extension and the web app are built on it.
 
 It is part of [Meltemi Diagrams](https://github.com/askenaz-dev/meltemi-diagrams#readme), diagrams as code with a canvas, motion and
 exports. Every package of the product has the same version.

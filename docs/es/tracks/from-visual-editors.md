@@ -36,7 +36,7 @@ reutilizar y animar los diagramas.
 
 No hay importador para los archivos de draw.io, Lucidchart o Visio: la importación universal queda
 fuera de la 1.0 ([compatibilidad](../compatibility.md)). En su lugar, empieza desde una plantilla,
-en el [playground](../playground.md) sin instalar nada, o en local:
+en [la app web](../web-app.md) sin instalar nada, o en local:
 
 ```bash
 meltemi-diagrams init my-diagrams --template free

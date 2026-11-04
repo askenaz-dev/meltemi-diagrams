@@ -83,7 +83,7 @@ pnpm mdg assets icons cloud upload
 ### Adding icons from the editor
 
 **Add icon…** at the foot of the icon picker and of the Libraries panel adds SVG files of your own
-to the project, in VS Code and in the playground, when the file belongs to a project. Pick one or
+to the project, in VS Code and in the web app, when the file belongs to a project. Pick one or
 several `.svg` files; a dialog shows each one drawn as it will be, the name it gets and the pack:
 
 - **Pack**: `project` by default, or another prefix; a built-in pack (`tabler`, `aws`…), a
@@ -108,9 +108,9 @@ The AWS, Azure, Google Cloud and Kubernetes sets are built in, converted unmodif
 vendors' downloads by `pnpm vendor:icons` into `packages/assets/vendor/` with the vendor's
 categories and a label per icon (`aws:lambda` is "AWS Lambda"). Each keeps its vendor's terms,
 which permit architecture diagrams and documentation: the tool reports the terms in
-`THIRD_PARTY_LICENSES.md` and in the notices of the extension and the playground, and the `aws`,
+`THIRD_PARTY_LICENSES.md` and in the notices of the extension and the web app, and the `aws`,
 `azure` and `gcp` packs say `"redistribute": false`, so `assets list` marks exports that carry
-them. The playground fetches a provider pack the first time a document or the libraries panel
+them. The web app fetches a provider pack the first time a document or the libraries panel
 needs it. Other provider sets go in a project pack, for example `assets/icons/oci/`, with their
 terms in `assets/licenses.json`.
 

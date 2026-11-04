@@ -59,6 +59,8 @@ None.
 - `web-playground`: added, the page's name and the guard on its visible words.
 - `playground-cloud`: "A cloud project bound to the Studio" names the page, not the Studio.
 - `live-sessions`: "The page as a guest" names the page, not the Studio.
+- `localized-documentation`: "Spanish documentation" lists the guide as `web-app.md`.
+- `agent-skill`: "Documentation for agents" names the guide `docs/web-app.md`.
 
 ## Impact
 

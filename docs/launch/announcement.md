@@ -1,7 +1,7 @@
 # Meltemi Diagrams 1.0
 
 _Draft announcement for the 1.0 release. The owner adjusts it, adds the links of the published
-packages, the extension and the hosted playground, and publishes it with the release._
+packages, the extension and the hosted web app, and publishes it with the release._
 
 Meltemi Diagrams 1.0 is out: professional diagrams written as code, adjusted on a canvas,
 animated, and exported for documents, slides, the web and video. It is open source under the MIT
@@ -20,7 +20,7 @@ canvas edits it, and every gesture is a small change you can read in a diff.
 
 - **Four profiles in one language**: flow diagrams, sequence diagrams with scenarios, C4 views of
   a shared model, and free compositions for slides ([gallery](../../gallery/README.md)).
-- **Code and canvas**: an extension for VS Code and a browser playground with the same canvas:
+- **Code and canvas**: an extension for VS Code and a web app with the same canvas:
   grid, guides, routing, an inspector, and every change written back to the text.
 - **Motion**: effects along connectors and stories with scenes, camera and transitions, played in
   an offline HTML player or exported as MP4, WebM and GIF.
@@ -51,7 +51,7 @@ npm install --global @meltemi/diagrams-cli
 meltemi-diagrams init my-diagrams --template purchase
 ```
 
-Then install the **Meltemi Diagrams** extension for VS Code, or open the playground at
+Then install the **Meltemi Diagrams** extension for VS Code, or open the web app at
 [diagrams.meltemi.dev](https://diagrams.meltemi.dev). The
 [getting started](../getting-started.md) guide takes about ten minutes. What runs where, and what
 1.0 does not do, is in [compatibility](../compatibility.md).
@@ -60,6 +60,6 @@ Then install the **Meltemi Diagrams** extension for VS Code, or open the playgro
 
 After the release, work goes first to defects and to what people need to use it again for their
 next delivery, before new notations. Realtime collaboration has since arrived, with the optional
-hosted playground ([working together](../playground.md#working-together)); proposals for new diagram
+hosted web app ([working together](../web-app.md#working-together)); proposals for new diagram
 types and for more managed services will be weighed against evidence of demand and the cost of
 supporting them.

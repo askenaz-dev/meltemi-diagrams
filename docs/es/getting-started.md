@@ -7,7 +7,7 @@ hace falta ninguna cuenta, y nada de lo que escribes sale de tu máquina.
 
 ## Probarlo sin instalar nada
 
-El [playground](playground.md) ejecuta todo el producto en una pestaña del navegador: empieza un
+[La app web](web-app.md) ejecuta todo el producto en una pestaña del navegador: empieza un
 proyecto desde la tarjeta de una plantilla, cambia el código o arrastra en el lienzo, y exporta. El
 explorador de la izquierda lista las carpetas y los diagramas del proyecto. Cuando quieras seguir en
 local, **Exportar proyecto**, en el panel Proyectos (el nombre del proyecto arriba del explorador),
@@ -39,7 +39,7 @@ code --install-extension meltemi-diagrams-1.0.0.vsix
 Si trabajas desde este repositorio, ejecuta `pnpm install` una vez y usa `pnpm mdg` donde esta guía
 dice `meltemi-diagrams`;
 [probarlo desde el repositorio](../../README.es.md#probarlo-desde-este-repositorio) explica también
-el editor y el playground.
+el editor y la app web.
 
 ## Un primer proyecto
 

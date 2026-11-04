@@ -236,7 +236,7 @@ editorial. La franja ocupa todo el lienzo, es un grupo de la escena con el rol `
 elementos del diagrama, y el lienzo crece para que quepan el logotipo y el título. Las
 exportaciones del editor también pueden omitir la franja a pedido, diga lo que diga el tema,
 conservando todos los demás tokens; la página alojada lo ofrece a las cuentas que un administrador
-habilitó ([el playground](../playground.md#exportaciones-en-el-navegador)).
+habilitó ([la app web](../web-app.md#exportaciones-en-el-navegador)).
 
 ### Trazos a mano
 

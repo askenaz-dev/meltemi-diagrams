@@ -1,8 +1,8 @@
-# El playground
+# La app web
 
-[English](../playground.md)
+[English](../web-app.md)
 
-El playground es Meltemi Diagrams en una página web: las plantillas, el código junto al mismo lienzo
+Meltemi Diagrams funciona en una página web: las plantillas, el código junto al mismo lienzo
 que la extensión de VS Code y todas las exportaciones, sin instalar nada y sin necesidad de cuenta.
 Todo se ejecuta en el navegador; nada de lo que escribes se envía a ningún sitio (decisión 0031).
 Servida por el [servicio en la nube](cloud.md), la página ofrece además una cuenta opcional
@@ -46,7 +46,7 @@ compila el sitio, lo sirve en `127.0.0.1` y lo maneja en el Edge o el Chrome ins
 
 ## Lo que hace
 
-| Área      | En el playground                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Área      | En la app                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Proyectos | El explorador lista las carpetas y los diagramas del proyecto y los crea, les cambia el nombre, los mueve y los elimina, con las importaciones que siguen a un movimiento ([el explorador](#el-explorador)); **Nuevo proyecto** parte de las plantillas de `init`, mostradas como tarjetas; el `.zip` de un proyecto se importa y se exporta entero. El compilador de proyectos es el mismo que usan la CLI y el editor.                                            |
 | Código    | Resaltado, números de línea, diagnósticos subrayados y listados con sus líneas y correcciones rápidas, autocompletado, información al pasar el puntero, formato, cambio de nombre e ir a la definición entre archivos; el panel se pliega en un riel para darle el ancho al lienzo ([el panel del código](#el-panel-del-código)).                                                                                                                                   |
@@ -316,7 +316,7 @@ proyecto en la nube, y en uno que se está viendo por su enlace, **Compartir** a
 diálogo propio de ese proyecto ([compartir un proyecto](#compartir-un-proyecto)).
 
 La página guarda el proyecto en el navegador (almacenamiento local): los archivos de texto y las
-imágenes de hasta 512 KiB cada uno. Un navegador que no guarda nada sigue ejecutando el playground;
+imágenes de hasta 512 KiB cada uno. Un navegador que no guarda nada sigue ejecutando la app;
 la línea de estado lo indica. Un proyecto en la nube se guarda de otra manera, como su documento en
 IndexedDB ([sin conexión](#sin-conexión)), y el proyecto del navegador y los proyectos en la nube
 nunca se reemplazan entre sí.
@@ -598,7 +598,7 @@ Lo que no hace:
 - No hay service worker, así que la propia página no se carga sin conexión, y una página que arranca
   sin conexión no puede preguntar quién ha iniciado sesión: se abre como el proyecto del navegador,
   sin sesión. Editar sin conexión significa un proyecto que estaba abierto cuando se cayó la
-  conexión, no abrir el playground sin red.
+  conexión, no abrir la app sin red.
 - Donde IndexedDB no está disponible (algunas ventanas privadas, un almacenamiento bloqueado) el
   proyecto se abre desde la sala, la línea de estado dice que no se conservará sin conexión, y lo que
   la sala no tiene se pierde si la página se cierra sin conexión.
@@ -864,7 +864,7 @@ llena y que vuelvas a abrir el proyecto dentro de un momento, y el proyecto del 
 
 Lo que no hace:
 
-- Es para proyectos en la nube abiertos en el playground. La extensión de VS Code y la línea de
+- Es para proyectos en la nube abiertos en la app web. La extensión de VS Code y la línea de
   comandos no muestran presencia; un push mediante la API o la línea de comandos llega en vivo a las
   personas de la sala, como cualquier cambio.
 - No sigue la vista de nadie, y no tiene comentarios, chat ni voz.

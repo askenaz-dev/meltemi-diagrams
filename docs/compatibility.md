@@ -18,7 +18,7 @@ means checked by the repository's tests or verification runs on the reference ma
 
 Nothing needs a server or an account. Network is used only for optional AI assistance, with the
 provider and key you configure ([assist](assist.md)), and for the optional account that the
-playground offers when the [cloud service](cloud.md) serves it.
+app offers when the [cloud service](cloud.md) serves it.
 
 ## Browsers and FFmpeg
 
@@ -31,9 +31,9 @@ with `MELTEMI_FFMPEG`. Nothing is downloaded.
 | Captures (PNG, PDF, video frames)                           | Microsoft Edge, Google Chrome, Chromium           | Edge 155, Chrome 154                                                     |
 | Video encoding                                              | FFmpeg with libx264 (MP4), libvpx-vp9 (WebM), GIF | FFmpeg 6.1.1                                                             |
 | Opening exports (SVG, PNG, player, catalog, MP4, WebM, GIF) | current Edge, Chrome, Firefox and Safari          | Edge 155, Chrome 154, Firefox 157 ([browsers](verification/browsers.md)) |
-| The playground                                              | current Edge, Chrome, Firefox and Safari          | Edge 155, Chrome 154, Firefox 157; Safari not verified                   |
+| The web app                                                 | current Edge, Chrome, Firefox and Safari          | Edge 155, Chrome 154, Firefox 157; Safari not verified                   |
 
-The playground records WebM and MP4 with the browser's WebCodecs encoders; a browser without one
+The web app records WebM and MP4 with the browser's WebCodecs encoders; a browser without one
 disables the format and shows the command that makes it. GIF needs no encoder.
 
 ## Editors
@@ -90,12 +90,12 @@ Outside 1.0, as the proposal decides:
 - export to PPTX and conversion to editable PowerPoint shapes.
 
 Realtime collaboration (several people editing the same file at once) was outside 1.0 too and is
-not a limitation any more: the playground's cloud projects have it
-([working together](playground.md#working-together)). What it does not do:
+not a limitation any more: the web app's cloud projects have it
+([working together](web-app.md#working-together)). What it does not do:
 
 - It needs the cloud service, and a project in an account. The people who join need none: a
   visitor of a shared link follows live, and a guest of the owner's live session edits without an
-  account ([live sessions](playground.md#live-sessions)). The VS Code extension and the command line
+  account ([live sessions](web-app.md#live-sessions)). The VS Code extension and the command line
   show no presence, though a push through the API or the command line reaches the people in a room
   live.
 - A room holds twenty connections, and ten without an account from one network; the twenty-first
@@ -107,7 +107,7 @@ In 1.0:
 
 - macOS and Linux run the same code paths as Windows (browser and FFmpeg discovery included) but
   have not been verified on a machine; the reference results come from Windows 11.
-- PDF from the playground goes through the browser's print dialog (choose **Save as PDF**); the
+- PDF from the web app goes through the browser's print dialog (choose **Save as PDF**); the
   command line writes PDF directly.
 - Transparent video (WebM with alpha) is made by the command line only.
 - GIF uses one palette of 256 colours for the whole animation.

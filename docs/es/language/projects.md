@@ -148,7 +148,7 @@ Las palabras que escriben las personas (etiquetas, descripciones, títulos) nunc
 tampoco las palabras clave y los valores del lenguaje. El ajuste forma parte de la entrada, así que
 los mismos archivos fuente y las mismas opciones exportan los mismos bytes en todas las máquinas: el
 idioma de la máquina, del editor o del navegador nunca cambia un archivo exportado. La opción
-`--lang en|es` de la línea de comandos y el diálogo de exportación del playground eligen otro idioma
+`--lang en|es` de la línea de comandos y el diálogo de exportación de la app eligen otro idioma
 para una exportación.
 
 ## El proyecto de la nube
@@ -193,7 +193,7 @@ luego `<ns>.<id>`. Una referencia a un bloque del tipo equivocado nombra el tipo
 
 ## Compilación
 
-`@meltemi/diagrams-project` compila los proyectos para la CLI, el editor y el playground:
+`@meltemi/diagrams-project` compila los proyectos para la CLI, el editor y la app web:
 
 - `Workspace` compila un archivo con sus importaciones (`compileFile`) o el proyecto completo
   (`compileProject`).

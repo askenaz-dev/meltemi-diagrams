@@ -49,10 +49,10 @@ repository, and everything runs as GitHub pipelines.
 - [ ] Watch the automatic release after successful main push CI: npm packages with provenance,
       extension on both marketplaces and complete GitHub release ([releasing](../../RELEASING.md)).
       Recover the legacy partial 1.10.0 using its original execution and artifacts.
-- [x] **Host the playground.** It is `https://diagrams.meltemi.dev`, deployed from `main`
-      ([playground](../playground.md)); the README and the announcement name it.
+- [x] **Host the web app.** It is `https://diagrams.meltemi.dev`, deployed from `main`
+      ([the web app](../web-app.md)); the README and the announcement name it.
 - [ ] Publish the [announcement](announcement.md) with the links of the packages, the extension
-      and the playground.
+      and the web app.
 
 ## After publishing
 

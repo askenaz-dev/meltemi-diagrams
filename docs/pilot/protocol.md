@@ -35,7 +35,7 @@ One session per participant, 60 to 90 minutes, remote or in person, with screen 
 participant's permission to record times and notes (not video, unless they agree to it).
 
 Setup before the session: Node, the command line, VS Code with the extension, an installed Edge or
-Chrome and FFmpeg on the participant's machine, or the [playground](../playground.md) when they
+Chrome and FFmpeg on the participant's machine, or the [web app](../web-app.md) when they
 cannot install anything. Note which in `notes`.
 
 | Phase          | What the participant does                                                                                                 |

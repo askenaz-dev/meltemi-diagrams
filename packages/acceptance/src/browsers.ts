@@ -546,7 +546,7 @@ function videoFacts(ffmpeg: string, file: string) {
 /** The playground in each browser: the same exports as the command line, made in the page. */
 const PLAYGROUND_CHECKS: readonly Check[] = [
   {
-    format: "Playground",
+    format: "Web app",
     name: "SVG equal to the command line's",
     async run(page, expected) {
       await playgroundOn(page, expected, "diagrams/executive.meltemi");
@@ -557,7 +557,7 @@ const PLAYGROUND_CHECKS: readonly Check[] = [
     },
   },
   {
-    format: "Playground",
+    format: "Web app",
     name: "PNG at its scale",
     async run(page, expected) {
       await playgroundOn(page, expected, "diagrams/executive.meltemi");
@@ -581,7 +581,7 @@ const PLAYGROUND_CHECKS: readonly Check[] = [
       ["mp4", "MP4", ["h264"], 1920, 1080],
     ] as const
   ).map(([format, label, codecs, width, height]): Check => ({
-    format: "Playground",
+    format: "Web app",
     name: `${label} recorded in the page`,
     async run(page, expected) {
       if (!expected.ffmpeg) throw new Skip("FFmpeg is not installed");

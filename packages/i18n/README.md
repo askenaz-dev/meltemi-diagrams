@@ -84,7 +84,7 @@ Neutral Spanish, the same terms everywhere:
 | entity           | entidad                 | container        | contenedor               |
 | component        | componente              | software system  | sistema de software      |
 | person           | persona                 | boundary         | límite                   |
-| free composition | composición libre       | playground       | playground               |
+| free composition | composición libre       | the app          | la app                   |
 | warning          | advertencia             | error            | error                    |
 | hint             | pista                   | quick fix        | corrección rápida        |
 | undo, redo       | deshacer, rehacer       | selection        | selección                |

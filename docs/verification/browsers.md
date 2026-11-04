@@ -20,11 +20,11 @@ Run on 2026-10-28: 11th Gen Intel(R) Core(TM) i9-11980HK @ 2.60GHz, 16 threads, 
 | MP4          | reports duration and size, draws frames at control times               |         ✓          |          ✓           |        ✓        |
 | WebM         | reports duration and size, draws frames at control times               |         ✓          |          ✓           |        ✓        |
 | GIF          | decodes at its size                                                    |         ✓          |          ✓           |        ✓        |
-| Playground   | SVG equal to the command line's                                        |         ✓          |          ✓           |        ✓        |
-| Playground   | PNG at its scale                                                       |         ✓          |          ✓           |        ✓        |
-| Playground   | GIF recorded in the page                                               |         ✓          |          ✓           |        ✓        |
-| Playground   | WebM recorded in the page                                              |         ✓          |          ✓           |        ✓        |
-| Playground   | MP4 recorded in the page                                               |         ✓          |          ✓           |        ✓        |
+| Web app      | SVG equal to the command line's                                        |         ✓          |          ✓           |        ✓        |
+| Web app      | PNG at its scale                                                       |         ✓          |          ✓           |        ✓        |
+| Web app      | GIF recorded in the page                                               |         ✓          |          ✓           |        ✓        |
+| Web app      | WebM recorded in the page                                              |         ✓          |          ✓           |        ✓        |
+| Web app      | MP4 recorded in the page                                               |         ✓          |          ✓           |        ✓        |
 | PDF          | page size, embedded fonts, extractable text, link (read from the file) |         ✓          |          ✓           |        ✓        |
 
 ## What each browser saw
@@ -58,21 +58,21 @@ Run on 2026-10-28: 11th Gen Intel(R) Core(TM) i9-11980HK @ 2.60GHz, 16 threads, 
 | GIF, decodes at its size                                           | Edge    |   ✓    | 960×540                                      |
 | GIF, decodes at its size                                           | Chrome  |   ✓    | 960×540                                      |
 | GIF, decodes at its size                                           | Firefox |   ✓    | 960×540                                      |
-| Playground, SVG equal to the command line's                        | Edge    |   ✓    | byte for byte                                |
-| Playground, SVG equal to the command line's                        | Chrome  |   ✓    | byte for byte                                |
-| Playground, SVG equal to the command line's                        | Firefox |   ✓    | byte for byte                                |
-| Playground, PNG at its scale                                       | Edge    |   ✓    | 2560×1440                                    |
-| Playground, PNG at its scale                                       | Chrome  |   ✓    | 2560×1440                                    |
-| Playground, PNG at its scale                                       | Firefox |   ✓    | 2560×1440                                    |
-| Playground, GIF recorded in the page                               | Edge    |   ✓    | gif, 960×540, 19 frames over 2.00 s          |
-| Playground, GIF recorded in the page                               | Chrome  |   ✓    | gif, 960×540, 19 frames over 2.00 s          |
-| Playground, GIF recorded in the page                               | Firefox |   ✓    | gif, 960×540, 19 frames over 2.00 s          |
-| Playground, WebM recorded in the page                              | Edge    |   ✓    | vp9, 1920×1080, 60 frames over 2.00 s        |
-| Playground, WebM recorded in the page                              | Chrome  |   ✓    | vp9, 1920×1080, 60 frames over 2.00 s        |
-| Playground, WebM recorded in the page                              | Firefox |   ✓    | vp9, 1920×1080, 60 frames over 2.00 s        |
-| Playground, MP4 recorded in the page                               | Edge    |   ✓    | h264, 1920×1080, 60 frames over 2.00 s       |
-| Playground, MP4 recorded in the page                               | Chrome  |   ✓    | h264, 1920×1080, 60 frames over 2.00 s       |
-| Playground, MP4 recorded in the page                               | Firefox |   ✓    | h264, 1920×1080, 60 frames over 2.00 s       |
+| Web app, SVG equal to the command line's                           | Edge    |   ✓    | byte for byte                                |
+| Web app, SVG equal to the command line's                           | Chrome  |   ✓    | byte for byte                                |
+| Web app, SVG equal to the command line's                           | Firefox |   ✓    | byte for byte                                |
+| Web app, PNG at its scale                                          | Edge    |   ✓    | 2560×1440                                    |
+| Web app, PNG at its scale                                          | Chrome  |   ✓    | 2560×1440                                    |
+| Web app, PNG at its scale                                          | Firefox |   ✓    | 2560×1440                                    |
+| Web app, GIF recorded in the page                                  | Edge    |   ✓    | gif, 960×540, 19 frames over 2.00 s          |
+| Web app, GIF recorded in the page                                  | Chrome  |   ✓    | gif, 960×540, 19 frames over 2.00 s          |
+| Web app, GIF recorded in the page                                  | Firefox |   ✓    | gif, 960×540, 19 frames over 2.00 s          |
+| Web app, WebM recorded in the page                                 | Edge    |   ✓    | vp9, 1920×1080, 60 frames over 2.00 s        |
+| Web app, WebM recorded in the page                                 | Chrome  |   ✓    | vp9, 1920×1080, 60 frames over 2.00 s        |
+| Web app, WebM recorded in the page                                 | Firefox |   ✓    | vp9, 1920×1080, 60 frames over 2.00 s        |
+| Web app, MP4 recorded in the page                                  | Edge    |   ✓    | h264, 1920×1080, 60 frames over 2.00 s       |
+| Web app, MP4 recorded in the page                                  | Chrome  |   ✓    | h264, 1920×1080, 60 frames over 2.00 s       |
+| Web app, MP4 recorded in the page                                  | Firefox |   ✓    | h264, 1920×1080, 60 frames over 2.00 s       |
 
 ## PDF files
 

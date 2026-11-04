@@ -13,7 +13,7 @@ versionas como el resto de tu trabajo.
 - **Cuatro perfiles**: diagramas de flujo, diagramas de secuencia con escenarios, vistas C4 de un
   modelo compartido y composiciones libres para diapositivas.
 - **Código y lienzo**: servicios de lenguaje y un lienzo con cuadrícula, guías, trazado de rutas e
-  inspector, en VS Code y en un [playground](docs/es/playground.md) en el navegador.
+  inspector, en VS Code y en el navegador ([la app web](docs/es/web-app.md)).
 - **Movimiento**: efectos a lo largo de los conectores e historias con escenas, cámara y
   transiciones.
 - **Entrega**: SVG, PNG, PDF vectorial, un reproductor HTML sin conexión, MP4, WebM, GIF y un
@@ -31,9 +31,9 @@ npm install --global @meltemi/diagrams-cli
 
 El comando es `meltemi-diagrams`, o `mdg`. Necesita Node 22.12 o posterior; PNG, PDF y video usan un
 Edge o un Chrome instalado, y el video, un FFmpeg instalado. El editor es la extensión
-**Meltemi Diagrams** para VS Code, y el playground, en
+**Meltemi Diagrams** para VS Code, y la app web, en
 [diagrams.meltemi.dev](https://diagrams.meltemi.dev), no necesita ninguna instalación
-([playground](docs/es/playground.md), [primeros pasos](docs/es/getting-started.md)).
+([la app web](docs/es/web-app.md), [primeros pasos](docs/es/getting-started.md)).
 
 ## Un primer diagrama
 
@@ -145,7 +145,7 @@ puntos que aparecen junto a una caja seleccionada, y mira cómo cambia el texto.
 abre este repositorio en VS Code y presiona F5 con **Run Meltemi Diagrams**: se abre un Host de
 desarrollo de extensiones sobre `examples/` ([editor](docs/es/editor.md)).
 
-### El playground
+### La app web
 
 ```bash
 pnpm playground:build
@@ -157,7 +157,7 @@ pnpm preview
 
 Luego abre `http://localhost:4173/packages/playground/dist/`. `pnpm preview` sirve todo el
 repositorio en el puerto 4173, así que desde ahí también se pueden abrir los archivos exportados
-([playground](docs/es/playground.md)).
+([la app web](docs/es/web-app.md)).
 
 ### Lo que ya está generado
 
@@ -227,8 +227,8 @@ lados desde la 1.4.0, los conectores que tocan las cajas en cualquier punto de s
 diagramas de flujo desde la 1.7.0, los contenedores simples, las pilas, los radios de esquina y
 las veinticuatro formas, con iconos en cualquier lugar de una caja o dibujados como la forma,
 desde la 1.8.0, los dibujos HTML que se acercan, muestran tarjetas y paneles y abren lo que
-contiene una caja desde la 1.9.0, la primera publicada, y el explorador de proyecto del
-playground, las líneas y el aspecto a mano alzada, el puntero y las notas, y un prompt que
+contiene una caja desde la 1.9.0, la primera publicada, y el explorador de proyecto de
+la app, las líneas y el aspecto a mano alzada, el puntero y las notas, y un prompt que
 prepara un agente de programación desde la 1.10.0, como recoge el [registro de cambios](CHANGELOG.md). Todos los criterios de
 aceptación se cumplen en la máquina de referencia ([resultados](docs/quality/results.md)). El
 trabajo se planifica con OpenSpec en `openspec/`.
@@ -272,9 +272,9 @@ comprueba cada criterio de aceptación, y los últimos resultados, están en
 | `packages/assist`     | `@meltemi/diagrams-assist`: asistencia de IA opcional, sus adaptadores y propuestas revisables                                                                |
 | `packages/cli`        | `@meltemi/diagrams-cli`: el comando `meltemi-diagrams`                                                                                                        |
 | `packages/editor`     | `@meltemi/diagrams-editor`: servicios de lenguaje, sesiones de proyecto, exportaciones, la sesión del lienzo, independiente del entorno                       |
-| `packages/canvas`     | `@meltemi/diagrams-canvas`: la aplicación del lienzo, compartida por la extensión y el playground                                                             |
+| `packages/canvas`     | `@meltemi/diagrams-canvas`: la aplicación del lienzo, compartida por la extensión y la app web                                                                |
 | `packages/vscode`     | la extensión Meltemi Diagrams para VS Code: soporte del lenguaje y el lienzo                                                                                  |
-| `packages/playground` | el playground: una página web estática con plantillas, código, el lienzo y todas las exportaciones                                                            |
+| `packages/playground` | la app web: una página estática con plantillas, código, el lienzo y todas las exportaciones                                                                   |
 | `packages/cloud`      | el servicio en la nube: un Worker con la cuenta opcional, los tokens de API y los proyectos en la nube ([cloud](docs/es/cloud.md))                            |
 | `packages/acceptance` | la suite de aceptación: condiciones del corpus, regresión visual, determinismo, medición del rendimiento y los ejecutores de la verificación de exportaciones |
 | `gallery/`            | una hoja de cada perfil con sus exportaciones SVG, PNG y PDF                                                                                                  |
@@ -305,8 +305,8 @@ comprueba cada criterio de aceptación, y los últimos resultados, están en
 | `pnpm vscode:package`          | compilar la extensión de VS Code y comprobar el `.vsix`                                |
 | `pnpm vscode:test-webview`     | probar el lienzo en un Edge o un Chrome sin interfaz gráfica                           |
 | `pnpm vscode:test`             | probar la extensión dentro de VS Code                                                  |
-| `pnpm playground:build`        | compilar el sitio estático del playground                                              |
-| `pnpm playground:test-browser` | probar el playground en un Edge o un Chrome sin interfaz gráfica                       |
+| `pnpm playground:build`        | compilar el sitio estático de la app                                                   |
+| `pnpm playground:test-browser` | probar la app en un Edge o un Chrome sin interfaz gráfica                              |
 | `pnpm cloud:dev`               | compilar la página y ejecutar el servicio en la nube en el puerto 8788                 |
 | `pnpm cloud:migrate`           | aplicar las migraciones de la base de datos del servicio en la nube                    |
 | `pnpm cloud:test`              | probar el servicio en la nube en Node                                                  |

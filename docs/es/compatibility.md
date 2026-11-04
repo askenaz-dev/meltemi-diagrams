@@ -18,7 +18,7 @@ resultados están en [quality/results.md](../quality/results.md).
 
 Nada necesita un servidor ni una cuenta. La red solo se usa para la asistencia de IA opcional, con
 el proveedor y la clave que configures ([asistencia](assist.md)), y para la cuenta opcional que
-ofrece el playground cuando lo sirve el [servicio en la nube](cloud.md).
+ofrece la app cuando la sirve el [servicio en la nube](cloud.md).
 
 ## Navegadores y FFmpeg
 
@@ -31,9 +31,9 @@ PATH o se indica con `MELTEMI_FFMPEG`. No se descarga nada.
 | Capturas (PNG, PDF, fotogramas de video)                                  | Microsoft Edge, Google Chrome, Chromium                  | Edge 155, Chrome 154                                                           |
 | Codificación de video                                                     | FFmpeg con libx264 (MP4), libvpx-vp9 (WebM), GIF         | FFmpeg 6.1.1                                                                   |
 | Abrir las exportaciones (SVG, PNG, reproductor, catálogo, MP4, WebM, GIF) | las versiones actuales de Edge, Chrome, Firefox y Safari | Edge 155, Chrome 154, Firefox 157 ([navegadores](../verification/browsers.md)) |
-| El playground                                                             | las versiones actuales de Edge, Chrome, Firefox y Safari | Edge 155, Chrome 154, Firefox 157; Safari sin verificar                        |
+| La app web                                                                | las versiones actuales de Edge, Chrome, Firefox y Safari | Edge 155, Chrome 154, Firefox 157; Safari sin verificar                        |
 
-El playground graba WebM y MP4 con los codificadores WebCodecs del navegador; un navegador que no
+La app web graba WebM y MP4 con los codificadores WebCodecs del navegador; un navegador que no
 los tenga desactiva el formato y muestra el comando que lo genera. GIF no necesita codificador.
 
 ## Editores
@@ -91,12 +91,12 @@ Fuera de la 1.0, como decide la propuesta:
 - la exportación a PPTX y la conversión a formas editables de PowerPoint.
 
 La colaboración en tiempo real (varias personas que editan el mismo archivo a la vez) también
-quedaba fuera de la 1.0 y ya no es una limitación: los proyectos en la nube del playground la tienen
-([trabajar juntos](playground.md#trabajar-juntos)). Lo que no hace:
+quedaba fuera de la 1.0 y ya no es una limitación: los proyectos en la nube de la app la tienen
+([trabajar juntos](web-app.md#trabajar-juntos)). Lo que no hace:
 
 - Necesita el servicio en la nube, y un proyecto en una cuenta. Quienes se unen no necesitan
   ninguna: quien visita un enlace compartido lo sigue en vivo, y el invitado de la sesión en vivo del
-  propietario edita sin cuenta ([sesiones en vivo](playground.md#sesiones-en-vivo)). La extensión de
+  propietario edita sin cuenta ([sesiones en vivo](web-app.md#sesiones-en-vivo)). La extensión de
   VS Code y la línea de comandos no muestran presencia, aunque un push mediante la API o la línea de
   comandos llega en vivo a las personas de una sala.
 - Una sala admite veinte conexiones, y diez sin cuenta desde una misma red; la número veintiuno
@@ -110,7 +110,7 @@ En la 1.0:
 - macOS y Linux ejecutan el mismo código que Windows (incluida la detección del navegador y de
   FFmpeg), pero no se han verificado en una máquina; los resultados de referencia vienen de
   Windows 11.
-- El PDF desde el playground pasa por el diálogo de impresión del navegador (elige
+- El PDF desde la app web pasa por el diálogo de impresión del navegador (elige
   **Guardar como PDF**); la línea de comandos escribe el PDF directamente.
 - El video transparente (WebM con canal alfa) solo lo genera la línea de comandos.
 - GIF usa una sola paleta de 256 colores para toda la animación.

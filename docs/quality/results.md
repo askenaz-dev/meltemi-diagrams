@@ -44,7 +44,7 @@ Run on 2026-10-28: 11th Gen Intel(R) Core(TM) i9-11980HK @ 2.60GHz, 16 threads, 
 - ✓ CLI, sequence template: 24.8 s
 - ✓ CLI, free template: 24.8 s
 - ✓ CLI, purchase template: 33.3 s
-- ✓ playground, flow template: 1.6 s
+- ✓ web app, flow template: 1.6 s
 
 ## Browser matrix
 

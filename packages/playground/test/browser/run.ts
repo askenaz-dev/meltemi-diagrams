@@ -4336,8 +4336,16 @@ const tests: Test[] = [
       await ready(page);
       assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), "dark");
       await page.screenshot({ path: join(output, "dark.png") });
-      await page.getByRole("button", { name: "About the playground" }).click();
+      // The page names itself Meltemi Diagrams, with the tag Web (decision 0069).
+      assert.equal(await page.title(), "Meltemi Diagrams");
+      assert.equal(await page.locator(".brand-tag").textContent(), "Web");
+      await page.getByRole("button", { name: "About Meltemi Diagrams", exact: true }).click();
       const dialog = page.locator("dialog[open]");
+      assert.equal(await dialog.locator("h2").textContent(), "About Meltemi Diagrams");
+      assert.match(
+        (await dialog.locator(".markdown p").nth(1).textContent()) ?? "",
+        /^Meltemi Diagrams runs in your browser\. Without an account, nothing you write is sent anywhere.*With an account, your projects can be kept in the cloud and shared\.$/,
+      );
       await dialog.locator(".notices li strong").first().waitFor();
       const notices = await dialog.locator(".notices").textContent();
       assert.match(notices ?? "", /elkjs 0\.12\.0 · EPL-2\.0/);
@@ -4409,7 +4417,11 @@ const tests: Test[] = [
         "meltemi-diagrams skill install",
       );
       await page.keyboard.press("Escape");
-      await page.getByRole("button", { name: es.header.about }).click();
+      await page.getByRole("button", { name: "Acerca de Meltemi Diagrams", exact: true }).click();
+      assert.equal(
+        await page.locator("dialog[open] h2").textContent(),
+        "Acerca de Meltemi Diagrams",
+      );
       const agents = page.locator("dialog[open]").getByRole("link", { name: es.about.agents });
       assert.equal(await agents.getAttribute("href"), "es/agent-setup/");
       await page.keyboard.press("Escape");
@@ -4474,7 +4486,7 @@ const tests: Test[] = [
       await ready(page);
 
       assert.equal(await page.evaluate(() => document.documentElement.lang), "es");
-      assert.equal(await page.title(), "Playground de Meltemi Diagrams");
+      assert.equal(await page.title(), "Meltemi Diagrams");
       await expectOpen(page, "diagrams/second.meltemi");
       assert.match(await code(page), /title "second" \/\/ kept/);
       assert.equal(

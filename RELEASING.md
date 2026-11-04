@@ -137,7 +137,7 @@ publishing step. Adapting that separate recovery to OIDC is a separate operation
 ## Hosted deployment
 
 `deploy.yml` independently consumes successful main push CI. It checks out that exact source,
-derives/stamps the same version without reserving a tag, builds the playground and checks main again
+derives/stamps the same version without reserving a tag, builds the web app and checks main again
 immediately before migrations/uploads. Superseded sources are skipped. Marketplace failure does not
 block the service. A push arriving after this final check is processed by its own later CI;
 serialization prevents older completed CI from overtaking newer deployed runs.

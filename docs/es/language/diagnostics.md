@@ -11,7 +11,7 @@ Cada código tiene un ejemplo en `corpus/invalid/<code>.meltemi`, con su salida 
 `corpus/invalid/<code>.diagnostics.json`.
 
 Los mensajes, las pistas y las notas relacionadas están en el idioma de la interfaz: inglés, o
-español cuando el editor, el playground o la línea de comandos hablan español. Las plantillas de
+español cuando el editor, la app web o la línea de comandos hablan español. Las plantillas de
 esta página son las del español; los códigos, las gravedades y los rangos son los mismos en los dos
 idiomas. Las herramientas leen los `data` de un diagnóstico (los ids que nombra, las alternativas
 que puede escribir una corrección, el tamaño en el que cabe un texto), nunca sus palabras.

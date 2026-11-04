@@ -1,14 +1,15 @@
-# The playground
+# The web app
 
-[Español](es/playground.md)
+[Español](es/web-app.md)
 
-The playground is Meltemi Diagrams in a web page: the templates, the code beside the same canvas as
-the VS Code extension, and every export, with nothing to install and no account needed. Everything
-runs in the browser; nothing you write is sent anywhere (decision 0031). Served by the
-[cloud service](cloud.md), the page also offers an optional account ([the account](#the-account))
-and, with it, projects kept in the cloud ([projects in the cloud](#projects-in-the-cloud)), which
-can be shared ([sharing a project](#sharing-a-project)), worked on together, live, by the people
-they are shared with ([working together](#working-together)) and published as a web page
+The web app is Meltemi Diagrams in a web page (decision 0069): the templates, the code beside the
+same canvas as the VS Code extension, and every export, with nothing to install and no account
+needed. Everything runs in the browser; nothing you write is sent anywhere (decision 0031). Served
+by the [cloud service](cloud.md), the page also offers an optional account
+([the account](#the-account)) and, with it, projects kept in the cloud
+([projects in the cloud](#projects-in-the-cloud)), which can be shared
+([sharing a project](#sharing-a-project)), worked on together, live, by the people they are shared
+with ([working together](#working-together)) and published as a web page
 ([publishing a project](#publishing-a-project)). The link to a shared project opens it for anyone
 to look at, with no account ([viewing a shared project](#viewing-a-shared-project)); without an
 account, nothing else changes.
@@ -41,7 +42,7 @@ builds the site, serves it on `127.0.0.1` and drives it in the installed Edge or
 
 ## What it does
 
-| Area     | In the playground                                                                                                                                                                                                                                                                                                                                                                         |
+| Area     | In the web app                                                                                                                                                                                                                                                                                                                                                                            |
 | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Projects | The explorer lists the project's folders and diagrams and makes, renames, moves and deletes them, with the imports that follow a move ([the explorer](#the-explorer)); **New project** starts from the `init` templates, shown as cards; a project `.zip` is imported and exported as a whole. The project compiler is the CLI's and the editor's.                                        |
 | Code     | Highlighting, line numbers, diagnostics underlined and listed with their lines and quick fixes, completion, hover, formatting, rename and go to definition across files; the pane folds to a rail to give the canvas the width ([the code pane](#the-code-pane)).                                                                                                                         |
@@ -297,7 +298,7 @@ In a cloud project, and in one being viewed by its link, **Share** opens
 that project's own dialog instead ([sharing a project](#sharing-a-project)).
 
 The page keeps the project in the browser (local storage), text files and images up to 512 KiB
-each. A browser that keeps nothing still runs the playground; the status line says so. A cloud
+each. A browser that keeps nothing still runs the app; the status line says so. A cloud
 project is kept differently, as its document in IndexedDB ([offline](#offline)), and the project of
 the browser and the cloud projects never replace each other.
 
@@ -557,8 +558,8 @@ What it does not do:
 
 - There is no service worker, so the page itself does not load without a connection, and a page
   started offline cannot ask who is signed in: it opens as the project of the browser, signed out.
-  Offline editing means a project that was open when the connection dropped, not opening the
-  playground with no network.
+  Offline editing means a project that was open when the connection dropped, not opening the app
+  with no network.
 - Where IndexedDB is unavailable (some private windows, blocked storage) the project opens from the
   room, the status line says it will not be kept offline, and what the room has not got is lost if
   the page closes while offline.
@@ -806,7 +807,7 @@ project of the browser stays.
 
 What it does not do:
 
-- It is for cloud projects open in the playground. The VS Code extension and the command line show
+- It is for cloud projects open in the web app. The VS Code extension and the command line show
   no presence; a push through the API or the command line reaches the people in the room live, as
   any change does.
 - It does not follow anybody's view, and has no comments, chat or voice.

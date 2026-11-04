@@ -90,14 +90,14 @@ walks through the common path, and the [documentation index](README.md) lists ev
   approximated or dropped, the source is never changed, and re-importing keeps the placement,
   styles and other adjustments made since (`meltemi-diagrams import`, and three commands in VS
   Code).
-- The playground ([playground](playground.md)): a static web page with an explorer of the project's
-  folders and diagrams (renames and moves keep imports working), New project from the templates'
-  cards, import and export of a project as a `.zip`, the code with its language services beside the
-  same canvas, one undo history, Mermaid and PlantUML import, every
+- Meltemi Diagrams in the browser ([the web app](web-app.md)): a static web page with an explorer
+  of the project's folders and diagrams (renames and moves keep imports working), New project from
+  the templates' cards, import and export of a project as a `.zip`, the code with its language
+  services beside the same canvas, one undo history, Mermaid and PlantUML import, every
   export (SVG, PNG, PDF by printing, the HTML player, GIF, WebM and MP4, profiles, the project
   archive, the model JSON and the catalog), share links and work kept in the browser; no account,
   and nothing leaves the page.
-- Working together ([playground](playground.md#working-together), [cloud](cloud.md)): an optional
+- Working together ([the web app](web-app.md#working-together), [cloud](cloud.md)): an optional
   account adds cloud projects that several people open at once. Everyone types without losing a
   character and each person's undo covers their own edits; the header shows who is here, and their
   carets and selections show in the code and on the canvas. Nothing of it is exported or saved.

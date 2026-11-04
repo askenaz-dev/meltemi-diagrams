@@ -13,7 +13,7 @@ export const cliAuthEn = {
   checkNote:
     "The terminal where you ran mdg login shows the same six characters. If they differ, this is not your request: do not approve it.",
   grantNote:
-    "If you approve, the program gets an API token that can do what you can do in your account. You can revoke it at any time from API tokens in the playground.",
+    "If you approve, the program gets an API token that can do what you can do in your account. You can revoke it at any time from API tokens in your account panel.",
   approveButton: "Approve",
   cancelLink: "Cancel",
 
@@ -36,7 +36,7 @@ export const cliAuthEs: typeof cliAuthEn = {
   checkNote:
     "La terminal donde ejecutaste mdg login muestra los mismos seis caracteres. Si no coinciden, esta no es tu solicitud: no la apruebes.",
   grantNote:
-    "Si la apruebas, el programa recibe un token de API que puede hacer lo mismo que tú en tu cuenta. Puedes revocarlo en cualquier momento desde los tokens de API del playground.",
+    "Si la apruebas, el programa recibe un token de API que puede hacer lo mismo que tú en tu cuenta. Puedes revocarlo en cualquier momento desde los tokens de API del panel de tu cuenta.",
   approveButton: "Aprobar",
   cancelLink: "Cancelar",
 

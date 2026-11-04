@@ -7,7 +7,7 @@ later). It also puts a canvas beside the code. The text stays the source of trut
 the canvas is a small edit to the same document. Undo, redo, save, dirty state and Git work exactly
 as they do for the text.
 
-The canvas is the `@meltemi/diagrams-canvas` package; the playground (`docs/playground.md`)
+The canvas is the `@meltemi/diagrams-canvas` package; the web app (`docs/web-app.md`)
 mounts the same canvas in a web page, so what this page says about it holds there too.
 
 ## Installing
@@ -75,22 +75,22 @@ The toolbar toggles override the grid, snapping, minimap and inspector settings 
 **A read-only canvas.** The canvas's host (the extension or the page) sends it its settings in a
 `settings` message (`CanvasSettings`: `grid`, `showGrid`, `snap`, `guides`, `minimap` and `inspector`, the values of
 the table above), and each message replaces the settings as a whole. A host may add `readOnly: true`
-to make the canvas only show: the playground does it while a shared project is viewed
-([playground](playground.md#viewing-a-shared-project)), and a later message without it, or with
-`false`, makes the canvas edit again with no reload. The extension never sends it, so VS Code sees
-no change. While it is on, the canvas shows a "view only" badge, hides the palette and every other
-control that writes the diagram (the story timeline's editing controls, the libraries panel and
-the buttons that create diagrams included), and sends the host no action: a drag, a connection, a
-deletion, an in-place label, a keyboard edit, an inspector field, undo and redo and the theme panel
-leave the diagram as it is, and the status line says so. Selection, zoom, pan, the minimap,
-hiding and showing layers, copying, stories with their timeline, and effects work.
+to make the canvas only show: the web app does it while a shared project is viewed
+([viewing a shared project](web-app.md#viewing-a-shared-project)), and a later message without it,
+or with `false`, makes the canvas edit again with no reload. The extension never sends it, so
+VS Code sees no change. While it is on, the canvas shows a "view only" badge, hides the palette and
+every other control that writes the diagram (the story timeline's editing controls, the libraries
+panel and the buttons that create diagrams included), and sends the host no action: a drag, a
+connection, a deletion, an in-place label, a keyboard edit, an inspector field, undo and redo and
+the theme panel leave the diagram as it is, and the status line says so. Selection, zoom, pan, the
+minimap, hiding and showing layers, copying, stories with their timeline, and effects work.
 
 **Other people's selections.** A host that shares the diagram can tell the canvas who else is in it
 with a `presence` message, `{ type: "presence", people }`, where each person has a `name`, a
 `colour`, the ids they have selected (elements, relations and events) and, while it moves, the
-`pointer` over their canvas and the points of their Pointer `laser` trail. The playground does it
+`pointer` over their canvas and the points of their Pointer `laser` trail. The web app does it
 for a cloud project that several people have open
-([working together](playground.md#working-together)); the extension never sends it, so VS Code
+([working together](web-app.md#working-together)); the extension never sends it, so VS Code
 sees no change. The canvas outlines each of those ids in the person's colour and tags it with their
 name, and draws each pointer as a cursor in the person's colour with the name at its tail, gliding
 from one point to the next, on a layer above the scene that is never selected, copied or exported:
@@ -163,7 +163,7 @@ diagram.
   nothing, is never part of an export, of the HTML views or of the project, and is not kept between
   visits. Under `prefers-reduced-motion` the stroke does not fade while it is drawn and goes at once
   when the pointer lifts. In a cloud project the others see the trail in your presence colour, in
-  the same messages as your pointer ([working together](playground.md#working-together)).
+  the same messages as your pointer ([working together](web-app.md#working-together)).
 - **Two-way selection**: selecting on the canvas shows the id in the code without taking focus.
   Moving the text cursor highlights the element of the statement under it.
 
@@ -406,7 +406,7 @@ canvas.
 
 The inspector's fold has no key on the canvas: VS Code binds Ctrl+Alt+B to its secondary side bar,
 so the buttons in the inspector's head and rail and the toolbar's toggle fold and unfold it, all
-reachable with Tab. The playground folds it with Ctrl+Alt+B too.
+reachable with Tab. The web app folds it with Ctrl+Alt+B too.
 
 Focus is always visible: the canvas, toolbar buttons, inspector fields, menu items and dialog
 buttons draw a ring in the theme's focus colour. Each element tells assistive technology its kind
@@ -801,7 +801,7 @@ of cards ([pen strokes](language/free.md#pen-strokes), [stickies](language/free.
   there stay put. The inspector shows the list's **Layout**, **Spacing** and **Align**.
 - **Others' strokes.** In a room, a stroke someone draws appears on your canvas while they draw it,
   in the colour and width of their pen, and their `pen` takes its place when their edit arrives
-  ([working together](playground.md#working-together)).
+  ([working together](web-app.md#working-together)).
 - **Replaying a drawing.** A story's `draw` action draws strokes, lines and relations one after
   another as they were drawn ([stories](language/stories.md)), and the story panel offers it.
 

@@ -127,7 +127,7 @@ sponsored account sets. See proposal.md for the motivation.
    Sponsors, publish a one-time tier and monthly tiers whose reward text says "Export without the
    Meltemi branding in the web app; the file's theme can do the same with `frame none`", create
    the webhook with the payload URL, JSON and the secret, give the same secret to the
-   infrastructure); `docs/playground.md` the donation path; both in Spanish too.
+   infrastructure); `docs/web-app.md` the donation path; both in Spanish too.
 
 9. **The decision note.** `docs/decisions/0071-unbranded-by-donation.md` extends 0061 and 0068:
    the claim through the GitHub login, the sentinel grantor, any donation once and for good,

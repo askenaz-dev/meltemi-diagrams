@@ -3,7 +3,7 @@
 [Español](es/cloud.md)
 
 The cloud service is the optional online half of Meltemi Diagrams: one Cloudflare Worker
-(`packages/cloud`) that serves the [playground](playground.md) and an API from one origin,
+(`packages/cloud`) that serves the [web app](web-app.md) and an API from one origin,
 `diagrams.meltemi.dev`, and signs people in through the Meltemi family's identity service at
 `id.meltemi.dev`. The reasons are in decisions [0041](decisions/0041-hosted-service.md) and
 [0042](decisions/0042-sharing-and-publishing.md). This page describes what the service does today:
@@ -38,7 +38,7 @@ offers an account on top of that and takes nothing away:
 
 ## One Worker, one origin
 
-`packages/cloud/wrangler.jsonc` gives the Worker the playground's build, `packages/playground/dist`,
+`packages/cloud/wrangler.jsonc` gives the Worker the web app's build, `packages/playground/dist`,
 as its static assets (the `ASSETS` binding, with no fallback page), and makes it run first for the
 paths it answers itself (`run_worker_first`: `/api/*`, `/_identity/*`, `/_published/*`, `/cli-auth`,
 `/cli-auth/*`, `/p/*` and `/rooms/*`). Every other path is served by the assets platform without
@@ -61,7 +61,7 @@ publish host never reaches this Worker: it is another Worker ([The publish host]
 `/_published/` is the prefix of the one development route that serves a publication from this
 origin; without `DEV` every path under it is the JSON `404`.
 
-The page's own files leave with two headers that the playground's build writes into `_headers`,
+The page's own files leave with two headers that the web app's build writes into `_headers`,
 which the assets platform applies: `Content-Security-Policy: frame-ancestors 'self'` and
 `X-Content-Type-Options: nosniff`. The page's policy is a `meta` tag, which cannot say who may frame
 it; without the header any site could frame a signed-in page and trick a person into pressing
@@ -666,7 +666,7 @@ the collision.
 ### The path rule
 
 One rule names every file of a cloud project: `cleanPath` and `isCleanPath` of
-`@meltemi/diagrams-project` (`packages/project/src/files.ts`), which the playground re-exports and
+`@meltemi/diagrams-project` (`packages/project/src/files.ts`), which the web app re-exports and
 the Worker, the room and the command line import. A path is valid when it is already in canonical
 form: relative, `/`-separated, with 1 to 12 segments, each of 1 to 100 characters that are ASCII
 letters, digits, `_`, space, `.`, `(`, `)`, `+`, `@` or `-`, none of them `..` and none starting
@@ -834,7 +834,7 @@ Awareness is what each page tells the others about its person: the file they hav
 caret or selection is in it, what they have selected on the canvas and where their pointer is over
 it, and the points of a Pointer stroke. It travels in kind 2
 messages, and the room only relays it: nothing of it is written to the room's storage, and it
-changes neither the document nor its revision. [The playground](playground.md#working-together)
+changes neither the document nor its revision. [The web app](web-app.md#working-together)
 shows it. The format is small and the page's own: an object keyed by connection, as Yjs's awareness
 protocol does it, without the `y-protocols` package.
 
@@ -1188,7 +1188,7 @@ gives more. The page opens the project in view mode when it is `viewer`.
 - `POST /api/projects` takes `{ name, description?, template? | files?, binaries? }` and answers
   `201` with the project. The name has 1 to 100 characters once trimmed, with no control
   characters; the description at most 500. `template` is one of `flow`, `c4`, `sequence`, `free`
-  and `purchase`, and gives the files of the playground's own build with their `project.json`,
+  and `purchase`, and gives the files of the web app's own build with their `project.json`,
   read from its `templates.json`, so the page and the service offer the same bytes. `files` is
   `{ path: text }` and `binaries` is `{ path: hash }` of images and fonts that the person's
   projects already hold (another hash is `blob.unknown`: a hash is not a capability). A template
@@ -1570,7 +1570,7 @@ signed in or not, connects to the room as one, receives every change and may not
 anybody, and reads the snapshot (`GET …/files`) only when the room does not answer. A project the
 link does not admit is `404 project.not-found` for anonymous callers as for anyone else, which the
 page words as "not found" and nothing more. How the page uses all this is in
-[the playground](playground.md#viewing-a-shared-project).
+[the web app](web-app.md#viewing-a-shared-project).
 
 ### When access changes
 
@@ -1843,7 +1843,7 @@ removed from the page, and the only ones who invite and remove administrators; u
 service has no owner. The **administrators** are the people an owner invited
 who accepted, rows of `administrators` ([Storage](#storage)); a `sub` listed in `ADMIN_SUBS` that
 also has a row is an owner. They do it from the account panel's Administration section
-([the playground](playground.md#the-account-panel)), which reads and calls the routes below.
+([the web app](web-app.md#the-account-panel)), which reads and calls the routes below.
 
 | Act                                          | Owner | Administrator |
 | -------------------------------------------- | ----- | ------------- |
@@ -1917,7 +1917,7 @@ owner or an administrator whether an email has an account, and nobody else.
 A permission is an entry of a catalog in code (`packages/cloud/src/permissions.ts`), kept in columns
 of its own in `users`. The first and only one is `unbranded-exports`, exporting without the Meltemi
 branding: the export dialog of an entitled person offers **Export without the Meltemi branding**
-([the playground](playground.md#exports-in-the-browser)). Owners and administrators hold every
+([the web app](web-app.md#exports-in-the-browser)). Owners and administrators hold every
 permission without a grant, as the session answer says; their own row says only what was set on it.
 Three routes, for an owner or an administrator alike: `GET /api/admin/permissions/<id>` lists the
 accounts whose row holds the permission, the earliest grant first, as `{ "id", "holders": [...] }`,
@@ -2234,7 +2234,7 @@ Nothing is deployed or configured from a machine ([decision 0046](decisions/0046
   from that exact SHA with its automatic product version. Superseded sources are skipped before
   migrations and uploads:
   `scripts/deploy-config.mjs` writes `wrangler.deploy.json` and `wrangler.publish.deploy.json` with
-  the ids, then the playground is built, the migrations are applied (`wrangler d1 migrations apply
+  the ids, then the web app is built, the migrations are applied (`wrangler d1 migrations apply
 DB --remote`), and the main Worker and the publish Worker are uploaded with `wrangler deploy`. A
   failed migration uploads nothing.
 - **Rolling back** is a revert pushed to `main` that passes CI, or an explicit Cloudflare

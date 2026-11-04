@@ -51,7 +51,7 @@ record its pixel reference. A sheet that shows a fault in the layout stays in th
 The layout audits every drawing it makes: a text beyond the shape that holds it, beyond its
 background or the picture is **cut**; a text over another text, over a box it does not belong to,
 or crossed by another connector **overlaps**. The findings are `layout.label-cut` and
-`layout.label-overlap` warnings in the editor, the playground and `validate` ([diagnostics](language/diagnostics.md)).
+`layout.label-overlap` warnings in the editor, the web app and `validate` ([diagnostics](language/diagnostics.md)).
 The acceptance tests hold every corpus, template and example at zero. The layout keeps labels
 clear by itself where it can: relation labels slide along their connector to a clear stop,
 connectors pass under group titles, and default connectors go around boxes ([layout](language/layout.md)).
@@ -86,14 +86,14 @@ in [performance.md](performance.md). `pnpm test` asserts the targets with a fact
 a slower machine does not fail them by chance.
 
 `pnpm acceptance:first-export` times the way from a template to files: `init`, `validate` and the
-export of SVG, PNG, PDF and MP4 with the CLI for each template, and the playground from opening the
+export of SVG, PNG, PDF and MP4 with the CLI for each template, and the web app from opening the
 page to the downloaded SVG.
 
 ## Export verification
 
 `pnpm verification:browsers` exports the purchase example in every format and opens each file in
 Edge, Chrome and Firefox (Firefox through WebDriver BiDi), served from 127.0.0.1 with nothing else
-reachable; it also makes the same exports in the playground in each browser. PDF is read from the
+reachable; it also makes the same exports in the web app in each browser. PDF is read from the
 file. The results, with each browser's version, are in [verification/browsers.md](verification/browsers.md).
 A browser that is not installed is reported as skipped; `MELTEMI_EDGE`, `MELTEMI_CHROME` and
 `MELTEMI_FIREFOX` name another executable, and `--only Firefox` checks one browser without
@@ -109,7 +109,7 @@ whose results table the owner fills in for PowerPoint, Keynote and Google Slides
 pnpm acceptance
 ```
 
-It builds the playground, then runs the acceptance tests, the visual regression, the determinism,
+It builds the web app, then runs the acceptance tests, the visual regression, the determinism,
 the benchmark, the first export and the browser matrix, rewrites
 [performance.md](performance.md) and [verification/browsers.md](verification/browsers.md), and
 writes [quality/results.md](quality/results.md) with the date, the machine and the versions. It

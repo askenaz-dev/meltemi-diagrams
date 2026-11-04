@@ -32,7 +32,7 @@ change to a text file. That file is what makes diagrams reviewable, reusable and
 
 There is no importer for draw.io, Lucidchart or Visio files: universal import is outside 1.0
 ([compatibility](../compatibility.md)). Start from a template instead, in the
-[playground](../playground.md) without installing anything, or locally:
+[web app](../web-app.md) without installing anything, or locally:
 
 ```bash
 meltemi-diagrams init my-diagrams --template free

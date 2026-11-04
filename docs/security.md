@@ -33,9 +33,9 @@ only requests the product makes are the AI assistance a person starts and agrees
 service they resolved ([below](#the-command-line-and-the-cloud)); `review --base <revision>` runs
 the local `git`.
 
-## The playground
+## The web app
 
-The playground (`docs/playground.md`) is a static page: its content security policy allows
+The web app (`docs/web-app.md`) is a static page: its content security policy allows
 scripts, styles, fonts and connections from its own origin only, and without an account no request
 leaves it. Served by the cloud service ([cloud](cloud.md)) it offers an optional account: a
 signed-in person's avatar is the one image that may come from another origin (the providers'
@@ -222,7 +222,7 @@ only measured.
 | PNG and PDF captures            | 16,384 pixels a side                                       | a message                                                                  |
 | A video                         | 600 s, 60 fps                                              | a message                                                                  |
 | AI requests                     | 12 files, 200 KB                                           | files beyond are not sent                                                  |
-| A playground share link         | 4 MiB decompressed, 2,000 files                            | a message                                                                  |
+| A web app share link            | 4 MiB decompressed, 2,000 files                            | a message                                                                  |
 | A project archive opened        | 2,000 files, 64 MiB                                        | a message                                                                  |
 | A published page                | 16 MiB, ten requests an hour for a project                 | `publish.too-large`, `publish.rate`                                        |
 | Members of a project            | 50 with the pending invitations                            | `quota.members`                                                            |
