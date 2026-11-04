@@ -71,10 +71,11 @@ describe("package names", () => {
       readFileSync(join(REPO_ROOT, "packages", folder, "package.json"), "utf8"),
     );
     if (folder === "vscode") {
-      // VS Code extensions cannot carry an npm scope; the extension is private. Its identifier is
-      // meltemi.diagrams: the Marketplace keeps a removed extension's name reserved for good.
+      // VS Code extensions cannot carry an npm scope; the extension is private. Marketplace names
+      // are unique across publishers and a removed extension's name stays reserved for good, so the
+      // identifier is meltemi.meltemi-diagrams-vscode.
       expect(manifest).toMatchObject({
-        name: "diagrams",
+        name: "meltemi-diagrams-vscode",
         publisher: "meltemi",
         private: true,
       });
