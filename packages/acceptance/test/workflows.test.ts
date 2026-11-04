@@ -87,22 +87,46 @@ describe("delivery workflows", () => {
     expect(marketplace).toContain("--oidc");
     expect(marketplace).toContain("--skip-duplicate");
     expect(marketplace).not.toContain("environment:");
-    expect(secretsOf(text)).toEqual(["NPM_TOKEN"]);
+    expect(secretsOf(text)).toEqual(["NPM_TOKEN", "OVSX_PAT"]);
     expect(text).toContain("node delivery/scripts/publish-github.mjs");
     expect(text).not.toContain("--clobber");
   });
 
-  it("requires Open VSX OIDC in its dedicated environment without a PAT fallback or swallowed failures", () => {
+  it("uses Open VSX OIDC in its dedicated environment and the namespace token only for an extension's first version", () => {
     const text = read("release.yml");
     const openvsx = text.split("  openvsx:\n")[1]!.split("  github:\n")[0]!;
+    const step = (name: string) =>
+      openvsx.split(`- name: ${name}\n`)[1]!.split("      - name:")[0]!.split("      # ")[0]!;
     expect(openvsx).toContain("environment: open-vsx");
     expect(openvsx).toContain("permissions:\n      contents: read\n      id-token: write");
     expect(openvsx).toContain("node-version: 24");
-    expect(openvsx).toContain(
+
+    const registry = step("Is the extension on Open VSX yet?");
+    expect(registry).toContain("extension/package.json");
+    expect(registry).toContain("https://open-vsx.org/api/${id}");
+    expect(registry).toContain('200) echo "first=false"');
+    expect(registry).toContain('404) echo "first=true"');
+    expect(registry).toContain("exit 1");
+
+    const oidc = step("Open VSX through OIDC");
+    expect(oidc).toContain("if: steps.registry.outputs.first == 'false'");
+    expect(oidc).toContain(
       'run: npx --yes ovsx@1.3.0 publish "release/meltemi-diagrams-${VERSION}.vsix" --trusted-publishing --skip-duplicate',
     );
-    expect(openvsx).not.toMatch(/OVSX_PAT|--pat\b|continue-on-error|\|\| true|grep/);
-    expect(secretsOf(openvsx)).toEqual([]);
+    expect(oidc).not.toContain("OVSX_PAT");
+
+    const first = step("First Open VSX version with the namespace token");
+    expect(first).toContain("if: steps.registry.outputs.first == 'true'");
+    expect(first).toContain("OVSX_PAT: ${{ secrets.OVSX_PAT }}");
+    expect(first).toContain(
+      'npx --yes ovsx@1.3.0 publish "release/meltemi-diagrams-${VERSION}.vsix" --skip-duplicate',
+    );
+    expect(first).not.toContain("--trusted-publishing");
+
+    expect(openvsx.match(/secrets\.OVSX_PAT/g)).toHaveLength(1);
+    // The token reaches ovsx through its environment, never as an argument.
+    expect(openvsx).not.toMatch(/--pat\b|-p "?\$|continue-on-error|\|\| true|grep/);
+    expect(secretsOf(openvsx)).toEqual(["OVSX_PAT"]);
   });
 
   it("recovers original artifacts without a rebuild and gates every channel on integrity preflight", () => {

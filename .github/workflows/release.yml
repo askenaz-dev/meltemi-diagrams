@@ -184,10 +184,39 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Open VSX
+      # Open VSX accepts a trusted publisher only for an extension that already has an active
+      # version, so the first version of a new or removed extension needs the namespace token.
+      - name: Is the extension on Open VSX yet?
+        id: registry
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
+        run: |
+          id="$(unzip -p "release/meltemi-diagrams-${VERSION}.vsix" extension/package.json | node -e 'let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => { const p = JSON.parse(s); process.stdout.write(`${p.publisher}/${p.name}`); });')"
+          status="$(curl -s -o /dev/null -w '%{http_code}' "https://open-vsx.org/api/${id}")"
+          echo "Open VSX answers ${status} for ${id}."
+          case "$status" in
+            200) echo "first=false" >> "$GITHUB_OUTPUT" ;;
+            404) echo "first=true" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::Open VSX answered ${status} for ${id}; nothing was published."; exit 1 ;;
+          esac
+      - name: Open VSX through OIDC
+        if: steps.registry.outputs.first == 'false'
         env:
           VERSION: ${{ needs.check.outputs.version }}
         run: npx --yes ovsx@1.3.0 publish "release/meltemi-diagrams-${VERSION}.vsix" --trusted-publishing --skip-duplicate
+      # The token lives only in this step: when present, ovsx prefers it over OIDC.
+      - name: First Open VSX version with the namespace token
+        if: steps.registry.outputs.first == 'true'
+        env:
+          VERSION: ${{ needs.check.outputs.version }}
+          OVSX_PAT: ${{ secrets.OVSX_PAT }}
+        run: |
+          if [ -z "$OVSX_PAT" ]; then
+            echo "::error::OVSX_PAT is missing; Terraform in Meltemi Web distributes it from its infrastructure environment."
+            exit 1
+          fi
+          npx --yes ovsx@1.3.0 publish "release/meltemi-diagrams-${VERSION}.vsix" --skip-duplicate
+          echo "::notice::First Open VSX version published with the namespace token. Register the trusted publisher (askenaz-dev, meltemi-diagrams, release.yml, open-vsx) so later versions use OIDC."
 
   github:
     needs: check
