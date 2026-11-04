@@ -9,13 +9,13 @@
 ## Production verification
 
 - [x] 6. Confirm the owner configured the main-only environment and matching Open VSX registration.
-- [ ] 7. After merge authorization, verify the automatic release's OIDC publication and public VSIX.
+- [x] 7. After merge authorization, verify the automatic release's OIDC publication and public VSIX.
 
 ## First version of a new or removed extension
 
 - [x] 8. Ask the registry whether the VSIX's extension exists; publish its first version with
   `OVSX_PAT` in a separate step, and through OIDC otherwise; guard both in `workflows.test.ts`.
-- [ ] 9. Register the trusted publisher after that first version and verify that the next version
+- [x] 9. Register the trusted publisher after that first version and verify that the next version
   publishes through OIDC.
 
 ## Evidence
@@ -27,5 +27,12 @@
 - `pnpm test`: 333 files passed, 9936 tests passed and one skipped.
 - The owner confirmed the saved Open VSX registration and GitHub's single `main` branch rule;
   independent read-only API review confirmed the environment policy.
+- 2026-11-04, extension `meltemi.meltemi-diagrams-vscode`: the registry answered 404, and release
+  1.11.5 published its first version with `OVSX_PAT` after the token was renewed in Meltemi Web's
+  `infrastructure` environment. The trusted publisher was then registered for `askenaz-dev`,
+  `meltemi-diagrams`, `release.yml` and `open-vsx`, and 1.11.4 published through OIDC
+  (`publishedWithTrustedPublishing: true`). Version 1.11.3 cannot return: Open VSX keeps a removed
+  version's identity reserved.
 
-Do not archive until the applicable gates pass. Production publication remains pending.
+Do not archive until the applicable gates pass. The OIDC step of the new job is verified by the
+first release after this registration.
