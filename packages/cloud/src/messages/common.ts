@@ -7,11 +7,11 @@ export const commonEn = {
   /** Before the code of an error, as in "Code: cli.invalid". */
   codeLabel: "Code",
   /** The way out of a page: the playground, at the root of the site. */
-  backToSite: "Back to the playground",
+  backToSite: "Back to Meltemi Diagrams",
 };
 
 export const commonEs: typeof commonEn = {
   brand: "Meltemi Diagrams",
   codeLabel: "Código",
-  backToSite: "Volver al playground",
+  backToSite: "Volver a Meltemi Diagrams",
 };

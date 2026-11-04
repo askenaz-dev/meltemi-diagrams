@@ -12,7 +12,7 @@ motion live in files you review and version like the rest of your work.
 - **Four profiles**: flow diagrams, sequence diagrams with scenarios, C4 views of a shared model,
   and free compositions for slides.
 - **Code and canvas**: language services and a canvas with a grid, guides, routing and an
-  inspector, in VS Code and in a browser [playground](docs/playground.md).
+  inspector, in VS Code and in the [web app](docs/web-app.md).
 - **Motion**: effects along connectors and stories with scenes, camera and transitions.
 - **Delivery**: SVG, PNG, vector PDF, an offline HTML player, MP4, WebM, GIF and a browsable
   catalog of a whole project.
@@ -28,9 +28,9 @@ npm install --global @meltemi/diagrams-cli
 
 The command is `meltemi-diagrams`, or `mdg`. It needs Node 22.12 or later; PNG, PDF and video use
 an installed Edge or Chrome, and video an installed FFmpeg. The editor is the **Meltemi Diagrams**
-extension for VS Code, and the playground, at
+extension for VS Code, and the web app, at
 [diagrams.meltemi.dev](https://diagrams.meltemi.dev), needs no installation at all
-([playground](docs/playground.md), [getting started](docs/getting-started.md)).
+([the web app](docs/web-app.md), [getting started](docs/getting-started.md)).
 
 ## A first diagram
 
@@ -140,7 +140,7 @@ and watch the text change. Without installing anything, open this repository in 
 F5 with **Run Meltemi Diagrams**: an Extension Development Host opens on `examples/`
 ([editor](docs/editor.md)).
 
-### The playground
+### The web app
 
 ```bash
 pnpm playground:build
@@ -151,7 +151,8 @@ pnpm preview
 ```
 
 Then open `http://localhost:4173/packages/playground/dist/`. `pnpm preview` serves the whole
-repository on port 4173, so exported files can be opened from it too ([playground](docs/playground.md)).
+repository on port 4173, so exported files can be opened from it too
+([the web app](docs/web-app.md)).
 
 ### What is already generated
 
@@ -217,7 +218,7 @@ around boxes with canvas colours from the theme since 1.6.0, element libraries w
 providers' icons and layers in flow diagrams since 1.7.0, plain containers, stacks, corner
 radii, twenty-four shapes and icons placed anywhere in a box or drawn as the shape since 1.8.0,
 HTML drawings that zoom, show cards and panels, and open what a box holds since 1.9.0, the first
-published, and the playground's project explorer, lines and a hand-drawn look, the pointer and
+published, and the web app's project explorer, lines and a hand-drawn look, the pointer and
 notes, and one prompt that sets up a coding agent since 1.10.0, as the [changelog](CHANGELOG.md)
 records. Every acceptance criterion passes on the reference
 machine ([results](docs/quality/results.md)). Work is planned with OpenSpec under `openspec/`.
@@ -261,9 +262,9 @@ checked, and the latest results, are in [docs/quality.md](docs/quality.md) and
 | `packages/assist`     | `@meltemi/diagrams-assist`: optional AI assistance, its adapters and reviewable proposals                                   |
 | `packages/cli`        | `@meltemi/diagrams-cli`: the `meltemi-diagrams` command                                                                     |
 | `packages/editor`     | `@meltemi/diagrams-editor`: language services, project sessions, exports, the canvas session, host-neutral                  |
-| `packages/canvas`     | `@meltemi/diagrams-canvas`: the canvas application, shared by the extension and the playground                              |
+| `packages/canvas`     | `@meltemi/diagrams-canvas`: the canvas application, shared by the extension and the web app                                 |
 | `packages/vscode`     | the Meltemi Diagrams extension for VS Code: language support and the canvas                                                 |
-| `packages/playground` | the playground: a static web page with templates, code, the canvas and every export                                         |
+| `packages/playground` | the web app: a static web page with templates, code, the canvas and every export                                            |
 | `packages/cloud`      | the cloud service: a Worker with the optional account, API tokens and projects in the cloud ([cloud](docs/cloud.md))        |
 | `packages/acceptance` | the acceptance suite: corpus conditions, visual regression, determinism, benchmark and the export verification runners      |
 | `gallery/`            | one sheet of each profile with its SVG, PNG and PDF exports                                                                 |
@@ -294,8 +295,8 @@ checked, and the latest results, are in [docs/quality.md](docs/quality.md) and
 | `pnpm vscode:package`          | build the VS Code extension and check the `.vsix`           |
 | `pnpm vscode:test-webview`     | test the canvas in a headless Edge or Chrome                |
 | `pnpm vscode:test`             | test the extension inside VS Code                           |
-| `pnpm playground:build`        | build the playground's static site                          |
-| `pnpm playground:test-browser` | test the playground in a headless Edge or Chrome            |
+| `pnpm playground:build`        | build the web app's static site                             |
+| `pnpm playground:test-browser` | test the web app in a headless Edge or Chrome               |
 | `pnpm cloud:dev`               | build the page and run the cloud service on port 8788       |
 | `pnpm cloud:migrate`           | apply the cloud service's database migrations               |
 | `pnpm cloud:test`              | test the cloud service in Node                              |

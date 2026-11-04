@@ -8,7 +8,7 @@ export const sharing: typeof sharingEn = {
   tryAgain: "Reintentar",
 
   linkLabel: "Enlace al proyecto",
-  linkHint: "Abre el proyecto en el playground.",
+  linkHint: "Abre el proyecto en la app.",
   copy: "Copiar",
   copyLinkLabel: "Copiar el enlace al proyecto",
   linkCopied: "Se copió el enlace al proyecto.",

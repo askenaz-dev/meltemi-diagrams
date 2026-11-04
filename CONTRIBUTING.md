@@ -23,7 +23,7 @@
 6. Changes to the player (`packages/player`, or motion and the renderer it bundles) also run
    `pnpm player:test-browser`, the player's pages in a headless Edge or Chrome; changes to the
    catalog run `pnpm catalog:test-browser`.
-7. Changes to the playground (`packages/playground`) run `pnpm playground:test-browser`: it builds
+7. Changes to the web app (`packages/playground`) run `pnpm playground:test-browser`: it builds
    the site, serves it on `127.0.0.1` and checks every feature in a headless Edge or Chrome, with
    FFmpeg's `ffprobe` reading the videos when it is installed.
 8. Changes to the layout, the renderer, motion or the exports run `pnpm acceptance:visual` and look

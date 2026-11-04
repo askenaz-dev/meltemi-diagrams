@@ -9,7 +9,7 @@ free compositions, stories and converting, and complete examples. An agent that 
 `.meltemi` files, validates them with the command line and fixes what it reports, instead of
 drawing pictures by hand. This page is on the web too, at
 [diagrams.meltemi.dev/agent-setup](https://diagrams.meltemi.dev/agent-setup/), linked from the
-playground's About dialog.
+app's About dialog.
 
 ## The prompt
 
@@ -108,6 +108,6 @@ diagnostic remains and to export SVG for you to look at with `mdg preview`.
 
 The canonical skill is `skills/meltemi-diagrams/`; `pnpm skills:sync` copies it to
 `.claude/skills/`, `.agents/skills/` and the command line's package, and a test fails when a copy
-drifts. The setup prompt is `packages/cli/agent-setup/prompt.md`, which the playground build
+drifts. The setup prompt is `packages/cli/agent-setup/prompt.md`, which the web app's build
 serves beside the page `agent-setup/`. See [the command line](cli.md#agents-skill) for
 `skill install` and `skill prompt`.

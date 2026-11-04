@@ -37,9 +37,9 @@ de la asistencia de IA que una persona inicia y acepta (`docs/assist.md`) y las 
 la nube que una persona ejecuta (`docs/cli.md`), que hablan con el único servicio que resolvieron
 ([más abajo](#la-línea-de-comandos-y-la-nube)); `review --base <revision>` ejecuta el `git` local.
 
-## El playground
+## La app web
 
-El playground (`docs/playground.md`) es una página estática: su política de seguridad de contenido
+La app web (`docs/web-app.md`) es una página estática: su política de seguridad de contenido
 solo permite scripts, estilos, fuentes y conexiones de su propio origen, y sin una cuenta ninguna
 solicitud sale de él. Servido por el servicio en la nube ([cloud](cloud.md)) ofrece una cuenta
 opcional: el avatar de la persona con sesión iniciada es la única imagen que puede venir de otro
@@ -244,7 +244,7 @@ inspeccionan antes de usarse; las fuentes cuya licencia prohíbe incrustarlas so
 | Capturas PNG y PDF                            | 16 384 píxeles por lado                                                   | un mensaje                                                                             |
 | Un video                                      | 600 s, 60 fps                                                             | un mensaje                                                                             |
 | Solicitudes de IA                             | 12 archivos, 200 KB                                                       | los archivos que sobran no se envían                                                   |
-| Un enlace para compartir del playground       | 4 MiB descomprimido, 2000 archivos                                        | un mensaje                                                                             |
+| Un enlace para compartir de la app            | 4 MiB descomprimido, 2000 archivos                                        | un mensaje                                                                             |
 | Un archivo comprimido de proyecto que se abre | 2000 archivos, 64 MiB                                                     | un mensaje                                                                             |
 | Una página publicada                          | 16 MiB, diez solicitudes por hora para un proyecto                        | `publish.too-large`, `publish.rate`                                                    |
 | Miembros de un proyecto                       | 50 con las invitaciones pendientes                                        | `quota.members`                                                                        |

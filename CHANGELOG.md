@@ -4,6 +4,14 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
+## 1.11.5
+
+The web app at diagrams.meltemi.dev is called Meltemi Diagrams, no longer the playground: its tab,
+its header, which reads Web beside the name, About, its hints and the Worker's pages say so in
+English and Spanish, and About tells what an account adds: projects kept in the cloud and shared.
+The guide is now [the web app](docs/web-app.md) ([decision 0069](docs/decisions/0069-the-app-is-meltemi-diagrams.md)).
+Commands, scripts and package names keep the word `playground`.
+
 ## 1.11.3
 
 The VS Code extension has a new identifier, `meltemi.meltemi-diagrams-vscode`, and a new display name,

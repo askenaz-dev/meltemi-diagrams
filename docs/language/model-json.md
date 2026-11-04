@@ -3,7 +3,7 @@
 [Español](../es/language/model-json.md)
 
 `toJson(compile(text))` in `@meltemi/diagrams-model` turns a compilation into JSON for other tools:
-`meltemi-diagrams convert <file> --to json` writes it (`docs/cli.md`), the playground downloads it,
+`meltemi-diagrams convert <file> --to json` writes it (`docs/cli.md`), the web app downloads it,
 and layout engines and tests read it. The format name is `model-json` and this page
 describes version `0.1`. A breaking change increases the version.
 

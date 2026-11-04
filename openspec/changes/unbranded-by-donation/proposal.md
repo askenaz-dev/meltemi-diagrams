@@ -47,7 +47,7 @@ This is a post-1.0 change outside `docs/roadmap-1.0.md`.
   webhook are the owner's steps on GitHub, written down in `docs/cloud.md`; the family site's
   Diagrams page gains "Support the project" to the sponsors page, in a pull request of
   `meltemi-web`.
-- **Words and guides.** English and Spanish catalogues; `docs/cloud.md`, `docs/playground.md`
+- **Words and guides.** English and Spanish catalogues; `docs/cloud.md`, `docs/web-app.md`
   (and their Spanish twins); the changelog's open section; decision note 0071.
 
 ## Capabilities

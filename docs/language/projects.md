@@ -139,7 +139,7 @@ another value is `project.invalid-value` and the project exports in English.
 The words people write (labels, descriptions, titles) are never translated, and neither are the
 keywords and values of the language. The setting is part of the input, so the same sources and
 options export the same bytes on every machine: the language of the machine, of the editor or of
-the browser never changes an exported file. The command line's `--lang en|es` and the playground's
+the browser never changes an exported file. The command line's `--lang en|es` and the web app's
 export dialog choose another language for one export.
 
 ## The cloud project
@@ -182,7 +182,7 @@ kind names the kind it found.
 
 ## Compilation
 
-`@meltemi/diagrams-project` compiles projects for the CLI, the editor and the playground:
+`@meltemi/diagrams-project` compiles projects for the CLI, the editor and the web app:
 
 - `Workspace` compiles a file with its imports (`compileFile`) or the whole project
   (`compileProject`).

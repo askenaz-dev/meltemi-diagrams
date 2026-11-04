@@ -12,11 +12,11 @@ const counts = (errors: number, warnings: number) =>
 export const en = {
   /** The page itself: its title and description, and what it says while it starts. */
   page: {
-    title: "Meltemi Diagrams Playground",
+    title: "Meltemi Diagrams",
     description:
-      "Meltemi Diagrams playground: write diagrams as code, adjust them on a canvas and export them, in your browser. No account needed.",
-    loading: "Loading the playground…",
-    failed: (reason: string) => `The playground could not start: ${reason}`,
+      "Meltemi Diagrams: write diagrams as code, adjust them on a canvas and export them, in your browser. No account needed.",
+    loading: "Loading Meltemi Diagrams…",
+    failed: (reason: string) => `Meltemi Diagrams could not start: ${reason}`,
     templatesUnreadable: (status: number) => `The templates could not be read (${status}).`,
   },
 
@@ -34,8 +34,8 @@ export const en = {
     inspector: "Ctrl+Alt+B",
   },
   header: {
-    tag: "Playground",
-    actions: "Playground",
+    tag: "Web",
+    actions: "Meltemi Diagrams",
     open: "Open",
     openTitle: "Open files or a project .zip",
     import: "Import",
@@ -51,7 +51,7 @@ export const en = {
     /** The theme switch, named by what a press does. */
     themeToDark: "Switch to the dark theme",
     themeToLight: "Switch to the light theme",
-    about: "About the playground",
+    about: "About Meltemi Diagrams",
     /** The menu that holds the theme, About and the language on a narrow screen. */
     more: "More",
     views: "View",
@@ -213,7 +213,7 @@ export const en = {
     kept: "Kept in this browser.",
     keptHere: "Kept in this browser. Download the project to keep it elsewhere.",
     archiveUnreadable: (name: string) => `${name} could not be read.`,
-    noneOpenable: "None of the files can be opened in the playground.",
+    noneOpenable: "None of the files can be opened in the app.",
     replaceTitle: "Replace files?",
     replaceMessage: (paths: readonly string[]) => `${paths.join(", ")} will be replaced.`,
     replace: "Replace",
@@ -319,18 +319,18 @@ export const en = {
     selectIt: "Select the link and copy it.",
     damaged: "The link is damaged.",
     tooLarge: "The link's project is larger than 4 MiB; it is not opened.",
-    otherVersion: "The link was made by another version of the playground.",
+    otherVersion: "The link was made by another version of the app.",
     tooMany: (files: number, most: number) => `The link holds ${files} files; at most ${most}.`,
     unopenable: (path: string) => `The link holds a file that cannot be opened: ${path}`,
   },
 
   /** The About dialog. */
   about: {
-    title: "About the playground",
+    title: "About Meltemi Diagrams",
     loading: "Loading the list of components…",
     unreadable: "The list could not be read; see NOTICES.md.",
     text: (version: string) =>
-      `**Meltemi Diagrams ${version}**: diagrams as code, a canvas to compose them and exports for documents, slides and video.\n\nThe playground runs entirely in your browser. There is no account, nothing you write is sent anywhere, and your work stays in this browser until you download it.\n\nMeltemi Diagrams is MIT. The playground bundles the components below under their own licences: the fonts under the SIL Open Font License 1.1, elkjs under the Eclipse Public License 2.0 (source at github.com/kieler/elkjs), and the others as listed.`,
+      `**Meltemi Diagrams ${version}**: diagrams as code, a canvas to compose them and exports for documents, slides and video.\n\nMeltemi Diagrams runs in your browser. Without an account, nothing you write is sent anywhere and your work stays in this browser until you download it. With an account, your projects can be kept in the cloud and shared.\n\nMeltemi Diagrams is MIT. The app bundles the components below under their own licences: the fonts under the SIL Open Font License 1.1, elkjs under the Eclipse Public License 2.0 (source at github.com/kieler/elkjs), and the others as listed.`,
     notices: "Read every licence (NOTICES.md)",
     agents: "Drawing with coding agents",
     /** The agent setup page, relative to the playground. */

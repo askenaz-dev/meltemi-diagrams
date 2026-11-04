@@ -10,7 +10,7 @@ Each code has an example in `corpus/invalid/<code>.meltemi`, with its expected o
 `corpus/invalid/<code>.diagnostics.json`.
 
 Messages, hints and related notes are in the interface language: English, or Spanish when the
-editor, the playground or the command line speaks Spanish. The templates below are the English
+editor, the web app or the command line speaks Spanish. The templates below are the English
 ones; codes, severities and ranges are the same in both languages. Tools read a diagnostic's
 `data` (the ids it names, the alternatives a fix may write, the size that fits a text), never its
 words.

@@ -12,7 +12,7 @@ export const sharing = {
 
   /** The project's link: everybody sees it and may copy it. */
   linkLabel: "Link to the project",
-  linkHint: "Opens the project in the playground.",
+  linkHint: "Opens the project in the app.",
   copy: "Copy",
   copyLinkLabel: "Copy the link to the project",
   linkCopied: "The link to the project was copied.",

@@ -2,7 +2,7 @@
   "name": "@meltemi/diagrams-playground",
   "version": "1.11.0",
   "private": true,
-  "description": "The Meltemi Diagrams playground: templates, visible code, the canvas and every export in a browser, with no account.",
+  "description": "Meltemi Diagrams in the browser: templates, visible code, the canvas and every export, with no account needed.",
   "license": "MIT",
   "type": "module",
   "scripts": {

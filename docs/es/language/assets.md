@@ -89,7 +89,7 @@ pnpm mdg assets icons cloud upload
 ### Agregar iconos desde el editor
 
 **Agregar icono…**, al pie del selector de iconos y del panel Bibliotecas, agrega al proyecto
-archivos SVG propios, en VS Code y en el playground, cuando el archivo pertenece a un proyecto.
+archivos SVG propios, en VS Code y en la app web, cuando el archivo pertenece a un proyecto.
 Elige uno o varios archivos `.svg`; un diálogo muestra cada uno dibujado como quedará, el nombre
 que recibe y el paquete:
 
@@ -119,9 +119,9 @@ modificaciones desde las descargas de cada proveedor con `pnpm vendor:icons` en
 `packages/assets/vendor/`, con las categorías del proveedor y una etiqueta por icono
 (`aws:lambda` es «AWS Lambda»). Cada uno conserva las condiciones de su proveedor, que permiten
 diagramas de arquitectura y documentación: la herramienta las recoge en
-`THIRD_PARTY_LICENSES.md` y en los avisos de la extensión y del playground, y los paquetes `aws`,
+`THIRD_PARTY_LICENSES.md` y en los avisos de la extensión y de la app web, y los paquetes `aws`,
 `azure` y `gcp` declaran `"redistribute": false`, así que `assets list` marca las exportaciones
-que los llevan. El playground descarga un paquete de proveedor la primera vez que un documento o
+que los llevan. La app web descarga un paquete de proveedor la primera vez que un documento o
 el panel de bibliotecas lo necesita. Otros conjuntos de proveedores van en un paquete del
 proyecto, por ejemplo `assets/icons/oci/`, con sus condiciones en `assets/licenses.json`.
 

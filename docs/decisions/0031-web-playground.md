@@ -2,6 +2,7 @@
 
 Status: accepted (web-playground change, 11 October 2026). Amended by
 [0041](0041-hosted-service.md): served by the cloud service, the page offers an optional account.
+Amended by [0069](0069-the-app-is-meltemi-diagrams.md): the page is called Meltemi Diagrams.
 
 ## Context
 

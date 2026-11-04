@@ -14,7 +14,7 @@
 - [ ] 3.1 Have `build.mjs` write `dist/sea-diagrams.svg` from `stillPicture("diagrams")`, and place it in both agent setup pages with `alt=""` and its style in `agent-setup.css` (design D5). Verify the build test finds the SVG well-formed and placed in both pages, finds no `<script>`, and finds the policy unchanged.
 - [ ] 3.2 Add `@meltemi/ocean` under Apache-2.0 to the license inventory, `NOTICES.md` and the About dialog. Verify `pnpm licenses:inventory --check` passes, and that the "Notices" scenario reads all three licences.
 - [ ] 3.3 Add a build test from esbuild's metafile: the chunks that carry the sea total at most 25 KB gzipped, and none of it is in the bundle the editor starts with. Verify it passes, and that a fixture over budget fails naming the chunk.
-- [ ] 3.4 Add one paragraph to `docs/playground.md` and `docs/es/playground.md` on the sea, its rest within 5 seconds, and reduced motion. Verify the docs test with the Spanish twin passes.
+- [ ] 3.4 Add one paragraph to `docs/web-app.md` and `docs/es/web-app.md` on the sea, its rest within 5 seconds, and reduced motion. Verify the docs test with the Spanish twin passes.
 
 ## 4. The browser suite and the gates
 

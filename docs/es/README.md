@@ -45,10 +45,10 @@ como código o en un lienzo, se animan y se exportan para documentos, diapositiv
   `export`, `build catalog`, `review`, `assist`, la CI y los comandos de la nube (`login`, `push`,
   `pull`, `publish`, `projects`) que mantienen un proyecto al día con el servicio en la nube.
 - [El editor para VS Code](editor.md): las funciones del lenguaje y el lienzo.
-- [El playground](playground.md): todo en una pestaña del navegador, y proyectos en la nube cuando
+- [La app web](web-app.md): todo en una pestaña del navegador, y proyectos en la nube cuando
   inicias sesión, compartidos por enlace, con personas, trabajados juntos en vivo y publicados como
   páginas web.
-- [El servicio en la nube](cloud.md): el Worker del playground alojado, con su cuenta opcional,
+- [El servicio en la nube](cloud.md): el Worker de la app alojada, con su cuenta opcional,
   los tokens de API, el inicio de sesión de la línea de comandos y los proyectos guardados en la
   nube: salas, versiones, miniaturas y cuotas; compartir y permisos; la presencia que retransmite la
   sala; y la publicación en un host propio.

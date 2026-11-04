@@ -7,7 +7,7 @@ posterior). También pone un lienzo junto al código. El texto sigue siendo la f
 acción en el lienzo es una pequeña edición del mismo documento. Deshacer, rehacer, guardar, el
 indicador de cambios sin guardar y Git funcionan exactamente igual que con el texto.
 
-El lienzo es el paquete `@meltemi/diagrams-canvas`; el playground (`docs/playground.md`) monta el
+El lienzo es el paquete `@meltemi/diagrams-canvas`; la app web (`docs/web-app.md`) monta el
 mismo lienzo en una página web, así que lo que esta página dice de él también vale allí.
 
 ## Instalación
@@ -83,8 +83,8 @@ cuadrícula, minimapa e inspector en un lienzo concreto.
 ajustes en un mensaje `settings`
 (`CanvasSettings`: `grid`, `showGrid`, `snap`, `guides`, `minimap` e `inspector`, los valores de la
 tabla de arriba), y cada mensaje reemplaza los ajustes por completo. Un anfitrión puede añadir
-`readOnly: true` para que el lienzo solo muestre: el playground lo hace mientras se ve un proyecto
-compartido ([playground](playground.md#ver-un-proyecto-compartido)), y un mensaje posterior sin él, o
+`readOnly: true` para que el lienzo solo muestre: la app web lo hace mientras se ve un proyecto
+compartido ([la app web](web-app.md#ver-un-proyecto-compartido)), y un mensaje posterior sin él, o
 con `false`, hace que el lienzo vuelva a editar sin recargar. La extensión nunca lo envía, así que
 VS Code no ve ningún cambio. Mientras está activo, el lienzo muestra una insignia "solo lectura",
 oculta la paleta y todos los demás controles que escriben el diagrama (los controles de edición de
@@ -98,8 +98,9 @@ tiempo y los efectos funcionan.
 **Las selecciones de otras personas.** Un anfitrión que comparte el diagrama puede decirle al
 lienzo quién más está en él con un mensaje `presence`, `{ type: "presence", people }`, donde cada
 persona tiene un `name`, un `colour`, los ids que ha seleccionado (elementos, relaciones y
-eventos) y, mientras se mueve, el `pointer` sobre su lienzo. El playground lo hace en un proyecto en la nube que tienen abierto varias personas
-([trabajar juntos](playground.md#trabajar-juntos)); la extensión nunca lo envía, así que VS Code no
+eventos) y, mientras se mueve, el `pointer` sobre su lienzo. La app web lo hace en un proyecto en
+la nube que tienen abierto varias personas ([trabajar juntos](web-app.md#trabajar-juntos)); la
+extensión nunca lo envía, así que VS Code no
 ve ningún cambio. El lienzo rodea cada uno de esos ids con un contorno del color de la persona y le
 pone una etiqueta con su nombre, y dibuja cada puntero como un cursor del color de la persona con
 el nombre en la cola, que se desliza de un punto al siguiente, en una capa por encima de la escena
@@ -172,7 +173,7 @@ cualquier diagrama de flujo.
   las vistas HTML ni del proyecto, y no se conserva entre visitas. Con `prefers-reduced-motion` el
   trazo no se desvanece mientras se dibuja y desaparece de golpe al soltar. En un proyecto en la nube
   las demás personas ven la estela con tu color de presencia, en los mismos mensajes que tu puntero
-  ([trabajar juntos](playground.md#trabajar-juntos)).
+  ([trabajar juntos](web-app.md#trabajar-juntos)).
 - **Selección en ambos sentidos**: seleccionar en el lienzo muestra el id en el código sin tomar el
   foco. Mover el cursor de texto resalta el elemento de la instrucción que está debajo.
 - **Seleccionar**: haz clic en una caja o en un conector; Mayús o Ctrl agrega o quita uno. El clic
@@ -434,7 +435,7 @@ como en todas partes. Tab después del último elemento sale del lienzo.
 
 El pliegue del inspector no tiene tecla en el lienzo: VS Code asigna Ctrl+Alt+B a su barra lateral
 secundaria, así que lo pliegan y despliegan los botones de su cabecera y de su riel y el botón de
-la barra de herramientas, todos alcanzables con Tab. El playground también lo pliega con
+la barra de herramientas, todos alcanzables con Tab. La app web también lo pliega con
 Ctrl+Alt+B.
 
 El foco siempre es visible: el lienzo, los botones de la barra de herramientas, los campos del
@@ -871,7 +872,7 @@ herramienta escribe instrucciones, cada una en un paso de deshacer.
   **Alineación** de la lista.
 - **Trazos de otros.** En una sala, un trazo que alguien dibuja aparece en tu lienzo mientras lo
   dibuja, en el color y el grosor de su lápiz, y su `pen` ocupa su lugar cuando llega su edición
-  ([trabajar juntos](playground.md#trabajar-juntos)).
+  ([trabajar juntos](web-app.md#trabajar-juntos)).
 - **Repetir un dibujo.** La acción `draw` de una historia dibuja trazos, líneas y relaciones uno
   tras otro como se dibujaron ([historias](language/stories.md)), y el panel de historias la
   ofrece.

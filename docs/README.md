@@ -43,9 +43,9 @@ canvas, animated, and exported for documents, slides, the web and video.
   `export`, `build catalog`, `review`, `assist`, CI, and the cloud commands (`login`, `push`,
   `pull`, `publish`, `projects`) that keep a project in step with the cloud service.
 - [The editor for VS Code](editor.md): language features and the canvas.
-- [The playground](playground.md): everything in a browser tab, and projects in the cloud when you
+- [The web app](web-app.md): everything in a browser tab, and projects in the cloud when you
   sign in, shared by link, with people, worked on together live and published as web pages.
-- [The cloud service](cloud.md): the Worker behind the hosted playground, with its optional
+- [The cloud service](cloud.md): the Worker behind the hosted web app, with its optional
   account, API tokens, the command line's sign-in and projects kept in the cloud: rooms, versions,
   thumbnails and quotas; sharing and permissions; the presence the room relays; and publishing on a
   host of its own.

@@ -96,7 +96,7 @@ export const explorer = {
     empty: "Give it a name.",
     invalid: "A name cannot start with a dot or hold /, \\ or :.",
     extension: "Keep the file's extension.",
-    editable: "The playground edits .meltemi, .json and .md files.",
+    editable: "The app edits .meltemi, .json and .md files.",
     exists: (path: string) => `${path} exists.`,
     itself: "A folder cannot move into itself.",
     created: (path: string) => `Created ${path}.`,

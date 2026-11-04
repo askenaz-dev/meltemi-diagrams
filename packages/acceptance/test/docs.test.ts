@@ -106,7 +106,7 @@ const TRANSLATED = [
     "getting-started",
     "features",
     "editor",
-    "playground",
+    "web-app",
     "cloud",
     "cli",
     "player",

@@ -4,7 +4,7 @@
 
 Ya escribes diagramas como texto junto a tu código, y una herramienta los dibuja. Meltemi Diagrams
 mantiene eso: los archivos `.meltemi` son texto plano en tu repositorio, se revisan en las pull
-requests y los dibujan la línea de comandos, el editor y el playground. Esta página muestra qué
+requests y los dibujan la línea de comandos, el editor y la app web. Esta página muestra qué
 cambia, cómo traer tus diagramas de Mermaid y qué probar primero.
 
 ## Lo que no cambia

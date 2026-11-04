@@ -88,7 +88,7 @@ Nunca reemplaza un archivo: si alguno ya existe, no se escribe nada.
 | `purchase`   | El ejemplo de referencia: modelo, vistas de contexto y de contenedores, secuencia de pago con escenarios, diapositiva ejecutiva, historia animada, perfiles PDF, PNG y MP4, ajustes del catálogo |
 
 `--list` imprime cada una con su título, para qué sirve y lo que contiene, como las muestra Nuevo
-proyecto en el playground, por ejemplo `Modelo C4 — Un modelo de arquitectura con una vista de
+proyecto en la app, por ejemplo `Modelo C4 — Un modelo de arquitectura con una vista de
 contexto y una vista de contenedores (1 modelo, 2 vistas)`.
 
 `--ci github` o `--ci gitlab` también escribe un flujo de trabajo de CI (más abajo); en un proyecto

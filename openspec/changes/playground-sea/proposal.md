@@ -77,7 +77,7 @@ diagrams.meltemi.dev serves). It covers no stage of the proposal.
   - `package.json`: the new dependency.
 - **Docs and notices**
   - `NOTICES.md` generation and `pnpm licenses:inventory`.
-  - `docs/playground.md` and its Spanish twin get one paragraph about the sea and reduced motion.
+  - `docs/web-app.md` and its Spanish twin get one paragraph about the sea and reduced motion.
 - **Tests**
   - Unit tests for the empty-state rule (which states get a sea).
   - The playground's browser suite gains these checks:

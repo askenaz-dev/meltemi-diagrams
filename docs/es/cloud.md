@@ -3,7 +3,7 @@
 [English](../cloud.md)
 
 El servicio en la nube es la mitad en línea y opcional de Meltemi Diagrams: un Worker de Cloudflare
-(`packages/cloud`) que sirve el [playground](playground.md) y una API desde un solo origen,
+(`packages/cloud`) que sirve [la app web](web-app.md) y una API desde un solo origen,
 `diagrams.meltemi.dev`, e inicia la sesión de las personas con el servicio de identidad de la
 familia Meltemi, en `id.meltemi.dev`. Las razones están en las decisiones
 [0041](../decisions/0041-hosted-service.md) y [0042](../decisions/0042-sharing-and-publishing.md)
@@ -43,8 +43,8 @@ página. Servida por este Worker ofrece una cuenta encima de eso y no quita nada
 
 ## Un Worker, un origen
 
-`packages/cloud/wrangler.jsonc` le da al Worker como recursos estáticos la compilación del
-playground, `packages/playground/dist` (el binding `ASSETS`, sin página de reserva), y hace que se
+`packages/cloud/wrangler.jsonc` le da al Worker como recursos estáticos la compilación de
+la app, `packages/playground/dist` (el binding `ASSETS`, sin página de reserva), y hace que se
 ejecute primero para los paths que responde él mismo (`run_worker_first`: `/api/*`, `/_identity/*`,
 `/_published/*`, `/cli-auth`, `/cli-auth/*`, `/p/*` y `/rooms/*`). Cualquier otro path lo sirve la
 plataforma de recursos sin ejecutar el Worker. La página y la API son un solo origen: no hace falta
@@ -67,7 +67,7 @@ pasa. El host de publicación nunca llega a este Worker: es otro Worker
 de desarrollo que sirve una publicación desde este origen; sin `DEV`, todo path bajo él es el `404`
 en JSON.
 
-Los archivos propios de la página salen con dos cabeceras que la compilación del playground
+Los archivos propios de la página salen con dos cabeceras que la compilación de la app
 escribe en `_headers` y que aplica la plataforma de recursos:
 `Content-Security-Policy: frame-ancestors 'self'` y `X-Content-Type-Options: nosniff`. La política de
 la página es una etiqueta `meta`, que no puede decir quién puede enmarcarla; sin la cabecera,
@@ -695,7 +695,7 @@ dos termina la colisión.
 ### La regla de los paths
 
 Una sola regla nombra todos los archivos de un proyecto en la nube: `cleanPath` e `isCleanPath` de
-`@meltemi/diagrams-project` (`packages/project/src/files.ts`), que el playground reexporta y que
+`@meltemi/diagrams-project` (`packages/project/src/files.ts`), que la app reexporta y que
 importan el Worker, la sala y la línea de comandos. Un path es válido cuando ya está en forma
 canónica: relativo, separado por `/`, de 1 a 12 segmentos, cada uno de 1 a 100 caracteres que son
 letras ASCII, dígitos, `_`, espacio, `.`, `(`, `)`, `+`, `@` o `-`, ninguno de ellos `..` y ninguno
@@ -866,7 +866,7 @@ La presencia es lo que cada página cuenta a las demás sobre su persona: el arc
 abierto, dónde está su cursor o su selección en él, qué ha seleccionado en el lienzo y dónde está
 su puntero sobre él y los puntos de un trazo del Puntero. Viaja en
 mensajes de tipo 2, y la sala solo los retransmite: nada de ello se escribe en el almacenamiento de
-la sala, y no cambia ni el documento ni su revisión. [El playground](playground.md#trabajar-juntos)
+la sala, y no cambia ni el documento ni su revisión. [La app web](web-app.md#trabajar-juntos)
 la muestra. El formato es pequeño y propio de la página: un objeto con una clave por conexión, como
 lo hace el protocolo de awareness de Yjs, sin el paquete `y-protocols`.
 
@@ -1239,7 +1239,7 @@ cuando es `viewer`.
 - `POST /api/projects` recibe `{ name, description?, template? | files?, binaries? }` y responde
   `201` con el proyecto. El nombre tiene de 1 a 100 caracteres una vez recortado, sin caracteres de
   control; la descripción, como máximo 500. `template` es una de `flow`, `c4`, `sequence`, `free` y
-  `purchase`, y da los archivos de la propia compilación del playground con su `project.json`,
+  `purchase`, y da los archivos de la propia compilación de la app con su `project.json`,
   leídos de su `templates.json`, así que la página y el servicio ofrecen los mismos bytes. `files`
   es `{ path: texto }` y `binaries` es `{ path: hash }` de imágenes y fuentes que los proyectos de la
   persona ya tienen (otro hash es `blob.unknown`: un hash no es una credencial). Una plantilla y
@@ -1639,7 +1639,7 @@ escribir ([El socket](#el-socket)); uno anónimo se conecta con una identidad de
 presencia como cualquiera, y lee la instantánea (`GET …/files`) solo cuando la sala no responde. Un
 proyecto que el enlace no admite es `404 project.not-found` para las personas anónimas como para
 cualquier otra, lo que la página dice como "no se encontró" y nada más. Cómo usa la página todo esto está en
-[el playground](playground.md#ver-un-proyecto-compartido).
+[la app web](web-app.md#ver-un-proyecto-compartido).
 
 ### Cuando cambia el acceso
 
@@ -1924,7 +1924,7 @@ administradores; sin definir o vacío, el servicio no tiene propietario. Los **a
 las personas que un propietario invitó y que aceptaron, filas de `administrators`
 ([Almacenamiento](#almacenamiento)); un `sub` que lista `ADMIN_SUBS` y que además tiene fila es un
 propietario. Lo hacen desde la sección Administración del panel de la cuenta
-([el playground](playground.md#el-panel-de-la-cuenta)), que lee y llama a las rutas de abajo.
+([la app web](web-app.md#el-panel-de-la-cuenta)), que lee y llama a las rutas de abajo.
 
 | Acto                                                | Propietario | Administrador |
 | --------------------------------------------------- | ----------- | ------------- |
@@ -2002,7 +2002,7 @@ si un correo tiene cuenta, y a nadie más.
 Un permiso es una entrada de un catálogo en el código (`packages/cloud/src/permissions.ts`),
 guardada en columnas propias de `users`. El primero y único es `unbranded-exports`, exportar sin la
 marca de Meltemi: el diálogo de exportación de una persona habilitada ofrece **Exportar sin la marca
-de Meltemi** ([el playground](playground.md#exportaciones-en-el-navegador)). Los propietarios y los
+de Meltemi** ([la app web](web-app.md#exportaciones-en-el-navegador)). Los propietarios y los
 administradores tienen todos los permisos sin que nadie se los conceda, como dice la respuesta de la
 sesión; su propia fila dice solo lo que se fijó en ella. Tres rutas, para un propietario o un
 administrador por igual: `GET /api/admin/permissions/<id>` lista las cuentas cuya fila tiene el
@@ -2330,7 +2330,7 @@ Nada se despliega ni se configura desde una máquina ([decisión 0046](../decisi
   a `main`, desde ese SHA exacto con su versión automática. Una fuente superada se omite antes de
   las migraciones y subidas:
   `scripts/deploy-config.mjs` escribe `wrangler.deploy.json` y `wrangler.publish.deploy.json` con los
-  ids, luego se compila el playground, se aplican las migraciones (`wrangler d1 migrations apply DB
+  ids, luego se compila la app, se aplican las migraciones (`wrangler d1 migrations apply DB
 --remote`), y se suben el Worker principal y el de publicación con `wrangler deploy`. Una migración
   que falla no sube nada.
 - **Volver atrás** es un revert enviado a `main` que pasa CI, o una operación explícita de

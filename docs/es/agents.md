@@ -10,7 +10,7 @@ y la conversión, y ejemplos completos. Un agente que la lee escribe archivos `.
 con la línea de comandos y corrige lo que esta informa, en lugar de dibujar imágenes a mano. Esta
 página también está en la web, en
 [diagrams.meltemi.dev/es/agent-setup](https://diagrams.meltemi.dev/es/agent-setup/), enlazada
-desde el diálogo Acerca de del playground.
+desde el diálogo Acerca de Meltemi Diagrams de la app web.
 
 ## El prompt
 
@@ -116,6 +116,6 @@ lo veas con `mdg preview`.
 
 La skill canónica es `skills/meltemi-diagrams/`; `pnpm skills:sync` la copia en `.claude/skills/`,
 `.agents/skills/` y el paquete de la línea de comandos, y una prueba falla cuando una copia se
-desvía. El prompt de configuración es `packages/cli/agent-setup/prompt.md`, que el build del
-playground sirve junto a la página `agent-setup/`. Consulta
+desvía. El prompt de configuración es `packages/cli/agent-setup/prompt.md`, que el build de
+la app sirve junto a la página `agent-setup/`. Consulta
 [la línea de comandos](cli.md#skill-de-agentes) para `skill install` y `skill prompt`.

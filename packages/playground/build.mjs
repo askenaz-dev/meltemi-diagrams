@@ -288,7 +288,7 @@ writeFileSync(
   [
     "# Notices",
     "",
-    `Meltemi Diagrams playground ${version}. Meltemi Diagrams is MIT. This site bundles the`,
+    `Meltemi Diagrams ${version} in the browser. Meltemi Diagrams is MIT. This site bundles the`,
     `components below, each under its own licence: ${fontsUnder}`,
     "elkjs under the Eclipse Public License 2.0, and the others as stated. The provider icon sets",
     "keep their vendors' terms, repeated below.",

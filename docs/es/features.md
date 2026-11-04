@@ -104,7 +104,7 @@ referencias.
   archivos Markdown. Cada construcción se informa como convertida, aproximada o descartada, el
   origen nunca se modifica, y al reimportar se conservan la colocación, los estilos y los demás
   ajustes hechos desde entonces (`meltemi-diagrams import`, y tres comandos en VS Code).
-- El playground ([playground](playground.md)): una página web estática con un explorador de las
+- La app web ([la app web](web-app.md)): una página web estática con un explorador de las
   carpetas y los diagramas del proyecto (cambiar el nombre y mover conservan las importaciones),
   Nuevo proyecto a partir de las tarjetas de las plantillas, importación y exportación de un
   proyecto como `.zip`, el código con sus servicios de lenguaje junto al mismo lienzo, un único historial para deshacer, importación
@@ -112,7 +112,7 @@ referencias.
   reproductor HTML, GIF, WebM y MP4, perfiles, el archivo comprimido del proyecto, el JSON del modelo
   y el catálogo), enlaces para compartir y el trabajo guardado en el navegador; sin cuenta, y nada
   sale de la página.
-- Trabajar juntos ([playground](playground.md#trabajar-juntos), [cloud](cloud.md)): una cuenta
+- Trabajar juntos ([la app web](web-app.md#trabajar-juntos), [cloud](cloud.md)): una cuenta
   opcional añade proyectos en la nube que varias personas abren a la vez. Todos escriben sin perder
   un solo carácter y el deshacer de cada persona cubre solo sus propias ediciones; la cabecera
   muestra quién está, y sus cursores y selecciones se ven en el código y en el lienzo. Nada de ello

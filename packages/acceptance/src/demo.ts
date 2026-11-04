@@ -185,6 +185,16 @@ async function centre(
 }
 
 /** Fits the diagram in the canvas. */
+/** Opens a tab of the inspector, as a person does before one of its fields. */
+async function inspectorTab(r: Recorder, page: Page, name: string, step: string): Promise<void> {
+  const tab = page.getByRole("tab", { name, exact: true });
+  await tab.waitFor({ timeout: 5000 }).catch(() => {
+    throw new DemoError(`Step "${step}": the inspector shows no ${name} tab.`);
+  });
+  const box = (await tab.boundingBox())!;
+  await r.click(box.x + box.width / 2, box.y + box.height / 2);
+}
+
 async function fit(page: Page): Promise<void> {
   await page.getByRole("button", { name: "Fit the diagram" }).click();
   await page.waitForTimeout(200);
@@ -241,6 +251,7 @@ export async function playDemo(page: Page, folder: string): Promise<Frame[]> {
   await fit(page);
   const canvas = (await page.locator("#app").boundingBox())!;
   await r.click(canvas.x + 40, canvas.y + canvas.height - 60);
+  await inspectorTab(r, page, "Layout", "routing");
   const routing = page.locator("#mdg-field-routing");
   await routing.waitFor({ timeout: 5000 });
   const g = (await routing.boundingBox())!;
@@ -267,6 +278,7 @@ export async function playDemo(page: Page, folder: string): Promise<Frame[]> {
   await r.caption("Rename a label in the inspector: one string changes in the code");
   const store = await centre(page, "store", "relation");
   await r.click(store.x, store.y);
+  await inspectorTab(r, page, "Details", "label");
   const field = page.locator("#mdg-field-label");
   await field.waitFor({ timeout: 5000 });
   const f = (await field.boundingBox())!;
