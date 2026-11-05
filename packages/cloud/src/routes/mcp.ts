@@ -36,9 +36,17 @@ export const mcpRoute: Route = async (ctx) => {
       },
     );
   }
-  const { refusedVersion } = await import("../mcp/endpoint.js");
+  const { refusedVersion, serveMcp } = await import("../mcp/endpoint.js");
   const refused = refusedVersion(request);
   if (refused) return refused;
+  if (ctx.deps.local) {
+    const { SCOPES } = await import("../mcp/caller.js");
+    return serveMcp(ctx, {
+      principal: ctx.deps.local.principal,
+      clientId: "local",
+      scopes: new Set(SCOPES),
+    });
+  }
   const { serveProvider } = await import("../oauth/provider.js");
   return serveProvider(ctx);
 };

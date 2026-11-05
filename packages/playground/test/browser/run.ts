@@ -1514,6 +1514,64 @@ async function emptyProject(page: Page): Promise<void> {
 }
 
 const tests: Test[] = [
+  ...(["en", "es"] as const).map((language): Test => ({
+    name: `local workspace: ${language} has no account or sharing controls and preserves browser work`,
+    locale: language === "es" ? "es-CL" : "en-US",
+    async setup({ page, origin }) {
+      const id = "abcdefghij0123456789";
+      await page.route("**/api/session", (route) =>
+        route.fulfill({
+          json: {
+            mode: "local-single-user",
+            user: { sub: "local-owner", name: "Local workspace", picture: "" },
+            defaultProject: { id, url: `${origin}/?project=${id}` },
+          },
+        }),
+      );
+      const flow = templates.find((template) => template.name === "flow")!;
+      await page.addInitScript((files) => {
+        localStorage.setItem(
+          "meltemi-playground:project:v1",
+          JSON.stringify({
+            v: 1,
+            files,
+            open: Object.keys(files).find((path) => path.endsWith(".meltemi")),
+          }),
+        );
+      }, flow.files);
+    },
+    async run({ page }) {
+      const words = language === "es" ? es : en;
+      assert.equal(
+        await page.locator(".local-workspace-label").textContent(),
+        words.localWorkspace.label,
+      );
+      assert.equal(await page.locator(".sign-in, .account-button, .account-menu").count(), 0);
+      assert.equal(
+        await page
+          .locator(".topbar")
+          .getByRole("button", { name: words.header.share, exact: true })
+          .count(),
+        0,
+      );
+      assert.equal(await page.locator(".live-chip").count(), 0);
+      assert.equal(
+        await page.evaluate(() =>
+          document.querySelector("#playground")?.getAttribute("data-cloud"),
+        ),
+        null,
+      );
+      await page
+        .getByRole("button", { name: words.localWorkspace.setUpAgent, exact: true })
+        .click();
+      assert.equal(
+        await page.locator(".status-text").textContent(),
+        words.localWorkspace.openProject,
+      );
+      assert.equal(await page.locator("dialog[open]").count(), 0);
+      assert.equal(await page.evaluate(() => document.cookie), "");
+    },
+  })),
   {
     name: "properties: focused tabs in English preserve drafts, keyboard access and source edits",
     run: ({ page }) => inspectorTabsFlow(page, canvasEn.inspector, "en"),

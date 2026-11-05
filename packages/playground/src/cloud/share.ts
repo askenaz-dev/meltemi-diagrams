@@ -78,6 +78,7 @@ function picture(source: string | undefined): HTMLElement {
  * to read: the calls the dialog makes are the ones a link that admits them answers).
  */
 export function openShareDialog(playground: Playground): void {
+  if (playground.session.kind === "local") return;
   const cloud = playground.cloud;
   const viewed = playground.viewing.mode.state;
   const project = shareTarget(cloud?.openProject, viewed && { id: viewed.id, name: viewed.name });

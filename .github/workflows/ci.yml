@@ -2,7 +2,8 @@ name: CI
 
 # Every push to main and every pull request: the types, the style, the licences, the unit tests,
 # the build and the corpus on Linux and Windows; the browser suites (the playground, the player,
-# the catalog and the canvas) and the cloud service's suite against `wrangler dev` on Linux. Nothing
+# the catalog and the canvas), the cloud service against `wrangler dev`, and Linux amd64 Compose
+# startup/shared editing, restart/restore and offline rendering/plugin bundles. Nothing
 # here deploys, publishes or reads a secret. `pnpm vscode:test`, which downloads VS Code, stays a
 # step of RELEASING.md.
 
@@ -86,3 +87,38 @@ jobs:
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
       - run: pnpm playground:build
       - run: pnpm cloud:test-browser
+
+  local-compose:
+    name: Local Compose and agentic diagramming
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Let Chrome use its sandbox
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+      - name: Build and start the local distribution
+        run: docker compose up --build --wait
+      - name: Native MCP and shared browser editing without credentials
+        run: pnpm local:test-browser
+      - name: Restart and restore the complete instance
+        run: node scripts/local/check-compose.mjs
+      - name: Start and draw with no container network
+        run: docker run --rm --network none --entrypoint node "$(docker compose images -q app)" --conditions=@meltemi/diagrams-source scripts/local/check-offline.mjs
+      - name: Container logs
+        if: always()
+        run: docker compose logs --no-color
+      - name: Stop test containers
+        if: always()
+        run: docker compose down --volumes
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: local-compose-verification
+          path: .test-output/local-compose*
+          if-no-files-found: ignore

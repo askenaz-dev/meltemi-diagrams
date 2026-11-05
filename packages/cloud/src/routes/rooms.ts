@@ -62,7 +62,7 @@ export const roomSocket: Route = async (ctx) => {
     ctx.deps,
     ctx.config,
   );
-  const principal = resolved?.via === "cookie" ? resolved : undefined;
+  const principal = resolved?.via === "cookie" || resolved?.via === "local" ? resolved : undefined;
   if (originOf(ctx.request) !== ctx.config.origin) throw fail("request.forbidden");
 
   const projectId = ctx.params["id"] ?? "";

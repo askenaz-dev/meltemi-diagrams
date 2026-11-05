@@ -24,6 +24,7 @@ export default tseslint.config(
       "packages/playground/.test-output/**",
       "packages/acceptance/.test-output/**",
       "release/**",
+      ".test-output/**",
     ],
   },
   js.configs.recommended,

@@ -4674,3 +4674,36 @@ a.pg-menu-item {
 .shell.narrow .presence-guest {
   display: none;
 }
+
+.local-workspace {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.local-workspace-label {
+  max-width: 150px;
+  color: var(--pg-muted);
+  font-size: 11px;
+  line-height: 1.3;
+}
+
+.local-agent-prompt {
+  width: 100%;
+  resize: vertical;
+  min-height: 140px;
+}
+
+.shell.narrow .local-workspace-label {
+  display: none;
+}
+
+.shell.narrow .local-agent-setup {
+  width: 30px;
+  padding: 0;
+  justify-content: center;
+}
+
+.shell.narrow .local-agent-setup > span {
+  display: none;
+}

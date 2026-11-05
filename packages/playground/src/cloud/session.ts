@@ -3,6 +3,7 @@
 // way the answer can go wrong means "nobody", and says nothing about it.
 
 import { inPage, isObject, parseObject, send, type Fetch } from "./http.js";
+import { isProjectId } from "./address.js";
 
 /** How long the page waits for the session before it carries on as if nobody were signed in. */
 export const SESSION_TIMEOUT_MS = 8_000;
@@ -73,12 +74,17 @@ function invitationOf(value: unknown): AdministrationInvitation | null {
 }
 
 /**
- * The three shapes of the answer, as the page uses them. A cookie is a person on the page; a bearer
- * token is the command line's way in, which no page has, so the page treats it as nobody: both it
- * and `anonymous` carry the address to sign in at.
+ * The hosted session shapes and the explicit local actor. A cookie is a person on the hosted
+ * page; a bearer token is the command line's way in, which no page has, so it and `anonymous`
+ * carry the address to sign in at. A local workspace has no authentication or provider links.
  */
 export type Session =
   | { readonly kind: "anonymous"; readonly signIn: string }
+  | {
+      readonly kind: "local";
+      readonly user: SessionUser;
+      readonly defaultProject: { readonly id: string; readonly url: string };
+    }
   | {
       readonly kind: "cookie";
       readonly user: SessionUser;
@@ -202,8 +208,8 @@ function userOf(value: unknown, page: string): SessionUser | undefined {
 }
 
 /**
- * The session an answer's text describes. Never throws: anything that is not one of the three
- * shapes is nobody, with the sign-in link the page builds from the identity origin it was built
+ * The session or local workspace an answer's text describes. Never throws: an unrecognized
+ * shape is nobody, with the sign-in link the page builds from the identity origin it was built
  * with. `page` is the page's address, `identity` the identity service's origin.
  */
 export function parseSession(text: string, page: string, identity: string): Session {
@@ -216,6 +222,27 @@ export function parseSession(text: string, page: string, identity: string): Sess
   }
   const user = userOf(body["user"], page);
   if (!user) return { kind: "anonymous", signIn: own };
+  if (body["mode"] === "local-single-user") {
+    const project = body["defaultProject"];
+    const address = isObject(project) ? webAddress(project["url"]) : undefined;
+    if (
+      isObject(project) &&
+      typeof project["id"] === "string" &&
+      isProjectId(project["id"]) &&
+      address
+    ) {
+      const url = new URL(address);
+      const pageAddress = webAddress(page);
+      if (
+        pageAddress &&
+        url.origin === new URL(pageAddress).origin &&
+        url.searchParams.get("project") === project["id"]
+      ) {
+        return { kind: "local", user, defaultProject: { id: project["id"], url: address } };
+      }
+    }
+    return { kind: "anonymous", signIn: own };
+  }
   const account = webAddress(body["account"]);
   const signOut = webAddress(body["signOut"]);
   if (account !== undefined && signOut !== undefined) {

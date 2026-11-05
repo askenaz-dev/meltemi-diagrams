@@ -42,6 +42,9 @@ como código o en un lienzo, se animan y se exportan para documentos, diapositiv
 
 ## Herramientas
 
+- [Espacio de trabajo local con Docker Compose](local-compose.md): inicia editor, backend y MCP
+  con un comando e instala el plugin de Claude Code o Codex desde el prompt local.
+
 - [La línea de comandos](cli.md): `init`, `preview`, `validate`, `format`, `layout`, `import`,
   `export`, `build catalog`, `review`, `assist`, la CI y los comandos de la nube (`login`, `push`,
   `pull`, `publish`, `projects`) que mantienen un proyecto al día con el servicio en la nube.

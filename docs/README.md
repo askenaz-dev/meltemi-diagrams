@@ -40,6 +40,8 @@ canvas, animated, and exported for documents, slides, the web and video.
 
 ## Tools
 
+- [Local workspace with Docker Compose](local-compose.md): start the editor, backend and MCP with
+  one command, then install the Claude Code or Codex plugin from the local setup prompt.
 - [The command line](cli.md): `init`, `preview`, `validate`, `format`, `layout`, `import`,
   `export`, `build catalog`, `review`, `assist`, CI, and the cloud commands (`login`, `push`,
   `pull`, `publish`, `projects`) that keep a project in step with the cloud service.

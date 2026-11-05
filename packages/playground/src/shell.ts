@@ -27,6 +27,11 @@ import { explainFailure } from "./cloud/explain.js";
 import { defaultGuestName, guestId, keepGuestName, keptGuestName } from "./cloud/guest.js";
 import { CLOUD_ICON } from "./cloud/icons.js";
 import { LiveSessions } from "./cloud/live.js";
+import {
+  localCloudWords,
+  localStartupProject,
+  openLocalAgentSetup,
+} from "./cloud/local-workspace.js";
 import { guestsIn, mountGuestBar, mountLiveChip, type GuestName } from "./cloud/live-mount.js";
 import { mountCloudExtras } from "./cloud/mount.js";
 import { mountPresence } from "./cloud/presence-mount.js";
@@ -246,7 +251,7 @@ export class Playground {
       studio,
       templates: () => this.templates,
       selection: () => this.code.selection(),
-      words: () => messages().cloud,
+      words: () => (options.session.kind === "local" ? localCloudWords() : messages().cloud),
       report: (message) => this.status(message),
       status: (status) => this.showConnection(status),
       changed: (project) => this.cloudChanged(project !== undefined),
@@ -263,9 +268,9 @@ export class Playground {
       // A live session ended and the link does not admit the person: what the page shows stays.
       frozen: (project) => this.viewing.frozen(project),
     };
-    // Cloud projects exist only for a person signed in with a cookie. A person nobody is signed in as
-    // gets only a way into the room of the project the address names, as a guest (`live-sessions`).
-    if (options.session.kind === "cookie" && options.cloud) {
+    // Hosted cookie sessions and explicit local workspaces edit backend projects. An anonymous
+    // visitor gets only the room of the project the address names, as a guest (`live-sessions`).
+    if ((options.session.kind === "cookie" || options.session.kind === "local") && options.cloud) {
       this.cloud = new CloudController(options.cloud, hooks);
     } else if (options.cloud && planOpen(location.search).kind === "open") {
       const storage = options.cloud.storage;
@@ -326,7 +331,7 @@ export class Playground {
     // project is open; the live session's chip only for its owner.
     if (this.cloud) {
       mountCloudExtras(this, this.cloud);
-      mountLiveChip(this, this.cloud);
+      if (options.session.kind !== "local") mountLiveChip(this, this.cloud);
     }
     // A person without an account in a room: who else is here, and the guest bar.
     if (this.guestCloud && this.guestName) {
@@ -336,7 +341,7 @@ export class Playground {
         this,
         this.guestCloud,
         this.guestName,
-        session.kind === "cookie" ? undefined : session.signIn,
+        session.kind === "cookie" || session.kind === "local" ? undefined : session.signIn,
       );
     }
   }
@@ -388,6 +393,7 @@ export class Playground {
     const root = this.root;
     root.classList.remove("loading");
     root.classList.add("shell");
+    root.dataset.mode = this.session.kind === "local" ? "local" : "hosted";
     root.replaceChildren();
     const m = messages();
 
@@ -478,7 +484,7 @@ export class Playground {
       this.redoButton,
       format,
       h("span", { class: "separator", role: "presentation" }),
-      share,
+      ...(this.session.kind === "local" ? [] : [share]),
       exportButton,
       menuButton({ id: "download", label: m.header.download, icon: "download" }, () =>
         this.downloadMenu(),
@@ -885,6 +891,11 @@ export class Playground {
       sessionChanged: (session) => {
         this.current = session;
       },
+      setUpAgent: () => {
+        const project = this.cloud?.openProject;
+        if (project) openLocalAgentSetup(this.options.page, project.id);
+        else this.status(messages().localWorkspace.openProject);
+      },
     });
     return this.account;
   }
@@ -909,9 +920,23 @@ export class Playground {
     const plan = planOpen(location.search);
     let notice: string | undefined;
     if (plan.kind !== "none") {
-      notice = await this.viewing.open(plan);
+      notice = await this.viewing.open(
+        this.session.kind === "local" && plan.kind === "open"
+          ? { ...plan, invite: undefined, live: undefined }
+          : plan,
+      );
       // The project is open (bound, or shown to view): nothing more to start.
       if (notice === undefined) return;
+    }
+    const defaultProject = localStartupProject(
+      this.session,
+      location.search,
+      (keptProject(STORE_KEYS.project)?.files.size ?? 0) > 0,
+      sharedValue(location.hash) !== undefined,
+    );
+    if (defaultProject && this.cloud) {
+      const outcome = await this.cloud.open(defaultProject);
+      if (outcome === "opened" || outcome === "already") return;
     }
     if (!(await this.openSharedFromHash())) this.openAnonymous();
     // What the address asked is said after the anonymous project opened, not before.
@@ -957,7 +982,9 @@ export class Playground {
     // A viewer follows the room and saves nothing: its connection has words of its own.
     const words = this.viewing.mode.active
       ? viewerStatusWords(messages().viewing.status)
-      : messages().cloud.status;
+      : this.session.kind === "local"
+        ? localCloudWords().status
+        : messages().cloud.status;
     this.connection.dataset.state = status.state;
     this.connection.dataset.kept = String(status.kept);
     this.connection.replaceChildren(
@@ -1116,7 +1143,8 @@ export class Playground {
         },
         rename: (name) => this.renameProject(name),
         cloud: this.cloud,
-        signIn: session.kind === "cookie" ? undefined : session.signIn,
+        signIn: session.kind === "cookie" || session.kind === "local" ? undefined : session.signIn,
+        localWorkspace: session.kind === "local",
         local: () => ({ name: this.localName(), open: !this.inCloud() }),
         hasPrevious: () => keptProject(STORE_KEYS.previous) !== undefined,
         openLocal: () => this.viewing.leave(),
@@ -1125,6 +1153,7 @@ export class Playground {
           openNewProject({
             templates: this.templates,
             cloud: this.cloud,
+            localWorkspace: session.kind === "local",
             dark: () => this.dark(),
             createLocal: (template, name) => this.createLocal(template, name),
           }),
@@ -1392,6 +1421,7 @@ export class Playground {
     if (this.viewOnly()) return;
     void importProject(archive, {
       cloud: this.cloud,
+      localWorkspace: this.session.kind === "local",
       openName: () => this.projectName(),
       localOpen: () => !this.inCloud(),
       readOnly: () => this.studio.readOnly,

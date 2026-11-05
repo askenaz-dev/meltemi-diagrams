@@ -52,6 +52,7 @@ export async function resolvePrincipal(
   deps: Deps,
   _config: Config,
 ): Promise<Principal | undefined> {
+  if (deps.local) return deps.local.principal;
   const now = deps.now();
   const bearer = bearerOf(request);
   if (bearer !== undefined) return tokenPrincipal(bearer, deps);
@@ -91,6 +92,7 @@ export function requireOwnOrigin(
   principal: Principal | undefined,
   config: Config,
 ): void {
-  if (principal?.via !== "cookie" || isSafeMethod(request.method)) return;
+  if ((principal?.via !== "cookie" && principal?.via !== "local") || isSafeMethod(request.method))
+    return;
   if (originOf(request) !== config.origin) throw fail("request.forbidden");
 }

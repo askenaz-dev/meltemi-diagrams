@@ -4,6 +4,7 @@
 
 import { messages } from "../messages/index.js";
 import type { CloudController } from "../cloud/controller.js";
+import { localCloudWords } from "../cloud/local-workspace.js";
 import { ProjectsModel, checkProjectName, nameProblem } from "../cloud/projects-model.js";
 import {
   templateContents,
@@ -14,6 +15,7 @@ import {
 import { field, h, openDialog } from "../ui.js";
 
 export interface NewProjectHost {
+  readonly localWorkspace?: boolean;
   readonly templates: readonly Template[];
   /** The person's cloud projects; undefined when nobody is signed in. */
   readonly cloud: CloudController | undefined;
@@ -156,7 +158,11 @@ export function openNewProject(host: NewProjectHost, chosen = "flow"): void {
           "fieldset",
           { class: "choices" },
           h("legend", { class: "field-label" }, words.where),
-          option(inCloud, words.inCloud, words.inCloudHint),
+          option(
+            inCloud,
+            host.localWorkspace ? messages().localWorkspace.inWorkspace : words.inCloud,
+            host.localWorkspace ? messages().localWorkspace.inWorkspaceHint : words.inCloudHint,
+          ),
           option(inBrowser, words.inBrowser, words.inBrowserHint),
         ),
       ]
@@ -175,7 +181,7 @@ export function openNewProject(host: NewProjectHost, chosen = "flow"): void {
     if (cloud && (inCloud as HTMLInputElement).checked) {
       const model = new ProjectsModel(
         cloud,
-        () => messages().cloud,
+        () => (host.localWorkspace ? localCloudWords() : messages().cloud),
         (state) => {
           status.textContent = state.status;
           problem.textContent = state.problem;

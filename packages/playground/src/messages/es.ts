@@ -77,6 +77,37 @@ export const es: typeof en = {
     signOut: "Cerrar sesión",
   },
 
+  localWorkspace: {
+    label: "Espacio de trabajo local",
+    setUpAgent: "Configurar mi agente",
+    intro:
+      "Pega este prompt en Claude Code o Codex en este equipo. Instala el plugin de Meltemi y conecta su MCP al proyecto que tienes abierto.",
+    activation:
+      "Tu agente verifica que sus herramientas estén activas. Si el cliente necesita recargarse o abrir otra sesión, te entrega la continuación para este proyecto.",
+    promptLabel: "Prompt de configuración del agente",
+    copy: "Copiar prompt",
+    copied: "Se copió el prompt de configuración del agente.",
+    select: "Selecciona el prompt y cópialo.",
+    openProject: "Abre un proyecto del espacio de trabajo antes de configurar tu agente.",
+    prompt: (instructions, id, url) =>
+      `Instala el plugin de Meltemi Diagrams y configura su MCP local siguiendo ${instructions}. Meltemi ya corre en este equipo sin autenticación. Usa el proyecto ${id} (${url}). Verifica que el plugin y sus herramientas MCP nativas estén activos y después diagrama conmigo en ese proyecto. Conserva la configuración ajena del cliente y entrega la continuación exacta si la activación requiere recargar o abrir otra sesión.`,
+    connecting: "Conectando al espacio de trabajo local…",
+    connected: "Guardado en el espacio de trabajo local",
+    gone: "Eliminado del espacio de trabajo local",
+    synced: "Conectado de nuevo: tus cambios están guardados localmente.",
+    projects: "Proyectos del espacio de trabajo",
+    noProjects:
+      "Aún no hay proyectos en el espacio de trabajo. Crea uno o guarda el proyecto abierto.",
+    save: "Guardar en el espacio de trabajo local",
+    saveLabel: "Nombre del proyecto",
+    saving: (name) => `Guardando ${name} en el espacio de trabajo local…`,
+    saved: (name) => `Se guardó ${name} en el espacio de trabajo local.`,
+    inWorkspace: "En el espacio de trabajo local",
+    inWorkspaceHint: "Guardado en este equipo y compartido con tus agentes conectados.",
+    about: (version) =>
+      `**Meltemi Diagrams ${version}** corre en este equipo. El navegador y tus agentes conectados editan los mismos proyectos en el espacio de trabajo local. Docker conserva sus fuentes, versiones y activos entre reinicios. No necesitas cuenta de Meltemi ni un servicio externo de identidad.\n\nMeltemi Diagrams es MIT. Los componentes incluidos conservan sus propias licencias, listadas a continuación.`,
+  },
+
   tokens: {
     title: "Tokens de API",
     intro:

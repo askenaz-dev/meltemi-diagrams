@@ -82,6 +82,18 @@ function userShape(
  */
 export const sessionRoute: Route = async (ctx) => {
   const { principal, config, deps, request } = ctx;
+  if (deps.local && principal?.via === "local") {
+    const user = await deps.store.user(principal.sub);
+    return json({
+      mode: "local-single-user",
+      user: {
+        ...userShape(principal.sub, principal.profile.name, principal.profile.picture, user, null),
+        administration: null,
+        administrationInvitation: null,
+      },
+      defaultProject: deps.local.defaultProject,
+    });
+  }
   const support = supportOf(config.sponsorsAccount);
   const supported = support === undefined ? {} : { support };
   if (principal?.via === "cookie") {

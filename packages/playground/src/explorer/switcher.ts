@@ -11,6 +11,7 @@ import { ICONS, field, h, icon, openDialog } from "../ui.js";
 import type { CloudProject } from "../cloud/client.js";
 import type { CloudController } from "../cloud/controller.js";
 import { FOLDER_ICON } from "../cloud/icons.js";
+import { localCloudWords } from "../cloud/local-workspace.js";
 import {
   ProjectsModel,
   checkProjectName,
@@ -32,6 +33,7 @@ export interface SwitcherProject {
 
 /** What the switcher asks of the page. */
 export interface SwitcherHost {
+  readonly localWorkspace?: boolean;
   project(): SwitcherProject;
   /** Renames the open project (its `project.json`, or the cloud project); true when it was. */
   rename(name: string): Promise<boolean>;
@@ -120,7 +122,9 @@ export class Switcher {
       const statusWords =
         project.where === "view"
           ? viewerStatusWords(messages().viewing.status)
-          : messages().cloud.status;
+          : this.host.localWorkspace
+            ? localCloudWords().status
+            : messages().cloud.status;
       this.where.textContent = status ? statusText(status, statusWords) : words.viewOnly;
     }
     this.button.setAttribute("aria-label", words.open(project.name));
@@ -155,7 +159,8 @@ export class Switcher {
     if (this.panel) return;
     const host = this.host;
     const words = messages().explorer.panel;
-    const cloudWords = messages().cloud.projects;
+    const cloudWords = host.localWorkspace ? localCloudWords().projects : messages().cloud.projects;
+    const cloudLabel = host.localWorkspace ? messages().localWorkspace.projects : words.cloud;
     const unique = ++panels;
     const title = h("h2", { id: `switcher-title-${unique}`, class: "switcher-title" }, words.title);
     const panel = h("div", {
@@ -196,7 +201,11 @@ export class Switcher {
         "button",
         { type: "button", class: "panel-action" },
         icon(EXPLORER_ICONS.cloud),
-        h("span", { class: "panel-action-label" }, words.saveToCloud),
+        h(
+          "span",
+          { class: "panel-action-label" },
+          host.localWorkspace ? messages().localWorkspace.save : words.saveToCloud,
+        ),
       );
       button.addEventListener("click", async () => {
         const controller = host.cloud;
@@ -295,7 +304,7 @@ export class Switcher {
     };
 
     // In the cloud -----------------------------------------------------------------------------
-    const cloudSection = h("section", { class: "panel-section", "aria-label": words.cloud });
+    const cloudSection = h("section", { class: "panel-section", "aria-label": cloudLabel });
     const cloudList = h("ul", { class: "panel-list", "aria-label": cloudWords.listLabel });
     const status = h("p", { class: "projects-status", role: "status" });
     const problem = h("p", { class: "field-problem", role: "alert" });
@@ -393,7 +402,9 @@ export class Switcher {
         h(
           "span",
           { class: "project-actions" },
-          ...(managing ? [rename, duplicate, link, remove] : [duplicate, link]),
+          ...(managing
+            ? [rename, duplicate, ...(host.localWorkspace ? [] : [link]), remove]
+            : [duplicate, ...(host.localWorkspace ? [] : [link])]),
         ),
       );
     };
@@ -497,7 +508,7 @@ export class Switcher {
     if (host.cloud) {
       const none = h("p", { class: "field-hint", hidden: true }, cloudWords.none);
       cloudSection.append(
-        h("h3", { class: "panel-heading" }, h("span", {}, words.cloud), count),
+        h("h3", { class: "panel-heading" }, h("span", {}, cloudLabel), count),
         filter,
         status,
         problem,
@@ -507,7 +518,7 @@ export class Switcher {
       );
       model = new ProjectsModel(
         host.cloud,
-        () => messages().cloud,
+        () => (host.localWorkspace ? localCloudWords() : messages().cloud),
         (state) => {
           none.hidden = !(state.list === "ready" && state.projects.length === 0);
           drawCloud(state);

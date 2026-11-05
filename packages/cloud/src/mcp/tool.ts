@@ -118,6 +118,15 @@ async function count(session: McpSession, kind: "call" | "preview", limit: numbe
 export function endpointHooks(session: McpSession): ServeHooks {
   return {
     beforeCheck: async (definition) => {
+      if (
+        session.op.deps.local &&
+        !["projects:read", "projects:write"].includes(definition.scope)
+      ) {
+        throw fail(
+          "local.feature-unavailable",
+          "Sharing, guest sessions and publishing are unavailable in a local workspace.",
+        );
+      }
       await count(session, "call", CALLS_PER_MINUTE);
       requireScope(session.caller, definition.scope);
     },

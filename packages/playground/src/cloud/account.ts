@@ -40,6 +40,8 @@ export interface AccountHooks {
   readonly readSession?: () => Promise<Session>;
   /** The session answer read again said who the person is now (an entitlement granted, say). */
   readonly sessionChanged?: (session: Extract<Session, { kind: "cookie" }>) => void;
+  /** Opens the local plugin setup prompt, for the project currently open. */
+  readonly setUpAgent?: () => void;
 }
 
 /** The header's account control, and the way to open the account panel at a section. */
@@ -51,6 +53,30 @@ export interface AccountControl {
 
 /** The header's account control for a session: the sign-in link, or the account menu. */
 export function accountControl(session: Session, hooks: AccountHooks): AccountControl {
+  if (session.kind === "local") {
+    const m = messages().localWorkspace;
+    const button = h(
+      "button",
+      {
+        type: "button",
+        class: "button with-text local-agent-setup",
+        "aria-label": m.setUpAgent,
+        title: m.setUpAgent,
+      },
+      icon(ICONS.code),
+      h("span", {}, m.setUpAgent),
+    );
+    button.addEventListener("click", () => hooks.setUpAgent?.());
+    return {
+      element: h(
+        "span",
+        { class: "local-workspace" },
+        h("span", { class: "local-workspace-label" }, m.label),
+        button,
+      ),
+      open: () => {},
+    };
+  }
   if (session.kind !== "cookie") {
     return { element: signInAnchor(session.signIn, hooks), open: () => {} };
   }

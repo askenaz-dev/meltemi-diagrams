@@ -125,9 +125,11 @@ async function start(): Promise<void> {
     session,
     readSession: () => loadSession(fetch, location, PLAYGROUND_IDENTITY),
     view: viewEnvironment(),
-    // Cloud projects are for a person signed in. A person nobody is signed in as gets the room's
+    // Backend projects are for a signed-in person or local actor. An anonymous visitor gets room
     // machinery only when the address names a project, to follow it live or join its live session.
-    ...(session.kind === "cookie" || planOpen(location.search).kind === "open"
+    ...(session.kind === "cookie" ||
+    session.kind === "local" ||
+    planOpen(location.search).kind === "open"
       ? { cloud: cloudEnvironment() }
       : {}),
   });

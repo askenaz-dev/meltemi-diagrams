@@ -3,6 +3,8 @@ import type { Ctx, Route } from "./context.js";
 import type { Env } from "./env.js";
 import { ApiError, errorResponse, fail } from "./errors.js";
 import { pageResponse } from "./http.js";
+import { guardLocalRequest, localConfig, localUnavailable } from "./local-policy.js";
+import { localAgentSetup } from "./local-agent-setup.js";
 import { requireOwnOrigin, resolvePrincipal } from "./principal.js";
 import {
   identityAccountRoute,
@@ -593,7 +595,7 @@ function match(
 export async function cloud(request: Request, env: Env, deps: Deps): Promise<Response> {
   let config: Config;
   try {
-    config = readConfig(env, request);
+    config = deps.local ? localConfig(deps.local.origin) : readConfig(env, request);
   } catch (error) {
     if (!(error instanceof ConfigError)) throw error;
     console.error(`cloud: ${error.message}`);
@@ -605,6 +607,36 @@ export async function cloud(request: Request, env: Env, deps: Deps): Promise<Res
   if (url.host !== config.host) return errorResponse(fail("not-found"));
 
   try {
+    if (!deps.local) {
+      let path = url.pathname;
+      try {
+        path = decodeURIComponent(path);
+      } catch {
+        /* The asset server refuses malformed paths. */
+      }
+      if (/^\/agent-setup\/local(?:\/|$)/.test(path)) return errorResponse(fail("not-found"));
+    }
+    if (deps.local) {
+      guardLocalRequest(request, config);
+      let path: string;
+      try {
+        path = decodeURIComponent(url.pathname);
+      } catch {
+        throw fail("request.invalid");
+      }
+      if (localUnavailable(path))
+        throw fail("local.feature-unavailable", "This action is unavailable in a local workspace.");
+      const setup = await localAgentSetup({
+        request,
+        url,
+        env,
+        deps,
+        config,
+        principal: deps.local.principal,
+        params: {},
+      });
+      if (setup) return setup;
+    }
     const found = match(request.method, url.pathname);
     if (!found) {
       if (isReserved(url.pathname)) return errorResponse(fail("not-found"));
