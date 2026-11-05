@@ -9,86 +9,14 @@
 
 import { CLOUD_LIMITS, isCleanPath } from "@meltemi/diagrams-project";
 import { requireAccess, requireReadWithLive } from "../access.js";
-import { BINARY_TYPES, binaryType } from "../binary.js";
+import { BINARY_TYPES } from "../binary.js";
 import type { Ctx, Route } from "../context.js";
 import { BLOB_HASH } from "../document.js";
 import { fail } from "../errors.js";
 import { json, readCappedBytes } from "../http.js";
 import { blobKey } from "../keys.js";
-import { sha256OfBytes, TEXT_MEDIA_TYPE } from "../materialise.js";
-import type { CloudStore } from "../store/types.js";
-
-/** Whether the account already references the hash (a live file, an upload): it would cost nothing again. */
-async function referencedBy(store: CloudStore, sub: string, hash: string): Promise<boolean> {
-  const ids = await store.projectIdsOf(sub);
-  const found = await Promise.all(
-    ids.map(async (id) => {
-      if (await store.hasProjectBlob(id, hash)) return true;
-      for (const held of (await store.projectFiles(id)).values()) if (held === hash) return true;
-      return false;
-    }),
-  );
-  return found.includes(true);
-}
-
-/**
- * Refuses (`413 quota.storage`) an upload that would take the account over its bytes. Usage is read
- * fresh, not from `users.storage_bytes`. Bytes the account already references do not grow it, which
- * is only looked up when the upload would otherwise go over: the account's projects are read then,
- * live files and uploads (a hash held only by an old version counts as new, a refusal at the very
- * edge of the quota and never a wrong accounting). Answers whether it found the bytes referenced.
- *
- * This is the early refusal, before the bytes are stored: it reads and the upload writes later, so
- * requests that run together all pass it. `confirmStorage` is the check that holds.
- */
-async function checkStorage(
-  store: CloudStore,
-  owner: string,
-  hash: string,
-  size: number,
-): Promise<boolean> {
-  const used = await store.storageBytesOf(owner);
-  if (used + size <= CLOUD_LIMITS.storageBytes) return false;
-  if (await referencedBy(store, owner, hash)) return true;
-  throw fail("quota.storage");
-}
-
-/**
- * The check that holds, made once the upload is registered and so counts in the account's usage:
- * of requests that ran together, each sees the others' rows that came first, so the account never
- * ends over its bytes (two that race may both be refused, never both let through). An upload that
- * is over takes its `project_blobs` row back when the project did not hold the hash before; the
- * bytes in R2 are the weekly collection's.
- */
-async function confirmStorage(
-  store: CloudStore,
-  owner: string,
-  projectId: string,
-  hash: string,
-  settled: boolean,
-): Promise<void> {
-  // Bytes the project held or the account referenced before this upload do not grow the account.
-  if (settled) return;
-  if ((await store.storageBytesOf(owner)) <= CLOUD_LIMITS.storageBytes) return;
-  await store.removeProjectBlob(projectId, hash).catch(() => false);
-  throw fail("quota.storage");
-}
-
-/**
- * Lets go of a hash the project no longer has an entry for: removes its `project_blobs` row unless
- * a binary of the room still names it, as the room is NOW (after the push, not before: a request
- * that ran beside this one may have set the same bytes at another path). A version that holds the
- * bytes is served from its own rows and does not need this one. The room is read again after the
- * removal and the row put back if a caller named the hash in between, so that no entry of the
- * document is left without the row its pushes and its bytes need.
- */
-async function releaseBlob(ctx: Ctx, projectId: string, hash: string) {
-  const { store, rooms } = ctx.deps;
-  const named = async () => Object.values((await rooms.read(projectId)).binaries).includes(hash);
-  if (await named()) return;
-  await store.removeProjectBlob(projectId, hash);
-  if (await named()) await store.addProjectBlob(projectId, hash);
-}
+import { TEXT_MEDIA_TYPE } from "../materialise.js";
+import { putBinary, releaseBlob } from "../operations/files.js";
 
 /**
  * `PUT /api/projects/:id/binaries/<path>` with the bytes of an image or a font: answers `{ hash }`.
@@ -102,39 +30,12 @@ async function releaseBlob(ctx: Ctx, projectId: string, hash: string) {
  * account's usage.
  */
 export const putBinaryRoute: Route = async (ctx) => {
-  const { projectId, access } = await requireAccess(ctx, "write");
+  const { projectId } = await requireAccess(ctx, "write");
   const path = ctx.params["path"] ?? "";
   if (!isCleanPath(path)) throw fail("path.invalid");
-
   const bytes = await readCappedBytes(ctx.request, CLOUD_LIMITS.binaryBytes);
   if (bytes === undefined) throw fail("quota.binary");
-  const mediaType = binaryType(bytes);
-  if (!mediaType) throw fail("binary.invalid");
-  const hash = await sha256OfBytes(bytes);
-
-  const { store, rooms, now } = ctx.deps;
-  const owner = access.project.ownerSub;
-  const referenced = await checkStorage(store, owner, hash, bytes.length);
-  // What is at the path now: the hash the upload replaces, if there is one.
-  const before = await rooms.read(projectId);
-  const replaced = Object.hasOwn(before.binaries, path) ? before.binaries[path] : undefined;
-
-  // R2 first, then the rows: a row never names bytes that are not there.
-  await ctx.env.BLOBS.put(blobKey(hash), bytes);
-  await store.addBlobs([{ hash, size: bytes.length, mediaType }], now().toISOString());
-  const held = await store.hasProjectBlob(projectId, hash);
-  if (!(await store.addProjectBlob(projectId, hash))) throw fail("project.not-found");
-  await confirmStorage(store, owner, projectId, hash, referenced || held);
-  try {
-    await rooms.push(projectId, { binaries: { [path]: hash } });
-  } catch (error) {
-    if (!held) await store.removeProjectBlob(projectId, hash).catch(() => false);
-    throw error;
-  }
-  // The bytes the upload replaced are no longer the project's to keep, unless another entry has them.
-  if (replaced !== undefined && replaced !== hash) await releaseBlob(ctx, projectId, replaced);
-  await store.refreshStorageBytes(owner);
-  return json({ hash });
+  return json(await putBinary(ctx, projectId, path, bytes));
 };
 
 /**

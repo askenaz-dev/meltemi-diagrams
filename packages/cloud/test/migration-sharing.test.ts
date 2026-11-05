@@ -123,6 +123,7 @@ describe("the sharing migration file", () => {
       FOURTH_FILE,
       FIFTH_FILE,
       SIXTH_FILE,
+      "0008_idempotency.sql",
     ]);
   });
 

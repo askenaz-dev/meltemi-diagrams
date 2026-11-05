@@ -213,3 +213,53 @@ export function cacheKeyOf(request: ValidRequest): string {
     request.theme,
   ]);
 }
+
+// Checks and catalogs ------------------------------------------------------------------------------
+// The renderer object also checks a project's files and builds its catalog, for the MCP tools
+// `validate`, `write_files` and `publish` (change agent-mcp): both compile and lay out with the
+// engine the previews use, so neither runs in the Worker's request path.
+
+/** A check of a project's files: the diagnostics `meltemi-diagrams validate` prints. */
+export interface ValidateRequest {
+  /** Path (from the project's root) to text. The images and fonts are not read by a check. */
+  readonly files: Readonly<Record<string, string>>;
+  /** The files whose diagnostics are answered; every file's (the manifest's included) when left out. */
+  readonly paths?: readonly string[];
+  /** Whether the layout's diagnostics are added, as `validate` adds them; true when left out. */
+  readonly layout?: boolean;
+}
+
+/** What a check found: the diagnostics (the first fifty), and how many errors and warnings in all. */
+export interface ValidateSuccess {
+  readonly ok: true;
+  readonly diagnostics: readonly ReportDiagnostic[];
+  readonly errors: number;
+  readonly warnings: number;
+  /** True when there were more than `MAX_REPORT_DIAGNOSTICS` diagnostics. */
+  readonly truncated: boolean;
+}
+
+export type ValidateOutcome = ValidateSuccess | RenderFailure;
+
+/** A project's catalog to build, as `meltemi-diagrams build catalog` builds it. */
+export interface CatalogRequest {
+  readonly files: Readonly<Record<string, string>>;
+  readonly binaries?: Readonly<Record<string, Uint8Array>>;
+  /** The catalog's runtime script, the page's `assets/catalog.js`. */
+  readonly script: string;
+  /** The generator and its version, such as `Meltemi Diagrams 1.11.0`. */
+  readonly generator: string;
+}
+
+/** A built catalog: the page, how many diagrams and stories it holds, and what it left out. */
+export interface CatalogSuccess {
+  readonly ok: true;
+  readonly html: string;
+  readonly entries: number;
+  /** The diagrams and stories left out, as `<path>#<id>`, because they cannot be drawn. */
+  readonly skipped: readonly string[];
+  readonly diagnostics: readonly ReportDiagnostic[];
+  readonly truncated: boolean;
+}
+
+export type CatalogOutcome = CatalogSuccess | RenderFailure;

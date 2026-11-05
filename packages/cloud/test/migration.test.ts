@@ -68,10 +68,16 @@ describe("the migration files", () => {
   it("are numbered files wrangler applies in order, starting at 0001_accounts.sql", () => {
     const names = migrationFiles().map((file) => file.name);
     expect(names[0]).toBe(FIRST);
-    names.forEach((name, index) => {
-      expect(name).toMatch(/^\d{4}_[a-z0-9_]+\.sql$/);
-      expect(Number(name.slice(0, 4))).toBe(index + 1);
-    });
+    for (const name of names) expect(name).toMatch(/^\d{4}_[a-z0-9_]+\.sql$/);
+    const numbers = names.map((name) => Number(name.slice(0, 4)));
+    // Ascending and never used twice. Every number up to the last is a file, but 0007 while it is
+    // another change's (`0007_sponsorships.sql`, on a branch of its own): agent-mcp's is 0008.
+    expect(new Set(numbers).size).toBe(numbers.length);
+    expect(numbers).toEqual([...numbers].sort((a, b) => a - b));
+    const missing = Array.from({ length: Math.max(...numbers) }, (_, i) => i + 1).filter(
+      (n) => !numbers.includes(n),
+    );
+    expect(missing).toEqual(numbers.includes(7) ? [] : [7]);
   });
 
   it("only create: no transaction control, no pragma, no data, no drop in the first migration", () => {

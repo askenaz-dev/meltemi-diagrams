@@ -10,7 +10,10 @@ import { RASTER_FAMILIES, isSfnt, isWoff, sfntFromWoff } from "./renderer-fonts.
 import {
   CACHE_ENTRIES,
   cacheKeyOf,
+  failure,
   validateRequest,
+  type CatalogOutcome,
+  type ValidateOutcome,
   type RenderOutcome,
   type RenderReport,
   type RenderSuccess,
@@ -121,7 +124,58 @@ export class RendererCore {
     this.ports.cache.put(key, preview);
     return { ok: true, ...preview, cached: false };
   }
+
+  /** Checks a project's files (`ValidateRequest`); a request of another shape is an answer too. */
+  async validate(input: unknown): Promise<ValidateOutcome> {
+    const bad = (message: string) => failure("request.invalid", message);
+    if (!isRecord(input)) return bad("The request is not an object.");
+    const { files, paths, layout } = input;
+    if (!isTextMap(files)) return bad("`files` is not a map of paths to text.");
+    if (
+      paths !== undefined &&
+      !(Array.isArray(paths) && paths.every((p) => typeof p === "string"))
+    ) {
+      return bad("`paths` is not a list of paths.");
+    }
+    if (layout !== undefined && typeof layout !== "boolean")
+      return bad("`layout` is not true or false.");
+    const engine = await this.ports.engine();
+    return engine.validate({
+      files,
+      ...(paths !== undefined ? { paths: paths as string[] } : {}),
+      ...(layout !== undefined ? { layout } : {}),
+    });
+  }
+
+  /** Builds a project's catalog (`CatalogRequest`); a request of another shape is an answer too. */
+  async catalog(input: unknown): Promise<CatalogOutcome> {
+    const bad = (message: string) => failure("request.invalid", message);
+    if (!isRecord(input)) return bad("The request is not an object.");
+    const { files, binaries, script, generator } = input;
+    if (!isTextMap(files)) return bad("`files` is not a map of paths to text.");
+    if (
+      binaries !== undefined &&
+      (!isRecord(binaries) || !Object.values(binaries).every((b) => b instanceof Uint8Array))
+    ) {
+      return bad("`binaries` is not a map of paths to bytes.");
+    }
+    if (typeof script !== "string") return bad("`script` is not text.");
+    if (typeof generator !== "string") return bad("`generator` is not text.");
+    const engine = await this.ports.engine();
+    return engine.catalog({
+      files,
+      binaries: (binaries ?? {}) as Readonly<Record<string, Uint8Array>>,
+      script,
+      generator,
+    });
+  }
 }
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+const isTextMap = (value: unknown): value is Readonly<Record<string, string>> =>
+  isRecord(value) && Object.values(value).every((text) => typeof text === "string");
 
 /**
  * The project's own fonts the rasteriser can draw with: TrueType and OpenType as they are, WOFF made

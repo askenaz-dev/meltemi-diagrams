@@ -18,18 +18,23 @@ import {
 } from "@meltemi/diagrams-assets";
 import {
   ProjectSessions,
+  buildCatalog,
   produceExport,
   type ExportContext,
   type ExportRequest,
 } from "@meltemi/diagrams-editor";
 import { FontLibrary, bundledFamily, type FontFileReader } from "@meltemi/diagrams-fonts";
-import type { Diagnostic } from "@meltemi/diagrams-language";
+import { sortDiagnostics, type Diagnostic } from "@meltemi/diagrams-language";
 import type { LayoutEngine } from "@meltemi/diagrams-layout";
 import { createElkEngine } from "@meltemi/diagrams-layout-elk";
-import { createMemoryHost } from "@meltemi/diagrams-project";
+import { createMemoryHost, type ProjectHost, type Workspace } from "@meltemi/diagrams-project";
 import {
   MAX_REPORT_DIAGNOSTICS,
   failure,
+  type CatalogOutcome,
+  type CatalogRequest,
+  type ValidateOutcome,
+  type ValidateRequest,
   type RenderFailure,
   type ReportDiagnostic,
   type ValidRequest,
@@ -278,6 +283,130 @@ export class PreviewEngine {
             path: font.source.startsWith(ROOT) ? font.source.slice(ROOT.length) : font.source,
           }))
         : [],
+    };
+  }
+  /** Project sessions over a host, with the engine's shared fonts, icons, libraries and ELK. */
+  private sessionsOver(host: ProjectHost, library: FontLibrary): PreviewSessions {
+    return new PreviewSessions(
+      { toolVersion: this.resources.toolVersion, host },
+      {
+        host: () => host,
+        fonts: () => library,
+        iconPacks: () => this.packs,
+        libraries: () => this.libraries,
+      },
+      this.elk,
+    );
+  }
+
+  /**
+   * The diagnostics of a project's files, as `meltemi-diagrams validate <folder>` gathers them (the
+   * manifest, the limits, plugins and assets, every source with its composition), for the paths
+   * asked or for all. The host reads the texts only: an image is not checked (`unreadable`) and a
+   * font is not measured, so a check never needs the bytes of the project's images and fonts.
+   */
+  validate(request: ValidateRequest): ValidateOutcome {
+    const contents: Record<string, string> = {};
+    for (const [path, text] of Object.entries(request.files)) contents[`${ROOT}${path}`] = text;
+    const memory = createMemoryHost(contents);
+    const host: ProjectHost = {
+      readFile: (path) => memory.readFile(path),
+      readDirectory: (path) => memory.readDirectory(path),
+    };
+    const sessions = this.sessionsOver(host, this.library);
+    const workspace = sessions.forFolder(ROOT);
+    const results = new Map<string, Diagnostic[]>();
+    const add = (path: string, list: readonly Diagnostic[]) =>
+      results.set(path, [...(results.get(path) ?? []), ...list]);
+    const manifest = workspace.manifest();
+    if (manifest.diagnostics.length > 0) add(manifest.path, manifest.diagnostics);
+    for (const [path, list] of [
+      ...workspace.limits(),
+      ...workspace.plugins().diagnostics,
+      ...workspace.assets().diagnostics,
+    ]) {
+      add(path, list);
+    }
+    const asked = request.paths
+      ? new Set(request.paths.map((path) => `${ROOT}${path}`))
+      : undefined;
+    const program = workspace.compileProject();
+    for (const [file, compiled] of program.files) {
+      if (!file.startsWith(ROOT) || (asked && !asked.has(file))) continue;
+      const list = [...compiled.diagnostics];
+      if (request.layout !== false && !list.some((d) => d.severity === "error")) {
+        const seen = new Set(list.map((d) => `${d.code}@${d.range.start.offset}|${d.message}`));
+        for (const d of sessions.analyze(file).diagnostics) {
+          if (
+            d.code.startsWith("layout.") &&
+            !seen.has(`${d.code}@${d.range.start.offset}|${d.message}`)
+          ) {
+            list.push(d);
+          }
+        }
+      }
+      add(file, list);
+    }
+    const all: ReportDiagnostic[] = [];
+    for (const [path, list] of results) {
+      if (asked && !asked.has(path)) continue;
+      for (const d of sortDiagnostics(list)) all.push(reportDiagnostic(path, d));
+    }
+    return {
+      ok: true,
+      diagnostics: all.slice(0, MAX_REPORT_DIAGNOSTICS),
+      errors: all.filter((d) => d.severity === "error").length,
+      warnings: all.filter((d) => d.severity === "warning").length,
+      truncated: all.length > MAX_REPORT_DIAGNOSTICS,
+    };
+  }
+
+  /**
+   * The project's catalog, as `meltemi-diagrams build catalog` builds it (`buildCatalog` of
+   * `@meltemi/diagrams-editor`, the build the page's publishing and the command line share), over
+   * the files and the bytes of the images and fonts they use. A catalog with nothing in it is
+   * `diagram.invalid`, with the diagnostics that say why.
+   */
+  catalog(request: CatalogRequest): CatalogOutcome {
+    const contents: Record<string, string | Uint8Array> = {};
+    for (const [path, text] of Object.entries(request.files)) contents[`${ROOT}${path}`] = text;
+    for (const [path, bytes] of Object.entries(request.binaries ?? {})) {
+      contents[`${ROOT}${path}`] = bytes;
+    }
+    const host = createMemoryHost(contents);
+    const ownFonts = Object.keys(request.binaries ?? {}).some((path) => PROJECT_FONT.test(path));
+    const library = ownFonts ? new RecordingLibrary(this.resources.fonts) : this.library;
+    const sessions = this.sessionsOver(host, library);
+    const workspace: Workspace = sessions.forFolder(ROOT);
+    const build = buildCatalog(workspace, sessions, {
+      generator: request.generator,
+      script: () => request.script,
+    });
+    const diagnostics: ReportDiagnostic[] = [];
+    for (const [path, list] of build.diagnostics) {
+      for (const d of sortDiagnostics(list)) diagnostics.push(reportDiagnostic(path, d));
+    }
+    const listed = diagnostics.slice(0, MAX_REPORT_DIAGNOSTICS);
+    const skipped = build.skipped.map((entry) => {
+      const path = entry.path.startsWith(ROOT) ? entry.path.slice(ROOT.length) : entry.path;
+      return `${path}#${entry.id}`;
+    });
+    if (build.data.entries.length === 0) {
+      return failure(
+        "diagram.invalid",
+        skipped.length > 0
+          ? `Nothing in the project can be drawn: ${skipped.join(", ")} cannot be.`
+          : "The project has no diagram or story to publish.",
+        listed,
+      );
+    }
+    return {
+      ok: true,
+      html: build.html,
+      entries: build.data.entries.length,
+      skipped,
+      diagnostics: listed,
+      truncated: diagnostics.length > MAX_REPORT_DIAGNOSTICS,
     };
   }
 }

@@ -10,7 +10,14 @@
 import { DurableObject } from "cloudflare:workers";
 import type { Env } from "./env.js";
 import { RendererCore, sqlPreviewCache, type RendererStats } from "./renderer-core.js";
-import type { RenderOutcome, RenderRequest } from "./renderer-protocol.js";
+import type {
+  CatalogOutcome,
+  CatalogRequest,
+  RenderOutcome,
+  RenderRequest,
+  ValidateOutcome,
+  ValidateRequest,
+} from "./renderer-protocol.js";
 import type { RendererRuntime } from "./renderer-runtime.js";
 
 export class ProjectRenderer extends DurableObject<Env> {
@@ -32,6 +39,16 @@ export class ProjectRenderer extends DurableObject<Env> {
   /** Draws a preview, or answers it from the cache; a request it cannot draw is an answer too. */
   async render(request: RenderRequest): Promise<RenderOutcome> {
     return this.core.render(request);
+  }
+
+  /** Checks a project's files (the MCP tools `validate` and `write_files`). */
+  async validate(request: ValidateRequest): Promise<ValidateOutcome> {
+    return this.core.validate(request);
+  }
+
+  /** Builds a project's catalog (the MCP tool `publish`). */
+  async catalog(request: CatalogRequest): Promise<CatalogOutcome> {
+    return this.core.catalog(request);
   }
 
   /** How many pictures the object drew since it started, and how many answers it keeps. */

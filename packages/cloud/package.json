@@ -25,15 +25,18 @@
     "@meltemi/diagrams-motion": "workspace:*",
     "@meltemi/diagrams-project": "workspace:*",
     "@meltemi/identity": "^0.2.0",
+    "@modelcontextprotocol/server": "2.3.1",
     "@resvg/resvg-wasm": "2.6.2",
     "@tabler/icons": "3.48.0",
     "elkjs": "0.12.0",
     "inter-ui": "4.1.1",
-    "yjs": "13.6.33"
+    "yjs": "13.6.33",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20261019.1",
     "@meltemi/diagrams-cli": "workspace:*",
+    "@modelcontextprotocol/client": "2.3.1",
     "playwright-core": "1.63.0",
     "wrangler": "4.151.3"
   }

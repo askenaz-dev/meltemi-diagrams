@@ -17,106 +17,29 @@
 // whenever they list the pending invitations (see `migrations/0003_sharing.sql`).
 
 import { access as accessOf, requireAccess, requirePrincipal } from "../access.js";
-import type { Ctx, Route } from "../context.js";
-import { randomId } from "../crypto.js";
-import { readEmail } from "../email.js";
+import type { Route } from "../context.js";
 import { fail } from "../errors.js";
 import { MAX_JSON_BYTES, json } from "../http.js";
-import type { DisconnectTarget } from "../rooms.js";
-import { invitationExpiresAt } from "../store/retention.js";
 import {
-  MAX_MEMBERS,
-  type Invitation,
-  type LinkAccess,
-  type Member,
-  type MemberRole,
-} from "../store/types.js";
+  getSharing,
+  invite,
+  listInvitations,
+  removeMember,
+  revokeInvitation,
+  resolveAgain,
+  setLinkAccess,
+  setMemberRole,
+} from "../operations/sharing.js";
 import { projectJson, readObject } from "./projects.js";
 
-const LINK_LEVELS: readonly LinkAccess[] = ["private", "view", "edit"];
-const MEMBER_ROLES: readonly MemberRole[] = ["viewer", "editor"];
+export { resolveAgain } from "../operations/sharing.js";
 
 /** The shape of an invitation's token: 128 bits as 32 lowercase hexadecimal characters. */
 const INVITATION_TOKEN = /^[0-9a-f]{32}$/;
 
-/** How many times the cut of the sockets is tried before it is given up: a room that is reset or busy answers the next. */
-const CUT_ATTEMPTS = 3;
-
-/**
- * Cuts the sockets a change of access may have outdated. A room resolves what a connection may do once,
- * when it opens, so a person who was removed, demoted or promoted, or whom a narrower link no longer
- * admits, would otherwise keep writing (or watching) as before until their connection happened to end.
- * Cut, their page reconnects at once and the Worker resolves the role again: a removed person is refused,
- * a demoted one is a viewer, a promoted one an editor. The change itself is already made, so a room that
- * cannot be reached is no reason to answer it with an error: the cut is tried again a few times, and
- * after that it is logged. Answers whether the sockets were cut.
- */
-export async function resolveAgain(
-  ctx: Ctx,
-  projectId: string,
-  target: DisconnectTarget,
-): Promise<boolean> {
-  for (let attempt = 1; attempt <= CUT_ATTEMPTS; attempt++) {
-    try {
-      await ctx.deps.rooms.disconnect(projectId, target);
-      return true;
-    } catch {
-      // Try again: a Durable Object that was reset answers the next call.
-    }
-  }
-  console.warn("cloud: could not cut the sockets of a project whose access changed");
-  return false;
-}
-
-function readMemberRole(value: unknown): MemberRole {
-  const role = MEMBER_ROLES.find((candidate) => candidate === value);
-  if (role === undefined) throw fail("request.invalid", "A role is viewer or editor.");
-  return role;
-}
-
-/** A member as the owner sees them: with the email the person signed in with. */
-function ownersMember(member: Member) {
-  return {
-    sub: member.sub,
-    name: member.name,
-    picture: member.picture,
-    email: member.email,
-    role: member.role,
-    added_at: member.addedAt,
-  };
-}
-
-/** A member as another member sees them: a name and a picture, and never an email. */
-function peersMember(member: Member) {
-  return { sub: member.sub, name: member.name, picture: member.picture, role: member.role };
-}
-
-/** An invitation as the owner sees it, with the link that carries its token. */
-function invitationJson(ctx: Ctx, invitation: Invitation) {
-  return {
-    id: invitation.id,
-    email: invitation.email,
-    role: invitation.role,
-    created_at: invitation.createdAt,
-    expires_at: invitationExpiresAt(invitation.createdAt),
-    link: `${ctx.config.origin}/p/${invitation.projectId}?invite=${invitation.token}`,
-  };
-}
-
-/** The whole state of a project's sharing, which is the owner's to see. */
-async function ownersState(ctx: Ctx, projectId: string, linkAccess: LinkAccess) {
-  const { store, now } = ctx.deps;
-  const [members, invitations] = await Promise.all([
-    store.members(projectId),
-    store.pendingInvitations(projectId, now().toISOString()),
-  ]);
-  return {
-    linkAccess,
-    role: "owner" as const,
-    members: members.map(ownersMember),
-    invitations: invitations.map((invitation) => invitationJson(ctx, invitation)),
-  };
-}
+/** The answer of a route that changed something and has nothing to say. */
+const done = (): Response =>
+  new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
 
 /**
  * `GET /api/projects/:id/sharing` (`read`: anyone the project's link admits, anonymous included):
@@ -124,41 +47,17 @@ async function ownersState(ctx: Ctx, projectId: string, linkAccess: LinkAccess) 
  * owner the full state, `{ linkAccess, role: "owner", members, invitations }`, the members with
  * their emails and the pending invitations with their links.
  */
-export const getSharingRoute: Route = async (ctx) => {
-  const { principal, projectId, access } = await requireAccess(ctx, "read");
-  const { project, role } = access;
-  if (role === "owner") return json(await ownersState(ctx, projectId, project.linkAccess));
-
-  const seen = { linkAccess: project.linkAccess, role };
-  const { store } = ctx.deps;
-  // Only a person with a membership sees the others: a link gives a role, not a place among them.
-  const member = principal ? await store.memberRole(projectId, principal.sub) : undefined;
-  if (member === undefined) return json(seen);
-  return json({ ...seen, members: (await store.members(projectId)).map(peersMember) });
-};
+export const getSharingRoute: Route = async (ctx) =>
+  json(await getSharing(ctx, ctx.params["id"] ?? ""));
 
 /**
  * `PATCH /api/projects/:id/sharing { linkAccess }` (the owner's: `manage`): `private`, `view` or
  * `edit`. Answers the whole state, as `GET` does for the owner.
  */
 export const patchSharingRoute: Route = async (ctx) => {
-  const { projectId, access } = await requireAccess(ctx, "manage");
+  await requireAccess(ctx, "manage");
   const body = await readObject(ctx, MAX_JSON_BYTES, "request.invalid");
-  const linkAccess = LINK_LEVELS.find((level) => level === body["linkAccess"]);
-  if (linkAccess === undefined) {
-    throw fail("request.invalid", "The link level is private, view or edit.");
-  }
-  const project = await ctx.deps.store.setLinkAccess(
-    access.project.ownerSub,
-    projectId,
-    linkAccess,
-  );
-  if (!project) throw fail("project.not-found");
-  // What the link gives is part of every other person's role: they meet the new level when they reconnect.
-  if (project.linkAccess !== access.project.linkAccess) {
-    await resolveAgain(ctx, projectId, { except: access.project.ownerSub });
-  }
-  return json(await ownersState(ctx, projectId, project.linkAccess));
+  return json(await setLinkAccess(ctx, ctx.params["id"] ?? "", body));
 };
 
 /**
@@ -171,65 +70,23 @@ export const patchSharingRoute: Route = async (ctx) => {
  * request.invalid`, and the 51st member or pending invitation is `413 quota.members`.
  */
 export const inviteRoute: Route = async (ctx) => {
-  const { principal, projectId, access } = await requireAccess(ctx, "manage");
+  await requireAccess(ctx, "manage");
   const body = await readObject(ctx, MAX_JSON_BYTES, "request.invalid");
-  const email = readEmail(body["email"]);
-  const role = readMemberRole(body["role"]);
-
-  const { store, now, randomBytes } = ctx.deps;
-  const owner = await store.user(access.project.ownerSub);
-  const own = [owner?.email, principal.via === "cookie" ? principal.profile.email : undefined];
-  if (own.some((address) => address?.toLowerCase() === email)) {
-    throw fail("request.invalid", "You are the owner of this project; there is nothing to invite.");
-  }
-
-  const at = now().toISOString();
-  const waiting = (await store.pendingInvitations(projectId, at)).find((i) => i.email === email);
-  if (waiting) {
-    if (waiting.role !== role) await store.setInvitationRole(projectId, waiting.id, role);
-    return json(invitationJson(ctx, { ...waiting, role }));
-  }
-
-  const invitation = {
-    id: randomId(randomBytes),
-    projectId,
-    email,
-    role,
-    token: randomId(randomBytes),
-    createdBy: principal.sub,
-    createdAt: at,
-  };
-  const outcome = await store.createInvitation(invitation, MAX_MEMBERS);
-  if (outcome === "quota") throw fail("quota.members");
-  if (outcome === "missing") throw fail("project.not-found");
-  return json(invitationJson(ctx, { ...invitation, acceptedAt: null }), 201);
+  const { invitation, created } = await invite(ctx, ctx.params["id"] ?? "", body);
+  return json(invitation, created ? 201 : 200);
 };
 
 /** `PATCH /api/projects/:id/members/:sub { role }` (the owner's): changes a member's role. `404` for a person who is not a member. */
 export const patchMemberRoute: Route = async (ctx) => {
-  const { projectId } = await requireAccess(ctx, "manage");
-  const sub = ctx.params["sub"] ?? "";
+  await requireAccess(ctx, "manage");
   const body = await readObject(ctx, MAX_JSON_BYTES, "request.invalid");
-  const role = readMemberRole(body["role"]);
-  const { store } = ctx.deps;
-  if (!(await store.setMemberRole(projectId, sub, role))) {
-    throw fail("not-found", "There is no such member.");
-  }
-  const member = (await store.members(projectId)).find((held) => held.sub === sub);
-  if (!member) throw fail("not-found", "There is no such member.");
-  await resolveAgain(ctx, projectId, { sub });
-  return json(ownersMember(member));
+  return json(await setMemberRole(ctx, ctx.params["id"] ?? "", ctx.params["sub"] ?? "", body));
 };
 
 /** `DELETE /api/projects/:id/members/:sub` (the owner's): removes a member. `204`; `404` for a person who is not one. */
 export const removeMemberRoute: Route = async (ctx) => {
-  const { projectId } = await requireAccess(ctx, "manage");
-  const sub = ctx.params["sub"] ?? "";
-  if (!(await ctx.deps.store.removeMember(projectId, sub))) {
-    throw fail("not-found", "There is no such member.");
-  }
-  await resolveAgain(ctx, projectId, { sub });
-  return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
+  await removeMember(ctx, ctx.params["id"] ?? "", ctx.params["sub"] ?? "");
+  return done();
 };
 
 /**
@@ -248,7 +105,7 @@ export const leaveRoute: Route = async (ctx) => {
     throw fail("not-found", "You are not a member of this project.");
   }
   await resolveAgain(ctx, projectId, { sub: principal.sub });
-  return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
+  return done();
 };
 
 /**
@@ -256,21 +113,13 @@ export const leaveRoute: Route = async (ctx) => {
  * a link-only viewer included): `{ invitations }`, the pending ones with their links and the day they
  * expire, the earliest first. Expired and accepted invitations are not listed.
  */
-export const listInvitationsRoute: Route = async (ctx) => {
-  const { projectId } = await requireAccess(ctx, "manage");
-  const { store, now } = ctx.deps;
-  const invitations = await store.pendingInvitations(projectId, now().toISOString());
-  return json({ invitations: invitations.map((invitation) => invitationJson(ctx, invitation)) });
-};
+export const listInvitationsRoute: Route = async (ctx) =>
+  json(await listInvitations(ctx, ctx.params["id"] ?? ""));
 
 /** `DELETE /api/projects/:id/invitations/:invitation` (the owner's): revokes a pending invitation. `204`; `404` when there is none. */
 export const revokeInvitationRoute: Route = async (ctx) => {
-  const { projectId } = await requireAccess(ctx, "manage");
-  const id = ctx.params["invitation"] ?? "";
-  if (!(await ctx.deps.store.deleteInvitation(projectId, id))) {
-    throw fail("not-found", "There is no such invitation.");
-  }
-  return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
+  await revokeInvitation(ctx, ctx.params["id"] ?? "", ctx.params["invitation"] ?? "");
+  return done();
 };
 
 /**

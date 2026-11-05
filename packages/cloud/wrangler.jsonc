@@ -20,6 +20,8 @@
       "/_published/*",
       "/cli-auth",
       "/cli-auth/*",
+      "/mcp",
+      "/mcp/*",
       "/p/*",
       "/rooms/*",
     ],

@@ -35,6 +35,7 @@ import { devCollect } from "./routes/dev.js";
 import { eventsRoute } from "./routes/events.js";
 import { projectLink } from "./routes/links.js";
 import { deleteLiveRoute, getLiveRoute, putLiveRoute } from "./routes/live.js";
+import { mcpRoute } from "./routes/mcp.js";
 import {
   createProjectRoute,
   deleteProjectRoute,
@@ -106,6 +107,11 @@ export const ROUTES: readonly RouteEntry[] = [
   { method: "POST", path: /^\/cli-auth\/token$/, principal: false, route: cliAuthToken },
   { method: "GET", path: /^\/cli-auth\/style\.css$/, principal: false, route: cliAuthStyle },
   { method: "GET", path: /^\/p\/([^/]*)$/, params: ["id"], principal: false, route: projectLink },
+  // The MCP endpoint takes a bearer token itself and never the cookie, and refuses any `Origin` but
+  // the page's (`routes/mcp.ts`): it resolves no principal here. `GET` and `DELETE` are its `405`.
+  { method: "POST", path: /^\/mcp$/, principal: false, route: mcpRoute },
+  { method: "GET", path: /^\/mcp$/, principal: false, route: mcpRoute },
+  { method: "DELETE", path: /^\/mcp$/, principal: false, route: mcpRoute },
   // The socket decides for itself whether to look at the credentials: a request that is not an
   // upgrade is a 404 for everybody, signed in or not, and a bearer token is not taken on it.
   {
@@ -482,7 +488,7 @@ export const ROUTES: readonly RouteEntry[] = [
 ];
 
 /** The paths the Worker answers itself: an unmatched one under them is a JSON 404, never an asset. */
-const RESERVED = /^\/(api|_identity|_published|cli-auth|p|rooms)(\/|$)/;
+const RESERVED = /^\/(api|_identity|_published|cli-auth|mcp|p|rooms)(\/|$)/;
 
 /**
  * Whether a path is one the Worker answers itself, in any spelling. The assets binding reads a path

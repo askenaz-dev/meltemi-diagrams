@@ -975,12 +975,13 @@ describe("the development tools", () => {
     // routes of the rooms (the counters and the cut), the one of the collection (it runs the
     // weekly collection now) and the one that serves a publication from the Worker's own origin
     // (`/_published/`); each of those answers 404 unless the flag is on. The address a publication
-    // is given (`routes/publish.ts`) is the one place the flag changes an answer instead of
-    // refusing: development has no publish host, so it names that route.
+    // is given (`operations/publish.ts`, which the route and the MCP tool share) is the one place the
+    // flag changes an answer instead of refusing: development has no publish host, so it names that
+    // route.
     expect(reading(/\.dev\b/), "files that follow the flag").toEqual([
       config,
+      join("src", "operations", "publish.ts"),
       join("src", "routes", "dev.ts"),
-      join("src", "routes", "publish.ts"),
       join("src", "routes", "published.ts"),
       join("src", "routes", "rooms.ts"),
       join("src", "verifier.ts"),

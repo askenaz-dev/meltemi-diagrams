@@ -16,6 +16,31 @@ export function hashToken(token: string): Promise<string> {
   return sha256Hex(token);
 }
 
+/** The bearer token of `Authorization: Bearer <token>`, or undefined when there is none. */
+export function bearerOf(request: Request): string | undefined {
+  return /^Bearer\s+(.+)$/i.exec(request.headers.get("Authorization") ?? "")?.[1]?.trim();
+}
+
+/**
+ * The principal of an API token (`mdg_…`), whose last use is bumped at most hourly: `401
+ * token.invalid` for anything that is not one the store holds. The API routes and the MCP endpoint
+ * (`mcp/caller.ts`) both take a token through this.
+ */
+export async function tokenPrincipal(
+  bearer: string,
+  deps: Deps,
+): Promise<Extract<Principal, { via: "token" }>> {
+  if (!bearer.startsWith(TOKEN_PREFIX)) throw fail("token.invalid");
+  const row = await deps.store.tokenByHash(await hashToken(bearer));
+  if (!row) throw fail("token.invalid");
+  const now = deps.now();
+  const last = row.lastUsedAt ? Date.parse(row.lastUsedAt) : Number.NEGATIVE_INFINITY;
+  if (now.getTime() - last >= TOUCH_EVERY_MS) {
+    await deps.store.touchToken(row.id, now.toISOString());
+  }
+  return { via: "token", sub: row.sub, tokenId: row.id, tokenName: row.name };
+}
+
 /**
  * Who is asking: a bearer API token (`via: "token"`), else a session cookie the reference
  * verifier accepts (`via: "cookie"`), else nobody. An unknown bearer token is `401 token.invalid`;
@@ -28,18 +53,8 @@ export async function resolvePrincipal(
   _config: Config,
 ): Promise<Principal | undefined> {
   const now = deps.now();
-  const authorization = request.headers.get("Authorization");
-  const bearer = /^Bearer\s+(.+)$/i.exec(authorization ?? "")?.[1]?.trim();
-  if (bearer !== undefined) {
-    if (!bearer.startsWith(TOKEN_PREFIX)) throw fail("token.invalid");
-    const row = await deps.store.tokenByHash(await hashToken(bearer));
-    if (!row) throw fail("token.invalid");
-    const last = row.lastUsedAt ? Date.parse(row.lastUsedAt) : Number.NEGATIVE_INFINITY;
-    if (now.getTime() - last >= TOUCH_EVERY_MS) {
-      await deps.store.touchToken(row.id, now.toISOString());
-    }
-    return { via: "token", sub: row.sub, tokenId: row.id, tokenName: row.name };
-  }
+  const bearer = bearerOf(request);
+  if (bearer !== undefined) return tokenPrincipal(bearer, deps);
 
   const token = parseSessionCookie(request.headers.get("Cookie"));
   if (!token) return undefined;

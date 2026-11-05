@@ -16,7 +16,7 @@
 // auth.required` when they are anonymous and the link would give a signed-in person enough, so that
 // the page can offer sign-in, and `403 access.denied` for any other role that falls short.
 
-import type { Ctx } from "./context.js";
+import type { Ctx, OpCtx } from "./context.js";
 import { fail, type ApiError } from "./errors.js";
 import { PROJECT_ID } from "./ids.js";
 import type { LiveGrant } from "./rooms.js";
@@ -77,7 +77,7 @@ export interface Access {
  * that does not exist and a project the person may not open all look the same, so that nobody
  * learns which projects exist. Anonymous callers are resolved too: a link may admit them.
  */
-export async function resolveAccess(ctx: Ctx, projectId: string): Promise<Access | undefined> {
+export async function resolveAccess(ctx: OpCtx, projectId: string): Promise<Access | undefined> {
   if (!PROJECT_ID.test(projectId)) return undefined;
   const { store } = ctx.deps;
   const project = await store.projectById(projectId);
@@ -93,7 +93,7 @@ export async function resolveAccess(ctx: Ctx, projectId: string): Promise<Access
 }
 
 /** Who is asking, for a route that needs a person: `401 auth.required` for nobody. */
-export function requirePrincipal(ctx: Ctx): Principal {
+export function requirePrincipal(ctx: OpCtx): Principal {
   if (!ctx.principal) throw fail("auth.required");
   return ctx.principal;
 }
@@ -134,11 +134,34 @@ export interface Resolved<P> {
  */
 export function requireAccess(ctx: Ctx, need: "read"): Promise<Resolved<Principal | undefined>>;
 export function requireAccess(ctx: Ctx, need: "write" | "manage"): Promise<Resolved<Principal>>;
-export async function requireAccess(
-  ctx: Ctx,
+export function requireAccess(ctx: Ctx, need: Need): Promise<Resolved<Principal | undefined>> {
+  return requireProjectAccess(ctx, ctx.params["id"] ?? "", need);
+}
+
+/**
+ * `requireAccess` for an operation, which is given the project's id rather than a path: the same
+ * question and the same refusals, in the same order, whoever asks it (a route or a tool).
+ */
+export function requireProjectAccess(
+  ctx: OpCtx,
+  projectId: string,
+  need: "read",
+): Promise<Resolved<Principal | undefined>>;
+export function requireProjectAccess(
+  ctx: OpCtx,
+  projectId: string,
+  need: "write" | "manage",
+): Promise<Resolved<Principal>>;
+export function requireProjectAccess(
+  ctx: OpCtx,
+  projectId: string,
+  need: Need,
+): Promise<Resolved<Principal | undefined>>;
+export async function requireProjectAccess(
+  ctx: OpCtx,
+  projectId: string,
   need: Need,
 ): Promise<Resolved<Principal | undefined>> {
-  const projectId = ctx.params["id"] ?? "";
   const resolved = await resolveAccess(ctx, projectId);
   if (!resolved) throw fail("project.not-found");
   if (!suffices(resolved.role, need)) throw insufficient(resolved.project, ctx.principal, need);

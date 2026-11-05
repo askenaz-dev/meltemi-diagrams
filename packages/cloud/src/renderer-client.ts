@@ -5,11 +5,20 @@
 // give: the room's snapshot at the revision it names, and the binaries they use, from R2.
 
 import type { RendererStats } from "./renderer-core.js";
-import type { RenderOutcome, RenderRequest } from "./renderer-protocol.js";
+import type {
+  CatalogOutcome,
+  CatalogRequest,
+  RenderOutcome,
+  RenderRequest,
+  ValidateOutcome,
+  ValidateRequest,
+} from "./renderer-protocol.js";
 
 /** What a renderer object answers, as far as the Worker calls it. */
 export interface RendererStubLike {
   render(request: RenderRequest): Promise<RenderOutcome>;
+  validate(request: ValidateRequest): Promise<ValidateOutcome>;
+  catalog(request: CatalogRequest): Promise<CatalogOutcome>;
   stats(): Promise<RendererStats>;
 }
 
@@ -22,6 +31,10 @@ export interface RendererNamespaceLike {
 /** Previews of a project, drawn by its renderer object. */
 export interface RenderersApi {
   render(projectId: string, request: RenderRequest): Promise<RenderOutcome>;
+  /** Checks files of the project (`validate`, and `write_files` before it pushes). */
+  validate(projectId: string, request: ValidateRequest): Promise<ValidateOutcome>;
+  /** Builds the project's catalog (`publish`). */
+  catalog(projectId: string, request: CatalogRequest): Promise<CatalogOutcome>;
   stats(projectId: string): Promise<RendererStats>;
 }
 
@@ -29,6 +42,8 @@ export function durableRenderers(namespace: RendererNamespaceLike): RenderersApi
   const stub = (projectId: string) => namespace.get(namespace.idFromName(projectId));
   return {
     render: (projectId, request) => stub(projectId).render(request),
+    validate: (projectId, request) => stub(projectId).validate(request),
+    catalog: (projectId, request) => stub(projectId).catalog(request),
     stats: (projectId) => stub(projectId).stats(),
   };
 }
