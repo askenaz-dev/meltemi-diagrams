@@ -2243,11 +2243,15 @@ el día en que lo lleven.
 - [ ] En el panel de Sponsors, crear el webhook: URL de carga
       `https://diagrams.meltemi.dev/_sponsors/github`, tipo de contenido `application/json`, un
       secreto aleatorio largo y el evento `sponsorship`.
-- [ ] Dar el mismo secreto a la infraestructura de la familia como `sponsors_webhook_secret` (el
-      Terraform de Meltemi Web lo guarda como `SPONSORS_WEBHOOK_SECRET` en el Secrets Store), y fijar
-      `"SPONSORS_ACCOUNT": "askenaz"` en `wrangler.jsonc`.
+- [ ] Dar el mismo secreto a la infraestructura de la familia: el secreto `SPONSORS_WEBHOOK_SECRET`
+      del entorno `infrastructure` de Meltemi Web, que su Terraform lee como
+      `sponsors_webhook_secret` y guarda como `SPONSORS_WEBHOOK_SECRET` en el Secrets Store (un
+      espacio hasta entonces), y fijar `"SPONSORS_ACCOUNT": "askenaz"` en `wrangler.jsonc`.
 - [ ] Tras el despliegue, comprobar que el panel de GitHub muestra el `ping` del webhook respondido
       con `200`.
+- [ ] Añadir **Support the project** a meltemi.dev/diagrams/ y /es/diagrams/ en Meltemi Web,
+      enlazando `https://github.com/sponsors/askenaz`: esa página solo redirige al perfil hasta que
+      la cuenta esté inscrita, así que el enlace espera a estos pasos.
 
 Los dos lados del secreto solo se desalinean a mano: una entrega respondida con `401` en el panel lo
 dice, y el propietario vuelve a escribir el mismo secreto en ambos.
