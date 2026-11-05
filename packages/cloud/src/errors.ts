@@ -207,12 +207,13 @@ export function fail(
 
 /**
  * The JSON answer of an error. The message carries no token, cookie, secret or stack. An error with
- * a `retryAfter` (seconds) is also answered with `Retry-After`, the header the rates of the service
- * send.
+ * a `retryAfter` (seconds) is answered with it in `Retry-After`, the header the rates of the service
+ * send, and not in the body, which stays `{ code, message }` as the rates always answered (the MCP
+ * tools, which have no header, give it in their result: `mcp/tool.ts`).
  */
 export function errorResponse(error: ApiError): Response {
-  const body = { ...error.details, code: error.code, message: error.message };
-  const retryAfter = error.details?.["retryAfter"];
+  const { retryAfter, ...details } = error.details ?? {};
+  const body = { ...details, code: error.code, message: error.message };
   return new Response(JSON.stringify(body), {
     status: error.status,
     headers: {

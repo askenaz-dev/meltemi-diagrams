@@ -63,6 +63,12 @@ fonts, the icons and resvg are modules the object imports when it first draws, s
 never draws never instantiates them; the JavaScript is parsed by every isolate (the 9 ms more of
 startup).
 
+The MCP endpoint (change `agent-mcp`, its first stage, measured on 5 November by the busy time of
+the startup profile, idle samples left out, the median of five) adds 0.81 MiB to the upload (22.61
+to 23.42 MiB, 7.40 to 7.55 MiB gzip): the SDK, `zod` and the twenty-seven tools. They are imported the
+first time an isolate serves `/mcp`, which keeps the startup at 35.6 ms against 31.0 ms without
+them; imported with the handler, the same build started in 64.3 ms.
+
 ### Time
 
 | Case                                                | Median (ms) | p95 (ms) | Max (ms) |

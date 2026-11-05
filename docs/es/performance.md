@@ -65,6 +65,12 @@ del rasterizado (0,09 MiB). Las fuentes, los iconos y resvg son módulos que el 
 primera vez que dibuja, así que un aislado que nunca dibuja nunca los instancia; el JavaScript lo
 analiza cada aislado (los 9 ms más de arranque).
 
+El endpoint MCP (cambio `agent-mcp`, su primera etapa, medido el 5 de noviembre por el tiempo ocupado
+del perfil de arranque, sin las muestras inactivas, la mediana de cinco) añade 0,81 MiB a la subida
+(de 22,61 a 23,42 MiB, de 7,40 a 7,55 MiB en gzip): el SDK, `zod` y las veintisiete herramientas. Se
+importan la primera vez que un aislado sirve `/mcp`, lo que deja el arranque en 35,6 ms frente a
+31,0 ms sin ellos; importados con el manejador, la misma compilación arrancaba en 64,3 ms.
+
 ### Tiempo
 
 | Caso                                                  | Mediana (ms) | p95 (ms) | Máx. (ms) |

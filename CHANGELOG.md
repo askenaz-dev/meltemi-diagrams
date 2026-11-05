@@ -4,6 +4,22 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
+## Next
+
+The hosted service gains an MCP endpoint, the first stage of the change `agent-mcp`: an agent such
+as Codex connects to `https://diagrams.meltemi.dev/mcp` with an API token (`mdg_…`, as
+`bearer_token_env_var`) and acts on the account's projects through twenty-seven tools: it creates
+projects, reads and writes their files (every `.meltemi` file it writes is compiled first, and a push
+with an error is refused whole; `ifRevision` keeps it from overwriting a person's change), uploads
+images, keeps and restores versions, previews a diagram or a story's frame as a PNG or an SVG drawn
+on the server with the command line's engine, shares the project by link or invitation (no email is
+sent: the agent passes on the link), runs live sessions and publishes catalogs, reading the public
+address back before it answers. Retries never duplicate: `POST /api/projects` and
+`PUT /api/projects/<id>/files` take an `Idempotency-Key` (migration 0008), and the tools an
+`idempotencyKey`. An account makes at most 300 calls and 30 previews a minute, and the log keeps a
+call's tool, duration and error code only ([the MCP endpoint](docs/cloud.md#the-mcp-endpoint)). The
+sign-in with OAuth and its scopes comes next.
+
 ## 1.11.11
 
 A donation through GitHub Sponsors lets an account export without the Meltemi branding in the web
