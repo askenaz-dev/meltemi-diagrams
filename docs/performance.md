@@ -120,3 +120,28 @@ renderer's rules and its own migration, reached by the cloud Worker through a Du
 binding with `script_name`; Meltemi Web's Terraform would declare it as one more entry of
 `local.workers`, without a domain, and the deploy would upload it before the cloud Worker. The CPU
 of a Durable Object on the Free plan is confirmed on the first staging deploy.
+
+## The local MCP server
+
+Measured on 2026-11-05 on the same machine (an Intel Core i9-11980HK, Node 24.15), for the change
+`local-mcp-server` (task 8.1). `mdg mcp --folder` draws with the renderer object's engine and core
+in its own process, so an agent on the person's machine spends no CPU of the service on a picture.
+The command below runs the built command line over the acceptance corpus's flow sheets and asks for
+`flow/thirty` as a PNG 1280 wide through the SDK's client over Streamable HTTP: a process's first
+preview three times, each in a new process (the engine, ELK, the fonts and resvg are loaded then),
+and fifteen warm previews in one process, each at another width so that the cache answers none. A
+time is from the call to the answer, as the agent waits for it.
+
+```bash
+pnpm --filter "@meltemi/diagrams-cli..." build
+pnpm cli:bench-mcp
+```
+
+| Case                                        | Median (ms) | p95 (ms) | Max (ms) | Target |
+| ------------------------------------------- | ----------: | -------: | -------: | -----: |
+| a process's first PNG 1280 of `flow/thirty` |       603.5 |    642.3 |    642.3 |   3000 |
+| a warm PNG 1280 of `flow/thirty`            |        67.1 |    112.0 |    112.0 |   1000 |
+
+Both are within their targets with room. A warm preview costs on the machine what it costs the
+renderer object (85.5 ms median for the same picture above), and the first one about what an
+object's cold start and first PNG cost together.

@@ -51,6 +51,38 @@ export interface StubProject {
   role: "owner" | "editor" | "viewer";
   /** The name collisions `GET …/files` lists, each `{ path, keeper, id, shown }`. */
   collisions: unknown[];
+  /** What the project's link gives, its members and its pending invitations. */
+  linkAccess: "private" | "view" | "edit";
+  members: StubMember[];
+  invitations: StubInvitation[];
+  /** The live session that is on, or null. */
+  live: StubLive | null;
+}
+
+export interface StubMember {
+  readonly sub: string;
+  readonly name: string;
+  readonly picture: string;
+  readonly email: string;
+  role: "viewer" | "editor";
+}
+
+export interface StubInvitation {
+  readonly id: string;
+  readonly email: string;
+  role: "viewer" | "editor";
+  readonly created_at: string;
+  readonly expires_at: string;
+  readonly link: string;
+}
+
+export interface StubLive {
+  readonly id: string;
+  readonly link: string;
+  readonly guestsEdit: boolean;
+  readonly startedAt: string;
+  readonly until: string;
+  readonly guests: number;
 }
 
 /** A failure the next request to a route is to answer with, instead of its own answer. */
@@ -78,6 +110,10 @@ export class CloudStub {
   readonly requests: Recorded[] = [];
   /** The person every token of this service is for. */
   account = { sub: "u_7d3f", name: "Ana", picture: "", handle: null as string | null };
+  /** The account's email, which a token's session answers. */
+  email = "ana@example.com";
+  /** The answers kept by idempotency key: the route, the body's hash, the status and the body. */
+  readonly kept = new Map<string, { route: string; hash: string; status: number; body: string }>();
   /** Token to its id and name. */
   readonly tokens = new Map<string, { id: string; name: string }>();
   readonly projects = new Map<string, StubProject>();
@@ -152,6 +188,10 @@ export class CloudStub {
       updatedAt: "2026-10-15T09:41:02.118Z",
       role: init.role ?? "owner",
       collisions: [],
+      linkAccess: "private",
+      members: [],
+      invitations: [],
+      live: null,
     };
     for (const [path, bytes] of Object.entries(init.binaries ?? {})) {
       const data = Buffer.from(bytes);
@@ -226,6 +266,11 @@ export class CloudStub {
       }
     };
 
+    if (method === "HEAD" && path.startsWith("/_published/")) {
+      const [, , handle, slug] = path.split("/");
+      const served = [...this.projects.values()].some((p) => p.publications.has(slug ?? ""));
+      return send(response, served && handle === this.account.handle ? 200 : 404);
+    }
     if (method === "GET" && path === "/cli-auth") return this.cliAuth(url, response);
     if (method === "POST" && path === "/cli-auth/token") return this.exchange(body(), response);
 
@@ -244,7 +289,7 @@ export class CloudStub {
         return send(response, 200, { user: null, signIn: `${this.url}/login` });
       }
       return send(response, 200, {
-        user: { ...this.account },
+        user: { ...this.account, email: this.email },
         token: { id: principal.id, name: principal.name },
       });
     }
@@ -277,6 +322,58 @@ export class CloudStub {
         limits: { projects: 100, files: 2000 },
       });
     }
+    if (method === "GET" && path === "/api/account/publications") {
+      return send(response, 200, {
+        handle: this.account.handle,
+        publications: [...this.projects.values()]
+          .filter((project) => project.role === "owner")
+          .flatMap((project) =>
+            [...project.publications].map(([slug, p]) => ({
+              project: project.id,
+              slug,
+              url: this.publicUrl(slug),
+              published_at: p.publishedAt,
+              bytes: Buffer.byteLength(p.html),
+            })),
+          ),
+      });
+    }
+    // The routes that honour `Idempotency-Key`: the same key and body answer the first answer again.
+    const key = request.headers["idempotency-key"];
+    if (typeof key === "string" && (path === "/api/projects" || path.endsWith("/files"))) {
+      const routeName = `${method} ${path}`;
+      const hash = sha256(recorded.body);
+      const kept = this.kept.get(key);
+      if (kept) {
+        if (kept.route !== routeName || kept.hash !== hash) {
+          return error(
+            response,
+            422,
+            "idempotency.mismatch",
+            "The key was used for another request.",
+          );
+        }
+        return send(response, kept.status, kept.body, { "Idempotent-Replayed": "true" });
+      }
+      const capture = new CapturingResponse();
+      this.api(path, method, recorded, body, capture as unknown as ServerResponse);
+      // A refusal of the service's own (4xx) is kept; a failure (5xx) is not.
+      if (capture.status < 500) {
+        this.kept.set(key, { route: routeName, hash, status: capture.status, body: capture.body });
+      }
+      return capture.replay(response);
+    }
+    return this.api(path, method, recorded, body, response);
+  }
+
+  /** The API's routes past the account's. */
+  private api(
+    path: string,
+    method: string,
+    recorded: Recorded,
+    body: () => Record<string, unknown>,
+    response: ServerResponse,
+  ): void {
     if (path === "/api/projects") {
       if (method === "GET") {
         return send(response, 200, { projects: [...this.projects.values()].map(projectJson) });
@@ -370,6 +467,104 @@ export class CloudStub {
     response: ServerResponse,
   ): void {
     if (rest === "" && method === "GET") return send(response, 200, projectJson(project));
+    if (rest === "" && method === "PATCH") {
+      if (project.role !== "owner") return error(response, 403, "access.denied", "Owner only.");
+      const patch = body();
+      if (typeof patch["name"] === "string") project.name = patch["name"];
+      if (typeof patch["description"] === "string") project.description = patch["description"];
+      return send(response, 200, projectJson(project));
+    }
+    if (rest === "versions" && method === "POST") {
+      const label = body()["label"];
+      const made = this.addVersion(project, typeof label === "string" ? label : "");
+      return send(response, 201, { ...versionJson(made), label: made.label || null });
+    }
+    const restore = /^versions\/(\d+)\/restore$/.exec(rest);
+    if (restore && method === "POST") {
+      const found = project.versions.find((v) => String(v.number) === restore[1]);
+      if (!found) return error(response, 404, "version.not-found", "No such version.");
+      const saved = this.addVersion(project, "", true);
+      project.files = new Map(Object.entries(found.files));
+      project.binaries = new Map(Object.entries(found.binaries));
+      project.revision++;
+      return send(response, 200, {
+        revision: project.revision,
+        restored: found.number,
+        saved: { ...versionJson(saved), label: null },
+      });
+    }
+    if (rest === "sharing" && method === "GET") return send(response, 200, sharingJson(project));
+    if (rest === "sharing" && method === "PATCH") {
+      const level = body()["linkAccess"];
+      if (level !== "private" && level !== "view" && level !== "edit") {
+        return error(response, 400, "request.invalid", "Not a link level.");
+      }
+      project.linkAccess = level;
+      return send(response, 200, sharingJson(project));
+    }
+    if (rest === "members" && method === "POST") {
+      const { email, role } = body();
+      if (typeof email !== "string" || (role !== "viewer" && role !== "editor")) {
+        return error(response, 400, "request.invalid", "Not an invitation.");
+      }
+      const pending = project.invitations.find((i) => i.email === email);
+      if (pending) {
+        pending.role = role;
+        return send(response, 200, pending);
+      }
+      const invitation: StubInvitation = {
+        id: `inv_${project.invitations.length + 1}`,
+        email,
+        role,
+        created_at: "2026-11-05T10:00:00.000Z",
+        expires_at: "2026-11-19T10:00:00.000Z",
+        link: `${this.url}/invite/${randomBytes(16).toString("base64url")}`,
+      };
+      project.invitations.push(invitation);
+      return send(response, 201, invitation);
+    }
+    if (rest === "invitations" && method === "GET") {
+      return send(response, 200, { invitations: project.invitations });
+    }
+    const invitation = /^invitations\/([^/]+)$/.exec(rest);
+    if (invitation && method === "DELETE") {
+      const before = project.invitations.length;
+      project.invitations = project.invitations.filter((i) => i.id !== invitation[1]);
+      if (project.invitations.length === before) return error(response, 404, "not-found", "None.");
+      return send(response, 204);
+    }
+    const member = /^members\/([^/]+)$/.exec(rest);
+    if (member && (method === "PATCH" || method === "DELETE")) {
+      const found = project.members.find((m) => m.sub === decodeURIComponent(member[1]!));
+      if (!found) return error(response, 404, "not-found", "Not a member.");
+      if (method === "DELETE") {
+        project.members = project.members.filter((m) => m !== found);
+        return send(response, 204);
+      }
+      const role = body()["role"];
+      if (role !== "viewer" && role !== "editor") {
+        return error(response, 400, "request.invalid", "Not a role.");
+      }
+      found.role = role;
+      return send(response, 200, found);
+    }
+    if (rest === "live" && method === "GET") return send(response, 200, project.live);
+    if (rest === "live" && method === "PUT") {
+      const guestsEdit = body()["guestsEdit"];
+      project.live = {
+        id: project.live?.id ?? "live_1",
+        link: `${this.url}/?project=${project.id}&live=${randomBytes(16).toString("base64url")}`,
+        guestsEdit: guestsEdit !== false,
+        startedAt: "2026-11-05T10:00:00.000Z",
+        until: "2026-11-06T10:00:00.000Z",
+        guests: 0,
+      };
+      return send(response, 200, project.live);
+    }
+    if (rest === "live" && method === "DELETE") {
+      project.live = null;
+      return send(response, 204);
+    }
     if (rest === "files" && method === "GET") {
       return send(response, 200, {
         revision: project.revision,
@@ -552,6 +747,40 @@ function projectJson(project: StubProject) {
     thumbnail: null,
     role: project.role,
   };
+}
+
+function sharingJson(project: StubProject) {
+  return {
+    linkAccess: project.linkAccess,
+    role: project.role,
+    ...(project.role === "owner"
+      ? { members: project.members, invitations: project.invitations }
+      : {}),
+  };
+}
+
+/** An answer written to memory, to be kept by an idempotency key and then sent. */
+class CapturingResponse {
+  status = 200;
+  headers: Record<string, string | number> = {};
+  body = "";
+  headersSent = false;
+
+  writeHead(status: number, headers: Record<string, string | number> = {}): this {
+    this.status = status;
+    this.headers = headers;
+    this.headersSent = true;
+    return this;
+  }
+
+  end(chunk?: string | Buffer): void {
+    if (chunk !== undefined) this.body += chunk.toString();
+  }
+
+  replay(response: ServerResponse): void {
+    response.writeHead(this.status, this.headers);
+    response.end(this.body);
+  }
 }
 
 function versionJson(version: StubVersion) {

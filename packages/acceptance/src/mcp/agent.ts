@@ -40,12 +40,16 @@ export class Agent {
     private readonly transport: StreamableHTTPClientTransport,
   ) {}
 
-  /** Connects with `token` (`initialize`, as the SDK negotiates it). */
-  static async connect(target: Target, token: string): Promise<Agent> {
+  /**
+   * Connects with `token` (`initialize`, as the SDK negotiates it); with `local`, to that local
+   * server's address with no bearer instead, the token being in the server's own environment.
+   */
+  static async connect(target: Target, token: string, local?: string): Promise<Agent> {
     const client = new Client(CLIENT_INFO);
-    const transport = new StreamableHTTPClientTransport(new URL(target.endpoint), {
-      requestInit: { headers: { Authorization: `Bearer ${token}` } },
-    });
+    const transport = new StreamableHTTPClientTransport(
+      new URL(local ?? target.endpoint),
+      local === undefined ? { requestInit: { headers: { Authorization: `Bearer ${token}` } } } : {},
+    );
     await client.connect(transport);
     return new Agent(client, transport);
   }

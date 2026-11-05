@@ -43,6 +43,7 @@ Commands:
   projects               List your cloud projects: id, name, role, last change (--json)
   skill install [folder] Give a project's coding agents the skill that draws Meltemi diagrams
   skill prompt           Print the prompt a coding agent follows to install the skill and prove it
+  mcp                    Serve the MCP tools on this machine for a coding agent (--folder, --port)
 
 Every command takes --lang en|es: the language of its messages and of the words it adds to the
 files it writes (the project's "locale" otherwise; messages follow MELTEMI_LANG or LANG).
@@ -164,6 +165,11 @@ Options for publish:
 
 Options for projects:
   --json                 Print one JSON object
+  --host <url>           The service, as for login
+
+Options for mcp:
+  --port <n>             The port, 7373 by default; 0 picks a free one
+  --folder <dir>         Validate and preview a folder's files, with no account
   --host <url>           The service, as for login
 
 Operations of assist (see assist --help):
@@ -389,6 +395,30 @@ Options:
 
 Exit codes: 0 published (or removed), 1 refused or failed, 2 usage error, 3 not signed in or the
 token was refused.
+`,
+    mcp: `Usage: mcp [options]
+
+Serves the Model Context Protocol on this machine, over Streamable HTTP, so that a coding agent
+that runs here (Codex, Claude Code, Cursor) can create and read cloud projects, write files,
+preview the drawings, share and publish, with the tools of the hosted endpoint. The checks, the
+pictures and the catalogs are made on this machine; the files go through the service's API with
+your sign-in (run login first). With --folder, two tools (validate and preview) over the files of
+a folder, with no account and no network.
+
+The first line printed is the server's address; connect the agent to it, for example
+  codex mcp add meltemi --url http://127.0.0.1:7373/mcp
+  claude mcp add --transport http meltemi http://127.0.0.1:7373/mcp
+and keep this command running while the agent works. Ctrl+C stops it.
+
+It listens on 127.0.0.1 only and refuses web pages. On a machine other people sign in to, set
+MELTEMI_MCP_KEY (16 characters or more): every request must then carry it as a bearer token.
+
+Options:
+  --port <n>       The port, 7373 by default; 0 picks a free one
+  --folder <dir>   Validate and preview the files of this folder instead of cloud projects
+  --host <url>     The service: MELTEMI_HOST, else https://diagrams.meltemi.dev
+
+Exit codes: 0 stopped, 2 usage error, a port in use or a folder that does not exist.
 `,
     projects: `Usage: projects [options]
 
@@ -999,6 +1029,19 @@ token was refused.
         `--slug takes 1 to 60 lowercase letters, digits and hyphens, not "${slug}".`,
       handleOption: (handle: string) =>
         `--handle takes 3 to 30 lowercase letters, digits and hyphens, not "${handle}".`,
+    },
+    mcp: {
+      /** On standard error once the server listens: its address and what it serves. */
+      listening: (url: string, folder: string | undefined) =>
+        folder === undefined
+          ? `Meltemi Diagrams MCP server at ${url}, for the cloud projects of your sign-in. Ctrl+C stops it.`
+          : `Meltemi Diagrams MCP server at ${url}, for the files of ${folder}. Ctrl+C stops it.`,
+      badPort: (given: string) => `--port takes a whole number from 0 to 65535, not "${given}".`,
+      shortKey: (min: number) => `MELTEMI_MCP_KEY holds fewer than ${min} characters.`,
+      portInUse: (port: number) =>
+        `mcp.port-in-use: 127.0.0.1:${port} is in use (another mdg mcp?); choose another with --port.`,
+      notAFolder: (folder: string) => `${folder} is not a folder that exists.`,
+      folderAndHost: "--folder serves the files of a folder and talks to no service: drop --host.",
     },
     projects: {
       none: (name: string) =>

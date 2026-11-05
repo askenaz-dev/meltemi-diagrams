@@ -5,7 +5,7 @@
 
 import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import type { RenderersApi } from "../../src/renderer-client.js";
-import { memoryPreviewCache, type RendererCore } from "../../src/renderer-core.js";
+import { memoryPreviewCache, type RendererCore } from "@meltemi/diagrams-mcp/preview";
 import { publishHost } from "../../src/publish.js";
 import type { Deps } from "../../src/types.js";
 import { jsonOf } from "./index.js";

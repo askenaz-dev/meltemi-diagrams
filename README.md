@@ -242,43 +242,44 @@ checked, and the latest results, are in [docs/quality.md](docs/quality.md) and
 
 ## Repository layout
 
-| Path                  | Contents                                                                                                                    |
-| --------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `packages/language`   | `@meltemi/diagrams-language`: lexer, parser, CST, diagnostics, text edits                                                   |
-| `packages/model`      | `@meltemi/diagrams-model`: intermediate model, `flow`, `free` and `sequence` validation, scenarios, JSON                    |
-| `packages/edit`       | `@meltemi/diagrams-edit`: structured operations to minimal text edits                                                       |
-| `packages/layout`     | `@meltemi/diagrams-layout`: layout of flow, free and sequence diagrams into a vector scene, constraints, routing and checks |
-| `packages/layout-elk` | `@meltemi/diagrams-layout-elk`: the ELK layout engine (elkjs, EPL-2.0)                                                      |
-| `packages/render`     | `@meltemi/diagrams-render`: vector scene to portable SVG                                                                    |
-| `packages/project`    | `@meltemi/diagrams-project`: projects, manifests, imports, incremental workspace                                            |
-| `packages/fonts`      | `@meltemi/diagrams-fonts`: bundled OFL fonts, text measurement, embedding, outlines                                         |
-| `packages/assets`     | `@meltemi/diagrams-assets`: icon packs, SVG sanitising, licences, the asset lock                                            |
-| `packages/motion`     | `@meltemi/diagrams-motion`: effects on a deterministic clock, frames at any time and the animated SVG profile               |
-| `packages/i18n`       | `@meltemi/diagrams-i18n`: the two languages, typed catalogs and formatting by language                                      |
-| `packages/import`     | `@meltemi/diagrams-import`: Mermaid and PlantUML importers, the preprocessor, coverage tables, re-import                    |
-| `packages/player`     | `@meltemi/diagrams-player`: the HTML player of stories and effects, and its documents                                       |
-| `packages/capture`    | `@meltemi/diagrams-capture`: PNG, PDF and video captures through the installed browser and FFmpeg                           |
-| `packages/catalog`    | `@meltemi/diagrams-catalog`: the offline HTML catalog of a project                                                          |
-| `packages/assist`     | `@meltemi/diagrams-assist`: optional AI assistance, its adapters and reviewable proposals                                   |
-| `packages/cli`        | `@meltemi/diagrams-cli`: the `meltemi-diagrams` command                                                                     |
-| `packages/editor`     | `@meltemi/diagrams-editor`: language services, project sessions, exports, the canvas session, host-neutral                  |
-| `packages/canvas`     | `@meltemi/diagrams-canvas`: the canvas application, shared by the extension and the web app                                 |
-| `packages/vscode`     | the Meltemi Diagrams extension for VS Code: language support and the canvas                                                 |
-| `packages/playground` | the web app: a static web page with templates, code, the canvas and every export                                            |
-| `packages/cloud`      | the cloud service: a Worker with the optional account, API tokens and projects in the cloud ([cloud](docs/cloud.md))        |
-| `packages/acceptance` | the acceptance suite: corpus conditions, visual regression, determinism, benchmark and the export verification runners      |
-| `gallery/`            | one sheet of each profile with its SVG, PNG and PDF exports                                                                 |
-| `corpus/`             | reference `.meltemi` files and projects, snapshots and edit fixtures; `corpus/acceptance/` for the acceptance criteria      |
-| `schemas/`            | JSON schemas, such as `project.schema.json` for `project.json`                                                              |
-| `examples/`           | the purchase reference example with every export, and real sheets converted to `.meltemi`                                   |
-| `skills/`             | the `meltemi-diagrams` Agent Skill for Claude Code, Codex and other agents                                                  |
-| `scripts/`            | development helpers such as the preview server                                                                              |
-| `docs/language/`      | grammar, diagnostics, styles, assets, fonts, projects and model JSON references                                             |
-| `docs/import/`        | what the Mermaid and PlantUML importers map, approximate and drop, generated from the coverage tables                       |
-| `docs/roadmap-1.0.md` | the ordered changes that build the complete 1.0                                                                             |
-| `docs/decisions/`     | decision notes with criteria, alternatives and consequences                                                                 |
-| `docs/quality.md`     | the acceptance criteria and how each is checked; results in `docs/quality/`, export checks in `docs/verification/`          |
-| `openspec/`           | proposals, specs, designs and tasks                                                                                         |
+| Path                  | Contents                                                                                                                            |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/language`   | `@meltemi/diagrams-language`: lexer, parser, CST, diagnostics, text edits                                                           |
+| `packages/model`      | `@meltemi/diagrams-model`: intermediate model, `flow`, `free` and `sequence` validation, scenarios, JSON                            |
+| `packages/edit`       | `@meltemi/diagrams-edit`: structured operations to minimal text edits                                                               |
+| `packages/layout`     | `@meltemi/diagrams-layout`: layout of flow, free and sequence diagrams into a vector scene, constraints, routing and checks         |
+| `packages/layout-elk` | `@meltemi/diagrams-layout-elk`: the ELK layout engine (elkjs, EPL-2.0)                                                              |
+| `packages/render`     | `@meltemi/diagrams-render`: vector scene to portable SVG                                                                            |
+| `packages/project`    | `@meltemi/diagrams-project`: projects, manifests, imports, incremental workspace                                                    |
+| `packages/fonts`      | `@meltemi/diagrams-fonts`: bundled OFL fonts, text measurement, embedding, outlines                                                 |
+| `packages/assets`     | `@meltemi/diagrams-assets`: icon packs, SVG sanitising, licences, the asset lock                                                    |
+| `packages/motion`     | `@meltemi/diagrams-motion`: effects on a deterministic clock, frames at any time and the animated SVG profile                       |
+| `packages/i18n`       | `@meltemi/diagrams-i18n`: the two languages, typed catalogs and formatting by language                                              |
+| `packages/import`     | `@meltemi/diagrams-import`: Mermaid and PlantUML importers, the preprocessor, coverage tables, re-import                            |
+| `packages/player`     | `@meltemi/diagrams-player`: the HTML player of stories and effects, and its documents                                               |
+| `packages/capture`    | `@meltemi/diagrams-capture`: PNG, PDF and video captures through the installed browser and FFmpeg                                   |
+| `packages/catalog`    | `@meltemi/diagrams-catalog`: the offline HTML catalog of a project                                                                  |
+| `packages/assist`     | `@meltemi/diagrams-assist`: optional AI assistance, its adapters and reviewable proposals                                           |
+| `packages/mcp`        | `@meltemi/diagrams-mcp`: the MCP tools defined once for the hosted endpoint and `mdg mcp`, and the engine that draws their previews |
+| `packages/cli`        | `@meltemi/diagrams-cli`: the `meltemi-diagrams` command                                                                             |
+| `packages/editor`     | `@meltemi/diagrams-editor`: language services, project sessions, exports, the canvas session, host-neutral                          |
+| `packages/canvas`     | `@meltemi/diagrams-canvas`: the canvas application, shared by the extension and the web app                                         |
+| `packages/vscode`     | the Meltemi Diagrams extension for VS Code: language support and the canvas                                                         |
+| `packages/playground` | the web app: a static web page with templates, code, the canvas and every export                                                    |
+| `packages/cloud`      | the cloud service: a Worker with the optional account, API tokens and projects in the cloud ([cloud](docs/cloud.md))                |
+| `packages/acceptance` | the acceptance suite: corpus conditions, visual regression, determinism, benchmark and the export verification runners              |
+| `gallery/`            | one sheet of each profile with its SVG, PNG and PDF exports                                                                         |
+| `corpus/`             | reference `.meltemi` files and projects, snapshots and edit fixtures; `corpus/acceptance/` for the acceptance criteria              |
+| `schemas/`            | JSON schemas, such as `project.schema.json` for `project.json`                                                                      |
+| `examples/`           | the purchase reference example with every export, and real sheets converted to `.meltemi`                                           |
+| `skills/`             | the `meltemi-diagrams` Agent Skill for Claude Code, Codex and other agents                                                          |
+| `scripts/`            | development helpers such as the preview server                                                                                      |
+| `docs/language/`      | grammar, diagnostics, styles, assets, fonts, projects and model JSON references                                                     |
+| `docs/import/`        | what the Mermaid and PlantUML importers map, approximate and drop, generated from the coverage tables                               |
+| `docs/roadmap-1.0.md` | the ordered changes that build the complete 1.0                                                                                     |
+| `docs/decisions/`     | decision notes with criteria, alternatives and consequences                                                                         |
+| `docs/quality.md`     | the acceptance criteria and how each is checked; results in `docs/quality/`, export checks in `docs/verification/`                  |
+| `openspec/`           | proposals, specs, designs and tasks                                                                                                 |
 
 ## Scripts
 
@@ -325,7 +326,10 @@ prompt and the agents are on [the agent setup page](https://diagrams.meltemi.dev
 and in [drawing with coding agents](docs/agents.md). In your project, `mdg skill install` writes
 the skill into `.claude/skills/` and `.agents/skills/`. In this repository it lives in `skills/`,
 `pnpm skills:sync` copies it to `.claude/skills/`, `.agents/skills/` and the command line's
-package, and `AGENTS.md` points other agents to it.
+package, and `AGENTS.md` points other agents to it. Through MCP, an agent acts on the projects of
+your account: by the hosted endpoint `https://diagrams.meltemi.dev/mcp`, or by `mdg mcp`, a local
+server at `http://127.0.0.1:7373/mcp` that draws the previews on your machine
+([agents](docs/agents.md#through-the-local-server)).
 
 ## Branding
 

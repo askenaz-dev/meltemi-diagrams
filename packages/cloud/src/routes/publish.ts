@@ -9,7 +9,13 @@ import { CLOUD_LIMITS } from "@meltemi/diagrams-project";
 import { requireAccess } from "../access.js";
 import type { Route } from "../context.js";
 import { json } from "../http.js";
-import { getPublications, publish, requireHandle, unpublish } from "../operations/publish.js";
+import {
+  accountPublications,
+  getPublications,
+  publish,
+  requireHandle,
+  unpublish,
+} from "../operations/publish.js";
 import { readObject } from "./projects.js";
 
 /**
@@ -32,6 +38,13 @@ export const MAX_PUBLISH_BODY = CLOUD_LIMITS.publishBytes + 8 * 1024 * 1024;
  */
 export const getPublishRoute: Route = async (ctx) =>
   json(await getPublications(ctx, ctx.params["id"] ?? ""));
+
+/**
+ * `GET /api/account/publications`: the handle (null until one is chosen) and every publication of
+ * the projects the asker owns, each with its project, slug, address, date and size, as the MCP tool
+ * `list_publications` answers them without a project. `401 auth.required` without a principal.
+ */
+export const accountPublicationsRoute: Route = async (ctx) => json(await accountPublications(ctx));
 
 /**
  * `PUT /api/projects/:id/publish { slug, html }` (`manage`): stores the page and answers `{ url,

@@ -270,7 +270,7 @@ describe("publication preflight", () => {
       throw { stdout: '{"error":{"code":"E404"}}' };
     };
     await preflightRelease(f.directory, plan, f.unpack, npm, async () => undefined);
-    expect(calls).toHaveLength(19);
+    expect(calls).toHaveLength(20);
     expect(calls.every((args) => args[0] === "view")).toBe(true);
     expect(basename(f.directory)).toMatch(/^meltemi-recovery-test-/);
   });

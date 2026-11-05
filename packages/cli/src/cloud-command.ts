@@ -33,6 +33,8 @@ const CLOUD_COMMANDS = {
   whoami: whoamiCommand,
   projects: projectsCommand,
   publish: publishCommand,
+  // Imported when it runs: the MCP SDK, `zod` and the drawing engine cost nothing to another command.
+  mcp: async (args, context) => (await import("./mcp-command.js")).mcpCommand(args, context),
 } as const satisfies Readonly<Record<string, CloudCommand>>;
 
 export type CloudCommandName = keyof typeof CLOUD_COMMANDS;

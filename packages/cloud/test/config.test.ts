@@ -157,8 +157,9 @@ describe("wrangler.jsonc", () => {
     )) {
       if (dependency.startsWith("@meltemi/diagrams-")) visit(dependency);
     }
-    // The subpaths their sources import (`@meltemi/diagrams-layout/viewport`): an alias of a
-    // package would make them `<its index>/viewport`, so each has an alias of its own.
+    // The subpaths their sources and the Worker's own import (`@meltemi/diagrams-layout/viewport`,
+    // `@meltemi/diagrams-mcp/preview`): an alias of a package would make them
+    // `<its index>/viewport`, so each has an alias of its own.
     const subpaths = new Set<string>();
     const scan = (folder: URL): void => {
       for (const entry of readdirSync(folder, { withFileTypes: true })) {
@@ -173,6 +174,7 @@ describe("wrangler.jsonc", () => {
     };
     for (const name of closure)
       scan(new URL(`../${name.replace("@meltemi/diagrams-", "")}/src/`, PACKAGE));
+    scan(new URL("src/", PACKAGE));
     // `/node` entries are the Node hosts of packages the Worker gives its own readers to.
     const wanted = [...subpaths].filter((path) => !path.endsWith("/node"));
 

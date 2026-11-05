@@ -9,17 +9,22 @@ import { describe, expect, it } from "vitest";
 import { run } from "@meltemi/diagrams-cli";
 import { REPO_ROOT } from "../../../test-support/corpus.js";
 import { rendererBundleSource, BUNDLE_FILE } from "../scripts/renderer-bundle.js";
-import { memoryPreviewCache, sqlPreviewCache, type PreviewCache } from "../src/renderer-core.js";
-import { sfntFromWoff, isSfnt, RASTER_FACES } from "../src/renderer-fonts.js";
 import {
   CACHE_ENTRIES,
   DEFAULT_PNG_WIDTH,
   MAX_PNG_WIDTH,
+  RASTER_FACES,
+  fittedWidth,
+  isSfnt,
+  memoryPreviewCache,
+  rasterise,
+  sfntFromWoff,
+  type PreviewCache,
   type RenderOutcome,
   type RenderRequest,
   type RenderSuccess,
-} from "../src/renderer-protocol.js";
-import { fittedWidth, rasterise } from "../src/renderer-raster.js";
+} from "@meltemi/diagrams-mcp/preview";
+import { sqlPreviewCache } from "../src/renderer-cache.js";
 import type { SqlRoomDb } from "../src/room-storage.js";
 import { CLOUD, nodeRasterFonts, nodeRenderer, pngSize } from "./support/renderer.js";
 

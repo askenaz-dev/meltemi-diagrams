@@ -124,3 +124,29 @@ del servicio llega por un enlace de Durable Object con `script_name`; el Terrafo
 declararía como una entrada más de `local.workers`, sin dominio, y el despliegue lo subiría antes que
 el Worker del servicio. La CPU de un Durable Object en el plan Free se confirma en el primer
 despliegue de staging.
+
+## El servidor MCP local
+
+Medido el 2026-11-05 en la misma máquina (un Intel Core i9-11980HK, Node 24.15), para el cambio
+`local-mcp-server` (tarea 8.1). `mdg mcp --folder` dibuja con el motor y el núcleo del objeto
+renderizador en su propio proceso, así que un agente en la máquina de la persona no gasta CPU del
+servicio en una imagen. El comando de abajo ejecuta la línea de comandos compilada sobre las hojas de
+flujo del corpus de aceptación y pide `flow/thirty` como PNG de 1280 de ancho con el cliente del SDK
+por HTTP streamable: la primera vista previa de un proceso tres veces, cada una en un proceso nuevo
+(el motor, ELK, las fuentes y resvg se cargan entonces), y quince vistas previas en caliente en un
+proceso, cada una con otro ancho para que la caché no responda ninguna. Un tiempo va de la llamada a
+la respuesta, como lo espera el agente.
+
+```bash
+pnpm --filter "@meltemi/diagrams-cli..." build
+pnpm cli:bench-mcp
+```
+
+| Caso                                              | Mediana (ms) | p95 (ms) | Máx. (ms) | Objetivo |
+| ------------------------------------------------- | -----------: | -------: | --------: | -------: |
+| el primer PNG 1280 de `flow/thirty` de un proceso |        603.5 |    642.3 |     642.3 |     3000 |
+| un PNG 1280 en caliente de `flow/thirty`          |         67.1 |    112.0 |     112.0 |     1000 |
+
+Los dos quedan dentro de su objetivo con margen. Una vista previa en caliente cuesta en la máquina lo
+que cuesta al objeto renderizador (85.5 ms de mediana para la misma imagen, arriba), y la primera más
+o menos lo que cuestan juntos el arranque en frío de un objeto y su primer PNG.

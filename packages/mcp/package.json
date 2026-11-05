@@ -1,0 +1,76 @@
+{
+  "name": "@meltemi/diagrams-mcp",
+  "version": "1.11.0",
+  "description": "The Model Context Protocol tools of Meltemi Diagrams, defined once for the hosted endpoint and the local server, and the engine that draws their previews.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/askenaz-dev/meltemi-diagrams.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/askenaz-dev/meltemi-diagrams/tree/main/packages/mcp#readme",
+  "bugs": {
+    "url": "https://github.com/askenaz-dev/meltemi-diagrams/issues"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "@meltemi/diagrams-source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./preview": {
+      "@meltemi/diagrams-source": "./src/preview/index.ts",
+      "types": "./dist/preview/index.d.ts",
+      "default": "./dist/preview/index.js"
+    },
+    "./node": {
+      "@meltemi/diagrams-source": "./src/node.ts",
+      "types": "./dist/node.d.ts",
+      "default": "./dist/node.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@meltemi/diagrams-assets": "workspace:*",
+    "@meltemi/diagrams-editor": "workspace:*",
+    "@meltemi/diagrams-fonts": "workspace:*",
+    "@meltemi/diagrams-language": "workspace:*",
+    "@meltemi/diagrams-layout": "workspace:*",
+    "@meltemi/diagrams-layout-elk": "workspace:*",
+    "@meltemi/diagrams-motion": "workspace:*",
+    "@meltemi/diagrams-project": "workspace:*",
+    "@modelcontextprotocol/server": "2.3.1",
+    "@resvg/resvg-wasm": "2.6.2",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1"
+  },
+  "publishConfig": {
+    "access": "public",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./preview": {
+        "types": "./dist/preview/index.d.ts",
+        "default": "./dist/preview/index.js"
+      },
+      "./node": {
+        "types": "./dist/node.d.ts",
+        "default": "./dist/node.js"
+      }
+    }
+  }
+}

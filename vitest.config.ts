@@ -32,6 +32,13 @@ export default defineConfig({
       "@meltemi/diagrams-import": pkg("import"),
       "@meltemi/diagrams-assist": pkg("assist"),
       "@meltemi/diagrams-motion": pkg("motion"),
+      "@meltemi/diagrams-mcp/preview": fileURLToPath(
+        new URL("./packages/mcp/src/preview/index.ts", import.meta.url),
+      ),
+      "@meltemi/diagrams-mcp/node": fileURLToPath(
+        new URL("./packages/mcp/src/node.ts", import.meta.url),
+      ),
+      "@meltemi/diagrams-mcp": pkg("mcp"),
       "@meltemi/diagrams-i18n": pkg("i18n"),
       "@meltemi/diagrams-capture/page": fileURLToPath(
         new URL("./packages/capture/src/page.mjs", import.meta.url),
