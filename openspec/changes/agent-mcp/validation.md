@@ -131,3 +131,113 @@ themselves.
 - `Accept` without `text/event-stream` (the SDK answers 406) is not tested by this stage.
 - A publish read-back from the production Worker to `meltemi.page`: in development it reads its own
   `/_published/` address, and in the Node tests the publish host function.
+
+## Stage 3
+
+Tasks 4.1, 4.2, 4.3, 5.1 and 5.2, run on 5 November 2026 on Windows 11 in the worktree of branch
+`agent-mcp-suite`, made from `agent-mcp` at `0b8a6cd`. Node 24.15. The authorization server (tasks
+2.x) is another branch's: here the host has none, and the suite's steps that need one are skipped
+with that reason.
+
+### Gates
+
+| Check                                                    | Result                                                        |
+| -------------------------------------------------------- | ------------------------------------------------------------- |
+| `pnpm install`                                           | green; the lockfile adds the client to `packages/acceptance`  |
+| `pnpm typecheck`                                         | green                                                         |
+| `pnpm lint`                                              | green (ESLint and Prettier)                                   |
+| `pnpm test`                                              | 348 files, 10298 passed, 1 skipped (a first run, with `wrangler dev` also running, lost one worker to a native crash in `packages/cli/test/login.test.ts`, which passed alone, 25 of 25; the run again was green)                                                   |
+| `pnpm licenses:inventory --check`                        | current (44 packages)                                         |
+| `pnpm acceptance:mcp`, `wrangler dev`, two tokens        | 29 passed, 0 failed, 5 skipped; exit 0; no project left       |
+| the same with `MELTEMI_SERVER_LOG` (the Worker's output) | 29 passed, 5 skipped; one finding (below)                     |
+| `pnpm acceptance:mcp`, `wrangler dev`, first token only  | 24 passed, 10 skipped (the second account's steps); exit 0    |
+| `pnpm acceptance:mcp`, `wrangler dev`, no token          | 3 passed, 31 skipped, each with its reason; exit 0            |
+| `pnpm acceptance:mcp`, a port nothing listens on         | exit 1 naming the host, before any step                       |
+| `pnpm acceptance:mcp --probe`, a name that does not resolve | `answers=false` (`ENOTFOUND`) after six tries; exit 0      |
+| `openspec validate "agent-mcp" --strict`                 | valid                                                         |
+
+### Evidence by task
+
+- 4.1: `pnpm acceptance:mcp` (`packages/acceptance/src/mcp/run.ts`) over `harness.ts` (the steps,
+  their needs and order, the scan and redaction of every line), `host.ts` (the target, plain HTTP,
+  the probe), `agent.ts` (the SDK's client, `@modelcontextprotocol/client` 2.3.1 pinned in
+  `packages/acceptance`) and `steps.ts` (34 steps: the 25 criteria, some in more than one step, two
+  connections and the cleanup). The run against `wrangler dev` (`pnpm cloud:dev-session`, two API
+  tokens made with the development sessions of Ana and Ben, `pnpm cloud:migrate --local`) passed
+  every step that needs no authorization server, connected over `2025-11-25` to `meltemi-diagrams`
+  1.11.0 with 27 tools, deleted its five projects, and left none for either account (`GET
+  /api/projects` with each token: 0). `results.json` and `log.txt` hold neither token, nor `mdg_`,
+  `?invite=`, `?live=` or a bearer credential. The first run without tokens showed the scan at work:
+  a log line of the suite's own that read "a Bearer challenge" failed its step and criterion 29's,
+  was printed redacted, and was reworded. `test/mcp-suite.test.ts` (22 tests): the patterns found
+  and redacted, and the lines left alone; a step that logs a secret fails, is named and never prints
+  it; a failure's message redacted; steps skipped for a need or an earlier step, with the reason; the
+  steps cover exactly 2 to 6, 10 to 23 and 24 to 29, are named by their criterion and build on
+  earlier ones only, with the cleanup and criterion 29 last; a run without tokens against a host that
+  answers `401` passes three steps and skips every other with a reason; a host that answers without
+  a token fails it; a name that does not resolve, and Cloudflare's 530, are a host that does not
+  answer.
+- 4.2: `.github/workflows/deploy.yml`: `authorize`, then `staging` (environment `staging`), then
+  `deploy` (production, `needs: [authorize, staging]`). Staging: the same approved source and
+  checks, `scripts/deploy-config.mjs --environment staging`, the superseded-source check before any
+  mutation, the migrations on the staging database, both staging Workers, `pnpm acceptance:mcp
+  --probe` (six tries five seconds apart) and, when the host answers, the suite against
+  `https://staging.diagrams.meltemi.dev` with the environment's `MELTEMI_TOKEN` and
+  `MELTEMI_TOKEN_2`, the artifact `mcp-acceptance-staging`, a summary and, for a host that does not
+  answer, a notice. Production: as before with `OAUTH_KV_ID` and `R2_BUCKET_NAME`, then the suite
+  against `https://diagrams.meltemi.dev` and the artifact `mcp-acceptance-production`. The suite's
+  steps run with `CLOUDFLARE_API_TOKEN` emptied. `scripts/deploy-config.mjs`: production's output
+  for the committed files is byte-identical to the previous script's (compared with `cmp`, both
+  files, the same ids); staging writes `meltemi-diagrams-staging` and
+  `meltemi-diagrams-publish-staging`, the database `meltemi-diagrams-staging` (Meltemi Web's
+  `cloudflare_d1_database.diagrams_staging`), the bucket and the `OAUTH_KV` id from the variables,
+  `FORMS_SECRET_STAGING` and `IDENTITY_EVENTS_SECRET_STAGING` with `ADMIN_SUBS` and
+  `SPONSORS_WEBHOOK_SECRET` shared, and `ORIGIN`, `PUBLISH_HOST` and `PRODUCT_NAME`
+  `diagrams-staging`; checked as well against the `wrangler.jsonc` of branch `agent-mcp` as it is
+  today, with `OAUTH_KV` and `PRODUCT_NAME`. `test/workflows.test.ts` (14 tests, five new): the
+  jobs' order and needs, no `continue-on-error` and no `always()` or `failure()` in production, the
+  steps' order in each job, each environment's variables, the tokens read only as
+  `${{ secrets.… }}` in the suite's step env and never echoed, the probe and the notice.
+  `test/delivery-scripts.test.ts` (7 tests, four new): production unchanged but for the ids (with
+  and without `OAUTH_KV`), its refusal of a suffix, a staging bucket or a missing `OAUTH_KV_ID`;
+  staging's names, hosts, product, secrets and everything else equal to production's; the refusals
+  that keep staging off production's resources; the option.
+- 4.3: `docs/quality/mcp-acceptance.md`: the thirty criteria and what proves each, the suite, the
+  staging gate, the procedure with Codex (the OAuth and the token configurations, the steps and the
+  evidence for criteria 1, 7, 8, 9 and 16's voice half, the evidence folder
+  `docs/quality/mcp-acceptance/<date>-<host>/`), the status by criterion (all `not run`) and the
+  recorded runs (none). `src/mcp/procedure.ts` and `test/mcp-acceptance-docs.test.ts` (5 tests):
+  the page lists the five criteria and holds to its rules; a criterion marked passed without a
+  recorded run fails naming the page; a run without a Codex version or an evidence folder fails; a
+  claim that the voice flow works is found and a "not verified yet" is not; none of eight documents
+  (the changelog, both READMEs, both agents guides, both cloud pages, the skill's reference) claims
+  it.
+- 5.1: `skills/meltemi-diagrams/reference/mcp.md` (the connection, the 27 tools, the workflow, the
+  errors to act on, sharing, live sessions and publishing only on request, no email claimed, no
+  token or link printed), named twice in `SKILL.md` (232 to 237 lines; the token rule stays on line
+  21), copied by `pnpm skills:sync` to `.claude/skills`, `.agents/skills` and
+  `packages/cli/skills`; `docs/agents.md` and `docs/es/agents.md` gain "Through the MCP endpoint" and
+  "A través del endpoint MCP" with the same code. `test/mcp-skill.test.ts` (5 tests) imports
+  `CATALOGUE` of `packages/cloud/src/mcp/server.ts`: every tool named in the reference's tool
+  section and nothing else, the connection and the rules, the workflow's order, `SKILL.md`'s mention
+  and size rule, and both agents guides. The skills test of `packages/render` checks the copies.
+- 5.2: `CHANGELOG.md`'s `## Next` gains the staging gate, the suite and the skill's reference;
+  `docs/decisions/0072-agent-mcp.md` (context, decision, alternatives, consequences) links decisions
+  0041, 0042, 0046, 0050 and 0063, the acceptance page, `docs/cloud.md`'s endpoint, the skill's
+  reference and the agents guide, all resolved by the docs link test.
+
+### Not verified
+
+- The workflow on GitHub: the new `deploy.yml` has not run. The staging hosts are not attached
+  (Meltemi Web's `staging_deployed`), and the test accounts and their tokens do not exist (task
+  4.4), so the first runs will skip the staging suite with a notice and then run without tokens.
+- The authorization server's steps (the metadata documents, the challenge naming them, a wrong
+  `resource` refused before consent, a code and a refresh token never issued) ran only against
+  stand-ins in the unit tests; with the OAuth stage merged they run against `wrangler dev`. The
+  tokens a person approves (expired, revoked, narrower) are skipped by design.
+- Finding for criterion 29: the Worker's own lines held nothing, but `wrangler dev`'s request lines
+  carried the invitation's token in `POST /api/invitations/<token>/accept` (seven lines over four
+  runs). Cloudflare's invocation logs (`invocation_logs: true`) record addresses the same way, as
+  they would `/p/<id>?invite=…` and `?live=…` when opened. Not changed here: the route's shape and
+  the logging are `packages/cloud`'s.
+- The Codex procedure: no run is recorded.

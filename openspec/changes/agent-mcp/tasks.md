@@ -69,15 +69,23 @@
 
 ## 4. The suite, staging and the gate (milestones 2 and 3)
 
-- [ ] 4.1 Write `packages/acceptance/src/mcp/run.ts` and `pnpm acceptance:mcp` with the steps
+- [x] 4.1 Write `packages/acceptance/src/mcp/run.ts` and `pnpm acceptance:mcp` with the steps
       of criteria 2 to 6, 10 to 23 and 24 to 29, `results.json`, the cleanup and the secret scan.
       Verify a run against `wrangler dev` with two test tokens is green and leaves no project.
-- [ ] 4.2 Add `staging` to `deploy.yml` (the config from the `staging` environment's variables,
+      (As built: `MELTEMI_ORIGIN` or `MELTEMI_MCP_URL`; `@modelcontextprotocol/client` 2.3.1 pinned
+      in `packages/acceptance`; 34 named steps in `src/mcp/steps.ts` over `harness.ts`, `host.ts`
+      and `agent.ts`; `--probe` for the workflow; `log.txt` beside `results.json`; criteria 27 and
+      28 in part, the rest of them skipped with their reason, since no script approves a consent.)
+- [x] 4.2 Add `staging` to `deploy.yml` (the config from the `staging` environment's variables,
       migrations, the two Workers, the suite with the environment's tokens) before production,
       and the production run after, with the artifacts; extend the workflow tests. Verify the
       tests cover the order, the secrets read as secrets only and the failure handling; the
-      `meltemi-web` change `diagrams-staging` is applied first.
-- [ ] 4.3 Write `docs/quality/mcp-acceptance.md` (the procedure for criteria 1, 7, 8, 9 and 16's
+      `meltemi-web` change `diagrams-staging` is applied first. (As built:
+      `scripts/deploy-config.mjs --environment staging` writes the same file names in the staging
+      job's own checkout, not `wrangler.staging.deploy.json`; a staging host that does not answer
+      skips the suite with a notice; the reversal after a red production run is a revert or a
+      Cloudflare rollback, since a dispatch only takes a source that is still `main`.)
+- [x] 4.3 Write `docs/quality/mcp-acceptance.md` (the procedure for criteria 1, 7, 8, 9 and 16's
       voice half, the Codex configuration, the evidence folder) and the docs test that refuses
       an unrecorded claim. Verify the docs tests.
 - [ ] 4.4 Owner's steps, ticked when done: create the two test accounts and their `mdg_` tokens
@@ -87,10 +95,12 @@
 
 ## 5. Agents told, record and gates
 
-- [ ] 5.1 Write `skills/meltemi-diagrams/references/mcp.md`, name it in `SKILL.md`, update
+- [x] 5.1 Write `skills/meltemi-diagrams/references/mcp.md`, name it in `SKILL.md`, update
       `docs/agents.md` and its Spanish twin, run `pnpm skills:sync`, and add the skill test that
       compares the reference's tools with the catalogue. Verify the skill tests and the size rule.
-- [ ] 5.2 Add the entry to the changelog's open section and write
+      (As built: `reference/mcp.md`, the skill's folder being `reference/`; the test is
+      `packages/acceptance/test/mcp-skill.test.ts`, against `CATALOGUE` of `mcp/server.ts`.)
+- [x] 5.2 Add the entry to the changelog's open section and write
       `docs/decisions/0072-agent-mcp.md`. Verify the decision links resolve.
 - [ ] 5.3 Run `pnpm typecheck`, `pnpm lint`, `pnpm test`, the cloud and playground browser suites
       and `openspec validate "agent-mcp" --strict`. Verify all green and record the results in
