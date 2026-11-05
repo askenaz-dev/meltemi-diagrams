@@ -4,6 +4,15 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
+## 1.11.14
+
+The MCP endpoint's OAuth server keeps its clients, grants, codes and tokens in the service's D1
+database (the table `oauth_store`, migration 0010), and the Worker binds no KV namespace: Meltemi
+Web's Terraform could not create one, and the Workers Free plan's 1,000 KV writes a day would not
+have lasted a dozen connected agents. Nothing changes for an agent or a person: the same sign-in,
+tokens, Connected apps and revocation when an account is deleted. Expired codes and tokens are
+removed by the weekly cron ([Authorization](docs/cloud.md#authorization)).
+
 ## 1.11.13
 
 The hosted service gains an MCP endpoint: an agent such as Codex connects to

@@ -30,12 +30,16 @@ CI-approved `main` straight to production.
   imports the SDK the first time an isolate serves it. `write_files` compiles every `.meltemi` file
   of a push with the project first and refuses one with an error whole; `invite` answers the link and
   `emailSent: false`; `publish` reads the public address back before it answers.
-- **The authorization server is a library over a KV namespace.** `@cloudflare/workers-oauth-provider`
-  wraps the Worker: OAuth 2.1 with PKCE, dynamic registration and client-id metadata documents, the
-  protected resource metadata, tokens bound to `<origin>/mcp`, scopes `projects:read`,
-  `projects:write`, `sharing`, `live` and `publish`, a consent page served with the identity cookie,
-  and Connected apps in the account panel. Its state is in `OAUTH_KV`, one namespace per
-  environment, declared by Meltemi Web's Terraform. An `mdg_` token opens the endpoint with every
+- **The authorization server is a library over the service's D1.**
+  `@cloudflare/workers-oauth-provider` wraps the Worker: OAuth 2.1 with PKCE, dynamic registration
+  and client-id metadata documents, the protected resource metadata, tokens bound to
+  `<origin>/mcp`, scopes `projects:read`, `projects:write`, `sharing`, `live` and `publish`, a
+  consent page served with the identity cookie, and Connected apps in the account panel. Its state
+  is in the D1 table `oauth_store` (migration 0010), which `src/oauth/store.ts` hands the library as
+  the KV namespace it reads (`OAUTH_KV`), with KV's semantics. A KV namespace was the first plan; it
+  was dropped before any deploy, because Meltemi Web's Terraform token cannot create KV namespaces
+  and the Free plan's 1,000 KV writes a day for the whole account would not last a dozen connected
+  agents, where D1 allows 100,000 rows written a day. An `mdg_` token opens the endpoint with every
   scope; an OAuth token never opens `/api/*`.
 - **Pictures are drawn by a renderer Durable Object.** `ProjectRenderer`, one per project, runs the
   command line's engine (the project's imports, ELK, the fonts) and rasterises with `resvg` compiled
@@ -46,8 +50,8 @@ CI-approved `main` straight to production.
   through the same table, so every client gets retries that change nothing twice.
 - **A staging twin, and the suite as the deploy's gate.** Meltemi Web's Terraform declares
   `meltemi-diagrams-staging` at `staging.diagrams.meltemi.dev` and
-  `meltemi-diagrams-publish-staging` at `staging.meltemi.page`, with their own database, bucket,
-  namespace and generated secrets, and this repository's `staging` environment. One script,
+  `meltemi-diagrams-publish-staging` at `staging.meltemi.page`, with their own database, bucket
+  and generated secrets, and this repository's `staging` environment. One script,
   `scripts/deploy-config.mjs`, writes either environment's configuration from that environment's
   variables (production's is the committed file with the ids in place, unchanged otherwise), and it
   refuses a configuration whose variables belong to the other environment. The deploy uploads the
@@ -86,8 +90,9 @@ CI-approved `main` straight to production.
 
 - New public surface: `POST /mcp` and its tools, the authorization server's endpoints and metadata,
   `GET` and `DELETE /api/account/apps`, the `Idempotency-Key` header, migration 0008, the
-  `RENDERERS` Durable Object, the `OAUTH_KV` binding, the error codes `diagram.invalid`,
-  `scope.insufficient`, `idempotency.mismatch`, `idempotency.pending` and `publish.unverified`
+  `RENDERERS` Durable Object, the table `oauth_store` (migration 0010; no KV binding), the error
+  codes `diagram.invalid`, `scope.insufficient`, `idempotency.mismatch`, `idempotency.pending` and
+  `publish.unverified`
   ([the MCP endpoint](../cloud.md#the-mcp-endpoint)), and `pnpm acceptance:mcp`.
 - Every deploy builds twice and uploads two pairs of Workers; staging's data is only what the suite
   makes and deletes. The suite's two test accounts and their tokens are the owner's to create and

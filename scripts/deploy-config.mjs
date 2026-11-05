@@ -10,8 +10,9 @@
 // It writes `<name>.deploy.json` beside each file (`wrangler.deploy.json`,
 // `wrangler.publish.deploy.json`; paths in it stay relative to that folder). Each environment's job
 // runs on its own runner, so both write the same names. From the environment's variables:
-// D1_DATABASE_ID, SECRETS_STORE_ID, OAUTH_KV_ID (once a configuration binds `OAUTH_KV`),
-// R2_BUCKET_NAME and SECRETS_SUFFIX. It refuses to leave a placeholder.
+// D1_DATABASE_ID, SECRETS_STORE_ID, R2_BUCKET_NAME and SECRETS_SUFFIX. It refuses to leave a
+// placeholder, and refuses a KV namespace: the Workers bind none (the MCP endpoint's authorization
+// server keeps its state in the D1 database, migration 0010), so no variable gives one's id.
 //
 // Production (the default) is the committed file with the ids in place and nothing else changed.
 // Staging is production's twin (change agent-mcp, design decision 8): the staging Workers' names, the
@@ -26,8 +27,6 @@ import { pathToFileURL } from "node:url";
 
 export const DATABASE_PLACEHOLDER = "00000000-0000-0000-0000-000000000000";
 export const STORE_PLACEHOLDER = "00000000000000000000000000000000";
-/** A KV namespace's id in the committed file: zeros, as the Store's. */
-export const KV_PLACEHOLDER = /^0+$/;
 
 /** The names and hosts of the staging twin, which Meltemi Web's Terraform declares (`diagrams-staging`). */
 export const STAGING = Object.freeze({
@@ -86,10 +85,9 @@ function unset(name, environment) {
 
 /**
  * The configuration with the ids in place, for `environment` (`production` by default). `ids` gives
- * `database` (the D1 database's id), `store` (the Secrets Store's id), `kv` (the `OAUTH_KV`
- * namespace's id), `bucket` (the R2 bucket's name) and `suffix` (the suffix of staging's own Store
- * secrets). A placeholder with no id to replace it is an error naming the variable, and so is a
- * placeholder left anywhere.
+ * `database` (the D1 database's id), `store` (the Secrets Store's id), `bucket` (the R2 bucket's
+ * name) and `suffix` (the suffix of staging's own Store secrets). A placeholder with no id to replace
+ * it is an error naming the variable, and so is a placeholder left anywhere or a KV namespace.
  */
 export function deployConfig(config, ids, environment = "production") {
   if (!ENVIRONMENTS.includes(environment)) {
@@ -103,6 +101,11 @@ export function deployConfig(config, ids, environment = "production") {
     );
   }
   if (staging && suffix === "") throw unset("SECRETS_SUFFIX", environment);
+  if ((config.kv_namespaces ?? []).length > 0) {
+    throw new Error(
+      "the configuration binds a KV namespace: the Workers bind none, and no variable gives its id",
+    );
+  }
 
   const out = structuredClone(config);
   if (staging) {
@@ -132,17 +135,6 @@ export function deployConfig(config, ids, environment = "production") {
         `R2_BUCKET_NAME ${ids.bucket} is not the committed bucket ${bucket.bucket_name}`,
       );
     }
-  }
-  for (const namespace of out.kv_namespaces ?? []) {
-    if (!KV_PLACEHOLDER.test(String(namespace.id ?? ""))) {
-      if (staging) throw new Error(`staging's ${namespace.binding} id must come from OAUTH_KV_ID`);
-      continue;
-    }
-    if (namespace.binding !== "OAUTH_KV") {
-      throw new Error(`no variable gives the id of the KV namespace ${namespace.binding}`);
-    }
-    if (!ids.kv) throw unset("OAUTH_KV_ID", environment);
-    namespace.id = ids.kv;
   }
   for (const secret of out.secrets_store_secrets ?? []) {
     if (staging && STAGING.suffixed.includes(secret.secret_name)) {
@@ -197,7 +189,6 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
     const ids = {
       database: read("D1_DATABASE_ID"),
       store: read("SECRETS_STORE_ID"),
-      kv: read("OAUTH_KV_ID"),
       bucket: read("R2_BUCKET_NAME"),
       suffix: read("SECRETS_SUFFIX"),
     };

@@ -10,13 +10,13 @@ import { memoryStore } from "../../src/store/memory.js";
 import type { CloudStore } from "../../src/store/types.js";
 import type { Deps } from "../../src/types.js";
 import { createVerifier } from "../../src/verifier.js";
-import { fakeKV, type FakeKV } from "./kv.js";
+import { testOAuthStore, type TestOAuthStore } from "./kv.js";
 import { fakeR2, type FakeR2 } from "./r2.js";
 import { memoryRooms, type MemoryRooms, type MemoryRoomsOptions } from "./rooms.js";
 
 export { memoryStore, testKeys };
 export { fakeR2, type FakeR2 };
-export { fakeKV, type FakeKV };
+export { memoryOAuthStore, sqliteOAuthStore, testOAuthStore, type TestOAuthStore } from "./kv.js";
 export { memoryRooms, type MemoryRooms };
 
 // ---------------------------------------------------------------------------------------------
@@ -141,7 +141,6 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
       },
     },
     BLOBS: fakeR2(),
-    OAUTH_KV: fakeKV(),
     ...overrides,
   };
 }
@@ -184,6 +183,11 @@ export interface Harness {
   readonly rooms: MemoryRooms;
   /** The R2 bucket (`env.BLOBS`), in memory. */
   readonly blobs: FakeR2;
+  /**
+   * The authorization server's store (`deps.oauthStore`): the Worker's D1 store over node:sqlite,
+   * or in memory where this Node has no node:sqlite.
+   */
+  readonly oauth: TestOAuthStore;
   readonly clock: FakeClock;
   readonly keys: TestKeys;
   readonly identity: FakeIdentity;
@@ -230,8 +234,10 @@ export async function harness(
       ((input) => materialise({ store, blobs: env.BLOBS, now: () => clock.now() }, input)),
     ...(options.roomLimits ? { limits: options.roomLimits } : {}),
   });
+  const oauth = testOAuthStore();
   const deps: Deps = {
     store,
+    oauthStore: oauth,
     rooms,
     verifier: createVerifier(env, identity.fetch),
     assets: assets.binding,
@@ -246,6 +252,7 @@ export async function harness(
     store,
     rooms,
     blobs,
+    oauth,
     clock,
     keys,
     identity,

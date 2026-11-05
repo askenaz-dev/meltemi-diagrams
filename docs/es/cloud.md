@@ -2337,9 +2337,17 @@ publicación existe.
 ### Autorización
 
 El endpoint es el único recurso protegido de un servidor de autorización OAuth 2.1 en el mismo
-Worker, `@cloudflare/workers-oauth-provider` 1.2.3 (MIT). Su estado (clientes, concesiones, códigos y
-tokens) es el namespace de KV `OAUTH_KV`, donde los códigos, los tokens y los secretos de cliente se
-guardan como hashes y las props de una concesión, cifradas. Sus direcciones:
+Worker, `@cloudflare/workers-oauth-provider` 1.2.3 (MIT). Su estado (clientes, concesiones, códigos,
+tokens y consentimientos) es la tabla de D1 `oauth_store` (migración 0010), donde los códigos, los
+tokens y los secretos de cliente se guardan como hashes y las props de una concesión, cifradas. La
+biblioteca lee y escribe un namespace de KV, así que `src/oauth/store.ts` le da la tabla con la parte
+de esa interfaz que usa (`get` como texto o JSON, `put` con caducidad y metadatos, `delete`, `list`
+por prefijo en orden de clave con un cursor), con la semántica de KV: una entrada caducada no aparece
+en ninguna lectura, y el cron semanal la elimina. El Worker no enlaza ningún namespace de KV: el token
+de Terraform de la familia no puede crearlo, y las 1.000 escrituras de KV al día del plan gratuito
+para toda la cuenta no darían para una docena de agentes conectados (un inicio de sesión escribe unas
+cinco entradas y cada renovación horaria unas tres), mientras que D1 admite 100.000 filas escritas al
+día. Sus direcciones:
 
 | Dirección                                       | Es                                                                                                                                                                                                                            |
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2493,21 +2501,20 @@ como cadenas, que siempre ganan a un binding.
 
 Los bindings son:
 
-| Binding    | Es                                                                                                                                                                  |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DB`       | La base de datos D1, con sus migraciones en `packages/cloud/migrations`                                                                                             |
-| `ASSETS`   | La compilación de la página                                                                                                                                         |
-| `BLOBS`    | El bucket de R2 `meltemi-diagrams-blobs`: `blobs/<sha-256>`, `thumbs/<project id>.svg` y `published/<handle>/<slug>/index.html`                                     |
-| `ROOMS`    | El namespace de Durable Objects de la clase `ProjectRoom`, que exporta el punto de entrada del Worker; la migración `v1` de `wrangler.jsonc` la respalda con SQLite |
-| `OAUTH_KV` | El namespace de KV del servidor de autorización del endpoint MCP ([Autorización](#autorización)): uno por entorno, que solo lee y escribe su biblioteca             |
+| Binding  | Es                                                                                                                                                                                               |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DB`     | La base de datos D1, con sus migraciones en `packages/cloud/migrations`; el servidor de autorización del endpoint MCP guarda su estado en su tabla `oauth_store` ([Autorización](#autorización)) |
+| `ASSETS` | La compilación de la página                                                                                                                                                                      |
+| `BLOBS`  | El bucket de R2 `meltemi-diagrams-blobs`: `blobs/<sha-256>`, `thumbs/<project id>.svg` y `published/<handle>/<slug>/index.html`                                                                  |
+| `ROOMS`  | El namespace de Durable Objects de la clase `ProjectRoom`, que exporta el punto de entrada del Worker; la migración `v1` de `wrangler.jsonc` la respalda con SQLite                              |
 
 `wrangler.jsonc` contiene además el disparador cron de la recolección semanal, `0 3 * * SUN`, y un
 `alias` que hace que el Worker incluya en su paquete, desde sus fuentes, los paquetes del workspace
 que importa. Los ids del archivo son marcadores de posición (todo ceros): el Terraform de la familia
 crea la base de datos, el bucket y el Secrets Store y escribe sus ids como variables del entorno
 `production` de este repositorio, y el flujo de despliegue los escribe antes de subir
-([Despliegue](#despliegue)); el id del namespace `OAUTH_KV` llega del mismo modo desde
-`OAUTH_KV_ID`. `compatibility_flags` contiene `global_fetch_strictly_public`, que el servidor de
+([Despliegue](#despliegue)). No hay ningún namespace de KV, y el despliegue rechaza una
+configuración que enlace uno. `compatibility_flags` contiene `global_fetch_strictly_public`, que el servidor de
 autorización necesita antes de leer un documento de metadatos de client-id. Las dependencias del Worker en tiempo de
 ejecución son el paquete de identidad, el paquete de proyectos de este repositorio y `yjs` (MIT).
 Fuera del desarrollo, `ORIGIN`, `IDENTITY_ISSUER` e `IDENTITY_JWKS_URL` deben ser direcciones

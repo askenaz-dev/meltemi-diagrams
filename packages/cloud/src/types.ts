@@ -1,4 +1,5 @@
 import type { SessionVerifier } from "@meltemi/identity";
+import type { KVLike } from "./oauth/store.js";
 import type { RenderersApi } from "./renderer-client.js";
 import type { RoomsApi } from "./rooms.js";
 import type { CloudStore, UserProfile } from "./store/types.js";
@@ -6,6 +7,12 @@ import type { CloudStore, UserProfile } from "./store/types.js";
 /** What the handlers need besides the request: everything with a side effect is injected. */
 export interface Deps {
   readonly store: CloudStore;
+  /**
+   * The authorization server's store, which its library reads as `env.OAUTH_KV` (`oauth/provider.ts`):
+   * the D1 table `oauth_store` with a KV namespace's interface in the Worker (`oauth/store.ts`), the
+   * same over node:sqlite (or in memory) in the tests.
+   */
+  readonly oauthStore: KVLike;
   /** The projects' rooms: the Durable Objects in the Worker, an in-memory room in the tests. */
   readonly rooms: RoomsApi;
   /** The reference verifier of the family's session (`@meltemi/identity`). */

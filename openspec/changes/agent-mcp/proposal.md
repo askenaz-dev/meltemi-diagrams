@@ -62,9 +62,10 @@ This is a post-1.0 change outside `docs/roadmap-1.0.md`.
   `codex mcp login`, the token alternative), the tool catalogue and the workflow of write, validate,
   preview; `docs/cloud.md` gains the endpoint, the authorization server and the renderer;
   `docs/security.md` the token and scope rules; decision note 0072; the changelog's open section.
-- **Configuration.** Two KV namespaces (production and staging) for the authorization server's
-  state, the staging Worker's bindings and a `staging` environment of this repository with its
-  test token, declared in `meltemi-web`'s Terraform by its change `diagrams-staging`.
+- **Configuration.** The authorization server's state in each environment's D1 database (the
+  table `oauth_store`, migration 0010; no KV namespace, design decision 11), the staging Worker's
+  bindings and a `staging` environment of this repository with its test token, declared in
+  `meltemi-web`'s Terraform by its change `diagrams-staging`.
 
 New dependencies, to be approved by the owner: `@modelcontextprotocol/server` and
 `@modelcontextprotocol/client` (Apache-2.0; the server's `createMcpHandler` is the handler, and
@@ -99,8 +100,9 @@ renderer Durable Object, the idempotency table (migration 0008), `wrangler.jsonc
 `run_worker_first` and the compatibility flag), `packages/playground` (Connected apps),
 `packages/acceptance` (the MCP suite), `skills/meltemi-diagrams` (synced to the agent folders),
 `.github/workflows/deploy.yml` (staging, the gates), the docs in both languages, CHANGELOG and
-one decision note; in `meltemi-web`, the change `diagrams-staging` (the staging twin, the KV
-namespaces, the identity service's product entry and the environment's variables). No change to
+one decision note; in `meltemi-web`, the change `diagrams-staging` (the staging twin, the
+identity service's product entry and the environment's variables; the KV namespaces it first
+declared are not needed, design decision 11). No change to
 the language, the exports or the identity contract.
 
 ## Non-goals

@@ -5,8 +5,8 @@
 -- text), every new table is STRICT, there are no foreign keys (deleting a person names every table:
 -- `applyUserDeleted`), and the database refuses what a column may not hold.
 
--- The grants themselves are the authorization server's, in its KV namespace (`OAUTH_KV`): this table
--- holds the one thing its library does not keep, the last time a grant's token reached the MCP
+-- The grants themselves are the authorization server's, in its table `oauth_store` (0010): this
+-- table holds the one thing its library does not keep, the last time a grant's token reached the MCP
 -- endpoint, written by a call at most once an hour. Revoking a grant from Connected apps removes its
 -- row, and listing them removes the rows of grants that are gone.
 CREATE TABLE app_uses (

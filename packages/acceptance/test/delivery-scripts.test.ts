@@ -37,7 +37,6 @@ describe("the scripts", () => {
     const ids = {
       database: "6f1c2a52-8d1e-4f7a-9b3c-0a1b2c3d4e5f",
       store: "0123456789abcdef0123456789abcdef",
-      kv: "fedcba9876543210fedcba9876543210",
     };
     const main = parseJsonc(readFileSync(join(cloud, "wrangler.jsonc"), "utf8"));
     const publish = parseJsonc(readFileSync(join(cloud, "wrangler.publish.jsonc"), "utf8"));
@@ -53,10 +52,8 @@ describe("the scripts", () => {
         logs: { enabled: true, invocation_logs: false },
       });
     }
-    expect(() => deployConfig(main, { store: ids.store, kv: ids.kv })).toThrow(
-      /^D1_DATABASE_ID is not set/,
-    );
-    expect(() => deployConfig(main, { database: ids.database, kv: ids.kv })).toThrow(
+    expect(() => deployConfig(main, { store: ids.store })).toThrow(/^D1_DATABASE_ID is not set/);
+    expect(() => deployConfig(main, { database: ids.database })).toThrow(
       /^SECRETS_STORE_ID is not set/,
     );
     expect(outputFor("packages/cloud/wrangler.jsonc")).toBe("packages/cloud/wrangler.deploy.json");
@@ -75,41 +72,36 @@ describe("the scripts", () => {
     const ids = {
       database: "6f1c2a52-8d1e-4f7a-9b3c-0a1b2c3d4e5f",
       store: "0123456789abcdef0123456789abcdef",
-      kv: "fedcba9876543210fedcba9876543210",
     };
     const stagingIds = {
       database: "a1b2c3d4-0000-4000-8000-0123456789ab",
       store: ids.store,
-      kv: "0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f",
       bucket: "meltemi-diagrams-staging-blobs",
       suffix: "_STAGING",
     };
-    /** The main Worker's configuration as the authorization server's stage makes it: `OAUTH_KV` and `PRODUCT_NAME`. */
-    const withOauth = (config: Config): Config => ({
+    /** A configuration that binds a KV namespace, as the authorization server's once did (`OAUTH_KV`). */
+    const withKv = (config: Config): Config => ({
       ...config,
       kv_namespaces: [{ binding: "OAUTH_KV", id: "00000000000000000000000000000000" }],
-      vars: { ...(config["vars"] as Record<string, string>), PRODUCT_NAME: "diagrams" },
     });
 
     it("leaves production as committed but for the ids", async () => {
       const { deployConfig } = await script<DeployConfigScript>("deploy-config.mjs");
       const { main, publish } = await committed();
-      for (const config of [main, withOauth(main), publish]) {
+      expect(main["kv_namespaces"]).toBeUndefined();
+      for (const config of [main, publish]) {
         const out = deployConfig(config, { ...ids, bucket: "meltemi-diagrams-blobs" }) as Config;
         // The committed file with each placeholder replaced, and nothing else.
         const expected = JSON.parse(
           JSON.stringify(config)
             .replaceAll("00000000-0000-0000-0000-000000000000", ids.database)
-            .replace(/"id":"0{32}"/g, `"id":"${ids.kv}"`)
             .replaceAll("00000000000000000000000000000000", ids.store),
         ) as Config;
         expect(out).toEqual(expected);
       }
-      expect(() =>
-        deployConfig(withOauth(main), { database: ids.database, store: ids.store }),
-      ).toThrow(
-        /^OAUTH_KV_ID is not set: the production environment's variable comes from Terraform/,
-      );
+      // The Workers bind no KV namespace (the authorization server keeps its state in D1), and no
+      // variable gives one's id: a configuration that binds one is refused.
+      expect(() => deployConfig(withKv(main), ids)).toThrow(/binds a KV namespace/);
       // The staging environment's variables are refused in production, before anything is written.
       expect(() => deployConfig(main, { ...ids, suffix: "_STAGING" })).toThrow(
         /^SECRETS_SUFFIX is set/,
@@ -119,10 +111,10 @@ describe("the scripts", () => {
       ).toThrow(/is not the committed bucket meltemi-diagrams-blobs/);
     });
 
-    it("writes staging's names, hosts, product, bucket, namespace and its own secrets", async () => {
+    it("writes staging's names, hosts, product, bucket and its own secrets", async () => {
       const { deployConfig, STAGING } = await script<DeployConfigScript>("deploy-config.mjs");
       const { main, publish } = await committed();
-      const staged = deployConfig(withOauth(main), stagingIds, "staging") as Config;
+      const staged = deployConfig(main, stagingIds, "staging") as Config;
       expect(staged["name"]).toBe("meltemi-diagrams-staging");
       expect(staged["d1_databases"]).toEqual([
         expect.objectContaining({
@@ -135,7 +127,7 @@ describe("the scripts", () => {
       expect(staged["r2_buckets"]).toEqual([
         { binding: "BLOBS", bucket_name: "meltemi-diagrams-staging-blobs" },
       ]);
-      expect(staged["kv_namespaces"]).toEqual([{ binding: "OAUTH_KV", id: stagingIds.kv }]);
+      expect(staged["kv_namespaces"]).toBeUndefined();
       const secrets = (
         staged["secrets_store_secrets"] as {
           binding: string;
@@ -157,18 +149,9 @@ describe("the scripts", () => {
       });
       expect(STAGING.productName).toBe("diagrams-staging");
       // Everything else is production's: the same code, assets, Durable Objects, crons and limits.
-      const production = deployConfig(withOauth(main), ids) as Config;
+      const production = deployConfig(main, ids) as Config;
       for (const key of Object.keys(production)) {
-        if (
-          [
-            "name",
-            "d1_databases",
-            "r2_buckets",
-            "kv_namespaces",
-            "secrets_store_secrets",
-            "vars",
-          ].includes(key)
-        )
+        if (["name", "d1_databases", "r2_buckets", "secrets_store_secrets", "vars"].includes(key))
           continue;
         expect(staged[key], key).toEqual(production[key]);
       }
@@ -204,9 +187,8 @@ describe("the scripts", () => {
       expect(() =>
         deployConfig(main, { ...stagingIds, bucket: "meltemi-diagrams-blobs" }, "staging"),
       ).toThrow(/is production's bucket/);
-      const { kv: _kv, ...noKv } = stagingIds;
-      expect(() => deployConfig(withOauth(main), noKv, "staging")).toThrow(
-        /^OAUTH_KV_ID is not set/,
+      expect(() => deployConfig(withKv(main), stagingIds, "staging")).toThrow(
+        /binds a KV namespace/,
       );
       expect(() => deployConfig({ ...main, name: "another" }, stagingIds, "staging")).toThrow(
         /no twin of the Worker another/,
@@ -240,7 +222,7 @@ type Config = Record<string, unknown>;
 interface DeployConfigScript {
   deployConfig(
     config: unknown,
-    ids: { database?: string; store?: string; kv?: string; bucket?: string; suffix?: string },
+    ids: { database?: string; store?: string; bucket?: string; suffix?: string },
     environment?: string,
   ): unknown;
   parseJsonc(text: string): unknown;

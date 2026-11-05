@@ -10,6 +10,7 @@ import { ConfigError } from "./config.js";
 import { errorResponse, fail } from "./errors.js";
 import { cloud } from "./handler.js";
 import { KEPT_MS } from "./idempotency.js";
+import { d1OAuthStore, sweepOAuthStore } from "./oauth/store.js";
 import { durableRenderers } from "./renderer-client.js";
 import { durableRooms } from "./room-client.js";
 import { resolveSecrets } from "./secrets.js";
@@ -43,6 +44,7 @@ export default {
     }
     const deps: Deps = {
       store: d1Store(env.DB),
+      oauthStore: d1OAuthStore(env.DB),
       rooms: durableRooms(env.ROOMS),
       verifier,
       assets: env.ASSETS,
@@ -58,11 +60,12 @@ export default {
   /**
    * The weekly cron of `wrangler.jsonc` (`0 3 * * SUN`, Sundays at 03:00 UTC): sweeps what has
    * expired (the records of handled deletion events after 31 days, approval codes and failed
-   * exchanges, publish requests, idempotency keys after a day), which the routes sweep too but only when somebody uses them, and
-   * collects the blobs no project, upload or version references and that are older than seven
-   * days, and the objects no row names. A failure of the store ends the run with an error the
-   * platform logs; the next run, a week on, finishes the job. The sweep does not keep the collection
-   * from running, nor the collection the sweep.
+   * exchanges, publish requests, idempotency keys after a day), which the routes sweep too but only
+   * when somebody uses them, and the authorization server's entries past their expiry, which its
+   * reads leave in place, unseen (`oauth/store.ts`); and collects the blobs no project, upload or
+   * version references and that are older than seven days, and the objects no row names. A failure
+   * of the store ends the run with an error the platform logs; the next run, a week on, finishes the
+   * job. The sweep does not keep the collection from running, nor the collection the sweep.
    */
   async scheduled(_controller: unknown, given: Env): Promise<void> {
     const env = await resolveSecrets(given);
@@ -73,6 +76,8 @@ export default {
       await store.sweep(now.toISOString());
       // The idempotency keys older than a day: an account's own are swept by its next key too.
       await store.sweepKeys(new Date(now.getTime() - KEPT_MS).toISOString());
+      // The OAuth codes, tokens and consents that expired: no read of the store removes one.
+      await sweepOAuthStore(env.DB, now.getTime());
     } catch (error) {
       swept = error;
     }

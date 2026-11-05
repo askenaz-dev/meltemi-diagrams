@@ -208,7 +208,7 @@ describe("the deletion of the account", () => {
     for (const tokens of [first.tokens, second.tokens]) {
       expect((await listTools(m.h, tokens.access_token)).status).toBe(401);
     }
-    const keys = (m.h.env.OAUTH_KV as unknown as { keys(): string[] }).keys();
+    const keys = m.h.oauth.keys();
     expect(keys.filter((key) => key.startsWith("grant:") || key.startsWith("token:"))).toEqual([]);
 
     // The same person signs in again and connects an app: a late repeat of the event leaves it.

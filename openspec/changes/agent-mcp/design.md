@@ -33,9 +33,9 @@ has a workerd shim and a Cloudflare JSON Schema validator, and validates no `Ori
 not need);
 `@cloudflare/workers-oauth-provider` gives `OAuthProvider({ apiRoute, apiHandler,
 defaultHandler, authorizeEndpoint, tokenEndpoint, clientRegistrationEndpoint, scopesSupported,
-resourceMetadata })` over a KV namespace `OAUTH_KV`, with `parseAuthRequest`,
-`completeAuthorization({ request, userId, metadata, scope, props })`, encrypted props handed to
-the API handler as `ctx.props`, PKCE and `resource` validated, CIMD behind the
+resourceMetadata })` over a KV namespace `OAUTH_KV` (here a D1 table, decision 11), with
+`parseAuthRequest`, `completeAuthorization({ request, userId, metadata, scope, props })`,
+encrypted props handed to the API handler as `ctx.props`, PKCE and `resource` validated, CIMD behind the
 `global_fetch_strictly_public` flag. Workers Free: 10 ms of CPU per request; Durable Objects:
 30 s per request on every plan (to be confirmed on the first deploy, the risk below); Browser
 Run free: 10 minutes a day. See proposal.md for the motivation.
@@ -146,8 +146,8 @@ Run free: 10 minutes a day. See proposal.md for the motivation.
    `clientIdMetadataDocumentEnabled: true` (flag `global_fetch_strictly_public`),
    `scopesSupported: ["projects:read", "projects:write", "sharing", "live", "publish",
    "offline_access"]`, `resourceMetadata: { resource: "<origin>/mcp" }`, `accessTokenTTL`
-   3600 s, refresh tokens rotated, state in `OAUTH_KV` (a KV namespace Terraform declares, one
-   per environment). `GET /oauth/authorize` is ours: `parseAuthRequest`, then the identity
+   3600 s, refresh tokens rotated, state in what the library reads as `OAUTH_KV`: the D1 table
+   `oauth_store` (decision 11). `GET /oauth/authorize` is ours: `parseAuthRequest`, then the identity
    cookie (a signed-out person is sent to `IDENTITY_ISSUER/login` with `return_to` the same
    address) and a consent page like `/cli-auth`'s (the client's name and its id's host, each
    scope in words, Approve and Deny, `csrf` signed with `FORMS_SECRET`, in the interface
@@ -260,8 +260,41 @@ Run free: 10 minutes a day. See proposal.md for the motivation.
    an OAuth token is bound to `/mcp` and a `mdg_` token opens both.
 
 10. **The decision note.** `docs/decisions/0072-agent-mcp.md`: the endpoint in the same Worker,
-    the library for the authorization server and its KV, the renderer object and why not the
+    the library for the authorization server and its store, the renderer object and why not the
     browser, idempotency in the API, the suite as the gate, what stays out.
+
+11. **The authorization server's state in D1.** The library keeps its clients, grants, codes,
+    tokens and consent transactions in what it reads as `env.OAUTH_KV`, and the Worker hands it
+    there `src/oauth/store.ts` (`Deps.oauthStore`): the D1 table `oauth_store (key, value,
+    expires_at, metadata)` of migration `0010_oauth_store.sql` (STRICT, WITHOUT ROWID, an index on
+    `expires_at`) behind the part of a KV namespace's interface the library calls, in 1.2.3 as in
+    1.2.4: `get(key)` and `get(key, { type: "json" })`; `put(key, value, options)` with
+    `expirationTtl`, `expiration` or neither, and a grant's `metadata`; `delete(key)`; and
+    `list({ prefix, cursor?, limit? })`, read for `keys` (`name`, `metadata`), `list_complete` and
+    `cursor`. With KV's semantics: an expired entry is absent from `get` and `list`, a `put`
+    replaces the whole entry, the listing is in key order (UTF-8 bytes), 1000 keys a page by
+    default and at most, and its cursor resumes after the last key returned, so the deletes the
+    library makes between pages (revoking a grant's tokens) skip nothing. A read never writes: an
+    expired row stays, unseen, until the weekly cron deletes it (`sweepOAuthStore`). The Worker
+    binds no KV namespace; `OAUTH_KV_ID` is gone from the deploy workflow and
+    `scripts/deploy-config.mjs`, which refuses a configuration that binds one. Why D1:
+    - Meltemi Web's Terraform could not create the namespaces: its Cloudflare token has no Workers
+      KV permission (the apply failed with `Unauthorized` on `POST /storage/kv/namespaces`), so
+      neither staging nor production could deploy. Granting it the permission would have answered
+      this, not the next point.
+    - The Workers Free plan allows 1,000 KV writes a day for the whole account (and 1,000 deletes
+      and 1,000 lists). A sign-in writes about five entries (the client, the consent transaction,
+      the grant with its code, then the grant again and the access token) and each hourly refresh
+      about three, so a dozen agents in use through the day (12 x 24 x 3, some 860 writes) would
+      spend it on refreshes alone, and the next sign-in of the day would be refused. D1's Free plan
+      allows 100,000 rows written and 5 million read a day; a write is one row and its index
+      entry, so the same dozen agents take under 2% of it.
+    - The Worker binds D1 already, and D1 is strongly consistent: a token written is read back at
+      once in every location, where a KV write may take a minute to be seen elsewhere.
+
+    The cost: the store is this service's code over the library's storage contract, which a new
+    version could widen; the adapter refuses what it does not implement (another `get` type, a
+    value that is not text) instead of guessing, and the library stays pinned.
 
 ## Risks / Trade-offs
 
@@ -283,9 +316,11 @@ Run free: 10 minutes a day. See proposal.md for the motivation.
 - [Codex does not display PNG results] → the report beside the image is complete enough to act
   on; criterion 9 is verified in the real Codex, as the specification demands, and the
   procedure records what it shows.
-- [`@cloudflare/workers-oauth-provider` changes its storage schema] → pinned; its KV is per
-  environment and nothing else reads it.
-- [A client registered by DCR floods the KV] → registration rate limited per address (ten an
+- [`@cloudflare/workers-oauth-provider` changes its storage schema or its calls] → pinned; its
+  table is in each environment's database and nothing else reads it; an update checks the
+  library's calls against `src/oauth/store.ts` again (decision 11), whose tests run the flows over
+  it.
+- [A client registered by DCR floods the store] → registration rate limited per address (ten an
   hour) with `FORMS_SECRET`'s keyed hash as the live sessions' places are.
 - [The test accounts' tokens in the environments] → two `mdg_` tokens of two dedicated accounts,
   stored as environment secrets by the owner, revocable from the page; the suite never prints
@@ -313,7 +348,8 @@ Run free: 10 minutes a day. See proposal.md for the motivation.
   the product `diagrams-staging`, but `routes/account.ts` hard-codes `PRODUCT_NAME = "diagrams"`, which
   should come from configuration (a `PRODUCT_NAME` variable defaulting to `diagrams`); and the
   `OAUTH_KV` binding of `wrangler.jsonc` carries an `id` that the deploy configuration fills in from
-  `OAUTH_KV_ID`. Neither is done in this stage: both are stage 2's (below).
+  `OAUTH_KV_ID`. Neither is done in this stage: both are stage 2's (below). (The binding was later
+  removed: decision 11.)
 
 ## As built (tasks 2.1 to 2.4)
 
@@ -356,7 +392,29 @@ Run free: 10 minutes a day. See proposal.md for the motivation.
   session id) logs the route instead; `test/logs.test.ts` reads every line of the flows that carry
   tokens and links. The library may still warn with a client-id metadata document's address when
   it cannot fetch it: a public address the client chose, not one that grants access.
-- `PRODUCT_NAME` is a variable of `wrangler.jsonc` (`diagrams`; unset or empty is `diagrams`), and
-  `OAUTH_KV` is bound as `{ "binding": "OAUTH_KV", "id": "00000000000000000000000000000000" }`, the
-  placeholder the deploy configuration replaces from `OAUTH_KV_ID` (its check that no placeholder
-  is left refuses the file until it does).
+- `PRODUCT_NAME` is a variable of `wrangler.jsonc` (`diagrams`; unset or empty is `diagrams`). At
+  first `OAUTH_KV` was bound as a KV namespace whose id the deploy configuration filled in from
+  `OAUTH_KV_ID`; the state moved to D1 before any deploy (decision 11, and below).
+
+## As built (the store in D1, decision 11)
+
+- `src/oauth/store.ts`: `d1OAuthStore(db, now = Date.now)` and `sweepOAuthStore(db, now)`; the
+  library's clock is `Date`, so the store reads the same one. Keys of 512 bytes at most and
+  metadata of 1024 bytes as JSON at most, as KV's; an expiry is kept in whole seconds since 1970
+  (`expires_at`, KV's `expiration`), the one time of the schema that is not ISO text, because that
+  is how the library speaks. The cursor is the last key's UTF-8 bytes in base64url, opaque; a page
+  reads its keys and one more by the primary key's range (the prefix's end computed), with the
+  expired rows filtered in the same statement. Two differences from KV, neither seen by the
+  library: no 60-second floor on an expiry (the library never asks for less), and no lag.
+- `provider.ts` gives the library the Worker's environment with `OAUTH_KV` set to
+  `deps.oauthStore`, for the requests it serves and for the helpers of the consent page, Connected
+  apps and the deletion (`oauthApi`); `worker-handler.ts` builds it over `env.DB`, and the weekly
+  cron sweeps it after the other sweeps.
+- Tests: `test/oauth-store.test.ts` runs the store's contract over the D1 store on node:sqlite and
+  over the in-memory store (expiry by TTL and by absolute time, metadata, prefixes, the order of
+  UTF-8 bytes, pages with a cursor and a limit, deletes between pages), then what only the D1 store
+  has (its rows, its refusals, its cursor, the statement a page runs and its plan, the sweep) and
+  the Worker's entry registering a client into its own `DB` and sweeping with the cron;
+  `test/migration-oauth-store.test.ts` the migration. The harness gives the Worker the D1 store
+  over node:sqlite (the in-memory one where Node has no node:sqlite), so `oauth`, `apps`, `events`,
+  `logs` and the MCP suites run the library over it, the deletion's revocation included.
