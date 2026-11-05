@@ -103,13 +103,11 @@ The distribution SHALL preserve data on ordinary stop, run required maintenance 
 
 ### Requirement: Bilingual one-command guide
 
-`docs/local-compose.md` and `docs/es/local-compose.md` SHALL provide a complete copyable command
-sequence to obtain a published local distribution, enter its folder and run `docker compose up`.
-They SHALL state prerequisites and the editor address without requiring a visit to another page
-to discover installation steps. They SHALL document the prompt installing plugin/MCP, client
-activation and joint diagramming. Both indexes/cloud/agents guides SHALL link them. The existing
-portal SHALL publish `/diagrams/local-compose/` and `/es/diagrams/local-compose/` from release
-sources without generated-file edits.
+`docs/local-compose.md` and `docs/es/local-compose.md` SHALL give copyable commands to clone a
+published release, enter its folder and run `docker compose up`, with prerequisites and editor
+URL. They SHALL explain plugin/MCP setup, client activation and joint editing. Indexes, cloud
+and agents guides SHALL link them. The portal SHALL publish both guides from release sources at
+`/diagrams/local-compose/` and `/es/diagrams/local-compose/` without generated-file edits.
 
 #### Scenario: Follow either guide
 
