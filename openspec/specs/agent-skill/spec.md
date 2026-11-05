@@ -122,3 +122,22 @@ The `@meltemi/diagrams-cli` package SHALL hold `agent-setup/prompt.md` (listed i
 #### Scenario: The cloud reference
 - **WHEN** the skill is read
 - **THEN** `SKILL.md` names no cloud command but the sentence that they run only on request and that no token is printed, read, copied or committed, and `reference/cloud.md` holds `login`, `push`, `pull`, `review`, `publish` and `projects`
+
+### Requirement: The MCP in the skill and the agents guide
+The skill SHALL carry a reference `mcp.md` that says how an agent connects to the endpoint
+(`codex mcp add`, `codex mcp login`, or a `mdg_` token through `bearer_token_env_var`), lists
+the tools and states the workflow: read, write with `ifRevision`, validate, preview, then
+`open_url`; an `idempotencyKey` per change; never saying an email was sent; never printing a
+token or a link that grants access. `docs/agents.md` SHALL say the same for people.
+
+#### Scenario: The reference is synced
+- **WHEN** `pnpm skills:sync` runs
+- **THEN** `.claude/skills/meltemi-diagrams/reference/mcp.md` and `.agents/skills/meltemi-diagrams/reference/mcp.md` equal `skills/meltemi-diagrams/reference/mcp.md`
+
+#### Scenario: The size rule still holds
+- **WHEN** the skill's front matter and size test runs
+- **THEN** `SKILL.md` stays under its limit and names the new reference
+
+#### Scenario: A tool missing from the reference
+- **WHEN** the endpoint's catalogue has a tool the reference does not name
+- **THEN** the skill test fails naming the tool

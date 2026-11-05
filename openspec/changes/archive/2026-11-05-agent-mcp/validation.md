@@ -428,3 +428,25 @@ Design decision 11, run on 5 November 2026 on Windows 11 in the worktree of bran
 - A deploy: staging and production still wait for Meltemi Web's Terraform, which no longer needs to
   create KV namespaces; its `diagrams-staging` change may still declare them and should drop them.
 - The weekly cron on Cloudflare: its sweep ran in the tests over node:sqlite only.
+
+## Merged and deployed (5 November 2026)
+
+- askenaz-dev/meltemi-diagrams#7 (dec8692, released 1.11.13): CI's six jobs green on the PR; on
+  main, one Windows job timed out launching the browser in a stories export test and passed on
+  rerun. Its deploy stopped at staging's configuration: Meltemi Web's apply had not written the
+  environments' variables (its token could not create the KV namespaces).
+- askenaz-dev/meltemi-diagrams#8 (0e536f0, released 1.11.14) moved the OAuth state to D1, after
+  askenaz-dev/meltemi-web#27 dropped the namespaces. Its deploy uploaded `meltemi-diagrams-staging`
+  (24,276 KiB, 7,795 KiB gzip, startup 23 ms) and `meltemi-diagrams-publish-staging`; staging's
+  host did not answer yet, so the suite was skipped with its notice. Production then uploaded
+  `meltemi-diagrams-cloud` (startup 22 ms) with migrations 0008 to 0010, and the suite's
+  unauthenticated steps passed against https://diagrams.meltemi.dev: discovery, the 401
+  challenge, a token the service did not issue, a wrong resource refused before consent, an
+  invented code and refresh token refused. The steps that need the test tokens were skipped, each
+  with its reason, as task 4.4 is the owner's.
+- An anonymous check after the deploy: `POST /mcp` without a token answers 401 with
+  `resource_metadata="https://diagrams.meltemi.dev/.well-known/oauth-protected-resource"`, and
+  both metadata documents name the endpoint, the five scopes (and `offline_access` for the
+  authorization server), S256 and dynamic registration.
+- Not yet run: the suite with tokens on staging and production, and the Codex procedure (criteria
+  1, 7, 8, 9 and 16's voice half), both the owner's task 4.4.
