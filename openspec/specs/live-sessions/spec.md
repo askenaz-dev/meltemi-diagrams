@@ -2,7 +2,9 @@
 
 ## Purpose
 Working together live without an account: a live session the owner starts and ends, whose link lets guests into the project's room with the role it gives; the guests' identity, places and connections per address, what they reach outside the room, the page as a guest, what happens when the session ends, and the owner's controls.
+
 ## Requirements
+
 ### Requirement: Starting and ending a session
 A project SHALL have at most one live session at a time, kept in its room's storage as
 `{ id, token, guestsEdit, startedAt, until }`, where `token` is 32 lowercase hexadecimal
@@ -141,7 +143,7 @@ editor's.
 ### Requirement: The page as a guest
 With `?live=<token>` in the address the page SHALL connect to the room with the token, its
 guest id and name (or the account's cookie when signed in), open the project bound to the
-Studio in the mode `hello`'s role gives, keep nothing in IndexedDB, show a guest bar naming
+page in the mode `hello`'s role gives, keep nothing in IndexedDB, show a guest bar naming
 the session and the person with a name field and a sign-in link, and keep `live` in the
 address so that a reload rejoins. A guest editor SHALL edit text, canvas and files through
 the room with own-edits undo; the page SHALL hide or refuse, with a sentence that offers
@@ -194,4 +196,3 @@ project's `#p=` dialog SHALL say that a live session needs the project in an acc
 #### Scenario: An editor's dialog
 - **WHEN** an editor opens the share dialog during a session
 - **THEN** no live-session control is shown
-

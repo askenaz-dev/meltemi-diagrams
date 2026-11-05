@@ -2,9 +2,11 @@
 
 ## Purpose
 The Spanish documentation under `docs/es/` and `README.es.md`, the language line of every page, and the checks that keep both languages in step.
+
 ## Requirements
+
 ### Requirement: Spanish documentation
-Every page a person reads to learn and use the product SHALL have a Spanish version: `README.es.md` for the README, and `docs/es/<path>.md` for `docs/README.md`, `getting-started.md`, `features.md`, `editor.md`, `playground.md`, `cloud.md`, `cli.md`, `player.md`, `catalog.md`, `assist.md`, `plugins.md`, `security.md`, `compatibility.md`, `performance.md`, `agents.md`, every page of `docs/language/`, the three tracks and the two import pages. Decision notes, the roadmap, quality and verification results, launch and pilot material, the release process, CONTRIBUTING and the CHANGELOG SHALL stay in English. Spanish pages SHALL use the words of the Spanish interface and the glossary of `@meltemi/diagrams-i18n`, and SHALL keep code as written.
+Every page a person reads to learn and use the product SHALL have a Spanish version: `README.es.md` for the README, and `docs/es/<path>.md` for `docs/README.md`, `getting-started.md`, `features.md`, `editor.md`, `web-app.md`, `cloud.md`, `cli.md`, `player.md`, `catalog.md`, `assist.md`, `plugins.md`, `security.md`, `compatibility.md`, `performance.md`, `agents.md`, every page of `docs/language/`, the three tracks and the two import pages. Decision notes, the roadmap, quality and verification results, launch and pilot material, the release process, CONTRIBUTING and the CHANGELOG SHALL stay in English. Spanish pages SHALL use the words of the Spanish interface and the glossary of `@meltemi/diagrams-i18n`, and SHALL keep code as written.
 
 #### Scenario: A guide in Spanish
 - **WHEN** a person opens `docs/es/editor.md`
@@ -31,4 +33,3 @@ A test SHALL fail when a page in scope has no Spanish version or no language lin
 #### Scenario: A sample changed in one language
 - **WHEN** a sample in `docs/language/styles.md` changes and `docs/es/language/styles.md` does not
 - **THEN** the test fails naming both files and the block
-

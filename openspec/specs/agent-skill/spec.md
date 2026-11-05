@@ -2,7 +2,9 @@
 
 ## Purpose
 The `meltemi-diagrams` skill for coding agents ships with the command line, `skill install` writes it into a project or the person's folders for Claude Code and Codex with the installed command's names, and the documentation tells people how to use it.
+
 ## Requirements
+
 ### Requirement: The skill ships with the command line
 The `@meltemi/diagrams-cli` package SHALL hold the `meltemi-diagrams` skill under `skills/meltemi-diagrams/` (its `SKILL.md`, `reference/` and `examples/`), the same files with the same content as the repository's `skills/meltemi-diagrams/`, and the agent setup prompt under `agent-setup/prompt.md`; `pnpm skills:sync` SHALL write the skill's copy as it writes `.claude/skills` and `.agents/skills`, and a test SHALL fail when a copy differs. `pnpm release:check` SHALL fail naming the path when the packed CLI tarball lacks `skills/meltemi-diagrams/SKILL.md` or `agent-setup/prompt.md`.
 
@@ -65,7 +67,7 @@ The installed `SKILL.md`, references (`reference/cloud.md` included) and example
 - **THEN** the skill command's test fails, naming the line that still holds `pnpm`
 
 ### Requirement: Documentation for agents
-`docs/agents.md` and `docs/es/agents.md` SHALL hold the one-line prompt in a fenced block, the address `https://diagrams.meltemi.dev/agent-setup/prompt.md` and the page `https://diagrams.meltemi.dev/agent-setup/`, `skill prompt` for an agent without web access, what the skill teaches, how to install it with `skill install` (the agents table: name, agent, folder; the list; `--user`; `--force`; `npm install --global @meltemi/diagrams-cli`; and `npx @meltemi/diagrams-cli@latest skill install --agent <names>` where the command is not installed), by hand from the package's `skills/` folder, what the agent proves and must never do, and how to ask an agent to draw; `docs/cli.md` and its Spanish copy SHALL document `skill install` with the agents and `skill prompt`; `docs/playground.md` and its Spanish copy SHALL list `agent-setup/` among what the build writes and the About dialog's link; the README's "For agents" section in both languages and the documentation index SHALL link the page and the hosted address; `docs/agents.md` SHALL be in the docs test's translated list; a test SHALL fail when the one-line prompt of the docs differs from the agent-setup page's.
+`docs/agents.md` and `docs/es/agents.md` SHALL hold the one-line prompt in a fenced block, the address `https://diagrams.meltemi.dev/agent-setup/prompt.md` and the page `https://diagrams.meltemi.dev/agent-setup/`, `skill prompt` for an agent without web access, what the skill teaches, how to install it with `skill install` (the agents table: name, agent, folder; the list; `--user`; `--force`; `npm install --global @meltemi/diagrams-cli`; and `npx @meltemi/diagrams-cli@latest skill install --agent <names>` where the command is not installed), by hand from the package's `skills/` folder, what the agent proves and must never do, and how to ask an agent to draw; `docs/cli.md` and its Spanish copy SHALL document `skill install` with the agents and `skill prompt`; `docs/web-app.md` and its Spanish copy SHALL list `agent-setup/` among what the build writes and the About dialog's link; the README's "For agents" section in both languages and the documentation index SHALL link the page and the hosted address; `docs/agents.md` SHALL be in the docs test's translated list; a test SHALL fail when the one-line prompt of the docs differs from the agent-setup page's.
 
 #### Scenario: The page is reachable
 - **WHEN** the documentation's link check runs
@@ -120,4 +122,3 @@ The `@meltemi/diagrams-cli` package SHALL hold `agent-setup/prompt.md` (listed i
 #### Scenario: The cloud reference
 - **WHEN** the skill is read
 - **THEN** `SKILL.md` names no cloud command but the sentence that they run only on request and that no token is printed, read, copied or committed, and `reference/cloud.md` holds `login`, `push`, `pull`, `review`, `publish` and `projects`
-
