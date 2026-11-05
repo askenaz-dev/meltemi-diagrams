@@ -49,8 +49,8 @@ jobs:
         run: node scripts/ci-run.mjs
 
   # Production's twin first (change agent-mcp): the same approved source onto the staging Workers,
-  # database, bucket and namespace that Meltemi Web's Terraform declares, then the MCP acceptance
-  # suite against it. A failure of the suite fails this job, and production is not deployed.
+  # database and bucket that Meltemi Web's Terraform declares, then the MCP acceptance suite against
+  # it. A failure of the suite fails this job, and production is not deployed.
   staging:
     needs: authorize
     runs-on: ubuntu-latest
@@ -60,7 +60,6 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
       SECRETS_STORE_ID: ${{ vars.SECRETS_STORE_ID }}
-      OAUTH_KV_ID: ${{ vars.OAUTH_KV_ID }}
       R2_BUCKET_NAME: ${{ vars.R2_BUCKET_NAME }}
       SECRETS_SUFFIX: ${{ vars.SECRETS_SUFFIX }}
     defaults:
@@ -173,7 +172,6 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
       SECRETS_STORE_ID: ${{ vars.SECRETS_STORE_ID }}
-      OAUTH_KV_ID: ${{ vars.OAUTH_KV_ID }}
       R2_BUCKET_NAME: ${{ vars.R2_BUCKET_NAME }}
     defaults:
       run:

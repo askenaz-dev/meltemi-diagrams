@@ -248,7 +248,6 @@ describe("delivery workflows", () => {
     expect(variables(jobOf(text, "staging"))).toEqual([
       "CLOUDFLARE_ACCOUNT_ID",
       "D1_DATABASE_ID",
-      "OAUTH_KV_ID",
       "R2_BUCKET_NAME",
       "SECRETS_STORE_ID",
       "SECRETS_SUFFIX",
@@ -257,7 +256,6 @@ describe("delivery workflows", () => {
     expect(variables(jobOf(text, "deploy"))).toEqual([
       "CLOUDFLARE_ACCOUNT_ID",
       "D1_DATABASE_ID",
-      "OAUTH_KV_ID",
       "R2_BUCKET_NAME",
       "SECRETS_STORE_ID",
     ]);

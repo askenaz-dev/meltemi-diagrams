@@ -207,10 +207,15 @@ describe("wrangler.jsonc", () => {
     expect(config({ PRODUCT_NAME: "" }).productName).toBe("diagrams");
   });
 
-  it("binds the authorization server's KV as OAUTH_KV with a placeholder id the deploy fills in", () => {
-    expect(wrangler["kv_namespaces"]).toEqual([
-      { binding: "OAUTH_KV", id: "00000000000000000000000000000000" },
-    ]);
+  it("binds no KV namespace: the authorization server keeps its state in D1 (oauth_store)", () => {
+    expect(wrangler["kv_namespaces"]).toBeUndefined();
+    const publish = parseJsonc(
+      readFileSync(new URL("wrangler.publish.jsonc", PACKAGE), "utf8"),
+    ) as Record<string, unknown>;
+    expect(publish["kv_namespaces"]).toBeUndefined();
+    expect(readFileSync(new URL("migrations/0010_oauth_store.sql", PACKAGE), "utf8")).toMatch(
+      /^CREATE TABLE oauth_store \(/m,
+    );
   });
 
   it("keeps the Worker's own log lines and no invocation logs, in both Workers", () => {

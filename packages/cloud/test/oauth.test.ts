@@ -1,6 +1,6 @@
 // The authorization server of the MCP endpoint (`mcp-authorization`), through the Worker in this
-// process (`cloud()`) and an in-memory KV namespace: the metadata, the challenge, dynamic
-// registration and its rate, the consent page in both languages, PKCE, the tokens and their
+// process (`cloud()`) and its store (`oauth_store` over node:sqlite): the metadata, the challenge,
+// dynamic registration and its rate, the consent page in both languages, PKCE, the tokens and their
 // lifetimes, scopes against roles, and the rule that an OAuth token opens `/mcp` only.
 
 import { readFileSync } from "node:fs";
@@ -58,11 +58,8 @@ async function signedIn(sub = ANA): Promise<{ m: Mcp; cookie: string }> {
   return { m, cookie };
 }
 
-/** The OAuth clients the namespace holds. */
-const clientsIn = (m: Mcp) =>
-  (m.h.env.OAUTH_KV as unknown as { keys(): string[] })
-    .keys()
-    .filter((k) => k.startsWith("client:"));
+/** The OAuth clients the store holds. */
+const clientsIn = (m: Mcp) => m.h.oauth.keys().filter((k) => k.startsWith("client:"));
 
 describe("discovery", () => {
   it("answers the server's metadata: S256, registration, client-id documents, public clients, codes and refresh tokens", async () => {
@@ -324,7 +321,7 @@ describe("the consent", () => {
     expect(back.get("code")).toBeNull();
     const apps = await m.h.request("/api/account/apps", { headers: { Cookie: cookie } });
     expect(await jsonOf(apps)).toEqual({ grants: [] });
-    const keys = (m.h.env.OAUTH_KV as unknown as { keys(): string[] }).keys();
+    const keys = m.h.oauth.keys();
     expect(keys.filter((k) => k.startsWith("grant:") || k.startsWith("token:"))).toEqual([]);
     // The page works once.
     expect((await decide(m.h, cookie, page, "approve")).status).toBe(400);
@@ -477,8 +474,8 @@ describe("tokens", () => {
     ]) {
       expect(log).not.toContain(secret);
     }
-    // What the library keeps is hashed or encrypted: no token in clear in the namespace either.
-    const stored = (m.h.env.OAUTH_KV as unknown as { written: string[] }).written.join("\n");
+    // What the library keeps is hashed or encrypted: no token in clear in the store either.
+    const stored = m.h.oauth.written().join("\n");
     for (const secret of [code, tokens.access_token, tokens.refresh_token!]) {
       expect(stored).not.toContain(secret);
     }

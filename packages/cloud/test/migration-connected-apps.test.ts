@@ -1,5 +1,5 @@
 // The ninth migration over node:sqlite (change agent-mcp): when each OAuth grant of an account was
-// last used, which Connected apps shows beside the grants the authorization server keeps in KV.
+// last used, which Connected apps shows beside the grants the authorization server keeps.
 
 import { describe, expect, it } from "vitest";
 import { migrationFiles, openDatabase, sqliteAvailable } from "./support/sqlite.js";
@@ -18,12 +18,12 @@ const statementsOf = (sql: string): string[] =>
     .filter((statement) => statement !== "");
 
 describe("the connected apps migration file", () => {
-  it("is numbered 0009, the last", () => {
+  it("is numbered 0009, before the authorization server's store, 0010", () => {
     expect(
       migrationFiles()
         .map((file) => file.name)
-        .at(-1),
-    ).toBe(NINTH_FILE);
+        .slice(-2),
+    ).toEqual([NINTH_FILE, "0010_oauth_store.sql"]);
   });
 
   it("only creates one table: no transaction control, no pragma, no data, no drop", () => {

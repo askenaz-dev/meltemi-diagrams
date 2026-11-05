@@ -1,6 +1,8 @@
 // The authorization server of the MCP endpoint (`mcp-authorization`), over
-// `@cloudflare/workers-oauth-provider` (MIT, pinned at 1.2.3) and its KV namespace `OAUTH_KV`. The
-// library answers its own addresses: the metadata (RFC 8414 and RFC 9728), the token endpoint (codes
+// `@cloudflare/workers-oauth-provider` (MIT, pinned at 1.2.3), which keeps its state in what it reads
+// as the KV namespace `env.OAUTH_KV`: here the D1 table `oauth_store` (`store.ts`, migration 0010),
+// handed to it in the environment it is given, so the Worker binds no KV namespace. The library
+// answers its own addresses: the metadata (RFC 8414 and RFC 9728), the token endpoint (codes
 // with PKCE, rotating refresh tokens, revocation), dynamic client registration (RFC 7591) and
 // client-id metadata documents; and it guards `/mcp`, the one protected resource, handing a request
 // with a valid token to the endpoint with what the grant holds. The consent page is this service's
@@ -12,8 +14,9 @@
 // evaluates the library.
 //
 // What the library is given: one provider per origin (production's, staging's, the development
-// address), made once per isolate; the request's `Ctx` reaches the handlers through the environment
-// object the library passes on (`RUN`), since a handler is the library's to call. A token is never
+// address), made once per isolate; and an environment per request, the Worker's with the store as
+// `OAUTH_KV` and the request's `Ctx`, which reaches the handlers through the environment object the
+// library passes on (`RUN`), since a handler is the library's to call. A token is never
 // logged, nor any part of a request: the library's refusals are answered and not printed.
 
 import {
@@ -36,6 +39,7 @@ import type { Env } from "../env.js";
 import { ApiError, errorResponse, fail } from "../errors.js";
 import { SCOPES, apiTokenCaller, oauthCaller, type Caller } from "../mcp/caller.js";
 import { TOKEN_PREFIX } from "../principal.js";
+import type { Deps } from "../types.js";
 import {
   ACCESS_TOKEN_TTL_S,
   AUTHORIZE_PATH,
@@ -49,12 +53,17 @@ import {
   resourceMetadataOf,
   resourceOf,
 } from "./settings.js";
+import type { KVLike } from "./store.js";
 
 /** Where the request's context rides in the environment the library hands its handlers. */
 const RUN = Symbol("meltemi.run");
 
-/** The environment the library is given: the Worker's, with the request's context beside it. */
+/**
+ * The environment the library is given: the Worker's, with the authorization server's store where
+ * the library looks for its KV namespace and, for a request, the request's context beside it.
+ */
 interface ProviderEnv extends Env {
+  readonly OAUTH_KV: KVLike;
   readonly [RUN]?: Ctx;
   OAUTH_PROVIDER?: OAuthHelpers;
 }
@@ -99,9 +108,16 @@ function runOf(env: ProviderEnv): Ctx {
   return run;
 }
 
-/** The environment for one request: the Worker's own (secrets and bindings read through it) and the context. */
+/** The Worker's environment (secrets and bindings read through it) with the store as `OAUTH_KV`. */
+function storeEnv(env: Env, deps: Pick<Deps, "oauthStore">): ProviderEnv {
+  const wrapped = Object.create(env) as ProviderEnv;
+  Object.defineProperty(wrapped, "OAUTH_KV", { value: deps.oauthStore, enumerable: true });
+  return wrapped;
+}
+
+/** The environment for one request: the Worker's own with the store, and the context. */
 function providerEnv(ctx: Ctx): ProviderEnv {
-  const env = Object.create(ctx.env) as ProviderEnv & { [RUN]: Ctx };
+  const env = storeEnv(ctx.env, ctx.deps) as ProviderEnv & { [RUN]: Ctx };
   Object.defineProperty(env, RUN, { value: ctx });
   return env;
 }
@@ -284,6 +300,6 @@ export async function serveProvider(ctx: Ctx, url?: string): Promise<Response> {
 }
 
 /** The library's helpers for this service's own pages: the consent, Connected apps, the deletion. */
-export function oauthApi(ctx: Pick<Ctx, "env" | "config">): OAuthHelpers {
-  return getOAuthApi(optionsFor(ctx.config.origin), ctx.env as ProviderEnv);
+export function oauthApi(ctx: Pick<Ctx, "env" | "config" | "deps">): OAuthHelpers {
+  return getOAuthApi(optionsFor(ctx.config.origin), storeEnv(ctx.env, ctx.deps));
 }

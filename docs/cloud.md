@@ -2235,9 +2235,16 @@ it, and reads the public address back once (`HEAD`): an address that does not an
 ### Authorization
 
 The endpoint is the one protected resource of an OAuth 2.1 authorization server in the same Worker,
-`@cloudflare/workers-oauth-provider` 1.2.3 (MIT). Its state (clients, grants, codes and tokens) is
-the KV namespace `OAUTH_KV`, where codes, tokens and client secrets are kept as hashes and a grant's
-props encrypted. Its addresses:
+`@cloudflare/workers-oauth-provider` 1.2.3 (MIT). Its state (clients, grants, codes, tokens and
+consents) is the D1 table `oauth_store` (migration 0010), where codes, tokens and client secrets are
+kept as hashes and a grant's props encrypted. The library reads and writes a KV namespace, so
+`src/oauth/store.ts` gives it the table with the part of that interface it uses (`get` as text or
+JSON, `put` with an expiry and metadata, `delete`, `list` by prefix in key order with a cursor), with
+KV's semantics: an expired entry is absent from every read, and the weekly cron removes it. The
+Worker binds no KV namespace: the family's Terraform token cannot create one, and the Free plan's
+1,000 KV writes a day for the whole account would not last a dozen connected agents (a sign-in
+writes about five entries, an hourly refresh about three), where D1 allows 100,000 rows written a
+day. Its addresses:
 
 | Address                                         | Is                                                                                                                                                                                                                    |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -2387,20 +2394,19 @@ binding.
 
 The bindings are:
 
-| Binding    | Is                                                                                                                                                       |
-| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DB`       | The D1 database, with its migrations in `packages/cloud/migrations`                                                                                      |
-| `ASSETS`   | The page's build                                                                                                                                         |
-| `BLOBS`    | The R2 bucket `meltemi-diagrams-blobs`: `blobs/<sha-256>`, `thumbs/<project id>.svg` and `published/<handle>/<slug>/index.html`                          |
-| `ROOMS`    | The Durable Object namespace of the class `ProjectRoom`, which the Worker's entry exports; the migration `v1` of `wrangler.jsonc` makes it SQLite-backed |
-| `OAUTH_KV` | The KV namespace of the MCP endpoint's authorization server ([Authorization](#authorization)): one per environment, read and written by its library only |
+| Binding  | Is                                                                                                                                                                                        |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DB`     | The D1 database, with its migrations in `packages/cloud/migrations`; the MCP endpoint's authorization server keeps its state in its table `oauth_store` ([Authorization](#authorization)) |
+| `ASSETS` | The page's build                                                                                                                                                                          |
+| `BLOBS`  | The R2 bucket `meltemi-diagrams-blobs`: `blobs/<sha-256>`, `thumbs/<project id>.svg` and `published/<handle>/<slug>/index.html`                                                           |
+| `ROOMS`  | The Durable Object namespace of the class `ProjectRoom`, which the Worker's entry exports; the migration `v1` of `wrangler.jsonc` makes it SQLite-backed                                  |
 
 `wrangler.jsonc` also holds the cron trigger of the weekly collection, `0 3 * * SUN`, and an `alias`
 that makes the Worker bundle the workspace packages it imports from their sources. The ids in the
 file are placeholders (all zeros): the family's Terraform creates the database, the bucket and the
 Secrets Store and writes their ids as variables of this repository's `production` environment, and
-the deploy workflow writes them in before uploading ([Deploying](#deploying)); the `OAUTH_KV`
-namespace's id comes from `OAUTH_KV_ID` the same way. `compatibility_flags` holds
+the deploy workflow writes them in before uploading ([Deploying](#deploying)). There is no KV
+namespace, and the deploy refuses a configuration that binds one. `compatibility_flags` holds
 `global_fetch_strictly_public`, which the authorization server needs before it fetches a client-id
 metadata document. The
 Worker's runtime dependencies are the identity package, this repository's project package and

@@ -33,14 +33,14 @@
 
 ## 2. The authorization server (milestone 1)
 
-- [x] 2.1 Wrap the Worker in `OAuthProvider` as design decision 4 with `OAUTH_KV`, the metadata
+- [x] 2.1 Wrap the Worker in `OAuthProvider` as design decision 4 with its store, the metadata
       documents, the `401` challenge and the `global_fetch_strictly_public` flag; add
       `/oauth/*` and `/.well-known/*` to `run_worker_first` (as built: `@cloudflare/workers-oauth-provider`
       1.2.3 pinned and imported only by the routes that need it, `src/oauth/`; the provider guards
       `/mcp` behind the door and takes `mdg_` tokens through `resolveExternalToken`; `PRODUCT_NAME`
       from `wrangler.jsonc`; invocation logs off in both Workers). Verify `test/oauth.test.ts` (an
-      in-memory KV) covers discovery, the challenge, the wrong resource, the OAuth token refused
-      on `/api/*` and the foreign JWT refused on `/mcp`.
+      in-memory KV at first, the D1 store since 2.5) covers discovery, the challenge, the wrong
+      resource, the OAuth token refused on `/api/*` and the foreign JWT refused on `/mcp`.
 - [x] 2.2 Write the consent page (`pages/consent.ts`, the sign-in redirect, the scopes in
       words, `csrf`, Approve and Deny, both languages) and the registration rate limit (as built:
       every attempt counted in the command line's failures table under its own prefix). Verify the
@@ -55,6 +55,13 @@
 - [x] 2.4 Write `docs/cloud.md`'s endpoint, authorization and Connected apps sections,
       `docs/security.md`'s token rule, and their Spanish twins (and the paragraphs on the logs,
       staging and the configuration). Verify the docs link test.
+- [x] 2.5 Keep the authorization server's state in D1 as design decision 11: `src/oauth/store.ts`
+      over migration `0010_oauth_store.sql`, handed to the library as `env.OAUTH_KV`, the weekly
+      cron's sweep, and no KV binding (`wrangler.jsonc`, `OAUTH_KV_ID` out of the deploy workflow
+      and `scripts/deploy-config.mjs`, which refuses a KV namespace). Verify
+      `test/oauth-store.test.ts` (the contract over the D1 and the in-memory stores, the rows, the
+      refusals, the sweep, the Worker's entry), `test/migration-oauth-store.test.ts`, the OAuth,
+      Connected apps and deletion suites over the D1 store, and the delivery tests.
 
 ## 3. Previews (milestone 1)
 

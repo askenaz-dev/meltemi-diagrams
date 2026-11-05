@@ -127,6 +127,7 @@ describe("the sharing migration file", () => {
       SEVENTH_FILE,
       "0008_idempotency.sql",
       "0009_connected_apps.sql",
+      "0010_oauth_store.sql",
     ]);
   });
 

@@ -1,6 +1,6 @@
 // Connected apps (`cloud-accounts`, "The account's connected apps"; `mcp-authorization`, "Connected
 // apps"): the OAuth grants a person approved on the consent page, which the account panel lists and
-// revokes. The grants are the authorization server's (`oauth/provider.ts`, in `OAUTH_KV`); this
+// revokes. The grants are the authorization server's (`oauth/provider.ts`, in `oauth_store`); this
 // service adds the name of the client a grant was approved for (its metadata) and when its token was
 // last used (`app_uses`). Both routes are for a person signed in on the page: a token, an API token
 // or an OAuth one, never manages apps (`403 request.forbidden`), nobody is `401 auth.required`, and
@@ -130,7 +130,7 @@ export const revokeAppRoute: Route = async (ctx) => {
  * repeat; answers how many grants were revoked.
  */
 export async function revokeAppsOf(
-  ctx: Pick<Ctx, "env" | "config">,
+  ctx: Pick<Ctx, "env" | "config" | "deps">,
   sub: string,
   before: Iso,
 ): Promise<number> {

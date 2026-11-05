@@ -117,8 +117,8 @@ the `staging` environment (branch `main` only) holds the deploy token and, once 
 them, `MELTEMI_TOKEN` and `MELTEMI_TOKEN_2`, and the variables `scripts/deploy-config.mjs
 --environment staging` writes into the configurations of `meltemi-diagrams-staging`
 (`staging.diagrams.meltemi.dev`) and `meltemi-diagrams-publish-staging` (`staging.meltemi.page`):
-the staging database `meltemi-diagrams-staging`, the bucket `meltemi-diagrams-staging-blobs`, the
-`OAUTH_KV` namespace, the Store's `FORMS_SECRET_STAGING` and `IDENTITY_EVENTS_SECRET_STAGING`
+the staging database `meltemi-diagrams-staging` (which holds the authorization server's state too),
+the bucket `meltemi-diagrams-staging-blobs`, the Store's `FORMS_SECRET_STAGING` and `IDENTITY_EVENTS_SECRET_STAGING`
 (`ADMIN_SUBS` and `SPONSORS_WEBHOOK_SECRET` are shared), the staging origin and publish host, and
 `PRODUCT_NAME` `diagrams-staging`, the identity service's name for staging.
 

@@ -366,3 +366,65 @@ with that reason.
   they would `/p/<id>?invite=…` and `?live=…` when opened. Not changed here: the route's shape and
   the logging are `packages/cloud`'s.
 - The Codex procedure: no run is recorded.
+
+## The store in D1 (task 2.5)
+
+Design decision 11, run on 5 November 2026 on Windows 11 in the worktree of branch
+`oauth-store-d1`, made from `main` at `dec8692`. Node 24.15.
+
+### Gates
+
+| Check                                                         | Result                                                                                                |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `pnpm typecheck`                                              | green                                                                                                 |
+| `pnpm lint`                                                   | green (ESLint and Prettier)                                                                           |
+| `pnpm test`                                                   | 355 files, 10405 passed, 1 skipped                                                                    |
+| `pnpm cloud:test-browser`                                     | 94 passed, 0 failed, then the runner died natively (`0xC0000409`) before the live and CLI scenarios; those, with `CLOUD_TEST_FILTER`: 8 passed, 1 failed ("live: the owner starts a live session…", the guest's drag timed out), which passed alone twice; the Worker's log check passed |
+| `wrangler d1 migrations apply DB --local`                     | 0001 to 0010 applied                                                                                  |
+| `pnpm acceptance:mcp`, `wrangler dev`, two tokens, server log | 32 passed, 0 failed, 2 skipped (the two that need a person's consent); exit 0; no project left        |
+| the OAuth flow by hand against `wrangler dev` (below)         | 13 of 13                                                                                              |
+| `openspec validate "agent-mcp" --strict`                      | valid                                                                                                 |
+
+### Evidence
+
+- The library's calls, read in `dist/oauth-provider.js` of 1.2.3 (installed) and 1.2.4 (the same
+  41 calls on `env.OAUTH_KV`, and three more on it as the `kv` of the consent transactions): `get`
+  as text (a replay marker, a grant's existence, a transaction) or `{ type: "json" }`; `put` with
+  `expirationTtl` (access tokens, the ten-minute grant of a code, transactions, replay markers, a
+  registration with a TTL), with `expiration` (`saveGrantWithTTL`, a grant that ends) or with
+  neither (a client without a TTL, a grant without an end), every grant through `grantPutOptions`,
+  which adds its `metadata` (`clientId`, `resource`, `redirectUri`); `delete`; and `list`, with
+  `{ prefix, limit?, cursor? }`, reading `keys[].name`, `keys[].metadata`, `list_complete` and
+  `cursor`. No `getWithMetadata`, no other `get` type, no value but text.
+- `test/oauth-store.test.ts` (36 tests): the contract over both stores (13 each) (text and JSON, a put
+  replacing value, expiry and metadata, deletes, expiry by TTL and by absolute time at the second,
+  an expired key written again, metadata in listings, prefixes, UTF-8 byte order with `é`, `€`,
+  U+FFEE and an emoji, pages of 10 and their cursor, every key deleted between pages with none
+  skipped, 1000 by default and at most, expired keys not counted to the limit); the D1 store's rows,
+  that a read never writes, the statement of a page (`key >= ? AND key < ?`, the limit plus one)
+  and its plan (`SEARCH oauth_store USING PRIMARY KEY`), the opaque cursor and a foreign one
+  refused, the refusals (empty or 513-byte key, a value not text, metadata over 1024 bytes, a NaN
+  expiry, another `get` type, a limit under one or not whole), the sweep by its index, the clock;
+  and the Worker's entry registering a client into its own `DB` and sweeping with the cron.
+  `test/migration-oauth-store.test.ts` (9 tests): the file, the columns, the refusals.
+- The harness gives the Worker the D1 store over node:sqlite, so `oauth`, `apps`, `events`, `logs`,
+  `mcp*` and the cascades run the library over it: the deletion's revocation leaves no `grant:` or
+  `token:` row, Connected apps lists and revokes as before, and nothing written to the table holds
+  a code or a token in clear. The same suites pass over the in-memory store, the fallback where Node
+  has no node:sqlite (run once by hand).
+- Against `wrangler dev` (workerd and a local D1 with 0010 applied), by a script that printed
+  nothing secret: a client registered; the consent page; Approve's code; the exchange for an access
+  and a refresh token; the code used twice refused, and the token of its grant refused after; a
+  second grant's token opening `/mcp`; a refresh rotating the pair and its token opening `/mcp`;
+  Connected apps listing one grant, Revoke `204`, the token refused, none listed. The table then
+  held the two clients only (the script's and the suite's wrong-resource one), with integer
+  expiries: the grants, tokens and consents were all removed by the library through the store.
+- Removed: the `kv_namespaces` entry of `wrangler.jsonc`, `OAUTH_KV_ID` in both jobs of
+  `deploy.yml` and in `scripts/deploy-config.mjs`, which now refuses a configuration that binds a
+  KV namespace; `test/delivery-scripts.test.ts` and `test/workflows.test.ts` say so.
+
+### Not verified
+
+- A deploy: staging and production still wait for Meltemi Web's Terraform, which no longer needs to
+  create KV namespaces; its `diagrams-staging` change may still declare them and should drop them.
+- The weekly cron on Cloudflare: its sweep ran in the tests over node:sqlite only.
