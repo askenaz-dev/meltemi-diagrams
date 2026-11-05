@@ -6,9 +6,9 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 
 ## 1.11.13
 
-The hosted service gains an MCP endpoint, the first stage of the change `agent-mcp`: an agent such
-as Codex connects to `https://diagrams.meltemi.dev/mcp` with an API token (`mdg_…`, as
-`bearer_token_env_var`) and acts on the account's projects through twenty-seven tools: it creates
+The hosted service gains an MCP endpoint: an agent such as Codex connects to
+`https://diagrams.meltemi.dev/mcp`, signs in with OAuth or an API token (`mdg_…`, as
+`bearer_token_env_var`), and acts on the account's projects through twenty-seven tools: it creates
 projects, reads and writes their files (every `.meltemi` file it writes is compiled first, and a push
 with an error is refused whole; `ifRevision` keeps it from overwriting a person's change), uploads
 images, keeps and restores versions, previews a diagram or a story's frame as a PNG or an SVG drawn
@@ -17,8 +17,15 @@ sent: the agent passes on the link), runs live sessions and publishes catalogs, 
 address back before it answers. Retries never duplicate: `POST /api/projects` and
 `PUT /api/projects/<id>/files` take an `Idempotency-Key` (migration 0008), and the tools an
 `idempotencyKey`. An account makes at most 300 calls and 30 previews a minute, and the log keeps a
-call's tool, duration and error code only ([the MCP endpoint](docs/cloud.md#the-mcp-endpoint)). The
-sign-in with OAuth and its scopes comes next.
+call's tool, duration and error code only ([the MCP endpoint](docs/cloud.md#the-mcp-endpoint)).
+
+The service is an OAuth 2.1 authorization server for it: an agent registers itself, the person
+approves it on a consent page that names what it may do (read, change, share, run live sessions,
+publish, stay connected), and its access token opens `/mcp` only, for an hour, with a refresh token
+of thirty days when it asked to stay connected. A wide scope never adds a role: what a person may
+only read, the agent may only read. The account panel's **Connected apps** lists each app, what it
+may do and when it last acted, with **Revoke** (migration 0009). Diagrams' Workers no longer log a
+line per request, whose address could hold an invitation or an access link.
 
 Every deploy now goes to a staging twin first, `staging.diagrams.meltemi.dev` with its own
 database, bucket and secrets, and runs `pnpm acceptance:mcp` there: an agent built on the official
