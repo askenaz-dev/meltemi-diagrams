@@ -4,7 +4,7 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
-## Next
+## 1.11.13
 
 The hosted service gains an MCP endpoint, the first stage of the change `agent-mcp`: an agent such
 as Codex connects to `https://diagrams.meltemi.dev/mcp` with an API token (`mdg_…`, as
