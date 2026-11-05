@@ -749,6 +749,53 @@ class UsageDouble {
   };
 }
 
+/** A connected app as `api/account/apps` lists it. */
+interface HeldApp {
+  id: string;
+  client: { name: string; uri: string };
+  scopes: string[];
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+/** The apps Ana approved at the start of a test: Codex, on this computer, with every scope. */
+const ANAS_APPS = (): HeldApp[] => [
+  {
+    id: "gCodexAAAAAAAAAA",
+    client: { name: "Codex", uri: "http://127.0.0.1:1455" },
+    scopes: ["projects:read", "projects:write", "sharing", "live", "publish", "offline_access"],
+    createdAt: "2026-11-01T10:00:00.000Z",
+    lastUsedAt: "2026-11-02T08:30:00.000Z",
+  },
+];
+
+/** Connected apps in memory (`api/account/apps`), answered from the test the way the Worker answers it. */
+class AppsDouble {
+  readonly requests: { method: string; path: string }[] = [];
+
+  constructor(public rows: HeldApp[]) {}
+
+  readonly handle = async (route: Route): Promise<void> => {
+    const request = route.request();
+    const { pathname } = new URL(request.url());
+    const method = request.method();
+    this.requests.push({ method, path: pathname });
+    const json = (status: number, answer: unknown) =>
+      route.fulfill({ status, contentType: "application/json", body: JSON.stringify(answer) });
+    if (pathname === "/api/account/apps" && method === "GET")
+      return json(200, { grants: this.rows });
+    const target = /^\/api\/account\/apps\/([^/]+)$/.exec(pathname);
+    if (target && method === "DELETE") {
+      const index = this.rows.findIndex((row) => row.id === decodeURIComponent(target[1]!));
+      if (index < 0)
+        return json(404, { code: "not-found", message: "There is no such connected app." });
+      this.rows.splice(index, 1);
+      return route.fulfill({ status: 204 });
+    }
+    return json(404, { code: "not-found", message: "Not found." });
+  };
+}
+
 /** What the identity service holds about Ana, as the Worker passes it on. */
 const ANAS_IDENTITY = () => ({
   user: { id: "u-ana", name: "Ana", picture: "" },
@@ -843,6 +890,7 @@ interface SignedIn extends Context {
   readonly tokens: TokensDouble;
   readonly usage: UsageDouble;
   readonly account: AccountDouble;
+  readonly apps: AppsDouble;
 }
 
 /**
@@ -857,6 +905,8 @@ function signedIn(options: {
   /** What `api/session` answers; by default Ana, signed in with a cookie. */
   answer?: (origin: string) => unknown;
   held?: HeldToken[];
+  /** The apps `api/account/apps` lists; by default Ana's Codex. */
+  apps?: HeldApp[];
   /** What `api/account/usage` answers; by default Ana's numbers. */
   usage?: { status: number; body: unknown };
   allowedErrors?: readonly RegExp[];
@@ -865,6 +915,7 @@ function signedIn(options: {
   const tokens = new TokensDouble(options.held ?? ANAS_TOKENS());
   const usage = new UsageDouble(options.usage);
   const account = new AccountDouble();
+  const apps = new AppsDouble(options.apps ?? ANAS_APPS());
   return {
     name: options.name,
     locale: options.locale,
@@ -883,8 +934,9 @@ function signedIn(options: {
       await context.route(/\/api\/tokens(\/[^/?]*)?(\?.*)?$/, tokens.handle);
       await context.route(/\/api\/account\/usage(\?.*)?$/, usage.handle);
       await context.route(/\/api\/account(\/identity(\/[^?]*)?)?(\?.*)?$/, account.handle);
+      await context.route(/\/api\/account\/apps(\/[^/?]*)?(\?.*)?$/, apps.handle);
     },
-    run: (t) => options.run({ ...t, origin: new URL(t.url).origin, tokens, usage, account }),
+    run: (t) => options.run({ ...t, origin: new URL(t.url).origin, tokens, usage, account, apps }),
   };
 }
 
@@ -5827,6 +5879,144 @@ const tests: Test[] = [
         "tokens",
       );
       assert.equal(new URL(page.url()).searchParams.has("account"), false);
+    },
+  }),
+  signedIn({
+    name: "Connected apps: Codex with its host and its scopes in words, revoked after a question that names it, then how to connect an agent",
+    async run({ page, url, origin, apps }) {
+      const ap = en.accountPanel;
+      const w = ap.apps;
+      await page.goto(new URL("?account=apps", url).href);
+      await ready(page);
+      const panel = page.locator("dialog.settings[open]");
+      await panel.waitFor();
+      assert.equal(
+        await panel.locator('[role="tab"][aria-selected="true"]').getAttribute("data-section"),
+        "apps",
+      );
+      assert.equal(
+        await panel.getByRole("tab", { name: ap.sections.apps, exact: true }).count(),
+        1,
+      );
+      const section = panel.locator("#account-section-apps");
+      const rows = section.locator(".apps-list > [data-app]");
+      await rows.first().waitFor();
+      assert.equal(await rows.count(), 1);
+      const codex = rows.first();
+      assert.equal(await codex.locator("strong").first().textContent(), "Codex");
+      assert.equal(
+        await codex.locator(".account-row-title .account-badge").first().textContent(),
+        w.thisComputer,
+      );
+      assert.deepEqual(await codex.locator(".apps-scopes .account-badge").allTextContents(), [
+        "Read and write your projects",
+        "Share your projects",
+        "Run live sessions",
+        "Publish catalogs",
+        "Stay connected",
+      ]);
+      const meta = (await codex.locator(".account-row-meta").textContent()) ?? "";
+      assert.match(meta, /^Approved .+ · last used .+$/);
+      assert.equal(await section.locator(".apps-empty").isVisible(), false);
+      await settled(page);
+      await panel.screenshot({ path: join(output, "account-apps.png") });
+
+      // Revoke asks first, naming the app; Cancel revokes nothing.
+      const revoke = codex.getByRole("button", { name: w.revokeLabel("Codex") });
+      await revoke.click();
+      let question = page.locator("dialog[open]").last();
+      assert.equal(await question.locator("h2").textContent(), w.revokeTitle);
+      assert.equal(
+        await question.locator(".dialog-body p").textContent(),
+        w.revokeMessage("Codex"),
+      );
+      await question.getByRole("button", { name: en.dialog.cancel, exact: true }).click();
+      await until(
+        page,
+        "the question to close",
+        () => document.querySelectorAll("dialog[open]").length === 1,
+      );
+      assert.equal(apps.requests.filter((r) => r.method === "DELETE").length, 0);
+      await revoke.click();
+      question = page.locator("dialog[open]").last();
+      await question.getByRole("button", { name: w.revokeConfirm, exact: true }).click();
+      await until(
+        page,
+        "Codex to go",
+        () =>
+          document.querySelectorAll("#account-section-apps .apps-list > [data-app]").length === 0,
+      );
+      assert.deepEqual(
+        apps.requests.filter((r) => r.method === "DELETE").map((r) => r.path),
+        ["/api/account/apps/gCodexAAAAAAAAAA"],
+      );
+      await page.locator(".status-text", { hasText: w.revoked("Codex") }).waitFor();
+
+      // Nothing connected: the address of the endpoint and the agents guide, and no list.
+      const empty = section.locator(".apps-empty");
+      await empty.waitFor();
+      assert.match((await empty.textContent()) ?? "", new RegExp(w.empty.slice(0, 30)));
+      assert.equal(await empty.locator("code.apps-endpoint").textContent(), `${origin}/mcp`);
+      const guide = empty.getByRole("link", { name: w.guide });
+      assert.equal(await guide.getAttribute("href"), w.guideHref);
+      assert.equal(await guide.getAttribute("target"), "_blank");
+      assert.equal(await guide.getAttribute("rel"), "noopener");
+      assert.equal(await section.locator(".apps-list").isVisible(), false);
+      await empty.getByRole("button", { name: w.copy, exact: true }).click();
+      await empty.getByText(w.copied).waitFor();
+      assert.equal(await page.evaluate(() => navigator.clipboard.readText()), `${origin}/mcp`);
+      await settled(page);
+      await panel.screenshot({ path: join(output, "account-apps-empty.png") });
+    },
+  }),
+  signedIn({
+    name: "Connected apps in Spanish: Aplicaciones conectadas, the scopes in words and Revocar",
+    locale: "es-CL",
+    async run({ page, url }) {
+      const ap = es.accountPanel;
+      await page.goto(new URL("?account=apps", url).href);
+      await ready(page);
+      const panel = page.locator("dialog.settings[open]");
+      await panel.waitFor();
+      assert.equal(
+        await panel
+          .getByRole("tab", { name: "Aplicaciones conectadas", exact: true })
+          .getAttribute("aria-selected"),
+        "true",
+      );
+      const codex = panel.locator("#account-section-apps .apps-list > [data-app]").first();
+      await codex.waitFor();
+      assert.equal(
+        await codex.getByRole("button", { name: ap.apps.revokeLabel("Codex") }).textContent(),
+        "Revocar",
+      );
+      assert.equal(
+        await codex.locator(".account-row-title .account-badge").first().textContent(),
+        "una aplicación de este equipo",
+      );
+      assert.equal(
+        await codex.locator(".apps-scopes .account-badge").first().textContent(),
+        "Leer y escribir tus proyectos",
+      );
+      assert.match(
+        (await codex.locator(".account-row-meta").textContent()) ?? "",
+        /^Aprobada el .+ · usada por última vez el .+$/,
+      );
+    },
+  }),
+  signedIn({
+    name: "Connected apps with nothing connected says how an agent connects, in Spanish too",
+    locale: "es-CL",
+    apps: [],
+    async run({ page, url, origin }) {
+      await page.goto(new URL("?account=apps", url).href);
+      await ready(page);
+      const empty = page.locator("dialog.settings[open] #account-section-apps .apps-empty");
+      await empty.waitFor();
+      assert.equal(await empty.locator("code.apps-endpoint").textContent(), `${origin}/mcp`);
+      const guide = empty.getByRole("link", { name: es.accountPanel.apps.guide });
+      assert.equal(await guide.getAttribute("href"), es.accountPanel.apps.guideHref);
+      assert.equal(await page.locator("dialog.settings[open] .apps-list > [data-app]").count(), 0);
     },
   }),
   signedIn({

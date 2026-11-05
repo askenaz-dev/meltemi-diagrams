@@ -1,7 +1,7 @@
 // The account panel (`account-panel`): a settings modal with a list of sections beside the one
 // shown: Profile (the person, their emails, the publishing handle, sign out), Sign-ins and Devices
-// (what the identity service holds, read through the page's own origin), API tokens, Usage and the
-// Danger zone. What it knows and does is `AccountPanelModel`'s; this draws it. Nothing of it opens a
+// (what the identity service holds, read through the page's own origin), API tokens, Connected apps
+// (the agents approved on the MCP endpoint's consent page), Usage and the Danger zone. What it knows and does is `AccountPanelModel`'s; this draws it. Nothing of it opens a
 // frame, a popup or a tab: linking a sign-in and deleting the account are navigations in this tab
 // that come back to the section they left. Names, emails, labels and dates are set as text.
 
@@ -20,6 +20,7 @@ import {
   type AccountPanelState,
   type AccountSection,
 } from "./account-panel-model.js";
+import { appsSection, type AppsSection } from "./account-panel-apps-section.js";
 import { administrationSection, type AdministrationSection } from "./administration-section.js";
 import { avatar } from "./avatar.js";
 import { copyText } from "./clipboard.js";
@@ -37,6 +38,7 @@ const SECTION_ICONS: Record<AccountSection, string> = {
     "M5.5 7.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5z|M7.3 8.2L13 2.5|M11 4.5l1.5 1.5|M9.5 6l1 1",
   devices: "M2.5 3.5h11v7h-11z|M6 13.5h4|M8 10.5v3",
   tokens: "M2.5 3.5h11v9h-11z|M5 7l2 1.5L5 10|M8.5 10H11",
+  apps: "M6 2v3|M10 2v3|M4.5 5h7v2.5a3.5 3.5 0 0 1-7 0z|M8 11v3",
   usage: "M3 13.5h10|M4.5 11V8|M8 11V4.5|M11.5 11V6.5",
   administration:
     "M8 1.8l5 2v3.7c0 3-2.1 5.3-5 6.7-2.9-1.4-5-3.7-5-6.7V3.8z|M5.8 8l1.6 1.6L10.4 6.6",
@@ -597,6 +599,7 @@ export function openAccountPanel(options: AccountPanelOptions): void {
 
   // API tokens ------------------------------------------------------------------------------------
   let tokens: TokensSection | undefined;
+  let apps: AppsSection | undefined;
   let administration: AdministrationSection | undefined;
 
   // Usage -----------------------------------------------------------------------------------------
@@ -746,6 +749,13 @@ export function openAccountPanel(options: AccountPanelOptions): void {
       }
       tokens.shown();
     }
+    if (section === "apps") {
+      if (!apps) {
+        apps = appsSection({ report: (message) => options.report?.(message) });
+        panel.append(apps.element);
+      }
+      apps.shown();
+    }
     if (section === "administration") {
       if (!administration) {
         administration = administrationSection({
@@ -868,6 +878,7 @@ export function openAccountPanel(options: AccountPanelOptions): void {
     disposed = true;
     model.dispose();
     tokens?.dispose();
+    apps?.dispose();
     administration?.dispose();
     stopUsage?.();
     observer.disconnect();

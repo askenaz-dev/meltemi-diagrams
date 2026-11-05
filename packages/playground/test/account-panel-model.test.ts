@@ -110,19 +110,20 @@ function panel(host = fakeHost(), handle: string | null = null) {
 }
 
 describe("the sections and the address", () => {
-  it("lists seven sections in order, Administration only for whom it is", () => {
+  it("lists eight sections in order, Administration only for whom it is", () => {
     expect(ACCOUNT_SECTIONS).toEqual([
       "profile",
       "signins",
       "devices",
       "tokens",
+      "apps",
       "usage",
       "administration",
       "danger",
     ]);
     const plain = { administration: null, administrationInvitation: null };
     expect(visibleSections(plain)).not.toContain("administration");
-    expect(visibleSections(plain)).toHaveLength(6);
+    expect(visibleSections(plain)).toHaveLength(7);
     expect(visibleSections({ ...plain, administration: { role: "owner" } })).toContain(
       "administration",
     );
