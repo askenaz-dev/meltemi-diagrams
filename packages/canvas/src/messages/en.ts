@@ -98,6 +98,9 @@ export const en = {
     stickyMenu: "Colour of new sticky notes",
     /** The button beside the diagram picker that adds a diagram to the file. */
     newDiagram: "New diagram",
+    /** The button beside the story picker that adds a story of the diagram shown to the file. */
+    newStory: "New story",
+    newStoryTitle: "New story of this diagram, played on the timeline to fill its scenes",
     connect: "Connect the selected element to…",
     moreParticipants: "More participants",
     note: "Note over the selection",
@@ -910,6 +913,9 @@ export const en = {
     removeAction: "Remove the selected action",
     exportPlayer: "Export the story as an HTML player",
     exportHtml: "Export HTML",
+    /** A picture of every scene's final state: the host asks the format. */
+    exportScenesTitle: "Export a picture of every scene: SVG, PNG or a PDF of them",
+    exportScenes: "Export scenes",
     scene: (id: string, title: string | null) => `scene ${id}${title ? ` — ${title}` : ""}`,
     /** The bar of a scene's transition, whose kind is a value of the language. */
     transition: (kind: string) => `${kind} transition`,

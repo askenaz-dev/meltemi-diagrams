@@ -165,6 +165,9 @@ export const es: typeof en = {
     penMenu: "Lápiz y marcador: grosor y color",
     stickyMenu: "Color de las notas adhesivas nuevas",
     newDiagram: "Nuevo diagrama",
+    newStory: "Nueva historia",
+    newStoryTitle:
+      "Nueva historia de este diagrama, reproducida en la línea de tiempo para llenar sus escenas",
     connect: "Conectar el elemento seleccionado con…",
     moreParticipants: "Más participantes",
     note: "Nota sobre la selección",
@@ -817,6 +820,8 @@ export const es: typeof en = {
     removeAction: "Quitar la acción seleccionada",
     exportPlayer: "Exportar la historia como reproductor HTML",
     exportHtml: "Exportar HTML",
+    exportScenesTitle: "Exportar una imagen de cada escena: SVG, PNG o un PDF de todas",
+    exportScenes: "Exportar escenas",
     scene: (id, title) => `escena ${id}${title ? ` — ${title}` : ""}`,
     transition: (kind) => `transición ${kind}`,
     bar: (label, start, duration) => `${label} · ${start} durante ${duration}`,

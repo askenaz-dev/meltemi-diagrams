@@ -3533,16 +3533,71 @@ const tests: {
       await page.getByRole("button", { name: "Remove the selected action" }).click();
       await h.settled();
       assert.doesNotMatch(h.text, /highlight api/);
-      // The story can be exported as an HTML player.
+      // The story can be exported as an HTML player, and as a picture of every scene.
       await page.getByRole("button", { name: "Export the story as an HTML player" }).click();
       await h.settled();
       assert.deepEqual(h.received.at(-1), { type: "exportPlayer", story: "purchase" });
+      const scenes = page.getByRole("button", { name: "Export a picture of every scene" });
+      assert.equal(await scenes.textContent(), "Export scenes");
+      await scenes.click();
+      await h.settled();
+      assert.deepEqual(h.received.at(-1), { type: "exportScenes", story: "purchase" });
       // Back to editing.
       await picker.selectOption("");
       await h.settled();
       assert.equal(await timeline.isVisible(), false);
       assert.equal(await opacity(), null);
       assert.equal(await page.locator(".inspector").isVisible(), true);
+    },
+  },
+  {
+    name: "New story writes a story of the diagram shown and plays it on its empty scene",
+    text: STORY,
+    async run(h) {
+      const page = h.page;
+      const button = page.getByRole("button", { name: "New story", exact: true });
+      await button.waitFor({ state: "visible" });
+      // Beside the story picker, with its tooltip.
+      const order = await page
+        .locator(".toolbar > *")
+        .evaluateAll((all) =>
+          all
+            .map((e) => e.getAttribute("aria-label"))
+            .filter((n) => n === "Story" || n === "New story"),
+        );
+      assert.deepEqual(order, ["Story", "New story"]);
+      assert.equal(
+        await button.getAttribute("title"),
+        "New story of this diagram, played on the timeline to fill its scenes",
+      );
+      await button.click();
+      await h.settled();
+      const posted = h.received.filter((m) => (m as { type: string }).type === "action");
+      assert.deepEqual((posted.at(-1) as { action: unknown }).action, { kind: "createStory" });
+      assert.ok(
+        h.text.endsWith("\nstory story1 for checkout {\n  scene scene1 {\n  }\n}\n"),
+        h.text,
+      );
+      // Story mode on the new story: its one empty scene on the timeline, the picker on it.
+      const timeline = page.getByRole("region", { name: "Story timeline" });
+      await timeline.waitFor({ state: "visible" });
+      assert.equal(await page.getByRole("combobox", { name: "Story" }).inputValue(), "story1");
+      assert.equal(await page.locator(".timeline .scene-row").count(), 1);
+      assert.equal(await page.locator(".timeline .scene-label").textContent(), "scene1");
+      assert.match(
+        (await page.locator(".status").textContent()) ?? "",
+        /Created the story `?story1`?: select on the frame and press Add to scene/,
+      );
+      // Still offered while a story plays: the next one is for the playing story's diagram.
+      assert.equal(await button.isVisible(), true);
+      await button.click();
+      await h.settled();
+      assert.ok(
+        h.text.includes("\nstory story2 for checkout {\n  scene scene1 {\n  }\n}\n"),
+        h.text,
+      );
+      assert.equal(await page.getByRole("combobox", { name: "Story" }).inputValue(), "story2");
+      await page.screenshot({ path: join(output, "canvas-new-story.png") });
     },
   },
   {
@@ -7807,6 +7862,11 @@ const tests: {
       await page.getByRole("button", { name: "Export the story as an HTML player" }).click();
       await h.settled();
       assert.deepEqual(h.received.at(-1), { type: "exportPlayer", story: "purchase" });
+      await page.getByRole("button", { name: /^Export a picture of every scene/ }).click();
+      await h.settled();
+      assert.deepEqual(h.received.at(-1), { type: "exportScenes", story: "purchase" });
+      // No New story on a canvas that only shows.
+      assert.equal(await page.locator(".toolbar button.new-story").isVisible(), false);
       assert.deepEqual(h.writes(), []);
       // Back to the diagram: still read-only, with the properties disabled.
       await picker.selectOption("");

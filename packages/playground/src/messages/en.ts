@@ -456,6 +456,20 @@ export const en = {
     profileGone: (id: string) => `The profile ${id} is gone.`,
     playerUnreadable: "The player's runtime could not be read.",
     printTitle: "Picture to print",
+    /** The target of every story of a file of several in one HTML player. */
+    everyStory: (count: number) => `Every story (${count})`,
+    /** The box of a story's export as SVG, PNG or PDF. */
+    scenes: "One picture per scene",
+    scenesHint:
+      "Each scene's final state, as the player's static view shows it: a .zip of SVG or PNG files, or a PDF with a page per scene.",
+    /** The progress line while the PNG of every scene is drawn. */
+    picture: (done: number, total: number) => `Picture ${done} of ${total}`,
+    downloadedStories: (name: string, stories: readonly string[]) =>
+      `Downloaded ${name} with ${stories.length} stories: ${stories.join(", ")}.`,
+    downloadedScenes: (name: string, pictures: number) =>
+      `Downloaded ${name} with ${pictures} ${pictures === 1 ? "picture" : "pictures"}, one per scene.`,
+    printingScenes: (name: string, pages: number) =>
+      `The print dialog shows ${name}, ${pages} ${pages === 1 ? "page" : "pages"}, one per scene; choose "Save as PDF" to keep them as vectors.`,
   },
 
   /** What the browser cannot do when it draws pictures and records videos. */

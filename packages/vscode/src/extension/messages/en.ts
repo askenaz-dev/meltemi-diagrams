@@ -68,6 +68,15 @@ export const en = {
     profileOf: (format: string, target: string) => `${format} of ${target}`,
     profile: "Run Export Profile",
     profilePlaceholder: "The profile to write",
+    /** The quick pick entry of **Export HTML Player** for a file of several stories. */
+    everyStory: "Every story",
+    everyStoryDetail: (count: number) => `${count} stories in one player, with a Story picker`,
+    /** **Export scenes** of the timeline: the format of the pictures. */
+    scenes: (story: string) => `Export the scenes of ${story}`,
+    scenesPlaceholder: "A picture of every scene's final state",
+    scenesSvg: "An SVG file per scene",
+    scenesPng: "A PNG file per scene",
+    scenesPdf: "One PDF with a page per scene",
   },
   /** The catalog of a project. */
   catalog: {

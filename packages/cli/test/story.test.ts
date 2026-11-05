@@ -10,6 +10,7 @@ import {
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
+import { findBrowser } from "@meltemi/diagrams-capture";
 import { storyFrame } from "@meltemi/diagrams-motion";
 import { renderSvg } from "@meltemi/diagrams-render";
 import { CORPUS_ROOT } from "../../../test-support/corpus.js";
@@ -121,6 +122,157 @@ describe("export --story", () => {
     // The last scene frames the camera on the API and its database.
     expect(end.stdout).toMatch(/<svg[^>]* viewBox="[-\d.]+ [-\d.]+ [\d.]+ [\d.]+"/);
   });
+});
+
+describe("export --scenes", () => {
+  it("writes each scene's final state as its own SVG, equal to the frame at its instant", () => {
+    const { code, stdout } = mdg(
+      "export",
+      "purchase.meltemi",
+      "--story",
+      "purchase",
+      "--scenes",
+      "--out",
+      "scenes",
+      "--fonts",
+      "system",
+    );
+    expect(code).toBe(0);
+    expect(stdout).toBe(
+      "Wrote scenes/purchase.purchase.overview.svg\nWrote scenes/purchase.purchase.processing.svg\n",
+    );
+    // The instants of the player's static view: just before the next scene, and the end.
+    for (const [scene, at] of [
+      ["overview", "1799.99ms"],
+      ["processing", "7400ms"],
+    ] as const) {
+      const frame = mdg(
+        "export",
+        "purchase.meltemi",
+        "--story",
+        "purchase",
+        "--at",
+        at,
+        "--stdout",
+        "--fonts",
+        "system",
+      ).stdout;
+      expect(readFileSync(join(scratch, "scenes", `purchase.purchase.${scene}.svg`), "utf8")).toBe(
+        frame,
+      );
+    }
+    // Beside the file without --out, into an existing directory with it.
+    expect(mdg("export", "purchase.meltemi", "--story", "purchase", "--scenes").code).toBe(0);
+    expect(existsSync(join(scratch, "purchase.purchase.overview.svg"))).toBe(true);
+    expect(existsSync(join(scratch, "purchase.purchase.processing.svg"))).toBe(true);
+  });
+
+  it("refuses an instant, a file to write to, standard output, other formats and no story", () => {
+    const cases: [string[], string][] = [
+      [
+        ["--story", "purchase", "--scenes", "--at", "1s"],
+        "--scenes writes every scene's final state; it cannot take --at.",
+      ],
+      [
+        ["--story", "purchase", "--scenes", "--out", "one.svg"],
+        "--scenes writes several files; --out must be a directory.",
+      ],
+      [
+        ["--story", "purchase", "--scenes", "--out", "purchase.meltemi"],
+        "--out must be a directory.",
+      ],
+      [["--story", "purchase", "--scenes", "--stdout"], "--stdout prints one output."],
+      [
+        ["--story", "purchase", "--scenes", "--format", "html"],
+        "--scenes writes SVG, PNG or PDF pictures; it cannot be combined with --format html.",
+      ],
+      [["--story", "purchase", "--scenes", "--format", "gif"], "--format gif."],
+      [["--scenes"], "--scenes takes a story: give it with --story <id>."],
+      [["--scenes", "--stories"], "cannot be combined with --scenes."],
+      [["--profiles", "--scenes"], "--scenes does not go with --profile or --profiles."],
+    ];
+    for (const [extra, message] of cases) {
+      const result = mdg("export", "purchase.meltemi", ...extra);
+      expect(result.code, extra.join(" ")).toBe(2);
+      expect(result.stderr).toContain(message);
+      expect(result.stdout).toBe("");
+    }
+    expect(existsSync(join(scratch, "one.svg"))).toBe(false);
+    const folder = mdg("export", ".", "--story", "purchase", "--scenes");
+    expect(folder.code).toBe(2);
+    const scenesOnly = mdg("export", ".", "--scenes");
+    expect(scenesOnly.code).toBe(2);
+  });
+
+  it("writes nothing for a story whose view cannot be drawn, and exits with 1", () => {
+    writeFileSync(
+      join(scratch, "outage.meltemi"),
+      'language "0.2"\n\ndiagram broken: flow {\n  direction sideways\n  a["A"]\n}\n\nstory outage for broken {\n  scene only {\n    reveal a over 500ms\n  }\n}\n',
+    );
+    const { code, stdout, stderr } = mdg(
+      "export",
+      "outage.meltemi",
+      "--story",
+      "outage",
+      "--scenes",
+    );
+    expect(code).toBe(1);
+    expect(stdout).toContain("error prop.invalid-value");
+    expect(stdout).not.toContain("Wrote");
+    expect(stderr).toContain("`outage` shows a diagram that cannot be drawn.");
+    expect(existsSync(join(scratch, "outage.outage.only.svg"))).toBe(false);
+  });
+});
+
+// Each test starts the browser: see capture.test.ts.
+describe.skipIf(!findBrowser())("export --scenes with the installed browser", () => {
+  it("writes a PNG per scene, and one PDF with a page per scene", () => {
+    const png = mdg(
+      "export",
+      "purchase.meltemi",
+      "--story",
+      "purchase",
+      "--scenes",
+      "--format",
+      "png",
+      "--scale",
+      "1",
+      "--out",
+      "stills",
+    );
+    expect(png.code, png.stderr).toBe(0);
+    expect(png.stdout).toMatch(
+      /^Wrote stills\/purchase\.purchase\.overview\.png \(.+\)\nWrote stills\/purchase\.purchase\.processing\.png \(.+\)\n$/,
+    );
+    const pdf = mdg(
+      "export",
+      "purchase.meltemi",
+      "--story",
+      "purchase",
+      "--scenes",
+      "--format",
+      "pdf",
+    );
+    expect(pdf.code, pdf.stderr).toBe(0);
+    expect(pdf.stdout).toMatch(/^Wrote purchase\.purchase\.pdf \(.+\)\n$/);
+    const bytes = readFileSync(join(scratch, "purchase.purchase.pdf")).toString("latin1");
+    expect(bytes.startsWith("%PDF-")).toBe(true);
+    expect(bytes.match(/\/Type\s*\/Page[^s]/g)).toHaveLength(2);
+    // --out may name the PDF.
+    const named = mdg(
+      "export",
+      "purchase.meltemi",
+      "--story",
+      "purchase",
+      "--scenes",
+      "--format",
+      "pdf",
+      "--out",
+      "deck.pdf",
+    );
+    expect(named.code, named.stderr).toBe(0);
+    expect(existsSync(join(scratch, "deck.pdf"))).toBe(true);
+  }, 180_000);
 });
 
 describe("export --format html", () => {
@@ -317,7 +469,9 @@ describe("the player and the exporter", () => {
       "--fonts",
       "system",
     ).stdout;
-    const drawn = storyFrame(doc.timeline, (key) => doc.views[key], 2400, { accent: doc.accent })!;
+    const drawn = storyFrame(doc.stories[0].timeline, (key) => doc.views[key], 2400, {
+      accent: doc.accent,
+    })!;
     expect(renderSvg(drawn, { fonts: "system" })).toBe(frame);
   });
 });

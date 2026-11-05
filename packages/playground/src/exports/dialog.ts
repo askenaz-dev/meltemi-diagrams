@@ -35,6 +35,9 @@ import { downloadCatalog, stemOf } from "./files.js";
 import { printPicture } from "./print.js";
 import { pngOf } from "./raster.js";
 import { VideoCancelled, recordVideo, videoSupport } from "./video.js";
+import { writeZip } from "../zip.js";
+
+const encoder = new TextEncoder();
 
 /** The formats of the dialog, in the order it lists them. */
 const FORMATS: readonly WritableFormat[] = ["svg", "png", "pdf", "html", "gif", "webm", "mp4"];
@@ -144,7 +147,13 @@ async function run(
     [message, ...produced.notices, ...(output.notices ?? []), ...unbranded].join(" ");
   if ("text" in output) {
     download(name, output.text, TYPES[built.request.format] ?? "text/plain");
-    return { ok: true, message: told(m.downloaded(name)) };
+    const stories = output.stories;
+    return {
+      ok: true,
+      message: told(
+        stories && stories.length > 1 ? m.downloadedStories(name, stories) : m.downloaded(name),
+      ),
+    };
   }
   if ("job" in output) {
     if (output.job.kind === "png") {
@@ -152,13 +161,39 @@ async function run(
       return { ok: true, message: told(m.downloaded(name)) };
     }
     await printPicture(output.job);
-    return { ok: true, message: told(m.printing(name)) };
+    const pages = output.job.pages?.length;
+    return {
+      ok: true,
+      message: told(pages !== undefined ? m.printingScenes(name, pages) : m.printing(name)),
+    };
   }
   const controller = progress ?? {
     bar: h("progress"),
     text: h("span"),
     signal: new AbortController().signal,
   };
+  // A picture of every scene, in one archive: SVG texts at once, PNGs drawn one by one.
+  if ("texts" in output || "jobs" in output) {
+    const entries: { path: string; data: Uint8Array }[] = [];
+    if ("texts" in output) {
+      for (const still of output.texts) {
+        entries.push({ path: still.name, data: encoder.encode(still.output) });
+      }
+    } else {
+      const total = output.jobs.length;
+      controller.bar.max = total;
+      for (const [i, still] of output.jobs.entries()) {
+        if (controller.signal.aborted) return failed(m.cancelled);
+        controller.bar.value = i;
+        controller.text.textContent = m.picture(i + 1, total);
+        entries.push({ path: still.name, data: await pngOf(still.output) });
+      }
+      if (controller.signal.aborted) return failed(m.cancelled);
+      controller.bar.value = total;
+    }
+    download(name, (await writeZip(entries)) as Uint8Array<ArrayBuffer>, "application/zip");
+    return { ok: true, message: told(m.downloadedScenes(name, entries.length)) };
+  }
   try {
     const video = await recordVideo(
       output.video,
@@ -274,7 +309,13 @@ function durationShown(
  */
 export function openExportDialog(
   playground: Playground,
-  preset: { format?: WritableFormat } = {},
+  preset: {
+    format?: WritableFormat;
+    /** `story:<id>` or `diagram:<id>`, as the target list names them. */
+    target?: string;
+    /** Checks **One picture per scene**, as the timeline's **Export scenes** asks. */
+    scenes?: boolean;
+  } = {},
 ): void {
   const m = messages().exports;
   const analysis = playground.studio.document();
@@ -293,10 +334,16 @@ export function openExportDialog(
   const targets = [
     ...diagrams.map((d) => ({ value: `diagram:${d.id}`, label: m.diagram(d.id, d.title) })),
     ...stories.map((s) => ({ value: `story:${s.id}`, label: m.story(s.id, s.title) })),
+    // Every story of the file in one player, as `--stories` writes it.
+    ...(stories.length > 1 ? [{ value: "stories", label: m.everyStory(stories.length) }] : []),
   ];
   const what = select(
     targets,
-    diagrams.some((d) => d.id === current) ? `diagram:${current}` : targets[0]!.value,
+    preset.target !== undefined && targets.some((t) => t.value === preset.target)
+      ? preset.target
+      : diagrams.some((d) => d.id === current)
+        ? `diagram:${current}`
+        : targets[0]!.value,
   );
   const format = select(
     FORMATS.map((value) => ({ value, label: m.formats[value] })),
@@ -341,6 +388,9 @@ export function openExportDialog(
   });
   const link = h("input", { type: "url", placeholder: "https://…", spellcheck: "false" });
   const embed = h("input", { type: "checkbox" });
+  // Unchecked at each opening, unless the timeline's Export scenes opened the dialog.
+  const scenes = h("input", { type: "checkbox", id: "export-scenes" });
+  scenes.checked = preset.scenes === true;
   const autoplay = h("input", { type: "checkbox" });
   const loop = h("input", { type: "checkbox" });
   const fps = h("input", { type: "number", min: 1, max: 60, step: 1, placeholder: "30 (GIF 15)" });
@@ -366,6 +416,7 @@ export function openExportDialog(
     scenario: field(m.scenario, scenario),
     fonts: field(m.fonts, fonts),
     motion: field(m.effects, motion),
+    scenes: check(m.scenes, scenes, m.scenesHint),
     at: field(m.instant, at, m.instantHint),
     scale: field(m.scale, scale, m.scaleHint),
     size: field(m.size, size, m.sizeHint),
@@ -384,6 +435,14 @@ export function openExportDialog(
   let abort: AbortController | undefined;
 
   const show = () => {
+    // Every story goes into one HTML player: the other formats are not offered for it.
+    const every = what.value === "stories";
+    for (const option of format.options) {
+      const allowed = !every || option.value === "html";
+      option.disabled = !allowed;
+      option.hidden = !allowed;
+    }
+    if (every && format.value !== "html") format.value = "html";
     const f = format.value as WritableFormat;
     const story = what.value.startsWith("story:");
     const diagram = diagrams.find((d) => `diagram:${d.id}` === what.value);
@@ -396,6 +455,11 @@ export function openExportDialog(
     if (f === "pdf") ["at", "size", "background", "link"].forEach((r) => visible.add(r));
     if (f === "html") ["fonts", "embed", "autoplay", "loop"].forEach((r) => visible.add(r));
     if (VIDEO.has(f)) ["size", "background", "fps", "duration"].forEach((r) => visible.add(r));
+    // A story's picture of every scene's final state: no instant to choose then.
+    if (story && (f === "svg" || f === "png" || f === "pdf")) {
+      visible.add("scenes");
+      if (scenes.checked) visible.delete("at");
+    }
     const scenarios = diagram?.diagram.type === "sequence" ? diagram.diagram.scenarios : [];
     if (scenarios.length > 0 && !story && f !== "html" && !VIDEO.has(f)) visible.add("scenario");
     scenario.replaceChildren(
@@ -426,15 +490,19 @@ export function openExportDialog(
   };
   what.addEventListener("change", show);
   format.addEventListener("change", show);
+  scenes.addEventListener("change", show);
 
   /** The request of the form, or why it cannot be made. */
   const build = (context: ExportContext): Built => {
     const f = format.value as WritableFormat;
     const stem = stemOf(playground.studio.open);
-    const [kind, id] = what.value.split(":") as ["diagram" | "story", string];
+    const [kind, id] = what.value.split(":") as ["diagram" | "story" | "stories", string];
     let target: ExportRequest["target"];
     let name: string;
-    if (kind === "story") {
+    if (kind === "stories") {
+      target = { kind: "stories", stories: [...context.file.compilation.document.stories] };
+      name = `${stem}.stories.${f}`;
+    } else if (kind === "story") {
       const story = context.file.compilation.document.stories.find((s) => s.id === id);
       if (!story) return m.noStory(id);
       target = { kind: "story", story };
@@ -481,6 +549,11 @@ export function openExportDialog(
       if (!isSafeUrl(link.value.trim())) return m.badLink;
       request.link = link.value.trim();
     }
+    if (!rows.scenes!.hidden && scenes.checked) {
+      request.scenes = true;
+      // SVG and PNG: an archive of a file per scene; PDF: one file of a page per scene.
+      if (f !== "pdf") name = `${stem}.${id}.scenes.zip`;
+    }
     if (!rows.embed!.hidden) request.embed = embed.checked;
     if (!rows.autoplay!.hidden) request.autoplay = autoplay.checked;
     if (!rows.loop!.hidden) request.loop = loop.checked;
@@ -501,7 +574,8 @@ export function openExportDialog(
   const exportNow = async () => {
     problem.textContent = "";
     const f = format.value as WritableFormat;
-    const video = VIDEO.has(f);
+    // Videos and the PNG of every scene are drawn picture by picture, with a progress line.
+    const video = VIDEO.has(f) || (f === "png" && !rows.scenes!.hidden && scenes.checked);
     abort = video ? new AbortController() : undefined;
     bar.hidden = !video;
     progressText.textContent = video ? m.drawing : "";

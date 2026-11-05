@@ -1071,6 +1071,17 @@ declared in that model, in this file or in the model's own file.
   `hold 1000ms`). The ☐ button adds a scene after the current one, and ✕ (or Delete) removes the
   selected bar. Each change is one edit of the text, undone like any other. **Export HTML** writes
   the story's HTML player beside the file.
+- **New story.** Beside the story picker, whenever a diagram is shown or a story plays, **New
+  story** writes `story story1 for <diagram> { scene scene1 { } }` after the file's last block, for
+  the diagram shown (in story mode, the playing story's), with the next free id (`story2`,
+  `story3`…). The canvas plays it at once on its empty scene, and the status line says what to do:
+  select on the frame and press **Add to scene**. Titles and ids are edited in the text. A canvas
+  that only shows has no **New story**.
+- **Export scenes.** Beside **Export HTML**, **Export scenes** writes a picture of every scene's
+  final state, the frame the player's static view shows: VS Code asks SVG, PNG or PDF and writes
+  `<stem>.<story>.<scene>.svg` (or `.png`) per scene, or `<stem>.<story>.pdf` with a page per scene,
+  beside the file; the web app opens its export dialog on the story with **One picture per scene**
+  checked.
 
 ## Deleting, copying and grouping
 
@@ -1093,7 +1104,7 @@ declared in that model, in this file or in the model's own file.
 | Open Canvas to the Side, Open Canvas        | Opens the canvas, beside the code or in place                                                                                                                                                                                                                     |
 | Show Source                                 | Shows the code of the canvas's file                                                                                                                                                                                                                               |
 | Export SVG                                  | Writes the SVG of each diagram of the current text (unsaved changes included) beside the file, asking which scenario of a sequence diagram with scenarios; diagrams with problems are skipped and reported                                                        |
-| Export HTML Player                          | Asks which story or diagram of the file to play and writes its HTML player beside the file (`docs/player.md`)                                                                                                                                                     |
+| Export HTML Player                          | Asks which story or diagram of the file to play (or **Every story**, when the file has more than one, in one player with a Story picker) and writes its HTML player beside the file (`docs/player.md`)                                                            |
 | Export PNG, Export PDF                      | Writes the PNG (twice the size) or the PDF of each diagram beside the file through the installed Edge or Chrome (the `meltemi.export.browser` setting names another one)                                                                                          |
 | Export Video                                | Asks for MP4, WebM or GIF and the story or diagram, then records it beside the file through the browser and FFmpeg, with progress; endless effects last one loop of their cycles, which the message after it names (`meltemi.export.ffmpeg` names another FFmpeg) |
 | Generate Diagram with AI…                   | Optional: asks for a file, a description and a profile, shows what will be sent, and writes the accepted proposal (`docs/assist.md`)                                                                                                                              |

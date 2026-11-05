@@ -17,6 +17,7 @@ import {
 } from "@meltemi/diagrams-model";
 import { reject, insertStatement, type TextContext } from "./context.js";
 import { deleteStatements } from "./delete.js";
+import { appendBlock, newStoryId, topLevelNames } from "./diagrams.js";
 import { insertAfter, verifyNoNewErrors } from "./insert.js";
 import { messages, reasons } from "./messages/index.js";
 import { removeListItems, type OperationOf } from "./plan.js";
@@ -254,6 +255,46 @@ export function removeStoryAction(
   const story = requireStory(ctx, op.story);
   const action = actionAt(story, op.path);
   return checked(ctx, deleteStatements(ctx.text, ctx.compilation.parse.root, [action.node]));
+}
+
+/**
+ * Appends `story <id> for <diagram> {` with one empty scene `scene <scene> {` and `}`, and `}`,
+ * after the last top-level statement, separated by a blank line, with `title "…"` first inside
+ * when given. The diagram is one of the file's, of any profile; the id is the first free
+ * `story<n>` by default and the scene `scene1`. The new story warns `story.empty-scene` until
+ * its scene has an action: a warning, not an error.
+ */
+export function createStory(ctx: TextContext, op: OperationOf<"createStory">): TextEdit[] {
+  const diagrams = ctx.compilation.document.diagrams;
+  if (!diagrams.some((d) => d.id === op.diagram)) {
+    reject(
+      "edit.unsafe-target",
+      reasons().stories.diagramNotInFile(
+        op.diagram,
+        diagrams.map((d) => d.id),
+      ),
+    );
+  }
+  if (op.id !== undefined) {
+    if (!isIdentifierText(op.id))
+      reject("edit.invalid-id", reasons().stories.invalidStoryId(op.id));
+    if (topLevelNames(ctx.compilation).has(op.id)) {
+      reject("edit.id-conflict", reasons().stories.storyTaken(op.id));
+    }
+  }
+  const scene = op.scene ?? "scene1";
+  if (!isIdentifierText(scene)) reject("edit.invalid-id", reasons().stories.invalidSceneId(scene));
+  const id = op.id ?? newStoryId(ctx.compilation);
+  const { eol, unit } = ctx;
+  const title = op.title !== undefined ? `${unit}title ${quoteString(op.title)}${eol}${eol}` : "";
+  const block = [
+    `story ${id} for ${op.diagram} {${eol}`,
+    title,
+    `${unit}scene ${scene} {${eol}`,
+    `${unit}}${eol}`,
+    "}",
+  ].join("");
+  return checked(ctx, [appendBlock(ctx, block)]);
 }
 
 export function insertScene(ctx: TextContext, op: OperationOf<"insertScene">): TextEdit[] {

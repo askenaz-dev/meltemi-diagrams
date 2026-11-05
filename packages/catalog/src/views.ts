@@ -272,7 +272,8 @@ function diagramView(
 
 function storyView(data: CatalogData, entry: StoryEntry, locale: Locale): PageView {
   const t = messages(locale);
-  const { timeline } = entry.document;
+  // A catalog page plays one story: the one its document was built from.
+  const { timeline } = entry.document.stories[0]!;
   const scenes = `<section aria-labelledby="scenes"><h2 id="scenes">${e(t.entry.scenes)}</h2><ol class="scenes">${timeline.scenes
     .map(
       (s) =>

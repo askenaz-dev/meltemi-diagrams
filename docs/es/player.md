@@ -2,7 +2,8 @@
 
 [English](../player.md)
 
-El reproductor reproduce una historia, o un diagrama y sus efectos, en cualquier navegador: sin
+El reproductor reproduce una historia, varias historias de un mismo dibujo, o un diagrama y sus
+efectos, en cualquier navegador: sin
 conexión, desde un solo archivo HTML, con los controles que pide la propuesta (pausa, progreso,
 selección de escena, movimiento reducido y una vista estática) y compatibilidad completa con el
 teclado y los lectores de pantalla. Dibuja cada fotograma con las mismas funciones que
@@ -13,11 +14,12 @@ contiene una caja con un doble clic o su signo más (decisión 0047).
 
 ## Generar un reproductor
 
-| Comando                                                                   | Resultado                                            |
-| ------------------------------------------------------------------------- | ---------------------------------------------------- |
-| `pnpm mdg export purchase.meltemi --format html --story purchase`         | `purchase.purchase.html`, una página completa        |
-| `pnpm mdg export purchase.meltemi --format html --story purchase --embed` | un fragmento para pegar en una página                |
-| `pnpm mdg export checkout.meltemi --format html`                          | `checkout.html`, el diagrama y sus efectos `animate` |
+| Comando                                                                   | Resultado                                             |
+| ------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `pnpm mdg export purchase.meltemi --format html --story purchase`         | `purchase.purchase.html`, una página completa         |
+| `pnpm mdg export purchase.meltemi --format html --story purchase --embed` | un fragmento para pegar en una página                 |
+| `pnpm mdg export checkout.meltemi --format html`                          | `checkout.html`, el diagrama y sus efectos `animate`  |
+| `pnpm mdg export flows.meltemi --format html --stories`                   | `flows.stories.html`, todas las historias del archivo |
 
 La página de un diagrama también lleva todas las vistas que alcanza un desglose desde él en el
 proyecto (la vista de contenedores de un sistema, la de componentes de un contenedor, los diagramas
@@ -25,9 +27,24 @@ que enlazan sus elementos), así que se explora sin conexión; el comando dice c
 incluyó: `Wrote commerce.context.html (3 views)`. Las fuentes se incrustan de forma predeterminada, así que la página se ve igual sin las fuentes
 instaladas; `--fonts system` las deja en manos del espectador. `--at`, `--motion animated` y
 `--fonts outlined` no se aplican a un reproductor. En VS Code, **Meltemi Diagrams: Exportar el
-reproductor HTML** pregunta qué historia o diagrama escribir y escribe la misma página que la línea
-de comandos, y la línea de tiempo del lienzo tiene un botón **Exportar HTML** para la historia que
-reproduce.
+reproductor HTML** pregunta qué historia o diagrama escribir (o **Todas las historias**, cuando el
+archivo tiene más de una) y escribe la misma página que la línea de comandos, y la línea de tiempo
+del lienzo tiene un botón **Exportar HTML** para la historia que reproduce.
+
+## Varias historias
+
+Un archivo puede contar varios flujos de un mismo dibujo, cada uno una `story` del mismo diagrama
+([historias](language/stories.md)). `--stories` los escribe en un solo reproductor, en el orden del
+archivo, o los que enumera en ese orden (`--stories refund,purchase`); las vistas que comparten se
+incrustan una sola vez, y el comando dice cuántas historias lleva la página:
+`Wrote flows.stories.html (2 stories)`. Una historia cuyas vistas no se pueden dibujar se deja fuera
+y se nombra, y la página reproduce las demás.
+
+El reproductor de varias historias tiene un selector **Historia** en su barra de controles, antes
+del selector de escena. Elegir un flujo muestra su primer fotograma en 0 s, en pausa (en la vista
+estática, el estado final de su primera escena), conserva el zoom, llena el selector de escena con
+sus escenas y dice "Historia: Refund". La página lleva el nombre de la primera historia; el atributo
+`story` del elemento elige la que se muestra primero. Con una sola historia no hay selector.
 
 ## Controles
 
@@ -36,7 +53,8 @@ reproduce.
 | Reproducir / Pausar                | Espacio, K                                                        | Reproduce desde el tiempo actual, o desde el principio si está al final; pausa               |
 | Progreso                           | Izquierda / Derecha (un segundo), `,` / `.` (100 ms), Inicio, Fin | Un control deslizante con el tiempo; arrastrarlo pausa                                       |
 | Escena anterior / Escena siguiente | Re Pág / Av Pág, P / N                                            | El inicio de una escena (Re Pág va primero al inicio de la escena actual)                    |
-| Escena                             |                                                                   | Una lista de las escenas con sus títulos                                                     |
+| Historia                           |                                                                   | Una página de varias historias: las historias por título; elegir una va a su inicio          |
+| Escena                             |                                                                   | Una lista de las escenas de la historia que se muestra, con sus títulos                      |
 | Vista estática                     | S                                                                 | El estado final de cada escena, sin animación; para un diagrama, el dibujo sin efectos       |
 | Alejar / Acercar                   | `-` / `+` (o `=`)                                                 | El paso de zoom anterior o siguiente, alrededor del elemento con el foco o del centro        |
 | Nivel de zoom                      | `1`                                                               | Muestra el zoom; al pulsarlo, tamaño real                                                    |
@@ -47,18 +65,20 @@ reproduce.
 |                                    | Retroceso                                                         | Sube a la vista de arriba                                                                    |
 |                                    | Esc                                                               | Cierra la tarjeta, luego el panel, luego borra la selección                                  |
 
-Las teclas funcionan dondequiera que esté el foco dentro del reproductor, salvo en la lista de
-escenas, y el control deslizante conserva sus propias flechas. Cada control tiene un nombre, una
+Las teclas funcionan dondequiera que esté el foco dentro del reproductor, salvo en las listas de
+historias y de escenas, y el control deslizante conserva sus propias flechas. Cada control tiene un nombre, una
 descripción emergente con su tecla y un anillo de foco visible.
 
 - **Movimiento reducido.** Cuando el sistema pide movimiento reducido, el reproductor empieza en la
   vista estática y nunca se reproduce solo; aun así, el espectador puede desactivar la vista
   estática.
 - **Anuncios.** Los cambios de escena se anuncian de forma no intrusiva
-  ("Escena 2 de 2: processing"), y el nombre accesible de la imagen indica la historia y la escena.
+  ("Escena 2 de 2: processing"), y también la historia elegida ("Historia: Refund"); el nombre
+  accesible de la imagen indica la historia y la escena.
 - **Resumen en texto.** Debajo del reproductor, un resumen lista cada escena con sus tiempos y sus
   acciones en palabras, con las etiquetas de los elementos: "Mostrar Cliente, API Gateway, Pedidos y
-  PostgreSQL en 800 ms", "Recorrer “HTTPS” de Cliente a API Gateway en 1,2 s".
+  PostgreSQL en 800 ms", "Recorrer “HTTPS” de Cliente a API Gateway en 1,2 s". Una página de varias
+  historias lista cada historia bajo su título, con la que se muestra marcada como actual.
 - **Los efectos que se repiten sin fin** se reproducen hasta que se pausan, sin control deslizante
   de progreso.
 - **Dibujo interactivo.** El nombre de la imagen dice que admite interacción ("A purchase. Dibujo
@@ -111,7 +131,7 @@ Una página o un fragmento contiene un elemento `<meltemi-player>` con su docume
 ```html
 <meltemi-player autoplay loop>
   <script type="application/json">
-    {"format":"meltemi-player","version":2, …}
+    {"format":"meltemi-player","version":3, …}
   </script>
 </meltemi-player>
 <script>
@@ -127,36 +147,41 @@ Una página o un fragmento contiene un elemento `<meltemi-player>` con su docume
 | `controls="false"`    | Oculta los controles; el teclado y el resumen se mantienen                       |
 | `interactive="false"` | Dibuja el fotograma y los controles de reproducción: sin zoom, tarjetas ni panel |
 | `lang`                | El idioma de los controles: `es` o `en`                                          |
+| `story`               | Una página de varias historias: el id de la historia que se muestra primero      |
 
 Una página completa lleva su idioma como `<html lang>`; un fragmento en español lleva `lang="es"`
 en su elemento, y uno en inglés, nada. Un reproductor usa el `lang` más cercano (el suyo y, si no,
 el de su página), así que fragmentos en inglés y en español pueden compartir una página. Los
-fragmentos se pueden pegar más de una vez en una página; el elemento se define una sola vez. Los
-controles viven en un shadow root, así que los estilos de la página no los alcanzan, y las fuentes
+fragmentos se pueden pegar más de una vez en una página; el elemento se define una sola vez, con
+el primer entorno de ejecución de la página, que reproduce todos sus reproductores. Un entorno lee
+los documentos de su versión y de la versión 2; uno más antiguo dice que no puede leer un documento
+más nuevo, así que una página que mezcla fragmentos toma el entorno del más nuevo: pega ese
+fragmento primero. Los controles viven en un shadow root, así que los estilos de la página no los alcanzan, y las fuentes
 van una sola vez al head de la página. Los scripts también pueden llamar a
 `MeltemiPlayer.mountPlayer(element, document, options)`, cuyas opciones admiten
-`locale: "en" | "es"` e `interactive`, y que devuelve un manejador con `play`, `pause`,
-`seek(ms)`, `goToScene(index)`, `setStatic(on)`, el `svg` en pantalla, el `viewport`, `zoomIn()`,
+`locale: "en" | "es"`, `interactive` y `story`, y que devuelve un manejador con `play`, `pause`,
+`seek(ms)`, `goToScene(index)`, `goToStory(index)`, la historia `story` que se muestra,
+`setStatic(on)`, el `svg` en pantalla, el `viewport`, `zoomIn()`,
 `zoomOut()`, `fit()`, `actualSize()`, `setZoom(zoom)`, `panBy(dx, dy)`, `select(id)`,
 `showDetails(id)`, `closeDetails()`, `open(id)` y `up()`. Quien aloja el reproductor pasa
 `targets`, `onNavigate`, `sections` y `trail` para abrir sus propias páginas; el elemento emite los
-eventos `meltemi-select`, `meltemi-navigate` y `meltemi-view`. La página puede fijar los tokens de
+eventos `meltemi-select`, `meltemi-navigate`, `meltemi-view` y `meltemi-story`. La página puede fijar los tokens de
 movimiento en el elemento (`meltemi-player { --meltemi-motion: 0ms }`); valen cero con movimiento
 reducido.
 
 ## El documento
 
-| Clave                        | Significado                                                                                                                |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `format`, `version`          | `meltemi-player` y `2`                                                                                                     |
-| `kind`                       | `story` o `effects`                                                                                                        |
-| `id`, `title`, `description` | La historia o el diagrama                                                                                                  |
-| `timeline`, `views`          | Historias: la línea de tiempo y, por id de diagrama, la escena, los efectos y los extremos de las relaciones de cada vista |
-| `key`, `views`               | Efectos: la vista propia del diagrama y cada vista que alcanza un desglose, con cuándo terminan sus efectos                |
-| `names`                      | Por vista, su título y las etiquetas de sus elementos, relaciones, notas y fragmentos                                      |
-| `details`                    | Por vista, lo que dicen las tarjetas y lo que abre cada elemento; su nivel y alcance C4; su vista de arriba                |
-| `accent`                     | El color de los resaltados y los recorridos                                                                                |
-| `fontFaces`                  | Reglas `@font-face` para el texto, o ninguna                                                                               |
+| Clave                        | Significado                                                                                                                                                                                             |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `format`, `version`          | `meltemi-player` y `3` (el entorno también lee `2`, cuya única historia es su `timeline`)                                                                                                               |
+| `kind`                       | `story` o `effects`                                                                                                                                                                                     |
+| `id`, `title`, `description` | El diagrama, o la primera historia                                                                                                                                                                      |
+| `stories`, `views`           | Historias: el id, el título, la descripción y la línea de tiempo de cada una, en orden; por id de diagrama, la escena, los efectos y los extremos de las relaciones de cada vista que muestran, una vez |
+| `key`, `views`               | Efectos: la vista propia del diagrama y cada vista que alcanza un desglose, con cuándo terminan sus efectos                                                                                             |
+| `names`                      | Por vista, su título y las etiquetas de sus elementos, relaciones, notas y fragmentos                                                                                                                   |
+| `details`                    | Por vista, lo que dicen las tarjetas y lo que abre cada elemento; su nivel y alcance C4; su vista de arriba                                                                                             |
+| `accent`                     | El color de los resaltados y los recorridos                                                                                                                                                             |
+| `fontFaces`                  | Reglas `@font-face` para el texto, o ninguna                                                                                                                                                            |
 
 Los datos se escapan para que nada en ellos pueda cerrar su elemento script, y no se carga nada de
 la red.

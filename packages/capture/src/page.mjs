@@ -9,12 +9,30 @@ export function cssColor(color) {
 
 /**
  * The page a job is drawn on: the SVG at the job's size (its view box keeps the picture's ratio,
- * centred), on the job's background, and a printed page of the same size.
+ * centred), on the job's background, and a printed page of the same size. A PDF job with `pages`
+ * prints one page per picture, each a `section` of the job's size on its own background.
  */
 export function capturePage(job) {
   const width = Math.round(job.width * 100) / 100;
   const height = Math.round(job.height * 100) / 100;
   const background = cssColor(job.background);
+  if (job.kind === "pdf" && job.pages && job.pages.length > 0) {
+    return [
+      "<!doctype html>",
+      '<html><head><meta charset="utf-8"><style>',
+      `@page { size: ${width}px ${height}px; margin: 0; }`,
+      "html, body { margin: 0; padding: 0; }",
+      `section { display: block; position: relative; width: ${width}px; height: ${height}px; overflow: hidden; break-after: page; }`,
+      "section:last-child { break-after: auto; }",
+      `section > svg { display: block; width: ${width}px; height: ${height}px; }`,
+      "</style></head><body>",
+      ...job.pages.map(
+        (page) =>
+          `<section style="background: ${cssColor(page.background ?? job.background)}">${page.svg}</section>`,
+      ),
+      "</body></html>",
+    ].join("\n");
+  }
   return [
     "<!doctype html>",
     '<html><head><meta charset="utf-8"><style>',

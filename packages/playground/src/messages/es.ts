@@ -419,6 +419,17 @@ export const es: typeof en = {
     profileGone: (id) => `El perfil ${id} ya no existe.`,
     playerUnreadable: "No se pudo leer el entorno de ejecución del reproductor.",
     printTitle: "Imagen para imprimir",
+    everyStory: (count) => `Todas las historias (${count})`,
+    scenes: "Una imagen por escena",
+    scenesHint:
+      "El estado final de cada escena, como lo muestra la vista estática del reproductor: un .zip de archivos SVG o PNG, o un PDF con una página por escena.",
+    picture: (done, total) => `Imagen ${done} de ${total}`,
+    downloadedStories: (name, stories) =>
+      `Se descargó ${name} con ${stories.length} historias: ${stories.join(", ")}.`,
+    downloadedScenes: (name, pictures) =>
+      `Se descargó ${name} con ${pictures} ${pictures === 1 ? "imagen" : "imágenes"}, una por escena.`,
+    printingScenes: (name, pages) =>
+      `El diálogo de impresión muestra ${name}, ${pages} ${pages === 1 ? "página" : "páginas"}, una por escena; elige "Guardar como PDF" para conservarlas como vectores.`,
   },
 
   video: {

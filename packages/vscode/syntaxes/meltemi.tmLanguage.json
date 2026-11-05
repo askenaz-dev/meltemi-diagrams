@@ -131,7 +131,7 @@
         },
         {
           "name": "keyword.control.profile.meltemi",
-          "match": "\\b(level|scope|include|exclude|person|system|container|datastore|component|technology|external|url|assumption|scene|view|transition|cut|fade|morph|over|reveal|hide|hold|trace|draw|highlight|parallel|focus|camera|all|format|scale|background|transparent|motion|fonts|scenario|fps|duration|file|autoplay|loop|embed)\\b"
+          "match": "\\b(level|scope|include|exclude|person|system|container|datastore|component|technology|external|url|assumption|scene|view|transition|cut|fade|morph|over|reveal|hide|hold|trace|draw|highlight|parallel|focus|camera|all|format|scale|background|transparent|motion|fonts|scenario|fps|duration|file|autoplay|loop|embed|scenes)\\b"
         }
       ]
     },

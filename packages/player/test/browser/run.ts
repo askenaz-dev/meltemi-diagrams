@@ -10,14 +10,17 @@ import { layoutDiagram } from "@meltemi/diagrams-layout";
 import { createElkEngine } from "@meltemi/diagrams-layout-elk";
 import { compile } from "@meltemi/diagrams-model";
 import { sceneGroups, storyFrame } from "@meltemi/diagrams-motion";
+import { FLOWS_SOURCE } from "../../../../test-support/flows.js";
 import { renderSvg } from "@meltemi/diagrams-render";
 import { chromium, type Browser, type Page } from "playwright-core";
 import { browserPath } from "../../../vscode/scripts/browser.mjs";
 import {
   effectsDocument,
   frameSvg,
+  playerElement,
   playerFragment,
   playerPage,
+  storiesDocument,
   storyDocument,
   storyViews,
   type HostOpenTarget,
@@ -45,6 +48,47 @@ for (const [key, view] of storyViews(story)) {
   });
 }
 const purchase: StoryPlayerDocument = storyDocument(story, layouts)!;
+
+/** The purchase and refund stories of one `checkout` drawing in one document. */
+const flows: StoryPlayerDocument = (() => {
+  const source = compile(FLOWS_SOURCE);
+  return storiesDocument(
+    source.document.stories.map((s) => {
+      const views = new Map<string, LaidOutView>();
+      for (const [key, view] of storyViews(s)) {
+        views.set(key, {
+          diagram: view.diagram!,
+          layout: layoutDiagram(source, view.diagram!, { engine }),
+        });
+      }
+      return { story: s, layouts: views };
+    }),
+  ).document!;
+})();
+/** The flows document as a version 2 builder wrote it: one story, as `timeline`. */
+const version2 = (() => {
+  const { stories, ...rest } = purchase;
+  return { ...rest, version: 2, timeline: stories[0]!.timeline };
+})();
+/** What the exporter writes for a story of the flows document at `t`. */
+const flowFrame = (index: number, t: number) =>
+  renderSvg(
+    storyFrame(flows.stories[index]!.timeline, (k) => flows.views[k], t, {
+      accent: flows.accent,
+    })!,
+    { fonts: "system" },
+  );
+/** The index of the story the n-th player shows. */
+const storyShown = (page: Page, n = 0) =>
+  page.evaluate(
+    (index) =>
+      (
+        document.querySelectorAll("meltemi-player")[index] as HTMLElement & {
+          player: { story: number };
+        }
+      ).player.story,
+    n,
+  );
 const checkout = compilation.document.diagrams[0]!;
 const effects = effectsDocument({
   diagram: checkout,
@@ -94,7 +138,9 @@ const linked = effectsDocument({
 /** What the exporter writes for the story at `t`. */
 const exported = (t: number) =>
   renderSvg(
-    storyFrame(purchase.timeline, (k) => purchase.views[k], t, { accent: purchase.accent })!,
+    storyFrame(purchase.stories[0]!.timeline, (k) => purchase.views[k], t, {
+      accent: purchase.accent,
+    })!,
     {
       fonts: "system",
     },
@@ -340,6 +386,160 @@ const tests: {
       assert.ok(text.includes("Scene 1: overview (0 s to 1.8 s)"), text);
       assert.ok(text.includes("Reveal Cliente, API Gateway, Pedidos and PostgreSQL over 800 ms"));
       assert.ok(text.includes("Trace “HTTPS” from Cliente to API Gateway over 1.2 s"));
+    },
+  },
+  {
+    name: "picks another flow: its first frame at 0 ms, paused, its scenes and its name",
+    html: playerPage(flows, script),
+    async run(page) {
+      const picker = page.getByRole("combobox", { name: "Story" });
+      assert.equal(await picker.count(), 1);
+      // Before the scene picker, the stories by title.
+      const order = await page.evaluate(() =>
+        [
+          ...document
+            .querySelector("meltemi-player")!
+            .shadowRoot!.querySelectorAll(".controls select"),
+        ].map((s) => s.getAttribute("aria-label")),
+      );
+      assert.deepEqual(order, ["Story", "Scene"]);
+      assert.deepEqual(await picker.locator("option").allTextContents(), ["A purchase", "Refund"]);
+      await page.getByRole("button", { name: "Play" }).click();
+      await page.waitForFunction(
+        () =>
+          (
+            document.querySelector("meltemi-player") as HTMLElement & {
+              player: { controller: { time: number } };
+            }
+          ).player.controller.time > 300,
+      );
+      const before = await viewer(page);
+      await picker.selectOption({ label: "Refund" });
+      const now = await state(page);
+      assert.deepEqual([now.time, now.playing, now.staticView], [0, false, false]);
+      assert.equal(now.svg, flowFrame(1, 0));
+      assert.equal(await storyShown(page), 1);
+      assert.deepEqual(await viewer(page), before, "the viewport stays");
+      assert.deepEqual(
+        await page.getByRole("combobox", { name: "Scene" }).locator("option").allTextContents(),
+        ["1. request", "2. refunded"],
+      );
+      assert.equal(await page.getByRole("status").textContent(), "Story: Refund");
+      assert.equal(
+        await page.locator(".frame").getAttribute("aria-label"),
+        "Refund. Scene 1 of 2: request. Interactive drawing",
+      );
+      assert.equal(await page.getByRole("figure", { name: "Story: Refund" }).count(), 1);
+      assert.equal(await page.locator(".time").textContent(), "0 s / 3.4 s");
+      // Its own scenes and clock from here.
+      await page.getByRole("button", { name: "Next scene" }).click();
+      assert.equal((await state(page)).time, 1400);
+      assert.equal((await state(page)).svg, flowFrame(1, 1400));
+      await page.screenshot({ path: join(output, "player-stories.png"), fullPage: true });
+    },
+  },
+  {
+    name: "summarises every story, the one shown marked current, and its static view",
+    html: playerPage(flows, script),
+    async run(page) {
+      await page.getByRole("combobox", { name: "Story" }).selectOption({ label: "Refund" });
+      await page.getByText("Text summary").click();
+      const headings = page.locator("details h3");
+      assert.deepEqual(await headings.allTextContents(), ["A purchase", "Refund"]);
+      assert.equal(await headings.nth(0).getAttribute("aria-current"), null);
+      assert.equal(await headings.nth(1).getAttribute("aria-current"), "true");
+      const text = (await page.locator("details").textContent()) ?? "";
+      assert.ok(text.includes("Scene 1: overview (0 s to 1.8 s)"), text);
+      assert.ok(text.includes("Scene 2: refunded (1.4 s to 3.4 s)"), text);
+      assert.ok(text.includes("Highlight Pedidos for 1 s"), text);
+      await page.getByRole("button", { name: "Static view" }).click();
+      const still = await state(page);
+      assert.deepEqual([still.staticView, still.time], [true, 1400 - 0.01]);
+      assert.equal(still.svg, flowFrame(1, 1400 - 0.01));
+      assert.deepEqual(
+        await page.getByRole("combobox", { name: "Scene" }).locator("option").allTextContents(),
+        ["1. request", "2. refunded"],
+      );
+      // Back to the first story, still static: its first scene's final state.
+      await page.getByRole("combobox", { name: "Story" }).selectOption({ label: "A purchase" });
+      assert.deepEqual(
+        [(await state(page)).time, (await state(page)).staticView],
+        [1800 - 0.01, true],
+      );
+      assert.equal(await headings.nth(0).getAttribute("aria-current"), "true");
+    },
+  },
+  {
+    name: "shows the story its attribute names first, and the first for an unknown one",
+    html: `<!doctype html><html lang="en"><body>${playerElement(flows, { story: "refund" })}${playerElement(flows, { story: "tour" })}${playerElement(purchase, { story: "refund" })}<script>${script.replace(/<\/(script)/gi, "<\\/$1")}</script></body></html>`,
+    async run(page) {
+      assert.equal(await page.locator("meltemi-player").nth(0).getAttribute("story"), "refund");
+      assert.equal(await storyShown(page, 0), 1);
+      assert.equal((await state(page, 0)).svg, flowFrame(1, 0));
+      const first = page.locator("meltemi-player").nth(0).getByRole("combobox", { name: "Story" });
+      assert.equal(await first.inputValue(), "1");
+      assert.equal(await storyShown(page, 1), 0);
+      assert.equal(
+        await page
+          .locator("meltemi-player")
+          .nth(1)
+          .getByRole("combobox", { name: "Story" })
+          .inputValue(),
+        "0",
+      );
+      // One story: the attribute changes nothing and there is no picker.
+      assert.equal(await storyShown(page, 2), 0);
+      assert.equal(
+        await page
+          .locator("meltemi-player")
+          .nth(2)
+          .getByRole("combobox", { name: "Story" })
+          .count(),
+        0,
+      );
+    },
+  },
+  {
+    name: "leaves the keys typed in the Story picker to it, and offers no picker for one story",
+    html: `<!doctype html><html lang="en"><body>${playerFragment(flows, script)}${playerFragment(purchase, script)}</body></html>`,
+    async run(page) {
+      const before = await viewer(page, 0);
+      const picker = page.locator("meltemi-player").nth(0).getByRole("combobox", { name: "Story" });
+      await picker.focus();
+      await page.keyboard.press("+");
+      await page.keyboard.press("Space");
+      assert.deepEqual(await viewer(page, 0), before, "the zoom is unchanged");
+      assert.equal((await state(page, 0)).playing, false);
+      const single = page.locator("meltemi-player").nth(1);
+      assert.equal(await single.getByRole("combobox", { name: "Story" }).count(), 0);
+      assert.deepEqual(
+        await single.getByRole("combobox", { name: "Scene" }).locator("option").allTextContents(),
+        ["1. overview", "2. processing"],
+      );
+    },
+  },
+  {
+    name: "plays a page written with a version 2 document as one story of one",
+    html: `<!doctype html><html lang="en"><body><meltemi-player><script type="application/json">${JSON.stringify(version2).replace(/</g, "\\u003c")}</script></meltemi-player><script>${script.replace(/<\/(script)/gi, "<\\/$1")}</script></body></html>`,
+    async run(page) {
+      assert.equal(await page.getByRole("combobox", { name: "Story" }).count(), 0);
+      assert.equal((await state(page)).svg, exported(0));
+      await page.getByRole("combobox", { name: "Scene" }).selectOption({ label: "2. processing" });
+      assert.equal((await state(page)).time, 1800);
+      assert.equal(await page.getByRole("figure", { name: "Story: A purchase" }).count(), 1);
+    },
+  },
+  {
+    name: "names the Story picker and announces a flow in Spanish",
+    html: playerPage(flows, script, { lang: "es" }),
+    async run(page) {
+      const picker = page.getByRole("combobox", { name: "Historia" });
+      assert.equal(await picker.getAttribute("title"), "El flujo que se reproduce");
+      await picker.selectOption({ label: "Refund" });
+      assert.equal(await page.getByRole("status").textContent(), "Historia: Refund");
+      assert.equal(await page.getByRole("figure", { name: "Historia: Refund" }).count(), 1);
+      assert.equal(await page.locator(".time").textContent(), "0 s / 3,4 s");
+      await page.screenshot({ path: join(output, "player-stories-es.png"), fullPage: true });
     },
   },
   {

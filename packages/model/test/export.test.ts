@@ -53,6 +53,52 @@ describe("export profiles", () => {
     expect(codes(withProfile("  format mp4", "tour"))).toEqual([]);
   });
 
+  it("takes `scenes` on SVG, PNG and PDF of a story, never with an instant", () => {
+    const slides = withProfile("  format png\n  scale 2\n  scenes true", "tour");
+    expect(codes(slides)).toEqual([]);
+    expect(slides.document.exports[0]).toMatchObject({ scenes: true, scale: 2 });
+    expect(toJson(slides).exports[0]).toMatchObject({ scenes: true });
+    expect(withProfile("  format png", "tour").document.exports[0]!.scenes).toBe(false);
+    expect(withProfile("  format svg\n  scenes false", "tour").document.exports[0]!.scenes).toBe(
+      false,
+    );
+    expect(codes(withProfile('  format pdf\n  scenes true\n  file "deck.pdf"', "tour"))).toEqual(
+      [],
+    );
+    const messageOf = (c: ReturnType<typeof compile>) =>
+      c.diagnostics.map((d) => [d.code, d.message]);
+    // With an instant: the diagnostic is on `at`.
+    const instant = withProfile("  format svg\n  scenes true\n  at 500ms", "tour");
+    expect(messageOf(instant)).toEqual([
+      [
+        "export.invalid-option",
+        "`scenes` writes every scene's final state; it does not go with `at`.",
+      ],
+    ]);
+    expect(instant.document.exports[0]).toMatchObject({ scenes: true, atMs: null });
+    // On a diagram: the diagnostic is on `scenes`.
+    expect(messageOf(withProfile("  format svg\n  scenes true"))).toEqual([
+      [
+        "export.invalid-option",
+        "`scenes` writes a picture of every scene of a story; it takes a story.",
+      ],
+    ]);
+    expect(withProfile("  format svg\n  scenes true").document.exports[0]!.scenes).toBe(false);
+    // On another format, and with one file for several.
+    expect(codes(withProfile("  format html\n  scenes true", "tour"))).toEqual([
+      "export.invalid-option",
+    ]);
+    expect(messageOf(withProfile('  format png\n  scenes true\n  file "s.png"', "tour"))).toEqual([
+      [
+        "export.invalid-option",
+        "`scenes` writes a png file per scene; `file` names one, so it does not go with it.",
+      ],
+    ]);
+    expect(codes(withProfile("  format png\n  scenes yes", "tour"))).toEqual([
+      "prop.invalid-value",
+    ]);
+  });
+
   it("refuses options of other formats and unsafe values", () => {
     expect(codes(withProfile("  format pdf\n  scale 2"))).toEqual(["export.invalid-option"]);
     expect(codes(withProfile('  format png\n  file "out/x.pdf"'))).toEqual([

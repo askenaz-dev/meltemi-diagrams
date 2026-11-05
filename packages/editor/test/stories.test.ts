@@ -336,6 +336,81 @@ describe("story mode of the canvas session", () => {
     expect(refused.messages[0]).toMatchObject({ type: "rejected", code: "edit.invalid-value" });
   });
 
+  it("creates a story for the diagram shown and plays it on its empty scene", () => {
+    const text = 'language "0.2"\n\ndiagram checkout: flow {\n  a -> b as ab\n}\n';
+    const canvas = session(text);
+    expect(canvas.story()).toBeUndefined();
+    const result = canvas.send({
+      type: "action",
+      revision: canvas.revision(),
+      action: { kind: "createStory" },
+    });
+    expect(result.plan).toBeDefined();
+    expect(canvas.text()).toBe(`${text}\nstory story1 for checkout {\n  scene scene1 {\n  }\n}\n`);
+    const story = canvas.story()!;
+    expect(story.stories).toEqual([{ id: "story1", title: null }]);
+    expect(story.playback!.id).toBe("story1");
+    expect(story.playback!.timeline.scenes.map((s) => [s.id, s.actions.length])).toEqual([
+      ["scene1", 0],
+    ]);
+  });
+
+  it("says what to do with the new story, and makes the next one for the playing story's diagram", () => {
+    const canvas = new CanvasSession();
+    let text = purchase;
+    let revision = 1;
+    canvas.update(analyzeDocument({ text, revision }));
+    canvas.receive({ type: "pickStory", story: "purchase" });
+    const result = canvas.receive({ type: "action", revision, action: { kind: "createStory" } });
+    text = applyTextEdits(text, result.plan!.edits);
+    expect(text).toContain("\nstory story1 for checkout {\n  scene scene1 {\n  }\n}\n");
+    const messages = canvas.update(analyzeDocument({ text, revision: ++revision }));
+    expect(messages.find((m) => m.type === "status")).toEqual({
+      type: "status",
+      message:
+        "Created the story `story1`: select on the frame and press Add to scene to fill its first scene.",
+    });
+    const shown = messages.find((m): m is HostMessage & { type: "story" } => m.type === "story")!;
+    expect(shown.stories.map((s) => s.id)).toEqual(["purchase", "story1"]);
+    expect(shown.playback!.id).toBe("story1");
+    // The status is said once.
+    expect(canvas.state().some((m) => m.type === "status")).toBe(false);
+    // Undone: story mode ends, as for any story that is gone.
+    const undone = canvas.update(analyzeDocument({ text: purchase, revision: revision + 1 }));
+    expect(
+      undone.find((m): m is HostMessage & { type: "story" } => m.type === "story")!.playback,
+    ).toBeNull();
+  });
+
+  it("asks the host for the pictures of every scene of a story", () => {
+    const canvas = session(purchase);
+    expect(canvas.send({ type: "exportScenes", story: "purchase" })).toEqual({
+      messages: [],
+      command: "exportScenes",
+      story: "purchase",
+    });
+    expect(canvas.send({ type: "exportScenes", story: "tour" }).messages).toEqual([]);
+    expect(canvas.send({ type: "exportScenes", story: "tour" }).command).toBeUndefined();
+  });
+
+  it("makes no story without a diagram of the file to tell", () => {
+    const text =
+      'language "0.2"\nimport checkout from "./checkout.meltemi"\nstory s for checkout {\n  scene one { hold 1s }\n}\n';
+    const canvas = session(text);
+    const refused = canvas.send({
+      type: "action",
+      revision: canvas.revision(),
+      action: { kind: "createStory" },
+    });
+    expect(refused.messages).toEqual([
+      {
+        type: "rejected",
+        code: "edit.unsafe-target",
+        reason: "A story is made for a diagram of this file; show one first.",
+      },
+    ]);
+  });
+
   it("plays stories of a file without diagrams", () => {
     const text =
       'language "0.2"\nimport checkout from "./checkout.meltemi"\nstory s for checkout {\n  scene one { hold 1s }\n}\n';

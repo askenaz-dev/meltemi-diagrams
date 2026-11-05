@@ -18,6 +18,9 @@ the same files on every machine with the same tools (decision 0025).
 | `pnpm mdg export sheet.meltemi --format pdf`                                    | `sheet.pdf`, one vector page of the picture's size         |
 | `pnpm mdg export sheet.meltemi --story tour --at 2s --format pdf`               | the frame of the story at 2 s                              |
 | `pnpm mdg export sheet.meltemi --format html --story tour`                      | the story's player ([player.md](../player.md))             |
+| `pnpm mdg export sheet.meltemi --stories`                                       | `sheet.stories.html`, every story in one player            |
+| `pnpm mdg export sheet.meltemi --story tour --scenes --format png`              | `sheet.tour.<scene>.png`, each scene's final state         |
+| `pnpm mdg export sheet.meltemi --story tour --scenes --format pdf`              | `sheet.tour.pdf`, a page per scene                         |
 | `pnpm mdg export sheet.meltemi --diagram context --format html`                 | `sheet.context.html`, with every view it opens             |
 | `pnpm mdg export sheet.meltemi --story tour --format mp4`                       | `sheet.tour.mp4`, 1920 × 1080 at 30 fps                    |
 | `pnpm mdg export sheet.meltemi --format gif`                                    | a GIF of one loop of the diagram's effects                 |
@@ -28,6 +31,10 @@ the same files on every machine with the same tools (decision 0025).
 `--background` takes `transparent`, a colour token (`accent`, `canvas`, …) or a CSS colour, for
 SVG, PNG and PDF; `--link <url>` makes the whole SVG or PDF picture a link. With profiles, the other
 output options are refused (the profile has them) and `--out` names an existing folder.
+`--stories` (alone, or with ids such as `--stories refund,purchase`) writes the HTML player of
+several stories, and HTML is its format when none is given; `--scenes` with `--story` writes the
+picture of every scene's final state, a file per scene in the directory `--out` names (made when
+missing) or one PDF ([stories](stories.md#exports)).
 
 ## PNG and PDF
 
@@ -98,6 +105,12 @@ export presentation for purchase {
   size (1920, 1080)
   fps 30
 }
+
+export slides for purchase {
+  format png
+  scale 2
+  scenes true   // purchase.slides.overview.png and purchase.slides.processing.png
+}
 ```
 
 | Option                      | Formats                  | Values                                                                                                       |
@@ -116,16 +129,20 @@ export presentation for purchase {
 | `duration`                  | mp4, webm, gif           | a time; without it, one loop of the effects (or 1 s without moving effects)                                  |
 | `file`                      | all                      | a path relative to the file, without `..`, ending in the format's extension; `<stem>.<id>.<ext>` by default  |
 | `autoplay`, `loop`, `embed` | html                     | player options ([player.md](../player.md))                                                                   |
+| `scenes`                    | svg, png, pdf            | `true` or `false`; stories only: each scene's final state instead of one frame, as `--scenes` writes it      |
 
 The target is a diagram of the file, an imported diagram or a story of the file. Profile ids share
-the file namespace.
+the file namespace. `scenes true` writes an SVG or PNG per scene, named after the profile with the
+scene's id before the extension (`purchase.slides.overview.png`), or one PDF with a page per scene,
+which `file` may name; it takes no `at`. A page of every story is written from the command line
+(`--stories`) and the dialogs, not from a profile: a profile has one target.
 
-| Code                    | When                                                                                                                       |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `export.unknown-target` | the target is not a diagram or story of the file or an import                                                              |
-| `export.missing-format` | the profile has no `format`                                                                                                |
-| `export.invalid-option` | an option of another format; `motion` or `scenario` on a story; `at` past the story's end; a `file` with another extension |
-| `prop.invalid-value`    | a malformed value, an unsafe link or a `file` outside the folder                                                           |
+| Code                    | When                                                                                                                                                                                            |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `export.unknown-target` | the target is not a diagram or story of the file or an import                                                                                                                                   |
+| `export.missing-format` | the profile has no `format`                                                                                                                                                                     |
+| `export.invalid-option` | an option of another format; `motion` or `scenario` on a story; `at` past the story's end; a `file` with another extension; `scenes true` on a diagram, with `at`, or with `file` on SVG or PNG |
+| `prop.invalid-value`    | a malformed value, an unsafe link or a `file` outside the folder                                                                                                                                |
 
 ## Links
 

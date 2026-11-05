@@ -24,12 +24,15 @@ export { sceneAt } from "./frames.js";
 export { animatedScene, MOTION_CLASS } from "./css.js";
 export { pointAlong, trackLength } from "./geometry.js";
 export {
+  BEFORE_NEXT_SCENE,
   boundsOf,
   frameBox,
+  sceneStills,
   storyFrame,
   storyTimeline,
   storyViewData,
   viewKey,
+  type SceneStill,
   type StoryBox,
   type StoryFrameOptions,
   type StoryTimeline,

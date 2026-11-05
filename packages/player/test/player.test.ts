@@ -5,8 +5,10 @@ import { untranslated } from "@meltemi/diagrams-i18n";
 import { layoutDiagram, type PolylineItem, type Scene } from "@meltemi/diagrams-layout";
 import { createElkEngine } from "@meltemi/diagrams-layout-elk";
 import { compile } from "@meltemi/diagrams-model";
-import { sceneGroups, viewKey } from "@meltemi/diagrams-motion";
+import { sceneGroups, sceneStills, storyFrame, viewKey } from "@meltemi/diagrams-motion";
+import { renderSvg } from "@meltemi/diagrams-render";
 import { CORPUS_ROOT } from "../../../test-support/corpus.js";
+import { BROKEN_STORY, FLOWS_SOURCE } from "../../../test-support/flows.js";
 // The times a video export captures its frames at.
 import { frameTimes } from "../../capture/src/page.mjs";
 import { frameScene } from "../src/frame.js";
@@ -22,6 +24,8 @@ import {
   playerFragment,
   PLAYER_POLICY,
   playerPage,
+  readPlayerDocument,
+  storiesDocument,
   storyDocument,
   storySummary,
   storyViews,
@@ -83,22 +87,107 @@ function purchaseDocument(): StoryPlayerDocument {
   return storyDocument(story, layouts)!;
 }
 
+/** The laid-out views of every story of a source, by story id; a diagram with errors has none. */
+function storyLayouts(source: string) {
+  const compilation = compile(source);
+  return compilation.document.stories.map((story) => {
+    const layouts = new Map<string, LaidOutView>();
+    for (const [key, view] of storyViews(story)) {
+      const diagram = view.diagram!;
+      if (diagram.hasErrors) continue;
+      layouts.set(key, { diagram, layout: layoutDiagram(compilation, diagram, { engine }) });
+    }
+    return { story, layouts };
+  });
+}
+
+/** The purchase and refund stories in one document, over the one `checkout` view. */
+export function flowsDocument(): StoryPlayerDocument {
+  return storiesDocument(storyLayouts(FLOWS_SOURCE)).document!;
+}
+
 describe("player documents", () => {
   it("builds a story document as plain, versioned data", () => {
     const doc = purchaseDocument();
     expect(doc).toMatchObject({
       format: "meltemi-player",
-      version: 2,
+      version: 3,
       kind: "story",
       id: "purchase",
+      title: "A purchase",
     });
-    expect(doc.timeline.durationMs).toBe(7400);
+    expect(doc.stories.map((s) => s.id)).toEqual(["purchase"]);
+    expect(doc.stories[0]!.timeline.durationMs).toBe(7400);
     expect(Object.keys(doc.views)).toEqual(["checkout"]);
     expect(doc.names.checkout!.labels).toMatchObject({ db: "PostgreSQL", request: "HTTPS" });
     expect(doc.fontFaces).toEqual([]);
     expect(JSON.parse(JSON.stringify(doc))).toEqual(doc);
     expect(isPlayerDocument(JSON.parse(playerData(doc)))).toBe(true);
     expect(isPlayerDocument({ format: "meltemi-player", version: 1, kind: "story" })).toBe(false);
+  });
+
+  it("reads a version 2 document as one story of one, and refuses version 1", () => {
+    const doc = purchaseDocument();
+    const { stories, ...rest } = doc;
+    const version2 = { ...rest, version: 2, timeline: stories[0]!.timeline };
+    expect(isPlayerDocument(version2)).toBe(true);
+    expect(readPlayerDocument(JSON.parse(JSON.stringify(version2)))).toEqual(doc);
+    const effects = commerceDocument();
+    expect(readPlayerDocument({ ...effects, version: 2 })).toEqual(effects);
+    expect(readPlayerDocument(doc)).toBe(doc);
+    for (const refused of [
+      { ...version2, version: 1 },
+      { ...rest, version: 2 },
+      { ...doc, stories: [] },
+      { ...doc, version: 4 },
+      { ...doc, format: "other" },
+      null,
+      "meltemi-player",
+    ]) {
+      expect(isPlayerDocument(refused)).toBe(false);
+      expect(readPlayerDocument(refused)).toBeUndefined();
+    }
+  });
+
+  it("builds several stories into one document over the views they share", () => {
+    const built = storiesDocument(storyLayouts(FLOWS_SOURCE));
+    expect(built.left).toEqual([]);
+    const doc = built.document!;
+    expect(doc.stories.map((s) => [s.id, s.title, s.timeline.durationMs])).toEqual([
+      ["purchase", "A purchase", 7400],
+      ["refund", "Refund", 3400],
+    ]);
+    // The document is named by its first story, and `checkout` is embedded once.
+    expect([doc.id, doc.title]).toEqual(["purchase", "A purchase"]);
+    expect(Object.keys(doc.views)).toEqual(["checkout"]);
+    expect(doc.stories.every((s) => s.timeline.views.join() === "checkout")).toBe(true);
+    // The same inputs give the same document.
+    expect(JSON.stringify(flowsDocument())).toBe(JSON.stringify(doc));
+    expect(isPlayerDocument(JSON.parse(playerData(doc)))).toBe(true);
+    // Each story draws as its own timeline does.
+    for (const [index, story] of doc.stories.entries()) {
+      for (const t of [0, 700, story.timeline.durationMs]) {
+        const drawn = storyFrame(story.timeline, (key) => doc.views[key], t, {
+          accent: doc.accent,
+        })!;
+        expect(frameSvg(doc, t, { story: index })).toBe(renderSvg(drawn, { fonts: "system" }));
+      }
+    }
+    expect(frameSvg(doc, 700)).toBe(frameSvg(doc, 700, { story: 0 }));
+    expect(frameSvg(doc, 700, { story: 1 })).not.toBe(frameSvg(doc, 700, { story: 0 }));
+    // A single story builds the same document as `storyDocument`.
+    expect(storiesDocument(storyLayouts(purchase)).document).toEqual(purchaseDocument());
+  });
+
+  it("leaves out a story whose view cannot be drawn, and makes nothing of it alone", () => {
+    const stories = storyLayouts(`${FLOWS_SOURCE}${BROKEN_STORY}`);
+    expect(stories.map((s) => s.story.id)).toEqual(["purchase", "refund", "outage"]);
+    const built = storiesDocument([stories[2]!, stories[0]!, stories[1]!]);
+    expect(built.left).toEqual(["outage"]);
+    expect(built.document!.stories.map((s) => s.id)).toEqual(["purchase", "refund"]);
+    expect(Object.keys(built.document!.views)).toEqual(["checkout"]);
+    expect(storiesDocument([stories[2]!])).toEqual({ document: undefined, left: ["outage"] });
+    expect(storyDocument(stories[2]!.story, stories[2]!.layouts)).toBeUndefined();
   });
 
   it("needs every view of the story", () => {
@@ -217,6 +306,44 @@ describe("player controller", () => {
     expect(player.time).toBe(7400);
     expect(commandForKey("x")).toBeUndefined();
     expect(commandForKey(" ")).toBe("toggle");
+  });
+
+  it("draws a scene's final state at the instant of its still", () => {
+    const doc = purchaseDocument();
+    const player = new PlayerController(doc);
+    const stills = sceneStills(doc.stories[0]!.timeline).map((s) => s.atMs);
+    expect(stills).toEqual([1800 - 0.01, 7400]);
+    expect([player.sceneEnd(0), player.sceneEnd(1), player.sceneEnd(2)]).toEqual([...stills, 0]);
+  });
+
+  it("goes to another story at its start, stopped, keeping the static view", () => {
+    const doc = flowsDocument();
+    const player = new PlayerController(doc, { autoplay: true });
+    expect([player.story, player.storyTitle, player.duration]).toEqual([0, "A purchase", 7400]);
+    player.tick(2000);
+    player.goToStory(1);
+    expect([player.story, player.time, player.playing]).toEqual([1, 0, false]);
+    expect([player.storyTitle, player.duration, player.scenes.map((s) => s.id)]).toEqual([
+      "Refund",
+      3400,
+      ["request", "refunded"],
+    ]);
+    expect(player.view).toBe("checkout");
+    // In the static view, its first scene's final state.
+    player.setStatic(true);
+    player.goToStory(0);
+    player.goToStory(1);
+    expect([player.staticView, player.time]).toEqual([true, 1400 - 0.01]);
+    player.goToStory(9);
+    expect(player.story).toBe(1);
+    // The story chosen first, by id; an unknown one gives the first.
+    expect(new PlayerController(doc, { story: "refund" }).story).toBe(1);
+    expect(new PlayerController(doc, { story: "tour" }).story).toBe(0);
+    expect(new PlayerController(purchaseDocument(), { story: "refund" }).story).toBe(0);
+    expect(storySummary(doc, "en", 1).map((s) => s.heading)).toEqual([
+      "Scene 1: request (0 s to 1.4 s)",
+      "Scene 2: refunded (1.4 s to 3.4 s)",
+    ]);
   });
 
   it("shows final states in the static view and honours reduced motion", () => {
@@ -713,7 +840,7 @@ story walk for board {
   it("draws half of a stroke at 500 ms and the whole of it at 1500 ms of a video", () => {
     // The page a video is captured from parses the document's data and draws each frame time.
     const data = JSON.parse(playerData(boardDocument())) as StoryPlayerDocument;
-    const times = frameTimes(data.timeline.durationMs, 30);
+    const times = frameTimes(data.stories[0]!.timeline.durationMs, 30);
     expect([times[15], times[45]]).toEqual([500, 1500]);
     const half = frameScene(data, times[15]!)!;
     const [stroke, ...rest] = groupOf(half, "title").items as PolylineItem[];

@@ -87,8 +87,19 @@ export async function exportPlayer(
       label: s.id,
       description: s.title ?? undefined,
       detail: t.exports.story,
-      target: "story" as const,
+      target: "story" as "story" | "stories" | "diagram",
     })),
+    // Every story in one player, after the stories, when there is more than one.
+    ...(stories.length > 1
+      ? [
+          {
+            label: t.exports.everyStory,
+            description: undefined,
+            detail: t.exports.everyStoryDetail(stories.length),
+            target: "stories" as const,
+          },
+        ]
+      : []),
     ...analysis.diagrams.map((d) => ({
       label: d.id,
       description: d.title ?? undefined,
@@ -116,15 +127,17 @@ export async function exportPlayer(
   }
   const stem = document.uri.path.replace(/^.*\//, "").replace(/\.meltemi$/, "");
   const name =
-    choice.target === "story"
-      ? `${stem}.${choice.label}.html`
-      : exportFileName(
-          stem,
-          choice.label,
-          analysis.compilation.document.diagrams.length,
-          undefined,
-          "html",
-        );
+    choice.target === "stories"
+      ? `${stem}.stories.html`
+      : choice.target === "story"
+        ? `${stem}.${choice.label}.html`
+        : exportFileName(
+            stem,
+            choice.label,
+            analysis.compilation.document.diagrams.length,
+            undefined,
+            "html",
+          );
   const target = vscode.Uri.joinPath(document.uri, "..", name);
   // The same page as the command line writes: the project's content language, and for a diagram
   // every view a drill-down reaches from it.
@@ -132,13 +145,21 @@ export async function exportPlayer(
   const label = choice.label;
   const chosenStory = context?.file.compilation.document.stories.find((s) => s.id === label);
   const diagram = context?.file.compilation.document.diagrams.find((d) => d.id === label);
+  const every = context?.file.compilation.document.stories ?? [];
   const output =
-    context && (choice.target === "story" ? story : diagram)
+    context &&
+    (choice.target === "stories"
+      ? every.length > 1
+      : choice.target === "story"
+        ? chosenStory
+        : diagram)
       ? produceExport(context, {
           target:
-            choice.target === "story"
-              ? { kind: "story", story: chosenStory! }
-              : { kind: "diagram", diagram: diagram!, owner: context.file },
+            choice.target === "stories"
+              ? { kind: "stories", stories: every }
+              : choice.target === "story"
+                ? { kind: "story", story: chosenStory! }
+                : { kind: "diagram", diagram: diagram!, owner: context.file },
           format: "html",
           theme: null,
           fonts: "embedded",
@@ -164,8 +185,69 @@ export async function exportPlayer(
     return undefined;
   }
   await vscode.workspace.fs.writeFile(target, new TextEncoder().encode(output.text));
-  void vscode.window.showInformationMessage(t.common.wrote([name]));
+  void vscode.window.showInformationMessage(
+    writtenMessage(t.common.wrote, [name], output.notices ?? []),
+  );
   return target;
+}
+
+/**
+ * Writes a picture of every scene's final state of a story beside the file, in the format asked
+ * for (or given): an SVG or PNG per scene, `<stem>.<story>.<scene>.<ext>`, or one PDF with a
+ * page per scene, `<stem>.<story>.pdf`. Returns the files written.
+ */
+export async function exportScenes(
+  host: CanvasHost,
+  document: vscode.TextDocument,
+  story: string,
+  format?: "svg" | "png" | "pdf",
+): Promise<vscode.Uri[] | undefined> {
+  const t = messages();
+  if (document.uri.scheme !== "file") {
+    void vscode.window.showWarningMessage(t.common.saveBeforeExporting);
+    return undefined;
+  }
+  const chosen =
+    format ??
+    (
+      await vscode.window.showQuickPick(
+        [
+          { label: "SVG", description: t.exports.scenesSvg, format: "svg" as const },
+          { label: "PNG", description: t.exports.scenesPng, format: "png" as const },
+          { label: "PDF", description: t.exports.scenesPdf, format: "pdf" as const },
+        ],
+        { title: t.exports.scenes(story), placeHolder: t.exports.scenesPlaceholder },
+      )
+    )?.format;
+  if (!chosen) return undefined;
+  const context = host.analyses.exportContext(document, await host.playerScript());
+  const target = context?.file.compilation.document.stories.find((s) => s.id === story);
+  if (!context || !target) {
+    void vscode.window.showWarningMessage(t.exports.cannotDraw(story));
+    return undefined;
+  }
+  const stem = document.uri.path.replace(/^.*\//, "").replace(/\.meltemi$/, "");
+  const request: ExportRequest = {
+    target: { kind: "story", story: target },
+    format: chosen,
+    theme: null,
+    fonts: "embedded",
+    motion: "static",
+    at: null,
+    scenario: undefined,
+    scale: 2,
+    size: null,
+    background: null,
+    link: null,
+    embed: false,
+    autoplay: false,
+    loop: false,
+    fps: null,
+    durationMs: null,
+    out: vscode.Uri.joinPath(document.uri, "..", `${stem}.${story}.${chosen}`).fsPath,
+    scenes: true,
+  };
+  return writeExports([{ request, output: produceExport(context, request) }]);
 }
 
 /** FFmpeg for videos: the setting, or the one on the path. */
@@ -204,6 +286,17 @@ async function writeExports(
       const uri = vscode.Uri.file(request.out!);
       await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(output.text));
       written.push(uri);
+    } else if ("texts" in output) {
+      // A picture of every scene: a file each, beside the one-frame name.
+      for (const still of output.texts) {
+        const uri = vscode.Uri.file(still.out!);
+        await vscode.workspace.fs.writeFile(uri, new TextEncoder().encode(still.output));
+        written.push(uri);
+      }
+    } else if ("jobs" in output) {
+      for (const still of output.jobs) {
+        pictures.push({ request: { ...request, out: still.out }, job: still.output });
+      }
     } else if ("video" in output) videos.push(output.video);
     else pictures.push({ request, job: output.job });
   }

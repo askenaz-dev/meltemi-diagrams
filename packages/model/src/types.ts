@@ -744,6 +744,8 @@ export interface ExportProfile {
   readonly autoplay: boolean;
   readonly loop: boolean;
   readonly embed: boolean;
+  /** `scenes true`: a story's picture of every scene's final state instead of one frame. */
+  readonly scenes: boolean;
   /** The options as written, for editors. */
   readonly options: readonly { readonly name: string; readonly range: Range }[];
   readonly range: Range;

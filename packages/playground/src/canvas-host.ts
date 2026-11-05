@@ -87,6 +87,8 @@ export interface CanvasRequests {
   pickImage(): Promise<string | undefined>;
   exportDialog(): void;
   exportPlayer(story: string | undefined): void;
+  /** The timeline's Export scenes: the export dialog on the story, a picture per scene. */
+  exportScenes(story: string): void;
   openModel(): void;
   /**
    * The person's pointer moved over the canvas, or left it (undefined): for presence to share. The
@@ -144,6 +146,9 @@ export function mountCanvas(
     }
     if (result.command === "export") requests.exportDialog();
     if (result.command === "exportPlayer") requests.exportPlayer(result.story);
+    if (result.command === "exportScenes" && result.story !== undefined) {
+      requests.exportScenes(result.story);
+    }
     if (result.command === "openModel") requests.openModel();
     // Icons are chosen in the canvas's own picker; the page asks only for image files.
     if (result.pick) {

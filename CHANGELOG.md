@@ -4,6 +4,24 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
+## 1.11.9
+
+Stories become the flows of a diagram. One HTML player holds every story of a file over the views
+they share, with a **Story** picker in its control bar that goes to the start of the flow picked,
+fills the scene picker, says "Story: Refund" and marks the flow in the text summary; the element's
+`story` attribute chooses the one shown first. `meltemi-diagrams export flows.meltemi --stories`
+writes `flows.stories.html` (`--stories refund,purchase` a chosen few, in that order, also as an
+`--embed` fragment), and the web app's export dialog and VS Code's **Export HTML Player** offer
+**Every story**. The player document is version 3; the player still reads pages of version 2. On the
+canvas, **New story** beside the story picker writes `story story1 for <diagram> { scene scene1 { } }`
+for the diagram shown and plays it at once, so **Add to scene** fills it. `--story <id> --scenes`
+writes each scene's final state, the frame of the player's static view: an SVG or PNG per scene
+(`purchase.purchase.overview.svg`) or one PDF with a page per scene; profiles take `scenes true`,
+the web app's dialog has **One picture per scene** (a `.zip`, or the print dialog with a page per
+scene), and the timeline has **Export scenes**
+([decision 0070](docs/decisions/0070-stories-as-the-flows-of-a-diagram.md)). The language stays 0.2:
+`scenes` is an additive option of the `export` block, and the model JSON gains its `scenes` key.
+
 ## 1.11.6
 
 The web app at diagrams.meltemi.dev is called Meltemi Diagrams, no longer the playground: its tab,

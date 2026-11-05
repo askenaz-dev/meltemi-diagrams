@@ -233,6 +233,11 @@ export interface CanvasHost {
     document: vscode.TextDocument,
     story?: string,
   ) => Promise<vscode.Uri | undefined>;
+  /** Writes a picture of every scene of a story beside the file, asking the format. */
+  readonly exportScenes: (
+    document: vscode.TextDocument,
+    story: string,
+  ) => Promise<vscode.Uri[] | undefined>;
   /** The player's runtime script, bundled with the extension. */
   readonly playerScript: () => Promise<string>;
   /** The catalog's runtime script (with the player), bundled with the extension. */
@@ -316,6 +321,9 @@ export class CanvasEditorProvider implements vscode.CustomTextEditorProvider {
       if (result.reveal) await this.reveal(document, result.reveal);
       if (result.command === "export") await this.host.exportSvg(document);
       if (result.command === "exportPlayer") await this.host.exportPlayer(document, result.story);
+      if (result.command === "exportScenes" && result.story !== undefined) {
+        await this.host.exportScenes(document, result.story);
+      }
       if (result.command === "openModel") {
         await vscode.commands.executeCommand("meltemi.openModel", document.uri);
       }

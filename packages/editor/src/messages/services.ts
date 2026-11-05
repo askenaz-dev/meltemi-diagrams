@@ -251,6 +251,8 @@ const en = {
     autoplay: "The HTML player starts at once, unless the viewer asks for reduced motion.",
     loop: "The HTML player starts again at the end.",
     embed: "Writes a fragment of HTML to paste into a page, instead of a complete page.",
+    scenes:
+      "`scenes true`: a picture of every scene's final state instead of one frame, an SVG or PNG per scene (`<stem>.<id>.<scene>.png`) or a PDF with a page per scene. SVG, PNG and PDF of stories.",
   },
 
   /** What the story vocabulary means: completion and hover inside stories. */
@@ -783,6 +785,8 @@ const es: typeof en = {
     loop: "El reproductor HTML vuelve a empezar al final.",
     embed:
       "Escribe un fragmento de HTML para pegar en una página, en lugar de una página completa.",
+    scenes:
+      "`scenes true`: una imagen del estado final de cada escena en lugar de un fotograma, un SVG o PNG por escena (`<stem>.<id>.<scene>.png`) o un PDF con una página por escena. SVG, PNG y PDF de historias.",
   },
 
   storyWords: {

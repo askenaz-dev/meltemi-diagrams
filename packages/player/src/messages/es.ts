@@ -14,6 +14,8 @@ export const es: typeof en = {
     nextTitle: "Escena siguiente (Av Pág)",
     progress: "Progreso",
     scene: "Escena",
+    story: "Historia",
+    storyTitle: "El flujo que se reproduce",
     staticView: "Vista estática",
     staticTitle: "Vista estática (S)",
     position: (time: string, duration: string) => `${time} de ${duration}`,
@@ -61,6 +63,7 @@ export const es: typeof en = {
   },
   player: {
     story: (title: string) => `Historia: ${title}`,
+    pickedStory: (title: string) => `Historia: ${title}`,
     diagram: (title: string) => `Diagrama: ${title}`,
     scene: (n: number, count: number, id: string, title: string | null) =>
       `Escena ${n} de ${count}: ${id}${title ? `, ${title}` : ""}`,

@@ -62,6 +62,10 @@ Options for export:
   --diagram <id>         Export only this diagram
   --scenario <id>        Export one scenario of the sequence diagrams that declare it
   --story <id>           A story instead: its end, the frame at --at, or its player
+  --stories [<ids>]      Every story of the file in one HTML player (or the ones listed,
+                         such as refund,purchase, in that order): <stem>.stories.html
+  --scenes               With --story, a picture of every scene's final state: an SVG or PNG
+                         per scene (<stem>.<story>.<scene>.svg), or a PDF with a page per scene
   --format <name>        svg (default), png, pdf, html (the player), mp4, webm or gif; PNG,
                          PDF and video use the installed Edge or Chrome, video also FFmpeg
   --profile <id>         Run one export profile of the file; --profiles runs them all
@@ -483,6 +487,9 @@ token was refused.
   export: {
     /** A picture written with a browser, named with its version. */
     wroteViews: (path: string, views: number) => `Wrote ${path} (${views} views)`,
+    /** A player of several stories, with how many it holds. */
+    wroteStories: (path: string, stories: number) =>
+      `Wrote ${path} (${count(stories, "story", "stories")})`,
     wrotePicture: (path: string, browser: string) => `Wrote ${path} (${browser})`,
     wroteVideo: (path: string, browser: string, ffmpeg: string, frames: number) =>
       `Wrote ${path} (${browser}, FFmpeg ${ffmpeg}, ${frames} frames)`,
@@ -510,6 +517,21 @@ token was refused.
     atAnimated: "--at writes one frame; it cannot be combined with --motion animated.",
     story: (option: string) =>
       `--story writes one frame of a story; it cannot be combined with ${option}.`,
+    /** `--stories`: every story of a file in one HTML player. */
+    stories: (option: string) =>
+      `--stories writes the player of several stories; it cannot be combined with ${option}.`,
+    storiesHtml: (format: string) =>
+      `--stories writes an HTML player; it cannot be combined with --format ${format}.`,
+    storiesList: (given: string) =>
+      `--stories takes story ids separated by commas, such as refund,purchase, not "${given}".`,
+    noStories: (path: string) => `${path} has no stories.`,
+    /** `--scenes`: a picture of every scene of a story. */
+    scenesStory: "--scenes takes a story: give it with --story <id>.",
+    scenesAt: "--scenes writes every scene's final state; it cannot take --at.",
+    scenesFormat: (format: string) =>
+      `--scenes writes SVG, PNG or PDF pictures; it cannot be combined with --format ${format}.`,
+    scenesStdout: "--scenes writes several files; --stdout prints one output.",
+    scenesOut: "--scenes writes several files; --out must be a directory.",
     html: (option: string) =>
       `--format html writes a player; it cannot be combined with ${option}.`,
     embed: "--embed writes a player fragment; it needs --format html.",

@@ -32,6 +32,12 @@ story purchase for checkout {
 
 La historia dura 7,4 s: `overview` ocupa 0,8 + 1 s, y `processing`, 1,2 + 1,2 + 1,2 + 2 s.
 
+Un archivo puede tener varias historias del mismo diagrama: los flujos de un mismo dibujo, cada uno
+con sus escenas sobre la misma imagen (una compra, una devolución, una caída). El lienzo reproduce
+cualquiera desde su selector de historias, `--stories` las escribe en un reproductor HTML cuyo
+selector **Historia** ofrece cada flujo ([player.md](../player.md#varias-historias)), y
+**Nueva historia** en el lienzo empieza la siguiente sin escribir su bloque a mano.
+
 ## Estructura
 
 | Instrucción                                 | Dónde                         | Significado                                                                                 |
@@ -138,16 +144,28 @@ diagrama importado cuya importación no se resuelve la informa la importación, 
 
 ## Exportaciones
 
-| Comando                                                                  | Resultado                                                  |
-| ------------------------------------------------------------------------ | ---------------------------------------------------------- |
-| `pnpm mdg export purchase.meltemi --story purchase`                      | `purchase.purchase.svg`, el final de la historia           |
-| `pnpm mdg export purchase.meltemi --story purchase --at 500ms`           | el fotograma a los 500 ms                                  |
-| `pnpm mdg export purchase.meltemi --story purchase --format html`        | `purchase.purchase.html`, el reproductor HTML              |
-| `pnpm mdg export purchase.meltemi --story purchase --at 3s --format png` | el fotograma a los 3 s en PNG (o `pdf`)                    |
-| `pnpm mdg export purchase.meltemi --story purchase --format mp4`         | la historia completa como video de 1080p (o `webm`, `gif`) |
+| Comando                                                                   | Resultado                                                   |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `pnpm mdg export purchase.meltemi --story purchase`                       | `purchase.purchase.svg`, el final de la historia            |
+| `pnpm mdg export purchase.meltemi --story purchase --at 500ms`            | el fotograma a los 500 ms                                   |
+| `pnpm mdg export purchase.meltemi --story purchase --format html`         | `purchase.purchase.html`, el reproductor HTML               |
+| `pnpm mdg export purchase.meltemi --story purchase --at 3s --format png`  | el fotograma a los 3 s en PNG (o `pdf`)                     |
+| `pnpm mdg export purchase.meltemi --story purchase --format mp4`          | la historia completa como video de 1080p (o `webm`, `gif`)  |
+| `pnpm mdg export purchase.meltemi --story purchase --scenes`              | `purchase.purchase.overview.svg` y uno por escena           |
+| `pnpm mdg export purchase.meltemi --story purchase --scenes --format pdf` | `purchase.purchase.pdf`, una página por escena              |
+| `pnpm mdg export flows.meltemi --stories`                                 | `flows.stories.html`, todas las historias en un reproductor |
 
 `--story` escribe un fotograma, así que no se puede combinar con `--diagram`, `--scenario` ni
 `--motion animated`; `--out` admite un archivo o una carpeta existente, y `--stdout` imprime el SVG.
+`--scenes` escribe en cambio el estado final de cada escena, el fotograma que muestra la vista
+estática del reproductor: justo antes de que empiece la escena siguiente, y el final para la última.
+SVG y PNG dan un archivo por escena, `<stem>.<story>.<scene>.<ext>`, junto al archivo o en la carpeta
+que nombra `--out`; PDF da un archivo con una página por escena, todas del tamaño del fotograma más
+grande, con cada fotograma ajustado y centrado. `--scenes` no admite `--at`, `--stdout`, `html` ni un
+formato de video. `--stories` escribe todas las historias del archivo en un reproductor HTML en el
+orden del código, o las que enumera en ese orden (`--stories refund,purchase`), también como
+fragmento con `--embed`; una historia que no se puede dibujar se deja fuera y se nombra. Los
+perfiles admiten `scenes true` ([export.md](export.md#perfiles)).
 `validate` informa los diagnósticos de las historias como cualquier otro. El reproductor HTML
 reproduce la historia con pausa, progreso, escenas, movimiento reducido, una vista estática y un
 resumen en texto ([player.md](../player.md)); el video y el GIF la graban fotograma a fotograma
@@ -183,4 +201,10 @@ reloj; el esquema lista las historias y las escenas; ir a la definición, las re
 de nombre llevan de un destino de la historia al elemento, también en archivos importados. El lienzo
 reproduce una historia en modo de solo lectura con una línea de tiempo: reproducir, pausar,
 desplazarse por ella, arrastrar el final de una barra para cambiar su tiempo, y
-**Agregar a la escena** para la selección ([editor.md](../editor.md)).
+**Agregar a la escena** para la selección ([editor.md](../editor.md)). **Nueva historia**, junto al
+selector de historias, escribe `story story1 for <diagram> { scene scene1 { } }` para el diagrama
+que se muestra (o el de la historia que se reproduce) y la reproduce de inmediato, para que
+**Agregar a la escena** y el botón de escena la llenen; **Exportar escenas** de la línea de tiempo
+escribe una imagen de cada escena, y **Exportar HTML** el reproductor. En el diálogo de exportación
+de la aplicación web y en **Exportar el reproductor HTML** de VS Code, **Todas las historias**
+escribe el reproductor de todas las historias de un archivo que tiene más de una.

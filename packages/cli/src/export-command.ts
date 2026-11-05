@@ -1,5 +1,5 @@
-import { mkdirSync, statSync, writeFileSync } from "node:fs";
-import { basename, dirname, isAbsolute, join, relative, resolve } from "node:path";
+import { existsSync, mkdirSync, statSync, writeFileSync } from "node:fs";
+import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { captureSync, type FileJob, type VideoJob } from "@meltemi/diagrams-capture";
 import {
@@ -13,8 +13,13 @@ import {
   type ProjectSessions,
   type WritableFormat,
 } from "@meltemi/diagrams-editor/node";
-import type { Diagnostic } from "@meltemi/diagrams-language";
-import { THEME_COLOR_TOKENS, isSafeUrl, type Compilation } from "@meltemi/diagrams-model";
+import { isIdentifierText, type Diagnostic } from "@meltemi/diagrams-language";
+import {
+  THEME_COLOR_TOKENS,
+  isSafeUrl,
+  type Compilation,
+  type StoryDefinition,
+} from "@meltemi/diagrams-model";
 import { parseTime } from "@meltemi/diagrams-motion";
 import { playerScript } from "@meltemi/diagrams-player/node";
 import { toProjectPath, type Workspace } from "@meltemi/diagrams-project";
@@ -72,7 +77,13 @@ function readSize(value: string): Size | undefined {
 }
 
 /** Writes an export and says so; false (after reporting it) when the file cannot be written. */
-function writeOutput(host: ExportHost, target: string, text: string, views = 1): boolean {
+function writeOutput(
+  host: ExportHost,
+  target: string,
+  text: string,
+  views = 1,
+  stories?: number,
+): boolean {
   try {
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, text, "utf8");
@@ -82,8 +93,10 @@ function writeOutput(host: ExportHost, target: string, text: string, views = 1):
     );
     return false;
   }
+  const t = messages();
+  const shown = host.display(target);
   host.io.stdout(
-    `${views > 1 ? messages().export.wroteViews(host.display(target), views) : messages().common.wrote(host.display(target))}\n`,
+    `${stories !== undefined ? t.export.wroteStories(shown, stories) : views > 1 ? t.export.wroteViews(shown, views) : t.common.wrote(shown)}\n`,
   );
   return true;
 }
@@ -112,8 +125,23 @@ function writeAll(
     if (output.notices && request.out !== null) notices.set(request.out, output.notices);
     if ("text" in output) {
       if (request.out === null) host.io.stdout(output.text);
-      else if (!writeOutput(host, request.out, output.text, output.views)) return EXIT_USAGE;
+      else if (!writeOutput(host, request.out, output.text, output.views, output.stories?.length))
+        return EXIT_USAGE;
       else tell(request.out);
+      continue;
+    }
+    // A picture of every scene: a file each, written or captured; the notices follow the last.
+    if ("texts" in output) {
+      for (const still of output.texts) {
+        if (!writeOutput(host, still.out!, still.output)) return EXIT_USAGE;
+      }
+      if (request.out !== null) tell(request.out);
+      continue;
+    }
+    if ("jobs" in output) {
+      for (const still of output.jobs) jobs.push({ ...still.output, out: still.out! });
+      const last = output.jobs[output.jobs.length - 1];
+      if (output.notices && last) notices.set(last.out!, output.notices);
       continue;
     }
     if ("video" in output) videos.push(output.video);
@@ -141,6 +169,33 @@ function writeAll(
     });
   }
   return failed ? EXIT_FINDINGS : EXIT_OK;
+}
+
+/**
+ * The arguments with a bare `--stories` written as `--stories=` (every story) or, when the next
+ * argument is a list of ids, `--stories=<ids>`; a file or folder after it stays a path.
+ */
+function storiesArgs(args: readonly string[]): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]!;
+    if (arg !== "--stories") {
+      out.push(arg);
+      continue;
+    }
+    const next = args[i + 1];
+    if (next !== undefined && !next.startsWith("-") && storyIds(next) !== undefined) {
+      out.push(`--stories=${next}`);
+      i++;
+    } else out.push("--stories=");
+  }
+  return out;
+}
+
+/** The ids of `--stories a,b`, or undefined when it is not a list of identifiers. */
+function storyIds(list: string): string[] | undefined {
+  const ids = list.split(",").map((id) => id.trim());
+  return ids.every(isIdentifierText) ? ids : undefined;
 }
 
 export function noDiagramDiagnostic(compilation: Compilation): Diagnostic {
@@ -171,6 +226,8 @@ export function exportCommand(args: readonly string[], host: ExportHost): number
     diagram?: string;
     scenario?: string;
     story?: string;
+    stories?: string;
+    scenes: boolean;
     profile?: string;
     profiles: boolean;
     format?: string;
@@ -191,11 +248,13 @@ export function exportCommand(args: readonly string[], host: ExportHost): number
   let paths: string[];
   try {
     const parsed = parseArgs({
-      args: [...args],
+      args: storiesArgs(args),
       options: {
         diagram: { type: "string" },
         scenario: { type: "string" },
         story: { type: "string" },
+        stories: { type: "string" },
+        scenes: { type: "boolean", default: false },
         profile: { type: "string" },
         profiles: { type: "boolean", default: false },
         format: { type: "string" },
@@ -233,6 +292,7 @@ export function exportCommand(args: readonly string[], host: ExportHost): number
         ["format", options.format],
         ["diagram", options.diagram],
         ["story", options.story],
+        ["stories", options.stories],
         ["scenario", options.scenario],
         ["theme", options.theme],
         ["fonts", options.fonts],
@@ -252,7 +312,9 @@ export function exportCommand(args: readonly string[], host: ExportHost): number
         ? "--embed"
         : options.stdout
           ? "--stdout"
-          : null;
+          : options.scenes
+            ? "--scenes"
+            : null;
     if (flag) return usage(t.profileOption(flag));
     if (options.out !== undefined) {
       const out = isAbsolute(options.out) ? options.out : resolve(io.cwd, options.out);
@@ -266,7 +328,8 @@ export function exportCommand(args: readonly string[], host: ExportHost): number
     }
   }
 
-  const format = options.format ?? "svg";
+  // Every story goes into one HTML player: the format it takes when none is given.
+  const format = options.format ?? (options.stories !== undefined ? "html" : "svg");
   if (!(WRITABLE_FORMATS as readonly string[]).includes(format)) {
     return usage(t.format(format, WRITABLE_FORMATS));
   }
@@ -283,6 +346,30 @@ export function exportCommand(args: readonly string[], host: ExportHost): number
     at = parseTime(options.at);
     if (at === null) return usage(t.at(options.at));
     if (motion === "animated") return usage(t.atAnimated);
+  }
+  if (options.stories !== undefined) {
+    const clash =
+      options.story !== undefined
+        ? "--story"
+        : options.diagram !== undefined
+          ? "--diagram"
+          : options.scenario !== undefined
+            ? "--scenario"
+            : options.scenes
+              ? "--scenes"
+              : null;
+    if (clash) return usage(t.stories(clash));
+    if (format !== "html") return usage(t.storiesHtml(format));
+    if (options.stories !== "" && storyIds(options.stories) === undefined) {
+      return usage(t.storiesList(options.stories));
+    }
+  }
+  if (options.scenes) {
+    if (options.story === undefined) return usage(t.scenesStory);
+    if (at !== null) return usage(t.scenesAt);
+    if (format !== "svg" && format !== "png" && format !== "pdf")
+      return usage(t.scenesFormat(format));
+    if (options.stdout) return usage(t.scenesStdout);
   }
   if (options.story !== undefined) {
     const clash =
@@ -378,7 +465,11 @@ export function exportCommand(args: readonly string[], host: ExportHost): number
             ? "--scenario"
             : options.stdout
               ? "--stdout"
-              : null;
+              : options.stories !== undefined
+                ? "--stories"
+                : options.scenes
+                  ? "--scenes"
+                  : null;
     if (clash) return usage(t.oneFile(clash));
   }
   // With --stdout, stdout holds only the output; diagnostics go to stderr.
@@ -405,6 +496,21 @@ export function exportCommand(args: readonly string[], host: ExportHost): number
       : isAbsolute(options.out)
         ? options.out
         : resolve(io.cwd, options.out);
+  // The pictures of every scene go into a directory: an existing one, or a new one named without
+  // an extension; a PDF of them may also be named as a file.
+  let scenesFolder: string | null = null;
+  if (options.scenes && outRoot !== null && format !== "pdf") {
+    let isDirectory = false;
+    try {
+      isDirectory = statSync(outRoot).isDirectory();
+    } catch {
+      // Not there yet.
+    }
+    if (!isDirectory && (existsSync(outRoot) || extname(outRoot) !== "")) {
+      return usage(t.scenesOut);
+    }
+    scenesFolder = outRoot;
+  }
   const outputs: { request: ExportRequest; output: ReturnType<typeof produceExport> }[] = [];
   let failed = false;
   let profilesFound = 0;
@@ -485,19 +591,45 @@ export function exportCommand(args: readonly string[], host: ExportHost): number
       return undefined;
     }
 
+    if (options.stories !== undefined) {
+      const all = compilation.document.stories;
+      const available = all.map((s) => s.id);
+      if (all.length === 0) return t.noStories(path);
+      let chosen: StoryDefinition[] = [...all];
+      if (options.stories !== "") {
+        chosen = [];
+        for (const id of storyIds(options.stories)!) {
+          const story = all.find((s) => s.id === id);
+          if (!story) return t.noStory(id, path, available);
+          if (!chosen.includes(story)) chosen.push(story);
+        }
+      }
+      const out = outTarget(`${stem}.stories.html`, false);
+      push({
+        ...base,
+        target: { kind: "stories", stories: chosen },
+        format: "html",
+        scenario: undefined,
+        out: out === false ? null : out,
+      });
+      return undefined;
+    }
+
     if (options.story !== undefined) {
       const story = compilation.document.stories.find((s) => s.id === options.story);
       if (!story) {
         const available = compilation.document.stories.map((s) => s.id);
         return t.noStory(options.story, path, available);
       }
-      const out = outTarget(`${stem}.${story.id}.${format}`, false);
+      const name = `${stem}.${story.id}.${format}`;
+      const out = scenesFolder !== null ? join(scenesFolder, name) : outTarget(name, false);
       push({
         ...base,
         target: { kind: "story", story },
         format: format as Writable,
         scenario: undefined,
         out: out === false ? null : out,
+        ...(options.scenes ? { scenes: true } : {}),
       });
       return undefined;
     }

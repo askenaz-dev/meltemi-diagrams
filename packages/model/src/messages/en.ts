@@ -547,6 +547,11 @@ export const en = {
       storyMotion: "A story's export draws its frames; `motion` applies to diagrams.",
       storyScenario: "A story shows its own views; `scenario` applies to sequence diagrams.",
       atPastEnd: (duration: number) => `The story lasts ${duration} ms; \`at\` is within it.`,
+      /** `scenes true` on a diagram, with `at`, and with `file` on SVG or PNG. */
+      scenesStory: "`scenes` writes a picture of every scene of a story; it takes a story.",
+      scenesAt: "`scenes` writes every scene's final state; it does not go with `at`.",
+      scenesFile: (format: string) =>
+        `\`scenes\` writes a ${format} file per scene; \`file\` names one, so it does not go with it.`,
       unknownScenario: (target: string, scenario: string, scenarios: readonly string[]) =>
         `\`${target}\` has no scenario \`${scenario}\`; its scenarios: ${scenarios.join(", ")}.`,
       noScenarios: (target: string) => `\`${target}\` has no scenarios.`,

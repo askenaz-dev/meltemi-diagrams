@@ -260,6 +260,15 @@ have no alpha: the message says so, and that the CLI keeps a WebM transparent
 (`--format webm --background transparent`). A size over 16,384 pixels a side is scaled down. The
 frames are the CLI's frames; the encoders differ, so files differ in bytes, not in content.
 
+**Every story (N)**, after the stories in **What** when the file has more than one, writes the HTML
+player of every story in source order, as `--stories` does: the format field offers HTML only, with
+the player's fields, and the message names the stories it holds and any it left out. For a story as
+SVG, PNG or PDF, **One picture per scene** (unchecked at each opening, checked when the timeline's
+**Export scenes** opens the dialog) writes each scene's final state instead of the frame at the
+**Instant**, which it hides: SVG and PNG download `<stem>.<story>.scenes.zip` with a file per scene,
+the PNGs drawn one by one with a progress line that **Cancel** stops, and PDF opens the print dialog
+on a page per scene, all the size of the largest frame.
+
 The dialog's **Language** sets the words the tool adds to the export: the type lines of C4 entities,
 the controls of the HTML player and the headings of the catalog, whose pages carry it as their
 `lang`. It starts at the project's `"locale"`, or English, and applies to the file's profiles and to

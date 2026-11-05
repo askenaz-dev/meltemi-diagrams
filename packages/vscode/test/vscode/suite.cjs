@@ -776,6 +776,100 @@ test("writes the HTML player in the language of its project", async () => {
   assert.ok(page.includes('<html lang="es">'), page.slice(0, 120));
 });
 
+/** The purchase file with a second story of `checkout`, `refund`. */
+const FLOWS = `${readFileSync(join(__dirname, "..", "..", "..", "..", "corpus", "valid", "stories", "purchase.meltemi"), "utf8")}
+story refund for checkout {
+  title "Refund"
+
+  scene request {
+    reveal client, api over 600ms
+  }
+
+  scene refunded {
+    highlight orders over 1s
+  }
+}
+`;
+
+/** Runs `run` with the quick pick answering `pick` from the labels it offers; returns them. */
+async function picking(pick, run) {
+  const original = vscode.window.showQuickPick;
+  let offered;
+  vscode.window.showQuickPick = async (items) => {
+    offered = (await items).map((i) => i.label);
+    return (await items).find((i) => i.label === pick);
+  };
+  try {
+    return { result: await run(), offered };
+  } finally {
+    vscode.window.showQuickPick = original;
+  }
+}
+
+test("Export HTML Player offers every story of a file with several, and writes their page", async () => {
+  writeFileSync(join(workspace, "flows.meltemi"), FLOWS);
+  const uri = file("flows.meltemi");
+  await vscode.window.showTextDocument(
+    await vscode.workspace.openTextDocument(uri),
+    vscode.ViewColumn.One,
+  );
+  const { result, offered } = await picking("Every story", () =>
+    vscode.commands.executeCommand("meltemi.exportPlayer", uri),
+  );
+  assert.deepEqual(offered, ["purchase", "refund", "Every story", "checkout"]);
+  assert.ok(result.fsPath.endsWith("flows.stories.html"), result.fsPath);
+  const page = readFileSync(result.fsPath, "utf8");
+  const json = /<script type="application\/json">(.*?)<\/script>/s.exec(page)[1];
+  const document = JSON.parse(json.replace(/\\u003c/g, "<"));
+  assert.deepEqual(
+    document.stories.map((s) => s.id),
+    ["purchase", "refund"],
+  );
+  assert.deepEqual(Object.keys(document.views), ["checkout"]);
+  // A file of one story and one diagram has no such entry.
+  writeFileSync(
+    join(workspace, "single.meltemi"),
+    readFileSync(
+      join(__dirname, "..", "..", "..", "..", "corpus", "valid", "stories", "purchase.meltemi"),
+      "utf8",
+    ),
+  );
+  await vscode.workspace.openTextDocument(file("single.meltemi"));
+  const single = await picking("purchase", () =>
+    vscode.commands.executeCommand("meltemi.exportPlayer", file("single.meltemi")),
+  );
+  assert.deepEqual(single.offered, ["purchase", "checkout"]);
+  assert.ok(single.result.fsPath.endsWith("single.purchase.html"), single.result.fsPath);
+});
+
+test("Export scenes asks the format and writes a picture of every scene beside the file", async () => {
+  writeFileSync(join(workspace, "scenes.meltemi"), FLOWS);
+  const uri = file("scenes.meltemi");
+  const document = await vscode.workspace.openTextDocument(uri);
+  await vscode.window.showTextDocument(document, vscode.ViewColumn.One);
+  const svg = await picking("SVG", () => api.host.exportScenes(document, "purchase"));
+  assert.deepEqual(svg.offered, ["SVG", "PNG", "PDF"]);
+  assert.deepEqual(
+    svg.result.map((u) => u.path.replace(/^.*\//, "")),
+    ["scenes.purchase.overview.svg", "scenes.purchase.processing.svg"],
+  );
+  assert.ok(
+    readFileSync(join(workspace, "scenes.purchase.overview.svg"), "utf8").startsWith("<svg"),
+  );
+  const png = await picking("PNG", () => api.host.exportScenes(document, "refund"));
+  assert.deepEqual(
+    png.result.map((u) => u.path.replace(/^.*\//, "")),
+    ["scenes.refund.request.png", "scenes.refund.refunded.png"],
+  );
+  for (const name of ["scenes.refund.request.png", "scenes.refund.refunded.png"]) {
+    const bytes = readFileSync(join(workspace, name));
+    assert.equal(bytes.subarray(1, 4).toString("latin1"), "PNG", name);
+  }
+  // Dismissed: nothing is written.
+  const none = await picking("TIFF", () => api.host.exportScenes(document, "purchase"));
+  assert.equal(none.result, undefined);
+});
+
 exports.run = async function run() {
   let failed = 0;
   for (const { name, fn } of tests) {
