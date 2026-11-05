@@ -2,7 +2,9 @@
 
 ## Purpose
 The playground with a cloud project: the cloud projects of the explorer's switcher, an archive as a new cloud project, opening a project by address, the binding of a project to the editor, undo of one's own edits, offline work kept in IndexedDB, the versions panel and thumbnails.
+
 ## Requirements
+
 ### Requirement: Opening a project by address
 On load the page SHALL read `project`, `invite` and `live` from `location.search`, open that
 project and keep the address as it is (`invite` dropped once accepted, `live` kept), so a
@@ -36,8 +38,8 @@ sign in otherwise.
 - **WHEN** an anonymous browser opens `/?project=<id>&invite=<token>` of a `private` project and signs in from the offer
 - **THEN** the page returns to the same address, accepts the invitation and opens the project with the invited role
 
-### Requirement: A cloud project bound to the Studio
-Opening a cloud project SHALL load its files into the Studio, connect to its room, and keep
+### Requirement: A cloud project bound to the page
+Opening a cloud project SHALL load its files into the page, connect to its room, and keep
 them in step: typing, canvas edits, quick fixes, formatting, renames, imports, added and deleted
 files SHALL become transactions of the document, merged and sent at most every 250 ms; changes
 from the room SHALL update the text, the code pane (keeping the caret), the canvas and the
@@ -177,4 +179,3 @@ of a cloud project (paths, files, sizes) SHALL be checked before the first call,
 #### Scenario: An image over the limit
 - **WHEN** the archive holds an image of 10 MiB and one byte
 - **THEN** nothing is created and the dialog says an image or a font takes at most 10 MiB
-
