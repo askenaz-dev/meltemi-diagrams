@@ -44,7 +44,8 @@
  *   whose check the terminal printed, `push --create` of the purchase template, a page's edit seen by
  *   `review --base cloud`, `push` refused, checked and forced, `pull`, `publish` read back at
  *   `/_published/`, `projects --json`, `logout`, and no `mdg_` token in anything printed or logged
- *   (`scenarios-cli`);
+ *   (`scenarios-cli`); an agent's MCP client with an API token, the renderer object's checks, previews
+ *   and catalog, and a publication read back (`scenarios-mcp`);
  *   `cloud.ts`, `sharing.ts`, `collaboration.ts`, `room-socket.ts` and `mdg.ts` hold what they share;
  * - last, with the identity service gone, that a minted session still counts in development.
  *
@@ -117,6 +118,7 @@ import { unbrandedScenarios } from "./scenarios-unbranded.js";
 import { versionScenarios } from "./scenarios-versions.js";
 import { viewingScenarios } from "./scenarios-viewing.js";
 import { workerScenarios } from "./scenarios-worker.js";
+import { mcpScenarios } from "./scenarios-mcp.js";
 import { startFakeIdentity, type FakeIdentity } from "./identity.js";
 import {
   CLOUD,
@@ -1018,6 +1020,7 @@ scenarios.push(
   ...binaryScenarios,
   ...workerScenarios,
   ...publishingScenarios,
+  ...mcpScenarios,
   ...viewingScenarios,
   ...sharingScenarios,
   ...publishDialogScenarios,
@@ -1214,11 +1217,18 @@ const REQUEST_LINE = /^\[wrangler:info\] (GET|HEAD|POST|PUT|PATCH|DELETE|OPTIONS
  */
 const PEER_HUNG_UP = /disconnected: write\(\): (Connection reset by peer|Broken pipe)/;
 
+/**
+ * The line the MCP endpoint logs for each call: the tool, its duration and how it ended, never its
+ * arguments (`mcp/tool.ts`).
+ */
+const MCP_CALL_LINE = /^mcp: [a-z_]+ \d+ ms [a-z0-9.-]+$/;
+
 /** What the Worker printed besides its request lines: its errors and warnings, wrangler's notices. */
 function reportedByTheWorker(output: string): string[] {
   const lines = afterReady(output);
   return lines.filter((line, i) => {
-    if (REQUEST_LINE.test(line) || PEER_HUNG_UP.test(line)) return false;
+    if (REQUEST_LINE.test(line) || PEER_HUNG_UP.test(line) || MCP_CALL_LINE.test(line))
+      return false;
     // The stack line that follows a hang-up's report.
     return !(/^\s*stack: /.test(line) && i > 0 && PEER_HUNG_UP.test(lines[i - 1]!));
   });

@@ -13,6 +13,7 @@ import {
   type UserProfile,
 } from "../../src/store/types.js";
 import { defineAdministrationConformance } from "./conformance-administration.js";
+import { defineCallsConformance } from "./conformance-calls.js";
 import { defineProjectConformance } from "./conformance-projects.js";
 import { defineSharingConformance } from "./conformance-sharing.js";
 import { defineSponsorshipConformance } from "./conformance-sponsorships.js";
@@ -1001,6 +1002,8 @@ export function runStoreConformance(
     defineAdministrationConformance(() => store);
     // Sponsorships, the claim and what a deletion clears: conformance-sponsorships.ts.
     defineSponsorshipConformance(() => store);
+    // Idempotency keys and call windows (change agent-mcp): conformance-calls.ts.
+    defineCallsConformance(() => store);
 
     describe("many operations at once", () => {
       it("never lets racing creates take a person past the limit", async () => {
