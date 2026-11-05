@@ -6,8 +6,9 @@ How a client is authorized on the MCP endpoint: the authorization server, its me
 ## ADDED Requirements
 
 ### Requirement: Metadata
-`GET /.well-known/oauth-protected-resource` SHALL answer `{ resource: "<origin>/mcp",
-authorization_servers: ["<origin>"], scopes_supported, bearer_methods_supported: ["header"] }`,
+`GET /.well-known/oauth-protected-resource` and its path `/mcp` SHALL answer `{ resource:
+"<origin>/mcp", authorization_servers: ["<origin>"], scopes_supported, bearer_methods_supported:
+["header"] }`,
 and `GET /.well-known/oauth-authorization-server` the server's metadata with
 `code_challenge_methods_supported: ["S256"]`, `registration_endpoint`,
 `client_id_metadata_document_supported: true` and `token_endpoint_auth_methods_supported`
@@ -60,8 +61,8 @@ words, with Approve and Deny.
 ### Requirement: Tokens
 Approval SHALL issue a code bound to the person, the client, the scopes and the resource, and
 `/oauth/token` SHALL exchange it, with the PKCE verifier, for an access token of one hour and,
-with `offline_access`, a rotating refresh token; a used code, a wrong verifier or a used
-refresh token SHALL be refused.
+with `offline_access`, a rotating refresh token; a used code (whose grant is then revoked), a
+wrong verifier and a refresh token whose replacement was used SHALL be refused.
 
 #### Scenario: The whole flow
 - **WHEN** a registered client completes the flow with `scope=projects:read projects:write offline_access` and the person approves
@@ -69,11 +70,11 @@ refresh token SHALL be refused.
 
 #### Scenario: A code used twice
 - **WHEN** the same code is exchanged again
-- **THEN** the answer is `400 invalid_grant` and the first token still works
+- **THEN** the answer is `400 invalid_grant`, and the grant is revoked with the token it gave
 
 #### Scenario: A refresh token rotated
-- **WHEN** a refresh token is used, then used again
-- **THEN** the first use answers a new pair and the second is refused
+- **WHEN** a refresh token is used, its replacement is used, and the first is used again
+- **THEN** each of the first two uses answers a new pair and the third is refused
 
 ### Requirement: Scopes and audience
 Reads SHALL need `projects:read`, writes `projects:write`, the sharing tools `sharing`, the live

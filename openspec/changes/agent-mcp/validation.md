@@ -131,3 +131,121 @@ themselves.
 - `Accept` without `text/event-stream` (the SDK answers 406) is not tested by this stage.
 - A publish read-back from the production Worker to `meltemi.page`: in development it reads its own
   `/_published/` address, and in the Node tests the publish host function.
+
+## Stage 2
+
+Tasks 2.1 to 2.4, run on 5 November 2026 on the same machine and worktree, from `0b8a6cd`.
+
+### Gates
+
+| Check                                    | Result                                     |
+| ---------------------------------------- | ------------------------------------------ |
+| `pnpm install --frozen-lockfile`         | green                                      |
+| `pnpm typecheck`                         | green                                      |
+| `pnpm lint`                              | green (ESLint and Prettier)                |
+| `pnpm test`                              | 350 files, 10319 passed, 1 skipped, 1 failed (below) |
+| `pnpm licenses:inventory --check`        | current (45 packages)                      |
+| `pnpm cloud:test-browser`                | 104 passed, 1 failed (known flaky, below)  |
+| `pnpm playground:test-browser`           | 118 passed                                 |
+| `openspec validate "agent-mcp" --strict` | valid                                      |
+
+The one failure of `pnpm test` is `packages/acceptance/test/delivery-scripts.test.ts`, "deploy-config
+writes Terraform's ids into both Workers and refuses a placeholder": the `OAUTH_KV` placeholder of
+`wrangler.jsonc` (32 zeros) is refused by this branch's `scripts/deploy-config.mjs`, as intended until
+stage 3's version of the script (branch `agent-mcp-suite`, which fills it from `OAUTH_KV_ID`) is
+merged; that script and its test are stage 3's. The failure of the cloud suite is "collaboration: a
+socket the Worker cuts reconnects…", one of the suite's known flaky scenarios; alone it passed three
+runs of four, and its room and socket are untouched by this stage. Its check that the Worker logged
+nothing but its requests passed with the OAuth scenarios in the run.
+
+### Evidence by task
+
+- 2.1: `packages/cloud/package.json` pins `@cloudflare/workers-oauth-provider` 1.2.3 (MIT, no
+  dependencies of its own); `THIRD_PARTY_LICENSES.md` lists it. `wrangler.jsonc` gains
+  `compatibility_flags: ["global_fetch_strictly_public"]`, `kv_namespaces` with `OAUTH_KV` and its
+  placeholder id, `PRODUCT_NAME: "diagrams"`, `/.well-known/*` and `/oauth/*` in `run_worker_first`,
+  and `invocation_logs: false` (with `wrangler.publish.jsonc`). `test/oauth.test.ts` (22 tests, an
+  in-memory KV, `test/support/kv.ts`): the server's metadata (issuer, endpoints, `S256`,
+  `none`, `client_id_metadata_document_supported`, `authorization_code` and `refresh_token` and not
+  `client_credentials`, the six scopes) and the endpoint's at both paths; `401` with
+  `resource_metadata` of the origin for no token, a malformed one, a JWT of the identity service and
+  a token of the library's shape it does not hold; an unknown client a page, a wrong `resource` no
+  consent and no code, a signed-out person sent to sign in and back; an OAuth token `401
+  token.invalid` on `/api/projects`, `/api/session`, `/api/tokens` and `/api/account/apps`; an `mdg_`
+  token with the five scopes and refused by the token endpoint. `test/config.test.ts` checks the flag,
+  the binding's shape, `PRODUCT_NAME`, the logs of both Workers and `run_worker_first`;
+  `test/account-identity.test.ts` signs as `diagrams-staging` when `PRODUCT_NAME` says so.
+- 2.2: in `test/oauth.test.ts`: the consent page in English (the client, "its name is not verified",
+  `127.0.0.1` with the warning for this computer, the six scopes in words, Approve and Deny, the
+  binding cookie, `form-action 'self' http://127.0.0.1:1455`, `frame-ancestors 'none'`,
+  `X-Frame-Options: DENY`) and in Spanish; a client's `<script>` name escaped and unknown scopes
+  dropped; a client-id metadata document's domain named (its fetch stubbed); PKCE `plain` or none
+  `invalid_request`; a form without its `csrf`, with another session's or from another site `403`,
+  the page still good; Deny `access_denied` with `state` and `iss` and no grant or token in KV; a
+  page used, opened in another browser or older than ten minutes refused; the whole flow with DCR
+  and PKCE (a wrong verifier refused without spending the code, `expires_in: 3600`, a refresh token,
+  `whoami` and `create_project` as the person, the code replayed `invalid_grant` and the grant
+  revoked); refresh tokens rotated; no refresh token without `offline_access`; an expired token
+  `401`; a read-only token's `write_files` `scope.insufficient` naming `projects:write` with nothing
+  written; an editor with every scope refused `set_link_access` (`access.denied`); the ten
+  registrations of an address and the eleventh `429` with `Retry-After: 3600` and nothing registered,
+  another address and the next hour served; nothing of a code, verifier, token or handle in the log
+  or in clear in KV. `test/browser/scenarios-oauth.ts` in the real runtime: discovery from the
+  challenge, a client registered from Node with a loopback listener, the consent page in Edge
+  (policy, headers, the title, the six scopes, its motion), Approve landing on the listener with the
+  code, the exchange, the SDK's client `whoami` with the five scopes, the token refused on the API and
+  refused on `/mcp` once the app is revoked from Connected apps; the page in Spanish and Denegar
+  giving `access_denied`. Pictures, with `CLOUD_TEST_SHOTS`: `oauth-consent-en.png` and
+  `oauth-consent-es.png` in the temporary folder's `meltemi-cloud-browser-shots`.
+- 2.3: `test/apps.test.ts` (8 tests): the list with the client, the scopes, the approval and the last
+  use a call records (at most hourly, moved after a refresh past the hour), no token in the answer;
+  one grant for a client that authorized twice and the clients of another person not seen; an
+  `mdg_` token `403 request.forbidden` and nobody `401 auth.required`; a revocation `204` with its
+  access and refresh tokens refused and its row forgotten; `404 not-found` for a grant of someone
+  else's, an unknown one and ids of another shape; a `DELETE` from another site `403`; `user.deleted`
+  revoking both grants of a person and leaving one approved after the deletion; a grant approved
+  before a deletion refused while it is still in KV. `test/store/conformance-calls.ts` (3 more tests
+  over memory and D1), `test/migration-connected-apps.test.ts` (8 tests) and the deletion batch of
+  `test/store/d1.test.ts`. In the web app: `test/account-panel-apps.test.ts` (11 tests: the calls,
+  the words of scopes and hosts, the model) and three browser scenarios (the section with Codex,
+  Revoke after a question naming it, the empty state with the endpoint, Copy and the guide; Spanish;
+  nothing connected in Spanish); pictures `account-apps.png` and `account-apps-empty.png` in
+  `packages/playground/.test-output`.
+- 2.4: `docs/cloud.md` and its twin: the bearer tokens, the routes, the endpoint's challenge, the
+  sections Authorization and Connected apps, the deletion's revocation, `PRODUCT_NAME`, `OAUTH_KV`,
+  the compatibility flag, the logs and staging; `docs/security.md` and its twin: "Agents and the MCP
+  endpoint" and the logs. `packages/acceptance/test/docs.test.ts` green (links, anchors, twins).
+- The logs: `test/logs.test.ts` drives an invitation made, accepted and refused, a live session, the
+  page opened with both links, the OAuth flow with a wrong verifier, a replay and an invented refresh
+  token, an identity service that cannot be reached on a route with a session id, and an `mdg_`
+  token the service does not hold, and finds no `mdg_`, `Bearer`, `?invite=`, `?live=`, address,
+  token, code, verifier, handle or session id in any line.
+
+### Bundle and startup
+
+`wrangler deploy --dry-run` and the median busy time of five `wrangler check startup` profiles, on
+this machine, at `0b8a6cd` (stage 1) and with stage 2:
+
+| Cloud Worker | Upload (KiB) | gzip (KiB) | worker.js (bytes) | Startup (ms) |
+| ------------ | -----------: | ---------: | ----------------: | -----------: |
+| stage 1      |     23984.64 |    7731.48 |         7 038 984 |         30.6 |
+| stage 2      |     24269.71 |    7793.33 |         7 330 897 |         32.9 |
+
+The library adds 285 KiB (62 KiB gzip); an isolate evaluates it only when it first serves an
+address of the authorization server or the endpoint. The startup's medians were 29.4 to 31.8 and
+31.8 to 37.1 ms over the five runs: within the noise of the machine, and far from the 1 s limit.
+
+### Not verified
+
+- On Cloudflare: nothing of this stage is deployed. KV's eventual consistency (a grant approved in
+  one place listed elsewhere a moment later), the CPU of a token check on the Free plan, and the
+  Free plan's KV limits (1,000 writes a day: a flow writes about five, a refresh three) are not
+  measured.
+- A real Codex: whether it asks for `offline_access` (without it a person approves again every hour),
+  whether it uses a client-id metadata document or registration, and how it shows the consent's
+  loopback warning; the stage 3 procedure records it.
+- The OAuth token of another resource: the server knows one resource, so the test covers the
+  authorization request that names another and the library's audience check is not driven by a
+  token minted elsewhere.
+- `docs/web-app.md` does not list Connected apps among the account panel's sections yet (outside the
+  files of this stage).

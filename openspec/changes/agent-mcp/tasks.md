@@ -33,22 +33,28 @@
 
 ## 2. The authorization server (milestone 1)
 
-- [ ] 2.1 Wrap the Worker in `OAuthProvider` as design decision 4 with `OAUTH_KV`, the metadata
+- [x] 2.1 Wrap the Worker in `OAuthProvider` as design decision 4 with `OAUTH_KV`, the metadata
       documents, the `401` challenge and the `global_fetch_strictly_public` flag; add
-      `/oauth/*` and `/.well-known/*` to `run_worker_first`. Verify `test/oauth.test.ts` (an
+      `/oauth/*` and `/.well-known/*` to `run_worker_first` (as built: `@cloudflare/workers-oauth-provider`
+      1.2.3 pinned and imported only by the routes that need it, `src/oauth/`; the provider guards
+      `/mcp` behind the door and takes `mdg_` tokens through `resolveExternalToken`; `PRODUCT_NAME`
+      from `wrangler.jsonc`; invocation logs off in both Workers). Verify `test/oauth.test.ts` (an
       in-memory KV) covers discovery, the challenge, the wrong resource, the OAuth token refused
       on `/api/*` and the foreign JWT refused on `/mcp`.
-- [ ] 2.2 Write the consent page (`pages/consent.ts`, the sign-in redirect, the scopes in
-      words, `csrf`, Approve and Deny, both languages) and the registration rate limit. Verify the
+- [x] 2.2 Write the consent page (`pages/consent.ts`, the sign-in redirect, the scopes in
+      words, `csrf`, Approve and Deny, both languages) and the registration rate limit (as built:
+      every attempt counted in the command line's failures table under its own prefix). Verify the
       tests cover the whole flow with PKCE and DCR, the denial, the expired and revoked tokens,
       the insufficient scope, the editor with every scope and the flooded registration; and the
       cloud browser suite renders the page in both languages.
-- [ ] 2.3 Add `GET` and `DELETE /api/account/apps`, the revocation on `user.deleted`, and the
-      account panel's **Connected apps** section with its words. Verify the cloud tests cover
+- [x] 2.3 Add `GET` and `DELETE /api/account/apps`, the revocation on `user.deleted`, and the
+      account panel's **Connected apps** section with its words (as built: the last use of a grant
+      in migration `0009_connected_apps.sql`, written at most hourly). Verify the cloud tests cover
       the list, the revocation, the token refused and the deleted account, and the playground
       suite the section, the empty state and the Spanish words.
-- [ ] 2.4 Write `docs/cloud.md`'s endpoint, authorization and Connected apps sections,
-      `docs/security.md`'s token rule, and their Spanish twins. Verify the docs link test.
+- [x] 2.4 Write `docs/cloud.md`'s endpoint, authorization and Connected apps sections,
+      `docs/security.md`'s token rule, and their Spanish twins (and the paragraphs on the logs,
+      staging and the configuration). Verify the docs link test.
 
 ## 3. Previews (milestone 1)
 

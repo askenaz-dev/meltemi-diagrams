@@ -164,6 +164,10 @@ not even read). Other `Authorization` schemes, and a `Bearer` with no token, are
 A token is its own credential: it keeps working after the session that made it ends, until it is
 revoked or the account is deleted. It needs no `Origin`.
 
+An access token of the MCP endpoint's authorization server ([Authorization](#authorization)) is not
+an API token: it is bound to `/mcp` and opens nothing else, so on any other route it is
+`401 token.invalid`, like any bearer the service does not hold.
+
 ### The session cookie
 
 Otherwise the `meltemi_session` cookie goes to the reference verifier of `@meltemi/identity`. It
@@ -325,6 +329,15 @@ the code, in English or Spanish, instead of JSON.
 | `PUT /api/admin/accounts/<account>/permissions/<id>` | an owner or an administrator, with the cookie; anyone else gets `404`       | `200`, the account's permission                                   |
 | `POST /_sponsors/github`                             | GitHub Sponsors, signed; nobody without `SPONSORS_ACCOUNT` (`404`)          | `200`, recorded, repeated, updated or ignored                     |
 | `GET` and `HEAD /_published/<handle>/<slug>/`        | anyone; development only                                                    | `200`, the published page                                         |
+| `POST /mcp`                                          | an agent, with an OAuth access token or an API token                        | the JSON-RPC answer ([The MCP endpoint](#the-mcp-endpoint))       |
+| `GET /.well-known/oauth-authorization-server`        | anyone                                                                      | `200`, the authorization server's metadata                        |
+| `GET /.well-known/oauth-protected-resource/mcp`      | anyone                                                                      | `200`, the endpoint's metadata (also at the path without `/mcp`)  |
+| `POST /oauth/register`                               | an OAuth client; ten an hour per address                                    | `201`, the client                                                 |
+| `GET /oauth/authorize`                               | anyone; a person signed in approves                                         | the consent page, a redirect to sign in, or one to the client     |
+| `POST /oauth/authorize`                              | a person signed in on the page                                              | `303` to the client's redirect URI                                |
+| `POST /oauth/token`                                  | an OAuth client                                                             | `200`, the tokens                                                 |
+| `GET /api/account/apps`                              | a person signed in on the page                                              | `200 { grants }`                                                  |
+| `DELETE /api/account/apps/<id>`                      | a person signed in on the page                                              | `204`                                                             |
 
 The projects' routes each name the role they need: the owner's, an editor's or, for what only
 reads, a viewer's, which the project's link may give to anyone, signed in or not
@@ -548,7 +561,9 @@ body is read up to 8 KiB; it must be a JSON object with the text fields `id`, `t
   of their user row when the identity service had verified it; their administrator row and the
   invitations to administer they made that nobody answered; and their claims of sponsorships, which
   are unclaimed again) and records the event: its id, the
-  `sub` and its time. Then it answers `200` with the status `applied`. The `blobs` rows are shared
+  `sub` and its time. It then revokes the OAuth grants the person approved before the deletion
+  ([Connected apps](#connected-apps)), whose tokens are refused from then on, and answers `200`
+  with the status `applied`. The `blobs` rows are shared
   by content and stay; the weekly [collection](#the-collection-of-blobs) takes the ones nothing
   else references. The takedowns and the administration log stay too: they are the service's
   record ([Takedown](#takedown), [The administration log](#the-administration-log)). An invitation
@@ -2188,15 +2203,17 @@ acts on the account's projects (change `agent-mcp`). It is built with `createMcp
 protocol are answered through its stateless leg (an event stream with the one answer), the
 2026-07-28 revision as JSON. No session id is issued; `GET` and `DELETE` are `405`. In this order,
 before the SDK reads anything: an `Origin` that is not the page's is `403 request.forbidden`, a
-`MCP-Protocol-Version` the SDK does not serve is `400`, a request without a token the service holds
-is `401` with `WWW-Authenticate: Bearer` (the cookie is never taken here), and a body over 24 MiB is
-`413`. The SDK and the tools are imported the first time an isolate serves `/mcp`.
+`MCP-Protocol-Version` the SDK does not serve is `400`, a request without a token the authorization
+server or the service holds is `401` with
+`WWW-Authenticate: Bearer realm="OAuth", resource_metadata="<origin>/.well-known/oauth-protected-resource"`
+([Authorization](#authorization); the cookie is never taken here), and a body over 24 MiB is `413`.
+The authorization server's library, the SDK and the tools are imported the first time an isolate
+serves `/mcp`.
 
-An `mdg_` API token opens the endpoint as its account, with every scope (`projects:read`,
-`projects:write`, `sharing`, `live`, `publish`); the authorization server whose OAuth tokens carry
-narrower scopes is the change's next stage. Every tool checks its scope (`scope.insufficient`,
-naming it) and then the role the project gives the account, as its route does: a wide scope never
-adds a role. A call is counted (300 a minute per account, `rate.limited` with `retryAfter`) and
+An OAuth access token opens the endpoint as the account that approved it, with the scopes it was
+granted; an `mdg_` API token, as its account, with every scope (`projects:read`, `projects:write`,
+`sharing`, `live`, `publish`). Every tool checks its scope (`scope.insufficient`, naming it) and then
+the role the project gives the account, as its route does: a wide scope never adds a role. A call is counted (300 a minute per account, `rate.limited` with `retryAfter`) and
 logged as `mcp: <tool> <ms> ms <code>`, never with its arguments.
 
 The twenty-seven tools: `whoami`; `list_projects`, `create_project`, `get_project`,
@@ -2214,6 +2231,68 @@ a minute per account, with a report beside it. `invite` answers the invitation's
 `emailSent: false`. `publish` has the renderer object build the catalog the page publishes, stores
 it, and reads the public address back once (`HEAD`): an address that does not answer `200` is
 `502 publish.unverified` with its `url`, and the publication exists.
+
+### Authorization
+
+The endpoint is the one protected resource of an OAuth 2.1 authorization server in the same Worker,
+`@cloudflare/workers-oauth-provider` 1.2.3 (MIT). Its state (clients, grants, codes and tokens) is
+the KV namespace `OAUTH_KV`, where codes, tokens and client secrets are kept as hashes and a grant's
+props encrypted. Its addresses:
+
+| Address                                         | Is                                                                                                                                                                                                                    |
+| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /.well-known/oauth-authorization-server`   | The server's metadata (RFC 8414): the endpoints, `S256`, `none` among the client authentications, `authorization_code` and `refresh_token`, `client_id_metadata_document_supported` and the six scopes                |
+| `GET /.well-known/oauth-protected-resource/mcp` | The endpoint's metadata (RFC 9728): the resource `<origin>/mcp`, the server, the five scopes and `header`; the origin's `/.well-known/oauth-protected-resource`, which the challenge names, answers the same document |
+| `POST /oauth/register`                          | Dynamic client registration (RFC 7591): ten an hour per address, every attempt counted under the keyed hash of the address (as the command line's failed exchanges), the eleventh `429 rate.limited`                  |
+| `GET /oauth/authorize`                          | The consent page                                                                                                                                                                                                      |
+| `POST /oauth/authorize`                         | Approve or Deny: `303` to the client's redirect URI, with `state` and `iss`                                                                                                                                           |
+| `POST /oauth/token`                             | Codes exchanged with their PKCE verifier, refresh tokens rotated, tokens revoked (RFC 7009)                                                                                                                           |
+
+A client registers by dynamic registration or names a client-id metadata document: an `https:`
+address whose JSON names the client and its redirect URIs, fetched under the compatibility flag
+`global_fetch_strictly_public`, so never from this zone's own origins. `GET /oauth/authorize` checks
+the request first, whoever asks: an unknown client or a redirect URI it did not register is a page
+with `request.invalid`, never a redirect; a `resource` other than `<origin>/mcp` is `invalid_target`;
+PKCE must be `S256` for every client (`invalid_request`). A person not signed in on the page goes to
+the identity service's sign-in and comes back to the same address. The consent page names the client
+(and the domain of a metadata document; a registered client's name is said to be unverified), the
+host the access is sent to, with a warning when that is this computer, and each scope in words, in
+the interface language. Its form carries the library's handle, which works once, for ten minutes, in
+the browser whose `__Host-` cookie it is bound to, and a `csrf` of the session over it, keyed with
+`FORMS_SECRET`. Approve stores a grant with the person's `sub` and the client's name; Deny gives the
+client `error=access_denied`.
+
+The scopes are `projects:read` (reads, checks, previews), `projects:write` (writes, images,
+versions), `sharing`, `live`, `publish`, and `offline_access` for a refresh token. A client that asks
+for none of the five is offered the five; a scope the server does not know is dropped. The scope and
+the project's role are two checks: a tool refuses what the token was not granted with
+`scope.insufficient`, and the role refuses the rest (`access.denied`), so an editor with every scope
+still cannot share.
+
+An access token lives an hour (`expires_in: 3600`) and is bound to `<origin>/mcp` alone. With
+`offline_access` a refresh token comes with it, valid thirty days from the exchange and rotated on
+every use; the previous one goes on working until its replacement is first used, so a client that
+lost an answer can retry. A code works once: a second exchange is `invalid_grant` and revokes the
+grant, its tokens included. An expired token, one of a revoked grant and one of an account deleted
+since its approval are `401`. An OAuth token never opens `/api/*` (`401 token.invalid`), and the
+server never issues an `mdg_` token nor takes one on `/oauth/token`. The library's refusals are
+answered, not logged (a failure of its own is logged by its code alone), and no address of the flow
+carries a token; the code does, once.
+
+### Connected apps
+
+`GET /api/account/apps` answers
+`{ grants: [{ id, client: { name, uri }, scopes, createdAt, lastUsedAt }] }`, the latest first. `uri`
+is a metadata document's address, or the origin the access goes to for a registered client, whose
+own claims are not shown as fact; `lastUsedAt` is the last time the grant's token reached the
+endpoint, written at most hourly (the D1 table `app_uses`, migration 0009), `null` while never.
+`DELETE /api/account/apps/<id>` revokes the grant and its tokens at once and answers `204`, or
+`404 not-found` for a grant that is not the person's. Both are for a person signed in on the page:
+an API token is `403 request.forbidden`, an OAuth token `401 token.invalid` and nobody
+`401 auth.required`, and the `DELETE` is under [the Origin rule](#the-origin-rule). A client that
+authorizes again replaces its earlier grant, and a `user.deleted` event revokes every grant the
+person approved before the deletion ([Deletion events](#deletion-events)). The account panel's
+Connected apps section reads and revokes them ([the web app](web-app.md#the-account-panel)).
 
 ## Quotas and limits
 
@@ -2302,29 +2381,40 @@ binding.
 | `ADMIN_SUBS`              | secret (Store)     | The `sub`s of the owners of the service, comma separated: always administrators, and the only ones who invite and remove administrators ([Administration](#administration)). Unset or empty, nobody administers the service                                           |
 | `SPONSORS_ACCOUNT`        | variable, optional | The GitHub login of the sponsored account (`askenaz`): the session answer's `support` is its Sponsors page and `/_sponsors/github` takes its deliveries ([Sponsorships](#sponsorships)). Empty in `wrangler.jsonc` until the owner's steps are done: no donation path |
 | `SPONSORS_WEBHOOK_SECRET` | secret (Store)     | The secret of the Sponsors webhook, the one typed into GitHub's form: verifies each delivery's `X-Hub-Signature-256`. Meltemi Web's Terraform receives it as `sponsors_webhook_secret`; blank, every delivery is refused                                              |
+| `PRODUCT_NAME`            | variable           | What the calls of [the identity data](#the-identity-data) are signed as, this Worker's entry in the identity service's products: `diagrams` in `wrangler.jsonc` (and when unset), `diagrams-staging` for the staging Worker                                           |
 | `DEV`                     | `.dev.vars` only   | `"true"` turns on development mode, below                                                                                                                                                                                                                             |
 | `IDENTITY_JWKS`           | `.dev.vars` only   | An inline key set, `{"keys":[…]}`, for development and tests                                                                                                                                                                                                          |
 
 The bindings are:
 
-| Binding  | Is                                                                                                                                                       |
-| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DB`     | The D1 database, with its migrations in `packages/cloud/migrations`                                                                                      |
-| `ASSETS` | The page's build                                                                                                                                         |
-| `BLOBS`  | The R2 bucket `meltemi-diagrams-blobs`: `blobs/<sha-256>`, `thumbs/<project id>.svg` and `published/<handle>/<slug>/index.html`                          |
-| `ROOMS`  | The Durable Object namespace of the class `ProjectRoom`, which the Worker's entry exports; the migration `v1` of `wrangler.jsonc` makes it SQLite-backed |
+| Binding    | Is                                                                                                                                                       |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DB`       | The D1 database, with its migrations in `packages/cloud/migrations`                                                                                      |
+| `ASSETS`   | The page's build                                                                                                                                         |
+| `BLOBS`    | The R2 bucket `meltemi-diagrams-blobs`: `blobs/<sha-256>`, `thumbs/<project id>.svg` and `published/<handle>/<slug>/index.html`                          |
+| `ROOMS`    | The Durable Object namespace of the class `ProjectRoom`, which the Worker's entry exports; the migration `v1` of `wrangler.jsonc` makes it SQLite-backed |
+| `OAUTH_KV` | The KV namespace of the MCP endpoint's authorization server ([Authorization](#authorization)): one per environment, read and written by its library only |
 
 `wrangler.jsonc` also holds the cron trigger of the weekly collection, `0 3 * * SUN`, and an `alias`
 that makes the Worker bundle the workspace packages it imports from their sources. The ids in the
 file are placeholders (all zeros): the family's Terraform creates the database, the bucket and the
 Secrets Store and writes their ids as variables of this repository's `production` environment, and
-the deploy workflow writes them in before uploading ([Deploying](#deploying)). The
+the deploy workflow writes them in before uploading ([Deploying](#deploying)); the `OAUTH_KV`
+namespace's id comes from `OAUTH_KV_ID` the same way. `compatibility_flags` holds
+`global_fetch_strictly_public`, which the authorization server needs before it fetches a client-id
+metadata document. The
 Worker's runtime dependencies are the identity package, this repository's project package and
 `yjs` (MIT). Outside development `ORIGIN`, `IDENTITY_ISSUER` and `IDENTITY_JWKS_URL` must be
 `https:` addresses; otherwise every request is `500 internal` and the log names the variable.
 `PUBLISH_HOST`, `ADMIN_SUBS` and `SPONSORS_ACCOUNT` are different: none stops the service, and each
 costs only its own feature when it is missing or unusable (publishing, the administration of the
 service, and the donation path).
+
+Both Workers keep their own log lines (`observability.logs.enabled`) and no invocation logs
+(`invocation_logs: false`): an invocation log records each request's address, and some addresses
+grant access (`/api/invitations/<token>/accept`, a page opened with `?invite=` or `?live=`). No line
+the Worker logs holds an address, a token, a session id, an invitation's or a live session's link or
+an OAuth code; `test/logs.test.ts` drives the routes that carry them and reads every line.
 
 The publish host has its own configuration, `packages/cloud/wrangler.publish.jsonc`, and binds only
 `DB` and `BLOBS`, the same database and bucket as above, to read them: no assets, no variable, no
@@ -2433,6 +2523,13 @@ DB --remote`), and the main Worker and the publish Worker are uploaded with `wra
   or undoes database migrations ([releasing](../RELEASING.md)).
 - **A secret** changes in the family's Terraform; the Workers read the new value when their
   isolates restart. `wrangler secret put` is never run.
+
+**Staging.** The deploy uploads the staging twins first, `meltemi-diagrams-staging`
+(`https://staging.diagrams.meltemi.dev`) and `meltemi-diagrams-publish-staging`
+(`staging.meltemi.page`), with the `staging` environment's ids and `PRODUCT_NAME`
+`diagrams-staging`, runs `pnpm acceptance:mcp` against them, and deploys production only if it
+passes. Without the owner's test tokens (`MELTEMI_TOKEN`, `MELTEMI_TOKEN_2`) only the checks that
+need no account run: the metadata, the challenge and the refusals.
 
 ## Running locally
 

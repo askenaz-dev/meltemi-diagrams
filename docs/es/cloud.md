@@ -178,6 +178,10 @@ sin token, se ignoran.
 Un token es su propia credencial: sigue funcionando cuando termina la sesión que lo creó, hasta que
 se revoca o se elimina la cuenta. No necesita `Origin`.
 
+Un token de acceso del servidor de autorización del endpoint MCP ([Autorización](#autorización)) no
+es un token de API: está ligado a `/mcp` y no abre nada más, así que en cualquier otra ruta es
+`401 token.invalid`, como cualquier bearer que el servicio no guarde.
+
 ### La cookie de sesión
 
 En caso contrario, la cookie `meltemi_session` pasa al verificador de referencia de
@@ -343,6 +347,15 @@ que muestran el código, en inglés o en español, en lugar de JSON.
 | `PUT /api/admin/accounts/<account>/permissions/<id>` | un propietario o un administrador, con la cookie; cualquier otra persona recibe `404`   | `200`, el permiso de la cuenta                                                           |
 | `POST /_sponsors/github`                             | GitHub Sponsors, firmado; nadie sin `SPONSORS_ACCOUNT` (`404`)                          | `200`, guardado, repetido, actualizado o ignorado                                        |
 | `GET` y `HEAD /_published/<handle>/<slug>/`          | cualquiera; solo en desarrollo                                                          | `200`, la página publicada                                                               |
+| `POST /mcp`                                          | un agente, con un token de acceso OAuth o un token de API                               | la respuesta JSON-RPC ([El endpoint MCP](#el-endpoint-mcp))                              |
+| `GET /.well-known/oauth-authorization-server`        | cualquiera                                                                              | `200`, los metadatos del servidor de autorización                                        |
+| `GET /.well-known/oauth-protected-resource/mcp`      | cualquiera                                                                              | `200`, los metadatos del endpoint (también en la ruta sin `/mcp`)                        |
+| `POST /oauth/register`                               | un cliente OAuth; diez por hora y dirección                                             | `201`, el cliente                                                                        |
+| `GET /oauth/authorize`                               | cualquiera; aprueba una persona con sesión iniciada                                     | la página de consentimiento, una redirección para iniciar sesión, o una hacia el cliente |
+| `POST /oauth/authorize`                              | una persona con sesión iniciada en la página                                            | `303` a la URI de redirección del cliente                                                |
+| `POST /oauth/token`                                  | un cliente OAuth                                                                        | `200`, los tokens                                                                        |
+| `GET /api/account/apps`                              | una persona con sesión iniciada en la página                                            | `200 { grants }`                                                                         |
+| `DELETE /api/account/apps/<id>`                      | una persona con sesión iniciada en la página                                            | `204`                                                                                    |
 
 Las rutas de los proyectos nombran cada una el rol que necesitan: el del propietario, el de un
 editor o, para lo que solo lee, el de un lector, que el enlace del proyecto puede dar a cualquiera,
@@ -570,7 +583,9 @@ y se comprueba antes de leer el cuerpo como JSON (`401 signature.invalid`). El c
   su fila de usuario cuando el servicio de identidad lo había verificado; su fila de administrador y
   las invitaciones a administrar que hizo y nadie respondió; y sus reclamaciones de patrocinios, que
   vuelven a quedar sin reclamar) y registra el evento: su id, el `sub` y
-  su hora. Luego responde `200` con el estado `applied`. Las filas de `blobs` se comparten por
+  su hora. Después revoca las concesiones OAuth que la persona aprobó antes de la eliminación
+  ([Aplicaciones conectadas](#aplicaciones-conectadas)), cuyos tokens se rechazan desde entonces, y
+  responde `200` con el estado `applied`. Las filas de `blobs` se comparten por
   contenido y se quedan; la [recolección](#la-recolección-de-blobs) semanal se lleva las que nada más
   referencia. Las retiradas y el registro de administración también se quedan: son el registro del
   servicio ([Retirada](#retirada), [El registro de administración](#el-registro-de-administración)).
@@ -2287,13 +2302,16 @@ de `@modelcontextprotocol/server` 2.3.1 (Apache-2.0) y `zod` 4.6.7 (MIT): las re
 protocolo se responden por su vía sin estado (un flujo de eventos con la única respuesta), la revisión
 2026-07-28 como JSON. No se emite identificador de sesión; `GET` y `DELETE` son `405`. En este orden,
 antes de que el SDK lea nada: un `Origin` que no es el de la página es `403 request.forbidden`, un
-`MCP-Protocol-Version` que el SDK no sirve es `400`, una petición sin un token que el servicio guarde
-es `401` con `WWW-Authenticate: Bearer` (aquí nunca se toma la cookie), y un cuerpo de más de 24 MiB
-es `413`. El SDK y las herramientas se importan la primera vez que un isolate sirve `/mcp`.
+`MCP-Protocol-Version` que el SDK no sirve es `400`, una petición sin un token que el servidor de
+autorización o el servicio guarden es `401` con
+`WWW-Authenticate: Bearer realm="OAuth", resource_metadata="<origin>/.well-known/oauth-protected-resource"`
+([Autorización](#autorización); aquí nunca se toma la cookie), y un cuerpo de más de 24 MiB es `413`.
+La biblioteca del servidor de autorización, el SDK y las herramientas se importan la primera vez que
+un isolate sirve `/mcp`.
 
-Un token de API `mdg_` abre el endpoint como su cuenta, con todos los alcances (`projects:read`,
-`projects:write`, `sharing`, `live`, `publish`); el servidor de autorización cuyos tokens OAuth llevan
-alcances más estrechos es la siguiente etapa del cambio. Cada herramienta comprueba su alcance
+Un token de acceso OAuth abre el endpoint como la cuenta que lo aprobó, con los alcances que se le
+concedieron; un token de API `mdg_`, como su cuenta, con todos los alcances (`projects:read`,
+`projects:write`, `sharing`, `live`, `publish`). Cada herramienta comprueba su alcance
 (`scope.insufficient`, que lo nombra) y después el rol que el proyecto da a la cuenta, como hace su
 ruta: un alcance amplio nunca añade un rol. Cada llamada se cuenta (300 por minuto y cuenta,
 `rate.limited` con `retryAfter`) y se registra como `mcp: <herramienta> <ms> ms <código>`, nunca con
@@ -2315,6 +2333,70 @@ lado. `invite` responde el enlace de la invitación y `emailSent: false`. `publi
 renderizador construya el catálogo que publica la página, lo guarda y lee una vez la dirección pública
 (`HEAD`): una dirección que no responde `200` es `502 publish.unverified` con su `url`, y la
 publicación existe.
+
+### Autorización
+
+El endpoint es el único recurso protegido de un servidor de autorización OAuth 2.1 en el mismo
+Worker, `@cloudflare/workers-oauth-provider` 1.2.3 (MIT). Su estado (clientes, concesiones, códigos y
+tokens) es el namespace de KV `OAUTH_KV`, donde los códigos, los tokens y los secretos de cliente se
+guardan como hashes y las props de una concesión, cifradas. Sus direcciones:
+
+| Dirección                                       | Es                                                                                                                                                                                                                            |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /.well-known/oauth-authorization-server`   | Los metadatos del servidor (RFC 8414): los endpoints, `S256`, `none` entre las autenticaciones de cliente, `authorization_code` y `refresh_token`, `client_id_metadata_document_supported` y los seis alcances                |
+| `GET /.well-known/oauth-protected-resource/mcp` | Los metadatos del endpoint (RFC 9728): el recurso `<origin>/mcp`, el servidor, los cinco alcances y `header`; el `/.well-known/oauth-protected-resource` del origen, que nombra el desafío, responde el mismo documento       |
+| `POST /oauth/register`                          | El registro dinámico de clientes (RFC 7591): diez por hora y dirección, contando cada intento bajo el hash con clave de la dirección (como los intercambios fallidos de la línea de comandos), el undécimo `429 rate.limited` |
+| `GET /oauth/authorize`                          | La página de consentimiento                                                                                                                                                                                                   |
+| `POST /oauth/authorize`                         | Aprobar o Denegar: `303` a la URI de redirección del cliente, con `state` e `iss`                                                                                                                                             |
+| `POST /oauth/token`                             | Códigos intercambiados con su verificador PKCE, tokens de refresco rotados, tokens revocados (RFC 7009)                                                                                                                       |
+
+Un cliente se registra por registro dinámico o nombra un documento de metadatos de client-id: una
+dirección `https:` cuyo JSON nombra al cliente y sus URI de redirección, que se lee bajo la opción de
+compatibilidad `global_fetch_strictly_public`, así que nunca desde los orígenes de esta misma zona.
+`GET /oauth/authorize` comprueba primero la solicitud, pregunte quien pregunte: un cliente
+desconocido o una URI de redirección que no registró es una página con `request.invalid`, nunca una
+redirección; un `resource` distinto de `<origin>/mcp` es `invalid_target`; PKCE debe ser `S256` para
+todo cliente (`invalid_request`). Una persona sin sesión iniciada en la página va al inicio de sesión
+del servicio de identidad y vuelve a la misma dirección. La página de consentimiento nombra al cliente
+(y el dominio de un documento de metadatos; del nombre de un cliente registrado dice que no está
+verificado), el host al que se envía el acceso, con un aviso cuando es este equipo, y cada alcance en
+palabras, en el idioma de la interfaz. Su formulario lleva el identificador de la biblioteca, que
+sirve una vez, durante diez minutos, en el navegador a cuya cookie `__Host-` está ligado, y un `csrf`
+de la sesión sobre él, con la clave `FORMS_SECRET`. Aprobar guarda una concesión con el `sub` de la
+persona y el nombre del cliente; Denegar le da al cliente `error=access_denied`.
+
+Los alcances son `projects:read` (lecturas, comprobaciones, vistas previas), `projects:write`
+(escrituras, imágenes, versiones), `sharing`, `live`, `publish`, y `offline_access` para un token de
+refresco. A un cliente que no pide ninguno de los cinco se le ofrecen los cinco; un alcance que el
+servidor no conoce se descarta. El alcance y el rol en el proyecto son dos comprobaciones: una
+herramienta rechaza lo que no se concedió al token con `scope.insufficient`, y el rol rechaza el resto
+(`access.denied`), así que un editor con todos los alcances sigue sin poder compartir.
+
+Un token de acceso dura una hora (`expires_in: 3600`) y está ligado solo a `<origin>/mcp`. Con
+`offline_access` llega con él un token de refresco, válido treinta días desde el intercambio y rotado
+en cada uso; el anterior sigue funcionando hasta que se usa por primera vez su sustituto, para que un
+cliente que perdió una respuesta pueda reintentar. Un código sirve una vez: un segundo intercambio es
+`invalid_grant` y revoca la concesión, con sus tokens. Un token caducado, uno de una concesión
+revocada y uno de una cuenta eliminada después de su aprobación son `401`. Un token OAuth nunca abre
+`/api/*` (`401 token.invalid`), y el servidor nunca emite un token `mdg_` ni acepta uno en
+`/oauth/token`. Los rechazos de la biblioteca se responden, no se registran (un fallo propio se
+registra solo por su código), y ninguna dirección del flujo lleva un token; el código sí, una vez.
+
+### Aplicaciones conectadas
+
+`GET /api/account/apps` responde
+`{ grants: [{ id, client: { name, uri }, scopes, createdAt, lastUsedAt }] }`, la más reciente
+primero. `uri` es la dirección de un documento de metadatos, o el origen al que va el acceso para un
+cliente registrado, cuyas propias afirmaciones no se muestran como un hecho; `lastUsedAt` es la última
+vez que el token de la concesión llegó al endpoint, escrita como mucho una vez por hora (la tabla D1
+`app_uses`, migración 0009), `null` mientras nunca. `DELETE /api/account/apps/<id>` revoca la
+concesión y sus tokens al instante y responde `204`, o `404 not-found` para una concesión que no es
+de la persona. Las dos son para una persona con sesión iniciada en la página: un token de API es
+`403 request.forbidden`, un token OAuth `401 token.invalid` y nadie `401 auth.required`, y el `DELETE`
+está bajo [la regla de Origin](#la-regla-de-origin). Un cliente que vuelve a autorizarse sustituye
+su concesión anterior, y un evento `user.deleted` revoca toda concesión que la persona aprobó antes de
+la eliminación ([Eventos de eliminación](#eventos-de-eliminación)). La sección Aplicaciones conectadas
+del panel de la cuenta las lee y las revoca ([la aplicación web](web-app.md#el-panel-de-la-cuenta)).
 
 ## Cuotas y límites
 
@@ -2405,30 +2487,41 @@ como cadenas, que siempre ganan a un binding.
 | `ADMIN_SUBS`              | secreto (Store)     | Los `sub` de los propietarios del servicio, separados por comas: siempre administradores, y los únicos que invitan y quitan administradores ([Administración](#administración)). Sin definir o vacía, nadie administra el servicio                                                                 |
 | `SPONSORS_ACCOUNT`        | variable, opcional  | El usuario de GitHub de la cuenta patrocinada (`askenaz`): el `support` de la respuesta de sesión es su página de Sponsors y `/_sponsors/github` acepta sus entregas ([Patrocinios](#patrocinios)). Vacía en `wrangler.jsonc` hasta que se hagan los pasos del propietario: sin camino de donación |
 | `SPONSORS_WEBHOOK_SECRET` | secreto (Store)     | El secreto del webhook de Sponsors, el que se escribe en el formulario de GitHub: verifica la `X-Hub-Signature-256` de cada entrega. El Terraform de Meltemi Web lo recibe como `sponsors_webhook_secret`; en blanco, se rechaza toda entrega                                                      |
+| `PRODUCT_NAME`            | variable            | Como qué se firman las llamadas de [los datos de identidad](#los-datos-de-identidad), la entrada de este Worker en los productos del servicio de identidad: `diagrams` en `wrangler.jsonc` (y sin definir), `diagrams-staging` para el Worker de staging                                           |
 | `DEV`                     | solo en `.dev.vars` | `"true"` activa el modo de desarrollo, más abajo                                                                                                                                                                                                                                                   |
 | `IDENTITY_JWKS`           | solo en `.dev.vars` | Un conjunto de claves en línea, `{"keys":[…]}`, para desarrollo y pruebas                                                                                                                                                                                                                          |
 
 Los bindings son:
 
-| Binding  | Es                                                                                                                                                                  |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `DB`     | La base de datos D1, con sus migraciones en `packages/cloud/migrations`                                                                                             |
-| `ASSETS` | La compilación de la página                                                                                                                                         |
-| `BLOBS`  | El bucket de R2 `meltemi-diagrams-blobs`: `blobs/<sha-256>`, `thumbs/<project id>.svg` y `published/<handle>/<slug>/index.html`                                     |
-| `ROOMS`  | El namespace de Durable Objects de la clase `ProjectRoom`, que exporta el punto de entrada del Worker; la migración `v1` de `wrangler.jsonc` la respalda con SQLite |
+| Binding    | Es                                                                                                                                                                  |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DB`       | La base de datos D1, con sus migraciones en `packages/cloud/migrations`                                                                                             |
+| `ASSETS`   | La compilación de la página                                                                                                                                         |
+| `BLOBS`    | El bucket de R2 `meltemi-diagrams-blobs`: `blobs/<sha-256>`, `thumbs/<project id>.svg` y `published/<handle>/<slug>/index.html`                                     |
+| `ROOMS`    | El namespace de Durable Objects de la clase `ProjectRoom`, que exporta el punto de entrada del Worker; la migración `v1` de `wrangler.jsonc` la respalda con SQLite |
+| `OAUTH_KV` | El namespace de KV del servidor de autorización del endpoint MCP ([Autorización](#autorización)): uno por entorno, que solo lee y escribe su biblioteca             |
 
 `wrangler.jsonc` contiene además el disparador cron de la recolección semanal, `0 3 * * SUN`, y un
 `alias` que hace que el Worker incluya en su paquete, desde sus fuentes, los paquetes del workspace
 que importa. Los ids del archivo son marcadores de posición (todo ceros): el Terraform de la familia
 crea la base de datos, el bucket y el Secrets Store y escribe sus ids como variables del entorno
 `production` de este repositorio, y el flujo de despliegue los escribe antes de subir
-([Despliegue](#despliegue)). Las dependencias del Worker en tiempo de
+([Despliegue](#despliegue)); el id del namespace `OAUTH_KV` llega del mismo modo desde
+`OAUTH_KV_ID`. `compatibility_flags` contiene `global_fetch_strictly_public`, que el servidor de
+autorización necesita antes de leer un documento de metadatos de client-id. Las dependencias del Worker en tiempo de
 ejecución son el paquete de identidad, el paquete de proyectos de este repositorio y `yjs` (MIT).
 Fuera del desarrollo, `ORIGIN`, `IDENTITY_ISSUER` e `IDENTITY_JWKS_URL` deben ser direcciones
 `https:`; si no, cada solicitud es `500 internal` y el registro nombra la variable. `PUBLISH_HOST`,
 `ADMIN_SUBS` y `SPONSORS_ACCOUNT` son distintas: ninguna detiene el servicio, y cada una cuesta solo
 su propia función cuando falta o no se puede usar (publicar, la administración del servicio y el
 camino de donación).
+
+Los dos Workers conservan sus propias líneas de registro (`observability.logs.enabled`) y ningún
+registro de invocaciones (`invocation_logs: false`): un registro de invocación guarda la dirección de
+cada solicitud, y algunas direcciones dan acceso (`/api/invitations/<token>/accept`, una página
+abierta con `?invite=` o `?live=`). Ninguna línea que registra el Worker contiene una dirección, un
+token, un id de sesión, el enlace de una invitación o de una sesión en vivo ni un código OAuth;
+`test/logs.test.ts` recorre las rutas que los llevan y lee cada línea.
 
 El host de publicación tiene su propia configuración, `packages/cloud/wrangler.publish.jsonc`, y
 enlaza solo `DB` y `BLOBS`, la misma base de datos y el mismo bucket de arriba, para leerlos: ni
@@ -2542,6 +2635,13 @@ Nada se despliega ni se configura desde una máquina ([decisión 0046](../decisi
   nunca la omite ni revierte migraciones ([releases](../../RELEASING.md)).
 - **Un secreto** cambia en el Terraform de la familia; los Workers leen el valor nuevo cuando sus
   aislamientos se reinician. Nunca se ejecuta `wrangler secret put`.
+
+**Staging.** El despliegue sube primero los gemelos de staging, `meltemi-diagrams-staging`
+(`https://staging.diagrams.meltemi.dev`) y `meltemi-diagrams-publish-staging`
+(`staging.meltemi.page`), con los ids del entorno `staging` y `PRODUCT_NAME` `diagrams-staging`,
+ejecuta `pnpm acceptance:mcp` contra ellos y solo despliega producción si pasa. Sin los tokens de
+prueba del propietario (`MELTEMI_TOKEN`, `MELTEMI_TOKEN_2`) solo se ejecutan las comprobaciones que no
+necesitan una cuenta: los metadatos, el desafío y los rechazos.
 
 ## Ejecutarlo en local
 

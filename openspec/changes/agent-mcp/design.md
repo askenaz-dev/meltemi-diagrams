@@ -313,5 +313,50 @@ Run free: 10 minutes a day. See proposal.md for the motivation.
   the product `diagrams-staging`, but `routes/account.ts` hard-codes `PRODUCT_NAME = "diagrams"`, which
   should come from configuration (a `PRODUCT_NAME` variable defaulting to `diagrams`); and the
   `OAUTH_KV` binding of `wrangler.jsonc` carries an `id` that the deploy configuration fills in from
-  `OAUTH_KV_ID`. Neither is done here: the first is outside the files this stage touches, the second
-  is task 2.1's.
+  `OAUTH_KV_ID`. Neither is done in this stage: both are stage 2's (below).
+
+## As built (tasks 2.1 to 2.4)
+
+- `@cloudflare/workers-oauth-provider` 1.2.3 (MIT, pinned; its one import of the platform,
+  `cloudflare:workers`, has a stand-in in the Node tests, `vitest.config.ts`). The handler never
+  imports it: `routes/mcp.ts`, `routes/oauth.ts`, `routes/apps.ts` and `routes/events.ts` import
+  `src/oauth/provider.ts` when one of their addresses is asked, as the endpoint already did. The
+  provider is made once per origin and reaches the request's context through the environment
+  object it hands its handlers. The door of `/mcp` (`Origin`, `405`, the protocol version) runs
+  before the provider, which then checks every token: an `mdg_` token through its
+  `resolveExternalToken` (the stage 1 principal, every scope), a grant's token with its approved
+  scopes. A grant's principal is a third kind, `via: "oauth"`.
+- The endpoint's metadata is the library's at `/.well-known/oauth-protected-resource/mcp` (RFC
+  9728's path) and the same document at the origin's path, which the `401` challenge names (the
+  service rewrites the library's header). `requiredScopes` is the five scopes, so a client asks for
+  all of them first and the consent page names each; a client that asks for none of them is
+  offered the five, and an unknown scope is dropped. PKCE `S256` is required of every client, not
+  only of public ones (`invalid_request`).
+- A refresh token comes only with `offline_access` (`tokenExchangeCallback` gives the others
+  none), valid thirty days from the exchange. Two behaviours of the library differ from what the
+  spec first said, and the delta now says them: a code exchanged twice is refused and revokes its
+  grant, the token it gave included (OAuth 2.1's advice for a stolen code); and a refresh token
+  keeps working until its replacement is first used, so a client that lost an answer can retry.
+- The consent page keeps the library's handle (single use, ten minutes, bound to the browser by a
+  `__Host-` cookie) and adds the design's `csrf`, the HMAC of the session id and the handle with
+  `FORMS_SECRET`; its policy's `form-action` names the client's redirect origin, which Chromium
+  holds the redirect after the post to. Decisions answer `303`. A grant's metadata keeps the
+  client's name and `uri` (a metadata document's address, or the redirect origin of a registered
+  client, whose own `client_uri` is not shown as fact); its props are `{ sub, at }`, and a grant
+  approved before the account's deletion opens nothing even before `user.deleted` revokes it.
+- `lastUsedAt` is not the library's: the D1 table of migration `0009_connected_apps.sql`,
+  `app_uses (sub, grant_id, last_used_at)`, written by a call at most hourly (one upsert and an
+  isolate's memo) and removed with a revocation, with the person, or when a listing finds the grant
+  gone. The registrations' rate (ten an hour per address) shares the command line's failures table
+  (`cli_failures`, an hour per key) under the prefix `oauth-register:`.
+- Logs: the library's refusals are answered, not printed (`onError` logs a `5xx` by its code), and
+  both Workers set `invocation_logs: false` and keep their own lines, since an invocation log
+  records each request's address and `/api/invitations/<token>/accept`, `?invite=` and `?live=`
+  grant access. The one route that logged an address of the person's (the identity data's, with a
+  session id) logs the route instead; `test/logs.test.ts` reads every line of the flows that carry
+  tokens and links. The library may still warn with a client-id metadata document's address when
+  it cannot fetch it: a public address the client chose, not one that grants access.
+- `PRODUCT_NAME` is a variable of `wrangler.jsonc` (`diagrams`; unset or empty is `diagrams`), and
+  `OAUTH_KV` is bound as `{ "binding": "OAUTH_KV", "id": "00000000000000000000000000000000" }`, the
+  placeholder the deploy configuration replaces from `OAUTH_KV_ID` (its check that no placeholder
+  is left refuses the file until it does).
