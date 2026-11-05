@@ -23,6 +23,7 @@ import { formatSize } from "./build-command.js";
 import { argumentsError, messages } from "./messages/index.js";
 import { CloudClient, type Fetch } from "./cloud-client.js";
 import { CloudError, EXIT_USAGE } from "./cloud-errors.js";
+import type { LocalServer } from "./mcp-http.js";
 import { describeProjectError } from "./project-errors.js";
 import {
   CredentialsStore,
@@ -42,6 +43,8 @@ export interface CloudHooks {
   /** The platform and home folder the credentials folder is derived from. */
   readonly platform?: NodeJS.Platform;
   readonly home?: string;
+  /** Told the local MCP server once it listens, so that a test can call it and stop it. */
+  readonly mcpStarted?: (server: LocalServer) => void;
 }
 
 export interface CloudContext {

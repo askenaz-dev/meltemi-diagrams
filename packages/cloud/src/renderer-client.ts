@@ -4,15 +4,15 @@
 // object cannot draw is an answer (`ok: false`), never an exception. The files are the caller's to
 // give: the room's snapshot at the revision it names, and the binaries they use, from R2.
 
-import type { RendererStats } from "./renderer-core.js";
 import type {
+  RendererStats,
   CatalogOutcome,
   CatalogRequest,
   RenderOutcome,
   RenderRequest,
   ValidateOutcome,
   ValidateRequest,
-} from "./renderer-protocol.js";
+} from "@meltemi/diagrams-mcp/preview";
 
 /** What a renderer object answers, as far as the Worker calls it. */
 export interface RendererStubLike {

@@ -96,19 +96,24 @@ export interface Probe {
  */
 const UNSERVED = new Set([522, 523, 530]);
 
-/** Whether the host answers the endpoint: one unauthenticated `initialize`, whatever it answers. */
-export async function probe(target: Target, fetcher: Fetch = fetch): Promise<Probe> {
+/**
+ * Whether the host answers the endpoint: one unauthenticated `initialize`, whatever it answers. With
+ * `api`, the HTTP API's session instead: a run through the local server asks nothing of `/mcp`.
+ */
+export async function probe(target: Target, fetcher: Fetch = fetch, api = false): Promise<Probe> {
   try {
-    const answer = await ask(
-      target,
-      new URL(target.endpoint).pathname,
-      rpc("initialize", {
-        protocolVersion: "2025-06-18",
-        capabilities: {},
-        clientInfo: { name: "mcp-acceptance-probe", version: "1.0.0" },
-      }),
-      fetcher,
-    );
+    const answer = api
+      ? await ask(target, "/api/session", {}, fetcher)
+      : await ask(
+          target,
+          new URL(target.endpoint).pathname,
+          rpc("initialize", {
+            protocolVersion: "2025-06-18",
+            capabilities: {},
+            clientInfo: { name: "mcp-acceptance-probe", version: "1.0.0" },
+          }),
+          fetcher,
+        );
     if (UNSERVED.has(answer.status)) {
       return { answers: false, why: `Cloudflare answered ${answer.status}` };
     }
@@ -126,10 +131,11 @@ export async function probeUntil(
   tries: number,
   pauseMs: number,
   fetcher: Fetch = fetch,
+  api = false,
 ): Promise<Probe> {
   let last: Probe = { answers: false, why: "not asked" };
   for (let i = 0; i < tries; i++) {
-    last = await probe(target, fetcher);
+    last = await probe(target, fetcher, api);
     if (last.answers) return last;
     if (i + 1 < tries) await new Promise((done) => setTimeout(done, pauseMs));
   }

@@ -23,6 +23,7 @@
     "@meltemi/diagrams-language": "workspace:*",
     "@meltemi/diagrams-layout": "workspace:*",
     "@meltemi/diagrams-layout-elk": "workspace:*",
+    "@meltemi/diagrams-mcp": "workspace:*",
     "@meltemi/diagrams-motion": "workspace:*",
     "@meltemi/diagrams-project": "workspace:*",
     "@meltemi/identity": "^0.2.0",

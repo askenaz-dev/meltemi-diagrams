@@ -139,6 +139,49 @@ is an editor of a project writes there, but only its owner shares or publishes i
 their rules are in [the MCP endpoint](cloud.md#the-mcp-endpoint), and how the endpoint is accepted
 in [MCP acceptance](quality/mcp-acceptance.md).
 
+## Through the local server
+
+The command line serves the same tools on your machine: `mdg mcp`, a local MCP server over
+Streamable HTTP. It acts on the projects of your account through the service's API, with your
+`mdg login` (or `MELTEMI_TOKEN` in its environment), and draws the previews, checks the files and
+builds the catalogs on your machine, with the engine the endpoint uses: the same tools, the same
+answers and the same pictures. Choose it for an agent that runs on your machine (Codex's command
+line or app, Claude Code, Cursor); a client that only reaches an address on the internet uses the
+endpoint. Start it in a terminal and keep it running while the agent works:
+
+```bash
+npx -y @meltemi/diagrams-cli@latest mcp
+```
+
+It prints its address, `http://127.0.0.1:7373/mcp` (`--port` picks another). Connect the agent to
+it once:
+
+```bash
+codex mcp add meltemi --url http://127.0.0.1:7373/mcp
+```
+
+```bash
+claude mcp add --transport http meltemi http://127.0.0.1:7373/mcp
+```
+
+In Cursor, `.cursor/mcp.json` holds `{ "mcpServers": { "meltemi": { "url": "http://127.0.0.1:7373/mcp" } } }`.
+Without a sign-in the server still starts, and its tools answer `auth.required` until you run
+`mdg login` in another terminal; the next call uses it.
+
+With `--folder`, it serves two tools, `validate` and `preview`, over the `.meltemi` files of a folder
+on disk, with no account and no network: an agent working in a repository writes the files with its
+own tools and looks at them as pictures.
+
+```bash
+npx -y @meltemi/diagrams-cli@latest mcp --folder .
+```
+
+It listens on `127.0.0.1` only and refuses requests from web pages. On a computer other people sign
+in to, set `MELTEMI_MCP_KEY` (16 characters or more) in the server's environment and in the agent's:
+every request must then carry it as its bearer token (`--bearer-token-env-var MELTEMI_MCP_KEY` for
+Codex, `--header "Authorization: Bearer …"` for Claude Code). The command, its options and its
+refusals are in [the command line](cli.md#the-local-mcp-server-mcp).
+
 ## In this repository
 
 The canonical skill is `skills/meltemi-diagrams/`; `pnpm skills:sync` copies it to

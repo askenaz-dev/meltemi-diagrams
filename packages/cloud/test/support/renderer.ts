@@ -6,16 +6,17 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { measuredFontFiles } from "../../scripts/renderer-bundle.js";
-import { RendererCore, memoryPreviewCache, type PreviewCache } from "../../src/renderer-core.js";
-import { PreviewEngine } from "../../src/renderer-engine.js";
 import {
-  ASSET_FILES,
   MEASURED_FAMILIES,
-  RASTER_FILES,
-  type BundledFile,
-} from "../../src/renderer-files.js";
-import { RASTER_FACES, sfntFromWoff } from "../../src/renderer-fonts.js";
-import { startRaster } from "../../src/renderer-raster.js";
+  PreviewEngine,
+  RASTER_FACES,
+  RendererCore,
+  memoryPreviewCache,
+  sfntFromWoff,
+  startRaster,
+  type PreviewCache,
+} from "@meltemi/diagrams-mcp/preview";
+import { ASSET_FILES, RASTER_FILES, type BundledFile } from "../../src/renderer-files.js";
 
 /** The cloud package's folder: the bundle's `source` paths are relative to it. */
 export const CLOUD = fileURLToPath(new URL("../../", import.meta.url));

@@ -117,6 +117,8 @@ describe("GET /api/session", () => {
         picture: "",
         handle: null,
         entitlements: { unbranded: false, unbrandedBy: null },
+        // The account's own address, for its own token (change local-mcp-server).
+        email: "ana@example.com",
       },
       token: { id: token.id, name: "laptop" },
     });

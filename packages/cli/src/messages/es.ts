@@ -47,6 +47,8 @@ Comandos:
                             diagramas de Meltemi
   skill prompt              Imprimir el prompt que sigue un agente de programación para instalar
                             la skill y demostrar que funciona
+  mcp                       Servir las herramientas MCP en esta máquina para un agente de
+                            programación (--folder, --port)
   whoami                    Imprimir el nombre y el handle con los que tienes la sesión iniciada
   publish [carpeta]         Publicar el catálogo como una página web del servicio de la nube
                             (--unpublish)
@@ -201,6 +203,11 @@ Opciones de publish:
 
 Opciones de projects:
   --json                    Imprimir un objeto JSON
+  --host <url>              El servicio, como en login
+
+Opciones de mcp:
+  --port <n>                El puerto, 7373 por defecto; 0 elige uno libre
+  --folder <dir>            Validar y previsualizar los archivos de una carpeta, sin cuenta
   --host <url>              El servicio, como en login
 
 Operaciones de assist (ver assist --help):
@@ -444,6 +451,30 @@ Opciones:
 
 Códigos de salida: 0 publicado (o quitado), 1 rechazado o falló, 2 error de uso, 3 sin sesión
 iniciada o el token fue rechazado.
+`,
+    mcp: `Uso: mcp [opciones]
+
+Sirve el Model Context Protocol en esta máquina, por HTTP streamable, para que un agente de
+programación que corre aquí (Codex, Claude Code, Cursor) pueda crear y leer proyectos de la nube,
+escribir archivos, previsualizar los dibujos, compartir y publicar, con las herramientas del
+endpoint alojado. Las comprobaciones, las imágenes y los catálogos se hacen en esta máquina; los
+archivos pasan por la API del servicio con tu sesión (ejecuta login antes). Con --folder, dos
+herramientas (validate y preview) sobre los archivos de una carpeta, sin cuenta y sin red.
+
+La primera línea que imprime es la dirección del servidor; conecta el agente a ella, por ejemplo
+  codex mcp add meltemi --url http://127.0.0.1:7373/mcp
+  claude mcp add --transport http meltemi http://127.0.0.1:7373/mcp
+y deja este comando en marcha mientras el agente trabaja. Ctrl+C lo detiene.
+
+Escucha solo en 127.0.0.1 y rechaza las páginas web. En una máquina donde otras personas inician
+sesión, define MELTEMI_MCP_KEY (16 caracteres o más): cada petición debe llevarla como token bearer.
+
+Opciones:
+  --port <n>       El puerto, 7373 por defecto; 0 elige uno libre
+  --folder <dir>   Validar y previsualizar los archivos de esta carpeta en vez de proyectos de la nube
+  --host <url>     El servicio: MELTEMI_HOST, si no https://diagrams.meltemi.dev
+
+Códigos de salida: 0 detenido, 2 error de uso, un puerto en uso o una carpeta que no existe.
 `,
     projects: `Uso: projects [opciones]
 
@@ -959,6 +990,19 @@ iniciada o el token fue rechazado.
         `--slug lleva de 1 a 60 letras minúsculas, dígitos y guiones, no "${slug}".`,
       handleOption: (handle) =>
         `--handle lleva de 3 a 30 letras minúsculas, dígitos y guiones, no "${handle}".`,
+    },
+    mcp: {
+      listening: (url, folder) =>
+        folder === undefined
+          ? `Servidor MCP de Meltemi Diagrams en ${url}, para los proyectos de la nube de tu sesión. Ctrl+C lo detiene.`
+          : `Servidor MCP de Meltemi Diagrams en ${url}, para los archivos de ${folder}. Ctrl+C lo detiene.`,
+      badPort: (given) => `--port lleva un número entero de 0 a 65535, no "${given}".`,
+      shortKey: (min) => `MELTEMI_MCP_KEY tiene menos de ${min} caracteres.`,
+      portInUse: (port) =>
+        `mcp.port-in-use: 127.0.0.1:${port} está en uso (¿otro mdg mcp?); elige otro con --port.`,
+      notAFolder: (folder) => `${folder} no es una carpeta que exista.`,
+      folderAndHost:
+        "--folder sirve los archivos de una carpeta y no habla con ningún servicio: quita --host.",
     },
     projects: {
       none: (name) =>

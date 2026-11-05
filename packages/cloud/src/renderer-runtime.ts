@@ -5,10 +5,13 @@
 // `renderer.ts`, this file is compiled by the Workers program only: Node cannot import data modules.
 
 import { loadBundle } from "./renderer-bundle.js";
-import { PreviewEngine } from "./renderer-engine.js";
-import { MEASURED_FAMILIES } from "./renderer-files.js";
-import { RASTER_FACES, sfntFromWoff } from "./renderer-fonts.js";
-import { startRaster } from "./renderer-raster.js";
+import {
+  MEASURED_FAMILIES,
+  PreviewEngine,
+  RASTER_FACES,
+  sfntFromWoff,
+  startRaster,
+} from "@meltemi/diagrams-mcp/preview";
 
 const TEXT = new TextEncoder();
 

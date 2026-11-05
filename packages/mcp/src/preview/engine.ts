@@ -38,7 +38,7 @@ import {
   type RenderFailure,
   type ReportDiagnostic,
   type ValidRequest,
-} from "./renderer-protocol.js";
+} from "./protocol.js";
 
 /** What the engine is given by its host: the bundled files it reads and ELK. */
 export interface EngineResources {

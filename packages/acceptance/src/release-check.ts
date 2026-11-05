@@ -1,7 +1,7 @@
 // The release check: every package built from clean, packed, its tarball checked, the CLI installed
 // from the tarballs into an empty folder (never from the registry) and run through the main
 // journey, and the VS Code extension packaged. Nothing is published. Usage: pnpm release:check
-import { spawnSync, type SpawnSyncReturns } from "node:child_process";
+import { spawn, spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   copyFileSync,
@@ -17,6 +17,7 @@ import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { findFfmpeg } from "@meltemi/diagrams-capture";
+import { Client, StreamableHTTPClientTransport } from "@modelcontextprotocol/client";
 import { REPO_ROOT, TOOL_VERSION } from "./corpus.js";
 import { readTarball } from "./tarball.js";
 
@@ -206,13 +207,84 @@ function journey(folder: string, cliBin: string): string[] {
   return lines;
 }
 
-export function runReleaseCheck(): StepResult[] {
+/**
+ * The installed local MCP server (`mcp-local-server`): `mcp --folder` on the purchase project the
+ * journey made, on a free port, driven by the SDK's client over Streamable HTTP as an agent drives
+ * it: `initialize`, `tools/list` and a PNG `preview`.
+ */
+async function mcpJourney(folder: string, cliBin: string): Promise<string[]> {
+  const server = spawn(
+    process.execPath,
+    [cliBin, "mcp", "--folder", join(folder, "shop"), "--port", "0"],
+    { cwd: folder, env: { ...process.env, MELTEMI_LANG: "en" }, stdio: ["ignore", "pipe", "pipe"] },
+  );
+  let stderr = "";
+  server.stderr.setEncoding("utf8");
+  server.stderr.on("data", (chunk: string) => (stderr += chunk));
+  try {
+    const url = await new Promise<string>((resolve, reject) => {
+      let out = "";
+      const timer = setTimeout(() => reject(new Error("mcp did not listen within 60 s")), 60_000);
+      server.stdout.setEncoding("utf8");
+      server.stdout.on("data", (chunk: string) => {
+        out += chunk;
+        if (!out.includes("\n")) return;
+        clearTimeout(timer);
+        resolve(out.split(/\r?\n/)[0]!.trim());
+      });
+      server.once("exit", (code) => {
+        clearTimeout(timer);
+        reject(new Error(`mcp exited ${code} before it listened: ${stderr.trim()}`));
+      });
+    });
+    if (!/^http:\/\/127\.0\.0\.1:\d+\/mcp$/.test(url)) throw new Error(`mcp printed ${url}`);
+    const client = new Client({ name: "release-check", version: TOOL_VERSION });
+    await client.connect(new StreamableHTTPClientTransport(new URL(url)));
+    try {
+      const info = client.getServerVersion();
+      if (info?.name !== "meltemi-diagrams" || info.version !== TOOL_VERSION) {
+        throw new Error(`initialize named ${info?.name} ${info?.version}`);
+      }
+      const tools = (await client.listTools()).tools.map((tool) => tool.name);
+      if (tools.join() !== "validate,preview") throw new Error(`tools/list: ${tools.join(", ")}`);
+      const result = (await client.callTool({
+        name: "preview",
+        arguments: { path: "diagrams/payment.meltemi" },
+      })) as {
+        isError?: boolean;
+        content: { type: string; data?: string; mimeType?: string }[];
+        structuredContent?: Record<string, unknown>;
+      };
+      const image = result.content.find((item) => item.type === "image");
+      if (result.isError || image?.mimeType !== "image/png" || !image.data) {
+        throw new Error(`preview answered ${JSON.stringify(result.structuredContent)}`);
+      }
+      const png = Buffer.from(image.data, "base64");
+      return [
+        `${url}: ${info.name} ${info.version}`,
+        `tools/list: ${tools.join(", ")}`,
+        `preview: PNG ${png.readUInt32BE(16)}×${png.readUInt32BE(20)}, ${png.length} bytes`,
+      ];
+    } finally {
+      await client.close();
+    }
+  } finally {
+    // Ended, and waited for: on Windows a running process keeps the scratch folder from being removed.
+    if (server.exitCode === null && server.signalCode === null) {
+      const exited = new Promise<void>((done) => server.once("exit", () => done()));
+      server.kill();
+      await Promise.race([exited, new Promise((done) => setTimeout(done, 10_000))]);
+    }
+  }
+}
+
+export async function runReleaseCheck(): Promise<StepResult[]> {
   const results: StepResult[] = [];
-  const step = (name: string, run: () => string[]) => {
+  const step = async (name: string, run: () => string[] | Promise<string[]>) => {
     const start = performance.now();
     process.stdout.write(`${name}… `);
     try {
-      const lines = run();
+      const lines = await run();
       console.log(`✓ (${((performance.now() - start) / 1000).toFixed(0)} s)`);
       for (const line of lines) console.log(`    ${line}`);
       results.push({ step: name, passed: true, lines });
@@ -229,7 +301,7 @@ export function runReleaseCheck(): StepResult[] {
   const publics = all.filter((p) => !p.manifest.private);
   const tarballs: { name: string; file: string }[] = [];
 
-  const built = step("Build every package from clean", () => {
+  const built = await step("Build every package from clean", () => {
     for (const { folder } of all) {
       rmSync(join(folder, "dist"), { recursive: true, force: true });
       rmSync(join(folder, "tsconfig.build.tsbuildinfo"), { force: true });
@@ -240,7 +312,7 @@ export function runReleaseCheck(): StepResult[] {
   });
   if (!built) return results;
 
-  const packed = step("Pack and check every public package", () => {
+  const packed = await step("Pack and check every public package", () => {
     rmSync(RELEASE_DIR, { recursive: true, force: true });
     mkdirSync(RELEASE_DIR, { recursive: true });
     const lines: string[] = [];
@@ -274,7 +346,7 @@ export function runReleaseCheck(): StepResult[] {
     // Third-party packages come from the store when it has the version resolved, else from the
     // registry: an offline install resolves ranges from cached registry metadata, which a fresh
     // machine or a CI runner does not have.
-    const installed = step("Install the CLI from the tarballs", () => {
+    const installed = await step("Install the CLI from the tarballs", () => {
       const overrides = Object.fromEntries(
         tarballs.map((t) => [t.name, `file:${t.file.replaceAll("\\", "/")}`]),
       );
@@ -309,13 +381,19 @@ export function runReleaseCheck(): StepResult[] {
     });
     if (installed) {
       const cliBin = join(scratch, "node_modules", "@meltemi", "diagrams-cli", "dist", "bin.js");
-      step("Run the installed CLI through the main journey", () => journey(scratch, cliBin));
+      const walked = await step("Run the installed CLI through the main journey", () =>
+        journey(scratch, cliBin),
+      );
+      if (walked)
+        await step("mcp: a preview through the installed local server", () =>
+          mcpJourney(scratch, cliBin),
+        );
     }
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
 
-  step("Package the VS Code extension", () => {
+  await step("Package the VS Code extension", () => {
     const run = pnpm(["vscode:package"], REPO_ROOT);
     if (run.status !== 0) throw new Error(`pnpm vscode:package failed:\n${output(run)}`);
     const vsix = join(REPO_ROOT, "packages", "vscode", "meltemi-diagrams.vsix");
@@ -326,7 +404,7 @@ export function runReleaseCheck(): StepResult[] {
     ];
   });
 
-  step("Write the release manifest", () => {
+  await step("Write the release manifest", () => {
     const files = readdirSync(RELEASE_DIR)
       .filter((f) => f.endsWith(".tgz") || f.endsWith(".vsix"))
       .sort()
@@ -344,7 +422,7 @@ export function runReleaseCheck(): StepResult[] {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const results = runReleaseCheck();
+  const results = await runReleaseCheck();
   const failed = results.filter((r) => !r.passed);
   if (failed.length > 0) {
     console.log(`\nThe release check failed: ${failed.map((r) => r.step).join("; ")}.`);

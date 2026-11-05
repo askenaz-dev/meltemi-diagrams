@@ -216,6 +216,9 @@ importers:
       '@meltemi/diagrams-layout-elk':
         specifier: workspace:*
         version: link:../layout-elk
+      '@meltemi/diagrams-mcp':
+        specifier: workspace:*
+        version: link:../mcp
       '@meltemi/diagrams-model':
         specifier: workspace:*
         version: link:../model
@@ -231,6 +234,10 @@ importers:
       '@meltemi/diagrams-render':
         specifier: workspace:*
         version: link:../render
+    devDependencies:
+      '@modelcontextprotocol/client':
+        specifier: 2.3.1
+        version: 2.3.1
 
   packages/cloud:
     dependencies:
@@ -270,6 +277,9 @@ importers:
       '@meltemi/diagrams-layout-elk':
         specifier: workspace:*
         version: link:../layout-elk
+      '@meltemi/diagrams-mcp':
+        specifier: workspace:*
+        version: link:../mcp
       '@meltemi/diagrams-motion':
         specifier: workspace:*
         version: link:../motion
@@ -527,6 +537,46 @@ importers:
         specifier: 0.28.2
         version: 0.28.2
 
+  packages/mcp:
+    dependencies:
+      '@meltemi/diagrams-assets':
+        specifier: workspace:*
+        version: link:../assets
+      '@meltemi/diagrams-editor':
+        specifier: workspace:*
+        version: link:../editor
+      '@meltemi/diagrams-fonts':
+        specifier: workspace:*
+        version: link:../fonts
+      '@meltemi/diagrams-language':
+        specifier: workspace:*
+        version: link:../language
+      '@meltemi/diagrams-layout':
+        specifier: workspace:*
+        version: link:../layout
+      '@meltemi/diagrams-layout-elk':
+        specifier: workspace:*
+        version: link:../layout-elk
+      '@meltemi/diagrams-motion':
+        specifier: workspace:*
+        version: link:../motion
+      '@meltemi/diagrams-project':
+        specifier: workspace:*
+        version: link:../project
+      '@modelcontextprotocol/server':
+        specifier: 2.3.1
+        version: 2.3.1
+      '@resvg/resvg-wasm':
+        specifier: 2.6.2
+        version: 2.6.2
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@modelcontextprotocol/client':
+        specifier: 2.3.1
+        version: 2.3.1
+
   packages/model:
     dependencies:
       '@meltemi/diagrams-i18n':
@@ -633,6 +683,9 @@ importers:
       '@meltemi/diagrams-render':
         specifier: workspace:*
         version: link:../render
+      '@meltemi/ocean':
+        specifier: 0.1.20
+        version: 0.1.20
       elkjs:
         specifier: 0.12.0
         version: 0.12.0
@@ -1344,6 +1397,10 @@ packages:
 
   '@meltemi/identity@0.2.0':
     resolution: {integrity: sha512-T1bxkSuQKN0hXwPzlX0iIY9s5N3NUXemqUs8vH7e6+DKAkwchVLEGieDGkZDBL14S8SePtczbX2hTbz0H2i01A==}
+    engines: {node: '>=22.12.0'}
+
+  '@meltemi/ocean@0.1.20':
+    resolution: {integrity: sha512-rLYO50uqlldoGHuv+cDCrNbndgKRZNdIErHe5qKemVyWcprxv5KnQOy96vwv4PlkCOMR5bR12+NuJVx2jfOG1Q==}
     engines: {node: '>=22.12.0'}
 
   '@modelcontextprotocol/client@2.3.1':
@@ -3272,6 +3329,8 @@ snapshots:
   '@keyv/serialize@1.1.1': {}
 
   '@meltemi/identity@0.2.0': {}
+
+  '@meltemi/ocean@0.1.20': {}
 
   '@modelcontextprotocol/client@2.3.1':
     dependencies:

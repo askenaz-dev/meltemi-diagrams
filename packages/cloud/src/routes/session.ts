@@ -121,13 +121,17 @@ export const sessionRoute: Route = async (ctx) => {
   if (principal?.via === "token") {
     const user = await deps.store.user(principal.sub);
     return json({
-      user: userShape(
-        principal.sub,
-        user?.name ?? "",
-        user?.picture ?? "",
-        user,
-        await roleOf(principal.sub, config, deps.store),
-      ),
+      user: {
+        ...userShape(
+          principal.sub,
+          user?.name ?? "",
+          user?.picture ?? "",
+          user,
+          await roleOf(principal.sub, config, deps.store),
+        ),
+        // The account's own address, for its own token: `whoami` of the local MCP server says it.
+        email: user?.email ?? "",
+      },
       token: { id: principal.tokenId, name: principal.tokenName },
       ...supported,
     });

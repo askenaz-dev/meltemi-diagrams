@@ -106,6 +106,21 @@ export interface StudioListener {
   status?(message: string): void;
   /** The studio entered or left view mode (`Studio.setReadOnly`). */
   readOnly?(on: boolean): void;
+  /**
+   * The canvas came to have nothing to draw, or something (see `nothingToDraw`): the page wears the
+   * family's sea behind the canvas's message (`playground-sea`). Said only when it changes, and
+   * before the canvas's messages, so the sea is gone before a diagram is drawn.
+   */
+  nothingToDraw?(on: boolean): void;
+}
+
+/**
+ * Whether the canvas has nothing to draw with this file open: no file at all (the project has
+ * none), `project.json`, or another file that is not a `.meltemi` source. A `.meltemi` file always
+ * has something of its own on the canvas, even with no diagram yet: the buttons that create one.
+ */
+export function nothingToDraw(path: string): boolean {
+  return path === "" || !path.endsWith(".meltemi");
 }
 
 /** The analysis of the open file: a `.meltemi` file's, or the problems of another file. */
@@ -169,6 +184,8 @@ export class Studio {
   private viewOnly = false;
   /** While a batch runs: whether it owes the listeners one report of the files and an analysis. */
   private batched: { files: boolean } | undefined;
+  /** What the listeners were last told of the canvas (`nothingToDraw`). */
+  private nothing = false;
 
   constructor(private readonly environment: StudioEnvironment) {
     this.sessions = this.newSessions();
@@ -192,6 +209,19 @@ export class Studio {
     for (const listener of this.listeners) {
       (listener[key] as ((...a: typeof args) => void) | undefined)?.(...args);
     }
+  }
+
+  /** Whether the canvas has nothing to draw now, as the listeners were last told (`nothingToDraw`). */
+  get nothingToDraw(): boolean {
+    return this.nothing;
+  }
+
+  /** Tells the listeners when the canvas comes to have nothing to draw, or something. */
+  private drawing(path: string): void {
+    const nothing = nothingToDraw(path);
+    if (nothing === this.nothing) return;
+    this.nothing = nothing;
+    this.emit("nothingToDraw", nothing);
   }
 
   /** Whether the studio is in view mode: it shows the project and refuses every edit of the person's. */
@@ -783,6 +813,7 @@ export class Studio {
     const path = this.openPath;
     if (path === "") {
       this.current = undefined;
+      this.drawing(path);
       this.emit("canvas", [{ type: "empty", revision: 0, message: messages().studio.noFiles }]);
       return undefined;
     }
@@ -805,6 +836,7 @@ export class Studio {
     }
     this.current = analysis;
     this.emit("analysis", analysis);
+    this.drawing(path);
     if (analysis.document) this.emit("canvas", this.session.update(analysis.document));
     else {
       const m = messages().studio;

@@ -583,6 +583,8 @@ const scenarios: Scenario[] = [
           picture: `${origin}/favicon.svg`,
           handle: null,
           entitlements: { unbranded: false, unbrandedBy: null },
+          // The account's own address, for its own token (change local-mcp-server).
+          email: "u-ana-tokens@example.com",
         },
         token: { id, name: "ci build" },
         ...SUPPORT,

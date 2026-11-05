@@ -8,30 +8,31 @@ reviewing changes and keeping a copy of it in the cloud. Every command takes `--
 messages are relative to the working folder; nothing a command prints or writes names the machine's
 absolute paths unless asked.
 
-| Command                     | What it does                                                                                          |
-| --------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `init [folder]`             | Creates a project from a template; `--ci` adds a CI workflow, `--cloud` a job that pushes             |
-| `validate <path>...`        | Checks files, projects and the composition of their diagrams ([diagnostics](language/diagnostics.md)) |
-| `preview [path]`            | Serves the project's catalog and rebuilds it as files change                                          |
-| `format <path>...`          | Rewrites files in the canonical layout ([formatting](language/formatting.md))                         |
-| `import <path>`             | Imports Mermaid, PlantUML and Markdown files ([import](import/))                                      |
-| `export <path>`             | Renders diagrams, stories and profiles ([export](language/export.md))                                 |
-| `layout <file>`             | Writes ELK's arrangement down as `place` statements ([layout](language/layout.md))                    |
-| `convert <file>`            | Copies a flow diagram into a free one, or writes the model JSON (`--to free\|json`)                   |
-| `build catalog [path]`      | Writes the offline HTML catalog ([catalog](catalog.md))                                               |
-| `review [path]`             | Lists what changed by id, with pictures before and after, since a Git revision or the cloud           |
-| `assets <subcommand>`       | Lists icon packs and fonts, searches icons, writes the lock ([assets](language/assets.md))            |
-| `assist <operation>`        | Optional AI help as proposals to accept in part ([assistance](assist.md))                             |
-| `plugins [path]`            | Lists the plugins a project installs, what they add and their problems ([plugins](plugins.md))        |
-| `login`, `logout`, `whoami` | Sign in to the cloud service, revoke and forget the token, say who the token is for                   |
-| `push [folder]`             | Makes a cloud project match the folder                                                                |
-| `pull [id] [folder]`        | Writes a cloud project's files into a folder                                                          |
-| `publish [folder]`          | Publishes the catalog as a web page of the cloud service                                              |
-| `projects`                  | Lists your cloud projects                                                                             |
-| `skill install [folder]`    | Gives a project's coding agents the skill that draws Meltemi diagrams ([agents](agents.md))           |
-| `skill prompt`              | Prints the prompt a coding agent follows to install the skill and prove it ([agents](agents.md))      |
+| Command                     | What it does                                                                                                |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `init [folder]`             | Creates a project from a template; `--ci` adds a CI workflow, `--cloud` a job that pushes                   |
+| `validate <path>...`        | Checks files, projects and the composition of their diagrams ([diagnostics](language/diagnostics.md))       |
+| `preview [path]`            | Serves the project's catalog and rebuilds it as files change                                                |
+| `format <path>...`          | Rewrites files in the canonical layout ([formatting](language/formatting.md))                               |
+| `import <path>`             | Imports Mermaid, PlantUML and Markdown files ([import](import/))                                            |
+| `export <path>`             | Renders diagrams, stories and profiles ([export](language/export.md))                                       |
+| `layout <file>`             | Writes ELK's arrangement down as `place` statements ([layout](language/layout.md))                          |
+| `convert <file>`            | Copies a flow diagram into a free one, or writes the model JSON (`--to free\|json`)                         |
+| `build catalog [path]`      | Writes the offline HTML catalog ([catalog](catalog.md))                                                     |
+| `review [path]`             | Lists what changed by id, with pictures before and after, since a Git revision or the cloud                 |
+| `assets <subcommand>`       | Lists icon packs and fonts, searches icons, writes the lock ([assets](language/assets.md))                  |
+| `assist <operation>`        | Optional AI help as proposals to accept in part ([assistance](assist.md))                                   |
+| `plugins [path]`            | Lists the plugins a project installs, what they add and their problems ([plugins](plugins.md))              |
+| `login`, `logout`, `whoami` | Sign in to the cloud service, revoke and forget the token, say who the token is for                         |
+| `push [folder]`             | Makes a cloud project match the folder                                                                      |
+| `pull [id] [folder]`        | Writes a cloud project's files into a folder                                                                |
+| `publish [folder]`          | Publishes the catalog as a web page of the cloud service                                                    |
+| `projects`                  | Lists your cloud projects                                                                                   |
+| `skill install [folder]`    | Gives a project's coding agents the skill that draws Meltemi diagrams ([agents](agents.md))                 |
+| `skill prompt`              | Prints the prompt a coding agent follows to install the skill and prove it ([agents](agents.md))            |
+| `mcp`                       | Serves the MCP tools on this machine for a coding agent ([the local MCP server](#the-local-mcp-server-mcp)) |
 
-The five rows before the last two are [the cloud commands](#the-cloud-commands).
+The five rows before the last three are [the cloud commands](#the-cloud-commands).
 
 Untrusted repositories are safe to process: nothing in a project runs, reads outside it or reaches
 the network, and sizes are bounded ([security](security.md)). The commands that use the network do
@@ -241,6 +242,33 @@ text names this command line (`mdg validate`, `mdg preview`).
 `skill prompt` prints the agent setup prompt, the text a coding agent reads and follows to install
 the skill and prove it draws, which `https://diagrams.meltemi.dev/agent-setup/prompt.md` serves
 too; it takes no argument. See [agents.md](agents.md).
+
+## The local MCP server: `mcp`
+
+`mcp` serves the [MCP endpoint](cloud.md#the-mcp-endpoint)'s tools on this machine, over
+Streamable HTTP at `http://127.0.0.1:7373/mcp`, for a coding agent that runs here (decision 0073,
+[agents](agents.md#through-the-local-server)). The tools act on the projects of the account you
+signed in to with `login` (or `MELTEMI_TOKEN`), through the service's API; the pictures of
+`preview`, the checks of `validate` and `write_files` and the catalog of `publish` are made in this
+process, with the engine the endpoint draws with, so the service spends no CPU on them. The first
+line printed is the server's address; each call leaves one line on standard error (the tool, its
+milliseconds and its code, never its arguments). The command runs until Ctrl+C (`SIGINT`) or
+`SIGTERM`, and exits 0.
+
+| Option           | What it does                                                                           |
+| ---------------- | -------------------------------------------------------------------------------------- |
+| `--port <n>`     | The port, 7373 by default; 0 picks a free one                                          |
+| `--folder <dir>` | Serves `validate` and `preview` over the files of a folder, with no account or network |
+| `--host <url>`   | The service, as for `login`                                                            |
+
+It starts without a sign-in: each tool then answers `auth.required`, and a `login` made meanwhile is
+used by the next call. It listens on `127.0.0.1` only, and refuses (before reading anything) a `Host`
+that is not this machine (`403`), an `Origin` other than its own address (`403`), a method other
+than `POST` (`405`), another path (`404`) and a body over 24 MiB (`413`). With `MELTEMI_MCP_KEY` set
+(16 characters or more), every request must carry it as its bearer token (`401` otherwise), for a
+computer other people sign in to. A port in use (`mcp.port-in-use`), a folder that does not exist,
+an `http:` host that is not the loopback (`cloud.insecure-host`), a short key and an unknown option
+exit 2 before anything listens.
 
 ## The cloud commands
 

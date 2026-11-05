@@ -309,6 +309,7 @@ Los rechazos de la propia sala llegan a una persona de dos maneras: como el JSON
 | `idempotency.mismatch` | 409    | Una `Idempotency-Key` que la cuenta usó, en el último día, para otra ruta u otro cuerpo; nada cambia                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `idempotency.pending`  | 409    | Una `Idempotency-Key` cuya primera petición todavía se está respondiendo; vuelve a pedirlo en un momento                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `publish.unverified`   | 502    | La herramienta MCP `publish` guardó la página, pero su dirección pública no respondió `200` al leerla una vez; `url` la nombra, y la publicación existe                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `renderer.unavailable` | 503    | El objeto de dibujo no puede dibujar ni comprobar diagramas ahora (su límite de CPU, una sobrecarga, un reinicio); las herramientas MCP `preview`, `validate`, `write_files` y `publish` lo responden sin haber cambiado nada, y su mensaje nombra `mdg mcp`, que hace el mismo trabajo en la máquina de la persona                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `internal`             | 500    | Cualquier cosa inesperada, o una configuración con la que el servicio no puede ejecutarse; la respuesta no da ningún detalle; en un socket, un mensaje que la sala no pudo atender (`4500`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 La página de aprobación de `/cli-auth` responde `cli.invalid` y `request.forbidden` como páginas
@@ -365,45 +366,46 @@ la cookie o con un token; un proyecto que la persona no puede abrir en absoluto 
 `404 project.not-found`. [La API de proyectos](#la-api-de-proyectos),
 [Compartir y permisos](#compartir-y-permisos) y [Publicación](#publicación) tienen sus formas.
 
-| Ruta                                           | Respuesta                                                                                      |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `GET /api/projects`                            | `200 { projects }`                                                                             |
-| `POST /api/projects`                           | `201`, el proyecto                                                                             |
-| `GET /api/projects/<id>`                       | `200`, el proyecto                                                                             |
-| `PATCH /api/projects/<id>`                     | `200`, el proyecto                                                                             |
-| `DELETE /api/projects/<id>`                    | `204`                                                                                          |
-| `POST /api/projects/<id>/duplicate`            | `201`, la copia (y `skipped`, si se dejaron archivos fuera)                                    |
-| `GET /api/projects/<id>/files`                 | `200 { revision, files, binaries, collisions }`                                                |
-| `PUT /api/projects/<id>/files`                 | `200 { revision }`                                                                             |
-| `PUT /api/projects/<id>/binaries/<path>`       | `200 { hash }`                                                                                 |
-| `DELETE /api/projects/<id>/binaries/<path>`    | `204`                                                                                          |
-| `GET /api/projects/<id>/blobs/<hash>`          | `200`, los bytes, en una sandbox                                                               |
-| `HEAD /api/projects/<id>/blobs/<hash>`         | `200`, las cabeceras del `GET`                                                                 |
-| `POST /api/projects/<id>/versions`             | `201`, la versión                                                                              |
-| `GET /api/projects/<id>/versions`              | `200 { versions }`                                                                             |
-| `GET /api/projects/<id>/versions/<n>`          | `200`, la versión con sus archivos                                                             |
-| `POST /api/projects/<id>/versions/<n>/restore` | `200 { revision, restored, saved, skipped? }`                                                  |
-| `PUT /api/projects/<id>/thumbnail`             | `204`                                                                                          |
-| `GET /api/projects/<id>/thumbnail`             | `200`, el SVG, en una sandbox                                                                  |
-| `GET /api/projects/<id>/sharing`               | `200`, el nivel del enlace, el rol de quien pregunta y, hasta donde puede verlas, las personas |
-| `PATCH /api/projects/<id>/sharing`             | `200`, el estado completo de lo que se comparte                                                |
-| `POST /api/projects/<id>/members`              | `201`, la invitación con su enlace (`200` cuando el correo ya tenía una pendiente)             |
-| `PATCH /api/projects/<id>/members/<sub>`       | `200`, el miembro                                                                              |
-| `DELETE /api/projects/<id>/members/<sub>`      | `204`                                                                                          |
-| `DELETE /api/projects/<id>/members/me`         | `204`                                                                                          |
-| `GET /api/projects/<id>/invitations`           | `200 { invitations }`                                                                          |
-| `DELETE /api/projects/<id>/invitations/<id>`   | `204`                                                                                          |
-| `GET /api/projects/<id>/publish`               | `200 { handle, publications, takedowns }`                                                      |
-| `PUT /api/projects/<id>/publish`               | `200 { url, handle, slug, bytes, published_at }`                                               |
-| `DELETE /api/projects/<id>/publish/<slug>`     | `204`                                                                                          |
-| `PUT /api/projects/<id>/live`                  | `200 { id, link, guestsEdit, startedAt, until, guests }`                                       |
-| `GET /api/projects/<id>/live`                  | `200`, la sesión en vivo como la responde `PUT`, o `null`                                      |
-| `DELETE /api/projects/<id>/live`               | `204`                                                                                          |
-| `GET /api/account/usage`                       | `200 { projects, storageBytes, limits }`                                                       |
-| `GET /api/dev/rooms/<id>/stats`                | solo en desarrollo: `200`, los contadores de la sala                                           |
-| `POST /api/dev/rooms/<id>/disconnect`          | solo en desarrollo: `200 { closed }`                                                           |
-| `POST /api/dev/rooms/<id>/limits`              | solo en desarrollo: `200 { clients }`                                                          |
-| `POST /api/dev/collect`                        | solo en desarrollo: `200`, lo que hizo la recolección                                          |
+| Ruta                                           | Respuesta                                                                                                      |
+| ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `GET /api/projects`                            | `200 { projects }`                                                                                             |
+| `POST /api/projects`                           | `201`, el proyecto                                                                                             |
+| `GET /api/projects/<id>`                       | `200`, el proyecto                                                                                             |
+| `PATCH /api/projects/<id>`                     | `200`, el proyecto                                                                                             |
+| `DELETE /api/projects/<id>`                    | `204`                                                                                                          |
+| `POST /api/projects/<id>/duplicate`            | `201`, la copia (y `skipped`, si se dejaron archivos fuera)                                                    |
+| `GET /api/projects/<id>/files`                 | `200 { revision, files, binaries, collisions }`                                                                |
+| `PUT /api/projects/<id>/files`                 | `200 { revision }`                                                                                             |
+| `PUT /api/projects/<id>/binaries/<path>`       | `200 { hash }`                                                                                                 |
+| `DELETE /api/projects/<id>/binaries/<path>`    | `204`                                                                                                          |
+| `GET /api/projects/<id>/blobs/<hash>`          | `200`, los bytes, en una sandbox                                                                               |
+| `HEAD /api/projects/<id>/blobs/<hash>`         | `200`, las cabeceras del `GET`                                                                                 |
+| `POST /api/projects/<id>/versions`             | `201`, la versión                                                                                              |
+| `GET /api/projects/<id>/versions`              | `200 { versions }`                                                                                             |
+| `GET /api/projects/<id>/versions/<n>`          | `200`, la versión con sus archivos                                                                             |
+| `POST /api/projects/<id>/versions/<n>/restore` | `200 { revision, restored, saved, skipped? }`                                                                  |
+| `PUT /api/projects/<id>/thumbnail`             | `204`                                                                                                          |
+| `GET /api/projects/<id>/thumbnail`             | `200`, el SVG, en una sandbox                                                                                  |
+| `GET /api/projects/<id>/sharing`               | `200`, el nivel del enlace, el rol de quien pregunta y, hasta donde puede verlas, las personas                 |
+| `PATCH /api/projects/<id>/sharing`             | `200`, el estado completo de lo que se comparte                                                                |
+| `POST /api/projects/<id>/members`              | `201`, la invitación con su enlace (`200` cuando el correo ya tenía una pendiente)                             |
+| `PATCH /api/projects/<id>/members/<sub>`       | `200`, el miembro                                                                                              |
+| `DELETE /api/projects/<id>/members/<sub>`      | `204`                                                                                                          |
+| `DELETE /api/projects/<id>/members/me`         | `204`                                                                                                          |
+| `GET /api/projects/<id>/invitations`           | `200 { invitations }`                                                                                          |
+| `DELETE /api/projects/<id>/invitations/<id>`   | `204`                                                                                                          |
+| `GET /api/projects/<id>/publish`               | `200 { handle, publications, takedowns }`                                                                      |
+| `PUT /api/projects/<id>/publish`               | `200 { url, handle, slug, bytes, published_at }`                                                               |
+| `DELETE /api/projects/<id>/publish/<slug>`     | `204`                                                                                                          |
+| `PUT /api/projects/<id>/live`                  | `200 { id, link, guestsEdit, startedAt, until, guests }`                                                       |
+| `GET /api/projects/<id>/live`                  | `200`, la sesión en vivo como la responde `PUT`, o `null`                                                      |
+| `DELETE /api/projects/<id>/live`               | `204`                                                                                                          |
+| `GET /api/account/usage`                       | `200 { projects, storageBytes, limits }`                                                                       |
+| `GET /api/account/publications`                | `200 { handle, publications }`: cada publicación de los proyectos de quien pregunta, cada una con su `project` |
+| `GET /api/dev/rooms/<id>/stats`                | solo en desarrollo: `200`, los contadores de la sala                                                           |
+| `POST /api/dev/rooms/<id>/disconnect`          | solo en desarrollo: `200 { closed }`                                                                           |
+| `POST /api/dev/rooms/<id>/limits`              | solo en desarrollo: `200 { clients }`                                                                          |
+| `POST /api/dev/collect`                        | solo en desarrollo: `200`, lo que hizo la recolección                                                          |
 
 Las fechas y horas son ISO 8601 en UTC con milisegundos.
 
@@ -465,7 +467,8 @@ página del servicio de identidad y `signOut` la dirección a la que un formular
 campo `return_to`, para terminar la sesión. Un token bearer, para que la línea de comandos sepa qué
 token tiene, sin `account` ni `signOut` ni los dos campos de administración, porque un programa no
 administra; lleva también el alias, pero no resuelve ninguna invitación, porque solo la cookie tiene
-un correo verificado:
+un correo verificado. Lleva el `email` propio de la cuenta tal como lo guarda el servicio (una cadena
+vacía cuando no guarda ninguno), que responde el `whoami` del servidor MCP local:
 
 ```json
 {
@@ -474,7 +477,8 @@ un correo verificado:
     "name": "Ana",
     "picture": "https://avatars.githubusercontent.com/u/1",
     "handle": "ana",
-    "entitlements": { "unbranded": false, "unbrandedBy": null }
+    "entitlements": { "unbranded": false, "unbrandedBy": null },
+    "email": "ana@example.com"
   },
   "token": { "id": "5f0c2a9e", "name": "laptop" }
 }
@@ -2334,6 +2338,29 @@ servidor. `invite` responde el enlace de la invitación y `emailSent: false`. `p
 objeto renderizador construya el catálogo que publica la página, lo guarda y lee una vez la
 dirección pública (`HEAD`): una dirección que no responde `200` es `502 publish.unverified` con su
 `url`, y la publicación existe.
+
+Cuando falla una llamada al objeto renderizador (superó su límite de CPU, está sobrecargado o se
+reinició), `preview`, `validate`, `write_files` y `publish` responden `503 renderer.unavailable`, cuyo
+mensaje nombra `mdg mcp`; `write_files` y `publish` no han cambiado nada entonces, y la clave de
+idempotencia no guarda respuesta, así que un reintento funciona cuando el objeto vuelve a responder.
+
+### El servidor local
+
+`mdg mcp` sirve el mismo catálogo en la máquina de la persona ([la línea de comandos](cli.md#el-servidor-mcp-local-mcp),
+decisión 0073): las definiciones, el envoltorio de las llamadas, el manejador sin estado y el motor del
+renderizador son el paquete público `@meltemi/diagrams-mcp`, del que se construye también el endpoint,
+y una prueba compara los dos `tools/list`. Sus herramientas actúan por las rutas de arriba con el
+token de API de la línea de comandos, y nunca llaman a `/mcp` ni al objeto renderizador:
+
+| Herramienta                      | En la máquina de la persona                                       | Por la API                                                          |
+| -------------------------------- | ----------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `preview`                        | la imagen y su informe, con el motor del renderizador             | `GET …/files`, y `GET …/blobs/<hash>` para sus imágenes y fuentes   |
+| `validate`                       | los diagnósticos                                                  | `GET …/files`                                                       |
+| `write_files`                    | la comprobación de cada archivo `.meltemi` escrito                | `GET …/files`, y luego `PUT …/files` con `Idempotency-Key`          |
+| `publish`                        | el catálogo, con el script y el generador de la línea de comandos | `GET …/publish`, `GET …/files`, `PUT …/publish`, una lectura `HEAD` |
+| `whoami`                         |                                                                   | `GET /api/session` (su `email`), `GET /api/account/usage`           |
+| `list_publications` sin proyecto |                                                                   | `GET /api/account/publications`                                     |
+| cualquier otra herramienta       |                                                                   | la ruta que es su operación                                         |
 
 ### Autorización
 

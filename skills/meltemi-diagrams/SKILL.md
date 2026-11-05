@@ -19,9 +19,9 @@ Before you start: `pnpm mdg --version` says which version of the command line is
 sheets go under `diagrams/`, or where the project keeps them (the `sources` of its
 `project.json`). Cloud commands run only when the person asks
 ([reference/cloud.md](reference/cloud.md)), and a token (`mdg_…`) is never printed, read, copied
-or committed. Connected to the hosted service's MCP endpoint instead (tools such as `write_files`
-and `preview` act on the person's projects), follow [reference/mcp.md](reference/mcp.md): the same
-steps, through the tools.
+or committed. Connected to the hosted service's MCP endpoint or to the local server `mdg mcp` instead (tools such
+as `write_files` and `preview` act on the person's projects), follow
+[reference/mcp.md](reference/mcp.md): the same steps, through the tools.
 
 1. Collect the pieces from the request or the source material: elements (boxes, data stores,
    decisions), bands (groups), arrows with their labels, annotations (notes, tags), what is
@@ -233,8 +233,9 @@ fontWeight 600 }`, also in classes and rules (`rule note { font "Caveat" }`); ic
   their diagnostics and frame exports.
 - [reference/cloud.md](reference/cloud.md): sharing a project in the optional cloud service, only
   when the person asks, and where its token lives.
-- [reference/mcp.md](reference/mcp.md): the MCP endpoint's tools on the person's projects, how to
-  connect, and the workflow of read, write with `ifRevision`, validate, preview and `open_url`.
+- [reference/mcp.md](reference/mcp.md): the MCP tools on the person's projects, how to connect to
+  the endpoint or the local server `mdg mcp`, and the workflow of read, write with `ifRevision`,
+  validate, preview and `open_url`.
 - [examples/platform.meltemi](examples/platform.meltemi): a complete sheet using every construct.
 - [examples/slide.meltemi](examples/slide.meltemi): a flow view and a free slide linked to it.
 - [examples/sequence.meltemi](examples/sequence.meltemi): a payment sequence with a group, an

@@ -22,6 +22,7 @@ export const NPM_PACKAGE_NAMES = [
   "language",
   "layout",
   "layout-elk",
+  "mcp",
   "model",
   "motion",
   "player",
@@ -81,8 +82,8 @@ export function checkedNpmPackages(directory, unpack) {
       const integrity = `sha512-${createHash("sha512").update(readFileSync(path)).digest("base64")}`;
       return { name: manifest.name, version: manifest.version, path, integrity };
     });
-  if (packages.length !== 19 || new Set(packages.map((pkg) => pkg.name)).size !== 19)
-    throw new Error("Expected nineteen distinct checked npm tarballs.");
+  if (packages.length !== 20 || new Set(packages.map((pkg) => pkg.name)).size !== 20)
+    throw new Error("Expected twenty distinct checked npm tarballs.");
   return { plan, packages };
 }
 

@@ -96,4 +96,18 @@ describe("the skill's MCP reference", () => {
       expect(text).toContain("emailSent");
     },
   );
+
+  it.each([
+    ["skills/meltemi-diagrams/reference/mcp.md", reference],
+    ["docs/agents.md", readFileSync(join(REPO_ROOT, "docs/agents.md"), "utf8")],
+    ["docs/es/agents.md", readFileSync(join(REPO_ROOT, "docs/es/agents.md"), "utf8")],
+  ])("%s says how to start and connect the local server", (path, text) => {
+    for (const phrase of [
+      "npx -y @meltemi/diagrams-cli@latest mcp",
+      "http://127.0.0.1:7373/mcp",
+      "--folder",
+    ]) {
+      expect(text, `${path} lacks ${phrase}`).toContain(phrase);
+    }
+  });
 });

@@ -45,13 +45,13 @@ export function validateArtifact(directory, expected, unpack) {
   safeArtifactNames(listed);
   const vsix = `meltemi-diagrams-${expected.version}.vsix`;
   if (
-    listed.length !== 20 ||
+    listed.length !== 21 ||
     !listed.includes(vsix) ||
     listed.filter(
       (name) => name.endsWith(`-${expected.version}.tgz`) && name.startsWith("meltemi-diagrams-"),
-    ).length !== 19
+    ).length !== 20
   )
-    throw new Error("Artifact manifest must name nineteen packages and the versioned VSIX.");
+    throw new Error("Artifact manifest must name twenty packages and the versioned VSIX.");
   const expectedNames = [
     ...listed,
     "manifest.json",

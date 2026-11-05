@@ -150,7 +150,7 @@ describe("npm partial publication", () => {
   it("skips identical existing bytes, publishes missing packages and keeps a newer latest", () => {
     const f = fixture();
     publishNpm(f.directory, f.run, f.unpack);
-    expect(f.calls.filter((c) => c[0] === "publish")).toHaveLength(18);
+    expect(f.calls.filter((c) => c[0] === "publish")).toHaveLength(19);
     expect(f.calls.filter((c) => c[0] === "dist-tag")).toHaveLength(0);
     for (const call of f.calls.filter((c) => c[0] === "publish"))
       expect(call).toContain("release-1.10.1");
@@ -190,7 +190,7 @@ describe("npm partial publication", () => {
   it("can recover an original artifact created before source metadata without repacking its bytes", () => {
     const f = fixture(false, "missing", true);
     publishNpm(f.directory, f.run, f.unpack);
-    expect(f.calls.filter((c) => c[0] === "publish")).toHaveLength(18);
+    expect(f.calls.filter((c) => c[0] === "publish")).toHaveLength(19);
     expect(f.calls.filter((c) => c[0] === "dist-tag")).toHaveLength(0);
   });
 });

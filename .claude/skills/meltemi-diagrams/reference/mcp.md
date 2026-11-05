@@ -1,9 +1,11 @@
-# The MCP endpoint (projects in the person's account)
+# The MCP tools (projects in the person's account)
 
-When the person connects you to `https://diagrams.meltemi.dev/mcp`, its tools act on the Meltemi
-Diagrams projects of their account in the hosted service: you create projects, write `.meltemi`
-files, look at the drawings and share the result, without a folder or the command line. The
-language is the same as everywhere else in this skill; only where the files live changes.
+When the person connects you to the hosted endpoint, `https://diagrams.meltemi.dev/mcp`, or to the
+local server `mdg mcp` on their machine, its tools act on the Meltemi Diagrams projects of their
+account: you create projects, write `.meltemi` files, look at the drawings and share the result,
+without a folder or the command line. Both serve the same tools with the same answers; the local
+server draws and checks on the person's machine. The language is the same as everywhere else in
+this skill; only where the files live changes.
 
 ## Connecting
 
@@ -15,6 +17,21 @@ The person connects once; never connect for them without being asked.
   `MELTEMI_TOKEN`: in `~/.codex/config.toml`, a `[mcp_servers.meltemi]` table with
   `url = "https://diagrams.meltemi.dev/mcp"` and `bearer_token_env_var = "MELTEMI_TOKEN"`.
 
+The local server instead, for an agent that runs on the person's machine (a client that only
+reaches an address on the internet uses the endpoint):
+
+- The person starts it and keeps it running: `npx -y @meltemi/diagrams-cli@latest mcp` (or `mdg mcp`)
+  prints `http://127.0.0.1:7373/mcp`. Start it yourself only when they ask; it runs until stopped.
+- Connect to that address: `codex mcp add meltemi --url http://127.0.0.1:7373/mcp`,
+  `claude mcp add --transport http meltemi http://127.0.0.1:7373/mcp`, or a `url` in Cursor's
+  `.cursor/mcp.json`.
+- It uses the person's `mdg login`; until they sign in, each tool answers `auth.required`, and the
+  next call after `mdg login` works without a restart. Never run `mdg login` for them.
+- `mdg mcp --folder <dir>` serves `validate` and `preview` only, over the `.meltemi` files of a
+  folder, with no account: write the files with your own tools, then check and look at them.
+- On a machine other people use, the server may ask for `MELTEMI_MCP_KEY` as a bearer token; the
+  person sets it in your client's configuration, never in a file you write.
+
 Never ask for, print, read, copy or write the token (`mdg_…`); it stays in the environment. The
 scopes are `projects:read`, `projects:write`, `sharing`, `live` and `publish`: a refusal
 `scope.insufficient` names the one the connection lacks, and the person grants it, not you. A scope
@@ -25,8 +42,8 @@ runs live sessions and publishes (`access.denied`).
 
 - The account: `whoami` (the account, its scopes, usage and limits).
 - Projects: `list_projects`, `create_project` (empty, from a template `flow`, `c4`, `sequence`,
-  `free` or `purchase`, or from files), `get_project` (its revision, its file paths and its address),
-  `rename_project`.
+  `roadmap`, `free` or `purchase`, or from files), `get_project` (its revision, its file paths and
+  its address), `rename_project`.
 - Files: `read_files` (the texts and the images' hashes, at a revision), `write_files` (texts by
   path, `null` deletes; images and fonts by the hash `upload_image` answered), `validate` (the
   diagnostics `meltemi-diagrams validate` prints), `upload_image` (PNG, JPEG, GIF, WebP, SVG or a
@@ -34,8 +51,8 @@ runs live sessions and publishes (`access.denied`).
 - Versions: `list_versions`, `create_version` (a label of at most 80 characters),
   `restore_version`.
 - The app: `open_url` (the address that opens the project in the browser).
-- Pictures: `preview` (a diagram, or a story's frame, drawn on the server with the command line's
-  engine).
+- Pictures: `preview` (a diagram, or a story's frame, drawn with the command line's engine: on the
+  server through the endpoint, on the person's machine through the local server).
 - Sharing: `get_sharing`, `set_link_access` (`private`, `view` or `edit`), `invite`,
   `list_invitations`, `revoke_invitation`, `set_member_role`, `remove_member`.
 - Live sessions: `get_live`, `start_live`, `end_live`.
@@ -67,7 +84,9 @@ code. Ids are never guessed: take a project's id from `list_projects` or `create
 6. Give the person `open_url`'s address. An open page shows every write at once, without a reload.
 
 A preview that fails (`request.invalid`, `rate.limited`) never undoes a write that succeeded: say
-what was saved, at which revision, and ask for the picture again. Thirty previews and three hundred
+what was saved, at which revision, and ask for the picture again. `renderer.unavailable` from the
+endpoint means the service cannot draw or check right now, and nothing was written: say so, and
+that the local server (`mdg mcp`) does this work on the person's machine. Thirty previews and three hundred
 calls a minute per account are allowed; `rate.limited` gives `retryAfter` in seconds.
 
 ## Sharing, live sessions and publishing: only when asked

@@ -1420,6 +1420,99 @@ async function inspectorTabsFlow(
   await page.screenshot({ path: join(output, `inspector-tabs-${language}.png`) });
 }
 
+/** What the page reports of a sea it showed (`window.meltemiSea`, src/sea.ts). */
+interface SeaSeen {
+  readonly renderer: string;
+  readonly frames: number;
+  readonly requested: number;
+  readonly rested: boolean;
+  readonly progress: number;
+  readonly links: number;
+  readonly boats: number;
+  readonly shown: boolean;
+}
+
+/** The last sea of a moment the page showed, as it is now, or null when it showed none. */
+function seaSeen(page: Page, moment: "boot" | "empty"): Promise<SeaSeen | null> {
+  return page.evaluate((m) => {
+    const seas = (window as unknown as { meltemiSea?: Record<string, SeaSeen | undefined> })
+      .meltemiSea;
+    const sea = seas?.[m];
+    return sea ? { ...sea } : null;
+  }, moment);
+}
+
+/** When the page started and when the load screen's sea dissolved, from the page's first moment. */
+interface StartTimes {
+  start?: number;
+  leaving?: number;
+  gone?: number;
+  /** The load screen's sea when the page started. */
+  sea?: SeaSeen | null;
+}
+
+/** Runs in the page before its scripts: records `StartTimes` as `window.startTimes`. */
+function recordStart(): void {
+  const times: StartTimes = {};
+  (window as unknown as { startTimes: StartTimes }).startTimes = times;
+  let seen = false;
+  new MutationObserver(() => {
+    const now = performance.now();
+    const root = document.getElementById("playground");
+    if (times.start === undefined && root && !root.classList.contains("loading")) {
+      times.start = now;
+      const sea = (window as unknown as { meltemiSea?: { boot?: SeaSeen } }).meltemiSea?.boot;
+      times.sea = sea ? { ...sea } : null;
+    }
+    const layer = document.querySelector(".boot-sea");
+    if (layer) seen = true;
+    if (times.leaving === undefined && layer?.classList.contains("leaving")) times.leaving = now;
+    if (seen && times.gone === undefined && !layer) times.gone = now;
+  }).observe(document, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+}
+
+const startTimes = (page: Page) =>
+  page.evaluate(() => (window as unknown as { startTimes: StartTimes }).startTimes);
+
+/** Holds the page's templates back, so the load screen shows for that long. */
+async function slowStart(page: Page, ms: number): Promise<void> {
+  await page.route(/\/templates\.json$/, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+    await route.continue();
+  });
+}
+
+/** Whether a layer of the page changes what is on the screen: shown against hidden. */
+async function drawsSomething(page: Page, selector: string): Promise<boolean> {
+  const layer = page.locator(selector).first();
+  const clip = (await layer.boundingBox())!;
+  const shown = await page.screenshot({ clip });
+  await layer.evaluate((element) => ((element as HTMLElement).style.visibility = "hidden"));
+  const hidden = await page.screenshot({ clip });
+  await layer.evaluate((element) => ((element as HTMLElement).style.visibility = ""));
+  return !shown.equals(hidden);
+}
+
+/** Empties the page's project: the canvas has nothing to draw, and its sea has drawn. */
+async function emptyProject(page: Page): Promise<void> {
+  await page.evaluate(() =>
+    (
+      window as unknown as {
+        meltemiPlayground: { replaceProject(files: [string, string][], open?: string): void };
+      }
+    ).meltemiPlayground.replaceProject([]),
+  );
+  await until(page, "the empty canvas's sea", () => {
+    const sea = (window as unknown as { meltemiSea?: { empty?: SeaSeen } }).meltemiSea?.empty;
+    return sea?.shown === true && sea.frames > 0;
+  });
+}
+
 const tests: Test[] = [
   {
     name: "properties: focused tabs in English preserve drafts, keyboard access and source edits",
@@ -4831,9 +4924,14 @@ const tests: Test[] = [
       await dialog.locator(".notices li strong").first().waitFor();
       const notices = await dialog.locator(".notices").textContent();
       assert.match(notices ?? "", /elkjs 0\.12\.0 · EPL-2\.0/);
+      assert.match(notices ?? "", /@meltemi\/ocean \d+\.\d+\.\d+ · Apache-2\.0/);
       const text = await page.evaluate(() => fetch("NOTICES.md").then((r) => r.text()));
       assert.match(text, /## elkjs[\s\S]*Eclipse Public License/);
       assert.match(text, /## inter-ui[\s\S]*SIL Open Font License|## @fontsource\/inter[\s\S]*OFL/);
+      assert.match(
+        text,
+        /## @meltemi\/ocean \d+\.\d+\.\d+\n\nLicense: Apache-2\.0[\s\S]*Apache License/,
+      );
       // The agent setup page, and the prompt an agent reads beside it.
       const agents = dialog.getByRole("link", { name: en.about.agents });
       assert.equal(await agents.getAttribute("href"), "agent-setup/");
@@ -4883,7 +4981,276 @@ const tests: Test[] = [
           `${path} scrolls sideways at 375 pixels`,
         );
         await page.screenshot({ path: join(output, picture), fullPage: true });
+        // The family's sea at rest above the heading: the picture of the scheme, from the site.
+        for (const scheme of ["light", "dark"] as const) {
+          await page.emulateMedia({ colorScheme: scheme });
+          await until(
+            page,
+            `${path}'s sea in ${scheme}`,
+            (want) => {
+              const img = document.querySelector<HTMLImageElement>(".setup-sea img");
+              return (
+                img !== null &&
+                img.complete &&
+                img.naturalWidth > 0 &&
+                img.currentSrc.endsWith(want)
+              );
+            },
+            scheme === "dark" ? "/sea-diagrams-dark.svg" : "/sea-diagrams.svg",
+          );
+          assert.equal(await page.locator(".setup-sea img").getAttribute("alt"), "");
+          assert.equal(await page.locator("script").count(), 0, `${path} holds no script`);
+          await page.screenshot({
+            path: join(output, picture.replace(".png", `-sea-${scheme}.png`)),
+          });
+        }
+        await page.emulateMedia({ colorScheme: "light" });
       }
+    },
+  },
+  {
+    name: "the sea: plays on the load screen behind the boot line, dissolves as the page starts and is gone",
+    init: recordStart,
+    setup: ({ page }) => slowStart(page, 2500),
+    async run({ page, url }) {
+      // The runner's load already started the page; this one is watched while it loads.
+      await page.goto(url);
+      await until(page, "the load screen's sea", () => {
+        const sea = (window as unknown as { meltemiSea?: { boot?: SeaSeen } }).meltemiSea?.boot;
+        return (sea?.frames ?? 0) > 10;
+      });
+      assert.equal(await page.locator("#playground.loading").count(), 1, "still loading");
+      const boot = (await seaSeen(page, "boot"))!;
+      assert.notEqual(boot.renderer, "none");
+      assert.equal(boot.boats, 5, "the fleet of the diagrams state");
+      // Behind the boot line, and drawn: the screen differs with the sea hidden.
+      assert.equal(
+        await page.locator(".boot-sea[aria-hidden='true'] canvas.sea-canvas").count(),
+        1,
+      );
+      assert.ok(await drawsSomething(page, ".boot-sea .sea"), "the load screen's sea draws");
+      await page.screenshot({ path: join(output, "sea-load.png") });
+      await ready(page);
+      await until(
+        page,
+        "the load screen's sea gone",
+        () => document.querySelector(".boot-sea") === null,
+      );
+      const times = await startTimes(page);
+      assert.ok(times.start !== undefined && times.gone !== undefined, JSON.stringify(times));
+      assert.ok(times.sea && times.sea.frames > 0, "the sea drew while the page loaded");
+      // It dissolved after the start, which never waited for it.
+      assert.ok(times.leaving! >= times.start!, JSON.stringify(times));
+      assert.ok(times.gone! > times.start!, JSON.stringify(times));
+      const after = (await seaSeen(page, "boot"))!;
+      assert.equal(after.shown, false);
+      await page.waitForTimeout(300);
+      assert.equal((await seaSeen(page, "boot"))!.frames, after.frames, "no frame after it left");
+      assert.equal(await page.locator(".sea").count(), 0);
+    },
+  },
+  {
+    name: "the sea: never holds the start back, with or without it, or with its script late",
+    init: recordStart,
+    async run({ page, url }) {
+      /** When the page started after its navigation, with the templates held back 1.2 s. */
+      const startAt = async (sea: "with" | "without" | "late"): Promise<StartTimes> => {
+        await page.unrouteAll({ behavior: "ignoreErrors" });
+        await slowStart(page, 1200);
+        if (sea === "without") {
+          await page.route(/\/boot-sea\.js$/, (route) =>
+            route.fulfill({ status: 200, contentType: "text/javascript", body: "" }),
+          );
+        }
+        if (sea === "late") {
+          await page.route(/\/boot-sea\.js$/, async (route) => {
+            await new Promise((resolve) => setTimeout(resolve, 4000));
+            await route.continue().catch(() => undefined);
+          });
+        }
+        await page.goto(url);
+        await until(
+          page,
+          `the page started (${sea} the sea)`,
+          () => (window as unknown as { startTimes: StartTimes }).startTimes.start !== undefined,
+        );
+        return startTimes(page);
+      };
+      const best = async (sea: "with" | "without" | "late") => {
+        const runs = [await startAt(sea), await startAt(sea), await startAt(sea)];
+        return { start: Math.min(...runs.map((r) => r.start!)), runs };
+      };
+      const without = await best("without");
+      const withSea = await best("with");
+      const late = await best("late");
+      const report = JSON.stringify({
+        without: Math.round(without.start),
+        with: Math.round(withSea.start),
+        late: Math.round(late.start),
+      });
+      console.log(`    started (ms): ${report}`);
+      for (const run of withSea.runs) assert.ok(run.sea && run.sea.frames > 0, report);
+      // A sea that arrives after the start shows nothing, and the start never waited for it.
+      for (const run of late.runs) assert.equal(run.sea, null, report);
+      const allowed = without.start * 1.25 + 250;
+      assert.ok(withSea.start <= allowed, `with the sea: ${report}`);
+      assert.ok(late.start <= allowed, `with its script late: ${report}`);
+      await page.unrouteAll({ behavior: "ignoreErrors" });
+      await page.goto(url);
+      await ready(page);
+    },
+  },
+  {
+    name: "the sea: lies behind the empty canvas's message, and leaves with no frame more when a diagram opens",
+    async run({ page }) {
+      const requests: string[] = [];
+      page.on("request", (request) => requests.push(new URL(request.url()).pathname));
+      await emptyProject(page);
+      const stage = page.locator("#app .stage");
+      assert.equal(await stage.locator(":scope > .sea-empty").count(), 1);
+      // Behind the message: the stage's first child, under everything the canvas draws.
+      assert.equal(
+        await stage.evaluate((element) => element.firstElementChild?.classList.contains("sea")),
+        true,
+      );
+      assert.equal(
+        (await stage.locator(".empty .empty-message").textContent())?.trim(),
+        en.studio.noFiles,
+      );
+      const sea = (await seaSeen(page, "empty"))!;
+      assert.notEqual(sea.renderer, "none");
+      assert.equal(sea.boats, 5);
+      assert.ok(await drawsSomething(page, ".sea-empty"), "the empty canvas's sea draws");
+      // It asked for its own code and nothing else.
+      const asked = requests.filter((path) => !/^\/chunks\/[\w-]+\.js$/.test(path));
+      assert.deepEqual(asked, [], "the sea makes no request of its own");
+      await page.screenshot({ path: join(output, "sea-empty.png") });
+      // A diagram opens: the sea goes before it is drawn, and draws nothing more.
+      await openTemplate(page, "flow");
+      const gone = (await seaSeen(page, "empty"))!;
+      assert.equal(gone.shown, false);
+      assert.equal(await page.locator(".sea").count(), 0);
+      assert.ok((await page.locator("#app .content svg").count()) > 0, "the diagram is drawn");
+      await page.waitForTimeout(400);
+      assert.equal((await seaSeen(page, "empty"))!.frames, gone.frames, "no frame after it left");
+      // project.json has nothing to draw either.
+      await page.evaluate(() =>
+        (
+          window as unknown as { meltemiPlayground: { openFile(path: string): void } }
+        ).meltemiPlayground.openFile("project.json"),
+      );
+      await until(
+        page,
+        "the sea behind project.json",
+        () =>
+          (window as unknown as { meltemiSea: { empty?: SeaSeen } }).meltemiSea.empty?.shown ===
+          true,
+      );
+      assert.equal(
+        (await stage.locator(".empty .empty-message").textContent())?.trim(),
+        en.studio.manifest,
+      );
+    },
+  },
+  {
+    name: "the sea: comes to rest within 5 seconds, with no frame after",
+    async run({ page }) {
+      const since = Date.now();
+      await emptyProject(page);
+      await page.waitForTimeout(Math.max(0, 5000 - (Date.now() - since)));
+      const fifth = (await seaSeen(page, "empty"))!;
+      assert.equal(fifth.rested, true, "at rest by the fifth second");
+      assert.equal(fifth.progress, 1, "the flow formed");
+      assert.ok(fifth.links > 0, "the flow's links drawn");
+      await page.waitForTimeout(1000);
+      const sixth = (await seaSeen(page, "empty"))!;
+      assert.equal(sixth.frames, fifth.frames, "no frame after the fifth second");
+      assert.equal(sixth.requested, fifth.requested, "no animation frame asked for");
+    },
+  },
+  {
+    name: "the sea: under reduced motion, the load screen and the empty canvas draw one frame and request none",
+    init: recordStart,
+    setup: async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await slowStart(page, 1500);
+    },
+    async run({ page }) {
+      const boot = (await seaSeen(page, "boot"))!;
+      assert.ok(boot, "the load screen showed its sea");
+      assert.equal(boot.frames, 1, "one frame on the load screen");
+      assert.equal(boot.requested, 0, "no animation frame on the load screen");
+      assert.equal(boot.progress, 1, "the flow already formed");
+      const times = await startTimes(page);
+      // No dissolve: the load screen leaves with the start.
+      assert.equal(times.leaving, undefined, JSON.stringify(times));
+      assert.equal(await page.locator(".boot-sea").count(), 0);
+      await emptyProject(page);
+      await page.waitForTimeout(1000);
+      const empty = (await seaSeen(page, "empty"))!;
+      assert.equal(empty.frames, 1, "one frame on the empty canvas");
+      assert.equal(empty.requested, 0, "no animation frame on the empty canvas");
+      assert.equal(
+        await page
+          .locator(".sea-empty")
+          .evaluate((element) => getComputedStyle(element).animationName),
+        "none",
+      );
+      await page.screenshot({ path: join(output, "sea-empty-reduced.png") });
+    },
+  },
+  {
+    name: "the sea: takes its colours from the page's tokens and recolours with the scheme switch",
+    async run({ page }) {
+      await emptyProject(page);
+      await until(
+        page,
+        "the sea at rest",
+        () => (window as unknown as { meltemiSea: { empty: SeaSeen } }).meltemiSea.empty.rested,
+      );
+      const colours = () =>
+        page.locator(".sea-empty canvas").evaluate((canvas) => {
+          const style = getComputedStyle(canvas);
+          const root = getComputedStyle(document.documentElement);
+          return {
+            point: style.getPropertyValue("--sea-point").trim(),
+            crest: style.getPropertyValue("--sea-crest").trim(),
+            bg: style.getPropertyValue("--sea-bg").trim(),
+            muted: root.getPropertyValue("--pg-muted").trim(),
+            accent: root.getPropertyValue("--pg-accent").trim(),
+            pageBg: root.getPropertyValue("--pg-bg").trim(),
+          };
+        });
+      const light = await colours();
+      assert.deepEqual(
+        [light.point, light.crest, light.bg],
+        [light.muted, light.accent, light.pageBg],
+        "the light scheme's tokens",
+      );
+      const before = (await seaSeen(page, "empty"))!;
+      const lightShot = await page.locator(".sea-empty").screenshot();
+      await page.getByRole("button", { name: "Switch to the dark theme", exact: true }).click();
+      const dark = await colours();
+      assert.deepEqual(
+        [dark.point, dark.crest, dark.bg],
+        [dark.muted, dark.accent, dark.pageBg],
+        "the dark scheme's tokens",
+      );
+      assert.notEqual(dark.point, light.point);
+      assert.notEqual(dark.bg, light.bg);
+      // At rest, recolouring draws the one frame it needs, without a reload.
+      await until(
+        page,
+        "the sea recoloured",
+        (frames) =>
+          (window as unknown as { meltemiSea: { empty: SeaSeen } }).meltemiSea.empty.frames >
+          frames,
+        before.frames,
+      );
+      assert.equal((await seaSeen(page, "empty"))!.shown, true);
+      const darkShot = await page.locator(".sea-empty").screenshot();
+      assert.equal(lightShot.equals(darkShot), false, "the sea is drawn in the other scheme");
+      await page.screenshot({ path: join(output, "sea-empty-dark.png") });
     },
   },
   {

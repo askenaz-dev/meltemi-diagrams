@@ -127,6 +127,12 @@
   --vscode-inputValidation-warningForeground: #4a3500;
   --vscode-inputValidation-warningBorder: #c99b16;
   --vscode-inputValidation-errorBorder: var(--pg-error);
+  /* The family's sea (`playground-sea`), read by @meltemi/ocean from its canvas: the page's own
+     tokens, never a colour of their own. */
+  --sea-bg: var(--pg-bg);
+  --sea-point: var(--pg-muted);
+  --sea-crest: var(--pg-accent);
+  --sea-wind: var(--pg-accent);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -162,6 +168,10 @@
     --vscode-inputValidation-warningBackground: #3b2f10;
     --vscode-inputValidation-warningForeground: #f6e3b4;
     --vscode-inputValidation-warningBorder: #a17d1c;
+    --sea-bg: var(--pg-bg);
+    --sea-point: var(--pg-muted);
+    --sea-crest: var(--pg-accent);
+    --sea-wind: var(--pg-accent);
   }
 }
 
@@ -197,6 +207,10 @@
   --vscode-inputValidation-warningBackground: #3b2f10;
   --vscode-inputValidation-warningForeground: #f6e3b4;
   --vscode-inputValidation-warningBorder: #a17d1c;
+  --sea-bg: var(--pg-bg);
+  --sea-point: var(--pg-muted);
+  --sea-crest: var(--pg-accent);
+  --sea-wind: var(--pg-accent);
 }
 
 html,
@@ -233,6 +247,93 @@ body {
 
 .boot {
   color: var(--pg-muted);
+}
+
+/* The family's sea (`playground-sea`) ------------------------------------------------------- */
+
+/* A layer of sea at the bottom of what holds it: the canvas the package draws on, and the fleet of
+   Meltemi marks it places by their transforms, pivoting on their keels. Nothing in it takes a
+   pointer. It arrives in 400 ms; under reduced motion it is simply there. */
+.sea {
+  position: absolute;
+  inset: auto 0 0;
+  height: var(--pg-sea-height, 55%);
+  container-type: size;
+  pointer-events: none;
+  user-select: none;
+  animation: pg-sea-arrive 400ms var(--pg-ease) both;
+  --pg-sea-mark: clamp(36px, 20cqh, 104px);
+}
+
+.sea-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.sea-fleet {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.sea-mark,
+.sea-boat {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: var(--pg-sea-mark);
+  height: var(--pg-sea-mark);
+  transform-origin: 50% 86%;
+}
+
+.sea-mark svg,
+.sea-boat svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+@keyframes pg-sea-arrive {
+  from {
+    opacity: 0;
+  }
+}
+
+/* The load screen's sea lies over the page, which replaces the load screen as it starts: the layer
+   then holds the load screen once more, its background and its line, and dissolves over the
+   editor in 200 ms. The editor takes the pointer at once. */
+.boot-sea {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  --pg-sea-height: min(76%, 44rem);
+}
+
+.boot-sea > .boot {
+  position: relative;
+}
+
+.boot-sea.leaving {
+  background: var(--pg-bg);
+  animation: pg-boot-leave 200ms var(--pg-ease) forwards;
+}
+
+@keyframes pg-boot-leave {
+  to {
+    opacity: 0;
+  }
+}
+
+/* The empty canvas's sea: on the stage, behind its message. */
+.stage > .sea-empty {
+  --pg-sea-height: clamp(10rem, 62%, 36rem);
 }
 
 /* Shell ------------------------------------------------------------------------------------ */

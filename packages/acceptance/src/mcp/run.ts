@@ -14,6 +14,12 @@
 // `--probe` only asks whether the host answers, and writes `answers=true|false` to GITHUB_OUTPUT for
 // the deploy workflow, which skips the suite on a staging host whose domain is not attached yet.
 //
+// `--local` runs the same steps through the command line's local server (change local-mcp-server):
+// one built `mdg mcp` process for each test account, its token in its own environment, its host the
+// target's origin. The steps that prove the endpoint's own door and its OAuth server are skipped with
+// their reason; nothing is asked of `/mcp`. Build the command line first
+// (`pnpm --filter "@meltemi/diagrams-cli..." build`).
+//
 // The exit code is 1 when a step failed, when the log held something that grants access, or when the
 // host does not answer (named, before any step), and 0 otherwise. Nothing that grants access is
 // printed or written.
@@ -22,6 +28,7 @@ import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { SDK } from "./agent.js";
+import { startLocalServers, type LocalServers } from "./local.js";
 import {
   MANUAL_CRITERIA,
   RunLog,
@@ -38,6 +45,7 @@ const REPO_ROOT = fileURLToPath(new URL("../../../../", import.meta.url));
 
 const env = process.env;
 const inActions = env["GITHUB_ACTIONS"] === "true";
+const local = process.argv.includes("--local");
 
 /** A value of the environment, trimmed, or undefined when it is empty (GitHub's unset secret). */
 const read = (name: string) => env[name]?.trim() || undefined;
@@ -75,7 +83,11 @@ const resultsFile = resolve(
 mkdirSync(dirname(resultsFile), { recursive: true });
 
 const tokens = { first: read("MELTEMI_TOKEN"), second: read("MELTEMI_TOKEN_2") };
-const capabilities: Capabilities = { token: !!tokens.first, token2: !!tokens.second };
+const capabilities: Capabilities = {
+  token: !!tokens.first,
+  token2: !!tokens.second,
+  ...(local ? { local: true } : {}),
+};
 const log = new RunLog();
 for (const token of [tokens.first, tokens.second]) if (token) log.secrets.add(token);
 const startedAt = new Date();
@@ -93,6 +105,7 @@ function writeResults(
     endedAt: new Date().toISOString(),
     origin: target!.origin,
     endpoint: target!.endpoint,
+    transport: local ? "local server (mdg mcp)" : "endpoint",
     reachable: probed.answers,
     ...(probed.answers ? {} : { unreachable: probed.why }),
     server: state?.server ?? null,
@@ -146,14 +159,19 @@ function writeSummary(outcome: RunOutcome, server: Target): void {
 }
 
 // The host first: one that does not answer is named before any step.
-const probed = await probeUntil(target, 3, 3_000);
+const probed = await probeUntil(target, 3, 3_000, fetch, local);
 if (!probed.answers) {
   writeResults(undefined, undefined, probed);
   annotate("error", "MCP acceptance", `${target.origin} does not answer (${probed.why}).`);
   fail(`The host ${target.origin} does not answer (${probed.why}); no step ran.`);
 }
 
-log.write("-", `MCP acceptance against ${target.endpoint}`);
+log.write(
+  "-",
+  local
+    ? `MCP acceptance against ${target.origin}, through mdg mcp`
+    : `MCP acceptance against ${target.endpoint}`,
+);
 if (!capabilities.token || !capabilities.token2) {
   const missing = [
     !capabilities.token && "MELTEMI_TOKEN",
@@ -164,13 +182,38 @@ if (!capabilities.token || !capabilities.token2) {
   log.write("-", `${missing} not set: the steps that need them are skipped, each with its reason.`);
 }
 
+let servers: LocalServers | undefined;
+if (local) {
+  try {
+    servers = await startLocalServers({
+      bin: join(REPO_ROOT, "packages", "cli", "dist", "bin.js"),
+      origin: target.origin,
+      tokens,
+      log: join(dirname(resultsFile), "mdg-mcp.log"),
+    });
+  } catch (error) {
+    fail(error instanceof Error ? log.redact(error.message) : "mdg mcp did not start");
+  }
+  log.write("-", `through mdg mcp: ${[servers.first, servers.second].filter(Boolean).join(", ")}`);
+}
+
 const state = newState({
   target,
   capabilities,
   tokens,
   ...(read("MELTEMI_SERVER_LOG") ? { serverLog: read("MELTEMI_SERVER_LOG")! } : {}),
+  ...(servers?.first
+    ? {
+        local: {
+          first: servers.first,
+          ...(servers.second ? { second: servers.second } : {}),
+          log: servers.log,
+        },
+      }
+    : {}),
 });
 const outcome = await runSteps(STEPS, state, capabilities, log);
+await servers?.stop();
 writeResults(state, outcome, probed);
 writeSummary(outcome, target);
 

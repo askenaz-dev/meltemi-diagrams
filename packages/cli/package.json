@@ -50,11 +50,15 @@
     "@meltemi/diagrams-language": "workspace:*",
     "@meltemi/diagrams-layout": "workspace:*",
     "@meltemi/diagrams-layout-elk": "workspace:*",
+    "@meltemi/diagrams-mcp": "workspace:*",
     "@meltemi/diagrams-model": "workspace:*",
     "@meltemi/diagrams-motion": "workspace:*",
     "@meltemi/diagrams-player": "workspace:*",
     "@meltemi/diagrams-project": "workspace:*",
     "@meltemi/diagrams-render": "workspace:*"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "2.3.1"
   },
   "publishConfig": {
     "access": "public",

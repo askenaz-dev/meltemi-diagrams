@@ -1,13 +1,14 @@
 ## Purpose
 
-Where and how the playground wears the Meltemi family's sea from `@meltemi/ocean`: while it loads,
-when the canvas has nothing to draw, and as a still picture on the agent setup pages. It is never
-shown behind work in progress, and it always comes to rest.
+Where and how the web app (Meltemi Diagrams in the browser, `packages/playground`) wears the Meltemi
+family's sea from `@meltemi/ocean`, with the fleet of Meltemi marks sailing on it: while the page
+loads, when the canvas has nothing to draw, and as a still picture on the agent setup pages. It is
+never shown behind work in progress, and it always comes to rest.
 
 ## ADDED Requirements
 
 ### Requirement: The sea while the page loads
-While the page loads, it SHALL draw the `diagrams` sea state behind the boot line. The sea SHALL fade out as the page starts, and SHALL never delay the start: the editor becomes usable at the same moment it does without the sea.
+While the page loads, it SHALL draw the `diagrams` sea state, with its fleet, behind the boot line. The load screen SHALL dissolve over the editor as the page starts, and SHALL never delay the start: the editor becomes usable at the same moment it does without the sea.
 
 #### Scenario: Loading
 - **WHEN** the browser suite opens the page and samples the load screen before the page starts
@@ -18,7 +19,7 @@ While the page loads, it SHALL draw the `diagrams` sea state behind the boot lin
 - **THEN** the browser suite fails, comparing the start time with and without the sea
 
 ### Requirement: The sea when there is nothing to draw
-When the canvas has nothing to draw (the project has no files, `project.json` is open, or the open file has no diagram), the canvas SHALL show the sea behind its message. While a diagram is drawn, edited, played or exported, the sea SHALL not be shown, and no frame of it SHALL be drawn.
+When the canvas has nothing to draw (the project has no files, `project.json` is open, or the open file is not a `.meltemi` source), the canvas SHALL show the sea behind its message. While a diagram is drawn, edited, played or exported, the sea SHALL not be shown, and no frame of it SHALL be drawn.
 
 #### Scenario: An empty project
 - **WHEN** the browser suite empties a project's files
@@ -51,14 +52,14 @@ The sea SHALL take its colours from the page's own light or dark scheme, the one
 - **THEN** `pnpm test` fails naming the rule
 
 ### Requirement: A still picture on the agent setup pages
-The agent setup pages in English and Spanish SHALL show the `diagrams` still picture of `@meltemi/ocean` as an image of the site, with empty alternative text. They SHALL load no script, and their Content-Security-Policy SHALL stay unchanged.
+The agent setup pages in English and Spanish SHALL show the `diagrams` still picture of `@meltemi/ocean` above their heading, as an image of the site in the system's scheme, with empty alternative text. They SHALL load no script, and their Content-Security-Policy SHALL stay unchanged.
 
 #### Scenario: The setup page
 - **WHEN** `dist/agent-setup/index.html` and its Spanish twin are read after a build
-- **THEN** each shows `sea-diagrams.svg` from the site with `alt=""`, holds no `<script>`, and the policy is the one decision 0063 set
+- **THEN** each shows `sea-diagrams.svg` from the site with `alt=""`, and `sea-diagrams-dark.svg` for a dark scheme, holds no `<script>`, and the policy is the one decision 0063 set
 
 #### Scenario: A missing picture
-- **WHEN** the build does not write `sea-diagrams.svg`, or writes one that is not well-formed SVG
+- **WHEN** the build does not write `sea-diagrams.svg` or `sea-diagrams-dark.svg`, or writes one that is not well-formed SVG
 - **THEN** the build test fails naming the file
 
 ### Requirement: The sea's weight and requests
