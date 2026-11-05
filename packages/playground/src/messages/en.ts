@@ -143,6 +143,7 @@ export const en = {
       flow: "Flow diagram",
       c4: "C4 model",
       sequence: "Sequence diagram",
+      roadmap: "Product roadmap",
       free: "Slide",
       kanban: "Kanban board",
       whiteboard: "Whiteboard",
@@ -168,6 +169,8 @@ export const en = {
       flow: "A flow diagram to start from",
       c4: "An architecture model with a context view and a container view",
       sequence: "A sequence diagram with a scenario for each outcome",
+      roadmap:
+        "A roadmap of three sections of tasks with their dependencies, a milestone and a story that plays it",
       free: "A slide composed freely: text, boxes, an icon and a group",
       kanban: "A board of columns and sticky cards",
       whiteboard: "A sketched board with strokes, stickies and a story that draws them",

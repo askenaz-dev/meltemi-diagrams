@@ -1,6 +1,6 @@
 ---
 name: meltemi-diagrams
-description: Use when asked to draw, document or convert a system or software architecture, sketch a whiteboard or kanban board, turn a diagram or a screenshot into code, or change a `.meltemi` file. Creates, edits, converts and exports Meltemi diagrams as code (`.meltemi` files) - flow sheets with groups, plain containers, data stores, decisions, notes, tags and boxes in 24 shapes with icons, laid out by ELK, assisted or by hand, with ports, constraints, styles and themes; free compositions (slides with boxes, text, icons, images, layers and links to flow views, and whiteboards with pen strokes, stickies and kanban lists); sequence diagrams (participants, calls, replies, activations, notes, alt/opt/loop/par fragments, scenarios); C4 models with context, container and component views; motion effects and stories that walk through a diagram scene by scene; SVG, PNG, PDF and HTML-player exports with export profiles. Imports Mermaid and PlantUML instead of retyping them, and turns draw.io, HTML or SVG pictures into sheets.
+description: Use when asked to draw, document or convert a system or software architecture, plan a project or roadmap, sketch a whiteboard or kanban board, turn a diagram or screenshot into code, or change a `.meltemi` file. Creates, edits, converts and exports Meltemi diagrams as code - flow sheets (groups, containers, data stores, decisions, notes, tags, boxes in 24 shapes with icons) laid out by ELK, assisted or by hand, with ports, constraints and themes; free compositions (slides with text, icons, images, layers and links, and whiteboards with pens, stickies and kanban lists); sequence diagrams (calls, replies, activations, notes, fragments, scenarios); gantt charts and roadmaps (tasks scheduled from dates, `after` dependencies and working days, milestones, markers); C4 models with context, container and component views; motion effects and stories; SVG, PNG, PDF and HTML-player exports with export profiles. Imports Mermaid and PlantUML instead of retyping them, and turns draw.io, HTML or SVG pictures into sheets.
 license: MIT
 metadata:
   version: 1.11.0
@@ -31,15 +31,16 @@ as `write_files` and `preview` act on the person's projects), follow
    under `preset board` ([reference/free.md](reference/free.md)), `sequence` for an
    interaction over time between participants ([reference/sequence.md](reference/sequence.md)),
    a `model` with `c4` views for a C4 architecture (context, containers, components) shared by
-   several pictures ([reference/c4.md](reference/c4.md)).
+   several pictures ([reference/c4.md](reference/c4.md)), `gantt` for a plan or a roadmap of tasks
+   scheduled over dates ([reference/gantt.md](reference/gantt.md)).
    To walk an audience through a diagram, add a `story` after it
    ([reference/stories.md](reference/stories.md)).
    A Mermaid or PlantUML source is imported, never retyped: `pnpm mdg import source.mmd` writes
    `source.meltemi` and reports what it approximated or dropped
    ([reference/converting.md](reference/converting.md)).
-   A flow sheet becomes a slide with `pnpm mdg convert sheet.meltemi --to free`. Sequence
-   diagrams have no layout modes or positions: skip step 2's layout choice and write the events in
-   order.
+   A flow sheet becomes a slide with `pnpm mdg convert sheet.meltemi --to free`. Sequence and
+   gantt diagrams have no layout modes or positions: skip step 2's layout choice and write the
+   events, or the tasks with their dates, in order.
 2. Write the file from the template below. Pick the layout mode:
    - `layout auto` (the default) for a new sheet: write no positions; ELK arranges the boxes in the
      `direction` (`LR`, `TB`, ...). Add constraints such as `row a, b` when you need alignment.
@@ -178,6 +179,10 @@ fontWeight 600 }`, also in classes and rules (`rule note { font "Caveat" }`); ic
 - A legend is a row of `tag` elements under the sheet with the category colours, plus a dashed
   white tag for "proposed".
 - One diagram per file unless they share a model; the SVG is named after the file.
+- In `gantt` charts, dates and `after` place everything: never write `place` or `layout`, never
+  draw dependencies as `a -> b`, and give the first task a `from <date>`. A task with no start
+  follows the previous one, `exclude weekends` makes `d` count working days, and a `today` line
+  shows only when its day is inside the chart.
 - In `free` diagrams, a child's `place` is relative to its group's interior, every group has a
   `place`, and the paint order is the source order within each layer: declare on-top objects last
   or give them `layer front` (with `layers main, front`). A group with `layout column` or
@@ -221,6 +226,9 @@ fontWeight 600 }`, also in classes and rules (`rule note { font "Caveat" }`); ic
   spacing, their diagnostics and the mapping from Mermaid and PlantUML.
 - [reference/c4.md](reference/c4.md): models, C4 views, levels and scopes, lifted and combined
   relations, local labels, imported models and their diagnostics.
+- [reference/gantt.md](reference/gantt.md): gantt charts and roadmaps: sections, tasks, milestones
+  and markers, dates, durations and the calendar, the schedule rules, the chart's settings,
+  styles, effects, their diagnostics and importing Mermaid.
 - [reference/stories.md](reference/stories.md): stories, scenes, actions, transitions, timing,
   their diagnostics and frame exports.
 - [reference/cloud.md](reference/cloud.md): sharing a project in the optional cloud service, only
@@ -234,4 +242,6 @@ fontWeight 600 }`, also in classes and rules (`rule note { font "Caveat" }`); ic
   alternative, a loop, a note, an async message and two scenarios.
 - [examples/architecture.meltemi](examples/architecture.meltemi): a model with a context, a
   container and a component view.
+- [examples/gantt.meltemi](examples/gantt.meltemi): a launch plan with three sections, tasks of
+  every status, a critical chain, a milestone, a marker, a holiday and the story of the plan.
 - [examples/story.meltemi](examples/story.meltemi): a checkout flow and the story of a purchase.

@@ -1800,6 +1800,47 @@ async function propertyTab(h: Harness, category: string, theme = false): Promise
   await h.page.locator(`#mdg-${theme ? "theme" : "inspector"}-tab-${category}`).click();
 }
 
+/** The owner's roadmap: three sections and ten tasks (`corpus/valid/gantt/roadmap.meltemi`). */
+const GANTT = readFileSync(
+  join(here, "..", "..", "..", "..", "corpus", "valid", "gantt", "roadmap.meltemi"),
+  "utf8",
+);
+
+/** The page box of the bar of a task or the diamond of a milestone: the first shape of its group. */
+async function barBox(h: Harness, id: string): Promise<Rect> {
+  const box = await h.page
+    .locator(`.content g[data-id="${id}"][data-role="element"] > :is(rect, path)`)
+    .first()
+    .boundingBox();
+  assert.ok(box, `no bar for ${id}`);
+  return box;
+}
+
+/** The middle of a bar, as the two numbers a mouse method takes. */
+async function middleOf2(h: Harness, id: string): Promise<[number, number]> {
+  const box = await barBox(h, id);
+  return [box.x + box.width / 2, box.y + box.height / 2];
+}
+
+/** How many page pixels a day takes on the chart's timeline, from two bars whose dates are known. */
+async function pixelsPerDay(h: Harness): Promise<number> {
+  const first = await barBox(h, "tec0");
+  const second = await barBox(h, "flu0");
+  return (second.x - first.x) / 14;
+}
+
+/** A point on an arrow of a chart, in page pixels, where a press selects it. */
+async function arrowPoint(h: Harness, key: string): Promise<{ x: number; y: number }> {
+  return h.page
+    .locator(`.content g[data-role="relation"][data-id="${key}"] polyline:not(.mdg-hit)`)
+    .first()
+    .evaluate((line: SVGPolylineElement) => {
+      const at = line.getPointAtLength(line.getTotalLength() * 0.3);
+      const m = line.getScreenCTM()!;
+      return { x: at.x * m.a + at.y * m.c + m.e, y: at.x * m.b + at.y * m.d + m.f };
+    });
+}
+
 const tests: {
   name: string;
   run: (h: Harness) => Promise<void>;
@@ -6434,6 +6475,7 @@ const tests: {
         "Flow diagram",
         "Free composition",
         "Sequence diagram",
+        "Gantt chart",
       ]);
       // Nothing to place without a diagram; New diagram is there.
       assert.equal(await page.locator('.toolbar button[data-tool="node"]').isVisible(), false);
@@ -6483,7 +6525,7 @@ const tests: {
       assert.equal(await page.locator(".status").textContent(), "");
       assert.equal(await page.locator(".content").innerHTML(), "");
       assert.equal(await page.locator(".overlay").innerHTML(), "");
-      assert.equal(await page.locator(".empty button").count(), 3);
+      assert.equal(await page.locator(".empty button").count(), 4);
       assert.equal(await page.locator('.toolbar button[data-tool="node"]').isVisible(), false);
       assert.ok(!(await page.locator("#app").innerHTML()).includes("overview"), "overview is gone");
     },
@@ -6533,6 +6575,7 @@ const tests: {
           ["flow", "Flow diagram"],
           ["free", "Free composition"],
           ["sequence", "Sequence diagram"],
+          ["gantt", "Gantt chart"],
         ],
       );
       await page.locator('.menu [data-create="free"]').click();
@@ -6554,7 +6597,7 @@ const tests: {
       const page = h.page;
       assert.equal(await page.locator(".empty").isVisible(), true);
       assert.ok(((await page.locator(".empty .empty-message").textContent()) ?? "").length > 0);
-      assert.equal(await page.locator(".empty button").count(), 3);
+      assert.equal(await page.locator(".empty button").count(), 4);
       for (const button of await page.locator(".empty button").all()) {
         assert.equal(await button.isVisible(), false);
       }
@@ -6714,7 +6757,12 @@ const tests: {
     lang: "es",
     async run(h) {
       const page = h.page;
-      const names = ["Diagrama de flujo", "Composición libre", "Diagrama de secuencia"];
+      const names = [
+        "Diagrama de flujo",
+        "Composición libre",
+        "Diagrama de secuencia",
+        "Diagrama de Gantt",
+      ];
       const group = page.locator(".empty").getByRole("group", { name: "Crear un diagrama" });
       assert.deepEqual(await group.getByRole("button").allTextContents(), names);
       await page.locator(".toolbar button.new-diagram").click();
@@ -12259,6 +12307,1035 @@ diagram d: flow {
       assert.ok(Math.abs(editor.fontSize - 24 * zoom) < 0.05, `font ${editor.fontSize}`);
       assert.match(editor.font, /^Caveat, /);
       await page.keyboard.press("Escape");
+    },
+  },
+  {
+    name: "gantt: the palette of a chart has Task, Milestone, Marker and Section, and no box tool",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      const tools = page.locator(".toolbar [data-tool]:visible");
+      const names = await tools.evaluateAll((buttons) =>
+        buttons.map((b) => `${b.getAttribute("data-tool")}:${b.getAttribute("title")}`),
+      );
+      assert.deepEqual(
+        names.filter((name) => !name.startsWith("relation")),
+        ["task:Task (T)", "milestone:Milestone (M)", "marker:Marker (V)", "group:Section (G)"],
+      );
+      assert.equal(
+        await page.locator('.toolbar [data-split="group"] .split-arrow:visible').count(),
+        0,
+      );
+      assert.equal(
+        await page.locator('.toolbar [data-split="relation"] .split-arrow:visible').count(),
+        0,
+      );
+      assert.equal(await page.locator(".toolbar button[aria-label='Arrange']:visible").count(), 0);
+      assert.match((await page.locator(".toolbar .badge").textContent()) ?? "", /^gantt$/);
+      await page.screenshot({ path: join(output, "gantt-canvas.png") });
+    },
+  },
+  {
+    name: "gantt: Spanish names the chart's tools and the New diagram menu",
+    text: GANTT,
+    lang: "es",
+    async run(h) {
+      const page = h.page;
+      const names = await page
+        .locator(".toolbar [data-tool]:visible")
+        .evaluateAll((buttons) => buttons.map((b) => b.getAttribute("title")));
+      assert.ok(names.includes("Tarea (T)"), names.join("|"));
+      assert.ok(names.includes("Hito (M)"));
+      assert.ok(names.includes("Marca (V)"));
+      assert.ok(names.includes("Sección (G)"));
+      await page.getByRole("button", { name: "Nuevo diagrama" }).click();
+      assert.equal(
+        await page.getByRole("menuitem", { name: "Diagrama de Gantt" }).textContent(),
+        "Diagrama de Gantt",
+      );
+    },
+  },
+  {
+    name: "gantt: a file without diagrams offers a Gantt chart, and the New diagram menu too",
+    text: "",
+    async run(h) {
+      const page = h.page;
+      await page.getByRole("button", { name: "Gantt chart" }).click();
+      await h.settled();
+      assert.equal(h.text, 'language "0.2"\n\ndiagram diagram1: gantt {\n}\n');
+      assert.equal(await page.locator(".toolbar .badge").textContent(), "gantt");
+      // An empty chart draws four weeks, and offers its tools.
+      assert.equal(await page.locator('.toolbar [data-tool="task"]:visible').count(), 1);
+      await page.getByRole("button", { name: "New diagram" }).click();
+      await page.getByRole("menuitem", { name: "Gantt chart" }).click();
+      await h.settled();
+      assert.match(h.text, /diagram diagram2: gantt \{\n\}\n$/);
+    },
+  },
+  {
+    name: "gantt: a bar dragged a week later writes from beside after, and what follows moves",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      const day = await pixelsPerDay(h);
+      const bar = await barBox(h, "tec1");
+      const from = { x: bar.x + bar.width / 2, y: bar.y + bar.height / 2 };
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(from.x + 2 * day, from.y, { steps: 4 });
+      await page.mouse.move(from.x + 7 * day, from.y, { steps: 6 });
+      await h.settled();
+      // While the bar is held the tooltip says its dates, and the drawing is the preview's.
+      const tip = page.locator(".gantt-tip.shown");
+      assert.equal(await tip.count(), 1);
+      assert.equal(await tip.textContent(), "15 Jun → 26 Jun · 10 working days");
+      assert.ok(h.previews().some((p) => p.action.kind === "schedule"));
+      await page.screenshot({ path: join(output, "gantt-drag.png") });
+      await page.mouse.up();
+      await h.settled();
+      assert.match(h.text, /task tec1 "[^"]+" after tec0 from 2026-06-15 for 10d/);
+      assert.equal(await page.locator(".gantt-tip.shown").count(), 0);
+      // The bar after it moved with it: tec2 starts on 29 June.
+      const tec2 = await barBox(h, "tec2");
+      const tec0 = await barBox(h, "tec0");
+      nearly((tec2.x - tec0.x) / day, 28, 0.6, "tec2 starts 28 days after tec0");
+    },
+  },
+  {
+    name: "gantt: dragged back onto its predecessor a bar sticks to it, and from goes",
+    text: GANTT.replace("after tec0 for 10d", "after tec0 from 2026-06-15 for 10d"),
+    async run(h) {
+      const page = h.page;
+      const day = await pixelsPerDay(h);
+      const bar = await barBox(h, "tec1");
+      const from = { x: bar.x + bar.width / 2, y: bar.y + bar.height / 2 };
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(from.x - 4 * day, from.y, { steps: 4 });
+      await page.mouse.move(from.x - 12 * day, from.y, { steps: 6 });
+      await h.settled();
+      const tip = page.locator(".gantt-tip.shown");
+      assert.match((await tip.textContent()) ?? "", /^8 Jun → 19 Jun · 10 working days/);
+      assert.match((await tip.textContent()) ?? "", /after tec0/);
+      await page.mouse.up();
+      await h.settled();
+      assert.match(h.text, /task tec1 "[^"]+" after tec0 for 10d\n/);
+    },
+  },
+  {
+    name: "gantt: the right end of a bar stretches it in working days, and says so while it goes",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      const day = await pixelsPerDay(h);
+      // Select the bar, then drag the grip at its right end from the end of Friday 5 June to the
+      // end of Tuesday 9 June.
+      await page.mouse.click(...(await middleOf2(h, "tec0")));
+      const grip = page.locator('.overlay [data-handle="taskEnd:"]');
+      const at = await middleOf(grip);
+      await page.mouse.move(at.x, at.y);
+      await page.mouse.down();
+      await page.mouse.move(at.x + 2 * day, at.y, { steps: 4 });
+      await page.mouse.move(at.x + 4 * day, at.y, { steps: 4 });
+      await h.settled();
+      assert.equal(
+        await page.locator(".gantt-tip.shown").textContent(),
+        "1 Jun → 9 Jun · 7 working days",
+      );
+      await page.mouse.up();
+      await h.settled();
+      assert.match(h.text, /task tec0 "[^"]+" from 2026-06-01 for 7d\n/);
+    },
+  },
+  {
+    name: "gantt: an end dragged before the start leaves the bar one day long and writes nothing",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      const day = await pixelsPerDay(h);
+      await page.mouse.click(...(await middleOf2(h, "tec2")));
+      const grip = page.locator('.overlay [data-handle="taskEnd:"]');
+      const at = await middleOf(grip);
+      await page.mouse.move(at.x, at.y);
+      await page.mouse.down();
+      await page.mouse.move(at.x - 3 * day, at.y, { steps: 4 });
+      await page.mouse.move(at.x - 9 * day, at.y, { steps: 4 });
+      await h.settled();
+      assert.match(
+        (await page.locator(".gantt-tip.shown").textContent()) ?? "",
+        /· 1 working day$/,
+      );
+      const before = h.text;
+      await page.mouse.up();
+      await h.settled();
+      assert.equal(h.text, before);
+    },
+  },
+  {
+    name: "gantt: Escape cancels a drag with nothing written",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      const day = await pixelsPerDay(h);
+      const bar = await barBox(h, "tec1");
+      const from = { x: bar.x + bar.width / 2, y: bar.y + bar.height / 2 };
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(from.x + 7 * day, from.y, { steps: 6 });
+      await page.keyboard.press("Escape");
+      await page.mouse.up();
+      await h.settled();
+      assert.equal(h.text, GANTT);
+      assert.equal(await page.locator(".gantt-tip.shown").count(), 0);
+    },
+  },
+  {
+    name: "gantt: a row dragged into another section goes between the rows it is dropped between",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      const flu0 = await barBox(h, "flu0");
+      const sdlc0 = await barBox(h, "sdlc0");
+      const sdlc1 = await barBox(h, "sdlc1");
+      const start = { x: flu0.x + flu0.width / 2, y: flu0.y + flu0.height / 2 };
+      const gap = (sdlc0.y + sdlc0.height + sdlc1.y) / 2;
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(start.x + 2, start.y + 30, { steps: 4 });
+      await page.mouse.move(start.x + 2, gap, { steps: 8 });
+      await h.settled();
+      // The insertion bar shows where the row goes; the dates are not drawn again for it.
+      assert.equal(await page.locator(".content .mdg-insertion.shown").count(), 1);
+      assert.equal(await page.locator(".gantt-tip.shown").textContent(), "Into i_d");
+      await page.screenshot({ path: join(output, "gantt-rows.png") });
+      await page.mouse.up();
+      await h.settled();
+      assert.match(
+        h.text,
+        /task sdlc0[^\n]*\n\s+task flu0 [^\n]*from 2026-06-15[^\n]*\n\s+task sdlc1 /,
+      );
+      assert.equal(
+        await page.locator('.content g[data-id="flu0"]').first().getAttribute("transform"),
+        null,
+      );
+    },
+  },
+  {
+    name: "gantt: Alt+Up at a section's top moves the row to the end of the section above",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(await middleOf2(h, "flu0")));
+      await page.keyboard.press("Alt+ArrowUp");
+      await h.settled();
+      assert.match(h.text, /task tec2 [^\n]*\n\s+task flu0 [^\n]*\n\s+\}/);
+      await page.keyboard.press("Alt+ArrowDown");
+      await h.settled();
+      assert.equal(h.text, GANTT);
+      // The first row of the chart has nowhere to go: the status line says so.
+      await page.mouse.click(...(await middleOf2(h, "tec0")));
+      await page.keyboard.press("Alt+ArrowUp");
+      await h.settled();
+      assert.match((await page.locator(".status").textContent()) ?? "", /first row already/);
+    },
+  },
+  {
+    name: "gantt: a row dropped over the axis writes nothing and goes back to its row",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      const flu1 = await barBox(h, "flu1");
+      const last = await barBox(h, "sdlc2");
+      const start = { x: flu1.x + flu1.width / 2, y: flu1.y + flu1.height / 2 };
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(start.x + 1, start.y + 30, { steps: 4 });
+      await page.mouse.move(start.x + 1, last.y + last.height + 34, { steps: 8 });
+      await h.settled();
+      assert.equal(await page.locator(".content .mdg-insertion.shown").count(), 0);
+      await page.mouse.up();
+      await h.settled();
+      assert.equal(h.text, GANTT);
+      assert.equal(
+        await page.locator('.content g[data-id="flu1"]').first().getAttribute("transform"),
+        null,
+      );
+    },
+  },
+  {
+    name: "gantt: a section's title in the column drags the whole section between sections",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      const title = page.locator('.content g[data-id="i_d"][data-role="element"] > text').first();
+      const at = await middleOf(title);
+      const tecnologia = await barBox(h, "tec0");
+      await page.mouse.move(at.x, at.y);
+      await page.mouse.down();
+      await page.mouse.move(at.x, at.y - 40, { steps: 4 });
+      await page.mouse.move(at.x, tecnologia.y - 6, { steps: 10 });
+      await h.settled();
+      assert.equal(await page.locator(".content .mdg-insertion.shown").count(), 1);
+      await page.mouse.up();
+      await h.settled();
+      assert.ok(h.text.indexOf("section i_d") < h.text.indexOf("section tecnologia"), h.text);
+    },
+  },
+  {
+    name: "gantt: a link dragged from a bar's handle onto another task makes it follow",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(await middleOf2(h, "tec2")));
+      const handle = await middleOf(page.locator('.overlay [data-handle="connect:east"]'));
+      const target = await middleOf2(h, "flu3");
+      await page.mouse.move(handle.x, handle.y);
+      await page.mouse.down();
+      await page.mouse.move(handle.x + 40, handle.y + 40, { steps: 4 });
+      await page.mouse.move(target[0], target[1], { steps: 10 });
+      await h.settled();
+      assert.equal(await page.locator(".overlay .wire").count(), 1);
+      assert.equal(await page.locator(".overlay .anchor").count(), 0);
+      await page.screenshot({ path: join(output, "gantt-connect.png") });
+      await page.mouse.up();
+      await h.settled();
+      assert.match(h.text, /task flu3 "[^"]+" after flu2, tec2 for 10d/);
+    },
+  },
+  {
+    name: "gantt: a link that would close a loop writes nothing, flashes the target and says why",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(await middleOf2(h, "tec2")));
+      const handle = await middleOf(page.locator('.overlay [data-handle="connect:east"]'));
+      const target = await middleOf2(h, "tec0");
+      await page.mouse.move(handle.x, handle.y);
+      await page.mouse.down();
+      await page.mouse.move(handle.x + 30, handle.y + 30, { steps: 4 });
+      await page.mouse.move(target[0], target[1], { steps: 10 });
+      await page.mouse.up();
+      await h.settled();
+      assert.equal(h.text, GANTT);
+      assert.equal(await page.locator(".flash-layer .flash").count(), 1);
+      assert.match(
+        (await page.locator(".status").textContent()) ?? "",
+        /`tec0` already leads to `tec2`/,
+      );
+      assert.equal(await page.locator(".status.error").count(), 1);
+      await page.screenshot({ path: join(output, "gantt-loop.png") });
+    },
+  },
+  {
+    name: "gantt: an arrow is selected and Delete removes the dependency, the successor keeping its dates",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      const point = await arrowPoint(h, "sdlc1->sdlc2#1");
+      await page.mouse.click(point.x, point.y);
+      await h.settled();
+      assert.match((await page.locator(".inspector h2").textContent()) ?? "", /sdlc1/i);
+      await page.keyboard.press("Delete");
+      await h.settled();
+      assert.match(h.text, /task sdlc2 "[^"]+" from 2026-08-10 for 15d/);
+      assert.equal(await page.locator('.content g[data-id="sdlc1->sdlc2#1"]').count(), 0);
+    },
+  },
+  {
+    name: "gantt: T adds a task after the selected one and opens its editor",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(await middleOf2(h, "tec1")));
+      await page.keyboard.press("t");
+      await h.settled();
+      assert.match(
+        h.text,
+        /task tec1 [^\n]*\n\s+task task1 "Task" after tec1 for 1d\n\s+task tec2 /,
+      );
+      const editor = page.locator("textarea.inline");
+      await editor.waitFor();
+      await editor.fill("Informe");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /task task1 "Informe" after tec1 for 1d/);
+    },
+  },
+  {
+    name: "gantt: M, V and G add a milestone, a marker and a section",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(await middleOf2(h, "tec2")));
+      await page.keyboard.press("m");
+      await h.settled();
+      assert.match(h.text, /milestone milestone1 "Milestone" after tec2/);
+      await page.keyboard.press("Escape");
+      await page.keyboard.press("Escape");
+      await page.mouse.click(...(await middleOf2(h, "tec1")));
+      await page.keyboard.press("v");
+      await h.settled();
+      assert.match(h.text, /marker marker1 "Marker" at 2026-06-\d\d/);
+      await page.keyboard.press("Escape");
+      await page.keyboard.press("Escape");
+      await page.mouse.click(...(await middleOf2(h, "flu1")));
+      await page.keyboard.press("g");
+      await h.settled();
+      assert.match(h.text, /section section1 "Section" \{/);
+    },
+  },
+  {
+    name: "gantt: a task is drawn with the Task tool: from the press, for the length dragged",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      const day = await pixelsPerDay(h);
+      const tec0 = await barBox(h, "tec0");
+      const sdlc1 = await barBox(h, "sdlc1");
+      await page.locator('.toolbar [data-tool="task"]').click();
+      const y = sdlc1.y + sdlc1.height / 2;
+      // 3 August is 63 days after 1 June; the bar runs to the end of the 7th.
+      const left = tec0.x + 63 * day + 1;
+      await page.mouse.move(left, y);
+      await page.mouse.down();
+      await page.mouse.move(left + 2 * day, y, { steps: 4 });
+      await page.mouse.move(left + 5 * day, y, { steps: 4 });
+      await h.settled();
+      assert.equal(await page.locator(".overlay .bar-ghost").count(), 1);
+      assert.match((await page.locator(".gantt-tip.shown").textContent()) ?? "", /^3 Aug → 7 Aug/);
+      await page.mouse.up();
+      await h.settled();
+      assert.match(h.text, /task task1 "Task" from 2026-08-03 for 5d\n\s+task sdlc1 /);
+      await page.locator("textarea.inline").waitFor();
+    },
+  },
+  {
+    name: "gantt: Right moves the start a day and Shift a week, ] and [ change the length",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(await middleOf2(h, "tec0")));
+      await page.keyboard.press("ArrowRight");
+      await h.settled();
+      assert.match(h.text, /task tec0 "[^"]+" from 2026-06-02 for 5d/);
+      // The tasks after it moved with it.
+      const tec1 = await barBox(h, "tec1");
+      const tec0 = await barBox(h, "tec0");
+      assert.ok(tec1.x > tec0.x + tec0.width - 2);
+      await page.keyboard.press("Shift+ArrowRight");
+      await h.settled();
+      assert.match(h.text, /from 2026-06-09 for 5d/);
+      await page.keyboard.press("ArrowLeft");
+      await h.settled();
+      assert.match(h.text, /from 2026-06-08 for 5d/);
+      await page.keyboard.press("]");
+      await h.settled();
+      assert.match(h.text, /from 2026-06-08 for 6d/);
+      await page.keyboard.press("[");
+      await h.settled();
+      assert.match(h.text, /from 2026-06-08 for 5d/);
+      await page.keyboard.press("Shift+BracketRight");
+      await h.settled();
+      assert.match(h.text, /from 2026-06-08 for 10d/);
+    },
+  },
+  {
+    name: "gantt: a read-only chart selects and shows dates, and writes nothing",
+    text: GANTT,
+    readOnly: true,
+    async run(h) {
+      const page = h.page;
+      const day = await pixelsPerDay(h);
+      const bar = await barBox(h, "tec1");
+      const at = { x: bar.x + bar.width / 2, y: bar.y + bar.height / 2 };
+      await page.mouse.move(at.x, at.y);
+      await page.locator(".gantt-tip.shown").waitFor();
+      assert.equal(
+        await page.locator(".gantt-tip.shown").textContent(),
+        "8 Jun → 19 Jun · 10 working days",
+      );
+      await page.mouse.click(at.x, at.y);
+      await h.settled();
+      assert.match((await page.locator(".inspector h2").textContent()) ?? "", /tec1/i);
+      assert.equal(await page.locator(".overlay [data-handle]").count(), 0);
+      // The properties are there to read: every control is disabled and nothing adds or removes.
+      assert.equal(await page.locator("#mdg-field-from").isDisabled(), true);
+      assert.equal(await page.locator("#mdg-field-duration").isDisabled(), true);
+      assert.equal(await page.locator('[data-key="mdg-field-duration:unit"]').isDisabled(), true);
+      assert.equal(await page.locator("#mdg-field-end").isDisabled(), true);
+      assert.equal(await page.locator('[data-field="from"] .date-pick').count(), 0);
+      assert.equal(await page.locator('[data-field="after"] .chip-remove').count(), 0);
+      assert.equal(await page.locator('[data-key="mdg-field-after:add"]').count(), 0);
+      assert.equal(await page.locator("#mdg-field-ends").inputValue(), "19 June 2026");
+      await page.mouse.move(at.x, at.y);
+      await page.mouse.down();
+      await page.mouse.move(at.x + 7 * day, at.y, { steps: 6 });
+      await page.mouse.up();
+      await page.keyboard.press("ArrowRight");
+      await page.keyboard.press("t");
+      await page.keyboard.press("Delete");
+      await h.settled();
+      assert.deepEqual(h.writes(), []);
+      assert.equal(h.text, GANTT);
+    },
+  },
+  {
+    name: "gantt: a band selects the bars it touches, and Tab goes on through the rows",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      const tec1 = await barBox(h, "tec1");
+      const tec2 = await barBox(h, "tec2");
+      const flu0 = await barBox(h, "flu0");
+      const start = { x: tec1.x - 30, y: tec1.y + 3 };
+      await page.mouse.move(start.x, start.y);
+      await page.mouse.down();
+      await page.mouse.move(tec2.x + tec2.width + 10, flu0.y + flu0.height - 3, { steps: 8 });
+      await page.mouse.up();
+      await h.settled();
+      assert.match((await page.locator(".status").textContent()) ?? "", /3 selected/);
+      await page.keyboard.press("Tab");
+      await h.settled();
+      assert.match((await page.locator(".inspector h2").textContent()) ?? "", /flu1/i);
+    },
+  },
+  {
+    name: "gantt: a task's Details start with its schedule, and say where the schedule puts the bar",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(await middleOf2(h, "tec1")));
+      await h.settled();
+      const panel = page.locator(".inspector");
+      assert.match((await panel.locator("h2").textContent()) ?? "", /tec1/);
+      // The schedule is in Details, with a heading of its own above the dates.
+      await propertyTab(h, "details");
+      assert.equal(await panel.locator("h3.group-title").first().textContent(), "Schedule");
+      // Start date: nothing is written, so the date the bar starts at shows, greyed.
+      const start = page.locator("#mdg-field-from");
+      assert.equal(await start.inputValue(), "");
+      assert.equal(await start.getAttribute("placeholder"), "2026-06-08");
+      assert.equal(await page.locator('[data-field="from"] .date-pick').count(), 1);
+      // After: the task it follows as a chip, titled with its label.
+      assert.deepEqual(
+        await page.locator('[data-field="after"] .task-chip .task-id').allTextContents(),
+        ["tec0"],
+      );
+      assert.equal(
+        await page.locator('[data-field="after"] .task-chip').getAttribute("title"),
+        "Evaluar plataformas de agentes",
+      );
+      // End: for, as a number and its unit.
+      assert.equal(await page.locator("#mdg-field-end").inputValue(), "for");
+      assert.equal(await page.locator("#mdg-field-duration").inputValue(), "10");
+      assert.equal(await page.locator('[data-key="mdg-field-duration:unit"]').inputValue(), "d");
+      // Where the schedule puts it, read-only.
+      assert.equal(await page.locator("#mdg-field-starts").inputValue(), "8 June 2026");
+      assert.equal(await page.locator("#mdg-field-ends").inputValue(), "19 June 2026");
+      assert.equal(await page.locator("#mdg-field-working").inputValue(), "10 working days");
+      assert.equal(await page.locator("#mdg-field-ends").isDisabled(), true);
+      // The style strip is in Style, with what the chart draws a bar with greyed.
+      await propertyTab(h, "style");
+      assert.match(
+        (await page.locator('[data-field="style.fill"] .value').textContent()) ?? "",
+        /accent/,
+      );
+      assert.equal(await page.locator("#mdg-field-style-radius").count(), 1);
+      assert.equal(await page.locator("#mdg-field-style-rotation").count(), 0);
+      // The panel fades in as it is drawn: look at it once it has, then at its schedule.
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: join(output, "gantt-inspector.png") });
+      await propertyTab(h, "details");
+      await panel
+        .locator("h3.group-title")
+        .first()
+        .evaluate((heading) => {
+          heading.scrollIntoView({ block: "start" });
+        });
+      await page.waitForTimeout(100);
+      await page.screenshot({ path: join(output, "gantt-inspector-schedule.png") });
+    },
+  },
+  {
+    name: "gantt: Two weeks: a duration of 2 and the unit w write for 2w, and the end line says 19 June 2026",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(await middleOf2(h, "tec1")));
+      await h.settled();
+      await propertyTab(h, "details");
+      const amount = page.locator("#mdg-field-duration");
+      await amount.fill("2");
+      await amount.press("Enter");
+      await h.settled();
+      assert.match(h.text, /task tec1 "[^"]+" after tec0 for 2d\n/);
+      await page.locator('[data-key="mdg-field-duration:unit"]').selectOption("w");
+      await h.settled();
+      assert.match(h.text, /task tec1 "[^"]+" after tec0 for 2w\n/);
+      assert.equal(await page.locator("#mdg-field-ends").inputValue(), "19 June 2026");
+      assert.equal(await page.locator("#mdg-field-duration").inputValue(), "2");
+      assert.equal(await page.locator('[data-key="mdg-field-duration:unit"]').inputValue(), "w");
+      // An emptied number takes the written duration away: the default of one day shows.
+      await page.locator("#mdg-field-duration").fill("");
+      await page.locator("#mdg-field-duration").press("Enter");
+      await h.settled();
+      assert.match(h.text, /task tec1 "[^"]+" after tec0\n/);
+      assert.equal(await page.locator("#mdg-field-duration").getAttribute("placeholder"), "1");
+    },
+  },
+  {
+    name: "gantt: Excluding Fridays: the toggle writes the day beside the weekend word, and the bars are drawn again",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      await propertyTab(h, "details");
+      const friday = '[data-key="mdg-field-exclude:friday"]';
+      assert.match((await page.locator(".inspector h2").textContent()) ?? "", /hoja_de_ruta_genai/);
+      assert.equal(await page.locator(friday).getAttribute("aria-pressed"), "false");
+      for (const day of ["saturday", "sunday", "weekends"]) {
+        assert.equal(
+          await page.locator(`[data-key="mdg-field-exclude:${day}"]`).getAttribute("aria-pressed"),
+          "true",
+          day,
+        );
+      }
+      const before = await barBox(h, "sdlc2");
+      await page.locator(friday).click();
+      await h.settled();
+      assert.match(h.text, /\n {2}exclude weekends, friday\n/);
+      assert.equal(await page.locator(friday).getAttribute("aria-pressed"), "true");
+      // Every bar is drawn again: the last one moved, and the first ends a working day later.
+      const after = await barBox(h, "sdlc2");
+      assert.ok(
+        Math.abs(after.x - before.x) > 1 || Math.abs(after.width - before.width) > 1,
+        "sdlc2 was not drawn again",
+      );
+      await page.mouse.click(...(await middleOf2(h, "tec0")));
+      await h.settled();
+      // Monday to Thursday, then Monday: five working days.
+      assert.equal(await page.locator("#mdg-field-ends").inputValue(), "8 June 2026");
+    },
+  },
+  {
+    name: "gantt: Excluding Fridays from a weekend written day by day writes the days in order",
+    text: GANTT.replace("exclude weekends", "exclude saturday, sunday"),
+    async run(h) {
+      const page = h.page;
+      await propertyTab(h, "details");
+      await page.locator('[data-key="mdg-field-exclude:friday"]').click();
+      await h.settled();
+      assert.match(h.text, /\n {2}exclude friday, saturday, sunday\n/);
+      // Weekends, one choice for both days: pressed while both are in, and taking both out.
+      const weekends = '[data-key="mdg-field-exclude:weekends"]';
+      assert.equal(await page.locator(weekends).getAttribute("aria-pressed"), "true");
+      await page.locator(weekends).click();
+      await h.settled();
+      assert.match(h.text, /\n {2}exclude friday\n/);
+      assert.equal(await page.locator(weekends).getAttribute("aria-pressed"), "false");
+      await page.locator(weekends).click();
+      await h.settled();
+      assert.match(h.text, /\n {2}exclude weekends, friday\n/);
+    },
+  },
+  {
+    name: "gantt: A date that does not exist is refused under its field with the reason, and nothing is written",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(await middleOf2(h, "tec1")));
+      await h.settled();
+      await propertyTab(h, "details");
+      // End to a date: the last day it covers, in a field that takes the date as text.
+      await page.locator("#mdg-field-end").selectOption("to");
+      await h.settled();
+      assert.match(h.text, /task tec1 "[^"]+" after tec0 to 2026-06-19\n/);
+      const written = h.text;
+      const date = page.locator("#mdg-field-endDate");
+      assert.equal(await date.inputValue(), "2026-06-19");
+      await date.fill("2026-02-30");
+      await date.press("Enter");
+      await h.settled();
+      const refusal = page.locator('[data-field="endDate"] .refusal');
+      assert.equal(await refusal.count(), 1);
+      assert.match((await refusal.textContent()) ?? "", /February 2026 has 28 days/);
+      assert.equal(await date.getAttribute("aria-invalid"), "true");
+      assert.equal(await date.inputValue(), "2026-02-30");
+      assert.equal(h.text, written);
+      assert.match(
+        (await page.locator(".status").textContent()) ?? "",
+        /February 2026 has 28 days/,
+      );
+      await page.screenshot({ path: join(output, "gantt-inspector-refused.png") });
+      // Typing again takes the reason away, and a date that exists is written.
+      await date.fill("2026-06-26");
+      assert.equal(await refusal.count(), 0);
+      await date.press("Enter");
+      await h.settled();
+      assert.match(h.text, /task tec1 "[^"]+" after tec0 to 2026-06-26\n/);
+      assert.equal(await page.locator("#mdg-field-ends").inputValue(), "26 June 2026");
+    },
+  },
+  {
+    name: "gantt: After shows the tasks a task follows as chips: one is added from the list, one removed",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(await middleOf2(h, "tec1")));
+      await h.settled();
+      await propertyTab(h, "details");
+      const add = page.locator('[data-key="mdg-field-after:add"]');
+      // Not the task itself, and not tec2, which comes after it.
+      assert.deepEqual(
+        await add
+          .locator("option")
+          .evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value)),
+        ["", "flu0", "flu1", "flu2", "flu3", "sdlc0", "sdlc1", "sdlc2"],
+      );
+      await add.selectOption("flu0");
+      await h.settled();
+      assert.match(h.text, /task tec1 "[^"]+" after tec0, flu0 for 10d\n/);
+      assert.deepEqual(
+        await page.locator('[data-field="after"] .task-chip .task-id').allTextContents(),
+        ["tec0", "flu0"],
+      );
+      await page.locator('[data-key="mdg-field-after:remove:tec0"]').click();
+      await h.settled();
+      assert.match(h.text, /task tec1 "[^"]+" after flu0 for 10d\n/);
+      // The last one removed leaves the bar where it is, on a date of its own.
+      await page.locator('[data-key="mdg-field-after:remove:flu0"]').click();
+      await h.settled();
+      assert.match(h.text, /task tec1 "[^"]+" from 2026-06-18 for 10d\n/);
+      assert.equal(await page.locator('[data-field="after"] .task-none').count(), 1);
+    },
+  },
+  {
+    name: "gantt: End, Status and Critical write the end, the status word and critical",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(await middleOf2(h, "tec1")));
+      await h.settled();
+      await propertyTab(h, "details");
+      const end = page.locator("#mdg-field-end");
+      await end.selectOption("until");
+      await h.settled();
+      // Until the task that comes next: its start ends the bar.
+      assert.match(h.text, /task tec1 "[^"]+" after tec0 until flu0\n/);
+      assert.deepEqual(
+        await page.locator('[data-field="until"] .task-chip .task-id').allTextContents(),
+        ["flu0"],
+      );
+      assert.equal(await page.locator("#mdg-field-duration").count(), 0);
+      await end.selectOption("for");
+      await h.settled();
+      assert.match(h.text, /task tec1 "[^"]+" after tec0 for 5d\n/);
+      await page.locator("#mdg-field-status").selectOption("done");
+      await h.settled();
+      assert.match(h.text, /task tec1 "[^"]+" after tec0 for 5d done\n/);
+      await page.locator("#mdg-field-critical").check();
+      await h.settled();
+      assert.match(h.text, /task tec1 "[^"]+" after tec0 for 5d done critical\n/);
+      // Done is grey, and says so in the colour that applies.
+      assert.match(
+        (await page.locator('[data-field="style.fill"] .value').textContent()) ?? "",
+        /muted/,
+      );
+      await page.locator("#mdg-field-status").selectOption("");
+      await h.settled();
+      assert.match(h.text, /task tec1 "[^"]+" after tec0 for 5d critical\n/);
+      // The last task has none after it to end before: the refusal says so under the field.
+      await page.mouse.click(...(await middleOf2(h, "sdlc2")));
+      await h.settled();
+      await page.locator("#mdg-field-end").selectOption("until");
+      await h.settled();
+      assert.match(
+        (await page.locator('[data-field="end"] .refusal').textContent()) ?? "",
+        /sdlc2 has no task to end before/,
+      );
+    },
+  },
+  {
+    name: "gantt: the date button opens the platform's picker, and a date picked is written as typed",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(await middleOf2(h, "tec1")));
+      await h.settled();
+      await propertyTab(h, "details");
+      const pick = page.locator('[data-key="mdg-field-from:pick"]');
+      assert.equal(await pick.getAttribute("aria-label"), "Start date: choose a date");
+      // The picker opens on the date the bar starts at.
+      await pick.click();
+      assert.equal(
+        await page.locator('[data-field="from"] input.date-native').inputValue(),
+        "2026-06-08",
+      );
+      await page.keyboard.press("Escape");
+      // What the picker answers is written like a typed date.
+      await page
+        .locator('[data-field="from"] input.date-native')
+        .evaluate((native: HTMLInputElement) => {
+          native.value = "2026-06-22";
+          native.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+      await h.settled();
+      assert.match(h.text, /task tec1 "[^"]+" after tec0 from 2026-06-22 for 10d\n/);
+      assert.equal(await page.locator("#mdg-field-from").inputValue(), "2026-06-22");
+    },
+  },
+  {
+    name: "gantt: the chart's own properties: the look of the axis, Today and the dates of its calendar",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      await propertyTab(h, "details");
+      assert.equal(await page.locator("#mdg-field-axisFormat").inputValue(), "%d %b");
+      assert.equal(await page.locator("#mdg-field-today").inputValue(), "today");
+      // One click writes a format of the axis.
+      await page.locator('[data-key="mdg-field-axisFormat:quick:%b %Y"]').click();
+      await h.settled();
+      assert.match(h.text, /\n {2}axisFormat "%b %Y"\n/);
+      // A tick interval the chart would not read is refused under its field.
+      const ticks = page.locator("#mdg-field-ticks");
+      await ticks.fill("7");
+      await ticks.press("Enter");
+      await h.settled();
+      assert.match(
+        (await page.locator('[data-field="ticks"] .refusal').textContent()) ?? "",
+        /7 is not a value of ticks/,
+      );
+      await ticks.fill("1w");
+      await ticks.press("Enter");
+      await h.settled();
+      assert.match(h.text, /\n {2}ticks 1w\n/);
+      await page.locator("#mdg-field-weekStart").selectOption("sunday");
+      await h.settled();
+      assert.match(h.text, /\n {2}weekStart sunday\n/);
+      await page.locator("#mdg-field-axis").selectOption("both");
+      await h.settled();
+      assert.match(h.text, /\n {2}axis both\n/);
+      // A day width, and Auto, which takes it away.
+      const width = page.locator("#mdg-field-dayWidth");
+      await width.fill("30");
+      await width.press("Enter");
+      await h.settled();
+      assert.match(h.text, /\n {2}dayWidth 30\n/);
+      await page.locator('[data-key="mdg-field-dayWidth:quick:clear"]').click();
+      await h.settled();
+      assert.doesNotMatch(h.text, /dayWidth/);
+      // Today: off, the word, a date.
+      await page.locator('[data-key="mdg-field-today:quick:clear"]').click();
+      await h.settled();
+      assert.doesNotMatch(h.text, /\n {2}today/);
+      await page.locator('[data-key="mdg-field-today:quick:today"]').click();
+      await h.settled();
+      assert.match(h.text, /\n {2}today\n/);
+      const today = page.locator("#mdg-field-today");
+      await today.fill("2026-10-01");
+      await today.press("Enter");
+      await h.settled();
+      assert.match(h.text, /\n {2}today 2026-10-01\n/);
+      // The dates of the calendar: excluded ones beside the days, and the ones worked despite them.
+      const dates = page.locator('[data-key="mdg-field-exclude:dates"]');
+      await dates.fill("2026-06-29");
+      await dates.press("Enter");
+      await h.settled();
+      assert.match(h.text, /\n {2}exclude weekends, 2026-06-29\n/);
+      const included = page.locator("#mdg-field-include");
+      await included.fill("2026-06-06");
+      await included.press("Enter");
+      await h.settled();
+      assert.match(h.text, /\n {2}include 2026-06-06\n/);
+      await page.screenshot({ path: join(output, "gantt-inspector-chart.png") });
+    },
+  },
+  {
+    name: "gantt: an arrow's properties say where it runs and where it is changed",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      const point = await arrowPoint(h, "tec0->tec1#1");
+      await page.mouse.click(point.x, point.y);
+      await h.settled();
+      const panel = page.locator(".inspector");
+      assert.match((await panel.locator("h2").textContent()) ?? "", /relation tec0 → tec1/);
+      assert.equal(await page.locator("#mdg-field-from").inputValue(), "tec0");
+      assert.equal(await page.locator("#mdg-field-to").inputValue(), "tec1");
+      assert.equal(await page.locator("#mdg-field-from").isDisabled(), true);
+      assert.match(
+        (await panel.locator(".note").textContent()) ?? "",
+        /After of the task it points to/,
+      );
+      assert.equal(await panel.locator(".strip").count(), 0);
+    },
+  },
+  {
+    name: "gantt: the properties of a milestone, a marker and a section show what applies to each",
+    text: [
+      'language "0.2"',
+      "",
+      "diagram plan: gantt {",
+      '  section build "Build" {',
+      '    task a "A" from 2026-06-01 for 3d',
+      '    milestone m "Beta" after a',
+      "  }",
+      '  marker release "Release" at 2026-06-10',
+      "}",
+      "",
+    ].join("\n"),
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(await middleOf2(h, "m")));
+      await h.settled();
+      await propertyTab(h, "details");
+      assert.match((await page.locator(".inspector h2").textContent()) ?? "", /milestone m/);
+      assert.equal(await page.locator('[data-field="at"] label').textContent(), "Date");
+      assert.equal(await page.locator("#mdg-field-at").getAttribute("placeholder"), "2026-06-04");
+      assert.equal(await page.locator("#mdg-field-status").count(), 1);
+      assert.equal(await page.locator("#mdg-field-end").count(), 0);
+      assert.equal(await page.locator("#mdg-field-starts").count(), 0);
+      await page.locator("#mdg-field-at").fill("2026-06-12");
+      await page.locator("#mdg-field-at").press("Enter");
+      await h.settled();
+      assert.match(h.text, /milestone m "Beta" after a at 2026-06-12\n/);
+      // A marker: its date and what it follows, and no status.
+      await page.keyboard.press("Escape");
+      await page.locator('.content g[data-id="release"] text').click();
+      await h.settled();
+      assert.match((await page.locator(".inspector h2").textContent()) ?? "", /marker release/);
+      assert.equal(await page.locator("#mdg-field-at").inputValue(), "2026-06-10");
+      assert.equal(await page.locator("#mdg-field-status").count(), 0);
+      // A section: its title and the usual fields, no schedule.
+      await page.keyboard.press("Escape");
+      await page
+        .locator('.content g[data-id="build"][data-role="element"]')
+        .click({ position: { x: 8, y: 6 } });
+      await h.settled();
+      assert.match((await page.locator(".inspector h2").textContent()) ?? "", /section build/);
+      assert.equal(await page.locator("#mdg-field-label").inputValue(), "Build");
+      assert.equal(await page.locator("h3.group-title").count(), 0);
+    },
+  },
+  {
+    name: "gantt: Spanish names the schedule, the calendar and the refusals in Spanish",
+    text: GANTT,
+    lang: "es",
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(await middleOf2(h, "tec1")));
+      await h.settled();
+      await propertyTab(h, "details");
+      assert.equal(await page.locator("h3.group-title").first().textContent(), "Planificación");
+      assert.equal(
+        await page.locator('label[for="mdg-field-from"]').textContent(),
+        "Fecha de inicio",
+      );
+      assert.equal(
+        await page.locator('[data-field="after"] .field-label').textContent(),
+        "Después de",
+      );
+      assert.equal(await page.locator("#mdg-field-starts").inputValue(), "8 de junio de 2026");
+      assert.equal(await page.locator("#mdg-field-working").inputValue(), "10 días hábiles");
+      const options = await page.locator("#mdg-field-end option").allTextContents();
+      assert.deepEqual(options, [
+        "predeterminado (un día)",
+        "durante un tiempo",
+        "hasta una fecha",
+        "hasta que empiecen otras tareas",
+      ]);
+      assert.equal(
+        await page.locator('[data-key="mdg-field-duration:unit"] option:checked').textContent(),
+        "días",
+      );
+      // The reason a date is refused is the model's, in Spanish.
+      await page.locator("#mdg-field-from").fill("2026-02-30");
+      await page.locator("#mdg-field-from").press("Enter");
+      await h.settled();
+      assert.match(
+        (await page.locator('[data-field="from"] .refusal').textContent()) ?? "",
+        /Febrero de 2026 tiene 28 días/,
+      );
+      // The chart: the toggles of the days, by their initials and named in full.
+      await h.focusStage();
+      await page.keyboard.press("Escape");
+      await h.settled();
+      assert.match((await page.locator(".inspector h2").textContent()) ?? "", /hoja_de_ruta_genai/);
+      assert.equal(await page.locator('[data-key="mdg-field-exclude:friday"]').textContent(), "Vi");
+      assert.equal(
+        await page.locator('[data-key="mdg-field-exclude:friday"]').getAttribute("aria-label"),
+        "Viernes",
+      );
+      assert.equal(
+        await page.locator('[data-key="mdg-field-exclude:weekends"]').textContent(),
+        "Fines de semana",
+      );
+      assert.equal(
+        await page.locator("#mdg-field-axis option").nth(3).textContent(),
+        "arriba y abajo",
+      );
+    },
+  },
+  {
+    name: "gantt: a double click on a bar or a section's title edits its label in place, and Shift+F2 renames the id through every after",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      const editor = page.locator("textarea.inline");
+      // The label of a bar is typed over where it is drawn.
+      await page.mouse.dblclick(...(await middleOf2(h, "tec0")));
+      await editor.waitFor();
+      assert.equal(await editor.inputValue(), "Evaluar plataformas de agentes");
+      await page.keyboard.press("Control+a");
+      await page.keyboard.type("Evaluar");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /task tec0 "Evaluar" from 2026-06-01 for 5d/);
+      // F2 does the same on a selected bar, and Escape leaves the label as it was.
+      await page.mouse.click(...(await middleOf2(h, "tec1")));
+      await page.keyboard.press("F2");
+      await editor.waitFor();
+      await page.keyboard.press("Escape");
+      assert.equal(await page.locator(".inline").count(), 0);
+      // A section's title is edited in its column.
+      const title = page
+        .locator('.content g[data-id="tecnologia"][data-role="element"] > text')
+        .first();
+      const at = await middleOf(title);
+      await page.mouse.dblclick(at.x, at.y);
+      await editor.waitFor();
+      assert.equal(await editor.inputValue(), "Tecnología");
+      await page.keyboard.press("Escape");
+      // Shift+F2 renames the id, and every `after` that names it follows.
+      await page.mouse.click(...(await middleOf2(h, "tec0")));
+      await page.keyboard.press("Shift+F2");
+      assert.equal(await editor.inputValue(), "tec0");
+      await page.keyboard.type("evaluar");
+      await page.keyboard.press("Enter");
+      await h.settled();
+      assert.match(h.text, /task evaluar "Evaluar" from 2026-06-01 for 5d/);
+      assert.match(h.text, /task tec1 "[^"]+" after evaluar for 10d/);
+    },
+  },
+  {
+    name: "gantt: C from a selected task picks the task that follows it, and the relation tool links two bars",
+    text: GANTT,
+    async run(h) {
+      const page = h.page;
+      await page.mouse.click(...(await middleOf2(h, "tec2")));
+      await h.settled();
+      await page.keyboard.press("c");
+      const picker = page.locator(".picker input");
+      assert.equal(await picker.isVisible(), true);
+      await picker.fill("flu3");
+      await picker.press("Enter");
+      await h.settled();
+      assert.match(h.text, /task flu3 "[^"]+" after flu2, tec2 for 10d/);
+      // The relation tool: a click on a bar, then a click on another, links them the same way.
+      await page.locator('.toolbar button[data-tool="relation"]').click();
+      await page.mouse.click(...(await middleOf2(h, "tec0")));
+      await page.mouse.click(...(await middleOf2(h, "sdlc1")));
+      await h.settled();
+      assert.match(h.text, /task sdlc1 "[^"]+" from 2026-08-03 after tec0 for 5d/);
     },
   },
 ];

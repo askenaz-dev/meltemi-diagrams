@@ -234,6 +234,7 @@ iniciada, el proyecto se crea en tu cuenta y se abre; **En este navegador** lo c
 | Diagrama de flujo (`flow`)         | Un diagrama de flujo para empezar                                                                                                                    |
 | Modelo C4 (`c4`)                   | Un modelo de arquitectura con una vista de contexto y una vista de contenedores                                                                      |
 | Diagrama de secuencia (`sequence`) | Un diagrama de secuencia con un escenario para cada resultado                                                                                        |
+| Hoja de ruta (`roadmap`)           | Una hoja de ruta de tres secciones de tareas con sus dependencias, un hito y una historia que la cuenta                                              |
 | Diapositiva (`free`)               | Una diapositiva compuesta libremente: texto, cajas, un icono y un grupo                                                                              |
 | Tablero kanban (`kanban`)          | Un tablero de columnas y notas adhesivas                                                                                                             |
 | Pizarra (`whiteboard`)             | Un tablero de estilo boceto con trazos, notas adhesivas y una historia que los dibuja                                                                |

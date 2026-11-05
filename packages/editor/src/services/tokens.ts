@@ -50,8 +50,9 @@ export function semanticTokens(analysis: DocumentAnalysis): SemanticToken[] {
       const declaration = reference.role === "declaration" || reference.role === "relation-id";
       let type: SemanticTokenType = "function";
       if (reference.targetKind === "element") {
-        type =
-          diagram.elementsById.get(reference.target)?.kind === "group" ? "namespace" : "variable";
+        // Groups and the sections of a gantt chart hold other elements, as namespaces do.
+        const kind = diagram.elementsById.get(reference.target)?.kind;
+        type = kind === "group" || kind === "section" ? "namespace" : "variable";
       }
       add(reference.token.start, reference.token.end, type, declaration);
     }

@@ -46,6 +46,7 @@ import {
   verifyNoNewErrors,
 } from "./insert.js";
 import { blockOfParent, ownLines, removedLinks } from "./free.js";
+import { moveBar } from "./gantt.js";
 import { messages, reasons } from "./messages/index.js";
 import {
   insertPlacements,
@@ -375,6 +376,7 @@ export function containerDeclaration(ctx: EditContext, element: Element): TextEd
  */
 export function moveElement(ctx: EditContext, op: OperationOf<"moveElement">): TextEdit[] {
   const type = ctx.diagram.type;
+  if (type === "gantt") return moveBar(ctx, op);
   if (type === "sequence" || type === "c4") {
     reject("edit.unsafe-target", reasons().groups.notMovable(type));
   }
@@ -429,7 +431,7 @@ export function moveElement(ctx: EditContext, op: OperationOf<"moveElement">): T
 }
 
 /** What a move takes out of the source block. */
-interface Cut {
+export interface Cut {
   /** Edits that remove the declaration with its comments. */
   readonly edits: TextEdit[];
   /** The text that moves, from its first character: comment lines, declaration, trailing comment. */
@@ -493,7 +495,7 @@ function moveDeclaration(
  * Takes a declaration out of its block. A declaration on lines of its own goes with the comment
  * lines right above it and its trailing comment; one that shares its line goes alone.
  */
-function cutDeclaration(ctx: EditContext, block: Block, node: Statement): Cut {
+export function cutDeclaration(ctx: EditContext, block: Block, node: Statement): Cut {
   const text = ctx.text;
   const statement = text.slice(node.start, node.end);
   const indent = lineIndent(text, node.start);

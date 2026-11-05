@@ -1238,6 +1238,12 @@ describe("creating diagrams", () => {
     );
   });
 
+  it("writes a gantt chart that compiles without diagnostics", () => {
+    const after = apply({ kind: "createDiagram", type: "gantt", title: "Roadmap" }, "");
+    expect(after).toBe('language "0.2"\n\ndiagram diagram1: gantt {\n  title "Roadmap"\n}\n');
+    expect(compile(after).diagnostics).toEqual([]);
+  });
+
   it("appends the next free id after the last block, with its title", () => {
     const text = 'language "0.2"\n\ndiagram diagram1: flow { }\n';
     expect(apply({ kind: "createDiagram", type: "free", title: "Slide" }, text)).toBe(

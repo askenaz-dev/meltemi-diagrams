@@ -1,6 +1,6 @@
 {
-  "browser": "Edg/156.0.4314.50",
-  "recorded": "2026-10-30",
+  "browser": "Edg/156.0.4314.58",
+  "recorded": "2026-11-05",
   "tolerance": {
     "channel": 16,
     "ratio": 0.001,
@@ -42,6 +42,11 @@
     "free/stacked",
     "free/thirty",
     "free/typography",
-    "free/whiteboard"
+    "free/whiteboard",
+    "gantt/chains",
+    "gantt/long-labels",
+    "gantt/parallel",
+    "gantt/sections",
+    "gantt/thirty"
   ]
 }

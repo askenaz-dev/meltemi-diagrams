@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   layoutDiagram,
@@ -25,6 +27,7 @@ import {
   trackLength,
   type MotionPlan,
 } from "@meltemi/diagrams-motion";
+import { CORPUS_ROOT } from "../../../test-support/corpus.js";
 
 function draw(body: string, layout = "manual") {
   const text = `language "0.2"\ndiagram d: flow {\n  layout ${layout}\n${body}\n}\n`;
@@ -841,3 +844,167 @@ describe("times", () => {
     expect(parseTime("soon")).toBeNull();
   });
 });
+
+describe("effects on gantt charts", () => {
+  const ROADMAP = readFileSync(join(CORPUS_ROOT, "valid", "gantt", "roadmap.meltemi"), "utf8");
+  /** The owner's chart with statements added before its closing brace, laid out and planned. */
+  function chart(extra: string) {
+    const text = ROADMAP.replace(/\}\s*$/, `${extra}\n}\n`);
+    const compilation = compile(text);
+    expect(compilation.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const diagram = compilation.document.diagrams[0]!;
+    const result = layoutDiagram(compilation, diagram, { today: "2026-10-29" });
+    const scene = result.scene!;
+    return { diagram, scene, plan: planMotion(diagram, scene, motionOptions(result.theme)) };
+  }
+  const group = (scene: Scene, id: string, role = "element") =>
+    sceneGroups(scene.items).find((g) => g.role === role && g.id === id)!;
+
+  it("runs a flow into a task along the arrow that comes into it", () => {
+    const { scene, plan } = chart("animate flu3 { effect flow; duration 2s }");
+    expect(plan.effects).toHaveLength(1);
+    const [flow] = plan.effects;
+    expect(flow).toMatchObject({
+      index: 0,
+      target: "flu2->flu3#1",
+      role: "relation",
+      effect: "flow",
+      durationMs: 2000,
+      repeat: "forever",
+      particles: 1,
+      bounds: null,
+    });
+    // The track is the arrow's drawn line: from the end of flu2 to the start of flu3.
+    const arrow = group(scene, "flu2->flu3#1", "relation");
+    expect(flow!.track).toEqual(arrow.track);
+    const from = group(scene, "flu2").bounds!;
+    const to = group(scene, "flu3").bounds!;
+    expect(flow!.track![0]!.x).toBeGreaterThanOrEqual(from.x + from.width - 1);
+    expect(flow!.track![flow!.track!.length - 1]!.x).toBeLessThanOrEqual(to.x + 1);
+    // Half way a particle is on the arrow, in the arrow's group.
+    const at = group(sceneAt(scene, plan, 1000), "flu2->flu3#1", "relation");
+    const particles = at.items.filter((i) => i.kind === "path" && / a[\d.]+ /.test(i.d));
+    expect(particles).toHaveLength(1);
+    const middle = pointAlong(flow!.track!, 0.5);
+    expect(circleCentre(particles[0]!).x).toBeCloseTo(middle.x, 1);
+    expect(circleCentre(particles[0]!).y).toBeCloseTo(middle.y, 1);
+  });
+
+  it("runs an effect along each arrow into a task that follows several tasks", () => {
+    const { plan, scene } = chart(
+      'task join "Join" after tec0, flu0, sdlc1 for 2d\nanimate join { effect trace; repeat 1; delay 100ms }',
+    );
+    expect(plan.effects.map((e) => [e.index, e.target, e.role, e.effect])).toEqual([
+      [0, "tec0->join#1", "relation", "trace"],
+      [1, "flu0->join#1", "relation", "trace"],
+      [2, "sdlc1->join#1", "relation", "trace"],
+    ]);
+    expect(new Set(plan.effects.map((e) => `${e.durationMs}|${e.delayMs}|${e.repeat}`))).toEqual(
+      new Set(["1500|100|1"]),
+    );
+    // All three arrows grow at once, each along its own line.
+    const at = sceneAt(scene, plan, 100 + 600);
+    for (const effect of plan.effects) {
+      const arrow = group(at, effect.target, "relation");
+      const traced = arrow.items.filter(
+        (i): i is PolylineItem => i.kind === "polyline" && i.dash !== undefined,
+      );
+      expect(traced, effect.target).toHaveLength(1);
+      expect(traced[0]!.points).toEqual(
+        effect.track!.map((p) => ({ x: round2(p.x), y: round2(p.y) })),
+      );
+    }
+    // The plan keeps the order of the arrows and has a finite length.
+    expect(motionDuration(plan)).toBe(1600);
+  });
+
+  it("takes a milestone's incoming arrow, and the colour and particles of the statement", () => {
+    const { plan } = chart(
+      "milestone beta after tec2\nanimate beta { effect flow; particles 3; color danger; direction reverse }",
+    );
+    expect(plan.effects).toHaveLength(1);
+    expect(plan.effects[0]).toMatchObject({
+      target: "tec2->beta#1",
+      role: "relation",
+      particles: 3,
+      reverse: true,
+    });
+    expect(plan.effects[0]!.color).toBe(resolveTheme("technical.light").theme.danger);
+  });
+
+  it("pulses a milestone around its diamond's bounds, and a section around its band", () => {
+    const { plan, scene } = chart(
+      "milestone beta after tec2\nanimate beta { effect pulse }\nanimate tecnologia { effect pulse }\nmarker freeze at 2026-06-10\nanimate freeze { effect pulse }",
+    );
+    expect(plan.effects.map((e) => [e.target, e.role, e.effect, e.track])).toEqual([
+      ["beta", "element", "pulse", null],
+      ["tecnologia", "element", "pulse", null],
+      ["freeze", "element", "pulse", null],
+    ]);
+    expect(plan.effects[0]!.bounds).toEqual(group(scene, "beta").bounds);
+    expect(plan.effects[1]!.bounds).toEqual(group(scene, "tecnologia").bounds);
+    // The halos are drawn around the bounds, above the drawing.
+    const halos = motionItems(sceneAt(scene, plan, 500));
+    expect(halos).toHaveLength(3);
+    expect(halos[0]).toMatchObject({ kind: "path", fill: "none" });
+  });
+
+  it("dashes the bar of a task along its outline", () => {
+    const { plan, scene } = chart("animate tec0 { effect dash }\nanimate flu1 { effect pulse }");
+    expect(plan.effects[0]).toMatchObject({ target: "tec0", role: "element", effect: "dash" });
+    const bar = group(sceneAt(scene, plan, 500), "tec0").items[0] as RectItem;
+    expect(bar.dash).toBeDefined();
+    expect(bar.dash!.array).toEqual([8, 6]);
+    // The dash takes the bar's own colour, its stroke.
+    expect(plan.effects[0]!.color).toBe((group(scene, "tec0").items[0] as RectItem).stroke);
+  });
+
+  it("plans nothing for arrows that are not drawn, and for a task that is not", () => {
+    const hidden = chart("dependencies hidden\nanimate flu3 { effect flow }");
+    expect(hidden.diagram.relations.length).toBeGreaterThan(0);
+    expect(hidden.plan.effects).toEqual([]);
+    // A task in a loop is not drawn; the arrow of another one still is.
+    const text = [
+      'language "0.2"',
+      "diagram p: gantt {",
+      "  task a after b for 1d",
+      "  task b after a for 1d",
+      "  task c from 2026-06-01 for 1d",
+      "  task d after c for 1d",
+      "  animate d { effect flow }",
+      "}",
+      "",
+    ].join("\n");
+    const compilation = compile(text);
+    const diagram = compilation.document.diagrams[0]!;
+    const result = layoutDiagram(compilation, diagram, { today: "2026-10-29" });
+    expect(group(result.scene!, "a")).toBeUndefined();
+    expect(planMotion(diagram, result.scene!).effects.map((e) => e.target)).toEqual(["c->d#1"]);
+  });
+
+  it("writes the keyframes of an arrow's particle and trace in the animated SVG", () => {
+    const { plan, scene } = chart(
+      "animate flu3 { effect flow }\nanimate sdlc2 { effect trace; duration 1s }",
+    );
+    expect(plan.effects.map((e) => e.target)).toEqual(["flu2->flu3#1", "sdlc1->sdlc2#1"]);
+    const animated = animatedScene(scene, plan);
+    const sheet = animated.styleSheet!;
+    expect(sheet).toContain("@keyframes mdg-flow {");
+    expect(sheet).toContain("@keyframes mdg-trace-1 {");
+    const svg = renderSvg(animated);
+    expect(svg).toContain('data-id="flu2-&gt;flu3#1" data-role="relation"');
+    expect(svg).toContain("mdg-e0-0");
+    expect(svg).toContain("mdg-e1");
+    // The same plan and time give the same picture.
+    expect(renderSvg(sceneAt(scene, plan, 700))).toBe(renderSvg(sceneAt(scene, plan, 700)));
+  });
+
+  it("keeps the axis out of every effect", () => {
+    const { plan, scene } = chart("animate tec1 { effect trace }\nanimate tec0 { effect pulse }");
+    const before = group(scene, "axis", "axis");
+    expect(group(sceneAt(scene, plan, 300), "axis", "axis")).toEqual(before);
+    expect(plan.effects.every((e) => e.target !== "axis")).toBe(true);
+  });
+});
+
+const round2 = (value: number) => Math.round(value * 100) / 100;

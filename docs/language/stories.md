@@ -108,6 +108,22 @@ story explain for whiteboard {
 - **Targets.** Pens, free lines and named relations; anything else is `story.invalid-target`,
   which says that draw takes pens, lines and relations.
 
+In a gantt chart ([gantt.md](gantt.md#effects-and-stories)) sections, tasks, milestones and markers
+are elements, so `reveal`, `hide`, `highlight`, `focus` and `camera` take them, and a section hides
+and focuses with its tasks and arrows. Two actions know charts:
+
+- `draw <task>[, <task>…]` grows each bar from its start to its end as a clip that widens from left
+  to right, one task after another over shares of the time in proportion to the widths of the
+  bars, and leaves it drawn; a task whose first action is `draw` starts hidden. On a section, a
+  milestone or a marker it is `story.invalid-target`, which says that draw takes pens, lines,
+  relations and gantt tasks.
+- `trace <task>` (or a milestone) lights the arrows of the chain that drives it: from it, the
+  predecessor that ends last, and so on back to the start, earliest first, one after another, each
+  over a share of the time in proportion to its length, until the action ends. A task or milestone
+  without arrows, a section or a marker is `story.invalid-target`.
+
+The axis, its grid and its labels are never faded or hidden by an action.
+
 ## Transitions
 
 A scene whose view differs from the previous scene's view needs a transition

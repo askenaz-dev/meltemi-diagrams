@@ -607,11 +607,20 @@ function phrase(
       return action.all ? t.frameAll : t.frame(targets);
     case "trace": {
       const id = action.targets[0]?.id ?? "";
-      const ends = doc.views[view]?.ends[id];
-      return t.trace(name(id), ends ? [name(ends[0]), name(ends[1])] : null, time);
+      const ends = doc.views[view]?.ends;
+      // The arrows of a gantt chart have no names: a trace of them follows the chain into a task.
+      const last = ends?.[action.targets[action.targets.length - 1]?.id ?? ""];
+      if (labels[id] === undefined && last) return t.traceChain(name(last[1]), time);
+      const pair = ends?.[id];
+      return t.trace(name(id), pair ? [name(pair[0]), name(pair[1])] : null, time);
     }
     case "draw":
-      return t.draw(targets, time);
+      // The bars of a chart's tasks grow; strokes, lines and relations are drawn stroke by stroke.
+      return action.targets.every(
+        (target) => doc.details[view]?.elements[target.id]?.kind === "task",
+      )
+        ? t.drawBars(targets, time)
+        : t.draw(targets, time);
     case "hold":
       return t.hold(time);
     case "parallel":
@@ -667,8 +676,18 @@ export function effectsSummary(
 ): string[] {
   const t = messages(locale).effects;
   const labels = doc.names[view]?.labels ?? {};
+  const ends = doc.views[view]?.ends ?? {};
   return (doc.views[view]?.plan.effects ?? []).map((e) => {
-    const name = labels[e.target] ?? e.target;
+    // An arrow of a gantt chart has no name of its own: the tasks it joins name it.
+    const joined = ends[e.target];
+    const name =
+      labels[e.target] ??
+      (joined
+        ? messages(locale).player.relation(
+            labels[joined[0]] ?? joined[0],
+            labels[joined[1]] ?? joined[1],
+          )
+        : e.target);
     const what =
       e.effect === "flow"
         ? t.flow(name)

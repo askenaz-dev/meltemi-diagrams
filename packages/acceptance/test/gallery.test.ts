@@ -40,6 +40,7 @@ describe("gallery", () => {
       "flow",
       "sequence",
       "c4",
+      "gantt",
       "free",
       "free",
       "free",
@@ -67,6 +68,11 @@ describe("gallery", () => {
     },
     60_000,
   );
+
+  it("pins the today line of the gantt sheet, so its exports do not depend on the day", () => {
+    const source = readFileSync(join(GALLERY, "gantt", "launch-plan.meltemi"), "utf8");
+    expect(source).toMatch(/^\s*today \d{4}-\d{2}-\d{2}$/m);
+  });
 
   it("links every sheet and export from its README", () => {
     const readme = readFileSync(join(GALLERY, "README.md"), "utf8");

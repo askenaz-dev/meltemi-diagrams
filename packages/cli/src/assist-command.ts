@@ -45,7 +45,7 @@ const EXIT_OK = 0;
 const EXIT_FINDINGS = 1;
 const EXIT_USAGE = 2;
 const OPERATIONS = ["generate", "modify", "relations", "explain", "apply"] as const;
-const PROFILES = ["flow", "c4", "sequence", "free"] as const;
+const PROFILES = ["flow", "c4", "sequence", "free", "gantt"] as const;
 
 interface Options {
   prompt?: string;

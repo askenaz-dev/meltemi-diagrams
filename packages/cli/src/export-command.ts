@@ -17,6 +17,7 @@ import { isIdentifierText, type Diagnostic } from "@meltemi/diagrams-language";
 import {
   THEME_COLOR_TOKENS,
   isSafeUrl,
+  parseDate,
   type Compilation,
   type StoryDefinition,
 } from "@meltemi/diagrams-model";
@@ -64,6 +65,12 @@ function readBackground(value: string): string | undefined {
   if (value === "transparent") return value;
   if ((THEME_COLOR_TOKENS as readonly string[]).includes(value)) return `@${value}`;
   return /^(#[0-9a-f]{3,8}|(rgb|hsl)a?\([\d\s.,%/-]+\)|[a-z]+)$/i.test(value) ? value : undefined;
+}
+
+/** `2026-07-15` as written: a day of the calendar, with no time. */
+function readDay(value: string): string | undefined {
+  const parsed = parseDate(value);
+  return parsed.ok && !parsed.hasTime ? value : undefined;
 }
 
 /** `1920x1080` as a size within the capture's limits. */
@@ -242,6 +249,7 @@ export function exportCommand(args: readonly string[], host: ExportHost): number
     link?: string;
     fps?: string;
     duration?: string;
+    today?: string;
     embed: boolean;
     stdout: boolean;
   };
@@ -269,6 +277,7 @@ export function exportCommand(args: readonly string[], host: ExportHost): number
         link: { type: "string" },
         fps: { type: "string" },
         duration: { type: "string" },
+        today: { type: "string" },
         embed: { type: "boolean", default: false },
         stdout: { type: "boolean", default: false },
       },
@@ -424,6 +433,14 @@ export function exportCommand(args: readonly string[], host: ExportHost): number
       return usage(t.duration(options.duration));
     }
   }
+  // The day of the today line of gantt charts: a day of the calendar, for every format and every
+  // chart of the run. Without it the sessions' own day (the machine's local date) stands, and
+  // a `today <date>` written in a chart wins over both. A run with no chart ignores it.
+  let today: string | undefined;
+  if (options.today !== undefined) {
+    today = readDay(options.today);
+    if (today === undefined) return usage(t.today(options.today));
+  }
   let scale = 2;
   if (options.scale !== undefined) {
     if (format !== "png") return usage(t.scalePng);
@@ -475,6 +492,7 @@ export function exportCommand(args: readonly string[], host: ExportHost): number
   // With --stdout, stdout holds only the output; diagnostics go to stderr.
   const log = options.stdout ? io.stderr : io.stdout;
   const projects = host.projects();
+  if (today !== undefined) projects.today = today;
   const base = {
     theme: options.theme ?? null,
     fonts: fonts as FontPolicy,

@@ -1,0 +1,29 @@
+language "0.2"
+
+// Imported from gantt-roadmap.mmd (mermaid) by meltemi-diagrams.
+
+diagram hoja_de_ruta_genai: gantt {
+  title "Hoja de ruta GenAI"
+  axisFormat "%d %b"
+  exclude weekends
+  today
+
+  section tecnologia "Tecnología" {
+    task tec0 "Evaluar plataformas de agentes" from 2026-06-01 for 5d
+    task tec1 "Prueba de concepto con el equipo de Arquitectura" after tec0 for 10d
+    task tec2 "Presentar resultados al comité Arq" after tec1 for 1d
+  }
+
+  section nuevo_flujo_genai_hub "Nuevo Flujo GenAI Hub" {
+    task flu0 "Propuesta de flujo ágil de evaluación" from 2026-06-15 for 3d
+    task flu1 "Interfaz Evaluación y seguimiento (WebComponent)" after flu0 for 10d
+    task flu2 "Integración con LeanIX" after flu1 for 10d
+    task flu3 "Marcha Blanca primeros casos de uso" after flu2 for 10d
+  }
+
+  section i_d "I+D" {
+    task sdlc0 "Estándares de desarrollo Agéntico + GenAI for productivity." from 2026-07-01 for 30d
+    task sdlc1 "Workshops AI-SDLC" from 2026-08-03 for 5d
+    task sdlc2 "Desarrollo de Skills y Agentes (AI-SDLC)." after sdlc1 for 15d
+  }
+}

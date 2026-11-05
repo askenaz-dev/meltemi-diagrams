@@ -9,7 +9,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, describe, expect, it, vi } from "vitest";
 import { findBrowser, pngInfo } from "@meltemi/diagrams-capture";
 import { REPO_ROOT } from "../../../test-support/corpus.js";
 import { BROKEN_STORY, FLOWS_SOURCE, PURCHASE_SOURCE } from "../../../test-support/flows.js";
@@ -105,6 +105,21 @@ describe("meltemi-diagrams export", () => {
     const approved = readFileSync(join(scratch, "payment.approved.svg"), "utf8");
     expect(approved).toContain("Pago aprobado");
     expect(approved).not.toContain("Rechazo");
+  });
+
+  it("exports a gantt chart, its axis and its six arrows included", () => {
+    const { code, stdout } = mdg("export", "corpus/valid/gantt/roadmap.meltemi", "--out", scratch);
+    expect(code).toBe(0);
+    expect(stdout).toContain("roadmap.svg");
+    const svg = readFileSync(join(scratch, "roadmap.svg"), "utf8");
+    expect(svg.startsWith("<svg")).toBe(true);
+    expect(svg).toContain('data-role="axis"');
+    for (const id of ["tec1", "sdlc2", "tecnologia", "tec0-&gt;tec1#1"]) {
+      expect(svg).toContain(`data-id="${id}"`);
+    }
+    expect((svg.match(/data-role="relation"/g) ?? []).length).toBe(6);
+    // The first Monday of the timeline, in the content language of the export (English).
+    expect(svg).toContain(">01 Jun<");
   });
 
   it("refuses an unknown scenario with the available ones", () => {
@@ -310,4 +325,136 @@ describe.skipIf(!findBrowser())("meltemi-diagrams export --profile with scenes",
     expect(overview.width).toBe(processing.width);
     expect(overview.width % 2).toBe(0);
   }, 180_000);
+});
+
+describe("meltemi-diagrams export --today", () => {
+  const roadmap = readFileSync(join(REPO_ROOT, "corpus/valid/gantt/roadmap.meltemi"), "utf8");
+  const folder = mkdtempSync(join(tmpdir(), "mdg-today-"));
+  afterAll(() => rmSync(folder, { recursive: true, force: true }));
+  afterEach(() => vi.useRealTimers());
+
+  /** The owner's chart with the statement of its today line (none for an empty one). */
+  function chart(name: string, today: string): string {
+    const path = join(folder, `${name}.meltemi`);
+    const text = roadmap.replace(/^ {2}today\r?\n/m, today === "" ? "" : `  ${today}\n`);
+    // The statement was there to replace: the chart differs from the owner's unless it says the same.
+    expect(text === roadmap).toBe(today === "today");
+    writeFileSync(path, text, "utf8");
+    return path;
+  }
+  /** The SVG of a chart with the flags given. */
+  const svg = (path: string, ...flags: string[]) => {
+    const out = mdg("export", path, "--stdout", ...flags);
+    expect(out.code, out.stderr).toBe(0);
+    return out.stdout;
+  };
+  /** The machine's clock at a local date, so that the day a run starts on is the one given. */
+  const clock = (year: number, month: number, day: number) => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(year, month - 1, day, 12));
+  };
+  const plan = chart("plan", "today");
+  const pinned = chart("pinned", "today 2026-07-15");
+  const noLine = chart("none", "");
+
+  it("pins the day of the today line, so two runs on different days write the same picture", () => {
+    clock(2026, 1, 2);
+    const first = svg(plan, "--today", "2026-07-15");
+    // The line is where `today 2026-07-15` puts it, drawn with its word.
+    expect(first).toBe(svg(pinned));
+    expect(first).toContain(">Today<");
+    expect(first).not.toBe(svg(noLine));
+    clock(2027, 3, 9);
+    expect(svg(plan, "--today", "2026-07-15")).toBe(first);
+  });
+
+  it("draws the line at the machine's date when no day is given, the same for every run of the day", () => {
+    clock(2026, 7, 15);
+    expect(svg(plan)).toBe(svg(pinned));
+    // Another day, inside the span of the chart, moves the line; outside it, the line is gone.
+    clock(2026, 6, 10);
+    expect(svg(plan)).toBe(svg(chart("tenth", "today 2026-06-10")));
+    expect(svg(plan)).not.toBe(svg(pinned));
+    clock(2026, 10, 29);
+    expect(svg(plan)).toBe(svg(noLine));
+    expect(svg(plan)).not.toContain(">Today<");
+    // A command that is given a day does not read the clock for it.
+    expect(svg(plan, "--today", "2026-07-15")).toBe(svg(pinned));
+  });
+
+  it("lets the date written in the chart win over the flag and the clock", () => {
+    const own = chart("own", "today 2026-07-01");
+    clock(2026, 8, 20);
+    const base = svg(own);
+    expect(svg(own, "--today", "2026-07-15")).toBe(base);
+    expect(svg(own, "--today", "2026-12-31")).toBe(base);
+    expect(base).toBe(svg(own, "--today", "2026-07-01"));
+    expect(base).toContain(">Today<");
+  });
+
+  it("writes the same day into every text format", () => {
+    const html = (day: string) =>
+      mdg("export", plan, "--stdout", "--format", "html", "--today", day).stdout;
+    // The player's data carries the scene, with the word of the line when it is inside the span.
+    expect(html("2026-07-15")).toContain('"text":"Today"');
+    expect(html("2026-12-31")).not.toContain('"text":"Today"');
+    expect(svg(plan, "--motion", "animated", "--today", "2026-07-15")).toContain(">Today<");
+    expect(svg(plan, "--motion", "animated", "--today", "2026-12-31")).not.toContain(">Today<");
+    // A frame at a time of the chart's effects is the same drawing.
+    expect(svg(plan, "--motion", "static", "--today", "2026-07-15")).toBe(
+      svg(pinned, "--motion", "static"),
+    );
+  });
+
+  it("writes the days of the stories and the profiles the same way", () => {
+    const story = join(folder, "story.meltemi");
+    writeFileSync(
+      story,
+      `${roadmap}\nstory tour for hoja_de_ruta_genai {\n  scene one { hold 1s }\n}\n\nexport pic for hoja_de_ruta_genai {\n  format svg\n}\n`,
+      "utf8",
+    );
+    const frame = (day: string) =>
+      mdg("export", story, "--story", "tour", "--at", "500ms", "--stdout", "--today", day);
+    const inside = frame("2026-07-15");
+    expect(inside.code, inside.stderr).toBe(0);
+    expect(inside.stdout).toContain(">Today<");
+    expect(frame("2026-12-31").stdout).not.toContain(">Today<");
+    // A profile carries its own options but not the day: --today is accepted with --profiles.
+    const out = mkdtempSync(join(folder, "profiles-"));
+    const profiles = mdg("export", story, "--profiles", "--today", "2026-07-15", "--out", out);
+    expect(profiles.code, profiles.stderr).toBe(0);
+    const [written] = readdirSync(out).filter((name) => name.endsWith(".svg"));
+    expect(readFileSync(join(out, written!), "utf8")).toContain(">Today<");
+  });
+
+  it("refuses a value that is not a day, saying how to write one", () => {
+    for (const value of ["tomorrow", "2026-02-30", "2026-07-15T09:30", "15/07/2026", "2026-7-15"]) {
+      const { code, stderr } = mdg("export", plan, "--stdout", "--today", value);
+      expect(code, value).toBe(2);
+      expect(stderr, value).toContain(`--today takes a date written 2026-07-15, not "${value}".`);
+    }
+    // In Spanish, with the same exit code.
+    const spanish = mdg("export", plan, "--stdout", "--today", "tomorrow", "--lang", "es");
+    expect(spanish.code).toBe(2);
+    expect(spanish.stderr).toContain('--today lleva una fecha escrita 2026-07-15, no "tomorrow".');
+    // The option needs a value.
+    expect(mdg("export", plan, "--stdout", "--today").code).toBe(2);
+  });
+
+  it("accepts the flag and ignores it when no chart writes a today line", () => {
+    const without = mdg("export", annotations, "--stdout");
+    const withDay = mdg("export", annotations, "--stdout", "--today", "2026-07-15");
+    expect(withDay.code).toBe(0);
+    expect(withDay.stdout).toBe(without.stdout);
+    // A chart with no today statement is drawn the same with any day.
+    expect(svg(noLine, "--today", "2026-07-15")).toBe(svg(noLine));
+    expect(svg(noLine, "--today", "2026-07-15")).not.toContain(">Today<");
+  });
+
+  it("lists the option in the usage, in both languages", () => {
+    const english = mdg("--help").stdout;
+    const spanish = mdg("--help", "--lang", "es").stdout;
+    expect(english).toContain("--today <date>");
+    expect(spanish).toContain("--today <fecha>");
+  });
 });

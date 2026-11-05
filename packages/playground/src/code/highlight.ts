@@ -55,6 +55,7 @@ export function lexicalSpans(text: string): Span[] {
         cls = /^"#[0-9A-Fa-f]{3,8}"$/.test(token.text) ? "hl-string hl-color" : "hl-string";
         break;
       case "Number":
+      case "Date":
         cls = "hl-number";
         break;
       case "Arrow":

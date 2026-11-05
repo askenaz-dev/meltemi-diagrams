@@ -2,7 +2,9 @@
 
 ## Purpose
 The `animate` language: effects, properties with defaults, valid targets and one effect per channel, with their diagnostics.
+
 ## Requirements
+
 ### Requirement: Effect properties
 `animate <target>[, <target>…] { … }` SHALL accept `effect` (`flow`, `pulse`, `dash`, `trace`),
 `duration` (100 ms to 60 s), `repeat` (`forever` or 1 to 1000), `delay` (0 to 60 s), `direction`
@@ -50,8 +52,8 @@ values and the JSON model SHALL include them.
 - **THEN** `prop.invalid-value` points at `particles`
 
 ### Requirement: Effect targets
-`flow` and `trace` SHALL target relations, free `line` objects and pens; `dash` SHALL target relations, free lines, pens and elements with an
-outline; `pulse` SHALL target elements, relations, free lines, pens and named notes and fragments. A free line or a pen SHALL be animated as a relation is: particles, a dash, a glow and a trace along its drawn path, which its scene group carries as `track`; a group with a `track` SHALL be animated as a connector whatever its role. Any other target
+`flow` and `trace` SHALL target relations, free `line` objects and pens, and in gantt charts tasks and milestones with dependencies; `dash` SHALL target relations, free lines, pens and elements with an
+outline (gantt tasks, milestones, markers and sections among them); `pulse` SHALL target elements, relations, free lines, pens and named notes and fragments. A free line or a pen SHALL be animated as a relation is: particles, a dash, a glow and a trace along its drawn path, which its scene group carries as `track`; a group with a `track` SHALL be animated as a connector whatever its role. A `flow` or `trace` on a gantt task or milestone SHALL run along each of its incoming dependency arrows, whose relation groups carry their routes as `track`. Any other target, a gantt task or milestone without dependencies included,
 SHALL be `animate.invalid-target` (error) naming what the effect accepts.
 
 #### Scenario: Flow on a box
@@ -77,6 +79,18 @@ SHALL be `animate.invalid-target` (error) naming what the effect accepts.
 #### Scenario: Flow on a text
 - **WHEN** a free diagram has `animate t { effect flow }` where `t` is a text
 - **THEN** `animate.invalid-target` says flow particles run along relations, lines and pens
+
+#### Scenario: Flow into a gantt task
+- **WHEN** the owner's chart has `animate flu3 { effect flow }`
+- **THEN** no diagnostic is reported and the motion plan holds a flow effect along the arrow from flu2 to flu3
+
+#### Scenario: Pulse on a milestone
+- **WHEN** a gantt chart has `animate beta { effect pulse }` where `beta` is a milestone
+- **THEN** no diagnostic is reported and the pulse glows around the diamond's bounds
+
+#### Scenario: Trace on a task without dependencies
+- **WHEN** the owner's chart has `animate tec0 { effect trace }`
+- **THEN** `animate.invalid-target` says tec0 has no dependency arrows to trace
 
 ### Requirement: Required effect
 An `animate` block without `effect` SHALL be `animate.missing-effect` (error) on the statement.
@@ -125,4 +139,3 @@ SHALL be accepted.
 #### Scenario: The editor offers the dash
 - **WHEN** an outlined note is selected on the canvas
 - **THEN** the Effects section lists Pulse and Moving dash, and a note without an outline lists Pulse alone
-

@@ -158,6 +158,29 @@ function viewTargets(
   ];
 }
 
+/**
+ * What `trace` follows in a view: its named relations, and in a gantt chart the tasks and
+ * milestones that have dependency arrows, whose chain of dependencies it draws.
+ */
+function traceTargets(
+  diagram: FlowDiagram | null,
+  range: CompletionItem["range"],
+): CompletionItem[] {
+  if (diagram?.type !== "gantt") return viewTargets(diagram, range, true);
+  return diagram.elements
+    .filter(
+      (e) =>
+        (e.kind === "task" || e.kind === "milestone") &&
+        diagram.relations.some((r) => r.to === e.id),
+    )
+    .map((e): CompletionItem => ({
+      label: e.id,
+      kind: "element",
+      detail: elementDetail(e),
+      range,
+    }));
+}
+
 /** What `draw` replays in a view: its pens, its free lines and its named relations. */
 function drawTargets(
   diagram: FlowDiagram | null,
@@ -247,7 +270,7 @@ export function storyCompletions(
   if (scope === "scene" && match(prefix, `transition\\s+(fade|morph)\\s+\\w*`)) {
     return storyWords(["over"], "keyword", range);
   }
-  if (match(prefix, `trace\\s+[\\w.]*`)) return viewTargets(view, dotted, true);
+  if (match(prefix, `trace\\s+[\\w.]*`)) return traceTargets(view, dotted);
   if (match(prefix, `trace\\s+[\\w.]+\\s+\\w*`)) return storyWords(["over"], "keyword", range);
   // `draw a, b`: the pens, free lines and named relations not listed yet.
   const draw = /^draw\s+((?:[\w.]+\s*,\s*)*)[\w.]*$/.exec(prefix);

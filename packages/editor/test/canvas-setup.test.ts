@@ -74,14 +74,14 @@ function tipOf(svg: string, key: string) {
 }
 
 describe("new diagrams", () => {
-  it("offers the three kinds in an empty file and shows the diagram created", () => {
+  it("offers the four kinds in an empty file and shows the diagram created", () => {
     const canvas = open("");
     expect(canvas.messages()).toEqual([
       {
         type: "empty",
         revision: 1,
         message: expect.stringMatching(/^No diagram to draw/),
-        creatable: ["flow", "free", "sequence"],
+        creatable: ["flow", "free", "sequence", "gantt"],
       },
     ]);
     const text = canvas.apply({ kind: "createDiagram", type: "flow" });

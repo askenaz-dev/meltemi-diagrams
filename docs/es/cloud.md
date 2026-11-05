@@ -1283,8 +1283,8 @@ cuando es `viewer`.
   proyectos propios de la persona y aquellos de los que es miembro, cada uno con su `role`.
 - `POST /api/projects` recibe `{ name, description?, template? | files?, binaries? }` y responde
   `201` con el proyecto. El nombre tiene de 1 a 100 caracteres una vez recortado, sin caracteres de
-  control; la descripción, como máximo 500. `template` es una de `flow`, `c4`, `sequence`, `free` y
-  `purchase`, y da los archivos de la propia compilación de la app con su `project.json`,
+  control; la descripción, como máximo 500. `template` es una de `flow`, `c4`, `sequence`, `roadmap`,
+  `free` y `purchase`, y da los archivos de la propia compilación de la app con su `project.json`,
   leídos de su `templates.json`, así que la página y el servicio ofrecen los mismos bytes. `files`
   es `{ path: texto }` y `binaries` es `{ path: hash }` de imágenes y fuentes que los proyectos de la
   persona ya tienen (otro hash es `blob.unknown`: un hash no es una credencial). Una plantilla y
@@ -2333,10 +2333,11 @@ hace que el objeto renderizador compile primero cada archivo `.meltemi` que escr
 del proyecto, y rechaza entero un push con un error (`diagram.invalid`); `validate` da del mismo modo
 los diagnósticos de un archivo o del proyecto. `preview` dibuja un PNG (de 1280 de ancho por omisión,
 de 16 a 2048) o un SVG en el objeto renderizador, como mucho 30 por minuto y cuenta, con un informe al
-lado. `invite` responde el enlace de la invitación y `emailSent: false`. `publish` hace que el objeto
-renderizador construya el catálogo que publica la página, lo guarda y lee una vez la dirección pública
-(`HEAD`): una dirección que no responde `200` es `502 publish.unverified` con su `url`, y la
-publicación existe.
+lado; un diagrama de Gantt que escribe `today` sin fecha dibuja su línea en la fecha UTC del
+servidor. `invite` responde el enlace de la invitación y `emailSent: false`. `publish` hace que el
+objeto renderizador construya el catálogo que publica la página, lo guarda y lee una vez la
+dirección pública (`HEAD`): una dirección que no responde `200` es `502 publish.unverified` con su
+`url`, y la publicación existe.
 
 Cuando falla una llamada al objeto renderizador (superó su límite de CPU, está sobrecargado o se
 reinició), `preview`, `validate`, `write_files` y `publish` responden `503 renderer.unavailable`, cuyo

@@ -58,6 +58,10 @@ const NOUNS: Readonly<Record<string, { readonly name: string; readonly feminine?
   data: { name: "almacén de datos" },
   group: { name: "grupo" },
   note: { name: "nota", feminine: true },
+  section: { name: "sección", feminine: true },
+  task: { name: "tarea", feminine: true },
+  milestone: { name: "hito" },
+  marker: { name: "marca", feminine: true },
   tag: { name: "marca", feminine: true },
   box: { name: "caja", feminine: true },
   text: { name: "texto" },
@@ -152,6 +156,8 @@ export const es: typeof en = {
     editDiagram: "Editar el diagrama",
     storyOption: (id, title) => (title ? `Historia: ${id} — ${title}` : `Historia: ${id}`),
     relation: "Relación: haz clic en el origen y luego en el destino",
+    dependency:
+      "Dependencia: haz clic en la tarea que termina primero y luego en la que va después",
     message: "Mensaje: haz clic en el emisor y luego en el receptor",
     relationTitle: (label) => `${label} (R; Mayús para una línea discontinua)`,
     relationKindsTitle: (label) =>
@@ -236,6 +242,10 @@ export const es: typeof en = {
       pen: "Lápiz",
       highlighter: "Marcador",
       eraser: "Borrador",
+      task: "Tarea",
+      milestone: "Hito",
+      marker: "Marca",
+      section: "Sección",
     },
     hint: (name) => `${name}: haz clic en el lienzo`,
     shaped: (name, shape) =>
@@ -265,6 +275,9 @@ export const es: typeof en = {
     preview: "vista previa del escenario",
     previewTitle:
       "Una vista previa de solo lectura de un escenario; elige “Todos los eventos” para editar.",
+    gantt: "Gantt",
+    ganttTitle:
+      "Arrastra una barra para moverla en el tiempo, sus extremos para cambiar sus fechas y una fila entre filas para reordenarla. Izquierda y Derecha mueven el inicio un día, ] y [ cambian el largo, Alt+Arriba y Alt+Abajo mueven las filas.",
     layout: (mode) => `layout ${mode}`,
     auto: "ELK organiza este diagrama; mover una caja escribe todas las posiciones y cambia a assisted.",
     assisted: "Las cajas colocadas se mantienen; ELK organiza las demás.",
@@ -290,6 +303,24 @@ export const es: typeof en = {
     flow: "Diagrama de flujo",
     free: "Composición libre",
     sequence: "Diagrama de secuencia",
+    gantt: "Diagrama de Gantt",
+  },
+
+  gantt: {
+    months: ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"],
+    day: (day, month, time) => `${day} ${month}${time === null ? "" : ` ${time}`}`,
+    span: (first, last, working) => `${first} → ${last} · ${working}`,
+    workingDays: (days) =>
+      `${days} ${plural("es", days, { one: "día hábil", other: "días hábiles" })}`,
+    workingHours: (hours) => `${hours} ${hours === "1" ? "hora hábil" : "horas hábiles"}`,
+    rowsTop: "Inicio del diagrama",
+    rowsIn: (section) => `Dentro de ${section}`,
+    follows: (ids) => `después de ${list("es", [...ids])}`,
+    handles: {
+      start: "Arrastra para cambiar el inicio",
+      end: "Arrastra para cambiar el fin",
+      link: "Arrastra sobre otra tarea para que vaya después de esta",
+    },
   },
 
   announcements: {
@@ -343,7 +374,7 @@ export const es: typeof en = {
     reordered: (ids, to) => `Se movió ${ids.length === 1 ? ids[0] : "la selección"} ${PLACES[to]}.`,
     converted: "Se convirtió en una composición libre.",
     createdDiagram: (type) =>
-      `Se creó ${{ flow: "un diagrama de flujo", free: "una composición libre", sequence: "un diagrama de secuencia" }[type]}.`,
+      `Se creó ${{ flow: "un diagrama de flujo", free: "una composición libre", sequence: "un diagrama de secuencia", gantt: "un diagrama de Gantt" }[type]}.`,
     previewReadOnly:
       "Una vista previa de escenario es de solo lectura; elige “Todos los eventos” para editar.",
     connectFromFirst: "Primero selecciona el elemento desde el que conectar.",
@@ -353,6 +384,18 @@ export const es: typeof en = {
     created: (kind) => `Se creó ${indefinite(kind)}.`,
     createdShape: (kind, shape) => `Se creó ${indefinite(kind)} ${withShape(kind, shape)}.`,
     place: (kind) => `Haz clic en el lienzo para colocar ${definite(kind)}. Esc cancela.`,
+    placeBar: (kind) =>
+      kind === "task"
+        ? "Arrastra en la línea de tiempo para dibujar la tarea, o haz clic para un día. Esc cancela."
+        : kind === "section"
+          ? "Haz clic en el diagrama para agregar la sección. Esc cancela."
+          : `Haz clic en la línea de tiempo para colocar ${definite(kind)}. Esc cancela.`,
+    ganttMoved: (ids, text) =>
+      ids.length === 1 ? `${ids[0]}: ${text}.` : `${ids.length} barras: ${text}.`,
+    ganttStuck: (id, after) =>
+      `${id} va después de ${list("es", [...after])}: no puede empezar antes.`,
+    ganttNothing: "Selecciona primero una tarea, un hito o una marca.",
+    ganttNoMove: "No cambia nada: las fechas se quedan como están.",
     placeShape: (kind, shape) =>
       `Haz clic en el lienzo para colocar ${definite(kind)} ${withShape(kind, shape)}. Esc cancela.`,
     arrowKind: (kind) =>
@@ -495,6 +538,11 @@ export const es: typeof en = {
     unnestCall: "Desanidar la llamada",
     addReturn: "Devolver a quien llama",
     addNote: "Agregar una nota",
+    addTask: "Agregar una tarea",
+    addMilestone: "Agregar un hito",
+    addMarker: "Agregar una marca",
+    addSection: "Agregar una sección",
+    putInSection: "Poner en una sección nueva",
     wrapInFragment: "Envolver en un fragmento…",
     addDivider: "Agregar un separador",
     addDelay: "Agregar un retraso",
@@ -561,6 +609,17 @@ export const es: typeof en = {
     },
     clear: "Borrar",
     clearTitle: "Quitar el valor escrito: se aplica el predeterminado",
+    pickDate: (label) => `${label}: elegir una fecha`,
+    unit: (label) => `${label}: unidad`,
+    addTask: (label) => `${label}: añadir una tarea`,
+    addTaskOption: "Añadir…",
+    removeTask: (id) => `Quitar ${id}`,
+    noTasks: "ninguna",
+    daysShort: ["Lu", "Ma", "Mi", "Ju", "Vi", "Sá", "Do"],
+    daysLong: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"],
+    weekends: "Fines de semana",
+    weekendsTitle: "Sábado y domingo",
+    excludedDates: "Fechas excluidas",
     options: {
       on: "activado",
       off: "desactivado",

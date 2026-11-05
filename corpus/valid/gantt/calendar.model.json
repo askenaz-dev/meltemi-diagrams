@@ -1,0 +1,433 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "working_days",
+      "type": "gantt",
+      "range": {
+        "start": {
+          "offset": 116,
+          "line": 4,
+          "column": 1
+        },
+        "end": {
+          "offset": 445,
+          "line": 16,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "auto",
+        "theme": null,
+        "title": "Working days",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null,
+        "spacing": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "plan",
+          "kind": "task",
+          "label": "Plan",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 275,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 314,
+              "line": 12,
+              "column": 42
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 280,
+              "line": 12,
+              "column": 8
+            },
+            "end": {
+              "offset": 284,
+              "line": 12,
+              "column": 12
+            }
+          },
+          "task": {
+            "from": "2026-06-01",
+            "after": [],
+            "end": {
+              "kind": "for",
+              "amount": 2,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-06-01T00:00",
+            "finish": "2026-06-03T00:00",
+            "workingDays": 2
+          }
+        },
+        {
+          "id": "build",
+          "kind": "task",
+          "label": "Build",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 317,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 353,
+              "line": 13,
+              "column": 39
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 322,
+              "line": 13,
+              "column": 8
+            },
+            "end": {
+              "offset": 327,
+              "line": 13,
+              "column": 13
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "plan"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 5,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-06-04T00:00",
+            "finish": "2026-06-10T00:00",
+            "workingDays": 5
+          }
+        },
+        {
+          "id": "shift",
+          "kind": "task",
+          "label": "Saturday shift",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 356,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 401,
+              "line": 14,
+              "column": 48
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 361,
+              "line": 14,
+              "column": 8
+            },
+            "end": {
+              "offset": 366,
+              "line": 14,
+              "column": 13
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "plan"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 3,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-06-04T00:00",
+            "finish": "2026-06-07T00:00",
+            "workingDays": 3
+          }
+        },
+        {
+          "id": "shipped",
+          "kind": "milestone",
+          "label": "Shipped",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 404,
+              "line": 15,
+              "column": 3
+            },
+            "end": {
+              "offset": 443,
+              "line": 15,
+              "column": 42
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 414,
+              "line": 15,
+              "column": 13
+            },
+            "end": {
+              "offset": 421,
+              "line": 15,
+              "column": 20
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "build"
+            ],
+            "end": null,
+            "status": null,
+            "critical": false,
+            "start": "2026-06-10T00:00",
+            "finish": "2026-06-10T00:00",
+            "workingDays": 0
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "plan->build#1",
+          "id": null,
+          "from": "plan",
+          "to": "build",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 342,
+              "line": 13,
+              "column": 28
+            },
+            "end": {
+              "offset": 346,
+              "line": 13,
+              "column": 32
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "plan->shift#1",
+          "id": null,
+          "from": "plan",
+          "to": "shift",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 390,
+              "line": 14,
+              "column": 37
+            },
+            "end": {
+              "offset": 394,
+              "line": 14,
+              "column": 41
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "build->shipped#1",
+          "id": null,
+          "from": "build",
+          "to": "shipped",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 438,
+              "line": 15,
+              "column": 37
+            },
+            "end": {
+              "offset": 443,
+              "line": 15,
+              "column": 42
+            }
+          },
+          "idRange": null
+        }
+      ],
+      "placement": [],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null,
+      "gantt": {
+        "axisFormat": "%a %d",
+        "ticks": "1d",
+        "weekStart": "sunday",
+        "axis": "bottom",
+        "labels": "bar",
+        "display": "normal",
+        "dependencies": "shown",
+        "dayWidth": null,
+        "exclude": {
+          "weekdays": [
+            "saturday",
+            "sunday"
+          ],
+          "dates": [
+            "2026-06-03"
+          ]
+        },
+        "include": [
+          "2026-06-06"
+        ],
+        "today": null,
+        "span": {
+          "start": "2026-06-01T00:00",
+          "end": "2026-06-10T00:00"
+        }
+      }
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

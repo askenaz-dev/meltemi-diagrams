@@ -9,6 +9,8 @@ import { createNodeFontLibrary } from "@meltemi/diagrams-fonts/node";
 const measurer = createNodeFontLibrary();
 // `auto` and `assisted` sheets are arranged by ELK, as the command line does.
 const engine = createElkEngine();
+// The day of the gantt charts' today lines is pinned: the same text draws the same bytes.
+const today = "2026-10-29";
 
 const snapshotPath = (path: string, suffix: string) => path.replace(/\.meltemi$/, suffix);
 
@@ -17,8 +19,11 @@ describe("corpus/valid renders", () => {
     const compilation = compile(file.text);
     return (
       compilation.document.diagrams.length === 1 &&
-      layoutDiagram(compilation, compilation.document.diagrams[0]!, { measurer, engine }).scene !==
-        null
+      layoutDiagram(compilation, compilation.document.diagrams[0]!, {
+        measurer,
+        engine,
+        today,
+      }).scene !== null
     );
   });
 
@@ -31,6 +36,10 @@ describe("corpus/valid renders", () => {
       "valid/layout/assisted.meltemi",
       "valid/layout/ports.meltemi",
       "valid/free/overview.meltemi",
+      "valid/gantt/roadmap.meltemi",
+      "valid/gantt/constructs.meltemi",
+      "valid/gantt/calendar.meltemi",
+      "valid/gantt/times.meltemi",
     ])
       expect(names).toContain(name);
   });
@@ -42,6 +51,7 @@ describe("corpus/valid renders", () => {
       const result = layoutDiagram(compilation, compilation.document.diagrams[0]!, {
         measurer,
         engine,
+        today,
       });
       expect(result.diagnostics.filter((d) => d.severity !== "info")).toEqual([]);
       const svg = renderSvg(result.scene!);

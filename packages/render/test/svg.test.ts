@@ -545,3 +545,53 @@ describe("sketched strokes", () => {
     expect(result.boxes).toEqual(clean.boxes);
   });
 });
+
+describe("gantt charts", () => {
+  const roadmap = readFileSync(join(CORPUS_ROOT, "valid", "gantt", "roadmap.meltemi"), "utf8");
+  const fonts = createNodeFontLibrary();
+  const chart = (text: string) => {
+    const compilation = compile(text);
+    const result = layoutDiagram(compilation, compilation.document.diagrams[0]!, {
+      measurer: fonts,
+      today: "2026-10-29",
+    });
+    if (!result.scene) throw new Error(result.diagnostics.map((d) => d.message).join("\n"));
+    return renderSvg(result.scene);
+  };
+  const sketchedRoadmap = roadmap.replace(
+    "diagram hoja_de_ruta_genai: gantt {",
+    'diagram hoja_de_ruta_genai: gantt {\n  theme "sketch.light"',
+  );
+  /** The markup of the group of `id` with `role`, up to its closing tag. */
+  const groupOf = (svg: string, id: string, role: string) => {
+    const start = svg.indexOf(`<g data-id="${id}" data-role="${role}"`);
+    expect(start, `${role} ${id}`).toBeGreaterThanOrEqual(0);
+    const indent = /\n( *)$/.exec(svg.slice(0, start))![1]!;
+    const end = svg.indexOf(`\n${indent}</g>`, start);
+    return svg.slice(start, end);
+  };
+
+  it("draws the axis as one straight line per grid line, even under sketch.light", () => {
+    const axis = groupOf(chart(sketchedRoadmap), "axis", "axis");
+    // Fourteen weekly ticks and the line under the rows, each one polyline: never two jittered passes.
+    expect((axis.match(/<polyline/g) ?? []).length).toBe(15);
+    expect(axis).not.toMatch(/<path d="M/);
+    expect(axis).toContain(">01 Jun<");
+  });
+
+  it("paints the bars and the arrows by hand under sketch.light", () => {
+    const svg = chart(sketchedRoadmap);
+    const bar = groupOf(svg, "tec1", "element");
+    expect(
+      bar.match(/<path d="M[^"]+" fill="none" stroke="#[0-9A-F]{6}"/g)!.length,
+    ).toBeGreaterThanOrEqual(2);
+    expect(groupOf(svg, "tec0-&gt;tec1#1", "relation")).not.toContain("<polyline");
+  });
+
+  it("writes the same bytes every time, the today line included", () => {
+    const text = roadmap.replace("  today\n", "  today 2026-06-17\n");
+    expect(chart(text)).toBe(chart(text));
+    expect(chart(text)).toContain(">Today<");
+    expect(chart(roadmap)).not.toContain(">Today<");
+  });
+});

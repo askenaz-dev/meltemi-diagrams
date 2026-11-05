@@ -52,6 +52,10 @@ export const en = {
     container: "Container",
     datastore: "Datastore",
     component: "Component",
+    section: "Section",
+    task: "Task",
+    milestone: "Milestone",
+    marker: "Marker",
   } satisfies Record<ElementKind, string>,
 
   /** The reasons of refused edits, by theme; the code of each is in its comment. */
@@ -569,6 +573,69 @@ export const en = {
         `\`${destination}\` is inside \`${key}\`, which cannot move into itself.`,
     },
 
+    /** Gantt charts: sections, tasks, milestones, markers and the calendar. */
+    gantt: {
+      /** `edit.invalid-value`. */
+      notGantt: (id: string) => `\`${id}\` is not a gantt chart.`,
+      /** `edit.invalid-value`: an operation that places or links boxes, which a chart does not take. */
+      notInChart: (operation: string) =>
+        `\`${operation}\` does not apply to gantt charts, which place bars by their dates; use setTaskSchedule, setTaskStatus, createTask, moveElement and setCalendar.`,
+      /** `edit.unsafe-target`. */
+      notBar: (id: string) => `\`${id}\` is not a task, a milestone or a marker.`,
+      /** `edit.unsafe-target`. */
+      notStatusBar: (id: string) =>
+        `\`${id}\` is not a task or a milestone; only those have a status.`,
+      /** `edit.unsafe-target`: a move of something that is no statement of the chart. */
+      notItem: (id: string) => `\`${id}\` is not a task, a milestone, a marker or a section.`,
+      /** `edit.invalid-value`. */
+      badDate: (text: string) =>
+        `\`${text}\` is not a date; write 2026-06-15, or 2026-06-15T09:30 with a time of day.`,
+      /** `edit.invalid-value`: with the units of durations. */
+      badDuration: (text: string, units: readonly string[]) =>
+        `\`${text}\` is not a duration; write a number above 0 and a unit (${units.join(", ")}), as 10d.`,
+      /** `edit.invalid-value`. */
+      endForm: "An end is `{ for }`, `{ to }` or `{ until }`: give exactly one of them.",
+      /** `edit.invalid-value`: an end on a milestone or a marker. */
+      endOnPoint: (id: string, kind: string) =>
+        `A ${kind} has no end: \`${id}\` takes \`at\` and \`after\` only.`,
+      /** `edit.invalid-value`: an id that cannot be written after `after` or `until`. */
+      badId: (id: string, clause: string) => `\`${id}\` is not an id to write after \`${clause}\`.`,
+      /** `edit.invalid-value`: a clause or status word as an id. */
+      reservedId: (id: string) =>
+        `\`${id}\` is a word of the chart's clauses (from, after, for, to, until, at, done, active, critical); an id cannot be it.`,
+      /** `edit.invalid-value`. */
+      noIds: (clause: string) => `\`${clause}\` needs at least one id.`,
+      /** `edit.invalid-value`. */
+      badStatus: (status: string) => `\`${status}\` is not a status; use done or active.`,
+      /** `edit.invalid-value`: dates given to a section. */
+      sectionClauses: "A section has no dates; give them to its tasks.",
+      /** `edit.invalid-value`. */
+      badKind: (kind: string) =>
+        `\`${kind}\` is not something a gantt chart holds; use task, milestone, marker or section.`,
+      /** `edit.invalid-value`: a parent that is not a section. */
+      notSection: (id: string) =>
+        `\`${id}\` is not a section; tasks go into sections or at the top of the chart.`,
+      /** `edit.invalid-value`. */
+      sectionInSection: "A section cannot go into another section.",
+      /** `edit.invalid-value`: a new id that the chart or the file uses. */
+      idUsed: (id: string, diagram: string) =>
+        `\`${id}\` is already used in the chart \`${diagram}\`.`,
+      /** `edit.invalid-value`: the place is past the last one. */
+      outOfRange: (index: number, count: number) =>
+        `\`${index}\` is past the last place, \`${count}\`.`,
+      /** `edit.invalid-value`: a point given to a bar. */
+      noPoint: "A bar takes its place from its dates; `at` does not apply to gantt charts.",
+      /** `edit.invalid-value`: a statement `setChartStatement` does not write. */
+      notStatement: (name: string, names: readonly string[]) =>
+        `\`${name}\` is not a statement of the chart's look to write; use ${names.map((n) => `\`${n}\``).join(", ")}.`,
+      /** `edit.invalid-value`: a value a chart statement does not take, with what it takes. */
+      badStatementValue: (statement: string, value: string, takes: string) =>
+        `\`${value}\` is not a value of \`${statement}\`; it takes ${takes}.`,
+      /** `edit.invalid-value`. */
+      notDay: (item: string) =>
+        `\`${item}\` is not a weekday, \`weekends\` or a date; write monday to sunday, weekends or 2026-06-29.`,
+    },
+
     /** Tags of sequence participants and messages: `tag "Text"` statements in their blocks. */
     tags: {
       /** `edit.unsafe-target`. */
@@ -766,5 +833,11 @@ export const en = {
     /** Story actions that named an ungrouped group. */
     removedStoryTargets: (count: number, group: string) =>
       `Removed \`${group}\` from ${count === 1 ? "a story action" : `${count} story actions`}.`,
+    /** A task of a gantt chart that waited for what was removed, written with the date it had. */
+    keptStart: (id: string, word: string, date: string) =>
+      `\`${id}\` kept its start: it now reads \`${word} ${date}\`.`,
+    /** A task of a gantt chart that ended at what was removed, written with the length it had. */
+    keptEnd: (id: string, duration: string) =>
+      `\`${id}\` kept its length: it now reads \`for ${duration}\`.`,
   },
 };

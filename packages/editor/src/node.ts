@@ -7,8 +7,17 @@ import { ProjectSessions as HostSessions, type ProjectSessionsOptions } from "./
 export type { ProjectDefaults, ProjectSessionsOptions } from "./projects.js";
 
 /**
+ * The machine's local date as `YYYY-MM-DD`: the day a gantt chart's `today` line is drawn at when
+ * the host says nothing else. Read here, in the host, never in the layout.
+ */
+export function localDay(now: Date = new Date()): string {
+  const pad = (n: number, width = 2) => String(n).padStart(width, "0");
+  return `${pad(now.getFullYear(), 4)}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+/**
  * Project sessions over the local file system, the installed fonts and icons and the installed
- * ELK, unless the options give others.
+ * ELK, unless the options give others; gantt charts draw `today` at the machine's local date.
  */
 export class ProjectSessions extends HostSessions {
   constructor(options: ProjectSessionsOptions) {
@@ -17,6 +26,7 @@ export class ProjectSessions extends HostSessions {
       fonts: createNodeFontLibrary,
       iconPacks: createNodeIconPacks,
       libraries: createNodeLibraries,
+      today: localDay,
     });
   }
 }

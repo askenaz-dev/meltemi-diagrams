@@ -97,7 +97,18 @@ const field = (model: InspectorModel, name: string) => model.fields.find((f) => 
 describe("the editor's catalogs", () => {
   it("have every English entry in Spanish", () => {
     // Words that are the same in both languages: abbreviations, letters and kinds.
-    expect(untranslated(en, es, ["Id", "URL", "X", "Y", "Base", "actor", "control"])).toEqual([]);
+    expect(
+      untranslated(en, es, [
+        "Id",
+        "URL",
+        "X",
+        "Y",
+        "Base",
+        "actor",
+        "control",
+        "gantt.options.normal",
+      ]),
+    ).toEqual([]);
     expect(untranslated(keyMessages("en"), keyMessages("es"))).toEqual([]);
   });
 

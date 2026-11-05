@@ -46,6 +46,12 @@ export const TEMPLATES = {
     description: "A sequence diagram with a scenario for each outcome",
     contents: contents({ diagrams: 1 }),
   },
+  roadmap: {
+    title: "Product roadmap",
+    description:
+      "A roadmap of three sections of tasks with their dependencies, a milestone and a story that plays it",
+    contents: contents({ diagrams: 1, stories: 1 }),
+  },
   free: {
     title: "Slide",
     description: "A slide composed freely: text, boxes, an icon and a group",

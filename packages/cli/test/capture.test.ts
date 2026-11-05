@@ -148,6 +148,23 @@ describe.skipIf(!findBrowser())("PNG and PDF with the installed browser", () => 
     expect(pdf).toContain("/URI (https://example.com/all)");
   }, 180_000);
 
+  it("writes SVG, PNG and PDF of a gantt chart", () => {
+    copyFileSync(
+      join(CORPUS_ROOT, "valid", "gantt", "roadmap.meltemi"),
+      join(scratch, "plan.meltemi"),
+    );
+    expect(mdg("export", "plan.meltemi").code).toBe(0);
+    expect(readFileSync(join(scratch, "plan.svg"), "utf8")).toContain('data-role="axis"');
+    const png = mdg("export", "plan.meltemi", "--format", "png", "--scale", "1");
+    expect(png.code, png.stderr).toBe(0);
+    expect(pngInfo(readFileSync(join(scratch, "plan.png"))).width).toBeGreaterThanOrEqual(1200);
+    const pdf = mdg("export", "plan.meltemi", "--format", "pdf");
+    expect(pdf.code, pdf.stderr).toBe(0);
+    expect(readFileSync(join(scratch, "plan.pdf")).toString("latin1").startsWith("%PDF-")).toBe(
+      true,
+    );
+  }, 180_000);
+
   it("runs every profile of the file, into their files or a folder", () => {
     const { code, stdout } = mdg("export", "sheet.meltemi", "--profiles");
     expect(code).toBe(0);

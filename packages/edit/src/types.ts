@@ -487,7 +487,9 @@ export type EditOperation =
        * block of the group `parent`, or into the diagram body with `null`, after the last
        * declaration there or before the declaration at `index`. An implicit element gains its
        * declaration there. Relations, styles and animations stay where they are. Into a list
-       * group, the element's `place` goes: the list places its children. Flow and free diagrams.
+       * group, the element's `place` goes: the list places its children. Flow and free diagrams;
+       * on a gantt chart it moves a task, milestone or marker into a section or the top level of
+       * the chart, and a section among the sections, by `parent` and `index` alone.
        */
       readonly kind: "moveElement";
       readonly diagram: string;
@@ -852,6 +854,73 @@ export type EditOperation =
       readonly condition: string | null;
     }
   | {
+      /**
+       * Gantt charts: rewrites the schedule clauses of a task, milestone or marker. A field that is
+       * absent keeps its clause and `null` removes it; only the clause's tokens change. `from` is a
+       * date written as `from` on a task and as `at` on a milestone or marker; `after` lists ids;
+       * `end` is one of `for`, `to` and `until` and replaces whatever end clause is written (a
+       * milestone and a marker take none).
+       */
+      readonly kind: "setTaskSchedule";
+      readonly diagram: string;
+      readonly task: string;
+      readonly from?: string | null;
+      readonly after?: readonly string[] | null;
+      readonly end?: TaskEnd | null;
+    }
+  | {
+      /**
+       * Gantt charts: writes the status words of a task or milestone after its clauses, replacing
+       * the ones written: `done` or `active` for `status` (null for neither) and `critical`.
+       */
+      readonly kind: "setTaskStatus";
+      readonly diagram: string;
+      readonly task: string;
+      readonly status: "done" | "active" | null;
+      readonly critical: boolean;
+    }
+  | {
+      /**
+       * Gantt charts: inserts a `task`, `milestone`, `marker` or `section` statement into the
+       * section `parent` (the top level without one), before the statement at `index` of that
+       * block or after the last, with the clauses given. A section is written with its braces.
+       */
+      readonly kind: "createTask";
+      readonly diagram: string;
+      readonly elementKind: "task" | "milestone" | "marker" | "section";
+      /** The first of `task1`, `milestone1`, `marker1` or `section1`… the file does not use by default. */
+      readonly id?: string;
+      /** Written after the id; without it the label is the id. */
+      readonly label?: string;
+      readonly parent?: string;
+      readonly index?: number;
+      readonly from?: string;
+      readonly after?: readonly string[];
+      readonly end?: TaskEnd;
+    }
+  | {
+      /**
+       * Gantt charts: writes, changes or (with `null`) removes one of the chart's statements that are
+       * not diagram properties: `axisFormat` (a format), `ticks` (`1w`), `weekStart` (a weekday),
+       * `axis`, `labels`, `display` and `dependencies` (one of their words), `dayWidth` (a number of
+       * units) and `today` (`""` for the bare `today`, else a date).
+       */
+      readonly kind: "setChartStatement";
+      readonly diagram: string;
+      readonly statement: ChartStatement;
+      readonly value: string | number | null;
+    }
+  | {
+      /**
+       * Gantt charts: rewrites the chart's `exclude` and `include` statements to the lists given
+       * (weekday names, `weekends` and dates), deleting the one whose list is empty.
+       */
+      readonly kind: "setCalendar";
+      readonly diagram: string;
+      readonly exclude: readonly string[];
+      readonly include: readonly string[];
+    }
+  | {
       /** Replaces the icon reference of an `icon` object or the path of an `image` object. */
       readonly kind: "setElementSource";
       readonly diagram: string;
@@ -915,8 +984,27 @@ export interface PenStyle {
   readonly arrowtail?: string;
 }
 
+/** The statements of a gantt chart that `setChartStatement` writes. */
+export type ChartStatement =
+  | "axisFormat"
+  | "ticks"
+  | "weekStart"
+  | "axis"
+  | "labels"
+  | "display"
+  | "dependencies"
+  | "dayWidth"
+  | "today";
+
 /** The types of diagrams `createDiagram` writes: C4 views need a model, written in text. */
-export type CreatableDiagramType = "flow" | "free" | "sequence";
+export type CreatableDiagramType = "flow" | "free" | "sequence" | "gantt";
+
+/**
+ * How a task of a gantt chart ends: for a duration (`"10d"`, a number above 0 and one of `s`,
+ * `min`, `h`, `d`, `w`), to the end of a date, or until the start of other tasks.
+ */
+export type TaskEnd =
+  { readonly for: string } | { readonly to: string } | { readonly until: readonly string[] };
 
 export interface EditPlan {
   readonly operation: EditOperation;
@@ -959,6 +1047,8 @@ export interface Dependent {
 export interface EditRejection {
   readonly code: string;
   readonly reason: string;
+  /** The code of the model's diagnostic that the edit would add, when `reason` is its message. */
+  readonly diagnostic?: string;
   readonly dependents?: readonly Dependent[];
   /** In a batch, the index of the operation that was refused. */
   readonly operationIndex?: number;

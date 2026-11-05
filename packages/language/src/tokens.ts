@@ -4,6 +4,7 @@ export type TokenKind =
   | "Identifier"
   | "String"
   | "Number"
+  | "Date"
   | "Arrow"
   | "DashedArrow"
   | "BothArrow"

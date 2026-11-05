@@ -6,8 +6,8 @@ Everything Meltemi Diagrams 1.0 does, by area. The [getting started](getting-sta
 walks through the common path, and the [documentation index](README.md) lists every reference.
 
 - `.meltemi` grammar 0.2 with a lossless parser and stable diagnostics.
-- A typed model and validation for `flow`, `free`, `sequence` and `c4` diagrams and architecture
-  models, with JSON interchange.
+- A typed model and validation for `flow`, `free`, `sequence`, `c4` and `gantt` diagrams and
+  architecture models, with JSON interchange.
 - Structured source edits (move, resize, route, label, rename, remove) that change only the
   affected tokens and keep comments and formatting.
 - Projects: `project.json`, relative imports with namespaces, themes shared between files, a
@@ -29,7 +29,8 @@ walks through the common path, and the [documentation index](README.md) lists ev
   `meltemi-diagrams layout` to write positions down ([layout](language/layout.md)).
 - `meltemi-diagrams validate` and `meltemi-diagrams export`: diagnostics for files and projects, and
   SVG export of every compiled profile: `flow` diagrams with notes, tags, data cylinders, decision
-  diamonds, group bands and step labels, free compositions, sequence diagrams and C4 views.
+  diamonds, group bands and step labels, free compositions, sequence diagrams, C4 views and gantt
+  charts.
 - Free compositions ([free](language/free.md)): boxes in twenty-four shapes that connectors meet
   and text fits (flow nodes take them too), their text at the top, middle or bottom, corner radii,
   plain containers and stacks, measured text, icons and project images, lines that join no
@@ -41,6 +42,12 @@ walks through the common path, and the [documentation index](README.md) lists ev
   every fragment (`alt`, `opt`, `loop`, `par`, `break`, `critical`, `region`), dividers, delays,
   numbering, order-checked rules, a deterministic layout, and scenarios exported with
   `meltemi-diagrams export --scenario`.
+- Gantt charts ([gantt](language/gantt.md)): sections, tasks, milestones and markers scheduled from
+  dates, `after` dependencies and durations in days, hours or weeks; a calendar that skips weekends,
+  weekdays and holidays (`exclude`, `include`); an axis with automatic or written ticks and formats,
+  bars by status and critical tasks, dependency arrows, a `today` line pinned with
+  `meltemi-diagrams export --today`, a deterministic layout, and effects and stories that grow the
+  bars and trace the chain that drives a task.
 - Models and C4 views ([c4](language/c4.md)): persons, systems, containers, datastores and
   components in one shared model; context, container and component views validated by level and
   scope; relations lifted to the drawn ancestors with traceability and combined only explicitly;
@@ -84,8 +91,8 @@ walks through the common path, and the [documentation index](README.md) lists ev
   icon packs, installed explicitly with a pinned version, granted permissions and declared
   compatibility; no code from a project ever runs; paths stay in the project, nothing is fetched,
   sizes are bounded, and errors never show secrets.
-- Importers ([import](import/mermaid.md)): Mermaid `flowchart`, `sequenceDiagram`, `C4*`, `architecture-beta`
-  and `block-beta`; PlantUML component, deployment, use case, sequence and C4-PlantUML diagrams,
+- Importers ([import](import/mermaid.md)): Mermaid `flowchart`, `sequenceDiagram`, `C4*`, `architecture-beta`,
+  `block-beta` and `gantt`; PlantUML component, deployment, use case, sequence and C4-PlantUML diagrams,
   with the preprocessor; diagram blocks of Markdown files. Every construct is reported as mapped,
   approximated or dropped, the source is never changed, and re-importing keeps the placement,
   styles and other adjustments made since (`meltemi-diagrams import`, and three commands in VS
@@ -110,7 +117,7 @@ walks through the common path, and the [documentation index](README.md) lists ev
     operation and short transitions that respect reduced motion;
   - every gesture is one small edit of the text.
 - Quality: labels kept clear of shapes and other connectors and audited in
-  every drawing, connectors that go around boxes, an acceptance corpus of the four profiles, pixel
+  every drawing, connectors that go around boxes, an acceptance corpus of the five profiles, pixel
   references, deterministic exports, performance targets on a reference machine and every export
   opened in Edge, Chrome and Firefox ([quality](quality.md)).
 - Stability: the [language change policy](language/policy.md), a [conformance suite](language/conformance.md)

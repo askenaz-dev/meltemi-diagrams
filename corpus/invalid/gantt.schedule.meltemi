@@ -1,0 +1,6 @@
+language "0.2"
+
+// A task that ends before it starts.
+diagram plan: gantt {
+  task review "Review" from 2026-06-10 to 2026-06-05
+}

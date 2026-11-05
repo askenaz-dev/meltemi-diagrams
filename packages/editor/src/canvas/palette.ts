@@ -69,8 +69,9 @@ export type ArrowKind = (typeof ARROW_KINDS)[number];
  */
 export function arrowKinds(profile: CanvasProfile): readonly ArrowKind[] {
   if (profile === "sequence") return [];
-  // A model writes its relations with `->` alone: a C4 view offers no other kind.
-  if (profile === "c4") return ["->"];
+  // A model writes its relations with `->` alone: a C4 view offers no other kind. A dependency
+  // of a gantt chart is one way too: the end of a task to the start of the next.
+  if (profile === "c4" || profile === "gantt") return ["->"];
   return ARROW_KINDS;
 }
 

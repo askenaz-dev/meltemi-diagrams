@@ -107,6 +107,8 @@ export const PARTICIPANT_KINDS = [
 ] as const;
 /** Element kinds of sequence diagrams: the participants and their groups. */
 export const SEQUENCE_ELEMENT_KINDS = [...PARTICIPANT_KINDS, "group"] as const;
+/** Element kinds of gantt charts: sections of rows, and the tasks, milestones and markers in them. */
+export const GANTT_ELEMENT_KINDS = ["section", "task", "milestone", "marker"] as const;
 /** Entities of an architecture model, which C4 views draw. */
 export const ENTITY_KINDS = ["person", "system", "container", "datastore", "component"] as const;
 /** Element kinds of C4 views: the entities and the scope boundary. */
@@ -146,6 +148,7 @@ export const ALL_ELEMENT_KINDS = [
   "pen",
   ...PARTICIPANT_KINDS,
   ...ENTITY_KINDS,
+  ...GANTT_ELEMENT_KINDS,
 ] as const;
 /** Fragment operators of sequence diagrams. */
 export const FRAGMENT_OPERATORS = [
@@ -177,6 +180,90 @@ export const SEQUENCE_EVENTS = [
 ] as const;
 /** Statements of a `scenario` block. */
 export const SCENARIO_STATEMENTS = ["choose", "repeat", "skip", "take"] as const;
+
+/** The units of a gantt duration (`10d`, `1.5h`); a week counts the working days of a week. */
+export const DURATION_UNITS = ["s", "min", "h", "d", "w"] as const;
+/** The units of `ticks`: the duration units, months and years. */
+export const TICK_UNITS = [...DURATION_UNITS, "mo", "y"] as const;
+/** The days of the week, from Monday: the position is the weekday number the calendar uses. */
+export const WEEKDAYS = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+] as const;
+/** The directives of `axisFormat`, a subset of strftime's; each takes the `-` flag (`%-d`). */
+export const AXIS_DIRECTIVES = [
+  "a",
+  "A",
+  "b",
+  "B",
+  "d",
+  "e",
+  "H",
+  "I",
+  "j",
+  "m",
+  "M",
+  "p",
+  "q",
+  "S",
+  "U",
+  "V",
+  "w",
+  "W",
+  "y",
+  "Y",
+  "%",
+] as const;
+/** The statements of a gantt chart that state its calendar, axis and look. */
+export const GANTT_CHART_STATEMENTS = [
+  "exclude",
+  "include",
+  "weekStart",
+  "axisFormat",
+  "ticks",
+  "axis",
+  "labels",
+  "display",
+  "dependencies",
+  "dayWidth",
+  "today",
+] as const;
+export const GANTT_AXIS_PLACES = ["top", "bottom", "both"] as const;
+export const GANTT_LABEL_PLACES = ["bar", "column"] as const;
+export const GANTT_DISPLAYS = ["normal", "compact"] as const;
+export const GANTT_DEPENDENCIES = ["shown", "hidden"] as const;
+/** The units of width `dayWidth` may give a day. */
+export const GANTT_DAY_WIDTH_RANGE = { min: 1, max: 100_000 } as const;
+/** The clause words of each gantt statement that stands for a bar, a diamond or a line. */
+export const GANTT_CLAUSES: Readonly<Record<"task" | "milestone" | "marker", readonly string[]>> = {
+  task: ["from", "after", "for", "to", "until"],
+  milestone: ["at", "after"],
+  marker: ["at", "after"],
+};
+/** The words that stand alone after a label: the status of a task or milestone, and `critical`. */
+export const GANTT_STATUS_WORDS = ["done", "active", "critical"] as const;
+/** The words a task, milestone or marker cannot be named: they end a list of ids. */
+export const GANTT_RESERVED_IDS: readonly string[] = [
+  "from",
+  "after",
+  "for",
+  "to",
+  "until",
+  "at",
+  ...GANTT_STATUS_WORDS,
+];
+/** The style properties a gantt chart refuses: bars, diamonds and lines have a fixed shape. */
+export const GANTT_REFUSED_STYLE_PROPERTIES: readonly string[] = [
+  "iconPosition",
+  "labelPosition",
+  "iconSize",
+  "routing",
+];
 export const LINE_STYLES = ["solid", "dashed", "dotted"] as const;
 
 /** Where a relation's token puts its heads: at the end, at both ends, or at neither. */
@@ -206,7 +293,7 @@ export function arrowToken(line: "solid" | "dashed", heads: RelationHeads): stri
   return dashed ? "-->" : "->";
 }
 
-export const DIAGRAM_TYPES = ["flow", "sequence", "c4", "free"] as const;
+export const DIAGRAM_TYPES = ["flow", "sequence", "c4", "free", "gantt"] as const;
 export const MESSAGE_KINDS = ["sync", "async"] as const;
 export const PATTERNS = ["none", "hatch", "dots", "cross"] as const;
 /**
@@ -312,9 +399,9 @@ export function takesRotation(kind: string): boolean {
   return kind !== "group" && kind !== "line" && kind !== "pen";
 }
 
-/** Whether a profile's elements take `rotation`: sequence diagrams and C4 views do not. */
+/** Whether a profile's elements take `rotation`: sequence diagrams, C4 views and charts do not. */
 export function profileTakesRotation(profile: { readonly name: string }): boolean {
-  return profile.name !== "sequence" && profile.name !== "c4";
+  return profile.name !== "sequence" && profile.name !== "c4" && profile.name !== "gantt";
 }
 export const TEXT_ALIGNS = ["left", "center", "right"] as const;
 /** Where a free box's text block sits within the shape's text band, top to bottom. */
@@ -597,7 +684,7 @@ export const BUILT_IN_CLASSES: Readonly<Record<string, Readonly<Record<string, s
     c4_boundary: { line: "dashed", stroke: "@muted" },
   };
 
-export type DiagramProfile = "flow" | "free" | "sequence" | "c4";
+export type DiagramProfile = "flow" | "free" | "sequence" | "c4" | "gantt";
 
 /** The vocabulary of a compiled diagram profile. */
 export interface ProfileSchema {
@@ -622,6 +709,8 @@ export interface ProfileSchema {
   readonly ruleKinds: readonly string[];
   /** Event statements in the order of a sequence; empty for other profiles. */
   readonly events: readonly string[];
+  /** Statements read besides the kinds, properties, blocks and events: a gantt chart's. */
+  readonly statements?: readonly string[];
 }
 
 const DIAGRAM_PROPERTIES: PropertyTable = {
@@ -796,6 +885,45 @@ export const SEQUENCE_PROFILE: ProfileSchema = {
   events: SEQUENCE_EVENTS,
 };
 
+export const GANTT_PROFILE: ProfileSchema = {
+  name: "gantt",
+  status: "compiled",
+  diagramProperties: {
+    theme: { kind: "string" },
+    title: { kind: "string" },
+    description: { kind: "string" },
+    preset: { kind: "enum", values: PRESETS },
+    canvas: { kind: "size", min: 100, max: 10000 },
+  },
+  elementKinds: GANTT_ELEMENT_KINDS,
+  // A chart has no `id["Label"]` declarations; the words are never read.
+  shorthand: { box: "task", data: "task" },
+  implicitKind: "task",
+  elementProperties: {
+    description: { kind: "string" },
+    class: { kind: "classes" },
+    link: { kind: "link" },
+    url: { kind: "url" },
+  },
+  groupProperties: {
+    description: { kind: "string" },
+    class: { kind: "classes" },
+    link: { kind: "link" },
+    url: { kind: "url" },
+  },
+  relationProperties: {},
+  // Dependencies are written with `after`, never as relations.
+  arrows: {},
+  diagramBlocks: ["style", "animate", "class", "rule"],
+  placementStatements: [],
+  ports: [],
+  styleProperties: { ...STYLE_PROPERTIES, class: { kind: "classes" } },
+  animateProperties: ANIMATE_PROPERTIES,
+  ruleKinds: [...GANTT_ELEMENT_KINDS, "relation"],
+  events: [],
+  statements: GANTT_CHART_STATEMENTS,
+};
+
 export const C4_PROFILE: ProfileSchema = {
   name: "c4",
   status: "compiled",
@@ -835,11 +963,16 @@ export const PROFILES: Readonly<Record<DiagramProfile, ProfileSchema>> = {
   free: FREE_PROFILE,
   sequence: SEQUENCE_PROFILE,
   c4: C4_PROFILE,
+  gantt: GANTT_PROFILE,
 };
 
 /** The profile of a diagram type, or undefined when the type does not compile. */
 export function profileOf(type: string): ProfileSchema | undefined {
-  return type === "flow" || type === "free" || type === "sequence" || type === "c4"
+  return type === "flow" ||
+    type === "free" ||
+    type === "sequence" ||
+    type === "c4" ||
+    type === "gantt"
     ? PROFILES[type]
     : undefined;
 }
@@ -946,6 +1079,7 @@ export function diagramStatements(profile: ProfileSchema = FLOW_PROFILE): string
     ...Object.keys(profile.diagramProperties),
     ...profile.diagramBlocks,
     ...profile.events,
+    ...(profile.statements ?? []),
   ];
 }
 

@@ -1,0 +1,29 @@
+language "0.2"
+
+// Parallel work in compact rows: tasks of one section that overlap in time, each on a row of its
+// own, with the `compact` display that shortens the rows and tightens the gaps between them.
+diagram parallel: gantt {
+  title "Parallel work"
+  axisFormat "%d %b"
+  display compact
+  exclude weekends
+  today 2026-06-12
+
+  section streams "Work streams" {
+    task kickoff "Kick-off" from 2026-06-01 for 2d done
+    task backend "Backend services" after kickoff for 10d active
+    task frontend "Web interface" after kickoff for 8d active
+    task mobile "Mobile app" after kickoff for 12d
+    task data "Data pipeline" from 2026-06-03 for 9d done
+    task docs "Documentation" from 2026-06-08 for 10d
+    task training "Training sessions" from 2026-06-10 for 6d
+    task support "Support rota" from 2026-06-15 for 8d
+  }
+
+  section checks "Checks" {
+    task security "Security review" from 2026-06-22 for 4d critical
+    task accessibility "Accessibility audit" from 2026-06-24 for 3d
+    task load "Load test" from 2026-06-26 for 3d critical
+    milestone ready "Ready to ship" after load
+  }
+}

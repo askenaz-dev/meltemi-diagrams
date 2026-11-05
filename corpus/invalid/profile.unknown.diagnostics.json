@@ -2,7 +2,7 @@
   {
     "code": "profile.unknown",
     "severity": "error",
-    "message": "Unknown diagram type `mindmap`; expected one of flow, sequence, c4, free.",
+    "message": "Unknown diagram type `mindmap`; expected one of flow, sequence, c4, free, gantt.",
     "range": {
       "start": {
         "offset": 31,

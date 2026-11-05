@@ -14,7 +14,7 @@ pnpm mdg import README.md                    # every ```mermaid and ```plantuml 
 ````
 
 - Mermaid `flowchart`/`graph`, `sequenceDiagram`, `C4Context`/`C4Container`/`C4Component`/
-  `C4Dynamic`, `architecture-beta` and `block-beta`; PlantUML component, deployment, use case,
+  `C4Dynamic`, `architecture-beta`, `block-beta` and `gantt`; PlantUML component, deployment, use case,
   sequence and C4-PlantUML diagrams, with `!define`, `!procedure`, `!function`, variables,
   conditionals, loops and local `!include` files. Other types are refused.
 - Read every finding: `import.approximated` (kept with another drawing), `import.unsupported-construct`
@@ -24,6 +24,10 @@ pnpm mdg import README.md                    # every ```mermaid and ```plantuml 
   When the source changes, run `pnpm mdg import <source> --merge`: placement, styles, classes,
   animations, scenarios and local labels are kept for everything still in the source.
 - C4 macros become a `model` and a view; check the level, the scope and the `include` list.
+- A Mermaid `gantt` becomes a gantt chart with the dates Mermaid draws ([gantt.md](gantt.md)):
+  exclusive end dates become inclusive `to`, `1w` under excluded weekends becomes `7d`, a chart with
+  no `todayMarker` writes `today`, and a task whose dates Meltemi resolves differently is reported
+  once with both dates. PlantUML `@startgantt` is refused.
 - Shapes are kept: Mermaid hexagons, parallelograms, trapezoids, circles, stadiums, subroutines
   and flags, and PlantUML clouds, hexagons, actors, use cases, interfaces and files become nodes
   (or boxes) with `style <id> { shape … }`; mirrored Mermaid forms are drawn as the nearest shape

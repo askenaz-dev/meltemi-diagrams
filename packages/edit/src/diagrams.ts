@@ -8,7 +8,12 @@ import { quoteString } from "./text.js";
 import type { CreatableDiagramType } from "./types.js";
 
 /** The types `createDiagram` writes, in the order hosts offer them. */
-export const CREATABLE_DIAGRAMS: readonly CreatableDiagramType[] = ["flow", "free", "sequence"];
+export const CREATABLE_DIAGRAMS: readonly CreatableDiagramType[] = [
+  "flow",
+  "free",
+  "sequence",
+  "gantt",
+];
 
 /** The names the top level of a file uses: its blocks and the names its imports bind. */
 export function topLevelNames(compilation: Compilation): Set<string> {

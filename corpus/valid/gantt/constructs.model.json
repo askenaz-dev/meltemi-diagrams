@@ -1,0 +1,1339 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "launch",
+      "type": "gantt",
+      "range": {
+        "start": {
+          "offset": 183,
+          "line": 5,
+          "column": 1
+        },
+        "end": {
+          "offset": 1383,
+          "line": 41,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "auto",
+        "theme": "editorial.light",
+        "title": "Product launch",
+        "description": "A plan with every construct of a gantt chart",
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null,
+        "spacing": null
+      },
+      "classes": [
+        {
+          "id": "late",
+          "properties": {
+            "stroke": "@danger"
+          },
+          "range": {
+            "start": {
+              "offset": 411,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 439,
+              "line": 14,
+              "column": 31
+            }
+          }
+        }
+      ],
+      "rules": [],
+      "elements": [
+        {
+          "id": "discovery",
+          "kind": "section",
+          "label": "Discovery",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 443,
+              "line": 16,
+              "column": 3
+            },
+            "end": {
+              "offset": 678,
+              "line": 20,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 451,
+              "line": 16,
+              "column": 11
+            },
+            "end": {
+              "offset": 460,
+              "line": 16,
+              "column": 20
+            }
+          },
+          "task": null
+        },
+        {
+          "id": "research",
+          "kind": "task",
+          "label": "User research",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "discovery"
+          ],
+          "range": {
+            "start": {
+              "offset": 479,
+              "line": 17,
+              "column": 5
+            },
+            "end": {
+              "offset": 536,
+              "line": 17,
+              "column": 62
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 484,
+              "line": 17,
+              "column": 10
+            },
+            "end": {
+              "offset": 492,
+              "line": 17,
+              "column": 18
+            }
+          },
+          "task": {
+            "from": "2026-06-01",
+            "after": [],
+            "end": {
+              "kind": "for",
+              "amount": 5,
+              "unit": "d"
+            },
+            "status": "done",
+            "critical": false,
+            "start": "2026-06-01T00:00",
+            "finish": "2026-06-06T00:00",
+            "workingDays": 5
+          }
+        },
+        {
+          "id": "interviews",
+          "kind": "task",
+          "label": "Interviews",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "discovery"
+          ],
+          "range": {
+            "start": {
+              "offset": 541,
+              "line": 18,
+              "column": 5
+            },
+            "end": {
+              "offset": 604,
+              "line": 18,
+              "column": 68
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 546,
+              "line": 18,
+              "column": 10
+            },
+            "end": {
+              "offset": 556,
+              "line": 18,
+              "column": 20
+            }
+          },
+          "task": {
+            "from": "2026-06-03",
+            "after": [],
+            "end": {
+              "kind": "to",
+              "date": "2026-06-05"
+            },
+            "status": "done",
+            "critical": false,
+            "start": "2026-06-03T00:00",
+            "finish": "2026-06-06T00:00",
+            "workingDays": 3
+          }
+        },
+        {
+          "id": "synthesis",
+          "kind": "task",
+          "label": "Synthesis",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "discovery"
+          ],
+          "range": {
+            "start": {
+              "offset": 609,
+              "line": 19,
+              "column": 5
+            },
+            "end": {
+              "offset": 674,
+              "line": 19,
+              "column": 70
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 614,
+              "line": 19,
+              "column": 10
+            },
+            "end": {
+              "offset": 623,
+              "line": 19,
+              "column": 19
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "research",
+              "interviews"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 3,
+              "unit": "d"
+            },
+            "status": "done",
+            "critical": false,
+            "start": "2026-06-08T00:00",
+            "finish": "2026-06-11T00:00",
+            "workingDays": 3
+          }
+        },
+        {
+          "id": "build",
+          "kind": "section",
+          "label": "Build",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 682,
+              "line": 22,
+              "column": 3
+            },
+            "end": {
+              "offset": 1092,
+              "line": 31,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 690,
+              "line": 22,
+              "column": 11
+            },
+            "end": {
+              "offset": 695,
+              "line": 22,
+              "column": 16
+            }
+          },
+          "task": null
+        },
+        {
+          "id": "design",
+          "kind": "task",
+          "label": "Design",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "build"
+          ],
+          "range": {
+            "start": {
+              "offset": 710,
+              "line": 23,
+              "column": 5
+            },
+            "end": {
+              "offset": 760,
+              "line": 23,
+              "column": 55
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 715,
+              "line": 23,
+              "column": 10
+            },
+            "end": {
+              "offset": 721,
+              "line": 23,
+              "column": 16
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "synthesis"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 6,
+              "unit": "d"
+            },
+            "status": "active",
+            "critical": false,
+            "start": "2026-06-11T00:00",
+            "finish": "2026-06-19T00:00",
+            "workingDays": 6
+          }
+        },
+        {
+          "id": "backend",
+          "kind": "task",
+          "label": "Backend",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "build"
+          ],
+          "range": {
+            "start": {
+              "offset": 765,
+              "line": 24,
+              "column": 5
+            },
+            "end": {
+              "offset": 816,
+              "line": 24,
+              "column": 56
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 770,
+              "line": 24,
+              "column": 10
+            },
+            "end": {
+              "offset": 777,
+              "line": 24,
+              "column": 17
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "design"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 8,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": true,
+            "start": "2026-06-22T00:00",
+            "finish": "2026-07-02T00:00",
+            "workingDays": 8
+          }
+        },
+        {
+          "id": "frontend",
+          "kind": "task",
+          "label": "Frontend",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [
+            "late"
+          ],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "build"
+          ],
+          "range": {
+            "start": {
+              "offset": 821,
+              "line": 25,
+              "column": 5
+            },
+            "end": {
+              "offset": 880,
+              "line": 25,
+              "column": 64
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 826,
+              "line": 25,
+              "column": 10
+            },
+            "end": {
+              "offset": 834,
+              "line": 25,
+              "column": 18
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "design"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 7,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-06-22T00:00",
+            "finish": "2026-07-01T00:00",
+            "workingDays": 7
+          }
+        },
+        {
+          "id": "docs",
+          "kind": "task",
+          "label": "Documentation",
+          "implicit": false,
+          "description": "Written while the product settles",
+          "url": "https://example.com/docs",
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "build"
+          ],
+          "range": {
+            "start": {
+              "offset": 885,
+              "line": 26,
+              "column": 5
+            },
+            "end": {
+              "offset": 1032,
+              "line": 29,
+              "column": 6
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 890,
+              "line": 26,
+              "column": 10
+            },
+            "end": {
+              "offset": 894,
+              "line": 26,
+              "column": 14
+            }
+          },
+          "task": {
+            "from": "2026-06-22",
+            "after": [],
+            "end": {
+              "kind": "for",
+              "amount": 1,
+              "unit": "w"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-06-22T00:00",
+            "finish": "2026-06-27T00:00",
+            "workingDays": 5
+          }
+        },
+        {
+          "id": "review",
+          "kind": "task",
+          "label": "Release review",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "build"
+          ],
+          "range": {
+            "start": {
+              "offset": 1037,
+              "line": 30,
+              "column": 5
+            },
+            "end": {
+              "offset": 1088,
+              "line": 30,
+              "column": 56
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1042,
+              "line": 30,
+              "column": 10
+            },
+            "end": {
+              "offset": 1048,
+              "line": 30,
+              "column": 16
+            }
+          },
+          "task": {
+            "from": "2026-07-06",
+            "after": [],
+            "end": {
+              "kind": "for",
+              "amount": 3,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-07-06T00:00",
+            "finish": "2026-07-09T00:00",
+            "workingDays": 3
+          }
+        },
+        {
+          "id": "go",
+          "kind": "section",
+          "label": "Go to market",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1096,
+              "line": 33,
+              "column": 3
+            },
+            "end": {
+              "offset": 1292,
+              "line": 37,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1104,
+              "line": 33,
+              "column": 11
+            },
+            "end": {
+              "offset": 1106,
+              "line": 33,
+              "column": 13
+            }
+          },
+          "task": null
+        },
+        {
+          "id": "qa",
+          "kind": "task",
+          "label": "Quality assurance",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "go"
+          ],
+          "range": {
+            "start": {
+              "offset": 1128,
+              "line": 34,
+              "column": 5
+            },
+            "end": {
+              "offset": 1192,
+              "line": 34,
+              "column": 69
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1133,
+              "line": 34,
+              "column": 10
+            },
+            "end": {
+              "offset": 1135,
+              "line": 34,
+              "column": 12
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "backend",
+              "frontend"
+            ],
+            "end": {
+              "kind": "until",
+              "ids": [
+                "launch"
+              ]
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-07-02T00:00",
+            "finish": "2026-07-14T00:00",
+            "workingDays": 8
+          }
+        },
+        {
+          "id": "launch",
+          "kind": "milestone",
+          "label": "Launch",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "go"
+          ],
+          "range": {
+            "start": {
+              "offset": 1197,
+              "line": 35,
+              "column": 5
+            },
+            "end": {
+              "offset": 1236,
+              "line": 35,
+              "column": 44
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1207,
+              "line": 35,
+              "column": 15
+            },
+            "end": {
+              "offset": 1213,
+              "line": 35,
+              "column": 21
+            }
+          },
+          "task": {
+            "from": "2026-07-14",
+            "after": [],
+            "end": null,
+            "status": null,
+            "critical": false,
+            "start": "2026-07-14T00:00",
+            "finish": "2026-07-14T00:00",
+            "workingDays": 0
+          }
+        },
+        {
+          "id": "support",
+          "kind": "task",
+          "label": "Support rota",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "go"
+          ],
+          "range": {
+            "start": {
+              "offset": 1241,
+              "line": 36,
+              "column": 5
+            },
+            "end": {
+              "offset": 1288,
+              "line": 36,
+              "column": 52
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1246,
+              "line": 36,
+              "column": 10
+            },
+            "end": {
+              "offset": 1253,
+              "line": 36,
+              "column": 17
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "launch"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 2,
+              "unit": "w"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-07-14T00:00",
+            "finish": "2026-07-28T00:00",
+            "workingDays": 10
+          }
+        },
+        {
+          "id": "freeze",
+          "kind": "marker",
+          "label": "Code freeze",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1296,
+              "line": 39,
+              "column": 3
+            },
+            "end": {
+              "offset": 1337,
+              "line": 39,
+              "column": 44
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1303,
+              "line": 39,
+              "column": 10
+            },
+            "end": {
+              "offset": 1309,
+              "line": 39,
+              "column": 16
+            }
+          },
+          "task": {
+            "from": "2026-07-03",
+            "after": [],
+            "end": null,
+            "status": null,
+            "critical": false,
+            "start": "2026-07-03T00:00",
+            "finish": "2026-07-03T00:00",
+            "workingDays": 0
+          }
+        },
+        {
+          "id": "board",
+          "kind": "marker",
+          "label": "Board review",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1340,
+              "line": 40,
+              "column": 3
+            },
+            "end": {
+              "offset": 1381,
+              "line": 40,
+              "column": 44
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1347,
+              "line": 40,
+              "column": 10
+            },
+            "end": {
+              "offset": 1352,
+              "line": 40,
+              "column": 15
+            }
+          },
+          "task": {
+            "from": "2026-06-30",
+            "after": [],
+            "end": null,
+            "status": null,
+            "critical": false,
+            "start": "2026-06-30T00:00",
+            "finish": "2026-06-30T00:00",
+            "workingDays": 0
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "research->synthesis#1",
+          "id": null,
+          "from": "research",
+          "to": "synthesis",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 642,
+              "line": 19,
+              "column": 38
+            },
+            "end": {
+              "offset": 650,
+              "line": 19,
+              "column": 46
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "interviews->synthesis#1",
+          "id": null,
+          "from": "interviews",
+          "to": "synthesis",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 652,
+              "line": 19,
+              "column": 48
+            },
+            "end": {
+              "offset": 662,
+              "line": 19,
+              "column": 58
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "synthesis->design#1",
+          "id": null,
+          "from": "synthesis",
+          "to": "design",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 737,
+              "line": 23,
+              "column": 32
+            },
+            "end": {
+              "offset": 746,
+              "line": 23,
+              "column": 41
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "design->backend#1",
+          "id": null,
+          "from": "design",
+          "to": "backend",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 794,
+              "line": 24,
+              "column": 34
+            },
+            "end": {
+              "offset": 800,
+              "line": 24,
+              "column": 40
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "design->frontend#1",
+          "id": null,
+          "from": "design",
+          "to": "frontend",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 852,
+              "line": 25,
+              "column": 36
+            },
+            "end": {
+              "offset": 858,
+              "line": 25,
+              "column": 42
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "backend->qa#1",
+          "id": null,
+          "from": "backend",
+          "to": "qa",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1162,
+              "line": 34,
+              "column": 39
+            },
+            "end": {
+              "offset": 1169,
+              "line": 34,
+              "column": 46
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "frontend->qa#1",
+          "id": null,
+          "from": "frontend",
+          "to": "qa",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1171,
+              "line": 34,
+              "column": 48
+            },
+            "end": {
+              "offset": 1179,
+              "line": 34,
+              "column": 56
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "launch->support#1",
+          "id": null,
+          "from": "launch",
+          "to": "support",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1275,
+              "line": 36,
+              "column": 39
+            },
+            "end": {
+              "offset": 1281,
+              "line": 36,
+              "column": 45
+            }
+          },
+          "idRange": null
+        }
+      ],
+      "placement": [],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null,
+      "gantt": {
+        "axisFormat": "%d %b",
+        "ticks": null,
+        "weekStart": "monday",
+        "axis": "bottom",
+        "labels": "bar",
+        "display": "compact",
+        "dependencies": "shown",
+        "dayWidth": null,
+        "exclude": {
+          "weekdays": [
+            "saturday",
+            "sunday"
+          ],
+          "dates": [
+            "2026-06-19"
+          ]
+        },
+        "include": [],
+        "today": {
+          "date": "2026-06-25"
+        },
+        "span": {
+          "start": "2026-06-01T00:00",
+          "end": "2026-07-28T00:00"
+        }
+      }
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

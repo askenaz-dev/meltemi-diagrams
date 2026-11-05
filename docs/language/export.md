@@ -27,6 +27,7 @@ the same files on every machine with the same tools (decision 0025).
 | `pnpm mdg export sheet.meltemi --format gif --duration 4s`                      | the same GIF, 4 s long                                     |
 | `pnpm mdg export sheet.meltemi --profile slide`                                 | what the profile `slide` describes                         |
 | `pnpm mdg export sheet.meltemi --profiles`                                      | every profile of the file                                  |
+| `pnpm mdg export plan.meltemi --today 2026-07-15`                               | a gantt chart's `today` line at 15 July 2026               |
 
 `--background` takes `transparent`, a colour token (`accent`, `canvas`, …) or a CSS colour, for
 SVG, PNG and PDF; `--link <url>` makes the whole SVG or PDF picture a link. With profiles, the other
@@ -35,6 +36,9 @@ output options are refused (the profile has them) and `--out` names an existing 
 several stories, and HTML is its format when none is given; `--scenes` with `--story` writes the
 picture of every scene's final state, a file per scene in the directory `--out` names (made when
 missing) or one PDF ([stories](stories.md#exports)).
+
+`--today <YYYY-MM-DD>` places the `today` line of gantt charts that write it without a date, for
+every format ([cli.md](../cli.md#gantt-charts)).
 
 ## PNG and PDF
 

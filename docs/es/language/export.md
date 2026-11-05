@@ -28,6 +28,7 @@ con las mismas herramientas (decisión 0025).
 | `pnpm mdg export sheet.meltemi --format gif --duration 4s`                      | el mismo GIF, de 4 s                                        |
 | `pnpm mdg export sheet.meltemi --profile slide`                                 | lo que describe el perfil `slide`                           |
 | `pnpm mdg export sheet.meltemi --profiles`                                      | todos los perfiles del archivo                              |
+| `pnpm mdg export plan.meltemi --today 2026-07-15`                               | la línea `today` de un Gantt, el 15 de julio de 2026        |
 
 `--background` admite `transparent`, un token de color (`accent`, `canvas`, …) o un color CSS, en
 SVG, PNG y PDF; `--link <url>` convierte todo el dibujo SVG o PDF en un enlace. Con perfiles, se
@@ -36,6 +37,9 @@ rechazan las demás opciones de salida (las tiene el perfil) y `--out` nombra un
 historias, y HTML es su formato cuando no se indica ninguno; `--scenes` con `--story` escribe la
 imagen del estado final de cada escena, un archivo por escena en la carpeta que nombra `--out` (que
 se crea si falta) o un solo PDF ([historias](stories.md#exportaciones)).
+
+`--today <AAAA-MM-DD>` ubica la línea `today` de los diagramas de Gantt que la escriben sin fecha, en
+todos los formatos ([cli.md](../cli.md#diagramas-de-gantt)).
 
 ## PNG y PDF
 

@@ -208,6 +208,67 @@ describe("every operation on the valid corpus", () => {
     for (const diagram of compilation.document.diagrams) {
       const operations: EditOperation[] = [];
       const sequence = diagram.type === "sequence";
+      if (diagram.type === "gantt") {
+        // A chart is placed by its dates: the operations of rows, clauses and the calendar.
+        for (const element of diagram.elements) {
+          const base = { diagram: diagram.id, element: element.id };
+          const target = {
+            diagram: diagram.id,
+            target: element.id,
+            targetKind: "element" as const,
+          };
+          operations.push(
+            { kind: "renameElement", ...base, newId: `${element.id}_renamed` },
+            { kind: "removeElement", ...base, cascade: true },
+            { kind: "setElementLabel", ...base, label: 'New "label"' },
+            { kind: "setDescription", ...target, description: "Second line" },
+            { kind: "setStyleProperty", ...target, property: "stroke", value: "danger" },
+            { kind: "moveElement", ...base, parent: null, index: 0 },
+          );
+          if (element.task) {
+            const task = { diagram: diagram.id, task: element.id };
+            operations.push(
+              { kind: "setTaskSchedule", ...task, from: "2030-01-07" },
+              { kind: "setTaskSchedule", ...task, from: null, after: null },
+              { kind: "setTaskSchedule", ...task, end: null },
+            );
+            if (element.kind === "task") {
+              operations.push(
+                { kind: "setTaskSchedule", ...task, end: { for: "2w" } },
+                { kind: "setTaskSchedule", ...task, end: { to: "2031-01-07" } },
+              );
+            }
+            if (element.kind !== "marker") {
+              operations.push(
+                { kind: "setTaskStatus", ...task, status: "done", critical: true },
+                { kind: "setTaskStatus", ...task, status: null, critical: false },
+              );
+            }
+          }
+        }
+        operations.push(
+          { kind: "setDiagramProperty", diagram: diagram.id, property: "title", value: "Edited" },
+          { kind: "createTask", diagram: diagram.id, elementKind: "task", from: "2030-01-07" },
+          { kind: "createTask", diagram: diagram.id, elementKind: "section", label: "New" },
+          { kind: "setCalendar", diagram: diagram.id, exclude: ["friday"], include: [] },
+          { kind: "setCalendar", diagram: diagram.id, exclude: [], include: [] },
+        );
+        for (const operation of operations) {
+          const result = planEdit(compilation, operation);
+          // An edit that leaves an error in the chart (a task with no start, a loop) is refused.
+          if (!result.ok && result.rejection.diagnostic !== undefined) continue;
+          if (!result.ok) expect.fail(`${operation.kind} failed: ${result.rejection.reason}`);
+          planned++;
+          const after = applyTextEdits(text, result.plan.edits);
+          expect(applyTextEdits(after, result.plan.inverse)).toBe(text);
+          const errorsAfter = compile(after).diagnostics.filter((d) => d.severity === "error");
+          expect(
+            errorsAfter.length,
+            `${operation.kind} ${JSON.stringify(operation)}\n${after}`,
+          ).toBeLessThanOrEqual(errorsBefore);
+        }
+        continue;
+      }
       for (const element of diagram.elements) {
         const base = { diagram: diagram.id, element: element.id };
         if (!sequence) {

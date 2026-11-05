@@ -7,7 +7,7 @@ import { createNodeFontLibrary } from "@meltemi/diagrams-fonts/node";
 import { applyTextEdits, tokenize } from "@meltemi/diagrams-language";
 import type { Scene, SceneItem } from "@meltemi/diagrams-layout";
 import { createElkEngine } from "@meltemi/diagrams-layout-elk";
-import type { SequenceEvent } from "@meltemi/diagrams-model";
+import { formatDate, type SequenceEvent } from "@meltemi/diagrams-model";
 import { ACCEPTANCE_ROOT } from "../src/corpus.js";
 
 interface Step {
@@ -23,6 +23,8 @@ interface Step {
   readonly at?: Readonly<Record<string, Readonly<Record<string, readonly [number, number]>>>>;
   /** A sequence diagram whose messages keep their order. */
   readonly order?: string;
+  /** Gantt charts, by diagram: the start and end each task resolves to, as `start → end`. */
+  readonly dates?: Readonly<Record<string, Readonly<Record<string, string>>>>;
   readonly rejected?: string;
 }
 
@@ -166,6 +168,19 @@ describe.each(scenarios.map((s) => [s.file, s.scenario] as const))(
               x,
               y,
             ]);
+          }
+        }
+        // Gantt charts: the tasks resolve to the dates the scenario says.
+        for (const [diagram, tasks] of Object.entries(step.dates ?? {})) {
+          const elements = view(after, diagram).diagram.elementsById;
+          for (const [id, dates] of Object.entries(tasks)) {
+            const task = elements.get(id)?.task;
+            expect(
+              task?.start == null
+                ? null
+                : `${formatDate(task.start)} → ${formatDate(task.finish!)}`,
+              `${step.name}: ${id}`,
+            ).toBe(dates);
           }
         }
         // Style: every element that is still there looks the same.

@@ -1,6 +1,14 @@
 import type { Locale } from "@meltemi/diagrams-i18n";
 import { c4TypeName, type LayoutResult } from "@meltemi/diagrams-layout";
-import type { FlowDiagram, StoryDefinition } from "@meltemi/diagrams-model";
+import {
+  SECONDS_PER_DAY,
+  dayNumber,
+  formatDate,
+  formatDay,
+  type Element as ModelElement,
+  type FlowDiagram,
+  type StoryDefinition,
+} from "@meltemi/diagrams-model";
 import {
   motionDuration,
   storyTimeline,
@@ -19,6 +27,7 @@ import {
   type ElementDetails,
   type OpenTarget,
   type RelationDetails,
+  type ScheduleDetails,
   type StoryEntry,
   type StoryPlayerDocument,
   type ViewDetails,
@@ -80,9 +89,68 @@ function namesOf(diagram: FlowDiagram): ViewNames {
   return { title: diagram.properties.title, labels };
 }
 
+/** An instant of a chart as text: the day, with the time when it has one. */
+const instantText = (time: number): string => formatDate(time, time % SECONDS_PER_DAY !== 0);
+
+/**
+ * The first and the last moment of a bar as text: the first and the last day it works when it runs
+ * from midnight to midnight, else both instants with their times.
+ */
+function spanTexts(start: number, finish: number): [string, string] {
+  if (start % SECONDS_PER_DAY === 0 && finish % SECONDS_PER_DAY === 0 && finish > start) {
+    return [formatDay(dayNumber(start)), formatDay(dayNumber(finish) - 1)];
+  }
+  const withTime = start % SECONDS_PER_DAY !== 0 || finish % SECONDS_PER_DAY !== 0;
+  return [formatDate(start, withTime), formatDate(finish, withTime)];
+}
+
+/**
+ * The schedule a card says of a task, milestone, marker or section of a gantt chart: the dates it
+ * resolved to and what it follows, never the clauses as written. A section spans its tasks.
+ */
+function scheduleOf(diagram: FlowDiagram, element: ModelElement): ScheduleDetails | undefined {
+  const task = element.task;
+  if (task) {
+    const resolved = task.start !== null && task.finish !== null;
+    // A task spans from its start to its end; a milestone and a marker are one instant.
+    const span = resolved && element.kind === "task" ? spanTexts(task.start!, task.finish!) : null;
+    return {
+      start: span ? span[0] : task.start === null ? null : instantText(task.start),
+      end: span ? span[1] : task.start === null ? null : instantText(task.start),
+      workingSeconds: element.kind === "task" ? task.working : null,
+      status: task.status,
+      critical: task.critical,
+      section: element.groupPath.at(-1) ?? null,
+      after: task.after.map((reference) => reference.id),
+    };
+  }
+  if (element.kind !== "section") return undefined;
+  let start = Infinity;
+  let finish = -Infinity;
+  for (const member of diagram.elements) {
+    const dated = member.task;
+    if (member.groupPath.at(-1) !== element.id || !dated) continue;
+    if (dated.start === null || dated.finish === null) continue;
+    start = Math.min(start, dated.start);
+    finish = Math.max(finish, dated.finish);
+  }
+  const held = start <= finish;
+  const span = held ? spanTexts(start, finish) : null;
+  return {
+    start: span ? span[0] : null,
+    end: span ? span[1] : null,
+    workingSeconds: null,
+    status: null,
+    critical: false,
+    section: null,
+    after: [],
+  };
+}
+
 /**
  * The details of a view: only the compiled diagram's labels, kinds, type words, technology,
- * descriptions, URLs, entity paths and relation fields; never comments, positions or paths.
+ * descriptions, URLs, entity paths, relation fields and, in a gantt chart, the dates of its tasks;
+ * never comments, positions or paths.
  */
 export function detailsOf(
   diagram: FlowDiagram,
@@ -91,8 +159,10 @@ export function detailsOf(
   parent: ViewDetails["parent"] = null,
 ): ViewDetails {
   const elements: Record<string, ElementDetails> = {};
+  const chart = diagram.type === "gantt";
   for (const element of diagram.elements) {
     const linked = element.link?.target === "model" ? element.link.element : null;
+    const schedule = chart ? scheduleOf(diagram, element) : undefined;
     elements[element.id] = {
       kind: element.kind,
       type: c4TypeName(element, locale),
@@ -102,6 +172,7 @@ export function detailsOf(
       external: element.external,
       entity: element.entity?.path ?? linked,
       opens: opens[element.id] ?? null,
+      ...(schedule ? { schedule } : {}),
     };
   }
   const relations: Record<string, RelationDetails> = {};

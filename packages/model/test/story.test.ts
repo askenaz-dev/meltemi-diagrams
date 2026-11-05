@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { setLocale } from "@meltemi/diagrams-i18n";
+import { afterEach, describe, expect, it } from "vitest";
 import { CORPUS_ROOT } from "../../../test-support/corpus.js";
 import {
   compile,
@@ -9,6 +10,7 @@ import {
   toJson,
   type StoryAction,
 } from "../src/index.js";
+import { drivingArrows } from "../src/story.js";
 
 const purchase = readFileSync(join(CORPUS_ROOT, "valid", "stories", "purchase.meltemi"), "utf8");
 const BASE =
@@ -294,5 +296,211 @@ describe("draw", () => {
       "story.conflict",
       "story.conflict",
     ]);
+  });
+});
+
+describe("stories about a gantt chart", () => {
+  const ROADMAP = readFileSync(join(CORPUS_ROOT, "valid", "gantt", "roadmap.meltemi"), "utf8");
+  /** The owner's chart with statements added before its closing brace. */
+  const withChart = (extra: string) => ROADMAP.replace(/\}\s*$/, `${extra}\n}\n`);
+  const plan = (body: string, chart = ROADMAP) =>
+    compile(`${chart}\nstory plan for hoja_de_ruta_genai {\n${body}\n}\n`);
+  afterEach(() => setLocale("en"));
+
+  it("tells a plan section by section: a reveal, then the bars drawn in order", () => {
+    const compilation = plan(
+      "  scene one {\n    reveal tecnologia\n    draw tec0, tec1, tec2 over 3s\n  }",
+    );
+    expect(compilation.diagnostics).toEqual([]);
+    const [reveal, draw] = compilation.document.stories[0]!.scenes[0]!.actions as [
+      StoryAction,
+      StoryAction,
+    ];
+    expect([reveal.kind, reveal.targets.map((t) => [t.id, t.kind])]).toEqual([
+      "reveal",
+      [["tecnologia", "element"]],
+    ]);
+    expect(draw).toMatchObject({ kind: "draw", durationMs: 3000, writtenMs: 3000, startMs: 600 });
+    expect(draw.targets.map((t) => [t.id, t.kind])).toEqual([
+      ["tec0", "element"],
+      ["tec1", "element"],
+      ["tec2", "element"],
+    ]);
+  });
+
+  it("takes tasks, milestones, markers and sections as the elements of the other actions", () => {
+    const chart = withChart("  milestone beta after tec2\n  marker freeze at 2026-06-10");
+    const compilation = plan(
+      "  scene one {\n    reveal tecnologia, beta, freeze\n    hide tec1\n    highlight tec0, beta\n    focus tec2\n    camera flu0, i_d\n  }",
+      chart,
+    );
+    expect(compilation.diagnostics).toEqual([]);
+  });
+
+  it("traces the chain that drives a task as its arrows, earliest first", () => {
+    const compilation = plan("  scene one {\n    trace flu3\n  }");
+    expect(compilation.diagnostics).toEqual([]);
+    const [action] = compilation.document.stories[0]!.scenes[0]!.actions;
+    expect(action).toMatchObject({ kind: "trace", durationMs: 1200, writtenMs: null });
+    expect(action!.targets.map((t) => [t.id, t.kind])).toEqual([
+      ["flu0->flu1#1", "relation"],
+      ["flu1->flu2#1", "relation"],
+      ["flu2->flu3#1", "relation"],
+    ]);
+    // The task is what the story names: that is its reference.
+    const [story] = compilation.document.stories;
+    expect(story!.references.map((r) => [r.diagram, r.id, r.kind])).toEqual([
+      ["hoja_de_ruta_genai", "flu3", "element"],
+    ]);
+    // Every arrow keeps the place where the task is written.
+    const written = action!.targets[0]!.range;
+    expect(action!.targets.every((t) => t.range === written)).toBe(true);
+  });
+
+  it("traces one arrow into a task that follows one task, over the time written", () => {
+    const compilation = plan("  scene one {\n    trace tec1 over 2s\n  }");
+    expect(compilation.diagnostics).toEqual([]);
+    const [action] = compilation.document.stories[0]!.scenes[0]!.actions;
+    expect(action!.durationMs).toBe(2000);
+    expect(action!.targets.map((t) => t.id)).toEqual(["tec0->tec1#1"]);
+  });
+
+  it("follows the predecessor with the latest end, the first written when they end together", () => {
+    const chart = [
+      'language "0.2"',
+      "diagram plan: gantt {",
+      "  task a from 2026-06-01 for 2d",
+      "  task b from 2026-06-01 for 5d",
+      "  task c from 2026-06-01 for 5d",
+      "  task d after a, b, c for 1d",
+      "  task e after d for 1d",
+      "}",
+      "story s for plan {",
+      "  scene one { trace e }",
+      "}",
+      "",
+    ].join("\n");
+    const compilation = compile(chart);
+    expect(compilation.diagnostics).toEqual([]);
+    // d follows a, b and c; b and c end together and b is written first.
+    expect(
+      compilation.document.stories[0]!.scenes[0]!.actions[0]!.targets.map((t) => t.id),
+    ).toEqual(["b->d#1", "d->e#1"]);
+    const diagram = compilation.document.diagrams[0]!;
+    expect(drivingArrows(diagram, "d")).toEqual(["b->d#1"]);
+    expect(drivingArrows(diagram, "a")).toEqual([]);
+    expect(drivingArrows(diagram, "nope")).toBeNull();
+  });
+
+  it("traces into a milestone that follows a task", () => {
+    const compilation = plan(
+      "  scene one {\n    trace beta\n  }",
+      withChart("  milestone beta after sdlc2"),
+    );
+    expect(compilation.diagnostics).toEqual([]);
+    expect(
+      compilation.document.stories[0]!.scenes[0]!.actions[0]!.targets.map((t) => t.id),
+    ).toEqual(["sdlc1->sdlc2#1", "sdlc2->beta#1"]);
+  });
+
+  it("refuses a trace into a task without dependencies, a section and a marker", () => {
+    const compilation = plan(
+      "  scene one {\n    trace tec0\n    trace tecnologia\n    trace freeze\n  }",
+      withChart("  marker freeze at 2026-06-10"),
+    );
+    expect(compilation.diagnostics.map((d) => [d.code, d.message])).toEqual([
+      [
+        "story.invalid-target",
+        "`tec0` has no dependency arrows to trace; `trace` takes a task or a milestone that follows others with `after`.",
+      ],
+      [
+        "story.invalid-target",
+        "`trace` follows the dependency arrows into a task or a milestone; `tecnologia` is a section.",
+      ],
+      [
+        "story.invalid-target",
+        "`trace` follows the dependency arrows into a task or a milestone; `freeze` is a marker.",
+      ],
+    ]);
+    expect(compilation.document.stories[0]!.scenes[0]!.actions[0]!.targets).toEqual([]);
+  });
+
+  it("refuses to draw a section, a milestone and a marker, saying what draw takes", () => {
+    const compilation = plan(
+      "  scene one {\n    draw tecnologia, beta, freeze, tec0\n  }",
+      withChart("  milestone beta after tec2\n  marker freeze at 2026-06-10"),
+    );
+    expect(compilation.diagnostics.map((d) => [d.code, d.message])).toEqual([
+      [
+        "story.invalid-target",
+        "`draw` takes pens, lines, relations and gantt tasks; `tecnologia` is a `section` element.",
+      ],
+      [
+        "story.invalid-target",
+        "`draw` takes pens, lines, relations and gantt tasks; `beta` is a `milestone` element.",
+      ],
+      [
+        "story.invalid-target",
+        "`draw` takes pens, lines, relations and gantt tasks; `freeze` is a `marker` element.",
+      ],
+    ]);
+    // The task is kept.
+    expect(
+      compilation.document.stories[0]!.scenes[0]!.actions[0]!.targets.map((t) => t.id),
+    ).toEqual(["tec0"]);
+  });
+
+  it("keeps the messages of the other profiles for their own diagrams", () => {
+    const compilation = story("  scene one {\n    draw save, api\n  }");
+    expect(compilation.diagnostics.map((d) => d.message)).toEqual([
+      "`draw` takes pens, lines and relations; `api` is a `node` element.",
+    ]);
+  });
+
+  it("knows what draw takes in a chart", () => {
+    const chart = compile(ROADMAP).document.diagrams[0]!;
+    expect(
+      ["tec0", "tecnologia", "tec0->tec1#1", "ghost"].map((id) => drawTargetKind(id, chart)),
+    ).toEqual(["task", null, null, null]);
+    // Tasks stay elements as story targets.
+    expect(storyTargetKind("tec0", chart)).toBe("element");
+  });
+
+  it("reports an unknown task with the close ones", () => {
+    const compilation = plan("  scene one {\n    draw tec9\n  }");
+    expect(compilation.diagnostics.map((d) => d.code)).toEqual(["ref.unknown-element"]);
+    expect(compilation.diagnostics[0]!.data?.candidates).toContain("tec0");
+  });
+
+  it("conflicts when two traces of one chain overlap, naming the arrow, and when a task is drawn twice", () => {
+    const traces = plan(
+      "  scene one {\n    parallel {\n      trace flu3\n      trace flu2\n    }\n  }",
+    );
+    expect(traces.diagnostics.map((d) => d.code)).toEqual(["story.conflict"]);
+    expect(traces.diagnostics[0]!.message).toBe(
+      "`trace` overlaps an earlier action on the same trace of `flu0->flu1#1`.",
+    );
+    expect(codes(plan("  scene one {\n    draw tec0, tec0\n  }"))).toEqual(["story.conflict"]);
+    // One after the other is fine.
+    expect(codes(plan("  scene one {\n    trace flu3\n    trace flu2\n  }"))).toEqual([]);
+  });
+
+  it("says the same in Spanish, with the same code and place", () => {
+    const body = "  scene one {\n    trace tec0\n    draw tecnologia\n  }";
+    const english = plan(body).diagnostics;
+    setLocale("es");
+    const spanish = plan(body).diagnostics;
+    expect(spanish.map((d) => [d.code, d.range])).toEqual(english.map((d) => [d.code, d.range]));
+    expect(spanish.map((d) => d.message)).toEqual([
+      "`tec0` no tiene flechas de dependencia que recorrer; `trace` admite una tarea o un hito que sigue a otros con `after`.",
+      "`draw` admite trazos de lápiz, líneas, relaciones y tareas de Gantt; `tecnologia` es un elemento `section`.",
+    ]);
+  });
+
+  it("writes the chain's arrows into the model JSON of the story", () => {
+    const json = toJson(plan("  scene one {\n    trace flu3\n  }")).stories[0]!;
+    const [action] = json.scenes[0]!.actions;
+    expect(action).toMatchObject({ kind: "trace" });
+    expect(JSON.stringify(action)).toContain("flu2->flu3#1");
   });
 });

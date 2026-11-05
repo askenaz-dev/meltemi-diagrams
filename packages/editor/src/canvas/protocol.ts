@@ -2,6 +2,7 @@ import type { StoryTimeline, StoryViewData } from "@meltemi/diagrams-motion";
 import type { AlignEdge } from "./arrange.js";
 import type { Box, Point } from "./geometry.js";
 import type { Side } from "./routes.js";
+import type { TimelineInfo } from "./timeline.js";
 
 export type ElementKind =
   | "node"
@@ -29,9 +30,13 @@ export type ElementKind =
   | "system"
   | "container"
   | "datastore"
-  | "component";
+  | "component"
+  | "section"
+  | "task"
+  | "milestone"
+  | "marker";
 /** The profile of a diagram, which sets the palette, the keys and the drags. */
-export type CanvasProfile = "flow" | "free" | "sequence" | "c4";
+export type CanvasProfile = "flow" | "free" | "sequence" | "c4" | "gantt";
 export type FragmentOperator = "alt" | "opt" | "loop" | "par" | "break" | "critical" | "region";
 export type EventKind =
   | "message"
@@ -254,6 +259,46 @@ export interface ElementInfo {
    * over the head; absent when it has none.
    */
   readonly tags?: readonly TagInfo[];
+  /**
+   * Gantt charts: the schedule of a task, milestone or marker, which the drags, the keys and the
+   * tooltip turn into dates; absent on sections and on every element of the other profiles.
+   */
+  readonly task?: TaskInfo;
+}
+
+/** How a task ends, as written: `for 10d`, `to 2026-06-19` or `until a, b`. */
+export type TaskEndInfo =
+  | { readonly kind: "for"; readonly amount: number; readonly unit: "s" | "min" | "h" | "d" | "w" }
+  | { readonly kind: "to"; readonly date: string }
+  | { readonly kind: "until"; readonly ids: readonly string[] };
+
+/**
+ * What the canvas knows about the schedule of a bar, a diamond or a line of a gantt chart: its start
+ * and end as instants (seconds since 1970-01-01T00:00, civil time; a milestone's and a marker's end
+ * is its start), the clauses that say them, and its row.
+ */
+export interface TaskInfo {
+  readonly start: number;
+  readonly end: number;
+  /** The clauses as written. `from` is the date of `from` on a task and of `at` on the others. */
+  readonly clauses: {
+    readonly from: string | null;
+    readonly after: readonly string[];
+    readonly end: TaskEndInfo | null;
+    readonly status: "done" | "active" | null;
+    readonly critical: boolean;
+  };
+  /**
+   * The row it is drawn in: its place among the rows of the chart in the order they are drawn, and
+   * the top and height of the row in diagram coordinates. Markers take no row.
+   */
+  readonly row?: { readonly index: number; readonly y: number; readonly height: number };
+  /**
+   * The earliest instant its start can have: when it follows other tasks (`after`), the latest of
+   * their ends moved to working time, which a bar dragged back onto them sticks to; null without
+   * `after`.
+   */
+  readonly floor: number | null;
 }
 
 /** What the canvas knows about a relation. */
@@ -343,6 +388,11 @@ export interface CanvasRender {
   readonly height: number;
   /** Scene coordinates minus diagram coordinates. */
   readonly offset: Point;
+  /**
+   * Gantt charts: where the timeline is and the calendar its instants are counted in, from which
+   * the canvas turns a position into an instant and back; absent on the other profiles.
+   */
+  readonly timeline?: TimelineInfo;
   /** Elements in source order. */
   readonly elements: readonly ElementInfo[];
   readonly relations: readonly RelationInfo[];
@@ -405,7 +455,12 @@ export interface CanvasSettings {
  * The control of a field. `boolean` is a checkbox whose value is `on` when checked and `off` when
  * not; checking or clearing it sends `setField` with `on` or `off`. `font` is a font stack chosen
  * in the canvas's font picker (`listFonts`): its value is the written stack, its placeholder the
- * family that applies, and its `options` the families the picker lists.
+ * family that applies, and its `options` the families the picker lists. The fields of gantt charts
+ * add four: `date` is a date, `YYYY-MM-DD` or with a time `YYYY-MM-DDTHH:MM` when the field says
+ * `time`, written as it is typed; `duration` a number and a unit of `options`, written together
+ * (`10d`); `tasks` a list of the ids in `options`, comma separated, shown as chips; `weekdays` the
+ * days of an `exclude` list, the seven weekdays as toggles, Weekends as one choice and the dates
+ * as text, written as a list (`weekends, friday, 2026-06-29`).
  */
 export type FieldType =
   | "id"
@@ -418,7 +473,11 @@ export type FieldType =
   | "classes"
   | "ports"
   | "boolean"
-  | "font";
+  | "font"
+  | "date"
+  | "duration"
+  | "tasks"
+  | "weekdays";
 
 /** One editable property in the inspector. */
 export interface InspectorField {
@@ -436,7 +495,24 @@ export interface InspectorField {
   readonly fromTheme?: boolean;
   /** The selected targets have different values: `value` is null and the canvas shows "mixed". */
   readonly mixed?: boolean;
+  /**
+   * The choices of an `enum`, the ids a `tasks` field offers as chips and the units of a `duration`
+   * field.
+   */
   readonly options?: readonly string[];
+  /** A `date` field of a chart that writes times: the control takes a time of day as well. */
+  readonly time?: boolean;
+  /**
+   * The words for the options of a field, by option, in the interface language: what an `enum` or
+   * a `duration` shows in place of the values of the language it writes (`for`, `done`, `d`), and
+   * for a `tasks` field the label of each task, which its chip shows as its title beside the id.
+   */
+  readonly titles?: Readonly<Record<string, string>>;
+  /**
+   * A heading the canvas draws above this field, which starts a group of fields under it (the
+   * **Schedule** of a task, the **Calendar** of a chart).
+   */
+  readonly heading?: string;
   readonly readonly?: boolean;
   /** Fields of the style strip, which the inspector shows first and draws compactly. */
   readonly section?: "strip";
@@ -813,6 +889,11 @@ export type HostMessage =
       readonly dependents?: readonly DependentInfo[];
       /** The action to send again with `cascade: true` after confirmation. */
       readonly retry?: CanvasAction;
+      /**
+       * The elements the refusal is about, which the canvas flashes in the theme's `danger` colour
+       * beside saying why: the task a link would have closed a loop on.
+       */
+      readonly flash?: readonly string[];
     }
   | { readonly type: "highlight"; readonly ids: readonly string[] }
   /**
@@ -906,7 +987,7 @@ export type HostMessage =
     };
 
 /** The kinds of diagram the canvas creates: C4 views need a model, written in text. */
-export type CreatableDiagram = "flow" | "free" | "sequence";
+export type CreatableDiagram = "flow" | "free" | "sequence" | "gantt";
 
 /**
  * Moves elements by a delta in diagram coordinates, or into a list group at a position. A child
@@ -932,9 +1013,35 @@ export interface MoveAction {
    * With `parent` a list group: where the elements go among its children (`ElementInfo.list`)
    * once the moved ones are taken out, before the child at that index, after the last when it is
    * the count. Several elements go there one after another in the order of `ids`; moving a child
-   * within its own list reorders it. A whole number from 0.
+   * within its own list reorders it. A whole number from 0. On a gantt chart `parent` is a
+   * section, or null for the top level of the chart, and `index` counts the rows, bars and
+   * sections the statement goes among (a drag of a row, Alt+Up and Alt+Down).
    */
   readonly index?: number;
+}
+
+/**
+ * Gantt charts: gives a task, milestone or marker other dates, as instants (seconds since
+ * 1970-01-01T00:00, civil time), at the release of a drag or a key. With `start` alone the bar
+ * moves and keeps its length; with `end` alone the end moves; with both the bar starts and ends
+ * there (a left end dragged keeps the end it had). The session plans it as `setTaskSchedule`: the
+ * start as `from`, removed when it is the end of the task's dependencies (`TaskInfo.floor`), the
+ * end as `for` (`to`, or `for` instead of `until`).
+ */
+export interface ScheduleAction {
+  readonly kind: "schedule";
+  readonly task: string;
+  readonly start?: number;
+  readonly end?: number;
+  /**
+   * The other bars of the selection given dates in the same edit, each as `task`, `start` and `end`
+   * are: a selection dragged or nudged together, or kept together while its first bar is.
+   */
+  readonly also?: readonly {
+    readonly task: string;
+    readonly start?: number;
+    readonly end?: number;
+  }[];
 }
 
 /**
@@ -988,6 +1095,7 @@ export interface PenStyle {
 export type CanvasAction =
   | MoveAction
   | ResizeAction
+  | ScheduleAction
   | { readonly kind: "moveLabel"; readonly relation: string; readonly delta: Point }
   | { readonly kind: "setVia"; readonly relation: string; readonly via: readonly Point[] }
   | {
@@ -1092,6 +1200,14 @@ export type CanvasAction =
        * the list places it, so it gets no `place`.
        */
       readonly index?: number;
+      /**
+       * Gantt charts: the dates a bar was drawn with (T armed and dragged on the timeline, or
+       * clicked), a marker's date, a milestone's: instants, as `ScheduleAction` has them. A task
+       * is written `from` `start` `for` the length to `end` (one day without one) in the section
+       * and before the row `at` is on; without `schedule` a task, milestone or marker is created
+       * after the selection, or at the end of the chart.
+       */
+      readonly schedule?: { readonly start: number; readonly end?: number };
     }
   | {
       /**
@@ -1256,7 +1372,8 @@ export type CanvasAction =
    * The drawing the move, resize or rotation `action` would give on the drop, while the gesture
    * goes on. Nothing is written: no plan, no history, no new revision. The session answers with a
    * `preview` host message carrying the same `token` (flow and free diagrams and C4 views; on
-   * sequence diagrams, a bar handle's `moveActivation`, with the reason when it is refused).
+   * sequence diagrams, a bar handle's `moveActivation`, with the reason when it is refused; on
+   * gantt charts, the `schedule` of a bar dragged in time).
    */
   | {
       readonly kind: "preview";
@@ -1273,10 +1390,11 @@ export interface RotationAction {
 }
 
 /**
- * The gestures a canvas previews: moves, resizes and rotations, and the end of an activation bar
- * dragged on a sequence diagram.
+ * The gestures a canvas previews: moves, resizes and rotations, the end of an activation bar
+ * dragged on a sequence diagram, and a bar of a gantt chart given other dates.
  */
-export type PreviewedAction = MoveAction | ResizeAction | RotationAction | MoveActivationAction;
+export type PreviewedAction =
+  MoveAction | ResizeAction | RotationAction | MoveActivationAction | ScheduleAction;
 
 export type CanvasMessage =
   | { readonly type: "ready" }
@@ -1424,6 +1542,10 @@ const KINDS = [
   "container",
   "datastore",
   "component",
+  "section",
+  "task",
+  "milestone",
+  "marker",
 ] as const;
 /** The most points a pen stroke or one of its edits carries. */
 const PEN_POINTS = 10_000;
@@ -1447,7 +1569,7 @@ const isPenStyle = (v: unknown): v is PenStyle =>
   (v.arrowhead === undefined || (typeof v.arrowhead === "string" && v.arrowhead.length <= 64)) &&
   (v.arrowtail === undefined || (typeof v.arrowtail === "string" && v.arrowtail.length <= 64));
 const OPERATORS = ["alt", "opt", "loop", "par", "break", "critical", "region"] as const;
-const CREATABLE: readonly CreatableDiagram[] = ["flow", "free", "sequence"];
+const CREATABLE: readonly CreatableDiagram[] = ["flow", "free", "sequence", "gantt"];
 const EDGES = ["left", "center", "right", "top", "middle", "bottom"] as const;
 const STORY_ACTION_KINDS = [
   "reveal",
@@ -1465,12 +1587,32 @@ const isPath = (v: unknown): v is number[] =>
   v.length <= 64 &&
   v.every((n) => Number.isInteger(n) && (n as number) >= 0);
 
-/** A move: by a delta, or into a list group at an index (the delta then optional). */
+/**
+ * A move: by a delta, or into a list group at an index (the delta then optional). On a gantt chart
+ * the index also goes with the top level of the chart (`parent` null); the session says whether the
+ * diagram takes it.
+ */
 const isMove = (a: Record<string, unknown>): boolean =>
   isStrings(a.ids) &&
   (a.index === undefined ? isPoint(a.delta) : a.delta === undefined || isPoint(a.delta)) &&
   (a.parent === undefined || a.parent === null || isString(a.parent)) &&
-  (a.index === undefined || (isIndex(a.index) && isString(a.parent)));
+  (a.index === undefined || (isIndex(a.index) && (isString(a.parent) || a.parent === null)));
+/** An instant: a whole number of seconds from 1970-01-01T00:00, about as far as 1000 years each way. */
+const isInstant = (v: unknown): v is number =>
+  typeof v === "number" && Number.isInteger(v) && Math.abs(v) <= 32_503_680_000;
+/** New dates for a bar: a start, an end or both. */
+const isDates = (a: Record<string, unknown>): boolean =>
+  isString(a.task) &&
+  (a.start === undefined || isInstant(a.start)) &&
+  (a.end === undefined || isInstant(a.end)) &&
+  (a.start !== undefined || a.end !== undefined);
+/** New dates for a bar, and for the other bars of the selection. */
+const isSchedule = (a: Record<string, unknown>): boolean =>
+  isDates(a) &&
+  (a.also === undefined ||
+    (Array.isArray(a.also) &&
+      a.also.length <= 1000 &&
+      a.also.every((other) => isObject(other) && isDates(other))));
 const isResize = (a: Record<string, unknown>): boolean =>
   isString(a.id) && isBox(a.box) && a.box.width > 0 && a.box.height > 0;
 /** An end of an activation bar to an event row. */
@@ -1484,6 +1626,8 @@ function isAction(a: unknown): a is CanvasAction {
       return isMove(a);
     case "resize":
       return isResize(a);
+    case "schedule":
+      return isSchedule(a);
     case "createDiagram":
       return oneOf(a.type, CREATABLE);
     case "preview":
@@ -1492,6 +1636,7 @@ function isAction(a: unknown): a is CanvasAction {
         isObject(a.action) &&
         ((a.action.kind === "move" && isMove(a.action)) ||
           (a.action.kind === "resize" && isResize(a.action)) ||
+          (a.action.kind === "schedule" && isSchedule(a.action)) ||
           (a.action.kind === "moveActivation" && isMoveActivation(a.action)) ||
           (a.action.kind === "setField" &&
             a.action.field === "style.rotation" &&
@@ -1554,6 +1699,12 @@ function isAction(a: unknown): a is CanvasAction {
         (a.layout === undefined ||
           (oneOf(a.layout, ["column", "row"]) && a.elementKind === "group")) &&
         (a.index === undefined || (isIndex(a.index) && isString(a.parent))) &&
+        // The dates of a bar drawn on a gantt chart: a start, and an end after it.
+        (a.schedule === undefined ||
+          (isObject(a.schedule) &&
+            isInstant(a.schedule.start) &&
+            (a.schedule.end === undefined ||
+              (isInstant(a.schedule.end) && a.schedule.end >= a.schedule.start)))) &&
         // An icon object is its icon: it comes with one, and takes no icon style or shape.
         (a.elementKind !== "icon" ||
           (isReference(a.source) && a.icon === undefined && a.shape === undefined))

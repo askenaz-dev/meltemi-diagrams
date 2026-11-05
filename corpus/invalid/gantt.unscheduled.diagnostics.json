@@ -1,0 +1,23 @@
+[
+  {
+    "code": "gantt.unscheduled",
+    "severity": "error",
+    "message": "`kickoff` has no start and no task before it to follow.",
+    "range": {
+      "start": {
+        "offset": 120,
+        "line": 5,
+        "column": 8
+      },
+      "end": {
+        "offset": 127,
+        "line": 5,
+        "column": 15
+      }
+    },
+    "hints": [
+      "Write `from <date>`, or put the task after another."
+    ],
+    "related": []
+  }
+]

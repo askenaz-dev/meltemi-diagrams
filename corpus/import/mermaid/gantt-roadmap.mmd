@@ -1,0 +1,21 @@
+gantt
+    title Hoja de ruta GenAI
+    dateFormat YYYY-MM-DD
+    axisFormat %d %b
+    excludes weekends
+
+    section Tecnología
+    Evaluar plataformas de agentes :tec0, 2026-06-01, 5d
+    Prueba de concepto con el equipo de Arquitectura :tec1, after tec0, 10d
+    Presentar resultados al comité Arq :tec2, after tec1, 1d
+
+    section Nuevo Flujo GenAI Hub
+    Propuesta de flujo ágil de evaluación :flu0, 2026-06-15, 3d
+    Interfaz Evaluación y seguimiento (WebComponent) :flu1, after flu0, 10d
+    Integración con LeanIX :flu2, after flu1, 10d
+    Marcha Blanca primeros casos de uso :flu3, after flu2, 10d
+
+    section I+D
+    Estándares de desarrollo Agéntico + GenAI for productivity. :sdlc0, 2026-07-01, 30d
+    Workshops AI-SDLC :sdlc1, 2026-08-03, 5d
+    Desarrollo de Skills y Agentes (AI-SDLC). :sdlc2, after sdlc1, 15d

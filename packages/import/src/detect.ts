@@ -28,6 +28,7 @@ export const MERMAID_SUPPORTED: Readonly<Record<string, string>> = {
   architecture: "architecture",
   "block-beta": "block",
   block: "block",
+  gantt: "gantt",
 };
 
 /** Mermaid diagram keywords that are recognised but not imported. */
@@ -38,7 +39,6 @@ export const MERMAID_UNSUPPORTED: readonly string[] = [
   "stateDiagram-v2",
   "erDiagram",
   "journey",
-  "gantt",
   "pie",
   "quadrantChart",
   "requirementDiagram",

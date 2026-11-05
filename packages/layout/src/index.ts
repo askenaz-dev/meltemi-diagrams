@@ -30,6 +30,7 @@ export {
   type LayoutResult,
   type BarGeometry,
   type ConnectorGeometry,
+  type GanttGeometry,
   type ListGeometry,
   type MessageText,
   type PenGeometry,
@@ -71,6 +72,19 @@ export * from "./engine.js";
 export { solveConstraints, type ConstraintConflict, type SolverBox } from "./constraints.js";
 export { checkComposition, stacked, type CheckedConnector } from "./checks.js";
 export { auditLabels, type LabelProblem, type PlacedText } from "./audit.js";
+export {
+  TICK_LADDER,
+  defaultFormat,
+  formatGranularity,
+  formatTime,
+  parseTicks,
+  tickFloor,
+  tickNext,
+  tickSeconds,
+  ticksCovering,
+  type TickSpec,
+  type TimeWords,
+} from "./gantt-time.js";
 export {
   LANE_SPACING,
   anchorPoints,

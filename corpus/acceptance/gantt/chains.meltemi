@@ -1,0 +1,33 @@
+language "0.2"
+
+// Dependency chains: tasks that wait for one task or for several, a task that runs until a
+// milestone starts, and work that follows the milestone. Weekends are not worked, and `today` is
+// pinned so that the picture is the same on every day.
+diagram chains: gantt {
+  title "Dependency chains"
+  axisFormat "%d %b"
+  exclude weekends
+  today 2026-06-10
+
+  section intake "Intake" {
+    // The first chain: each task waits for the one before it.
+    task collect "Collect requirements" from 2026-06-01 for 3d
+    task review "Review with the team" after collect for 2d
+    task sign "Sign off" after review for 1d done
+  }
+
+  section delivery "Delivery" {
+    task design "Design" after sign for 4d
+    task api "API" after design for 6d
+    task ui "Interface" after design for 5d
+    // Waits for both, and the test run lasts until the release starts.
+    task integrate "Integrate" after api, ui for 3d critical
+    task test "Test run" after integrate until release
+    milestone release "Release" at 2026-07-03 critical
+  }
+
+  section closing "Closing" {
+    task retro "Retrospective" after release for 1d
+    task handover "Hand over to support" after retro, release for 2d
+  }
+}

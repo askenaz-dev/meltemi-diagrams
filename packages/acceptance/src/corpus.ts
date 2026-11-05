@@ -14,7 +14,7 @@ export const TOOL_VERSION = (
 ).version;
 
 /** The profiles the acceptance corpus covers, each in its folder of `corpus/acceptance/`. */
-export const PROFILES = ["flow", "sequence", "c4", "free"] as const;
+export const PROFILES = ["flow", "sequence", "c4", "free", "gantt"] as const;
 export type Profile = (typeof PROFILES)[number];
 
 export const ACCEPTANCE_ROOT = join(REPO_ROOT, "corpus", "acceptance");

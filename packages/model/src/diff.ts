@@ -2,12 +2,18 @@
 // changed, by id. Explicit ids tell a rename from a removal and an addition: an element whose id
 // changed but whose kind, label, place or relations stayed is a rename (decision 0028).
 import { getLocale, type Locale } from "@meltemi/diagrams-i18n";
+import { SECONDS_PER_DAY, dayNumber, formatDate, formatDay } from "./calendar.js";
 import { changeMessages } from "./messages/changes.js";
+import { WEEKDAYS } from "./schema.js";
 import type {
   Document,
   Element,
   ExportProfile,
   FlowDiagram,
+  GanttCalendar,
+  GanttChart,
+  GanttEnd,
+  GanttTask,
   ModelDefinition,
   ModelEntity,
   ModelRelation,
@@ -74,7 +80,29 @@ export type ChangeFact =
   | { readonly fact: "scenario"; readonly id: string; readonly added: boolean }
   | { readonly fact: "duration"; readonly before: number; readonly after: number }
   /** The kind or type of what was added or removed, as written. */
-  | { readonly fact: "kind"; readonly kind: string };
+  | { readonly fact: "kind"; readonly kind: string }
+  /**
+   * A resolved date of a task, milestone or marker of a gantt chart: `starts 2026-06-08 →
+   * 2026-06-10 (moved by tec0)`. An `end` is the last day of a task that ends at midnight, as
+   * `to` writes it, else the instant; `by` says what moved it, and is empty when the element's own
+   * clauses did.
+   */
+  | {
+      readonly fact: "schedule";
+      readonly part: "start" | "end" | "date";
+      readonly before: string;
+      readonly after: string;
+      readonly by: readonly ScheduleCause[];
+    };
+
+/**
+ * What moved a task, milestone or marker of a gantt chart: a task it follows whose own clauses
+ * changed, the chart's calendar, or the order of the tasks (a task that follows the previous one).
+ */
+export type ScheduleCause =
+  | { readonly kind: "task"; readonly id: string }
+  | { readonly kind: "calendar" }
+  | { readonly kind: "order" };
 
 /** Parts of a change described without details. */
 export type ChangedPart =
@@ -109,7 +137,9 @@ export type ChangeState =
   | "rerouted"
   | "labelMoved"
   | "messagesReordered"
-  | "scenesReordered";
+  | "scenesReordered"
+  | "critical"
+  | "notCritical";
 
 interface Pairs<T> {
   readonly matched: [T, T][];
@@ -257,7 +287,311 @@ function sameTags(before: readonly TagUse[], after: readonly TagUse[]): boolean 
   );
 }
 
-function elementDetails(b: FlowDiagram, be: Element, a: FlowDiagram, ae: Element): ChangeFact[] {
+// ------------------------------------------------------------------------- gantt schedules
+
+/** An instant of a chart as a review reads it: the day, with the time when it has one. */
+const instantText = (time: number): string => formatDate(time, time % SECONDS_PER_DAY !== 0);
+
+/**
+ * The first and the last moment of a task as a review reads them: the first and the last day it
+ * works, as `from` and `to` write them, when it runs from midnight to midnight, else both instants
+ * with their times.
+ */
+function spanTexts(start: number, finish: number): [string, string] {
+  if (start % SECONDS_PER_DAY === 0 && finish % SECONDS_PER_DAY === 0 && finish > start) {
+    return [formatDay(dayNumber(start)), formatDay(dayNumber(finish) - 1)];
+  }
+  const withTime = start % SECONDS_PER_DAY !== 0 || finish % SECONDS_PER_DAY !== 0;
+  return [formatDate(start, withTime), formatDate(finish, withTime)];
+}
+
+/** The ids of an `after` or `until` clause, as text; ids of the version before by `map`. */
+function idsText(
+  ids: readonly { readonly id: string }[],
+  map: (id: string) => string,
+): string | null {
+  return ids.length === 0 ? null : ids.map((reference) => map(reference.id)).join(", ");
+}
+
+/** An end clause as written: `for 5d`, `to 2026-06-19`, `until a, b`. */
+function endClause(end: GanttEnd | null, map: (id: string) => string): string | null {
+  if (end === null) return null;
+  if (end.kind === "for") return `for ${end.amount}${end.unit}`;
+  if (end.kind === "to") return `to ${end.date}`;
+  return `until ${idsText(end.ids, map)}`;
+}
+
+/** Whether a task waits for no one: it follows the previous task, as Mermaid's do. */
+const followsPrevious = (task: GanttTask): boolean =>
+  task.from === null && task.after.length === 0 && task.afterRange === null;
+
+/** The task or milestone each one follows when it names nothing, by id, null for the first. */
+function previousTasks(
+  diagram: FlowDiagram,
+  map: (id: string) => string,
+): Map<string, string | null> {
+  const previous = new Map<string, string | null>();
+  let last: string | null = null;
+  for (const element of diagram.elements) {
+    if (!element.task || element.kind === "marker") continue;
+    previous.set(map(element.id), last === null ? null : map(last));
+    last = element.id;
+  }
+  return previous;
+}
+
+/**
+ * What changed in the schedule of a gantt chart between two versions, by the ids of the second:
+ * which tasks moved, and what moved them. A task whose own clauses (`from`, `after`, `for`, `to`,
+ * `until`) changed is what moved the tasks whose dates it sets; a task that moved while none of
+ * its own clauses changed and nothing that sets its dates moved was moved by the calendar, or by
+ * the order of the tasks. A chart that does not compile in either version resolves nothing.
+ */
+class GanttMoves {
+  /** Whether both versions compile: only then are dates compared. */
+  readonly resolved: boolean;
+  private readonly before = new Map<string, Element>();
+  private readonly previousBefore: Map<string, string | null>;
+  private readonly previousAfter: Map<string, string | null>;
+  private readonly calendarChanged: boolean;
+  private readonly position = new Map<string, number>();
+  private readonly causeCache = new Map<string, readonly ScheduleCause[]>();
+  private readonly visiting = new Set<string>();
+
+  constructor(
+    b: FlowDiagram,
+    private readonly a: FlowDiagram,
+    private readonly renames: ReadonlyMap<string, string>,
+  ) {
+    this.resolved = !b.hasErrors && !a.hasErrors;
+    a.elements.forEach((element, index) => this.position.set(element.id, index));
+    for (const element of b.elements) {
+      if (element.task) this.before.set(this.rename(element.id), element);
+    }
+    this.previousBefore = previousTasks(b, (id) => this.rename(id));
+    this.previousAfter = previousTasks(a, (id) => id);
+    this.calendarChanged = !same(b.gantt?.calendar, a.gantt?.calendar);
+  }
+
+  /** An id of the version before, as the version after names it. */
+  rename = (id: string): string => this.renames.get(id) ?? id;
+
+  /** The clauses of a task, milestone or marker that changed, and its state. */
+  clauseFacts(be: Element, ae: Element): ChangeFact[] {
+    const details: ChangeFact[] = [];
+    const bt = be.task!;
+    const at = ae.task!;
+    // A milestone or a marker writes `at` where a task writes `from`.
+    value(
+      details,
+      ae.kind === "task" ? "from" : "at",
+      bt.from?.date ?? null,
+      at.from?.date ?? null,
+    );
+    value(
+      details,
+      "after",
+      idsText(bt.after, this.rename),
+      idsText(at.after, (id) => id),
+    );
+    value(
+      details,
+      "end",
+      endClause(bt.end, this.rename),
+      endClause(at.end, (id) => id),
+    );
+    value(details, "status", bt.status, at.status);
+    if (bt.critical !== at.critical) {
+      details.push({ fact: "state", state: at.critical ? "critical" : "notCritical" });
+    }
+    return details;
+  }
+
+  /** The resolved dates of a task, milestone or marker that changed, with what moved them. */
+  scheduleFacts(be: Element, ae: Element): ChangeFact[] {
+    const bt = be.task;
+    const at = ae.task;
+    if (!this.resolved || !bt || !at || be.kind !== ae.kind) return [];
+    if (bt.start === null || bt.finish === null || at.start === null || at.finish === null) {
+      return [];
+    }
+    const by = this.causes(ae.id);
+    const details: ChangeFact[] = [];
+    const push = (part: "start" | "end" | "date", before: string, after: string) => {
+      if (before !== after) details.push({ fact: "schedule", part, before, after, by });
+    };
+    if (ae.kind === "task") {
+      const [startBefore, endBefore] = spanTexts(bt.start, bt.finish);
+      const [startAfter, endAfter] = spanTexts(at.start, at.finish);
+      push("start", startBefore, startAfter);
+      push("end", endBefore, endAfter);
+    } else {
+      push("date", instantText(bt.start), instantText(at.start));
+    }
+    return details;
+  }
+
+  /** Whether a task of the version after has other dates than before; one with none before is new. */
+  private moved(id: string): boolean {
+    const task = this.a.elementsById.get(id)?.task;
+    if (!task) return false;
+    const before = this.before.get(id)?.task;
+    if (!before) return true;
+    return before.start !== task.start || before.finish !== task.finish;
+  }
+
+  /** Whether the clauses that place a task changed; a task that is new has them all. */
+  private own(id: string): boolean {
+    const task = this.a.elementsById.get(id)?.task;
+    const before = this.before.get(id)?.task;
+    if (!task || !before) return true;
+    return (
+      before.from?.date !== task.from?.date ||
+      idsText(before.after, this.rename) !== idsText(task.after, (x) => x) ||
+      endClause(before.end, this.rename) !== endClause(task.end, (x) => x)
+    );
+  }
+
+  /** An element of one of the versions, by the id the version after gives it. */
+  private taskIn(version: "before" | "after", id: string): Element | undefined {
+    return version === "after" ? this.a.elementsById.get(id) : this.before.get(id);
+  }
+
+  /**
+   * The tasks that set the dates of a task in a version, by the ids of the version after: the
+   * latest to end of those it follows (`after`, or the task before it), and the earliest to start
+   * of those its end waits for (`until`); every one that ties.
+   */
+  private drivers(version: "before" | "after", id: string): string[] {
+    const element = this.taskIn(version, id);
+    const task = element?.task;
+    if (!element || !task) return [];
+    const map = version === "after" ? (other: string) => other : this.rename;
+    const waits = task.after.map((reference) => map(reference.id));
+    if (element.kind !== "marker" && followsPrevious(task)) {
+      const previous = (version === "after" ? this.previousAfter : this.previousBefore).get(id);
+      if (previous) waits.push(previous);
+    }
+    const drivers: string[] = [];
+    let latest = -Infinity;
+    for (const wait of new Set(waits)) {
+      const finish = this.taskIn(version, wait)?.task?.finish;
+      if (finish === null || finish === undefined) continue;
+      if (finish > latest) {
+        latest = finish;
+        drivers.length = 0;
+      }
+      if (finish === latest) drivers.push(wait);
+    }
+    if (task.end?.kind === "until") {
+      let earliest = Infinity;
+      const ends: string[] = [];
+      for (const reference of task.end.ids) {
+        const target = map(reference.id);
+        const start = this.taskIn(version, target)?.task?.start;
+        if (start === null || start === undefined) continue;
+        if (start < earliest) {
+          earliest = start;
+          ends.length = 0;
+        }
+        if (start === earliest) ends.push(target);
+      }
+      for (const target of ends) if (!drivers.includes(target)) drivers.push(target);
+    }
+    return drivers;
+  }
+
+  /**
+   * What moved a task: the tasks that set its dates, before or now, which moved because their own
+   * clauses changed (and what moved those); else the calendar or the order of the tasks, when
+   * nothing that sets its dates moved and it changed nothing of its own. Empty for a task that
+   * moved by its own clauses alone.
+   */
+  private causes(id: string): readonly ScheduleCause[] {
+    const known = this.causeCache.get(id);
+    if (known) return known;
+    if (this.visiting.has(id)) return [];
+    this.visiting.add(id);
+    const found: ScheduleCause[] = [];
+    const add = (cause: ScheduleCause) => {
+      if (!found.some((other) => same(other, cause))) found.push(cause);
+    };
+    let followedMoved = false;
+    // What set its dates before and what sets them now: either may be what moved it.
+    const drivers = new Set([...this.drivers("before", id), ...this.drivers("after", id)]);
+    for (const predecessor of drivers) {
+      if (!this.moved(predecessor)) continue;
+      followedMoved = true;
+      if (this.own(predecessor)) add({ kind: "task", id: predecessor });
+      for (const cause of this.causes(predecessor)) add(cause);
+    }
+    if (!followedMoved && !this.own(id) && this.moved(id)) {
+      const task = this.a.elementsById.get(id)!.task!;
+      const before = this.before.get(id)!.task!;
+      const reordered =
+        followsPrevious(task) &&
+        followsPrevious(before) &&
+        this.previousBefore.get(id) !== this.previousAfter.get(id);
+      if (reordered) add({ kind: "order" });
+      else if (this.calendarChanged) add({ kind: "calendar" });
+    }
+    this.visiting.delete(id);
+    // The tasks in the order they are written, then the order of the tasks, then the calendar.
+    const rank = (cause: ScheduleCause): number =>
+      cause.kind === "task"
+        ? (this.position.get(cause.id) ?? Infinity)
+        : cause.kind === "order"
+          ? Number.MAX_SAFE_INTEGER - 1
+          : Number.MAX_SAFE_INTEGER;
+    found.sort((x, y) => rank(x) - rank(y));
+    this.causeCache.set(id, found);
+    return found;
+  }
+}
+
+/** The days a chart does not work, as `exclude` writes them: `weekends, 2026-06-29`. */
+function excludedText(calendar: GanttCalendar): string | null {
+  const days = calendar.excludedWeekdays;
+  const weekend = days.includes(5) && days.includes(6);
+  const words = [
+    ...days.filter((day) => !(weekend && day >= 5)).map((day) => WEEKDAYS[day]!),
+    ...(weekend ? ["weekends"] : []),
+    ...calendar.excludedDates,
+  ];
+  return words.length === 0 ? null : words.join(", ");
+}
+
+/** What `today` writes: nothing, the day of the drawing (`today`) or a date. */
+const todayText = (chart: GanttChart): string | null =>
+  chart.today === null ? null : (chart.today.date ?? "today");
+
+/** The calendar, axis and view statements of a chart that changed. */
+function ganttDetails(b: GanttChart, a: GanttChart, details: ChangeFact[]): void {
+  value(details, "exclude", excludedText(b.calendar), excludedText(a.calendar));
+  value(
+    details,
+    "include",
+    b.calendar.includedDates.join(", ") || null,
+    a.calendar.includedDates.join(", ") || null,
+  );
+  value(details, "weekStart", WEEKDAYS[b.calendar.weekStart]!, WEEKDAYS[a.calendar.weekStart]!);
+  field(details, "axisFormat", b.axisFormat, a.axisFormat);
+  value(details, "ticks", b.ticks, a.ticks);
+  value(details, "axis", b.axis, a.axis);
+  value(details, "labels", b.labels, a.labels);
+  value(details, "display", b.display, a.display);
+  value(details, "dependencies", b.dependencies, a.dependencies);
+  value(details, "dayWidth", numberOrNull(b.dayWidth), numberOrNull(a.dayWidth));
+  value(details, "today", todayText(b), todayText(a));
+}
+
+function elementDetails(
+  b: FlowDiagram,
+  be: Element,
+  a: FlowDiagram,
+  ae: Element,
+  moves: GanttMoves | null = null,
+): ChangeFact[] {
   const details: ChangeFact[] = [];
   value(details, "kind", be.kind, ae.kind);
   field(details, "label", be.label, ae.label);
@@ -297,6 +631,10 @@ function elementDetails(b: FlowDiagram, be: Element, a: FlowDiagram, ae: Element
   if (!same(styleOf(b, be.id), styleOf(a, ae.id))) details.push({ fact: "changed", part: "style" });
   if (!same(animationOf(b, be.id), animationOf(a, ae.id)))
     details.push({ fact: "changed", part: "effects" });
+  // A task, milestone or marker of a chart: what it writes, then the dates that follow from it.
+  if (moves && be.task && ae.task) {
+    details.push(...moves.clauseFacts(be, ae), ...moves.scheduleFacts(be, ae));
+  }
   return details;
 }
 
@@ -395,6 +733,7 @@ function diagramDetails(b: FlowDiagram, a: FlowDiagram): ChangeFact[] {
   }
   const constraints = (d: FlowDiagram) => d.constraints.map((c) => [c.kind, c.targets, c.edge]);
   if (!same(constraints(b), constraints(a))) details.push({ fact: "changed", part: "constraints" });
+  if (b.gantt && a.gantt) ganttDetails(b.gantt, a.gantt, details);
   return details;
 }
 
@@ -413,13 +752,22 @@ function diffDiagram(
     3,
   );
   const renames = new Map(elements.renamed.map(([be, ae]) => [be.id, ae.id]));
+  const moves = b.gantt && a.gantt ? new GanttMoves(b, a, renames) : null;
   for (const [be, ae] of elements.renamed) {
     changes.push(
-      change("renamed", "element", scope, ae.id, ae.label, elementDetails(b, be, a, ae), be.id),
+      change(
+        "renamed",
+        "element",
+        scope,
+        ae.id,
+        ae.label,
+        elementDetails(b, be, a, ae, moves),
+        be.id,
+      ),
     );
   }
   for (const [be, ae] of elements.matched) {
-    const details = elementDetails(b, be, a, ae);
+    const details = elementDetails(b, be, a, ae, moves);
     if (details.length > 0)
       changes.push(change("changed", "element", scope, ae.id, ae.label, details));
   }
@@ -436,9 +784,12 @@ function diffDiagram(
   const beforeKeys = relationKeys(b, (id) => renames.get(id) ?? id);
   const afterKeys = relationKeys(a, (id) => id);
   const mapped = (r: Relation, keys: Map<Relation, string>) => keys.get(r)!;
+  // The arrows of a gantt chart are its `after` clauses, which the tasks' facts already carry.
+  const arrows = (d: typeof b) =>
+    d.type === "gantt" ? d.relations.filter((r) => !r.derived) : d.relations;
   const relations = pair(
-    b.relations,
-    a.relations,
+    arrows(b),
+    arrows(a),
     (r) => mapped(r, b.relations.includes(r) ? beforeKeys : afterKeys),
     (br, ar) =>
       (renames.get(br.from) ?? br.from) === ar.from &&
@@ -486,6 +837,10 @@ function diffDiagram(
       );
   }
   for (const [br, ar] of relations.renamed) renames.set(br.key, ar.key);
+  // The arrows of a chart are keyed by their ends: a task renamed renames its arrows, which the
+  // actions of a story name (`trace` follows them), though they pair by key.
+  if (moves)
+    for (const [br, ar] of relations.matched) if (br.key !== ar.key) renames.set(br.key, ar.key);
   return { changes, renames };
 }
 
@@ -858,5 +1213,10 @@ export function describeFact(fact: ChangeFact, locale: Locale = getLocale()): st
       return words.duration(fact.before, fact.after);
     case "kind":
       return fact.kind;
+    case "schedule": {
+      const causes = fact.by.map((cause) => words.cause(cause));
+      const moved = causes.length === 0 ? "" : ` (${words.movedBy(words.and(causes))})`;
+      return `${words.schedule[fact.part]} ${fact.before} → ${fact.after}${moved}`;
+    }
   }
 }

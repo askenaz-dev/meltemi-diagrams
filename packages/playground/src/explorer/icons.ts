@@ -13,6 +13,7 @@ export const EXPLORER_ICONS = {
   sequence:
     "M4 2.5v11|M12 2.5v11|M4 6h7.3|M9.8 4.5L11.3 6 9.8 7.5|M12 10.5H4.7|M6.2 9L4.7 10.5 6.2 12",
   c4: "M2.5 2.5h11v11h-11z|M5 6h6v5H5z|M5 4.3h3",
+  gantt: "M2.5 3.5h5v2.4h-5z|M5.5 7h6v2.4h-6z|M9 10.5h4.5v2.4H9z|M2 2v12",
   model: "M8 2l5.5 3v6L8 14l-5.5-3V5z|M2.5 5L8 8l5.5-3|M8 8v6",
   story: ICONS.story,
   theme:

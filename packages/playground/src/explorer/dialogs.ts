@@ -65,12 +65,12 @@ function nameDialog(
 /** New diagram: its name, and its kind as a choice of three. */
 export function newDiagramDialog(
   folder: string,
-  accept: (name: string, kind: "flow" | "free" | "sequence") => string | undefined,
+  accept: (name: string, kind: "flow" | "free" | "sequence" | "gantt") => string | undefined,
   returnTo: () => HTMLElement | undefined,
 ): void {
   const words = messages().explorer.actions;
   const group = `new-diagram-kind-${Math.random().toString(36).slice(2)}`;
-  const kinds = (["flow", "free", "sequence"] as const).map((kind, index) => {
+  const kinds = (["flow", "free", "sequence", "gantt"] as const).map((kind, index) => {
     const input = h("input", {
       type: "radio",
       name: group,

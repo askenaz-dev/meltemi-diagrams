@@ -364,5 +364,5 @@ export function verifyNoNewErrors(ctx: TextContext, edits: readonly TextEdit[]):
     ctx.compilation.options,
   ).diagnostics.filter((d) => d.severity === "error" && !before.has(key(d)));
   const first = after[0];
-  if (first) reject("edit.invalid-value", first.message);
+  if (first) reject("edit.invalid-value", first.message, undefined, first.code);
 }

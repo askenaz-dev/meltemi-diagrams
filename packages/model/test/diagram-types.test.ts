@@ -88,14 +88,14 @@ describe("declared diagram types", () => {
       {
         type: "bpmn",
         elements: {
-          task: { style: { shape: "hexagon", radius: 0 } },
+          activity: { style: { shape: "hexagon", radius: 0 } },
           event: { style: { shape: "circle", radius: 64 } },
         },
       },
       null,
     );
     expect(problems).toEqual([]);
-    expect(definition!.elements.task!.style).toEqual({ shape: "hexagon", radius: 0 });
+    expect(definition!.elements.activity!.style).toEqual({ shape: "hexagon", radius: 0 });
     expect(definition!.elements.event!.style).toEqual({ shape: "circle", radius: 64 });
   });
 
@@ -157,8 +157,25 @@ describe("declared diagram types", () => {
     );
     expect(codes.some((c) => c.startsWith("prop.invalid-value"))).toBe(true);
     expect(compile(text).diagnostics[0]!.message).toBe(
-      "Unknown diagram type `erd`; expected one of flow, sequence, c4, free.",
+      "Unknown diagram type `erd`; expected one of flow, sequence, c4, free, gantt.",
     );
+  });
+
+  it("refuse the words of gantt charts as a type or as a kind", () => {
+    const { problems } = readDiagramType(
+      {
+        type: "gantt",
+        elements: { task: {}, milestone: {}, marker: {}, section: {}, step: {} },
+      },
+      null,
+    );
+    expect(problems).toEqual([
+      "diagram type `gantt`: `type` must be a lower-case word that is not a word of the language.",
+      "diagram type `gantt`, kind `task`: a kind must be a lower-case word that is not a word of the language.",
+      "diagram type `gantt`, kind `milestone`: a kind must be a lower-case word that is not a word of the language.",
+      "diagram type `gantt`, kind `marker`: a kind must be a lower-case word that is not a word of the language.",
+      "diagram type `gantt`, kind `section`: a kind must be a lower-case word that is not a word of the language.",
+    ]);
   });
 });
 

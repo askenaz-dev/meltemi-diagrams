@@ -14,6 +14,7 @@ import {
   type Tuple,
 } from "@meltemi/diagrams-language";
 import {
+  GANTT_RESERVED_IDS,
   compile,
   relationLabelSpan,
   relationNameAnchor,
@@ -110,6 +111,15 @@ import {
   removePort,
   ungroup,
 } from "./structure.js";
+import {
+  createTask,
+  refuseInChart,
+  removalFixes,
+  setCalendar,
+  setChartStatement,
+  setTaskSchedule,
+  setTaskStatus,
+} from "./gantt.js";
 import { setDiagramProperty, setStyleProperty } from "./styles.js";
 import { addTag, removeTag, setTag } from "./tags.js";
 import { removeAnimation, setAnimation } from "./animate.js";
@@ -281,6 +291,7 @@ function run(
     | ThemeOperation
   >,
 ): TextEdit[] {
+  refuseInChart(ctx, operation);
   if (["setPosition", "setSize", "setRoute", "arrange"].includes(operation.kind)) {
     refuseFlowGeometry(ctx, operation.kind);
   }
@@ -428,6 +439,16 @@ function run(
       return setNotePlacement(ctx, operation);
     case "setFragmentOperator":
       return setFragmentOperator(ctx, operation);
+    case "setTaskSchedule":
+      return setTaskSchedule(ctx, operation);
+    case "setTaskStatus":
+      return setTaskStatus(ctx, operation);
+    case "createTask":
+      return createTask(ctx, operation);
+    case "setCalendar":
+      return setCalendar(ctx, operation);
+    case "setChartStatement":
+      return setChartStatement(ctx, operation);
     case "addTag":
       return addTag(ctx, operation);
     case "setTag":
@@ -933,6 +954,9 @@ function renameElement(ctx: EditContext, op: OperationOf<"renameElement">): Text
   requireElement(ctx, op.element);
   if (op.newId === op.element) return [];
   requireNewId(ctx, op.newId);
+  if (ctx.diagram.type === "gantt" && GANTT_RESERVED_IDS.includes(op.newId)) {
+    reject("edit.invalid-id", reasons().gantt.reservedId(op.newId));
+  }
   const tokens = new Map<number, Token>();
   for (const reference of ctx.diagram.references) {
     if (reference.targetKind === "element" && reference.target === op.element) {
@@ -997,12 +1021,16 @@ function removeElement(ctx: EditContext, op: OperationOf<"removeElement">): Text
   for (const other of diagram.elements) {
     if (other.groupPath.includes(element.id)) removedElements.add(other.id);
   }
-  const removedRelations = diagram.relations.filter(
-    (r) =>
-      removedElements.has(r.from) ||
-      removedElements.has(r.to) ||
-      r.groupPath.some((g) => removedElements.has(g)),
-  );
+  // A gantt chart's arrows are its `after` clauses, which `removalFixes` rewrites below.
+  const removedRelations =
+    diagram.type === "gantt"
+      ? []
+      : diagram.relations.filter(
+          (r) =>
+            removedElements.has(r.from) ||
+            removedElements.has(r.to) ||
+            r.groupPath.some((g) => removedElements.has(g)),
+        );
   // A call goes with the events of its block: its messages and returns, notes and fragments.
   const nested = nestedInCalls(ctx, new Set(removedRelations.map((r) => r.key)));
   for (const event of nested) {
@@ -1182,6 +1210,9 @@ function removeElement(ctx: EditContext, op: OperationOf<"removeElement">): Text
       messages().notes.removedComment(line, text.trim()),
     );
   }
+  const fixes = removalFixes(ctx, removedElements);
+  edits.push(...fixes.edits);
+  ctx.notes.push(...fixes.notes);
   for (const [anchor, ids] of keep) {
     edits.push({
       start: anchor.start,

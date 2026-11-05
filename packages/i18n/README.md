@@ -53,6 +53,9 @@ Neutral Spanish, the same terms everywhere:
   operators (`alt`, `loop`) are not translated.
 - Numbers use the comma for decimals in prose ("1,2 s"); values written in the language keep the
   dot (`place a at (10.5, 20)`).
+- A gantt chart's marker is "marca" and the whiteboard's highlighter "marcador"; the status words
+  agree with what they say ("tarea hecha" and "hito hecho", "crítica" and "crítico"), and the axis's
+  intervals are "divisiones", never "marcas".
 
 | English          | Español                 | English          | Español                  |
 | ---------------- | ----------------------- | ---------------- | ------------------------ |
@@ -115,6 +118,12 @@ Neutral Spanish, the same terms everywhere:
 | column           | columna                 | row              | fila                     |
 | activation (bar) | activación (barra)      | wrap (text)      | ajustar                  |
 | badge            | insignia                | tag (sequence)   | marca                    |
+| Gantt chart      | diagrama de Gantt       | task             | tarea                    |
+| milestone        | hito                    | marker (gantt)   | marca                    |
+| section (gantt)  | sección                 | dependency       | dependencia              |
+| working day      | día hábil               | excluded day     | día excluido             |
+| today            | hoy                     | critical         | crítica                  |
+| done (status)    | hecha                   | active (status)  | en curso                 |
 
 ## Documentation
 

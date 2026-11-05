@@ -79,6 +79,42 @@ export const en = {
     opens: (view: string) => `opens ${view}`,
     /** The list of elements under the text summary. */
     elements: "Elements",
+    /** Gantt charts: what cards and the panel say of tasks, milestones, markers and sections. */
+    gantt: {
+      /** The kind of an element, in the panel's subtitle. */
+      kind: (kind: string) =>
+        ({ task: "Task", milestone: "Milestone", marker: "Marker", section: "Section" })[kind] ??
+        kind,
+      /** The terms of the panel's facts. */
+      fields: {
+        section: "Section",
+        start: "Start",
+        end: "End",
+        date: "Date",
+        working: "Working time",
+        status: "Status",
+      },
+      /** A task's, milestone's or marker's state; the kind tells the grammar its language needs. */
+      state: (state: "planned" | "active" | "done", _kind: string) =>
+        ({ planned: "Planned", active: "In progress", done: "Done" })[state],
+      /** "Critical" on the card and in the subtitle. */
+      critical: (_kind: string) => "Critical",
+      /** What a task follows, on its card: "After: Design". */
+      follows: (tasks: string) => `After: ${tasks}`,
+      /** The span of a task: "8 Jun 2026 → 19 Jun 2026". */
+      span: (start: string, end: string) => `${start} → ${end}`,
+      /** The months in dates, from January. */
+      months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+      /** A date as the language writes it: "8 Jun 2026", with the time "8 Jun 2026 09:30". */
+      moment: (day: number, month: string, year: string, time: string | null) =>
+        `${day} ${month} ${year}${time === null ? "" : ` ${time}`}`,
+      /** Working time of a day or more; the amount is already written: "10 working days". */
+      days: (amount: string, count: number) =>
+        `${amount} working ${plural("en", count, { one: "day", other: "days" })}`,
+      hours: (amount: string) => `${amount} h`,
+      minutes: (amount: string) => `${amount} min`,
+      seconds: (amount: string) => `${amount} s`,
+    },
   },
   /** What the player says of its document. */
   player: {
@@ -130,6 +166,10 @@ export const en = {
       const verb = { cut: "Cut", fade: "Fade", morph: "Morph" }[kind];
       return `${verb} to ${view}${time === null ? "" : ` over ${time}`}`;
     },
+    /** Gantt charts: `trace` of a task follows the arrows of the chain that drives it. */
+    traceChain: (task: string, time: string) => `Trace the dependencies of ${task} over ${time}`,
+    /** Gantt charts: `draw` grows the bars of tasks one after another. */
+    drawBars: (targets: string, time: string) => `Draw the bars of ${targets} over ${time}`,
     reveal: (targets: string, time: string) => `Reveal ${targets} over ${time}`,
     hide: (targets: string, time: string) => `Hide ${targets} over ${time}`,
     highlight: (targets: string, time: string) => `Highlight ${targets} for ${time}`,

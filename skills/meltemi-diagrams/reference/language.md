@@ -28,10 +28,18 @@ binds ids directly. Use imported themes by name: `theme "corporate"`, `theme "co
 `pnpm mdg validate <project folder>`; the full rules are in the repository's
 `docs/language/projects.md`.
 
-Every block compiles: `flow`, `free`, `sequence` and `c4` diagrams render, `story` blocks play
+Every block compiles: `flow`, `free`, `sequence`, `c4` and `gantt` diagrams render, `story` blocks play
 ([stories.md](stories.md)) and `export` profiles write deliveries (below); free compositions are described in [free.md](free.md), sequence
-diagrams in [sequence.md](sequence.md), and models with C4 views in [c4.md](c4.md). Any element block may hold `link <diagram>.<element>`, which ties
+diagrams in [sequence.md](sequence.md), gantt charts in [gantt.md](gantt.md), and models with C4 views in [c4.md](c4.md). Any element block may hold `link <diagram>.<element>`, which ties
 it to an element of another diagram.
+
+A `gantt` chart schedules tasks from dates: `section <id> "Label" { … }` holds
+`task <id> "Label" [from <date>] [after <ids>] [for <duration> | to <date> | until <ids>] [done | active] [critical]`,
+`milestone <id> "Label" [at <date>] [after <ids>]` and `marker <id> "Label" at <date>`; dates are written
+`2026-06-01` (or `2026-06-01T09:30`) and durations `10d`, `1.5h` or `2w`; `exclude weekends` and `include <date>`
+set the calendar, so `d` counts working days. Chart statements: `axisFormat "%d %b"`, `ticks 1w`,
+`axis`, `labels`, `display`, `dependencies`, `dayWidth` and `today [<date>]`. A task with no start follows the
+previous one; dependencies are `after`, never `a -> b`; no `place`, `size` or `layout` (gantt.md).
 
 ## Inside `diagram <id>: flow { }`
 
@@ -183,7 +191,7 @@ export slide for checkout {
 Plugins installed in `project.json` may declare diagram types (`diagram s: erd { entity a "A" }`):
 their kinds are boxes with the type's style and properties; `pnpm mdg plugins <project>` lists them.
 `pnpm mdg convert <file> --to json` writes the file's model JSON for other tools.
-`pnpm mdg init <folder> --template flow|c4|sequence|free|purchase` starts a project;
+`pnpm mdg init <folder> --template flow|c4|sequence|roadmap|free|kanban|whiteboard|purchase` starts a project;
 `pnpm mdg preview <project>` serves its catalog and reloads it as files change;
 `pnpm mdg review <project> --base main` lists what changed by id (renames included).
 `pnpm mdg build catalog <project>` writes one offline HTML catalog of the project (settings in
@@ -239,6 +247,7 @@ the optional cloud service, which `project.json` records in `cloud`, and
 | `animate.missing-effect`, `animate.invalid-target`               | write `effect`; flow and trace on named relations, free lines and pens, dash on lines, pens and boxes, pulse anywhere                               |
 | `animate.conflict`                                               | one effect of each kind per target; merge the two statements                                                                                        |
 | `story.*`                                                        | stories; see [stories.md](stories.md)                                                                                                               |
+| `gantt.*`                                                        | gantt charts: unscheduled, schedule, cycle, relation, excluded day; see [gantt.md](gantt.md)                                                        |
 | `export.*`                                                       | export profiles: a known target, a `format`, options of that format, a video `duration`                                                             |
 | `ref.unknown-link`                                               | a `link` names a diagram or element that does not exist; fix it or remove the link                                                                  |
 | `ref.unknown-layer`, `asset.*-image`, `layout.image-unavailable` | free compositions; see [free.md](free.md)                                                                                                           |

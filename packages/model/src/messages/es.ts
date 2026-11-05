@@ -17,6 +17,7 @@ const A_PROFILE: Readonly<Record<string, string>> = {
   free: "una composición libre",
   sequence: "un diagrama de secuencia",
   c4: "una vista C4",
+  gantt: "un diagrama de Gantt",
 };
 
 /** Diagram profiles in plural: "los diagramas de flujo". */
@@ -25,6 +26,7 @@ const PROFILES: Readonly<Record<string, string>> = {
   free: "las composiciones libres",
   sequence: "los diagramas de secuencia",
   c4: "las vistas C4",
+  gantt: "los diagramas de Gantt",
 };
 
 /** The entity kinds of models: with an article, in plural, and after "bloques". */
@@ -75,6 +77,42 @@ const HOMES: Readonly<Record<string, string>> = {
   container: "en un sistema",
   datastore: "en un sistema",
   component: "en un contenedor",
+};
+
+/** The months and the days of the week in messages about dates; the weekdays count from Monday. */
+const MONTHS = [
+  "enero",
+  "febrero",
+  "marzo",
+  "abril",
+  "mayo",
+  "junio",
+  "julio",
+  "agosto",
+  "septiembre",
+  "octubre",
+  "noviembre",
+  "diciembre",
+] as const;
+const WEEKDAYS = [
+  "lunes",
+  "martes",
+  "miércoles",
+  "jueves",
+  "viernes",
+  "sábado",
+  "domingo",
+] as const;
+
+/** The first letter in capitals: a date opens a sentence. */
+const capital = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+
+/** The kinds of a gantt chart, with an indefinite article. */
+const GANTT_KINDS: Readonly<Record<string, string>> = {
+  section: "una sección",
+  task: "una tarea",
+  milestone: "un hito",
+  marker: "una marca",
 };
 
 /** The element kinds drawn without an outline, with an indefinite article. */
@@ -331,6 +369,10 @@ export const es: typeof en = {
       dashWithoutOutline: (target, kind) =>
         `${code(target)} es ${pick(UNOUTLINED, kind)} sin contorno; un trazo en movimiento necesita una línea o una caja.`,
       unknownTarget: (name) => `Elemento o relación desconocidos ${code(name)}.`,
+      ganttArrowsTarget: (effect, id, kind) =>
+        `${effect === "flow" ? "Las partículas recorren" : "Un recorrido avanza por"} las flechas de dependencia que llegan a una tarea o a un hito; ${code(id)} es ${pick(GANTT_KINDS, kind)}.`,
+      ganttNoArrows: (effect, id) =>
+        `${code(id)} no tiene flechas de dependencia ${effect === "flow" ? "por las que recorrer partículas" : "que recorrer"}; ${code(effect)} admite una tarea o un hito que sigue a otros con \`after\`.`,
     },
 
     values: {
@@ -357,6 +399,10 @@ export const es: typeof en = {
         `\`rotation\` gira los elementos de los diagramas de flujo y las composiciones libres; ${pick(PROFILES, profile)} dibujan los suyos rectos.`,
       shapeInProfile: (profile) =>
         `\`shape\` se aplica a los elementos \`node\` y \`box\`; ${pick(PROFILES, profile)} dibujan cada tipo con su propia forma.`,
+      notInGantt: (name) =>
+        `${code(name)} no se aplica a los diagramas de Gantt; sus barras, rombos y líneas tienen una forma fija.`,
+      textNotInGantt: (name) =>
+        `${code(name)} no se aplica a los diagramas de Gantt; sus etiquetas se dibujan con la fuente del tema, al tamaño de las filas.`,
       duplicateClass: (id) => `La clase ${code(id)} ya está declarada aquí.`,
       ruleShape: "Se esperaba `rule <kind> { ... }`.",
       invalidRuleKind: (arg, kinds) =>
@@ -495,6 +541,90 @@ export const es: typeof en = {
       loopCount: "Un bucle se repite de 1 a 100 veces en un escenario.",
     },
 
+    gantt: {
+      relation:
+        "Un diagrama de Gantt no tiene relaciones; las dependencias se escriben con `after`.",
+      shorthand: (id) =>
+        `\`${id}[...]\` no declara nada en un diagrama de Gantt; escribe un \`task\`, \`milestone\`, \`marker\` o \`section\`.`,
+      sectionInSection: "Una sección contiene tareas, hitos y marcas, no otras secciones.",
+      unknownInSection: (keyword) => `Instrucción desconocida ${code(keyword)} en una sección.`,
+      everyDayExcluded: "Estas exclusiones no dejan ningún día de la semana para trabajar.",
+      badDirective: (directive, directives) =>
+        `${code(directive)} no es una directiva de \`axisFormat\`; usa ${list("es", directives.map(code))}.`,
+      alreadyWorking: (date) =>
+        `${code(date)} ya es un día hábil; \`include\` es para las fechas que cubre una exclusión.`,
+      needsDays: (name) =>
+        `${code(name)} necesita ${name === "exclude" ? "uno o más días de la semana, `weekends` o fechas" : "una o más fechas"}.`,
+      dayNotInstant: (name, text) =>
+        `${code(name)} admite días, no instantes: escribe ${code(text.slice(0, 10))}.`,
+      notADay: (arg, name) => `${arg} no es algo que admita ${code(name)}.`,
+      needsTicks: "`ticks` necesita un intervalo como `1w`.",
+      badTicks: (arg) =>
+        `\`ticks\` no válido: ${arg}; se esperaba un número entero con una unidad, como \`1w\`.`,
+      needsDate: (word) => `${code(word)} necesita una fecha.`,
+      notDate: (word, arg) => `${code(word)} espera una fecha; se encontró ${arg}.`,
+      quotedDate: (word, value) =>
+        `${code(word)} admite una fecha escrita sin comillas; se encontró "${value}".`,
+      dateProblem: (text, problem) => {
+        switch (problem.kind) {
+          case "month":
+            return `${code(text)} no tiene el mes ${problem.month}; los meses van de 01 a 12.`;
+          case "day":
+            return `${code(text)}: ${capital(MONTHS[problem.month! - 1]!)} de ${problem.year} tiene ${problem.daysInMonth} días.`;
+          case "hour":
+            return `${code(text)} no tiene la hora ${problem.value}; las horas van de 00 a 23.`;
+          case "minute":
+            return `${code(text)} no tiene el minuto ${problem.value}; los minutos van de 00 a 59.`;
+          case "second":
+            return `${code(text)} no tiene el segundo ${problem.value}; los segundos van de 00 a 59.`;
+          default:
+            return `${code(text)} no es una fecha.`;
+        }
+      },
+      needsDuration: (word) => `${code(word)} necesita una duración.`,
+      notDuration: (arg) => `Se esperaba una duración como \`10d\`; se encontró ${arg}.`,
+      durationUnit: (text, unit, units) =>
+        unit === null
+          ? `${code(text)} necesita una unidad: ${list("es", units.map(code))}.`
+          : `${code(unit)} no es una unidad de duración en ${code(text)}; usa ${list("es", units.map(code))}.`,
+      durationAboveZero: (text) => `Una duración es mayor que 0; se encontró ${code(text)}.`,
+      durationTooLong: (text) => `${code(text)} dura más de un siglo.`,
+      reservedId: (id) =>
+        `${code(id)} es una palabra de cláusula de los diagramas de Gantt y no puede ser un id.`,
+      strayValue: (arg, form) => `Valor inesperado ${arg}; se esperaba ${form}.`,
+      clauseTwice: (word) => `${code(word)} está escrito dos veces en esta instrucción.`,
+      endTwice: (word, other) =>
+        `${code(word)} termina la tarea, y ${code(other)} ya lo hace; escribe un solo final.`,
+      notAnId: (word, arg) => `${code(word)} admite ids de tareas; se encontró ${arg}.`,
+      idTwice: (id, word) => `${code(id)} ya está en esta lista de ${code(word)}.`,
+      needsIds: (word) => `${code(word)} necesita uno o más ids de tareas.`,
+      statusTwice: (word, other) =>
+        `${code(word)} contradice a ${code(other)}; una tarea es una cosa o la otra.`,
+      unknownWord: (word, kind) =>
+        `${code(word)} no es una cláusula ni un estado de ${pick(GANTT_KINDS, kind)}.`,
+      markerNeedsPlace: (id) => `La marca ${code(id)} necesita \`at <date>\` o \`after <ids>\`.`,
+      markerOnePlace: (id) =>
+        `La marca ${code(id)} se coloca con \`at\` o con \`after\`, no con ambos.`,
+      excludedDay: (text, weekday, target, what) => {
+        const day = capital(`${WEEKDAYS[weekday]} ${text.slice(0, 10)}`);
+        if (target === null) {
+          return `${day} está excluido y ningún día hábil ${what === "starts" ? "lo sigue" : "lo precede"}.`;
+        }
+        return `${day} está excluido; ${what === "starts" ? "empieza" : "termina"} el ${WEEKDAYS[target.weekday]} ${target.date}.`;
+      },
+      dependencyKind: (word, id, kind) =>
+        `${code(word)} nombra tareas e hitos; ${code(id)} es ${pick(GANTT_KINDS, kind)}.`,
+      cycle: (ids) =>
+        `${list("es", ids.map(code))} se esperan entre sí; una tarea no puede depender de otra que depende de ella.`,
+      unscheduled: (id) => `${code(id)} no tiene inicio ni una tarea anterior a la que seguir.`,
+      endsBeforeStart: (id, start, finish, equal) =>
+        equal
+          ? `${code(id)} termina cuando empieza (${start}); una tarea necesita una duración.`
+          : `${code(id)} termina el ${finish}, antes de empezar el ${start}.`,
+      noWorkingTime: (id) =>
+        `${code(id)} no se puede planificar: el calendario no le deja tiempo hábil.`,
+    },
+
     story: {
       unknownDiagram: (name) =>
         `No hay ningún diagrama ${code(name)} sobre el que contar una historia.`,
@@ -528,6 +658,12 @@ export const es: typeof en = {
         `\`draw\` admite trazos de lápiz, líneas y relaciones; ${code(id)} es ${kind === null ? "una nota o un fragmento" : `un elemento ${code(kind)}`}.`,
       conflict: (action, channel, target) =>
         `${code(action)} se superpone a una acción anterior sobre ${CHANNELS[channel] ?? code(channel)} de ${code(target)}.`,
+      ganttTraceTarget: (id, kind) =>
+        `\`trace\` sigue las flechas de dependencia que llegan a una tarea o a un hito; ${code(id)} es ${pick(GANTT_KINDS, kind)}.`,
+      ganttTraceNoArrows: (id) =>
+        `${code(id)} no tiene flechas de dependencia que recorrer; \`trace\` admite una tarea o un hito que sigue a otros con \`after\`.`,
+      ganttDrawTarget: (id, kind) =>
+        `\`draw\` admite trazos de lápiz, líneas, relaciones y tareas de Gantt; ${code(id)} es ${kind === null ? "una nota o un fragmento" : `un elemento ${code(kind)}`}.`,
     },
 
     export: {
@@ -753,6 +889,47 @@ export const es: typeof en = {
       branches: (conditions) => `Ramas: ${conditions.map((c) => `"${c}"`).join(", ")}.`,
     },
 
+    gantt: {
+      relation: (from, to) =>
+        to === null
+          ? "Escribe la dependencia con `after` en la tarea que espera."
+          : `Escribe \`after ${from}\` en \`${to}\`: \`task ${to} after ${from}\`.`,
+      statements:
+        "Los diagramas de Gantt aceptan `section`, `task`, `milestone`, `marker`, `exclude`, `include`, `weekStart`, `axisFormat`, `ticks`, `axis`, `labels`, `display`, `dependencies`, `dayWidth`, `today`, `title`, `description`, `theme`, `preset`, `canvas`, `style`, `animate`, `class` y `rule`.",
+      sectionContents:
+        "Una sección contiene `task`, `milestone` y `marker`, y `description`, `class`, `link` y `url`.",
+      everyDayExcluded: "Deja al menos un día de la semana hábil, o excluye fechas en su lugar.",
+      axisFormat:
+        "Las directivas son %a %A %b %B %d %e %H %I %j %m %M %p %q %S %U %V %w %W %y %Y y %%, cada una con un `-` opcional como en `%-d`.",
+      alreadyWorking: "Quita la fecha, o excluye primero el día en que cae.",
+      dateForm: "Escribe las fechas como `2026-06-01` o `2026-06-01T09:30`.",
+      unquotedDate: (value) => `Escribe la fecha sin comillas: ${code(value)}.`,
+      excludeItems: (weekdays) =>
+        `\`exclude\` admite \`weekends\`, ${list("es", weekdays.map(code))} y fechas como \`2026-12-25\`.`,
+      includeItems: "`include` admite fechas como `2026-06-06`.",
+      ticks: (units) =>
+        `Escribe un número entero y una unidad, como \`1w\`; las unidades son ${list("es", units.map(code))}.`,
+      durationForm: (units) =>
+        `Escribe un número y una unidad, como \`10d\`; las unidades son ${list("es", units.map(code))}.`,
+      zeroDuration: "Una tarea lleva tiempo; para un instante, declara un `milestone`.",
+      clauses: (clauses, statuses) =>
+        `La instrucción admite ${list("es", [...clauses, ...statuses].map(code))}.`,
+      otherKind: (word, kinds) =>
+        `${code(word)} pertenece a ${kinds === "task" ? "las tareas" : "los hitos y las marcas"}.`,
+      idList: (word) =>
+        `${code(word)} admite los ids de tareas e hitos, como \`${word} design, review\`.`,
+      reservedId:
+        "Cámbiale el nombre: las palabras de cláusula cierran una lista de ids, así que no pueden ser ids.",
+      excludedDay: "Mueve la fecha a un día hábil, o hazlo hábil con `include`.",
+      unknownTask: (id) => `Declara ${code(id)} como tarea o hito, o revisa cómo está escrito.`,
+      unscheduled: "Escribe `from <date>`, o pon la tarea después de otra.",
+      cycle: "Quita una de las referencias del ciclo.",
+      endsBeforeStart:
+        "Un final va después del inicio; revisa las fechas, o escribe `for <duration>`.",
+      noWorkingTime:
+        "El calendario excluye todos los días hasta donde un gráfico alcanza a mirar; relaja las exclusiones.",
+    },
+
     story: {
       diagrams: (names) => `Diagramas: ${names.join(", ")}.`,
       declareDiagram: "Declara un diagrama o importa uno.",
@@ -781,6 +958,7 @@ export const es: typeof en = {
     firstEffect: "El primer efecto.",
     firstWritten: "Se escribió por primera vez aquí.",
     firstDecided: "Se decidió por primera vez aquí.",
+    inTheLoop: "En el mismo ciclo.",
     firstScene: "La primera escena.",
     earlierAction: "La acción anterior.",
   },

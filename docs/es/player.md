@@ -110,6 +110,13 @@ descripción emergente con su tecla y un anillo de foco visible.
   y salientes (cada una la selecciona) y lo que añade quien aloja el reproductor (las historias, la
   entidad y las vistas del catálogo). Un clic en un elemento con `url` lo selecciona; Ctrl o Cmd y
   un clic siguen el enlace. Esc o Cerrar cierran el panel.
+- **Diagramas de Gantt.** En un diagrama de Gantt ([gantt.md](language/gantt.md#en-el-reproductor)) la
+  tarjeta de una tarea muestra su etiqueta, su sección, su estado (no cuando solo está planificada)
+  y "Crítica", sus fechas (`8 jun 2026 → 19 jun 2026`) y sus días hábiles, `Después de: …` con las
+  tareas a las que sigue, su descripción y el host de su `url`; la tarjeta de un hito o de una marca
+  muestra su única fecha, la de una sección, su intervalo, y la de una flecha, "predecesora →
+  sucesora". El panel enumera Sección, Inicio y Fin (Fecha en un hito o una marca), Tiempo hábil y
+  Estado. El eje de tiempo no recibe eventos del puntero, así que nada en él tiene tarjeta.
 
 ## Abrir lo que contiene una caja
 

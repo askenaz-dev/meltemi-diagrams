@@ -43,14 +43,14 @@ Reported by `compile()` in `@meltemi/diagrams-model`.
 | Code                           | Severity | Message template                                                                                   |
 | ------------------------------ | -------- | -------------------------------------------------------------------------------------------------- |
 | `language.unsupported-version` | error    | Language version "`<v>`" is not supported; this compiler implements 0.2.                           |
-| `profile.unknown`              | error    | Unknown diagram type `<type>`; expected one of flow, sequence, c4, free.                           |
+| `profile.unknown`              | error    | Unknown diagram type `<type>`; expected one of flow, sequence, c4, free, gantt.                    |
 | `theme.unknown-base`           | error    | Theme `<id>` extends \"<name>\", which is neither built in nor defined in this file (or imported). |
 | `theme.cycle`                  | error    | Theme `<id>` inherits from itself through `extends`.                                               |
 
 ## References, properties and placement
 
-Reported by `compile()` for `flow`, `free`, `sequence` and `c4` diagrams, `model` blocks and
-stories. A diagram with any error is left out of the JSON; other diagrams in the file still
+Reported by `compile()` for `flow`, `free`, `sequence`, `c4` and `gantt` diagrams, `model` blocks
+and stories. A diagram with any error is left out of the JSON; other diagrams in the file still
 compile.
 
 | Code                       | Severity | Message template                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
@@ -91,6 +91,43 @@ compile.
 | `placement.duplicate`      | error    | `<target>` already has a `<statement>` statement. (related: the first one)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `placement.unknown-port`   | error    | `<element>` has no port `<name>`. (hint: the element's named ports and the compass ports)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
+### Gantt charts
+
+Reported by `compile()` for `gantt` diagrams ([gantt.md](gantt.md)). Their dates, durations,
+clauses and calendars are reported with the codes above, and the schedule has codes of its own;
+every message names the form of the statement it is about.
+
+| Code                 | Severity | Message template                                                                                                                           |
+| -------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `gantt.unscheduled`  | error    | `<id>` has no start and no task before it to follow. (hint: write `from <date>`, or put the task after another)                            |
+| `gantt.schedule`     | error    | `<id>` ends `<end>`, before it starts `<start>`. (also: it ends when it starts; the calendar leaves no working time for it)                |
+| `gantt.cycle`        | error    | `<a>` and `<b>` wait for each other; a task cannot depend on one that depends on it. (on every reference of the loop; related: the others) |
+| `gantt.relation`     | error    | A gantt chart has no relation statements; dependencies are written with `after`. (hint: `after a` on `b`; a quick fix writes it)           |
+| `gantt.excluded-day` | warning  | Saturday 2026-06-06 is excluded; it starts on Monday 2026-06-08. (also: it ends on the last working day before; no working day follows it) |
+
+A task that cannot be dated, and the ones that wait for it, have no dates and are not drawn; only
+the cause is reported. The other codes say, in a gantt chart:
+
+- `prop.invalid-value`: a date that names no day (`2026-02-30`, an hour above 23), a date written
+  as a string or in another form, a duration with another unit, not above 0 or longer than a
+  century, a clause without its value, an id equal to `from`, `after`, `for`, `to`, `until`, `at`,
+  `done`, `active` or `critical`, a section or a marker named by `after` or `until`, a marker with
+  neither `at` nor `after`, an `exclude` item that is not `weekends`, a weekday or a date (or a
+  list that excludes every weekday), a date in `include` that works already, an `axisFormat`
+  directive that does not exist, a `ticks` that is not a whole number with a unit, a `dayWidth`
+  outside 1 to 100,000, and `shape`, `rotation`, `iconPosition`, `labelPosition`, `iconSize` or
+  `routing` in a style.
+- `prop.unknown`: a statement of another profile (`participant`, `node`, `place`…), `id["Label"]`,
+  a section inside a section, and a word that is no clause or status of its statement; the hint
+  lists the ones it takes.
+- `prop.duplicate`: a clause or a status written twice, two end clauses (`for`, `to`, `until`),
+  `done` with `active`, a marker with both `at` and `after`, and a chart statement written twice.
+- `ref.unknown-element`: an id of `after` or `until` that is no task or milestone, with the close
+  ids as candidates.
+- `animate.invalid-target` and `story.invalid-target`: `flow`, `trace` and a story's `trace` on a
+  task or milestone without dependency arrows, or on a section or a marker; a story's `draw` on
+  anything but a task.
+
 ## Layout and export
 
 Reported by `layoutDiagram()` in `@meltemi/diagrams-layout` and by `meltemi-diagrams export`, not by `compile()`. The
@@ -124,6 +161,7 @@ Layout modes, constraints and the composition checks are described in [layout.md
 | `layout.unknown-theme`          | warning  | Unknown theme "`<name>`"; rendering with technical.light. (hint: the eight built-in themes and the file's themes)                                                                                                                                                                                                                                                                                                                                                                                        |
 | `layout.gap-floor`              | warning  | The gap `<side>` `<participant>` is `<applied>` here, not `<written>`: the heads and the labels between `<left>` and `<right>` need the room. (on a negative `gap` of a sequence diagram that the columns' floor kept from being drawn: the heads, the longest word of a label or a message's tags; on the `before` one when both sides are written)                                                                                                                                                     |
 | `layout.too-large`              | warning  | The content is `<w>` × `<h>` px; a slide is 1920 × 1080 px. (also: wider than 1200 px for `preset document`, larger than a `canvas`; hint: split into views, and write `preset board` for a whiteboard, in place of the `canvas` when one is written; never with `preset board`)                                                                                                                                                                                                                         |
+| `layout.ticks-crowded`          | warning  | The labels of `ticks <n><unit>` would overlap; every `<k>` ticks is labelled. (on the `ticks` statement of a gantt chart; hint: a longer interval, a wider chart with `dayWidth`, or no `ticks`)                                                                                                                                                                                                                                                                                                         |
 | `export.no-diagram`             | error    | No diagram to export. (hint: a story with `--story`, the file's profiles with `--profiles`, or the diagram types that render)                                                                                                                                                                                                                                                                                                                                                                            |
 
 ## Formatting
@@ -266,3 +304,10 @@ not source diagnostics: the document is left unchanged and the reason explains w
 
 A batch (`planEdit` with `{ kind: "batch", operations }`) is refused as a whole with the
 code of the first refused operation and its `operationIndex`.
+
+On a gantt chart ([gantt.md](gantt.md#editing)), `edit.unsafe-target` is a target that is no task,
+milestone or marker, or an id that is not in the chart, and `edit.invalid-value` a malformed date or
+duration, an end on a milestone or a marker, a section inside a section, an id in use, and a result
+with a new error such as a loop. A refusal that comes from the model's diagnostics carries the
+diagnostic's code in the rejection's `diagnostic` (`gantt.cycle` for a loop); the operations that
+place or link boxes are `edit.invalid-value` on a chart.

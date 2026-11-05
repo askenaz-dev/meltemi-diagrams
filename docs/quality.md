@@ -7,7 +7,7 @@ of this repository, and `pnpm acceptance` runs them all and records the outcome 
 
 | Criterion                                                                                                       | Checked by                                                                 | Recorded in                                                                                                      |
 | --------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| An acceptance corpus in the four profiles compiles and lays out cleanly, and its drawings match their snapshots | `pnpm test` (`packages/acceptance`)                                        | `corpus/acceptance/**/*.svg`                                                                                     |
+| An acceptance corpus in the five profiles compiles and lays out cleanly, and its drawings match their snapshots | `pnpm test` (`packages/acceptance`)                                        | `corpus/acceptance/**/*.svg`                                                                                     |
 | No label is cut or overlapped, in any corpus, template or example                                               | `pnpm test`; `layout.label-cut` and `layout.label-overlap` in every editor | [quality/results.md](quality/results.md)                                                                         |
 | Small edits change only what they should and keep comments, positions and message order                         | `pnpm test` (`corpus/acceptance/edits/`)                                   | [quality/results.md](quality/results.md)                                                                         |
 | Syntax errors give diagnostics, keep the editor's services and the last good drawing                            | `pnpm test` (`corpus/acceptance/errors/`)                                  | [quality/results.md](quality/results.md)                                                                         |
@@ -24,6 +24,10 @@ of this repository, and `pnpm acceptance` runs them all and records the outcome 
 - `flow/`, `sequence/`, `c4/` and `free/`: for each profile, long labels, cycles, nested containers,
   parallel relations and a view of thirty elements. Each sheet has an SVG snapshot beside it (a C4
   sheet one per view, `<sheet>.<view>.svg`).
+- `gantt/`: five sheets named for what a plan stresses, since a chart has no cycles or nested
+  containers: dependency chains, long labels, parallel work in compact rows, sections and what
+  stands outside them, and thirty tasks over a year. Each has its SVG, and its `today` is pinned so
+  that the picture is the same on every day.
 - `errors/`: one syntax error per profile. The test checks the diagnostic, that completion, hover
   and symbols still answer, and that the canvas keeps the last good drawing marked as stale.
 - `edits/`: edit scenarios. Each JSON file names a sheet and a list of steps; a step is an

@@ -25,12 +25,14 @@ export function sanitizeId(raw: string): string {
   return id;
 }
 
-/** A readable id from a title or a file name: lower case words joined by `_`. */
-export function slugId(text: string, fallback: string): string {
-  const words = text
-    .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+/**
+ * A readable id from a title or a file name: lower case words joined by `_`. A lower case letter
+ * followed by an upper case one starts a new word (`checkoutFlow` is `checkout_flow`), unless
+ * `splitCamelCase` is false, which a text of ordinary words wants (`GenAI` is `genai`).
+ */
+export function slugId(text: string, fallback: string, splitCamelCase = true): string {
+  const plain = text.normalize("NFKD").replace(/[̀-ͯ]/g, "");
+  const words = (splitCamelCase ? plain.replace(/([a-z0-9])([A-Z])/g, "$1_$2") : plain)
     .toLowerCase()
     .split(/[^a-z0-9]+/)
     .filter((w) => w !== "");

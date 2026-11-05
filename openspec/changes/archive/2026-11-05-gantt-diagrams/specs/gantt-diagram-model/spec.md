@@ -250,8 +250,9 @@ Style blocks, classes and rules (`rule task`, `rule milestone`, `rule marker`, `
 `rule relation`) SHALL apply to tasks, milestones, markers, sections and dependency arrows with
 `fill`, `stroke`, `color`, `width`, `line`, `pattern`, `radius`, `icon` and `iconColor` (and
 `arrowhead`, `arrowtail` and `corners` on relations); `shape`, `rotation`, `iconPosition`,
-`labelPosition`, `iconSize`, `routing` and the free-only properties SHALL be `prop.invalid-value`
-naming gantt charts. `link` and `url` SHALL work as on elements of other profiles. `animate`
+`labelPosition`, `iconSize`, `routing`, `font`, `fontSize`, `fontWeight` and the free-only
+properties SHALL be `prop.invalid-value` naming gantt charts. `link` and `url` SHALL work as on
+elements of other profiles. `animate`
 SHALL take the properties, defaults and limits of the other profiles; its targets SHALL follow
 "Effect targets".
 
@@ -262,3 +263,9 @@ SHALL take the properties, defaults and limits of the other profiles; its target
 #### Scenario: A shape on a task
 - **WHEN** a chart has `style a { shape ellipse }` where `a` is a task
 - **THEN** `prop.invalid-value` is reported on `shape`, naming gantt charts
+
+#### Scenario: A font on a task
+- **WHEN** a chart has `style a { font "Lora" }`, `rule section { fontSize 20 }` or
+  `class c { fontWeight 700 }`
+- **THEN** `prop.invalid-value` is reported on the property, saying that a chart's labels are
+  drawn in the theme's font at the size of its rows

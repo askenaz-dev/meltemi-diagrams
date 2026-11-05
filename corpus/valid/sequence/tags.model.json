@@ -99,7 +99,8 @@
               "line": 9,
               "column": 17
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "web",
@@ -146,7 +147,8 @@
               "line": 10,
               "column": 18
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "api",
@@ -209,7 +211,8 @@
               "line": 11,
               "column": 18
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "bank",
@@ -287,7 +290,8 @@
               "line": 12,
               "column": 19
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "audit",
@@ -350,7 +354,8 @@
               "line": 16,
               "column": 20
             }
-          }
+          },
+          "task": null
         }
       ],
       "relations": [
@@ -997,7 +1002,8 @@
         }
       ],
       "scenarios": [],
-      "c4": null
+      "c4": null,
+      "gantt": null
     }
   ],
   "themes": [],

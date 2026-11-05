@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LineIndex, tokenize, type Token } from "../src/index.js";
+import { LineIndex, parse, tokenize, toText, type Token } from "../src/index.js";
 
 const kinds = (tokens: readonly Token[]) => tokens.map((t) => t.kind);
 const significant = (text: string) => tokenize(text).tokens.filter((t) => t.kind !== "EOF");
@@ -53,6 +53,55 @@ describe("lexer: token classes", () => {
   it("keeps unknown unit suffixes for validation by the model", () => {
     const [token] = significant("12px");
     expect([token!.kind, token!.value, token!.unit]).toEqual(["Number", 12, "px"]);
+  });
+
+  it("reads a date as one token", () => {
+    const text = "task a from 2026-06-01 to 2026-06-05T17:30 for 5d";
+    const { tokens, diagnostics } = tokenize(text);
+    expect(diagnostics).toEqual([]);
+    expect(kinds(tokens.filter((t) => t.kind !== "EOF"))).toEqual([
+      "Identifier",
+      "Identifier",
+      "Identifier",
+      "Date",
+      "Identifier",
+      "Date",
+      "Identifier",
+      "Number",
+    ]);
+    const dates = tokens.filter((t) => t.kind === "Date");
+    expect(dates.map((t) => [t.text, t.value])).toEqual([
+      ["2026-06-01", "2026-06-01"],
+      ["2026-06-05T17:30", "2026-06-05T17:30"],
+    ]);
+    const duration = tokens.find((t) => t.kind === "Number")!;
+    expect([duration.value, duration.unit]).toEqual([5, "d"]);
+    expect(toText(parse(text).root)).toBe(text);
+  });
+
+  it("reads the seconds of a date with a time", () => {
+    const [token] = significant("2026-06-05T17:30:15");
+    expect([token!.kind, token!.text]).toEqual(["Date", "2026-06-05T17:30:15"]);
+  });
+
+  it("lexes what is not exactly a date as numbers", () => {
+    const loose = significant("2026-6-1");
+    expect(loose.map((t) => [t.kind, t.text])).toEqual([
+      ["Number", "2026"],
+      ["Number", "-6"],
+      ["Number", "-1"],
+    ]);
+    const split = significant("2026-06-01 T09:30");
+    expect(split.map((t) => [t.kind, t.text])).toEqual([
+      ["Date", "2026-06-01"],
+      ["Identifier", "T09"],
+      ["Colon", ":"],
+      ["Number", "30"],
+    ]);
+    for (const text of ["12026-06-01", "20260601", "2026-06-011", "-2026-06-01", "2026-06"]) {
+      expect(kinds(significant(text)), text).not.toContain("Date");
+    }
+    expect(significant("(2026-06)").map((t) => t.text)).toEqual(["(", "2026", "-06", ")"]);
   });
 
   it("distinguishes arrows from negative numbers", () => {

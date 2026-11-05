@@ -670,6 +670,7 @@ class C4Analyzer extends FlowAnalyzer {
       scenarios: [],
       references: this.references,
       c4: null,
+      gantt: null,
       entityReferences: this.entityReferences,
       placementBlocks: this.placementBlocks,
       elementsById: this.elementsById,
@@ -760,6 +761,7 @@ class C4Analyzer extends FlowAnalyzer {
         attachedTo: null,
         attachedToRange: null,
         typeKind: null,
+        task: null,
         data: {},
         groupPath,
         range:

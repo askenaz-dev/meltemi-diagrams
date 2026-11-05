@@ -15,8 +15,8 @@ describes version `0.1`. A breaking change increases the version.
 - Anonymous relations appear with their synthetic `key` (`<from>-><to>#<n>`) and `id: null`.
 - Keys are added within a version, never changed: `heads` on relations and `line` on elements
   came in 1.10.0, `pen` and `list` on elements, `tags` on elements and relations, and `spacing`,
-  `side`, `returns` and the `events` of messages, and `scenes` on export profiles, in 1.11.0, and
-  the version stays `0.1`.
+  `side`, `returns` and the `events` of messages, and `scenes` on export profiles, in 1.11.0,
+  `task` on elements and `gantt` on diagrams in 1.11.16, and the version stays `0.1`.
 - Every diagram profile compiles; `story` and `export` blocks are not in the JSON yet.
 
 ## Document
@@ -92,7 +92,7 @@ exclusive.
 | Key          | Type   | Meaning                                                                                                                                                                                                                                                                                                                                          |
 | ------------ | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `id`         | string | Diagram id.                                                                                                                                                                                                                                                                                                                                      |
-| `type`       | string | `flow`, `free`, `sequence` or `c4`.                                                                                                                                                                                                                                                                                                              |
+| `type`       | string | `flow`, `free`, `sequence`, `c4` or `gantt`.                                                                                                                                                                                                                                                                                                     |
 | `range`      | range  | The whole `diagram` block.                                                                                                                                                                                                                                                                                                                       |
 | `properties` | object | `direction`, `layout` (defaults applied), `theme`, `title`, `description`, `preset` (`document`, `slide`, `board` or null), `canvas` (`{ "width", "height" }` or null), `routing`, `layers` (back to front; `["main"]` for flow), `autonumber` (the first number, or null), `spacing` (the distance between sequence heads as written, or null). |
 | `classes`    | array  | `class <id> { }` declarations, in source order.                                                                                                                                                                                                                                                                                                  |
@@ -124,6 +124,7 @@ exclusive.
 | `pen`         | object or null | The points of a `pen` stroke as written, decimals kept, in its group's interior: `{ "points": [ { "x", "y" }, … ] }`; null on every other kind.                                                           |
 | `list`        | object or null | How a list group arranges its children: `{ "layout", "spacing", "align" }`, `layout` `column` or `row`, `spacing` and `align` null when not written; null on every other element.                         |
 | `attachedTo`  | string or null | The element a `note` is attached to (`on <element>`; the entity path in a C4 view); null on every other kind and on a note with no `on`.                                                                  |
+| `task`        | object or null | Gantt charts: the written clauses and the resolved schedule of a task, milestone or marker (see Gantt charts); null on every other element.                                                               |
 | `groupPath`   | array          | Ids of the enclosing groups, outermost first.                                                                                                                                                             |
 | `range`       | range          | Declaring statement, or the first mention for implicit elements.                                                                                                                                          |
 | `idRange`     | range          | The identifier token.                                                                                                                                                                                     |
@@ -241,6 +242,43 @@ operator, `alt#1`).
 | `label`   | string | The label, or the id.                                                                                               |
 | `choices` | array  | `{ "kind" (choose, repeat, skip, take), "fragment", "branch" (0-based or null), "iterations" (or null), "range" }`. |
 | `range`   | range  | The `scenario` block.                                                                                               |
+
+### Gantt charts
+
+A gantt chart has `type` `gantt`. Its sections, tasks, milestones and markers are elements of the
+kinds `section`, `task`, `milestone` and `marker`, in the order written, a task's `groupPath` being
+its section; each id of an `after` clause is a relation with `derived` true, keyed
+`<pred>-><task>#<n>` and ranged on the id in the clause ([gantt.md](gantt.md#dependencies)). Two
+keys come after all the others: `task` on every element and `gantt` on every diagram.
+
+`task` is null on every element but a task, milestone or marker:
+
+| Key           | Type           | Meaning                                                                                                                                           |
+| ------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `from`        | string or null | The date written after `from` (after `at` on a milestone or a marker), as written.                                                                |
+| `after`       | array          | The ids written in `after`, in order.                                                                                                             |
+| `end`         | object or null | `{ "kind": "for", "amount", "unit" }`, `{ "kind": "to", "date" }` or `{ "kind": "until", "ids" }`; null when the statement writes no end.         |
+| `status`      | string or null | `done` or `active`; null for a planned one.                                                                                                       |
+| `critical`    | boolean        | Whether `critical` is written.                                                                                                                    |
+| `start`       | string or null | The resolved start as ISO text without a zone (`2026-06-08T00:00`); null when nothing dates it: a loop, nothing to follow.                        |
+| `finish`      | string or null | The resolved end, the midnight after the last day of a task that ends at the end of a day; the start of a milestone or a marker; null as `start`. |
+| `workingDays` | number or null | The working time between `start` and `finish` in days, with fractions for hours; null as `start`.                                                 |
+
+`gantt` is null on every diagram but a chart, and holds its settings with the defaults applied:
+
+| Key                                         | Type           | Meaning                                                                                                              |
+| ------------------------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `axisFormat`, `ticks`                       | string or null | As written.                                                                                                          |
+| `weekStart`                                 | string         | `monday` to `sunday`; `monday` without the statement.                                                                |
+| `axis`, `labels`, `display`, `dependencies` | string         | The values written, or `bottom`, `bar`, `normal` and `shown`.                                                        |
+| `dayWidth`                                  | number or null | As written.                                                                                                          |
+| `exclude`                                   | object         | `{ "weekdays", "dates" }`: the weekdays in week order (`weekends` is `saturday` and `sunday`) and the dates, sorted. |
+| `include`                                   | array          | The dates worked despite an exclusion, sorted.                                                                       |
+| `today`                                     | object or null | `{ "date" }`, the date written or null when `today` writes none; null without the statement.                         |
+| `span`                                      | object or null | `{ "start", "end" }` as ISO text: the earliest start to the latest end; null when nothing is dated.                  |
+
+`corpus/valid/gantt/roadmap.model.json` is the JSON of the roadmap of [gantt.md](gantt.md#a-worked-example)
+and is checked by the test suite.
 
 ### Stories
 

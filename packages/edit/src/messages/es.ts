@@ -68,6 +68,7 @@ const PROFILES: Readonly<Record<string, string>> = {
   free: "las composiciones libres",
   sequence: "los diagramas de secuencia",
   c4: "las vistas C4",
+  gantt: "los diagramas de Gantt",
 };
 
 /**
@@ -116,6 +117,10 @@ export const es: typeof en = {
     container: "Contenedor",
     datastore: "Almacén de datos",
     component: "Componente",
+    section: "Sección",
+    task: "Tarea",
+    milestone: "Hito",
+    marker: "Marca",
   },
 
   rejections: {
@@ -446,6 +451,44 @@ export const es: typeof en = {
         `${code(destination)} está dentro de ${code(key)}, que no puede moverse dentro de sí mismo.`,
     },
 
+    gantt: {
+      notGantt: (id) => `${code(id)} no es un diagrama de Gantt.`,
+      notInChart: (operation) =>
+        `${code(operation)} no se aplica a los diagramas de Gantt, que colocan las barras por sus fechas; usa setTaskSchedule, setTaskStatus, createTask, moveElement y setCalendar.`,
+      notBar: (id) => `${code(id)} no es una tarea, un hito ni una marca.`,
+      notStatusBar: (id) => `${code(id)} no es una tarea ni un hito; solo ellos tienen estado.`,
+      notItem: (id) => `${code(id)} no es una tarea, un hito, una marca ni una sección.`,
+      badDate: (text) =>
+        `${code(text)} no es una fecha; escribe 2026-06-15, o 2026-06-15T09:30 con hora del día.`,
+      badDuration: (text, units) =>
+        `${code(text)} no es una duración; escribe un número mayor que 0 y una unidad (${units.join(", ")}), como 10d.`,
+      endForm: "Un fin es `{ for }`, `{ to }` o `{ until }`: da exactamente uno de ellos.",
+      endOnPoint: (id, kind) =>
+        `${kind === "milestone" ? "Un hito" : "Una marca"} no tiene fin: ${code(id)} admite solo \`at\` y \`after\`.`,
+      badId: (id, clause) =>
+        `${code(id)} no es un id que se pueda escribir después de ${code(clause)}.`,
+      reservedId: (id) =>
+        `${code(id)} es una palabra de las cláusulas del diagrama (from, after, for, to, until, at, done, active, critical); un id no puede serlo.`,
+      noIds: (clause) => `${code(clause)} necesita al menos un id.`,
+      badStatus: (status) => `${code(status)} no es un estado; usa done o active.`,
+      sectionClauses: "Una sección no tiene fechas; dáselas a sus tareas.",
+      badKind: (kind) =>
+        `${code(kind)} no es algo que contenga un diagrama de Gantt; usa task, milestone, marker o section.`,
+      notSection: (id) =>
+        `${code(id)} no es una sección; las tareas van en secciones o al principio del diagrama.`,
+      sectionInSection: "Una sección no puede ir dentro de otra sección.",
+      idUsed: (id, diagram) => `${code(id)} ya se usa en el diagrama ${code(diagram)}.`,
+      outOfRange: (index, n) =>
+        `${code(String(index))} queda después del último lugar, ${code(String(n))}.`,
+      noPoint: "Una barra toma su lugar de sus fechas; `at` no se aplica a los diagramas de Gantt.",
+      notStatement: (name, names) =>
+        `${code(name)} no es una instrucción del aspecto del diagrama que se pueda escribir; usa ${names.map(code).join(", ")}.`,
+      badStatementValue: (statement, value, takes) =>
+        `${code(value)} no es un valor de ${code(statement)}; admite ${takes}.`,
+      notDay: (item) =>
+        `${code(item)} no es un día de la semana, \`weekends\` ni una fecha; escribe monday a sunday, weekends o 2026-06-29.`,
+    },
+
     tags: {
       notSequence: (diagram) =>
         `Las marcas van en los participantes y los mensajes de los diagramas de secuencia, y ${code(diagram)} no es uno.`,
@@ -571,5 +614,8 @@ export const es: typeof en = {
       n === 1
         ? `Se quitó ${code(group)} de una acción de historia.`
         : `Se quitó ${code(group)} de ${n} acciones de historia.`,
+    keptStart: (id, word, date) =>
+      `${code(id)} conservó su inicio: ahora dice \`${word} ${date}\`.`,
+    keptEnd: (id, duration) => `${code(id)} conservó su duración: ahora dice \`for ${duration}\`.`,
   },
 };

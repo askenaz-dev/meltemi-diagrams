@@ -1,0 +1,22 @@
+language "0.2"
+
+// Long labels: one that fits inside its bar, some that stand after a short bar, and one at the
+// right edge of the chart that stands before its bar. No label is cut or runs across another.
+diagram long_labels: gantt {
+  title "Long labels"
+  axisFormat "%d %b"
+  exclude weekends
+  today 2026-06-15
+
+  section planning "Planning and discovery" {
+    task a "A short task" from 2026-06-01 for 1d
+    task b "A task whose label is much longer than the bar that it describes" after a for 2d
+    task c "A long task whose label fits inside its bar with room to spare" from 2026-06-01 for 20d
+    task d "Another short one, with enough words to need the space after it" after b for 1d
+  }
+
+  section ending "The last tasks" {
+    task e "The very last task of the chart, whose long label stands before its bar" after c for 1d
+    milestone f "A milestone at the very end of the chart, with a long label of its own" after e
+  }
+}

@@ -97,6 +97,16 @@ const COMMANDS = {
   unnestCall: false,
   addReturn: false,
   addEntity: false,
+  // A chart's tools and keys all write dates or rows.
+  createTask: false,
+  createMilestone: false,
+  createMarker: false,
+  lengthen: false,
+  shorten: false,
+  lengthenWeek: false,
+  shortenWeek: false,
+  moveRowUp: false,
+  moveRowDown: false,
   toggleLibraries: false,
 } as const satisfies Record<CanvasCommand, boolean>;
 
@@ -196,6 +206,7 @@ const ACTIONS: readonly CanvasAction[] = [
   { kind: "insertScene", story: "s" },
   { kind: "createDiagram", type: "flow" },
   { kind: "createStory" },
+  { kind: "schedule", task: "tec1", start: 1_780_876_800 },
   // A preview writes nothing, but it only follows a drag, which a read-only canvas never starts.
   { kind: "preview", token: 1, action: { kind: "move", ids: ["a"], delta: { x: 1, y: 0 } } },
 ];
@@ -351,6 +362,7 @@ describe("the messages of a read-only canvas", () => {
       insertScene: 1,
       createDiagram: 1,
       createStory: 1,
+      schedule: 1,
       preview: 1,
       createLine: 1,
       setLinePoints: 1,

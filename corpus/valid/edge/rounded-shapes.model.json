@@ -83,7 +83,8 @@
               "line": 9,
               "column": 9
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "rect",
@@ -130,7 +131,8 @@
               "line": 10,
               "column": 7
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "hex",
@@ -177,7 +179,8 @@
               "line": 11,
               "column": 6
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "star",
@@ -224,7 +227,8 @@
               "line": 12,
               "column": 7
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "ok",
@@ -271,7 +275,8 @@
               "line": 13,
               "column": 14
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "flag",
@@ -318,7 +323,8 @@
               "line": 14,
               "column": 7
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "round",
@@ -365,7 +371,8 @@
               "line": 15,
               "column": 8
             }
-          }
+          },
+          "task": null
         }
       ],
       "relations": [
@@ -1088,7 +1095,8 @@
       "animations": [],
       "events": [],
       "scenarios": [],
-      "c4": null
+      "c4": null,
+      "gantt": null
     }
   ],
   "themes": [],

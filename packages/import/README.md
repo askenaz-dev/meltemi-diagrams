@@ -1,9 +1,11 @@
 # @meltemi/diagrams-import
 
-Imports Mermaid (`flowchart`, `sequenceDiagram`, `C4*`, `architecture-beta`, `block-beta`) and
-PlantUML (component, deployment, use case, sequence and C4-PlantUML, with the preprocessor) into
-`.meltemi` sheets, with a report that says what was mapped, approximated or dropped, and merges a
-re-import into a sheet that was adjusted since.
+Imports Mermaid (`flowchart`, `sequenceDiagram`, `C4*`, `architecture-beta`, `block-beta`, `gantt`)
+and PlantUML (component, deployment, use case, sequence and C4-PlantUML, with the preprocessor)
+into `.meltemi` sheets, with a report that says what was mapped, approximated or dropped, and
+merges a re-import into a sheet that was adjusted since. A Mermaid `gantt` keeps the dates Mermaid
+draws: the importer replays Mermaid's own scheduling and reports every task that Meltemi dates
+differently.
 
 It is part of [Meltemi Diagrams](https://github.com/askenaz-dev/meltemi-diagrams#readme), diagrams as code with a canvas, motion and
 exports. Every package of the product has the same version.

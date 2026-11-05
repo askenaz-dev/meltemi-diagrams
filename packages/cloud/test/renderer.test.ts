@@ -5,7 +5,7 @@
 
 import { readFileSync, readdirSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { run } from "@meltemi/diagrams-cli";
 import { REPO_ROOT } from "../../../test-support/corpus.js";
 import { rendererBundleSource, BUNDLE_FILE } from "../scripts/renderer-bundle.js";
@@ -31,7 +31,7 @@ import { CLOUD, nodeRasterFonts, nodeRenderer, pngSize } from "./support/rendere
 const sqlite = await import("node:sqlite").catch(() => undefined);
 
 const ACCEPTANCE = join(REPO_ROOT, "corpus", "acceptance");
-const PROFILES = ["flow", "sequence", "c4", "free"] as const;
+const PROFILES = ["flow", "sequence", "c4", "free", "gantt"] as const;
 
 /** The command line's export to standard output, run in this process. */
 async function mdg(...args: string[]): Promise<{ code: number; stdout: string; stderr: string }> {
@@ -91,7 +91,7 @@ describe("the renderer draws as the command line", () => {
   // Every sheet is drawn by an object of its own: the sheets share names and revisions, which an
   // object's cache would take for the same request.
 
-  it("covers the four profiles of the acceptance corpus", () => {
+  it("covers the five profiles of the acceptance corpus", () => {
     expect(new Set(SHEETS.map((s) => s.profile))).toEqual(new Set(PROFILES));
     expect(SHEETS.length).toBeGreaterThan(30);
   });
@@ -150,6 +150,39 @@ describe("the renderer draws as the command line", () => {
     },
     60_000,
   );
+
+  it("draws a gantt chart's today line at the server's UTC date, as export --today does", async () => {
+    const folder = join(REPO_ROOT, "corpus", "valid", "gantt");
+    // The roadmap writes `today` without a date; the server's clock is set inside its span, late
+    // on the 15th of July in UTC, which is already the 16th east of Greenwich.
+    const day = "2026-07-15";
+    const cli = await mdg(
+      "export",
+      join(folder, "roadmap.meltemi"),
+      "--fonts",
+      "system",
+      "--today",
+      day,
+      "--stdout",
+    );
+    expect(cli.code, cli.stderr).toBe(0);
+    expect(cli.stdout).toContain(">Today<");
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date(`${day}T23:30:00Z`));
+    try {
+      const preview = drawn(
+        await nodeRenderer().render({
+          revision: 1,
+          files: { "roadmap.meltemi": readFileSync(join(folder, "roadmap.meltemi"), "utf8") },
+          file: "roadmap.meltemi",
+          format: "svg",
+        }),
+      );
+      expect(decode(preview.bytes)).toBe(cli.stdout);
+    } finally {
+      vi.useRealTimers();
+    }
+  }, 60_000);
 
   it("draws a story's frame as export --story --at does", async () => {
     const folder = join(REPO_ROOT, "corpus", "valid", "stories");
@@ -231,6 +264,7 @@ describe("PNG previews", () => {
       ["sequence", "thirty.meltemi"],
       ["c4", "nested.meltemi"],
       ["free", "sketch.meltemi"],
+      ["gantt", "thirty.meltemi"],
     ] as const) {
       const png = drawn(
         await nodeRenderer().render({

@@ -214,7 +214,78 @@ export interface C4Sheet {
   trailing: string[];
 }
 
-export type Sheet = FlowSheet | SequenceSheet | C4Sheet;
+// ---------------------------------------------------------------------------------------------
+// Gantt charts
+
+/** A task, a milestone or a marker of a gantt chart, with the clauses of its statement as written. */
+export interface GanttItem {
+  kind: "task" | "milestone" | "marker";
+  id: string;
+  /** `null` writes no label, so the label is the id. */
+  label: string | null;
+  /** A task's start: `from 2026-06-01` or `from 2026-06-01T09:30`. */
+  from?: string;
+  /** A milestone's or a marker's place: `at 2026-06-01`. */
+  at?: string;
+  /** The ids after which it starts, in written order. */
+  after: string[];
+  /** A task's end: the word and what follows it (`for 10d`, `to 2026-06-19`, `until a, b`). */
+  end?: { word: "for" | "to" | "until"; value: string };
+  status?: "done" | "active";
+  critical: boolean;
+  /** The task's `url`, written in its block. */
+  url?: string;
+  comments: string[];
+}
+
+export interface GanttSection {
+  id: string;
+  /** `null` writes no label, so the label is the id. */
+  label: string | null;
+  items: GanttItem[];
+  comments: string[];
+}
+
+export interface GanttSheet {
+  type: "gantt";
+  id: string;
+  title?: string;
+  description?: string;
+  /** The format of the axis labels, as a string without quotes. */
+  axisFormat?: string;
+  /** `ticks` with its value: `1w`. */
+  ticks?: string;
+  weekStart?: string;
+  axis?: "both";
+  display?: "compact";
+  /** What `exclude` lists, as written: `weekends`, `friday`, `2026-12-25`. */
+  exclude: string[];
+  /** What `include` lists: dates. */
+  include: string[];
+  /** Writes `today`. */
+  today: boolean;
+  /** The tasks, milestones and markers before the first section. */
+  items: GanttItem[];
+  sections: GanttSection[];
+  comments: string[];
+  trailing: string[];
+}
+
+export function emptyGanttSheet(id: string): GanttSheet {
+  return {
+    type: "gantt",
+    id,
+    exclude: [],
+    include: [],
+    today: false,
+    items: [],
+    sections: [],
+    comments: [],
+    trailing: [],
+  };
+}
+
+export type Sheet = FlowSheet | SequenceSheet | C4Sheet | GanttSheet;
 
 // ---------------------------------------------------------------------------------------------
 // Printing
@@ -513,6 +584,51 @@ function printC4(out: Out, sheet: C4Sheet): void {
   out.close();
 }
 
+function printGanttItem(out: Out, item: GanttItem): void {
+  out.comments(item.comments);
+  const parts = [`${item.kind} ${item.id}${labelPart(item.id, item.label)}`];
+  if (item.from !== undefined) parts.push(`from ${item.from}`);
+  if (item.at !== undefined) parts.push(`at ${item.at}`);
+  if (item.after.length > 0) parts.push(`after ${item.after.join(", ")}`);
+  if (item.end !== undefined) parts.push(`${item.end.word} ${item.end.value}`);
+  if (item.status !== undefined) parts.push(item.status);
+  if (item.critical) parts.push("critical");
+  let line = parts.join(" ");
+  if (item.url !== undefined) line += ` { url ${quoteString(item.url)} }`;
+  out.line(line);
+}
+
+function printGantt(out: Out, sheet: GanttSheet): void {
+  out.comments(sheet.comments);
+  out.open(`diagram ${sheet.id}: gantt`);
+  if (sheet.title !== undefined) out.line(`title ${quoteString(sheet.title)}`);
+  if (sheet.description !== undefined) out.line(`description ${quoteString(sheet.description)}`);
+  if (sheet.axisFormat !== undefined) out.line(`axisFormat ${quoteString(sheet.axisFormat)}`);
+  if (sheet.ticks !== undefined) out.line(`ticks ${sheet.ticks}`);
+  if (sheet.weekStart !== undefined) out.line(`weekStart ${sheet.weekStart}`);
+  if (sheet.axis !== undefined) out.line(`axis ${sheet.axis}`);
+  if (sheet.display !== undefined) out.line(`display ${sheet.display}`);
+  if (sheet.exclude.length > 0) out.line(`exclude ${sheet.exclude.join(", ")}`);
+  if (sheet.include.length > 0) out.line(`include ${sheet.include.join(", ")}`);
+  if (sheet.today) out.line("today");
+  if (sheet.items.length > 0) {
+    out.blank();
+    for (const item of sheet.items) printGanttItem(out, item);
+  }
+  for (const section of sheet.sections) {
+    out.blank();
+    out.comments(section.comments);
+    out.open(`section ${section.id}${labelPart(section.id, section.label)}`);
+    for (const item of section.items) printGanttItem(out, item);
+    out.close();
+  }
+  if (sheet.trailing.length > 0) {
+    out.blank();
+    out.comments(sheet.trailing);
+  }
+  out.close();
+}
+
 export interface SheetHeader {
   readonly fileName?: string;
   readonly format: string;
@@ -533,6 +649,7 @@ export function printSheet(header: SheetHeader, sheets: readonly Sheet[]): strin
     out.blank();
     if (sheet.type === "sequence") printSequence(out, sheet);
     else if (sheet.type === "c4") printC4(out, sheet);
+    else if (sheet.type === "gantt") printGantt(out, sheet);
     else printFlow(out, sheet);
   }
   const text = out.lines.join("\n") + "\n";

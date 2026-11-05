@@ -1,0 +1,1073 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "hoja_de_ruta_genai",
+      "type": "gantt",
+      "range": {
+        "start": {
+          "offset": 190,
+          "line": 5,
+          "column": 1
+        },
+        "end": {
+          "offset": 1186,
+          "line": 29,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "auto",
+        "theme": null,
+        "title": "Hoja de ruta GenAI",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null,
+        "spacing": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "tecnologia",
+          "kind": "section",
+          "label": "Tecnología",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 306,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 566,
+              "line": 15,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 314,
+              "line": 11,
+              "column": 11
+            },
+            "end": {
+              "offset": 324,
+              "line": 11,
+              "column": 21
+            }
+          },
+          "task": null
+        },
+        {
+          "id": "tec0",
+          "kind": "task",
+          "label": "Evaluar plataformas de agentes",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "tecnologia"
+          ],
+          "range": {
+            "start": {
+              "offset": 344,
+              "line": 12,
+              "column": 5
+            },
+            "end": {
+              "offset": 409,
+              "line": 12,
+              "column": 70
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 349,
+              "line": 12,
+              "column": 10
+            },
+            "end": {
+              "offset": 353,
+              "line": 12,
+              "column": 14
+            }
+          },
+          "task": {
+            "from": "2026-06-01",
+            "after": [],
+            "end": {
+              "kind": "for",
+              "amount": 5,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-06-01T00:00",
+            "finish": "2026-06-06T00:00",
+            "workingDays": 5
+          }
+        },
+        {
+          "id": "tec1",
+          "kind": "task",
+          "label": "Prueba de concepto con el equipo de Arquitectura",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "tecnologia"
+          ],
+          "range": {
+            "start": {
+              "offset": 414,
+              "line": 13,
+              "column": 5
+            },
+            "end": {
+              "offset": 493,
+              "line": 13,
+              "column": 84
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 419,
+              "line": 13,
+              "column": 10
+            },
+            "end": {
+              "offset": 423,
+              "line": 13,
+              "column": 14
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "tec0"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 10,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-06-08T00:00",
+            "finish": "2026-06-20T00:00",
+            "workingDays": 10
+          }
+        },
+        {
+          "id": "tec2",
+          "kind": "task",
+          "label": "Presentar resultados al comité Arq",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "tecnologia"
+          ],
+          "range": {
+            "start": {
+              "offset": 498,
+              "line": 14,
+              "column": 5
+            },
+            "end": {
+              "offset": 562,
+              "line": 14,
+              "column": 69
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 503,
+              "line": 14,
+              "column": 10
+            },
+            "end": {
+              "offset": 507,
+              "line": 14,
+              "column": 14
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "tec1"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 1,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-06-22T00:00",
+            "finish": "2026-06-23T00:00",
+            "workingDays": 1
+          }
+        },
+        {
+          "id": "nuevo_flujo_genai_hub",
+          "kind": "section",
+          "label": "Nuevo Flujo GenAI Hub",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 570,
+              "line": 17,
+              "column": 3
+            },
+            "end": {
+              "offset": 919,
+              "line": 22,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 578,
+              "line": 17,
+              "column": 11
+            },
+            "end": {
+              "offset": 599,
+              "line": 17,
+              "column": 32
+            }
+          },
+          "task": null
+        },
+        {
+          "id": "flu0",
+          "kind": "task",
+          "label": "Propuesta de flujo ágil de evaluación",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "nuevo_flujo_genai_hub"
+          ],
+          "range": {
+            "start": {
+              "offset": 630,
+              "line": 18,
+              "column": 5
+            },
+            "end": {
+              "offset": 702,
+              "line": 18,
+              "column": 77
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 635,
+              "line": 18,
+              "column": 10
+            },
+            "end": {
+              "offset": 639,
+              "line": 18,
+              "column": 14
+            }
+          },
+          "task": {
+            "from": "2026-06-15",
+            "after": [],
+            "end": {
+              "kind": "for",
+              "amount": 3,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-06-15T00:00",
+            "finish": "2026-06-18T00:00",
+            "workingDays": 3
+          }
+        },
+        {
+          "id": "flu1",
+          "kind": "task",
+          "label": "Interfaz Evaluación y seguimiento (WebComponent)",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "nuevo_flujo_genai_hub"
+          ],
+          "range": {
+            "start": {
+              "offset": 707,
+              "line": 19,
+              "column": 5
+            },
+            "end": {
+              "offset": 786,
+              "line": 19,
+              "column": 84
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 712,
+              "line": 19,
+              "column": 10
+            },
+            "end": {
+              "offset": 716,
+              "line": 19,
+              "column": 14
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "flu0"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 10,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-06-18T00:00",
+            "finish": "2026-07-02T00:00",
+            "workingDays": 10
+          }
+        },
+        {
+          "id": "flu2",
+          "kind": "task",
+          "label": "Integración con LeanIX",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "nuevo_flujo_genai_hub"
+          ],
+          "range": {
+            "start": {
+              "offset": 791,
+              "line": 20,
+              "column": 5
+            },
+            "end": {
+              "offset": 844,
+              "line": 20,
+              "column": 58
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 796,
+              "line": 20,
+              "column": 10
+            },
+            "end": {
+              "offset": 800,
+              "line": 20,
+              "column": 14
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "flu1"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 10,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-07-02T00:00",
+            "finish": "2026-07-16T00:00",
+            "workingDays": 10
+          }
+        },
+        {
+          "id": "flu3",
+          "kind": "task",
+          "label": "Marcha Blanca primeros casos de uso",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "nuevo_flujo_genai_hub"
+          ],
+          "range": {
+            "start": {
+              "offset": 849,
+              "line": 21,
+              "column": 5
+            },
+            "end": {
+              "offset": 915,
+              "line": 21,
+              "column": 71
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 854,
+              "line": 21,
+              "column": 10
+            },
+            "end": {
+              "offset": 858,
+              "line": 21,
+              "column": 14
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "flu2"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 10,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-07-16T00:00",
+            "finish": "2026-07-30T00:00",
+            "workingDays": 10
+          }
+        },
+        {
+          "id": "i_d",
+          "kind": "section",
+          "label": "I+D",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 923,
+              "line": 24,
+              "column": 3
+            },
+            "end": {
+              "offset": 1184,
+              "line": 28,
+              "column": 4
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 931,
+              "line": 24,
+              "column": 11
+            },
+            "end": {
+              "offset": 934,
+              "line": 24,
+              "column": 14
+            }
+          },
+          "task": null
+        },
+        {
+          "id": "sdlc0",
+          "kind": "task",
+          "label": "Estándares de desarrollo Agéntico + GenAI for productivity.",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "i_d"
+          ],
+          "range": {
+            "start": {
+              "offset": 947,
+              "line": 25,
+              "column": 5
+            },
+            "end": {
+              "offset": 1043,
+              "line": 25,
+              "column": 101
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 952,
+              "line": 25,
+              "column": 10
+            },
+            "end": {
+              "offset": 957,
+              "line": 25,
+              "column": 15
+            }
+          },
+          "task": {
+            "from": "2026-07-01",
+            "after": [],
+            "end": {
+              "kind": "for",
+              "amount": 30,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-07-01T00:00",
+            "finish": "2026-08-12T00:00",
+            "workingDays": 30
+          }
+        },
+        {
+          "id": "sdlc1",
+          "kind": "task",
+          "label": "Workshops AI-SDLC",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "i_d"
+          ],
+          "range": {
+            "start": {
+              "offset": 1048,
+              "line": 26,
+              "column": 5
+            },
+            "end": {
+              "offset": 1101,
+              "line": 26,
+              "column": 58
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1053,
+              "line": 26,
+              "column": 10
+            },
+            "end": {
+              "offset": 1058,
+              "line": 26,
+              "column": 15
+            }
+          },
+          "task": {
+            "from": "2026-08-03",
+            "after": [],
+            "end": {
+              "kind": "for",
+              "amount": 5,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-08-03T00:00",
+            "finish": "2026-08-08T00:00",
+            "workingDays": 5
+          }
+        },
+        {
+          "id": "sdlc2",
+          "kind": "task",
+          "label": "Desarrollo de Skills y Agentes (AI-SDLC).",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [
+            "i_d"
+          ],
+          "range": {
+            "start": {
+              "offset": 1106,
+              "line": 27,
+              "column": 5
+            },
+            "end": {
+              "offset": 1180,
+              "line": 27,
+              "column": 79
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 1111,
+              "line": 27,
+              "column": 10
+            },
+            "end": {
+              "offset": 1116,
+              "line": 27,
+              "column": 15
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "sdlc1"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 15,
+              "unit": "d"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-08-10T00:00",
+            "finish": "2026-08-29T00:00",
+            "workingDays": 15
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "tec0->tec1#1",
+          "id": null,
+          "from": "tec0",
+          "to": "tec1",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 481,
+              "line": 13,
+              "column": 72
+            },
+            "end": {
+              "offset": 485,
+              "line": 13,
+              "column": 76
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "tec1->tec2#1",
+          "id": null,
+          "from": "tec1",
+          "to": "tec2",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 551,
+              "line": 14,
+              "column": 58
+            },
+            "end": {
+              "offset": 555,
+              "line": 14,
+              "column": 62
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "flu0->flu1#1",
+          "id": null,
+          "from": "flu0",
+          "to": "flu1",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 774,
+              "line": 19,
+              "column": 72
+            },
+            "end": {
+              "offset": 778,
+              "line": 19,
+              "column": 76
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "flu1->flu2#1",
+          "id": null,
+          "from": "flu1",
+          "to": "flu2",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 832,
+              "line": 20,
+              "column": 46
+            },
+            "end": {
+              "offset": 836,
+              "line": 20,
+              "column": 50
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "flu2->flu3#1",
+          "id": null,
+          "from": "flu2",
+          "to": "flu3",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 903,
+              "line": 21,
+              "column": 59
+            },
+            "end": {
+              "offset": 907,
+              "line": 21,
+              "column": 63
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "sdlc1->sdlc2#1",
+          "id": null,
+          "from": "sdlc1",
+          "to": "sdlc2",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 1167,
+              "line": 27,
+              "column": 66
+            },
+            "end": {
+              "offset": 1172,
+              "line": 27,
+              "column": 71
+            }
+          },
+          "idRange": null
+        }
+      ],
+      "placement": [],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null,
+      "gantt": {
+        "axisFormat": "%d %b",
+        "ticks": null,
+        "weekStart": "monday",
+        "axis": "bottom",
+        "labels": "bar",
+        "display": "normal",
+        "dependencies": "shown",
+        "dayWidth": null,
+        "exclude": {
+          "weekdays": [
+            "saturday",
+            "sunday"
+          ],
+          "dates": []
+        },
+        "include": [],
+        "today": {
+          "date": null
+        },
+        "span": {
+          "start": "2026-06-01T00:00",
+          "end": "2026-08-29T00:00"
+        }
+      }
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

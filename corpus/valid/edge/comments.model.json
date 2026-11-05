@@ -83,7 +83,8 @@
               "line": 8,
               "column": 6
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "db",
@@ -130,7 +131,8 @@
               "line": 9,
               "column": 30
             }
-          }
+          },
+          "task": null
         }
       ],
       "relations": [
@@ -247,7 +249,8 @@
       "animations": [],
       "events": [],
       "scenarios": [],
-      "c4": null
+      "c4": null,
+      "gantt": null
     }
   ],
   "themes": [],

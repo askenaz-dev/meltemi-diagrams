@@ -32,6 +32,39 @@ export const es: typeof en = {
       externalContainer: "Contenedor externo",
       externalComponent: "Componente externo",
     },
+    gantt: {
+      months: [
+        "enero",
+        "febrero",
+        "marzo",
+        "abril",
+        "mayo",
+        "junio",
+        "julio",
+        "agosto",
+        "septiembre",
+        "octubre",
+        "noviembre",
+        "diciembre",
+      ],
+      monthsShort: [
+        "ene",
+        "feb",
+        "mar",
+        "abr",
+        "may",
+        "jun",
+        "jul",
+        "ago",
+        "sep",
+        "oct",
+        "nov",
+        "dic",
+      ],
+      weekdays: ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"],
+      weekdaysShort: ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"],
+      today: "Hoy",
+    },
   },
   diagnostics: {
     overlap: (a, b) => `${code(a)} y ${code(b)} se superponen.`,
@@ -128,8 +161,12 @@ export const es: typeof en = {
       `${code(element)} mide ${needsWidth === width ? `${n(height)} px de alto` : `${n(width)} × ${n(height)} px`}, pero ${withIcon ? `su icono y su texto "${text}" necesitan` : `su texto "${text}" necesita`} ${needsWidth === width ? n(needsHeight) : `${n(needsWidth)} × ${n(needsHeight)}`} px.`,
     stickyOverflow: (element, width, height, fontSize, needsWidth, needsHeight) =>
       `El texto de ${code(element)} no cabe en su tarjeta de ${n(width)} × ${n(height)} px ni a ${n(fontSize)} px, y se recorta: necesita ${n(needsWidth)} × ${n(needsHeight)} px.`,
+    ticksCrowded: (ticks, every) =>
+      `Las etiquetas de \`ticks ${ticks}\` se superpondrían; se etiqueta una de cada ${n(every)} marcas.`,
   },
   hints: {
+    ticksCrowded:
+      "Escribe un intervalo mayor en `ticks`, ensancha el gráfico con `dayWidth`, o quita `ticks` para que el eje elija.",
     labelCutByPicture:
       "Dale espacio al diagrama: un `canvas` más grande, o mueve el elemento hacia dentro.",
     labelCut: "Acorta el texto o dale al elemento un `size` en el que quepa.",

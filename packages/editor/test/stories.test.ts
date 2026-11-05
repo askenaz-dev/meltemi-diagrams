@@ -209,13 +209,16 @@ describe("stories across the files of a project", () => {
     const canvas = new CanvasSession();
     expect(canvas.update(sessions.analyze(tourPath, undefined, 1))[0]).toMatchObject({
       type: "empty",
-      creatable: ["flow", "free", "sequence"],
+      creatable: ["flow", "free", "sequence", "gantt"],
     });
     const played = canvas.receive({ type: "pickStory", story: "tour" }).messages;
     expect(played[0]).toMatchObject({ type: "empty", creatable: [] });
     expect(played[1]).toMatchObject({ type: "story", playback: { id: "tour" } });
     const left = canvas.receive({ type: "pickStory", story: null }).messages;
-    expect(left[0]).toMatchObject({ type: "empty", creatable: ["flow", "free", "sequence"] });
+    expect(left[0]).toMatchObject({
+      type: "empty",
+      creatable: ["flow", "free", "sequence", "gantt"],
+    });
   });
 
   it("finds the uses in other files", () => {

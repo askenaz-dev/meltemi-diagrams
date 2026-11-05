@@ -2,7 +2,9 @@
 
 ## Purpose
 The playground's explorer: the tree of the project's folders, diagrams and images with their problems, its actions, keys and drag and drop, Show all files and project settings, the project switcher and its Projects panel, New project from the templates' cards, the import and export of a project archive, and the motion of all of it.
+
 ## Requirements
+
 ### Requirement: The explorer pane
 The playground SHALL show an explorer left of the code pane: a header naming the open project and a
 tree of its folders and diagrams. The explorer SHALL be 180 to 480 px wide, resized by dragging its
@@ -92,7 +94,7 @@ when the project has none.
 ### Requirement: Actions on the tree
 The explorer SHALL offer, on the root, a folder or a file, from a context menu (right click,
 Shift+F10, the context-menu key, or the "…" button a row shows on hover and focus): **New
-diagram…** (a name and a kind, flow, free or sequence; the file `<folder>/<name>.meltemi` written
+diagram…** (a name and a kind, flow, free, sequence or gantt; the file `<folder>/<name>.meltemi` written
 through `createDiagram` with the name as the title), **New folder…**, **Rename** (F2: a box in the
 row; Enter confirms, Escape cancels), **Move to…** (a dialog listing the folders and a field for
 a new one), **Duplicate** (Ctrl+D: `<name>-copy`, then `-copy-2`…), **Download** and **Delete**
@@ -104,6 +106,10 @@ with nothing changed. In view mode the explorer SHALL show the tree and no actio
 #### Scenario: A new diagram in a folder
 - **WHEN** New diagram… is chosen on `diagrams` with the name `checkout` and the kind sequence
 - **THEN** `diagrams/checkout.meltemi` exists with `language "0.2"` and `diagram checkout: sequence { title "checkout" }`, is open, and the row `checkout` is selected and visible
+
+#### Scenario: A new Gantt chart
+- **WHEN** New diagram… is chosen on `diagrams` with the name `roadmap` and the kind gantt
+- **THEN** `diagrams/roadmap.meltemi` exists with `diagram roadmap: gantt { title "roadmap" }`, is open, and the canvas shows its empty timeline
 
 #### Scenario: Rename in the row
 - **WHEN** F2 is pressed on `overview`, `start` is typed and Enter pressed
@@ -185,7 +191,7 @@ the template with that name and open it.
 
 #### Scenario: The cards
 - **WHEN** New project… opens in Spanish
-- **THEN** seven cards show, `c4` titled "Modelo C4" with "1 modelo · 2 vistas", `kanban` titled "Tablero kanban" with "1 diagrama", `whiteboard` titled "Pizarra" with "1 diagrama · 1 historia", `purchase` with "1 modelo · 2 vistas · 2 diagramas · 1 historia", each with its thumbnail
+- **THEN** eight cards show, `c4` titled "Modelo C4" with "1 modelo · 2 vistas", `roadmap` titled "Hoja de ruta" with "1 diagrama · 1 historia", `kanban` titled "Tablero kanban" with "1 diagrama", `whiteboard` titled "Pizarra" with "1 diagrama · 1 historia", `purchase` with "1 modelo · 2 vistas · 2 diagramas · 1 historia", each with its thumbnail
 
 #### Scenario: Anonymous creation
 - **WHEN** the anonymous flow project has been edited and the sequence card is created
@@ -202,6 +208,10 @@ the template with that name and open it.
 #### Scenario: A whiteboard from its card
 - **WHEN** the whiteboard card is created anonymously
 - **THEN** the tree shows `diagrams/whiteboard` and the canvas draws the strokes and stickies under `sketch.light`
+
+#### Scenario: A roadmap from its card
+- **WHEN** the roadmap card is created anonymously
+- **THEN** the tree shows `diagrams/roadmap`, the canvas draws the chart's sections, bars and arrows, and the story `plan` is offered for playback
 
 ### Requirement: Importing and exporting a project
 **Export project (.zip)** SHALL download the project as the archive **Download → Project (.zip)**
@@ -250,4 +260,3 @@ none of this SHALL move: states change at once.
 #### Scenario: Reduced motion
 - **WHEN** the browser asks for reduced motion and `diagrams` is expanded
 - **THEN** the group shows at once with no transition
-

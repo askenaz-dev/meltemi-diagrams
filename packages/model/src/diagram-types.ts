@@ -102,6 +102,10 @@ export const RESERVED_WORDS: ReadonlySet<string> = new Set([
   "box",
   "note",
   "tag",
+  "section",
+  "task",
+  "milestone",
+  "marker",
 ]);
 
 const IDENT = /^[a-z][a-z0-9_]*$/;

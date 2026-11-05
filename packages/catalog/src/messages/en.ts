@@ -38,6 +38,7 @@ export const en = {
     free: "Free",
     sequence: "Sequence",
     c4: "C4",
+    gantt: "Gantt",
     story: "Story",
     entity: "Entity",
   },

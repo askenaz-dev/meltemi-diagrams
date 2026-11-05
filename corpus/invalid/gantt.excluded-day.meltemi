@@ -1,0 +1,7 @@
+language "0.2"
+
+// A start written on a day that does not work moves to the next one that does (a warning).
+diagram plan: gantt {
+  exclude weekends
+  task kickoff "Kick-off" from 2026-06-06 for 2d
+}

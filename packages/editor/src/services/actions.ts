@@ -6,6 +6,7 @@ import { arrangeOperation } from "../arrange.js";
 import { deleteStatements, removeListItems } from "@meltemi/diagrams-edit";
 import { diagramAt } from "../syntax.js";
 import { serviceMessages } from "../messages/services.js";
+import { ganttElementAt, ganttFixes } from "./gantt.js";
 
 export interface CodeAction {
   readonly title: string;
@@ -217,9 +218,14 @@ function fixes(analysis: DocumentAnalysis, diagnostic: Diagnostic): CodeAction[]
         diagnostic.range.start.offset,
         diagnostic.range.end.offset,
       );
+      // In a chart the id is a task or milestone in an `after` or `until` list: the close ones,
+      // never the statement's own, which would wait for itself.
+      const chart = diagram.type === "gantt";
+      const own = chart ? ganttElementAt(diagram, offset)?.id : undefined;
       const close = candidatesOf(diagnostic)
-        .filter((w) => w !== written)
+        .filter((w) => w !== written && w !== own)
         .map((w) => ({ w, distance: editDistance(w, written) }))
+        .filter((c) => !chart || c.distance <= 3)
         .sort((a, b) => a.distance - b.distance)
         .slice(0, 3);
       for (const [i, { w }] of close.entries()) {
@@ -229,6 +235,8 @@ function fixes(analysis: DocumentAnalysis, diagnostic: Diagnostic): CodeAction[]
           i === 0,
         );
       }
+      // A chart's rows are tasks, milestones and markers, never nodes, boxes or participants.
+      if (chart) break;
       add(
         t.declareElement(id, kind),
         plan(analysis, {
@@ -240,6 +248,16 @@ function fixes(analysis: DocumentAnalysis, diagnostic: Diagnostic): CodeAction[]
         }),
         close.length === 0,
       );
+      break;
+    }
+    case "gantt.unscheduled":
+    case "gantt.relation":
+    case "gantt.excluded-day":
+    case "gantt.cycle": {
+      if (diagram?.type !== "gantt") break;
+      for (const fix of ganttFixes(analysis, diagram, diagnostic)) {
+        add(fix.title, fix.edits, fix.preferred);
+      }
       break;
     }
     case "ref.unknown-layer": {
@@ -454,7 +472,8 @@ export function codeActions(
   const actions = diagnostics.flatMap((d) => fixes(analysis, d));
   actions.push(...confirmAssumption(analysis, range.start));
   const diagram = diagramAt(analysis.compilation, range.start);
-  if (!diagram || diagram.hasSyntaxErrors) return actions;
+  // A chart's arrows are its `after` clauses, which cannot be named, and its places are its dates.
+  if (!diagram || diagram.hasSyntaxErrors || diagram.type === "gantt") return actions;
   const relation = diagram.relations.find(
     (r) => r.id === null && r.node.start <= range.start && range.start <= r.node.end,
   );

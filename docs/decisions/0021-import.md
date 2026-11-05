@@ -55,9 +55,12 @@ now compiles, lays out with ELK and renders.
 
 ## Consequences
 
-- Mermaid diagram types other than flowchart, sequence, C4, architecture and block, and PlantUML
-  diagrams other than component, deployment, use case, sequence and C4 are refused with
+- Mermaid diagram types other than flowchart, sequence, C4, architecture, block and gantt, and
+  PlantUML diagrams other than component, deployment, use case, sequence and C4 are refused with
   `import.unsupported-diagram`.
 - New constructs in Mermaid or PlantUML are reported as unreadable until the tables and front-ends
   learn them; `docs/import/` says which versions the tables follow.
 - Routes from a side of a group now lay out with ELK and end on the group's drawn border.
+- [Decision 0066](0066-gantt-charts.md) imports Mermaid `gantt`: the front-end replays Mermaid's
+  scheduling so that the sheet has the dates Mermaid draws, reports each task Meltemi dates
+  differently once with both dates, and a re-import keeps the chart's view settings and styles.

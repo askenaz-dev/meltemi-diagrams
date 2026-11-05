@@ -1,0 +1,40 @@
+{
+  "status": "partial",
+  "format": "mermaid",
+  "diagrams": [
+    {
+      "id": "launch_plan",
+      "type": "gantt",
+      "model": null,
+      "kind": "gantt",
+      "lines": [
+        1,
+        41
+      ]
+    }
+  ],
+  "findings": [
+    "1:1 warning import.partial [import] 1 essential construct was not imported; the sheet is incomplete.",
+    "5:1 warning import.unsupported-construct [mermaid.config dropped] The configuration option `theme` is not imported.",
+    "8:1 warning import.unsupported-construct [mermaid.config dropped] The configuration option `gantt.barGap` is not imported.",
+    "17:5 warning import.unsupported-construct [gantt.excludes dropped] `holidays` is not `weekends`, a weekday or a date; it is dropped.",
+    "19:5 info import.approximated [gantt.todayMarker approximated] The style of the today line is not kept; `today` draws it in the theme's colours.",
+    "28:5 info import.approximated [gantt.schedule approximated] Mermaid draws `review` from 2026-06-26 to 2026-07-02; here it runs from 2026-06-26 to 2026-06-30.",
+    "29:5 info import.approximated [gantt.schedule approximated] Mermaid draws `docs` from 2026-06-26 to 2026-06-29; here it runs from 2026-06-26 to 2026-06-29T12:00.",
+    "30:34 warning import.unsupported-construct [gantt.after dropped] `ghost` is not a task of the chart; it is dropped from `after`.",
+    "32:5 warning import.unsupported-construct [gantt.click dropped] Callbacks (`click … call`) are not imported.",
+    "36:31 info import.approximated [gantt.duration.month approximated] `1M` is written as `30d`, the days Mermaid draws for it from its start.",
+    "37:46 info import.approximated [gantt.milestone.duration approximated] A milestone after a task is drawn at the end of that task; its duration is not kept.",
+    "38:40 info import.approximated [gantt.duration.ms approximated] `500ms` is written as `1s`: durations start at one second.",
+    "39:35 info import.approximated [gantt.duration approximated] `soon` is not a duration; the task lasts one day.",
+    "40:5 warning import.syntax [gantt.statement dropped essential] Cannot read `A line Mermaid cannot read`."
+  ],
+  "coverage": [
+    {
+      "diagram": "launch_plan",
+      "mapped": 46,
+      "approximated": 7,
+      "dropped": 6
+    }
+  ]
+}

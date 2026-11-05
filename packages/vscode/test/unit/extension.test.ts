@@ -14,11 +14,21 @@ import {
   DIAGRAM_TYPES,
   FLOW_PROFILE,
   FREE_PROFILE,
+  GANTT_AXIS_PLACES,
+  GANTT_CHART_STATEMENTS,
+  GANTT_CLAUSES,
+  GANTT_DEPENDENCIES,
+  GANTT_DISPLAYS,
+  GANTT_ELEMENT_KINDS,
+  GANTT_LABEL_PLACES,
+  GANTT_PROFILE,
+  GANTT_STATUS_WORDS,
   LIST_ALIGNS,
   LIST_LAYOUTS,
   MAIN_LAYER,
   PORTS,
   THEME_TOKENS,
+  WEEKDAYS,
 } from "@meltemi/diagrams-model";
 import { KEY_BINDINGS } from "@meltemi/diagrams-editor/canvas";
 import { REPO_ROOT } from "../../../../test-support/corpus.js";
@@ -26,8 +36,17 @@ import { CanvasOpening, type OpenWithText } from "../../src/extension/remember.j
 
 const root = join(REPO_ROOT, "packages", "vscode");
 
+interface Rule {
+  name?: string;
+  match?: string;
+  begin?: string;
+  end?: string;
+  patterns?: { name?: string; match?: string; include?: string }[];
+}
+
 interface Grammar {
-  repository: Record<string, { match?: string; patterns?: { name?: string; match?: string }[] }>;
+  patterns: { include: string }[];
+  repository: Record<string, Rule>;
 }
 
 describe("grammar", () => {
@@ -52,6 +71,7 @@ describe("grammar", () => {
     collect(FLOW_PROFILE.animateProperties);
     collect(FREE_PROFILE.diagramProperties);
     collect(FREE_PROFILE.styleProperties);
+    collect(GANTT_PROFILE.diagramProperties);
     collect(THEME_TOKENS);
     const words = [
       "language",
@@ -94,9 +114,150 @@ describe("grammar", () => {
       ...STORY_TRANSITIONS,
       ...Object.keys(EXPORT_OPTIONS),
       ...EXPORT_FORMATS,
+      // A gantt chart: its statements, the clause and status words after a label, the chart
+      // statements and the words they take.
+      ...Object.keys(GANTT_PROFILE.diagramProperties),
+      ...GANTT_ELEMENT_KINDS,
+      ...GANTT_PROFILE.diagramBlocks,
+      ...GANTT_CHART_STATEMENTS,
+      ...Object.values(GANTT_CLAUSES).flat(),
+      ...GANTT_STATUS_WORDS,
+      ...GANTT_AXIS_PLACES,
+      ...GANTT_LABEL_PLACES,
+      ...GANTT_DISPLAYS,
+      ...GANTT_DEPENDENCIES,
+      ...WEEKDAYS,
+      "weekends",
     ];
     const missing = words.filter((word) => !regexes.some((r) => r.test(` ${word} `)));
     expect(missing).toEqual([]);
+  });
+
+  describe("gantt charts", () => {
+    const patterns = grammar.repository["keywords"]!.patterns ?? [];
+    /** The scope of the first keyword pattern that matches the word; the order of the grammar. */
+    const scopeOf = (word: string) =>
+      patterns.find((p) => p.match !== undefined && new RegExp(p.match).test(` ${word} `))?.name;
+    const statement = grammar.repository["gantt-statement"]!;
+    /** The scope the words of a task, milestone or marker line get inside the statement's rule. */
+    const clauseScopeOf = (word: string) =>
+      statement.patterns?.find(
+        (p) => p.match !== undefined && new RegExp(p.match).test(` ${word} `),
+      )?.name;
+
+    it("names the type in the header of a diagram", () => {
+      const header = new RegExp(grammar.repository["diagram-header"]!.match!);
+      for (const type of DIAGRAM_TYPES)
+        expect(header.test(`diagram plan: ${type} {`), type).toBe(true);
+      expect(header.test("diagram plan: gantts {")).toBe(false);
+      expect(scopeOf("gantt")).toBe("constant.language.meltemi");
+    });
+
+    it("scopes the statements as kinds, and the chart statements as properties", () => {
+      for (const word of GANTT_ELEMENT_KINDS) {
+        expect(scopeOf(word), word).toBe("storage.type.element.meltemi");
+      }
+      for (const word of GANTT_CHART_STATEMENTS) {
+        // `include` and `exclude` are the profile statements of C4 views too.
+        const expected =
+          word === "exclude" || word === "include"
+            ? "keyword.control.profile.meltemi"
+            : "support.type.property-name.diagram.meltemi";
+        expect(scopeOf(word), word).toBe(expected);
+      }
+    });
+
+    it("scopes the values of the chart statements as constants", () => {
+      const values = [
+        "weekends",
+        ...WEEKDAYS,
+        ...GANTT_AXIS_PLACES,
+        ...GANTT_DISPLAYS,
+        ...GANTT_DEPENDENCIES,
+      ];
+      for (const word of values) expect(scopeOf(word), word).toBe("constant.language.meltemi");
+      // `bar` is an arrowhead and `column` a placement constraint elsewhere: after `labels`
+      // they are values, and the pattern that says so comes first.
+      const labels = patterns.find((p) => p.match?.startsWith("\\b(labels)\\s+"));
+      expect(labels).toBeDefined();
+      const words = new RegExp(labels!.match!);
+      for (const value of GANTT_LABEL_PLACES)
+        expect(words.test(`  labels ${value}`), value).toBe(true);
+      expect(words.test("  labels beside")).toBe(false);
+      const placement = patterns.find((p) => p.match?.startsWith("\\b(place|size|route"));
+      expect(patterns.indexOf(labels!)).toBeLessThan(patterns.indexOf(placement!));
+    });
+
+    it("scopes the clause and status words of a task, a milestone and a marker as one family", () => {
+      const begin = new RegExp(statement.begin!);
+      for (const line of [
+        'task tec0 "Evaluar" from 2026-06-01 for 5d',
+        "milestone launch after a",
+        "marker freeze at 2026-07-01",
+      ]) {
+        expect(begin.test(line), line).toBe(true);
+      }
+      // A rule for the kind, a longer word and a statement without an id are no statements.
+      for (const line of ["rule task { fill accent }", "tasks a", "task { }", "style task1 { }"]) {
+        expect(begin.test(line), line).toBe(false);
+      }
+      // The statement ends where its block or the next statement of the line starts.
+      const end = new RegExp(statement.end!);
+      const block = ' from 2026-06-01 for 5d { description "x" }';
+      expect(end.exec(block)!.index).toBe(block.indexOf("{"));
+      const next = " from 2026-06-01; task b";
+      expect(end.exec(next)!.index).toBe(next.indexOf(";"));
+      const clauses = new Set(Object.values(GANTT_CLAUSES).flat());
+      for (const word of clauses) {
+        expect(clauseScopeOf(word), word).toBe("keyword.other.clause.gantt.meltemi");
+      }
+      for (const word of GANTT_STATUS_WORDS) {
+        expect(clauseScopeOf(word), word).toBe("constant.language.status.gantt.meltemi");
+      }
+      // Dates, durations, labels and comments are scoped inside it as outside.
+      const inside = (statement.patterns ?? []).map((p) => p.include ?? p.match);
+      expect(inside).toEqual(
+        expect.arrayContaining(["#comments", "#strings", "#dates", "#numbers"]),
+      );
+      // It comes before the keywords, which would colour `from` and `after` as other profiles do.
+      const order = grammar.patterns.map((p) => p.include);
+      expect(order.indexOf("#gantt-statement")).toBeLessThan(order.indexOf("#keywords"));
+      expect(order.indexOf("#gantt-statement")).toBeGreaterThan(
+        order.indexOf("#declaration-shorthand"),
+      );
+    });
+
+    it("scopes a date as one token, before the numbers that would split it", () => {
+      const dates = new RegExp(grammar.repository["dates"]!.match!, "g");
+      expect(grammar.repository["dates"]!.name).toBe("constant.numeric.date.meltemi");
+      expect("task a from 2026-06-01 for 5d".match(dates)).toEqual(["2026-06-01"]);
+      expect("from 2026-06-01T09:30 to 2026-06-01T17:30:15".match(dates)).toEqual([
+        "2026-06-01T09:30",
+        "2026-06-01T17:30:15",
+      ]);
+      expect("exclude 2026-12-24, 2026-12-25".match(dates)).toEqual(["2026-12-24", "2026-12-25"]);
+      // What the lexer reads as numbers: no zero padding, a digit more, or part of a name.
+      for (const text of ["2026-6-1", "2026-06-011", "20260601", "id2026-06-01", "2026-06"]) {
+        expect(text.match(dates), text).toBeNull();
+      }
+      const order = grammar.patterns.map((p) => p.include);
+      expect(order.indexOf("#dates")).toBeLessThan(order.indexOf("#numbers"));
+    });
+
+    it("scopes a duration with its unit as a number", () => {
+      const numbers = new RegExp(grammar.repository["numbers"]!.match!, "g");
+      expect("for 10d, for 2w, for 90min, for 1.5h, for 30s".match(numbers)).toEqual([
+        "10d",
+        "2w",
+        "90min",
+        "1.5h",
+        "30s",
+      ]);
+      expect("ticks 1mo, ticks 1y".match(numbers)).toEqual(["1mo", "1y"]);
+      // A unit that is not one is no part of the number, and the other units stay.
+      expect("for 5days".match(numbers)).toBeNull();
+      expect("1200ms 24px".match(numbers)).toEqual(["1200ms", "24px"]);
+    });
   });
 
   it("colours the line tokens as arrows and `line` as a kind only where it declares a line", () => {

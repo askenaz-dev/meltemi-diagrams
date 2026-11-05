@@ -42,8 +42,8 @@ runs live sessions and publishes (`access.denied`).
 
 - The account: `whoami` (the account, its scopes, usage and limits).
 - Projects: `list_projects`, `create_project` (empty, from a template `flow`, `c4`, `sequence`,
-  `free` or `purchase`, or from files), `get_project` (its revision, its file paths and its address),
-  `rename_project`.
+  `roadmap`, `free` or `purchase`, or from files), `get_project` (its revision, its file paths and
+  its address), `rename_project`.
 - Files: `read_files` (the texts and the images' hashes, at a revision), `write_files` (texts by
   path, `null` deletes; images and fonts by the hash `upload_image` answered), `validate` (the
   diagnostics `meltemi-diagrams validate` prints), `upload_image` (PNG, JPEG, GIF, WebP, SVG or a

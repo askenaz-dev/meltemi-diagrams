@@ -30,8 +30,26 @@ export interface MergeResult {
   readonly findings: readonly Diagnostic[];
 }
 
-/** Statements that replace the imported one with the same keyword. */
-const REPLACING = new Set(["layout", "routing", "theme", "preset", "canvas", "layers"]);
+/**
+ * Statements that replace the imported one with the same keyword: how a diagram is drawn, and how
+ * a gantt chart's axis and rows look. A gantt chart's schedule, calendar and `today` stay the source's.
+ */
+const REPLACING = new Set([
+  "layout",
+  "routing",
+  "theme",
+  "preset",
+  "canvas",
+  "layers",
+  "axisFormat",
+  "ticks",
+  "weekStart",
+  "axis",
+  "labels",
+  "display",
+  "dependencies",
+  "dayWidth",
+]);
 /** Statements whose leading arguments are a list of targets. */
 const TARGET_LISTS = new Set(["style", "animate"]);
 /** Placement statements and how many targets their lists need at least. */
@@ -547,6 +565,15 @@ const RANK: Readonly<Record<string, number>> = {
   scope: 1,
   include: 1,
   exclude: 1,
+  axisFormat: 1,
+  ticks: 1,
+  weekStart: 1,
+  axis: 1,
+  labels: 1,
+  display: 1,
+  dependencies: 1,
+  dayWidth: 1,
+  today: 1,
   label: 1,
   autonumber: 1,
   class: 2,

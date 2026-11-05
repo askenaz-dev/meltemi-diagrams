@@ -66,6 +66,7 @@ import {
   readPropertyBlock,
   readStatementValue,
   refuseFreeProperties,
+  refuseGanttProperties,
   singleIdent,
   spanOf,
   TAG_FORM,
@@ -432,6 +433,7 @@ export class FlowAnalyzer {
       scenarios: this.scenarios,
       references: this.references,
       c4: null,
+      gantt: null,
       entityReferences: this.entityReferences,
       placementBlocks: this.placementBlocks,
       elementsById: this.elementsById,
@@ -719,6 +721,7 @@ export class FlowAnalyzer {
         attachedTo: null,
         attachedToRange: null,
         typeKind: null,
+        task: null,
         data: {},
         groupPath,
         range: this.range(stmt),
@@ -849,6 +852,7 @@ export class FlowAnalyzer {
       attachedTo: attachment?.target ?? null,
       attachedToRange: attachment ? this.range(attachment.arg) : null,
       typeKind,
+      task: null,
       data: declaredKind ? dataOf(blockValues, declaredKind.properties) : {},
       groupPath,
       range: this.range(stmt),
@@ -925,6 +929,7 @@ export class FlowAnalyzer {
       attachedTo: null,
       attachedToRange: null,
       typeKind: null,
+      task: null,
       data: {},
       groupPath,
       range: this.range(stmt),
@@ -991,6 +996,7 @@ export class FlowAnalyzer {
       attachedTo: null,
       attachedToRange: null,
       typeKind: null,
+      task: null,
       data: {},
       groupPath,
       range: this.range(stmt),
@@ -1050,6 +1056,7 @@ export class FlowAnalyzer {
       attachedTo: null,
       attachedToRange: null,
       typeKind: null,
+      task: null,
       data: {},
       groupPath,
       range: this.range(stmt),
@@ -1609,6 +1616,7 @@ export class FlowAnalyzer {
       attachedTo: null,
       attachedToRange: null,
       typeKind: null,
+      task: null,
       data: {},
       groupPath,
       range: this.range(token),
@@ -2286,6 +2294,7 @@ export class FlowAnalyzer {
     if (kind === "animate") this.checkAnimationBlock(stmt, values, tokens);
     if (kind === "style" && !this.free) {
       refuseFreeProperties(values, tokens, this.report);
+      if (this.profile.name === "gantt") refuseGanttProperties(values, tokens, this.report);
       for (const name of Object.keys(tokens)) if (!(name in values)) delete tokens[name];
     }
     if (icon) this.icons.push(icon);
@@ -2369,7 +2378,9 @@ export class FlowAnalyzer {
       if (shapeless !== null && !misplaced.has("shape")) {
         misplaced.add("shape");
         this.invalid(
-          messages().diagnostics.values.shapeNotFor(shapeless, resolved.name),
+          this.profile.name === "gantt"
+            ? messages().diagnostics.values.shapeInProfile(this.profile.name)
+            : messages().diagnostics.values.shapeNotFor(shapeless, resolved.name),
           tokens.shape!,
         );
       }
@@ -2543,7 +2554,17 @@ export class FlowAnalyzer {
     // stroke is the outline a dash follows.
     const connector =
       resolved.kind === "relation" || element?.kind === "line" || element?.kind === "pen";
-    if (effect === "flow" && !connector) {
+    if (this.profile.name === "gantt" && (effect === "flow" || effect === "trace")) {
+      // In a gantt chart the dependency arrows have no names to animate: a task or a milestone
+      // that follows others runs the effect along each arrow that comes into it (decision 0066).
+      if (element?.kind === "task" || element?.kind === "milestone") {
+        if (!this.relations.some((relation) => relation.to === element.id)) {
+          reason = m.ganttNoArrows(effect, element.id);
+        }
+      } else {
+        reason = m.ganttArrowsTarget(effect, resolved.name, element?.kind ?? "element");
+      }
+    } else if (effect === "flow" && !connector) {
       reason = m.flowTarget;
     } else if (effect === "trace" && !connector) {
       reason = m.traceTarget;

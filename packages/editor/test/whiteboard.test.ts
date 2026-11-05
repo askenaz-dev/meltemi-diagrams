@@ -1216,7 +1216,8 @@ describe("the whiteboard's actions and messages", () => {
       action({ kind: "move", ids: ["a"], parent: "todo", index: 2, delta: { x: 1, y: 0 } }),
     ).toBe(true);
     expect(action({ kind: "move", ids: ["a"], index: 0 })).toBe(false);
-    expect(action({ kind: "move", ids: ["a"], parent: null, index: 0 })).toBe(false);
+    // The top level of a gantt chart takes a position too; the session refuses it elsewhere.
+    expect(action({ kind: "move", ids: ["a"], parent: null, index: 0 })).toBe(true);
     expect(action({ kind: "move", ids: ["a"], parent: "todo" })).toBe(false);
     expect(action({ kind: "move", ids: ["a"], parent: "todo", index: -1 })).toBe(false);
     expect(action({ kind: "move", ids: ["a"], parent: "todo", index: 1.5 })).toBe(false);

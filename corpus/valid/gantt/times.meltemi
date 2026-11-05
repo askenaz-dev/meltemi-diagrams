@@ -1,0 +1,15 @@
+language "0.2"
+
+// A day in hours: tasks with times follow one another, a milestone gates the last one, and a
+// marker stands over lunch.
+diagram release_day: gantt {
+  title "Release day"
+  axisFormat "%H:%M"
+
+  task freeze "Freeze" from 2026-06-10T09:00 for 30min
+  task build "Build" after freeze for 1.5h
+  task smoke "Smoke tests" after build for 45min
+  milestone go "Go / no go" after smoke
+  task deploy "Deploy" after go for 1h critical
+  marker lunch "Lunch" at 2026-06-10T12:30
+}

@@ -1,0 +1,53 @@
+language "0.2"
+
+// Thirty tasks over a year, in four sections, each waiting for the one before it, with the weekends
+// and a few holidays not worked. Every task but the first is placed by `after`, so the chart reads
+// as one long chain. `today` is pinned so that the picture is the same on every day.
+diagram thirty: gantt {
+  title "A year in thirty tasks"
+  axisFormat "%b"
+  exclude weekends, 2026-04-03, 2026-05-01, 2026-12-25
+  today 2026-07-15
+
+  section q1 "First quarter" {
+    task t01 "Kick-off" from 2026-01-05 for 6d done
+    task t02 "Requirements" after t01 for 10d done
+    task t03 "Architecture" after t02 for 7d done
+    task t04 "Prototype" after t03 for 9d done
+    task t05 "User testing" after t04 for 5d done critical
+    task t06 "Revise the scope" after t05 for 12d done
+    task t07 "Detailed design" after t06 for 8d done
+    task t08 "Review gate" after t07 for 7d done
+  }
+
+  section q2 "Second quarter" {
+    task t09 "Core services" after t08 for 9d done
+    task t10 "Data model" after t09 for 6d done critical
+    task t11 "Integrations" after t10 for 10d done
+    task t12 "Access control" after t11 for 8d done
+    task t13 "Reporting" after t12 for 6d done
+    task t14 "Performance tuning" after t13 for 10d done
+    task t15 "Security review" after t14 for 7d active critical
+    task t16 "Beta build" after t15 for 9d
+  }
+
+  section q3 "Third quarter" {
+    task t17 "Pilot customers" after t16 for 5d
+    task t18 "Feedback round" after t17 for 12d
+    task t19 "Fixes and polish" after t18 for 8d
+    task t20 "Documentation" after t19 for 7d critical
+    task t21 "Training material" after t20 for 9d
+    task t22 "Localisation" after t21 for 6d
+    task t23 "Release candidate" after t22 for 10d
+  }
+
+  section q4 "Fourth quarter" {
+    task t24 "Launch preparation" after t23 for 8d
+    task t25 "Support hand-over" after t24 for 6d critical
+    task t26 "Marketing assets" after t25 for 10d
+    task t27 "Go-live rehearsal" after t26 for 7d
+    task t28 "Launch" after t27 for 9d
+    task t29 "Hypercare" after t28 for 5d
+    task t30 "Retrospective" after t29 for 12d critical
+  }
+}

@@ -19,6 +19,7 @@ export type NodeKind =
   | "QualifiedRef"
   | "StringLiteral"
   | "NumberLiteral"
+  | "DateLiteral"
   | "Tuple"
   | "List"
   | "Missing"
@@ -201,7 +202,7 @@ export interface ChainClause extends NodeBase {
   readonly block: Block | Missing;
 }
 
-export type Arg = QualifiedRef | StringLiteral | NumberLiteral | Tuple | List;
+export type Arg = QualifiedRef | StringLiteral | NumberLiteral | DateLiteral | Tuple | List;
 
 /** One identifier or several joined by dots: `api`, `shop.api`, `api.east`. */
 export interface QualifiedRef extends NodeBase {
@@ -221,6 +222,13 @@ export interface NumberLiteral extends NodeBase {
   readonly token: Token;
   readonly value: number;
   readonly unit: string | null;
+}
+
+/** A date written `2026-06-01` or `2026-06-01T09:30[:15]`: civil time, kept as written. */
+export interface DateLiteral extends NodeBase {
+  readonly kind: "DateLiteral";
+  readonly token: Token;
+  readonly text: string;
 }
 
 export interface Tuple extends NodeBase {
@@ -256,6 +264,7 @@ export type CstNode =
   | QualifiedRef
   | StringLiteral
   | NumberLiteral
+  | DateLiteral
   | Tuple
   | List
   | Missing

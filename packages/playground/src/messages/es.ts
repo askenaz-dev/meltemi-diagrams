@@ -129,6 +129,7 @@ export const es: typeof en = {
       flow: "Diagrama de flujo",
       c4: "Modelo C4",
       sequence: "Diagrama de secuencia",
+      roadmap: "Hoja de ruta",
       free: "Diapositiva",
       kanban: "Tablero kanban",
       whiteboard: "Pizarra",
@@ -150,6 +151,8 @@ export const es: typeof en = {
       flow: "Un diagrama de flujo para empezar",
       c4: "Un modelo de arquitectura con una vista de contexto y una vista de contenedores",
       sequence: "Un diagrama de secuencia con un escenario para cada resultado",
+      roadmap:
+        "Una hoja de ruta de tres secciones de tareas con sus dependencias, un hito y una historia que la cuenta",
       free: "Una diapositiva de composición libre: texto, cajas, un icono y un grupo",
       kanban: "Un tablero de columnas y notas adhesivas",
       whiteboard:

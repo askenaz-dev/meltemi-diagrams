@@ -25,6 +25,7 @@ canvas, animated, and exported for documents, slides, the web and video.
 | Syntax, flow diagrams, placement and styles               | [grammar](language/grammar-0.2.md)                                   |
 | Free compositions                                         | [free](language/free.md)                                             |
 | Sequence diagrams and scenarios                           | [sequence](language/sequence.md)                                     |
+| Gantt charts: tasks scheduled on a calendar               | [gantt](language/gantt.md)                                           |
 | Models and C4 views                                       | [C4](language/c4.md)                                                 |
 | Layout, ports, constraints and checks                     | [layout](language/layout.md)                                         |
 | Themes, classes and presets                               | [styles](language/styles.md)                                         |

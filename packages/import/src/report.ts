@@ -10,7 +10,7 @@ export type ImportFormat = "mermaid" | "plantuml" | "markdown";
 export type SourceFormat = "mermaid" | "plantuml";
 export type ImportStatus = "complete" | "partial" | "failed";
 export type ConstructStatus = "mapped" | "approximated" | "dropped";
-export type ImportedType = "flow" | "free" | "sequence" | "c4";
+export type ImportedType = "flow" | "free" | "sequence" | "c4" | "gantt";
 
 /** Stable finding codes, documented in docs/language/diagnostics.md. */
 export const IMPORT_CODES = [

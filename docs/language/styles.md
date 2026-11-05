@@ -179,6 +179,11 @@ diagram checkout: flow {
   refuse it, since their kind decides their drawing.
 - `line dotted` draws round dots spaced by the line's width; `-->`, `---` and `line dashed` draw
   dashes.
+- A gantt chart's tasks, milestones, markers and sections take `fill`, `stroke`, `width`, `line` and
+  `color`, a task also `radius`, and `rule relation { }` styles its arrows
+  ([gantt.md](gantt.md#styles-classes-and-links)). Its bars, diamonds and lines have a fixed shape:
+  `shape`, `rotation`, `iconPosition`, `labelPosition`, `iconSize`, `routing` and the free-only
+  properties are `prop.invalid-value` there, and the message names gantt charts.
 
 ### Arrow heads
 
@@ -300,7 +305,8 @@ compilation, which is where the whole theme chain is known; the class is then ig
 
 `rule <kind> { <properties> }` styles every element of a kind (`node`, `decision`, `data`, `group`,
 `note`, `tag`; in free diagrams `box`, `text`, `icon`, `image`, `note`, `sticky`, `line`, `pen` and
-`group`) or every relation (`relation`). `rule line` and `rule pen` take heads too:
+`group`; in gantt charts `task`, `milestone`, `marker` and `section`) or every relation
+(`relation`). `rule line` and `rule pen` take heads too:
 `rule pen { arrowhead triangle }` ends every pen in a triangle. `rule line { line dashed }` reads
 oddly but is right: the kind, then the property. Rules are written in diagrams and in theme
 blocks, where they reach every diagram that uses the theme; a project-wide rule therefore lives in

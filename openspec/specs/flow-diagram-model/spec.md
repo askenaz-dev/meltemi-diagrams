@@ -2,7 +2,9 @@
 
 ## Purpose
 Compilation of `flow` diagrams into the typed model: elements, relations, properties, placement, styles, animations, the source map and profile gating.
+
 ## Requirements
+
 ### Requirement: Compile a flow diagram
 `compile(text)` SHALL return a `Compilation` holding the CST, the diagnostics, and a `Document` with one entry per top-level block. A `diagram <id>: flow` block SHALL produce a `FlowDiagram` with its elements and relations in source order. Compilation SHALL be a pure function of the text: it MUST NOT modify the source and MUST NOT throw.
 
@@ -183,7 +185,7 @@ Every element, relation, placement, style and animate entry in the model SHALL c
 - **THEN** the identifier range of `B` covers that mention on line 2
 
 ### Requirement: Profile gating
-`flow`, `free`, `sequence` and `c4` diagrams SHALL compile, and `model` blocks SHALL compile. A type outside the four profiles SHALL produce `profile.unknown`. `story` and `export` blocks SHALL still be parsed and reported as `block.unsupported`. Other diagrams in the same file SHALL still compile.
+`flow`, `free`, `sequence`, `c4` and `gantt` diagrams SHALL compile, and `model` blocks SHALL compile. A type outside the five profiles SHALL produce `profile.unknown`. `story` and `export` blocks SHALL still be parsed and reported as `block.unsupported`. Other diagrams in the same file SHALL still compile.
 
 #### Scenario: Unsupported profile beside a flow diagram
 - **WHEN** a file contains `story purchase for checkout { … }` followed by `diagram checkout: flow { ... }`
@@ -191,7 +193,11 @@ Every element, relation, placement, style and animate entry in the model SHALL c
 
 #### Scenario: Unknown profile
 - **WHEN** a file contains `diagram x: mindmap { }`
-- **THEN** `profile.unknown` is reported on `mindmap` listing `flow, sequence, c4, free`
+- **THEN** `profile.unknown` is reported on `mindmap` listing `flow, sequence, c4, free, gantt`
+
+#### Scenario: A gantt chart beside a flow diagram
+- **WHEN** a file declares `diagram plan: gantt { task a from 2026-06-01 for 2d }` and a flow diagram
+- **THEN** both compile without diagnostics and `plan` has type `gantt`
 
 ### Requirement: Relation assumptions
 Relation blocks of flow, free, sequence and C4 diagrams, and relations of models, SHALL accept
@@ -226,4 +232,3 @@ In flow and free diagrams a note declaration MAY end with `on <element>`: `note 
 #### Scenario: Another word after the text
 - **WHEN** a diagram declares `note n "Text" at api`
 - **THEN** the declaration reports the value-after error naming the form `note <id> "Text" [on <element>]`
-

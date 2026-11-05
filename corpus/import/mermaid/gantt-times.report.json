@@ -1,0 +1,25 @@
+{
+  "status": "complete",
+  "format": "mermaid",
+  "diagrams": [
+    {
+      "id": "release_day",
+      "type": "gantt",
+      "model": null,
+      "kind": "gantt",
+      "lines": [
+        1,
+        18
+      ]
+    }
+  ],
+  "findings": [],
+  "coverage": [
+    {
+      "diagram": "release_day",
+      "mapped": 29,
+      "approximated": 0,
+      "dropped": 0
+    }
+  ]
+}

@@ -591,6 +591,63 @@ story t for s {
   });
 });
 
+/**
+ * The scenarios of the `gantt-editor-tools` "Gantt language services" requirement, on the owner's
+ * chart; the rest of the services of a chart are in `gantt-services.test.ts`.
+ */
+describe("gantt language services", () => {
+  const owners = readFileSync(join(REPO_ROOT, "corpus/valid/gantt/roadmap.meltemi"), "utf8");
+
+  it("completes a predecessor: the tasks, and no section id", () => {
+    const { analysis, offset } = at(
+      owners.replace('task flu0 "Propuesta', 'task tec3 "Demo" after |\n    task flu0 "Propuesta'),
+    );
+    const offered = completions(analysis, offset).map((i) => i.label);
+    expect(offered).toEqual([
+      "tec0",
+      "tec1",
+      "tec2",
+      "flu0",
+      "flu1",
+      "flu2",
+      "flu3",
+      "sdlc0",
+      "sdlc1",
+      "sdlc2",
+    ]);
+    for (const section of ["tecnologia", "nuevo_flujo_genai_hub", "i_d"]) {
+      expect(offered).not.toContain(section);
+    }
+  });
+
+  it("fixes a relation: the statement goes and flu3 reads `after flu2, tec2 for 10d`", () => {
+    const text = owners.replace("  section nuevo_flujo", "  tec2 -> flu3\n\n  section nuevo_flujo");
+    const analysis = analyzeDocument({ text });
+    const diagnostic = analysis.diagnostics.find((d) => d.code === "gantt.relation")!;
+    const offset = diagnostic.range.start.offset;
+    expect(text.slice(offset, diagnostic.range.end.offset)).toBe("tec2 -> flu3");
+    const fix = codeActions(analysis, { start: offset, end: offset }).find(
+      (a) => a.diagnostic === diagnostic,
+    )!;
+    expect(fix.title).toBe("Write `after tec2` on `flu3` and remove the relation");
+    const after = applyTextEdits(text, fix.edits);
+    expect(after).not.toContain("tec2 -> flu3");
+    expect(after).toContain(
+      '    task flu3 "Marcha Blanca primeros casos de uso" after flu2, tec2 for 10d\n',
+    );
+    expect(analyzeDocument({ text: after }).diagnostics.map((d) => d.code)).not.toContain(
+      "gantt.relation",
+    );
+  });
+
+  it("says Saturday, excluded of a weekend date", () => {
+    const { analysis, offset } = at(
+      'diagram plan: gantt {\n  exclude weekends\n  task a "A" from |2026-06-06 for 1d\n}\n',
+    );
+    expect(hover(analysis, offset)!.markdown).toBe("**date** `2026-06-06` — Saturday, excluded");
+  });
+});
+
 describe("whiteboard quick fixes", () => {
   /** The fixes offered for the first diagnostic with `code`, and the text each one leaves. */
   const fixesFor = (text: string, code: string) => {

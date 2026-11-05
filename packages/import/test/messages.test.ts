@@ -69,6 +69,16 @@ describe("the import catalog", () => {
       "`b` is not an element of the diagram (boundaries that are not drawn cannot be related); the relation is not imported.",
     );
     expect(en.c4.nested("system")).toBe("A system inside a boundary is drawn at the top level.");
+    expect(en.gantt.schedule("k1", "2026-06-06", "2026-06-08", "2026-06-08", "2026-06-09")).toBe(
+      "Mermaid draws `k1` from 2026-06-06 to 2026-06-08; here it runs from 2026-06-08 to 2026-06-09.",
+    );
+    expect(en.gantt.axisDirective(["%L"])).toBe(
+      "`%L` has no equivalent in an axis format and is dropped.",
+    );
+    expect(en.gantt.axisDirective(["%L", "%Z"])).toBe(
+      "`%L` and `%Z` have no equivalent in an axis format and are dropped.",
+    );
+    expect(en.mermaid.supportedHint).toContain("block-beta and gantt.");
   });
 
   it("counts and names shapes in Spanish", () => {
@@ -87,6 +97,24 @@ describe("the import catalog", () => {
     );
     expect(es.preprocessor.arguments("$p", 1)).toBe("`$p` admite 1 argumento.");
     expect(es.preprocessor.arguments("$p", 2)).toBe("`$p` admite 2 argumentos.");
+  });
+
+  it("writes the gantt findings in Spanish with the words of the glossary", () => {
+    expect(es.gantt.schedule("k1", "2026-06-06", "2026-06-08", "2026-06-08", "2026-06-09")).toBe(
+      "Mermaid dibuja `k1` del 2026-06-06 al 2026-06-08; aquí va del 2026-06-08 al 2026-06-09.",
+    );
+    expect(es.gantt.axisDirective(["%L"])).toBe(
+      "`%L` no tiene equivalente en un formato de eje y se descarta.",
+    );
+    expect(es.gantt.axisDirective(["%L", "%Z"])).toBe(
+      "`%L` y `%Z` no tienen equivalente en un formato de eje y se descartan.",
+    );
+    expect(es.gantt.unknownTask("after", "build")).toBe(
+      "`build` no es una tarea del diagrama; se quita de `after`.",
+    );
+    expect(es.gantt.markerStatus).toContain("marca");
+    expect(es.gantt.milestoneDuration).toContain("hito");
+    expect(es.mermaid.supportedHint).toContain("`block-beta` y `gantt`.");
   });
 });
 
@@ -158,6 +186,30 @@ describe("findings in the interface language", () => {
     ["sequence", "sequenceDiagram\n  A-xB: hi\n  Note left of A,B: x\n  autonumber 1 2\n  else"],
     ["architecture", "architecture-beta\n  service s(logos:aws)[S]\n  junction j\n  s:R -- L:x"],
     ["block", 'block-beta\n  a[\\hex/]\n  b<["arrow"]>(left)\n  class zz c\n  end'],
+    [
+      "gantt",
+      [
+        "gantt",
+        "  dateFormat YYYY-MM-DD",
+        "  axisFormat %L",
+        "  tickInterval soon",
+        "  todayMarker stroke:red",
+        "  excludes weekends holidays",
+        "  includes saturday",
+        "  Dated :a, 2026-06-06, 2d",
+        "  Bad :b, 2026-13-45, 1d",
+        "  Lost :c, after zz, 2d",
+        "  Long :d, 2026-06-01, soon",
+        "  Month :e, 2026-06-01, 1M",
+        "  Marker :vert, done, f, 2026-06-02, 1d",
+        "  Ms :g, 2026-06-01, 500ms",
+        "  Loop one :h, after i, 1d",
+        "  Loop two :i, after h, 1d",
+        "  Reversed :j, 2026-06-10, 2026-06-01",
+        '  click a call f("a")',
+        "  garbage line",
+      ].join("\n"),
+    ],
     ["c4", 'C4Container\n  Container(c, "C")\n  BiRel(c, d)\n  Container_Ext(d, "D")\n  }'],
     ["description", "@startuml\ncomponent A <<x>>\nA -left-> B\nusecase U\n}\n@enduml"],
     ["plantuml sequence", "@startuml\nparticipant A #red\nA -> B\nnote across : x\nend\n@enduml"],
@@ -167,7 +219,7 @@ describe("findings in the interface language", () => {
     ["unsupported", "@startmindmap\n* a\n@endmindmap"],
     ["markdown", "# Doc\n\n```mermaid\nflowchart LR\n  a --> b\n  a ?? b\n```\n"],
   ])("keeps every fact of the %s findings and changes only their words", (_, source) => {
-    const result = inBoth(source, { fileName: "sheet" });
+    const result = inBoth(source, { fileName: "sheet", today: "2026-10-29" });
     expect(result.en.findings.length).toBeGreaterThan(0);
     expect(result.es.status).toBe(result.en.status);
     expect(result.es.text).toBe(result.en.text);

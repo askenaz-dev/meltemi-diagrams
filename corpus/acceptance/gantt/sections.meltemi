@@ -1,0 +1,32 @@
+language "0.2"
+
+// Sections and what stands outside them: tasks before the first section, sections of tasks and
+// milestones, a section holding only a milestone, and markers that mark a day across the chart.
+diagram sections: gantt {
+  title "Sections and rows"
+  axisFormat "%d %b"
+  exclude weekends
+  today 2026-06-17
+
+  task prepare "Prepare the plan" from 2026-06-01 for 3d done
+  milestone approved "Plan approved" after prepare done
+
+  section design "Design" {
+    task wireframes "Wireframes" after approved for 4d done
+    task visuals "Visual design" after wireframes for 6d active
+    milestone designed "Design complete" after visuals
+  }
+
+  section build "Build" {
+    task platform "Platform" after designed for 10d critical
+    task features "Features" after designed for 12d
+    task polish "Polish" after platform, features for 3d
+  }
+
+  section launch "Launch" {
+    milestone live "Go live" after polish critical
+  }
+
+  marker freeze "Feature freeze" at 2026-07-06
+  marker board "Board review" at 2026-06-24
+}

@@ -44,14 +44,14 @@ Los informa `compile()` de `@meltemi/diagrams-model`.
 | Código                         | Gravedad | Plantilla del mensaje                                                                                           |
 | ------------------------------ | -------- | --------------------------------------------------------------------------------------------------------------- |
 | `language.unsupported-version` | error    | La versión del lenguaje "`<v>`" no es compatible; este compilador implementa la versión 0.2.                    |
-| `profile.unknown`              | error    | Tipo de diagrama desconocido `<type>`; se esperaba uno de estos: flow, sequence, c4, free.                      |
+| `profile.unknown`              | error    | Tipo de diagrama desconocido `<type>`; se esperaba uno de estos: flow, sequence, c4, free, gantt.               |
 | `theme.unknown-base`           | error    | El tema `<id>` extiende \"<name>\", que no es un tema integrado ni está definido en este archivo (o importado). |
 | `theme.cycle`                  | error    | El tema `<id>` hereda de sí mismo a través de `extends`.                                                        |
 
 ## Referencias, propiedades y colocación
 
-Los informa `compile()` para los diagramas `flow`, `free`, `sequence` y `c4`, los bloques `model` y
-las historias. Un diagrama con algún error queda fuera del JSON; los demás diagramas del archivo se
+Los informa `compile()` para los diagramas `flow`, `free`, `sequence`, `c4` y `gantt`, los bloques
+`model` y las historias. Un diagrama con algún error queda fuera del JSON; los demás diagramas del archivo se
 compilan igualmente.
 
 | Código                     | Gravedad | Plantilla del mensaje                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -92,6 +92,44 @@ compilan igualmente.
 | `placement.duplicate`      | error    | `<target>` ya tiene una instrucción `<statement>`. (relacionado: la primera)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `placement.unknown-port`   | error    | `<element>` no tiene ningún puerto `<name>`. (pista: los puertos con nombre del elemento y los puertos cardinales)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
+### Diagramas de Gantt
+
+Los informa `compile()` para los diagramas `gantt` ([gantt.md](gantt.md)). Sus fechas, duraciones,
+cláusulas y calendarios se informan con los códigos de arriba, y la programación tiene códigos
+propios; cada mensaje nombra la forma de la instrucción de la que trata.
+
+| Código               | Gravedad | Plantilla del mensaje                                                                                                                               |
+| -------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `gantt.unscheduled`  | error    | `<id>` no tiene inicio ni una tarea anterior a la que seguir. (pista: escribe `from <date>`, o pon la tarea después de otra)                        |
+| `gantt.schedule`     | error    | `<id>` termina el `<end>`, antes de empezar el `<start>`. (también: termina cuando empieza; el calendario no le deja tiempo hábil)                  |
+| `gantt.cycle`        | error    | `<a>` y `<b>` se esperan entre sí; una tarea no puede depender de otra que depende de ella. (en cada referencia del ciclo; relacionadas: las demás) |
+| `gantt.relation`     | error    | Un diagrama de Gantt no tiene relaciones; las dependencias se escriben con `after`. (pista: `after a` en `b`; una corrección rápida la escribe)     |
+| `gantt.excluded-day` | warning  | Sábado 2026-06-06 está excluido; empieza el lunes 2026-06-08. (también: termina el último día hábil anterior; ningún día hábil lo sigue)            |
+
+Una tarea que no se puede fechar, y las que la esperan, no tienen fechas y no se dibujan; solo se
+informa la causa. Los demás códigos dicen, en un diagrama de Gantt:
+
+- `prop.invalid-value`: una fecha que no nombra ningún día (`2026-02-30`, una hora superior a 23),
+  una fecha escrita como cadena o en otra forma, una duración con otra unidad, que no es mayor que 0
+  o que dura más de un siglo, una cláusula sin su valor, un id igual a `from`, `after`, `for`, `to`,
+  `until`, `at`, `done`, `active` o `critical`, una sección o una marca nombrada por `after` o
+  `until`, una marca sin `at` ni `after`, un elemento de `exclude` que no es `weekends`, un día de
+  la semana ni una fecha (o una lista que excluye todos los días de la semana), una fecha de
+  `include` que ya es hábil, una directiva de `axisFormat` que no existe, un `ticks` que no es un
+  número entero con una unidad, un `dayWidth` fuera de 1 a 100 000, y `shape`, `rotation`,
+  `iconPosition`, `labelPosition`, `iconSize` o `routing` en un estilo.
+- `prop.unknown`: una instrucción de otro perfil (`participant`, `node`, `place`…), `id["Label"]`,
+  una sección dentro de una sección y una palabra que no es cláusula ni estado de su instrucción; la
+  pista enumera las que acepta.
+- `prop.duplicate`: una cláusula o un estado escritos dos veces, dos cláusulas de final (`for`, `to`,
+  `until`), `done` con `active`, una marca con `at` y `after`, y una instrucción del diagrama escrita
+  dos veces.
+- `ref.unknown-element`: un id de `after` o `until` que no es una tarea ni un hito, con los ids
+  parecidos como candidatos.
+- `animate.invalid-target` y `story.invalid-target`: `flow`, `trace` y el `trace` de una historia en
+  una tarea o un hito sin flechas de dependencia, o en una sección o una marca; el `draw` de una
+  historia en cualquier cosa que no sea una tarea.
+
 ## Disposición y exportación
 
 Los informan `layoutDiagram()` de `@meltemi/diagrams-layout` y `meltemi-diagrams export`, no `compile()`. Los
@@ -126,6 +164,7 @@ describen en [layout.md](layout.md).
 | `layout.unknown-theme`          | warning  | Tema desconocido "`<name>`"; se dibuja con technical.light. (pista: los ocho temas integrados y los temas del archivo)                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `layout.gap-floor`              | warning  | El espacio antes de (o después de) `<participant>` es `<applied>` aquí, no `<written>`: las cabeceras y las etiquetas entre `<left>` y `<right>` necesitan el lugar. (en un `gap` negativo de un diagrama de secuencia que el mínimo de las columnas no dejó dibujar: las cabeceras, la palabra más larga de una etiqueta o las marcas de un mensaje; en el de `before` cuando se escriben los dos lados)                                                                                                                                                                                     |
 | `layout.too-large`              | warning  | El contenido mide `<w>` × `<h>` px; una diapositiva mide 1920 × 1080 px. (también: más de 1200 px de ancho con `preset document`, más grande que un `canvas`; pista: dividir en vistas y escribir `preset board` para una pizarra, en lugar del `canvas` si hay uno escrito; nunca con `preset board`)                                                                                                                                                                                                                                                                                        |
+| `layout.ticks-crowded`          | warning  | Las etiquetas de `ticks <n><unit>` se superpondrían; se etiqueta una de cada `<k>` divisiones. (en la instrucción `ticks` de un diagrama de Gantt; pista: un intervalo mayor, un diagrama más ancho con `dayWidth`, o quitar `ticks`)                                                                                                                                                                                                                                                                                                                                                         |
 | `export.no-diagram`             | error    | No hay ningún diagrama que exportar. (pista: una historia con `--story`, los perfiles del archivo con `--profiles`, o los tipos de diagrama que se dibujan)                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ## Formato
@@ -270,3 +309,10 @@ son diagnósticos del código fuente: el documento no cambia y el motivo explica
 
 Un lote (`planEdit` con `{ kind: "batch", operations }`) se rechaza entero con el código de la
 primera operación rechazada y su `operationIndex`.
+
+En un diagrama de Gantt ([gantt.md](gantt.md#edición)), `edit.unsafe-target` es un destino que no es
+una tarea, un hito ni una marca, o un id que no está en el diagrama, y `edit.invalid-value`, una fecha
+o una duración mal formada, un final en un hito o una marca, una sección dentro de una sección, un
+id en uso, y un resultado con un error nuevo, como un ciclo. Un rechazo que viene de los diagnósticos
+del modelo lleva el código del diagnóstico en el `diagnostic` del rechazo (`gantt.cycle` para un
+ciclo); las operaciones que colocan o unen cajas son `edit.invalid-value` en un diagrama de Gantt.

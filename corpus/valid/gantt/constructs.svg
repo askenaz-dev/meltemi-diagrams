@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="446" viewBox="0 0 1200 446" font-family="&quot;IBM Plex Sans&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Product launch</title>
+  <desc>A plan with every construct of a gantt chart</desc>
+  <rect x="0" y="0" width="1200" height="446" fill="#ffffff"/>
+  <g data-id="axis" data-role="axis">
+    <rect x="222.54" y="88" width="33.02" height="312" rx="0" fill="#f5f6f4" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="338.1" y="88" width="33.02" height="312" rx="0" fill="#f5f6f4" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="437.14" y="88" width="49.52" height="312" rx="0" fill="#f5f6f4" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="569.21" y="88" width="33.02" height="312" rx="0" fill="#f5f6f4" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="684.76" y="88" width="33.02" height="312" rx="0" fill="#f5f6f4" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="800.32" y="88" width="33.02" height="312" rx="0" fill="#f5f6f4" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="915.87" y="88" width="33.02" height="312" rx="0" fill="#f5f6f4" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="1031.43" y="88" width="33.02" height="312" rx="0" fill="#f5f6f4" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="1146.98" y="88" width="33.02" height="312" rx="0" fill="#f5f6f4" stroke="none" stroke-width="0" opacity="0.6"/>
+    <polyline points="140,88 140,400" fill="none" stroke="#c7cdd2" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="255.56,88 255.56,400" fill="none" stroke="#c7cdd2" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="371.11,88 371.11,400" fill="none" stroke="#c7cdd2" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="486.67,88 486.67,400" fill="none" stroke="#c7cdd2" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="602.22,88 602.22,400" fill="none" stroke="#c7cdd2" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="717.78,88 717.78,400" fill="none" stroke="#c7cdd2" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="833.33,88 833.33,400" fill="none" stroke="#c7cdd2" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="948.89,88 948.89,400" fill="none" stroke="#c7cdd2" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="1064.44,88 1064.44,400" fill="none" stroke="#c7cdd2" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="1180,88 1180,400" fill="none" stroke="#c7cdd2" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="20,400 1180,400" fill="none" stroke="#c7cdd2" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <text x="140" y="416.84" text-anchor="middle" font-size="11" font-weight="400" fill="#5b6570">01 Jun</text>
+    <text x="255.56" y="416.84" text-anchor="middle" font-size="11" font-weight="400" fill="#5b6570">08 Jun</text>
+    <text x="371.11" y="416.84" text-anchor="middle" font-size="11" font-weight="400" fill="#5b6570">15 Jun</text>
+    <text x="486.67" y="416.84" text-anchor="middle" font-size="11" font-weight="400" fill="#5b6570">22 Jun</text>
+    <text x="602.22" y="416.84" text-anchor="middle" font-size="11" font-weight="400" fill="#5b6570">29 Jun</text>
+    <text x="717.78" y="416.84" text-anchor="middle" font-size="11" font-weight="400" fill="#5b6570">06 Jul</text>
+    <text x="833.33" y="416.84" text-anchor="middle" font-size="11" font-weight="400" fill="#5b6570">13 Jul</text>
+    <text x="948.89" y="416.84" text-anchor="middle" font-size="11" font-weight="400" fill="#5b6570">20 Jul</text>
+    <text x="1064.44" y="416.84" text-anchor="middle" font-size="11" font-weight="400" fill="#5b6570">27 Jul</text>
+    <text x="1180" y="416.84" text-anchor="middle" font-size="11" font-weight="400" fill="#5b6570">03 Aug</text>
+    <polyline points="536.19,86 536.19,400" fill="none" stroke="#A33A2B" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <text x="536.19" y="80.84" text-anchor="middle" font-size="11" font-weight="600" fill="#A33A2B">Today</text>
+  </g>
+  <g data-id="freeze" data-role="element">
+    <polyline points="668.25,42 668.25,400" fill="none" stroke="#1b1f23" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="4 4" stroke-dashoffset="0"/>
+    <rect x="625.25" y="24" width="86" height="18" rx="9" fill="#1b1f23" stroke="#1b1f23" stroke-width="1"/>
+    <text x="668.25" y="36.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#ffffff">Code freeze</text>
+  </g>
+  <g data-id="board" data-role="element">
+    <polyline points="618.73,64 618.73,400" fill="none" stroke="#1b1f23" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" stroke-dasharray="4 4" stroke-dashoffset="0"/>
+    <rect x="572.73" y="46" width="92" height="18" rx="9" fill="#1b1f23" stroke="#1b1f23" stroke-width="1"/>
+    <text x="618.73" y="58.64" text-anchor="middle" font-size="10.5" font-weight="500" font-family="ui-monospace, &quot;Cascadia Mono&quot;, Consolas, &quot;Liberation Mono&quot;, Menlo, monospace" fill="#ffffff">Board review</text>
+  </g>
+  <g data-id="discovery" data-role="element">
+    <rect x="20" y="88" width="1160" height="104" rx="0" fill="#f5f6f4" stroke="none" stroke-width="0" opacity="0.6"/>
+    <text x="36" y="144.19" text-anchor="start" font-size="12" font-weight="600" fill="#1b1f23">Discovery</text>
+    <g data-id="research" data-role="element">
+      <rect x="140" y="96" width="82.54" height="24" rx="6" fill="#5b6570" stroke="#5b6570" stroke-width="1"/>
+      <text x="236.54" y="111.84" text-anchor="start" font-size="11" font-weight="500" fill="#1b1f23">User research</text>
+    </g>
+    <g data-id="interviews" data-role="element">
+      <rect x="173.02" y="128" width="49.52" height="24" rx="6" fill="#5b6570" stroke="#5b6570" stroke-width="1"/>
+      <text x="236.54" y="143.84" text-anchor="start" font-size="11" font-weight="500" fill="#1b1f23">Interviews</text>
+    </g>
+    <g data-id="synthesis" data-role="element">
+      <rect x="255.56" y="160" width="49.52" height="24" rx="6" fill="#5b6570" stroke="#5b6570" stroke-width="1"/>
+      <text x="319.08" y="175.84" text-anchor="start" font-size="11" font-weight="500" fill="#1b1f23">Synthesis</text>
+    </g>
+  </g>
+  <g data-id="build" data-role="element">
+    <polyline points="20,192 1180,192" fill="none" stroke="#c7cdd2" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <text x="36" y="248.19" text-anchor="start" font-size="12" font-weight="600" fill="#1b1f23">Build</text>
+    <g data-id="design" data-role="element">
+      <rect x="305.08" y="200" width="132.06" height="24" rx="6" fill="#2E5E8C" stroke="#2E5E8C" stroke-width="1"/>
+      <text x="371.11" y="215.84" text-anchor="middle" font-size="11" font-weight="500" fill="#ffffff">Design</text>
+    </g>
+    <g data-id="backend" data-role="element">
+      <rect x="486.67" y="200" width="165.08" height="24" rx="6" fill="#A33A2B" stroke="#A33A2B" stroke-width="2"/>
+      <text x="569.21" y="215.84" text-anchor="middle" font-size="11" font-weight="500" fill="#ffffff">Backend</text>
+    </g>
+    <g data-id="frontend" data-role="element">
+      <rect x="486.67" y="232" width="148.57" height="24" rx="6" fill="#1D4ED8" stroke="#A33A2B" stroke-width="1"/>
+      <text x="560.95" y="247.84" text-anchor="middle" font-size="11" font-weight="500" fill="#ffffff">Frontend</text>
+    </g>
+    <g data-id="docs" data-role="element">
+      <a href="https://example.com/docs">
+        <rect x="486.67" y="264" width="82.54" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+        <text x="480.67" y="279.84" text-anchor="end" font-size="11" font-weight="500" fill="#1b1f23">Documentation</text>
+      </a>
+    </g>
+    <g data-id="review" data-role="element">
+      <rect x="717.78" y="200" width="49.52" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+      <text x="773.3" y="215.84" text-anchor="start" font-size="11" font-weight="500" fill="#1b1f23">Release review</text>
+    </g>
+  </g>
+  <g data-id="go" data-role="element">
+    <rect x="20" y="296" width="1160" height="104" rx="0" fill="#f5f6f4" stroke="none" stroke-width="0" opacity="0.6"/>
+    <polyline points="20,296 1180,296" fill="none" stroke="#c7cdd2" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <text x="36" y="352.19" text-anchor="start" font-size="12" font-weight="600" fill="#1b1f23">Go to market</text>
+    <g data-id="qa" data-role="element">
+      <rect x="651.75" y="304" width="198.1" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+      <text x="750.79" y="319.84" text-anchor="middle" font-size="11" font-weight="500" fill="#ffffff">Quality assurance</text>
+    </g>
+    <g data-id="launch" data-role="element">
+      <path d="M849.84 338.4 L859.44 348 L849.84 357.6 L840.24 348 Z" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+      <text x="873.44" y="351.84" text-anchor="start" font-size="11" font-weight="500" fill="#1b1f23">Launch</text>
+    </g>
+    <g data-id="support" data-role="element">
+      <rect x="849.84" y="368" width="231.11" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+      <text x="965.4" y="383.84" text-anchor="middle" font-size="11" font-weight="500" fill="#ffffff">Support rota</text>
+    </g>
+  </g>
+  <g data-id="research-&gt;synthesis#1" data-role="relation">
+    <polyline points="222.54,108 230.54,108 230.54,172 255.56,172" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="248.56,175.06 255.56,172 248.56,168.94" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+  <g data-id="interviews-&gt;synthesis#1" data-role="relation">
+    <polyline points="222.54,140 230.54,140 230.54,172 255.56,172" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="248.56,175.06 255.56,172 248.56,168.94" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+  <g data-id="synthesis-&gt;design#1" data-role="relation">
+    <polyline points="305.08,172 313.08,172 313.08,188 297.08,188 297.08,212 305.08,212" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="298.08,215.06 305.08,212 298.08,208.94" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+  <g data-id="design-&gt;backend#1" data-role="relation">
+    <polyline points="437.14,212 486.67,212" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="479.67,215.06 486.67,212 479.67,208.94" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+  <g data-id="design-&gt;frontend#1" data-role="relation">
+    <polyline points="437.14,212 445.14,212 445.14,244 486.67,244" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="479.67,247.06 486.67,244 479.67,240.94" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+  <g data-id="backend-&gt;qa#1" data-role="relation">
+    <polyline points="651.75,212 659.75,212 659.75,228 643.75,228 643.75,316 651.75,316" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="644.75,319.06 651.75,316 644.75,312.94" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+  <g data-id="frontend-&gt;qa#1" data-role="relation">
+    <polyline points="635.24,244 643.24,244 643.24,316 651.75,316" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="644.75,319.06 651.75,316 644.75,312.94" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+  <g data-id="launch-&gt;support#1" data-role="relation">
+    <polyline points="859.44,348 867.44,348 867.44,364 841.84,364 841.84,380 849.84,380" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="842.84,383.06 849.84,380 842.84,376.94" fill="none" stroke="#5b6570" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+  </g>
+</svg>

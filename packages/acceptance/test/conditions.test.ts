@@ -256,4 +256,33 @@ describe("syntax errors", () => {
       expect(stale || drawnOther, broken.map((m) => m.type).join(",")).toBe(true);
     },
   );
+
+  it("errors/gantt-section.meltemi points both errors at their statements, still completes clause words and keeps the canvas stale", () => {
+    const file = "errors/gantt-section.meltemi";
+    const text = readFileSync(join(ACCEPTANCE_ROOT, file), "utf8");
+    const analysis = sessions.analyze(path(file));
+    const errors = analysis.diagnostics.filter((d) => d.severity === "error");
+    expect(errors.map((d) => d.code)).toEqual(["prop.invalid-value", "syntax.expected-token"]);
+    const lineOf = (needle: string) => text.slice(0, text.indexOf(needle)).split("\n").length;
+    // The date points at its task's line; the brace that never closes names the block it opened.
+    expect(errors[0]!.range.start.line).toBe(lineOf("from 2026-02-30"));
+    expect(errors[1]!.message).toContain(`line ${lineOf("diagram chains")}`);
+    // Inside the broken section, after a task's label, the clause words are still offered.
+    const offset = text.indexOf('task design "Design" ') + 'task design "Design" '.length;
+    const offered = completions(analysis, offset).map((c) => c.label);
+    expect(offered).toEqual(expect.arrayContaining(["after", "from", "for"]));
+    // Every service answers on the broken text, and the canvas keeps the last chart, out of date.
+    for (let at = 0; at < text.length; at += 53) {
+      hover(analysis, at);
+      codeActions(analysis, { start: at, end: at });
+    }
+    semanticTokens(analysis);
+    documentSymbols(analysis);
+    formatDocument(analysis);
+    const session = new CanvasSession();
+    const good = sessions.analyze(path("gantt/chains.meltemi"));
+    expect(session.update(good).some((m) => m.type === "render")).toBe(true);
+    const broken: HostMessage[] = session.update(analysis);
+    expect(broken.some((m) => m.type === "stale" || m.type === "render")).toBe(true);
+  });
 });

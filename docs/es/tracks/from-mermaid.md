@@ -81,6 +81,15 @@ diagram checkout: flow {
 }
 ```
 
+Un `gantt` de Mermaid se importa con sus fechas tal como las dibuja Mermaid. Una hoja de ruta de
+tres secciones y diez tareas, con cadenas `after`, duraciones en días, `excludes weekends` y
+etiquetas con tildes ([el origen](../../../corpus/import/mermaid/gantt-roadmap.mmd)), se importa sin
+ningún hallazgo, con 38 construcciones convertidas, a [esta hoja](../../../corpus/valid/gantt/roadmap.meltemi):
+la primera tarea del 1 al 5 de junio y la última del 10 al 28 de agosto, los fines de semana
+sombreados y las seis cadenas `after` dibujadas como flechas. [Diagramas de
+Gantt](../language/gantt.md#un-ejemplo-completo) recorre sus fechas, y `--merge` conserva los ajustes
+del eje y los estilos que agregues a la hoja.
+
 ### Cómo leer el informe
 
 Cada construcción queda **convertida** (mismo significado, mismo dibujo), **aproximada** (mismo
@@ -133,9 +142,18 @@ la colocación, los estilos y los demás ajustes hechos desde entonces, empareja
 | `block-beta`, `columns n`               | cajas colocadas en una cuadrícula                    | convertido (`blockbeta.columns`)            |
 | `block:id … end`                        | un `group id ""` sin título alrededor de sus bloques | convertido (`blockbeta.block`)              |
 | `a<["text"]>(right)`                    | una caja con `shape arrow`                           | convertido (`blockbeta.arrow`)              |
+| `gantt`, `section name`                 | `section id "name" { … }`                            | convertido (`gantt.section`)                |
+| `Name :id, 2026-06-01, 5d`              | `task id "Name" from 2026-06-01 for 5d`              | convertido (`gantt.task`)                   |
+| `after a b`                             | `after a, b`                                         | convertido (`gantt.task.after`)             |
+| `excludes weekends`                     | `exclude weekends`                                   | convertido (`gantt.exclude`)                |
+| `axisFormat %d %b`                      | `axisFormat "%d %b"`                                 | convertido (`gantt.axisFormat`)             |
+| `crit`, `done`, `active`                | `critical`, `done`, `active`                         | convertido (`gantt.tag`)                    |
+| la etiqueta `milestone`                 | `milestone id "Name" at 2026-06-08`                  | convertido (`gantt.milestone`)              |
+| `click id href "url"`                   | `url "url"` en el bloque de la tarea                 | convertido (`gantt.click.href`)             |
+| `1M`, `1y`                              | `for 30d`, los días que dibuja Mermaid               | aproximado (`gantt.duration.month`)         |
 
-Los diagramas de clases, de estados, de entidad-relación, de Gantt, de sectores y los demás tipos de
-diagrama de Mermaid no se importan (`import.unsupported-diagram`); consulta la página de
+Los diagramas de clases, de estados, de entidad-relación, de sectores y los demás tipos de diagrama
+de Mermaid no se importan (`import.unsupported-diagram`); consulta la página de
 [compatibilidad](../compatibility.md).
 
 ## Primeras cosas que probar

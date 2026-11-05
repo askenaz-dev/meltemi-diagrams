@@ -23,6 +23,9 @@ export type Scope =
   | "flow"
   | "free"
   | "sequence"
+  /** The body of a gantt chart, and the block of one of its sections. */
+  | "gantt"
+  | "section"
   /** The body of a C4 view. */
   | "c4"
   /** The root of a `model` block. */
@@ -96,6 +99,8 @@ export function blockAt(
 
 const OPERATORS: ReadonlySet<string> = new Set(FRAGMENT_OPERATORS);
 const BRANCH_KEYWORDS: ReadonlySet<string> = new Set(Object.values(FRAGMENT_BRANCH_KEYWORDS));
+/** The statements of a gantt chart that stand for a bar, a diamond or a line: their blocks are an element's. */
+const GANTT_BAR_KINDS = ["task", "milestone", "marker"] as const;
 
 /** The scope of the block that encloses `offset`. */
 export function scopeAt(root: SourceFile, offset: number): Scope {
@@ -105,7 +110,11 @@ export function scopeAt(root: SourceFile, offset: number): Scope {
   switch (owner.kind) {
     case "DiagramBlock": {
       const type = isToken(owner.type) ? owner.type.text : "";
-      return type === "flow" || type === "free" || type === "sequence" || type === "c4"
+      return type === "flow" ||
+        type === "free" ||
+        type === "sequence" ||
+        type === "c4" ||
+        type === "gantt"
         ? type
         : "other";
     }
@@ -128,15 +137,26 @@ export function scopeAt(root: SourceFile, offset: number): Scope {
     case "KeywordStatement": {
       const word = owner.keyword.text;
       if (word === "group") return "group";
+      // A gantt section holds tasks, milestones and markers, and the properties of a group.
+      if (word === "section") return "section";
       // A sequence diagram's `return` is a message: its block holds message properties.
       if (word === "return") return "relation";
       if (OPERATORS.has(word)) return "fragment";
       if (word === "scenario") return "scenario";
       if ((ENTITY_KINDS as readonly string[]).includes(word)) return "entity";
       if (
-        ["node", "decision", "data", "note", "tag", "box", "text", "icon", "image"].includes(
-          word,
-        ) ||
+        [
+          "node",
+          "decision",
+          "data",
+          "note",
+          "tag",
+          "box",
+          "text",
+          "icon",
+          "image",
+          ...GANTT_BAR_KINDS,
+        ].includes(word) ||
         (PARTICIPANT_KINDS as readonly string[]).includes(word)
       ) {
         return "element";

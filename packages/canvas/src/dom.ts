@@ -69,6 +69,17 @@ export const ICONS = {
   note: "M3 4h10|M3 7h10|M3 10h7",
   tag: "M3.5 5.5h9a2.5 2.5 0 0 1 0 5h-9a2.5 2.5 0 0 1 0-5z",
   group: "M2 3.5h12v9H2z|M2 6h12",
+  /** A section of a gantt chart: a band of rows with its title in a column at the left. */
+  section: "M2 3.5h12v9H2z|M5.5 3.5v9|M7.5 6.5h4|M7.5 9.5h3",
+  /** A task: a bar, and the one that follows it. */
+  task: "M2.5 4h7a1.5 1.5 0 0 1 0 3h-7a1.5 1.5 0 0 1 0-3z|M6.5 9h7a1.5 1.5 0 0 1 0 3h-7a1.5 1.5 0 0 1 0-3z",
+  /** A milestone: a diamond on its row. */
+  milestone: "M8 3l5 5-5 5-5-5z",
+  /** A marker: the pill of its label over the dashed line it draws across the rows. */
+  marker:
+    "M4.5 2.5h7a1 1 0 0 1 1 1v1.5a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-1.5a1 1 0 0 1 1-1z|M8 7.5v1|M8 10v1|M8 12.5v1",
+  /** A date field's button: a month page with its two rings, which opens the date picker. */
+  calendar: "M2.5 4.5h11v9h-11z|M2.5 7.5h11|M5.5 2.5v3|M10.5 2.5v3",
   plainContainer: "M2.5 3.5h11v9h-11z|M5 6.5h6v3H5z",
   /** A column: a tall frame with a title band and two cards one under the other. */
   column:

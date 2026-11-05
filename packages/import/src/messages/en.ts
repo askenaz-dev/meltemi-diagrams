@@ -1,3 +1,5 @@
+import { list } from "@meltemi/diagrams-i18n";
+
 /** Mermaid's shape names that read better as words than with their underscores removed. */
 const SHAPE_NAMES: Readonly<Record<string, string>> = {
   doublecircle: "double circle",
@@ -69,6 +71,8 @@ export const en = {
   /** Findings of the Mermaid front-end shared by its diagram types. */
   mermaid: {
     config: "Mermaid configuration (themes, layout options) is not imported.",
+    /** An option of the `config:` block that is not imported, by its path: `gantt.barGap`. */
+    configKey: (path: string) => `The configuration option \`${path}\` is not imported.`,
     frontMatterField: (field: string) => `The front matter field \`${field}\` is not imported.`,
     frontMatterLine: "This front matter line is not imported.",
     frontMatterNotClosed: "The front matter is not closed with `---`.",
@@ -78,7 +82,7 @@ export const en = {
     unsupported: (keyword: string) => `Mermaid \`${keyword}\` diagrams are not imported.`,
     notADiagramType: (word: string) => `\`${word}\` is not a Mermaid diagram type.`,
     supportedHint:
-      "Supported: flowchart, graph, sequenceDiagram, C4Context, C4Container, C4Component, C4Dynamic, architecture-beta and block-beta.",
+      "Supported: flowchart, graph, sequenceDiagram, C4Context, C4Container, C4Component, C4Dynamic, architecture-beta, block-beta and gantt.",
     c4Description: "C4 views have no description; `accDescr` is not imported.",
     labelHtml: "HTML formatting in a label is kept as plain text.",
     labelMarkdown: "Markdown emphasis in a label is kept as plain text.",
@@ -149,6 +153,71 @@ export const en = {
     undefinedClass: (source: string, name: string) =>
       `\`${source}\` or \`${name}\` is not defined.`,
     notABlock: (source: string) => `\`${source}\` is not a block.`,
+  },
+  /** Findings of Mermaid gantt charts. */
+  gantt: {
+    zone: "Meltemi dates have no time zone; the zone is dropped and the time is kept as written.",
+    timestamp: "Meltemi dates have no time zone; Unix timestamps are read as UTC.",
+    fraction: "Meltemi dates are exact to the second; fractions of a second are dropped.",
+    /** A date format without a year: what it leaves out comes from the import's day. */
+    noYear: (day: string) =>
+      `The date format has no year; what it leaves out of a date comes from the import's day, ${day}.`,
+    /** Axis directives with no equivalent, as written (`%L`). */
+    axisDirective: (directives: readonly string[]) =>
+      `${list(
+        "en",
+        directives.map((d) => `\`${d}\``),
+      )} ${directives.length === 1 ? "has" : "have"} no equivalent in an axis format and ${directives.length === 1 ? "is" : "are"} dropped.`,
+    axisEmpty: "Nothing is left of the axis format; the axis uses its default format.",
+    tickMillisecond: "Ticks are at least a second apart; `millisecond` is written as `1s`.",
+    tickInterval: (text: string) =>
+      `\`${text}\` is not a tick interval; write a number and \`millisecond\`, \`second\`, \`minute\`, \`hour\`, \`day\`, \`week\` or \`month\`.`,
+    todayMarker:
+      "The style of the today line is not kept; `today` draws it in the theme's colours.",
+    excludes: (token: string) =>
+      `\`${token}\` is not \`weekends\`, a weekday or a date; it is dropped.`,
+    includes: (token: string) => `\`${token}\` is not a date; it is dropped.`,
+    everyDay:
+      "Every day of the week is excluded, which leaves no day to work; the exclusions are dropped.",
+    click: "Callbacks (`click … call`) are not imported.",
+    clickTask: (id: string) =>
+      `\`${id}\` is not a task of the chart; its \`click\` is not imported.`,
+    clickUrl: (url: string) =>
+      `\`${url}\` is not a link the sheet can hold (http, https, mailto or a relative path); it is dropped.`,
+    /** An id of `after` or `until` that names no task of the chart. */
+    unknownTask: (word: string, id: string) =>
+      `\`${id}\` is not a task of the chart; it is dropped from \`${word}\`.`,
+    /** An id of `after` or `until` that waits for the task in turn: the loop is opened here. */
+    loop: (word: string, id: string) =>
+      `\`${id}\` and this task wait for each other; \`${id}\` is dropped from \`${word}\` to open the loop.`,
+    /** An id of `after` or `until` that names a vertical marker. */
+    markerTask: (word: string, id: string) =>
+      `\`${id}\` is a vertical marker, which a task cannot follow or end at; it is dropped from \`${word}\`.`,
+    date: (text: string, format: string) =>
+      `\`${text}\` is not a date in the format \`${format}\`.`,
+    duration: (text: string) => `\`${text}\` is not a duration; the task lasts one day.`,
+    zeroDuration: (text: string) => `\`${text}\` lasts no time; the task lasts one day.`,
+    endBeforeStart:
+      "The end is not after the start; Mermaid draws nothing, and the task lasts one day.",
+    durationLong: (text: string) =>
+      `\`${text}\` is longer than a chart can span; the task lasts one day.`,
+    durationMilliseconds: (written: string, as: string) =>
+      `\`${written}\` is written as \`${as}\`: durations start at one second.`,
+    durationMonths: (written: string, as: string) =>
+      `\`${written}\` is written as \`${as}\`, the days Mermaid draws for it from its start.`,
+    milestoneDuration:
+      "A milestone after a task is drawn at the end of that task; its duration is not kept.",
+    markerStatus: "A marker has no status; `done`, `active` and `crit` are not kept.",
+    start: (day: string) =>
+      `The task has nothing to start after; it starts on the import's day, ${day}.`,
+    /** A task that Meltemi dates differently: both dates, the end being the last day. */
+    schedule: (id: string, from: string, to: string, hereFrom: string, hereTo: string) =>
+      `Mermaid draws \`${id}\` from ${from} to ${to}; here it runs from ${hereFrom} to ${hereTo}.`,
+    /** A milestone or a marker that Meltemi places on another day. */
+    scheduleAt: (id: string, day: string, hereDay: string) =>
+      `Mermaid draws \`${id}\` on ${day}; here it stands on ${hereDay}.`,
+    scheduleHint:
+      "Meltemi starts tasks on a day that works and counts durations in working days; `include <date>` makes an excluded day work.",
   },
   /** Findings of C4 macros, in Mermaid and C4-PlantUML. */
   c4: {
@@ -358,6 +427,35 @@ export const en = {
     preprocessorEssential: "`import.preprocessor`, essential.",
     unclosedBlock: "An unclosed block is `import.syntax`.",
     elementsKept: "Its elements are kept.",
+    ganttTitle: "A `title` wins over the front matter's `title`, which wins over `accTitle`.",
+    ganttConfig:
+      "In a gantt chart `displayMode`, `config.gantt.displayMode` and `config.gantt.topAxis` are read; every other option is reported.",
+    ganttDateFormat:
+      "Every dayjs token Mermaid documents is read. A time is written only when it is not midnight.",
+    ganttZone:
+      "Meltemi dates have no time zone: the zone is dropped, and a Unix timestamp is read as UTC.",
+    ganttNoYear:
+      "What the format leaves out comes from the import's day (`ImportOptions.today`, the machine's day by default).",
+    ganttAxisFormat: "`%c`, `%x` and `%X` are written in their d3 forms.",
+    ganttWeekStart:
+      "`weekStart sunday`, Mermaid's default, is written when the ticks are in weeks and no `weekday` is.",
+    ganttIncludeNoop: "A date that nothing excludes works already and is not written.",
+    ganttToday: "Mermaid draws the line unless `todayMarker off`.",
+    ganttSection: "Tasks before the first section stay at the chart's top level.",
+    ganttTask: "Without an id a task is `task<n>`; without a start it follows the task before it.",
+    ganttDropAfter: "The task follows the task before it.",
+    ganttExclusiveEnd:
+      "Mermaid's end date is exclusive: `to` is the day before, or the date itself with `inclusiveEndDates`.",
+    ganttWeeks:
+      "Under excluded weekdays a week is written as `7n d`, which is how Mermaid counts it.",
+    ganttRoundedUp: "A fraction of a second is rounded up.",
+    ganttSchedule:
+      "Reported once per task, with both dates. A start on an excluded day is written as the next working day.",
+    ganttStatus: "A task that is both active and done is active, as Mermaid draws it.",
+    ganttMarker: "`marker … after` when it stands where a task ends, `at` otherwise.",
+    ganttClick:
+      "A `click` on something that is no task, and a link that is not http, https, mailto or relative, are dropped too.",
+    ganttDateUnreadable: "`import.syntax`, essential; the task is written without its start.",
   },
 };
 

@@ -3,8 +3,9 @@
 [Español](../es/language/grammar-0.2.md)
 
 This is the reference for the syntax implemented by `@meltemi/diagrams-language` and the `flow`,
-`free`, `sequence` and `c4` vocabularies and `model` blocks validated by `@meltemi/diagrams-model`.
-It follows the proposal of 9 October 2026 and decisions 0001 to 0004 and 0018 to 0020.
+`free`, `sequence`, `c4` and `gantt` vocabularies and `model` blocks validated by
+`@meltemi/diagrams-model`. It follows the proposal of 9 October 2026 and decisions 0001 to 0004,
+0018 to 0020 and 0066.
 Changes to the language follow the [language change policy](policy.md), and the
 [conformance suite](conformance.md) fixes what files mean.
 
@@ -33,6 +34,7 @@ diagram example: flow {
 | String          | `"..."` on one line. Escapes: `\"`, `\\`, `\n`, `\t`. Other escapes are errors.                                                           |
 | Number          | Optional `-`, digits, optional `.digits`, then an optional unit suffix.                                                                   |
 | Unit            | Letters directly after a number (`1200ms`, `1s`) or `%` (`50%`).                                                                          |
+| Date            | Four digits, `-`, two digits, `-`, two digits, then optionally `T` and `hh:mm` or `hh:mm:ss`, no spaces: `2026-06-01T09:30`.              |
 | Relation tokens | `->` (solid or call), `-->` (dashed or reply), the two-way `<->` and `<-->`, and the lines without heads `--` (solid) and `---` (dashed). |
 | Punctuation     | `{ } ( ) [ ] : ; , .`                                                                                                                     |
 | Line break      | `\n` or `\r\n`. A token, because it ends statements.                                                                                      |
@@ -40,6 +42,11 @@ diagram example: flow {
 
 Trivia is attached to the following token, so the tree keeps every character. A run of characters
 that starts no token (for example `=>` or `#`) is one `syntax.unexpected-character` error.
+
+A run of digits that has the form of a date is one date token, kept as written (the formatter never
+changes it); the model checks that it names a day, so `2026-02-30` is `prop.invalid-value`, not a
+syntax error. Any other run lexes as numbers, as before: `2026-6-1` is the numbers `2026`, `-6` and
+`-1`, and `2026-06-01 T09:30` is the date, the identifier `T09`, a colon and the number `30`.
 
 A run of `-` and `>` takes the longest token it starts with: `---`, then `-->`, then `--`, then
 `->`; `-` before a digit starts a number. One dash more is dashed, and the lines drop the head:
@@ -71,7 +78,7 @@ arrow         = "->" | "-->" | "--" | "---" | "<->" | "<-->" ;
 shorthand     = IDENT "[" ( STRING | "(" STRING ")" ) "]" [ block ] ;
 keyword-stmt  = IDENT args [ block { IDENT args block } ] ;   (* chained clauses stay on one line *)
 args          = { arg | "," } ;
-arg           = ref | STRING | NUMBER | tuple | list ;
+arg           = ref | STRING | NUMBER | DATE | tuple | list ;
 tuple         = "(" { arg | "," } ")" ;
 list          = "[" { arg | "," } "]" ;
 ref           = IDENT { "." IDENT } ;
@@ -106,6 +113,7 @@ as an unterminated string, do not produce a second diagnostic.
 | `diagram <id>: sequence { }`     | Compiled and validated ([sequence.md](sequence.md)).        |
 | `diagram <id>: c4 using <m> { }` | Compiled and validated against the model ([c4.md](c4.md)).  |
 | `diagram <id>: free { }`         | Compiled and validated ([free.md](free.md)).                |
+| `diagram <id>: gantt { }`        | Compiled and validated ([gantt.md](gantt.md)).              |
 | `theme <id> { }`                 | Compiled into a theme definition (see Theme blocks).        |
 | `model <id> { }`                 | Compiled ([c4.md](c4.md)).                                  |
 | `story <id> for <diagram> { }`   | Compiled and validated ([stories.md](stories.md)).          |
@@ -311,6 +319,40 @@ the blocks of messages and participants are its own.
 
 The order-checked rules (`sequence.activation`, `sequence.return`, `sequence.lifecycle`) and
 scenario checks (`sequence.scenario`) are listed in [diagnostics.md](diagnostics.md).
+
+## `gantt` vocabulary
+
+A gantt chart schedules tasks on a time axis ([gantt.md](gantt.md)). It shares `style`, `class`,
+`rule`, `animate`, `link` and the diagram properties `theme`, `title`, `description`, `preset` and
+`canvas` with the other profiles; the dates, durations and statements below are its own. It takes
+no `placement`, no `layout` and no relations: a dependency is written `after`, and `a -> b` is
+`gantt.relation`.
+
+| Statement                                   | Form                                                                                                                                 | Notes                                                                                                                               |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `section`                                   | `section <id> ["Label"] { ... }`                                                                                                     | a band of rows; holds `task`, `milestone` and `marker`, never a section; its block also takes `description`, `class`, `link`, `url` |
+| `task`                                      | `task <id> ["Label"] [from <date>] [after <ids>] [for <duration> \| to <date> \| until <ids>] [done \| active] [critical] [{ ... }]` | a bar; the clauses in any order, one end clause; without a start it follows the previous task or milestone                          |
+| `milestone`                                 | `milestone <id> ["Label"] [at <date>] [after <ids>] [done \| active] [critical] [{ ... }]`                                           | a diamond at one instant                                                                                                            |
+| `marker`                                    | `marker <id> ["Label"] (at <date> \| after <ids>) [{ ... }]`                                                                         | a dashed line across the chart, with its label in a pill                                                                            |
+| `exclude`, `include`                        | `exclude weekends, friday, 2026-12-25`, `include 2026-06-06`                                                                         | the calendar: days that do not work, and days that do despite them; durations count working time                                    |
+| `weekStart`                                 | `weekStart sunday`                                                                                                                   | the first day of weekly ticks, `monday` by default                                                                                  |
+| `axisFormat`                                | `axisFormat "%d %b"`                                                                                                                 | a strftime subset: `%a %A %b %B %d %e %H %I %j %m %M %p %q %S %U %V %w %W %y %Y %%`, each with the `-` flag                         |
+| `ticks`                                     | `ticks 1w`                                                                                                                           | the interval of the axis: a whole number and `s`, `min`, `h`, `d`, `w`, `mo` or `y`                                                 |
+| `axis`, `labels`, `display`, `dependencies` | `axis top\|bottom\|both`, `labels bar\|column`, `display normal\|compact`, `dependencies shown\|hidden`                              | where tick labels and task labels stand, how rows are packed, whether arrows are drawn                                              |
+| `dayWidth`                                  | `dayWidth 12`                                                                                                                        | units a day is wide, 1 to 100,000                                                                                                   |
+| `today`                                     | `today`, `today 2026-06-17`                                                                                                          | a line at the day the picture is made, or at a date                                                                                 |
+
+Dates are the date token of the [lexical rules](#lexical-rules), durations a number above 0 with
+`s`, `min`, `h`, `d` or `w`. The words `from`, `after`, `for`, `to`, `until`, `at`, `done`, `active`
+and `critical` are clause and status words of a task, milestone or marker, so none of them can be an
+id. A clause word takes its value (a date, a duration or ids up to the next clause or status word),
+a status word stands alone, and `after` and `until` name tasks and milestones, never sections or
+markers.
+
+The schedule checks (`gantt.unscheduled`, `gantt.schedule`, `gantt.cycle`, `gantt.relation`) and the
+warning `gantt.excluded-day` are listed in [diagnostics.md](diagnostics.md); malformed dates,
+durations, clauses and calendars are `prop.invalid-value`, `prop.unknown` and `prop.duplicate`, and
+an unknown task is `ref.unknown-element`.
 
 ## `model` blocks and `c4` vocabulary
 

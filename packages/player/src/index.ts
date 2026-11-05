@@ -23,6 +23,7 @@ export {
   type OpenTarget,
   type PlayerDocument,
   type RelationDetails,
+  type ScheduleDetails,
   type StoryEntry,
   type StoryLayouts,
   type StoryPlayerDocument,

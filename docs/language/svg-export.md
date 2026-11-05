@@ -19,14 +19,15 @@ With `--stdout`, diagnostics go to stderr so that stdout holds only the SVG. Exi
 
 ## What renders
 
-Every flow, free, sequence and C4 diagram without errors. The exporter arranges `layout auto` and `layout assisted`
-diagrams with ELK ([layout.md](layout.md)); `layout manual` reports every element without a
+Every flow, free, sequence, C4 and gantt diagram without errors. The exporter arranges `layout auto` and
+`layout assisted` diagrams with ELK ([layout.md](layout.md)); `layout manual` reports every element without a
 `place` as `layout.missing-placement`. Hosts that call `layoutDiagram()` without an engine render
 `auto` and `assisted` diagrams only when every element is placed, and report
 `layout.mode-unsupported` otherwise. A file without a renderable diagram reports
 `export.no-diagram`. Free diagrams, their objects, images and layers are described in
 [free.md](free.md). Sequence diagrams are laid out without an engine from the order of their
-events, and `--scenario <id>` exports one path ([sequence.md](sequence.md)). C4 views are laid
+events, and `--scenario <id>` exports one path ([sequence.md](sequence.md)). Gantt charts are laid
+out without an engine from the dates of their tasks ([gantt.md](gantt.md#layout)). C4 views are laid
 out like flow diagrams, with C4 shapes ([c4.md](c4.md)).
 
 Groups never need a `place`: without `place` and `size` a group fits its children with the theme's
@@ -269,6 +270,9 @@ split dense diagrams into views.
 - Every element and relation is a `<g data-id="..." data-role="element|relation">`; relation labels
   are a nested `<g data-role="label">`. A free line is an element group whose label is nested the
   same way. Editors can map clicks back to ids with these attributes.
+  A gantt chart's grid, tick labels, excluded days and today line are one
+  `<g data-id="axis" data-role="axis">`, which sketch themes leave crisp; its sections are element
+  groups that hold the groups of their rows.
   A group on a layer other than `main` also carries `data-layer="<name>"`, and an element or a
   group styled with `opacity` an `opacity` attribute. A pen is an element group whose stroke is one
   `<path>` with round caps and joins, followed by its heads; a sticky whose text does not fit holds
