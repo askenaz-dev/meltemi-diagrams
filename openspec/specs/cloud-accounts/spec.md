@@ -22,6 +22,12 @@ come back. The page SHALL use the answer's `signIn`, `account` and `signOut` onl
 `http:` or `https:` addresses without credentials, and SHALL draw a picture only from an `https:`
 address or its own origin. On a static server the page SHALL behave exactly as before.
 
+For the supported local installation, the page SHALL immediately show a local workspace
+and its default project instead of account/session controls. It SHALL show the agent-plugin
+setup action and SHALL NOT show sign-in, account creation, API tokens, disconnect/sign-out,
+provider, sponsorship or unsupported sharing/publishing controls. It SHALL make no external
+identity request, and the local interface SHALL exist in English and Spanish.
+
 #### Scenario: Served by a static server
 - **WHEN** the page is served by the playground suite's static server
 - **THEN** `/api/session` answers the static `{ "user": null }` the build wrote, the header shows "Sign in" linking to the identity service the page was built with, no console error is logged, and everything else is as before
@@ -37,6 +43,10 @@ address or its own origin. On a static server the page SHALL behave exactly as b
 #### Scenario: A hostile address
 - **WHEN** `/api/session` answers a person whose `signOut` is `javascript:alert(1)`
 - **THEN** the header shows "Sign in" and no form carries that address
+
+#### Scenario: Open the local editor
+- **WHEN** the person opens the ready local editor for the first time in either language
+- **THEN** they can edit the default project immediately and copy the plugin/MCP installation prompt without a session or token step
 
 ### Requirement: Users and the session answer
 The Worker SHALL keep a user per `sub` from the first authenticated request, caching `name`,
@@ -60,6 +70,12 @@ addressed to the session token's own email claim when that claim is verified, an
 otherwise (never for an owner or an administrator). The `user` object SHALL have the same fields
 in both signed-in answers but the two administration fields; for a bearer principal
 `entitlements` is informational, since no program reads it.
+
+The local entry point SHALL answer `GET /api/session` with `mode: "local-single-user"`
+and its stable local owner in `user`, without credentials or an authentication exchange.
+This describes local workspace capabilities, not a browser session. It SHALL issue no cookie
+and omit `token`, `localSession`, expiry and provider navigation fields (`signIn`, `account`,
+`signOut`, `support`). Local identity SHALL NOT imply hosted-service administrator rights.
 
 #### Scenario: A renamed person
 - **WHEN** a request arrives with a token whose `name` differs from the cached one
@@ -95,6 +111,10 @@ in both signed-in answers but the two administration fields; for a bearer princi
 #### Scenario: Not configured
 - **WHEN** `SPONSORS_ACCOUNT` is unset
 - **THEN** no answer carries `support` and a plain person's `unbrandedBy` is `null`
+
+#### Scenario: Local workspace description without a session
+- **WHEN** the local editor requests `/api/session` without cookies or Authorization
+- **THEN** it receives the local owner/mode, creates no session record, sets no cookie and is recognized by the frontend as an editable local workspace
 
 ### Requirement: Deletion events
 `POST /_identity/events` SHALL read at most 8 KiB (`400 request.invalid` beyond that), verify
@@ -365,3 +385,10 @@ every grant of the account.
 #### Scenario: An unknown grant
 - **WHEN** `DELETE /api/account/apps/nope` is sent
 - **THEN** the answer is `404 not-found`
+
+### Requirement: No local credential management
+Local mode SHALL require no sign-in or credential creation for browser, rooms or MCP. Identity, API-token management, CLI-login approval and OAuth routes SHALL be unavailable locally and SHALL never issue credentials or contact an IDP. Existing hosted credential management SHALL remain unchanged.
+
+#### Scenario: A local identity or token action
+- **WHEN** a caller requests local sign-in, token creation, OAuth consent/registration/exchange or CLI-login approval
+- **THEN** the route is unavailable, no credential/grant is created and no external identity request is made

@@ -37,7 +37,7 @@ Browser, API, WebSocket and MCP SHALL use the same stable local actor without lo
 
 #### Scenario: Unsupported local authorization route
 - **WHEN** a caller requests local OAuth authorization/registration/token/discovery
-- **THEN** it receives JSON `404`, no grant/credential is created and no external metadata request occurs
+- **THEN** it receives JSON `409 local.feature-unavailable`, no grant/credential is created and no external metadata request occurs
 
 ### Requirement: Host and browser boundaries
 The app SHALL publish only on host loopback, use a fixed configured origin, and refuse unknown Hosts before resolving the local actor. Browser mutations and room handshakes SHALL require exact Origin; native MCP SHALL allow Origin to be absent and reject foreign/null Origins. Local test/debug and scheduling HTTP triggers SHALL be unavailable.
