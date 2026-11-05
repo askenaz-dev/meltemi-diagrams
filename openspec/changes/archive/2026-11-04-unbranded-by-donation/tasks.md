@@ -53,7 +53,7 @@
 
 ## 4. The family's configuration and site
 
-- [ ] 4.1 In `C:\meltemi\web`, add `var.sponsors_webhook_secret` (received, sensitive, empty by
+- [x] 4.1 In `C:\meltemi\web`, add `var.sponsors_webhook_secret` (received, sensitive, empty by
       default) to `packages/infra/variables.tf` and `SPONSORS_WEBHOOK_SECRET` to the Diagrams
       Worker's secrets in `secrets.tf`, and the **Support the project** link to
       `packages/site/public/diagrams/index.html` and `es/diagrams/index.html` with its check, in
@@ -61,7 +61,10 @@
       `pnpm test` pass there and the pull request's CI is green. (Meltemi Web's, not done here.
       The Worker's side is ready: `wrangler.jsonc` binds `SPONSORS_WEBHOOK_SECRET_STORE` to the
       Store secret `SPONSORS_WEBHOOK_SECRET`, which Web's Terraform must create, a single space
-      while unset, before this Worker deploys.)
+      while unset, before this Worker deploys.) _Done in askenaz-dev/meltemi-web#21, applied before
+      this Worker deployed. The **Support the project** link moved to the owner's checklist in
+      `docs/cloud.md`: `https://github.com/sponsors/askenaz` redirects to the profile until the
+      account is enrolled, so a link now would lead nowhere._
 - [ ] 4.2 Owner's steps, written in `docs/cloud.md` and ticked when done: enrol the sponsored
       account in GitHub Sponsors, publish the tiers with the reward text of design decision 8,
       create the Sponsors webhook (payload URL `https://diagrams.meltemi.dev/_sponsors/github`,

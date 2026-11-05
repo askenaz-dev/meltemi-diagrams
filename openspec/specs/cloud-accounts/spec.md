@@ -2,7 +2,9 @@
 
 ## Purpose
 The optional account of the hosted service: the account in the playground's header (sign in, account menu, API tokens, sign out), the user rows and the session answer, API tokens, the signed deletion events of the identity service, and the command line's approval page and code exchange. The page works without any of it.
+
 ## Requirements
+
 ### Requirement: The account in the page
 At start the page SHALL ask `GET /api/session` once; any answer other than a `200` JSON SHALL
 mean anonymous, silently, and so SHALL an answer with `user` null and no `signIn`. Anonymous,
@@ -40,20 +42,24 @@ address or its own origin. On a static server the page SHALL behave exactly as b
 The Worker SHALL keep a user per `sub` from the first authenticated request, caching `name`,
 `picture`, `email` and `email_verified` from the token and refreshing them when a request's
 claims differ. `GET /api/session` SHALL answer, with `Cache-Control: no-store`, one of three
-shapes: `{ "user": { "sub", "name", "picture", "handle", "entitlements": { "unbranded" },
-"administration", "administrationInvitation" }, "account", "signOut" }` for a cookie principal,
-`{ "user": { "sub", "name", "picture", "handle", "entitlements": { "unbranded" } }, "token":
-{ "id", "name" } }` for a bearer principal (no `account`, no `signOut`, no administration), and
-`{ "user": null, "signIn" }` for anyone else; `handle` SHALL be the person's publishing handle or
-`null`, and `user.entitlements.unbranded` SHALL be `true` when the person's row has the
-`unbranded_exports` flag or the person is an owner or an administrator (`service-administration`,
-"Owners and administrators"), and `false` otherwise ("Entitlements of an account"). In the cookie
-shape, `user.administration` SHALL be `{ "role": "owner" | "administrator" }` or `null`, and
-`user.administrationInvitation` SHALL be `{ "id", "invitedBy": { "name" }, "expiresAt" }` for the
-pending, unexpired administrator invitation addressed to the session token's own email claim when
-that claim is verified, and `null` otherwise (never for an owner or an administrator). The `user`
-object SHALL have the same fields in both signed-in answers but the two administration fields; for
-a bearer principal `entitlements` is informational, since no program reads it.
+shapes: `{ "user": { "sub", "name", "picture", "handle", "entitlements": { "unbranded",
+"unbrandedBy" }, "administration", "administrationInvitation" }, "account", "signOut" }` for a
+cookie principal, `{ "user": { "sub", "name", "picture", "handle", "entitlements":
+{ "unbranded", "unbrandedBy" } }, "token": { "id", "name" } }` for a bearer principal (no
+`account`, no `signOut`, no administration), and `{ "user": null, "signIn" }` for anyone else;
+every shape SHALL add `"support": { "url" }` (the sponsors page) when `SPONSORS_ACCOUNT` is set
+and omit it otherwise; `handle` SHALL be the person's publishing handle or `null`, and
+`user.entitlements.unbranded` SHALL be `true` when the person's row has the `unbranded_exports`
+flag or the person is an owner or an administrator (`service-administration`, "Owners and
+administrators"), and `false` otherwise ("Entitlements of an account"), with `unbrandedBy`
+`"github-sponsors"` when the row was granted by a sponsorship, `"administrator"` when set by a
+person, and `null` otherwise. In the cookie shape, `user.administration` SHALL be `{ "role":
+"owner" | "administrator" }` or `null`, and `user.administrationInvitation` SHALL be `{ "id",
+"invitedBy": { "name" }, "expiresAt" }` for the pending, unexpired administrator invitation
+addressed to the session token's own email claim when that claim is verified, and `null`
+otherwise (never for an owner or an administrator). The `user` object SHALL have the same fields
+in both signed-in answers but the two administration fields; for a bearer principal
+`entitlements` is informational, since no program reads it.
 
 #### Scenario: A renamed person
 - **WHEN** a request arrives with a token whose `name` differs from the cached one
@@ -78,6 +84,17 @@ a bearer principal `entitlements` is informational, since no program reads it.
 #### Scenario: A pending invitation in the answer
 - **WHEN** the owner Guillmar invited `ana@example.com` and Ana asks `GET /api/session` with a cookie whose verified email is `ana@example.com`, and later with one whose email is not verified
 - **THEN** the first answer's `user.administrationInvitation` is `{ "id": <id>, "invitedBy": { "name": "Guillmar Ortiz" }, "expiresAt": <seven days after the invitation> }` and the second's is `null`
+
+#### Scenario: The support link and the grantor
+- **WHEN** `SPONSORS_ACCOUNT` is `askenaz` and `GET /api/session` is asked anonymously, with the
+  cookie of a sponsor who claimed, and with the cookie of a person an administrator granted
+- **THEN** every answer carries `"support": { "url": "https://github.com/sponsors/askenaz" }`,
+  the second's `entitlements` is `{ "unbranded": true, "unbrandedBy": "github-sponsors" }` and
+  the third's `{ "unbranded": true, "unbrandedBy": "administrator" }`
+
+#### Scenario: Not configured
+- **WHEN** `SPONSORS_ACCOUNT` is unset
+- **THEN** no answer carries `support` and a plain person's `unbrandedBy` is `null`
 
 ### Requirement: Deletion events
 `POST /_identity/events` SHALL read at most 8 KiB (`400 request.invalid` beyond that), verify
@@ -221,9 +238,11 @@ five-second timeout. It SHALL pass through the service's JSON and status for `id
 `session.current`, `session.not-found`, `provider.unknown` and `rate.limited`, SHALL answer `401
 auth.required` when the service says `session.invalid`, and `502 identity.unavailable` when the
 service does not answer, times out or answers something it cannot read, logging no body. The
-cookie principal SHALL carry the session token it was verified from, and nothing but these routes
-SHALL read it. The browser suite's stand-in for the identity service SHALL answer the account API
-and verify the signature.
+answer of `GET /api/account/identity` SHALL add `"claimed": true` to the view when reading it
+claimed a sponsorship (`sponsorship-entitlement`, "The claim"), and be the view as it is otherwise.
+The cookie principal SHALL carry the session token it was verified from, and nothing but these
+routes SHALL read it. The browser suite's stand-in for the identity service SHALL answer the
+account API and verify the signature.
 
 #### Scenario: Read on the person's behalf
 - **WHEN** a signed-in person's page asks `GET /api/account/identity`
@@ -245,6 +264,10 @@ and verify the signature.
 - **WHEN** the identity service answers `401 session.invalid`
 - **THEN** the Worker answers `401 auth.required`
 
+#### Scenario: A claim beside the view
+- **WHEN** a sponsor's `GET /api/account/identity` claims a sponsorship, and the next one claims nothing
+- **THEN** the first answer is the view with `"claimed": true` and the second the view alone
+
 ### Requirement: Entitlements of an account
 The `users` table SHALL hold `unbranded_exports`, `0` or `1`, `0` for every row until an
 administrator sets it, and `unbranded_exports_by` and `unbranded_exports_at`, `NULL` until then
@@ -259,12 +282,13 @@ administrator SHALL list its holders with `GET /api/admin/permissions/unbranded-
 account's with `GET /api/admin/accounts/<account>/permissions/unbranded-exports` and set it with
 `PUT` on the same path and `{ "granted": true | false }`, recording the caller's `sub` and the
 time, from the routes or from the account panel's Administration section; `<account>` SHALL be an
-account id, `@<handle>` or an email ("An account without a list of users"). Each change SHALL be
-logged ("The administration log"). The routes SHALL answer `404 not-found` to anyone else (an
-anonymous caller, a person with no role, an API token even of an owner), and the `PUT` SHALL be
-subject to the `Origin` rule before it runs and SHALL answer `400 request.invalid` to a body that is
-not `{ "granted": boolean }`. Deleting the account (`user.deleted`) SHALL remove the flag with the
-row.
+account id, `@<handle>` or an email ("An account without a list of users"). A sponsorship claim
+(`sponsorship-entitlement`, "The claim") SHALL set the same three columns with the grantor
+`github-sponsors`. Each change SHALL be logged ("The administration log"). The routes SHALL
+answer `404 not-found` to anyone else (an anonymous caller, a person with no role, an API token
+even of an owner), and the `PUT` SHALL be subject to the `Origin` rule before it runs and SHALL
+answer `400 request.invalid` to a body that is not `{ "granted": boolean }`. Deleting the account
+(`user.deleted`) SHALL remove the flag with the row and clear the account's sponsorship claims.
 
 #### Scenario: A grant and its effect
 - **WHEN** the administrator `u-admin` sends `PUT /api/admin/accounts/u1/permissions/unbranded-exports` with `{ "granted": true }` from the page's origin at `2026-10-28T10:00:00.000Z`, and `u1` then asks `GET /api/session`
@@ -314,3 +338,10 @@ row.
 - **WHEN** the migration tests read `packages/cloud/migrations`
 - **THEN** `0005_unbranded_exports.sql` is the fifth numbered file, adds the three columns with their defaults and the check, holds no transaction control, pragma, data or drop, and is plain ASCII
 
+#### Scenario: Granted by a sponsorship, revoked by hand
+- **WHEN** Ana's claim granted the flag and an administrator sends `PUT …/accounts/@ana/permissions/unbranded-exports` with `{ "granted": false }`
+- **THEN** the row's flag is `0` with the administrator's `sub` and time, and the log holds the revocation
+
+#### Scenario: Deleted with the claim
+- **WHEN** a `user.deleted` event arrives for a sponsor who claimed
+- **THEN** the user row is gone and the sponsorship row is unclaimed
