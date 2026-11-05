@@ -587,6 +587,8 @@ export class Playground {
         pickImage: () => this.pickImage(),
         exportDialog: () => openExportDialog(this),
         exportPlayer: (story) => void writePlayer(this, story),
+        exportScenes: (story) =>
+          openExportDialog(this, { target: `story:${story}`, format: "svg", scenes: true }),
         openModel: () => this.openModel(),
         pointer: (at) => this.canvasPointer?.(at),
         laser: (batch) => this.canvasLaser?.(batch),

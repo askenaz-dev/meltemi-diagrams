@@ -86,6 +86,7 @@ export function profileCompletions(
   const profile = profileAt(analysis, offset);
   if (match(prefix, `format\\s+\\w*`)) return words(EXPORT_FORMATS, "value", range);
   if (match(prefix, `motion\\s+\\w*`)) return words(["static", "animated"], "value", range);
+  if (match(prefix, `scenes\\s+\\w*`)) return words(["true", "false"], "value", range);
   if (match(prefix, `fonts\\s+\\w*`))
     return words(["embedded", "outlined", "system"], "value", range);
   if (match(prefix, `background\\s+\\w*`)) return words(BACKGROUND_WORDS, "value", range);

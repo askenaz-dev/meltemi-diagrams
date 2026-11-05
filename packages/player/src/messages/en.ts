@@ -21,6 +21,9 @@ export const en = {
     progress: "Progress",
     /** The scene picker. */
     scene: "Scene",
+    /** The story picker of a document with several stories: the flows of one drawing. */
+    story: "Story",
+    storyTitle: "The flow to play",
     staticView: "Static view",
     staticTitle: "Static view (S)",
     /** The slider's value as screen readers say it: "1.8 s of 7.4 s". */
@@ -81,6 +84,8 @@ export const en = {
   player: {
     /** The accessible name of a story's player: "Story: A purchase". */
     story: (title: string) => `Story: ${title}`,
+    /** Announced when another story is picked: "Story: Refund". */
+    pickedStory: (title: string) => `Story: ${title}`,
     /** The accessible name of a diagram's player: "Diagram: Checkout". */
     diagram: (title: string) => `Diagram: ${title}`,
     /** The scene on screen, announced when it changes: "Scene 2 of 2: processing". */

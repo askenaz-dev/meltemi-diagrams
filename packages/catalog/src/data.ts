@@ -315,7 +315,7 @@ export function catalogData(input: CatalogInput): CatalogData {
     // The document names views by diagram id; the written timeline by view key, in the same order.
     const written = storyTimeline(s.story).views;
     const entryOfView = new Map<string, string>();
-    document.timeline.views.forEach((view, n) => {
+    document.stories[0]!.timeline.views.forEach((view, n) => {
       const shown = s.shows.find((v) => v.key === written[n]);
       if (shown) entryOfView.set(view, entryKey(shown.file, shown.diagram));
     });
@@ -325,7 +325,7 @@ export function catalogData(input: CatalogInput): CatalogData {
         else for (const t of action.targets) target(entry, t.id, key);
       }
     };
-    for (const scene of document.timeline.scenes) {
+    for (const scene of document.stories[0]!.timeline.scenes) {
       const entry = entryOfView.get(scene.view);
       if (entry) visit(scene.actions, entry);
     }

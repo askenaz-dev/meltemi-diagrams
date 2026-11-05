@@ -276,6 +276,16 @@ no tienen canal alfa: el mensaje lo dice, y que la CLI conserva el WebM transpar
 Los fotogramas son los de la CLI; los
 codificadores difieren, así que los archivos difieren en los bytes, no en el contenido.
 
+**Todas las historias (N)**, después de las historias en **Qué** cuando el archivo tiene más de una,
+escribe el reproductor HTML de todas las historias en el orden del código, como `--stories`: el
+campo de formato ofrece solo HTML, con los campos del reproductor, y el mensaje nombra las historias
+que lleva y las que dejó fuera. Para una historia en SVG, PNG o PDF, **Una imagen por escena**
+(desmarcada en cada apertura, marcada cuando **Exportar escenas** de la línea de tiempo abre el
+diálogo) escribe el estado final de cada escena en lugar del fotograma del **Instante**, que oculta:
+SVG y PNG descargan `<stem>.<story>.scenes.zip` con un archivo por escena, los PNG dibujados uno por
+uno con una línea de progreso que **Cancelar** detiene, y PDF abre el diálogo de impresión sobre una
+página por escena, todas del tamaño del fotograma más grande.
+
 El campo **Idioma** del diálogo fija las palabras que la herramienta agrega a la exportación: las
 líneas de tipo de las entidades C4, los controles del reproductor HTML y los encabezados del
 catálogo, cuyas páginas lo llevan como su `lang`. Empieza en el `"locale"` del proyecto, o en

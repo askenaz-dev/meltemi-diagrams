@@ -75,6 +75,12 @@ Opciones de export:
   --scenario <id>           Exportar un escenario de los diagramas de secuencia que lo declaran
   --story <id>              Una historia en su lugar: su final, el fotograma en --at o su
                             reproductor
+  --stories [<ids>]         Todas las historias del archivo en un reproductor HTML (o las
+                            enumeradas, como refund,purchase, en ese orden):
+                            <stem>.stories.html
+  --scenes                  Con --story, una imagen del estado final de cada escena: un SVG o
+                            PNG por escena (<stem>.<story>.<scene>.svg), o un PDF con una
+                            página por escena
   --format <nombre>         svg (predeterminado), png, pdf, html (el reproductor), mp4, webm o
                             gif; PNG, PDF y video usan Edge o Chrome instalado, y el video
                             también FFmpeg
@@ -522,6 +528,8 @@ iniciada o el token fue rechazado.
   },
   export: {
     wroteViews: (path, views) => `Se escribió ${path} (${views} vistas)`,
+    wroteStories: (path, stories) =>
+      `Se escribió ${path} (${count(stories, "historia", "historias")})`,
     wrotePicture: (path, browser) => `Se escribió ${path} (${browser})`,
     wroteVideo: (path, browser, ffmpeg, frames) =>
       `Se escribió ${path} (${browser}, FFmpeg ${ffmpeg}, ${count(frames, "fotograma", "fotogramas")})`,
@@ -547,6 +555,19 @@ iniciada o el token fue rechazado.
     atAnimated: "--at escribe un fotograma; no se puede combinar con --motion animated.",
     story: (option) =>
       `--story escribe un fotograma de una historia; no se puede combinar con ${option}.`,
+    stories: (option) =>
+      `--stories escribe el reproductor de varias historias; no se puede combinar con ${option}.`,
+    storiesHtml: (format) =>
+      `--stories escribe un reproductor HTML; no se puede combinar con --format ${format}.`,
+    storiesList: (given) =>
+      `--stories lleva ids de historias separados por comas, como refund,purchase, no "${given}".`,
+    noStories: (path) => `${path} no tiene historias.`,
+    scenesStory: "--scenes necesita una historia: indícala con --story <id>.",
+    scenesAt: "--scenes escribe el estado final de cada escena; no admite --at.",
+    scenesFormat: (format) =>
+      `--scenes escribe imágenes SVG, PNG o PDF; no se puede combinar con --format ${format}.`,
+    scenesStdout: "--scenes escribe varios archivos; --stdout imprime una sola salida.",
+    scenesOut: "--scenes escribe varios archivos; --out debe ser una carpeta.",
     html: (option) => `--format html escribe un reproductor; no se puede combinar con ${option}.`,
     embed: "--embed escribe un fragmento de reproductor; necesita --format html.",
     picture: (format) =>

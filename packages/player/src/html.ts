@@ -8,6 +8,11 @@ export interface ElementOptions {
   /** False hides the controls; the keyboard still works. True by default. */
   readonly controls?: boolean;
   /**
+   * A document of several stories: the id of the story shown first, written as the element's
+   * `story` attribute; the first story when it names none of them.
+   */
+  readonly story?: string;
+  /**
    * The language of the player's words, such as `es`. The element carries it as its `lang` when
    * it is not English; a player speaks the language of its element or page, else English.
    */
@@ -52,6 +57,7 @@ export function playerElement(document: PlayerDocument, options: ElementOptions 
     options.loop ? " loop" : "",
     options.static ? " static" : "",
     options.controls === false ? ' controls="false"' : "",
+    options.story !== undefined ? ` story="${escapeHtml(options.story)}"` : "",
   ].join("");
   return `<meltemi-player${attributes}><script type="application/json">${playerData(document)}</script></meltemi-player>`;
 }
@@ -127,7 +133,7 @@ export interface FramesPageOptions {
 /**
  * A page that draws any frame of the document at the output size, for video capture: it defines
  * `__draw(t)`, which draws the frame at `t` milliseconds and resolves once the fonts are ready and
- * the frame is on screen.
+ * the frame is on screen. A document of several stories draws its first story's frames.
  */
 export function framesPage(
   document: PlayerDocument,

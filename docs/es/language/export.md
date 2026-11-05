@@ -10,25 +10,32 @@ con las mismas herramientas (decisión 0025).
 
 ## Desde la línea de comandos
 
-| Comando                                                                         | Resultado                                                 |
-| ------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `pnpm mdg export sheet.meltemi`                                                 | `sheet.svg` (véase [svg-export.md](svg-export.md))        |
-| `pnpm mdg export sheet.meltemi --format png`                                    | `sheet.png` al doble de tamaño, con el fondo del tema     |
-| `pnpm mdg export sheet.meltemi --format png --scale 4 --background transparent` | un PNG a 4 ×, sobre fondo transparente                    |
-| `pnpm mdg export sheet.meltemi --format png --size 1920x1080`                   | un PNG de 1920 × 1080 con el dibujo ajustado y centrado   |
-| `pnpm mdg export sheet.meltemi --format pdf`                                    | `sheet.pdf`, una página vectorial del tamaño del dibujo   |
-| `pnpm mdg export sheet.meltemi --story tour --at 2s --format pdf`               | el fotograma de la historia a los 2 s                     |
-| `pnpm mdg export sheet.meltemi --format html --story tour`                      | el reproductor de la historia ([player.md](../player.md)) |
-| `pnpm mdg export sheet.meltemi --diagram context --format html`                 | `sheet.context.html`, con todas las vistas que abre       |
-| `pnpm mdg export sheet.meltemi --story tour --format mp4`                       | `sheet.tour.mp4`, 1920 × 1080 a 30 fps                    |
-| `pnpm mdg export sheet.meltemi --format gif`                                    | un GIF de una vuelta de los efectos del diagrama          |
-| `pnpm mdg export sheet.meltemi --format gif --duration 4s`                      | el mismo GIF, de 4 s                                      |
-| `pnpm mdg export sheet.meltemi --profile slide`                                 | lo que describe el perfil `slide`                         |
-| `pnpm mdg export sheet.meltemi --profiles`                                      | todos los perfiles del archivo                            |
+| Comando                                                                         | Resultado                                                   |
+| ------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `pnpm mdg export sheet.meltemi`                                                 | `sheet.svg` (véase [svg-export.md](svg-export.md))          |
+| `pnpm mdg export sheet.meltemi --format png`                                    | `sheet.png` al doble de tamaño, con el fondo del tema       |
+| `pnpm mdg export sheet.meltemi --format png --scale 4 --background transparent` | un PNG a 4 ×, sobre fondo transparente                      |
+| `pnpm mdg export sheet.meltemi --format png --size 1920x1080`                   | un PNG de 1920 × 1080 con el dibujo ajustado y centrado     |
+| `pnpm mdg export sheet.meltemi --format pdf`                                    | `sheet.pdf`, una página vectorial del tamaño del dibujo     |
+| `pnpm mdg export sheet.meltemi --story tour --at 2s --format pdf`               | el fotograma de la historia a los 2 s                       |
+| `pnpm mdg export sheet.meltemi --format html --story tour`                      | el reproductor de la historia ([player.md](../player.md))   |
+| `pnpm mdg export sheet.meltemi --stories`                                       | `sheet.stories.html`, todas las historias en un reproductor |
+| `pnpm mdg export sheet.meltemi --story tour --scenes --format png`              | `sheet.tour.<scene>.png`, el estado final de cada escena    |
+| `pnpm mdg export sheet.meltemi --story tour --scenes --format pdf`              | `sheet.tour.pdf`, una página por escena                     |
+| `pnpm mdg export sheet.meltemi --diagram context --format html`                 | `sheet.context.html`, con todas las vistas que abre         |
+| `pnpm mdg export sheet.meltemi --story tour --format mp4`                       | `sheet.tour.mp4`, 1920 × 1080 a 30 fps                      |
+| `pnpm mdg export sheet.meltemi --format gif`                                    | un GIF de una vuelta de los efectos del diagrama            |
+| `pnpm mdg export sheet.meltemi --format gif --duration 4s`                      | el mismo GIF, de 4 s                                        |
+| `pnpm mdg export sheet.meltemi --profile slide`                                 | lo que describe el perfil `slide`                           |
+| `pnpm mdg export sheet.meltemi --profiles`                                      | todos los perfiles del archivo                              |
 
 `--background` admite `transparent`, un token de color (`accent`, `canvas`, …) o un color CSS, en
 SVG, PNG y PDF; `--link <url>` convierte todo el dibujo SVG o PDF en un enlace. Con perfiles, se
 rechazan las demás opciones de salida (las tiene el perfil) y `--out` nombra una carpeta existente.
+`--stories` (solo, o con ids como `--stories refund,purchase`) escribe el reproductor HTML de varias
+historias, y HTML es su formato cuando no se indica ninguno; `--scenes` con `--story` escribe la
+imagen del estado final de cada escena, un archivo por escena en la carpeta que nombra `--out` (que
+se crea si falta) o un solo PDF ([historias](stories.md#exportaciones)).
 
 ## PNG y PDF
 
@@ -104,6 +111,12 @@ export presentation for purchase {
   size (1920, 1080)
   fps 30
 }
+
+export slides for purchase {
+  format png
+  scale 2
+  scenes true   // purchase.slides.overview.png and purchase.slides.processing.png
+}
 ```
 
 | Opción                      | Formatos                 | Valores                                                                                                                      |
@@ -122,16 +135,21 @@ export presentation for purchase {
 | `duration`                  | mp4, webm, gif           | un tiempo; sin él, una vuelta de los efectos (o 1 s sin efectos que se muevan)                                               |
 | `file`                      | todos                    | una ruta relativa al archivo, sin `..`, que termina en la extensión del formato; `<stem>.<id>.<ext>` de forma predeterminada |
 | `autoplay`, `loop`, `embed` | html                     | opciones del reproductor ([player.md](../player.md))                                                                         |
+| `scenes`                    | svg, png, pdf            | `true` o `false`; solo historias: el estado final de cada escena en lugar de un fotograma, como lo escribe `--scenes`        |
 
 El destino es un diagrama del archivo, un diagrama importado o una historia del archivo. Los ids de
-los perfiles comparten el espacio de nombres del archivo.
+los perfiles comparten el espacio de nombres del archivo. `scenes true` escribe un SVG o un PNG por
+escena, con el nombre del perfil y el id de la escena antes de la extensión
+(`purchase.slides.overview.png`), o un PDF con una página por escena, que `file` puede nombrar; no
+admite `at`. Una página de todas las historias se escribe desde la línea de comandos (`--stories`) y
+los diálogos, no desde un perfil: un perfil tiene un solo destino.
 
-| Código                  | Cuándo                                                                                                                                 |
-| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `export.unknown-target` | el destino no es un diagrama ni una historia del archivo ni de una importación                                                         |
-| `export.missing-format` | el perfil no tiene `format`                                                                                                            |
-| `export.invalid-option` | una opción de otro formato; `motion` o `scenario` en una historia; `at` después del final de la historia; un `file` con otra extensión |
-| `prop.invalid-value`    | un valor mal formado, un enlace inseguro o un `file` fuera de la carpeta                                                               |
+| Código                  | Cuándo                                                                                                                                                                                                    |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `export.unknown-target` | el destino no es un diagrama ni una historia del archivo ni de una importación                                                                                                                            |
+| `export.missing-format` | el perfil no tiene `format`                                                                                                                                                                               |
+| `export.invalid-option` | una opción de otro formato; `motion` o `scenario` en una historia; `at` después del final de la historia; un `file` con otra extensión; `scenes true` en un diagrama, con `at`, o con `file` en SVG o PNG |
+| `prop.invalid-value`    | un valor mal formado, un enlace inseguro o un `file` fuera de la carpeta                                                                                                                                  |
 
 ## Enlaces
 

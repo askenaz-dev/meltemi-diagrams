@@ -2,17 +2,21 @@ import { DEFAULT_LOCALE, type Locale } from "@meltemi/diagrams-i18n";
 import {
   DRILL_DURATIONS,
   sceneGroups,
+  sceneStills,
   transitionFor,
   type DrillSpec,
+  type StoryTimeline,
   type StoryViewData,
   type TimelineAction,
   type TimelineScene,
 } from "@meltemi/diagrams-motion";
-import type {
-  EffectsPlayerDocument,
-  OpenTarget,
-  PlayerDocument,
-  StoryPlayerDocument,
+import {
+  storyAt,
+  type EffectsPlayerDocument,
+  type OpenTarget,
+  type PlayerDocument,
+  type StoryEntry,
+  type StoryPlayerDocument,
 } from "./format.js";
 import { messages } from "./messages/index.js";
 
@@ -55,6 +59,11 @@ export interface PlayerOptions {
   readonly reducedMotion?: boolean;
   /** The language of what the player says; English by default. */
   readonly locale?: Locale;
+  /**
+   * A story document of several stories: the id of the one shown first; the first story when it
+   * names none of them.
+   */
+  readonly story?: string;
 }
 
 export type PlayerCommand =
@@ -72,8 +81,6 @@ export type PlayerCommand =
 /** Steps of the arrow keys, in milliseconds. */
 export const STEP = 1000;
 export const SMALL_STEP = 100;
-/** The final state of a scene is drawn this long before the next one starts. */
-const BEFORE_NEXT = 0.01;
 
 /**
  * The command of a key pressed in the player, or undefined. Left and Right step a second, `,` and
@@ -152,6 +159,13 @@ export class PlayerController {
     options: PlayerOptions = {},
   ) {
     this.effectsView = document.kind === "effects" ? document.key : "";
+    this.story =
+      document.kind === "story"
+        ? Math.max(
+            0,
+            document.stories.findIndex((s) => s.id === options.story),
+          )
+        : 0;
     this.reducedMotion = options.reducedMotion === true;
     this.staticView = options.static === true || options.reducedMotion === true;
     this.loop = options.loop === true;
@@ -162,6 +176,10 @@ export class PlayerController {
 
   /** The view of an effects document on screen, by key. */
   protected effectsView: string;
+  /** A story document: the index of the story shown, in `stories`. */
+  story: number;
+  /** The final states of the scenes of the story shown, made once per story. */
+  private stills: { readonly story: number; readonly at: readonly number[] } | null = null;
   /** The element or relation selected, whose details the panel shows. */
   selection: ItemRef | null = null;
   /** The item the keyboard walk reached. */
@@ -174,22 +192,32 @@ export class PlayerController {
   /** What to announce once a drill-down settles, until the runtime takes it. */
   private settled: string | null = null;
 
+  /** The stories of a story document, in its order; none for effects. */
+  get stories(): readonly StoryEntry[] {
+    return this.document.kind === "story" ? this.document.stories : [];
+  }
+
+  /** The timeline of the story shown, or null for effects. */
+  get timeline(): StoryTimeline | null {
+    return this.document.kind === "story" ? storyAt(this.document, this.story).timeline : null;
+  }
+
   /** The key of the view on screen: an effects document's current view, or the scene's view. */
   get view(): string {
     if (this.document.kind === "effects") return this.effectsView;
     const scene = this.scenes[this.sceneIndex];
-    return scene?.view ?? this.document.timeline.views[0] ?? "";
+    return scene?.view ?? this.timeline?.views[0] ?? "";
   }
 
   /** How long the document plays, or null for effects that repeat forever. */
   get duration(): number | null {
     return this.document.kind === "story"
-      ? this.document.timeline.durationMs
+      ? (this.timeline?.durationMs ?? 0)
       : (this.document.views[this.effectsView]?.durationMs ?? null);
   }
 
   get scenes(): readonly TimelineScene[] {
-    return this.document.kind === "story" ? this.document.timeline.scenes : [];
+    return this.timeline?.scenes ?? [];
   }
 
   /** The scene at a time: the last one that has started. */
@@ -204,12 +232,28 @@ export class PlayerController {
     return this.sceneIndexAt(this.time);
   }
 
-  /** The time of a scene's final state. */
+  /** The time of a scene's final state, as the stills of its exports take it (`sceneStills`). */
   sceneEnd(index: number): number {
-    const scene = this.scenes[index];
-    if (!scene) return 0;
-    const end = scene.startMs + scene.durationMs;
-    return index === this.scenes.length - 1 ? end : Math.max(scene.startMs, end - BEFORE_NEXT);
+    const timeline = this.timeline;
+    if (!timeline) return 0;
+    if (this.stills?.story !== this.story) {
+      this.stills = { story: this.story, at: sceneStills(timeline).map((s) => s.atMs) };
+    }
+    return this.stills.at[index] ?? 0;
+  }
+
+  /**
+   * Shows another story of the document: its first frame at time 0 (in the static view, its first
+   * scene's final state), stopped; the static view stays as it is. Nothing is selected in it yet.
+   */
+  goToStory(index: number): void {
+    const stories = this.stories;
+    if (stories.length === 0) return;
+    this.story = Math.max(0, Math.min(stories.length - 1, Math.trunc(index)));
+    this.playing = false;
+    this.selection = null;
+    this.focused = null;
+    this.time = this.staticView && this.scenes.length > 0 ? this.sceneEnd(0) : 0;
   }
 
   /** Whether the play button can play: never in the static view of a story. */
@@ -517,6 +561,12 @@ export class PlayerController {
     return text;
   }
 
+  /** The title of the story shown, or its id; null for effects. */
+  get storyTitle(): string | null {
+    const story = this.stories[this.story];
+    return story ? (story.title ?? story.id) : null;
+  }
+
   /** What a screen reader hears about the current scene, in the player's language. */
   announcement(): string {
     const scenes = this.scenes;
@@ -574,14 +624,18 @@ export interface SummaryScene {
   readonly items: readonly string[];
 }
 
-/** The scenes of a story and their actions in words, with labels instead of ids. */
+/**
+ * The scenes of a story of the document (its first by default) and their actions in words, with
+ * labels instead of ids.
+ */
 export function storySummary(
   doc: StoryPlayerDocument,
   locale: Locale = DEFAULT_LOCALE,
+  story = 0,
 ): SummaryScene[] {
   const t = messages(locale).story;
   let previous: string | undefined;
-  return doc.timeline.scenes.map((scene, i) => {
+  return storyAt(doc, story).timeline.scenes.map((scene, i) => {
     const items: string[] = [];
     const viewTitle = doc.names[scene.view]?.title ?? scene.view.split("#").pop()!;
     if (scene.transition && previous !== undefined && previous !== scene.view) {

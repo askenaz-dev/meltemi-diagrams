@@ -82,6 +82,7 @@ export interface ExportJson {
   autoplay: boolean;
   loop: boolean;
   embed: boolean;
+  scenes: boolean;
   range: RangeJson;
 }
 
@@ -465,6 +466,7 @@ function exportJson(profile: ExportProfile): ExportJson {
     autoplay: profile.autoplay,
     loop: profile.loop,
     embed: profile.embed,
+    scenes: profile.scenes,
     range: rangeJson(profile.range),
   };
 }

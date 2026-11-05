@@ -1243,6 +1243,11 @@ export type CanvasAction =
   /** Stories: a new scene after `after`, or at the end. */
   | { readonly kind: "insertScene"; readonly story: string; readonly after?: string }
   /**
+   * Stories: a new story `story<n>` of one empty scene for the diagram the canvas shows (in story
+   * mode, the playing story's diagram), which the canvas then plays in story mode.
+   */
+  | { readonly kind: "createStory" }
+  /**
    * A new empty diagram of the file, `diagram<n>`, after its last block; the canvas then shows it.
    * The `empty` message lists the kinds to offer.
    */
@@ -1291,6 +1296,8 @@ export type CanvasMessage =
   | { readonly type: "pickStory"; readonly story: string | null }
   /** Writes the HTML player of a story, or asks which story or diagram with null. */
   | { readonly type: "exportPlayer"; readonly story: string | null }
+  /** Writes a picture of every scene of a story: the host asks the format and where. */
+  | { readonly type: "exportScenes"; readonly story: string }
   /** The libraries panel: the list, the elements of one category, a search. */
   | { readonly type: "libraries" }
   | { readonly type: "libraryItems"; readonly library: string; readonly category: string }
@@ -1657,6 +1664,8 @@ function isAction(a: unknown): a is CanvasAction {
       return isString(a.story) && isPath(a.path);
     case "insertScene":
       return isString(a.story) && (a.after === undefined || isString(a.after));
+    case "createStory":
+      return true;
     default:
       return false;
   }
@@ -1702,6 +1711,8 @@ export function isCanvasMessage(m: unknown): m is CanvasMessage {
     case "pickStory":
     case "exportPlayer":
       return m.story === null || isString(m.story);
+    case "exportScenes":
+      return isString(m.story);
     case "select":
     case "copy":
       return isStrings(m.ids);

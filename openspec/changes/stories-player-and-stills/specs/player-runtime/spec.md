@@ -6,8 +6,8 @@
 A story document with more than one story SHALL give the player a **Story** picker in its
 control bar, before the scene picker, listing the stories by title (their id without one) in the
 document's order; with one story there SHALL be no picker. Picking a story SHALL show its first
-frame at time 0, stopped, keep the static view and the viewport, fill the scene picker with its
-scenes and announce "Story: <title>" politely.
+frame at time 0 (in the static view, its first scene's final state), stopped, keep the static view
+and the viewport, fill the scene picker with its scenes and announce "Story: <title>" politely.
 
 #### Scenario: Picking a flow
 - **WHEN** a page holds a document with the stories `purchase` and `refund` and the viewer picks

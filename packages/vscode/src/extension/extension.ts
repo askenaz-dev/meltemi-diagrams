@@ -12,7 +12,7 @@ import {
   type CanvasHost,
 } from "./canvas.js";
 import { registerAssist } from "./assist.js";
-import { exportPlayer, exportSvg, registerCommands } from "./commands.js";
+import { exportPlayer, exportScenes, exportSvg, registerCommands } from "./commands.js";
 import { Analyses } from "./documents.js";
 import { Importer } from "./import.js";
 import { InterfaceLanguage } from "./language.js";
@@ -89,6 +89,7 @@ export function activate(context: vscode.ExtensionContext): MeltemiApi {
     panels,
     exportSvg: (document) => exportSvg(host, document),
     exportPlayer: (document, story) => exportPlayer(host, document, story),
+    exportScenes: (document, story) => exportScenes(host, document, story),
     playerScript: async () => (script ??= await asset("player.js")),
     catalogScript: async () => (catalog ??= await asset("catalog.js")),
     generator: `${BRAND_NAME} ${version}`,

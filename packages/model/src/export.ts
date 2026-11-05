@@ -253,6 +253,17 @@ export function analyzeExport(
       invalid("at", m.atPastEnd(duration));
     }
   }
+  // A picture of every scene's final state: of a story, at no instant, in a file per scene.
+  if (values.scenes === "true") {
+    const m = messages().diagnostics.export;
+    if (target.kind === "diagram") invalid("scenes", m.scenesStory);
+    else {
+      if (written.has("at")) invalid("at", m.scenesAt);
+      if (written.has("file") && (format === "svg" || format === "png")) {
+        invalid("file", m.scenesFile(format));
+      }
+    }
+  }
   if (target.kind === "diagram" && written.has("scenario")) {
     const scenarios = target.diagram!.scenarios.map((s) => s.id);
     if (!scenarios.includes(values.scenario as string)) {
@@ -285,6 +296,7 @@ export function analyzeExport(
     autoplay: values.autoplay === true,
     loop: values.loop === true,
     embed: values.embed === true,
+    scenes: values.scenes === "true",
     options: [...written.entries()].map(([name, stmt]) => ({ name, range: range(spanOf(stmt)) })),
     range: range(spanOf(node)),
     idRange: range(spanOf(id)),

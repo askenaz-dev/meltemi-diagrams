@@ -10,6 +10,18 @@ export interface CaptureJob {
   readonly scale?: number;
   /** A CSS colour, or `transparent` (the default). */
   readonly background?: string;
+  /**
+   * PDF: a page per picture, every page the job's size with its picture fitted and centred, on its
+   * own background (the job's when absent); without it, one page of `svg`.
+   */
+  readonly pages?: readonly CapturePage[];
+}
+
+/** A page of a PDF of several pages. */
+export interface CapturePage {
+  readonly svg: string;
+  /** A CSS colour, or `transparent`. */
+  readonly background?: string;
 }
 
 export interface CaptureOptions {

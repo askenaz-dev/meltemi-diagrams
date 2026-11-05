@@ -58,7 +58,7 @@ function entryFields(entry: CatalogEntry, locale: Locale): Field[] {
   ];
   if (entry.kind === "story") {
     fields.push(...kindFields("story", locale));
-    for (const scene of entry.document.timeline.scenes) {
+    for (const scene of entry.document.stories[0]!.timeline.scenes) {
       const title = scene.title ?? scene.id;
       fields.push({ text: title, weight: 2, context: t.scene(title) });
     }

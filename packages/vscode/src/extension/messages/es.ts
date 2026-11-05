@@ -65,6 +65,14 @@ export const es: typeof en = {
     profileOf: (format, target) => `${format} de ${target}`,
     profile: "Ejecutar un perfil de exportación",
     profilePlaceholder: "El perfil que escribir",
+    everyStory: "Todas las historias",
+    everyStoryDetail: (count) =>
+      `${count} historias en un reproductor, con un selector de historia`,
+    scenes: (story) => `Exportar las escenas de ${story}`,
+    scenesPlaceholder: "Una imagen del estado final de cada escena",
+    scenesSvg: "Un archivo SVG por escena",
+    scenesPng: "Un archivo PNG por escena",
+    scenesPdf: "Un PDF con una página por escena",
   },
   catalog: {
     openProjectFirst: "Abre primero un archivo .meltemi o una carpeta de un proyecto.",

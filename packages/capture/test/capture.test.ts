@@ -102,6 +102,24 @@ describe("pages", () => {
     });
   });
 
+  it("print a page per picture of a PDF of several, each on its own background", () => {
+    const page = capturePage({
+      kind: "pdf",
+      svg: SVG,
+      width: 640,
+      height: 400,
+      background: "#fff",
+      pages: [{ svg: SVG, background: "#eee" }, { svg: SVG }],
+    });
+    expect(page).toContain("@page { size: 640px 400px; margin: 0; }");
+    expect(page.match(/<section style="background: [^"]*">/g)).toEqual([
+      '<section style="background: #eee">',
+      '<section style="background: #fff">',
+    ]);
+    expect(page).toContain("break-after: page");
+    expect(page).toContain("section > svg { display: block; width: 640px; height: 400px; }");
+  });
+
   it("need a browser", () => {
     expect(findBrowser({ MELTEMI_BROWSER: join(scratch, "missing.exe") })).toBeNull();
   });
@@ -136,6 +154,24 @@ describe.skipIf(!browser)("captures with the installed browser", () => {
     expect(Number(box[2])).toBeCloseTo(150, 0);
     expect(pdf).toContain("/URI (https://example.com/docs)");
     expect(pdf).toMatch(/\/FontFile[23]?/);
+  }, 180_000);
+
+  it("prints one PDF with a page per picture, every page the job's size", async () => {
+    const { results } = await capture([
+      {
+        kind: "pdf",
+        svg: SVG,
+        width: 300,
+        height: 200,
+        background: "#ffffff",
+        pages: [{ svg: SVG }, { svg: SVG.replace("Checkout", "Refund") }],
+      },
+    ]);
+    const pdf = Buffer.from(results[0]!).toString("latin1");
+    expect(pdf.match(/\/Type\s*\/Page[^s]/g)).toHaveLength(2);
+    const boxes = [...pdf.matchAll(/\/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]/g)];
+    expect(boxes.length).toBeGreaterThanOrEqual(2);
+    for (const box of boxes) expect(Number(box[1])).toBeCloseTo(225, 0);
   }, 180_000);
 
   it("runs synchronously in a child process for the command line", () => {

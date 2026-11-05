@@ -7,7 +7,7 @@ import {
   type StoryViewData,
 } from "@meltemi/diagrams-motion";
 import { renderSvg } from "@meltemi/diagrams-render";
-import type { PlayerDocument } from "./format.js";
+import { storyAt, type PlayerDocument } from "./format.js";
 
 export interface FrameOptions {
   /** The diagram without its effects. */
@@ -16,11 +16,13 @@ export interface FrameOptions {
   readonly background?: string | null;
   /** Effects documents: the view to draw, by key; the diagram's own by default. */
   readonly view?: string;
+  /** Story documents: the index of the story to draw; the first by default. */
+  readonly story?: number;
 }
 
 /**
- * The scene of a document at `t` milliseconds: a story's frame, or a view of a diagram with its
- * effects, or without them in the static view.
+ * The scene of a document at `t` milliseconds: a story's frame (of its first story unless
+ * `story` says), or a view of a diagram with its effects, or without them in the static view.
  */
 export function frameScene(
   data: PlayerDocument,
@@ -29,7 +31,8 @@ export function frameScene(
 ): Scene | null {
   let scene: Scene | null;
   if (data.kind === "story") {
-    scene = storyFrame(data.timeline, (key) => data.views[key], t, { accent: data.accent });
+    const { timeline } = storyAt(data, options.story);
+    scene = storyFrame(timeline, (key) => data.views[key], t, { accent: data.accent });
   } else {
     const view = data.views[options.view ?? data.key];
     scene = !view ? null : options.static ? view.scene : sceneAt(view.scene, view.plan, t);

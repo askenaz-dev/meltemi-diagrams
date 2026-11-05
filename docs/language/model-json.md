@@ -15,7 +15,8 @@ describes version `0.1`. A breaking change increases the version.
 - Anonymous relations appear with their synthetic `key` (`<from>-><to>#<n>`) and `id: null`.
 - Keys are added within a version, never changed: `heads` on relations and `line` on elements
   came in 1.10.0, `pen` and `list` on elements, `tags` on elements and relations, and `spacing`,
-  `side`, `returns` and the `events` of messages in 1.11.0, and the version stays `0.1`.
+  `side`, `returns` and the `events` of messages, and `scenes` on export profiles, in 1.11.0, and
+  the version stays `0.1`.
 - Every diagram profile compiles; `story` and `export` blocks are not in the JSON yet.
 
 ## Document
@@ -266,7 +267,8 @@ targets in order and its time, 800 ms when not written.
 
 The document lists `exports` after `stories`, in source order: `{ "id", "target", "targetKind"
 ("diagram", "story" or null), "format", "size", "scale", "background", "atMs", "motion", "theme",
-"fonts", "scenario", "link", "fps", "durationMs", "file", "autoplay", "loop", "embed", "range" }`,
+"fonts", "scenario", "link", "fps", "durationMs", "file", "autoplay", "loop", "embed", "scenes",
+"range" }`,
 null for options not written ([export.md](export.md)).
 
 ## Theme

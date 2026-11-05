@@ -1,6 +1,7 @@
 # 0024. One offline HTML player drawing frames from data
 
-Status: accepted (player change, 11 October 2026)
+Status: accepted (player change, 11 October 2026). Amended by
+[0070](0070-stories-as-the-flows-of-a-diagram.md): the document is version 3, with its stories.
 
 ## Context
 

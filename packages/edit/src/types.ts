@@ -367,6 +367,21 @@ export type EditOperation =
       readonly path: readonly number[];
     }
   | {
+      /**
+       * Appends `story <id> for <diagram> { scene <scene> { } }` after the last top-level
+       * statement of the file: a story of one empty scene, to fill from the canvas.
+       */
+      readonly kind: "createStory";
+      /** A diagram of the file, of any profile. */
+      readonly diagram: string;
+      /** The new story's id; the first of `story1`, `story2`… the file does not use by default. */
+      readonly id?: string;
+      /** Written as `title "…"` inside the new block. */
+      readonly title?: string;
+      /** The id of its scene; `scene1` by default. */
+      readonly scene?: string;
+    }
+  | {
       /** Adds an empty scene after `after`, or at the end of the story. */
       readonly kind: "insertScene";
       readonly story: string;

@@ -1,6 +1,8 @@
 # 0023. Stories drawn frame by frame from the text
 
-Status: accepted (stories change, 11 October 2026)
+Status: accepted (stories change, 11 October 2026). Amended by
+[0070](0070-stories-as-the-flows-of-a-diagram.md): a player document holds several stories (version 3)
+and the player offers them in a Story picker.
 
 ## Context
 

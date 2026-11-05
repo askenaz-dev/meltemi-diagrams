@@ -96,8 +96,9 @@ describe("motion", () => {
       printed: new Set<string>(),
     };
     const story = compiled.compilation.document.stories[0]!;
-    const times = new Set<number>([0, doc.timeline.durationMs]);
-    for (const scene of doc.timeline.scenes) {
+    const { timeline } = doc.stories[0]!;
+    const times = new Set<number>([0, timeline.durationMs]);
+    for (const scene of timeline.scenes) {
       times.add(scene.startMs);
       times.add(scene.startMs + scene.durationMs);
       for (const action of scene.actions) times.add(action.startMs + action.durationMs / 2);

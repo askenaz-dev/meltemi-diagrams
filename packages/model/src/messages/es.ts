@@ -551,6 +551,11 @@ export const es: typeof en = {
         "Una historia muestra sus propias vistas; `scenario` se aplica a los diagramas de secuencia.",
       atPastEnd: (duration) =>
         `La historia dura ${num(duration)} ms; \`at\` debe estar dentro de ese tiempo.`,
+      scenesStory:
+        "`scenes` escribe una imagen de cada escena de una historia; necesita una historia.",
+      scenesAt: "`scenes` escribe el estado final de cada escena; no va con `at`.",
+      scenesFile: (format) =>
+        `\`scenes\` escribe un archivo ${format} por escena; \`file\` nombra uno, así que no va con él.`,
       unknownScenario: (target, scenario, scenarios) =>
         `${code(target)} no tiene ningún escenario ${code(scenario)}; sus escenarios: ${scenarios.join(", ")}.`,
       noScenarios: (target) => `${code(target)} no tiene escenarios.`,

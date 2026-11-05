@@ -1172,6 +1172,18 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
   la actual, y ✕ (o Supr) quita la barra seleccionada. Cada cambio es una edición del texto, que
   se deshace como cualquier otra. **Exportar HTML** escribe el reproductor HTML de la historia junto
   al archivo.
+- **Nueva historia.** Junto al selector de historias, siempre que se muestre un diagrama o se
+  reproduzca una historia, **Nueva historia** escribe `story story1 for <diagram> { scene scene1 { } }`
+  después del último bloque del archivo, para el diagrama que se muestra (en el modo historia, el de
+  la historia que se reproduce), con el siguiente id libre (`story2`, `story3`…). El lienzo la
+  reproduce de inmediato sobre su escena vacía, y la línea de estado dice qué hacer: seleccionar en
+  el fotograma y pulsar **Agregar a la escena**. Los títulos y los ids se editan en el texto. Un
+  lienzo que solo muestra no tiene **Nueva historia**.
+- **Exportar escenas.** Junto a **Exportar HTML**, **Exportar escenas** escribe una imagen del
+  estado final de cada escena, el fotograma que muestra la vista estática del reproductor: VS Code
+  pregunta SVG, PNG o PDF y escribe `<stem>.<story>.<scene>.svg` (o `.png`) por escena, o
+  `<stem>.<story>.pdf` con una página por escena, junto al archivo; la aplicación web abre su diálogo
+  de exportación sobre la historia con **Una imagen por escena** marcada.
 
 ## Eliminar, copiar y agrupar
 
@@ -1196,7 +1208,7 @@ declara en ese modelo, en este archivo o en el archivo propio del modelo.
 | Abrir el lienzo al lado, Abrir el lienzo                       | Abre el lienzo, junto al código o en su lugar                                                                                                                                                                                                                                                   |
 | Mostrar el código fuente                                       | Muestra el código del archivo del lienzo                                                                                                                                                                                                                                                        |
 | Exportar SVG                                                   | Escribe junto al archivo el SVG de cada diagrama del texto actual (incluidos los cambios sin guardar) y pregunta qué escenario usar en un diagrama de secuencia con escenarios; los diagramas con problemas se omiten y se notifican                                                            |
-| Exportar el reproductor HTML                                   | Pregunta qué historia o diagrama del archivo reproducir y escribe su reproductor HTML junto al archivo (`docs/player.md`)                                                                                                                                                                       |
+| Exportar el reproductor HTML                                   | Pregunta qué historia o diagrama del archivo reproducir (o **Todas las historias**, cuando el archivo tiene más de una, en un reproductor con un selector de historia) y escribe su reproductor HTML junto al archivo (`docs/player.md`)                                                        |
 | Exportar PNG, Exportar PDF                                     | Escribe junto al archivo el PNG (al doble de tamaño) o el PDF de cada diagrama mediante el Edge o el Chrome instalado (el ajuste `meltemi.export.browser` indica otro)                                                                                                                          |
 | Exportar video                                                 | Pregunta por MP4, WebM o GIF y por la historia o el diagrama, y luego lo graba junto al archivo mediante el navegador y FFmpeg, mostrando el progreso; los efectos que no terminan duran una vuelta de sus ciclos, que nombra el mensaje posterior (`meltemi.export.ffmpeg` indica otro FFmpeg) |
 | Generar un diagrama con IA…                                    | Opcional: pide un archivo, una descripción y un perfil, muestra lo que se enviará y escribe la propuesta aceptada (`docs/assist.md`)                                                                                                                                                            |

@@ -705,6 +705,14 @@ export const en = {
       traceRelation: (target: string) => `\`trace\` follows a relation; \`${target}\` is not one.`,
       /** `edit.invalid-id`. */
       invalidSceneId: (id: string) => `\`${id}\` is not a valid scene id.`,
+      /** `edit.unsafe-target`: `createStory` of a diagram that is not one of the file's. */
+      diagramNotInFile: (diagram: string, diagrams: readonly string[]) =>
+        `A story's diagram must be one of the file's; \`${diagram}\` is not${diagrams.length > 0 ? ` (its diagrams: ${diagrams.map((d) => `\`${d}\``).join(", ")})` : ""}.`,
+      /** `edit.invalid-id`. */
+      invalidStoryId: (id: string) =>
+        `\`${id}\` is not a valid id for a story; use letters, digits and \`_\`, starting with a letter or \`_\`.`,
+      /** `edit.id-conflict`: a diagram, model, theme, story, export or import already has it. */
+      storyTaken: (id: string) => `\`${id}\` is already used in this file; choose another id.`,
       /** `edit.id-conflict`. */
       sceneExists: (story: string, id: string) =>
         `Story \`${story}\` already has a scene \`${id}\`.`,

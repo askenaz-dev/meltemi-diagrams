@@ -19,6 +19,8 @@ export interface StoryHost {
   announce(text: string, error?: boolean): void;
   /** Writes the HTML player of the story beside the file. */
   exportPlayer(story: string): void;
+  /** Writes a picture of every scene of the story: the host asks the format and where. */
+  exportScenes(story: string): void;
 }
 
 /** Times snap to this step when a bar is dragged, in milliseconds. */
@@ -161,6 +163,14 @@ export class StoryPanel {
       () => this.playback && this.host.exportPlayer(this.playback.id),
       words.exportHtml,
     );
+    // The pictures of every scene's final state: offered read-only too, as Export HTML is.
+    const scenesButton = this.button(
+      words.exportScenesTitle,
+      ICONS.image,
+      () => this.playback && this.host.exportScenes(this.playback.id),
+      words.exportScenes,
+    );
+    scenesButton.classList.add("export-scenes");
     const header = h(
       "div",
       { class: "timeline-bar" },
@@ -173,6 +183,7 @@ export class StoryPanel {
       scene,
       this.removeButton,
       exportButton,
+      scenesButton,
     );
     this.tracks.append(this.ruler, this.rows, this.playhead);
     this.element.append(header, this.tracks);
@@ -282,7 +293,8 @@ export class StoryPanel {
       "button",
       { type: "button", title: label, "aria-label": label },
       icon(paths),
-      ...(text ? [text] : []),
+      // The words beside the glyph give way to it when the timeline is narrow.
+      ...(text ? [h("span", { class: "label" }, text)] : []),
     );
     button.addEventListener("click", run);
     return button;

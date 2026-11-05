@@ -36,6 +36,7 @@ import { en } from "../../src/messages/en.js";
 import { es } from "../../src/messages/es.js";
 import { encodeShare, SHARE_LIMITS } from "../../src/share.js";
 import { readZip, writeZip } from "../../src/zip.js";
+import { BROKEN_STORY, FLOWS_SOURCE, PURCHASE_SOURCE } from "../../../../test-support/flows.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dist = join(here, "..", "..", "dist");
@@ -453,6 +454,44 @@ function cliSvg(template: string, file: string): string {
   rmSync(folder, { recursive: true, force: true });
   assert.ok("text" in output, "the CLI exports the SVG");
   return output.text;
+}
+
+/** A story of six scenes over the purchase file's `checkout`, for a long export. */
+const SIX_SCENES = `
+story six for checkout {
+${[1, 2, 3, 4, 5, 6].map((n) => `  scene s${n} {\n    hold ${n}00ms\n  }\n`).join("\n")}}
+`;
+
+/** The player document of an exported page. */
+function playerDocument(html: string): { stories: { id: string }[] } {
+  const json = /<script type="application\/json">(.*?)<\/script>/s.exec(html)![1]!;
+  return JSON.parse(json.replace(/\\u003c/g, "<")) as { stories: { id: string }[] };
+}
+
+/**
+ * The SVG of every scene of a story as `meltemi-diagrams export --story <id> --scenes` writes it,
+ * for the flow template's `diagrams/overview.meltemi` holding `source`, by file name.
+ */
+function cliScenes(source: string, story: string): Record<string, string> {
+  const folder = join(tmpdir(), `pg-cli-scenes-${process.pid}`);
+  rmSync(folder, { recursive: true, force: true });
+  for (const [path, text] of Object.entries(templates.find((t) => t.name === "flow")!.files)) {
+    mkdirSync(dirname(join(folder, path)), { recursive: true });
+    writeFileSync(join(folder, path), text);
+  }
+  writeFileSync(join(folder, "diagrams", "overview.meltemi"), source);
+  let said = "";
+  const status = cli(
+    ["export", "diagrams/overview.meltemi", "--story", story, "--scenes", "--out", "scenes"],
+    { stdout: (t) => (said += t), stderr: (t) => (said += t), cwd: folder },
+  );
+  assert.equal(status, 0, said);
+  const files: Record<string, string> = {};
+  for (const name of readdirSync(join(folder, "scenes"))) {
+    files[name] = readFileSync(join(folder, "scenes", name), "utf8");
+  }
+  rmSync(folder, { recursive: true, force: true });
+  return files;
 }
 
 // The account ----------------------------------------------------------------------------------------
@@ -3716,6 +3755,282 @@ const tests: Test[] = [
       assert.match(frame ?? "", /<svg/);
       await page.waitForFunction(() =>
         /Save as PDF/.test(document.querySelector(".status-text")?.textContent ?? ""),
+      );
+    },
+  },
+  {
+    name: "stories: exports every story in one player, HTML only, and leaves out one that cannot be drawn",
+    async run({ page }) {
+      await page.locator(".code-input").fill(FLOWS_SOURCE);
+      await analysed(page);
+      await page.locator(".topbar").getByRole("button", { name: "Export" }).click();
+      let dialog = page.locator("dialog[open]");
+      const what = dialog.getByLabel("What");
+      // After the stories.
+      assert.deepEqual((await what.locator("option").allTextContents()).slice(-3), [
+        "Story purchase · A purchase",
+        "Story refund · Refund",
+        "Every story (2)",
+      ]);
+      await dialog.getByLabel("Format").selectOption("png");
+      await what.selectOption("stories");
+      // HTML only, with the player's fields.
+      const offered = await dialog
+        .getByLabel("Format")
+        .locator("option")
+        .evaluateAll((all) =>
+          all.filter((o) => !(o as HTMLOptionElement).disabled).map((o) => o.getAttribute("value")),
+        );
+      assert.deepEqual(offered, ["html"]);
+      assert.equal(await dialog.getByLabel("Format").inputValue(), "html");
+      assert.equal(await dialog.getByLabel("Scale", { exact: true }).isVisible(), false);
+      assert.equal(await dialog.getByLabel("Instant", { exact: true }).isVisible(), false);
+      assert.equal(await dialog.getByLabel("Plays when it opens").isVisible(), true);
+      assert.equal(await dialog.getByLabel("Loops").isVisible(), true);
+      await dialog.getByLabel("Loops").check();
+      const page_ = readFileSync(
+        await download(page, () =>
+          dialog.getByRole("button", { name: "Export", exact: true }).click(),
+        ),
+        "utf8",
+      );
+      assert.match(page_, /<meltemi-player loop>/);
+      assert.deepEqual(
+        playerDocument(page_).stories.map((s) => s.id),
+        ["purchase", "refund"],
+      );
+      await until(
+        page,
+        "the status names the file and the stories",
+        () =>
+          document.querySelector(".status-text")?.textContent ===
+          "Downloaded overview.stories.html with 2 stories: purchase, refund.",
+      );
+      // A story that cannot be drawn is left out, and the status line names it.
+      await page.locator(".code-input").fill(`${FLOWS_SOURCE}${BROKEN_STORY}`);
+      await analysed(page);
+      await page.locator(".topbar").getByRole("button", { name: "Export" }).click();
+      dialog = page.locator("dialog[open]");
+      await dialog.getByLabel("What").selectOption("stories");
+      const left = readFileSync(
+        await download(page, () =>
+          dialog.getByRole("button", { name: "Export", exact: true }).click(),
+        ),
+        "utf8",
+      );
+      assert.deepEqual(
+        playerDocument(left).stories.map((s) => s.id),
+        ["purchase", "refund"],
+      );
+      await until(page, "the status names the story left out", () =>
+        (document.querySelector(".status-text")?.textContent ?? "").includes(
+          "The story `outage` was left out",
+        ),
+      );
+      // One story: no such target.
+      await page.locator(".code-input").fill(PURCHASE_SOURCE);
+      await analysed(page);
+      await page.locator(".topbar").getByRole("button", { name: "Export" }).click();
+      dialog = page.locator("dialog[open]");
+      assert.equal(await dialog.getByLabel("What").locator('option[value="stories"]').count(), 0);
+      await page.keyboard.press("Escape");
+    },
+  },
+  {
+    name: "stories: one picture per scene, a zip of the CLI's SVGs, a PDF page per scene, unchecked at each opening",
+    async run({ page }) {
+      await page.locator(".code-input").fill(FLOWS_SOURCE);
+      await analysed(page);
+      const open = async () => {
+        await page.locator(".topbar").getByRole("button", { name: "Export" }).click();
+        const dialog = page.locator("dialog[open]");
+        await dialog.getByLabel("What").selectOption("story:purchase");
+        return dialog;
+      };
+      let dialog = await open();
+      const box = () => dialog.getByLabel("One picture per scene");
+      await dialog.getByLabel("Format").selectOption("svg");
+      assert.equal(await box().isVisible(), true);
+      assert.equal(await box().isChecked(), false);
+      await dialog.getByLabel("Instant", { exact: true }).fill("1s");
+      await box().check();
+      // The instant gives way.
+      assert.equal(await dialog.getByLabel("Instant", { exact: true }).isVisible(), false);
+      await dialog.screenshot({ path: join(output, "export-scenes.png") });
+      const zip = await download(page, () =>
+        dialog.getByRole("button", { name: "Export", exact: true }).click(),
+      );
+      assert.ok(zip.endsWith("overview.purchase.scenes.zip"), zip);
+      const entries = await readZip(new Uint8Array(readFileSync(zip)));
+      assert.deepEqual(
+        entries.map((e) => e.path),
+        ["overview.purchase.overview.svg", "overview.purchase.processing.svg"],
+      );
+      const cli = cliScenes(FLOWS_SOURCE, "purchase");
+      for (const entry of entries) {
+        assert.equal(new TextDecoder().decode(entry.data), cli[entry.path], entry.path);
+      }
+      await until(
+        page,
+        "the status counts the pictures",
+        () =>
+          document.querySelector(".status-text")?.textContent ===
+          "Downloaded overview.purchase.scenes.zip with 2 pictures, one per scene.",
+      );
+      // Unchecked at the next opening: one frame again.
+      dialog = await open();
+      assert.equal(await box().isChecked(), false);
+      assert.equal(await dialog.getByLabel("Instant", { exact: true }).isVisible(), true);
+      // No box for a video or a diagram.
+      await dialog.getByLabel("Format").selectOption("gif");
+      assert.equal(await box().isVisible(), false);
+      await dialog.getByLabel("Format").selectOption("svg");
+      await dialog.getByLabel("What").selectOption("diagram:checkout");
+      assert.equal(await box().isVisible(), false);
+      // A PDF of a page per scene, every page the larger frame's size, with no margin.
+      await dialog.getByLabel("What").selectOption("story:purchase");
+      await dialog.getByLabel("Format").selectOption("pdf");
+      await box().check();
+      await dialog.getByRole("button", { name: "Export", exact: true }).click();
+      await page.waitForFunction(() => document.querySelector(".print-frame") !== null);
+      const frame = (await page.locator(".print-frame").getAttribute("srcdoc")) ?? "";
+      assert.equal(frame.match(/<section /g)?.length, 2);
+      assert.match(frame, /@page \{ size: [\d.]+px [\d.]+px; margin: 0; \}/);
+      assert.match(frame, /<section style="background: [^"]*"><svg/);
+      await until(page, "the status counts the pages", () =>
+        /2 pages, one per scene/.test(document.querySelector(".status-text")?.textContent ?? ""),
+      );
+      // PNGs, drawn one by one into the archive.
+      dialog = await open();
+      await dialog.getByLabel("Format").selectOption("png");
+      await box().check();
+      await dialog.getByLabel("Scale", { exact: true }).fill("1");
+      const pngs = await readZip(
+        new Uint8Array(
+          readFileSync(
+            await download(page, () =>
+              dialog.getByRole("button", { name: "Export", exact: true }).click(),
+            ),
+          ),
+        ),
+      );
+      assert.deepEqual(
+        pngs.map((e) => [e.path, Buffer.from(e.data).toString("latin1", 1, 4)]),
+        [
+          ["overview.purchase.overview.png", "PNG"],
+          ["overview.purchase.processing.png", "PNG"],
+        ],
+      );
+    },
+  },
+  {
+    name: "stories: cancelling while the PNG of every scene is drawn downloads nothing",
+    async run({ page }) {
+      await page.locator(".code-input").fill(`${PURCHASE_SOURCE}${SIX_SCENES}`);
+      await analysed(page);
+      await page.locator(".topbar").getByRole("button", { name: "Export" }).click();
+      const dialog = page.locator("dialog[open]");
+      await dialog.getByLabel("What").selectOption("story:six");
+      await dialog.getByLabel("Format").selectOption("png");
+      await dialog.getByLabel("One picture per scene").check();
+      // Large pictures take their time: the cancel lands while they are drawn.
+      await dialog.getByLabel("Size", { exact: true }).fill("6000x3600");
+      let downloaded = false;
+      page.on("download", () => (downloaded = true));
+      await dialog.getByRole("button", { name: "Export", exact: true }).click();
+      await page.waitForFunction(() =>
+        /^(Drawing|Picture)/.test(
+          document.querySelector("dialog[open] .progress-row")?.textContent ?? "",
+        ),
+      );
+      await dialog.getByRole("button", { name: "Cancel" }).click();
+      await until(
+        page,
+        "the status says the export was cancelled",
+        () => document.querySelector(".status-text")?.textContent === "The export was cancelled.",
+      );
+      await page.waitForTimeout(500);
+      assert.equal(downloaded, false, "no zip is downloaded");
+    },
+  },
+  {
+    name: "stories: New story writes a story and plays its empty scene; Export scenes opens the dialog with the box checked",
+    async run({ page }) {
+      await page.locator(".code-input").fill(FLOWS_SOURCE);
+      await analysed(page);
+      const app = page.locator("#app");
+      const button = app.getByRole("button", { name: "New story", exact: true });
+      await button.waitFor({ state: "visible" });
+      await button.click();
+      await until(page, "the new story in the text", () =>
+        (document.querySelector(".code-input") as HTMLTextAreaElement).value.endsWith(
+          "\nstory story1 for checkout {\n  scene scene1 {\n  }\n}\n",
+        ),
+      );
+      await analysed(page);
+      await until(
+        page,
+        "the story's timeline",
+        () => (document.querySelector("#app .timeline") as HTMLElement | null)?.hidden === false,
+      );
+      assert.equal(await app.getByRole("combobox", { name: "Story" }).inputValue(), "story1");
+      assert.equal(await app.locator(".timeline .scene-row").count(), 1);
+      await until(page, "the status says what to add", () =>
+        /Created the story `?story1`?: select on the frame and press Add to scene/.test(
+          document.querySelector("#app .status")?.textContent ?? "",
+        ),
+      );
+      await page.screenshot({ path: join(output, "new-story.png") });
+      // Undone like any edit: story mode ends.
+      await page.keyboard.press("Control+z");
+      await analysed(page);
+      assert.equal((await code(page)).includes("story story1"), false);
+      // The timeline's Export scenes: the dialog on that story, SVG, the box checked.
+      await app.getByRole("combobox", { name: "Story" }).selectOption("refund");
+      await until(
+        page,
+        "the refund timeline",
+        () => (document.querySelector("#app .timeline") as HTMLElement | null)?.hidden === false,
+      );
+      await app.getByRole("button", { name: /^Export a picture of every scene/ }).click();
+      const dialog = page.locator("dialog[open]");
+      await dialog.waitFor();
+      assert.equal(await dialog.getByLabel("What").inputValue(), "story:refund");
+      assert.equal(await dialog.getByLabel("Format").inputValue(), "svg");
+      assert.equal(await dialog.getByLabel("One picture per scene").isChecked(), true);
+      assert.equal(await dialog.getByLabel("Instant", { exact: true }).isVisible(), false);
+      const zip = await download(page, () =>
+        dialog.getByRole("button", { name: "Export", exact: true }).click(),
+      );
+      assert.deepEqual(
+        (await readZip(new Uint8Array(readFileSync(zip)))).map((e) => e.path),
+        ["overview.refund.request.svg", "overview.refund.refunded.svg"],
+      );
+    },
+  },
+  {
+    name: "stories: the words of every story and of every scene in Spanish",
+    locale: "es-CL",
+    async run({ page }) {
+      await page.locator(".code-input").fill(FLOWS_SOURCE);
+      await analysed(page);
+      await page.locator(".topbar").getByRole("button", { name: "Exportar", exact: true }).click();
+      const dialog = page.locator("dialog[open]");
+      const what = dialog.getByLabel("Qué");
+      assert.equal(
+        (await what.locator("option").allTextContents()).at(-1),
+        "Todas las historias (2)",
+      );
+      await what.selectOption("story:purchase");
+      await dialog.getByLabel("Formato").selectOption("svg");
+      assert.equal(await dialog.getByLabel("Una imagen por escena").isVisible(), true);
+      await page.keyboard.press("Escape");
+      assert.equal(
+        await page
+          .locator("#app")
+          .getByRole("button", { name: "Nueva historia", exact: true })
+          .count(),
+        1,
       );
     },
   },

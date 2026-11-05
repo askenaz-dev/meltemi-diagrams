@@ -29,8 +29,9 @@ fitted and centred.
 - **THEN** nothing is written, the diagnostic is printed and the exit code is 1
 
 ### Requirement: What scenes refuse
-With `--scenes`, `--out` SHALL name a directory for `svg` and `png` (a file is a usage error) and
-MAY name the file for `pdf`; `--scenes` without `--story`, with `--at`, with `--stdout`, or with
+With `--scenes`, `--out` SHALL name a directory for `svg` and `png`, an existing one or a new one
+named without an extension, which is made (a file is a usage error), and MAY name the file for
+`pdf`; `--scenes` without `--story`, with `--at`, with `--stdout`, or with
 `html` or a video format SHALL be a usage error (exit 2), nothing written.
 
 #### Scenario: Scenes with an instant

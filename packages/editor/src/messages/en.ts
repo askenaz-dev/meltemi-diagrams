@@ -357,6 +357,10 @@ export const en = {
     builtInTheme: "The diagram uses a built-in theme; create a theme from it to change its tokens.",
     storyNotDrawn: (story: string) =>
       `The story ${code(story)} shows a diagram that cannot be drawn; fix it in the text first.`,
+    /** After **New story**: what to do with its empty scene. */
+    storyCreated: (story: string) =>
+      `Created the story ${code(story)}: select on the frame and press Add to scene to fill its first scene.`,
+    storyNeedsDiagram: "A story is made for a diagram of this file; show one first.",
     textChanged: "The text changed while you were editing; the canvas shows it again.",
     fixFirst: "Fix the problems of the diagram before editing it on the canvas.",
     scenario: "The canvas previews a scenario; pick “All events” to edit the diagram.",
@@ -451,6 +455,20 @@ export const en = {
     /** After the profile's id: `poster: the profile has problems…`. */
     profileProblems: "the profile has problems; fix them first.",
     notExportable: (name: string) => `${code(name)} is not a diagram or story to export.`,
+    /** A player of several stories none of which can be drawn. */
+    storiesNotDrawn: (ids: readonly string[]) =>
+      `No story can be drawn: ${ids.map(code).join(", ")} ${ids.length === 1 ? "shows" : "show"} a diagram that cannot be drawn.`,
+    /** Every story in one player is an HTML player. */
+    storiesHtml: "Every story goes into one HTML player; choose the HTML format.",
+    /** The pictures of every scene: of a story, as SVG, PNG or PDF, and never at one instant. */
+    scenesStory: "A picture per scene takes a story.",
+    scenesFormat: "A picture per scene is an SVG, PNG or PDF export.",
+    scenesAt: "A picture per scene draws every scene's final state; it cannot take an instant.",
+    /** A story without scenes has no picture of a scene. */
+    noScenes: (id: string) => `${code(id)} has no scenes.`,
+    /** What a player of several stories left out, after it was written. */
+    storyLeftOut: (id: string) =>
+      `The story ${code(id)} was left out: it shows a diagram that cannot be drawn.`,
   },
 
   /** Why the catalog leaves an entry out, after its name, and its warnings. */

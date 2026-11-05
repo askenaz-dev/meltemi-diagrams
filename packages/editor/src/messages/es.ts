@@ -303,6 +303,10 @@ export const es: typeof en = {
       "El diagrama usa un tema integrado; crea un tema a partir de él para cambiar sus tokens.",
     storyNotDrawn: (story) =>
       `La historia ${code(story)} muestra un diagrama que no se puede dibujar; corrígelo primero en el texto.`,
+    storyCreated: (story) =>
+      `Se creó la historia ${code(story)}: selecciona en el fotograma y pulsa Agregar a la escena para llenar su primera escena.`,
+    storyNeedsDiagram:
+      "Una historia se crea para un diagrama de este archivo; muestra uno primero.",
     textChanged: "El texto cambió mientras editabas; el lienzo lo muestra de nuevo.",
     fixFirst: "Corrige los problemas del diagrama antes de editarlo en el lienzo.",
     scenario:
@@ -389,6 +393,15 @@ export const es: typeof en = {
     },
     profileProblems: "el perfil tiene problemas; corrígelos primero.",
     notExportable: (name) => `${code(name)} no es un diagrama ni una historia que exportar.`,
+    storiesNotDrawn: (ids) =>
+      `No se puede dibujar ninguna historia: ${ids.map(code).join(", ")} ${ids.length === 1 ? "muestra" : "muestran"} un diagrama que no se puede dibujar.`,
+    storiesHtml: "Todas las historias van en un solo reproductor HTML; elige el formato HTML.",
+    scenesStory: "Una imagen por escena necesita una historia.",
+    scenesFormat: "Una imagen por escena es una exportación SVG, PNG o PDF.",
+    scenesAt: "Una imagen por escena dibuja el estado final de cada escena; no admite un instante.",
+    noScenes: (id) => `${code(id)} no tiene escenas.`,
+    storyLeftOut: (id) =>
+      `Se dejó fuera la historia ${code(id)}: muestra un diagrama que no se puede dibujar.`,
   },
 
   catalog: {

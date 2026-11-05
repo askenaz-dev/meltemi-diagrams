@@ -115,6 +115,7 @@ import { addTag, removeTag, setTag } from "./tags.js";
 import { removeAnimation, setAnimation } from "./animate.js";
 import { createTheme, removeThemeToken, setThemeToken } from "./themes.js";
 import {
+  createStory,
   insertScene,
   insertStoryAction,
   removeStoryAction,
@@ -161,7 +162,10 @@ export function planEdit(
     const ctx: TextContext =
       "model" in operation
         ? createModelContext(createTextContext(compilation), operation.model)
-        : "story" in operation || "theme" in operation || operation.kind === "createDiagram"
+        : "story" in operation ||
+            "theme" in operation ||
+            operation.kind === "createDiagram" ||
+            operation.kind === "createStory"
           ? createTextContext(compilation)
           : createContext(compilation, operation.diagram);
     const edits =
@@ -173,7 +177,9 @@ export function planEdit(
             ? runTheme(ctx, operation)
             : operation.kind === "createDiagram"
               ? createDiagram(ctx, operation)
-              : run(ctx as EditContext, operation);
+              : operation.kind === "createStory"
+                ? createStory(ctx, operation)
+                : run(ctx as EditContext, operation);
     verifyResult(ctx, edits);
     const plan: EditPlan = {
       operation,
@@ -269,7 +275,10 @@ function run(
   ctx: EditContext,
   operation: Exclude<
     EditOperation,
-    { kind: "batch" | "createDiagram" } | ModelOperation | StoryOperation | ThemeOperation
+    | { kind: "batch" | "createDiagram" | "createStory" }
+    | ModelOperation
+    | StoryOperation
+    | ThemeOperation
   >,
 ): TextEdit[] {
   if (["setPosition", "setSize", "setRoute", "arrange"].includes(operation.kind)) {

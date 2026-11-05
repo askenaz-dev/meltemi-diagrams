@@ -26,7 +26,7 @@ import {
 } from "./controller.js";
 import { el, icon, ICONS, quote } from "./dom.js";
 import { easedDrillTime } from "./ease.js";
-import { isPlayerDocument, type PlayerDocument } from "./format.js";
+import { readPlayerDocument, type PlayerDocument } from "./format.js";
 import { drillSvg, frameSvg } from "./frame.js";
 import { messages } from "./messages/index.js";
 import { Stage } from "./stage.js";
@@ -112,6 +112,8 @@ export interface PlayerHandle {
   readonly zoom: number;
   /** The key of the view on screen. */
   readonly view: string;
+  /** A story document: the index of the story shown in its `stories`; 0 for effects. */
+  readonly story: number;
   /** The titles of the views above the one on screen, outermost first. */
   readonly trail: readonly string[];
   readonly selection: DetailRef | null;
@@ -119,6 +121,8 @@ export interface PlayerHandle {
   pause(): void;
   seek(ms: number): void;
   goToScene(index: number): void;
+  /** Shows another story of a story document, at its start, as the Story picker does. */
+  goToStory(index: number): void;
   setStatic(on: boolean): void;
   zoomIn(): void;
   zoomOut(): void;
@@ -235,6 +239,16 @@ export function mountPlayer(
   progress.style.accentColor = data.accent;
   const time = el("span", { class: "time", "aria-hidden": "true" });
   const scenes = el("select", { "aria-label": t.controls.scene });
+  // A document of several stories: the flows of one drawing, picked here.
+  const storyPicker = el("select", {
+    class: "stories",
+    "aria-label": t.controls.story,
+    title: t.controls.storyTitle,
+  });
+  const severalStories = controller.stories.length > 1;
+  for (const [i, entry] of controller.stories.entries()) {
+    storyPicker.append(el("option", { value: String(i) }, entry.title ?? entry.id));
+  }
   const staticButton = el(
     "button",
     { type: "button", "aria-label": t.controls.staticView, title: t.controls.staticTitle },
@@ -247,6 +261,7 @@ export function mountPlayer(
     ...(story ? [previous, next] : []),
     progress,
     time,
+    ...(severalStories ? [storyPicker] : []),
     ...(story ? [scenes] : []),
     staticButton,
   );
@@ -285,9 +300,15 @@ export function mountPlayer(
     ...(interactive ? [zoomGroup] : []),
   );
   if (options.controls === false) controls.hidden = true;
-  for (const [i, scene] of controller.scenes.entries()) {
-    scenes.append(el("option", { value: String(i) }, `${i + 1}. ${scene.title ?? scene.id}`));
-  }
+  /** The scene picker lists the scenes of the story shown. */
+  const fillScenes = () => {
+    scenes.replaceChildren(
+      ...controller.scenes.map((scene, i) =>
+        el("option", { value: String(i) }, `${i + 1}. ${scene.title ?? scene.id}`),
+      ),
+    );
+  };
+  fillScenes();
 
   const summary = el("details", { class: "summary" }, el("summary", {}, t.story.summary));
   const summaryText = el("div");
@@ -297,7 +318,7 @@ export function mountPlayer(
   const figure = el("figure", {
     class: "player",
     "aria-label": story
-      ? t.player.story(data.title ?? data.id)
+      ? t.player.story(controller.storyTitle ?? data.title ?? data.id)
       : t.player.diagram(data.title ?? data.id),
   });
   figure.append(
@@ -328,11 +349,16 @@ export function mountPlayer(
         { width: 1, height: 1 },
       )
     : null;
-  /** A view's title; a story's frame is named by the story. */
+  /** A view's title; a story's frame is named by the story shown. */
   const titleOf = (view: string) =>
-    data.kind === "story" || view === data.key
-      ? (data.title ?? data.names[view]?.title ?? data.id)
-      : controller.titleOf(view);
+    data.kind === "story"
+      ? (controller.stories[controller.story]?.title ??
+        data.names[view]?.title ??
+        controller.storyTitle ??
+        data.id)
+      : view === data.key
+        ? (data.title ?? data.names[view]?.title ?? data.id)
+        : controller.titleOf(view);
   const labelOf = (view: string, id: string) => data.names[view]?.labels[id] ?? id;
   const details = (view: string) => data.details[view];
 
@@ -620,20 +646,7 @@ export function mountPlayer(
       elementsList.hidden = buttons.length === 0;
     }
     if (data.kind === "story") {
-      if (summaryText.childElementCount === 0) {
-        const list = el("ol");
-        for (const scene of storySummary(data, locale)) {
-          list.append(
-            el(
-              "li",
-              {},
-              scene.heading,
-              el("ul", {}, ...scene.items.map((item) => el("li", {}, item))),
-            ),
-          );
-        }
-        summaryText.replaceChildren(list);
-      }
+      if (summaryText.childElementCount === 0) summarise();
     } else {
       const items = effectsSummary(data, locale, view);
       summaryText.replaceChildren(
@@ -651,6 +664,66 @@ export function mountPlayer(
     progress.hidden = endless;
     time.hidden = endless;
     stage.frame.dataset.view = view;
+  };
+
+  /**
+   * The text summary of a story document: the scenes of its story, or of every story in turn,
+   * each headed by its title, the one shown marked current.
+   */
+  const summarise = () => {
+    if (data.kind !== "story") return;
+    const list = (index: number) =>
+      el(
+        "ol",
+        {},
+        ...storySummary(data, locale, index).map((scene) =>
+          el(
+            "li",
+            {},
+            scene.heading,
+            el("ul", {}, ...scene.items.map((item) => el("li", {}, item))),
+          ),
+        ),
+      );
+    if (!severalStories) {
+      summaryText.replaceChildren(list(0));
+      return;
+    }
+    summaryText.replaceChildren(
+      ...data.stories.flatMap((entry, index) => [
+        el(
+          "h3",
+          index === controller.story ? { "aria-current": "true" } : {},
+          entry.title ?? entry.id,
+        ),
+        list(index),
+      ]),
+    );
+  };
+
+  /** Shows another story: its start, its scenes, its summary marked and its name announced. */
+  const pickStory = (index: number) => {
+    if (!severalStories || controller.drill) return;
+    hideCard();
+    panel.hide();
+    controller.goToStory(index);
+    storyPicker.value = String(controller.story);
+    fillScenes();
+    summarise();
+    const title = controller.storyTitle ?? data.id;
+    figure.setAttribute("aria-label", t.player.story(title));
+    // The frame of another flow fades in (the motion tokens are zero under reduced motion).
+    stage.picture.classList.remove("story-change");
+    void stage.picture.offsetWidth;
+    stage.picture.classList.add("story-change");
+    shownView = "";
+    announced = controller.sceneIndex;
+    run();
+    announce(t.player.pickedStory(title));
+    dispatch("meltemi-story", {
+      index: controller.story,
+      id: controller.stories[controller.story]?.id,
+    });
   };
 
   // ------------------------------------------------------------------ zoom
@@ -835,6 +908,7 @@ export function mountPlayer(
       markup = frameSvg(data, controller.frameTime, {
         static: controller.staticView,
         view: controller.view,
+        story: controller.story,
       });
       svg = markup;
       stage.setSize(storySize ?? sizeOf(controller.view));
@@ -866,6 +940,7 @@ export function mountPlayer(
     time.textContent = `${now} / ${end}`;
     const index = controller.sceneIndex;
     scenes.value = String(index);
+    storyPicker.value = String(controller.story);
     previous.disabled = index === 0 && (controller.staticView || controller.time === 0);
     next.disabled = index >= controller.scenes.length - 1;
     staticButton.setAttribute("aria-pressed", String(controller.staticView));
@@ -929,6 +1004,7 @@ export function mountPlayer(
     controller.goToScene(Number(scenes.value));
     run();
   });
+  storyPicker.addEventListener("change", () => pickStory(Number(storyPicker.value)));
   zoomIn.addEventListener("click", () => runViewer("zoomIn"));
   zoomOut.addEventListener("click", () => runViewer("zoomOut"));
   zoomLevel.addEventListener("click", () => runViewer("zoomActual"));
@@ -1055,6 +1131,9 @@ export function mountPlayer(
         ? frameSvg(data, 0, { static: controller.staticView, view: drill.spec.to })
         : svg;
     },
+    get story() {
+      return controller.story;
+    },
     get viewport() {
       return stage.viewer.viewport;
     },
@@ -1090,6 +1169,7 @@ export function mountPlayer(
       controller.goToScene(index);
       run();
     },
+    goToStory: (index) => pickStory(index),
     setStatic: (on) => {
       controller.setStatic(on);
       run();
@@ -1150,12 +1230,16 @@ class MeltemiPlayerElement extends HTMLElement {
     } catch {
       data = undefined;
     }
-    if (!isPlayerDocument(data)) {
+    // Version 2 pages still play: their one story is read as one of one.
+    const readable = readPlayerDocument(data);
+    if (!readable) {
       const root = this.shadowRoot ?? this.attachShadow({ mode: "open" });
       root.textContent = messages(locale).player.unreadable;
       return;
     }
-    this.player = mountPlayer(this, data, {
+    const story = this.getAttribute("story");
+    this.player = mountPlayer(this, readable, {
+      ...(story !== null ? { story } : {}),
       autoplay: this.hasAttribute("autoplay"),
       loop: this.hasAttribute("loop"),
       static: this.hasAttribute("static"),
@@ -1173,4 +1257,4 @@ class MeltemiPlayerElement extends HTMLElement {
 if (!customElements.get("meltemi-player")) {
   customElements.define("meltemi-player", MeltemiPlayerElement);
 }
-(globalThis as { MeltemiPlayer?: unknown }).MeltemiPlayer = { mountPlayer, frameSvg, version: 2 };
+(globalThis as { MeltemiPlayer?: unknown }).MeltemiPlayer = { mountPlayer, frameSvg, version: 3 };

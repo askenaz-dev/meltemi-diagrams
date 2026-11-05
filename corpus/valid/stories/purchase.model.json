@@ -845,6 +845,7 @@
       "autoplay": false,
       "loop": false,
       "embed": false,
+      "scenes": false,
       "range": {
         "start": {
           "offset": 1174,

@@ -108,6 +108,8 @@ export const ICONS = {
   play: "M5 3.5l8 4.5-8 4.5z",
   pause: "M5 3.5v9|M11 3.5v9",
   story: "M2.5 4.5h11v7h-11z|M6.5 6.5l3.5 1.5-3.5 1.5z",
+  /** A new story: the story's frame and its play mark, with a plus at the corner. */
+  newStory: "M1.5 5.5h9v7h-9z|M4.5 7.5l3 1.5-3 1.5z|M13 1.5v5|M10.5 4h5",
   close: "M4 4l8 8|M12 4l-8 8",
   search: "M7 3a4 4 0 1 1 0 8 4 4 0 0 1 0-8z|M10 10l3.5 3.5",
   lock: "M4.5 7.5h7v6h-7z|M6 7.5v-2a2 2 0 0 1 4 0v2",

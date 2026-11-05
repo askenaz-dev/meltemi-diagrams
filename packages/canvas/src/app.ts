@@ -1126,6 +1126,7 @@ export class CanvasApp {
       selection: () => this.storySelection,
       announce: (text, error) => this.announce(text, error),
       exportPlayer: (story) => this.post({ type: "exportPlayer", story }),
+      exportScenes: (story) => this.post({ type: "exportScenes", story }),
     });
     root.append(this.toolbar, main, this.storyPanel.element, this.tooltips.element);
     this.listen();
@@ -2327,6 +2328,15 @@ export class CanvasApp {
       actions.addEventListener(type, (e) => e.stopPropagation());
     }
     this.empty.append(actions);
+  }
+
+  /**
+   * Adds a story of one empty scene for the diagram shown (in story mode, the playing story's) to
+   * the file; the canvas plays it once it is written, and the status line says what to add.
+   */
+  private createStory(): void {
+    if (!this.act({ kind: "createStory" })) return;
+    this.storyPanel.element.focus({ preventScroll: true });
   }
 
   /** Adds an empty diagram of a kind to the file, which the canvas shows once it is written. */
@@ -5023,6 +5033,15 @@ export class CanvasApp {
     const exportButton = this.button(words.commands.exportSvg, ICONS.export, () =>
       this.post({ type: "export" }),
     );
+    // A new story of the diagram shown, or of the playing story's: in story mode at once.
+    const newStory = this.button(
+      words.toolbar.newStory,
+      ICONS.newStory,
+      () => this.createStory(),
+      undefined,
+      words.toolbar.newStoryTitle,
+    );
+    newStory.classList.add("new-story");
     this.storySelect.hidden = true;
     this.storySelect.addEventListener("change", () => {
       const value = this.storySelect.value;
@@ -5033,6 +5052,7 @@ export class CanvasApp {
       this.diagramSelect,
       newDiagram,
       this.storySelect,
+      newStory,
       this.scenarioSelect,
       beforePalette,
       ...palette,
@@ -5136,6 +5156,7 @@ export class CanvasApp {
     // (zoom, fit, the minimap, the grid, effects, export, stories) stays, so it is not `data-write`.
     for (const element of [
       newDiagram,
+      newStory,
       beforePalette,
       ...palette,
       more,

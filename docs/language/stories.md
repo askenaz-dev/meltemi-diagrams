@@ -31,6 +31,12 @@ story purchase for checkout {
 
 The story lasts 7.4 s: `overview` takes 0.8 + 1 s, `processing` 1.2 + 1.2 + 1.2 + 2 s.
 
+A file may hold several stories of the same diagram: the flows of one drawing, each with its own
+scenes over the same picture (a purchase, a refund, an outage). The canvas plays any of them from
+its story picker, `--stories` writes them into one HTML player whose **Story** picker offers each
+flow ([player.md](../player.md#several-stories)), and **New story** on the canvas starts the next
+one without writing its block by hand.
+
 ## Structure
 
 | Statement                                   | Where                 | Meaning                                                                                 |
@@ -134,16 +140,27 @@ does not resolve is reported by the import, not by the story.
 
 ## Exports
 
-| Command                                                                  | Result                                              |
-| ------------------------------------------------------------------------ | --------------------------------------------------- |
-| `pnpm mdg export purchase.meltemi --story purchase`                      | `purchase.purchase.svg`, the end of the story       |
-| `pnpm mdg export purchase.meltemi --story purchase --at 500ms`           | the frame at 500 ms                                 |
-| `pnpm mdg export purchase.meltemi --story purchase --format html`        | `purchase.purchase.html`, the HTML player           |
-| `pnpm mdg export purchase.meltemi --story purchase --at 3s --format png` | the frame at 3 s as PNG (or `pdf`)                  |
-| `pnpm mdg export purchase.meltemi --story purchase --format mp4`         | the whole story as a 1080p video (or `webm`, `gif`) |
+| Command                                                                   | Result                                              |
+| ------------------------------------------------------------------------- | --------------------------------------------------- |
+| `pnpm mdg export purchase.meltemi --story purchase`                       | `purchase.purchase.svg`, the end of the story       |
+| `pnpm mdg export purchase.meltemi --story purchase --at 500ms`            | the frame at 500 ms                                 |
+| `pnpm mdg export purchase.meltemi --story purchase --format html`         | `purchase.purchase.html`, the HTML player           |
+| `pnpm mdg export purchase.meltemi --story purchase --at 3s --format png`  | the frame at 3 s as PNG (or `pdf`)                  |
+| `pnpm mdg export purchase.meltemi --story purchase --format mp4`          | the whole story as a 1080p video (or `webm`, `gif`) |
+| `pnpm mdg export purchase.meltemi --story purchase --scenes`              | `purchase.purchase.overview.svg` and one per scene  |
+| `pnpm mdg export purchase.meltemi --story purchase --scenes --format pdf` | `purchase.purchase.pdf`, a page per scene           |
+| `pnpm mdg export flows.meltemi --stories`                                 | `flows.stories.html`, every story in one player     |
 
 `--story` writes one frame, so it cannot be combined with `--diagram`, `--scenario` or
 `--motion animated`; `--out` takes a file or an existing directory, `--stdout` prints the SVG.
+`--scenes` writes each scene's final state instead, the frame the player's static view shows: just
+before the next scene starts, and the end for the last one. SVG and PNG give a file per scene,
+named `<stem>.<story>.<scene>.<ext>` beside the file or in the directory `--out` names; PDF gives
+one file with a page per scene, every page the largest frame's size with each frame fitted and
+centred. `--scenes` cannot take `--at`, `--stdout`, `html` or a video format. `--stories` writes
+every story of the file into one HTML player in source order, or the ones listed in that order
+(`--stories refund,purchase`), also as a fragment with `--embed`; a story that cannot be drawn is
+left out and named. Profiles take `scenes true` ([export.md](export.md#profiles)).
 `validate` reports story diagnostics like any other. The HTML player plays the story with pause,
 progress, scenes, reduced motion, a static view and a text summary ([player.md](../player.md));
 video and GIF record it frame by frame ([export.md](export.md)).
@@ -175,4 +192,9 @@ Completion offers story statements, actions, transition kinds and the ids of the
 hover gives each action's place on the clock; the outline lists stories and scenes; definition,
 references and rename go from a story target to the element, also in imported files. The canvas
 plays a story read-only with a timeline: play, pause, scrub, drag the end of a bar to retime it,
-and **Add to scene** for the selection ([editor.md](../editor.md)).
+and **Add to scene** for the selection ([editor.md](../editor.md)). **New story**, beside the story
+picker, writes `story story1 for <diagram> { scene scene1 { } }` for the diagram shown (or the
+playing story's) and plays it at once, so **Add to scene** and the scene button fill it; the timeline's
+**Export scenes** writes a picture of every scene, and **Export HTML** the player. In the web app's
+export dialog and in VS Code's **Export HTML Player**, **Every story** writes the player of every
+story of a file that has more than one.
