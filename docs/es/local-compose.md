@@ -3,26 +3,33 @@
 [English](../local-compose.md)
 
 Ejecuta el editor web, el backend de proyectos y el MCP en tu equipo. Tu navegador y Claude Code o
-Codex editan los mismos proyectos. Necesitas Docker Compose y un agente instalado; no hacen falta
-cuenta de Meltemi, IDP, inicio de sesión, token de API ni instalar Node en el equipo.
+Codex editan los mismos proyectos. Necesitas Git y Docker Compose; para diagramar con un agente,
+necesitas también Claude Code o Codex instalado. No hace falta una cuenta de Meltemi ni instalar
+Node en el equipo.
 
 ## Iniciar
 
-Obtén el archivo de fuentes de una release desde [GitHub releases](https://github.com/askenaz-dev/meltemi-diagrams/releases)
-y extráelo, o selecciona esa release con Git. Abre una terminal en la carpeta que contiene
-`compose.yaml`. Debe estar ejecutándose Docker Engine con Compose en Linux, o Docker Desktop
-con contenedores Linux en Windows. El primer destino de contenedores es Linux amd64.
+Inicia Docker Engine con Compose en Linux, o Docker Desktop con contenedores Linux en Windows.
+Esta distribución admite contenedores Linux amd64.
+
+Abre una terminal en la carpeta donde quieras instalar Meltemi y ejecuta estos tres comandos
+(sirven en Bash y PowerShell). Descargan la versión publicada `v1.11.19` en una carpeta nueva
+`meltemi-local` e inician la aplicación:
 
 ```bash
+git clone --depth 1 --branch v1.11.19 https://github.com/askenaz-dev/meltemi-diagrams.git meltemi-local
+cd meltemi-local
 docker compose up
 ```
 
 El primer inicio construye la imagen y necesita red para descargar dependencias. Inicializa
 automáticamente el almacenamiento persistente y un proyecto predeterminado. Espera el mensaje
-de disponibilidad y abre [el editor local](http://127.0.0.1:8879/). El inicio también muestra la
-dirección y el prompt para configurar el agente. El navegador abre el proyecto predeterminado.
+de disponibilidad y abre **[http://127.0.0.1:8879/](http://127.0.0.1:8879/)** en tu navegador.
+Ya puedes editar el proyecto predeterminado. La terminal también muestra la dirección y el prompt
+para configurar el agente.
 
-Mantén abierta la terminal. `docker compose ps` en otra terminal muestra el estado del servicio.
+Mantén abierta la terminal. Ejecuta los siguientes comandos de Docker Compose desde `meltemi-local`.
+`docker compose ps` en otra terminal muestra el estado del servicio.
 Si el puerto 8879 está ocupado, detén el servicio que lo usa antes de iniciar Meltemi; no
 expongas el puerto del contenedor a la red como alternativa.
 
