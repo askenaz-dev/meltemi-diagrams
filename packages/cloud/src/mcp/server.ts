@@ -42,7 +42,10 @@ function handlersFor(session: McpSession): Record<string, AnyHandler> {
 export async function createServer(session: McpSession): Promise<McpServer> {
   return buildServer(
     { name: SERVER_NAME, title: SERVER_TITLE, version: await productVersion(session.op) },
-    instructions(session.op.config.origin),
+    instructions(session.op.config.origin) +
+      (session.op.deps.local
+        ? " This is a local single-user workspace with no authentication. Fourteen core project, file, version, account, open and preview tools are available; the thirteen sharing, guest live-session and publishing tools return local.feature-unavailable. Use the same project as the browser and preserve revisions and idempotency keys."
+        : ""),
     CATALOGUE,
     handlersFor(session),
     endpointHooks(session),

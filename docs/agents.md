@@ -182,6 +182,14 @@ every request must then carry it as its bearer token (`--bearer-token-env-var ME
 Codex, `--header "Authorization: Bearer …"` for Claude Code). The command, its options and its
 refusals are in [the command line](cli.md#the-local-mcp-server-mcp).
 
+## With the Docker workspace
+
+[The local Docker workspace](local-compose.md) starts the editor, backend and MCP together with
+`docker compose up`, without an account or token. **Set up my agent** in the editor gives you a
+prompt that installs the real Meltemi plugin and its native MCP entry for Claude Code or Codex.
+The plugin edits the same backend project as the open browser; it does not require a host CLI
+or another `mdg mcp` process. Follow its client activation continuation before diagramming.
+
 ## In this repository
 
 The canonical skill is `skills/meltemi-diagrams/`; `pnpm skills:sync` copies it to

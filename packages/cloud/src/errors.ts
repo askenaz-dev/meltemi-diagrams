@@ -3,6 +3,7 @@
  * lists them; a new code is added here first.
  */
 export const ERROR_STATUS = {
+  "local.feature-unavailable": 409,
   /** An unknown route. */
   "not-found": 404,
   "project.not-found": 404,
@@ -136,6 +137,7 @@ export class ApiError extends Error {
 }
 
 const MESSAGES: Record<ErrorCode, string> = {
+  "local.feature-unavailable": "This action is unavailable in a local workspace.",
   "not-found": "There is nothing at this address.",
   "project.not-found": "There is no such project.",
   "request.invalid": "The request cannot be used.",

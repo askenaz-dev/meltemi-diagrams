@@ -174,7 +174,9 @@ const scenarios: Scenario[] = [
 
       // Sign-ins: the stand-in's GitHub identity, the only one, which cannot be unlinked.
       await panel.getByRole("tab", { name: "Sign-ins" }).click();
-      const signins = panel.locator("#account-section-signins .signin-list .account-row");
+      const signins = panel.locator(
+        "#account-section-signins .signin-list .account-row:not(.skeleton)",
+      );
       await signins.first().waitFor();
       assert.equal(await signins.count(), 1);
       assert.equal(

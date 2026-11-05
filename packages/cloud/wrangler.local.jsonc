@@ -1,0 +1,93 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "meltemi-diagrams-local",
+  "main": "src/worker-local.ts",
+  "compatibility_date": "2026-09-15",
+  "compatibility_flags": ["global_fetch_strictly_public"],
+  "dev": {
+    "port": 8788,
+    "ip": "0.0.0.0",
+  },
+  "workers_dev": false,
+  "preview_urls": false,
+  "assets": {
+    "directory": "../playground/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "none",
+    "run_worker_first": true,
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "meltemi-diagrams",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "r2_buckets": [
+    {
+      "binding": "BLOBS",
+      "bucket_name": "meltemi-diagrams-blobs",
+    },
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "ROOMS",
+        "class_name": "ProjectRoom",
+      },
+      {
+        "name": "RENDERERS",
+        "class_name": "ProjectRenderer",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["ProjectRoom"],
+    },
+    {
+      "tag": "v2",
+      "new_sqlite_classes": ["ProjectRenderer"],
+    },
+  ],
+  "rules": [
+    {
+      "type": "Data",
+      "globs": ["**/*.woff2", "**/*.woff"],
+      "fallthrough": true,
+    },
+    {
+      "type": "Text",
+      "globs": ["**/*.json"],
+      "fallthrough": true,
+    },
+  ],
+  "alias": {
+    "@meltemi/diagrams-assets": "../assets/src/index.ts",
+    "@meltemi/diagrams-assist": "../assist/src/index.ts",
+    "@meltemi/diagrams-capture": "../capture/src/index.ts",
+    "@meltemi/diagrams-catalog": "../catalog/src/index.ts",
+    "@meltemi/diagrams-edit": "../edit/src/index.ts",
+    "@meltemi/diagrams-editor": "../editor/src/index.ts",
+    "@meltemi/diagrams-fonts": "../fonts/src/index.ts",
+    "@meltemi/diagrams-i18n": "../i18n/src/index.ts",
+    "@meltemi/diagrams-language": "../language/src/index.ts",
+    "@meltemi/diagrams-layout": "../layout/src/index.ts",
+    "@meltemi/diagrams-layout/shapes": "../layout/src/shapes.ts",
+    "@meltemi/diagrams-layout/viewport": "../layout/src/viewport.ts",
+    "@meltemi/diagrams-layout-elk": "../layout-elk/src/index.ts",
+    "@meltemi/diagrams-model": "../model/src/index.ts",
+    "@meltemi/diagrams-mcp": "../mcp/src/index.ts",
+    "@meltemi/diagrams-mcp/preview": "../mcp/src/preview/index.ts",
+    "@meltemi/diagrams-motion": "../motion/src/index.ts",
+    "@meltemi/diagrams-player": "../player/src/index.ts",
+    "@meltemi/diagrams-player/runtime": "../player/src/runtime.ts",
+    "@meltemi/diagrams-project": "../project/src/index.ts",
+    "@meltemi/diagrams-render": "../render/src/index.ts",
+  },
+  "vars": {
+    "ORIGIN": "http://127.0.0.1:8788",
+  },
+}

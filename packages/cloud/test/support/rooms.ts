@@ -356,6 +356,7 @@ export const awarenessFrame = (value: unknown): Uint8Array => jsonFrame(KIND.awa
 // The rooms
 
 export interface MemoryRoomsOptions {
+  readonly durableUpdates?: boolean;
   /** The store whose `project_blobs` the room asks about a hash (a fresh one by default). */
   readonly store: CloudStore;
   readonly clock: RoomClock;
@@ -421,6 +422,7 @@ export class MemoryRoom {
     const handles = new Set<unknown>();
     this.handles = handles;
     return new RoomCore({
+      durableUpdates: options.durableUpdates,
       storage: this.storage,
       now: () => clock.now().getTime(),
       setTimer: (milliseconds, run) => {
@@ -587,6 +589,7 @@ export interface World {
  * a fake clock and in-memory rooms: what a test of the room's rules needs.
  */
 export async function world(options: {
+  durableUpdates?: boolean;
   clock: World["clock"];
   store: CloudStore;
   materialise?: MemoryRoomsOptions["materialise"];
@@ -606,6 +609,7 @@ export async function world(options: {
   if (created !== "created") throw new Error("the test project was not created");
   await store.addProjectBlob(PROJECT, HASH);
   const rooms = memoryRooms({
+    durableUpdates: options.durableUpdates,
     store,
     clock,
     ...(options.materialise ? { materialise: options.materialise } : {}),

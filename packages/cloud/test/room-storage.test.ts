@@ -183,7 +183,6 @@ describe.skipIf(!sqlite)("the room's storage over SQL", () => {
     const first = new RoomCore(ports());
     await first.restore({ "a.meltemi": "a".repeat(2_000_000), "b.md": "b".repeat(700_000) }, {});
     await first.push({ files: { "c.txt": "pushed" } });
-    await first.flush();
     expect(rows(raw, "doc_chunks").length).toBeGreaterThanOrEqual(3);
 
     const second = new RoomCore(ports());

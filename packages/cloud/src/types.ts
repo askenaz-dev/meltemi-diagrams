@@ -4,8 +4,16 @@ import type { RenderersApi } from "./renderer-client.js";
 import type { RoomsApi } from "./rooms.js";
 import type { CloudStore, UserProfile } from "./store/types.js";
 
+/** Supplied only by the local Worker's entry point, never inferred from a request or variable. */
+export interface LocalInstance {
+  readonly origin: string;
+  readonly principal: Extract<Principal, { via: "local" }>;
+  readonly defaultProject: { readonly id: string; readonly url: string };
+}
+
 /** What the handlers need besides the request: everything with a side effect is injected. */
 export interface Deps {
+  readonly local?: LocalInstance;
   readonly store: CloudStore;
   /**
    * The authorization server's store, which its library reads as `env.OAUTH_KV` (`oauth/provider.ts`):
@@ -43,6 +51,11 @@ export interface Deps {
  * an OAuth access token of a grant the person approved (`mcp/caller.ts`).
  */
 export type Principal =
+  | {
+      readonly via: "local";
+      readonly sub: string;
+      readonly profile: UserProfile;
+    }
   | {
       readonly via: "cookie";
       readonly sub: string;

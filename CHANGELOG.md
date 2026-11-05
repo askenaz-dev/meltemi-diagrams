@@ -4,6 +4,20 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
+## Unreleased
+
+### Local workspace
+
+- `docker compose up` starts the editor, project backend and Streamable HTTP MCP on loopback,
+  with persistent storage and an immediately editable default project, without an IDP or tokens.
+- **Set up my agent** supplies a selected-project prompt that installs the Claude Code or Codex
+  plugin, its canonical diagramming references and native local MCP connection.
+- API writes and restores are durable before acknowledgement; local browser updates are saved
+  before relay. Failed saves preserve the previous source and revision. Hosted browser updates
+  keep their existing persistence budget.
+- Whole-instance backup and fresh-volume restore, offline flow/Gantt previews, and English/Spanish
+  [Docker Compose guides](docs/local-compose.md).
+
 ## 1.11.18
 
 Gantt charts are a fifth diagram type: sections of tasks, milestones and markers scheduled from

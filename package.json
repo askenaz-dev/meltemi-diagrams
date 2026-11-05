@@ -52,7 +52,9 @@
     "cloud:renderer-bundle": "tsx --conditions=@meltemi/diagrams-source packages/cloud/scripts/renderer-bundle.ts",
     "cli:bench-mcp": "tsx packages/cli/test/performance/mcp-bench.ts",
     "cloud:bench-renderer": "tsx --conditions=@meltemi/diagrams-source packages/cloud/test/performance/renderer-bench.ts",
-    "cloud:dev-session": "tsx packages/cloud/test/dev-session.ts"
+    "cloud:dev-session": "tsx packages/cloud/test/dev-session.ts",
+    "local:dev": "node --conditions=@meltemi/diagrams-source scripts/local/entry.mjs",
+    "local:test-browser": "tsx packages/cloud/test/browser/run-local.ts"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

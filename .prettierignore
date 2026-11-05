@@ -39,3 +39,4 @@ packages/assets/vendor/
 
 # Output of the test runner.
 .vitest/
+.test-output/

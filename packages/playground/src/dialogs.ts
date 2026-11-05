@@ -215,7 +215,7 @@ export async function shareDialog(playground: Playground): Promise<void> {
   const toLive =
     playground.cloud !== undefined
       ? h("button", { type: "button", class: "button with-text" }, live.save)
-      : session.kind !== "cookie"
+      : session.kind !== "cookie" && session.kind !== "local"
         ? h("a", { class: "button with-text", href: session.signIn }, live.signIn)
         : undefined;
   const liveNote = h(
@@ -256,11 +256,27 @@ export function aboutDialog(playground: Playground): void {
     )
     .catch(() => list.replaceChildren(h("li", {}, m.unreadable)));
   openDialog(m.title, [
-    markdown(m.text(playground.options.version)),
+    markdown(
+      playground.session.kind === "local"
+        ? messages().localWorkspace.about(playground.options.version)
+        : m.text(playground.options.version),
+    ),
     list,
     h("p", {}, h("a", { href: "NOTICES.md", target: "_blank", rel: "noopener" }, m.notices)),
     // The agent setup page beside the playground, in the interface's language (decision 0063).
-    h("p", {}, h("a", { href: m.agentsPage, target: "_blank", rel: "noopener" }, m.agents)),
+    h(
+      "p",
+      {},
+      h(
+        "a",
+        {
+          href: playground.session.kind === "local" ? "/agent-setup/local/prompt.md" : m.agentsPage,
+          target: "_blank",
+          rel: "noopener",
+        },
+        m.agents,
+      ),
+    ),
   ]);
 }
 

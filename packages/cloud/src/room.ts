@@ -75,7 +75,7 @@ export class ProjectRoom extends DurableObject<Env> {
   /** The project id the Worker last named, until the storage holds it. */
   private projectHint: string | undefined;
 
-  constructor(ctx: DurableObjectState, env: Env) {
+  constructor(ctx: DurableObjectState, env: Env, options: { durableUpdates?: boolean } = {}) {
     super(ctx, env);
     this.db = {
       exec: (query, ...bindings) => ctx.storage.sql.exec(query, ...bindings),
@@ -89,6 +89,7 @@ export class ProjectRoom extends DurableObject<Env> {
       return id;
     };
     this.core = new RoomCore({
+      durableUpdates: options.durableUpdates,
       // `storage` is replaced when the room is destroyed (the database is dropped and made again).
       storage: {
         load: () => this.storage.load(),

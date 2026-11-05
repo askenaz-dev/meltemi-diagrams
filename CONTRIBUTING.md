@@ -44,6 +44,9 @@ The repository is [askenaz-dev/meltemi-diagrams](https://github.com/askenaz-dev/
 - `browser`, on Linux with Chrome and FFmpeg: `pnpm playground:test-browser`,
   `pnpm player:test-browser`, `pnpm catalog:test-browser` and `pnpm vscode:test-webview`;
 - `cloud`, on Linux: `pnpm cloud:test-browser`, the Worker under `wrangler dev`.
+- `local-compose`, on Linux amd64: builds and starts the Docker distribution, checks native MCP
+  and shared browser editing without credentials, then verifies restart, whole-instance
+  backup/restore and a fresh offline start with SVG/PNG previews and plugin bundles.
 
 `pnpm vscode:test`, which downloads VS Code, stays a local step of [releasing](RELEASING.md). A
 successful push CI on `main` releases the packages and extension (`release.yml`) and deploys the

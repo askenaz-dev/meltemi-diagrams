@@ -637,6 +637,7 @@ describe("destroying a room", () => {
     const w = await setup();
     await w.rooms.push(PROJECT, { files: { "a.meltemi": "first life" } });
     await w.rooms.destroy(PROJECT);
+    const writesBeforeLateCaller = w.room.storage.saves.length;
 
     // A script that reconnects, a token that was valid when the deletion began.
     const late = await w.open();
@@ -653,7 +654,7 @@ describe("destroying a room", () => {
     // Nothing was written into the storage that was just emptied, and nothing is scheduled.
     await w.rooms.advance(5 * 60 * SECOND);
     expect(w.room.storage.chunks).toBeUndefined();
-    expect(w.room.storage.saves).toHaveLength(0);
+    expect(w.room.storage.saves).toHaveLength(writesBeforeLateCaller);
     expect(await w.rooms.read(PROJECT)).toMatchObject({ revision: 0, files: {} });
   });
 

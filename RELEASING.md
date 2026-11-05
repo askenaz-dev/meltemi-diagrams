@@ -1,7 +1,7 @@
 # Releasing
 
 Every successful **push CI on main** starts release and hosted deployment automatically. Nobody
-bumps patch versions, commits generated versions, or pushes release tags by hand. Nineteen npm
+bumps patch versions, commits generated versions, or pushes release tags by hand. Twenty npm
 packages, CLI and VS Code extension share one product version. Language/model/renderer versions
 remain separate contracts.
 

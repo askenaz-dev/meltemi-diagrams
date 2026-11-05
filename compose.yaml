@@ -1,0 +1,25 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:${MELTEMI_PORT:-8879}:8788"
+    environment:
+      MELTEMI_ORIGIN: "http://127.0.0.1:${MELTEMI_PORT:-8879}"
+      MELTEMI_DATA: /data
+      MELTEMI_BIND: 0.0.0.0
+      MELTEMI_LISTEN_PORT: "8788"
+    volumes:
+      - diagrams-data:/data
+    init: true
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD", "node", "scripts/local/health.mjs"]
+      interval: 10s
+      timeout: 5s
+      start_period: 90s
+      retries: 3
+
+volumes:
+  diagrams-data:

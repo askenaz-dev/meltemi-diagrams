@@ -117,6 +117,7 @@ const TRANSLATED = [
     "compatibility",
     "performance",
     "agents",
+    "local-compose",
   ].map((name) => `docs/${name}.md`),
   ...["language", "tracks", "import"].flatMap((folder) =>
     readdirSync(join(REPO_ROOT, "docs", folder))

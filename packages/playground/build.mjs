@@ -34,6 +34,7 @@ const repo = join(here, "..", "..");
 const dist = join(here, "dist");
 const assets = join(dist, "assets");
 const version = JSON.parse(readFileSync(join(here, "package.json"), "utf8")).version;
+const localWorkspace = process.env.PLAYGROUND_LOCAL === "true";
 // The identity service the page signs in with (`PLAYGROUND_IDENTITY`, default https://id.meltemi.dev).
 // Checked first: a wrong value stops the build before it touches dist.
 const identity = identityOrigin(process.env.PLAYGROUND_IDENTITY);
@@ -350,7 +351,12 @@ if (missing.length > 0) {
   );
 }
 
+if (localWorkspace) {
+  const { writeLocalAgentAssets } = await import("../../scripts/local-agent-plugins.mjs");
+  await writeLocalAgentAssets({ repo, dist, version });
+}
+
 const size = (file) => `${Math.round(statSync(file).size / 1024)} KB`;
 console.log(
-  `Built ${relative(repo, dist).split(sep).join("/")}: playground.js (${size(join(dist, "playground.js"))}), ${Object.keys(page.metafile.outputs).filter((o) => o.endsWith(".js")).length} scripts, the sea in ${sea.chunks.length} (${(sea.gzip / 1024).toFixed(1)} KB gzipped), ${templates.length} templates, ${packages.length} third-party packages noted; signing in at ${identity}.`,
+  `Built ${relative(repo, dist).split(sep).join("/")}: playground.js (${size(join(dist, "playground.js"))}), ${Object.keys(page.metafile.outputs).filter((o) => o.endsWith(".js")).length} scripts, the sea in ${sea.chunks.length} (${(sea.gzip / 1024).toFixed(1)} KB gzipped), ${templates.length} templates, ${packages.length} third-party packages noted; ${localWorkspace ? "local workspace without an identity service" : `signing in at ${identity}`}.`,
 );

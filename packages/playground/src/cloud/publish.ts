@@ -43,6 +43,7 @@ let dialogs = 0;
 
 /** Opens the dialog of the open cloud project of a playground. */
 export function openPublishDialog(playground: Playground): void {
+  if (playground.session.kind === "local") return;
   const cloud = playground.cloud;
   const project = cloud?.openProject;
   const env = playground.options.cloud;

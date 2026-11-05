@@ -124,13 +124,18 @@ export const collaborationRoomScenarios: Scenario[] = [
 
       // Now both sockets are cut with nothing in the way: the browser learns of it about two seconds
       // later, and what is typed meanwhile is offered to the room when the page is back.
+      // Observe the transient states before cutting: a quick reconnect may finish while typing.
+      const leftConnected = Promise.all([
+        connectionLeaves(ana, "connected", "saving"),
+        connectionLeaves(bens, "connected", "saving"),
+      ]);
+      void leftConnected.catch(() => undefined);
       assert.equal(await cutRoom(t.me, project.id), 2, "both sockets were cut");
       await typeAtEnd(ana, "\n// Ana before she knew");
       await bens.locator(".code-input").click();
       await bens.keyboard.press("Control+Home");
       await bens.keyboard.type("// Ben before he knew\n", { delay: 12 });
-      await connectionLeaves(ana, "connected", "saving");
-      await connectionLeaves(bens, "connected", "saving");
+      await leftConnected;
       await connected(ana, "Ana to reconnect by herself");
       await connected(bens, "Ben to reconnect by himself");
       const again = await roomHolds(

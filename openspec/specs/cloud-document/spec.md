@@ -2,14 +2,16 @@
 
 ## Purpose
 A cloud project as a Yjs document held by one Durable Object room per project: the document shape and its path rule, the socket route and protocol, persistence, pushes and reads, materialisation to content-addressed files, and the bounds on rows written.
+
 ## Requirements
+
 ### Requirement: A project is a Yjs document in a room
 A cloud project SHALL be a Yjs document with `files` (file id → `Y.Text`, the text files the
 page edits), `paths` (file id → path, text and binary files alike) and `binaries` (file id →
 SHA-256 of the bytes), held by one Durable Object `ProjectRoom` per project, SQLite-backed,
 that loads the document from its storage on construction, applies every update as a
 transaction, bumps a `revision` per transaction, and persists the encoded document and the
-revision as a throttle: at most once per second while changes keep arriving, once more after
+revision as a throttle for hosted WebSocket edits: at most once per second while changes keep arriving, once more after
 the last one, at the latest ten seconds after the first unpersisted change, and when the last
 client leaves; the encoded state SHALL be stored in chunks of at most 1 MiB with the revision
 in one storage transaction. A rename SHALL be a change of the id's entry in `paths`; two ids
@@ -25,11 +27,11 @@ per text, 16 MiB encoded); a transaction that breaks a rule SHALL be rolled back
 with `path.invalid`, `doc.invalid`, `blob.unknown`, `doc.too-large` or `quota.files`.
 
 #### Scenario: Persisted while typing
-- **WHEN** a client sends an update every 200 ms for five seconds and then nothing
+- **WHEN** a hosted client sends an update every 200 ms for five seconds and then nothing
 - **THEN** the room's storage holds the encoded document with every update and a revision raised by every transaction, written between five and seven times
 
 #### Scenario: Never later than ten seconds
-- **WHEN** a client sends an update every 500 ms without a pause
+- **WHEN** a hosted client sends an update every 500 ms without a pause
 - **THEN** the room's storage holds a state at most ten seconds old at any moment
 
 #### Scenario: A large document reloads
@@ -51,6 +53,18 @@ with `path.invalid`, `doc.invalid`, `blob.unknown`, `doc.too-large` or `quota.fi
 #### Scenario: An unknown hash is rolled back
 - **WHEN** an update sets a `binaries` entry to a hash the project never uploaded
 - **THEN** the document is unchanged and the client receives kind 4 with `blob.unknown`
+
+The separate local room SHALL persist every accepted source update before acknowledging or
+relaying it. This policy SHALL be selected by the local Durable Object constructor, never by
+request headers or a hosted configuration flag. Hosted socket edits retain the throttle above.
+
+#### Scenario: Local browser update survives immediate reconstruction
+- **WHEN** a local browser update has been accepted and relayed, and the room is reconstructed immediately without advancing timers or closing sockets
+- **THEN** the source, binary references and revision match the accepted state
+
+#### Scenario: Failed local browser persistence
+- **WHEN** local room storage refuses an update
+- **THEN** the room refuses it without relaying a positive update, preserves its prior document/revision and reconstructs with that prior state
 
 ### Requirement: The room's protocol
 The page SHALL connect to `wss://<origin>/rooms/<id>`, with `?live=<token>` for a live session
@@ -134,6 +148,22 @@ hold `400 blob.unknown`, with nothing applied.
 - **WHEN** a push names `..\\x.meltemi` among its files
 - **THEN** the answer is `400 path.invalid` and the room's revision is unchanged
 
+A successful push or restore SHALL save the encoded document and resulting revision atomically
+before its response or update broadcast. A storage failure SHALL return `internal`, preserve the
+prior document/revision and allow a retry with the original revision, without a positive broadcast.
+
+#### Scenario: Rapid acknowledged API writes survive a restart
+- **WHEN** several pushes including an uploaded binary and source edit are acknowledged, then the room is reconstructed immediately without advancing persistence timers
+- **THEN** the complete latest source, binary references and revision are preserved
+
+#### Scenario: Acknowledged restore survives a restart
+- **WHEN** a restore removes and replaces files and is acknowledged, then the room is reconstructed immediately
+- **THEN** the restored source, removals, binary references and revision are preserved
+
+#### Scenario: API persistence failure is atomic
+- **WHEN** storage refuses a push or restore
+- **THEN** no positive response or update is sent, the prior source/revision remains readable and a retry with that revision can succeed
+
 ### Requirement: Materialisation to content-addressed files
 Thirty seconds after the last change, when the last client leaves, and before a version is
 made, the room SHALL materialise by diff: every text file's bytes hashed with SHA-256, new
@@ -150,9 +180,17 @@ updated. The same content SHALL produce the same hash and no second blob.
 - **WHEN** R2 refuses a write
 - **THEN** the room keeps its document and revision, logs the failure without the content, and retries at the next trigger
 
+Before a positive explicit materialisation/version checkpoint, the room SHALL save any dirty
+encoded room state and its revision. If that save fails it SHALL refuse the checkpoint before
+materialising an unpersisted candidate.
+
+#### Scenario: A version checkpoint requires durable room state
+- **WHEN** hosted socket edits are still awaiting their timer and explicit materialisation is requested
+- **THEN** the room state is saved before a positive result and survives immediate reconstruction; a failed room save refuses the checkpoint
+
 ### Requirement: Rows written stay bounded
-In development the room SHALL expose `GET /stats` with the counts of storage writes,
-materialisations, D1 rows written and incoming messages, and the cloud browser suite SHALL type
+In hosted development the room SHALL expose `GET /stats` with the counts of storage writes,
+materialisations, D1 rows written and incoming messages, and the hosted cloud browser suite SHALL type
 for one minute in a project and assert at least 20 and at most 90 storage writes, at most 3
 materialisations, at most 60 D1 rows written and at most 300 incoming messages.
 
@@ -163,6 +201,13 @@ materialisations, at most 60 D1 rows written and at most 300 incoming messages.
 #### Scenario: Not in production
 - **WHEN** `DEV` is not set
 - **THEN** `GET /stats` answers 404
+
+The immediate durability of the single-user local room is outside this hosted batching budget.
+Local debug/statistics HTTP surfaces remain unavailable.
+
+#### Scenario: Local durability does not select a hosted policy
+- **WHEN** local and hosted rooms are constructed
+- **THEN** the local room saves accepted updates immediately while the hosted minute-of-typing scenario still meets its existing write budget
 
 ### Requirement: Roles in the room
 The Worker SHALL pass the resolved role (`owner`, `editor`, `viewer`) and whether the
@@ -256,4 +301,3 @@ A kind 2 state's `canvas` part MAY hold `laser: { diagram?, points }` beside, or
 #### Scenario: States survive hibernation without the laser
 - **WHEN** two clients have published states with lasers, the room is evicted from memory, and a third client connects
 - **THEN** it receives both states' identities, files and carets, and no laser
-

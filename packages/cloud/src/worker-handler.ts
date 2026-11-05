@@ -5,12 +5,11 @@
 // so that the Node tests can import this one.
 
 import type { SessionVerifier } from "@meltemi/identity";
-import { collectBlobs } from "./collect.js";
 import { ConfigError } from "./config.js";
 import { errorResponse, fail } from "./errors.js";
 import { cloud } from "./handler.js";
-import { KEPT_MS } from "./idempotency.js";
-import { d1OAuthStore, sweepOAuthStore } from "./oauth/store.js";
+import { d1OAuthStore } from "./oauth/store.js";
+import { maintainState } from "./maintenance.js";
 import { durableRenderers } from "./renderer-client.js";
 import { durableRooms } from "./room-client.js";
 import { resolveSecrets } from "./secrets.js";
@@ -69,22 +68,6 @@ export default {
    */
   async scheduled(_controller: unknown, given: Env): Promise<void> {
     const env = await resolveSecrets(given);
-    const store = d1Store(env.DB);
-    let swept: unknown;
-    try {
-      const now = new Date();
-      await store.sweep(now.toISOString());
-      // The idempotency keys older than a day: an account's own are swept by its next key too.
-      await store.sweepKeys(new Date(now.getTime() - KEPT_MS).toISOString());
-      // The OAuth codes, tokens and consents that expired: no read of the store removes one.
-      await sweepOAuthStore(env.DB, now.getTime());
-    } catch (error) {
-      swept = error;
-    }
-    const result = await collectBlobs({ store, blobs: env.BLOBS, now: () => new Date() });
-    if (swept !== undefined) throw swept;
-    console.log(
-      `cloud: collection: ${result.rows} blobs removed, ${result.objects} objects deleted, ${result.orphans} orphans${result.failures > 0 ? `, ${result.failures} deletes failed` : ""}${result.truncated ? ", more to collect next time" : ""}`,
-    );
+    await maintainState(env);
   },
 };

@@ -6,11 +6,13 @@ import { MANIFEST_NAME } from "@meltemi/diagrams-project";
 import { cleanPath, isTextPath } from "../files.js";
 import { messages } from "../messages/index.js";
 import type { CloudController } from "../cloud/controller.js";
+import { localCloudWords } from "../cloud/local-workspace.js";
 import { ProjectsModel, checkProjectName, nameProblem } from "../cloud/projects-model.js";
 import { field, h, openDialog } from "../ui.js";
 import { ZipError, readZip } from "../zip.js";
 
 export interface ImportHost {
+  readonly localWorkspace?: boolean;
   readonly cloud: CloudController | undefined;
   /** The name of the project that is open, as the explorer's header shows it. */
   openName(): string;
@@ -105,7 +107,15 @@ export async function importProject(archive: File, host: ImportHost): Promise<vo
   const status = h("p", { class: "projects-status", role: "status" });
   const progress = h("progress", { class: "import-progress", max: 1, value: 0, hidden: true });
   const options = [
-    ...(cloud ? [option(toCloud, words.newCloud, words.newCloudHint)] : []),
+    ...(cloud
+      ? [
+          option(
+            toCloud,
+            host.localWorkspace ? messages().localWorkspace.inWorkspace : words.newCloud,
+            host.localWorkspace ? messages().localWorkspace.inWorkspaceHint : words.newCloudHint,
+          ),
+        ]
+      : []),
     option(toBrowser, words.browser, words.browserHint),
     // Replacing the project of this browser is what This browser does already.
     ...(!host.readOnly() && !host.localOpen()
@@ -128,7 +138,7 @@ export async function importProject(archive: File, host: ImportHost): Promise<vo
       progress.hidden = false;
       const model = new ProjectsModel(
         cloud,
-        () => messages().cloud,
+        () => (host.localWorkspace ? localCloudWords() : messages().cloud),
         (state) => {
           status.textContent = state.status;
           problem.textContent = state.problem;

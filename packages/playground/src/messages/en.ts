@@ -87,6 +87,36 @@ export const en = {
     signOut: "Sign out",
   },
 
+  localWorkspace: {
+    label: "Local workspace",
+    setUpAgent: "Set up my agent",
+    intro:
+      "Paste this prompt into Claude Code or Codex on this computer. It installs the Meltemi plugin and connects its MCP to the project you have open.",
+    activation:
+      "Your agent verifies that its tools are active. If its client needs a reload or a new session, it gives you the continuation for this project.",
+    promptLabel: "Agent setup prompt",
+    copy: "Copy prompt",
+    copied: "Agent setup prompt copied.",
+    select: "Select the prompt and copy it.",
+    openProject: "Open a workspace project before setting up your agent.",
+    prompt: (instructions: string, id: string, url: string) =>
+      `Install the Meltemi Diagrams plugin and configure its local MCP following ${instructions}. Meltemi is already running on this computer without authentication. Use project ${id} (${url}). Verify that the plugin and its native MCP tools are active, then diagram with me in that project. Preserve other client configuration and tell me the exact continuation if activation requires a reload or new session.`,
+    connecting: "Connecting to the local workspace…",
+    connected: "Saved to the local workspace",
+    gone: "Deleted from the local workspace",
+    synced: "Connected again: your changes are saved locally.",
+    projects: "Workspace projects",
+    noProjects: "No workspace projects yet. Create one or save the project you have open.",
+    save: "Save to the local workspace",
+    saveLabel: "Project name",
+    saving: (name: string) => `Saving ${name} to the local workspace…`,
+    saved: (name: string) => `Saved ${name} to the local workspace.`,
+    inWorkspace: "In the local workspace",
+    inWorkspaceHint: "Stored on this computer and shared with your connected agents.",
+    about: (version: string) =>
+      `**Meltemi Diagrams ${version}** runs on this computer. The browser and your connected agents edit the same projects in the local workspace. Docker keeps their source, versions and assets between restarts. No Meltemi account or external identity service is needed.\n\nMeltemi Diagrams is MIT. Bundled components keep their own licences, listed below.`,
+  },
+
   /** The API tokens dialog, opened from the account menu. */
   tokens: {
     title: "API tokens",
