@@ -66,7 +66,8 @@ page of a diagram SHALL bundle every view reachable by drill-down from it across
 child views scoped to its entities and the diagrams its elements link to), laid out once each,
 views with errors or that cannot be drawn left out with the targets that lead to them, and the
 command SHALL report how many views it bundled; the page of several stories SHALL report how many
-stories it holds and name those left out, their diagnostic printed once. `--at`, `--motion
+stories it holds and name those left out, their diagnostic printed once. HTML SHALL be the format
+of `--stories` when none is given. `--at`, `--motion
 animated` and `--fonts outlined` with `--format html`, `--stories` with `--story`, with another
 format or with an id that is no story of the file (the available ones listed) SHALL be usage
 errors. Embedded data SHALL never end its script element. Writing the same sources twice SHALL
@@ -103,6 +104,10 @@ otherwise.
 - **WHEN** `mdg export flows.meltemi --format svg --stories` runs
 - **THEN** the usage error says `--stories` writes an HTML player, nothing is written and the exit
   code is 2
+
+#### Scenario: HTML when no format is given
+- **WHEN** `mdg export flows.meltemi --stories` runs
+- **THEN** `flows.stories.html` is written, as with `--format html`
 
 #### Scenario: An id that is no story
 - **WHEN** `mdg export flows.meltemi --format html --stories purchase,tour` runs and `tour` does

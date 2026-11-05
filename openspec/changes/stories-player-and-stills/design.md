@@ -62,8 +62,11 @@ proposal.md for the motivation.
 2. **The picker belongs to the control bar.** When `stories.length > 1` the runtime adds a
    `<select aria-label="Story">` before the scene picker, options `title ?? id`, and
    `PlayerController` gains `story` (index), `goToStory(index)` (time 0, playing stopped, the
-   static view kept, the viewport kept, as a scene change keeps it), `scenes` and `duration` of
-   the chosen story; `handle.story` and `goToStory` are public. The element attribute
+   static view kept, in which the time is the first scene's final state as everywhere in the
+   static view, the viewport kept, as a scene change keeps it), `scenes` and `duration` of the
+   chosen story; `handle.story` (the index) and `goToStory` are public, and the element dispatches
+   `meltemi-story` with the index and id. The frame of the new flow fades in over the slow motion
+   token (zero under reduced motion). The element attribute
    `story="<id>"` picks the first shown (unknown ids fall back to the first entry) and
    `ElementOptions.story` writes it. The live region says "Story: <title>" (Spanish "Historia:
    <título>"), the frame's name and the summary follow the chosen story, and the summary of a
@@ -76,11 +79,14 @@ proposal.md for the motivation.
    { kind: "stories", stories: StoryDefinition[] }`, which `produceExport` lays out through
    `storyLayoutsIn` per story (views cached by key within the request) and
    `storiesDocument`; the output is `<stem>.stories.html` (or the fragment with `--embed`), and
-   the `Wrote` line says how many stories it holds and names the ones left out with their
-   diagnostic printed once. `--stories` with `--story`, with any other format, with `--at`, or
-   with a folder is a usage error (exit 2), and an id that is no story of the file lists the
-   available ones. The web dialog's **Every story (N)** target and VS Code's **Every story**
-   quick pick entry build the same request; the dialog shows the HTML format only for it (the
+   the `Wrote` line says how many stories it holds (`Wrote flows.stories.html (2 stories)`); each
+   story left out is a notice after it ("The story `outage` was left out: …"), its diagnostic
+   printed once with the file's. HTML is the format of `--stories` when `--format` is not given (a
+   default instead of a refusal, as the owner prefers). `--stories` with `--story`, `--diagram`,
+   `--scenario`, `--scenes`, any other format, `--at`, or a folder is a usage error (exit 2), and
+   an id that is no story of the file lists the available ones. The output carries the ids of the
+   stories it holds (`stories`), so the hosts name them. The web dialog's **Every story (N)**
+   target and VS Code's **Every story** quick pick entry build the same request; the dialog shows the HTML format only for it (the
    other options hidden as for a story, with Autoplay and Loop kept). Alternatives: repeating
    `--story` (ambiguous with the one-frame meaning); an `export … for stories` profile (a new
    target form of the language for a page the command line writes in one go).
@@ -105,34 +111,46 @@ proposal.md for the motivation.
    (`ICONS.story`, `data-write`) after `storySelect`, shown whenever a diagram is shown or a
    story plays and hidden on a read-only canvas and in the empty state; it posts
    `{ type: "createStory" }`. `CanvasAction` and the protocol gain `createStory` and
-   `exportScenes { story }`; `StoryPanel` adds **Export scenes** (`ICONS.export`, text "Export
+   `exportScenes { story }`; `StoryPanel` adds **Export scenes** (`ICONS.image`, text "Export
    scenes") beside **Export HTML**, which calls `host.exportScenes(story)`; the hosts answer:
    VS Code with a quick pick of SVG, PNG and PDF and `produceExport` beside the file
-   (`exportScenes` in `commands.ts`), the web app by opening the export dialog on that story
-   with the format SVG and **One picture per scene** checked. Alternative: a palette command in
+   (`exportScenes` in `commands.ts`, which takes the format for callers that know it), the web app
+   by opening the export dialog on that story with the format SVG and **One picture per scene**
+   checked. **New story** has its own glyph (the story's frame with a plus) and **Export scenes**
+   the picture glyph, so they read apart from **Add to scene** and **Export HTML**; the timeline
+   rises in over the slow motion token when story mode starts. Alternative: a palette command in
    VS Code (**Export Scenes**); not added, the timeline is where the story is.
 
 6. **Scene stills are the static view's frames.** `@meltemi/diagrams-motion` gains
    `sceneStills(timeline)`: for each scene, its id, title and the instant of its final state
    (the scene's end for the last scene, `end - 0.01` otherwise, the controller's rule moved to
    motion so the player and the exporters share it). `ExportRequest` gains `scenes: boolean`
-   (false by default): with a story target and `svg` or `png`, `produceExport` returns a new
-   output `{ texts: [{ name, text }] }` or `{ jobs: [{ name, job }] }` of one frame per scene,
-   named `<stem>.<story>.<scene>.<ext>`; with `pdf`, one `CaptureJob { kind: "pdf", pages:
-   [{ svg, width, height }] }` whose page is `capturePage` with a `section` per frame, every
-   page the largest frame's size with its frame fitted and centred (as videos fit frames),
-   printed by `packages/capture` to one PDF named `<stem>.<story>.pdf`. `scenes` with `at`,
-   `html` or a video is refused by the request builder with the CLI's wording. The CLI writes
-   every file and prints `Wrote` per file; `--out` must be a directory for SVG and PNG (a file
-   is a usage error) and may be a file for PDF; `--stdout` is a usage error with `--scenes`.
+   (optional, false when left out): with a story target and `svg` or `png`, `produceExport`
+   returns a new output `{ texts: SceneOutput<string>[] }` or `{ jobs: SceneOutput<CaptureJob>[] }`
+   of one frame per scene, each `{ scene, name, out, output }`, named after the request's `out`
+   with the scene's id before the extension (`sceneFileName`), or `<stem>.<story>.<scene>.<ext>`
+   without one, so a profile's files are `<stem>.<profile>.<scene>.<ext>`; with `pdf`, one
+   `CaptureJob { kind: "pdf", width, height, svg, pages: [{ svg, background }] }` whose size is
+   every page's, the largest frame's (or `size`), and whose `svg` is the first page's;
+   `capturePage` writes a `section` per page on its own background, each frame fitted and
+   centred, printed by `packages/capture` to one PDF named `<stem>.<story>.pdf`. `scenes` with `at`,
+   `html` or a video is refused by the request builder with the CLI's wording, and by
+   `produceExport` too. The CLI writes every file and prints `Wrote` per file; `--out` must be a
+   directory for SVG and PNG, an existing one or a new one named without an extension, which is
+   made (a file is a usage error), and may be a file for PDF; `--stdout` is a usage error with
+   `--scenes`.
    Alternatives: `--at` per scene by hand (today); a single SVG sheet of every scene (a layout
    of its own; a PDF page per scene is what slides and documents take).
 
 7. **Profiles take `scenes`.** `packages/model/src/export.ts` adds the boolean option
-   `scenes` for `svg`, `png` and `pdf` with a story target (`export.invalid-option` otherwise,
-   also with `at`); `file` with `scenes` is `export.invalid-option` on `svg` and `png` (several
-   files) and names the PDF. `profileRequest` sets `scenes` and the CLI's `--profile` writes the
-   files as `--scenes` does.
+   `scenes` (`true` or `false`) for `svg`, `png` and `pdf` with a story target
+   (`export.invalid-option` otherwise, also with `at`, on `at`); `file` with `scenes` is
+   `export.invalid-option` on `svg` and `png` (several files) and names the PDF.
+   `profileRequest` sets `scenes` and the CLI's `--profile` writes the files as `--scenes` does.
+   The model JSON's export profiles gain the key `scenes` within version `0.1` (keys are added
+   within a version), so the JSON still describes every option written; the corpus snapshot of
+   `purchase` gains `"scenes": false`. Completion offers `true` and `false`, hover documents it,
+   and the VS Code grammar colours it.
 
 8. **The web app zips the stills and prints the pages.** With **One picture per scene**
    checked (a checkbox shown for a story target with SVG, PNG or PDF, unchecked at each
@@ -154,7 +172,7 @@ proposal.md for the motivation.
 
 10. **The decision note.** `docs/decisions/0070-stories-as-the-flows-of-a-diagram.md` records
     the document version, the picker, the edit, the stills' instant and the non-goals; 0023
-    gets "Amended by 0070" on its status line for the document version and the player.
+    and 0024 (the player's document) get "Amended by 0070" on their status lines.
 
 ## Risks / Trade-offs
 
