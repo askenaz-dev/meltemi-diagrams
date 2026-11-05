@@ -2168,10 +2168,14 @@ sign-ins do not carry; the row keeps the id for the day they do.
 - [ ] In the Sponsors dashboard, create the webhook: payload URL
       `https://diagrams.meltemi.dev/_sponsors/github`, content type `application/json`, a long random
       secret, and the `sponsorship` event.
-- [ ] Give the same secret to the family's infrastructure as `sponsors_webhook_secret` (Meltemi
-      Web's Terraform stores it as `SPONSORS_WEBHOOK_SECRET` in the Secrets Store), and set
-      `"SPONSORS_ACCOUNT": "askenaz"` in `wrangler.jsonc`.
+- [ ] Give the same secret to the family's infrastructure: the secret `SPONSORS_WEBHOOK_SECRET` of
+      Meltemi Web's `infrastructure` environment, which its Terraform reads as
+      `sponsors_webhook_secret` and stores as `SPONSORS_WEBHOOK_SECRET` in the Secrets Store (a
+      single space until then), and set `"SPONSORS_ACCOUNT": "askenaz"` in `wrangler.jsonc`.
 - [ ] After the deploy, check that GitHub's dashboard shows the webhook's `ping` answered `200`.
+- [ ] Add **Support the project** to meltemi.dev/diagrams/ and /es/diagrams/ in Meltemi Web,
+      linking `https://github.com/sponsors/askenaz`: that page only redirects to the profile until
+      the account is enrolled, so the link waits for these steps.
 
 The two sides of the secret drift only by hand: a delivery answered `401` in the dashboard says so,
 and the owner enters the same secret on both again.

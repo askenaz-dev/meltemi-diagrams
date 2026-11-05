@@ -18,7 +18,7 @@ Grant by hand beside an unclaimed one ([decision 0071](docs/decisions/0071-unbra
 It ships off: the path opens once the sponsored account is set, after the owner's steps on GitHub
 ([sponsorships](docs/cloud.md#sponsorships)). The engine stays MIT and `frame none` stays free.
 
-## 1.11.9
+## 1.11.10
 
 Stories become the flows of a diagram. One HTML player holds every story of a file over the views
 they share, with a **Story** picker in its control bar that goes to the start of the flow picked,

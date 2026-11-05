@@ -2,12 +2,17 @@
 
 ## Purpose
 The `export` block: reproducible delivery profiles, their options per format and their diagnostics, run by the command line and the editor.
+
 ## Requirements
+
 ### Requirement: Export profiles
 `export <id> for <target> { … }` SHALL compile into `Document.exports` with its target (a diagram or
 story of the file, or an imported diagram) and its options: `format` (required: `svg`, `png`, `pdf`,
 `html`, `mp4`, `webm`, `gif`), `size`, `scale`, `background`, `at`, `motion`, `theme`, `fonts`,
-`scenario`, `link`, `fps`, `duration` and `file`. An unknown target SHALL be
+`scenario`, `link`, `fps`, `duration`, `scenes` and `file`. `scenes` (`true` or `false`) SHALL
+apply to `svg`, `png` and `pdf` of a story and write each scene's final state as `--scenes` does;
+`scenes` with `at`, on another format or on a diagram, and `file` with `scenes` on `svg` or
+`png`, SHALL be `export.invalid-option`. An unknown target SHALL be
 `export.unknown-target`, a missing format `export.missing-format`, and an option that does not
 apply to the format or target `export.invalid-option`. A video profile of a diagram without
 `duration` SHALL take the default duration of the diagram's effects when it runs (the least common
@@ -32,6 +37,21 @@ reported as `block.unsupported`.
 - **WHEN** a profile `format svg` writes `fps 30`
 - **THEN** `export.invalid-option` is reported on `fps`
 
+#### Scenario: Slides of a story
+- **WHEN** `export slides for purchase { format png; scale 2; scenes true }` compiles and
+  `mdg export purchase.meltemi --profile slides` runs
+- **THEN** there is no diagnostic and `purchase.slides.overview.png` and
+  `purchase.slides.processing.png` are written at scale 2
+
+#### Scenario: Scenes with an instant
+- **WHEN** a profile for a story writes `scenes true` and `at 1s`
+- **THEN** `export.invalid-option` is reported on `at`, saying `scenes` writes every scene's final
+  state
+
+#### Scenario: Scenes of a diagram
+- **WHEN** `export sheet for checkout { format svg; scenes true }` compiles
+- **THEN** `export.invalid-option` is reported on `scenes`, saying it takes a story
+
 ### Requirement: Running profiles
 `meltemi-diagrams export <file> --profile <id>` SHALL write the profile's output, named
 `<stem>.<id>.<ext>` or its `file`, and `--profiles` SHALL write every profile of the file; other
@@ -40,4 +60,3 @@ output options SHALL be usage errors with them. `validate` SHALL report profile 
 #### Scenario: Every profile
 - **WHEN** `mdg export sheet.meltemi --profiles` runs on a file with an SVG and a PDF profile
 - **THEN** both files are written and listed
-

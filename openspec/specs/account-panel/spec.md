@@ -2,7 +2,9 @@
 
 ## Purpose
 The playground's account panel: one settings modal in the page with Profile, Sign-ins, Devices, API tokens, Usage and the Danger zone, reached from the account menu and by a deep link, reading and changing the person's identity data through the Worker's proxy to the identity service, with its motion and its phone layout.
+
 ## Requirements
+
 ### Requirement: The account panel
 Signed in, the page SHALL open an account panel: a modal of at most 880 by 640 px with a title, a
 close button, a vertical list of tabs (Profile, Sign-ins, Devices, API tokens, Usage, Administration
@@ -55,8 +57,16 @@ the session's `sub` as it is, and a **Copy** button that puts it on the clipboar
 by hand. For a person whose session answer says `user.entitlements.unbranded` is `true`, Profile
 SHALL also show, after the account id, the heading **Exports without the Meltemi branding** and one
 sentence saying the account may export without it and that the export dialog offers it, in the
-interface language; for anyone else nothing of that SHALL exist, and the panel SHALL ask nothing
-to know it, since the session answer the page read at start carries it.
+interface language, and when `unbrandedBy` is `github-sponsors` the sentence "Granted for your
+donation. Thank you." before it; for a person whose answer says `false` and carries `support`,
+Profile SHALL show instead the heading **Support Meltemi Diagrams**, a link to `support.url` and
+one sentence saying that a donation made with the GitHub account linked to this one lets the
+account export without the branding, recognised when this panel opens, and, when the sign-ins
+hold no GitHub identity, that linking one in Sign-ins is how it is recognised; for anyone else
+nothing of that SHALL exist, and the panel SHALL ask nothing to know it, since the session answer
+the page read at start carries it. After the sign-ins are read, Profile SHALL read the session
+answer again when the sign-ins' answer says a claim was made (`claimed: true`), so the heading
+changes without a reload.
 
 #### Scenario: Handle saved
 - **WHEN** `tienda-2` is typed and Save pressed
@@ -83,12 +93,20 @@ to know it, since the session answer the page read at start carries it.
 - **THEN** the section shows the heading "Exports without the Meltemi branding" and the sentence "Your account may export without the Meltemi branding: the export dialog offers it." after the account id and before Sign out, with no request made for it
 
 #### Scenario: A plain person's Profile
-- **WHEN** a person whose session answer says `"unbranded": false`, or whose `user` carries no `entitlements`, opens Profile
+- **WHEN** a person whose session answer says `"unbranded": false` and carries no `support`, or whose `user` carries no `entitlements`, opens Profile
 - **THEN** the account id is shown and no heading or sentence about the branding exists in the panel
 
 #### Scenario: In Spanish
 - **WHEN** the interface language is Spanish and an entitled person opens Profile
 - **THEN** the headings read "Identificador de la cuenta" and "Exportaciones sin la marca de Meltemi" and the button "Copiar"
+
+#### Scenario: A person who may donate
+- **WHEN** a person whose session answer says `"unbranded": false` and `"support": { "url": "https://github.com/sponsors/askenaz" }` opens Profile with a Google sign-in only
+- **THEN** the section shows "Support Meltemi Diagrams", the link, the sentence about the donation and that linking GitHub in Sign-ins is how it is recognised; in Spanish "Apoya a Meltemi Diagrams"
+
+#### Scenario: The claim while the panel is open
+- **WHEN** a sponsor opens Profile and the sign-ins' answer says `claimed: true`
+- **THEN** the panel reads the session again and shows "Granted for your donation. Thank you." with the entitlement heading, with no reload
 
 ### Requirement: Sign-ins
 Sign-ins SHALL list each identity the identity service reports (the provider's mark, the GitHub
@@ -197,7 +215,7 @@ is asked none of it SHALL move.
 
 ### Requirement: Administration section
 For an owner or an administrator the Administration section SHALL load `GET /api/admin` when it is
-shown and after every change it makes, and SHALL show five parts:
+shown and after every change it makes, and SHALL show six parts:
 
 - **Administrators**: the owners, each marked **Owner**, then the administrators with their name,
   handle, email, who invited them and since when; an owner SHALL see **Remove** on each
@@ -208,16 +226,23 @@ shown and after every change it makes, and SHALL show five parts:
   not one before any request, and a refusal of the Worker (`409 admin.already`, `409 admin.limit`)
   SHALL be said in words next to the field.
 - **Permissions**: per permission of the catalog, its name and description, its holders (name,
-  handle, email, who granted it and when) with **Revoke**, and a field **Grant to** that takes an
+  handle, email, who granted it and when, "GitHub Sponsors" for a claim) with **Revoke**, and a
+  field **Grant to** that takes an
   account id, `@handle` or email with **Grant**; `404 not-found` SHALL be said as "No account signed
   in with this email, handle or id yet: ask the person to sign in once, or for the account id
   Profile shows", and `409 account.ambiguous` as "Several accounts signed in with this email: ask
   for the account id".
+- **Sponsorships** (when the answer lists any): the sponsorships received, the newest first, each
+  with the sponsor's login, one-time or monthly and the amount, the date, the status, and who
+  claimed it or **Unclaimed** with **Grant by hand**, which moves the focus to the Grant field of
+  the permission with the login as its placeholder; a private sponsorship SHALL be marked
+  private.
 - **Take down a publication**: the publication's address (`https://<publish host>/<handle>/<slug>`
   or `<handle>/<slug>`) and a reason, refusing another host or shape in the page, and a confirmation
   naming the address before `DELETE /api/admin/publications/<handle>/<slug>`.
 - **Recent changes**: the log's latest fifty entries, the newest first, as sentences in the
-  interface language ("Guillmar Ortiz granted Export without the Meltemi branding to Ana, 29 Oct").
+  interface language ("Guillmar Ortiz granted Export without the Meltemi branding to Ana, 29 Oct";
+  "GitHub Sponsors granted Export without the Meltemi branding to Ana (ana), 4 Nov").
 
 For a person with a pending invitation and no role the section SHALL show only the invitation: who
 invited them, what administrators can do (grant permissions to accounts, take down any
@@ -259,3 +284,10 @@ role is gone. Names, emails, addresses and reasons SHALL be set as text.
 - **WHEN** an administrator types `https://example.com/tienda/precios`
 - **THEN** the field says it is not an address of the publish host and no request is sent
 
+#### Scenario: An unclaimed sponsorship
+- **WHEN** the answer lists a monthly sponsorship by `ben` of 1000 cents, unclaimed, and the administrator presses Grant by hand
+- **THEN** the Sponsorships part shows `ben` with "monthly · US$10 · Unclaimed" and the date, and the Grant field of the permission has the focus with `ben` as its placeholder
+
+#### Scenario: No sponsorships
+- **WHEN** the answer's `sponsorships` is `[]`
+- **THEN** the section shows no Sponsorships part
