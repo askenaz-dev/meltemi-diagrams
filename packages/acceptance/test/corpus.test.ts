@@ -10,7 +10,7 @@ const sessions = projectSessions();
 const fonts = createNodeFontLibrary();
 
 describe("acceptance corpus", () => {
-  it("covers the four profiles with long labels, cycles, nested containers, parallel relations and 30 elements, flow and free with stacks, shapes, icons and typography, and free with lines, a sketch, a whiteboard and a kanban board", () => {
+  it("covers the five profiles with long labels, cycles, nested containers, parallel relations and 30 elements, flow and free with stacks, shapes, icons and typography, free with lines, a sketch, a whiteboard and a kanban board, and gantt with chains, sections and a year of thirty tasks", () => {
     const common = ["cycles", "long-labels", "nested", "parallel", "thirty"];
     for (const profile of PROFILES) {
       const names = sheets.filter((s) => s.profile === profile).map((s) => s.name.split("/")[1]);
@@ -29,8 +29,18 @@ describe("acceptance corpus", () => {
             ].sort()
           : profile === "flow"
             ? [...common, "icons", "shapes", "stacked", "typography"].sort()
-            : common;
+            : profile === "gantt"
+              ? ["chains", "long-labels", "parallel", "sections", "thirty"]
+              : common;
       expect(names, profile).toEqual(expected);
+    }
+  });
+
+  it("pins the today line of every gantt sheet, so that no picture depends on the day", () => {
+    const charts = sheets.filter((s) => s.profile === "gantt");
+    expect(charts.length).toBe(5);
+    for (const sheet of charts) {
+      expect(sheet.text, sheet.name).toMatch(/^\s*today \d{4}-\d{2}-\d{2}$/m);
     }
   });
 

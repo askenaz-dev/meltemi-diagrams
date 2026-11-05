@@ -5,7 +5,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 /** The references every request carries, then the ones a profile adds. */
-export const GUIDE_PAGES = ["language", "sequence", "c4", "free", "stories"];
+export const GUIDE_PAGES = ["language", "sequence", "gantt", "c4", "free", "stories"];
 
 export function guideSource(root) {
   const pages = GUIDE_PAGES.map((name) => [

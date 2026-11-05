@@ -4,6 +4,7 @@ import {
   ANIMATION_EFFECTS,
   THEME_DURATION_TOKENS,
   type AnimationEffect,
+  type AnimationEntry,
   type FlowDiagram,
   type Point,
 } from "@meltemi/diagrams-model";
@@ -115,7 +116,10 @@ function strokeOf(group: GroupItem): { stroke: string; width: number } | null {
 
 /**
  * The effects of a diagram whose targets are drawn in the scene. Effects without an `effect`, and
- * targets the scene does not draw (another scenario, a hidden entity), are left out.
+ * targets the scene does not draw (another scenario, a hidden entity), are left out. In a gantt
+ * chart `flow` and `trace` on a task or milestone run along each dependency arrow that comes into
+ * it, the arrows' groups being the targets (decision 0066): one effect for each arrow, in the order
+ * the task lists what it follows, which a chart without drawn arrows leaves empty.
  */
 export function planMotion(
   diagram: FlowDiagram,
@@ -124,22 +128,26 @@ export function planMotion(
 ): MotionPlan {
   const groups = sceneGroups(scene.items);
   const find = (role: string, id: string) => groups.find((g) => g.role === role && g.id === id);
+  const accent = typeof options.colors?.accent === "string" ? options.colors.accent : "#1f6feb";
   const effects: MotionEffect[] = [];
-  for (const entry of diagram.animations) {
-    if (entry.effect === null) continue;
-    const role = entry.targetKind;
-    const group = find(role, entry.target);
-    if (!group) continue;
+
+  /** The effect of an entry on a group of the scene, or nothing when the group is not drawn. */
+  const effectOn = (
+    entry: AnimationEntry,
+    effect: AnimationEffect,
+    group: GroupItem,
+    role: MotionEffect["role"],
+    target: string,
+  ): void => {
     // A group drawn as a connector (a relation, a free line, a pen) runs its effects along the
     // line it draws, whatever its role; the others pulse and dash about their bounds.
     const track = drawnTrack(group);
     const bounds = track ? null : (group.bounds ?? null);
-    if (role === "relation" ? !track : !track && !bounds) continue;
+    if (role === "relation" ? !track : !track && !bounds) return;
     const drawn = strokeOf(group);
-    const accent = typeof options.colors?.accent === "string" ? options.colors.accent : "#1f6feb";
     // Particles, halos and traces in the target's own colour would not show on it: they take the
     // accent, as stories do. A moving dash animates the line itself, in its own colour.
-    let color = entry.effect === "dash" && drawn && drawn.stroke !== "none" ? drawn.stroke : accent;
+    let color = effect === "dash" && drawn && drawn.stroke !== "none" ? drawn.stroke : accent;
     if (entry.color !== null) {
       if (entry.color.startsWith("@")) {
         const token = options.colors?.[entry.color.slice(1)];
@@ -148,11 +156,10 @@ export function planMotion(
     }
     effects.push({
       index: effects.length,
-      target: entry.target,
+      target,
       role,
-      effect: entry.effect,
-      durationMs:
-        entry.durationMs ?? options.durations?.[entry.effect] ?? DEFAULT_DURATIONS[entry.effect],
+      effect,
+      durationMs: entry.durationMs ?? options.durations?.[effect] ?? DEFAULT_DURATIONS[effect],
       repeat: entry.repeat ?? "forever",
       delayMs: entry.delayMs ?? 0,
       reverse: entry.direction === "reverse",
@@ -162,6 +169,25 @@ export function planMotion(
       bounds,
       width: drawn?.width ?? 1.5,
     });
+  };
+
+  for (const entry of diagram.animations) {
+    const effect = entry.effect;
+    if (effect === null) continue;
+    if (
+      diagram.type === "gantt" &&
+      entry.targetKind === "element" &&
+      (effect === "flow" || effect === "trace")
+    ) {
+      for (const relation of diagram.relations) {
+        const arrow = relation.to === entry.target ? find("relation", relation.key) : undefined;
+        if (arrow) effectOn(entry, effect, arrow, "relation", relation.key);
+      }
+      continue;
+    }
+    const role = entry.targetKind;
+    const group = find(role, entry.target);
+    if (group) effectOn(entry, effect, group, role, entry.target);
   }
   return { effects };
 }

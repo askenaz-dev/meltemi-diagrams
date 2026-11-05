@@ -21,8 +21,10 @@ import {
   playerFragment,
   playerPage,
   storiesDocument,
+  rootView,
   storyDocument,
   storyViews,
+  type EffectsPlayerDocument,
   type HostOpenTarget,
   type LaidOutView,
   type StoryPlayerDocument,
@@ -135,6 +137,35 @@ const linked = effectsDocument({
   layout: layoutDiagram(linkedSource, linkedSource.document.diagrams[0]!, { engine }),
 })!;
 
+/** A gantt chart as a player document in a language, with the day pinned. */
+function chartDocument(
+  locale: "en" | "es",
+  source = readFileSync(join(corpus, "valid", "gantt", "roadmap.meltemi"), "utf8"),
+): EffectsPlayerDocument {
+  const chart = compile(source);
+  const diagram = chart.document.diagrams[0]!;
+  return effectsDocument(
+    { diagram, layout: layoutDiagram(chart, diagram, { engine, locale, today: "2026-10-29" }) },
+    { locale },
+  )!;
+}
+/** The owner's roadmap in Spanish, and a chart whose task has a description with markup. */
+const roadmapEs = chartDocument("es");
+const markup = chartDocument(
+  "en",
+  [
+    'language "0.2"',
+    "diagram plan: gantt {",
+    '  task a "A" from 2026-06-01 for 3d {',
+    '    description "Uses <b>TLS</b>"',
+    '    url "https://docs.example.com/a"',
+    "  }",
+    '  task b "B" after a for 2d',
+    "}",
+    "",
+  ].join("\n"),
+);
+
 /** What the exporter writes for the story at `t`. */
 const exported = (t: number) =>
   renderSvg(
@@ -246,6 +277,45 @@ async function trackPoint(page: Page, id: string): Promise<{ x: number; y: numbe
   const stage = (await call(page, "project", middle)) as { x: number; y: number };
   const frame = await frameBox(page);
   return { x: frame.x + stage.x, y: frame.y + stage.y };
+}
+
+/** A point of a document's drawing, in page pixels. */
+async function pagePoint(
+  page: Page,
+  point: { x: number; y: number },
+): Promise<{ x: number; y: number }> {
+  const stage = (await call(page, "project", point)) as { x: number; y: number };
+  const frame = await frameBox(page);
+  return { x: frame.x + stage.x, y: frame.y + stage.y };
+}
+
+/** The group of an element, relation or axis of a document's own view. */
+const sceneGroup = (doc: EffectsPlayerDocument, role: string, id: string) =>
+  sceneGroups(rootView(doc).scene.items).find((g) => g.role === role && g.id === id)!;
+
+/** The middle of the longest segment of a line. */
+function longestMiddle(track: readonly { x: number; y: number }[]): { x: number; y: number } {
+  let best = -1;
+  let middle = track[0]!;
+  for (let i = 1; i < track.length; i++) {
+    const a = track[i - 1]!;
+    const b = track[i]!;
+    const length = Math.hypot(b.x - a.x, b.y - a.y);
+    if (length > best) {
+      best = length;
+      middle = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    }
+  }
+  return middle;
+}
+
+/** The text of the first player's card once it shows. */
+async function cardText(page: Page): Promise<string> {
+  await page.waitForFunction(() => {
+    const c = document.querySelector("meltemi-player")!.shadowRoot!.querySelector(".card");
+    return c !== null && !c.hasAttribute("hidden");
+  });
+  return (await page.getByRole("tooltip", { includeHidden: true }).textContent()) ?? "";
 }
 
 /** Whether the first player's hover card is shown. */
@@ -1098,6 +1168,123 @@ const tests: {
         "containers",
       );
       assert.equal(await page.getByRole("status").textContent(), "Opened containers");
+    },
+  },
+  {
+    name: "shows a task's card in Spanish: its section, dates, working days and what it follows",
+    html: playerPage(roadmapEs, script, { lang: "es" }),
+    async run(page) {
+      const bar = sceneGroup(roadmapEs, "element", "tec1").bounds!;
+      const at = await pagePoint(page, { x: bar.x + bar.width / 2, y: bar.y + bar.height / 2 });
+      await page.mouse.move(at.x, at.y);
+      const text = await cardText(page);
+      assert.match(text, /^Prueba de concepto con el equipo de Arquitectura/);
+      assert.match(text, /Tecnología/);
+      assert.match(text, /8 jun 2026 → 19 jun 2026/);
+      assert.match(text, /10 días hábiles/);
+      assert.match(text, /Después de: Evaluar plataformas de agentes/);
+      // The clauses as written and the ids of the source stay out of the card.
+      assert.doesNotMatch(text, /after tec0|for 10d|tec0/);
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: join(output, "player-gantt-card.png") });
+      // The card hides when the pointer leaves the bar for the empty page.
+      await page.mouse.move(5, 5);
+      assert.equal(await cardShown(page), false);
+    },
+  },
+  {
+    name: "shows the card of a dependency arrow with the tasks it joins, and of a section with its span",
+    html: playerPage(roadmapEs, script, { lang: "es" }),
+    async run(page) {
+      const arrow = sceneGroup(roadmapEs, "relation", "sdlc1->sdlc2#1");
+      const on = await pagePoint(page, longestMiddle(arrow.track!));
+      await page.mouse.move(on.x, on.y);
+      const text = await cardText(page);
+      assert.match(text, /^Workshops AI-SDLC → Desarrollo de Skills y Agentes \(AI-SDLC\)\./, text);
+      await page.mouse.move(5, 5);
+      assert.equal(await cardShown(page), false);
+      // The band of a section, beside its title: the section's label and its span.
+      const band = sceneGroup(roadmapEs, "element", "tecnologia").bounds!;
+      const inBand = await pagePoint(page, { x: band.x + 6, y: band.y + band.height / 2 });
+      await page.mouse.move(inBand.x, inBand.y);
+      const section = await cardText(page);
+      assert.match(section, /^Tecnología/);
+      assert.match(section, /1 jun 2026 → 22 jun 2026/);
+    },
+  },
+  {
+    name: "shows no card on the axis of a chart, whose group takes no pointer events",
+    html: playerPage(roadmapEs, script, { lang: "es" }),
+    async run(page) {
+      const axis = sceneGroup(roadmapEs, "axis", "axis");
+      const label = axis.items.find((item) => item.kind === "text");
+      assert.ok(label && label.kind === "text", "the axis has a tick label");
+      const on = await pagePoint(page, { x: label.x, y: label.y });
+      await page.mouse.move(on.x, on.y);
+      await page.waitForTimeout(700);
+      assert.equal(await cardShown(page), false);
+      // Nor does a click there select anything.
+      await page.mouse.click(on.x, on.y);
+      assert.equal(await selection(page), null);
+      assert.equal(await page.getByRole("region").count(), 0);
+    },
+  },
+  {
+    name: "writes a task's description and url into the card as text, never as markup",
+    html: playerPage(markup, script),
+    async run(page) {
+      const bar = sceneGroup(markup, "element", "a").bounds!;
+      const at = await pagePoint(page, { x: bar.x + bar.width / 2, y: bar.y + bar.height / 2 });
+      await page.mouse.move(at.x, at.y);
+      const text = await cardText(page);
+      assert.match(text, /Uses <b>TLS<\/b>/);
+      assert.match(text, /docs\.example\.com/);
+      assert.equal(
+        await page.evaluate(
+          () =>
+            document.querySelector("meltemi-player")!.shadowRoot!.querySelectorAll(".card b")
+              .length,
+        ),
+        0,
+      );
+    },
+  },
+  {
+    name: "opens the panel of a task with its schedule in the player's language",
+    html: playerPage(roadmapEs, script, { lang: "es" }),
+    async run(page) {
+      const bar = sceneGroup(roadmapEs, "element", "tec1").bounds!;
+      const at = await pagePoint(page, { x: bar.x + bar.width / 2, y: bar.y + bar.height / 2 });
+      await page.mouse.click(at.x, at.y);
+      const panel = page.getByRole("region", {
+        name: "Detalles de Prueba de concepto con el equipo de Arquitectura",
+      });
+      await panel.waitFor();
+      const text = (await panel.textContent()) ?? "";
+      for (const word of [
+        "Tarea",
+        "Sección",
+        "Tecnología",
+        "Inicio",
+        "8 jun 2026",
+        "Fin",
+        "19 jun 2026",
+        "Tiempo hábil",
+        "10 días hábiles",
+        "Estado",
+        "Prevista",
+      ]) {
+        assert.ok(text.includes(word), `${word} in ${text}`);
+      }
+      // What it follows is listed with the incoming arrows; one selects the arrow.
+      await panel.getByRole("button", { name: /Evaluar plataformas de agentes/ }).click();
+      assert.deepEqual(await selection(page), {
+        role: "relation",
+        id: "tec0->tec1#1",
+        view: "hoja_de_ruta_genai",
+      });
+      await page.waitForTimeout(400);
+      await page.screenshot({ path: join(output, "player-gantt-panel.png") });
     },
   },
   {

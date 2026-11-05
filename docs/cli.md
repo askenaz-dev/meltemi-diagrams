@@ -78,6 +78,7 @@ if one exists, nothing is written.
 | `flow`       | `diagrams/overview.meltemi`: a first flow diagram (the default)                                                                                                          |
 | `c4`         | `models/system.meltemi` and `diagrams/views.meltemi`: a model, a context and a container view                                                                            |
 | `sequence`   | `diagrams/sign-in.meltemi`: a sequence with a scenario for each outcome                                                                                                  |
+| `roadmap`    | `diagrams/roadmap.meltemi`: a gantt chart of three sections with a critical chain, a milestone, a marker and a story that tells the plan                                 |
 | `free`       | `diagrams/slide.meltemi`: a 16:9 slide of text, boxes, an icon and a group                                                                                               |
 | `kanban`     | `diagrams/board.meltemi`: a board of three columns of sticky cards (`preset board`)                                                                                      |
 | `whiteboard` | `diagrams/whiteboard.meltemi`: a sketched board with pen strokes, a highlighter mark, stickies and a story that draws them                                               |
@@ -123,6 +124,24 @@ folder, PlantUML `.iuml` files are read through the files that include them and 
 without diagram blocks are passed over; the summary counts complete, partial, failed and existing
 sheets.
 
+## Gantt charts
+
+A gantt chart whose `today` statement writes no date draws its line at the day the picture is made
+([gantt](language/gantt.md#today)). `export --today YYYY-MM-DD` says which day that is, for every
+chart of the run and every format, `--profiles` included, so a picture made by a CI job is the same
+on every day:
+
+```bash
+pnpm mdg export plan.meltemi --today 2026-07-15
+```
+
+Without it the day is the machine's local date, which every command and the VS Code extension host
+read; a date written in the chart (`today 2026-07-01`) wins over both. A run with no chart that
+needs the day accepts `--today` and ignores it, and a value that is not a date written like
+`2026-07-15` is a usage error (exit 2). Meltemi Diagrams in the browser passes the browser's day. `layout` has no
+positions to write for a gantt chart, as for a sequence diagram: it skips the chart, and with
+`--diagram` naming one it says so and exits 2.
+
 ## Model JSON: `convert --to json`
 
 ```bash
@@ -164,6 +183,15 @@ removal and an addition; relations and story targets follow the renames. Each ch
 changed: labels, kinds, descriptions, technology, URLs, links, classes, groups, places, sizes,
 routes, label positions, styles, effects, diagram settings, scenarios, story timing and actions.
 Comments and formatting are not changes.
+
+In a gantt chart a task reports the clauses it changed and where its dates went
+(`end for 5d → for 7d; ends 2026-06-05 → 2026-06-09`), and so does every task that a change moved
+without touching it, with what moved it: `starts 2026-06-08 → 2026-06-10 (moved by tec0)`,
+`(moved by the calendar)` after a change of `exclude` or `include` (the diagram reports
+`exclude weekends → weekends, 2026-06-29`), and `(moved by the order of the tasks)` when a task
+that follows the one before it changed place; `now critical` says that a status word came in. The
+arrows are not listed on their own, since they are the `after` clauses, and a version that does not
+compile reports its clauses and no dates ([gantt](language/gantt.md)).
 
 | Option               | Meaning                                                                                                             |
 | -------------------- | ------------------------------------------------------------------------------------------------------------------- |

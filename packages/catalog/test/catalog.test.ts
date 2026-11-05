@@ -444,10 +444,12 @@ function otherParameters(a: object, b: object, path = ""): string[] {
 
 describe("the catalog in Spanish", () => {
   it("has every word in both languages, with the same parameters", () => {
-    expect(untranslated(en, es, ["C4"])).toEqual([]);
+    expect(untranslated(en, es, ["C4", "Gantt"])).toEqual([]);
     expect(otherParameters(en, es)).toEqual([]);
     expect(kindLabel("sequence", "es")).toBe("Secuencia");
     expect(kindLabel("sequence")).toBe("Sequence");
+    expect(kindLabel("gantt", "es")).toBe("Gantt");
+    expect(kindLabel("gantt")).toBe("Gantt");
     expect(kindLabel("nope", "es")).toBeUndefined();
   });
 
@@ -546,5 +548,63 @@ describe("the catalog in Spanish", () => {
     for (const word of ["Vista general", "Escribe para buscar", "Reproducir", "Resumen en texto"]) {
       expect(script).toContain(word);
     }
+  });
+});
+
+describe("a gantt chart in the catalog", () => {
+  const roadmap = sheet("gantt/roadmap.meltemi");
+  const chartData = catalogData({
+    ...INPUT,
+    diagrams: diagramInputs(roadmap),
+    stories: [],
+    models: [],
+  });
+  const chart = chartData.entries[0] as DiagramEntry;
+
+  it("lists the chart with its type, its tasks and its dependency arrows", () => {
+    expect(chartData.entries.map((e) => [e.key, e.kind])).toEqual([
+      ["gantt/roadmap/hoja_de_ruta_genai", "diagram"],
+    ]);
+    expect(chart).toMatchObject({ type: "gantt", title: "Hoja de ruta GenAI" });
+    expect(chart.elements.filter((e) => e.kind === "task")).toHaveLength(10);
+    expect(chart.elements.filter((e) => e.kind === "section").map((e) => e.id)).toEqual([
+      "tecnologia",
+      "nuevo_flujo_genai_hub",
+      "i_d",
+    ]);
+    expect(chart.relations).toHaveLength(6);
+  });
+
+  it("carries the schedule of each task in the view's player document", () => {
+    const [view] = chart.views;
+    const tec1 = view!.document.details.hoja_de_ruta_genai!.elements.tec1!;
+    expect(tec1.schedule).toMatchObject({
+      start: "2026-06-08",
+      end: "2026-06-19",
+      workingSeconds: 10 * 86_400,
+      section: "tecnologia",
+      after: ["tec0"],
+    });
+    expect(JSON.stringify(view!.document)).not.toContain("for 10d");
+  });
+
+  it("names the type Gantt on its page and in the overview, in both languages", () => {
+    expect(kindLabel("gantt")).toBe("Gantt");
+    const overview = pageView(chartData, { page: "home" });
+    expect(overview.html).toContain("Hoja de ruta GenAI");
+    expect(overview.html).toContain("Gantt");
+    const spanish = pageView(chartData, { page: "home" }, "es");
+    expect(spanish.html).toContain("1 diagrama");
+    expect(spanish.html).toContain("Gantt");
+  });
+
+  it("is found by its type word, its sections and its tasks", () => {
+    for (const query of ["gantt", "tecnologia", "LeanIX", "hoja de ruta"]) {
+      expect(
+        searchCatalog(chartData, query).map((r) => r.key),
+        query,
+      ).toEqual([chart.key]);
+    }
+    expect(searchCatalog(chartData, "zzz")).toEqual([]);
   });
 });

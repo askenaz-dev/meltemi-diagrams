@@ -91,6 +91,7 @@ import {
   type FreeFrames,
   type ListArrangement,
 } from "./free.js";
+import { layoutGantt } from "./gantt.js";
 import { layoutSequence } from "./sequence.js";
 import { IconPainter } from "./icons.js";
 import { brandFrame, textItem } from "./frame.js";
@@ -185,6 +186,12 @@ export interface LayoutOptions {
   /** Sequence diagrams: lays out one scenario instead of every event. */
   readonly scenario?: string;
   /**
+   * Gantt charts: the day the drawing is made, a date (`2026-10-29`), for the `today` line of a
+   * chart that writes `today` without a date, and for the weeks an empty chart shows. Hosts pass
+   * their local day; the layout never reads a clock, so the same input draws the same scene.
+   */
+  readonly today?: string;
+  /**
    * The language of the words the layout adds to the drawing (the type lines of C4 entities):
    * the project's `locale` or an export's. English by default; never the machine's language.
    */
@@ -276,6 +283,30 @@ export interface LayoutResult {
    * hosts that draw its outline, magnets and hit tests with `shapeOutline` and its relatives.
    */
   readonly radii?: ReadonlyMap<string, number>;
+  /**
+   * Gantt charts: where the timeline and the rows are, in diagram coordinates, which editors turn
+   * a pointer's position into an instant and a row with.
+   */
+  readonly gantt?: GanttGeometry;
+}
+
+/** The timeline and the rows of a laid-out gantt chart, in diagram coordinates. */
+export interface GanttGeometry {
+  readonly timeline: {
+    /** The left edge of the timeline, which `start` is at. */
+    readonly x: number;
+    readonly width: number;
+    /** The instants the timeline runs from and to: the span, rounded to whole ticks. */
+    readonly start: number;
+    readonly end: number;
+    /** Units of width a day takes. */
+    readonly dayWidth: number;
+  };
+  /** The band of each task and milestone: the row's top, its height and its section, if any. */
+  readonly rows: ReadonlyMap<
+    string,
+    { readonly y: number; readonly height: number; readonly section: string | null }
+  >;
 }
 
 /** Where a relation is drawn, for editors. */
@@ -437,6 +468,11 @@ export const DEFAULT_SIZES: Readonly<
   database: null,
   collections: null,
   queue: null,
+  // Gantt bars, diamonds, lines and sections are measured by the gantt layout.
+  section: null,
+  task: null,
+  milestone: null,
+  marker: null,
   // C4 entities: boxes with a type line, a person with a head, a datastore cylinder.
   person: { width: 160, height: 104 },
   system: { width: 180, height: 80 },
@@ -1427,6 +1463,9 @@ function layoutDrawing(
   const metrics = new TextMetrics(options.measurer ?? estimateMeasurer, theme);
   if (diagram.type === "sequence") {
     return layoutSequence({ compilation, diagram, options, theme, scale, metrics, diagnostics });
+  }
+  if (diagram.type === "gantt") {
+    return layoutGantt({ compilation, diagram, options, theme, scale, metrics, diagnostics });
   }
   // C4 views draw the model's entities upright; flow and free diagrams turn theirs (decision 0045).
   const turnable = diagram.type !== "c4";

@@ -71,6 +71,8 @@ export const en = {
     storyOption: (id: string, title: string | null) =>
       title ? `Story: ${id} — ${title}` : `Story: ${id}`,
     relation: "Relation: click the source, then the target",
+    /** Gantt charts: the relation tool writes `after`. */
+    dependency: "Dependency: click the task that ends first, then the one that follows",
     message: "Message: click the sender, then the receiver",
     /** The title of the relation tool: its label, its key and the dashed variant. */
     relationTitle: (label: string) => `${label} (R; Shift for dashed)`,
@@ -187,6 +189,11 @@ export const en = {
       pen: "Pen",
       highlighter: "Highlighter",
       eraser: "Eraser",
+      /** Gantt charts: a bar, a diamond, a dashed line across the rows, and a titled band of rows. */
+      task: "Task",
+      milestone: "Milestone",
+      marker: "Marker",
+      section: "Section",
     },
     /** The label of a tool: its name, then how to use it; its key is in its title. */
     hint: (name: string) => `${name}: click on the canvas`,
@@ -220,6 +227,10 @@ export const en = {
       "Drag a participant sideways to reorder it, and a message, note or fragment down to space it. Alt+Up and Alt+Down move the selected event.",
     preview: "scenario preview",
     previewTitle: "A read-only preview of one scenario; pick “All events” to edit.",
+    /** Gantt charts have no layout to choose: the dates place the bars. */
+    gantt: "gantt",
+    ganttTitle:
+      "Drag a bar to move it in time, its ends to change its dates, a row between rows to reorder it. Left and Right move the start a day, ] and [ change the length, Alt+Up and Alt+Down move the rows.",
     /** The layout statement of the diagram, which is code. */
     layout: (mode: string) => `layout ${mode}`,
     auto: "ELK arranges this diagram; moving a box writes every position and switches to assisted.",
@@ -252,7 +263,31 @@ export const en = {
     flow: "Flow diagram",
     free: "Free composition",
     sequence: "Sequence diagram",
+    gantt: "Gantt chart",
   } satisfies Record<CreatableDiagram, string>,
+
+  /** Gantt charts: what the tooltip of a bar says, and the titles of its handles. */
+  gantt: {
+    months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    /** A day: `9 Jun`, with a time `9 Jun 09:30`. */
+    day: (day: number, month: string, time: string | null) =>
+      `${day} ${month}${time === null ? "" : ` ${time}`}`,
+    /** From its first day to its last, with its working time: `1 Jun → 9 Jun · 7 working days`. */
+    span: (first: string, last: string, working: string) => `${first} → ${last} · ${working}`,
+    workingDays: (days: number) =>
+      `${days} ${plural("en", days, { one: "working day", other: "working days" })}`,
+    workingHours: (hours: string) => `${hours} ${hours === "1" ? "working hour" : "working hours"}`,
+    /** The tooltip of a row dragged between rows: where it would go. */
+    rowsTop: "Top of the chart",
+    rowsIn: (section: string) => `Into ${section}`,
+    /** The line under the dates of a bar that cannot start before what it follows ends. */
+    follows: (ids: readonly string[]) => `after ${ids.join(", ")}`,
+    handles: {
+      start: "Drag to change the start",
+      end: "Drag to change the end",
+      link: "Drag onto another task to make it follow this one",
+    },
+  },
 
   /** What the status line says, which screen readers announce. */
   announcements: {
@@ -294,7 +329,7 @@ export const en = {
     converted: "Converted to a free composition.",
     /** A new diagram of the file, which the canvas shows once it is written. */
     createdDiagram: (type: CreatableDiagram) =>
-      `Created a ${{ flow: "flow diagram", free: "free composition", sequence: "sequence diagram" }[type]}.`,
+      `Created a ${{ flow: "flow diagram", free: "free composition", sequence: "sequence diagram", gantt: "Gantt chart" }[type]}.`,
     previewReadOnly: "A scenario preview is read-only; pick “All events” to edit.",
     connectFromFirst: "Select the element to connect from first.",
     selectEventToMove: "Select a message, note, fragment or event to move.",
@@ -305,6 +340,22 @@ export const en = {
     createdShape: (kind: string, shape: string) =>
       `Created ${withArticle(shapeName(shape))} ${kind}.`,
     place: (kind: string) => `Click on the canvas to place the ${kind}. Escape cancels.`,
+    /** A tool of a gantt chart armed: a bar is drawn on the timeline, the rest are clicked. */
+    placeBar: (kind: string) =>
+      kind === "task"
+        ? "Drag on the timeline to draw the task, or click for one day. Escape cancels."
+        : kind === "section"
+          ? "Click on the chart to add the section. Escape cancels."
+          : `Click on the timeline to place the ${kind}. Escape cancels.`,
+    /** A bar given other dates, by a drag or a key: its tooltip's text says them. */
+    ganttMoved: (ids: readonly string[], text: string) =>
+      ids.length === 1 ? `${ids[0]}: ${text}.` : `${ids.length} bars: ${text}.`,
+    /** A bar dragged back onto the end of what it follows. */
+    ganttStuck: (id: string, after: readonly string[]) =>
+      `${id} comes after ${after.join(", ")}: it cannot start earlier.`,
+    /** A key that had no bar to move, or none that could. */
+    ganttNothing: "Select a task, a milestone or a marker first.",
+    ganttNoMove: "Nothing changes: the dates stay as they are.",
     placeShape: (kind: string, shape: string) =>
       `Click on the canvas to place the ${shapeName(shape)} ${kind}. Escape cancels.`,
     /** The kind of arrow the relation tool creates, chosen or cycled with R. */
@@ -493,6 +544,12 @@ export const en = {
     /** Sequence diagrams: a `return` at the end of the call's block. */
     addReturn: "Return to the caller",
     addNote: "Add a note",
+    /** Gantt charts: what the context menu adds, and the rows it puts in a new section. */
+    addTask: "Add a task",
+    addMilestone: "Add a milestone",
+    addMarker: "Add a marker",
+    addSection: "Add a section",
+    putInSection: "Put in a new section",
     wrapInFragment: "Wrap in a fragment…",
     addDivider: "Add a divider",
     addDelay: "Add a delay",
@@ -589,6 +646,31 @@ export const en = {
     /** Takes a written value away, so the default applies again (the icon size). */
     clear: "Clear",
     clearTitle: "Remove the written value: the default applies",
+    /** The date button beside a date field: the platform's date picker. */
+    pickDate: (label: string) => `${label}: choose a date`,
+    /** The unit beside the number of a duration. */
+    unit: (label: string) => `${label}: unit`,
+    /** The list of a tasks field: the tasks it holds as chips, and the choice that adds one. */
+    addTask: (label: string) => `${label}: add a task`,
+    addTaskOption: "Add…",
+    removeTask: (id: string) => `Remove ${id}`,
+    noTasks: "none",
+    /** The days of a chart's calendar: the seven toggles, by their initials, and their names. */
+    daysShort: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] as readonly string[],
+    daysLong: [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ] as readonly string[],
+    /** The choice that turns Saturday and Sunday on or off together. */
+    weekends: "Weekends",
+    weekendsTitle: "Saturday and Sunday",
+    /** The text box under the days: the dates that are not worked. */
+    excludedDates: "Excluded dates",
     /**
      * How a select shows the words of the protocol among its options (effects on or off, an
      * external entity, the kind of a message); values of the language are shown as written.

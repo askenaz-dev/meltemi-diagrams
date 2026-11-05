@@ -60,6 +60,14 @@ or a text has an outline for a dash when a `style`, a class or a `rule` of the d
 `fill`, `stroke` or `pattern`, and a sticky, always filled, when they set its `stroke`; icons,
 images and the stick figures of sequence diagrams never do.
 
+In a gantt chart ([gantt.md](gantt.md#effects-and-stories)) the dependency arrows have no names, so
+`flow` and `trace` take the task or milestone they lead into and run along each of its incoming
+`after` arrows, from the end of the predecessor to the start of the task, one effect for each
+arrow. Without an arrow they are `animate.invalid-target` ("`market` has no dependency arrows to
+trace"), and on a section or a marker too, the message naming its kind. `dash` and `pulse` take
+tasks, milestones, markers and sections, and draw on their bounds: a bar, the box around a diamond,
+a marker's pill, a section's band.
+
 Animations are the last layer of style precedence: while an effect runs, its dash replaces the
 written line style of the target; outside its window the target is drawn exactly as styled.
 

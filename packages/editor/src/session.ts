@@ -83,6 +83,18 @@ import { copyFragment, pasteOperations } from "./clipboard.js";
 import { iconGroups, takesIcon, writtenIcon } from "./icons.js";
 import { fieldOperations, inspect, namedRelation, themeSwatches } from "./inspector.js";
 import { freshModelRelationId, freshRelationId, nameable } from "./targets.js";
+import {
+  connectOperations,
+  createOperations,
+  groupOperations,
+  moveOperations as ganttMoveOperations,
+  removeArrowOperations,
+  scheduleOperations,
+  sectionText,
+  taskInfos,
+  timelineInfo,
+  type GanttPlan,
+} from "./gantt.js";
 // The editor's catalog; `messages` names the host messages in this file.
 import { messages as wording } from "./messages/index.js";
 import {
@@ -539,6 +551,9 @@ export class CanvasSession {
       return drawn.length > 0 ? { tags: drawn } : {};
     };
     const elements: ElementInfo[] = [];
+    // Gantt charts: the schedule of every bar, and the timeline that turns a place into a date.
+    const tasks = diagram.type === "gantt" ? taskInfos(view) : undefined;
+    const timeline = diagram.type === "gantt" ? timelineInfo(view) : undefined;
     for (const element of diagram.elements) {
       const box = geometry.boxes.get(element.id);
       if (!box) continue;
@@ -548,7 +563,11 @@ export class CanvasSession {
       const sized = diagram.placement.some(
         (p) => p.statement === "size" && p.target === element.id,
       );
-      const text = geometry.texts.elements.get(element.id);
+      const text =
+        diagram.type === "gantt"
+          ? sectionText(view, element, geometry.texts.elements.get(element.id))
+          : geometry.texts.elements.get(element.id);
+      const task = tasks?.get(element.id);
       const labelBox = geometry.elementLabels.get(element.id);
       const rotation = geometry.rotations.get(element.id);
       const radius = geometry.radii.get(element.id);
@@ -595,6 +614,7 @@ export class CanvasSession {
         ...(line ? { line } : {}),
         ...(pen ? { pen } : {}),
         ...(list ? { list } : {}),
+        ...(task ? { task } : {}),
         ...tagsOf(element.id, element.tags),
       });
     }
@@ -673,6 +693,7 @@ export class CanvasSession {
       width: geometry.width,
       height: geometry.height,
       offset: geometry.offset,
+      ...(timeline ? { timeline } : {}),
       elements,
       relations,
       events,
@@ -1189,7 +1210,8 @@ export class CanvasSession {
   ): PlanResult | undefined {
     if (operations.length === 0) return undefined;
     const all: EditOperation[] = [];
-    if (GEOMETRY.has(kind)) {
+    // A chart has no arrangement to write: its bars are placed by their dates.
+    if (GEOMETRY.has(kind) && view.diagram.type !== "gantt") {
       const materialize = materializeOperation(view);
       if (materialize) all.push(materialize);
     }
@@ -1211,6 +1233,7 @@ export class CanvasSession {
     kind: CanvasAction["kind"],
     operations: readonly EditOperation[],
     retry?: CanvasAction,
+    flash?: readonly string[],
   ): SessionResult {
     const steps = this.modelSteps(view, kind, operations, retry);
     if (steps) return steps;
@@ -1228,7 +1251,12 @@ export class CanvasSession {
       this.pendingDiagram = undefined;
       return {
         messages: [
-          { type: "rejected", code: result.rejection.code, reason: result.rejection.reason },
+          {
+            type: "rejected",
+            code: result.rejection.code,
+            reason: result.rejection.reason,
+            ...(flash ? { flash } : {}),
+          },
         ],
       };
     }
@@ -1863,6 +1891,109 @@ export class CanvasSession {
     }
   }
 
+  /**
+   * The actions of a gantt chart that differ from the other diagrams': bars are given dates, rows go
+   * to places among rows, dependencies are clauses of `after`, and what is created goes after the
+   * selection. Returns undefined for the actions the generic code handles.
+   */
+  private ganttAction(view: DiagramView, action: CanvasAction): SessionResult | undefined {
+    const diagram = view.diagram;
+    const refused = (plan: Extract<GanttPlan, { ok: false }>): SessionResult => ({
+      messages: [
+        {
+          type: "rejected",
+          code: "edit.invalid-value",
+          reason: plan.reason,
+          ...(plan.flash ? { flash: plan.flash } : {}),
+        },
+      ],
+    });
+    /** What a plan with nothing to write answers: the drawing as it is, so the canvas waits for none. */
+    const unchanged = (): SessionResult => {
+      this.pendingSelection = undefined;
+      this.pendingEdit = undefined;
+      this.pendingStatus = undefined;
+      const shown = this.rendered.get(view.id);
+      return { messages: shown?.type === "render" ? [shown] : [] };
+    };
+    const accepted = (
+      plan: Extract<GanttPlan, { ok: true }>,
+      kind: CanvasAction["kind"],
+      flash?: readonly string[],
+    ): SessionResult => {
+      if (plan.operations.length === 0) return unchanged();
+      if (plan.select) this.pendingSelection = [...plan.select];
+      if (plan.edit !== undefined) this.pendingEdit = plan.edit;
+      if (plan.status !== undefined) this.pendingStatus = plan.status;
+      const planned = this.planned(view, kind, plan.operations, undefined, flash);
+      return planned.plan && planned.plan.edits.length === 0 ? unchanged() : planned;
+    };
+    switch (action.kind) {
+      case "schedule": {
+        const plan = scheduleOperations(view, action);
+        return plan.ok ? accepted(plan, "schedule") : refused(plan);
+      }
+      case "move": {
+        const plan = ganttMoveOperations(view, action);
+        return plan.ok ? accepted(plan, "move") : refused(plan);
+      }
+      case "connect": {
+        // A refusal flashes the bar the link was dropped on.
+        const plan = connectOperations(view, action);
+        return plan.ok ? accepted(plan, "connect", [action.to]) : refused(plan);
+      }
+      case "create": {
+        const plan = createOperations(view, this.analysis!, action, this.selection);
+        return plan.ok ? accepted(plan, "create") : refused(plan);
+      }
+      case "group": {
+        const plan = groupOperations(view, this.analysis!, action.ids);
+        return plan.ok ? accepted(plan, "group") : refused(plan);
+      }
+      case "remove": {
+        // An arrow is a clause of its successor's `after`; the rest go as on the other diagrams.
+        const operations: EditOperation[] = removeArrowOperations(view, action.ids);
+        for (const id of action.ids) {
+          if (!diagram.elementsById.has(id)) continue;
+          operations.push({
+            kind: "removeElement",
+            diagram: view.id,
+            element: id,
+            cascade: action.cascade,
+          });
+        }
+        if (!action.cascade) {
+          const dependents: DependentInfo[] = [];
+          for (const operation of operations) {
+            if (operation.kind !== "removeElement") continue;
+            const probe = planEdit(this.analysis!.compilation, operation);
+            if (!probe.ok && probe.rejection.code === "edit.has-dependents") {
+              for (const dep of probe.rejection.dependents ?? [])
+                dependents.push({ kind: dep.kind, description: dep.description });
+            }
+          }
+          if (dependents.length > 0) {
+            return {
+              messages: [
+                {
+                  type: "rejected",
+                  code: "edit.has-dependents",
+                  reason: wording().session.deleting(dependents.length),
+                  dependents,
+                  retry: { ...action, cascade: true },
+                },
+              ],
+            };
+          }
+        }
+        this.pendingSelection = [];
+        return this.planned(view, "remove", operations);
+      }
+      default:
+        return undefined;
+    }
+  }
+
   private act(action: CanvasAction): SessionResult {
     // Only the action that adds a tag opens the editor on a pill.
     this.pendingTag = undefined;
@@ -1896,6 +2027,14 @@ export class CanvasSession {
       if (refused) {
         return { messages: [{ type: "rejected", code: "edit.invalid-value", reason: refused }] };
       }
+    }
+    if (diagram.type === "gantt") {
+      const refused = refusal(words.ganttRefused, action, diagram);
+      if (refused) {
+        return { messages: [{ type: "rejected", code: "edit.invalid-value", reason: refused }] };
+      }
+      const result = this.ganttAction(view, action);
+      if (result) return result;
     }
     const boxes = view.layout.boxes ?? new Map<string, Box>();
     const centreOf = (id: string) => {
@@ -3131,8 +3270,15 @@ export class CanvasSession {
       const planned = sequenceAction(view, action);
       if (!planned.ok) return refused(planned.reason);
       operations = [...planned.operations];
+    } else if (action.kind === "schedule") {
+      // A bar of a chart given other dates: its successors, arrows and axis follow as the drop draws.
+      if (diagram.type !== "gantt") return none;
+      const planned = scheduleOperations(view, action);
+      if (!planned.ok || planned.operations.length === 0) return none;
+      operations = [...planned.operations];
     } else if (action.kind === "move") {
       // A move the drop would refuse has no drawing; a drop into a list shows it making room.
+      if (diagram.type === "gantt") return none;
       if (this.moveRefusal(view, action)) return none;
       operations = this.moveOperations(view, action);
     } else if (action.kind === "resize") operations = this.resizeOperations(view, action);

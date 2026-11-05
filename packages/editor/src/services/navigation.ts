@@ -44,16 +44,17 @@ export interface SymbolNode {
  * "sticky" in English) and its label's first line when the label says more than its id.
  */
 function elementSymbol(diagram: FlowDiagram, element: Element): SymbolNode {
-  const children =
-    element.kind === "group"
-      ? diagram.elements
-          .filter((e) => e.groupPath[e.groupPath.length - 1] === element.id)
-          .map((e) => elementSymbol(diagram, e))
-      : [];
+  // A gantt section holds its tasks, milestones and markers as a group holds its elements.
+  const holds = element.kind === "group" || element.kind === "section";
+  const children = holds
+    ? diagram.elements
+        .filter((e) => e.groupPath[e.groupPath.length - 1] === element.id)
+        .map((e) => elementSymbol(diagram, e))
+    : [];
   return {
     name: element.id,
     detail: element.label === element.id ? kindWord(element.kind) : elementDetail(element),
-    kind: element.kind === "group" ? "group" : "element",
+    kind: holds ? "group" : "element",
     range: element.range,
     selectionRange: element.idRange,
     children,
@@ -100,14 +101,17 @@ export function documentSymbols(analysis: DocumentAnalysis): SymbolNode[] {
     const elements = diagram.elements
       .filter((e) => e.groupPath.length === 0)
       .map((e) => elementSymbol(diagram, e));
-    const relations = diagram.relations.map((r): SymbolNode => ({
-      name: r.id ?? `${r.from} ${arrowToken(r.line, r.heads)} ${r.to}`,
-      detail: r.label ?? "",
-      kind: "relation",
-      range: r.range,
-      selectionRange: r.idRange ?? r.range,
-      children: [],
-    }));
+    // A chart's arrows are derived from the `after` clauses of its tasks: they are no statements.
+    const relations = diagram.relations
+      .filter((r) => !(diagram.type === "gantt" && r.derived))
+      .map((r): SymbolNode => ({
+        name: r.id ?? `${r.from} ${arrowToken(r.line, r.heads)} ${r.to}`,
+        detail: r.label ?? "",
+        kind: "relation",
+        range: r.range,
+        selectionRange: r.idRange ?? r.range,
+        children: [],
+      }));
     symbols.push({
       name: diagram.id,
       detail: diagram.properties.title ?? diagram.type,

@@ -593,6 +593,46 @@ test("converts a Mermaid file and shows its findings on the source", async () =>
   assert.equal(problems[0].severity, vscode.DiagnosticSeverity.Information);
 });
 
+test("converts a Mermaid gantt chart and shows where its dates differ on the source", async () => {
+  const source = file("launch-plan.mmd");
+  writeFileSync(
+    source.fsPath,
+    [
+      "gantt",
+      "  title Launch plan",
+      "  dateFormat YYYY-MM-DD",
+      "  excludes weekends",
+      "  Build :build, 2026-06-06, 3d",
+      "  Ship :ship, after build, 2d",
+      "",
+    ].join("\n"),
+  );
+  const outcome = await vscode.commands.executeCommand("meltemi.convertToMeltemi", source);
+  assert.equal(outcome.status, "complete");
+  assert.equal(outcome.written, true);
+  const target = file("launch-plan.meltemi");
+  assert.equal(outcome.target, target.toString());
+  const imported = readFileSync(target.fsPath, "utf8");
+  assert.ok(imported.includes("diagram launch_plan: gantt {"));
+  assert.ok(imported.includes("exclude weekends"));
+  // Saturday does not work: the task starts on Monday, and the one that follows moves with it.
+  assert.ok(imported.includes('task build "Build" from 2026-06-08 for 3d'), "the start moves");
+  assert.ok(imported.includes('task ship "Ship" after build for 2d'), "the dependency is kept");
+  await until(() => canvasFor(target), "the canvas of the imported sheet");
+  const problems = vscode.languages
+    .getDiagnostics(source)
+    .filter((d) => d.source === "meltemi-import")
+    .sort((a, b) => a.range.start.line - b.range.start.line);
+  assert.equal(problems.length, 2, "the two tasks are dated differently");
+  assert.deepEqual(
+    problems.map((d) => d.range.start.line),
+    [4, 5],
+  );
+  assert.ok(problems[0].message.includes("2026-06-06"), "the date Mermaid draws is named");
+  assert.ok(problems[0].message.includes("2026-06-08"), "and the one the sheet has");
+  assert.equal(problems[0].severity, vscode.DiagnosticSeverity.Information);
+});
+
 test("re-imports into an existing sheet, keeping its placement", async () => {
   const source = file("checkout-flow.mmd");
   const target = file("checkout-flow.meltemi");

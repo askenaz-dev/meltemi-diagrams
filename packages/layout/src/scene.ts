@@ -2,7 +2,17 @@ import type { Point } from "@meltemi/diagrams-model";
 
 export type FontRole = "body" | "mono";
 export type SceneRole =
-  "element" | "relation" | "label" | "frame" | "icon" | "lifeline" | "event" | "motion" | "tag";
+  | "element"
+  | "relation"
+  | "label"
+  | "frame"
+  | "icon"
+  | "lifeline"
+  | "event"
+  | "motion"
+  | "tag"
+  /** A gantt chart's grid, tick labels, excluded days and today line: never sketched or faded. */
+  | "axis";
 export type TextAnchor = "start" | "middle" | "end";
 
 /** How a stroke is drawn: solid (`false`), dashed (`true`) or with round dots. */

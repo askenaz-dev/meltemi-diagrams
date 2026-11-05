@@ -26,6 +26,7 @@ export const es: typeof en = {
     free: "Libre",
     sequence: "Secuencia",
     c4: "C4",
+    gantt: "Gantt",
     story: "Historia",
     entity: "Entidad",
   },

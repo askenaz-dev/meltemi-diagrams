@@ -1,9 +1,16 @@
-import type {
-  CanvasAction,
-  ColorSwatch,
-  InspectorField,
-  InspectorModel,
-  ThemePanelModel,
+import {
+  WEEKDAY_NAMES,
+  dayListText,
+  parseDayList,
+  toggleWeekday,
+  toggleWeekends,
+  withDates,
+  type CanvasAction,
+  type ColorSwatch,
+  type DayList,
+  type InspectorField,
+  type InspectorModel,
+  type ThemePanelModel,
 } from "@meltemi/diagrams-editor/canvas";
 import { ICONS, ariaKeyshortcuts, clear, h, icon } from "./dom.js";
 import { fontShown, rowFamily } from "./font-picker.js";
@@ -172,13 +179,16 @@ function colorOf(value: string | null | undefined, swatches: readonly ColorSwatc
 function defaultOption(field: InspectorField): string {
   const words = messages().inspector;
   if (field.mixed) return words.mixed;
-  if (field.placeholder) return words.defaultOf(optionLabel(field.placeholder));
+  if (field.placeholder) return words.defaultOf(optionLabel(field.placeholder, field));
   return field.fromTheme ? words.defaultFromTheme : "—";
 }
 
-/** An option of a select as people read it: protocol words translated, code as written. */
-function optionLabel(option: string): string {
-  return messages().inspector.options[option] ?? option;
+/**
+ * An option of a select as people read it: the words the field gives for it (`titles`), else the
+ * protocol words translated, else the code as written.
+ */
+function optionLabel(option: string, field?: Pick<InspectorField, "titles">): string {
+  return field?.titles?.[option] ?? messages().inspector.options[option] ?? option;
 }
 
 /** The placeholder of an input: what applies when nothing is written. */
@@ -204,7 +214,11 @@ function fieldControl(
       select.append(h("option", { value: "" }, defaultOption(field)));
       for (const option of field.options ?? []) {
         select.append(
-          h("option", { value: option, selected: option === field.value }, optionLabel(option)),
+          h(
+            "option",
+            { value: option, selected: option === field.value },
+            optionLabel(option, field),
+          ),
         );
       }
       select.addEventListener("change", () => send(select.value === "" ? null : select.value));
@@ -450,8 +464,29 @@ function plainField(field: InspectorField, send: Send, extra: readonly HTMLEleme
     label.prepend(h("span", { class: "swatch", style: `background:${color}` }));
   }
   const control = fieldControl(field, id, send);
-  if (extra.length === 0) return h("div", { class: "field" }, label, control);
-  return h("div", { class: "field" }, label, h("div", { class: "row" }, control, ...extra));
+  // The one-click choices of a field beside its label (a day width of `auto`), or, when there are
+  // more than two (the formats of an axis), in a row under the control; an enum's, the theme's
+  // counterpart, sit beside its control.
+  const chips = field.type === "enum" ? undefined : quickChips(field, send);
+  const wide = (field.quick?.length ?? 0) > 2;
+  const head = chips && !wide ? h("div", { class: "field-head" }, label, chips) : label;
+  const element = h(
+    "div",
+    { class: "field", "data-field": field.name },
+    head,
+    extra.length === 0 ? control : h("div", { class: "row" }, control, ...extra),
+  );
+  if (chips && wide) {
+    chips.classList.add("wide");
+    element.append(chips);
+  }
+  // What the field is for, or why it is read-only, under it (an arrow's To).
+  if (field.note) {
+    const noteId = `${id}-note`;
+    control.setAttribute("aria-describedby", noteId);
+    element.append(h("p", { class: "note", id: noteId }, ...codeText(field.note)));
+  }
+  return element;
 }
 
 /** A sentence with code in backticks ("The block of `pay` activates `api`."), as nodes. */
@@ -515,6 +550,359 @@ function booleanField(field: InspectorField, send: Send): HTMLElement {
   );
   if (state.note) element.append(h("p", { class: "note", id: noteId }, ...codeText(state.note)));
   return element;
+}
+
+/**
+ * Commits a text box as the other fields do: on Enter, or when it loses the focus after a change,
+ * never while typing; Escape puts the written value back. One write per edit: the change that
+ * follows an Enter writes nothing. What was sent stays marked (`data-sent`), so that the render
+ * that brings it is drawn though the box keeps the focus.
+ */
+function commitText(
+  input: HTMLInputElement,
+  written: () => string,
+  write: (text: string) => void,
+): void {
+  let sent = input.value;
+  const commit = () => {
+    if (input.value === sent) return;
+    sent = input.value;
+    input.dataset.sent = sent;
+    write(input.value);
+  };
+  input.addEventListener("change", commit);
+  input.addEventListener("keydown", (e) => {
+    e.stopPropagation();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      commit();
+    } else if (e.key === "Escape") {
+      input.value = written();
+      sent = input.value;
+      input.blur();
+    }
+  });
+}
+
+/**
+ * The one-click choices of a field (`InspectorField.quick`) as chips beside its label: the one that
+ * is the value is pressed, and the empty one (Off, Auto) takes the written value away.
+ */
+function quickChips(field: InspectorField, send: Send): HTMLElement | undefined {
+  const quick = field.quick ?? [];
+  if (quick.length === 0) return undefined;
+  const words = messages().inspector;
+  const id = keyOf(field.name);
+  const current = field.value === null ? "" : String(field.value);
+  const chips = quick.map((choice) => {
+    const button = h(
+      "button",
+      {
+        type: "button",
+        class: "quick small",
+        "aria-pressed": String(current === choice.value),
+        title: choice.value === "" ? words.clearTitle : words.use(choice.value),
+        "data-key": `${id}:quick:${choice.value === "" ? "clear" : choice.value}`,
+        disabled: field.readonly,
+      },
+      choice.label,
+    );
+    button.addEventListener("click", () => send(choice.value === "" ? null : choice.value));
+    button.addEventListener("keydown", (e) => e.stopPropagation());
+    return button;
+  });
+  return h("span", { class: "quicks" }, ...chips);
+}
+
+/** The ISO form a native date control takes for a date written (`YYYY-MM-DD`, with a time or not). */
+function nativeDate(text: string, time: boolean): string {
+  const match = /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}))?/.exec(text.trim());
+  if (!match) return "";
+  return time ? `${match[1]}T${match[2] ?? "00:00"}` : match[1]!;
+}
+
+/**
+ * A `date` field: the date as text, written as it is typed (a day that does not exist is refused,
+ * with its reason, under the field), and beside it a button that opens the platform's date picker,
+ * on the date written or else the one that applies. A field that is a chart's `today` has its quick
+ * choices beside the label.
+ */
+function dateField(field: InspectorField, send: Send): HTMLElement {
+  const id = keyOf(field.name);
+  const words = messages().inspector;
+  const written = () => (field.value === null ? "" : String(field.value));
+  const input = h("input", {
+    id,
+    type: "text",
+    class: "date-text",
+    inputmode: "numeric",
+    autocomplete: "off",
+    spellcheck: "false",
+    placeholder: placeholderText(field),
+    disabled: field.readonly,
+  });
+  input.value = written();
+  commitText(input, written, (text) => send(text.trim() === "" ? null : text.trim()));
+  const row = h("div", { class: "row date-row" }, input);
+  if (!field.readonly) {
+    const time = field.time === true;
+    const native = h("input", {
+      type: time ? "datetime-local" : "date",
+      class: "date-native",
+      tabindex: "-1",
+      "aria-hidden": "true",
+    });
+    const name = words.pickDate(field.label);
+    const pick = h(
+      "button",
+      {
+        type: "button",
+        class: "date-pick",
+        "data-key": `${id}:pick`,
+        title: name,
+        "aria-label": name,
+      },
+      icon(ICONS.calendar),
+    );
+    pick.addEventListener("click", () => {
+      native.value = nativeDate(input.value, time) || nativeDate(field.placeholder ?? "", time);
+      try {
+        native.showPicker();
+      } catch {
+        native.focus();
+        native.click();
+      }
+    });
+    pick.addEventListener("keydown", (e) => e.stopPropagation());
+    native.addEventListener("change", () => {
+      if (native.value === "") return;
+      input.value = native.value;
+      // The picker lets go of the focus before the write: a render waits for what has it.
+      native.blur();
+      input.dispatchEvent(new Event("change"));
+    });
+    row.append(h("span", { class: "date-pick-wrap" }, pick, native));
+  }
+  const label = h("label", { for: id }, field.label);
+  const chips = quickChips(field, send);
+  return h(
+    "div",
+    { class: "field date-field", "data-field": field.name },
+    chips ? h("div", { class: "field-head" }, label, chips) : label,
+    row,
+  );
+}
+
+/**
+ * A `duration` field: a number and the unit it is in (`options`), written together (`10d`). Without
+ * a written value they show what applies greyed; a unit chosen with no number writes the number that
+ * applies in that unit, and an emptied number takes the written value away.
+ */
+function durationField(field: InspectorField, send: Send): HTMLElement {
+  const id = keyOf(field.name);
+  const words = messages().inspector;
+  const split = (text: string | null) => {
+    const match = /^(\d+(?:\.\d+)?)(\D*)$/.exec(text ?? "");
+    return match ? { amount: match[1]!, unit: match[2]! } : undefined;
+  };
+  const written = split(field.value === null ? null : String(field.value));
+  const applies = split(field.placeholder ?? null);
+  const units = field.options ?? [];
+  const amount = h("input", {
+    id,
+    type: "number",
+    class: "duration-amount",
+    min: "0",
+    step: "any",
+    inputmode: "decimal",
+    placeholder: applies?.amount ?? "",
+    disabled: field.readonly,
+  });
+  amount.value = written?.amount ?? "";
+  // The number is not the whole value (`2w`): while it shows what was drawn, a render is not held.
+  amount.dataset.sent = amount.value;
+  const shownUnit = written?.unit ?? applies?.unit ?? units[0] ?? "";
+  const unit = h(
+    "select",
+    {
+      class: "duration-unit",
+      "aria-label": words.unit(field.label),
+      "data-key": `${id}:unit`,
+      disabled: field.readonly,
+    },
+    ...units.map((choice) =>
+      h("option", { value: choice, selected: choice === shownUnit }, optionLabel(choice, field)),
+    ),
+  );
+  const write = (byUnit: boolean) => {
+    const typed = amount.value.trim();
+    if (typed === "") send(byUnit ? `${applies?.amount ?? "1"}${unit.value}` : null);
+    else send(`${typed}${unit.value}`);
+  };
+  commitText(
+    amount,
+    () => written?.amount ?? "",
+    () => write(false),
+  );
+  unit.addEventListener("change", () => write(true));
+  unit.addEventListener("keydown", (e) => e.stopPropagation());
+  return h(
+    "div",
+    { class: "field duration-field", "data-field": field.name },
+    h("label", { for: id }, field.label),
+    h("div", { class: "row" }, amount, unit),
+  );
+}
+
+/**
+ * A `tasks` field: the ids written as chips, each with the label of its task as its title and a
+ * button that removes it, and a choice that adds one of the tasks left (`options`). Written as the
+ * list of ids, comma separated; the last one removed takes the value away.
+ */
+function tasksControl(field: InspectorField, send: Send): HTMLElement {
+  const id = keyOf(field.name);
+  const words = messages().inspector;
+  const chosen =
+    field.value === null
+      ? []
+      : String(field.value)
+          .split(/[\s,]+/)
+          .filter(Boolean);
+  const titles = field.titles ?? {};
+  const list = h("ul", { class: "task-chips", "aria-labelledby": `${id}-label` });
+  for (const task of chosen) {
+    const chip = h(
+      "li",
+      { class: "task-chip", "data-task": task, title: titles[task] },
+      h("span", { class: "task-id" }, task),
+    );
+    if (!field.readonly) {
+      const name = words.removeTask(task);
+      const remove = h(
+        "button",
+        {
+          type: "button",
+          class: "chip-remove",
+          "data-key": `${id}:remove:${task}`,
+          title: name,
+          "aria-label": name,
+        },
+        icon(ICONS.close),
+      );
+      remove.addEventListener("click", () =>
+        send(chosen.filter((other) => other !== task).join(", ") || null),
+      );
+      remove.addEventListener("keydown", (e) => e.stopPropagation());
+      chip.append(remove);
+    }
+    list.append(chip);
+  }
+  if (chosen.length === 0) list.append(h("li", { class: "task-none" }, words.noTasks));
+  const rest = (field.options ?? []).filter((option) => !chosen.includes(option));
+  const head = h("span", { class: "field-label", id: `${id}-label` }, field.label);
+  const element = h("div", { class: "field tasks-field", "data-field": field.name }, head, list);
+  if (!field.readonly && rest.length > 0) {
+    const add = h(
+      "select",
+      {
+        id,
+        class: "task-add",
+        "aria-label": words.addTask(field.label),
+        "data-key": `${id}:add`,
+      },
+      h("option", { value: "" }, words.addTaskOption),
+      ...rest.map((option) =>
+        h("option", { value: option }, titles[option] ? `${option} — ${titles[option]}` : option),
+      ),
+    );
+    add.addEventListener("change", () => {
+      if (add.value !== "") send([...chosen, add.value].join(", "));
+    });
+    add.addEventListener("keydown", (e) => e.stopPropagation());
+    element.append(add);
+  }
+  return element;
+}
+
+/**
+ * A `weekdays` field, the days a chart's calendar excludes: the seven weekdays as toggles (Monday
+ * first), Weekends beside the label as one choice for Saturday and Sunday, and under them a text
+ * box for the dates. The value is the list as written (`weekends, friday, 2026-06-29`), and every
+ * change writes the whole list, keeping the word `weekends` while both days are in.
+ */
+function weekdaysField(field: InspectorField, send: Send): HTMLElement {
+  const id = keyOf(field.name);
+  const words = messages().inspector;
+  const list = parseDayList(field.value === null ? "" : String(field.value));
+  const write = (next: DayList) => send(dayListText(next) || null);
+  const weekend = list.weekdays[5] === true && list.weekdays[6] === true;
+  const toggles = words.daysShort.map((short, i) => {
+    const button = h(
+      "button",
+      {
+        type: "button",
+        class: "day-toggle",
+        "aria-pressed": String(list.weekdays[i] === true),
+        "aria-label": words.daysLong[i],
+        title: words.daysLong[i],
+        "data-key": `${id}:${WEEKDAY_NAMES[i]}`,
+        tabindex: i === 0 ? 0 : -1,
+        disabled: field.readonly,
+      },
+      short,
+    );
+    button.addEventListener("click", () => write(toggleWeekday(list, i)));
+    return button;
+  });
+  const group = h(
+    "div",
+    { class: "day-toggles", role: "group", "aria-labelledby": `${id}-label` },
+    ...toggles,
+  );
+  roving(group, toggles);
+  const weekends = h(
+    "button",
+    {
+      type: "button",
+      class: "quick small",
+      "aria-pressed": String(weekend),
+      title: words.weekendsTitle,
+      "data-key": `${id}:weekends`,
+      disabled: field.readonly,
+    },
+    words.weekends,
+  );
+  weekends.addEventListener("click", () => write(toggleWeekends(list)));
+  weekends.addEventListener("keydown", (e) => e.stopPropagation());
+  const dates = h("input", {
+    type: "text",
+    class: "day-dates",
+    placeholder: "2026-06-29, 2026-07-04",
+    "aria-label": words.excludedDates,
+    "data-key": `${id}:dates`,
+    spellcheck: "false",
+    autocomplete: "off",
+    disabled: field.readonly,
+  });
+  dates.value = list.dates.join(", ");
+  dates.dataset.sent = dates.value;
+  commitText(
+    dates,
+    () => list.dates.join(", "),
+    (typed) => write(withDates(list, typed)),
+  );
+  return h(
+    "div",
+    { class: "field weekdays-field", "data-field": field.name },
+    h(
+      "div",
+      { class: "field-head" },
+      h("span", { class: "field-label", id: `${id}-label` }, field.label),
+      h("span", { class: "quicks" }, weekends),
+    ),
+    group,
+    dates,
+  );
 }
 
 /** Whether a field is one of the **Tags** of a sequence message or participant: `tag.<n>`, `tag.new`. */
@@ -1453,9 +1841,14 @@ export class Inspector {
         panel.append(section);
       }
       for (const row of inspectorRows(tabFields.filter((f) => f.section !== "strip"))) {
-        if (row.kind === "field") panel.append(this.field(row.field));
-        // A canvas that only shows has nothing to list for an owner without tags.
-        else if (row.tags.length > 0 || !this.readOnly) {
+        if (row.kind === "field") {
+          // A field that starts a group (the Schedule of a task) has its heading above it.
+          if (row.field.heading) {
+            panel.append(h("h3", { class: "group-title" }, row.field.heading));
+          }
+          panel.append(this.field(row.field));
+        } else if (row.tags.length > 0 || !this.readOnly) {
+          // A canvas that only shows has nothing to list for an owner without tags.
           panel.append(this.tagList(row.tags, row.add));
         }
       }
@@ -1592,6 +1985,48 @@ export class Inspector {
     const model = this.model;
     if (!model || model.target.ids.join() !== ids.join()) return undefined;
     return model.fields.find((f) => f.name === name)?.value;
+  }
+
+  /**
+   * Shows why a field was refused, under it: the reason in its own words, its controls marked
+   * invalid and described by it. What was typed stays, to be corrected; the next edit of the field
+   * or the next render takes the reason away. Nothing happens for a field that is not drawn.
+   */
+  refuse(ids: readonly string[], field: string, reason: string): void {
+    const model = this.model;
+    if (!model || model.target.ids.join() !== ids.join()) return;
+    const id = keyOf(field);
+    const row =
+      [...this.element.querySelectorAll<HTMLElement>("[data-field]")].find(
+        (element) => element.dataset.field === field,
+      ) ??
+      this.element.querySelector<HTMLElement>(`#${CSS.escape(id)}`)?.closest<HTMLElement>(".field");
+    if (!row) return;
+    row.querySelector(".refusal")?.remove();
+    const note = h(
+      "p",
+      { class: "refusal", role: "alert", id: `${id}-refusal` },
+      ...codeText(reason),
+    );
+    row.append(note);
+    row.classList.add("refused");
+    // The reason is read where the text was typed: scrolled into view if it is below the panel.
+    note.scrollIntoView?.({ block: "nearest" });
+    const controls = [...row.querySelectorAll<HTMLElement>("input, select, textarea")];
+    const forget = () => {
+      note.remove();
+      row.classList.remove("refused");
+      for (const control of controls) {
+        control.removeAttribute("aria-invalid");
+        control.removeAttribute("aria-describedby");
+        control.removeEventListener("input", forget);
+      }
+    };
+    for (const control of controls) {
+      control.setAttribute("aria-invalid", "true");
+      control.setAttribute("aria-describedby", note.id);
+      control.addEventListener("input", forget);
+    }
   }
 
   /**
@@ -1984,6 +2419,10 @@ export class Inspector {
   private field(field: InspectorField): HTMLElement {
     const send = this.send(field);
     if (field.type === "boolean") return booleanField(field, send);
+    if (field.type === "date") return dateField(field, send);
+    if (field.type === "duration") return durationField(field, send);
+    if (field.type === "tasks") return tasksControl(field, send);
+    if (field.type === "weekdays") return weekdaysField(field, send);
     if (field.type === "icon") return this.iconField(field, send);
     if (field.glyphs && field.options) return glyphField(field, send);
     if (field.type === "number" && field.range) return rangeField(field, send, this.slide(field));

@@ -100,7 +100,13 @@ describe("model JSON", () => {
       "events",
       "scenarios",
       "c4",
+      "gantt",
     ]);
+    expect(diagram!.gantt).toBeNull();
+    for (const element of diagram!.elements) {
+      expect(Object.keys(element).at(-1)).toBe("task");
+      expect(element.task).toBeNull();
+    }
     expect(diagram!.elements.map((e) => e.id)).toEqual(["client", "api", "orders", "db"]);
     expect(diagram!.relations.map((r) => r.key)).toEqual(["request", "create", "save"]);
     expect(diagram!.placement.map((p) => p.statement)).toEqual([
@@ -335,5 +341,96 @@ describe("note attachments in JSON", () => {
     expect(json.ok).toBe(false);
     expect(json.diagnostics.map((d) => d.code)).toEqual(["ref.unknown-element"]);
     expect(json.diagnostics[0]!.range.start).toMatchObject({ line: 2, column: 20 });
+  });
+});
+
+describe("Gantt charts in JSON", () => {
+  const ROADMAP = readFileSync(join(CORPUS_ROOT, "valid", "gantt", "roadmap.meltemi"), "utf8");
+
+  it("writes the schedule of a task and the settings of the chart", () => {
+    const json = toJson(compile(ROADMAP));
+    expect(json.ok).toBe(true);
+    const diagram = json.diagrams[0]!;
+    expect(diagram.type).toBe("gantt");
+    const tec1 = diagram.elements.find((e) => e.id === "tec1")!;
+    expect(tec1.task).toEqual({
+      from: null,
+      after: ["tec0"],
+      end: { kind: "for", amount: 10, unit: "d" },
+      status: null,
+      critical: false,
+      start: "2026-06-08T00:00",
+      finish: "2026-06-20T00:00",
+      workingDays: 10,
+    });
+    expect(Object.keys(tec1).at(-1)).toBe("task");
+    expect(diagram.elements.find((e) => e.id === "tecnologia")!.task).toBeNull();
+    expect(diagram.gantt).toEqual({
+      axisFormat: "%d %b",
+      ticks: null,
+      weekStart: "monday",
+      axis: "bottom",
+      labels: "bar",
+      display: "normal",
+      dependencies: "shown",
+      dayWidth: null,
+      exclude: { weekdays: ["saturday", "sunday"], dates: [] },
+      include: [],
+      today: { date: null },
+      span: { start: "2026-06-01T00:00", end: "2026-08-29T00:00" },
+    });
+    expect(Object.keys(diagram).at(-1)).toBe("gantt");
+    expect(diagram.relations).toHaveLength(6);
+    expect(diagram.relations.every((r) => r.derived)).toBe(true);
+    expect(stringifyJson(toJson(compile(ROADMAP)))).toBe(stringifyJson(json));
+  });
+
+  it("writes the other end clauses, the status and a milestone", () => {
+    const json = toJson(
+      compile(
+        [
+          "diagram p: gantt {",
+          "  exclude weekends, 2026-06-03",
+          "  include 2026-06-06",
+          "  weekStart sunday",
+          "  task a from 2026-06-01 to 2026-06-05 done critical",
+          "  task b from 2026-05-25 until a",
+          "  milestone m after a active",
+          "  marker k at 2026-06-30",
+          "}",
+        ].join("\n"),
+      ),
+    );
+    const byId = (id: string) => json.diagrams[0]!.elements.find((e) => e.id === id)!.task!;
+    expect(byId("a")).toMatchObject({
+      end: { kind: "to", date: "2026-06-05" },
+      status: "done",
+      critical: true,
+    });
+    expect(byId("b").end).toEqual({ kind: "until", ids: ["a"] });
+    expect(byId("m")).toMatchObject({ status: "active", workingDays: 0 });
+    expect(byId("k")).toMatchObject({ from: "2026-06-30", after: [] });
+    expect(json.diagrams[0]!.gantt).toMatchObject({
+      weekStart: "sunday",
+      exclude: { weekdays: ["saturday", "sunday"], dates: ["2026-06-03"] },
+      include: ["2026-06-06"],
+    });
+  });
+
+  it("gives every other diagram a null task and a null gantt", () => {
+    const json = toJson(compile(checkout));
+    expect(json.diagrams[0]!.gantt).toBeNull();
+    expect(json.diagrams[0]!.elements.every((e) => e.task === null)).toBe(true);
+  });
+
+  it("does not serialise a chart with a loop", () => {
+    const json = toJson(
+      compile(
+        "diagram p: gantt {\n  task a after b for 1d\n  task b after a for 1d\n}\ndiagram f: flow { a -> b }\n",
+      ),
+    );
+    expect(json.ok).toBe(false);
+    expect(json.diagrams.map((d) => d.id)).toEqual(["f"]);
+    expect(json.diagnostics.map((d) => d.code)).toEqual(["gantt.cycle", "gantt.cycle"]);
   });
 });

@@ -5,7 +5,7 @@
 Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Devin Desktop and other coding agents draw,
 convert and export Meltemi diagrams with the `meltemi-diagrams` skill: a workflow, a template, the
 rules that save iterations, references for the language, layout, themes, C4, sequence diagrams,
-free compositions, stories and converting, and complete examples. An agent that reads it writes
+gantt charts, free compositions, stories and converting, and complete examples. An agent that reads it writes
 `.meltemi` files, validates them with the command line and fixes what it reports, instead of
 drawing pictures by hand. This page is on the web too, at
 [diagrams.meltemi.dev/agent-setup](https://diagrams.meltemi.dev/agent-setup/), linked from the
@@ -100,8 +100,8 @@ you ask to look at the result in a browser.
 Ask in your own words, naming what to draw and from what: "draw the checkout service from
 `docs/architecture.md` as a flow diagram", "convert `diagrams/billing.mmd` to Meltemi and keep its
 layout", "add a sequence diagram of the payment with an approved and a declined scenario", "make a
-C4 container view of the shop". The skill tells the agent to import Mermaid and PlantUML sources
-instead of retyping them, to choose the profile (flow, free, sequence or C4), to validate until no
+C4 container view of the shop", "plan the launch in `docs/plan.md` as a gantt chart". The skill tells the agent to import Mermaid and PlantUML sources
+instead of retyping them, to choose the profile (flow, free, sequence, C4 or gantt), to validate until no
 diagnostic remains and to export SVG for you to look at with `mdg preview`.
 
 ## Through the MCP endpoint

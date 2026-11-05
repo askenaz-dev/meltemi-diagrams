@@ -5,8 +5,8 @@
 Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Devin Desktop y otros agentes de
 programación dibujan, convierten y exportan diagramas de Meltemi con la skill `meltemi-diagrams`:
 un flujo de trabajo, una plantilla, las reglas que ahorran iteraciones, referencias del lenguaje,
-la disposición, los temas, C4, los diagramas de secuencia, las composiciones libres, las historias
-y la conversión, y ejemplos completos. Un agente que la lee escribe archivos `.meltemi`, los valida
+la disposición, los temas, C4, los diagramas de secuencia, los diagramas de Gantt, las composiciones
+libres, las historias y la conversión, y ejemplos completos. Un agente que la lee escribe archivos `.meltemi`, los valida
 con la línea de comandos y corrige lo que esta informa, en lugar de dibujar imágenes a mano. Esta
 página también está en la web, en
 [diagrams.meltemi.dev/es/agent-setup](https://diagrams.meltemi.dev/es/agent-setup/), enlazada
@@ -107,9 +107,10 @@ local, solo cuando pides ver el resultado en un navegador.
 Pide con tus palabras, nombrando qué dibujar y a partir de qué: "dibuja el servicio de pago de
 `docs/architecture.md` como un diagrama de flujo", "convierte `diagrams/billing.mmd` a Meltemi y
 conserva su disposición", "agrega un diagrama de secuencia del pago con un escenario aprobado y uno
-rechazado", "haz una vista C4 de contenedores de la tienda". La skill le indica al agente que
+rechazado", "haz una vista C4 de contenedores de la tienda", "planifica el lanzamiento de `docs/plan.md` como un
+diagrama de Gantt". La skill le indica al agente que
 importe las fuentes de Mermaid y PlantUML en vez de reescribirlas, que elija el perfil (flujo,
-libre, secuencia o C4), que valide hasta que no quede ningún diagnóstico y que exporte SVG para que
+libre, secuencia, C4 o Gantt), que valide hasta que no quede ningún diagnóstico y que exporte SVG para que
 lo veas con `mdg preview`.
 
 ## A través del endpoint MCP

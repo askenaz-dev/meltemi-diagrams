@@ -3,10 +3,11 @@
 [English](../../language/grammar-0.2.md)
 
 Esta es la referencia de la sintaxis que implementa `@meltemi/diagrams-language` y de los
-vocabularios `flow`, `free`, `sequence` y `c4` y los bloques `model` que valida
-`@meltemi/diagrams-model`. Sigue la propuesta del 9 de octubre de 2026 y las decisiones 0001 a 0004
-y 0018 a 0020. Los cambios en el lenguaje siguen la [política de cambios del lenguaje](policy.md), y
-el [conjunto de pruebas de conformidad](conformance.md) fija lo que significan los archivos.
+vocabularios `flow`, `free`, `sequence`, `c4` y `gantt` y los bloques `model` que valida
+`@meltemi/diagrams-model`. Sigue la propuesta del 9 de octubre de 2026 y las decisiones 0001 a 0004,
+0018 a 0020 y 0066. Los cambios en el lenguaje siguen la
+[política de cambios del lenguaje](policy.md), y el
+[conjunto de pruebas de conformidad](conformance.md) fija lo que significan los archivos.
 
 Un archivo puede empezar con un encabezado de versión. Cada ejemplo de abajo es un archivo completo
 y válido.
@@ -36,6 +37,7 @@ diagram example: flow {
 | Cadena               | `"..."` en una sola línea. Secuencias de escape: `\"`, `\\`, `\n`, `\t`. Las demás secuencias de escape son errores.                                           |
 | Número               | `-` opcional, dígitos, `.digits` opcional y, después, un sufijo de unidad opcional.                                                                            |
 | Unidad               | Letras justo después de un número (`1200ms`, `1s`) o `%` (`50%`).                                                                                              |
+| Fecha                | Cuatro dígitos, `-`, dos dígitos, `-`, dos dígitos y, opcionalmente, `T` y `hh:mm` o `hh:mm:ss`, sin espacios: `2026-06-01T09:30`.                             |
 | Símbolos de relación | `->` (continua o llamada), `-->` (discontinua o respuesta), las bidireccionales `<->` y `<-->`, y las líneas sin puntas `--` (continua) y `---` (discontinua). |
 | Puntuación           | `{ } ( ) [ ] : ; , .`                                                                                                                                          |
 | Salto de línea       | `\n` o `\r\n`. Es un token, porque termina las instrucciones.                                                                                                  |
@@ -44,6 +46,12 @@ diagram example: flow {
 La trivia se adjunta al token siguiente, así que el árbol conserva cada carácter. Una secuencia de
 caracteres que no inicia ningún token (por ejemplo `=>` o `#`) es un único error
 `syntax.unexpected-character`.
+
+Una secuencia de dígitos que tiene la forma de una fecha es un solo token de fecha, que se conserva
+tal como se escribió (el formateador nunca la cambia); el modelo comprueba que nombra un día, así
+que `2026-02-30` es `prop.invalid-value`, no un error de sintaxis. Cualquier otra secuencia se
+separa en números, como antes: `2026-6-1` son los números `2026`, `-6` y `-1`, y
+`2026-06-01 T09:30` es la fecha, el identificador `T09`, dos puntos y el número `30`.
 
 Una secuencia de `-` y `>` toma el token más largo con el que empieza: `---`, luego `-->`, luego
 `--` y luego `->`; `-` delante de un dígito empieza un número. Un guion más es discontinuo, y las
@@ -75,7 +83,7 @@ arrow         = "->" | "-->" | "--" | "---" | "<->" | "<-->" ;
 shorthand     = IDENT "[" ( STRING | "(" STRING ")" ) "]" [ block ] ;
 keyword-stmt  = IDENT args [ block { IDENT args block } ] ;   (* chained clauses stay on one line *)
 args          = { arg | "," } ;
-arg           = ref | STRING | NUMBER | tuple | list ;
+arg           = ref | STRING | NUMBER | DATE | tuple | list ;
 tuple         = "(" { arg | "," } ")" ;
 list          = "[" { arg | "," } "]" ;
 ref           = IDENT { "." IDENT } ;
@@ -113,6 +121,7 @@ no producen un segundo diagnóstico.
 | `diagram <id>: sequence { }`     | Se compila y se valida ([sequence.md](sequence.md)).                  |
 | `diagram <id>: c4 using <m> { }` | Se compila y se valida contra el modelo ([c4.md](c4.md)).             |
 | `diagram <id>: free { }`         | Se compila y se valida ([free.md](free.md)).                          |
+| `diagram <id>: gantt { }`        | Se compila y se valida ([gantt.md](gantt.md)).                        |
 | `theme <id> { }`                 | Se compila en una definición de tema (consulta Bloques de tema).      |
 | `model <id> { }`                 | Se compila ([c4.md](c4.md)).                                          |
 | `story <id> for <diagram> { }`   | Se compila y se valida ([stories.md](stories.md)).                    |
@@ -330,6 +339,41 @@ en los bloques de los mensajes y los participantes son suyas.
 Las reglas que se comprueban según el orden (`sequence.activation`, `sequence.return`,
 `sequence.lifecycle`) y las comprobaciones de escenarios (`sequence.scenario`) se enumeran en
 [diagnostics.md](diagnostics.md).
+
+## Vocabulario `gantt`
+
+Un diagrama de Gantt programa tareas sobre un eje de tiempo ([gantt.md](gantt.md)). Comparte con los
+demás perfiles `style`, `class`, `rule`, `animate`, `link` y las propiedades de diagrama `theme`,
+`title`, `description`, `preset` y `canvas`; las fechas, las duraciones y las instrucciones de abajo
+son suyas. No acepta `placement`, ni `layout`, ni relaciones: una dependencia se escribe `after`, y
+`a -> b` es `gantt.relation`.
+
+| Instrucción                                 | Forma                                                                                                                                | Notas                                                                                                                                          |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `section`                                   | `section <id> ["Label"] { ... }`                                                                                                     | una banda de filas; contiene `task`, `milestone` y `marker`, nunca una sección; su bloque acepta también `description`, `class`, `link`, `url` |
+| `task`                                      | `task <id> ["Label"] [from <date>] [after <ids>] [for <duration> \| to <date> \| until <ids>] [done \| active] [critical] [{ ... }]` | una barra; las cláusulas en cualquier orden, una sola de final; sin inicio sigue a la tarea o el hito anterior                                 |
+| `milestone`                                 | `milestone <id> ["Label"] [at <date>] [after <ids>] [done \| active] [critical] [{ ... }]`                                           | un rombo en un instante                                                                                                                        |
+| `marker`                                    | `marker <id> ["Label"] (at <date> \| after <ids>) [{ ... }]`                                                                         | una línea discontinua que cruza el diagrama, con su etiqueta en una píldora                                                                    |
+| `exclude`, `include`                        | `exclude weekends, friday, 2026-12-25`, `include 2026-06-06`                                                                         | el calendario: los días que no se trabajan, y los que sí a pesar de ellos; las duraciones cuentan tiempo hábil                                 |
+| `weekStart`                                 | `weekStart sunday`                                                                                                                   | el primer día de las divisiones semanales, `monday` por defecto                                                                                |
+| `axisFormat`                                | `axisFormat "%d %b"`                                                                                                                 | un subconjunto de strftime: `%a %A %b %B %d %e %H %I %j %m %M %p %q %S %U %V %w %W %y %Y %%`, cada una con la bandera `-`                      |
+| `ticks`                                     | `ticks 1w`                                                                                                                           | el intervalo del eje: un número entero y `s`, `min`, `h`, `d`, `w`, `mo` o `y`                                                                 |
+| `axis`, `labels`, `display`, `dependencies` | `axis top\|bottom\|both`, `labels bar\|column`, `display normal\|compact`, `dependencies shown\|hidden`                              | dónde van las etiquetas del eje y las de las tareas, cómo se agrupan las filas, si se dibujan las flechas                                      |
+| `dayWidth`                                  | `dayWidth 12`                                                                                                                        | las unidades de ancho de un día, de 1 a 100 000                                                                                                |
+| `today`                                     | `today`, `today 2026-06-17`                                                                                                          | una línea en el día en que se hace el dibujo, o en una fecha                                                                                   |
+
+Las fechas son el token de fecha de las [reglas léxicas](#reglas-léxicas), y las duraciones, un
+número mayor que 0 con `s`, `min`, `h`, `d` o `w`. Las palabras `from`, `after`, `for`, `to`,
+`until`, `at`, `done`, `active` y `critical` son palabras de cláusula y de estado de una tarea, un
+hito o una marca, así que ninguna puede ser un id. Una palabra de cláusula toma su valor (una fecha,
+una duración o ids hasta la siguiente palabra de cláusula o de estado), una palabra de estado va
+sola, y `after` y `until` nombran tareas e hitos, nunca secciones ni marcas.
+
+Las comprobaciones de la programación (`gantt.unscheduled`, `gantt.schedule`, `gantt.cycle`,
+`gantt.relation`) y la advertencia `gantt.excluded-day` se enumeran en
+[diagnostics.md](diagnostics.md); las fechas, las duraciones, las cláusulas y los calendarios mal
+formados son `prop.invalid-value`, `prop.unknown` y `prop.duplicate`, y una tarea desconocida es
+`ref.unknown-element`.
 
 ## Bloques `model` y vocabulario `c4`
 

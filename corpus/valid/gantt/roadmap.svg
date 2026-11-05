@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="454" viewBox="0 0 1200 454" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Hoja de ruta GenAI</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1200" height="454" fill="#F7FBFF"/>
+  <g data-id="axis" data-role="axis">
+    <rect x="251.01" y="20" width="21.6" height="344" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="326.63" y="20" width="21.6" height="344" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="402.24" y="20" width="21.6" height="344" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="477.86" y="20" width="21.6" height="344" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="553.47" y="20" width="21.6" height="344" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="629.09" y="20" width="21.6" height="344" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="704.7" y="20" width="21.6" height="344" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="780.32" y="20" width="21.6" height="344" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="855.93" y="20" width="21.6" height="344" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="931.55" y="20" width="21.6" height="344" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="1007.16" y="20" width="21.6" height="344" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="1082.78" y="20" width="21.6" height="344" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="1158.4" y="20" width="21.6" height="344" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <polyline points="197,20 197,364" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="272.62,20 272.62,364" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="348.23,20 348.23,364" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="423.85,20 423.85,364" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="499.46,20 499.46,364" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="575.08,20 575.08,364" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="650.69,20 650.69,364" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="726.31,20 726.31,364" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="801.92,20 801.92,364" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="877.54,20 877.54,364" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="953.15,20 953.15,364" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="1028.77,20 1028.77,364" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="1104.38,20 1104.38,364" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="1180,20 1180,364" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="20,364 1180,364" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <text x="197" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">01 Jun</text>
+    <text x="272.62" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">08 Jun</text>
+    <text x="348.23" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">15 Jun</text>
+    <text x="423.85" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">22 Jun</text>
+    <text x="499.46" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">29 Jun</text>
+    <text x="575.08" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">06 Jul</text>
+    <text x="650.69" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">13 Jul</text>
+    <text x="726.31" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">20 Jul</text>
+    <text x="801.92" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">27 Jul</text>
+    <text x="877.54" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">03 Aug</text>
+    <text x="953.15" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">10 Aug</text>
+    <text x="1028.77" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">17 Aug</text>
+    <text x="1104.38" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">24 Aug</text>
+    <text x="1180" y="381" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">31 Aug</text>
+  </g>
+  <g data-id="tecnologia" data-role="element">
+    <rect x="20" y="20" width="1160" height="104" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <text x="36" y="76.73" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">Tecnología</text>
+    <g data-id="tec0" data-role="element">
+      <rect x="197" y="28" width="54.01" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+      <text x="265.01" y="44" text-anchor="start" font-size="11" font-weight="500" fill="#0B1830">Evaluar plataformas de agentes</text>
+    </g>
+    <g data-id="tec1" data-role="element">
+      <rect x="272.62" y="60" width="129.63" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+      <text x="416.24" y="76" text-anchor="start" font-size="11" font-weight="500" fill="#0B1830">Prueba de concepto con el equipo de Arquitectura</text>
+    </g>
+    <g data-id="tec2" data-role="element">
+      <rect x="423.85" y="92" width="10.8" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+      <text x="440.65" y="108" text-anchor="start" font-size="11" font-weight="500" fill="#0B1830">Presentar resultados al comité Arq</text>
+    </g>
+  </g>
+  <g data-id="nuevo_flujo_genai_hub" data-role="element">
+    <polyline points="20,124 1180,124" fill="none" stroke="#C9D6E3" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <text x="36" y="196.73" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">Nuevo Flujo GenAI Hub</text>
+    <g data-id="flu0" data-role="element">
+      <rect x="348.23" y="132" width="32.41" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+      <text x="394.64" y="148" text-anchor="start" font-size="11" font-weight="500" fill="#0B1830">Propuesta de flujo ágil de evaluación</text>
+    </g>
+    <g data-id="flu1" data-role="element">
+      <rect x="380.64" y="164" width="151.23" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+      <text x="545.87" y="180" text-anchor="start" font-size="11" font-weight="500" fill="#0B1830">Interfaz Evaluación y seguimiento (WebComponent)</text>
+    </g>
+    <g data-id="flu2" data-role="element">
+      <rect x="531.87" y="196" width="151.23" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+      <text x="607.48" y="212" text-anchor="middle" font-size="11" font-weight="500" fill="#FFFFFF">Integración con LeanIX</text>
+    </g>
+    <g data-id="flu3" data-role="element">
+      <rect x="683.1" y="228" width="151.23" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+      <text x="840.33" y="244" text-anchor="start" font-size="11" font-weight="500" fill="#0B1830">Marcha Blanca primeros casos de uso</text>
+    </g>
+  </g>
+  <g data-id="i_d" data-role="element">
+    <rect x="20" y="260" width="1160" height="104" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <polyline points="20,260 1180,260" fill="none" stroke="#C9D6E3" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <text x="36" y="316.73" text-anchor="start" font-size="13" font-weight="600" fill="#0B1830">I+D</text>
+    <g data-id="sdlc0" data-role="element">
+      <rect x="521.07" y="268" width="453.69" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+      <text x="747.91" y="284" text-anchor="middle" font-size="11" font-weight="500" fill="#FFFFFF">Estándares de desarrollo Agéntico + GenAI for productivity.</text>
+    </g>
+    <g data-id="sdlc1" data-role="element">
+      <rect x="877.54" y="300" width="54.01" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+      <text x="945.55" y="316" text-anchor="start" font-size="11" font-weight="500" fill="#0B1830">Workshops AI-SDLC</text>
+    </g>
+    <g data-id="sdlc2" data-role="element">
+      <rect x="953.15" y="332" width="205.24" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+      <text x="933.55" y="348" text-anchor="end" font-size="11" font-weight="500" fill="#0B1830">Desarrollo de Skills y Agentes (AI-SDLC).</text>
+    </g>
+  </g>
+  <g data-id="tec0-&gt;tec1#1" data-role="relation">
+    <polyline points="251.01,40 259.01,40 259.01,72 264.62,72" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M272.62 72 L264.62 75.5 L264.62 68.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="tec1-&gt;tec2#1" data-role="relation">
+    <polyline points="402.24,72 410.24,72 410.24,104 415.85,104" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M423.85 104 L415.85 107.5 L415.85 100.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="flu0-&gt;flu1#1" data-role="relation">
+    <polyline points="380.64,144 388.64,144 388.64,160 372.64,160 372.64,176 372.64,176" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M380.64 176 L372.64 179.5 L372.64 172.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="flu1-&gt;flu2#1" data-role="relation">
+    <polyline points="531.87,176 539.87,176 539.87,192 523.87,192 523.87,208 523.87,208" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M531.87 208 L523.87 211.5 L523.87 204.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="flu2-&gt;flu3#1" data-role="relation">
+    <polyline points="683.1,208 691.1,208 691.1,224 675.1,224 675.1,240 675.1,240" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M683.1 240 L675.1 243.5 L675.1 236.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="sdlc1-&gt;sdlc2#1" data-role="relation">
+    <polyline points="931.55,312 939.55,312 939.55,344 945.15,344" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M953.15 344 L945.15 347.5 L945.15 340.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,410.5 1180,410.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 420) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="436.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="1180" y="436" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Hoja de ruta GenAI</text>
+  </g>
+</svg>

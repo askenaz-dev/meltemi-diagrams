@@ -79,6 +79,14 @@ diagram checkout: flow {
 }
 ```
 
+A Mermaid `gantt` imports with its dates as Mermaid draws them. A roadmap of three sections and ten
+tasks, with `after` chains, durations in days, `excludes weekends` and labels with accents
+([the source](../../corpus/import/mermaid/gantt-roadmap.mmd)) imports with no finding, 38
+constructs mapped, to [this sheet](../../corpus/valid/gantt/roadmap.meltemi): the first task from 1
+to 5 June and the last from 10 to 28 August, the weekends shaded and the six `after` chains drawn
+as arrows. [Gantt charts](../language/gantt.md#a-worked-example) walks through its dates, and
+`--merge` keeps the axis settings and styles you add to the sheet.
+
 ### Reading the report
 
 Every construct is **mapped** (same meaning, same drawing), **approximated** (same meaning, a
@@ -130,9 +138,18 @@ placement, styles and other adjustments made since, matched by id
 | `block-beta`, `columns n`               | placed boxes on a grid                        | mapped (`blockbeta.columns`)               |
 | `block:id … end`                        | an untitled `group id ""` around its blocks   | mapped (`blockbeta.block`)                 |
 | `a<["text"]>(right)`                    | a box with `shape arrow`                      | mapped (`blockbeta.arrow`)                 |
+| `gantt`, `section name`                 | `section id "name" { … }`                     | mapped (`gantt.section`)                   |
+| `Name :id, 2026-06-01, 5d`              | `task id "Name" from 2026-06-01 for 5d`       | mapped (`gantt.task`)                      |
+| `after a b`                             | `after a, b`                                  | mapped (`gantt.task.after`)                |
+| `excludes weekends`                     | `exclude weekends`                            | mapped (`gantt.exclude`)                   |
+| `axisFormat %d %b`                      | `axisFormat "%d %b"`                          | mapped (`gantt.axisFormat`)                |
+| `crit`, `done`, `active`                | `critical`, `done`, `active`                  | mapped (`gantt.tag`)                       |
+| the `milestone` tag                     | `milestone id "Name" at 2026-06-08`           | mapped (`gantt.milestone`)                 |
+| `click id href "url"`                   | `url "url"` in the task's block               | mapped (`gantt.click.href`)                |
+| `1M`, `1y`                              | `for 30d`, the days Mermaid draws             | approximated (`gantt.duration.month`)      |
 
-Class, state, entity-relationship, Gantt, pie and the other Mermaid diagram types are not
-imported (`import.unsupported-diagram`); see [compatibility](../compatibility.md).
+Class, state, entity-relationship, pie and the other Mermaid diagram types are not imported
+(`import.unsupported-diagram`); see [compatibility](../compatibility.md).
 
 ## First things to try
 

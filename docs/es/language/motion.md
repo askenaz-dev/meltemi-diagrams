@@ -64,6 +64,14 @@ del diagrama fija su `fill`, `stroke` o `pattern`, y una nota adhesiva, siempre 
 fijan su `stroke`; los iconos, las imágenes y las figuras de palitos de los diagramas de secuencia
 nunca lo tienen.
 
+En un diagrama de Gantt ([gantt.md](gantt.md#efectos-e-historias)) las flechas de dependencia no
+tienen nombre, así que `flow` y `trace` aceptan la tarea o el hito al que llevan y corren por cada
+una de sus flechas `after` de entrada, desde el final de la predecesora hasta el inicio de la tarea,
+con un efecto por flecha. Sin ninguna flecha son `animate.invalid-target` ("`market` no tiene
+flechas de dependencia que recorrer"), y también en una sección o una marca, con el mensaje
+nombrando su tipo. `dash` y `pulse` aceptan tareas, hitos, marcas y secciones, y dibujan sobre sus
+límites: una barra, la caja que rodea un rombo, la píldora de una marca, la banda de una sección.
+
 Las animaciones son la última capa de la precedencia de estilos: mientras un efecto se ejecuta, su
 trazo reemplaza el estilo de línea escrito del destino; fuera de su ventana de tiempo, el destino se
 dibuja exactamente con su estilo.

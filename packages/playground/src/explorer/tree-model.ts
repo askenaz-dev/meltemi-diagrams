@@ -16,6 +16,7 @@ export type NodeIcon =
   | "free"
   | "sequence"
   | "c4"
+  | "gantt"
   | "model"
   | "story"
   | "theme"
@@ -275,7 +276,7 @@ export function diagramPath(folder: string, name: string): string {
  * The text of a new diagram's file: the `language` header and an empty diagram of a kind, written
  * by the `createDiagram` edit the canvas uses, with the name as its id and its title.
  */
-export function newDiagramText(kind: "flow" | "free" | "sequence", name: string): string {
+export function newDiagramText(kind: "flow" | "free" | "sequence" | "gantt", name: string): string {
   const title = name.trim().replace(/\.meltemi$/, "");
   const planned = planEdit(compile(""), {
     kind: "createDiagram",

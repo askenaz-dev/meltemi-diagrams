@@ -2386,6 +2386,95 @@ const tests: Test[] = [
     },
   },
   {
+    name: "gantt: New diagram… offers a Gantt chart that is drawn with its axis, and the roadmap template draws its sections, bars, milestone and marker (roadmap-template.png)",
+    async run({ page }) {
+      const bar = page.locator(".explorer-bar");
+      await bar.getByRole("button", { name: "New diagram…" }).click();
+      const dialog = page.locator("dialog[open]");
+      // The radio is hidden under its card's icon: the card is what is pressed.
+      await dialog.locator("label.segment", { hasText: "Gantt chart" }).click();
+      assert.equal(await dialog.getByRole("radio", { name: "Gantt chart" }).isChecked(), true);
+      await dialog.getByLabel("Name").fill("plan");
+      await dialog.getByRole("button", { name: "Create" }).click();
+      await expectOpen(page, "diagrams/plan.meltemi");
+      await analysed(page);
+      assert.match(await code(page), /diagram plan: gantt \{\n {2}title "plan"/);
+      assert.equal(await page.locator("#problems-title").textContent(), "No problems");
+      await until(
+        page,
+        "the empty chart drawn with its axis",
+        () => document.querySelector('#app .content g[data-role="axis"]') !== null,
+      );
+
+      // The roadmap template: its three sections, a bar of each kind of work, the milestone and the
+      // marker, with no problem.
+      await openTemplate(page, "roadmap");
+      assert.equal(await page.locator("#problems-title").textContent(), "No problems");
+      await until(page, "the roadmap's rows drawn", () =>
+        ["discovery", "build", "launch", "research", "design", "qa", "go_live", "freeze"].every(
+          (id) =>
+            document.querySelector(`#app .content g[data-id="${id}"][data-role="element"]`) !==
+            null,
+        ),
+      );
+      assert.equal(
+        await page.locator('#app .content g[data-role="relation"]').count(),
+        10,
+        "an arrow for each `after`",
+      );
+      await page.screenshot({ path: join(output, "roadmap-template.png") });
+    },
+  },
+  {
+    name: "gantt: a bar dragged on the canvas writes `from` into the code, and one undo takes it back",
+    async run({ page }) {
+      await openTemplate(page, "roadmap");
+      await analysed(page);
+      const box = async (id: string) =>
+        (await page
+          .locator(`#app .content g[data-id="${id}"][data-role="element"] > :is(rect, path)`)
+          .first()
+          .boundingBox())!;
+      await until(
+        page,
+        "the roadmap's bars drawn",
+        () =>
+          document.querySelector('#app .content g[data-id="research"][data-role="element"]') !==
+          null,
+      );
+      // `interviews` starts two days after `research`, which says how many pixels a day takes.
+      const research = await box("research");
+      const interviews = await box("interviews");
+      const day = (interviews.x - research.x) / 2;
+      const from = { x: research.x + research.width / 2, y: research.y + research.height / 2 };
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      await page.mouse.move(from.x + 2 * day, from.y, { steps: 4 });
+      await page.mouse.move(from.x + 7 * day, from.y, { steps: 6 });
+      await page.mouse.up();
+      await until(
+        page,
+        "the drag written into the code",
+        (needle) =>
+          (document.querySelector(".code-input") as HTMLTextAreaElement).value.includes(needle),
+        'task research "User research" from 2026-06-08 for 5d done',
+      );
+      // The tasks after it moved with it, and the code has no error.
+      assert.match(
+        (await page.locator("#problems-title").textContent()) ?? "",
+        /^(No problems|Problems: 0 errors)/,
+      );
+      await page.keyboard.press("Control+z");
+      await until(
+        page,
+        "the drag undone",
+        (needle) =>
+          (document.querySelector(".code-input") as HTMLTextAreaElement).value.includes(needle),
+        'task research "User research" from 2026-06-01 for 5d done',
+      );
+    },
+  },
+  {
     name: "makes, renames and deletes a diagram in the explorer, and imports a project archive",
     async run({ page }) {
       const bar = page.locator(".explorer-bar");
@@ -3039,16 +3128,17 @@ const tests: Test[] = [
     },
   },
   {
-    name: "whiteboard: New project offers seven cards with Kanban board and Whiteboard; the whiteboard draws its strokes and stickies in the hand font, the kanban board its three columns",
+    name: "whiteboard: New project offers eight cards with Product roadmap, Kanban board and Whiteboard; the whiteboard draws its strokes and stickies in the hand font, the kanban board its three columns",
     async run({ page }) {
       assert.deepEqual(
         templates.map((t) => t.name),
-        ["flow", "c4", "sequence", "free", "kanban", "whiteboard", "purchase"],
+        ["flow", "c4", "sequence", "roadmap", "free", "kanban", "whiteboard", "purchase"],
       );
       await (await projectsPanel(page)).getByRole("button", { name: "New project…" }).click();
       const dialog = page.locator("dialog.new-project");
-      assert.equal(await dialog.locator(".template-card").count(), 7);
+      assert.equal(await dialog.locator(".template-card").count(), 8);
       for (const [name, title, contents] of [
+        ["roadmap", "Product roadmap", "1 diagram · 1 story"],
         ["kanban", "Kanban board", "1 diagram"],
         ["whiteboard", "Whiteboard", "1 diagram · 1 story"],
       ] as const) {

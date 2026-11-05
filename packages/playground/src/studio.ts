@@ -126,7 +126,7 @@ export interface FileOutline {
   readonly diagrams: readonly {
     readonly id: string;
     readonly title: string | null;
-    readonly type: "flow" | "free" | "sequence" | "c4";
+    readonly type: "flow" | "free" | "sequence" | "c4" | "gantt";
   }[];
   readonly stories: readonly { readonly id: string; readonly title: string | null }[];
   readonly models: number;
@@ -134,6 +134,13 @@ export interface FileOutline {
 }
 
 const absolute = (path: string) => `${ROOT}/${path}`;
+
+/** The browser's own date as `YYYY-MM-DD`: the layout never reads a clock, so the page passes it. */
+function localDay(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
 
 /**
  * The page's project and everything that follows it: the files in memory, their revisions and
@@ -349,6 +356,8 @@ export class Studio {
   private newSessions(locale?: Locale): ProjectSessions {
     return new ProjectSessions({
       toolVersion: this.environment.toolVersion,
+      // The day gantt charts draw their `today` line at when they write no date: the browser's.
+      today: localDay(),
       host: this.host,
       fontReader: this.environment.fonts.read,
       assetReader: this.environment.assets.text,

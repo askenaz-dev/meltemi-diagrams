@@ -8,7 +8,8 @@ elegir cómo se dibujan los conectores. Las mismas reglas se aplican en la líne
 editor y en cada exportación. Las composiciones libres usan los mismos modos con `layout manual` como
 valor predeterminado, y colocan los hijos de un grupo dentro de su grupo ([free.md](free.md)). Los
 diagramas de secuencia tienen su propia disposición, que sale del orden de sus eventos
-([sequence.md](sequence.md)); las vistas C4 usan la disposición de los diagramas de flujo
+([sequence.md](sequence.md)), y los diagramas de Gantt, de las fechas de sus tareas
+([gantt.md](gantt.md#disposición)); las vistas C4 usan la disposición de los diagramas de flujo
 ([c4.md](c4.md)). Cuando el motor organiza un diagrama, deja espacio para las etiquetas de las
 relaciones entre las cajas.
 
@@ -321,3 +322,27 @@ se vuelve a informar. El corpus de aceptación mantiene todos los perfiles en ce
 (`docs/quality.md`).
 
 `meltemi-diagrams validate` y `export` imprimen los hallazgos, tal como los muestra el editor.
+
+## Diagramas de Gantt
+
+Un diagrama de Gantt se dispone sin motor, a partir de su programación
+([gantt.md](gantt.md#disposición)): `layout`, `place`, las restricciones y las rutas no se aplican, y
+el mismo texto, tema, idioma y día dan el mismo dibujo.
+
+- **Filas y escala.** Cada tarea y cada hito ocupa una fila, en el orden del archivo (`display
+compact` las agrupa), y las secciones se dibujan como bandas con sus títulos en una columna a la
+  izquierda. La línea de tiempo va del primer inicio al último final, ampliada hasta divisiones
+  completas; llena el lienzo del preajuste, o es tan ancha como necesitan los días cuando `dayWidth`
+  da su ancho.
+- **La escala de divisiones.** Un eje automático toma el menor intervalo de 1, 5, 15 y 30 s; 1, 5,
+  15 y 30 min; 1, 3, 6 y 12 h; 1 y 2 d; 1 y 2 w; 1, 3 y 6 mo; y 1, 2, 5 y 10 y cuyas divisiones dan
+  cabida a la etiqueta más ancha más 12 unidades. Las semanas empiezan en `weekStart`. Un `ticks`
+  escrito fija el intervalo, y cuando sus etiquetas chocarían, se etiqueta una de cada n y
+  `layout.ticks-crowded` (advertencia) lo dice.
+- **`axisFormat` nunca más fino que sus directivas.** Las etiquetas siguen al intervalo (`%H:%M`,
+  `%d %b`, `%b %Y`, `%Y`) salvo que se escriba `axisFormat`, y un eje automático nunca elige
+  divisiones más finas de lo que distinguen las directivas escritas: `%b` nombra meses, así que las
+  divisiones distan un mes y ninguna etiqueta se repite.
+- **Comprobaciones.** Las comprobaciones de composición de las cajas no se aplican: las filas no se
+  pueden superponer. La auditoría de etiquetas sí se ejecuta, frente a lo que cubre cada etiqueta y
+  no frente a su propia barra, así que una etiqueta junto a su barra no es un hallazgo.

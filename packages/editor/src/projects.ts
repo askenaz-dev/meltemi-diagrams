@@ -62,6 +62,11 @@ export interface ProjectSessionsOptions {
    * own `locale`: the command line's `--lang`. Never the machine's language.
    */
   readonly locale?: Locale;
+  /**
+   * The day gantt charts draw their `today` line at when they write no date, as `YYYY-MM-DD`; the
+   * host's own date by default (`ProjectDefaults.today`). The layout never reads a clock.
+   */
+  readonly today?: string;
 }
 
 /** What a host environment provides when the options leave it out. */
@@ -70,6 +75,8 @@ export interface ProjectDefaults {
   readonly fonts: () => FontLibrary;
   readonly iconPacks: () => IconPack[];
   readonly libraries: () => Library[];
+  /** The host's local date as `YYYY-MM-DD`; none for a host that has no clock to give. */
+  readonly today?: () => string;
 }
 
 /**
@@ -85,6 +92,11 @@ export class ProjectSessions {
   private packs: IconPack[] | undefined;
   private builtInLibraries: Library[] | undefined;
   private elk: LayoutEngine | undefined;
+  /**
+   * The day gantt charts without a date in their `today` statement draw it at, as `YYYY-MM-DD`:
+   * every drawing of these sessions uses the one day. A command that pins another day sets it.
+   */
+  today: string | undefined;
 
   constructor(
     private readonly options: ProjectSessionsOptions,
@@ -93,6 +105,7 @@ export class ProjectSessions {
     const host = options.host ?? defaults?.host();
     if (!host) throw new Error("ProjectSessions needs a host to read project files.");
     this.host = host;
+    this.today = options.today ?? defaults?.today?.();
   }
 
   /** The ELK engine, loaded on first use. */
@@ -643,6 +656,7 @@ export class ProjectSessions {
         icons: assets.registry,
         engine: this.engine,
         images: workspace.imageResolver(file.path),
+        ...(this.today !== undefined ? { today: this.today } : {}),
       },
       icons: assets.registry,
       libraries: () =>
@@ -676,6 +690,7 @@ export class ProjectSessions {
                   icons: workspace.assets().registry,
                   engine: this.engine,
                   images: workspace.imageResolver(owner.path),
+                  ...(this.today !== undefined ? { today: this.today } : {}),
                 }),
               }
             : undefined,

@@ -58,8 +58,8 @@ a los archivos que escriben (si no, el "locale" del proyecto; los mensajes sigue
 LANG).
 
 Opciones de init:
-  --template <nombre>       flow (predeterminada), c4, sequence, free, kanban, whiteboard o
-                            purchase
+  --template <nombre>       flow (predeterminada), c4, sequence, roadmap, free, kanban,
+                            whiteboard o purchase
   --name <nombre>           El nombre del proyecto; por defecto, el de la carpeta
   --list                    Listar las plantillas
   --ci <servicio>           Escribir también un flujo de trabajo de CI: github o gitlab
@@ -103,6 +103,9 @@ Opciones de export:
                             defecto)
   --duration <tiempo>       Duración del video; por defecto, la de la historia o el final de
                             los efectos
+  --today <fecha>           El día en que un diagrama de Gantt dibuja la línea de hoy, como
+                            2026-07-15 (la fecha de la máquina por defecto); la fecha escrita en
+                            el diagrama manda
   --background <color>      transparent, un token de color o un color CSS (no para HTML)
   --link <url>              Toda la imagen enlaza a esta URL (SVG y PDF)
   --embed                   Con --format html, un fragmento para pegar en una página
@@ -491,6 +494,8 @@ iniciada o el token fue rechazado.
   },
   layout: {
     sequence: (id) => `"${id}" es un diagrama de secuencia, que no tiene posiciones que escribir.`,
+    gantt: (id) =>
+      `"${id}" es un diagrama de Gantt, que dibuja sus barras a partir de sus fechas y no tiene posiciones que escribir.`,
     cannotWrite: (id, reason) => `no se pueden escribir las posiciones de "${id}": ${reason}`,
     unchanged: (path) => `${path}: todas las posiciones ya están escritas.`,
     wouldArrange: (ids, path) =>
@@ -542,7 +547,7 @@ iniciada o el token fue rechazado.
     noDiagramStoriesHint:
       "Exporta una historia con `--story <id>`, o los perfiles del archivo con `--profiles`.",
     noDiagramTypesHint:
-      "Se dibujan los diagramas `diagram <id>: flow { ... }`, `free`, `sequence` y `c4`.",
+      "Se dibujan los diagramas `diagram <id>: flow { ... }`, `free`, `sequence`, `c4` y `gantt`.",
     onePath: "indica exactamente un archivo .meltemi o una carpeta de proyecto.",
     profileOrProfiles: "--profile ejecuta un perfil y --profiles todos; elige uno.",
     profileOption: (option) =>
@@ -580,6 +585,7 @@ iniciada o el token fue rechazado.
     fps: (fps) => `--fps lleva un número entero de 1 a 60, no "${fps}".`,
     durationVideo: "--duration fija la duración de las exportaciones MP4, WebM y GIF.",
     duration: (duration) => `--duration lleva un tiempo de hasta 600s, como 5s, no "${duration}".`,
+    today: (today) => `--today lleva una fecha escrita 2026-07-15, no "${today}".`,
     scalePng: "--scale fija los píxeles de las exportaciones PNG.",
     scale: (scale) => `--scale lleva un valor de 1 a 8, no "${scale}".`,
     sizeOutput: "--size fija el tamaño de las exportaciones PNG, PDF y de video.",
@@ -661,6 +667,11 @@ iniciada o el token fue rechazado.
       sequence: {
         title: "Diagrama de secuencia",
         description: "Un diagrama de secuencia con un escenario para cada resultado",
+      },
+      roadmap: {
+        title: "Hoja de ruta",
+        description:
+          "Una hoja de ruta de tres secciones de tareas con sus dependencias, un hito y una historia que la cuenta",
       },
       free: {
         title: "Diapositiva",

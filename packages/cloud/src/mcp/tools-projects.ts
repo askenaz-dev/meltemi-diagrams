@@ -129,12 +129,12 @@ const createProjectTool = tool({
   name: "create_project",
   title: "Create a project",
   description:
-    "Creates a project in the account, empty, from a template (flow, c4, sequence, free or purchase) or from files, and answers it with its address. Give an idempotencyKey so that a retry never creates a second project.",
+    "Creates a project in the account, empty, from a template (flow, c4, sequence, roadmap, free or purchase) or from files, and answers it with its address. Give an idempotencyKey so that a retry never creates a second project.",
   scope: "projects:write",
   input: z.object({
     name: z.string().describe("1 to 100 characters."),
     description: z.string().optional().describe("At most 500 characters."),
-    template: z.enum(["flow", "c4", "sequence", "free", "purchase"]).optional(),
+    template: z.enum(["flow", "c4", "sequence", "roadmap", "free", "purchase"]).optional(),
     files: z
       .record(z.string(), z.string())
       .optional()

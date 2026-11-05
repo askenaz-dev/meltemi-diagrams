@@ -4,6 +4,145 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
+## 1.11.16
+
+Gantt charts are a fifth diagram type: sections of tasks, milestones and markers scheduled from
+dates, dependencies and durations in working days, drawn on a time axis without an engine,
+animated and told in stories like the other profiles, imported from Mermaid with the dates Mermaid
+draws, and edited on the canvas by dragging bars
+([decision 0066](docs/decisions/0066-gantt-charts.md)). The language stays 0.2: dates, `gantt` and
+its statements are additive.
+
+### Language
+
+- Gantt charts: `diagram <id>: gantt { }` holds `section <id> ["Label"] { … }`, which holds
+  `task <id> ["Label"] [from <date>] [after <ids>] [for <duration> | to <date> | until <ids>]
+[done | active] [critical]`, `milestone <id> ["Label"] [at <date>] [after <ids>] [done | active]
+[critical]` and `marker <id> ["Label"] (at <date> | after <ids>)`, and the three may stand at the
+  top level too. Clauses come in any order after the label, with one end clause; `from` beside
+  `after` starts at the later of the two, a task with no start follows the previous task or
+  milestone, and a task with no end lasts one day. `from`, `after`, `for`, `to`, `until`, `at`,
+  `done`, `active` and `critical` cannot be ids; `after` and `until` name tasks and milestones, and
+  each `after` id is a derived relation keyed `<pred>-><task>#<n>` and a reference with the role
+  `dependency`, which rename and removal follow.
+- Dates are literals of the language: `2026-06-01` and `2026-06-01T09:30[:15]` are one `Date` token
+  (civil time, no zone, no daylight saving) that the formatter prints as written, and a date that
+  names no day is `prop.invalid-value` (`2026-02-30`: "February 2026 has 28 days"). Durations are a
+  number above 0 with `s`, `min`, `h`, `d` or `w`; anything else that starts with digits lexes as
+  numbers, as before.
+- The calendar: `exclude weekends | monday … sunday | <date>` (statements add up), `include <date>`
+  and `weekStart`. Under exclusions `d` and `w` count working time (a week is `7 − the excluded
+weekdays` days) and `h`, `min` and `s` the hours of working days; a start on excluded time moves
+  to the next working instant, and a written `from`, `at` or `to` there is `gantt.excluded-day`
+  (warning). `to` is the last day, inclusive.
+- Schedule diagnostics: `gantt.unscheduled` (a first task with no start), `gantt.schedule` (an end
+  before the start, or no working time), `gantt.cycle` (on every reference of a loop) and
+  `gantt.relation` (`a -> b` in a chart, with a quick fix writing `after a` on `b`); a task that
+  cannot be dated, and the ones that wait for it, are not drawn. Malformed values use
+  `prop.invalid-value`, `prop.unknown`, `prop.duplicate` and `ref.unknown-element`.
+- Chart statements: `axisFormat` (a strftime subset, `%a %A %b %B %d %e %H %I %j %m %M %p %q %S
+%U %V %w %W %y %Y %%`, each with the `-` flag), `ticks <n><unit>`, `axis top|bottom|both`,
+  `labels bar|column`, `display normal|compact`, `dependencies shown|hidden`, `dayWidth` (1 to
+  100,000) and `today [<date>]`.
+- Styles and rules take `fill`, `stroke`, `width`, `line`, `color` and `radius` on tasks,
+  milestones, markers and sections (`rule task|milestone|marker|section|relation`); `shape`,
+  `rotation`, `iconPosition`, `labelPosition`, `iconSize`, `routing`, `font`, `fontSize` and
+  `fontWeight` are `prop.invalid-value` there, naming gantt charts.
+- Effects and stories on charts: `flow` and `trace` take a task or milestone with dependencies and
+  run along each incoming arrow, and are `animate.invalid-target` without one; `pulse` and `dash`
+  take tasks, milestones, markers and sections. In a story `draw` takes gantt tasks and grows each
+  bar from its start to its end, and `trace` takes a task or milestone with dependencies and lights
+  the chain that drives it, one arrow after another; the axis is never faded.
+- The layout draws a chart without an engine: a time axis whose span is that of the dated
+  statements, rounded to whole ticks chosen from a ladder (1 s to 10 y) so that labels never
+  collide (never finer than the written `axisFormat` tells apart; `layout.ticks-crowded` when a
+  written `ticks` is too fine), a section column and bands, bars by status (`accent`, `info`,
+  `muted`; `critical` in `danger`), labels inside, after or before the bars, diamonds for
+  milestones, dashed marker lines under pills, a `danger` today line, shaded excluded days and
+  dependency arrows in the theme's connector style. `LayoutOptions.today`, a `YYYY-MM-DD`, is the
+  day of the `today` line: the layout never reads a clock. Results gain `gantt` (the timeline and
+  the rows) and the scene a role `axis`, which sketch themes leave crisp, pointers pass through and
+  stories never fade.
+- The model JSON gives every element `task` and every diagram `gantt`, after their last keys; the
+  version stays 0.1. The model diff reports the written clauses, status and `critical` of tasks
+  and, with both dates, the starts and ends they resolve to and what moved them (a task they
+  follow, the calendar or the order of the tasks).
+- The HTML player's hover cards and detail panel say a task's section, state, dates, working days
+  and what it follows, in the player's language; a milestone, a marker, a section and an arrow have
+  cards too, and the axis takes no pointer events.
+
+### Web app
+
+- A **Product roadmap** template, a gantt chart with a story that tells the plan section by section
+  and traces the chain to the launch, among the New project cards (eight in all); **Gantt chart**
+  among the kinds of New diagram… and the buttons of an empty file. The page passes the browser's
+  day to every chart's `today`.
+
+### Canvas (VS Code and the web app)
+
+- Gantt charts: the palette shows Task (T), Milestone (M), Marker (V) and Section (G), and the New
+  diagram menu and the empty-file buttons offer **Gantt chart**. Dragging a bar moves its start (it
+  writes `from` and keeps `after`; a bar dragged back onto its predecessor's end sticks to it),
+  dragging its ends writes `for` or `to`, snapping to a week, a day, an hour or a quarter of an hour
+  by the zoom, with a tooltip of the dates and the working days; the successors, the arrows and the
+  axis glide to their new places while dragging, and Escape cancels.
+- Dragging a bar up or down moves its statement under an insertion bar, into another section too,
+  and a section's title drags the section. Dragging the connect handle at a bar's end onto another
+  bar writes `after`, refused with a red flash when it would make a loop; Delete on an arrow removes
+  the id from `after` and, when it was the last start clause, writes `from`.
+- T, M, V and G add a task after the selection, a milestone, a marker at the date under the pointer
+  and a section, with the label editor open; with T armed, a drag on the timeline draws a task.
+  Left and Right move the selection's start a day (Shift: a week), `]` and `[` lengthen and shorten
+  it, Alt+Up and Alt+Down move rows, and Alt+G puts the selection in a new section. Removing a task
+  keeps its successors' dates by writing their `from`.
+- The inspector of a task has a **Schedule** group (start, after, end, duration, until, status,
+  critical, and the resolved dates and working days), and the chart's has axis format, ticks, week
+  start, axis, labels, display, dependencies, day width, excluded days, included dates and today,
+  with new field types for dates, durations, task lists and weekdays; a value the model refuses is
+  shown under the field and nothing is written. A read-only canvas selects and shows cards only.
+- The edit package's `setTaskSchedule`, `setTaskStatus`, `createTask` and `setCalendar` write the
+  clauses, `moveElement` moves rows between sections, `removeElement` keeps successors' dates, and
+  `EditRejection.diagnostic` carries the model's code in a refusal (`gantt.cycle`). Completion,
+  hover, quick fixes, the outline and the VS Code grammar know charts.
+
+### Command line
+
+- `init --template roadmap` writes a gantt chart of three sections with a critical chain, a
+  milestone, a marker and a story; `init --list` prints eight templates.
+- `export --today YYYY-MM-DD` places the `today` line of every chart of the run that writes `today`
+  without a date, in every format and with `--profiles`; without it the day is the machine's local
+  date, a date written in the chart wins, and a value that is not a date exits 2.
+- `layout` skips gantt charts, as it does sequence diagrams, and with `--diagram` naming one says it
+  has no positions to write; `review` reports the schedules of gantt charts.
+- The gallery gains `gantt/launch-plan`, whose `today` is pinned.
+
+### Import
+
+- Mermaid `gantt` is imported, completely: `title`, `accTitle`, `accDescr`, `dateFormat` (every
+  dayjs token), `axisFormat`, `tickInterval`, `weekday`, `excludes`, `includes`, `weekend`,
+  `todayMarker`, `inclusiveEndDates`, `topAxis`, front matter `config.gantt.displayMode` and
+  `topAxis`, sections, every form of task metadata (ids, `after` with several ids, `until`, dates,
+  durations from `ms` to `y`, and the tags `done`, `active`, `crit`, `milestone` and `vert`),
+  `click … href` (a task's `url`) and comments. It replays Mermaid's scheduling to write what
+  Mermaid draws: exclusive end dates become the inclusive `to`, weeks under excluded weekdays
+  become days, months and years become days, a milestone sits at the middle of its span, and a
+  chart with no `todayMarker` writes `today`. `click … call` is dropped (`gantt.click`) and a
+  styled `todayMarker` is approximated; a task whose dates Meltemi resolves differently, such as a
+  start on an excluded day, is reported once as `import.approximated` (`gantt.schedule`) with both
+  dates. Every construct is in the coverage table, in English and Spanish.
+- A roadmap of three sections and ten tasks with `after` chains, durations in days and `excludes
+weekends` imports with no finding, dated as Mermaid dates it (the first task 1 to 5 June, the
+  last 10 to 28 August 2026).
+- A re-import keeps the chart's `axisFormat`, `ticks`, `weekStart`, `axis`, `labels`, `display`,
+  `dependencies` and `dayWidth` and its styles, and takes the schedule, `exclude`, `include` and
+  `today` from the source. `ImportOptions.today`, the machine's day by default, places what Mermaid
+  leaves open; `import.unsupported-diagram` names `gantt` among the types that are imported.
+
+### Hosted service
+
+- `POST /api/projects` and the MCP tool `create_project` take the `roadmap` template, and the MCP
+  `preview` draws a chart's `today` line at the server's UTC date.
+
 ## 1.11.14
 
 The MCP endpoint's OAuth server keeps its clients, grants, codes and tokens in the service's D1

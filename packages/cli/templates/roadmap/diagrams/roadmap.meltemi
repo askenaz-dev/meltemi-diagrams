@@ -1,0 +1,64 @@
+language "0.2"
+
+// A product roadmap: three sections of work, the chain of dependencies that decides the launch
+// (marked `critical`), a milestone and a marker. Weekends are not worked, and `today` draws a line
+// on the day the picture is made. On the canvas, drag a bar to move it, drag its ends to change its
+// length, and drag from the dot at its end onto another bar to make that one wait. The story below
+// tells the plan section by section and then traces the chain to the launch: play it, or export
+// it as a video.
+diagram roadmap: gantt {
+  title "Product roadmap"
+  theme "editorial.light"
+  axisFormat "%d %b"
+  exclude weekends
+  today
+
+  section discovery "Discovery" {
+    task research "User research" from 2026-06-01 for 5d done
+    task interviews "Customer interviews" from 2026-06-03 for 4d done
+    task scope "Scope the release" after research, interviews for 3d done critical
+  }
+
+  section build "Build" {
+    task design "Design" after scope for 6d active critical
+    task backend "Backend" after design for 8d critical
+    task frontend "Frontend" after design for 7d
+    task docs "Documentation" after frontend for 4d
+  }
+
+  section launch "Launch" {
+    task qa "Quality assurance" after backend, frontend for 5d critical
+    milestone go_live "Go live" after qa critical
+    task support "Support rota" after go_live for 2w
+  }
+
+  marker freeze "Code freeze" at 2026-07-08
+}
+
+// The plan told one section at a time, and the chain that sets the launch date.
+story plan for roadmap {
+  title "The plan, section by section"
+
+  scene discover "Discovery" {
+    reveal discovery
+    draw research, interviews, scope over 2s
+    hold 800ms
+  }
+
+  scene make "Build" {
+    reveal build
+    draw design, backend, frontend, docs over 2500ms
+    hold 800ms
+  }
+
+  scene ship "Launch" {
+    reveal launch, go_live, freeze
+    draw qa, support over 1500ms
+    hold 800ms
+  }
+
+  scene chain "The chain to the launch" {
+    trace go_live over 2s
+    hold 1500ms
+  }
+}

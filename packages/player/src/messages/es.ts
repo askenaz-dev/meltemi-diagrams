@@ -60,6 +60,36 @@ export const es: typeof en = {
     openTitle: "Abrir (doble clic o Entrar)",
     opens: (view: string) => `abre ${view}`,
     elements: "Elementos",
+    gantt: {
+      kind: (kind: string) =>
+        ({ task: "Tarea", milestone: "Hito", marker: "Marca", section: "Sección" })[kind] ?? kind,
+      fields: {
+        section: "Sección",
+        start: "Inicio",
+        end: "Fin",
+        date: "Fecha",
+        working: "Tiempo hábil",
+        status: "Estado",
+      },
+      // Un hito es masculino; las tareas y las marcas, femeninas.
+      state: (state: "planned" | "active" | "done", kind: string) =>
+        ({
+          planned: kind === "milestone" ? "Previsto" : "Prevista",
+          active: "En curso",
+          done: kind === "milestone" ? "Hecho" : "Hecha",
+        })[state],
+      critical: (kind: string) => (kind === "milestone" ? "Crítico" : "Crítica"),
+      follows: (tasks: string) => `Después de: ${tasks}`,
+      span: (start: string, end: string) => `${start} → ${end}`,
+      months: ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"],
+      moment: (day: number, month: string, year: string, time: string | null) =>
+        `${day} ${month} ${year}${time === null ? "" : ` ${time}`}`,
+      days: (amount: string, count: number) =>
+        `${amount} ${plural("es", count, { one: "día hábil", other: "días hábiles" })}`,
+      hours: (amount: string) => `${amount} h`,
+      minutes: (amount: string) => `${amount} min`,
+      seconds: (amount: string) => `${amount} s`,
+    },
   },
   player: {
     story: (title: string) => `Historia: ${title}`,
@@ -88,6 +118,8 @@ export const es: typeof en = {
       const how = { cut: "un corte", fade: "un fundido", morph: "una transformación" }[kind];
       return `Cambiar a ${view} con ${how}${time === null ? "" : ` de ${time}`}`;
     },
+    traceChain: (task: string, time: string) => `Recorrer las dependencias de ${task} en ${time}`,
+    drawBars: (targets: string, time: string) => `Dibujar las barras de ${targets} en ${time}`,
     reveal: (targets: string, time: string) => `Mostrar ${targets} en ${time}`,
     hide: (targets: string, time: string) => `Ocultar ${targets} en ${time}`,
     highlight: (targets: string, time: string) => `Resaltar ${targets} durante ${time}`,

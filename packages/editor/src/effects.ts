@@ -35,6 +35,15 @@ export function effectsFor(
   if (element?.kind === "line" || element?.kind === "pen") {
     return ["flow", "dash", "pulse", "trace"];
   }
+  // A task or a milestone of a chart that comes after others also sends particles and a trace
+  // along the arrows that run into it; one without arrows has none to follow.
+  if (
+    (element?.kind === "task" || element?.kind === "milestone") &&
+    element.task !== null &&
+    element.task.after.length > 0
+  ) {
+    return ["flow", "dash", "pulse", "trace"];
+  }
   if (element && NO_OUTLINE.has(element.kind)) return ["pulse"];
   // A note or a text has an outline to follow only when its styles give it one; a sticky only
   // when they give it a `stroke`, since its fill is no line.

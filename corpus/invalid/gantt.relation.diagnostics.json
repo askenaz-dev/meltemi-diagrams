@@ -1,0 +1,23 @@
+[
+  {
+    "code": "gantt.relation",
+    "severity": "error",
+    "message": "A gantt chart has no relation statements; dependencies are written with `after`.",
+    "range": {
+      "start": {
+        "offset": 175,
+        "line": 7,
+        "column": 3
+      },
+      "end": {
+        "offset": 190,
+        "line": 7,
+        "column": 18
+      }
+    },
+    "hints": [
+      "Write `after design` on `build`: `task build after design`."
+    ],
+    "related": []
+  }
+]

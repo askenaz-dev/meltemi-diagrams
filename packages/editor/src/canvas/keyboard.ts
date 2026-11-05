@@ -91,6 +91,18 @@ export type CanvasCommand =
   | "unnestCall"
   | "addReturn"
   | "addEntity"
+  /** Gantt charts: a task after the selected one, a milestone, a marker at the pointer's date. */
+  | "createTask"
+  | "createMilestone"
+  | "createMarker"
+  /** Gantt charts: the selected tasks one day longer or shorter (the week with Shift). */
+  | "lengthen"
+  | "shorten"
+  | "lengthenWeek"
+  | "shortenWeek"
+  /** Gantt charts: the selected rows one place up or down, into the next section at an edge. */
+  | "moveRowUp"
+  | "moveRowDown"
   | "zoomIn"
   | "zoomOut"
   | "zoomReset"
@@ -113,7 +125,7 @@ export interface KeyBinding {
   /** What the key does, in the interface language at the time it is read. */
   readonly description: string;
   /** The profile the key applies to; every profile when absent. */
-  readonly profile?: "flow" | "free" | "sequence" | "c4";
+  readonly profile?: "flow" | "free" | "sequence" | "c4" | "gantt";
 }
 
 /** A binding whose description is its command's, read in the interface language when asked. */
@@ -216,6 +228,18 @@ export const KEY_BINDINGS: readonly KeyBinding[] = [
   bind({ key: "n", alt: true, shift: true, command: "unnestCall", profile: "sequence" }),
   bind({ key: "r", alt: true, command: "addReturn", profile: "sequence" }),
   bind({ key: "a", command: "addEntity", profile: "c4" }),
+  // Gantt charts: T, M and V add a task, a milestone and a marker; G adds a section (the group
+  // tool), Alt+G puts the selected rows in one; Left and Right (the plain and the grid nudges) move
+  // the start a day or, with Shift, a week; ] and [ lengthen and shorten, Shift for a week.
+  bind({ key: "t", command: "createTask", profile: "gantt" }),
+  bind({ key: "m", command: "createMilestone", profile: "gantt" }),
+  bind({ key: "v", command: "createMarker", profile: "gantt" }),
+  bind({ key: "]", command: "lengthen", profile: "gantt" }),
+  bind({ key: "[", command: "shorten", profile: "gantt" }),
+  bind({ key: "BracketRight", shift: true, command: "lengthenWeek", profile: "gantt" }),
+  bind({ key: "BracketLeft", shift: true, command: "shortenWeek", profile: "gantt" }),
+  bind({ key: "ArrowUp", alt: true, command: "moveRowUp", profile: "gantt" }),
+  bind({ key: "ArrowDown", alt: true, command: "moveRowDown", profile: "gantt" }),
   bind({ key: "g", command: "createGroup" }),
   bind({ key: "l", command: "toggleLayers" }),
   bind({ key: "u", command: "toggleLibraries" }),
@@ -247,7 +271,7 @@ export interface KeyEventLike {
 export function commandFor(
   event: KeyEventLike,
   mac = false,
-  profile: "flow" | "free" | "sequence" | "c4" = "flow",
+  profile: "flow" | "free" | "sequence" | "c4" | "gantt" = "flow",
 ): CanvasCommand | undefined {
   const primary = mac ? event.metaKey : event.ctrlKey;
   const key = event.key.length === 1 ? event.key.toLowerCase() : event.key;

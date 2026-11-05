@@ -1,0 +1,38 @@
+language "0.2"
+
+// Imported from gantt-constructs.mmd (mermaid) by meltemi-diagrams.
+
+diagram launch_plan: gantt {
+  title "Launch plan"
+  description "The tasks, milestones and markers of the launch."
+  axisFormat "%d %b"
+  ticks 1w
+  weekStart monday
+  axis both
+  display compact
+  exclude weekends, 2026-07-03
+  include 2026-07-04
+  today
+
+  // Before the first section
+  milestone kickoff "Kick-off" at 2026-06-01
+
+  section build_2 "Build" {
+    // The API comes first
+    task design "Design API" from 2026-06-01 for 5d done
+    task build "Build API" after design for 14d active critical { url "https://ci.example.com/build" }
+    task review "Review" after design, build until release
+    task docs "Write docs" after build for 1.5d
+    task test "Load test" after build for 3d critical
+  }
+
+  section launch "Launch" {
+    marker freeze "Code freeze" at 2026-06-24
+    task pilot "Pilot" from 2026-06-29 for 30d
+    milestone release "Release" after test
+    task announce "Announce" after release for 1s
+    task retro "Retro" after announce
+  }
+
+  // Not imported: A line Mermaid cannot read
+}

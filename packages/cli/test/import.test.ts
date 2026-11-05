@@ -52,6 +52,47 @@ describe("meltemi-diagrams import", () => {
     expect(mdg(dir, "validate", "docs/checkout.meltemi").code).toBe(0);
   });
 
+  it("imports a Mermaid gantt chart into a sheet that validates and exports", () => {
+    const dir = folder("gantt");
+    writeFileSync(
+      join(dir, "roadmap.mmd"),
+      readFileSync(join(REPO_ROOT, "corpus/import/mermaid/gantt-roadmap.mmd"), "utf8"),
+    );
+    const result = mdg(dir, "import", "roadmap.mmd");
+    expect(result.code).toBe(0);
+    expect(result.stdout).toContain("Imported roadmap.mmd → roadmap.meltemi (complete)");
+    expect(result.stdout).toContain("hoja_de_ruta_genai: 38 mapped, 0 approximated, 0 dropped");
+    expect(result.stdout).not.toContain("warning");
+    const sheet = readFileSync(join(dir, "roadmap.meltemi"), "utf8");
+    expect(sheet).toContain("diagram hoja_de_ruta_genai: gantt {");
+    expect(sheet).toContain(
+      'task tec1 "Prueba de concepto con el equipo de Arquitectura" after tec0 for 10d',
+    );
+    const validate = mdg(dir, "validate", "roadmap.meltemi");
+    expect(validate.code).toBe(0);
+    expect(validate.stdout).toBe("Checked 1 file: 0 errors, 0 warnings.\n");
+    const exported = mdg(dir, "export", "roadmap.meltemi", "--out", "roadmap.svg");
+    expect(exported.code).toBe(0);
+    const svg = readFileSync(join(dir, "roadmap.svg"), "utf8");
+    expect(svg.startsWith("<svg")).toBe(true);
+    for (const id of ["tec0", "flu3", "sdlc2"]) expect(svg).toContain(`data-id="${id}"`);
+    // Importing again keeps the file, and merging keeps what was adjusted in it.
+    expect(mdg(dir, "import", "roadmap.mmd").code).toBe(2);
+    writeFileSync(
+      join(dir, "roadmap.meltemi"),
+      sheet.replace("  today\n", "  today\n  labels column\n  dayWidth 14\n"),
+    );
+    const merge = mdg(dir, "import", "roadmap.mmd", "--merge");
+    expect(merge.code).toBe(0);
+    expect(merge.stdout).toContain("(complete, merged)");
+    const merged = readFileSync(join(dir, "roadmap.meltemi"), "utf8");
+    expect(merged).toContain("labels column");
+    expect(merged).toContain("dayWidth 14");
+    expect(mdg(dir, "validate", "roadmap.meltemi").stdout).toBe(
+      "Checked 1 file: 0 errors, 0 warnings.\n",
+    );
+  });
+
   it("refuses to overwrite without --force or --merge", () => {
     const dir = folder("existing");
     writeFileSync(join(dir, "checkout.mmd"), "flowchart LR\n  a --> b\n");

@@ -1,0 +1,580 @@
+{
+  "format": "model-json",
+  "version": "0.1",
+  "language": "0.2",
+  "ok": true,
+  "imports": [],
+  "diagrams": [
+    {
+      "id": "release_day",
+      "type": "gantt",
+      "range": {
+        "start": {
+          "offset": 139,
+          "line": 5,
+          "column": 1
+        },
+        "end": {
+          "offset": 491,
+          "line": 15,
+          "column": 2
+        }
+      },
+      "properties": {
+        "direction": "LR",
+        "layout": "auto",
+        "theme": null,
+        "title": "Release day",
+        "description": null,
+        "preset": null,
+        "canvas": null,
+        "routing": "auto",
+        "layers": [
+          "main"
+        ],
+        "autonumber": null,
+        "spacing": null
+      },
+      "classes": [],
+      "rules": [],
+      "elements": [
+        {
+          "id": "freeze",
+          "kind": "task",
+          "label": "Freeze",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 214,
+              "line": 9,
+              "column": 3
+            },
+            "end": {
+              "offset": 266,
+              "line": 9,
+              "column": 55
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 219,
+              "line": 9,
+              "column": 8
+            },
+            "end": {
+              "offset": 225,
+              "line": 9,
+              "column": 14
+            }
+          },
+          "task": {
+            "from": "2026-06-10T09:00",
+            "after": [],
+            "end": {
+              "kind": "for",
+              "amount": 30,
+              "unit": "min"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-06-10T09:00",
+            "finish": "2026-06-10T09:30",
+            "workingDays": 0.020833
+          }
+        },
+        {
+          "id": "build",
+          "kind": "task",
+          "label": "Build",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 269,
+              "line": 10,
+              "column": 3
+            },
+            "end": {
+              "offset": 309,
+              "line": 10,
+              "column": 43
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 274,
+              "line": 10,
+              "column": 8
+            },
+            "end": {
+              "offset": 279,
+              "line": 10,
+              "column": 13
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "freeze"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 1.5,
+              "unit": "h"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-06-10T09:30",
+            "finish": "2026-06-10T11:00",
+            "workingDays": 0.0625
+          }
+        },
+        {
+          "id": "smoke",
+          "kind": "task",
+          "label": "Smoke tests",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 312,
+              "line": 11,
+              "column": 3
+            },
+            "end": {
+              "offset": 358,
+              "line": 11,
+              "column": 49
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 317,
+              "line": 11,
+              "column": 8
+            },
+            "end": {
+              "offset": 322,
+              "line": 11,
+              "column": 13
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "build"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 45,
+              "unit": "min"
+            },
+            "status": null,
+            "critical": false,
+            "start": "2026-06-10T11:00",
+            "finish": "2026-06-10T11:45",
+            "workingDays": 0.03125
+          }
+        },
+        {
+          "id": "go",
+          "kind": "milestone",
+          "label": "Go / no go",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 361,
+              "line": 12,
+              "column": 3
+            },
+            "end": {
+              "offset": 398,
+              "line": 12,
+              "column": 40
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 371,
+              "line": 12,
+              "column": 13
+            },
+            "end": {
+              "offset": 373,
+              "line": 12,
+              "column": 15
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "smoke"
+            ],
+            "end": null,
+            "status": null,
+            "critical": false,
+            "start": "2026-06-10T11:45",
+            "finish": "2026-06-10T11:45",
+            "workingDays": 0
+          }
+        },
+        {
+          "id": "deploy",
+          "kind": "task",
+          "label": "Deploy",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 401,
+              "line": 13,
+              "column": 3
+            },
+            "end": {
+              "offset": 446,
+              "line": 13,
+              "column": 48
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 406,
+              "line": 13,
+              "column": 8
+            },
+            "end": {
+              "offset": 412,
+              "line": 13,
+              "column": 14
+            }
+          },
+          "task": {
+            "from": null,
+            "after": [
+              "go"
+            ],
+            "end": {
+              "kind": "for",
+              "amount": 1,
+              "unit": "h"
+            },
+            "status": null,
+            "critical": true,
+            "start": "2026-06-10T11:45",
+            "finish": "2026-06-10T12:45",
+            "workingDays": 0.041667
+          }
+        },
+        {
+          "id": "lunch",
+          "kind": "marker",
+          "label": "Lunch",
+          "implicit": false,
+          "description": null,
+          "url": null,
+          "classes": [],
+          "tags": [],
+          "ports": [],
+          "layer": null,
+          "link": null,
+          "source": null,
+          "shape": null,
+          "line": null,
+          "pen": null,
+          "list": null,
+          "attachedTo": null,
+          "entity": null,
+          "technology": null,
+          "external": false,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 449,
+              "line": 14,
+              "column": 3
+            },
+            "end": {
+              "offset": 489,
+              "line": 14,
+              "column": 43
+            }
+          },
+          "idRange": {
+            "start": {
+              "offset": 456,
+              "line": 14,
+              "column": 10
+            },
+            "end": {
+              "offset": 461,
+              "line": 14,
+              "column": 15
+            }
+          },
+          "task": {
+            "from": "2026-06-10T12:30",
+            "after": [],
+            "end": null,
+            "status": null,
+            "critical": false,
+            "start": "2026-06-10T12:30",
+            "finish": "2026-06-10T12:30",
+            "workingDays": 0
+          }
+        }
+      ],
+      "relations": [
+        {
+          "key": "freeze->build#1",
+          "id": null,
+          "from": "freeze",
+          "to": "build",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 294,
+              "line": 10,
+              "column": 28
+            },
+            "end": {
+              "offset": 300,
+              "line": 10,
+              "column": 34
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "build->smoke#1",
+          "id": null,
+          "from": "build",
+          "to": "smoke",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 343,
+              "line": 11,
+              "column": 34
+            },
+            "end": {
+              "offset": 348,
+              "line": 11,
+              "column": 39
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "smoke->go#1",
+          "id": null,
+          "from": "smoke",
+          "to": "go",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 393,
+              "line": 12,
+              "column": 35
+            },
+            "end": {
+              "offset": 398,
+              "line": 12,
+              "column": 40
+            }
+          },
+          "idRange": null
+        },
+        {
+          "key": "go->deploy#1",
+          "id": null,
+          "from": "go",
+          "to": "deploy",
+          "line": "solid",
+          "twoWay": false,
+          "heads": "end",
+          "async": false,
+          "returns": null,
+          "technology": null,
+          "sources": [],
+          "derived": true,
+          "label": null,
+          "description": null,
+          "assumption": null,
+          "classes": [],
+          "tags": [],
+          "layer": null,
+          "groupPath": [],
+          "range": {
+            "start": {
+              "offset": 428,
+              "line": 13,
+              "column": 30
+            },
+            "end": {
+              "offset": 430,
+              "line": 13,
+              "column": 32
+            }
+          },
+          "idRange": null
+        }
+      ],
+      "placement": [],
+      "constraints": [],
+      "styles": [],
+      "animations": [],
+      "events": [],
+      "scenarios": [],
+      "c4": null,
+      "gantt": {
+        "axisFormat": "%H:%M",
+        "ticks": null,
+        "weekStart": "monday",
+        "axis": "bottom",
+        "labels": "bar",
+        "display": "normal",
+        "dependencies": "shown",
+        "dayWidth": null,
+        "exclude": {
+          "weekdays": [],
+          "dates": []
+        },
+        "include": [],
+        "today": null,
+        "span": {
+          "start": "2026-06-10T09:00",
+          "end": "2026-06-10T12:45"
+        }
+      }
+    }
+  ],
+  "themes": [],
+  "models": [],
+  "stories": [],
+  "exports": [],
+  "diagnostics": []
+}

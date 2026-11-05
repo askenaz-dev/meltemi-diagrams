@@ -26,6 +26,8 @@ pnpm mdg format --check architecture/
 | `;`                    | statements joined by `;` stay on one line: `place a at (1, 2); size a (160, 56)`                             |
 | Multi-line list        | `via [` ends the line, one item per line one level deeper, `]` on its own line                               |
 | Pen point list         | one line when the `pen` statement fits in 100 columns; otherwise filled, as below                            |
+| Dates                  | one token, printed as written: `2026-06-01` and `2026-06-01T09:30` are never changed or split                |
+| Gantt statements       | a `task`, `milestone` or `marker` with its clauses stays on one line, with `, ` between ids (`after a, b`)   |
 | Blank lines            | at most one in a row; none right after `{` or before `}`; exactly one between top-level blocks               |
 | Comments               | kept in place and order; one space before a trailing `//` comment; block comments verbatim                   |
 | Line ends              | no trailing spaces, the file's first line ending everywhere, one final line break, the BOM kept              |

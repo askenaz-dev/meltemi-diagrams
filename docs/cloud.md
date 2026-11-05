@@ -1226,8 +1226,8 @@ gives more. The page opens the project in view mode when it is `viewer`.
   projects and the ones they are a member of, each with their `role`.
 - `POST /api/projects` takes `{ name, description?, template? | files?, binaries? }` and answers
   `201` with the project. The name has 1 to 100 characters once trimmed, with no control
-  characters; the description at most 500. `template` is one of `flow`, `c4`, `sequence`, `free`
-  and `purchase`, and gives the files of the web app's own build with their `project.json`,
+  characters; the description at most 500. `template` is one of `flow`, `c4`, `sequence`, `roadmap`,
+  `free` and `purchase`, and gives the files of the web app's own build with their `project.json`,
   read from its `templates.json`, so the page and the service offer the same bytes. `files` is
   `{ path: text }` and `binaries` is `{ path: hash }` of images and fonts that the person's
   projects already hold (another hash is `blob.unknown`: a hash is not a capability). A template
@@ -2227,7 +2227,8 @@ says nothing more, a quota names its `limit`). `write_files` takes `ifRevision` 
 object compile every `.meltemi` file it writes with the project's files first, refusing a push with an
 error whole (`diagram.invalid`); `validate` gives a file's or the project's diagnostics the same way.
 `preview` draws a PNG (1280 wide by default, 16 to 2048) or an SVG in the renderer object, at most 30
-a minute per account, with a report beside it. `invite` answers the invitation's link and
+a minute per account, with a report beside it; a gantt chart that writes `today` without a date draws
+its line at the server's UTC date. `invite` answers the invitation's link and
 `emailSent: false`. `publish` has the renderer object build the catalog the page publishes, stores
 it, and reads the public address back once (`HEAD`): an address that does not answer `200` is
 `502 publish.unverified` with its `url`, and the publication exists.

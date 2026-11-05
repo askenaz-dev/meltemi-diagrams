@@ -2,6 +2,8 @@ export const PACKAGE_NAME = "@meltemi/diagrams-model";
 
 export * from "./types.js";
 export * from "./schema.js";
+export * from "./calendar.js";
+export { badDirective } from "./gantt.js";
 export { SOURCE_LIMITS, compile } from "./compile.js";
 export {
   LAYOUT_ALGORITHMS,

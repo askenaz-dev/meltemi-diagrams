@@ -4,17 +4,27 @@ import { TEMPLATES, TEMPLATE_CONTENT_KINDS, templateManifest } from "../src/inde
 const versions = { toolVersion: "1.11.0", languageVersion: "0.2" };
 
 describe("the templates", () => {
-  it("are seven, in the order init and the playground list them", () => {
+  it("are eight, in the order init and the playground list them", () => {
     expect(Object.keys(TEMPLATES)).toEqual([
       "flow",
       "c4",
       "sequence",
+      "roadmap",
       "free",
       "kanban",
       "whiteboard",
       "purchase",
     ]);
     expect(TEMPLATE_CONTENT_KINDS).toEqual(["models", "views", "diagrams", "stories"]);
+  });
+
+  it("describe the roadmap with what it holds", () => {
+    expect(TEMPLATES.roadmap).toEqual({
+      title: "Product roadmap",
+      description:
+        "A roadmap of three sections of tasks with their dependencies, a milestone and a story that plays it",
+      contents: { diagrams: 1, models: 0, views: 0, stories: 1 },
+    });
   });
 
   it("describe the kanban board and the whiteboard with what they hold", () => {
@@ -31,7 +41,7 @@ describe("the templates", () => {
   });
 
   it("write a manifest that pins the tool, with catalog settings only for the purchase example", () => {
-    for (const name of ["kanban", "whiteboard"] as const) {
+    for (const name of ["roadmap", "kanban", "whiteboard"] as const) {
       expect(JSON.parse(templateManifest("board", name, versions))).toEqual({
         name: "board",
         language: "0.2",

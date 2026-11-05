@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="246" viewBox="0 0 1200 246" font-family="&quot;Inter&quot;, &quot;Segoe UI&quot;, Roboto, Helvetica, Arial, sans-serif">
+  <title>Working days</title>
+  <defs>
+    <linearGradient id="meltemi-wind" gradientUnits="userSpaceOnUse" x1="38" y1="222" x2="219" y2="54">
+      <stop offset="0" stop-color="#1D4ED8"/>
+      <stop offset="1" stop-color="#0891B2"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1200" height="246" fill="#F7FBFF"/>
+  <g data-id="axis" data-role="axis">
+    <rect x="277.78" y="20" width="128.89" height="136" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <rect x="793.33" y="20" width="128.89" height="136" rx="0" fill="#EAF1F8" stroke="none" stroke-width="0" opacity="0.6"/>
+    <polyline points="20,20 20,156" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="148.89,20 148.89,156" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="277.78,20 277.78,156" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="406.67,20 406.67,156" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="535.56,20 535.56,156" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="664.44,20 664.44,156" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="793.33,20 793.33,156" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="922.22,20 922.22,156" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="1051.11,20 1051.11,156" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="1180,20 1180,156" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <polyline points="20,156 1180,156" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <text x="20.77" y="173" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">Mon 01</text>
+    <text x="148.89" y="173" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">Tue 02</text>
+    <text x="277.78" y="173" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">Wed 03</text>
+    <text x="406.67" y="173" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">Thu 04</text>
+    <text x="535.56" y="173" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">Fri 05</text>
+    <text x="664.44" y="173" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">Sat 06</text>
+    <text x="793.33" y="173" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">Sun 07</text>
+    <text x="922.22" y="173" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">Mon 08</text>
+    <text x="1051.11" y="173" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">Tue 09</text>
+    <text x="1179.03" y="173" text-anchor="middle" font-size="11" font-weight="400" fill="#526579">Wed 10</text>
+  </g>
+  <g data-id="plan" data-role="element">
+    <rect x="20" y="28" width="257.78" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+    <text x="148.89" y="44" text-anchor="middle" font-size="11" font-weight="500" fill="#FFFFFF">Plan</text>
+  </g>
+  <g data-id="build" data-role="element">
+    <rect x="406.67" y="60" width="773.33" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+    <text x="793.33" y="76" text-anchor="middle" font-size="11" font-weight="500" fill="#FFFFFF">Build</text>
+  </g>
+  <g data-id="shift" data-role="element">
+    <rect x="406.67" y="92" width="386.67" height="24" rx="6" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+    <text x="600" y="108" text-anchor="middle" font-size="11" font-weight="500" fill="#FFFFFF">Saturday shift</text>
+  </g>
+  <g data-id="shipped" data-role="element">
+    <path d="M1180 126.4 L1189.6 136 L1180 145.6 L1170.4 136 Z" fill="#1D4ED8" stroke="#1D4ED8" stroke-width="1"/>
+    <text x="1156.4" y="140" text-anchor="end" font-size="11" font-weight="500" fill="#0B1830">Shipped</text>
+  </g>
+  <g data-id="plan-&gt;build#1" data-role="relation">
+    <polyline points="277.78,40 285.78,40 285.78,72 398.67,72" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M406.67 72 L398.67 75.5 L398.67 68.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="plan-&gt;shift#1" data-role="relation">
+    <polyline points="277.78,40 285.78,40 285.78,104 398.67,104" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M406.67 104 L398.67 107.5 L398.67 100.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="build-&gt;shipped#1" data-role="relation">
+    <polyline points="1180,72 1188,72 1188,88 1162.4,88 1162.4,136 1162.4,136" fill="none" stroke="#526579" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M1170.4 136 L1162.4 139.5 L1162.4 132.5 Z" fill="#526579" stroke="none" stroke-width="0"/>
+  </g>
+  <g data-id="frame" data-role="frame">
+    <polyline points="20,202.5 1180,202.5" fill="none" stroke="#DCE5ED" stroke-width="1" stroke-linejoin="round" stroke-linecap="round"/>
+    <g data-id="mark" data-role="frame" transform="translate(20 212) scale(0.0938)">
+      <path d="M43 178C43 125 57 100 78 100C99 100 109 127 109 176C109 105 132 67 158 67C185 67 199 97 196 132C194 154 185 169 172 177C189 176 205 166 217 152C224 144 230 133 234 122" fill="none" stroke="url(#meltemi-wind)" stroke-width="25" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M45 199C87 211 145 215 202 189C195 204 177 216 151 220C106 226 67 215 45 199Z" fill="url(#meltemi-wind)" stroke="none" stroke-width="0"/>
+    </g>
+    <text x="52" y="228.37" text-anchor="start" font-size="12" font-weight="600" fill="#0B1830">Meltemi Diagrams</text>
+    <text x="1180" y="228" text-anchor="end" font-size="11" font-weight="400" fill="#526579">Working days</text>
+  </g>
+</svg>

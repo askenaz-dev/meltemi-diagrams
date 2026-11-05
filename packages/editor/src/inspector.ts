@@ -69,6 +69,15 @@ import {
   effectsFor,
   selectionAfter,
 } from "./effects.js";
+import {
+  ganttArrowFields,
+  ganttChartFields,
+  ganttChartOperations,
+  ganttFieldOperations,
+  ganttScheduleFields,
+  ganttStyleDefaults,
+  ganttTakesStyle,
+} from "./gantt.js";
 import { drawnIconSize, iconChoice, iconKind } from "./icons.js";
 import { messages } from "./messages/index.js";
 import { freshRelationId, namedNotice, namedRelation, styleTargets } from "./targets.js";
@@ -286,10 +295,15 @@ const shown = (value: string | number | undefined): string | number | null =>
  * Whether a target takes a style field: a relation the relation properties and none of a box's;
  * a free line the same, and its `opacity`; a pen and a sticky their own sets (`OWN_PROPERTIES`);
  * the other elements and events the element properties, those meant for some kinds only where
- * the kind is one of them.
+ * the kind is one of them; the statements of a gantt chart the few of `ganttTakesStyle`.
  */
 function takesField(diagram: FlowDiagram, target: StyleTarget, field: StyleField): boolean {
   if (diagram.type === "sequence" && NOT_IN_SEQUENCES.has(field.name)) return false;
+  // A chart's bars, diamonds, markers and sections take their own few; its arrows take none.
+  if (diagram.type === "gantt") {
+    const element = target.kind === "element" ? diagram.elementsById.get(target.id) : undefined;
+    return element !== undefined && ganttTakesStyle(element.kind, field.name);
+  }
   // The text fields go wherever text is drawn: every element but icons, images and pens, the
   // relations and free lines, and the notes and fragments of sequence diagrams.
   if (TEXT_PROPERTIES.includes(field.name)) {
@@ -505,6 +519,8 @@ function withElementDefaults(
     "style.radius": shared(elements.map((e) => String(radius(e)))),
     // A rule's or a class's angle, else upright.
     "style.rotation": shared(elements.map((e) => String(styles.element(e).rotation ?? 0))),
+    // A chart's bars: the colours of their status, as the chart draws them without others.
+    ...(view.diagram.type === "gantt" ? ganttStyleDefaults(elements, theme.strokeWidth) : {}),
     "style.icon": icon === "" ? undefined : icon,
     "style.iconPosition": shared(elements.map(position)),
     "style.labelPosition": shared(elements.map((e) => styles.element(e).labelPosition ?? "bottom")),
@@ -851,6 +867,20 @@ function elementFields(view: DiagramView, element: Element): InspectorField[] {
     type: "classes",
     value: element.classes.map((c) => c.name).join(", ") || null,
   };
+  // A chart's statements: the schedule of a bar first, then what every element has. A section's
+  // label is its title; none of them has a kind to change, ports, a place or a size, which the
+  // dates and the order of the rows give.
+  if (diagram.type === "gantt") {
+    return [
+      ...ganttScheduleFields(view, element),
+      { name: "id", label: words.id, type: "id", value: element.id },
+      { name: "label", label: words.label, type: "text", value: element.label },
+      description,
+      classes,
+      ...identityFields(diagram, element),
+      ...styleFields(diagram, [{ id: element.id, kind: "element" }]),
+    ];
+  }
   // A pen is its stroke: no kind to change, no text, no group to pick, no ports, place or size.
   if (element.kind === "pen") {
     return [
@@ -1007,6 +1037,25 @@ function diagramFields(analysis: DocumentAnalysis, view: DiagramView): Inspector
   ];
   if (view.diagram.type === "sequence") {
     return [...sequenceDiagramFields(view.diagram, themes, defaultTheme), ...canvasFields(view)];
+  }
+  const labels = messages().fields;
+  // A chart has no direction, layout, layers or route kind: its title, description and theme, the
+  // look and calendar of its axis, and the canvas.
+  if (view.diagram.type === "gantt") {
+    return [
+      { name: "title", label: labels.title, type: "text", value: p.title },
+      { name: "description", label: labels.description, type: "multiline", value: p.description },
+      {
+        name: "theme",
+        label: labels.theme,
+        type: "enum",
+        value: p.theme,
+        placeholder: defaultTheme,
+        options: themes,
+      },
+      ...ganttChartFields(view),
+      ...canvasFields(view),
+    ];
   }
   const written = (name: string) =>
     view.diagram.block?.statements.some(
@@ -1480,6 +1529,15 @@ function inspectFields(
     }
     const relation = diagram.relationsByKey.get(id)!;
     const name = relation.id ?? `${relation.from} → ${relation.to}`;
+    // An arrow of a chart is the After of the task it points to: where it runs, and nothing to
+    // style or animate.
+    if (diagram.type === "gantt") {
+      return {
+        title: titles.relation(name),
+        target: { kind: "relation", ids: [id] },
+        fields: ganttArrowFields(relation.from, relation.to),
+      };
+    }
     return {
       title: sequence ? titles.message(name) : titles.relation(name),
       target: { kind: "relation", ids: [id] },
@@ -1502,6 +1560,8 @@ function inspectFields(
   }
   // Several: the style of those that take one.
   const styled = targets.flatMap((t): StyleTarget[] => {
+    // The arrows of a chart take none.
+    if (diagram.type === "gantt") return t.kind === "element" ? [{ id: t.id, kind: t.kind }] : [];
     if (t.kind !== "event")
       return [{ id: diagram.relationsByKey.get(t.id)?.id ?? t.id, kind: t.kind }];
     const event = diagram.eventsByKey.get(t.id)!;
@@ -1579,6 +1639,11 @@ export function fieldOperations(
     if (field === "canvas" || field === "canvas.width" || field === "canvas.height") {
       return canvasOperations(view, field, value);
     }
+    // The look and the calendar of a chart are statements of its body, not properties.
+    if (diagram.type === "gantt") {
+      const result = ganttChartOperations(view, field, value);
+      if (result) return result;
+    }
     ops.push({
       kind: "setDiagramProperty",
       diagram: d,
@@ -1640,6 +1705,10 @@ export function fieldOperations(
     };
   }
   const id = ids[0]!;
+  if (diagram.type === "gantt") {
+    const result = ganttFieldOperations(view, id, field, value);
+    if (result) return result;
+  }
   if (diagram.type === "sequence") {
     const result = sequenceFieldOperations(diagram, id, field, value);
     if (result) return result;

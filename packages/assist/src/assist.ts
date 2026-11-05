@@ -36,7 +36,7 @@ export interface AssistRequest {
   /** `relations`: the block to look at, such as `diagram checkout`; every block when absent. */
   readonly block?: string;
   /** `generate`: the profile to start with. */
-  readonly profile?: "flow" | "c4" | "sequence" | "free";
+  readonly profile?: "flow" | "c4" | "sequence" | "free" | "gantt";
   /** Other files sent for context: the files the file imports, or may import. */
   readonly shared: readonly SharedFile[];
 }
@@ -95,7 +95,7 @@ function pagesFor(request: AssistRequest): string[] {
     if (document.models.length > 0) types.add("c4");
     if (document.stories.length > 0) pages.add("stories");
   }
-  for (const type of ["sequence", "c4", "free"]) if (types.has(type)) pages.add(type);
+  for (const type of ["sequence", "gantt", "c4", "free"]) if (types.has(type)) pages.add(type);
   if (/\b(story|stories|walkthrough|recorrido|animat)/i.test(request.instruction))
     pages.add("stories");
   return [...pages];

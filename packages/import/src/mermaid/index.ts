@@ -1,14 +1,16 @@
 import type { Span } from "@meltemi/diagrams-language";
+import type { FlowDiagram } from "@meltemi/diagrams-model";
 import { readC4, type C4Level, type C4Statement } from "../c4.js";
 import { MERMAID_SUPPORTED, MERMAID_UNSUPPORTED } from "../detect.js";
 import type { FrontContext, FrontOutcome } from "../front.js";
 import { messages } from "../messages/index.js";
-import type { SourceLine } from "../report.js";
+import type { Reporter, SourceLine } from "../report.js";
 import type { Sheet } from "../writer.js";
 import { ArchitectureReader } from "./architecture.js";
 import { BlockReader } from "./block.js";
 import { splitStatements, yamlScalar, type Statement } from "./common.js";
 import { FlowchartReader } from "./flowchart.js";
+import { GanttReader, ganttConfigValue, ganttStatements, type GanttFront } from "./gantt.js";
 import { SequenceReader } from "./sequence.js";
 
 const C4_LEVELS: Readonly<Record<string, C4Level>> = {
@@ -17,6 +19,100 @@ const C4_LEVELS: Readonly<Record<string, C4Level>> = {
   C4Component: "component",
   C4Dynamic: "container",
 };
+
+/** What the front matter says that the importer reads. */
+interface FrontMatter {
+  title: string | undefined;
+  /** The settings of a gantt chart: `displayMode`, and `config.gantt`. */
+  gantt: { displayMode?: string; topAxis?: boolean };
+}
+
+/** The first word of a diagram's lines, after comments. */
+function keywordOf(lines: readonly SourceLine[]): string {
+  const line = lines.find((l) => {
+    const t = l.text.trim();
+    return t !== "" && !t.startsWith("%%");
+  });
+  return line ? (/^[A-Za-z][A-Za-z0-9-]*/.exec(line.text.trim())?.[0] ?? "") : "";
+}
+
+/**
+ * Reads the `config:` block of a gantt chart's front matter from the line after it. The settings
+ * of `config.gantt` that Meltemi has are kept; every other option is reported, a section of
+ * options other than `gantt` once. Returns the index of the first line after the block.
+ */
+function readGanttConfig(
+  r: Reporter,
+  lines: readonly SourceLine[],
+  from: number,
+  into: FrontMatter["gantt"],
+): number {
+  const stack: { indent: number; key: string }[] = [];
+  /** The indentation of a section that is reported as a whole, whose lines are skipped. */
+  let skipping: number | null = null;
+  let k = from;
+  for (; k < lines.length; k++) {
+    const line = lines[k]!;
+    const text = line.text;
+    if (text.trim() === "" || text.trim().startsWith("#")) continue;
+    // A key at the margin ends the block.
+    if (!/^\s/.test(text)) break;
+    const indent = text.length - text.trimStart().length;
+    if (skipping !== null && indent > skipping) continue;
+    skipping = null;
+    const m = /^\s*([A-Za-z_][\w-]*)\s*:\s*(.*)$/.exec(text);
+    if (!m) {
+      r.dropped("mermaid.config", line.span, messages().mermaid.config);
+      continue;
+    }
+    while (stack.length > 0 && stack[stack.length - 1]!.indent >= indent) stack.pop();
+    const path = [...stack.map((s) => s.key), m[1]!].join(".");
+    const value = yamlScalar(m[2]!.replace(/\s+#.*$/, ""));
+    if (value === "") {
+      stack.push({ indent, key: m[1]! });
+      if (stack.length === 1 && m[1] !== "gantt") {
+        r.dropped("mermaid.config", line.span, messages().mermaid.configKey(path));
+        skipping = indent;
+      }
+      continue;
+    }
+    const setting = ganttConfigValue(path, value);
+    if (setting) {
+      Object.assign(into, setting);
+      r.mapped(path === "gantt.topAxis" ? "gantt.topAxis" : "gantt.displayMode");
+    } else r.dropped("mermaid.config", line.span, messages().mermaid.configKey(path));
+  }
+  return k;
+}
+
+/** Reads the lines between the `---` of the front matter: the title, and a gantt chart's settings. */
+function readFrontMatter(r: Reporter, lines: readonly SourceLine[], gantt: boolean): FrontMatter {
+  const out: FrontMatter = { title: undefined, gantt: {} };
+  let inConfig = false;
+  for (let k = 0; k < lines.length; k++) {
+    const line = lines[k]!;
+    const top = /^([A-Za-z][\w-]*)\s*:\s*(.*)$/.exec(line.text);
+    if (top && !/^\s/.test(line.text)) {
+      inConfig = top[1] === "config";
+      if (top[1] === "title") {
+        out.title = yamlScalar(top[2]!);
+        r.mapped("mermaid.frontmatter.title");
+      } else if (top[1] === "config") {
+        // A gantt chart reads the options of its own block; elsewhere the block is dropped whole.
+        if (gantt && top[2]!.trim() === "") k = readGanttConfig(r, lines, k + 1, out.gantt) - 1;
+        else r.dropped("mermaid.config", line.span, messages().mermaid.config);
+      } else if (gantt && top[1] === "displayMode") {
+        out.gantt.displayMode = yamlScalar(top[2]!);
+        r.mapped("gantt.displayMode");
+      } else {
+        r.dropped("mermaid.frontmatter", line.span, messages().mermaid.frontMatterField(top[1]!));
+      }
+    } else if (!inConfig && line.text.trim() !== "") {
+      r.dropped("mermaid.frontmatter", line.span, messages().mermaid.frontMatterLine);
+    }
+  }
+  return out;
+}
 
 /**
  * Imports one Mermaid diagram from its lines. `key` names the diagram for the reporter until its
@@ -37,30 +133,23 @@ export function importMermaid(
   let i = 0;
   while (i < lines.length && lines[i]!.text.trim() === "") i++;
   let title: string | undefined;
+  let gantt: GanttFront = {};
   if (lines[i]?.text.trim() === "---") {
     const open = lines[i]!;
     let j = i + 1;
-    let inConfig = false;
-    for (; j < lines.length && lines[j]!.text.trim() !== "---"; j++) {
-      const line = lines[j]!;
-      const top = /^([A-Za-z][\w-]*)\s*:\s*(.*)$/.exec(line.text);
-      if (top && !/^\s/.test(line.text)) {
-        inConfig = top[1] === "config";
-        if (top[1] === "title") {
-          title = yamlScalar(top[2]!);
-          r.mapped("mermaid.frontmatter.title");
-        } else if (top[1] === "config") {
-          r.dropped("mermaid.config", line.span, messages().mermaid.config);
-        } else
-          r.dropped("mermaid.frontmatter", line.span, messages().mermaid.frontMatterField(top[1]!));
-      } else if (!inConfig && line.text.trim() !== "") {
-        r.dropped("mermaid.frontmatter", line.span, messages().mermaid.frontMatterLine);
-      }
-    }
+    while (j < lines.length && lines[j]!.text.trim() !== "---") j++;
     if (j >= lines.length) {
+      readFrontMatter(r, lines.slice(i + 1), false);
       r.syntax("mermaid.frontmatter", open.span, messages().mermaid.frontMatterNotClosed);
       return { failed: true, key };
     }
+    const front = readFrontMatter(
+      r,
+      lines.slice(i + 1, j),
+      keywordOf(lines.slice(j + 1)) === "gantt",
+    );
+    title = front.title;
+    gantt = front.gantt;
     i = j + 1;
   }
   const body = lines.slice(i);
@@ -113,6 +202,9 @@ export function importMermaid(
   const comments = commentsBefore(body.slice(0, keywordIndex));
   const rest = body.slice(keywordIndex + 1);
   let sheet: Sheet;
+  let verify: ((diagram: FlowDiagram) => void) | undefined;
+  let repair: ((diagram: FlowDiagram) => boolean) | undefined;
+  let name = "";
   switch (type) {
     case "flowchart": {
       const reader = new FlowchartReader(ctx, key);
@@ -145,6 +237,21 @@ export function importMermaid(
       for (const st of statements) reader.statement(st);
       sheet = reader.finish();
       sheet.trailing.push(...trailing);
+      break;
+    }
+    case "gantt": {
+      const reader = new GanttReader(ctx, key, {
+        ...(title !== undefined ? { title } : {}),
+        ...gantt,
+      });
+      reader.header(header);
+      const { statements, trailing } = ganttStatements(rest);
+      for (const st of statements) reader.statement(st);
+      sheet = reader.finish();
+      sheet.trailing.push(...trailing);
+      verify = (diagram) => reader.verify(diagram);
+      repair = (diagram) => reader.repair(diagram);
+      name = reader.name;
       break;
     }
     default: {
@@ -180,6 +287,9 @@ export function importMermaid(
     kind: keyword,
     span: whole,
     key,
+    ...(name !== "" ? { name } : {}),
+    ...(repair ? { repair } : {}),
+    ...(verify ? { verify } : {}),
   };
 }
 

@@ -135,6 +135,10 @@ export const en = {
     container: "container",
     datastore: "datastore",
     component: "component",
+    section: "section",
+    task: "task",
+    milestone: "milestone",
+    marker: "marker",
     message: "message",
     activate: "activate",
     deactivate: "deactivate",
@@ -340,7 +344,7 @@ export const en = {
     textSizeEnd: "The text is at the end of the size list.",
     noDiagramStories: "No diagram in this file: play one of its stories.",
     noDiagram:
-      "No diagram to draw: add `diagram <id>: flow { }`, `diagram <id>: free { }` or `diagram <id>: sequence { }` to the file.",
+      "No diagram to draw: add `diagram <id>: flow { }`, `diagram <id>: free { }`, `diagram <id>: sequence { }` or `diagram <id>: gantt { }` to the file.",
     cannotDraw: "The diagram cannot be drawn.",
     copied: "Copied.",
     invalidId: (id: string) => `${code(id)} is not a valid id.`,
@@ -432,6 +436,174 @@ export const en = {
       "Sequence participants do not move between groups; drag them sideways to reorder them.",
     "create.shape":
       "Sequence participants draw their own shapes; shapes are for free boxes and flow nodes.",
+  },
+
+  /**
+   * Gantt charts: the fields of bars, diamonds, lines and the chart, the dates as the read-only
+   * lines write them, and why a gesture is refused.
+   */
+  gantt: {
+    fields: {
+      /** The date a task starts at (`from`), and the date of a milestone or a marker (`at`). */
+      start: "Start date",
+      date: "Date",
+      after: "After",
+      /** How a task ends: by default (one day), `for`, `to` or `until`. */
+      end: "End",
+      duration: "Duration",
+      endDate: "End date",
+      until: "Until",
+      status: "Status",
+      critical: "Critical",
+      /** The read-only lines: where the schedule puts the task. */
+      starts: "Starts",
+      ends: "Ends",
+      working: "Working time",
+      axisFormat: "Axis format",
+      ticks: "Ticks",
+      weekStart: "Week start",
+      axis: "Axis",
+      labels: "Labels",
+      display: "Display",
+      dependencies: "Dependencies",
+      dayWidth: "Day width",
+      excluded: "Excluded days",
+      included: "Included dates",
+      today: "Today",
+    },
+    /** The headings that start a group of fields: a task's schedule, the chart's look and calendar. */
+    headings: { schedule: "Schedule", look: "Axis and look", calendar: "Calendar" },
+    /** Placeholders of fields that are not written: what applies. */
+    placeholders: {
+      /** A task without an end lasts a day; a chart without `dayWidth` fills the canvas. */
+      oneDay: "one day",
+      auto: "auto",
+      off: "off",
+    },
+    /** The quick choices of the chart's fields. */
+    quick: { weekends: "Weekends", today: "Today", off: "Off", auto: "Auto" },
+    /**
+     * The words the inspector shows for the choices of its enums, whose values are the language's:
+     * the status of a task, how it ends, the unit of a duration, the first day of the week and the
+     * look of the axis.
+     */
+    options: {
+      planned: "planned",
+      active: "active",
+      done: "done",
+      for: "for a duration",
+      to: "to a date",
+      until: "until other tasks",
+      s: "seconds",
+      min: "minutes",
+      h: "hours",
+      d: "days",
+      w: "weeks",
+      top: "at the top",
+      bottom: "at the bottom",
+      both: "top and bottom",
+      bar: "inside the bars",
+      column: "in a column",
+      normal: "normal",
+      compact: "compact",
+      shown: "shown",
+      hidden: "hidden",
+      monday: "Monday",
+      tuesday: "Tuesday",
+      wednesday: "Wednesday",
+      thursday: "Thursday",
+      friday: "Friday",
+      saturday: "Saturday",
+      sunday: "Sunday",
+    } as Readonly<Record<string, string>>,
+    /** Under a selected arrow: where a dependency is changed. */
+    arrowNote:
+      "A dependency is the After of the task it points to: change it there, or delete the arrow.",
+    months: [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ],
+    /** A date in a read-only line: `19 June 2026`, with `, 17:00` after it when it has a time. */
+    date: (day: number, month: string, year: number, time: string | null) =>
+      `${day} ${month} ${year}${time === null ? "" : `, ${time}`}`,
+    /** The working time between a start and an end: whole days, or hours. */
+    workingDays: (days: number) =>
+      `${days} ${plural("en", days, { one: "working day", other: "working days" })}`,
+    workingHours: (hours: string) => `${hours} working hours`,
+    notBar: (id: string) => `${code(id)} is not a task, milestone or marker.`,
+    noEnd: (id: string, kind: string) => `${code(id)} is a ${kind}: it has a date, not an end.`,
+    untilReplaced: (id: string, length: string) =>
+      `${code(id)} now ends ${code(`for ${length}`)}, in place of its ${code("until")}.`,
+    /** A bar dragged on a chart that cannot be moved in time. */
+    dragRows:
+      "Drag a row between the rows of the chart to move it; Left and Right move a bar in time.",
+    noRows: "Markers take no row: there is nothing to move them past.",
+    mixedRows: "Move the sections and the rows one kind at a time.",
+    firstRow: (id: string) => `${code(id)} is the first row already.`,
+    lastRow: (id: string) => `${code(id)} is the last row already.`,
+    cannotLead: (id: string, kind: string) =>
+      `${code(id)} is a ${kind}: only a task or a milestone can be followed.`,
+    cannotFollow: (id: string, kind: string) =>
+      `${code(id)} is a ${kind}: only a task, a milestone or a marker comes after others.`,
+    itself: (id: string) => `${code(id)} cannot come after itself.`,
+    alreadyAfter: (to: string, from: string) => `${code(to)} already comes after ${code(from)}.`,
+    loop: (to: string, from: string, path: readonly string[]) =>
+      `${code(to)} already leads to ${code(from)} (${path.map(code).join(" → ")}): linking them would close a loop.`,
+    notHere: (kind: string) =>
+      `A gantt chart holds tasks, milestones, markers and sections; ${code(kind)} is none of them.`,
+    selectRows: "Select the tasks, milestones or markers to put in a section.",
+    /** Choosing `until` for a task when no other task could start after it ends. */
+    endNeedsTasks: (id: string) =>
+      `${code(id)} has no task to end before: add one after it, then choose Until.`,
+    /** A task whose dates the chart cannot resolve yet, which has no end to turn into another. */
+    unresolved: (id: string) =>
+      `${code(id)} has no dates yet: give it a start date, or put it after another task.`,
+    /** An End that is none of the three ways a task ends. */
+    notEnd: (value: string) =>
+      `${code(value)} is not a way for a task to end: use for, to or until.`,
+  },
+
+  /** Canvas actions that do not apply to gantt charts, with the reason. */
+  ganttRefused: {
+    resize: "Bars take their length from their dates: drag their ends, or change their duration.",
+    moveLabel: "A chart draws the labels of its bars inside them or beside them.",
+    setVia: "Dependencies run from the end of a task to the start of the next.",
+    setEnd:
+      "Dependencies run from the end of a task to the start of another; change them in After.",
+    createLine:
+      "A chart draws its bars and arrows from its dates; lines are for free compositions.",
+    setLinePoints:
+      "A chart draws its bars and arrows from its dates; lines are for free compositions.",
+    createPen: "Pens are for free compositions.",
+    setPenPoints: "Pens are for free compositions.",
+    attachNote: "Notes belong to flow, free and C4 diagrams.",
+    setIcon: "A chart's bars draw no icon from the picker.",
+    removeIcon: "A chart's bars draw no icon from the picker.",
+    ungroup: "A section holds rows: drag them out of it, or use Alt+Up and Alt+Down.",
+    convertToContainer: "Only boxes and nodes become containers.",
+    align: "Rows are in order and bars are placed by their dates.",
+    distribute: "Rows are in order and bars are placed by their dates.",
+    arrange: "A chart is arranged by its dates and the order of its rows.",
+    reorder: "A chart draws everything in order; there is no stacking order.",
+    convert: "Only flow diagrams convert to a free composition.",
+    addLayer: "Layers belong to flow diagrams and free compositions.",
+    renameLayer: "Layers belong to flow diagrams and free compositions.",
+    removeLayer: "Layers belong to flow diagrams and free compositions.",
+    moveLayer: "Layers belong to flow diagrams and free compositions.",
+    setLayer: "Layers belong to flow diagrams and free compositions.",
+    paste: "Paste text into the editor to copy the rows of a chart.",
+    duplicate: "Copy and paste the rows of a chart in the text editor.",
+    cut: "Copy and delete the rows of a chart in the text editor.",
   },
 
   /** Why an export cannot be made, as the command line, the editor and the playground say it. */

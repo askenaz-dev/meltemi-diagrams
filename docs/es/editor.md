@@ -186,8 +186,8 @@ cualquier diagrama de flujo.
 ## Diagramas nuevos y el tamaño del lienzo
 
 **Un archivo vacío.** Cuando el archivo no tiene ningún diagrama, el lienzo lo dice y ofrece un
-botón por cada tipo que crea: **Diagrama de flujo**, **Composición libre** y **Diagrama de
-secuencia**. No queda nada del último dibujo: se vacían el selector de diagramas, el inspector, el
+botón por cada tipo que crea: **Diagrama de flujo**, **Composición libre**, **Diagrama de
+secuencia** y **Diagrama de Gantt**. No queda nada del último dibujo: se vacían el selector de diagramas, el inspector, el
 minimapa y las insignias de disposición y "Desactualizado". Un botón escribe el diagrama y lo
 muestra con su paleta, así que un archivo vaciado queda así:
 
@@ -198,7 +198,7 @@ diagram diagram1: flow {
 }
 ```
 
-**Nuevo diagrama.** El botón **+** a la derecha del selector de diagramas ofrece los mismos tres
+**Nuevo diagrama.** El botón **+** a la derecha del selector de diagramas ofrece los mismos cuatro
 tipos en cualquier archivo. El diagrama se escribe después de la última instrucción del archivo,
 tras una línea en blanco, con el primer id de `diagram1`, `diagram2`… que no usa ningún diagrama,
 modelo, tema ni historia del archivo; un archivo sin `language` recibe antes `language "0.2"`. El
@@ -209,8 +209,8 @@ botones y no tiene **Nuevo diagrama**, y ninguno de los dos se ofrece mientras s
 historia.
 
 **El tamaño del lienzo.** Sin nada seleccionado, el campo **Lienzo** del inspector fija el tamaño
-del dibujo de un diagrama de flujo, una composición libre, un diagrama de secuencia o una vista C4
-([preajustes y lienzo](language/styles.md#preajustes-y-lienzo)):
+del dibujo de un diagrama de flujo, una composición libre, un diagrama de secuencia, un diagrama
+de Gantt o una vista C4 ([preajustes y lienzo](language/styles.md#preajustes-y-lienzo)):
 
 | Lienzo               | Texto                                                                                            |
 | -------------------- | ------------------------------------------------------------------------------------------------ |
@@ -981,6 +981,136 @@ coordenadas.
   o de su participante; ir a la definición, las referencias y cambiar el nombre siguen los ids de
   notas y fragmentos; las correcciones rápidas declaran un participante desconocido y quitan un
   `deactivate` sobrante.
+
+## Diagramas de Gantt
+
+Un diagrama de Gantt se edita por sus fechas. El lienzo nunca mueve una barra por píxeles: cada
+gesto acaba como un cambio de `from`, `after`, `for`, `to`, `until` o del orden de las filas
+([diagramas de Gantt](language/gantt.md)).
+
+### Gestos
+
+| Gesto                                                                            | Qué hace                                                                                                                                                                                                                                                                                                                                   |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Clic en una barra, un rombo de hito, la etiqueta de una marca o una flecha       | La selecciona (Mayús suma o quita). Una sección se selecciona por su título, en la columna de la izquierda; su banda sobre la línea de tiempo es fondo.                                                                                                                                                                                    |
+| Arrastrar un recuadro sobre la línea de tiempo                                   | Selecciona las barras y los hitos que toca (Mayús conserva la selección).                                                                                                                                                                                                                                                                  |
+| Arrastrar una barra de lado                                                      | Mueve el inicio y conserva la duración en tiempo hábil: escribe `from` (`at` en un hito o una marca). Una barra que va después de otras no puede empezar antes de que terminen: sujeta ahí conserva `after` y pierde `from`. Varias barras seleccionadas se mueven juntas, tanto como la que se pulsó.                                     |
+| Arrastrar el agarre del extremo derecho de una tarea seleccionada                | Mueve el fin: reescribe `for` en días hábiles (en semanas si estaba en semanas y la duración son semanas enteras; en horas o minutos por debajo de un día), reescribe `to` con la fecha, y un `until` pasa a `for`. Un fin arrastrado antes del inicio deja la barra de un paso (un día hábil con el zoom normal).                         |
+| Arrastrar el agarre del extremo izquierdo                                        | Mueve el inicio y deja el fin donde está (cambia la duración).                                                                                                                                                                                                                                                                             |
+| Arrastrar una barra hacia arriba o hacia abajo                                   | Los primeros 6 píxeles deciden el eje. La fila se levanta bajo el puntero, una barra de inserción muestra el hueco al que irá y el globo dice dónde ("Dentro de build", "Inicio del diagrama"). Al soltar, la fila se mueve ahí, a otra sección también. Soltada sobre el eje, sobre el diagrama o en su propio sitio, no se escribe nada. |
+| Arrastrar el título de una sección arriba o abajo                                | Mueve la sección entera entre secciones.                                                                                                                                                                                                                                                                                                   |
+| Arrastrar el punto sobre el extremo derecho de una barra hasta otra tarea o hito | Añade la barra arrastrada al `after` del destino. Un ciclo, la propia barra o un enlace que ya existe se rechazan: no se escribe nada, el destino parpadea con el color de peligro y la línea de estado dice por qué.                                                                                                                      |
+| Suprimir con una flecha seleccionada                                             | Quita el id del `after` de la sucesora; si era su última cláusula de inicio, recibe `from` con su inicio actual para no moverse.                                                                                                                                                                                                           |
+| Suprimir con filas seleccionadas                                                 | Las quita; lo que iba después de ellas conserva sus fechas (se escribe `from`).                                                                                                                                                                                                                                                            |
+| Herramienta Tarea (T) armada, arrastrar sobre la línea de tiempo                 | Dibuja una barra: `from` la fecha de la pulsación, `for` lo arrastrado (un clic hace un día), en la sección y la fila bajo la pulsación; se abre el editor de su etiqueta. Con Hito (M) o Marca (V) armados, un clic lo coloca en la fecha pulsada. Esc guarda la herramienta.                                                             |
+| Herramienta Relación (R), o C y elegir                                           | Clic en una barra y luego en otra (o elegirla de la lista): la segunda va después de la primera.                                                                                                                                                                                                                                           |
+| Doble clic, Intro o F2 en una barra o sección                                    | Edita la etiqueta en su sitio, sobre donde está dibujada (junto a la barra, dentro o en la columna de la sección).                                                                                                                                                                                                                         |
+
+Al pasar el puntero sobre una barra un cuarto de segundo, un globo da sus fechas y su tiempo hábil
+("8 jun → 19 jun · 10 días hábiles"; un rombo y una marca dicen su día). Un lienzo de solo lectura
+también lo muestra y selecciona, pero no tiene agarres, ni arrastre, ni teclas que escriban.
+
+### Imán, globo y vista previa
+
+- Un arrastre se ajusta al menor de 15 minutos, 1 hora, 1 día y 1 semana que tenga al menos 6
+  píxeles de ancho en pantalla con el zoom actual (una semana si ninguno lo tiene).
+- Una barra conserva su fase: la que empieza a las 09:30 y se mueve un día sigue empezando a las
+  09:30.
+- Un inicio cae en tiempo hábil, así que se saltan los días excluidos.
+- Dibujar una tarea o colocar una marca se ajusta a la cuadrícula de ese paso; una semana empieza
+  en el `weekStart` del diagrama.
+- Mientras se arrastra una barra, el globo sigue al puntero: primer día, último día y tiempo hábil
+  ("15 jun → 26 jun · 10 días hábiles", con horas si la barra las tiene). Una segunda línea
+  "después de tec0" aparece mientras queda sujeta al final de lo que sigue. Las filas arrastradas
+  dicen adónde van.
+- La barra arrastrada sigue al puntero al instante. Las barras posteriores, las flechas, el eje y
+  el tamaño del lienzo se dibujan desde una vista previa de la sesión, que no escribe nada. Esc
+  cancela el arrastre. La edición se escribe al soltar, en un solo paso de deshacer.
+
+### Teclas
+
+| Tecla                 | Qué hace                                                                                                                                                                                                                                                                                                                                                   |
+| --------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Izquierda, Derecha    | Mueven el inicio de las barras seleccionadas un día hábil (Mayús: una semana; las marcas, días naturales). Las barras que van después de otras se detienen al final de lo que siguen. Una sola edición para todas.                                                                                                                                         |
+| `]`, `[`              | Alargan o acortan un día hábil las tareas seleccionadas (Mayús+`]`, Mayús+`[`: una semana hábil).                                                                                                                                                                                                                                                          |
+| Alt+Arriba, Alt+Abajo | Mueven las filas seleccionadas un lugar; en el borde de una sección pasan a la sección de arriba o de abajo; las secciones se mueven entre secciones.                                                                                                                                                                                                      |
+| T, M, V               | Agregan una tarea después de la seleccionada (`after <id> for 1d`; sin selección, al final de la última sección después de la última tarea; `from` la fecha de hoy en un diagrama vacío), un hito después de la tarea o el hito seleccionado, una marca en la fecha bajo el puntero (o al inicio de la selección). Cada una abre el editor de su etiqueta. |
+| G                     | Agrega una sección después de la sección de la fila seleccionada (la herramienta de grupo es Sección en un diagrama de Gantt). Alt+G pone las filas seleccionadas en una sección nueva.                                                                                                                                                                    |
+| Tab, Mayús+Tab        | Recorren las filas en orden.                                                                                                                                                                                                                                                                                                                               |
+| Intro, F2; Mayús+F2   | Editan la etiqueta; cambian el id, reescribiendo cada `after` y `until` que lo nombra.                                                                                                                                                                                                                                                                     |
+| Suprimir              | Quita las filas o flechas seleccionadas.                                                                                                                                                                                                                                                                                                                   |
+| Esc                   | Cancela un arrastre o guarda la herramienta armada.                                                                                                                                                                                                                                                                                                        |
+
+**Paleta y menús**
+
+- Paleta: Tarea (T), Hito (M), Marca (V) y Sección (G, el botón de grupo).
+- Nuevo diagrama y los botones de un archivo vacío ofrecen **Diagrama de Gantt** (un glifo de
+  barras) y escriben un `diagram diagram1: gantt { }` vacío, dibujado como cuatro semanas con su
+  eje.
+- Menú contextual de una fila: Editar la etiqueta, Cambiar el id, Conectar con… (C), Subir, Bajar,
+  Poner en una sección nueva (Alt+G); luego Agregar una tarea, un hito, una marca, una sección;
+  luego Eliminar, Mostrar en el texto, Exportar SVG.
+- **Funciones del lenguaje.** El autocompletado conoce las instrucciones de un diagrama y de una
+  sección, las palabras de cláusula y de estado después de una etiqueta, las tareas y los hitos
+  después de `after` y `until` (nunca una tarea que espera a la que se escribe), las unidades
+  después del número de una duración, `weekends` y los días de la semana después de `exclude`, y
+  las directivas dentro de un `axisFormat`. La información al pasar el puntero describe una tarea
+  (sus días, su tiempo hábil, lo que sigue y lo que la sigue), una fecha (su día de la semana y si
+  el calendario la excluye) y una duración (dónde termina); las correcciones rápidas escriben un
+  inicio para una tarea sin fecha, mueven una fecha fuera de un día excluido, quitan una
+  referencia que cierra un ciclo o convierten una relación en un `after`; el esquema anida las
+  tareas bajo sus secciones.
+
+### Campos del inspector
+
+- **Tarea**, bajo el encabezado **Planificación**:
+  - Fecha de inicio (`from`): texto, `AAAA-MM-DD` o con `THH:MM`, y un botón que abre el selector
+    de la plataforma. En gris, la fecha en que empieza la barra.
+  - Después de: fichas de tareas e hitos, cada una se quita, y "Añadir…" elige una. Nunca ella
+    misma ni lo que va después de ella.
+  - Fin: predeterminado (un día), durante un tiempo, hasta una fecha, hasta que empiecen otras
+    tareas.
+  - Duración: un número y una unidad (segundos, minutos, horas, días, semanas), mientras el fin es
+    `for` o ninguno.
+  - Fecha de fin, mientras el fin es `to`.
+  - Hasta (fichas), mientras el fin es `until`.
+  - Estado: planificado, en curso, completado. Planificado es la opción vacía.
+  - Crítica.
+  - De solo lectura: Empieza, Termina (el último día que cubre) y Tiempo hábil.
+  - Después Id, Etiqueta, Descripción, Clases, Enlazado a, URL y la franja de estilo: Relleno,
+    Borde, Color del texto, Línea, Ancho del borde, Radio de las esquinas (solo tareas), Efectos,
+    y Patrón (solo tareas) debajo.
+  - Efectos: Partículas de flujo y Trazo en tareas e hitos que van después de otros, luego
+    Guiones en movimiento y Pulso.
+  - Los colores en gris muestran lo que el diagrama dibuja según el estado: acento, info si está
+    en curso, apagado si está completada, peligro si es crítica.
+- **Hito:** Fecha (`at`), Después de, Estado, Crítica.
+- **Marca:** Fecha, Después de.
+- **Sección:** Id, Etiqueta, Descripción, Clases, Enlazado a, URL y la franja (relleno, borde,
+  color del texto, línea, ancho).
+- **Flecha:** Origen y Destino, de solo lectura, con una nota que dice que una dependencia se
+  cambia en el Después de de la tarea a la que apunta.
+- **Diagrama:** Título, Descripción, Tema, luego **Eje y aspecto**:
+  - Formato del eje (opciones rápidas `%d %b`, `%b %Y`, `%Y-%m-%d`, `%H:%M`).
+  - Divisiones e Inicio de la semana.
+  - Eje: arriba, abajo, arriba y abajo.
+  - Etiquetas: dentro de las barras, en una columna.
+  - Presentación: normal, compacto.
+  - Dependencias: visibles, ocultas.
+  - Ancho del día: un número, o Automático.
+
+  Después **Calendario**:
+  - Días excluidos: siete botones desde el lunes, Fines de semana como una sola opción y una caja
+    para fechas. La lista se escribe conservando `weekends` mientras entran los dos días: al marcar
+    el viernes queda `exclude weekends, friday`, o `exclude friday, saturday, sunday` si estaban
+    escritos uno a uno.
+  - Fechas incluidas.
+  - Hoy: opciones rápidas Hoy / No, o una fecha.
+
+Cada campo escribe con las operaciones del diagrama de Gantt. Un valor que el lenguaje rechaza se
+muestra bajo el campo con las palabras del propio lenguaje ("`2026-02-30`: Febrero de 2026 tiene 28
+días."), el campo se marca con el color de peligro, no se escribe nada y se conserva lo tecleado;
+teclear de nuevo quita el motivo.
 
 ## Vistas C4
 

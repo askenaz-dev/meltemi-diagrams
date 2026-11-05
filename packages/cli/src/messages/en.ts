@@ -48,7 +48,8 @@ Every command takes --lang en|es: the language of its messages and of the words 
 files it writes (the project's "locale" otherwise; messages follow MELTEMI_LANG or LANG).
 
 Options for init:
-  --template <name>      flow (default), c4, sequence, free, kanban, whiteboard or purchase
+  --template <name>      flow (default), c4, sequence, roadmap, free, kanban, whiteboard or
+                         purchase
   --name <name>          The project's name; the folder's name by default
   --list                 List the templates
   --ci <service>         Also write a CI workflow: github or gitlab
@@ -81,6 +82,8 @@ Options for export:
                          (videos: 1920x1080, GIF 960x540 by default)
   --fps <n>              Video frames per second, 1 to 60 (30, GIF 15 by default)
   --duration <time>      Video length; the story's, or the effects' end by default
+  --today <date>         The day a gantt chart's today line is drawn at, such as 2026-07-15
+                         (the machine's date by default); a date in the chart wins
   --background <colour>  transparent, a colour token or a CSS colour (not for HTML)
   --link <url>           The whole picture links to this URL (SVG and PDF)
   --embed                With --format html, a fragment to paste into a page
@@ -448,6 +451,8 @@ token was refused.
   },
   layout: {
     sequence: (id: string) => `"${id}" is a sequence diagram, which has no positions to write.`,
+    gantt: (id: string) =>
+      `"${id}" is a gantt chart, which draws its bars from their dates and has no positions to write.`,
     cannotWrite: (id: string, reason: string) => `cannot write the positions of "${id}": ${reason}`,
     unchanged: (path: string) => `${path}: every position is already written.`,
     wouldArrange: (ids: readonly string[], path: string) =>
@@ -501,7 +506,7 @@ token was refused.
     noDiagramStoriesHint:
       "Export a story with `--story <id>`, or the file's profiles with `--profiles`.",
     noDiagramTypesHint:
-      "`diagram <id>: flow { ... }`, `free`, `sequence` and `c4` diagrams render.",
+      "`diagram <id>: flow { ... }`, `free`, `sequence`, `c4` and `gantt` diagrams render.",
     onePath: "give exactly one .meltemi file or project folder.",
     profileOrProfiles: "--profile runs one profile and --profiles all of them; choose one.",
     profileOption: (option: string) =>
@@ -546,6 +551,8 @@ token was refused.
     durationVideo: "--duration sets the length of MP4, WebM and GIF exports.",
     duration: (duration: string) =>
       `--duration takes a time up to 600s, such as 5s, not "${duration}".`,
+    /** `--today`: the day of the today line of gantt charts. */
+    today: (today: string) => `--today takes a date written 2026-07-15, not "${today}".`,
     scalePng: "--scale sets the pixels of PNG exports.",
     scale: (scale: string) => `--scale takes 1 to 8, not "${scale}".`,
     sizeOutput: "--size sets the output of PNG, PDF and video exports.",
@@ -633,6 +640,11 @@ token was refused.
       sequence: {
         title: "Sequence diagram",
         description: "A sequence diagram with a scenario for each outcome",
+      },
+      roadmap: {
+        title: "Product roadmap",
+        description:
+          "A roadmap of three sections of tasks with their dependencies, a milestone and a story that plays it",
       },
       free: {
         title: "Slide",

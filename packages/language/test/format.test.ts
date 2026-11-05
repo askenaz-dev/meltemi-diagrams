@@ -59,6 +59,16 @@ function filled(items: readonly string[], indent: string, columns = 100): string
   return rows;
 }
 
+describe("formatter and dates", () => {
+  it("prints dates as written and formats task lines idempotently", () => {
+    const source =
+      'diagram g: gantt {\n  task   a   "A"   from   2026-06-01T09:30   after   b,c   for   10d\n  task b from 2026-06-01 to 2026-06-05\n}\n';
+    expect(formatChecked(source)).toBe(
+      'diagram g: gantt {\n  task a "A" from 2026-06-01T09:30 after b, c for 10d\n  task b from 2026-06-01 to 2026-06-05\n}\n',
+    );
+  });
+});
+
 describe("formatter and a note's attachment", () => {
   it("keeps the `on` clause as one word and one space on each side", () => {
     expect(format('diagram d: flow {\n  note   n   "Text"   on   api\n}\n')).toBe(

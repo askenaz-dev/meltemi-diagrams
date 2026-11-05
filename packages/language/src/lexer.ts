@@ -27,6 +27,7 @@ const CH_COLON = 58;
 const CH_SEMICOLON = 59;
 const CH_LT = 60;
 const CH_GT = 62;
+const CH_UPPER_T = 84;
 const CH_LBRACKET = 91;
 const CH_BACKSLASH = 92;
 const CH_RBRACKET = 93;
@@ -276,8 +277,42 @@ class Lexer {
     }
   }
 
+  /**
+   * The end of the date literal that starts at `start` (`2026-06-01`, `2026-06-01T09:30` or
+   * `2026-06-01T09:30:15`), or -1 when the text there is not exactly one. A digit right after the
+   * literal makes the run numbers, as `2026-06-011` is.
+   */
+  private dateEnd(start: number): number {
+    const text = this.text;
+    const digits = (from: number, count: number): boolean => {
+      for (let i = from; i < from + count; i++) if (!isDigit(text.charCodeAt(i))) return false;
+      return true;
+    };
+    if (!digits(start, 4) || text.charCodeAt(start + 4) !== CH_MINUS) return -1;
+    if (!digits(start + 5, 2) || text.charCodeAt(start + 7) !== CH_MINUS || !digits(start + 8, 2)) {
+      return -1;
+    }
+    let end = start + 10;
+    if (
+      text.charCodeAt(end) === CH_UPPER_T &&
+      digits(end + 1, 2) &&
+      text.charCodeAt(end + 3) === CH_COLON &&
+      digits(end + 4, 2)
+    ) {
+      end += 6;
+      if (text.charCodeAt(end) === CH_COLON && digits(end + 1, 2)) end += 3;
+    }
+    return isDigit(text.charCodeAt(end)) ? -1 : end;
+  }
+
   private number(start: number): void {
     const text = this.text;
+    const dateEnd = this.dateEnd(start);
+    if (dateEnd > 0) {
+      this.pos = dateEnd;
+      this.pushToken("Date", start, { value: text.slice(start, dateEnd) });
+      return;
+    }
     if (text.charCodeAt(this.pos) === CH_MINUS) this.pos++;
     while (isDigit(text.charCodeAt(this.pos))) this.pos++;
     if (text.charCodeAt(this.pos) === CH_DOT && isDigit(text.charCodeAt(this.pos + 1))) {

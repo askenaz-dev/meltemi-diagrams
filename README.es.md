@@ -10,8 +10,9 @@ versionas como el resto de tu trabajo.
 
 ![Edición de un diagrama: el código y el lienzo uno junto al otro](docs/media/editing-demo.gif)
 
-- **Cuatro perfiles**: diagramas de flujo, diagramas de secuencia con escenarios, vistas C4 de un
-  modelo compartido y composiciones libres para diapositivas.
+- **Cinco perfiles**: diagramas de flujo, diagramas de secuencia con escenarios, vistas C4 de un
+  modelo compartido, composiciones libres para diapositivas y diagramas de Gantt para planes y hojas
+  de ruta.
 - **Código y lienzo**: servicios de lenguaje y un lienzo con cuadrícula, guías, trazado de rutas e
   inspector, en VS Code y en el navegador ([la app web](docs/es/web-app.md)).
 - **Movimiento**: efectos a lo largo de los conectores e historias con escenas, cámara y
@@ -163,7 +164,7 @@ repositorio en el puerto 4173, así que desde ahí también se pueden abrir los 
 
 No hace falta ningún comando para ver esto:
 
-- [gallery/README.md](gallery/README.md): los cuatro perfiles con sus exportaciones SVG, PNG y PDF;
+- [gallery/README.md](gallery/README.md): los cinco perfiles con sus exportaciones SVG, PNG y PDF;
 - [examples/purchase/exports/catalog/index.html](examples/purchase/exports/catalog/index.html): el
   catálogo del ejemplo de compra, que se abre desde el disco y funciona sin conexión;
 - [examples/purchase/exports/purchase-story.html](examples/purchase/exports/purchase-story.html):
@@ -200,7 +201,7 @@ registro, y lo ejecuta allí: lo más parecido a una versión publicada
 | [![Una plataforma de viajes compartidos](gallery/c4/ride-sharing.svg)](gallery/README.md#c4-the-containers-of-a-ride-sharing-platform) | [![Una diapositiva con una hoja de ruta](gallery/free/roadmap.svg)](gallery/README.md#free-a-roadmap-slide)                            |
 
 Cada imagen enlaza con su código fuente y sus exportaciones SVG, PNG y PDF. El
-[ejemplo de compra](examples/purchase/README.md) dibuja una misma compra en cada perfil, con una
+[ejemplo de compra](examples/purchase/README.md) dibuja una misma compra en cuatro perfiles, con una
 historia, un video y un catálogo.
 
 ## Documentación

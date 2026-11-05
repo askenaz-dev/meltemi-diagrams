@@ -9,8 +9,8 @@ motion live in files you review and version like the rest of your work.
 
 ![Editing a diagram: code and canvas side by side](docs/media/editing-demo.gif)
 
-- **Four profiles**: flow diagrams, sequence diagrams with scenarios, C4 views of a shared model,
-  and free compositions for slides.
+- **Five profiles**: flow diagrams, sequence diagrams with scenarios, C4 views of a shared model,
+  free compositions for slides, and gantt charts for plans and roadmaps.
 - **Code and canvas**: language services and a canvas with a grid, guides, routing and an
   inspector, in VS Code and in the [web app](docs/web-app.md).
 - **Motion**: effects along connectors and stories with scenes, camera and transitions.
@@ -158,7 +158,7 @@ repository on port 4173, so exported files can be opened from it too
 
 No command is needed to look at these:
 
-- [gallery/README.md](gallery/README.md): the four profiles with their SVG, PNG and PDF exports;
+- [gallery/README.md](gallery/README.md): the five profiles with their SVG, PNG and PDF exports;
 - [examples/purchase/exports/catalog/index.html](examples/purchase/exports/catalog/index.html): the
   purchase example's catalog, which opens from disk and works offline;
 - [examples/purchase/exports/purchase-story.html](examples/purchase/exports/purchase-story.html):
@@ -194,7 +194,7 @@ into an empty folder, never from the registry, and runs it there: the closest th
 | [![A ride-sharing platform](gallery/c4/ride-sharing.svg)](gallery/README.md#c4-the-containers-of-a-ride-sharing-platform) | [![A roadmap slide](gallery/free/roadmap.svg)](gallery/README.md#free-a-roadmap-slide)                               |
 
 Each picture links to its source and its SVG, PNG and PDF exports. The
-[purchase example](examples/purchase/README.md) draws one purchase in every profile, with a story,
+[purchase example](examples/purchase/README.md) draws one purchase in four profiles, with a story,
 a video and a catalog.
 
 ## Documentation

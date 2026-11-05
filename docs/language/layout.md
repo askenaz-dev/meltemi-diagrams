@@ -7,7 +7,8 @@ arrangement, add constraints that line boxes up, name ports on boxes and choose 
 drawn. The same rules apply in the command line, the editor and every export. Free diagrams use the
 same modes with `layout manual` as their default, and place group children inside their group
 ([free.md](free.md)). Sequence diagrams have their own layout, from the order of their events
-([sequence.md](sequence.md)); C4 views use the flow layout ([c4.md](c4.md)). When the engine
+([sequence.md](sequence.md)), and gantt charts from the dates of their tasks
+([gantt.md](gantt.md#layout)); C4 views use the flow layout ([c4.md](c4.md)). When the engine
 arranges a diagram, it leaves room for relation labels between the boxes.
 
 ## Modes
@@ -289,3 +290,26 @@ overlapping boxes, a label on a connector, a connector through a box) is not rep
 acceptance corpus keeps every profile at zero (`docs/quality.md`).
 
 `meltemi-diagrams validate` and `export` print the findings, as the editor shows them.
+
+## Gantt charts
+
+A gantt chart is laid out without an engine, from its schedule ([gantt.md](gantt.md#layout)): `layout`,
+`place`, constraints and routes do not apply, and the same text, theme, language and day give the
+same picture.
+
+- **Rows and scale.** Each task and milestone takes a row, in the order of the file (`display
+compact` packs them), and the sections stand as bands with their titles in a column at the left.
+  The timeline runs from the earliest start to the latest end, extended to whole ticks; it fills
+  the canvas of the preset, or is as wide as the days need when `dayWidth` gives their width.
+- **The tick ladder.** An automatic axis takes the smallest interval of 1, 5, 15 and 30 s; 1, 5, 15
+  and 30 min; 1, 3, 6 and 12 h; 1 and 2 d; 1 and 2 w; 1, 3 and 6 mo; and 1, 2, 5 and 10 y whose
+  ticks hold the widest label plus 12 units. Weeks begin on `weekStart`. A written `ticks` fixes the
+  interval, and when its labels would collide, every n-th is labelled and `layout.ticks-crowded`
+  (warning) says so.
+- **`axisFormat` never finer than its directives.** The labels follow the interval (`%H:%M`, `%d %b`,
+  `%b %Y`, `%Y`) unless `axisFormat` is written, and an automatic axis never picks ticks finer than
+  the written directives can tell apart: `%b` names months, so the ticks stay a month apart and no
+  label repeats.
+- **Checks.** The composition checks of boxes do not apply: rows cannot overlap. The label audit
+  runs, against what each label overlaps rather than against its own bar, so a label beside its bar
+  is no finding.

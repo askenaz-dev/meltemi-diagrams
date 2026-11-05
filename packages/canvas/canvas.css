@@ -4016,6 +4016,391 @@ body {
   pointer-events: none;
 }
 
+/*
+ * Gantt charts. A bar, a diamond, a line and a section are pressed on the scene; the grips at the
+ * ends of a selected task, its link handle, the outline of where a drag leaves a bar and the tooltip
+ * with its dates are the canvas's own, and move on the motion tokens (none under reduced motion).
+ */
+.stage[data-profile="gantt"] .content [data-role="element"] {
+  cursor: default;
+}
+
+.stage[data-profile="gantt"] .content [data-role="element"] > rect,
+.stage[data-profile="gantt"] .content [data-role="element"] > path:not(.mdg-hit) {
+  cursor: grab;
+}
+
+/* The ring of a selected bar stands off it, over a halo of the background. */
+.overlay .outline.halo {
+  stroke: var(--vscode-editor-background, #fff);
+  stroke-width: 5;
+}
+
+/* The grips at the ends of a selected task: pills that grow a little under the pointer. */
+.overlay .handle.grip {
+  fill: var(--vscode-editor-background, #fff);
+  stroke: var(--mdg-select);
+  cursor: ew-resize;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    fill var(--mdg-motion-fast) var(--mdg-ease),
+    transform var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.overlay .handle.grip:not(.held),
+.overlay .handle.link:not(.held) {
+  animation: mdg-pop-in var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.overlay .handle.grip:hover {
+  fill: var(--mdg-select);
+  transform: scale(1.2);
+}
+
+/* The link handle beyond a bar's right end: dragged onto another task, it makes it follow. */
+.overlay .handle.link {
+  opacity: 0.85;
+  cursor: crosshair;
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    opacity var(--mdg-motion-fast) var(--mdg-ease),
+    transform var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.overlay .handle.link:hover {
+  opacity: 1;
+  transform: scale(1.25);
+}
+
+/* Where a bar will be once released: its outline, snapped, ahead of the drawing's own. */
+.overlay .bar-ghost {
+  stroke-width: 1.5;
+  fill: color-mix(in srgb, var(--mdg-select) 14%, transparent);
+  animation: mdg-fade-in var(--mdg-motion-fast) var(--mdg-ease);
+  pointer-events: none;
+}
+
+.overlay .marker-ghost {
+  fill: none;
+  stroke: var(--mdg-select);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+  pointer-events: none;
+}
+
+/* A bar held at the end of what it follows: a tick at that boundary, in the guide colour. */
+.overlay .stuck-guide {
+  stroke-width: 2;
+  stroke-linecap: round;
+  animation: mdg-fade-in var(--mdg-motion-fast) var(--mdg-ease);
+  pointer-events: none;
+}
+
+/*
+ * The tooltip of a bar: its dates and working time, beside the pointer. It fades in over
+ * --mdg-motion-fast, rising a few pixels, updates in place as the drag goes on, and fades out.
+ */
+.gantt-tip {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 8;
+  max-width: 320px;
+  padding: 4px 8px;
+  border: 1px solid var(--mdg-tip-border);
+  border-radius: 4px;
+  background: var(--mdg-tip-bg);
+  color: var(--mdg-tip-fg);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: var(--mdg-pop-shadow);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity var(--mdg-motion-fast) var(--mdg-ease),
+    visibility 0s linear var(--mdg-motion-fast);
+}
+
+.gantt-tip.shown {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+
+.gantt-tip-text,
+.gantt-tip-note {
+  display: block;
+}
+
+.gantt-tip-note {
+  opacity: 0.75;
+  font-size: 11px;
+}
+
+/*
+ * A link refused flashes the outline of the bar it was dropped on in the theme's `danger` colour:
+ * on twice over three times --mdg-motion-slow (it shows still where there is no motion).
+ */
+.flash-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.flash-layer .flash {
+  fill: color-mix(in srgb, var(--mdg-danger, #d1242f) 16%, transparent);
+  stroke: var(--mdg-danger, var(--vscode-errorForeground, #d1242f));
+  stroke-width: 2;
+  animation: mdg-flash calc(3 * var(--mdg-motion-slow)) var(--mdg-ease);
+}
+
+@keyframes mdg-flash {
+  0% {
+    opacity: 0;
+  }
+  17% {
+    opacity: 1;
+  }
+  34% {
+    opacity: 0.15;
+  }
+  51% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Gantt charts: the properties of a bar and of the chart ------------------------------------ */
+
+/* A group of fields starts under its heading, set off by a rule. */
+.panel .group-title {
+  margin: 12px 0 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--mdg-border);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mdg-muted);
+}
+
+/*
+ * A date: the text, then the button of the platform's date picker. The native control lies over the
+ * button, not drawn, so that the picker opens beside it.
+ */
+.panel .date-row > input.date-text {
+  font-variant-numeric: tabular-nums;
+}
+
+.panel .date-pick-wrap {
+  position: relative;
+  display: inline-flex;
+  flex: none;
+}
+
+.panel button.date-pick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--vscode-button-border, var(--mdg-border));
+  border-radius: 3px;
+  background: var(--vscode-button-secondaryBackground, transparent);
+  color: var(--vscode-button-secondaryForeground, inherit);
+  cursor: pointer;
+  transition:
+    border-color var(--mdg-motion-fast) var(--mdg-ease),
+    background-color var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.panel button.date-pick:hover {
+  border-color: var(--mdg-select);
+  background: color-mix(in srgb, var(--mdg-select) 12%, transparent);
+}
+
+.panel button.date-pick:focus-visible {
+  outline: 2px solid var(--mdg-focus);
+  outline-offset: 1px;
+}
+
+.panel button.date-pick svg {
+  width: 14px;
+  height: 14px;
+}
+
+.panel input.date-native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* A duration: the number, then its unit. */
+.panel .duration-field .row > input.duration-amount {
+  flex: none;
+  width: 72px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A list of tasks: the ids written as chips with their Remove, then the choice that adds one. */
+.panel .task-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 2px 0 4px;
+  padding: 0;
+  list-style: none;
+}
+
+.panel .task-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 22px;
+  padding: 0 2px 0 8px;
+  border: 1px solid var(--mdg-border);
+  border-radius: 11px;
+  background: var(--vscode-button-secondaryBackground, transparent);
+  font-family: var(--vscode-editor-font-family, ui-monospace, Menlo, Consolas, monospace);
+  font-size: 11px;
+}
+
+.panel .task-none {
+  font-size: 11px;
+  line-height: 22px;
+  color: var(--mdg-muted);
+}
+
+.panel button.chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--mdg-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--mdg-motion-fast) var(--mdg-ease),
+    color var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.panel button.chip-remove:hover {
+  background: color-mix(in srgb, var(--mdg-select) 18%, transparent);
+  color: var(--mdg-fg);
+}
+
+.panel button.chip-remove:focus-visible {
+  outline: 2px solid var(--mdg-focus);
+  outline-offset: 0;
+}
+
+.panel button.chip-remove svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* The days of a calendar: seven toggles in a row, then the dates. */
+.panel .day-toggles {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+  margin: 4px 0;
+}
+
+.panel button.day-toggle {
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--vscode-button-border, var(--mdg-border));
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition:
+    background-color var(--mdg-motion-fast) var(--mdg-ease),
+    border-color var(--mdg-motion-fast) var(--mdg-ease),
+    color var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.panel button.day-toggle:hover:not(:disabled):not([aria-pressed="true"]) {
+  border-color: var(--mdg-select);
+  background: color-mix(in srgb, var(--mdg-select) 12%, transparent);
+}
+
+.panel button.day-toggle[aria-pressed="true"] {
+  border-color: transparent;
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #fff);
+}
+
+.panel button.day-toggle:focus-visible {
+  outline: 2px solid var(--mdg-focus);
+  outline-offset: 1px;
+}
+
+.panel button.day-toggle:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* A control that cannot be changed (the read-only lines of a task, a canvas that only shows) is
+   dimmed, so that it is not taken for one that can. */
+.panel :is(input, select, textarea):disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+
+/* More than two one-click choices (the formats of an axis) wrap in a row under the control. */
+.panel .quicks.wide {
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 3px;
+}
+
+/* What a field is for, or why it is read-only, in a sentence under it. */
+.panel .field > p.note {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--mdg-muted);
+}
+
+/* A field the model refused: the reason under it, and its controls outlined in the danger colour. */
+.panel .refusal {
+  margin: 2px 0 0;
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--mdg-danger, var(--vscode-errorForeground, #d1242f));
+  animation: mdg-fade-in var(--mdg-motion-fast) var(--mdg-ease);
+}
+
+.panel .refusal code {
+  font-family: var(--vscode-editor-font-family, ui-monospace, Menlo, Consolas, monospace);
+}
+
+.panel .refused :is(input, select, textarea) {
+  border-color: var(--mdg-danger, var(--vscode-errorForeground, #d1242f));
+}
+
 @keyframes mdg-fade-in {
   from {
     opacity: 0;

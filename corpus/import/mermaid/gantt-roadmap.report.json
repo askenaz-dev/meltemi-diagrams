@@ -1,0 +1,25 @@
+{
+  "status": "complete",
+  "format": "mermaid",
+  "diagrams": [
+    {
+      "id": "hoja_de_ruta_genai",
+      "type": "gantt",
+      "model": null,
+      "kind": "gantt",
+      "lines": [
+        1,
+        22
+      ]
+    }
+  ],
+  "findings": [],
+  "coverage": [
+    {
+      "diagram": "hoja_de_ruta_genai",
+      "mapped": 38,
+      "approximated": 0,
+      "dropped": 0
+    }
+  ]
+}

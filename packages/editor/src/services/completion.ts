@@ -18,6 +18,8 @@ import {
   allowedEntities,
   FRAGMENT_BRANCH_KEYWORDS,
   FREE_PROFILE,
+  GANTT_PROFILE,
+  GANTT_REFUSED_STYLE_PROPERTIES,
   MESSAGE_KINDS,
   PORTS,
   SCENARIO_STATEMENTS,
@@ -41,8 +43,9 @@ import {
 import type { DocumentAnalysis } from "../analysis.js";
 import { fontFamilies } from "../fonts.js";
 import { elementDetail, kindWord, serviceMessages } from "../messages/services.js";
-import { keywordDoc, listDoc } from "./docs.js";
+import { ganttDoc, keywordDoc, listDoc } from "./docs.js";
 import { blockAt, diagramAt, scopeAt, statementPrefix, wordBefore } from "../syntax.js";
+import { axisFormatCompletions, ganttCompletions, ganttSnippet } from "./gantt.js";
 import { profileCompletions, profileHeaderCompletions } from "./profiles.js";
 import { storyCompletions, storyHeaderCompletions } from "./stories.js";
 
@@ -85,7 +88,9 @@ function profileOf(diagram: FlowDiagram | undefined): ProfileSchema {
       ? SEQUENCE_PROFILE
       : diagram?.type === "c4"
         ? C4_PROFILE
-        : FLOW_PROFILE;
+        : diagram?.type === "gantt"
+          ? GANTT_PROFILE
+          : FLOW_PROFILE;
 }
 
 /** The model whose block contains `offset`. */
@@ -575,6 +580,10 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
       const detail = serviceMessages().completion.imageFile;
       return words(analysis.imageFiles?.() ?? [], "value", inner, () => detail);
     }
+    // The directives of a gantt chart's axis format.
+    if (diagram?.type === "gantt" && /^axisFormat\s+"[^"]*$/.test(prefix)) {
+      return axisFormatCompletions(quoted[1]!, offset);
+    }
     if (/^icon\s+([A-Za-z_]\w*\s+)?"[^"]*$/.test(prefix) && analysis.icons) {
       const typed = quoted[1]!;
       const colon = typed.indexOf(":");
@@ -671,6 +680,7 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
             insertText: `diagram \${1:id}: sequence {\n  participant \${2:a} "\${3:A}"\n  participant \${4:b} "\${5:B}"\n\n  \${2:a} -> \${4:b}: "\${6:${label.request}}"\n  \${4:b} --> \${2:a}: "\${7:${label.response}}"\n  $0\n}`,
             range,
           },
+          ganttSnippet(analysis, range),
           {
             label: "story",
             kind: "snippet",
@@ -694,12 +704,30 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
       return modelCompletions(analysis, scope, prefix, range, offset);
     case "c4":
       return diagram ? (viewCompletions(diagram, prefix, range) ?? []) : [];
+    case "section": {
+      // A gantt section: bars, and the properties of a group.
+      if (diagram?.type !== "gantt") return [];
+      const items = ganttCompletions(diagram, "section", prefix, range, offset);
+      if (items) return items;
+      if (match(prefix, `class\\s+(${ID}\\s*,\\s*)*\\w*`)) {
+        return words(classNames(analysis, diagram), "class", range);
+      }
+      if (match(prefix, `link\\s+[\\w.]*`)) {
+        return linkTargets(analysis, diagram, { start: linkStart(text, offset), end: offset });
+      }
+      return [];
+    }
     case "flow":
     case "free":
     case "sequence":
+    case "gantt":
     case "fragment":
     case "group": {
       const profile = profileOf(diagram);
+      if (scope === "gantt" && diagram?.type === "gantt") {
+        const items = ganttCompletions(diagram, "gantt", prefix, range, offset);
+        if (items) return items;
+      }
       if (diagram?.type === "sequence" && scope !== "group") {
         const items = sequenceBody(diagram, prefix, range, offset);
         if (items) return items;
@@ -732,7 +760,15 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
       if (match(prefix, `(style|animate)\\s+(${ID}\\s*,\\s*)*\\w*`)) {
         return [...elementItems(diagram, range), ...relationItems(diagram, range)];
       }
-      if (match(prefix, `rule\\s+\\w*`)) return words(profile.ruleKinds, "keyword", range);
+      if (match(prefix, `rule\\s+\\w*`)) {
+        // A chart's rules are for its sections, tasks, milestones and markers.
+        return words(
+          profile.ruleKinds,
+          "keyword",
+          range,
+          diagram?.type === "gantt" ? ganttDoc : undefined,
+        );
+      }
       if (match(prefix, `layer\\s+\\w*`)) {
         const detail = serviceMessages().completion.layer;
         return words(diagram?.properties.layers ?? [], "value", range, () => detail);
@@ -900,7 +936,9 @@ export function completions(analysis: DocumentAnalysis, offset: number): Complet
             (free || !isFreeStyleProperty(p)) &&
             (shapes || p !== "shape") &&
             (turns || p !== "rotation") &&
-            (diagram?.type !== "sequence" || p !== "radius"),
+            (diagram?.type !== "sequence" || p !== "radius") &&
+            // A chart's bars, diamonds and lines have a fixed shape and no place of their own.
+            (diagram?.type !== "gantt" || !GANTT_REFUSED_STYLE_PROPERTIES.includes(p)),
         );
         const relationsOnly = serviceMessages().completion.relationsOnly;
         return words(names, "property", range, (p) =>

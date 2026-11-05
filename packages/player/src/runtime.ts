@@ -29,6 +29,7 @@ import { easedDrillTime } from "./ease.js";
 import { readPlayerDocument, type PlayerDocument } from "./format.js";
 import { drillSvg, frameSvg } from "./frame.js";
 import { messages } from "./messages/index.js";
+import { scheduleCard, schedulePanel, scheduleType } from "./schedule.js";
 import { Stage } from "./stage.js";
 import { STYLE } from "./style.js";
 import { viewerCommandForKey, type ViewerCommand } from "./viewport.js";
@@ -211,7 +212,11 @@ export function mountPlayer(
     resized: (size) => {
       figure.dataset.details = size.width < 720 || size.height < 280 ? "below" : "side";
     },
-    container: (id) => data.details[controller.view]?.elements[id]?.kind === "group",
+    // Groups and the sections of a gantt chart hold other boxes: arrows crossing them keep the pointer.
+    container: (id) => {
+      const kind = data.details[controller.view]?.elements[id]?.kind;
+      return kind === "group" || kind === "section";
+    },
   });
   stage.frame.style.setProperty("--meltemi-accent", data.accent);
   if (interactive) {
@@ -392,6 +397,18 @@ export function mountPlayer(
     if (item.role === "element") {
       const e = info.elements[item.id];
       if (!e) return null;
+      // A gantt chart's task says where it is in the plan: its section, its dates and what it follows.
+      if (e.schedule) {
+        const plan = scheduleCard(e, e.schedule, (id) => labelOf(view, id), locale);
+        return {
+          title: labelOf(view, item.id),
+          meta: plan.meta,
+          ends: plan.ends,
+          text: e.description,
+          note: plan.note,
+          url: e.url,
+        };
+      }
       const meta = [e.type, e.technology, e.external && !e.type ? t.details.external : null]
         .filter((x): x is string => Boolean(x))
         .join(" · ");
@@ -461,6 +478,10 @@ export function mountPlayer(
       const e = info.elements[item.id];
       if (!e) return null;
       const facts: PanelFact[] = [];
+      // A gantt chart's element lists its schedule first, in the player's language.
+      if (e.schedule) {
+        facts.push(...schedulePanel(e, e.schedule, (id) => labelOf(view, id), locale));
+      }
       if (e.technology) facts.push({ term: t.details.technology, value: e.technology });
       if (e.url) facts.push({ term: t.details.link, value: e.url, href: e.url, linkText: e.url });
       const outgoing: { label: string; action: () => void }[] = [];
@@ -483,9 +504,9 @@ export function mountPlayer(
       const target = controller.canOpen(item.id);
       const hostOpen = hostTarget(view, item.id);
       const openName = target ? controller.titleOf(target.view) : (hostOpen?.label ?? null);
-      const type = [e.type, e.external && !e.type ? t.details.external : null]
-        .filter(Boolean)
-        .join(" · ");
+      const type = e.schedule
+        ? scheduleType(e, e.schedule, locale)
+        : [e.type, e.external && !e.type ? t.details.external : null].filter(Boolean).join(" · ");
       const sections: PanelSectionContent[] = [];
       if (outgoing.length > 0) sections.push({ heading: t.details.outgoing, items: outgoing });
       if (incoming.length > 0) sections.push({ heading: t.details.incoming, items: incoming });

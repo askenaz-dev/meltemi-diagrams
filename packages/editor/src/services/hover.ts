@@ -20,6 +20,7 @@ import { kindWord, serviceMessages } from "../messages/services.js";
 import { diagramAt, pathAt, referenceAt, statementPrefix, tokenAt } from "../syntax.js";
 import { keywordDoc, listDoc } from "./docs.js";
 import { entityAt, entityHover } from "./entities.js";
+import { ganttElementHover, ganttTokenHover } from "./gantt.js";
 import { profileAt, profileHover } from "./profiles.js";
 import { storyAt, storyHover } from "./stories.js";
 
@@ -43,6 +44,8 @@ export function elementHover(
   diagram: FlowDiagram,
   element: Element,
 ): string {
+  // A chart's rows have dates and dependencies, not a place or a size.
+  if (diagram.type === "gantt") return ganttElementHover(diagram, element);
   const t = serviceMessages().hover;
   const kind = kindWord(element.kind);
   const layout = diagramView(analysis, diagram.id)?.layout ?? null;
@@ -372,6 +375,12 @@ export function hover(analysis: DocumentAnalysis, offset: number): Hover | undef
   // A tag of a sequence message or participant, by its keyword or its text: what it marks.
   const tagged = diagram?.type === "sequence" ? tagAt(diagram, offset) : undefined;
   if (tagged) return { range: tagged.tag.range, markdown: tagHover(tagged) };
+
+  // A gantt chart: its dates and durations, and the words that mean something else elsewhere.
+  if (diagram?.type === "gantt") {
+    const found = ganttTokenHover(analysis, diagram, token, offset);
+    if (found) return found;
+  }
 
   // A port after a dot in a route, or a port declaration.
   const path = pathAt(compilation.parse.root, offset);

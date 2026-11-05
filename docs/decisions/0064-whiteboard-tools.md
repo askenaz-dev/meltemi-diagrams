@@ -165,3 +165,5 @@ document` and `preset slide` names it.
 - `docs/language/free.md`, `grammar-0.2.md`, `layout.md`, `styles.md`, `motion.md`, `stories.md`,
   `formatting.md`, `model-json.md`, `diagnostics.md`, `svg-export.md`, the editor, playground and
   cloud guides and the skill describe the whiteboard in English and Spanish.
+- [Decision 0066](0066-gantt-charts.md) reuses the `index` of `moveElement` to move the rows of a
+  gantt chart between sections, and the story action `draw` to grow the bars of its tasks.

@@ -6,10 +6,12 @@
   "patterns": [
     { "include": "#comments" },
     { "include": "#strings" },
+    { "include": "#dates" },
     { "include": "#numbers" },
     { "include": "#arrows" },
     { "include": "#declaration-shorthand" },
     { "include": "#diagram-header" },
+    { "include": "#gantt-statement" },
     { "include": "#keywords" },
     { "include": "#identifiers" }
   ],
@@ -37,9 +39,15 @@
         { "name": "constant.other.color.meltemi", "match": "#[0-9A-Fa-f]{3,8}\\b" }
       ]
     },
+    "dates": {
+      "comment": "A gantt date: `2026-06-01`, or with a time `2026-06-01T09:30[:15]`, one token of the language.",
+      "name": "constant.numeric.date.meltemi",
+      "match": "(?<![A-Za-z0-9_])\\d{4}-\\d{2}-\\d{2}(?:T\\d{2}:\\d{2}(?::\\d{2})?)?(?!\\d)"
+    },
     "numbers": {
+      "comment": "A number, with the unit of a length, a time (`1200ms`) or a gantt duration (`10d`, `2w`, `90min`).",
       "name": "constant.numeric.meltemi",
-      "match": "(?<![A-Za-z_])-?\\d+(?:\\.\\d+)?(?:px|ms|s|%)?\\b|(?<![A-Za-z_])-?\\d+(?:\\.\\d+)?%"
+      "match": "(?<![A-Za-z_])-?\\d+(?:\\.\\d+)?(?:px|ms|s|min|h|d|w|mo|y|%)?\\b|(?<![A-Za-z_])-?\\d+(?:\\.\\d+)?%"
     },
     "arrows": {
       "name": "keyword.operator.arrow.meltemi",
@@ -50,13 +58,33 @@
       "captures": { "1": { "name": "entity.name.type.element.meltemi" } }
     },
     "diagram-header": {
-      "match": "\\b(diagram)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(:)\\s*(flow|sequence|c4|free)\\b",
+      "match": "\\b(diagram)\\s+([A-Za-z_][A-Za-z0-9_]*)\\s*(:)\\s*(flow|sequence|c4|free|gantt)\\b",
       "captures": {
         "1": { "name": "storage.type.diagram.meltemi" },
         "2": { "name": "entity.name.type.diagram.meltemi" },
         "3": { "name": "punctuation.separator.meltemi" },
         "4": { "name": "support.type.profile.meltemi" }
       }
+    },
+    "gantt-statement": {
+      "comment": "A task, milestone or marker of a gantt chart, up to its block: `from`, `after`, `for`, `to` and `at` mean other things in other diagrams, so the clause and status words of the statement are scoped here as one family.",
+      "begin": "\\b(task|milestone|marker)\\b(?=\\s+[A-Za-z_])",
+      "beginCaptures": { "1": { "name": "storage.type.element.meltemi" } },
+      "end": "(?=\\{)|(?=;)|$",
+      "patterns": [
+        { "include": "#comments" },
+        { "include": "#strings" },
+        { "include": "#dates" },
+        { "include": "#numbers" },
+        {
+          "name": "keyword.other.clause.gantt.meltemi",
+          "match": "\\b(from|after|for|to|until|at)\\b"
+        },
+        {
+          "name": "constant.language.status.gantt.meltemi",
+          "match": "\\b(done|active|critical)\\b"
+        }
+      ]
     },
     "keywords": {
       "patterns": [
@@ -90,12 +118,20 @@
           }
         },
         {
+          "comment": "Where a gantt chart puts its task labels: `labels bar|column`, where `bar` and `column` are values, not an arrowhead and a placement constraint.",
+          "match": "\\b(labels)\\s+(bar|column)\\b",
+          "captures": {
+            "1": { "name": "support.type.property-name.diagram.meltemi" },
+            "2": { "name": "constant.language.meltemi" }
+          }
+        },
+        {
           "name": "keyword.control.top-level.meltemi",
           "match": "\\b(language|import|from|as|diagram|theme|model|story|export|for|using)\\b"
         },
         {
           "name": "storage.type.element.meltemi",
-          "match": "\\b(node|decision|data|group|note|sticky|pen|tag|box|text|icon|image|port|layer|link|participant|actor|boundary|control|entity|database|collections|queue)\\b"
+          "match": "\\b(node|decision|data|group|note|sticky|pen|tag|box|text|icon|image|port|layer|link|participant|actor|boundary|control|entity|database|collections|queue|section|task|milestone|marker)\\b"
         },
         {
           "name": "keyword.control.block.meltemi",
@@ -115,7 +151,7 @@
         },
         {
           "name": "support.type.property-name.diagram.meltemi",
-          "match": "\\b(direction|layout|routing|title|description|preset|canvas|layers|autonumber|spacing)\\b"
+          "match": "\\b(direction|layout|routing|title|description|preset|canvas|layers|autonumber|spacing|weekStart|axisFormat|ticks|axis|labels|display|dependencies|dayWidth|today)\\b"
         },
         {
           "name": "support.type.property-name.style.meltemi",
@@ -127,7 +163,7 @@
         },
         {
           "name": "constant.language.meltemi",
-          "match": "\\b(LR|RL|TB|BT|auto|assisted|manual|document|slide|board|orthogonal|polyline|bezier|solid|dashed|dotted|none|triangleOutline|diamondOutline|circleOutline|circle|bar|many|oneOrMany|onlyOne|zeroOrOne|zeroOrMany|sharp|light|rough|hatch|dots|cross|triangle|open|left|top|bottom|right|middle|center|horizontal|vertical|north|south|east|west|flow|pulse|dash|forever|forward|reverse|footer|header|meltemi|sequence|c4|free|rounded|rectangle|square|ellipse|diamond|cylinder|pill|parallelogram|trapezoid|pentagon|hexagon|octagon|star|cloud|callout|arrow|framed|flag|agent|main|sync|async|context|svg|png|pdf|html|mp4|webm|gif|static|animated|embedded|outlined|system)\\b"
+          "match": "\\b(LR|RL|TB|BT|auto|assisted|manual|document|slide|board|orthogonal|polyline|bezier|solid|dashed|dotted|none|triangleOutline|diamondOutline|circleOutline|circle|bar|many|oneOrMany|onlyOne|zeroOrOne|zeroOrMany|sharp|light|rough|hatch|dots|cross|triangle|open|left|top|bottom|right|middle|center|horizontal|vertical|north|south|east|west|flow|pulse|dash|forever|forward|reverse|footer|header|meltemi|sequence|c4|free|gantt|rounded|rectangle|square|ellipse|diamond|cylinder|pill|parallelogram|trapezoid|pentagon|hexagon|octagon|star|cloud|callout|arrow|framed|flag|agent|main|sync|async|context|svg|png|pdf|html|mp4|webm|gif|static|animated|embedded|outlined|system|weekends|monday|tuesday|wednesday|thursday|friday|saturday|sunday|both|normal|compact|shown|hidden)\\b"
         },
         {
           "name": "keyword.control.profile.meltemi",

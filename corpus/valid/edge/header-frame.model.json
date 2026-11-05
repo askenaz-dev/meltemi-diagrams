@@ -83,7 +83,8 @@
               "line": 16,
               "column": 9
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "warehouse",
@@ -130,7 +131,8 @@
               "line": 17,
               "column": 12
             }
-          }
+          },
+          "task": null
         }
       ],
       "relations": [
@@ -236,7 +238,8 @@
       "animations": [],
       "events": [],
       "scenarios": [],
-      "c4": null
+      "c4": null,
+      "gantt": null
     }
   ],
   "themes": [

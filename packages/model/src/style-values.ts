@@ -17,6 +17,8 @@ import {
   FLOW_PROFILE,
   FREE_ELEMENT_KINDS,
   FREE_PROFILE,
+  GANTT_PROFILE,
+  GANTT_REFUSED_STYLE_PROPERTIES,
   PEN_PROPERTIES,
   PEN_REFUSED_PROPERTIES,
   PEN_WIDTH_RANGE,
@@ -105,6 +107,8 @@ export function describeArg(arg: Arg): string {
       return arg.token.text;
     case "NumberLiteral":
       return `\`${arg.token.text}\``;
+    case "DateLiteral":
+      return `\`${arg.text}\``;
     default:
       return arg.kind === "Tuple" ? messages().words.tuple : messages().words.list;
   }
@@ -514,6 +518,28 @@ export function refuseFreeProperties(
   }
 }
 
+/**
+ * Reports the style properties a gantt chart refuses (`iconPosition`, `labelPosition`, `iconSize`
+ * and `routing`: bars, diamonds and lines have a fixed shape; `font`, `fontSize` and `fontWeight`:
+ * labels are drawn in the theme's font at the size of the rows) and removes them from the values.
+ */
+export function refuseGanttProperties(
+  values: Record<string, unknown>,
+  tokens: Record<string, Token>,
+  report: Reporter,
+): void {
+  const words = messages().diagnostics.values;
+  for (const name of [...GANTT_REFUSED_STYLE_PROPERTIES, ...TEXT_PROPERTIES]) {
+    const token = tokens[name];
+    if (!token) continue;
+    const text = TEXT_PROPERTIES.includes(name)
+      ? words.textNotInGantt(name)
+      : words.notInGantt(name);
+    report("prop.invalid-value", text, token);
+    delete values[name];
+  }
+}
+
 /** Whether a rule kind targets elements of the profile; theme rules accept every kind. */
 function ruleKindFits(kind: string, profile: ProfileSchema | undefined): boolean {
   return !profile || profile.ruleKinds.includes(kind);
@@ -521,7 +547,7 @@ function ruleKindFits(kind: string, profile: ProfileSchema | undefined): boolean
 
 /** The profiles whose rules take a kind, for the message of a misplaced rule. */
 function profilesOfKind(kind: string): string[] {
-  return [FLOW_PROFILE, FREE_PROFILE, SEQUENCE_PROFILE]
+  return [FLOW_PROFILE, FREE_PROFILE, SEQUENCE_PROFILE, GANTT_PROFILE]
     .filter((profile) => profile.ruleKinds.includes(kind))
     .map((profile) => profile.name);
 }
@@ -584,6 +610,7 @@ export class StyleDefinitions {
   private checkProfile(values: Record<string, Value>, tokens: Record<string, Token>): void {
     if (!this.profile) return;
     if (this.profile.name !== "free") refuseFreeProperties(values, tokens, this.report);
+    if (this.profile.name === "gantt") refuseGanttProperties(values, tokens, this.report);
     if (tokens.rotation && !profileTakesRotation(this.profile)) {
       this.report(
         "prop.invalid-value",

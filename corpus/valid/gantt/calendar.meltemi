@@ -1,0 +1,16 @@
+language "0.2"
+
+// The calendar: weekends and a holiday are not worked, one Saturday is, and weeks begin on Sunday.
+diagram working_days: gantt {
+  title "Working days"
+  axisFormat "%a %d"
+  weekStart sunday
+  ticks 1d
+  exclude weekends, 2026-06-03
+  include 2026-06-06
+
+  task plan "Plan" from 2026-06-01 for 2d
+  task build "Build" after plan for 5d
+  task shift "Saturday shift" after plan for 3d
+  milestone shipped "Shipped" after build
+}

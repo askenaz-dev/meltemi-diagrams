@@ -193,6 +193,12 @@ diagram checkout: flow {
   decide su dibujo.
 - `line dotted` dibuja puntos redondos separados según el ancho de la línea; `-->`, `---` y
   `line dashed` dibujan guiones.
+- Las tareas, los hitos, las marcas y las secciones de un diagrama de Gantt aceptan `fill`, `stroke`,
+  `width`, `line` y `color`, y una tarea también `radius`, y `rule relation { }` da estilo a sus
+  flechas ([gantt.md](gantt.md#estilos-clases-y-enlaces)). Sus barras, rombos y líneas tienen una
+  forma fija: `shape`, `rotation`, `iconPosition`, `labelPosition`, `iconSize`, `routing` y las
+  propiedades exclusivas de las composiciones libres son `prop.invalid-value` allí, y el mensaje
+  nombra los diagramas de Gantt.
 
 ### Puntas de flecha
 
@@ -321,7 +327,8 @@ se ignora.
 
 `rule <kind> { <properties> }` da estilo a todos los elementos de un tipo (`node`, `decision`,
 `data`, `group`, `note`, `tag`; en las composiciones libres `box`, `text`, `icon`, `image`, `note`,
-`sticky`, `line`, `pen` y `group`) o a todas las relaciones (`relation`). `rule line` y `rule pen`
+`sticky`, `line`, `pen` y `group`; en los diagramas de Gantt `task`, `milestone`, `marker` y
+`section`) o a todas las relaciones (`relation`). `rule line` y `rule pen`
 también aceptan puntas: `rule pen { arrowhead triangle }` termina todos los lápices en un
 triángulo. `rule line { line dashed }` se lee raro, pero es
 correcto: primero el tipo, luego la propiedad. Las reglas se escriben en los

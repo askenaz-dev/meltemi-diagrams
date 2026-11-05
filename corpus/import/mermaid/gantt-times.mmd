@@ -1,0 +1,17 @@
+gantt
+    title Release day
+    dateFormat YYYY-MM-DD HH:mm
+    axisFormat %H:%M
+    tickInterval 30minute
+    excludes weekends
+
+    section Morning
+    Stand-up :standup, 2026-06-01 09:00, 15m
+    Review :review, after standup, 1.5h
+    Deploy window :crit, deploy, 2026-06-01 11:00, 2026-06-01 12:30
+    Go live :milestone, golive, after deploy, 0m
+
+    section Afternoon
+    Smoke tests :smoke, after golive, 45m
+    Rollback plan :rollback, 2026-06-01 15:00, 2h
+    Notes :notes, 2026-06-01 17:30, 90s

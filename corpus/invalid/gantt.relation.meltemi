@@ -1,0 +1,8 @@
+language "0.2"
+
+// Dependencies are written with `after`, not with an arrow.
+diagram plan: gantt {
+  task design "Design" from 2026-06-01 for 3d
+  task build "Build" for 5d
+  design -> build
+}

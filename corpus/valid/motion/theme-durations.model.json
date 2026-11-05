@@ -83,7 +83,8 @@
               "line": 15,
               "column": 8
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "test",
@@ -130,7 +131,8 @@
               "line": 16,
               "column": 7
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "ship",
@@ -177,7 +179,8 @@
               "line": 17,
               "column": 7
             }
-          }
+          },
+          "task": null
         }
       ],
       "relations": [
@@ -475,7 +478,8 @@
       ],
       "events": [],
       "scenarios": [],
-      "c4": null
+      "c4": null,
+      "gantt": null
     }
   ],
   "themes": [

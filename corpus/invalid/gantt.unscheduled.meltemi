@@ -1,0 +1,6 @@
+language "0.2"
+
+// The first task of a chart has no start and no task before it to follow.
+diagram plan: gantt {
+  task kickoff "Kick-off" for 2d
+}

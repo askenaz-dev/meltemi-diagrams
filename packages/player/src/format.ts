@@ -26,6 +26,29 @@ export interface OpenTarget {
   readonly transition: DrillTransition;
 }
 
+/**
+ * What cards and the panel say of a task, milestone, marker or section of a gantt chart: its
+ * resolved dates, and what it waits for. Language-neutral data: the player writes the dates and
+ * the words in its own language.
+ */
+export interface ScheduleDetails {
+  /** The start as ISO 8601 text without a zone, `2026-06-08` or `2026-06-08T09:30`; null when unresolved. */
+  readonly start: string | null;
+  /**
+   * The end: the last day a task works when it ends at midnight, else the instant it ends; a
+   * milestone's and a marker's date is its start; a section's is the end of its last task.
+   */
+  readonly end: string | null;
+  /** The seconds of working time of a task; null on every other element and when unresolved. */
+  readonly workingSeconds: number | null;
+  readonly status: "done" | "active" | null;
+  readonly critical: boolean;
+  /** The id of the section that holds it; null on a section and on what stands outside one. */
+  readonly section: string | null;
+  /** The ids of the tasks and milestones it follows (`after`), in the order written. */
+  readonly after: readonly string[];
+}
+
 /** What hover cards and the detail panel say of an element. */
 export interface ElementDetails {
   readonly kind: string;
@@ -39,6 +62,8 @@ export interface ElementDetails {
   readonly entity: string | null;
   /** What a double click, the plus badge or Enter opens; null when nothing. */
   readonly opens: OpenTarget | null;
+  /** Gantt charts: the schedule of a task, milestone, marker or section; absent elsewhere. */
+  readonly schedule?: ScheduleDetails;
 }
 
 /** What hover cards and the detail panel say of a relation (its ends are the view's `ends`). */

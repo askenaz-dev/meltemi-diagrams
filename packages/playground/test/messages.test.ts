@@ -61,7 +61,16 @@ describe("the playground's catalog", () => {
     expect(en.templates.titles).toEqual(
       Object.fromEntries(names.map((name) => [name, TEMPLATES[name].title])),
     );
-    expect(names).toEqual(["flow", "c4", "sequence", "free", "kanban", "whiteboard", "purchase"]);
+    expect(names).toEqual([
+      "flow",
+      "c4",
+      "sequence",
+      "roadmap",
+      "free",
+      "kanban",
+      "whiteboard",
+      "purchase",
+    ]);
     expect(Object.keys(es.templates.descriptions)).toEqual(names);
     expect(Object.keys(es.templates.titles)).toEqual(names);
     expect(es.templates.descriptions.flow).toBe("Un diagrama de flujo para empezar");
@@ -120,7 +129,9 @@ describe("the interface language", () => {
     expect(templateDescription(template("c4"))).toBe(es.templates.descriptions.c4);
     expect(templateTitle(template("c4"))).toBe("Modelo C4");
     expect(templateContents(template("c4"))).toBe("1 modelo · 2 vistas");
-    // The whiteboard cards, in Spanish.
+    // The roadmap and the whiteboard cards, in Spanish.
+    expect(templateTitle(template("roadmap"))).toBe("Hoja de ruta");
+    expect(templateContents(template("roadmap"))).toBe("1 diagrama · 1 historia");
     expect(templateTitle(template("kanban"))).toBe("Tablero kanban");
     expect(templateContents(template("kanban"))).toBe("1 diagrama");
     expect(templateTitle(template("whiteboard"))).toBe("Pizarra");

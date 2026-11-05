@@ -15,6 +15,7 @@ import { STORY_DEFAULT_TIMES, STORY_MAX_TIME, STORY_TRANSITIONS } from "./schema
 import { headerHasError, singleIdent, spanOf } from "./style-values.js";
 import type {
   FlowDiagram,
+  Relation,
   ResolvedDiagram,
   StoryAction,
   StoryActionKind,
@@ -404,26 +405,49 @@ export function analyzeStory(
           }
           continue;
         }
-        if (kind === "trace" && found !== "relation") {
+        // In a gantt chart `trace` follows the arrows of the chain that drives a task or milestone
+        // (decision 0066): each arrow is a target, earliest first, and the task is the reference.
+        const chart = sceneView.diagram?.type === "gantt" ? sceneView.diagram : null;
+        const chain = chart && kind === "trace" ? drivingArrows(chart, ref.text) : null;
+        if (kind === "trace" && found !== "relation" && chain === null) {
+          const m = messages().diagnostics.story;
+          const element = chart?.elementsById.get(ref.text);
           error(
             "story.invalid-target",
-            messages().diagnostics.story.traceTarget(ref.text, found === "element"),
+            chart
+              ? m.ganttTraceTarget(ref.text, element?.kind ?? "element")
+              : m.traceTarget(ref.text, found === "element"),
             spanOf(ref),
           );
           continue;
         }
-        // `draw` replays pens, free lines and named relations; a view not resolved is not checked.
+        if (chain !== null && chain.length === 0) {
+          error(
+            "story.invalid-target",
+            messages().diagnostics.story.ganttTraceNoArrows(ref.text),
+            spanOf(ref),
+          );
+          continue;
+        }
+        // `draw` replays pens, free lines and named relations, and in a gantt chart its tasks; a
+        // view not resolved is not checked.
         if (kind === "draw" && sceneView.diagram && !drawTargetKind(ref.text, sceneView.diagram)) {
           const element = sceneView.diagram.elementsById.get(ref.text);
+          const m = messages().diagnostics.story;
           error(
             "story.invalid-target",
-            messages().diagnostics.story.drawTarget(ref.text, element?.kind ?? null),
+            sceneView.diagram.type === "gantt"
+              ? m.ganttDrawTarget(ref.text, element?.kind ?? null)
+              : m.drawTarget(ref.text, element?.kind ?? null),
             spanOf(ref),
           );
           continue;
         }
-        const target: StoryTarget = { id: ref.text, kind: found, range: range(spanOf(ref)) };
-        targets.push(target);
+        const at = range(spanOf(ref));
+        const target: StoryTarget = { id: ref.text, kind: found, range: at };
+        if (chain !== null) {
+          for (const key of chain) targets.push({ id: key, kind: "relation", range: at });
+        } else targets.push(target);
         if (sceneView.diagram) {
           references.push({
             diagram: sceneView.diagram.id,
@@ -494,7 +518,7 @@ export function analyzeStory(
         ? [`${channel}:${sceneView.name}`]
         : action.targets.map((t) => `${channel}:${sceneView.name}:${t.id}`);
     const span = { start: action.node.start, end: action.node.end };
-    for (const key of keys) {
+    for (const [index, key] of keys.entries()) {
       const list = channels.get(key) ?? [];
       const end = action.startMs + action.durationMs;
       const clash = list.find((i) =>
@@ -505,6 +529,9 @@ export function analyzeStory(
       const target = key.split(":").pop()!;
       if (clash && !reported.has(target)) {
         reported.add(target);
+        // The arrows of one traced task are what one id of the story stands for: one conflict says it.
+        const written = action.targets[index]?.range;
+        if (written) for (const t of action.targets) if (t.range === written) reported.add(t.id);
         const m = messages();
         bag.add({
           code: "story.conflict",
@@ -549,17 +576,55 @@ export function storyTargetKind(id: string, diagram: FlowDiagram | null): Target
   return null;
 }
 
-/** What `draw` replays: a pen stroke, a free line or a named relation. */
-export type DrawTargetKind = "pen" | "line" | "relation";
+/** What `draw` replays: a pen stroke, a free line, a named relation or a gantt task. */
+export type DrawTargetKind = "pen" | "line" | "relation" | "task";
 
 /**
- * What a target of `draw` names in a view, drawn from its first point to its last: a pen, a free
- * line or a named relation; null for anything else, which `draw` refuses. Story targets keep the
- * kind `storyTargetKind` gives them (`element` for pens and lines).
+ * What a target of `draw` names in a view, drawn from its first point to its last (a gantt task,
+ * from the start of its bar to its end): a pen, a free line, a named relation or a gantt task; null
+ * for anything else, which `draw` refuses. Story targets keep the kind `storyTargetKind` gives them
+ * (`element` for pens, lines and tasks).
  */
 export function drawTargetKind(id: string, diagram: FlowDiagram): DrawTargetKind | null {
   const element = diagram.elementsById.get(id);
-  if (element) return element.kind === "pen" || element.kind === "line" ? element.kind : null;
+  if (element) {
+    return element.kind === "pen" || element.kind === "line" || element.kind === "task"
+      ? element.kind
+      : null;
+  }
   const relation = diagram.relationsByKey.get(id);
   return relation && relation.id === id ? "relation" : null;
+}
+
+/**
+ * What `trace` follows into a task or milestone of a gantt chart: the keys of the dependency arrows
+ * of the chain that drives it, earliest first. From the task, the chain goes to the predecessor
+ * with the latest end (the first written when two end together), and from that one to its own, until
+ * a task that follows nothing. Empty for a task or milestone with no arrows; null for anything that
+ * is not a task or milestone of a chart.
+ */
+export function drivingArrows(diagram: FlowDiagram, id: string): readonly string[] | null {
+  if (diagram.type !== "gantt") return null;
+  const first = diagram.elementsById.get(id);
+  if (first?.kind !== "task" && first?.kind !== "milestone") return null;
+  const keys: string[] = [];
+  const seen = new Set<string>();
+  let at = first.id;
+  while (!seen.has(at)) {
+    seen.add(at);
+    let driving: Relation | undefined;
+    let latest = -Infinity;
+    for (const relation of diagram.relations) {
+      if (relation.to !== at) continue;
+      const end = diagram.elementsById.get(relation.from)?.task?.finish ?? -Infinity;
+      if (driving === undefined || end > latest) {
+        driving = relation;
+        latest = end;
+      }
+    }
+    if (driving === undefined) break;
+    keys.push(driving.key);
+    at = driving.from;
+  }
+  return keys.reverse();
 }

@@ -36,6 +36,7 @@ export function layoutIn(
     images: workspace.imageResolver(owner.path),
     ...(scenario !== undefined ? { scenario } : {}),
     ...(frame ? { frame } : {}),
+    ...(projects.today !== undefined ? { today: projects.today } : {}),
   });
 }
 

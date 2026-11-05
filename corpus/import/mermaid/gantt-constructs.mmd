@@ -1,0 +1,40 @@
+---
+title: Launch plan
+displayMode: compact
+config:
+  theme: forest
+  gantt:
+    topAxis: true
+    barGap: 6
+---
+gantt
+    accTitle: Launch plan, for screen readers
+    accDescr: The tasks, milestones and markers of the launch.
+    dateFormat YYYY-MM-DD
+    axisFormat %d %b
+    tickInterval 1week
+    weekday monday
+    excludes weekends, 2026-07-03, holidays
+    includes 2026-07-04
+    todayMarker stroke-width:3px,stroke:#f00
+
+    %% Before the first section
+    Kick-off :milestone, kickoff, 2026-06-01, 0d
+
+    section Build
+    %% The API comes first
+    Design API :done, design, 2026-06-01, 5d
+    Build API :crit, active, build, after design, 2w
+    Review :review, after design build, until release
+    Write docs :docs, after build, 1.5d
+    Load test :crit, test, after ghost build, 3d
+    click build href "https://ci.example.com/build"
+    click test call openTicket("test")
+
+    section Launch
+    Code freeze :vert, freeze, 2026-06-24, 1d
+    Pilot :pilot, 2026-06-29, 1M
+    Release :milestone, release, after test, 2d
+    Announce :announce, after release, 500ms
+    Retro :retro, after announce, soon
+    A line Mermaid cannot read

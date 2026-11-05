@@ -539,10 +539,14 @@ function layoutCommand(args: readonly string[], io: CliIo): number {
   const edits: TextEdit[] = [];
   const changed: string[] = [];
   for (const diagram of selected) {
-    // Sequence diagrams are laid out from the order of their events; they hold no positions.
-    if (diagram.type === "sequence") {
+    // Sequence diagrams are laid out from the order of their events and gantt charts from their
+    // dates; they hold no positions.
+    if (diagram.type === "sequence" || diagram.type === "gantt") {
       if (options.diagram !== undefined) {
-        io.stderr(`${CLI_NAME} layout: ${messages().layout.sequence(diagram.id)}\n`);
+        const words = messages().layout;
+        io.stderr(
+          `${CLI_NAME} layout: ${diagram.type === "gantt" ? words.gantt(diagram.id) : words.sequence(diagram.id)}\n`,
+        );
         return EXIT_USAGE;
       }
       continue;

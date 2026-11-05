@@ -7,6 +7,7 @@ import {
   type BlockChain,
   type ChainClause,
   type CstElement,
+  type DateLiteral,
   type DiagramBlock,
   type ErrorNode,
   type ExportBlock,
@@ -830,6 +831,10 @@ class Parser {
           value: Number(token.value),
           unit: token.unit ?? null,
         });
+      }
+      case "Date": {
+        this.advance();
+        return makeNode<DateLiteral>("DateLiteral", [token], { token, text: token.text });
       }
       case "LParen":
         return this.parseSequence("Tuple");

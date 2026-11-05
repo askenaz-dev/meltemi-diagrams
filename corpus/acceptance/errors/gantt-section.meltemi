@@ -1,0 +1,21 @@
+language "0.2"
+
+// Based on gantt/chains.meltemi, with a date that no calendar has (`2026-02-30`) and a last section
+// that is never closed: its brace is taken for the one that ends the chart.
+diagram chains: gantt {
+  title "Dependency chains"
+  axisFormat "%d %b"
+  exclude weekends
+  today 2026-06-10
+
+  section intake "Intake" {
+    // The first chain: each task waits for the one before it.
+    task collect "Collect requirements" from 2026-02-30 for 3d
+    task review "Review with the team" after collect for 2d
+    task sign "Sign off" after review for 1d done
+  }
+
+  section delivery "Delivery" {
+    task design "Design" after sign for 4d
+    task api "API" after design for 6d
+}

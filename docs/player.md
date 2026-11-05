@@ -99,6 +99,13 @@ keeps its own arrows. Every control has a name, a tooltip with its key and a vis
   selects it), and what the host adds (the catalog's stories, entity and views). A click on an
   element with a `url` selects it; Ctrl or Cmd and a click follows the link. Escape or Close
   closes the panel.
+- **Gantt charts.** In a gantt chart ([gantt.md](language/gantt.md#in-the-player)) the card of a task
+  shows its label, its section, its status (not when it is only planned) and "Critical", its dates
+  (`8 Jun 2026 → 19 Jun 2026`) and working days, `After: …` with the tasks it follows, its
+  description and the host of its `url`; the card of a milestone or a marker shows its one date, a
+  section's its span, and an arrow's "predecessor → successor". The panel lists Section, Start and
+  End (Date for a milestone or a marker), Working time and Status. The time axis takes no pointer
+  events, so nothing on it has a card.
 
 ## Opening what a box holds
 

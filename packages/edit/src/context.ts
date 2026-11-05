@@ -18,8 +18,14 @@ export class Rejected extends Error {
   }
 }
 
-export function reject(code: string, reason: string, dependents?: Dependent[]): never {
-  throw new Rejected(dependents ? { code, reason, dependents } : { code, reason });
+export function reject(
+  code: string,
+  reason: string,
+  dependents?: Dependent[],
+  diagnostic?: string,
+): never {
+  const rejection: EditRejection = dependents ? { code, reason, dependents } : { code, reason };
+  throw new Rejected(diagnostic === undefined ? rejection : { ...rejection, diagnostic });
 }
 
 export interface EditContext {

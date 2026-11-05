@@ -7,8 +7,8 @@ recorre el camino habitual, y el [índice de la documentación](README.md) enume
 referencias.
 
 - La gramática 0.2 de `.meltemi`, con un analizador sintáctico sin pérdidas y diagnósticos estables.
-- Un modelo tipado y validación para los diagramas `flow`, `free`, `sequence` y `c4` y los modelos de
-  arquitectura, con intercambio en JSON.
+- Un modelo tipado y validación para los diagramas `flow`, `free`, `sequence`, `c4` y `gantt` y los
+  modelos de arquitectura, con intercambio en JSON.
 - Ediciones estructuradas del código fuente (mover, cambiar el tamaño, trazar la ruta, etiquetar,
   cambiar el nombre, quitar) que cambian solo los tokens afectados y conservan los comentarios y el
   formato.
@@ -35,7 +35,7 @@ referencias.
 - `meltemi-diagrams validate` y `meltemi-diagrams export`: diagnósticos de archivos y de proyectos, y
   exportación a SVG de todos los perfiles compilados: diagramas `flow` con notas, marcas, cilindros
   de datos, rombos de decisión, bandas de grupo y etiquetas de paso, composiciones libres, diagramas
-  de secuencia y vistas C4.
+  de secuencia, vistas C4 y diagramas de Gantt.
 - Composiciones libres ([libre](language/free.md)): cajas con veinticuatro formas en las que
   terminan los conectores y cabe el texto (también las admiten los nodos de flujo), con su texto
   arriba, en medio o abajo, radios de esquina, contenedores simples y pilas, texto medido, iconos e
@@ -48,6 +48,12 @@ referencias.
   creación y destrucción, notas, todos los fragmentos (`alt`, `opt`, `loop`, `par`, `break`,
   `critical`, `region`), separadores, retrasos, numeración, reglas con el orden comprobado, una
   disposición determinista y escenarios que se exportan con `meltemi-diagrams export --scenario`.
+- Diagramas de Gantt ([Gantt](language/gantt.md)): secciones, tareas, hitos y marcas programados a
+  partir de fechas, dependencias `after` y duraciones en días, horas o semanas; un calendario que
+  omite fines de semana, días de la semana y feriados (`exclude`, `include`); un eje con divisiones y
+  formatos automáticos o escritos, barras según su estado y tareas críticas, flechas de dependencia,
+  una línea `today` fijada con `meltemi-diagrams export --today`, una disposición determinista, y
+  efectos e historias que hacen crecer las barras y recorren la cadena que determina una tarea.
 - Modelos y vistas C4 ([c4](language/c4.md)): personas, sistemas, contenedores, almacenes de datos y
   componentes en un único modelo compartido; vistas de contexto, de contenedores y de componentes
   validadas por nivel y ámbito; relaciones elevadas a los ancestros dibujados, con trazabilidad, y
@@ -99,7 +105,7 @@ referencias.
   código de un proyecto; las rutas se quedan en el proyecto, no se descarga nada, los tamaños tienen
   límites y los errores nunca muestran secretos.
 - Importadores ([importación](import/mermaid.md)): `flowchart`, `sequenceDiagram`, `C4*`,
-  `architecture-beta` y `block-beta` de Mermaid; diagramas de componentes, de despliegue, de casos
+  `architecture-beta`, `block-beta` y `gantt` de Mermaid; diagramas de componentes, de despliegue, de casos
   de uso, de secuencia y de C4-PlantUML de PlantUML, con el preprocesador; bloques de diagramas de
   archivos Markdown. Cada construcción se informa como convertida, aproximada o descartada, el
   origen nunca se modifica, y al reimportar se conservan la colocación, los estilos y los demás
@@ -128,7 +134,7 @@ referencias.
     completo con el teclado y transiciones breves que respetan el movimiento reducido;
   - cada gesto es una pequeña edición del texto.
 - Calidad: etiquetas que se mantienen apartadas de las formas y de otros conectores, auditadas en
-  cada dibujo, conectores que rodean las cajas, un corpus de aceptación de los cuatro perfiles,
+  cada dibujo, conectores que rodean las cajas, un corpus de aceptación de los cinco perfiles,
   referencias de píxeles, exportaciones deterministas, objetivos de rendimiento en una máquina de
   referencia y cada exportación abierta en Edge, Chrome y Firefox ([calidad](../quality.md)).
 - Estabilidad: la [política de cambios del lenguaje](language/policy.md), una

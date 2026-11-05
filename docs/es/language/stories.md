@@ -112,6 +112,23 @@ story explain for whiteboard {
 - **Destinos.** Lápices, líneas libres y relaciones con nombre; cualquier otra cosa es
   `story.invalid-target`, que dice que `draw` admite trazos de lápiz, líneas y relaciones.
 
+En un diagrama de Gantt ([gantt.md](gantt.md#efectos-e-historias)) las secciones, las tareas, los
+hitos y las marcas son elementos, así que `reveal`, `hide`, `highlight`, `focus` y `camera` los
+aceptan, y una sección se oculta y se enfoca con sus tareas y sus flechas. Dos acciones conocen los
+diagramas de Gantt:
+
+- `draw <task>[, <task>…]` hace crecer cada barra desde su inicio hasta su final como un recorte que
+  se ensancha de izquierda a derecha, una tarea tras otra en partes del tiempo proporcionales al
+  ancho de las barras, y la deja dibujada; una tarea cuya primera acción es `draw` empieza oculta.
+  En una sección, un hito o una marca es `story.invalid-target`, que dice que `draw` admite trazos de
+  lápiz, líneas, relaciones y tareas de Gantt.
+- `trace <task>` (o un hito) ilumina las flechas de la cadena que lo determina: desde él, la
+  predecesora que termina última, y así hasta el comienzo, la más temprana primero, una tras otra, cada
+  una en una parte del tiempo proporcional a su longitud, hasta que la acción termina. Una tarea o un
+  hito sin flechas, una sección o una marca es `story.invalid-target`.
+
+Ninguna acción atenúa ni oculta el eje, su cuadrícula ni sus etiquetas.
+
 ## Transiciones
 
 Una escena cuya vista difiere de la vista de la escena anterior necesita una transición

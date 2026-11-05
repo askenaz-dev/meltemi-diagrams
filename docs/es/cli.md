@@ -82,6 +82,7 @@ Nunca reemplaza un archivo: si alguno ya existe, no se escribe nada.
 | `flow`       | `diagrams/overview.meltemi`: un primer diagrama de flujo (la predeterminada)                                                                                                                     |
 | `c4`         | `models/system.meltemi` y `diagrams/views.meltemi`: un modelo, una vista de contexto y una de contenedores                                                                                       |
 | `sequence`   | `diagrams/sign-in.meltemi`: una secuencia con un escenario para cada resultado                                                                                                                   |
+| `roadmap`    | `diagrams/roadmap.meltemi`: un diagrama de Gantt de tres secciones con una cadena crítica, un hito, una marca y una historia que cuenta el plan                                                  |
 | `free`       | `diagrams/slide.meltemi`: una diapositiva 16:9 con texto, cajas, un icono y un grupo                                                                                                             |
 | `kanban`     | `diagrams/board.meltemi`: un tablero de tres columnas de notas adhesivas (`preset board`)                                                                                                        |
 | `whiteboard` | `diagrams/whiteboard.meltemi`: una pizarra a mano alzada con trazos de lápiz, una marca de marcador, notas adhesivas y una historia que los dibuja                                               |
@@ -128,6 +129,24 @@ importar una carpeta, los archivos `.iuml` de PlantUML se leen a través de los 
 incluyen y los archivos Markdown sin bloques de diagramas se pasan por alto; el resumen cuenta las
 hojas completas, parciales, fallidas y ya existentes.
 
+## Diagramas de Gantt
+
+Un diagrama de Gantt cuya instrucción `today` no escribe ninguna fecha dibuja su línea en el día en
+que se hace el dibujo ([gantt](language/gantt.md#hoy)). `export --today AAAA-MM-DD` dice qué día es
+ese, para cada diagrama de la ejecución y cada formato, `--profiles` incluido, así que un dibujo
+hecho por un trabajo de CI es el mismo todos los días:
+
+```bash
+pnpm mdg export plan.meltemi --today 2026-07-15
+```
+
+Sin ella, el día es la fecha local de la máquina, que leen todos los comandos y el host de
+extensiones de VS Code; una fecha escrita en el diagrama (`today 2026-07-01`) prevalece sobre las
+dos. Una ejecución sin ningún diagrama que necesite el día acepta `--today` y la ignora, y un valor
+que no es una fecha escrita como `2026-07-15` es un error de uso (código 2). Meltemi Diagrams en el
+navegador pasa el día del navegador. `layout` no tiene posiciones que escribir para un diagrama de Gantt, igual que
+para uno de secuencia: lo omite, y con `--diagram` nombrándolo lo dice y termina con el código 2.
+
 ## JSON del modelo: `convert --to json`
 
 ```bash
@@ -172,6 +191,15 @@ siguen los cambios de nombre. Cada cambio dice qué cambió: etiquetas, tipos, d
 tecnología, URL, enlaces, clases, grupos, posiciones, tamaños, rutas, posiciones de las etiquetas,
 estilos, efectos, ajustes del diagrama, escenarios, tiempos y acciones de las historias. Los
 comentarios y el formato no son cambios.
+
+En un diagrama de Gantt, una tarea informa las cláusulas que cambió y adónde fueron sus fechas
+(`fin for 5d → for 7d; termina 2026-06-05 → 2026-06-09`), y también lo hace cada tarea que un cambio
+movió sin tocarla, con lo que la movió: `empieza 2026-06-08 → 2026-06-10 (a causa de tec0)`,
+`(a causa del calendario)` tras un cambio de `exclude` o de `include` (el diagrama informa
+`exclude weekends → weekends, 2026-06-29`), y `(a causa del orden de las tareas)` cuando una tarea
+que sigue a la anterior cambió de lugar; `ahora es crítico` dice que apareció una palabra de estado.
+Las flechas no se enumeran por sí solas, porque son las cláusulas `after`, y una versión que no se
+compila informa sus cláusulas y ninguna fecha ([gantt](language/gantt.md)).
 
 | Opción               | Significado                                                                                                       |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------- |

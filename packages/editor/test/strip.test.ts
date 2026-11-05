@@ -892,3 +892,145 @@ describe("whiteboard objects", () => {
     expect(field(flow.inspector(), "style.opacity")).toBeUndefined();
   });
 });
+
+describe("style strip of a chart", () => {
+  const CHART = [
+    'language "0.2"',
+    "",
+    "diagram plan: gantt {",
+    "  section s {",
+    "    task a from 2026-06-01 for 3d",
+    "    task b after a for 2d active",
+    "    task c after b for 2d done",
+    "    task d after c for 2d critical",
+    "    task e after d for 2d active critical",
+    "    milestone m after e",
+    "  }",
+    "  marker r at 2026-06-10",
+    "}",
+    "",
+  ].join("\n");
+
+  function chart() {
+    const canvas = open(CHART);
+    canvas.send({ type: "pickDiagram", diagram: "plan" });
+    return canvas;
+  }
+
+  const field = (model: InspectorModel, name: string) => model.fields.find((f) => f.name === name);
+  const STYLE = ["style.fill", "style.stroke", "style.color", "style.line", "style.width"];
+
+  it("comes first for a task: colours, outline, width and corner radius, then the effects that apply", () => {
+    const canvas = chart();
+    canvas.send({ type: "select", ids: ["a"] });
+    expect(strip(canvas.inspector())).toEqual([
+      ...STYLE,
+      "style.radius",
+      "effect.dash",
+      "effect.pulse",
+    ]);
+    // One that comes after others also sends particles and a trace along the arrows into it.
+    canvas.send({ type: "select", ids: ["b"] });
+    expect(strip(canvas.inspector())).toEqual([
+      ...STYLE,
+      "style.radius",
+      "effect.flow",
+      "effect.dash",
+      "effect.pulse",
+      "effect.trace",
+    ]);
+    // The pattern is below the strip, and only a task has one.
+    expect(field(canvas.inspector(), "style.pattern")).toMatchObject({ type: "enum" });
+    expect(field(canvas.inspector(), "style.pattern")?.section).toBeUndefined();
+  });
+
+  it("leaves a chart's bars without an icon, rotation, shape, alignment, opacity or route kind", () => {
+    const canvas = chart();
+    canvas.send({ type: "select", ids: ["b"] });
+    const names = canvas.inspector().fields.map((f) => f.name);
+    for (const name of [
+      "style.icon",
+      "style.iconColor",
+      "style.iconPosition",
+      "style.iconSize",
+      "style.rotation",
+      "style.shape",
+      "style.textAlign",
+      "style.opacity",
+      "style.routing",
+      "style.corners",
+      "style.arrowhead",
+      "kind",
+      "ports",
+      "x",
+      "w",
+    ]) {
+      expect(names, name).not.toContain(name);
+    }
+  });
+
+  it("gives a milestone and a marker the colours and outline, and a section its band", () => {
+    const canvas = chart();
+    canvas.send({ type: "select", ids: ["m"] });
+    expect(strip(canvas.inspector())).toEqual([
+      ...STYLE,
+      "effect.flow",
+      "effect.dash",
+      "effect.pulse",
+      "effect.trace",
+    ]);
+    expect(field(canvas.inspector(), "style.pattern")).toBeUndefined();
+    for (const id of ["r", "s"]) {
+      canvas.send({ type: "select", ids: [id] });
+      expect(strip(canvas.inspector()), id).toEqual([...STYLE, "effect.dash", "effect.pulse"]);
+    }
+  });
+
+  it("shows the colours a bar is drawn with as what applies, and the written one as the value", () => {
+    const canvas = chart();
+    const placeholder = (id: string, name: string) => {
+      canvas.send({ type: "select", ids: [id] });
+      return field(canvas.inspector(), `style.${name}`)?.placeholder;
+    };
+    expect(placeholder("a", "fill")).toBe("accent");
+    expect(placeholder("b", "fill")).toBe("info");
+    expect(placeholder("c", "fill")).toBe("muted");
+    expect(placeholder("d", "fill")).toBe("danger");
+    expect(placeholder("e", "fill")).toBe("info");
+    expect(placeholder("e", "stroke")).toBe("danger");
+    expect(placeholder("a", "width")).toBe("1");
+    expect(placeholder("d", "width")).toBe("2");
+    expect(placeholder("a", "radius")).toBe("8");
+    expect(placeholder("m", "fill")).toBe("accent");
+    expect(placeholder("r", "fill")).toBe("tag");
+    expect(placeholder("r", "color")).toBe("tagText");
+    expect(placeholder("s", "fill")).toBe("band");
+    expect(placeholder("s", "color")).toBe("ink");
+    canvas.apply({ kind: "setField", ids: ["a"], field: "style.fill", value: "danger" });
+    canvas.send({ type: "select", ids: ["a"] });
+    expect(field(canvas.inspector(), "style.fill")).toMatchObject({ value: "danger" });
+  });
+
+  it("writes a colour, a radius and a pattern of a task, and a colour of several bars", () => {
+    const canvas = chart();
+    canvas.send({ type: "select", ids: ["b"] });
+    canvas.apply({ kind: "setField", ids: ["b"], field: "style.fill", value: "success" });
+    canvas.apply({ kind: "setField", ids: ["b"], field: "style.radius", value: 2 });
+    canvas.apply({ kind: "setField", ids: ["b"], field: "style.pattern", value: "dots" });
+    expect(canvas.text()).toMatch(/style b \{[^}]*fill success[^}]*radius 2[^}]*pattern dots/s);
+    canvas.apply({ kind: "setField", ids: ["a", "c"], field: "style.stroke", value: "danger" });
+    expect(canvas.text()).toMatch(/style a \{[^}]*stroke danger/s);
+    expect(canvas.text()).toMatch(/style c \{[^}]*stroke danger/s);
+  });
+
+  it("is shared by bars and a section but not by an arrow, which has none", () => {
+    const canvas = chart();
+    canvas.send({ type: "select", ids: ["a", "s"] });
+    expect(strip(canvas.inspector())).toEqual([...STYLE, "effect.dash", "effect.pulse"]);
+    canvas.send({ type: "select", ids: ["a", "a->b#1"] });
+    // The arrow is left out of the selection's style.
+    expect(strip(canvas.inspector())).toContain("style.fill");
+    canvas.send({ type: "select", ids: ["a->b#1"] });
+    expect(canvas.inspector().fields.map((f) => f.name)).toEqual(["from", "to"]);
+  });
+});

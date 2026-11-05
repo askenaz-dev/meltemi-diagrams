@@ -1,4 +1,4 @@
-// The gallery of the four profiles and the reference purchase example, with their exports: what
+// The gallery of the profiles and the reference purchase example, with their exports: what
 // the README and the launch material show, generated from the product so that it stays true.
 // Usage: pnpm gallery
 import { cpSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -37,6 +37,13 @@ export const GALLERY_SHEETS = [
     title: "C4: the containers of a ride-sharing platform",
     about:
       "One model of people, containers and external systems, and a container view placed by hand; other views of the model share every entity and relation.",
+  },
+  {
+    profile: "gantt",
+    file: "gantt/launch-plan.meltemi",
+    title: "Gantt: a mobile app launch",
+    about:
+      "Tasks scheduled from dates and from what they wait for, with the weekends skipped: bars of every status, the critical chain, a milestone, a marker, dependency arrows and a `today` line pinned to a date so that the picture does not change with the day it is made.",
   },
   {
     profile: "free",

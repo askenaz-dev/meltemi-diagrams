@@ -15,7 +15,7 @@ esencial (un elemento, una relación, un mensaje, una entidad o una línea que n
 | Origen | Meltemi | Estado | Notas |
 | --- | --- | --- | --- |
 | front matter `title:` | `title`, y el id del diagrama | convertido |  |
-| front matter `config:` | — | descartado |  |
+| front matter `config:` | — | descartado | En un diagrama de Gantt se leen `displayMode`, `config.gantt.displayMode` y `config.gantt.topAxis`; cualquier otra opción se informa. |
 | otro front matter | — | descartado |  |
 | `%%{init: …}%%` | — | descartado |  |
 | `%% text` | `// text` antes de la siguiente instrucción | convertido |  |
@@ -30,7 +30,6 @@ esencial (un elemento, una relación, un mensaje, una entidad o una línea que n
 | `stateDiagram-v2` | — | descartado | `import.unsupported-diagram`. |
 | `erDiagram` | — | descartado | `import.unsupported-diagram`. |
 | `journey` | — | descartado | `import.unsupported-diagram`. |
-| `gantt` | — | descartado | `import.unsupported-diagram`. |
 | `pie` | — | descartado | `import.unsupported-diagram`. |
 | `quadrantChart` | — | descartado | `import.unsupported-diagram`. |
 | `requirementDiagram` | — | descartado | `import.unsupported-diagram`. |
@@ -305,3 +304,53 @@ esencial (un elemento, una relación, un mensaje, una entidad o una línea que n
 | otras propiedades CSS | — | descartado |  |
 | `end` sin `block` | — | descartado | `import.syntax`. |
 | elementos ilegibles | — | descartado | `import.syntax`, esencial. |
+
+## gantt
+
+| Origen | Meltemi | Estado | Notas |
+| --- | --- | --- | --- |
+| `title text` | `title` | convertido | Un `title` prevalece sobre el `title` del front matter, que prevalece sobre `accTitle`. |
+| `dateFormat YYYY-MM-DD` | fechas escritas en ISO 8601 | convertido | Se lee cada token de dayjs que Mermaid documenta. La hora solo se escribe cuando no es medianoche. |
+| `Z`, `ZZ`, `X` o `x` en `dateFormat` | fechas sin zona | aproximado | Las fechas de Meltemi no tienen zona horaria: la zona se descarta y una marca de tiempo Unix se lee como UTC. |
+| `S`, `SS`, `SSS` o `x` con una fracción de segundo | fechas exactas al segundo | aproximado |  |
+| un `dateFormat` sin año, como `HH:mm` | fechas en el día de la importación | aproximado | Lo que el formato omite sale del día de la importación (`ImportOptions.today`, por defecto el día de la máquina). |
+| `axisFormat %d %b` | `axisFormat "%d %b"` | convertido | `%c`, `%x` y `%X` se escriben en sus formas de d3. |
+| `%L`, `%Z` y otras directivas que Meltemi no tiene | el formato del eje sin ellas | aproximado |  |
+| `tickInterval 1week` | `ticks 1w` | convertido |  |
+| `tickInterval 100millisecond` | `ticks 1s` | aproximado |  |
+| un `tickInterval` que no es `<n><unit>` | — | descartado |  |
+| `weekday monday` | `weekStart monday` | convertido | `weekStart sunday`, el valor predeterminado de Mermaid, se escribe cuando las marcas son de semanas y no hay `weekday`. |
+| `excludes weekends`, `excludes sunday`, `excludes 2026-12-25` | `exclude weekends`, `exclude sunday`, `exclude 2026-12-25` | convertido |  |
+| un valor de `excludes` que no es un día de la semana, `weekends` ni una fecha | — | descartado |  |
+| `weekend friday` | `exclude friday, saturday` en lugar de `weekends` | convertido |  |
+| `includes 2026-06-06` | `include 2026-06-06` | convertido | Una fecha que nada excluye ya es hábil y no se escribe. |
+| un valor de `includes` que no es una fecha | — | descartado |  |
+| sin `todayMarker` | `today` | convertido | Mermaid dibuja la línea salvo con `todayMarker off`. |
+| `todayMarker off` | sin `today` | convertido |  |
+| `todayMarker stroke-width:5px,stroke:#0f0` | `today` | aproximado |  |
+| `inclusiveEndDates` | fechas finales escritas tal cual | convertido |  |
+| `topAxis`, `config.gantt.topAxis: true` | `axis both` | convertido |  |
+| `displayMode: compact`, `config.gantt.displayMode: compact` | `display compact` | convertido |  |
+| `section name` | `section <id> "name"` | convertido | Las tareas anteriores a la primera sección quedan en el nivel superior del diagrama. |
+| `name : id, start, end` | `task id "name" from … for …` | convertido | Sin id, una tarea es `task<n>`; sin inicio, sigue a la tarea anterior. |
+| una fecha de inicio en el `dateFormat` | `from <date>` | convertido |  |
+| `after a b` | `after a, b` | convertido |  |
+| `after` o `until` que nombra una tarea que el diagrama no tiene, o que cierra un bucle | — | descartado | La tarea sigue a la tarea anterior. |
+| `after` o `until` que nombra una tarea `vert` | la fecha que dibuja Mermaid | aproximado |  |
+| `until a b` | `until a, b` | convertido |  |
+| una fecha final | `to` el último día | convertido | La fecha final de Mermaid es exclusiva: `to` es el día anterior, o la propia fecha con `inclusiveEndDates`. |
+| `5d`, `1.5h`, `30m`, `10s`, `2w` | `for 5d`, `for 1.5h`, `for 30min`, `for 10s`, `for 2w` | convertido | Con días de la semana excluidos, una semana se escribe `7n d`, que es como la cuenta Mermaid. |
+| `1500ms` | `for 2s` | aproximado | Una fracción de segundo se redondea hacia arriba. |
+| `1M`, `1y` | `for <n>d`, los días que dibuja Mermaid | aproximado |  |
+| una duración ilegible, cero o demasiado larga, o un final anterior al inicio | sin final: la tarea dura un día | aproximado |  |
+| una tarea sin nada tras lo que empezar | `from` el día de la importación | aproximado |  |
+| una tarea que Meltemi fecha de otro modo | las dos fechas en el hallazgo | aproximado | Se informa una vez por tarea, con las dos fechas. Un inicio en un día excluido se escribe como el siguiente día hábil. |
+| `done`, `active`, `crit` | `done`, `active`, `critical` | convertido | Una tarea en curso y hecha a la vez se dibuja en curso, como hace Mermaid. |
+| la etiqueta `milestone` | `milestone`, en la mitad de su intervalo | convertido |  |
+| un hito después de una tarea, con duración | `milestone … after` | aproximado |  |
+| la etiqueta `vert` | `marker … at` | convertido | `marker … after` cuando está donde termina una tarea, `at` en otro caso. |
+| `crit`, `done` o `active` en una tarea `vert` | una marca sin estado | aproximado |  |
+| `click id href "url"` | `url "…"` en el bloque de la tarea | convertido |  |
+| `click id call callback(args)` | — | descartado | También se descartan un `click` sobre algo que no es una tarea y un enlace que no es http, https, mailto ni relativo. |
+| una fecha de inicio que no se puede leer | — | descartado | `import.syntax`, esencial; la tarea se escribe sin su inicio. |
+| líneas ilegibles | — | descartado | `import.syntax`, esencial; se conserva como comentario. |

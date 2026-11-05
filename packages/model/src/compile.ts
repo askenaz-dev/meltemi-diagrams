@@ -16,6 +16,7 @@ import {
 } from "@meltemi/diagrams-language";
 import { analyzeC4View, type ViewModel } from "./c4.js";
 import { analyzeFlowDiagram } from "./flow.js";
+import { analyzeGanttDiagram } from "./gantt.js";
 import { messages } from "./messages/index.js";
 import { analyzeModel, closePaths } from "./model.js";
 import { analyzeSequenceDiagram } from "./sequence.js";
@@ -116,11 +117,13 @@ export function compile(text: string, options: CompileOptions = {}): Compilation
           diagrams.push(unique ? diagram : { ...diagram, hasErrors: true });
           break;
         }
-        if (type === "flow" || type === "free" || type === "sequence") {
+        if (type === "flow" || type === "free" || type === "sequence" || type === "gantt") {
           const { diagram } =
             type === "sequence"
               ? analyzeSequenceDiagram(item, item.id, lines, bag)
-              : analyzeFlowDiagram(item, item.id, lines, bag, type);
+              : type === "gantt"
+                ? analyzeGanttDiagram(item, item.id, lines, bag)
+                : analyzeFlowDiagram(item, item.id, lines, bag, type);
           diagrams.push(unique ? diagram : { ...diagram, hasErrors: true });
           break;
         }

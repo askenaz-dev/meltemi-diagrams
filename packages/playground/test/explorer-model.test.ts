@@ -269,5 +269,8 @@ describe("a new diagram's text", () => {
     expect(newDiagramText("flow", "Order flow")).toContain(
       'diagram Order_flow: flow {\n  title "Order flow"',
     );
+    expect(newDiagramText("gantt", "roadmap.meltemi")).toBe(
+      'language "0.2"\n\ndiagram roadmap: gantt {\n  title "roadmap"\n}\n',
+    );
   });
 });

@@ -1,5 +1,5 @@
-import { catalog } from "@meltemi/diagrams-i18n";
-import type { ChangedPart, ChangeState, ChangeSubject } from "../diff.js";
+import { catalog, list } from "@meltemi/diagrams-i18n";
+import type { ChangedPart, ChangeState, ChangeSubject, ScheduleCause } from "../diff.js";
 
 const en = {
   /** What changed, as `describeChange` names it. */
@@ -20,9 +20,14 @@ const en = {
    * The names of fields that are not keywords of the language; keywords such as `label` or
    * `layout` are written as they are in every language.
    */
-  fields: { kind: "kind", type: "type", classes: "classes", view: "view" } as Readonly<
-    Record<string, string>
-  >,
+  fields: {
+    kind: "kind",
+    type: "type",
+    classes: "classes",
+    view: "view",
+    end: "end",
+    status: "status",
+  } as Readonly<Record<string, string>>,
   /** Parts that changed without details. */
   changed: {
     description: "description changed",
@@ -57,12 +62,30 @@ const en = {
     labelMoved: "label moved",
     messagesReordered: "messages reordered",
     scenesReordered: "scenes reordered",
+    critical: "now critical",
+    notCritical: "no longer critical",
   } satisfies Record<ChangeState, string>,
   movedOutOf: (group: string) => `moved out of ${group}`,
   movedInto: (parent: string) => `moved into ${parent}`,
   movedToRoot: "moved to the model's root",
   scenario: (id: string, added: boolean) => `scenario ${id} ${added ? "added" : "removed"}`,
   duration: (before: number, after: number) => `duration ${before} ms → ${after} ms`,
+  /** Gantt charts: the resolved dates of a task, milestone or marker. */
+  schedule: { start: "starts", end: "ends", date: "date" } as Readonly<
+    Record<"start" | "end" | "date", string>
+  >,
+  /** What moved a task: a task whose own clauses changed, the calendar or the order of the tasks. */
+  cause: (cause: ScheduleCause) =>
+    cause.kind === "task"
+      ? cause.id
+      : cause.kind === "calendar"
+        ? "the calendar"
+        : "the order of the tasks",
+  /** Words joined as prose: `a`, `a and b`, `a, b and c`. */
+  and: (words: readonly string[]) =>
+    words.length < 2 ? words.join("") : `${words.slice(0, -1).join(", ")} and ${words.at(-1)}`,
+  /** The causes of a move, after its dates: `(moved by tec0)`. */
+  movedBy: (causes: string) => `moved by ${causes}`,
 };
 
 const es: typeof en = {
@@ -78,7 +101,14 @@ const es: typeof en = {
     export: "perfil de exportación",
   },
   none: "ninguno",
-  fields: { kind: "tipo", type: "tipo", classes: "clases", view: "vista" },
+  fields: {
+    kind: "tipo",
+    type: "tipo",
+    classes: "clases",
+    view: "vista",
+    end: "fin",
+    status: "estado",
+  },
   changed: {
     description: "cambió la descripción",
     style: "cambió el estilo",
@@ -111,12 +141,23 @@ const es: typeof en = {
     labelMoved: "etiqueta movida",
     messagesReordered: "mensajes reordenados",
     scenesReordered: "escenas reordenadas",
+    critical: "ahora es crítico",
+    notCritical: "ya no es crítico",
   },
   movedOutOf: (group: string) => `sacado de ${group}`,
   movedInto: (parent: string) => `movido a ${parent}`,
   movedToRoot: "movido a la raíz del modelo",
   scenario: (id: string, added: boolean) => `escenario ${id} ${added ? "agregado" : "quitado"}`,
   duration: (before: number, after: number) => `duración ${before} ms → ${after} ms`,
+  schedule: { start: "empieza", end: "termina", date: "fecha" },
+  cause: (cause: ScheduleCause) =>
+    cause.kind === "task"
+      ? `de ${cause.id}`
+      : cause.kind === "calendar"
+        ? "del calendario"
+        : "del orden de las tareas",
+  and: (words: readonly string[]) => list("es", words),
+  movedBy: (causes: string) => `a causa ${causes}`,
 };
 
 /**

@@ -21,7 +21,8 @@ errores de uso.
 
 ## Qué se dibuja
 
-Todos los diagramas de flujo, composiciones libres, diagramas de secuencia y vistas C4 sin errores.
+Todos los diagramas de flujo, composiciones libres, diagramas de secuencia, vistas C4 y diagramas de
+Gantt sin errores.
 El exportador organiza con ELK los diagramas `layout auto` y `layout assisted`
 ([layout.md](layout.md)); `layout manual` informa cada elemento sin `place` como
 `layout.missing-placement`. Las aplicaciones anfitrionas que llaman a `layoutDiagram()` sin motor
@@ -29,8 +30,9 @@ dibujan los diagramas `auto` y `assisted` solo cuando todos los elementos están
 informan `layout.mode-unsupported`. Un archivo sin ningún diagrama que se pueda dibujar informa
 `export.no-diagram`. Las composiciones libres, sus objetos, sus imágenes y sus capas se describen en
 [free.md](free.md). Los diagramas de secuencia se disponen sin motor a partir del orden de sus
-eventos, y `--scenario <id>` exporta un camino ([sequence.md](sequence.md)). Las vistas C4 se
-disponen como los diagramas de flujo, con formas C4 ([c4.md](c4.md)).
+eventos, y `--scenario <id>` exporta un camino ([sequence.md](sequence.md)). Los diagramas de Gantt
+se disponen sin motor a partir de las fechas de sus tareas ([gantt.md](gantt.md#disposición)). Las
+vistas C4 se disponen como los diagramas de flujo, con formas C4 ([c4.md](c4.md)).
 
 Los grupos nunca necesitan un `place`: sin `place` ni `size`, un grupo se ajusta a sus hijos con el
 `groupPadding` del tema a los lados y abajo (16 px en `technical.*`) y su `groupHeader` arriba para
@@ -291,7 +293,10 @@ densos en vistas.
 - Cada elemento y cada relación es un `<g data-id="..." data-role="element|relation">`; las
   etiquetas de relación son un `<g data-role="label">` anidado. Los editores pueden relacionar los
   clics con los ids gracias a estos atributos. Una línea libre es un grupo de elemento cuya
-  etiqueta se anida del mismo modo. Un grupo en una capa distinta de `main` lleva además
+  etiqueta se anida del mismo modo. La cuadrícula, las etiquetas del eje, los días
+  excluidos y la línea de hoy de un diagrama de Gantt son un único
+  `<g data-id="axis" data-role="axis">`, que los temas de boceto dejan nítido; sus secciones son
+  grupos de elemento que contienen los grupos de sus filas. Un grupo en una capa distinta de `main` lleva además
   `data-layer="<nombre>"`, y un elemento o un grupo con estilo `opacity`, un atributo `opacity`.
   Un lápiz es un grupo de elemento cuyo trazo es un solo `<path>` de extremos y uniones redondeados,
   seguido de sus puntas; una nota

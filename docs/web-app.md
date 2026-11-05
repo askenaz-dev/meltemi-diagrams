@@ -211,6 +211,7 @@ account and opens; **In this browser** makes it in the browser instead.
 | Flow diagram (`flow`)         | A flow diagram to start from                                                                                                |
 | C4 model (`c4`)               | An architecture model with a context view and a container view                                                              |
 | Sequence diagram (`sequence`) | A sequence diagram with a scenario for each outcome                                                                         |
+| Product roadmap (`roadmap`)   | A roadmap of three sections of tasks with their dependencies, a milestone and a story that plays it                         |
 | Slide (`free`)                | A slide composed freely: text, boxes, an icon and a group                                                                   |
 | Kanban board (`kanban`)       | A board of columns and sticky cards                                                                                         |
 | Whiteboard (`whiteboard`)     | A sketched board with strokes, stickies and a story that draws them                                                         |

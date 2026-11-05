@@ -6,6 +6,7 @@ import { isFailure, type FrontContext, type FrontDiagram, type FrontOutcome } fr
 import { IdMap, slugId } from "./ids.js";
 import { markdownBlocks } from "./markdown.js";
 import { messages } from "./messages/index.js";
+import { readToday } from "./mermaid/dates.js";
 import { importMermaid } from "./mermaid/index.js";
 import { importPlantUml } from "./plantuml/index.js";
 import {
@@ -37,6 +38,19 @@ export interface ImportOptions {
    * English by default; findings are in the interface language.
    */
   readonly locale?: Locale;
+  /**
+   * The import's day as `YYYY-MM-DD`, which a source that leaves a date open is placed on: a
+   * Mermaid `gantt` whose date format has no year, a task that follows nothing, a task that
+   * follows a task the chart does not have. The machine's day by default; tests pin it.
+   */
+  readonly today?: string;
+}
+
+/** The day on this machine, as `YYYY-MM-DD`. */
+function machineDay(): string {
+  const now = new Date();
+  const two = (n: number) => String(n).padStart(2, "0");
+  return `${String(now.getFullYear()).padStart(4, "0")}-${two(now.getMonth() + 1)}-${two(now.getDate())}`;
 }
 
 /** Imports a Mermaid, PlantUML or Markdown source into a `.meltemi` sheet. Never throws. */
@@ -97,6 +111,10 @@ function run(text: string, options: ImportOptions, reporter: Reporter): ImportRe
     reporter,
     hasIcon: (name) => name.startsWith("tabler:") || (options.hasIcon?.(name) ?? false),
     locale,
+    today:
+      options.today !== undefined && readToday(options.today) !== undefined
+        ? options.today
+        : machineDay(),
   };
   const outcomes: { outcome: FrontOutcome; heading: string | null }[] = [];
   let count = 0;
@@ -160,12 +178,35 @@ function run(text: string, options: ImportOptions, reporter: Reporter): ImportRe
   }
   if (diagrams.length === 0) return failed(format);
 
-  const output = printSheet(
-    { ...(options.fileName !== undefined ? { fileName: options.fileName } : {}), format, locale },
-    diagrams.map((d) => d.sheet),
-  );
+  const header = {
+    ...(options.fileName !== undefined ? { fileName: options.fileName } : {}),
+    format,
+    locale,
+  };
+  const write = () =>
+    printSheet(
+      header,
+      diagrams.map((d) => d.sheet),
+    );
+  let output = write();
+  let compiled = compile(output);
+  // A front-end may mend what the compiler refuses, which writes the sheet again. Each round
+  // mends at least one thing or ends, and nothing needs many rounds.
+  for (let round = 0; round < 8; round++) {
+    let changed = false;
+    for (const { diagram, sheet } of diagrams) {
+      const compiledDiagram = diagram.repair
+        ? compiled.document.diagrams.find((d) => d.id === sheet.id)
+        : undefined;
+      if (!diagram.repair || !compiledDiagram) continue;
+      reporter.begin(sheet.id);
+      if (diagram.repair(compiledDiagram)) changed = true;
+    }
+    if (!changed) break;
+    output = write();
+    compiled = compile(output);
+  }
   // Self-check: the sheet must compile; anything else is a defect worth reporting.
-  const compiled = compile(output);
   const errors = compiled.diagnostics.filter((d) => d.severity === "error");
   for (const error of errors) {
     reporter.add({
@@ -178,6 +219,15 @@ function run(text: string, options: ImportOptions, reporter: Reporter): ImportRe
       essential: true,
       diagram: null,
     });
+  }
+  // A front-end that replays its source's own rules compares what the sheet resolves to.
+  for (const { diagram, sheet } of diagrams) {
+    const compiledDiagram = diagram.verify
+      ? compiled.document.diagrams.find((d) => d.id === sheet.id)
+      : undefined;
+    if (!diagram.verify || !compiledDiagram) continue;
+    reporter.begin(sheet.id);
+    diagram.verify(compiledDiagram);
   }
   const essential = reporter.essentialDrops;
   if (essential > 0) {

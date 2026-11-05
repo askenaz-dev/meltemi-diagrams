@@ -81,6 +81,17 @@ import {
   type Viewport,
   type IconChoiceInfo,
   type LibraryItemInfo,
+  type TaskInfo,
+  type TimelineInfo,
+  SECONDS_PER_DAY,
+  addWorking,
+  instantAt,
+  shiftWorking,
+  snapAt,
+  snapStep,
+  workingBetween,
+  workingDaysPerWeek,
+  xOfInstant,
 } from "@meltemi/diagrams-editor/canvas";
 import { ICONS, ariaKeyshortcuts, clear, h, icon, s } from "./dom.js";
 import { glyph, repaintSticky, shapeIcon, stickyGlyph, type IconPlacement } from "./glyphs.js";
@@ -88,6 +99,15 @@ import { FontPicker } from "./font-picker.js";
 import { IconPicker } from "./icon-picker.js";
 import { AddIconsDialog, pickedRefusal, type PickedIcon } from "./add-icons.js";
 import { barEndY, barRowAt, barSpan } from "./bars.js";
+import {
+  dragSpan,
+  dropsInPlace,
+  rowDrop,
+  spanText,
+  type BarGrip,
+  type BarSpan,
+  type RowDrop,
+} from "./gantt.js";
 import { InlineEditor, boxPlace, drawnLines, labelLines, wrappedLines } from "./inline.js";
 import { Inspector, ThemePanel } from "./inspector.js";
 import { LayersPanel } from "./layers.js";
@@ -461,6 +481,41 @@ type Drag =
    * hidden as it crosses them, and where the pointer was, to sweep from at the next move.
    */
   | { kind: "erase"; pointer: number; last: Point; hits: Set<string> }
+  /**
+   * Gantt charts: a bar, diamond, line or section pressed. `part` is what the press holds: the body,
+   * which the first pixels of the drag turn into a move in time (`axis` `time`) or between rows
+   * (`rows`), or an end of a bar. `spans` holds the dates the pointer gives each bar dragged in time,
+   * snapped to `step` seconds; `drop` the place a drag between rows would put them; `lift` how far
+   * down the rows have been dragged, in diagram units.
+   */
+  | {
+      kind: "bar";
+      id: string;
+      part: "body" | "start" | "end";
+      ids: string[];
+      press: Point;
+      screen: Point;
+      moving: boolean;
+      axis?: "time" | "rows";
+      step: number;
+      spans: Map<string, BarSpan>;
+      stuck: boolean;
+      drop?: RowDrop;
+      lift: number;
+    }
+  /**
+   * Gantt charts: a task being drawn with the Task tool from a press on the timeline: the instants
+   * it starts and ends at (snapped), and the height of the row it is drawn on.
+   */
+  | {
+      kind: "draw";
+      press: Point;
+      from: number;
+      start: number;
+      end: number;
+      step: number;
+      moving: boolean;
+    }
   | { kind: "minimap" };
 
 /** How close to a box's border, in screen pixels, a dragged end takes a point of it. */
@@ -481,6 +536,14 @@ const LONG_PRESS_MS = 450;
 
 /** The steps of the rotation handle, in degrees; Alt turns them off. */
 const ROTATION_STEP = 15;
+
+/** How far a press on a gantt bar goes before it is a move in time or between rows, in pixels. */
+const BAR_AXIS_LOCK = 6;
+/** The grips at the ends of a selected bar, in screen pixels, and the link handle beyond its end. */
+const GRIP = { width: 6, height: 16 } as const;
+const LINK_GAP = 12;
+/** How far the outline of a selected bar of a chart stands off it, in screen pixels. */
+const GANTT_RING = 3;
 
 /** The handle of an end of an activation bar, a pill in screen pixels, and its distance from it. */
 const BAR_HANDLE = { width: 18, height: 8 } as const;
@@ -531,13 +594,15 @@ const LIST_ADD_HANDLE = 4;
 const SETTLE_WAIT_MS = 2000;
 
 /** The kinds of diagram the New diagram button adds, in the order of its menu. */
-const CREATABLE: readonly CreatableDiagram[] = ["flow", "free", "sequence"];
+const CREATABLE: readonly CreatableDiagram[] = ["flow", "free", "sequence", "gantt"];
 
 /** The picture of each kind of diagram the canvas creates. */
 const DIAGRAM_ICONS: Record<CreatableDiagram, string> = {
   flow: "M2.5 2.5h5v3h-5z|M8.5 10.5h5v3h-5z|M5 5.5V12h3.5|M7 10.5L8.5 12 7 13.5",
   free: "M2.5 2.5h6v4h-6z|M9.5 8.5h4v5h-4z|M2.5 9.5h4v3h-4z",
   sequence: ICONS.participants,
+  // Three bars on their rows, each starting where the one above ends.
+  gantt: "M2.5 3h6v2.5h-6z|M6.5 6.75h6v2.5h-6z|M4.5 10.5h8v2.5h-8z",
 };
 
 /** The kinds the palette places, which name its tools in the catalog. */
@@ -565,6 +630,10 @@ const PALETTE: readonly {
   { kind: "image", key: "M", profile: "free" },
   { kind: "participant", key: "P", profile: "sequence" },
   { kind: "actor", key: "A", profile: "sequence" },
+  // Gantt charts: a bar (drawn with a drag), a diamond and a line; the group button is Section.
+  { kind: "task", key: "T", profile: "gantt" },
+  { kind: "milestone", key: "M", profile: "gantt" },
+  { kind: "marker", key: "V", profile: "gantt" },
   { kind: "group", key: "G" },
   // The whiteboard: the pen (its menu holds the highlighter, H) and the eraser.
   { kind: "pen", key: "P", profile: "free" },
@@ -615,6 +684,11 @@ const DEFAULT_SIZES: Record<ElementKind, { width: number; height: number }> = {
   pen: { width: 3, height: 3 },
   // A sticky never grows: its card is 160 × 160 and its words fit it.
   sticky: { width: 160, height: 160 },
+  // Gantt bars, diamonds, lines and sections are placed by dates and rows, never by a size.
+  section: { width: 280, height: 96 },
+  task: { width: 160, height: 24 },
+  milestone: { width: 20, height: 20 },
+  marker: { width: 4, height: 200 },
   person: { width: 160, height: 104 },
   system: { width: 180, height: 80 },
   container: { width: 170, height: 76 },
@@ -873,6 +947,8 @@ export class CanvasApp {
         readonly gone?: boolean;
         /** A move into a list: where to. */
         readonly list?: ListDrop;
+        /** Gantt charts: how far each bar was drawn from where the render has it, by id. */
+        readonly bars?: ReadonlyMap<string, number>;
       }
     | undefined;
   private previewAgain = false;
@@ -890,6 +966,8 @@ export class CanvasApp {
         readonly box?: Box;
         readonly list?: ListDrop;
         shifts?: Map<string, Point>;
+        /** Gantt charts: how far the drawing shown has each dragged bar from the render's. */
+        readonly bars?: ReadonlyMap<string, number>;
       }
     | undefined;
   /**
@@ -1027,6 +1105,15 @@ export class CanvasApp {
   /** The ids of the overlay's pill masks, unique among the canvases of one page. */
   private readonly maskPrefix = `mdg-pills-${++canvases}`;
   private readonly tooltips: Tooltips;
+  /** Gantt charts: the tooltip that says the dates of the bar dragged or under the pointer. */
+  private readonly ganttTip = h("div", { class: "gantt-tip", role: "tooltip" });
+  /** Gantt charts: the outlines that flash where a link was refused. */
+  private readonly flashLayer = s("svg", { class: "flash-layer", "aria-hidden": "true" });
+  private ganttTipTimer: ReturnType<typeof setTimeout> | undefined;
+  /** The chart's bar whose handles the last overlay drew: they pop in once, not at every redraw. */
+  private ganttHandlesShown: string | undefined;
+  /** Gantt charts: what a hover grace timer lets go of when it ends. */
+  private hoverTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(
     private readonly root: HTMLElement,
@@ -1095,6 +1182,8 @@ export class CanvasApp {
       this.presenceLayer.element,
       this.overlay,
       this.barDrag,
+      this.flashLayer,
+      this.ganttTip,
       this.listAdds,
       this.banner,
       this.empty,
@@ -1254,6 +1343,13 @@ export class CanvasApp {
           } else if (!again) {
             this.announce(message.reason, true);
           }
+          // A field of the properties refused says why under itself, where the text was typed.
+          const sent = this.lastAction;
+          if (sent?.kind === "setField" && message.code !== "edit.has-dependents") {
+            this.inspector.refuse(sent.ids, sent.field, message.reason);
+          }
+          // What the refusal is about flashes in the theme's danger colour.
+          if (message.flash) this.flash(message.flash);
         }
         break;
       case "highlight":
@@ -1360,9 +1456,13 @@ export class CanvasApp {
       return false;
     }
     this.pending = true;
+    this.lastAction = action;
     this.post({ type: "action", revision: this.revision, action });
     return true;
   }
+
+  /** The action last sent, which a refusal that comes back is about. */
+  private lastAction: CanvasAction | undefined;
 
   /**
    * Writes a slider's value. While an edit is pending, the latest value waits for the next render,
@@ -2626,6 +2726,21 @@ export class CanvasApp {
             }),
           );
         }
+        if (g && render.profile === "gantt" && element.kind === "marker") {
+          // A marker's line is a hair: it is pressed within a few units of it.
+          const { x, y, width, height } = element.box;
+          g.prepend(
+            s("rect", {
+              class: "mdg-hit",
+              x: x + render.offset.x - 3,
+              y: y + render.offset.y,
+              width: width + 6,
+              height,
+              fill: "none",
+              "pointer-events": "visibleFill",
+            }),
+          );
+        }
         if (g && (element.shape === "icon" || element.kind === "icon")) {
           const { x, y, width, height } = element.box;
           g.prepend(
@@ -2637,6 +2752,28 @@ export class CanvasApp {
               height,
               fill: "none",
               "pointer-events": "visibleFill",
+            }),
+          );
+        }
+      }
+      // The arrows of a chart are dependencies, pressed to select and remove them.
+      if (render.profile === "gantt") {
+        for (const relation of render.relations) {
+          const g = root.querySelector(
+            `g[data-id="${cssEscape(relation.key)}"][data-role="relation"]`,
+          );
+          g?.prepend(
+            s("polyline", {
+              class: "mdg-hit",
+              points: relation.drawn
+                .map((p) => `${p.x + render.offset.x},${p.y + render.offset.y}`)
+                .join(" "),
+              fill: "none",
+              stroke: "transparent",
+              "stroke-width": 10,
+              "stroke-linecap": "round",
+              "stroke-linejoin": "round",
+              "pointer-events": "stroke",
             }),
           );
         }
@@ -2907,6 +3044,9 @@ export class CanvasApp {
       }
       if (drag?.kind === "resize" && drag.id === id) box = drag.result;
       if (drag?.kind === "rotate" && drag.id === id) box = this.turnBox(id) ?? box;
+      if (drag?.kind === "bar" && drag.moving && drag.ids.includes(id)) {
+        box = this.draggedBarBox(element, drag);
+      }
       return { kind: "box", box };
     }
     const shift = drag?.kind === "event" && drag.moving && drag.key === id ? drag.delta : 0;
@@ -3701,13 +3841,22 @@ export class CanvasApp {
       } else if (shape) {
         const turned = this.elements.get(id);
         const frame = this.screenBox(shape.box);
+        // The bars of a chart are filled with the theme's accent, as the selection is drawn: its
+        // outline stands off them, over a halo of the background, so that it shows on them.
+        const lonely = r.profile === "gantt" && turned !== undefined && turned.kind !== "section";
+        const pad = lonely ? GANTT_RING : 0;
+        const ring = {
+          x: frame.x - pad,
+          y: frame.y - pad,
+          width: frame.width + 2 * pad,
+          height: frame.height + 2 * pad,
+          ...(lonely ? { rx: 5 } : {}),
+        };
+        if (lonely) add(s("rect", { class: "outline halo", ...ring }));
         add(
           s("rect", {
             class: id === primary ? "outline primary" : "outline",
-            x: frame.x,
-            y: frame.y,
-            width: frame.width,
-            height: frame.height,
+            ...ring,
             ...(turned ? this.turnAttributes(shape.box, this.angleOf(turned)) : {}),
           }),
         );
@@ -3740,23 +3889,49 @@ export class CanvasApp {
           hoverShape.points.map((p) => this.screenOf(p)),
           cls,
         );
-      } else rect(this.screenBox(hoverShape.box), cls);
+      } else {
+        const box = this.screenBox(hoverShape.box);
+        const gantt = r.profile === "gantt" && this.elements.get(hovered!)?.kind !== "section";
+        const pad = gantt ? GANTT_RING : 0;
+        rect(
+          {
+            x: box.x - pad,
+            y: box.y - pad,
+            width: box.width + 2 * pad,
+            height: box.height + 2 * pad,
+          },
+          cls,
+        );
+      }
     }
     // The handles resize, bend and connect: a canvas that only shows draws the outline alone.
     const barShown = this.barHandlesShown;
     this.barHandlesShown = undefined;
+    const ganttShown = this.ganttHandlesShown;
+    this.ganttHandlesShown = undefined;
     if (!drag && !this.movePending && this.selection.length === 1 && !this.readOnly) {
       const element = this.elements.get(this.selection[0]!);
       const relation = this.relations.get(this.selection[0]!);
       const event = this.events.get(this.selection[0]!);
       const sequence = r.profile === "sequence";
+      const gantt = r.profile === "gantt";
       // A free line has the handles of its points instead of a frame's.
       if (element?.line && !this.stale) this.drawLineHandles(element);
-      else if (element && !this.stale) this.drawElementHandles(element);
-      if (relation && !this.stale && !sequence) this.drawRouteHandles(relation);
+      else if (element && !this.stale) {
+        if (gantt) this.drawGanttHandles(element, ganttShown === element.id);
+        else this.drawElementHandles(element);
+      }
+      if (relation && !this.stale && !sequence && !gantt) this.drawRouteHandles(relation);
       // A written activation bar: a handle above its top and one below its bottom.
       if (event?.kind === "activate" && event.box && sequence && !this.stale && !r.scenario) {
         this.drawBarHandles(event, event.box, barShown === event.key);
+      }
+    }
+    // A hovered bar of a chart shows its link handle, as a selected one shows all its handles.
+    if (r.profile === "gantt" && !drag && !this.readOnly && !this.stale && this.hovered) {
+      const hovered = this.elements.get(this.hovered);
+      if (hovered && !(this.selection.length === 1 && this.selection[0] === hovered.id)) {
+        this.drawGanttHandles(hovered, false, true);
       }
     }
     if (drag?.kind === "linePoint" && drag.moving) {
@@ -3790,6 +3965,8 @@ export class CanvasApp {
       }
     }
     if (drag?.kind === "lineDraw" && drag.moving) this.drawLineGhost(drag.start, drag.point);
+    if (drag?.kind === "bar" && drag.moving && drag.axis === "time") this.drawBarGhost(drag);
+    if (drag?.kind === "draw" && drag.moving) this.drawTaskGhost(drag);
     const fading = this.lineFading;
     if (fading && !drag) this.drawLineGhost(fading.from, fading.to, fading.since);
     if (drag?.kind === "move") {
@@ -3866,7 +4043,7 @@ export class CanvasApp {
                 ? relation!.points[relation!.points.length - 1]!
                 : relation!.points[0]!,
             )
-          : this.screenOf(drag.start?.point ?? centerOf(this.elements.get(drag.from)!.box));
+          : this.screenOf(drag.start?.point ?? this.linkStart(drag.from));
       const to = this.screenOf(drag.point);
       add(s("line", { class: "wire", x1: from.x, y1: from.y, x2: to.x, y2: to.y }));
       const target = drag.target;
@@ -3875,7 +4052,10 @@ export class CanvasApp {
         outline(element, "highlight");
         // Any point of the outline; the magnets draw the end within a few pixels.
         const options = this.optionsOf(element);
-        for (const magnet of magnets(element.box, element.ports, element.shape, options)) {
+        // A bar of a chart takes a link anywhere: it has no points to show.
+        const magnetic =
+          r.profile === "gantt" ? [] : magnets(element.box, element.ports, element.shape, options);
+        for (const magnet of magnetic) {
           const p = this.screenOf(outOfFrame(magnet.point, element.box, element.rotation));
           add(s("circle", { class: "anchor", cx: p.x, cy: p.y, r: 3.5 }));
         }
@@ -3945,6 +4125,8 @@ export class CanvasApp {
       this.noteTargetAt(this.diagramOf(this.pointer))
     ) {
       outline(this.noteTargetAt(this.diagramOf(this.pointer))!, "highlight drop");
+    } else if (this.tool && r.profile === "gantt" && !drag && this.stage.matches(":hover")) {
+      this.drawToolGhost(this.tool);
     } else if (
       this.tool &&
       this.tool !== "relation" &&
@@ -4388,13 +4570,21 @@ export class CanvasApp {
   /** Where each element group of the drawing is on the page now, moving ones as they are seen. */
   private drawnRects(skip: ReadonlySet<string> = new Set()): Map<string, DOMRect> {
     const rects = new Map<string, DOMRect>();
-    for (const g of this.content.querySelectorAll<SVGGElement>(
-      'svg g[data-role="element"][data-id]',
-    )) {
+    for (const g of this.content.querySelectorAll<SVGGElement>(this.glidingGroups())) {
       const id = g.getAttribute("data-id")!;
       if (!skip.has(id) && !rects.has(id)) rects.set(id, g.getBoundingClientRect());
     }
     return rects;
+  }
+
+  /**
+   * The groups that glide when a drawing changes: the elements, and on a chart the arrows between
+   * them, which move with the bars they join.
+   */
+  private glidingGroups(): string {
+    return this.render?.profile === "gantt"
+      ? 'svg g[data-role="element"][data-id], svg g[data-role="relation"][data-id]'
+      : 'svg g[data-role="element"][data-id]';
   }
 
   /** The canvas's easing, `--mdg-ease`, for the animations it runs itself. */
@@ -4403,7 +4593,7 @@ export class CanvasApp {
   }
 
   /** The length of a motion token in milliseconds: none under reduced motion, as the tokens say. */
-  private motion(token: "--mdg-motion-fast" | "--mdg-motion"): number {
+  private motion(token: "--mdg-motion-fast" | "--mdg-motion" | "--mdg-motion-slow"): number {
     const value = getComputedStyle(this.stage).getPropertyValue(token).trim();
     const time = parseFloat(value);
     if (!Number.isFinite(time)) return 0;
@@ -4419,9 +4609,7 @@ export class CanvasApp {
     if (duration <= 0 || before.size === 0) return;
     const zoom = this.viewport.zoom;
     const easing = this.easing();
-    for (const g of this.content.querySelectorAll<SVGGElement>(
-      'svg g[data-role="element"][data-id]',
-    )) {
+    for (const g of this.content.querySelectorAll<SVGGElement>(this.glidingGroups())) {
       const was = before.get(g.getAttribute("data-id")!);
       if (!was) continue;
       const now = g.getBoundingClientRect();
@@ -4449,11 +4637,15 @@ export class CanvasApp {
    */
   private glidingInLists(update: () => void): void {
     const drag = this.drag;
+    const bars = drag?.kind === "bar" && drag.moving && drag.axis === "time";
     const lists =
-      drag?.kind === "move" &&
-      drag.moving &&
-      (drag.list !== undefined || this.previewShown?.list !== undefined);
-    const before = lists ? this.drawnRects(new Set(this.withContents(drag.ids))) : undefined;
+      bars ||
+      (drag?.kind === "move" &&
+        drag.moving &&
+        (drag.list !== undefined || this.previewShown?.list !== undefined));
+    const before = lists
+      ? this.drawnRects(new Set(drag.kind === "bar" ? drag.ids : this.withContents(drag.ids)))
+      : undefined;
     update();
     if (before) this.glide(before, this.motion("--mdg-motion-fast"));
   }
@@ -4480,7 +4672,9 @@ export class CanvasApp {
       ((drag?.kind === "move" && drag.moving) ||
         drag?.kind === "resize" ||
         (drag?.kind === "rotate" && drag.moving) ||
-        (drag?.kind === "barEnd" && drag.moving))
+        (drag?.kind === "barEnd" && drag.moving) ||
+        // A bar of a chart dragged in time: its successors, arrows and axis follow.
+        (drag?.kind === "bar" && drag.moving && drag.axis === "time"))
     );
   }
 
@@ -4499,6 +4693,7 @@ export class CanvasApp {
         ? undefined
         : { kind: "moveActivation", id: drag.id, end: drag.end, row: drag.row };
     }
+    if (drag?.kind === "bar") return this.ganttSchedule(drag) as PreviewedAction | undefined;
     if (profile === "sequence") return undefined;
     if (drag?.kind === "move") {
       // Into a list: the move the drop sends, which makes room for the selection there; nothing
@@ -4564,12 +4759,17 @@ export class CanvasApp {
     }
     if (key === this.previewSent) return;
     const token = ++this.previewToken;
+    const bars =
+      action.kind === "schedule" && this.drag?.kind === "bar"
+        ? this.ganttShifts(this.drag)
+        : undefined;
     this.previewWaiting = {
       token,
       delta: action.kind === "move" ? (action.delta ?? { x: 0, y: 0 }) : { x: 0, y: 0 },
       ...(action.kind === "move" && action.index !== undefined && typeof action.parent === "string"
         ? { list: { id: action.parent, index: action.index } }
         : {}),
+      ...(bars ? { bars } : {}),
     };
     this.previewAgain = false;
     this.previewSent = key;
@@ -4615,9 +4815,11 @@ export class CanvasApp {
           },
           waiting.delta,
           waiting.list,
+          waiting.bars,
         );
       }
       this.followPointer();
+      this.followBars();
       this.followRotation();
     });
     // The end of an activation bar: refused, the handle turns `danger` and the status line says
@@ -4656,6 +4858,7 @@ export class CanvasApp {
     },
     delta: Point,
     list?: ListDrop,
+    bars?: ReadonlyMap<string, number>,
   ): void {
     const r = this.render!;
     this.putScene(scene);
@@ -4668,6 +4871,7 @@ export class CanvasApp {
       offset: scene.offset,
       ...(scene.box ? { box: scene.box } : {}),
       ...(list ? { list } : {}),
+      ...(bars ? { bars } : {}),
     };
     this.markTurns();
     this.hideLayers();
@@ -4710,6 +4914,7 @@ export class CanvasApp {
   /** Ends a drag without its drop: the last render's drawing is shown as it was. */
   private resetPreview(): void {
     this.movePending = undefined;
+    this.hideGanttTip();
     if (this.drag?.kind === "laser") this.endLaser();
     // A stroke let go of is not written (its path goes with the drag), and the others drop it;
     // erased strokes come back.
@@ -5029,7 +5234,7 @@ export class CanvasApp {
         base,
       );
     });
-    arrange.setAttribute("data-not-profile", "sequence");
+    arrange.setAttribute("data-not-profile", "sequence gantt");
     const exportButton = this.button(words.commands.exportSvg, ICONS.export, () =>
       this.post({ type: "export" }),
     );
@@ -5327,7 +5532,7 @@ export class CanvasApp {
     );
     arrow.setAttribute("aria-haspopup", "menu");
     arrow.setAttribute("data-arrow-kinds", "");
-    arrow.setAttribute("data-not-profile", "sequence");
+    arrow.setAttribute("data-not-profile", "sequence gantt");
     const open = () => this.menu.isOpen && arrow.getAttribute("aria-expanded") === "true";
     this.holdOpens(main, () => {
       if (!open()) this.openArrowKinds(arrow);
@@ -5350,7 +5555,7 @@ export class CanvasApp {
     this.groupArrow = arrow;
     arrow.setAttribute("aria-haspopup", "menu");
     arrow.setAttribute("data-group-kinds", "");
-    arrow.setAttribute("data-not-profile", "sequence");
+    arrow.setAttribute("data-not-profile", "sequence gantt");
     const open = () => this.menu.isOpen && arrow.getAttribute("aria-expanded") === "true";
     this.holdOpens(main, () => {
       if (!open()) this.openGroupKinds(arrow);
@@ -5421,6 +5626,15 @@ export class CanvasApp {
     const button = this.groupButton;
     if (!button) return;
     const words = messages();
+    // A chart's group button adds a section: a band of rows with its title in the column.
+    if (this.render?.profile === "gantt") {
+      const name = words.palette.tools.section;
+      if (button.dataset.groupKind !== "section") button.replaceChildren(icon(ICONS.section));
+      button.title = `${name} (G)`;
+      button.setAttribute("aria-label", words.palette.hint(name));
+      button.dataset.groupKind = "section";
+      return;
+    }
     const kind = this.groupKindNow;
     const name = kind === "group" ? words.palette.tools.group : words.toolbar.groupKinds[kind];
     const label = words.palette.hint(name);
@@ -5834,6 +6048,8 @@ export class CanvasApp {
   /** What the status line says while a tool waits for a click: its shape, for boxes and nodes. */
   private placeWords(kind: ElementKind): string {
     const words = messages().announcements;
+    if (this.render?.profile === "gantt")
+      return words.placeBar(kind === "group" ? "section" : kind);
     return SHAPED_TOOLS.has(kind) && this.shape !== "rounded"
       ? words.placeShape(kind, this.shape)
       : words.place(kind);
@@ -5911,18 +6127,27 @@ export class CanvasApp {
     }
     this.scenarioSelect.hidden = r.scenarios.length === 0;
     this.showPlayButton(r);
+    // What the stylesheet needs to tell a chart's bars (grabbed) from other profiles' shapes.
+    this.stage.dataset.profile = r.profile;
     for (const button of this.toolbar.querySelectorAll<HTMLButtonElement>("[data-profile]")) {
       button.hidden = !forProfile(button.dataset.profile ?? "", r.profile);
     }
     this.declaredTools(r.tools ?? [], r.profile);
     for (const button of this.toolbar.querySelectorAll<HTMLButtonElement>("[data-not-profile]")) {
-      button.hidden = button.dataset.notProfile === r.profile;
+      button.hidden = forProfile(button.dataset.notProfile ?? "", r.profile);
     }
-    const relationLabel = r.profile === "sequence" ? words.toolbar.message : words.toolbar.relation;
+    const relationLabel =
+      r.profile === "sequence"
+        ? words.toolbar.message
+        : r.profile === "gantt"
+          ? words.toolbar.dependency
+          : words.toolbar.relation;
     this.relationButton.title =
       r.profile === "sequence"
         ? words.toolbar.relationTitle(relationLabel)
-        : words.toolbar.relationKindsTitle(relationLabel);
+        : r.profile === "gantt"
+          ? `${relationLabel} (R)`
+          : words.toolbar.relationKindsTitle(relationLabel);
     this.relationButton.setAttribute("aria-label", relationLabel);
     if (this.tool === "relation" && this.relationFrom && !this.elements.has(this.relationFrom)) {
       this.arm(undefined);
@@ -5952,6 +6177,12 @@ export class CanvasApp {
       this.modeBadge.textContent = r.scenario === null ? words.mode.sequence : words.mode.preview;
       this.modeBadge.title =
         r.scenario === null ? words.mode.sequenceTitle : words.mode.previewTitle;
+      return;
+    }
+    // The dates place a chart's bars: there is no layout to choose.
+    if (r.profile === "gantt") {
+      this.modeBadge.textContent = words.mode.gantt;
+      this.modeBadge.title = words.mode.ganttTitle;
       return;
     }
     this.modeBadge.textContent = words.mode.layout(r.mode);
@@ -6027,7 +6258,7 @@ export class CanvasApp {
       if (this.storyPanel.active || this.pointing) return;
       // A stylus's barrel button erases with the pen in the hand: it opens no menu.
       if (this.stylusMenuShut(e)) return;
-      const hit = this.hit(e.target);
+      const hit = this.ganttHit(this.hit(e.target), this.diagramOf(this.pointOf(e)));
       if (hit?.id && !this.selection.includes(hit.id)) this.select([hit.id]);
       // A pill's menu edits or removes its tag, then offers its owner's.
       this.menuPill = this.pillOf(e.target);
@@ -6050,6 +6281,7 @@ export class CanvasApp {
       this.hoveredLists = [];
       this.listAddHover = undefined;
       this.hovered = undefined;
+      if (!this.drag) this.hideGanttTip();
       this.drawOverlay();
     });
     // The stage never scrolls; a browser revealing a focused child must not shift it.
@@ -6169,6 +6401,33 @@ export class CanvasApp {
       const id = bar && this.content.contains(bar) ? bar.getAttribute("data-id") : null;
       if (id !== null) next = this.events.get(id)?.box ? id : undefined;
       else next = this.pillOf(target)?.owner;
+    } else if (this.render?.profile === "gantt" && !this.drag && target instanceof Element) {
+      next = this.ganttHovered(target);
+      if (next === undefined && this.hovered !== undefined) {
+        // The link handle lies beyond the bar: the bar stays hovered while the pointer crosses over.
+        this.hoverTimer ??= setTimeout(() => {
+          this.hoverTimer = undefined;
+          this.hovered = undefined;
+          this.hideGanttTip();
+          this.drawOverlay();
+        }, 350);
+        return;
+      }
+      if (this.hoverTimer !== undefined) {
+        clearTimeout(this.hoverTimer);
+        this.hoverTimer = undefined;
+      }
+      if (next !== this.hovered) {
+        // The dates of a bar under the pointer, after a moment: read-only canvases show them too.
+        this.hideGanttTip();
+        const bar = next === undefined ? undefined : this.ganttBar(next);
+        if (bar) {
+          const span = { start: bar.task.start, end: bar.task.end };
+          this.ganttTipTimer = setTimeout(() => {
+            if (this.hovered === bar.id && !this.drag) this.showGanttTip(this.ganttText(bar, span));
+          }, 250);
+        }
+      }
     }
     if (next === this.hovered) return;
     this.hovered = next;
@@ -6231,6 +6490,715 @@ export class CanvasApp {
       middle: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
       viewport: this.viewport,
     };
+  }
+
+  // ------------------------------------------------------------------ gantt charts
+
+  /** A bar, diamond or line of the chart shown, with its schedule. */
+  private ganttBar(id: string): (ElementInfo & { readonly task: TaskInfo }) | undefined {
+    const element = this.elements.get(id);
+    return element?.task ? (element as ElementInfo & { readonly task: TaskInfo }) : undefined;
+  }
+
+  /** The selected bars, diamonds and lines, in the order they were selected. */
+  private selectedBars(): (ElementInfo & { readonly task: TaskInfo })[] {
+    return this.selection.flatMap((id) => {
+      const bar = this.ganttBar(id);
+      return bar ? [bar] : [];
+    });
+  }
+
+  /**
+   * What a press is on in a chart: a section is pressed at its title, in the column. Its band across
+   * the timeline is the chart's background, where a press starts a band selection, or, with the Task
+   * tool, a bar.
+   */
+  private ganttHit(hit: ReturnType<CanvasApp["hit"]>, at: Point): ReturnType<CanvasApp["hit"]> {
+    if (this.render?.profile !== "gantt" || hit?.kind !== "element") return hit;
+    const timeline = this.render.timeline;
+    return this.elements.get(hit.id)?.kind === "section" && timeline && at.x >= timeline.x
+      ? undefined
+      : hit;
+  }
+
+  /** The bars and diamonds a band across a chart touches, in the order they are drawn. */
+  private ganttBand(a: Point, b: Point): string[] {
+    const x0 = Math.min(a.x, b.x);
+    const x1 = Math.max(a.x, b.x);
+    const y0 = Math.min(a.y, b.y);
+    const y1 = Math.max(a.y, b.y);
+    return [...this.elements.values()]
+      .filter(
+        (e) =>
+          (e.kind === "task" || e.kind === "milestone") &&
+          !this.isHidden(e.layer) &&
+          x0 <= e.box.x + e.box.width &&
+          x1 >= e.box.x &&
+          y0 <= e.box.y + e.box.height &&
+          y1 >= e.box.y,
+      )
+      .map((e) => e.id);
+  }
+
+  /** The step a drag snaps to at the zoom, in seconds. */
+  private ganttSnap(): number {
+    const timeline = this.render?.timeline;
+    return timeline ? snapStep(timeline.dayWidth * this.viewport.zoom) : SECONDS_PER_DAY;
+  }
+
+  /** What a drag holds of a bar. */
+  private ganttGrip(
+    bar: ElementInfo & { readonly task: TaskInfo },
+    part: BarGrip["part"],
+  ): BarGrip {
+    return {
+      part,
+      kind: bar.kind as BarGrip["kind"],
+      start: bar.task.start,
+      end: bar.task.end,
+      floor: bar.task.floor,
+    };
+  }
+
+  /** Where a bar of a drag is drawn: in time at the dates it has been given, or lifted off its row. */
+  private draggedBarBox(element: ElementInfo, drag: Extract<Drag, { kind: "bar" }>): Box {
+    const timeline = this.render?.timeline;
+    if (drag.axis === "rows") return { ...element.box, y: element.box.y + drag.lift };
+    const span = drag.spans.get(element.id);
+    if (!timeline || !span) return element.box;
+    const x = xOfInstant(timeline, span.start);
+    if (element.kind === "task") {
+      return { ...element.box, x, width: Math.max(2, xOfInstant(timeline, span.end) - x) };
+    }
+    // A diamond and a line are centred on their instant.
+    return { ...element.box, x: x - element.box.width / 2 };
+  }
+
+  /** The height of the bars of the chart, from the first of them. */
+  private ganttBarHeight(): number {
+    for (const element of this.elements.values()) {
+      if (element.kind === "task") return element.box.height;
+    }
+    return 24;
+  }
+
+  /** The row of the chart a diagram height is on: the top and height of its band. */
+  private rowAtY(y: number): { readonly y: number; readonly height: number } | undefined {
+    for (const element of this.elements.values()) {
+      const row = element.task?.row;
+      if (row && y >= row.y && y < row.y + row.height) return row;
+    }
+    return undefined;
+  }
+
+  /** The outlines where the bars of a drag in time will be, and the tick where one sticks. */
+  private drawBarGhost(drag: Extract<Drag, { kind: "bar" }>): void {
+    const timeline = this.render?.timeline;
+    if (!timeline) return;
+    for (const id of drag.ids) {
+      const element = this.elements.get(id);
+      if (!element || !drag.spans.has(id)) continue;
+      const box = this.screenBox(this.draggedBarBox(element, drag));
+      this.overlay.append(
+        s("rect", {
+          class: "ghost bar-ghost",
+          x: box.x,
+          y: box.y,
+          width: box.width,
+          height: box.height,
+          rx: Math.min(4, box.height / 4),
+        }),
+      );
+    }
+    const bar = this.ganttBar(drag.id);
+    const floor = bar?.task.floor;
+    if (drag.stuck && bar && floor !== null && floor !== undefined) {
+      const x = this.screenOf({ x: xOfInstant(timeline, floor), y: 0 }).x;
+      const top = this.screenOf({ x: 0, y: bar.box.y - 6 }).y;
+      const bottom = this.screenOf({ x: 0, y: bar.box.y + bar.box.height + 6 }).y;
+      this.overlay.append(
+        s("line", { class: "guide stuck-guide", x1: x, y1: top, x2: x, y2: bottom }),
+      );
+    }
+  }
+
+  /** The outline of a task being drawn with the Task tool. */
+  private drawTaskGhost(drag: Extract<Drag, { kind: "draw" }>): void {
+    const timeline = this.render?.timeline;
+    if (!timeline) return;
+    const least = drag.step >= SECONDS_PER_DAY ? SECONDS_PER_DAY : drag.step;
+    const x = xOfInstant(timeline, drag.start);
+    const width = xOfInstant(timeline, Math.max(drag.end, drag.start + least)) - x;
+    const height = this.ganttBarHeight();
+    const row = this.rowAtY(drag.press.y);
+    const y = row ? row.y + (row.height - height) / 2 : drag.press.y - height / 2;
+    const box = this.screenBox({ x, y, width, height });
+    this.overlay.append(
+      s("rect", {
+        class: "ghost bar-ghost",
+        x: box.x,
+        y: box.y,
+        width: box.width,
+        height: box.height,
+        rx: Math.min(4, box.height / 4),
+      }),
+    );
+  }
+
+  /** What an armed tool of a chart would place under the pointer: a bar, a diamond or a line. */
+  private drawToolGhost(tool: Tool): void {
+    const timeline = this.render?.timeline;
+    if (!timeline || (tool !== "task" && tool !== "milestone" && tool !== "marker")) return;
+    const at = this.diagramOf(this.pointer);
+    if (at.x < timeline.x) return;
+    const step = this.ganttSnap();
+    const start = snapAt(instantAt(timeline, at.x), step, timeline.weekStart);
+    const height = this.ganttBarHeight();
+    const row = this.rowAtY(at.y);
+    const y = row ? row.y + (row.height - height) / 2 : at.y - height / 2;
+    const x = xOfInstant(timeline, start);
+    if (tool === "task") {
+      const long = step >= SECONDS_PER_DAY ? SECONDS_PER_DAY : step;
+      const box = this.screenBox({ x, y, width: xOfInstant(timeline, start + long) - x, height });
+      this.overlay.append(
+        s("rect", {
+          class: "ghost bar-ghost",
+          x: box.x,
+          y: box.y,
+          width: box.width,
+          height: box.height,
+          rx: Math.min(4, box.height / 4),
+        }),
+      );
+    } else if (tool === "milestone") {
+      const half = (height * 0.8 * this.viewport.zoom) / 2;
+      const c = this.screenOf({ x, y: y + height / 2 });
+      this.overlay.append(
+        s("path", {
+          class: "ghost bar-ghost",
+          d: `M${c.x} ${c.y - half}L${c.x + half} ${c.y}L${c.x} ${c.y + half}L${c.x - half} ${c.y}Z`,
+        }),
+      );
+    } else {
+      const rows = [...this.elements.values()].flatMap((e) => (e.task?.row ? [e.task.row] : []));
+      if (rows.length === 0) return;
+      const top = this.screenOf({ x, y: Math.min(...rows.map((r) => r.y)) });
+      const bottom = this.screenOf({ x, y: Math.max(...rows.map((r) => r.y + r.height)) });
+      this.overlay.append(
+        s("line", {
+          class: "ghost marker-ghost",
+          x1: top.x,
+          y1: top.y,
+          x2: bottom.x,
+          y2: bottom.y,
+        }),
+      );
+    }
+  }
+
+  /** Where a link starts: the right end of a bar on a chart, the middle of an element elsewhere. */
+  private linkStart(id: string): Point {
+    const box = this.elements.get(id)!.box;
+    return this.render?.profile === "gantt"
+      ? { x: box.x + box.width, y: box.y + box.height / 2 }
+      : centerOf(box);
+  }
+
+  /** The tooltip's text for a bar with the dates it would have. */
+  private ganttText(bar: ElementInfo & { readonly task: TaskInfo }, span: BarSpan): string {
+    const timeline = this.render?.timeline;
+    if (!timeline) return "";
+    return spanText(
+      messages().gantt,
+      timeline.calendar,
+      { kind: bar.kind as BarGrip["kind"] },
+      span,
+    );
+  }
+
+  /** Shows the dates tooltip beside the pointer, or moves it there and changes what it says. */
+  private showGanttTip(text: string, note?: string): void {
+    const tip = this.ganttTip;
+    tip.replaceChildren(
+      h("span", { class: "gantt-tip-text" }, text),
+      ...(note ? [h("span", { class: "gantt-tip-note" }, note)] : []),
+    );
+    const room = this.stage.getBoundingClientRect();
+    const width = tip.offsetWidth;
+    const height = tip.offsetHeight;
+    const x = Math.max(4, Math.min(this.pointer.x + 10, room.width - width - 4));
+    const below = this.pointer.y + 22;
+    const y = below + height > room.height ? Math.max(4, this.pointer.y - height - 12) : below;
+    tip.style.transform = `translate(${x}px, ${y}px)`;
+    tip.classList.add("shown");
+  }
+
+  /** Fades the dates tooltip out. */
+  private hideGanttTip(): void {
+    if (this.ganttTipTimer !== undefined) clearTimeout(this.ganttTipTimer);
+    this.ganttTipTimer = undefined;
+    this.ganttTip.classList.remove("shown");
+  }
+
+  /** A press on a bar, diamond, line or section: it selects, and a canvas that edits may drag it. */
+  private ganttPress(id: string, e: PointerEvent, at: Point, additive: boolean): void {
+    if (additive) {
+      this.select(toggleSelection(this.selection, id, true));
+      return;
+    }
+    if (!this.selection.includes(id)) this.select([id]);
+    // A press selects; only a canvas that edits, on a chart without problems, goes on to drag.
+    const element = this.elements.get(id);
+    if (this.readOnly || this.stale || !element) return;
+    this.beginBar(element, "body", e, at);
+  }
+
+  /** Starts the drag of a bar, or of one of its ends. */
+  private beginBar(
+    element: ElementInfo,
+    part: "body" | "start" | "end",
+    e: PointerEvent,
+    at: Point,
+  ): void {
+    if (!this.render?.timeline) return;
+    const section = element.kind === "section";
+    const same = (id: string) =>
+      section ? this.elements.get(id)?.kind === "section" : this.ganttBar(id) !== undefined;
+    const ids = part === "body" ? this.selection.filter(same) : [element.id];
+    this.hideGanttTip();
+    this.drag = {
+      kind: "bar",
+      id: element.id,
+      part,
+      ids: ids.includes(element.id) ? ids : [element.id],
+      press: at,
+      screen: this.pointOf(e),
+      moving: false,
+      step: this.ganttSnap(),
+      spans: new Map(),
+      stuck: false,
+      lift: 0,
+    };
+  }
+
+  /**
+   * The pointer moves with a bar pressed. The first pixels decide whether the body moves in time or
+   * between rows (an end, a diamond and a line only move in time, a section only between rows).
+   */
+  private barMove(drag: Extract<Drag, { kind: "bar" }>, at: Point, point: Point): void {
+    const timeline = this.render?.timeline;
+    if (!timeline) return;
+    if (!drag.moving) {
+      const away = Math.hypot(point.x - drag.screen.x, point.y - drag.screen.y);
+      if (away < BAR_AXIS_LOCK || this.stale) return;
+      drag.moving = true;
+      const kind = this.elements.get(drag.id)?.kind;
+      const sideways = Math.abs(point.x - drag.screen.x) >= Math.abs(point.y - drag.screen.y);
+      drag.axis =
+        drag.part !== "body" || kind === "marker"
+          ? "time"
+          : kind === "section"
+            ? "rows"
+            : sideways
+              ? "time"
+              : "rows";
+    }
+    if (drag.axis === "time") this.barTime(drag, at, timeline);
+    else this.barRows(drag, at, timeline);
+    this.followBars();
+  }
+
+  /** A drag in time: the dates the pointer gives each bar, snapped, and what the tooltip says. */
+  private barTime(drag: Extract<Drag, { kind: "bar" }>, at: Point, timeline: TimelineInfo): void {
+    const primary = this.ganttBar(drag.id);
+    if (!primary) return;
+    const raw = ((at.x - drag.press.x) / timeline.dayWidth) * SECONDS_PER_DAY;
+    const first = dragSpan(timeline.calendar, drag.step, this.ganttGrip(primary, drag.part), raw);
+    drag.spans = new Map([[primary.id, { start: first.start, end: first.end }]]);
+    drag.stuck = first.stuck;
+    // The rest of the selection moves as far as the bar that was pressed.
+    const shift = first.start - primary.task.start;
+    for (const id of drag.ids) {
+      const bar = this.ganttBar(id);
+      if (!bar || id === primary.id) continue;
+      const span = dragSpan(timeline.calendar, drag.step, this.ganttGrip(bar, "body"), shift);
+      drag.spans.set(id, { start: span.start, end: span.end });
+    }
+    const note = drag.stuck ? messages().gantt.follows(primary.task.clauses.after) : undefined;
+    const text = this.ganttText(primary, first);
+    this.showGanttTip(text, note);
+    this.requestPreview();
+  }
+
+  /** A drag between rows: where the rows would go, and the insertion bar that shows it. */
+  private barRows(drag: Extract<Drag, { kind: "bar" }>, at: Point, timeline: TimelineInfo): void {
+    drag.lift = at.y - drag.press.y;
+    const right = xOfInstant(timeline, timeline.end);
+    const sections = this.elements.get(drag.id)?.kind === "section";
+    const drop = rowDrop([...this.elements.values()], at.y, sections, {
+      from: 6,
+      to: right - 6,
+    });
+    const elements = [...this.elements.values()];
+    drag.drop = drop && !dropsInPlace(elements, drag.ids, drop) ? drop : undefined;
+    if (drag.drop === undefined) this.hideGanttTip();
+    else {
+      const parent = drag.drop.parent;
+      this.showGanttTip(
+        parent === null ? messages().gantt.rowsTop : messages().gantt.rowsIn(parent),
+      );
+    }
+  }
+
+  /**
+   * Keeps what is dragged under the pointer without waiting for a drawing: in time, a bar moves by
+   * what the drawing shown leaves to go; between rows, the rows follow the pointer down, lifted
+   * above the others.
+   */
+  private followBars(): void {
+    const svg = this.content.querySelector("svg");
+    const drag = this.drag;
+    if (!svg || drag?.kind !== "bar" || !drag.moving) return;
+    const timeline = this.render?.timeline;
+    const shown = this.previewShown;
+    for (const id of drag.ids) {
+      let x = 0;
+      let y = 0;
+      if (drag.axis === "rows") y = drag.lift;
+      else if (drag.part === "body" && timeline) {
+        const bar = this.ganttBar(id);
+        const span = drag.spans.get(id);
+        if (bar && span) {
+          x =
+            xOfInstant(timeline, span.start) -
+            xOfInstant(timeline, bar.task.start) -
+            (shown?.bars?.get(id) ?? 0);
+        }
+      }
+      for (const g of svg.querySelectorAll(`g[data-id="${cssEscape(id)}"][data-role="element"]`)) {
+        if (x === 0 && y === 0) g.removeAttribute("transform");
+        else g.setAttribute("transform", `translate(${x} ${y})`);
+        if (drag.axis === "rows" && !g.hasAttribute("data-lifted")) {
+          // Painted last, as what is dragged over a list is, so that no band covers it.
+          g.setAttribute("data-lifted", "");
+          g.classList.add("mdg-lifted");
+          svg.append(g);
+        }
+      }
+    }
+  }
+
+  /** The schedule action of a drag in time, or undefined when it leaves every bar as it is. */
+  private ganttSchedule(drag: Extract<Drag, { kind: "bar" }>): CanvasAction | undefined {
+    if (drag.axis !== "time") return undefined;
+    const changes: { task: string; start?: number; end?: number }[] = [];
+    for (const id of drag.ids) {
+      const bar = this.ganttBar(id);
+      const span = drag.spans.get(id);
+      if (!bar || !span) continue;
+      const moved = span.start !== bar.task.start;
+      const grew = span.end !== bar.task.end;
+      if (drag.part === "end" ? !grew : !moved) continue;
+      changes.push(
+        drag.part === "end"
+          ? { task: id, end: span.end }
+          : drag.part === "start"
+            ? { task: id, start: span.start, end: span.end }
+            : { task: id, start: span.start },
+      );
+    }
+    const [first, ...rest] = changes;
+    if (!first) return undefined;
+    return { kind: "schedule", ...first, ...(rest.length > 0 ? { also: rest } : {}) };
+  }
+
+  /** How far each bar of a drag in time is drawn from where the last render has it, in units. */
+  private ganttShifts(drag: Extract<Drag, { kind: "bar" }>): Map<string, number> {
+    const shifts = new Map<string, number>();
+    const timeline = this.render?.timeline;
+    if (!timeline || drag.part !== "body") return shifts;
+    for (const id of drag.ids) {
+      const bar = this.ganttBar(id);
+      const span = drag.spans.get(id);
+      if (bar && span) {
+        shifts.set(id, xOfInstant(timeline, span.start) - xOfInstant(timeline, bar.task.start));
+      }
+    }
+    return shifts;
+  }
+
+  /** The release of a bar: dates written, rows moved, or everything back where it was. */
+  private endBar(drag: Extract<Drag, { kind: "bar" }>): void {
+    this.hideGanttTip();
+    const words = messages();
+    if (!drag.moving) return;
+    if (drag.axis === "time") {
+      const action = this.ganttSchedule(drag);
+      if (!action) {
+        const primary = this.ganttBar(drag.id);
+        this.resetPreview();
+        if (drag.stuck && primary) {
+          this.announce(words.announcements.ganttStuck(primary.id, primary.task.clauses.after));
+        }
+        return;
+      }
+      this.endPreview();
+      if (!this.act(action)) {
+        this.resetPreview();
+        return;
+      }
+      const primary = this.ganttBar(drag.id);
+      const span = drag.spans.get(drag.id);
+      if (primary && span) {
+        this.announce(words.announcements.ganttMoved(drag.ids, this.ganttText(primary, span)));
+      }
+      // The drawing stays as the drag left it until the edit's render replaces it.
+      this.drag = undefined;
+      this.drawOverlay();
+      return;
+    }
+    const drop = drag.drop;
+    if (
+      !drop ||
+      !this.act({ kind: "move", ids: drag.ids, parent: drop.parent, index: drop.index })
+    ) {
+      this.resetPreview();
+      this.announce(words.announcements.ganttNoMove);
+      return;
+    }
+    this.announce(words.announcements.movedInto(drag.ids, drop.parent));
+    // What was dragged glides from where it was dropped into its place once the edit is drawn.
+    this.settling = { since: performance.now() };
+    this.drag = undefined;
+    this.endPreview();
+    this.drawOverlay();
+  }
+
+  /** The Task tool pressed on the timeline: a bar is drawn from here; the others are placed. */
+  private ganttToolPress(kind: Tool, at: Point): void {
+    const timeline = this.render?.timeline;
+    const step = this.ganttSnap();
+    const from = timeline ? snapAt(instantAt(timeline, at.x), step, timeline.weekStart) : 0;
+    if (kind === "task" && timeline) {
+      this.drag = { kind: "draw", press: at, from, start: from, end: from, step, moving: false };
+      return;
+    }
+    this.arm(undefined);
+    if ((kind === "milestone" || kind === "marker") && timeline) {
+      this.create(kind, at, { schedule: { start: from } });
+      return;
+    }
+    this.create(kind as ElementKind, at);
+  }
+
+  /** The pointer moves while a task is drawn: its end follows, snapped, and the tooltip says it. */
+  private drawMove(drag: Extract<Drag, { kind: "draw" }>, at: Point): void {
+    const timeline = this.render?.timeline;
+    if (!timeline) return;
+    const away = Math.hypot(at.x - drag.press.x, at.y - drag.press.y) * this.viewport.zoom;
+    drag.moving = drag.moving || away >= DRAG_THRESHOLD;
+    const here = snapAt(instantAt(timeline, at.x), drag.step, timeline.weekStart);
+    drag.start = Math.min(drag.from, here);
+    drag.end = Math.max(drag.from, here);
+    if (!drag.moving) return;
+    const least = drag.step >= SECONDS_PER_DAY ? SECONDS_PER_DAY : drag.step;
+    const span = { start: drag.start, end: Math.max(drag.end, drag.start + least) };
+    this.showGanttTip(spanText(messages().gantt, timeline.calendar, { kind: "task" }, span));
+  }
+
+  /** The release of a drawn task: written from where the press was, for the length dragged. */
+  private drawEnd(drag: Extract<Drag, { kind: "draw" }>): void {
+    this.hideGanttTip();
+    const least = drag.step >= SECONDS_PER_DAY ? SECONDS_PER_DAY : drag.step;
+    const end = Math.max(drag.end, drag.start + least);
+    this.drag = undefined;
+    this.arm(undefined);
+    this.create("task", drag.press, { schedule: { start: drag.start, end } });
+    this.drawOverlay();
+  }
+
+  /**
+   * The handles of a selected bar: a grip at each end of a task, which changes that end, and beyond
+   * its end the link handle, which is dragged onto another task to make it follow. A hovered bar
+   * shows the link alone (`link`). They pop in as the bar is selected and stay while it is.
+   */
+  private drawGanttHandles(element: ElementInfo, held: boolean, link = false): void {
+    const box = this.screenBox(element.box);
+    const words = messages().gantt.handles;
+    const classes = (own: string) => (held ? `${own} held` : own);
+    const middle = box.y + box.height / 2;
+    const add = (node: SVGElement) => this.overlay.append(node);
+    if (element.kind === "task" && !link) {
+      // A bar too narrow for two grips on its edges has them beside it, so that they do not meet.
+      const narrow = box.width < 2 * GRIP.width + 4;
+      const reach = narrow ? GRIP.width / 2 + 1 : 0;
+      for (const part of ["start", "end"] as const) {
+        const x = part === "start" ? box.x - reach : box.x + box.width + reach;
+        add(
+          s(
+            "rect",
+            {
+              class: classes("handle grip"),
+              x: x - GRIP.width / 2,
+              y: middle - GRIP.height / 2,
+              width: GRIP.width,
+              height: GRIP.height,
+              rx: GRIP.width / 2,
+              "data-handle": `${part === "start" ? "taskStart" : "taskEnd"}:`,
+              "data-id": element.id,
+            },
+            s("title", {}, document.createTextNode(words[part])),
+          ),
+        );
+      }
+    }
+    if (element.kind === "task" || element.kind === "milestone") {
+      add(
+        s(
+          "circle",
+          {
+            class: classes("handle connect link"),
+            // Above the bar's right corner, clear of the label that stands beside the bar.
+            cx: box.x + box.width + LINK_GAP,
+            cy: box.y - LINK_GAP / 2,
+            r: 5,
+            "data-handle": "connect:east",
+            "data-id": element.id,
+          },
+          s("title", {}, document.createTextNode(words.link)),
+        ),
+      );
+    }
+    if (!link) this.ganttHandlesShown = element.id;
+  }
+
+  /** Flashes the outlines of elements in the theme's danger colour: a refused link. */
+  private flash(ids: readonly string[]): void {
+    for (const id of ids) {
+      const element = this.elements.get(id);
+      if (!element) continue;
+      const box = this.screenBox(element.box);
+      const outline = s("rect", {
+        class: "flash",
+        x: box.x - 2,
+        y: box.y - 2,
+        width: box.width + 4,
+        height: box.height + 4,
+        rx: 4,
+      });
+      this.flashLayer.append(outline);
+      // The animation takes three times --mdg-motion-slow; where there is none, it still shows.
+      setTimeout(() => outline.remove(), Math.max(700, 3 * this.motion("--mdg-motion-slow")));
+    }
+  }
+
+  /** The bar, diamond or line, or the handle of one, under the pointer: its link handle shows. */
+  private ganttHovered(target: Element): string | undefined {
+    const handle = target.closest("[data-handle]");
+    const owner = handle ?? target.closest('[data-role="element"]');
+    if (!owner || (!handle && !this.content.contains(owner))) return undefined;
+    const id = owner.getAttribute("data-id");
+    const kind = id ? this.elements.get(id)?.kind : undefined;
+    return id && (kind === "task" || kind === "milestone" || kind === "marker") ? id : undefined;
+  }
+
+  /**
+   * Left and Right move the start of the selected bars a day (Shift: a week), over the days that
+   * work; one edit for the lot, and a bar that follows another stays on its end.
+   */
+  private ganttNudge(direction: -1 | 1, week: boolean): void {
+    const timeline = this.render?.timeline;
+    const bars = this.selectedBars();
+    const words = messages().announcements;
+    if (!timeline || bars.length === 0) {
+      this.announce(words.ganttNothing);
+      return;
+    }
+    if (this.pending) {
+      this.afterRender.push(() => this.ganttNudge(direction, week));
+      return;
+    }
+    const changes: { task: string; start: number }[] = [];
+    for (const bar of bars) {
+      const { start, floor } = bar.task;
+      let to =
+        week || bar.kind === "marker"
+          ? start + direction * (week ? 7 : 1) * SECONDS_PER_DAY
+          : shiftWorking(start, direction, timeline.calendar);
+      if (floor !== null && to < floor) to = floor;
+      if (to !== start) changes.push({ task: bar.id, start: to });
+    }
+    const [first, ...rest] = changes;
+    if (!first) {
+      const bar = bars[0]!;
+      this.announce(
+        bar.task.floor !== null && bar.task.start <= bar.task.floor
+          ? words.ganttStuck(bar.id, bar.task.clauses.after)
+          : words.ganttNoMove,
+      );
+      return;
+    }
+    if (!this.act({ kind: "schedule", ...first, ...(rest.length > 0 ? { also: rest } : {}) }))
+      return;
+    const primary = this.ganttBar(first.task)!;
+    const end = bars.find((bar) => bar.id === first.task)!.task;
+    const shifted = { start: first.start, end: end.end + (first.start - end.start) };
+    this.announce(
+      words.ganttMoved(
+        changes.map((c) => c.task),
+        this.ganttText(primary, shifted),
+      ),
+    );
+  }
+
+  /**
+   * `]` and `[` lengthen and shorten the selected tasks by a day (Shift: a week), counted in the
+   * working time of the chart; one edit for the lot.
+   */
+  private ganttResize(grow: boolean, week: boolean): void {
+    const timeline = this.render?.timeline;
+    const tasks = this.selectedBars().filter((bar) => bar.kind === "task");
+    const words = messages().announcements;
+    if (!timeline || tasks.length === 0) {
+      this.announce(words.ganttNothing);
+      return;
+    }
+    if (this.pending) {
+      this.afterRender.push(() => this.ganttResize(grow, week));
+      return;
+    }
+    const step = (week ? workingDaysPerWeek(timeline.calendar) : 1) * SECONDS_PER_DAY;
+    const changes: { task: string; end: number }[] = [];
+    for (const bar of tasks) {
+      const { start, end } = bar.task;
+      const length = workingBetween(start, end, timeline.calendar);
+      const wanted = grow ? length + step : Math.max(SECONDS_PER_DAY, length - step);
+      const to = addWorking(start, wanted, timeline.calendar);
+      if (to !== end) changes.push({ task: bar.id, end: to });
+    }
+    const [first, ...rest] = changes;
+    if (!first) {
+      this.announce(words.ganttNoMove);
+      return;
+    }
+    if (!this.act({ kind: "schedule", ...first, ...(rest.length > 0 ? { also: rest } : {}) }))
+      return;
+    const bar = this.ganttBar(first.task)!;
+    this.announce(
+      words.ganttMoved(
+        changes.map((c) => c.task),
+        this.ganttText(bar, { start: bar.task.start, end: first.end }),
+      ),
+    );
+  }
+
+  /** The date under the pointer when it is over the timeline, for a marker added with V. */
+  private ganttMarkerSchedule(): { readonly start: number } | undefined {
+    const timeline = this.render?.timeline;
+    if (!timeline || !this.stage.matches(":hover")) return undefined;
+    const at = this.diagramOf(this.pointer);
+    if (at.x < timeline.x) return undefined;
+    return { start: snapAt(instantAt(timeline, at.x), this.ganttSnap(), timeline.weekStart) };
   }
 
   private pointerDown(e: PointerEvent): void {
@@ -6320,6 +7288,10 @@ export class CanvasApp {
       else this.placeIcon(armed, at);
       return;
     }
+    if (this.tool && this.render.profile === "gantt") {
+      this.ganttToolPress(this.tool, at);
+      return;
+    }
     if (this.tool) {
       const kind = this.tool;
       this.arm(undefined);
@@ -6334,7 +7306,7 @@ export class CanvasApp {
       );
       return;
     }
-    const hit = this.hit(e.target);
+    const hit = this.ganttHit(this.hit(e.target), at);
     // A finger takes hold of a handle, or of what is selected, as a mouse does; anywhere else its
     // drag pans the view, and its tap selects.
     if (e.pointerType === "touch" && !this.fingerHolds(hit)) {
@@ -6367,6 +7339,14 @@ export class CanvasApp {
         return;
       }
       const [kind, arg] = hit.handle.split(":") as [string, string];
+      if (kind === "taskStart" || kind === "taskEnd") {
+        // An end of a selected task of a chart: dragged, it changes that end.
+        const element = this.elements.get(hit.id);
+        if (element && !this.readOnly && !this.stale) {
+          this.beginBar(element, kind === "taskStart" ? "start" : "end", e, at);
+        }
+        return;
+      }
       if (kind === "barEnd") {
         // An end of a selected written activation bar, dragged to another event row.
         const box = this.events.get(hit.id)?.box;
@@ -6461,6 +7441,10 @@ export class CanvasApp {
           moving: false,
         };
       }
+      return;
+    }
+    if (hit?.kind === "element" && this.render.profile === "gantt") {
+      this.ganttPress(hit.id, e, at, additive);
       return;
     }
     if (hit?.kind === "element") {
@@ -6773,9 +7757,14 @@ export class CanvasApp {
       }
       case "end":
       case "connect": {
-        const element = this.attachTarget(at, drag.kind === "connect" ? drag.from : undefined);
+        const gantt = this.render?.profile === "gantt";
+        const except = drag.kind === "connect" ? drag.from : undefined;
+        const element = gantt ? this.ganttLinkTarget(at, except) : this.attachTarget(at, except);
         if (element) {
-          const attachment = this.attachOn(element, at, this.reach(free));
+          // A bar of a chart takes a link anywhere on it: no port, no point of its border.
+          const attachment = gantt
+            ? { port: null, point: at }
+            : this.attachOn(element, at, this.reach(free));
           drag.target = { element: element.id, attachment };
           drag.point = attachment.port === null ? at : attachment.point;
         } else {
@@ -6819,6 +7808,12 @@ export class CanvasApp {
         }
         break;
       }
+      case "bar":
+        this.barMove(drag, at, point);
+        break;
+      case "draw":
+        this.drawMove(drag, at);
+        break;
       case "minimap":
         return;
     }
@@ -6875,15 +7870,18 @@ export class CanvasApp {
           this.select(drag.additive ? [...drag.base] : []);
           return;
         }
-        const inside = selectInRect(
-          this.extents(),
-          { x: a.x, y: a.y, width: b.x - a.x, height: b.y - a.y },
-          new Map(
-            [...this.relations.values()]
-              .filter((x) => !this.isHidden(x.layer))
-              .map((x) => [x.key, outlineOf(x)]),
-          ),
-        );
+        const inside =
+          this.render?.profile === "gantt"
+            ? this.ganttBand(a, b)
+            : selectInRect(
+                this.extents(),
+                { x: a.x, y: a.y, width: b.x - a.x, height: b.y - a.y },
+                new Map(
+                  [...this.relations.values()]
+                    .filter((x) => !this.isHidden(x.layer))
+                    .map((x) => [x.key, outlineOf(x)]),
+                ),
+              );
         this.drag = undefined;
         this.select([...new Set([...drag.base, ...inside])]);
         return;
@@ -7140,6 +8138,12 @@ export class CanvasApp {
         }
         break;
       }
+      case "bar":
+        this.endBar(drag);
+        break;
+      case "draw":
+        this.drawEnd(drag);
+        return;
       default:
         break;
     }
@@ -7169,6 +8173,13 @@ export class CanvasApp {
   private reach(free: boolean): { border: number; magnet: number; free: boolean } {
     const zoom = this.viewport.zoom;
     return { border: BORDER_REACH / zoom, magnet: MAGNET_REACH / zoom, free };
+  }
+
+  /** The task or milestone of a chart under the pointer, another than `except`: a link's target. */
+  private ganttLinkTarget(point: Point, except?: string): ElementInfo | undefined {
+    return this.stackAt(point).find(
+      (e) => e.id !== except && (e.kind === "task" || e.kind === "milestone"),
+    );
   }
 
   /**
@@ -7469,6 +8480,11 @@ export class CanvasApp {
     | { readonly list: string; readonly column: boolean; readonly from: Point; readonly to: Point }
     | undefined {
     const drag = this.drag;
+    // Rows dragged on a chart: a bar across it, at the gap they would go to.
+    if (drag?.kind === "bar" && drag.moving && drag.axis === "rows" && drag.drop) {
+      const { from, to, y } = drag.drop;
+      return { list: "gantt", column: true, from: { x: from, y }, to: { x: to, y } };
+    }
     if (drag?.kind !== "move" || !drag.moving || !drag.list || !this.render) return undefined;
     const group = this.elements.get(drag.list.id);
     const list = group?.list;
@@ -7956,7 +8972,7 @@ export class CanvasApp {
       this.editTag(pill.owner, pill.index);
       return;
     }
-    const hit = this.hit(under);
+    const hit = this.ganttHit(this.hit(under), this.diagramOf(this.pointOf(e)));
     if (!hit) return;
     // A stroke has no text: a double click on it opens nothing and leaves it selected.
     if (hit.kind === "element" && this.elements.get(hit.id)?.pen) return;
@@ -8153,6 +9169,14 @@ export class CanvasApp {
       case "nudgeRightGrid":
       case "nudgeUpGrid":
       case "nudgeDownGrid": {
+        // On a chart Left and Right move the start of the selection a day, or a week with Shift.
+        if (this.render?.profile === "gantt") {
+          const side = command.replace("nudge", "").replace("Grid", "");
+          if (side === "Left" || side === "Right") {
+            this.ganttNudge(side === "Left" ? -1 : 1, command.endsWith("Grid"));
+          }
+          return;
+        }
         const step = command.endsWith("Grid") ? grid : 1;
         const name = command.replace("nudge", "").replace("Grid", "");
         const delta = {
@@ -8285,7 +9309,13 @@ export class CanvasApp {
         const anchor = this.mainPoint(this.screenOf(centerOf(this.elements.get(from)!.box)));
         this.picker.open(
           [...this.elements.values()]
-            .filter((e) => e.id !== from && e.kind !== "group" && !e.pen)
+            .filter(
+              (e) =>
+                e.id !== from &&
+                e.kind !== "group" &&
+                !e.pen &&
+                (this.render?.profile !== "gantt" || e.kind === "task" || e.kind === "milestone"),
+            )
             .map((e) => ({ id: e.id, label: e.label })),
           { x: anchor.x, y: anchor.y },
           (to) => this.act({ kind: "connect", from, to, line: "solid" }),
@@ -8367,6 +9397,46 @@ export class CanvasApp {
       case "addEntity":
         this.addEntity(this.centre());
         return;
+      case "createTask":
+      case "createMilestone":
+      case "createMarker": {
+        if (this.render?.profile !== "gantt") return;
+        // Creating something is no pointing.
+        this.setPointing(false);
+        const kind =
+          command === "createTask"
+            ? "task"
+            : command === "createMilestone"
+              ? "milestone"
+              : "marker";
+        // A marker goes at the date under the pointer; the others after the selection.
+        const schedule = kind === "marker" ? this.ganttMarkerSchedule() : undefined;
+        this.create(kind, this.diagramOf(this.pointer), schedule ? { schedule } : {});
+        return;
+      }
+      case "lengthen":
+      case "shorten":
+      case "lengthenWeek":
+      case "shortenWeek":
+        this.ganttResize(
+          command === "lengthen" || command === "lengthenWeek",
+          command.endsWith("Week"),
+        );
+        return;
+      case "moveRowUp":
+      case "moveRowDown": {
+        const ids = this.selection.filter((id) => this.elements.has(id));
+        if (ids.length === 0) {
+          this.announce(messages().announcements.ganttNothing);
+          return;
+        }
+        const direction = command === "moveRowUp" ? "up" : "down";
+        // Said with the drawing of the move, once the rows are in their new places.
+        if (this.act({ kind: "move", ids, delta: { x: 0, y: direction === "up" ? -1 : 1 } })) {
+          this.movedVertically = { id: ids[ids.length - 1]!, direction };
+        }
+        return;
+      }
       case "createIcon":
         // I opens the icon picker, and closes it again.
         this.setPointing(false);
@@ -8558,9 +9628,13 @@ export class CanvasApp {
       readonly parent?: string;
       /** Its position among the children of `parent`, a list. */
       readonly index?: number;
+      /** A chart: the dates of a bar drawn, or the date of a diamond or a line placed. */
+      readonly schedule?: { readonly start: number; readonly end?: number };
     } = {},
   ): boolean {
     if (this.readOnly) return false;
+    // A chart's group tool adds a section.
+    if (this.render?.profile === "gantt" && kind === "group") kind = "section";
     // `rounded` is the shape without a style: the action carries no shape for it.
     const shape = extra.shape !== undefined && extra.shape !== "rounded" ? extra.shape : undefined;
     // The innermost group under the point holds the new element; groups nest too. A note put
@@ -8600,6 +9674,7 @@ export class CanvasApp {
       ...(extra.fill !== undefined ? { fill: extra.fill } : {}),
       ...(kind === "group" && layout !== undefined ? { layout } : {}),
       ...(index !== undefined && parent ? { index } : {}),
+      ...(extra.schedule ? { schedule: extra.schedule } : {}),
     });
     if (!sent) return false;
     const words = messages().announcements;
@@ -8720,7 +9795,12 @@ export class CanvasApp {
         : lifeline;
     const element = id ? this.elements.get(id) : undefined;
     const words = messages().announcements;
-    if (!id || !element || element.kind === "group") {
+    // A chart's dependencies join tasks and milestones; a section or a marker is no end of one.
+    const unfit =
+      this.render?.profile === "gantt" &&
+      element !== undefined &&
+      (element.kind === "section" || (element.kind === "marker" && !this.relationFrom));
+    if (!id || !element || element.kind === "group" || unfit) {
       this.announce(this.relationFrom ? words.pickTargetOf(this.relationFrom) : words.pickStart);
       return;
     }
@@ -8846,6 +9926,24 @@ export class CanvasApp {
       if (inside) {
         this.arm(undefined);
         const at = this.snapPoint(this.diagramOf(this.pointOf(event)));
+        // A bar, diamond or line dropped on the timeline starts at the date it is dropped on.
+        const timeline = this.render?.timeline;
+        const dropped = this.diagramOf(this.pointOf(event));
+        if (
+          timeline &&
+          dropped.x >= timeline.x &&
+          (kind === "task" || kind === "milestone" || kind === "marker")
+        ) {
+          const start = snapAt(
+            instantAt(timeline, dropped.x),
+            this.ganttSnap(),
+            timeline.weekStart,
+          );
+          this.create(kind, dropped, {
+            schedule: { start, ...(kind === "task" ? { end: start + SECONDS_PER_DAY } : {}) },
+          });
+          return;
+        }
         // A sticky note dropped takes the button's colour, and pops in with its editor.
         if (kind === "sticky") {
           this.createSticky(at);
@@ -9277,6 +10375,10 @@ export class CanvasApp {
       this.openViewMenu(at);
       return;
     }
+    if (this.render?.profile === "gantt") {
+      this.openGanttMenu(at);
+      return;
+    }
     const elementIds = this.selection.filter((id) => this.elements.has(id));
     const primary = this.selection[this.selection.length - 1];
     const relation = primary ? this.relations.get(primary) : undefined;
@@ -9535,6 +10637,54 @@ export class CanvasApp {
         run: () => this.act({ kind: "arrange", scope: "unplaced" }),
       },
       { label: commands.recomputeLayout, run: () => this.act({ kind: "arrange", scope: "all" }) },
+      { label: commands.exportSvg, run: () => this.post({ type: "export" }) },
+    );
+    this.menu.open(items, this.mainPoint(at), this.main.getBoundingClientRect());
+  }
+
+  /** The context menu of a chart: the edits of a row, what can be added, and the text. */
+  private openGanttMenu(at: Point): void {
+    const run = (command: CanvasCommand) => () => this.command(command);
+    const { menu: words, commands, keys } = messages();
+    const primary = this.selection[this.selection.length - 1];
+    const element = primary ? this.elements.get(primary) : undefined;
+    const relation = primary ? this.relations.get(primary) : undefined;
+    const items: (MenuItem | "-")[] = [];
+    if (element) {
+      items.push(
+        { label: words.editLabel, key: keys.enter, run: run("editLabel") },
+        { label: words.renameId, key: `${keys.shift}+F2`, run: run("renameId") },
+      );
+    }
+    if (element?.kind === "task" || element?.kind === "milestone") {
+      items.push({ label: words.connectTo, key: "C", run: run("connect") });
+    }
+    if (element && element.kind !== "marker") {
+      items.push(
+        { label: words.moveUp, key: `Alt+${keys.up}`, run: run("moveRowUp") },
+        { label: words.moveDown, key: `Alt+${keys.down}`, run: run("moveRowDown") },
+      );
+      if (element.kind !== "section") {
+        items.push({ label: words.putInSection, key: "Alt+G", run: run("group") });
+      }
+    }
+    if (element || relation) items.push("-");
+    items.push(
+      { label: words.addTask, key: "T", run: run("createTask") },
+      { label: words.addMilestone, key: "M", run: run("createMilestone") },
+      { label: words.addMarker, key: "V", run: run("createMarker") },
+      { label: words.addSection, key: "G", run: run("createGroup") },
+      "-",
+    );
+    if (element || relation) {
+      items.push({ label: words.delete, key: keys.delete, run: run("delete") }, "-");
+    }
+    items.push(
+      {
+        label: words.showInText,
+        disabled: !primary,
+        run: () => primary && this.post({ type: "focusText", id: primary }),
+      },
       { label: commands.exportSvg, run: () => this.post({ type: "export" }) },
     );
     this.menu.open(items, this.mainPoint(at), this.main.getBoundingClientRect());

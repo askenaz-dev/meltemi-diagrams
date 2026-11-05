@@ -1,3 +1,4 @@
+import type { CivilTime } from "./calendar.js";
 import type { DiagramTypeDefinition } from "./diagram-types.js";
 import type {
   Block,
@@ -39,8 +40,11 @@ export type ParticipantKind =
   | "queue";
 /** Entities of an architecture model, drawn by C4 views. */
 export type EntityKind = "person" | "system" | "container" | "datastore" | "component";
-export type ElementKind = FlowElementKind | FreeElementKind | ParticipantKind | EntityKind;
-export type DiagramType = "flow" | "free" | "sequence" | "c4";
+/** Gantt kinds: sections of rows, and the tasks, milestones and markers they hold. */
+export type GanttElementKind = "section" | "task" | "milestone" | "marker";
+export type ElementKind =
+  FlowElementKind | FreeElementKind | ParticipantKind | EntityKind | GanttElementKind;
+export type DiagramType = "flow" | "free" | "sequence" | "c4" | "gantt";
 /** The level of a C4 view. */
 export type C4Level = "context" | "container" | "component";
 export type LineStyle = "solid" | "dashed";
@@ -178,6 +182,97 @@ export interface ListGroup {
   readonly align: ListAlign | null;
 }
 
+/** The units of a duration: `s`, `min`, `h`, `d` and `w`. */
+export type DurationUnit = "s" | "min" | "h" | "d" | "w";
+/** The units of a tick interval: the duration units, months and years. */
+export type TickUnit = DurationUnit | "mo" | "y";
+
+/** An id written after `after` or `until`, with where it is written. */
+export interface GanttReference {
+  readonly id: string;
+  readonly range: Range;
+}
+
+/** How a task ends, as written: `for 10d`, `to 2026-06-19` or `until a, b`. */
+export type GanttEnd =
+  | {
+      readonly kind: "for";
+      readonly amount: number;
+      readonly unit: DurationUnit;
+      /** The clause: the word and its value. */
+      readonly range: Range;
+      /** The duration alone. */
+      readonly valueRange: Range;
+    }
+  | {
+      readonly kind: "to";
+      readonly date: string;
+      readonly range: Range;
+      readonly valueRange: Range;
+    }
+  | {
+      readonly kind: "until";
+      readonly ids: readonly GanttReference[];
+      readonly range: Range;
+    };
+
+/**
+ * A task, milestone or marker of a gantt chart: the clauses as written (`from` is the date of
+ * `from` on a task and of `at` on a milestone or marker) and the schedule they resolve to.
+ */
+export interface GanttTask {
+  readonly from: {
+    readonly date: string;
+    /** The clause: the word and its date. */
+    readonly range: Range;
+    /** The date alone. */
+    readonly valueRange: Range;
+  } | null;
+  readonly after: readonly GanttReference[];
+  /** The clause of the `after` list: the word and its ids; null without one. */
+  readonly afterRange: Range | null;
+  readonly end: GanttEnd | null;
+  readonly status: "done" | "active" | null;
+  readonly critical: boolean;
+  /** The resolved start; null when a loop, an error or a missing start leaves it unresolved. */
+  readonly start: CivilTime | null;
+  /** The resolved end: an instant after the start for a task, the start itself for a milestone. */
+  readonly finish: CivilTime | null;
+  /** The seconds of working time between the start and the finish; null when unresolved. */
+  readonly working: number | null;
+}
+
+/** The calendar of a chart: the days that do not work, and the dates that do despite them. */
+export interface GanttCalendar {
+  /** Weekdays excluded, ascending, 0 being Monday and 6 Sunday. */
+  readonly excludedWeekdays: readonly number[];
+  /** Dates excluded, as `YYYY-MM-DD`, ascending. */
+  readonly excludedDates: readonly string[];
+  /** Dates worked despite the exclusions, as `YYYY-MM-DD`, ascending. */
+  readonly includedDates: readonly string[];
+  /** The first day of weekly ticks, 0 being Monday (the default) and 6 Sunday. */
+  readonly weekStart: number;
+}
+
+/** The settings of a gantt chart, with the defaults applied. */
+export interface GanttChart {
+  readonly calendar: GanttCalendar;
+  /** `axisFormat`, as written; null for the format that follows the tick interval. */
+  readonly axisFormat: string | null;
+  /** `ticks`, as written (`1w`); null for the ladder to choose. */
+  readonly ticks: string | null;
+  readonly axis: "top" | "bottom" | "both";
+  readonly labels: "bar" | "column";
+  readonly display: "normal" | "compact";
+  readonly dependencies: "shown" | "hidden";
+  /** Units of width a day takes, or null for the chart to fill the canvas. */
+  readonly dayWidth: number | null;
+  /** `today`: the date written, or null for the day the drawing is made; null without the line. */
+  readonly today: { readonly date: string | null; readonly range: Range } | null;
+  /** From the earliest start to the latest end of what is scheduled; null when nothing is. */
+  readonly span: { readonly start: CivilTime; readonly end: CivilTime } | null;
+}
+
 /** A box, decision, data store or group of a flow diagram. */
 export interface Element {
   readonly id: string;
@@ -230,6 +325,11 @@ export interface Element {
    * element.
    */
   readonly list: ListGroup | null;
+  /**
+   * Gantt charts: the clauses and schedule of a task, milestone or marker; null on sections and on
+   * every element of the other profiles.
+   */
+  readonly task: GanttTask | null;
   /**
    * Notes: the id of the element the note is attached to (`note <id> "Text" on <element>`), or
    * the entity path in a C4 view; null without the clause and on every other kind.
@@ -462,7 +562,9 @@ export type ReferenceRole =
   | "gap"
   | "scenario"
   /** The target of a note's `on <element>`. */
-  | "attachment";
+  | "attachment"
+  /** An id of a gantt task's `after` or `until` list. */
+  | "dependency";
 /** An identifier token in the source that resolves to an element or a named relation. */
 export interface Reference {
   readonly token: Token;
@@ -622,6 +724,8 @@ export interface FlowDiagram {
   readonly references: readonly Reference[];
   /** C4 views: the level, scope, lists and labels; null for other profiles. */
   readonly c4: C4View | null;
+  /** Gantt charts: the calendar, axis and look of the chart; null for other profiles. */
+  readonly gantt: GanttChart | null;
   /** Tokens that name model entities: view references and links; empty when there are none. */
   readonly entityReferences: readonly EntityReference[];
   /** `placement { }` statements at diagram level, in source order. */

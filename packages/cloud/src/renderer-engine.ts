@@ -80,6 +80,12 @@ const PROJECT_FONT = /(^|\/)assets\/fonts\/[^/]+$/i;
 /** The project's root in the in-memory file system: the room's paths are below it. */
 const ROOT = "/";
 
+/**
+ * The day a gantt chart that writes `today` without a date draws its line at: the server's UTC
+ * date, read here, in the host, never in the layout (decision 0066).
+ */
+const utcDay = (): string => new Date().toISOString().slice(0, 10);
+
 /** Project sessions whose layout engine is one the engine keeps: ELK starts once per object. */
 class PreviewSessions extends ProjectSessions {
   constructor(
@@ -169,6 +175,7 @@ export class PreviewEngine {
         fonts: () => library,
         iconPacks: () => this.packs,
         libraries: () => this.libraries,
+        today: utcDay,
       },
       this.elk,
     );
@@ -294,6 +301,7 @@ export class PreviewEngine {
         fonts: () => library,
         iconPacks: () => this.packs,
         libraries: () => this.libraries,
+        today: utcDay,
       },
       this.elk,
     );

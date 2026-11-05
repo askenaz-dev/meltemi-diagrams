@@ -53,6 +53,10 @@ fragments; entity paths (`shop.api`) in C4 views. Times are `800ms` or `1.5s`, u
   own colour, and stays drawn ([free.md](free.md#pen-strokes)).
 - Reveal everything that should appear; anything never revealed is visible from the start. An
   arrow appears with its two ends, so reveal the boxes, not the relations.
+- In a gantt chart ([gantt.md](gantt.md)) the targets are sections, tasks, milestones and markers:
+  `reveal` a section to show its band and rows, `draw a, b` to grow task bars from their start, and
+  `trace x` to light the arrows of the chain that drives a task or milestone that follows others;
+  `draw` of anything but a task, or `trace` of a task without arrows, is `story.invalid-target`.
 - Two actions on the same target and channel must not overlap (`story.conflict`): put a `reveal`
   and a `hide` of the same box in sequence, not in one `parallel`.
 - A change of `view` needs a `transition` (`story.missing-transition`); use `morph` between views

@@ -421,6 +421,30 @@ describe("guide", () => {
     expect(readFileSync(join(REPO_ROOT, "packages", "assist", "src", "guide.ts"), "utf8")).toBe(
       guideSource(REPO_ROOT),
     );
-    expect(Object.keys(GUIDE_PAGES)).toEqual(["language", "sequence", "c4", "free", "stories"]);
+    expect(Object.keys(GUIDE_PAGES)).toEqual([
+      "language",
+      "sequence",
+      "gantt",
+      "c4",
+      "free",
+      "stories",
+    ]);
+  });
+
+  it("gives the assistant the gantt page for a chart, and not for other diagrams", async () => {
+    const chart =
+      'language "0.2"\n\ndiagram plan: gantt {\n  task a "A" from 2026-06-01 for 2d\n}\n';
+    const flow = 'language "0.2"\n\ndiagram d: flow {\n  a -> b\n}\n';
+    const answer = JSON.stringify({ summary: "x", changes: [] });
+    const systemFor = async (text: string) => {
+      const adapter = scripted([answer]);
+      await propose(
+        { operation: "modify", path: "plan.meltemi", text, instruction: "tidy it", shared: [] },
+        { adapter, check },
+      );
+      return adapter.calls[0]!.system;
+    };
+    expect(await systemFor(chart)).toContain('<guide page="gantt">');
+    expect(await systemFor(flow)).not.toContain('<guide page="gantt">');
   });
 });

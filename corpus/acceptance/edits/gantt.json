@@ -1,0 +1,124 @@
+{
+  "description": "A task moved later, stretched, linked, moved to another section and removed changes its own lines only, and the tasks that wait for it follow.",
+  "sheet": "gantt/chains.meltemi",
+  "steps": [
+    {
+      "name": "move the first task a day later",
+      "operation": {
+        "kind": "setTaskSchedule",
+        "diagram": "chains",
+        "task": "collect",
+        "from": "2026-06-02"
+      },
+      "changed": [
+        "task collect"
+      ],
+      "present": [
+        "task collect \"Collect requirements\" from 2026-06-02 for 3d\\n"
+      ],
+      "dates": {
+        "chains": {
+          "collect": "2026-06-02T00:00 → 2026-06-05T00:00",
+          "review": "2026-06-05T00:00 → 2026-06-09T00:00",
+          "sign": "2026-06-09T00:00 → 2026-06-10T00:00",
+          "design": "2026-06-10T00:00 → 2026-06-16T00:00",
+          "integrate": "2026-06-24T00:00 → 2026-06-27T00:00",
+          "test": "2026-06-29T00:00 → 2026-07-03T00:00",
+          "release": "2026-07-03T00:00 → 2026-07-03T00:00"
+        }
+      }
+    },
+    {
+      "name": "stretch the interface by two days",
+      "operation": {
+        "kind": "setTaskSchedule",
+        "diagram": "chains",
+        "task": "ui",
+        "end": { "for": "7d" }
+      },
+      "changed": [
+        "task ui"
+      ],
+      "present": [
+        "task ui \"Interface\" after design for 7d\\n"
+      ],
+      "dates": {
+        "chains": {
+          "ui": "2026-06-16T00:00 → 2026-06-25T00:00",
+          "integrate": "2026-06-25T00:00 → 2026-06-30T00:00",
+          "test": "2026-06-30T00:00 → 2026-07-03T00:00",
+          "release": "2026-07-03T00:00 → 2026-07-03T00:00"
+        }
+      }
+    },
+    {
+      "name": "make the retrospective wait for the test run too",
+      "operation": {
+        "kind": "setTaskSchedule",
+        "diagram": "chains",
+        "task": "retro",
+        "after": ["release", "test"]
+      },
+      "changed": [
+        "task retro"
+      ],
+      "present": [
+        "task retro \"Retrospective\" after release, test for 1d\\n"
+      ],
+      "dates": {
+        "chains": {
+          "retro": "2026-07-03T00:00 → 2026-07-04T00:00",
+          "handover": "2026-07-06T00:00 → 2026-07-08T00:00"
+        }
+      }
+    },
+    {
+      "name": "move the hand-over into the delivery section",
+      "operation": {
+        "kind": "moveElement",
+        "diagram": "chains",
+        "element": "handover",
+        "parent": "delivery"
+      },
+      "present": [
+        "milestone release[^\\n]*\\n    task handover[^\\n]*\\n  }",
+        "section closing \"Closing\" \\{\\n    task retro[^\\n]*\\n  }"
+      ],
+      "dates": {
+        "chains": {
+          "retro": "2026-07-03T00:00 → 2026-07-04T00:00",
+          "handover": "2026-07-06T00:00 → 2026-07-08T00:00"
+        }
+      }
+    },
+    {
+      "name": "remove the review, which the sign-off waited for",
+      "operation": {
+        "kind": "removeElement",
+        "diagram": "chains",
+        "element": "review",
+        "cascade": true
+      },
+      "changed": [
+        "task review",
+        "task sign"
+      ],
+      "absent": [
+        "task review"
+      ],
+      "present": [
+        "task sign \"Sign off\" from 2026-06-09 for 1d done\\n"
+      ],
+      "dates": {
+        "chains": {
+          "sign": "2026-06-09T00:00 → 2026-06-10T00:00",
+          "design": "2026-06-10T00:00 → 2026-06-16T00:00",
+          "ui": "2026-06-16T00:00 → 2026-06-25T00:00",
+          "integrate": "2026-06-25T00:00 → 2026-06-30T00:00",
+          "retro": "2026-07-03T00:00 → 2026-07-04T00:00",
+          "handover": "2026-07-06T00:00 → 2026-07-08T00:00"
+        }
+      }
+    }
+  ]
+}

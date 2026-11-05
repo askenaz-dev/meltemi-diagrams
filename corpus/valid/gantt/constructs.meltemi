@@ -1,0 +1,41 @@
+language "0.2"
+
+// Every construct of a gantt chart: sections, a task of each kind of clause, statuses, a milestone,
+// markers, the calendar, the today line and the compact display.
+diagram launch: gantt {
+  title "Product launch"
+  description "A plan with every construct of a gantt chart"
+  theme "editorial.light"
+  axisFormat "%d %b"
+  exclude weekends, 2026-06-19
+  today 2026-06-25
+  display compact
+
+  class late { stroke danger }
+
+  section discovery "Discovery" {
+    task research "User research" from 2026-06-01 for 5d done
+    task interviews "Interviews" from 2026-06-03 to 2026-06-05 done
+    task synthesis "Synthesis" after research, interviews for 3d done
+  }
+
+  section build "Build" {
+    task design "Design" after synthesis for 6d active
+    task backend "Backend" after design for 8d critical
+    task frontend "Frontend" after design for 7d { class late }
+    task docs "Documentation" from 2026-06-22 for 1w {
+      description "Written while the product settles"
+      url "https://example.com/docs"
+    }
+    task review "Release review" from 2026-07-06 for 3d
+  }
+
+  section go "Go to market" {
+    task qa "Quality assurance" after backend, frontend until launch
+    milestone launch "Launch" at 2026-07-14
+    task support "Support rota" after launch for 2w
+  }
+
+  marker freeze "Code freeze" at 2026-07-03
+  marker board "Board review" at 2026-06-30
+}

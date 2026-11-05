@@ -1,0 +1,23 @@
+[
+  {
+    "code": "gantt.excluded-day",
+    "severity": "warning",
+    "message": "Saturday 2026-06-06 is excluded; it starts on Monday 2026-06-08.",
+    "range": {
+      "start": {
+        "offset": 180,
+        "line": 6,
+        "column": 32
+      },
+      "end": {
+        "offset": 190,
+        "line": 6,
+        "column": 42
+      }
+    },
+    "hints": [
+      "Move the date to a working day, or make it one with `include`."
+    ],
+    "related": []
+  }
+]

@@ -17,6 +17,41 @@ const HOMES: Readonly<Record<string, string>> = {
   component: "in a container",
 };
 
+/** The months and the days of the week of messages about dates; the weekdays count from Monday. */
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+] as const;
+const WEEKDAY_NAMES = [
+  "Monday",
+  "Tuesday",
+  "Wednesday",
+  "Thursday",
+  "Friday",
+  "Saturday",
+  "Sunday",
+] as const;
+
+/** What is wrong with a date that has the form of one but names no day, for `gantt.dateProblem`. */
+export interface DateIssue {
+  readonly kind: "format" | "month" | "day" | "hour" | "minute" | "second";
+  readonly month?: number;
+  readonly year?: number;
+  readonly day?: number;
+  readonly daysInMonth?: number;
+  readonly value?: number;
+}
+
 /** An entity that holds a statement: its kind and path. */
 export interface Parent {
   readonly kind: string;
@@ -284,6 +319,14 @@ export const en = {
       dashWithoutOutline: (target: string, kind: string) =>
         `\`${target}\` is a ${kind} without an outline; a moving dash needs a line or a box.`,
       unknownTarget: (name: string) => `Unknown element or relation \`${name}\`.`,
+      /**
+       * `animate.invalid-target` in a gantt chart: `flow` and `trace` run along the dependency
+       * arrows into a task or a milestone.
+       */
+      ganttArrowsTarget: (effect: "flow" | "trace", id: string, kind: string) =>
+        `${effect === "flow" ? "Flow particles run" : "A trace runs"} along the dependency arrows into a task or a milestone; \`${id}\` is ${article(kind)}.`,
+      ganttNoArrows: (effect: "flow" | "trace", id: string) =>
+        `\`${id}\` has no dependency arrows ${effect === "flow" ? "for particles to run along" : "to trace"}; \`${effect}\` takes a task or a milestone that follows others with \`after\`.`,
     },
 
     /** Values of properties, property blocks, classes and rules. */
@@ -321,6 +364,12 @@ export const en = {
       /** `shape` in a class or rule of a profile without nodes or boxes (`sequence`, `c4`). */
       shapeInProfile: (profile: string) =>
         `\`shape\` applies to \`node\` and \`box\` elements; ${profile === "c4" ? "C4 views draw" : `${profile} diagrams draw`} each kind with its own shape.`,
+      /** A style property that bars, diamonds and lines of a gantt chart do not take. */
+      notInGantt: (name: string) =>
+        `\`${name}\` does not apply to gantt charts; their bars, diamonds and lines have a fixed shape.`,
+      /** A text property that the labels of a gantt chart do not take. */
+      textNotInGantt: (name: string) =>
+        `\`${name}\` does not apply to gantt charts; their labels are drawn in the theme's font, at the size of the rows.`,
       duplicateClass: (id: string) => `Class \`${id}\` is already declared here.`,
       ruleShape: "Expected `rule <kind> { ... }`.",
       invalidRuleKind: (arg: string, kinds: readonly string[]) =>
@@ -482,6 +531,101 @@ export const en = {
       loopCount: "A loop repeats 1 to 100 times in a scenario.",
     },
 
+    /** Gantt charts: sections, tasks, milestones, markers, the calendar and the schedule. */
+    gantt: {
+      /** `gantt.relation`. */
+      relation: "A gantt chart has no relation statements; dependencies are written with `after`.",
+      shorthand: (id: string) =>
+        `\`${id}[...]\` declares nothing in a gantt chart; write a \`task\`, \`milestone\`, \`marker\` or \`section\`.`,
+      sectionInSection: "A section holds tasks, milestones and markers, not other sections.",
+      unknownInSection: (keyword: string) => `Unknown statement \`${keyword}\` in a section.`,
+      everyDayExcluded: "These exclusions leave no day of the week to work.",
+      badDirective: (directive: string, directives: readonly string[]) =>
+        `\`${directive}\` is not a directive of \`axisFormat\`; use ${and(directives.map(code))}.`,
+      alreadyWorking: (date: string) =>
+        `\`${date}\` is a working day already; \`include\` is for dates that an exclusion covers.`,
+      needsDays: (name: string) =>
+        `\`${name}\` needs one or more ${name === "exclude" ? "weekdays, `weekends` or dates" : "dates"}.`,
+      dayNotInstant: (name: string, text: string) =>
+        `\`${name}\` takes days, not instants: write \`${text.slice(0, 10)}\`.`,
+      notADay: (arg: string, name: string) => `${arg} is not something \`${name}\` takes.`,
+      needsTicks: "`ticks` needs an interval such as `1w`.",
+      badTicks: (arg: string) =>
+        `Invalid ticks ${arg}; expected a whole number with a unit, such as \`1w\`.`,
+      needsDate: (word: string) => `\`${word}\` needs a date.`,
+      notDate: (word: string, arg: string) => `\`${word}\` expects a date; found ${arg}.`,
+      quotedDate: (word: string, value: string) =>
+        `\`${word}\` takes a date written without quotes; found "${value}".`,
+      /** `prop.invalid-value` on a date that has the form but names no day. */
+      dateProblem: (text: string, problem: DateIssue) => {
+        switch (problem.kind) {
+          case "month":
+            return `\`${text}\` has no month ${problem.month}; months run from 01 to 12.`;
+          case "day":
+            return `\`${text}\`: ${MONTH_NAMES[problem.month! - 1]} ${problem.year} has ${problem.daysInMonth} days.`;
+          case "hour":
+            return `\`${text}\` has no hour ${problem.value}; hours run from 00 to 23.`;
+          case "minute":
+            return `\`${text}\` has no minute ${problem.value}; minutes run from 00 to 59.`;
+          case "second":
+            return `\`${text}\` has no second ${problem.value}; seconds run from 00 to 59.`;
+          default:
+            return `\`${text}\` is not a date.`;
+        }
+      },
+      needsDuration: (word: string) => `\`${word}\` needs a duration.`,
+      notDuration: (arg: string) => `Expected a duration such as \`10d\`; found ${arg}.`,
+      durationUnit: (text: string, unit: string | null, units: readonly string[]) =>
+        unit === null
+          ? `\`${text}\` needs a unit: ${and(units.map(code))}.`
+          : `\`${unit}\` is not a unit of duration in \`${text}\`; use ${and(units.map(code))}.`,
+      durationAboveZero: (text: string) => `A duration is above 0; found \`${text}\`.`,
+      durationTooLong: (text: string) => `\`${text}\` is longer than a century.`,
+      reservedId: (id: string) => `\`${id}\` is a clause word of gantt charts and cannot be an id.`,
+      strayValue: (arg: string, form: string) => `Unexpected ${arg}; expected ${form}.`,
+      clauseTwice: (word: string) => `\`${word}\` is written twice in this statement.`,
+      endTwice: (word: string, other: string) =>
+        `\`${word}\` ends the task, which \`${other}\` already does; write one end.`,
+      notAnId: (word: string, arg: string) => `\`${word}\` takes task ids; found ${arg}.`,
+      idTwice: (id: string, word: string) => `\`${id}\` is already in this \`${word}\` list.`,
+      needsIds: (word: string) => `\`${word}\` needs one or more task ids.`,
+      statusTwice: (word: string, other: string) =>
+        `\`${word}\` contradicts \`${other}\`; a task is one or the other.`,
+      unknownWord: (word: string, kind: string) =>
+        `\`${word}\` is not a clause or a status of ${article(kind)}.`,
+      markerNeedsPlace: (id: string) =>
+        `The marker \`${id}\` needs \`at <date>\` or \`after <ids>\`.`,
+      markerOnePlace: (id: string) =>
+        `The marker \`${id}\` is placed by \`at\` or by \`after\`, not both.`,
+      /** `gantt.excluded-day`: a date written on a day that does not work, and where it goes. */
+      excludedDay: (
+        text: string,
+        weekday: number,
+        target: { readonly date: string; readonly weekday: number } | null,
+        what: "starts" | "ends",
+      ) => {
+        const day = `${WEEKDAY_NAMES[weekday]} ${text.slice(0, 10)}`;
+        if (target === null) {
+          return `${day} is excluded, and no working day ${what === "starts" ? "follows" : "precedes"} it.`;
+        }
+        return `${day} is excluded; it ${what} on ${WEEKDAY_NAMES[target.weekday]} ${target.date}.`;
+      },
+      dependencyKind: (word: string, id: string, kind: string) =>
+        `\`${word}\` names tasks and milestones; \`${id}\` is ${article(kind)}.`,
+      /** `gantt.cycle`: the ids of the loop. */
+      cycle: (ids: readonly string[]) =>
+        `${and(ids.map(code))} wait for each other; a task cannot depend on one that depends on it.`,
+      /** `gantt.unscheduled`. */
+      unscheduled: (id: string) => `\`${id}\` has no start and no task before it to follow.`,
+      /** `gantt.schedule`: the instants as ISO text. */
+      endsBeforeStart: (id: string, start: string, finish: string, equal: boolean) =>
+        equal
+          ? `\`${id}\` ends when it starts (${start}); a task needs a length.`
+          : `\`${id}\` ends ${finish}, before it starts ${start}.`,
+      noWorkingTime: (id: string) =>
+        `\`${id}\` cannot be scheduled: the calendar leaves no working time for it.`,
+    },
+
     /** Stories: scenes, actions, targets and times. */
     story: {
       /** `story.unknown-diagram`. */
@@ -523,6 +667,14 @@ export const en = {
       /** `story.conflict`: the channel is `visibility`, `highlight`, `trace`, `focus` or `camera`. */
       conflict: (action: string, channel: string, target: string) =>
         `\`${action}\` overlaps an earlier action on the same ${channel} of \`${target}\`.`,
+      /** `story.invalid-target` in a gantt chart: `trace` follows the arrows into a task or milestone. */
+      ganttTraceTarget: (id: string, kind: string) =>
+        `\`trace\` follows the dependency arrows into a task or a milestone; \`${id}\` is ${article(kind)}.`,
+      ganttTraceNoArrows: (id: string) =>
+        `\`${id}\` has no dependency arrows to trace; \`trace\` takes a task or a milestone that follows others with \`after\`.`,
+      /** `draw` in a gantt chart takes tasks; the element's kind, or null for a note or fragment. */
+      ganttDrawTarget: (id: string, kind: string | null) =>
+        `\`draw\` takes pens, lines, relations and gantt tasks; \`${id}\` is ${kind === null ? "a note or fragment" : `${/^[aeiou]/i.test(kind) ? "an" : "a"} \`${kind}\` element`}.`,
     },
 
     /** Export profiles. */
@@ -779,6 +931,47 @@ export const en = {
         `Branches: ${conditions.map((c) => `"${c}"`).join(", ")}.`,
     },
 
+    gantt: {
+      relation: (from: string, to: string | null) =>
+        to === null
+          ? "Write the dependency with `after` on the task that waits."
+          : `Write \`after ${from}\` on \`${to}\`: \`task ${to} after ${from}\`.`,
+      statements:
+        "Gantt charts accept `section`, `task`, `milestone`, `marker`, `exclude`, `include`, `weekStart`, `axisFormat`, `ticks`, `axis`, `labels`, `display`, `dependencies`, `dayWidth`, `today`, `title`, `description`, `theme`, `preset`, `canvas`, `style`, `animate`, `class` and `rule`.",
+      sectionContents:
+        "A section holds `task`, `milestone` and `marker` statements, and `description`, `class`, `link` and `url`.",
+      everyDayExcluded: "Leave at least one weekday working, or exclude dates instead.",
+      axisFormat:
+        "The directives are %a %A %b %B %d %e %H %I %j %m %M %p %q %S %U %V %w %W %y %Y and %%, each with an optional `-` as in `%-d`.",
+      alreadyWorking: "Remove the date, or exclude the day it falls on first.",
+      dateForm: "Write dates as `2026-06-01` or `2026-06-01T09:30`.",
+      unquotedDate: (value: string) => `Write the date without quotes: \`${value}\`.`,
+      excludeItems: (weekdays: readonly string[]) =>
+        `\`exclude\` takes \`weekends\`, ${and(weekdays.map(code))} and dates such as \`2026-12-25\`.`,
+      includeItems: "`include` takes dates such as `2026-06-06`.",
+      ticks: (units: readonly string[]) =>
+        `Write a whole number and a unit, such as \`1w\`; the units are ${and(units.map(code))}.`,
+      durationForm: (units: readonly string[]) =>
+        `Write a number and a unit, such as \`10d\`; the units are ${and(units.map(code))}.`,
+      zeroDuration: "A task takes time; for an instant, declare a `milestone`.",
+      clauses: (clauses: readonly string[], statuses: readonly string[]) =>
+        `The statement takes ${and([...clauses, ...statuses].map(code))}.`,
+      /** A clause word of the other statements: `task`, or `milestone` for milestones and markers. */
+      otherKind: (word: string, kinds: "task" | "milestone") =>
+        `\`${word}\` belongs to ${kinds === "task" ? "task" : "milestone and marker"} statements.`,
+      idList: (word: string) =>
+        `\`${word}\` takes the ids of tasks and milestones, such as \`${word} design, review\`.`,
+      reservedId: "Rename it: clause words end a list of ids, so they cannot be ids.",
+      excludedDay: "Move the date to a working day, or make it one with `include`.",
+      unknownTask: (id: string) =>
+        `Declare \`${id}\` as a task or a milestone, or check its spelling.`,
+      unscheduled: "Write `from <date>`, or put the task after another.",
+      cycle: "Remove one of the references of the loop.",
+      endsBeforeStart: "An end comes after the start; check the dates, or write `for <duration>`.",
+      noWorkingTime:
+        "The calendar excludes every day for as far as a chart looks; relax the exclusions.",
+    },
+
     story: {
       diagrams: (names: readonly string[]) => `Diagrams: ${names.join(", ")}.`,
       declareDiagram: "Declare a diagram or import one.",
@@ -808,6 +1001,7 @@ export const en = {
     firstEffect: "The first effect.",
     firstWritten: "First written here.",
     firstDecided: "First decided here.",
+    inTheLoop: "In the same loop.",
     firstScene: "The first scene.",
     earlierAction: "The earlier action.",
   },

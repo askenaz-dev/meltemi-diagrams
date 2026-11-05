@@ -15,6 +15,7 @@ import { frameScene } from "../src/frame.js";
 import {
   PlayerController,
   commandForKey,
+  detailsOf,
   effectsDocument,
   effectsSummary,
   formatTime,
@@ -37,6 +38,13 @@ import { en } from "../src/messages/en.js";
 import { es } from "../src/messages/es.js";
 import { messages } from "../src/messages/index.js";
 import { playerScript } from "../src/node.js";
+import {
+  civilText,
+  scheduleCard,
+  schedulePanel,
+  scheduleType,
+  workingText,
+} from "../src/schedule.js";
 import { ViewerViewport, viewerCommandForKey } from "../src/viewport.js";
 
 const purchase = readFileSync(join(CORPUS_ROOT, "valid", "stories", "purchase.meltemi"), "utf8");
@@ -864,3 +872,292 @@ story walk for board {
     ]);
   });
 });
+
+describe("gantt charts in the player", () => {
+  const roadmap = readFileSync(join(CORPUS_ROOT, "valid", "gantt", "roadmap.meltemi"), "utf8");
+  /** The owner's chart with statements added before its closing brace, and a story about it. */
+  const chart = (extra = "", story = "") => `${roadmap.replace(/\}\s*$/, `${extra}\n}\n`)}${story}`;
+
+  function layoutOf(source: string, locale: "en" | "es" = "en") {
+    const compilation = compile(source);
+    expect(compilation.diagnostics.filter((d) => d.severity === "error")).toEqual([]);
+    const diagram = compilation.document.diagrams[0]!;
+    return {
+      compilation,
+      diagram,
+      layout: layoutDiagram(compilation, diagram, { engine, locale, today: "2026-10-29" }),
+    };
+  }
+  function effectsOf(extra = "", locale: "en" | "es" = "en") {
+    const { diagram, layout } = layoutOf(chart(extra), locale);
+    return effectsDocument({ diagram, layout }, { locale })!;
+  }
+  function storyOf(story: string, locale: "en" | "es" = "en") {
+    const source = chart("", `\nstory plan for hoja_de_ruta_genai {\n${story}\n}\n`);
+    const { compilation, diagram, layout } = layoutOf(source, locale);
+    const [definition] = compilation.document.stories;
+    const layouts = new Map<string, LaidOutView>([["hoja_de_ruta_genai", { diagram, layout }]]);
+    return storyDocument(definition!, layouts, { locale })!;
+  }
+  const label =
+    (doc: { names: Record<string, { labels: Record<string, string> }> }) => (id: string) =>
+      doc.names.hoja_de_ruta_genai!.labels[id] ?? id;
+
+  it("carries the schedule of each element as plain data, and nothing of how it is written", () => {
+    const doc = effectsOf(
+      "milestone beta after tec2\nmarker freeze at 2026-06-10\n// internal: rotate keys on Friday",
+    );
+    const elements = doc.details.hoja_de_ruta_genai!.elements;
+    expect(elements.tec1!.schedule).toEqual({
+      start: "2026-06-08",
+      end: "2026-06-19",
+      workingSeconds: 10 * 86_400,
+      status: null,
+      critical: false,
+      section: "tecnologia",
+      after: ["tec0"],
+    });
+    // A task of one day starts and ends on it; a milestone and a marker have one date.
+    expect(elements.tec2!.schedule).toMatchObject({ start: "2026-06-22", end: "2026-06-22" });
+    expect(elements.beta!.schedule).toMatchObject({
+      start: "2026-06-23",
+      end: "2026-06-23",
+      workingSeconds: null,
+      after: ["tec2"],
+    });
+    expect(elements.freeze!.schedule).toMatchObject({ start: "2026-06-10", end: "2026-06-10" });
+    // A section spans its tasks.
+    expect(elements.tecnologia!.schedule).toEqual({
+      start: "2026-06-01",
+      end: "2026-06-22",
+      workingSeconds: null,
+      status: null,
+      critical: false,
+      section: null,
+      after: [],
+    });
+    expect(elements.i_d!.schedule).toMatchObject({ start: "2026-07-01", end: "2026-08-28" });
+    // Plain data, and never the clauses, the comments or the diagnostics.
+    const json = JSON.stringify(doc);
+    expect(JSON.parse(json)).toEqual(doc);
+    expect(json).not.toContain("rotate keys");
+    expect(json).not.toContain("for 10d");
+    expect(json).not.toContain("after tec0");
+    expect(json).not.toContain("diagnostic");
+    expect(JSON.stringify(effectsOf())).toBe(JSON.stringify(effectsOf()));
+  });
+
+  it("writes the dates with their times, and the status and the critical mark", () => {
+    const doc = effectsOf(
+      'task night "Night" from 2026-09-01T22:30 for 90min done critical\ntask review "Review" after night for 1h active',
+    );
+    const { night, review } = doc.details.hoja_de_ruta_genai!.elements;
+    expect(night!.schedule).toMatchObject({
+      start: "2026-09-01T22:30",
+      end: "2026-09-02T00:00",
+      workingSeconds: 5400,
+      status: "done",
+      critical: true,
+    });
+    expect(review!.schedule).toMatchObject({
+      start: "2026-09-02T00:00",
+      end: "2026-09-02T01:00",
+      status: "active",
+    });
+  });
+
+  it("leaves the details of other diagrams as they were", () => {
+    const doc = effectsDocument(layoutedPurchase())!;
+    for (const element of Object.values(doc.details.checkout!.elements)) {
+      expect("schedule" in element).toBe(false);
+    }
+  });
+
+  it("writes a task's card in Spanish: section, dates, working days and what it follows", () => {
+    const doc = effectsOf("", "es");
+    const details = doc.details.hoja_de_ruta_genai!.elements.tec1!;
+    const card = scheduleCard(details, details.schedule!, label(doc), "es");
+    expect(card).toEqual({
+      meta: "Tecnología",
+      ends: "8 jun 2026 → 19 jun 2026 · 10 días hábiles",
+      note: "Después de: Evaluar plataformas de agentes",
+    });
+    expect(doc.names.hoja_de_ruta_genai!.labels.tec1).toBe(
+      "Prueba de concepto con el equipo de Arquitectura",
+    );
+    const english = scheduleCard(details, details.schedule!, label(doc), "en");
+    expect(english).toEqual({
+      meta: "Tecnología",
+      ends: "8 Jun 2026 → 19 Jun 2026 · 10 working days",
+      note: "After: Evaluar plataformas de agentes",
+    });
+  });
+
+  it("writes a milestone's date, a marker's and a section's span, and the states of a task", () => {
+    const doc = effectsOf(
+      'milestone beta "Beta" after tec2 done\nmarker freeze "Freeze" at 2026-06-10\ntask hot "Hot" from 2026-09-01 for 2d active critical\ntask cold "Cold" after hot for 3d done',
+    );
+    const elements = doc.details.hoja_de_ruta_genai!.elements;
+    const card = (id: string, locale: "en" | "es") =>
+      scheduleCard(elements[id]!, elements[id]!.schedule!, label(doc), locale);
+    expect(card("beta", "es")).toEqual({
+      meta: "Hecho",
+      ends: "23 jun 2026",
+      note: "Después de: Presentar resultados al comité Arq",
+    });
+    expect(card("beta", "en").ends).toBe("23 Jun 2026");
+    expect(card("freeze", "en")).toEqual({ meta: null, ends: "10 Jun 2026", note: null });
+    expect(card("tecnologia", "es")).toEqual({
+      meta: null,
+      ends: "1 jun 2026 → 22 jun 2026",
+      note: null,
+    });
+    expect(card("hot", "en")).toMatchObject({
+      meta: "In progress · Critical",
+      ends: "1 Sep 2026 → 2 Sep 2026 · 2 working days",
+    });
+    expect(card("hot", "es").meta).toBe("En curso · Crítica");
+    expect(card("cold", "es")).toMatchObject({ meta: "Hecha", note: "Después de: Hot" });
+    // Several predecessors are listed as the language lists things.
+    const several = effectsOf('task join "Join" after tec0, flu0, sdlc1 for 1d');
+    const join = several.details.hoja_de_ruta_genai!.elements.join!;
+    expect(scheduleCard(join, join.schedule!, label(several), "en").note).toBe(
+      "After: Evaluar plataformas de agentes, Propuesta de flujo ágil de evaluación and Workshops AI-SDLC",
+    );
+  });
+
+  it("lists the panel's facts: section, dates, working time and state, and the kind", () => {
+    const doc = effectsOf("", "es");
+    const tec1 = doc.details.hoja_de_ruta_genai!.elements.tec1!;
+    expect(schedulePanel(tec1, tec1.schedule!, label(doc), "es")).toEqual([
+      { term: "Sección", value: "Tecnología" },
+      { term: "Inicio", value: "8 jun 2026" },
+      { term: "Fin", value: "19 jun 2026" },
+      { term: "Tiempo hábil", value: "10 días hábiles" },
+      { term: "Estado", value: "Prevista" },
+    ]);
+    expect(scheduleType(tec1, tec1.schedule!, "es")).toBe("Tarea");
+    expect(schedulePanel(tec1, tec1.schedule!, label(doc), "en").map((f) => f.term)).toEqual([
+      "Section",
+      "Start",
+      "End",
+      "Working time",
+      "Status",
+    ]);
+    const section = doc.details.hoja_de_ruta_genai!.elements.tecnologia!;
+    expect(schedulePanel(section, section.schedule!, label(doc), "en")).toEqual([
+      { term: "Start", value: "1 Jun 2026" },
+      { term: "End", value: "22 Jun 2026" },
+    ]);
+    expect(scheduleType(section, section.schedule!, "en")).toBe("Section");
+  });
+
+  it("writes working time in days, a fraction of a day, hours, minutes and seconds", () => {
+    expect(workingText(86_400, "en")).toBe("1 working day");
+    expect(workingText(10 * 86_400, "en")).toBe("10 working days");
+    expect(workingText(10 * 86_400, "es")).toBe("10 días hábiles");
+    expect(workingText(86_400, "es")).toBe("1 día hábil");
+    expect(workingText(2.5 * 86_400, "en")).toBe("2.5 working days");
+    expect(workingText(2.5 * 86_400, "es")).toBe("2,5 días hábiles");
+    expect(workingText(5400, "en")).toBe("1.5 h");
+    expect(workingText(5400, "es")).toBe("1,5 h");
+    expect(workingText(2700, "en")).toBe("45 min");
+    expect(workingText(30, "es")).toBe("30 s");
+    expect(civilText("2026-06-08T09:30", "es")).toBe("8 jun 2026 09:30");
+    expect(civilText("2026-12-01", "en")).toBe("1 Dec 2026");
+    expect(civilText("not a date", "en")).toBe("not a date");
+  });
+
+  it("says nothing of dates for a task in a loop, and its card shows only what it has", () => {
+    const compilation = compile(chart("task x after y for 1d\ntask y after x for 1d"));
+    const details = detailsOf(compilation.document.diagrams[0]!, "en");
+    expect(details.elements.x!.schedule).toEqual({
+      start: null,
+      end: null,
+      workingSeconds: null,
+      status: null,
+      critical: false,
+      section: null,
+      after: ["y"],
+    });
+    const x = details.elements.x!;
+    expect(scheduleCard(x, x.schedule!, (id) => id, "en")).toEqual({
+      meta: null,
+      ends: null,
+      note: "After: y",
+    });
+    expect(schedulePanel(x, x.schedule!, (id) => id, "en")).toEqual([
+      { term: "Status", value: "Planned" },
+    ]);
+  });
+
+  it("names the arrows of a chain and the bars drawn, in words, in both languages", () => {
+    const doc = storyOf("  scene one {\n    draw tec0, tec1 over 2s\n    trace flu3 over 3s\n  }");
+    expect(storySummary(doc).map((s) => s.items)).toEqual([
+      [
+        "Draw the bars of Evaluar plataformas de agentes and Prueba de concepto con el equipo de Arquitectura over 2 s",
+        "Trace the dependencies of Marcha Blanca primeros casos de uso over 3 s",
+      ],
+    ]);
+    expect(storySummary(doc, "es").map((s) => s.items)).toEqual([
+      [
+        "Dibujar las barras de Evaluar plataformas de agentes y Prueba de concepto con el equipo de Arquitectura en 2 s",
+        "Recorrer las dependencias de Marcha Blanca primeros casos de uso en 3 s",
+      ],
+    ]);
+    // A trace of one arrow into a task says the same of its task.
+    const one = storyOf("  scene one {\n    trace tec1\n  }");
+    expect(storySummary(one)[0]!.items).toEqual([
+      "Trace the dependencies of Prueba de concepto con el equipo de Arquitectura over 1.2 s",
+    ]);
+  });
+
+  it("names the arrow an effect runs along by the tasks it joins", () => {
+    const doc = effectsOf("animate flu3 { effect flow; duration 2s; repeat 1 }");
+    expect(effectsSummary(doc)).toEqual([
+      "Flow particles along “Integración con LeanIX → Marcha Blanca primeros casos de uso”: 2 s a cycle, 1 time",
+    ]);
+    expect(effectsSummary(doc, "es")).toEqual([
+      "Partículas a lo largo de “Integración con LeanIX → Marcha Blanca primeros casos de uso”: 2 s por ciclo, 1 vez",
+    ]);
+  });
+
+  it("walks the sections, tasks and arrows, never the axis", () => {
+    const player = new PlayerController(effectsOf("milestone beta after tec2"));
+    const items = player.items();
+    const elements = items.filter((i) => i.role === "element").map((i) => i.id);
+    expect(elements).toEqual(
+      expect.arrayContaining(["tecnologia", "tec0", "tec1", "i_d", "sdlc2", "beta"]),
+    );
+    expect(elements).not.toContain("axis");
+    // The arrows are relations, named by their keys.
+    expect(items.filter((i) => i.role === "relation").map((i) => i.id)).toContain("tec0->tec1#1");
+    // A section comes before the tasks it holds.
+    expect(elements.indexOf("tecnologia")).toBeLessThan(elements.indexOf("tec0"));
+    expect(player.select({ role: "relation", id: "sdlc1->sdlc2#1" })).toBe(true);
+  });
+
+  it("draws a story's frames with the bars clipped, as the exporters draw them", () => {
+    const doc = storyOf("  scene one {\n    draw tec0, tec1 over 2s\n  }");
+    const data = JSON.parse(playerData(doc)) as StoryPlayerDocument;
+    expect(isPlayerDocument(data)).toBe(true);
+    expect(data.views.hoja_de_ruta_genai!.holders).toMatchObject({
+      tec1: ["tecnologia"],
+      sdlc2: ["i_d"],
+    });
+    // 250 ms: the first bar is a quarter drawn, and only it is under a clip.
+    const svg = frameSvg(data, 250);
+    expect(svg).toContain('id="mdg-draw-clip-tec0"');
+    expect(svg).not.toContain('id="mdg-draw-clip-tec1"');
+    const sameAgain = frameSvg(data, 250);
+    expect(sameAgain).toBe(svg);
+    expect(frameSvg(data, 2000)).not.toContain("mdg-draw-clip");
+  });
+});
+
+/** The checkout diagram of the purchase story, laid out. */
+function layoutedPurchase(): LaidOutView {
+  const compilation = compile(purchase);
+  const diagram = compilation.document.diagrams[0]!;
+  return { diagram, layout: layoutDiagram(compilation, diagram, { engine }) };
+}

@@ -20,6 +20,9 @@ import {
 const root = fileURLToPath(new URL("../../../corpus/import/", import.meta.url));
 const engine = createElkEngine();
 
+/** The day imports are made on: a Mermaid `gantt` that leaves a date open lands on it. */
+const TODAY = "2026-10-29";
+
 function reader(dir: string) {
   return (path: string): string | undefined => {
     try {
@@ -102,15 +105,15 @@ for (const folder of ["mermaid", "plantuml", "markdown"]) {
     for (const name of inputs) {
       it(name, async () => {
         const text = readFileSync(join(dir, name), "utf8");
-        const result = importText(text, { fileName: name, readFile: reader(dir) });
+        const result = importText(text, { fileName: name, readFile: reader(dir), today: TODAY });
         await expect(report(result)).toMatchFileSnapshot(join(dir, `${stemOf(name)}.report.json`));
         if (result.text !== null) {
           await expect(result.text).toMatchFileSnapshot(join(dir, `${stemOf(name)}.meltemi`));
           rendersAll(result.text);
           // Deterministic: the same input gives the same bytes.
-          expect(importText(text, { fileName: name, readFile: reader(dir) }).text).toBe(
-            result.text,
-          );
+          expect(
+            importText(text, { fileName: name, readFile: reader(dir), today: TODAY }).text,
+          ).toBe(result.text);
         }
         expect(documented(result)).toEqual([]);
       });
@@ -128,6 +131,7 @@ describe("corpus/import/merge", () => {
       const imported = importText(readFileSync(join(caseDir, source), "utf8"), {
         fileName: source,
         readFile: reader(caseDir),
+        today: TODAY,
       });
       expect(imported.text).not.toBeNull();
       const merged = mergeImport(existing, imported.text!);

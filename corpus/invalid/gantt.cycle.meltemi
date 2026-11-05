@@ -1,0 +1,7 @@
+language "0.2"
+
+// A loop through `after`: `build` waits for `test`, which waits for `build`. Neither has dates.
+diagram plan: gantt {
+  task build "Build" from 2026-06-01 after test for 3d
+  task test "Test" after build for 2d
+}

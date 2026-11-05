@@ -26,6 +26,8 @@ pnpm mdg format --check architecture/
 | `;`                     | las instrucciones unidas con `;` se quedan en una línea: `place a at (1, 2); size a (160, 56)`                                           |
 | Lista en varias líneas  | `via [` termina la línea, un elemento por línea un nivel más adentro, `]` en su propia línea                                             |
 | Puntos de un lápiz      | una línea cuando la instrucción `pen` cabe en 100 columnas; si no, rellenada, como abajo                                                 |
+| Fechas                  | un solo token, tal como se escribió: `2026-06-01` y `2026-06-01T09:30` nunca se cambian ni se parten                                     |
+| Instrucciones de Gantt  | una `task`, un `milestone` o un `marker` con sus cláusulas se queda en una línea, con `, ` entre ids (`after a, b`)                      |
 | Líneas en blanco        | como máximo una seguida; ninguna justo después de `{` ni antes de `}`; exactamente una entre bloques de nivel superior                   |
 | Comentarios             | se conservan en su lugar y en su orden; un espacio antes de un comentario `//` al final de la línea; los comentarios de bloque, tal cual |
 | Finales de línea        | sin espacios al final, el primer fin de línea del archivo en todas partes, un salto de línea final, y se conserva la BOM                 |

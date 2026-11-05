@@ -3,6 +3,7 @@ import type {
   LayoutResult,
   PathItem,
   PolylineItem,
+  RectItem,
   Scene,
   SceneBounds,
   SceneItem,
@@ -63,6 +64,12 @@ export interface StoryViewData {
   readonly plan: MotionPlan;
   /** Relation key to its source and target ids, for focus. */
   readonly ends: Readonly<Record<string, readonly [string, string]>>;
+  /**
+   * Gantt charts: the ids of the sections that hold each task, milestone and marker, whose groups
+   * are drawn inside their section's. A section hidden or out of focus takes the arrows of what it
+   * holds with it, and a task in focus keeps its section in focus. Absent in other views.
+   */
+  readonly holders?: Readonly<Record<string, readonly string[]>>;
 }
 
 export type StoryViews = (key: string) => StoryViewData | undefined;
@@ -299,7 +306,11 @@ function stateAt(timeline: StoryTimeline, t: number, views: StoryViews): StorySt
         }
         break;
       case "trace":
-        if (p < 1) for (const target of action.targets) traces.push({ id: target.id, progress: p });
+        if (p < 1) {
+          for (const [id, progress] of traceProgress(action, p, views(view)?.scene)) {
+            traces.push({ id, progress });
+          }
+        }
         break;
       case "draw":
         // Drawing shows its targets: until its share is over, each is only its drawing so far.
@@ -355,11 +366,52 @@ function targetGroup(scene: Scene, target: TimelineAction["targets"][number]) {
 }
 
 /**
+ * Whether a group is the bar of a gantt task: an element with a box and no line to follow (a pen
+ * that is a dot has a box too, but it is drawn by hand). What `draw` replays of it is its box,
+ * from the start of the bar to its end.
+ */
+const isBar = (group: GroupItem): boolean =>
+  group.role === "element" &&
+  group.bounds !== undefined &&
+  group.freehand !== true &&
+  drawnTrack(group) === null;
+
+/**
+ * How far each target of a `trace` action has been traced at its progress `p`, as `[id, progress]`
+ * in the order written. A trace of one relation runs over the whole action; a task's `trace` has
+ * the arrows of its chain as targets, which run one after another, each over a share of the action
+ * proportional to its length (equal shares when none has one), and stay drawn once they are. The
+ * arrows that have not started are left out, but the first, which shows its start as a trace does.
+ */
+function traceProgress(
+  action: TimelineAction,
+  p: number,
+  scene: Scene | undefined,
+): [string, number][] {
+  if (action.targets.length < 2) return action.targets.map((target) => [target.id, p]);
+  const lengths = action.targets.map((target) => {
+    const group = scene && targetGroup(scene, target);
+    const track = group ? drawnTrack(group) : null;
+    return track ? trackLength(track) : 0;
+  });
+  const total = lengths.reduce((sum, length) => sum + length, 0);
+  const traced: [string, number][] = [];
+  let start = 0;
+  action.targets.forEach((target, i) => {
+    const share = total > 0 ? lengths[i]! / total : 1 / lengths.length;
+    const fraction = share > 0 ? Math.min(1, Math.max(0, (p - start) / share)) : p >= start ? 1 : 0;
+    start += share;
+    if (fraction > 0 || i === 0) traced.push([target.id, fraction]);
+  });
+  return traced;
+}
+
+/**
  * How much of each target of a `draw` action is drawn at its progress `p`, by `targetKey`: the
  * targets one after another in the order written, each over a share of the action proportional
- * to the length of the line it draws (equal shares when none has a length, as dots), from 0
- * before its share to 1 after it. A target named twice shows the drawing under way, else the one
- * finished.
+ * to the length of the line it draws, or the width of the bar of a gantt task (equal shares when
+ * none has a length, as dots), from 0 before its share to 1 after it. A target named twice shows
+ * the drawing under way, else the one finished.
  */
 function drawProgress(
   action: TimelineAction,
@@ -368,8 +420,9 @@ function drawProgress(
 ): Map<string, number> {
   const lengths = action.targets.map((target) => {
     const group = scene && targetGroup(scene, target);
-    const track = group ? drawnTrack(group) : null;
-    return track ? trackLength(track) : 0;
+    if (!group) return 0;
+    const track = drawnTrack(group);
+    return track ? trackLength(track) : isBar(group) ? group.bounds!.width : 0;
   });
   const total = lengths.reduce((sum, length) => sum + length, 0);
   const drawn = new Map<string, number>();
@@ -569,16 +622,126 @@ function drawnItems(group: GroupItem, fraction: number): SceneItem[] {
   ];
 }
 
+/**
+ * A rectangle cut at `cut`: what lies left of that vertical line, as the fill of a closed path and
+ * the stroke of an open one, so the cut edge has no stroke, as a clip leaves it. The rectangle's
+ * rounded corners are kept where they are. Nothing when it starts right of the cut, and the
+ * rectangle itself when it ends left of it.
+ */
+function cutRect(rect: RectItem, cut: number): SceneItem[] {
+  const { x, y, width, height } = rect;
+  const right = x + width;
+  if (cut >= right) return [rect];
+  if (cut <= x) return [];
+  const bottom = y + height;
+  const r = Math.max(0, Math.min(rect.radius, width / 2, height / 2));
+  const n = round;
+  const arc = (sweep: 0 | 1, px: number, py: number) =>
+    `A${n(r)} ${n(r)} 0 0 ${sweep} ${n(px)} ${n(py)}`;
+  /** How far a corner's arc has come in from the box's edge by `along` of its radius. */
+  const inset = (along: number) => Math.sqrt(Math.max(0, r * r - along * along));
+  let fill: string;
+  let edge: string;
+  if (r === 0) {
+    fill = `M${n(x)} ${n(y)} H${n(cut)} V${n(bottom)} H${n(x)} Z`;
+    edge = `M${n(cut)} ${n(y)} H${n(x)} V${n(bottom)} H${n(cut)}`;
+  } else if (cut <= x + r) {
+    const top = y + r - inset(x + r - cut);
+    const low = bottom - r + inset(x + r - cut);
+    fill = `M${n(cut)} ${n(top)} V${n(low)} ${arc(1, x, bottom - r)} V${n(y + r)} ${arc(1, cut, top)} Z`;
+    edge = `M${n(cut)} ${n(top)} ${arc(0, x, y + r)} V${n(bottom - r)} ${arc(0, cut, low)}`;
+  } else if (cut < right - r) {
+    fill = `M${n(x + r)} ${n(y)} H${n(cut)} V${n(bottom)} H${n(x + r)} ${arc(1, x, bottom - r)} V${n(y + r)} ${arc(1, x + r, y)} Z`;
+    edge = `M${n(cut)} ${n(y)} H${n(x + r)} ${arc(0, x, y + r)} V${n(bottom - r)} ${arc(0, x + r, bottom)} H${n(cut)}`;
+  } else {
+    const top = y + r - inset(cut - (right - r));
+    const low = bottom - r + inset(cut - (right - r));
+    fill = `M${n(x + r)} ${n(y)} H${n(right - r)} ${arc(1, cut, top)} V${n(low)} ${arc(1, right - r, bottom)} H${n(x + r)} ${arc(1, x, bottom - r)} V${n(y + r)} ${arc(1, x + r, y)} Z`;
+    edge = `M${n(cut)} ${n(top)} ${arc(0, right - r, y)} H${n(x + r)} ${arc(0, x, y + r)} V${n(bottom - r)} ${arc(0, x + r, bottom)} H${n(right - r)} ${arc(0, cut, low)}`;
+  }
+  const opacity = rect.opacity === undefined ? {} : { opacity: rect.opacity };
+  const out: SceneItem[] = [];
+  if (rect.fill !== "none") {
+    out.push({
+      kind: "path",
+      d: fill,
+      fill: rect.fill,
+      stroke: "none",
+      strokeWidth: 0,
+      dashed: false,
+      ...opacity,
+    });
+  }
+  if (rect.stroke !== "none" && rect.strokeWidth > 0) {
+    out.push({
+      kind: "path",
+      d: edge,
+      fill: "none",
+      stroke: rect.stroke,
+      strokeWidth: rect.strokeWidth,
+      dashed: rect.dashed,
+      ...opacity,
+    });
+  }
+  return out;
+}
+
+/** The room a clip leaves around a bar and its label, so strokes and glyph edges are not cut. */
+const CLIP_PAD = 2;
+
+/**
+ * The group of a gantt task drawn up to `fraction` of its bar: a clip that widens from the start
+ * of the bar to its end. The bar is cut where the clip ends, and the group's texts (its label,
+ * inside the bar or beside it) are clipped to the same line; nothing shows before the clip starts,
+ * and the whole group once it has reached the end.
+ */
+function clippedBar(group: GroupItem, fraction: number): GroupItem {
+  const bar = group.bounds!;
+  if (fraction <= 0) return { ...group, items: [] };
+  const cut = bar.x + bar.width * fraction;
+  // A label before the bar, or in the section's column, lies left of the clip's start and shows
+  // from the first frame; one after the bar shows when the bar is whole.
+  const label = bar.label;
+  const left = Math.min(bar.x, label?.x ?? bar.x) - CLIP_PAD;
+  const top = Math.min(bar.y, label?.y ?? bar.y) - CLIP_PAD;
+  const bottom = Math.max(bar.y + bar.height, label ? label.y + label.height : 0) + CLIP_PAD;
+  return {
+    ...group,
+    items: group.items.flatMap((item) => (item.kind === "rect" ? cutRect(item, cut) : [item])),
+    textClip: {
+      id: `mdg-draw-clip-${group.id}`,
+      x: round(left),
+      y: round(top),
+      width: round(cut - left),
+      height: round(bottom - top),
+      radius: 0,
+    },
+  };
+}
+
+/** The groups of tasks that `draw` actions are drawing, each clipped where its bar has grown. */
+function withBars(items: readonly SceneItem[], draws: ReadonlyMap<string, number>): SceneItem[] {
+  return items.map((item) => {
+    if (item.kind !== "group") return item;
+    const inner = withBars(item.items, draws);
+    const fraction = isBar(item) ? draws.get(targetKey(item.role, item.id)) : undefined;
+    if (fraction !== undefined) return clippedBar({ ...item, items: inner }, fraction);
+    return inner.every((x, i) => x === item.items[i]) ? item : { ...item, items: inner };
+  });
+}
+
 /** The groups a `draw` action is drawing, each replaced by its drawing so far. */
 function withDrawings(
   items: readonly SceneItem[],
   draws: ReadonlyMap<string, number>,
 ): SceneItem[] {
   if (draws.size === 0) return [...items];
-  return withTargets(items, (group) => {
+  // A pen, a line or a relation is drawn along its line; the bar of a task is clipped.
+  const lines = withTargets(items, (group) => {
     const fraction = draws.get(targetKey(group.role, group.id));
-    return fraction === undefined ? null : drawnItems(group, fraction);
+    return fraction === undefined || isBar(group) ? null : drawnItems(group, fraction);
   });
+  return withBars(lines, draws);
 }
 
 /** Puts the trace of each relation in its group, before the label so the label stays readable. */
@@ -617,29 +780,45 @@ function drawView(data: StoryViewData, state: StoryState, t: number, accent: str
   };
   const animated = sceneAt(data.scene, plan, t);
   const focused = state.focus;
-  const inFocus = (id: string, role: string) => {
+  // A gantt chart draws a task inside its section's group: the section holds it.
+  const holders = data.holders ?? {};
+  const members = new Map<string, string[]>();
+  for (const [id, sections] of Object.entries(holders)) {
+    for (const section of sections) members.set(section, [...(members.get(section) ?? []), id]);
+  }
+  const inFocus = (id: string, role: string): boolean => {
     if (!focused) return true;
     if (focused.ids.has(id)) return true;
     if (role === "relation") {
       const ends = data.ends[id];
-      return ends !== undefined && focused.ids.has(ends[0]) && focused.ids.has(ends[1]);
+      return ends !== undefined && inFocus(ends[0], "element") && inFocus(ends[1], "element");
     }
-    return false;
+    // A task is in focus with its section, and a section with any task it holds.
+    return (
+      (holders[id] ?? []).some((holder) => focused.ids.has(holder)) ||
+      (members.get(id) ?? []).some((member) => focused.ids.has(member))
+    );
   };
+  const opacity = (id: string) => state.opacity.get(id) ?? 1;
+  /** How visible an end of an arrow is: its own opacity, and its section's, which it is drawn in. */
+  const shown = (id: string) => Math.min(opacity(id), ...(holders[id] ?? []).map(opacity));
+  /** Whether a task has yet to start growing under a `draw`: its arrows wait for it. */
+  const waiting = (id: string) => (state.draws.get(targetKey("element", id)) ?? 1) <= 0;
   const overlays = storyOverlays(data.scene, state, accent);
   const drawn = withDrawings(withTraces(animated.items, overlays.traces), state.draws);
   const items = withOpacity(drawn, (group, lifeline) => {
     // A relation is drawn at the opacity of its least visible end, so no arrow points at a box
     // that is not there yet.
     const ends = group.role === "relation" ? data.ends[group.id] : undefined;
-    const visible = Math.min(
-      state.opacity.get(group.id) ?? 1,
-      ...(ends ?? []).map((end) => state.opacity.get(end) ?? 1),
-    );
+    const visible = ends?.some(waiting)
+      ? 0
+      : Math.min(opacity(group.id), ...(ends ?? []).map(shown));
     // An activation bar stands on its participant's lifeline: in focus when the participant is.
     const bar = group.role === "event" && lifeline !== undefined;
+    // A task inside a section that is dimmed is dimmed with it, not twice.
+    const covered = (holders[group.id] ?? []).some((holder) => !inFocus(holder, "element"));
     const dim =
-      focused && !inFocus(group.id, group.role) && !(bar && focused.ids.has(lifeline))
+      focused && !inFocus(group.id, group.role) && !covered && !(bar && focused.ids.has(lifeline))
         ? lerp(1, 0.25, focused.level)
         : 1;
     return visible * dim;
@@ -753,7 +932,10 @@ export function storyFrame(
   return { ...frame, width, height, items: [...leaving(old.items), ...after] };
 }
 
-/** What a story needs of a laid-out view: its scene, its effects and its relation ends. */
+/**
+ * What a story needs of a laid-out view: its scene, its effects and its relation ends, and in a
+ * gantt chart the sections that hold each task.
+ */
 export function storyViewData(
   diagram: FlowDiagram,
   layout: LayoutResult,
@@ -762,5 +944,10 @@ export function storyViewData(
   const ends: Record<string, readonly [string, string]> = {};
   for (const relation of diagram.relations) ends[relation.key] = [relation.from, relation.to];
   const plan = planMotion(diagram, layout.scene, motionOptions(layout.theme));
-  return { scene: layout.scene, plan, ends };
+  if (diagram.type !== "gantt") return { scene: layout.scene, plan, ends };
+  const holders: Record<string, readonly string[]> = {};
+  for (const element of diagram.elements) {
+    if (element.groupPath.length > 0) holders[element.id] = element.groupPath;
+  }
+  return { scene: layout.scene, plan, ends, holders };
 }

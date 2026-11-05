@@ -31,6 +31,14 @@ One model of people, containers and external systems, and a container view place
 
 [Source](c4/ride-sharing.meltemi) · [SVG](c4/ride-sharing.svg) · [PNG](c4/ride-sharing.png) · [PDF](c4/ride-sharing.pdf)
 
+## Gantt: a mobile app launch
+
+Tasks scheduled from dates and from what they wait for, with the weekends skipped: bars of every status, the critical chain, a milestone, a marker, dependency arrows and a `today` line pinned to a date so that the picture does not change with the day it is made.
+
+![Gantt: a mobile app launch](gantt/launch-plan.svg)
+
+[Source](gantt/launch-plan.meltemi) · [SVG](gantt/launch-plan.svg) · [PNG](gantt/launch-plan.png) · [PDF](gantt/launch-plan.pdf)
+
 ## Free: a roadmap slide
 
 A 16:9 slide composed freely: measured text, groups placed by their interiors, icons and connectors between columns.

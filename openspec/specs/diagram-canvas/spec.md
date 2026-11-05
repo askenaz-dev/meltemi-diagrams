@@ -2,7 +2,9 @@
 
 ## Purpose
 The canvas session and its pure helpers: renders and stale states, viewport, minimap, grid, snapping and guides, selection, gestures, creation and connection, clipboard, grouping, alignment, route editing, the inspector and keyboard operation, each action becoming one edit of the text.
+
 ## Requirements
+
 ### Requirement: Canvas session and protocol
 `CanvasSession` SHALL hold the current analysis, the chosen diagram and the selection. `update(analysis)` SHALL produce host messages:
 
@@ -508,7 +510,7 @@ The handle SHALL fade in with the selection. While dragging, the live rotation S
 - **THEN** no rotation handle is drawn
 
 ### Requirement: Empty file and new diagrams
-When the document has no diagram and no story is playing, the canvas SHALL show the reason and one button per kind it can create — flow diagram, free composition, sequence diagram — and SHALL clear the diagram selector, the inspector, the minimap and the layout and stale badges of the last render. A button SHALL write `diagram <id>: <type> { }` through `createDiagram` and show the new diagram. A **New diagram** button beside the diagram selector SHALL offer the same kinds for any file. Read-only canvases SHALL show neither the buttons nor the New diagram button.
+When the document has no diagram and no story is playing, the canvas SHALL show the reason and one button per kind it can create — flow diagram, free composition, sequence diagram, Gantt chart — and SHALL clear the diagram selector, the inspector, the minimap and the layout and stale badges of the last render. A button SHALL write `diagram <id>: <type> { }` through `createDiagram` and show the new diagram. A **New diagram** button beside the diagram selector SHALL offer the same kinds for any file. Read-only canvases SHALL show neither the buttons nor the New diagram button.
 
 #### Scenario: Start from an empty file
 - **WHEN** the text is emptied and the Flow diagram button is pressed
@@ -521,6 +523,10 @@ When the document has no diagram and no story is playing, the canvas SHALL show 
 #### Scenario: Another diagram in the file
 - **WHEN** New diagram › Free composition is chosen in a file declaring `overview`
 - **THEN** `diagram diagram1: free {` … `}` is appended after `overview` and shown
+
+#### Scenario: A Gantt chart from an empty file
+- **WHEN** the text is emptied and the Gantt chart button is pressed in Spanish ("Diagrama de Gantt")
+- **THEN** the text becomes `language "0.2"`, a blank line and `diagram diagram1: gantt {` … `}`, and the canvas shows an empty timeline of four weeks with the Task, Milestone, Marker and Section tools
 
 #### Scenario: Read-only
 - **WHEN** the canvas is read-only and the file has no diagram

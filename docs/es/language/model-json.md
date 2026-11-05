@@ -17,7 +17,8 @@ lo descarga, y los motores de disposición y las pruebas lo leen. El nombre del 
 - Dentro de una versión las claves se agregan, nunca cambian: `heads` en las relaciones y `line`
   en los elementos llegaron en 1.10.0, `pen` y `list` en los elementos, `tags` en los elementos y
   las relaciones, `spacing`, `side`, `returns` y los `events` de los mensajes, y `scenes` en los
-  perfiles de exportación en 1.11.0, y la versión sigue siendo `0.1`.
+  perfiles de exportación en 1.11.0, `task` en los elementos y `gantt` en los diagramas en 1.11.16,
+  y la versión sigue siendo `0.1`.
 - Todos los perfiles de diagrama se compilan; los bloques `story` y `export` todavía no están en el
   JSON.
 
@@ -94,7 +95,7 @@ en 1. `end` es exclusivo.
 | Clave        | Tipo   | Significado                                                                                                                                                                                                                                                                                                                                                                                                          |
 | ------------ | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`         | cadena | Id del diagrama.                                                                                                                                                                                                                                                                                                                                                                                                     |
-| `type`       | cadena | `flow`, `free`, `sequence` o `c4`.                                                                                                                                                                                                                                                                                                                                                                                   |
+| `type`       | cadena | `flow`, `free`, `sequence`, `c4` o `gantt`.                                                                                                                                                                                                                                                                                                                                                                          |
 | `range`      | rango  | El bloque `diagram` completo.                                                                                                                                                                                                                                                                                                                                                                                        |
 | `properties` | objeto | `direction`, `layout` (con los valores predeterminados aplicados), `theme`, `title`, `description`, `preset` (`document`, `slide`, `board` o null), `canvas` (`{ "width", "height" }` o null), `routing`, `layers` (de atrás hacia adelante; `["main"]` en los diagramas de flujo), `autonumber` (el primer número, o null), `spacing` (la distancia entre las cabeceras de secuencia tal como se escribió, o null). |
 | `classes`    | lista  | Declaraciones `class <id> { }`, en el orden del código fuente.                                                                                                                                                                                                                                                                                                                                                       |
@@ -126,6 +127,7 @@ en 1. `end` es exclusivo.
 | `pen`         | objeto o null | Los puntos de un trazo `pen` tal como se escribieron, con los decimales, en el interior de su grupo: `{ "points": [ { "x", "y" }, … ] }`; null en todos los demás tipos.                                                         |
 | `list`        | objeto o null | Cómo una lista coloca a sus hijos: `{ "layout", "spacing", "align" }`, `layout` `column` o `row`, `spacing` y `align` null cuando no se escriben; null en todos los demás elementos.                                             |
 | `attachedTo`  | cadena o null | El elemento al que está adjunta una `note` (`on <elemento>`; la ruta de la entidad en una vista C4); null en los demás tipos y en una nota sin `on`.                                                                             |
+| `task`        | objeto o null | Diagramas de Gantt: las cláusulas escritas y la programación resuelta de una tarea, un hito o una marca (véase Diagramas de Gantt); null en los demás elementos.                                                                 |
 | `groupPath`   | lista         | Ids de los grupos que lo contienen, primero el más externo.                                                                                                                                                                      |
 | `range`       | rango         | La instrucción que lo declara, o la primera mención en los elementos implícitos.                                                                                                                                                 |
 | `idRange`     | rango         | El token del identificador.                                                                                                                                                                                                      |
@@ -245,6 +247,45 @@ operador, `alt#1`).
 | `label`   | cadena | La etiqueta, o el id.                                                                                               |
 | `choices` | lista  | `{ "kind" (choose, repeat, skip, take), "fragment", "branch" (0-based or null), "iterations" (or null), "range" }`. |
 | `range`   | rango  | El bloque `scenario`.                                                                                               |
+
+### Diagramas de Gantt
+
+Un diagrama de Gantt tiene `type` `gantt`. Sus secciones, tareas, hitos y marcas son elementos de los
+tipos `section`, `task`, `milestone` y `marker`, en el orden en que se escribieron, y el `groupPath`
+de una tarea es su sección; cada id de una cláusula `after` es una relación con `derived` verdadero,
+con la clave `<pred>-><task>#<n>` y el rango del id en la cláusula
+([gantt.md](gantt.md#dependencias)). Dos claves van después de todas las demás: `task` en cada
+elemento y `gantt` en cada diagrama.
+
+`task` es null en todos los elementos salvo una tarea, un hito o una marca:
+
+| Clave         | Tipo          | Significado                                                                                                                                                |
+| ------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `from`        | cadena o null | La fecha escrita después de `from` (después de `at` en un hito o una marca), tal como se escribió.                                                         |
+| `after`       | lista         | Los ids escritos en `after`, en orden.                                                                                                                     |
+| `end`         | objeto o null | `{ "kind": "for", "amount", "unit" }`, `{ "kind": "to", "date" }` o `{ "kind": "until", "ids" }`; null cuando la instrucción no escribe un final.          |
+| `status`      | cadena o null | `done` o `active`; null para una planificada.                                                                                                              |
+| `critical`    | booleano      | Si se escribe `critical`.                                                                                                                                  |
+| `start`       | cadena o null | El inicio resuelto como texto ISO sin zona horaria (`2026-06-08T00:00`); null cuando nada lo fecha: un ciclo, nada a lo que seguir.                        |
+| `finish`      | cadena o null | El final resuelto: la medianoche siguiente al último día de una tarea que termina al final de un día; el inicio de un hito o una marca; null como `start`. |
+| `workingDays` | número o null | El tiempo hábil entre `start` y `finish` en días, con fracciones para las horas; null como `start`.                                                        |
+
+`gantt` es null en todos los diagramas salvo un diagrama de Gantt, y contiene sus ajustes con los
+valores predeterminados aplicados:
+
+| Clave                                       | Tipo          | Significado                                                                                                                              |
+| ------------------------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `axisFormat`, `ticks`                       | cadena o null | Tal como se escribieron.                                                                                                                 |
+| `weekStart`                                 | cadena        | `monday` a `sunday`; `monday` sin la instrucción.                                                                                        |
+| `axis`, `labels`, `display`, `dependencies` | cadena        | Los valores escritos, o `bottom`, `bar`, `normal` y `shown`.                                                                             |
+| `dayWidth`                                  | número o null | Tal como se escribió.                                                                                                                    |
+| `exclude`                                   | objeto        | `{ "weekdays", "dates" }`: los días de la semana en el orden de la semana (`weekends` es `saturday` y `sunday`) y las fechas, ordenadas. |
+| `include`                                   | lista         | Las fechas que se trabajan a pesar de una exclusión, ordenadas.                                                                          |
+| `today`                                     | objeto o null | `{ "date" }`, la fecha escrita o null cuando `today` no escribe ninguna; null sin la instrucción.                                        |
+| `span`                                      | objeto o null | `{ "start", "end" }` como texto ISO: del primer inicio al último final; null cuando nada tiene fecha.                                    |
+
+`corpus/valid/gantt/roadmap.model.json` es el JSON del plan de [gantt.md](gantt.md#un-ejemplo-completo)
+y lo comprueba el conjunto de pruebas.
 
 ### Historias
 

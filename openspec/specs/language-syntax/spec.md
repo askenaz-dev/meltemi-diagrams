@@ -2,9 +2,11 @@
 
 ## Purpose
 Lexical and syntactic rules of `.meltemi` sources: file structure, statement forms, the lossless concrete syntax tree, error recovery, diagnostics and encodings.
+
 ## Requirements
+
 ### Requirement: Lexical structure
-The lexer SHALL tokenize `.meltemi` text into identifiers (`[A-Za-z_][A-Za-z0-9_]*`), double-quoted strings with the escapes `\"`, `\\`, `\n` and `\t`, numbers (integer or decimal, optional leading `-`) with an optional unit suffix (`ms`, `s`, `%`), the relation tokens `->`, `-->`, `--`, `---`, `<->` and `<-->`, the punctuation `{ } ( ) [ ] : ; , .`, and line breaks. A run of `-` and `>` SHALL take the longest token it starts with (`---` before `-->` before `--` before `->`), and `-` before a digit SHALL start a number; `--->` is therefore `---` followed by an unexpected `>`. Spaces, tabs, line comments (`//` to end of line) and block comments (`/* ... */`) SHALL be kept as trivia attached to the next token. A character that starts no token SHALL produce the diagnostic `syntax.unexpected-character` covering that character, with the hint that the relation tokens are `->`, `-->`, `--`, `---`, `<->` and `<-->` when it holds `=`, `<` or `>`, and lexing SHALL continue with the next character or the next token start, `--` included.
+The lexer SHALL tokenize `.meltemi` text into identifiers (`[A-Za-z_][A-Za-z0-9_]*`), double-quoted strings with the escapes `\"`, `\\`, `\n` and `\t`, dates (four digits, `-`, two digits, `-`, two digits, optionally followed with no space by `T`, two digits, `:`, two digits and optionally `:` and two digits, as `2026-06-01` and `2026-06-01T09:30`), numbers (integer or decimal, optional leading `-`) with an optional unit suffix (an identifier such as `ms`, `s`, `min`, `h`, `d` or `w`, or `%`), the relation tokens `->`, `-->`, `--`, `---`, `<->` and `<-->`, the punctuation `{ } ( ) [ ] : ; , .`, and line breaks. A run of digits that has the form of a date SHALL be one date token; any other run SHALL lex as numbers as before, so `2026-6-1` is the numbers `2026`, `-6` and `-1`. A run of `-` and `>` SHALL take the longest token it starts with (`---` before `-->` before `--` before `->`), and `-` before a digit SHALL start a number; `--->` is therefore `---` followed by an unexpected `>`. Spaces, tabs, line comments (`//` to end of line) and block comments (`/* ... */`) SHALL be kept as trivia attached to the next token. A character that starts no token SHALL produce the diagnostic `syntax.unexpected-character` covering that character, with the hint that the relation tokens are `->`, `-->`, `--`, `---`, `<->` and `<-->` when it holds `=`, `<` or `>`, and lexing SHALL continue with the next character or the next token start, `--` included.
 
 #### Scenario: Statement with every token class
 - **WHEN** the text `route create from api.east to orders.west via [(520, -16.5)] // bend` is tokenized
@@ -13,6 +15,14 @@ The lexer SHALL tokenize `.meltemi` text into identifiers (`[A-Za-z_][A-Za-z0-9_
 #### Scenario: Unit suffixes
 - **WHEN** `duration 1200ms; hold 2.5s; label r at 50%` is tokenized
 - **THEN** the numbers carry the units `ms`, `s` and `%` respectively and `;` tokens separate the statements
+
+#### Scenario: Dates
+- **WHEN** `task a from 2026-06-01 to 2026-06-05T17:30 for 5d` is tokenized
+- **THEN** the tokens are identifier, identifier, identifier, date `2026-06-01`, identifier, date `2026-06-05T17:30`, identifier and the number `5` with the unit `d`, and `toText` of the parse equals the input
+
+#### Scenario: Not quite a date
+- **WHEN** `2026-6-1` and `2026-06-01 T09:30` are tokenized
+- **THEN** the first is the numbers `2026`, `-6` and `-1`; the second is the date `2026-06-01` followed by the identifier `T09`, a colon and the number `30`
 
 #### Scenario: Unterminated string
 - **WHEN** a line contains `api["API` with no closing quote before the line break
@@ -58,7 +68,7 @@ A source file SHALL consist of an optional header `language "<version>"` that, w
 - **THEN** the CST contains a `Header`, an `ImportStatement` and a `DiagramBlock` in that order
 
 ### Requirement: Statement forms and terminators
-Inside a block the parser SHALL recognise three statement forms: relation statements (`<ref> -> <ref>` or `<ref> --> <ref>`, with optional `: "label"`, optional `as <id>` and optional block), shorthand declarations (`<id>["Label"]` and `<id>[("Label")]`), and keyword statements (`<word>` followed by zero or more arguments and an optional chain of blocks each introduced by a word and arguments). Arguments SHALL be identifiers, qualified references (`a.b`), strings, numbers with optional unit, tuples `( ... )` and lists `[ ... ]`, optionally separated by commas. A statement SHALL end at a line break, at `;` or before `}`. Line breaks inside parentheses and brackets SHALL be continuation, not terminators.
+Inside a block the parser SHALL recognise three statement forms: relation statements (`<ref> -> <ref>` or `<ref> --> <ref>`, with optional `: "label"`, optional `as <id>` and optional block), shorthand declarations (`<id>["Label"]` and `<id>[("Label")]`), and keyword statements (`<word>` followed by zero or more arguments and an optional chain of blocks each introduced by a word and arguments). Arguments SHALL be identifiers, qualified references (`a.b`), strings, numbers with optional unit, dates, tuples `( ... )` and lists `[ ... ]`, optionally separated by commas. A statement SHALL end at a line break, at `;` or before `}`. Line breaks inside parentheses and brackets SHALL be continuation, not terminators.
 
 #### Scenario: Relation with label and id
 - **WHEN** a block contains `client -> api: "HTTPS" as request`
@@ -67,6 +77,10 @@ Inside a block the parser SHALL recognise three statement forms: relation statem
 #### Scenario: Several statements on one line
 - **WHEN** a block contains `effect flow; duration 1200ms; repeat forever`
 - **THEN** the CST holds three `KeywordStatement` nodes in that order
+
+#### Scenario: A date argument
+- **WHEN** a block contains `task tec1 "Prueba" after tec0, tec2 from 2026-06-15 for 10d`
+- **THEN** the CST holds one `KeywordStatement` `task` whose arguments are the refs `tec1`, a string, the refs `after`, `tec0` and `tec2` (the comma kept as a token), the ref `from`, a `DateLiteral` `2026-06-15`, the ref `for` and the number `10` with the unit `d`
 
 #### Scenario: Continuation inside a list
 - **WHEN** a `via` list is written across two lines as `via [(520, 180),` and `(600, 180)]`
@@ -123,4 +137,3 @@ The parser SHALL accept UTF-8 text with LF or CRLF line breaks. A leading byte o
 #### Scenario: Mixed line endings
 - **WHEN** a file contains both LF and CRLF line breaks
 - **THEN** one `syntax.mixed-line-endings` warning is reported on the first line break that differs from the first one in the file
-

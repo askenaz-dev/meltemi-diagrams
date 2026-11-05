@@ -5,11 +5,13 @@ import {
   walk,
   type Block,
   type CstNode,
+  type DateLiteral,
   type DiagramBlock,
   type Header,
   type KeywordStatement,
   type List,
   type NodeKind,
+  type NumberLiteral,
   type RelationStatement,
   type ShorthandDeclaration,
   type Tuple,
@@ -205,6 +207,35 @@ describe("parser: statement forms", () => {
       "shop.web",
       "shop.api",
     ]);
+  });
+
+  it("parses a date as an argument and gives the text back as written", () => {
+    const text =
+      'diagram g: gantt {\n  task tec1 "Prueba" after tec0, tec2 from 2026-06-15 for 10d\n}\n';
+    const { block, result } = diagramBlock(text);
+    expect(result.diagnostics).toEqual([]);
+    const task = block.statements[0] as KeywordStatement;
+    expect(task.keyword.text).toBe("task");
+    expect(task.args.map((a) => a.kind)).toEqual([
+      "QualifiedRef",
+      "StringLiteral",
+      "QualifiedRef",
+      "QualifiedRef",
+      "QualifiedRef",
+      "QualifiedRef",
+      "DateLiteral",
+      "QualifiedRef",
+      "NumberLiteral",
+    ]);
+    expect(task.children.some((c) => c.kind === "Comma")).toBe(true);
+    expect((task.args[6] as DateLiteral).text).toBe("2026-06-15");
+    const duration = task.args[8] as NumberLiteral;
+    expect([duration.value, duration.unit]).toEqual([10, "d"]);
+    expect(toText(result.root)).toBe(text);
+  });
+
+  it("reports a date where a statement starts", () => {
+    expect(codes("diagram g: gantt {\n  2026-06-01\n}\n")).toEqual(["syntax.unexpected-token"]);
   });
 
   it("reports a missing closing brace at end of file", () => {

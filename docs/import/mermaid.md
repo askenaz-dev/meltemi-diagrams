@@ -14,7 +14,7 @@ different drawing; **dropped** ones are left out. An import that drops an essent
 | Source | Meltemi | Status | Notes |
 | --- | --- | --- | --- |
 | front matter `title:` | `title`, and the diagram's id | mapped |  |
-| front matter `config:` | — | dropped |  |
+| front matter `config:` | — | dropped | In a gantt chart `displayMode`, `config.gantt.displayMode` and `config.gantt.topAxis` are read; every other option is reported. |
 | other front matter | — | dropped |  |
 | `%%{init: …}%%` | — | dropped |  |
 | `%% text` | `// text` before the next statement | mapped |  |
@@ -29,7 +29,6 @@ different drawing; **dropped** ones are left out. An import that drops an essent
 | `stateDiagram-v2` | — | dropped | `import.unsupported-diagram`. |
 | `erDiagram` | — | dropped | `import.unsupported-diagram`. |
 | `journey` | — | dropped | `import.unsupported-diagram`. |
-| `gantt` | — | dropped | `import.unsupported-diagram`. |
 | `pie` | — | dropped | `import.unsupported-diagram`. |
 | `quadrantChart` | — | dropped | `import.unsupported-diagram`. |
 | `requirementDiagram` | — | dropped | `import.unsupported-diagram`. |
@@ -304,3 +303,53 @@ different drawing; **dropped** ones are left out. An import that drops an essent
 | other CSS properties | — | dropped |  |
 | `end` without `block` | — | dropped | `import.syntax`. |
 | unreadable items | — | dropped | `import.syntax`, essential. |
+
+## gantt
+
+| Source | Meltemi | Status | Notes |
+| --- | --- | --- | --- |
+| `title text` | `title` | mapped | A `title` wins over the front matter's `title`, which wins over `accTitle`. |
+| `dateFormat YYYY-MM-DD` | dates written as ISO 8601 | mapped | Every dayjs token Mermaid documents is read. A time is written only when it is not midnight. |
+| `Z`, `ZZ`, `X` or `x` in `dateFormat` | dates without a zone | approximated | Meltemi dates have no time zone: the zone is dropped, and a Unix timestamp is read as UTC. |
+| `S`, `SS`, `SSS` or `x` with a fraction of a second | dates exact to the second | approximated |  |
+| a `dateFormat` without a year, such as `HH:mm` | dates on the import's day | approximated | What the format leaves out comes from the import's day (`ImportOptions.today`, the machine's day by default). |
+| `axisFormat %d %b` | `axisFormat "%d %b"` | mapped | `%c`, `%x` and `%X` are written in their d3 forms. |
+| `%L`, `%Z` and other directives Meltemi does not have | the axis format without them | approximated |  |
+| `tickInterval 1week` | `ticks 1w` | mapped |  |
+| `tickInterval 100millisecond` | `ticks 1s` | approximated |  |
+| a `tickInterval` that is not `<n><unit>` | — | dropped |  |
+| `weekday monday` | `weekStart monday` | mapped | `weekStart sunday`, Mermaid's default, is written when the ticks are in weeks and no `weekday` is. |
+| `excludes weekends`, `excludes sunday`, `excludes 2026-12-25` | `exclude weekends`, `exclude sunday`, `exclude 2026-12-25` | mapped |  |
+| an `excludes` value that is not a weekday, `weekends` or a date | — | dropped |  |
+| `weekend friday` | `exclude friday, saturday` in place of `weekends` | mapped |  |
+| `includes 2026-06-06` | `include 2026-06-06` | mapped | A date that nothing excludes works already and is not written. |
+| an `includes` value that is not a date | — | dropped |  |
+| no `todayMarker` | `today` | mapped | Mermaid draws the line unless `todayMarker off`. |
+| `todayMarker off` | no `today` | mapped |  |
+| `todayMarker stroke-width:5px,stroke:#0f0` | `today` | approximated |  |
+| `inclusiveEndDates` | end dates written as they are | mapped |  |
+| `topAxis`, `config.gantt.topAxis: true` | `axis both` | mapped |  |
+| `displayMode: compact`, `config.gantt.displayMode: compact` | `display compact` | mapped |  |
+| `section name` | `section <id> "name"` | mapped | Tasks before the first section stay at the chart's top level. |
+| `name : id, start, end` | `task id "name" from … for …` | mapped | Without an id a task is `task<n>`; without a start it follows the task before it. |
+| a start date in the `dateFormat` | `from <date>` | mapped |  |
+| `after a b` | `after a, b` | mapped |  |
+| `after` or `until` naming a task the chart does not have, or closing a loop | — | dropped | The task follows the task before it. |
+| `after` or `until` naming a `vert` task | the date Mermaid draws | approximated |  |
+| `until a b` | `until a, b` | mapped |  |
+| an end date | `to` the last day | mapped | Mermaid's end date is exclusive: `to` is the day before, or the date itself with `inclusiveEndDates`. |
+| `5d`, `1.5h`, `30m`, `10s`, `2w` | `for 5d`, `for 1.5h`, `for 30min`, `for 10s`, `for 2w` | mapped | Under excluded weekdays a week is written as `7n d`, which is how Mermaid counts it. |
+| `1500ms` | `for 2s` | approximated | A fraction of a second is rounded up. |
+| `1M`, `1y` | `for <n>d`, the days Mermaid draws | approximated |  |
+| a duration that is unreadable, zero or too long, or an end before the start | no end: the task lasts one day | approximated |  |
+| a task with nothing to start after | `from` the import's day | approximated |  |
+| a task that Meltemi dates differently | both dates in the finding | approximated | Reported once per task, with both dates. A start on an excluded day is written as the next working day. |
+| `done`, `active`, `crit` | `done`, `active`, `critical` | mapped | A task that is both active and done is active, as Mermaid draws it. |
+| the `milestone` tag | `milestone`, at the middle of its span | mapped |  |
+| a milestone after a task, with a duration | `milestone … after` | approximated |  |
+| the `vert` tag | `marker … at` | mapped | `marker … after` when it stands where a task ends, `at` otherwise. |
+| `crit`, `done` or `active` on a `vert` task | a marker without status | approximated |  |
+| `click id href "url"` | `url "…"` in the task's block | mapped |  |
+| `click id call callback(args)` | — | dropped | A `click` on something that is no task, and a link that is not http, https, mailto or relative, are dropped too. |
+| a start date that cannot be read | — | dropped | `import.syntax`, essential; the task is written without its start. |
+| unreadable lines | — | dropped | `import.syntax`, essential; kept as a comment. |

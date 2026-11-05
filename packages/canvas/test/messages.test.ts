@@ -235,11 +235,13 @@ describe("the canvas catalog", () => {
       flow: "Flow diagram",
       free: "Free composition",
       sequence: "Sequence diagram",
+      gantt: "Gantt chart",
     });
     expect(es.diagrams).toEqual({
       flow: "Diagrama de flujo",
       free: "Composición libre",
       sequence: "Diagrama de secuencia",
+      gantt: "Diagrama de Gantt",
     });
     expect(en.announcements.createdDiagram("free")).toBe("Created a free composition.");
     expect(es.announcements.createdDiagram("flow")).toBe("Se creó un diagrama de flujo.");

@@ -31,6 +31,40 @@ export const en = {
       externalContainer: "External Container",
       externalComponent: "External Component",
     },
+    /** The words of a gantt chart's axis: month and weekday names (weekdays from Monday), and today. */
+    gantt: {
+      months: [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ],
+      monthsShort: [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ],
+      weekdays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+      weekdaysShort: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+      today: "Today",
+    },
   },
   /** The messages of the layout's diagnostics; the code of each is in its comment. */
   diagnostics: {
@@ -229,9 +263,15 @@ export const en = {
       needsHeight: number,
     ) =>
       `The text of \`${element}\` does not fit its ${width} × ${height} px card even at ${fontSize} px, and is clipped: it needs ${needsWidth} × ${needsHeight} px.`,
+    /** `layout.ticks-crowded`: the interval written, and how many ticks pass between two labels. */
+    ticksCrowded: (ticks: string, every: number) =>
+      `The labels of \`ticks ${ticks}\` would overlap; every ${every} ticks is labelled.`,
   },
   /** The hints of the layout's diagnostics. */
   hints: {
+    /** `layout.ticks-crowded`. */
+    ticksCrowded:
+      "Write a longer interval in `ticks`, widen the chart with `dayWidth`, or remove `ticks` to let the axis choose.",
     /** `layout.label-cut` by the edge of the picture. */
     labelCutByPicture: "Give the diagram room: a larger `canvas`, or move the element inward.",
     /** `layout.label-cut` by a shape or a label. */

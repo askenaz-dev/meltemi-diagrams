@@ -83,7 +83,8 @@
               "line": 7,
               "column": 5
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "api",
@@ -130,7 +131,8 @@
               "line": 8,
               "column": 5
             }
-          }
+          },
+          "task": null
         }
       ],
       "relations": [
@@ -247,7 +249,8 @@
       "animations": [],
       "events": [],
       "scenarios": [],
-      "c4": null
+      "c4": null,
+      "gantt": null
     }
   ],
   "themes": [],

@@ -1,4 +1,4 @@
-import { catalog, plural } from "@meltemi/diagrams-i18n";
+import { catalog, decimal, plural } from "@meltemi/diagrams-i18n";
 import { messages } from "./index.js";
 
 /** Code inside a sentence: `id`. */
@@ -9,6 +9,24 @@ function time(ms: number, comma: boolean): string {
   const text = ms === 0 || ms >= 1000 ? `${Math.round(ms) / 1000} s` : `${ms} ms`;
   return comma ? text.replace(".", ",") : text;
 }
+
+/** The units of a gantt duration by name, singular then plural, for the hover of a time span. */
+const UNIT_NAMES = {
+  en: {
+    s: ["second", "seconds"],
+    min: ["minute", "minutes"],
+    h: ["hour", "hours"],
+    d: ["day", "days"],
+    w: ["week", "weeks"],
+  },
+  es: {
+    s: ["segundo", "segundos"],
+    min: ["minuto", "minutos"],
+    h: ["hora", "horas"],
+    d: ["día", "días"],
+    w: ["semana", "semanas"],
+  },
+} as const;
 
 /**
  * The words of the language services: hovers and keyword documentation, completion details, the
@@ -23,7 +41,7 @@ const en = {
     language: 'The language version of the file, such as `language "0.2"`.',
     import: "Imports themes and blocks from another `.meltemi` file of the project.",
     diagram:
-      "A diagram: `diagram <id>: flow { ... }`, `diagram <id>: free { ... }` or `diagram <id>: sequence { ... }`.",
+      "A diagram: `diagram <id>: flow { ... }`, `diagram <id>: free { ... }`, `diagram <id>: sequence { ... }` or `diagram <id>: gantt { ... }`.",
     theme: 'A theme for the diagram (`theme "technical.dark"`), or a theme block at the top level.',
     model: "A model block (compiled by the C4 profile).",
     story:
@@ -98,6 +116,8 @@ const en = {
     spacing:
       "The distance between the heads of neighbouring participants, before their gaps: `spacing 56` (40 by default).",
     sequence: "A sequence diagram: participants, messages in order, fragments and scenarios.",
+    gantt:
+      "A gantt chart: sections of tasks, milestones and markers placed on a time axis by their dates, durations and dependencies.",
     // diagram properties
     direction:
       "Flow of the automatic layout: `LR` (default), `RL`, `TB` or `BT`. In `animate`, `forward` (default) or `reverse` along the relation.",
@@ -228,6 +248,60 @@ const en = {
     stretch: "Stretched across the list to its width (a column) or its height (a row).",
   },
 
+  /**
+   * What the words of a gantt chart mean: statements, clauses, status words, chart statements and
+   * their values. Several are words of other profiles with other meanings (`from`, `to`, `at`,
+   * `after`, `column`, `bar`), so completion and hover read this table first inside a chart.
+   */
+  ganttWords: {
+    section:
+      'A band of rows with its title in the left column: `section <id> ["Label"] { ... }`. It holds tasks, milestones and markers.',
+    task: 'A bar from a start to an end: `task <id> ["Label"] [from <date>] [after <ids>] [for <duration> | to <date> | until <ids>] [done | active] [critical]`. Without a start it follows the previous task; without an end it lasts one day.',
+    milestone:
+      'A diamond at one instant: `milestone <id> ["Label"] [at <date>] [after <ids>] [done | active] [critical]`. Without a date it comes where the previous task ends.',
+    marker:
+      'A dashed line across the chart: `marker <id> ["Label"] (at <date> | after <ids>)`. It takes no row.',
+    from: "The start of a task: `from 2026-06-01`, or with a time `from 2026-06-01T09:30`. Beside `after`, the later of the two counts.",
+    at: "The date of a milestone or a marker: `at 2026-07-01`.",
+    after:
+      "What a task, milestone or marker waits for: `after a, b` starts it when the latest of them ends, and draws a dependency arrow from each.",
+    for: "How long a task lasts: `for 10d`, with the units `s`, `min`, `h`, `d` and `w`. With `exclude`, days and weeks count working time.",
+    to: "The last day of a task, inclusive: `to 2026-06-19`; with a time, the instant it ends: `to 2026-06-19T17:30`.",
+    until: "Ends a task when the earliest of the tasks starts: `until a, b`.",
+    done: "Complete: the task or milestone is drawn in the theme's `muted` colour.",
+    active: "In progress: the task or milestone is drawn in the theme's `info` colour.",
+    critical: "On the critical path: drawn in the theme's `danger` colour.",
+    exclude:
+      "Days that do not work: `exclude weekends`, `exclude friday` or `exclude 2026-12-25`; repeat it or list several. Durations in days and weeks skip them.",
+    include: "A date worked despite the exclusions: `include 2026-06-06`.",
+    weekStart:
+      "The first day of the weeks of the axis: `weekStart monday` (the default) to `weekStart sunday`.",
+    axisFormat: 'The format of the axis labels, a subset of strftime: `axisFormat "%d %b"`.',
+    ticks:
+      "The interval between axis labels: `ticks 1w`, with the units of a duration, `mo` and `y`.",
+    axis: "Where the axis labels go: `axis bottom` (the default), `axis top` or `axis both`.",
+    labels:
+      "Where task labels go: `labels bar` (on or beside the bars, the default) or `labels column` (under their section's title).",
+    display:
+      "`display normal` gives every task a row; `display compact` packs tasks that do not overlap into one row.",
+    dependencies:
+      "`dependencies shown` (the default) draws an arrow from each task to those that wait for it; `dependencies hidden` draws none.",
+    dayWidth:
+      "The width of a day in drawing units, 1 to 100000: `dayWidth 12`. By default the chart fills the canvas.",
+    today:
+      "A line at today: `today` for the day the picture is drawn, or `today 2026-06-10` for a date.",
+    weekends: "Saturday and Sunday: `exclude weekends`.",
+    top: "The axis above the rows.",
+    bottom: "The axis below the rows; the default.",
+    both: "The axis above and below the rows.",
+    bar: "On the bar when the label fits, beside it otherwise; the default.",
+    column: "In the left column, under the title of the task's section.",
+    normal: "One row for each task; the default.",
+    compact: "Tasks that do not overlap share a row.",
+    shown: "Draws the dependency arrows; the default.",
+    hidden: "Draws no dependency arrows.",
+  },
+
   /** What every option of an `export` profile does: completion and hover in its block. */
   exportOptions: {
     export:
@@ -281,8 +355,8 @@ const en = {
     camera:
       "Moves the view box to the targets plus 40 px: `camera a, b`, or `camera all` for the whole view; 800 ms by default.",
     trace:
-      "Draws one relation from its source to its target in the accent colour: `trace r [over <time>]`; 1.2 s by default.",
-    draw: "Draws pens, free lines and named relations from their first point to their last, one after the other, and leaves them drawn: `draw a, b [over <time>]`; 800 ms by default. Targets first drawn start hidden.",
+      "Draws one relation from its source to its target in the accent colour: `trace r [over <time>]`; 1.2 s by default. In a gantt chart, `trace <task>` draws the arrows of the chain of dependencies that drives the task, earliest first.",
+    draw: "Draws pens, free lines and named relations from their first point to their last, one after the other, and leaves them drawn: `draw a, b [over <time>]`; 800 ms by default. Targets first drawn start hidden. In a gantt chart it also takes tasks, whose bars grow from their start to their end.",
     hold: "Waits: `hold 2s`.",
     parallel:
       "Actions that start together: `parallel { ... }`. It lasts as long as its longest action.",
@@ -451,6 +525,84 @@ const en = {
     symbol: (duration: string) => `story · ${duration}`,
   },
 
+  /** Hovers and completion details in gantt charts. */
+  gantt: {
+    /** The days of the week, from Monday. */
+    weekdays: [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday",
+    ] as readonly string[],
+    /** What a weekday word does in `exclude` and in `weekStart`. */
+    weekday: (day: string) =>
+      `A day of the week: ${code(`exclude ${day}`)} leaves it out of working time, and ${code(`weekStart ${day}`)} starts the weeks of the axis on it.`,
+    /** What each directive of `axisFormat` writes; the `-` flag leaves out the padding. */
+    directives: {
+      a: "The weekday's short name.",
+      A: "The weekday's name.",
+      b: "The month's short name.",
+      B: "The month's name.",
+      d: "The day of the month, 01 to 31.",
+      e: "The day of the month, padded with a space, 1 to 31.",
+      H: "The hour, 00 to 23.",
+      I: "The hour on a 12-hour clock, 01 to 12.",
+      j: "The day of the year, 001 to 366.",
+      m: "The month, 01 to 12.",
+      M: "The minute, 00 to 59.",
+      p: "AM or PM.",
+      q: "The quarter of the year, 1 to 4.",
+      S: "The second, 00 to 59.",
+      U: "The week of the year, weeks starting on Sunday, 00 to 53.",
+      V: "The ISO 8601 week of the year, 01 to 53.",
+      w: "The weekday, 0 (Sunday) to 6 (Saturday).",
+      W: "The week of the year, weeks starting on Monday, 00 to 53.",
+      y: "The year without the century, 00 to 99.",
+      Y: "The year, such as 2026.",
+      "%": "A percent sign.",
+    },
+    /** Completion details of the units after a duration's number. */
+    units: {
+      s: "seconds",
+      min: "minutes",
+      h: "hours",
+      d: "days; working days under `exclude`",
+      w: "weeks; the working days of a week under `exclude`",
+      mo: "months; for `ticks` only",
+      y: "years; for `ticks` only",
+    },
+    /** A length of time written in a duration: `10 days`, `1 hour`. */
+    length: (amount: number, unit: "s" | "min" | "h" | "d" | "w") =>
+      `${amount} ${amount === 1 ? UNIT_NAMES.en[unit][0] : UNIT_NAMES.en[unit][1]}`,
+    /** Working time between two instants: `10 working days`, `4 working hours`. */
+    working: (amount: number, unit: "d" | "h" | "min" | "s") =>
+      `${amount} working ${amount === 1 ? UNIT_NAMES.en[unit][0] : UNIT_NAMES.en[unit][1]}`,
+
+    /** The hover on a date: its heading, and what the calendar says of its day. */
+    date: (text: string) => `**date** ${code(text)}`,
+    excluded: "excluded",
+    included: "a working day despite the exclusions",
+    /** The hover on a duration, and where it ends: `ends Friday 2026-06-19`. */
+    duration: (text: string) => `**duration** ${code(text)}`,
+    ends: (day: string) => `ends ${day}`,
+    /** Facts about a task, a milestone or a marker. */
+    notScheduled: "not scheduled",
+    follows: (ids: string) => `follows ${ids}`,
+    followsPrevious: (id: string) => `follows ${code(id)} (it has no start of its own)`,
+    endsWhen: (ids: readonly string[]) =>
+      ids.length === 1
+        ? `ends when ${code(ids[0]!)} starts`
+        : `ends when the first of ${ids.map(code).join(", ")} starts`,
+    precedes: (ids: string) => `precedes ${ids}`,
+    /** What a section holds. */
+    tasks: (count: number) => `${count} task${count === 1 ? "" : "s"}`,
+    milestones: (count: number) => `${count} milestone${count === 1 ? "" : "s"}`,
+    markers: (count: number) => `${count} marker${count === 1 ? "" : "s"}`,
+  },
+
   /** Details of completion items. */
   completion: {
     noConditionBranch: "branch without a condition",
@@ -483,6 +635,9 @@ const en = {
     request: "Request",
     response: "Response",
     title: "Title",
+    phase: "Build",
+    firstTask: "Design",
+    secondTask: "Ship",
   },
 
   /** Titles of quick fixes and refactors: commands. */
@@ -510,6 +665,15 @@ const en = {
       `Remove \`place ${element}\` (the list ${code(list)} places it)`,
     addListLayout: (group: string) => `Add \`layout column\` to ${code(group)}`,
     switchPreset: (preset: string) => `Switch to \`preset ${preset}\``,
+    /** Gantt charts: a start for a task nothing places, a relation written as `after`, a loop. */
+    startToday: (clause: string, day: string) => `Write ${code(`${clause} ${day}`)} (today)`,
+    relationToAfter: (after: string, task: string) =>
+      `Write ${code(`after ${after}`)} on ${code(task)} and remove the relation`,
+    dropRelation: (task: string, after: string) =>
+      `Remove the relation (${code(task)} already follows ${code(after)})`,
+    moveToNextWorking: (date: string) => `Move to the next working day, ${code(date)}`,
+    moveToPreviousWorking: (date: string) => `Move to the previous working day, ${code(date)}`,
+    removeFromClause: (id: string, clause: string) => `Remove ${code(id)} from ${code(clause)}`,
   },
 
   /** Why the token under the cursor cannot be renamed here. */
@@ -529,11 +693,15 @@ const en = {
     extends: (theme: string) => `extends ${theme}`,
   },
 
-  /** Words for the kinds of free objects the editor's own table does not name. */
+  /** Words for the kinds the editor's own table does not name: free objects and gantt statements. */
   kinds: {
     line: "line",
     pen: "pen",
     sticky: "sticky",
+    section: "section",
+    task: "task",
+    milestone: "milestone",
+    marker: "marker",
   },
 };
 
@@ -543,7 +711,7 @@ const es: typeof en = {
     language: 'La versión del lenguaje del archivo, como `language "0.2"`.',
     import: "Importa temas y bloques de otro archivo `.meltemi` del proyecto.",
     diagram:
-      "Un diagrama: `diagram <id>: flow { ... }`, `diagram <id>: free { ... }` o `diagram <id>: sequence { ... }`.",
+      "Un diagrama: `diagram <id>: flow { ... }`, `diagram <id>: free { ... }`, `diagram <id>: sequence { ... }` o `diagram <id>: gantt { ... }`.",
     theme:
       'Un tema para el diagrama (`theme "technical.dark"`), o un bloque de tema en el nivel superior.',
     model: "Un bloque de modelo (lo compila el perfil C4).",
@@ -626,6 +794,8 @@ const es: typeof en = {
       "La distancia entre las cabeceras de participantes vecinos, antes de sus gaps: `spacing 56` (40 por defecto).",
     sequence:
       "Un diagrama de secuencia: participantes, mensajes en orden, fragmentos y escenarios.",
+    gantt:
+      "Un diagrama de Gantt: secciones de tareas, hitos y marcas colocadas en un eje de tiempo según sus fechas, duraciones y dependencias.",
     // propiedades del diagrama
     direction:
       "El sentido de la disposición automática: `LR` (predeterminado), `RL`, `TB` o `BT`. En `animate`, `forward` (predeterminado) o `reverse` a lo largo de la relación.",
@@ -759,6 +929,56 @@ const es: typeof en = {
     stretch: "Estirados a lo ancho de la lista: a su ancho (una columna) o a su alto (una fila).",
   },
 
+  ganttWords: {
+    section:
+      'Una banda de filas con su título en la columna izquierda: `section <id> ["Label"] { ... }`. Contiene tareas, hitos y marcas.',
+    task: 'Una barra de un inicio a un fin: `task <id> ["Label"] [from <date>] [after <ids>] [for <duration> | to <date> | until <ids>] [done | active] [critical]`. Sin inicio sigue a la tarea anterior; sin fin dura un día.',
+    milestone:
+      'Un rombo en un instante: `milestone <id> ["Label"] [at <date>] [after <ids>] [done | active] [critical]`. Sin fecha queda donde termina la tarea anterior.',
+    marker:
+      'Una línea discontinua que cruza el diagrama: `marker <id> ["Label"] (at <date> | after <ids>)`. No ocupa fila.',
+    from: "El inicio de una tarea: `from 2026-06-01`, o con hora `from 2026-06-01T09:30`. Junto a `after` cuenta lo que ocurra más tarde.",
+    at: "La fecha de un hito o de una marca: `at 2026-07-01`.",
+    after:
+      "Aquello de lo que depende una tarea, un hito o una marca: con `after a, b`, empieza cuando termina el último de ellos, y se dibuja una flecha de dependencia desde cada uno.",
+    for: "Cuánto dura una tarea: `for 10d`, con las unidades `s`, `min`, `h`, `d` y `w`. Con `exclude`, los días y las semanas cuentan tiempo hábil.",
+    to: "El último día de una tarea, inclusive: `to 2026-06-19`; con hora, el instante en que termina: `to 2026-06-19T17:30`.",
+    until: "Termina una tarea cuando empieza la primera de las indicadas: `until a, b`.",
+    done: "Hecha: la tarea o el hito se dibuja en el color `muted` del tema.",
+    active: "En curso: la tarea o el hito se dibuja en el color `info` del tema.",
+    critical: "En la ruta crítica: se dibuja en el color `danger` del tema.",
+    exclude:
+      "Días que no se trabajan: `exclude weekends`, `exclude friday` o `exclude 2026-12-25`; repítelo o enumera varios. Las duraciones en días y semanas los saltan.",
+    include: "Una fecha que se trabaja pese a las exclusiones: `include 2026-06-06`.",
+    weekStart:
+      "El primer día de las semanas del eje: de `weekStart monday` (predeterminado) a `weekStart sunday`.",
+    axisFormat:
+      'El formato de las etiquetas del eje, un subconjunto de strftime: `axisFormat "%d %b"`.',
+    ticks:
+      "El intervalo entre las etiquetas del eje: `ticks 1w`, con las unidades de una duración, `mo` y `y`.",
+    axis: "Dónde van las etiquetas del eje: `axis bottom` (predeterminado), `axis top` o `axis both`.",
+    labels:
+      "Dónde van las etiquetas de las tareas: `labels bar` (sobre las barras o a su lado, predeterminado) o `labels column` (bajo el título de su sección).",
+    display:
+      "`display normal` da una fila a cada tarea; `display compact` reúne en una fila las tareas que no se solapan.",
+    dependencies:
+      "`dependencies shown` (predeterminado) dibuja una flecha de cada tarea a las que la esperan; `dependencies hidden` no dibuja ninguna.",
+    dayWidth:
+      "El ancho de un día en unidades de dibujo, de 1 a 100000: `dayWidth 12`. De forma predeterminada el diagrama llena el lienzo.",
+    today:
+      "Una línea en el día de hoy: `today` para el día en que se dibuja la imagen, o `today 2026-06-10` para una fecha.",
+    weekends: "Sábado y domingo: `exclude weekends`.",
+    top: "El eje encima de las filas.",
+    bottom: "El eje debajo de las filas; lo predeterminado.",
+    both: "El eje encima y debajo de las filas.",
+    bar: "Sobre la barra si la etiqueta cabe, y a su lado si no; lo predeterminado.",
+    column: "En la columna izquierda, bajo el título de la sección de la tarea.",
+    normal: "Una fila por tarea; lo predeterminado.",
+    compact: "Las tareas que no se solapan comparten fila.",
+    shown: "Dibuja las flechas de dependencia; lo predeterminado.",
+    hidden: "No dibuja flechas de dependencia.",
+  },
+
   exportOptions: {
     export:
       "Una entrega reproducible: `export <id> for <diagram-or-story> { format png; … }`, que escribe `meltemi-diagrams export --profile <id>`.",
@@ -814,8 +1034,8 @@ const es: typeof en = {
     camera:
       "Lleva el encuadre a los objetivos más 40 px: `camera a, b`, o `camera all` para toda la vista; 800 ms de forma predeterminada.",
     trace:
-      "Dibuja una relación de su origen a su destino en el color de acento: `trace r [over <time>]`; 1,2 s de forma predeterminada.",
-    draw: "Dibuja lápices, líneas libres y relaciones con nombre de su primer punto al último, uno tras otro, y los deja dibujados: `draw a, b [over <time>]`; 800 ms de forma predeterminada. Los objetivos que se dibujan por primera vez empiezan ocultos.",
+      "Dibuja una relación de su origen a su destino en el color de acento: `trace r [over <time>]`; 1,2 s de forma predeterminada. En un diagrama de Gantt, `trace <task>` dibuja las flechas de la cadena de dependencias que determina la tarea, de la más antigua a la más reciente.",
+    draw: "Dibuja lápices, líneas libres y relaciones con nombre de su primer punto al último, uno tras otro, y los deja dibujados: `draw a, b [over <time>]`; 800 ms de forma predeterminada. Los objetivos que se dibujan por primera vez empiezan ocultos. En un diagrama de Gantt también admite tareas, cuyas barras crecen de su inicio a su fin.",
     hold: "Espera: `hold 2s`.",
     parallel: "Acciones que empiezan juntas: `parallel { ... }`. Dura lo que su acción más larga.",
     over: "El tiempo que dura la acción o la transición, como `over 800ms` o `over 1.5s`.",
@@ -965,6 +1185,65 @@ const es: typeof en = {
     symbol: (duration) => `historia · ${duration}`,
   },
 
+  gantt: {
+    weekdays: ["lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo"],
+    weekday: (day) =>
+      `Un día de la semana: ${code(`exclude ${day}`)} lo deja fuera del tiempo hábil, y ${code(`weekStart ${day}`)} hace que las semanas del eje empiecen en él.`,
+    directives: {
+      a: "El nombre corto del día de la semana.",
+      A: "El nombre del día de la semana.",
+      b: "El nombre corto del mes.",
+      B: "El nombre del mes.",
+      d: "El día del mes, de 01 a 31.",
+      e: "El día del mes, con un espacio de relleno, de 1 a 31.",
+      H: "La hora, de 00 a 23.",
+      I: "La hora en un reloj de 12 horas, de 01 a 12.",
+      j: "El día del año, de 001 a 366.",
+      m: "El mes, de 01 a 12.",
+      M: "El minuto, de 00 a 59.",
+      p: "AM o PM.",
+      q: "El trimestre del año, de 1 a 4.",
+      S: "El segundo, de 00 a 59.",
+      U: "La semana del año, con semanas que empiezan en domingo, de 00 a 53.",
+      V: "La semana ISO 8601 del año, de 01 a 53.",
+      w: "El día de la semana, de 0 (domingo) a 6 (sábado).",
+      W: "La semana del año, con semanas que empiezan en lunes, de 00 a 53.",
+      y: "El año sin el siglo, de 00 a 99.",
+      Y: "El año, como 2026.",
+      "%": "Un signo de porcentaje.",
+    },
+    units: {
+      s: "segundos",
+      min: "minutos",
+      h: "horas",
+      d: "días; días hábiles con `exclude`",
+      w: "semanas; los días hábiles de una semana con `exclude`",
+      mo: "meses; solo para `ticks`",
+      y: "años; solo para `ticks`",
+    },
+    length: (amount, unit) =>
+      `${decimal("es", amount, 2)} ${amount === 1 ? UNIT_NAMES.es[unit][0] : UNIT_NAMES.es[unit][1]}`,
+    working: (amount, unit) =>
+      `${amount} ${amount === 1 ? `${UNIT_NAMES.es[unit][0]} hábil` : `${UNIT_NAMES.es[unit][1]} hábiles`}`,
+
+    date: (text) => `**fecha** ${code(text)}`,
+    excluded: "excluido",
+    included: "día hábil pese a las exclusiones",
+    duration: (text) => `**duración** ${code(text)}`,
+    ends: (day) => `termina el ${day}`,
+    notScheduled: "sin programar",
+    follows: (ids) => `sigue a ${ids}`,
+    followsPrevious: (id) => `sigue a ${code(id)} (no tiene un inicio propio)`,
+    endsWhen: (ids) =>
+      ids.length === 1
+        ? `termina cuando empieza ${code(ids[0]!)}`
+        : `termina cuando empieza el primero de ${ids.map(code).join(", ")}`,
+    precedes: (ids) => `precede a ${ids}`,
+    tasks: (count) => `${count} ${plural("es", count, { one: "tarea", other: "tareas" })}`,
+    milestones: (count) => `${count} ${plural("es", count, { one: "hito", other: "hitos" })}`,
+    markers: (count) => `${count} ${plural("es", count, { one: "marca", other: "marcas" })}`,
+  },
+
   completion: {
     noConditionBranch: "rama sin condición",
     imageFile: "archivo de imagen",
@@ -994,6 +1273,9 @@ const es: typeof en = {
     request: "Solicitud",
     response: "Respuesta",
     title: "Título",
+    phase: "Construcción",
+    firstTask: "Diseño",
+    secondTask: "Entrega",
   },
 
   fixes: {
@@ -1019,6 +1301,13 @@ const es: typeof en = {
       `Quitar \`place ${element}\` (la lista ${code(list)} lo coloca)`,
     addListLayout: (group) => `Agregar \`layout column\` a ${code(group)}`,
     switchPreset: (preset) => `Cambiar a \`preset ${preset}\``,
+    startToday: (clause, day) => `Escribir ${code(`${clause} ${day}`)} (hoy)`,
+    relationToAfter: (after, task) =>
+      `Escribir ${code(`after ${after}`)} en ${code(task)} y quitar la relación`,
+    dropRelation: (task, after) => `Quitar la relación (${code(task)} ya sigue a ${code(after)})`,
+    moveToNextWorking: (date) => `Mover al siguiente día hábil, ${code(date)}`,
+    moveToPreviousWorking: (date) => `Mover al día hábil anterior, ${code(date)}`,
+    removeFromClause: (id, clause) => `Quitar ${code(id)} de ${code(clause)}`,
   },
 
   rename: {
@@ -1041,6 +1330,10 @@ const es: typeof en = {
     line: "línea",
     pen: "lápiz",
     sticky: "nota adhesiva",
+    section: "sección",
+    task: "tarea",
+    milestone: "hito",
+    marker: "marca",
   },
 };
 

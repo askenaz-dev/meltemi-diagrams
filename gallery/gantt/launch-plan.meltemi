@@ -1,0 +1,34 @@
+language "0.2"
+
+// A launch plan as a gantt chart: tasks scheduled from dates and from what they wait for (`after`),
+// weekends not worked, tasks of every status, a critical chain, a milestone and a marker. The
+// `today` line is pinned to a date so that the exports do not change with the day they are made.
+diagram launch_plan: gantt {
+  title "Mobile app launch"
+  description "Three sections of tasks with their dependencies, the chain that sets the launch date, a milestone and a marker"
+  theme "technical.light"
+  axisFormat "%d %b"
+  exclude weekends
+  today 2026-06-17
+
+  section research "Research" {
+    task market "Market scan" from 2026-06-01 for 4d done
+    task users "User interviews" from 2026-06-02 for 6d done
+    task brief "Product brief" after market, users for 2d done critical
+  }
+
+  section build "Build" {
+    task ux "Interaction design" after brief for 7d active critical
+    task api "API" after brief for 10d
+    task app "Mobile app" after ux for 9d critical
+    task beta "Beta programme" after app for 5d
+  }
+
+  section release "Release" {
+    task review "Store review" after app, api for 3d critical
+    milestone live "In the stores" after review critical
+    task support "Launch support" after live for 2w
+  }
+
+  marker freeze "Feature freeze" at 2026-07-01
+}

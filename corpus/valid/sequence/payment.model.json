@@ -83,7 +83,8 @@
               "line": 7,
               "column": 17
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "api",
@@ -130,7 +131,8 @@
               "line": 8,
               "column": 18
             }
-          }
+          },
+          "task": null
         },
         {
           "id": "bank",
@@ -177,7 +179,8 @@
               "line": 9,
               "column": 19
             }
-          }
+          },
+          "task": null
         }
       ],
       "relations": [
@@ -728,7 +731,8 @@
           }
         }
       ],
-      "c4": null
+      "c4": null,
+      "gantt": null
     }
   ],
   "themes": [],

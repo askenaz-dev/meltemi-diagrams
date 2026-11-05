@@ -91,6 +91,31 @@ export const COVERAGE_ES: Readonly<Record<string, string>> = {
   "`->x`, `->o`, `-\\`, `-//` and other heads": "`->x`, `->o`, `-\\`, `-//` y otras puntas",
   "`note left: text` after a message": "`note left: text` después de un mensaje",
   "`end` without a fragment": "`end` sin fragmento",
+  "`Z`, `ZZ`, `X` or `x` in `dateFormat`": "`Z`, `ZZ`, `X` o `x` en `dateFormat`",
+  "`S`, `SS`, `SSS` or `x` with a fraction of a second":
+    "`S`, `SS`, `SSS` o `x` con una fracción de segundo",
+  "a `dateFormat` without a year, such as `HH:mm`": "un `dateFormat` sin año, como `HH:mm`",
+  "`%L`, `%Z` and other directives Meltemi does not have":
+    "`%L`, `%Z` y otras directivas que Meltemi no tiene",
+  "a `tickInterval` that is not `<n><unit>`": "un `tickInterval` que no es `<n><unit>`",
+  "an `excludes` value that is not a weekday, `weekends` or a date":
+    "un valor de `excludes` que no es un día de la semana, `weekends` ni una fecha",
+  "an `includes` value that is not a date": "un valor de `includes` que no es una fecha",
+  "no `todayMarker`": "sin `todayMarker`",
+  "a start date in the `dateFormat`": "una fecha de inicio en el `dateFormat`",
+  "`after` or `until` naming a task the chart does not have, or closing a loop":
+    "`after` o `until` que nombra una tarea que el diagrama no tiene, o que cierra un bucle",
+  "`after` or `until` naming a `vert` task": "`after` o `until` que nombra una tarea `vert`",
+  "an end date": "una fecha final",
+  "a duration that is unreadable, zero or too long, or an end before the start":
+    "una duración ilegible, cero o demasiado larga, o un final anterior al inicio",
+  "a task with nothing to start after": "una tarea sin nada tras lo que empezar",
+  "a task that Meltemi dates differently": "una tarea que Meltemi fecha de otro modo",
+  "the `milestone` tag": "la etiqueta `milestone`",
+  "a milestone after a task, with a duration": "un hito después de una tarea, con duración",
+  "the `vert` tag": "la etiqueta `vert`",
+  "a start date that cannot be read": "una fecha de inicio que no se puede leer",
+  "`crit`, `done` or `active` on a `vert` task": "`crit`, `done` o `active` en una tarea `vert`",
 
   // Targets.
   "`title`, and the diagram's id": "`title`, y el id del diagrama",
@@ -181,4 +206,22 @@ export const COVERAGE_ES: Readonly<Record<string, string>> = {
   '`} else "text" {` (`and` in `par`)': '`} else "text" {` (`and` en `par`)',
   "a note over every participant": "una nota sobre todos los participantes",
   "a note beside its participant": "una nota junto a su participante",
+  "dates written as ISO 8601": "fechas escritas en ISO 8601",
+  "dates without a zone": "fechas sin zona",
+  "dates exact to the second": "fechas exactas al segundo",
+  "dates on the import's day": "fechas en el día de la importación",
+  "the axis format without them": "el formato del eje sin ellas",
+  "`exclude friday, saturday` in place of `weekends`":
+    "`exclude friday, saturday` en lugar de `weekends`",
+  "no `today`": "sin `today`",
+  "end dates written as they are": "fechas finales escritas tal cual",
+  "the date Mermaid draws": "la fecha que dibuja Mermaid",
+  "`to` the last day": "`to` el último día",
+  "`for <n>d`, the days Mermaid draws": "`for <n>d`, los días que dibuja Mermaid",
+  "no end: the task lasts one day": "sin final: la tarea dura un día",
+  "`from` the import's day": "`from` el día de la importación",
+  "both dates in the finding": "las dos fechas en el hallazgo",
+  "`milestone`, at the middle of its span": "`milestone`, en la mitad de su intervalo",
+  "a marker without status": "una marca sin estado",
+  '`url "…"` in the task\'s block': '`url "…"` en el bloque de la tarea',
 };

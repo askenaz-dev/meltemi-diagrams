@@ -1,0 +1,24 @@
+language "0.2"
+
+// Imported from gantt-times.mmd (mermaid) by meltemi-diagrams.
+
+diagram release_day: gantt {
+  title "Release day"
+  axisFormat "%H:%M"
+  ticks 30min
+  exclude weekends
+  today
+
+  section morning "Morning" {
+    task standup "Stand-up" from 2026-06-01T09:00 for 15min
+    task review "Review" after standup for 1.5h
+    task deploy "Deploy window" from 2026-06-01T11:00 to 2026-06-01T12:30 critical
+    milestone golive "Go live" after deploy
+  }
+
+  section afternoon "Afternoon" {
+    task smoke "Smoke tests" after golive for 45min
+    task rollback "Rollback plan" from 2026-06-01T15:00 for 2h
+    task notes "Notes" from 2026-06-01T17:30 for 90s
+  }
+}

@@ -98,6 +98,7 @@ export const es: typeof en = {
   },
   mermaid: {
     config: "La configuración de Mermaid (temas, opciones de disposición) no se importa.",
+    configKey: (path) => `La opción de configuración \`${path}\` no se importa.`,
     frontMatterField: (field) => `El campo \`${field}\` del front matter no se importa.`,
     frontMatterLine: "Esta línea del front matter no se importa.",
     frontMatterNotClosed: "El front matter no se cierra con `---`.",
@@ -106,7 +107,7 @@ export const es: typeof en = {
     unsupported: (keyword) => `Los diagramas \`${keyword}\` de Mermaid no se importan.`,
     notADiagramType: (word) => `\`${word}\` no es un tipo de diagrama de Mermaid.`,
     supportedHint:
-      "Se admiten: `flowchart`, `graph`, `sequenceDiagram`, `C4Context`, `C4Container`, `C4Component`, `C4Dynamic`, `architecture-beta` y `block-beta`.",
+      "Se admiten: `flowchart`, `graph`, `sequenceDiagram`, `C4Context`, `C4Container`, `C4Component`, `C4Dynamic`, `architecture-beta`, `block-beta` y `gantt`.",
     c4Description: "Las vistas C4 no tienen descripción; `accDescr` no se importa.",
     labelHtml: "El formato HTML de una etiqueta se conserva como texto sin formato.",
     labelMarkdown: "El énfasis de Markdown de una etiqueta se conserva como texto sin formato.",
@@ -164,6 +165,60 @@ export const es: typeof en = {
     arrow: "La flecha de bloque se dibuja apuntando a la derecha.",
     undefinedClass: (source, name) => `\`${source}\` o \`${name}\` no está definido.`,
     notABlock: (source) => `\`${source}\` no es un bloque.`,
+  },
+  gantt: {
+    zone: "Las fechas de Meltemi no tienen zona horaria; la zona se descarta y la hora se conserva tal como está escrita.",
+    timestamp:
+      "Las fechas de Meltemi no tienen zona horaria; las marcas de tiempo Unix se leen como UTC.",
+    fraction:
+      "Las fechas de Meltemi son exactas al segundo; las fracciones de segundo se descartan.",
+    noYear: (day) =>
+      `El formato de fecha no tiene año; lo que omite de una fecha sale del día de la importación, ${day}.`,
+    axisDirective: (directives) =>
+      `${code(directives)} no ${directives.length === 1 ? "tiene" : "tienen"} equivalente en un formato de eje y se ${directives.length === 1 ? "descarta" : "descartan"}.`,
+    axisEmpty: "No queda nada del formato del eje; el eje usa su formato predeterminado.",
+    tickMillisecond:
+      "Las marcas del eje distan al menos un segundo; `millisecond` se escribe como `1s`.",
+    tickInterval: (text) =>
+      `\`${text}\` no es un intervalo de marcas; escribe un número y \`millisecond\`, \`second\`, \`minute\`, \`hour\`, \`day\`, \`week\` o \`month\`.`,
+    todayMarker:
+      "El estilo de la línea de hoy no se conserva; `today` la dibuja con los colores del tema.",
+    excludes: (token) =>
+      `\`${token}\` no es \`weekends\`, un día de la semana ni una fecha; se descarta.`,
+    includes: (token) => `\`${token}\` no es una fecha; se descarta.`,
+    everyDay:
+      "Todos los días de la semana están excluidos y no queda ninguno para trabajar; las exclusiones se descartan.",
+    click: "Las funciones de retorno (`click … call`) no se importan.",
+    clickTask: (id) => `\`${id}\` no es una tarea del diagrama; su \`click\` no se importa.`,
+    clickUrl: (url) =>
+      `\`${url}\` no es un enlace que la hoja pueda guardar (http, https, mailto o una ruta relativa); se descarta.`,
+    unknownTask: (word, id) => `\`${id}\` no es una tarea del diagrama; se quita de \`${word}\`.`,
+    loop: (word, id) =>
+      `\`${id}\` y esta tarea se esperan mutuamente; \`${id}\` se quita de \`${word}\` para abrir el bucle.`,
+    markerTask: (word, id) =>
+      `\`${id}\` es una marca vertical, que una tarea no puede seguir ni usar como final; se quita de \`${word}\`.`,
+    date: (text, format) => `\`${text}\` no es una fecha en el formato \`${format}\`.`,
+    duration: (text) => `\`${text}\` no es una duración; la tarea dura un día.`,
+    zeroDuration: (text) => `\`${text}\` no dura nada; la tarea dura un día.`,
+    endBeforeStart:
+      "El final no es posterior al inicio; Mermaid no dibuja nada y la tarea dura un día.",
+    durationLong: (text) =>
+      `\`${text}\` es más larga de lo que abarca un diagrama; la tarea dura un día.`,
+    durationMilliseconds: (written, as) =>
+      `\`${written}\` se escribe como \`${as}\`: las duraciones empiezan en un segundo.`,
+    durationMonths: (written, as) =>
+      `\`${written}\` se escribe como \`${as}\`, los días que Mermaid dibuja para ella desde su inicio.`,
+    milestoneDuration:
+      "Un hito después de una tarea se dibuja al final de esa tarea; su duración no se conserva.",
+    markerStatus: "Una marca no tiene estado; `done`, `active` y `crit` no se conservan.",
+    start: (day) =>
+      `La tarea no tiene nada tras lo que empezar; empieza el día de la importación, ${day}.`,
+    schedule: (id, from, to, hereFrom, hereTo) =>
+      `Mermaid dibuja \`${id}\` del ${from} al ${to}; aquí va del ${hereFrom} al ${hereTo}.`,
+    scheduleAt: (id, day, hereDay) =>
+      `Mermaid dibuja \`${id}\` el ${day}; aquí está el ${hereDay}.`,
+    scheduleHint:
+      "Meltemi empieza las tareas en un día hábil y cuenta las duraciones en días hábiles; `include <date>` hace que un día excluido sea hábil.",
   },
   c4: {
     closeWithoutBoundary: "`}` sin un límite abierto.",
@@ -353,5 +408,36 @@ export const es: typeof en = {
     preprocessorEssential: "`import.preprocessor`, esencial.",
     unclosedBlock: "Un bloque sin cerrar es `import.syntax`.",
     elementsKept: "Sus elementos se conservan.",
+    ganttTitle:
+      "Un `title` prevalece sobre el `title` del front matter, que prevalece sobre `accTitle`.",
+    ganttConfig:
+      "En un diagrama de Gantt se leen `displayMode`, `config.gantt.displayMode` y `config.gantt.topAxis`; cualquier otra opción se informa.",
+    ganttDateFormat:
+      "Se lee cada token de dayjs que Mermaid documenta. La hora solo se escribe cuando no es medianoche.",
+    ganttZone:
+      "Las fechas de Meltemi no tienen zona horaria: la zona se descarta y una marca de tiempo Unix se lee como UTC.",
+    ganttNoYear:
+      "Lo que el formato omite sale del día de la importación (`ImportOptions.today`, por defecto el día de la máquina).",
+    ganttAxisFormat: "`%c`, `%x` y `%X` se escriben en sus formas de d3.",
+    ganttWeekStart:
+      "`weekStart sunday`, el valor predeterminado de Mermaid, se escribe cuando las marcas son de semanas y no hay `weekday`.",
+    ganttIncludeNoop: "Una fecha que nada excluye ya es hábil y no se escribe.",
+    ganttToday: "Mermaid dibuja la línea salvo con `todayMarker off`.",
+    ganttSection:
+      "Las tareas anteriores a la primera sección quedan en el nivel superior del diagrama.",
+    ganttTask: "Sin id, una tarea es `task<n>`; sin inicio, sigue a la tarea anterior.",
+    ganttDropAfter: "La tarea sigue a la tarea anterior.",
+    ganttExclusiveEnd:
+      "La fecha final de Mermaid es exclusiva: `to` es el día anterior, o la propia fecha con `inclusiveEndDates`.",
+    ganttWeeks:
+      "Con días de la semana excluidos, una semana se escribe `7n d`, que es como la cuenta Mermaid.",
+    ganttRoundedUp: "Una fracción de segundo se redondea hacia arriba.",
+    ganttSchedule:
+      "Se informa una vez por tarea, con las dos fechas. Un inicio en un día excluido se escribe como el siguiente día hábil.",
+    ganttStatus: "Una tarea en curso y hecha a la vez se dibuja en curso, como hace Mermaid.",
+    ganttMarker: "`marker … after` cuando está donde termina una tarea, `at` en otro caso.",
+    ganttClick:
+      "También se descartan un `click` sobre algo que no es una tarea y un enlace que no es http, https, mailto ni relativo.",
+    ganttDateUnreadable: "`import.syntax`, esencial; la tarea se escribe sin su inicio.",
   },
 };

@@ -170,7 +170,7 @@ diagram.
 ## New diagrams and the canvas size
 
 **An empty file.** When the file has no diagram, the canvas says so and offers a button for each
-kind it creates: **Flow diagram**, **Free composition** and **Sequence diagram**. Nothing of the
+kind it creates: **Flow diagram**, **Free composition**, **Sequence diagram** and **Gantt chart**. Nothing of the
 last drawing stays: the diagram picker, the inspector, the minimap and the layout and "Out of
 date" badges are cleared. A button writes the diagram and shows it with its palette, so an emptied
 file becomes:
@@ -182,7 +182,7 @@ diagram diagram1: flow {
 }
 ```
 
-**New diagram.** The **+** button right of the diagram picker offers the same three kinds in any
+**New diagram.** The **+** button right of the diagram picker offers the same four kinds in any
 file. The diagram is written after the last statement of the file, past a blank line, with the
 first id of `diagram1`, `diagram2`… that no diagram, model, theme or story of the file uses; a
 file without `language` gets `language "0.2"` first. It is one undo step, and the picker names
@@ -191,7 +191,7 @@ model ([c4.md](language/c4.md)). A read-only canvas shows the reason for an empt
 the buttons and has no **New diagram**, and neither is offered while a story plays.
 
 **The canvas size.** With nothing selected, the inspector's **Canvas** field sets the size of the
-drawing of a flow diagram, a free composition, a sequence diagram or a C4 view
+drawing of a flow diagram, a free composition, a sequence diagram, a gantt chart or a C4 view
 ([presets and canvas](language/styles.md#presets-and-canvas)):
 
 | Canvas         | Text                                                                                        |
@@ -898,6 +898,129 @@ coordinates.
   and a tag as a tag of its message or participant; go to definition, references and rename follow
   the ids of notes and fragments; quick fixes declare an unknown participant and remove a stray
   `deactivate`.
+
+## Gantt charts
+
+A chart is edited by its dates. The canvas never moves a bar by pixels: every gesture ends as a
+change of `from`, `after`, `for`, `to`, `until` or of the order of the rows
+([gantt charts](language/gantt.md)).
+
+### Gestures
+
+| Gesture                                                             | What it does                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Click a bar, a milestone diamond, a marker's label or an arrow      | Selects it (Shift adds or removes). A section is selected by its title in the left column; its band across the timeline is background.                                                                                                                                                                                    |
+| Drag a band over the timeline                                       | Selects the bars and milestones it touches (Shift keeps the selection).                                                                                                                                                                                                                                                   |
+| Drag a bar sideways                                                 | Moves the start and keeps the length in working time: writes `from` (`at` on a milestone or marker). A bar that follows others cannot start before they end: held there it keeps `after` and loses `from`. Several selected bars move together, as far as the one pressed.                                                |
+| Drag the grip at the right end of a selected task                   | Moves the end: `for` is rewritten in working days (in weeks when it was in weeks and the length is whole weeks; in hours or minutes under a day), `to` is rewritten as the date, an `until` becomes `for`. An end dragged before the start leaves the bar one step long (a working day at ordinary zoom).                 |
+| Drag the grip at its left end                                       | Moves the start and keeps the end where it is (the length changes).                                                                                                                                                                                                                                                       |
+| Drag a bar up or down                                               | The first 6 pixels decide the axis. The row lifts under the pointer, an insertion bar shows the gap it goes to, and the tooltip names where ("Into build", "Top of the chart"). Released: the row moves there, into another section too. Released over the axis, above the chart or in its own place: nothing is written. |
+| Drag a section's title up or down                                   | Moves the whole section between sections.                                                                                                                                                                                                                                                                                 |
+| Drag the dot above a bar's right end onto another task or milestone | Adds the dragged bar to the target's `after`. A loop, the bar itself or a link that exists is refused: nothing is written, the target flashes in the danger colour and the status line says why.                                                                                                                          |
+| Delete with an arrow selected                                       | Removes the id from the successor's `after`; if that was its last start clause it gets `from` its current start, so it does not move.                                                                                                                                                                                     |
+| Delete with rows selected                                           | Removes them; whatever followed them keeps its dates (`from` is written).                                                                                                                                                                                                                                                 |
+| Task tool (T) armed, drag on the timeline                           | Draws a bar: `from` the press date, `for` the length dragged (a click makes one day), in the section and at the row under the press; its label editor opens. With Milestone (M) or Marker (V) armed a click places it at the date clicked. Escape puts the tool away.                                                     |
+| Relation tool (R), or C and a pick                                  | Click a bar, then another (or pick it from the list): the second follows the first.                                                                                                                                                                                                                                       |
+| Double click, Enter or F2 on a bar or section                       | Edits the label in place, over where it is drawn (beside the bar, inside it, or in the section's column).                                                                                                                                                                                                                 |
+
+Hover a bar for a quarter of a second and a tooltip gives its dates and working time ("8 Jun → 19
+Jun · 10 working days"; a diamond and a marker say their day). A read-only canvas shows it too, and
+selects, but has no handles, no drag and no key that writes.
+
+### Snapping, tooltip and preview
+
+- A drag snaps to the smallest of 15 minutes, 1 hour, 1 day and 1 week that is at least 6 screen
+  pixels wide at the current zoom (a week when none is).
+- A bar keeps its phase: one that starts at 09:30 and is moved by a day still starts at 09:30.
+- A start falls on working time, so excluded days are skipped.
+- Drawing a task or placing a marker snaps to the grid of that step; a week starts on the chart's
+  `weekStart`.
+- While a bar is dragged the tooltip follows the pointer: first day to last day, then working time
+  ("15 Jun → 26 Jun · 10 working days", with times when the bar has them). A second line "after
+  tec0" shows while the bar is held at the end of what it follows. Dragged rows say where they go.
+- The dragged bar follows the pointer at once. The bars after it, the arrows, the axis and the size
+  of the canvas are drawn from a live preview of the session, which writes nothing. Escape cancels
+  the drag. The edit is written on release, in one undo step.
+
+### Keys
+
+| Key                 | What it does                                                                                                                                                                                                                                                                                                                    |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Left, Right         | Move the start of the selected bars by a working day (Shift: a week; markers move by calendar days). Bars that follow others stop at the end of what they follow. One edit for all.                                                                                                                                             |
+| `]`, `[`            | Make the selected tasks one working day longer or shorter (Shift+`]`, Shift+`[`: a working week).                                                                                                                                                                                                                               |
+| Alt+Up, Alt+Down    | Move the selected rows one place; at the edge of a section they go into the section above or below; sections move among sections.                                                                                                                                                                                               |
+| T, M, V             | Add a task after the selected one (`after <id> for 1d`; with nothing selected, at the end of the last section after the last task; `from` today's date in an empty chart), a milestone after the selected task or milestone, a marker at the date under the pointer (or at the selection's start). Each opens its label editor. |
+| G                   | Adds a section after the selected row's section (the group tool is Section on a chart). Alt+G puts the selected rows in a new section.                                                                                                                                                                                          |
+| Tab, Shift+Tab      | Walk through the rows in order.                                                                                                                                                                                                                                                                                                 |
+| Enter, F2; Shift+F2 | Edit the label; rename the id, rewriting every `after` and `until` that names it.                                                                                                                                                                                                                                               |
+| Delete              | Removes the selected rows or arrows.                                                                                                                                                                                                                                                                                            |
+| Escape              | Cancels a drag, or puts the armed tool away.                                                                                                                                                                                                                                                                                    |
+
+**Palette and menus**
+
+- Palette: Task (T), Milestone (M), Marker (V) and Section (G, the group button).
+- New diagram and the buttons of an empty file offer **Gantt chart** (a bars glyph) and write an
+  empty `diagram diagram1: gantt { }`, drawn as four weeks with its axis.
+- Context menu of a row: Edit label, Change id, Connect to… (C), Move up, Move down, Put in a new
+  section (Alt+G); then Add a task, a milestone, a marker, a section; then Delete, Show in text,
+  Export SVG.
+- **Language features.** Completion knows the statements of a chart and of a section, the clause
+  and status words after a label, the tasks and milestones after `after` and `until` (never a task
+  that waits for the one being written), the units after a duration's number, `weekends` and the
+  weekdays after `exclude`, and the directives inside an `axisFormat`. Hover describes a task (its
+  days, working time, what it follows and precedes), a date (its weekday, and whether the calendar
+  excludes it) and a duration (where it ends); quick fixes write a start for an undated task, move
+  a date off an excluded day, remove a reference that closes a loop, or turn a relation statement
+  into an `after`; the outline nests the tasks under their sections.
+
+### Inspector fields
+
+- **Task**, under the heading **Schedule**:
+  - Start date (`from`): text, `YYYY-MM-DD` or with `THH:MM`, plus a button that opens the
+    platform's picker. Greyed, it shows the date the bar starts at.
+  - After: chips of tasks and milestones, each removable, and "Add…" picks one. Never the task
+    itself nor what comes after it.
+  - End: default (one day), for a duration, to a date, until other tasks.
+  - Duration: a number and a unit (seconds, minutes, hours, days, weeks), while the end is `for`
+    or none.
+  - End date, while the end is `to`.
+  - Until (chips), while the end is `until`.
+  - Status: planned, active, done. Planned is the empty choice.
+  - Critical.
+  - Read-only: Starts, Ends (the last day it covers) and Working time.
+  - Then Id, Label, Description, Classes, Linked to, URL, and the strip: Fill, Stroke, Text
+    colour, Line, Stroke width, Corner radius (tasks only), Effects, and Pattern (tasks only)
+    below it.
+  - Effects: Flow particles and Trace on tasks and milestones that come after others, then Moving
+    dash and Pulse.
+  - Greyed colours show what the chart draws by status: accent, info for active, muted for done,
+    danger for critical.
+- **Milestone:** Date (`at`), After, Status, Critical.
+- **Marker:** Date, After.
+- **Section:** Id, Label, Description, Classes, Linked to, URL and the strip (fill, stroke, text
+  colour, line, width).
+- **Arrow:** From and To, read-only, with a note that a dependency is changed in the After of the
+  task it points to.
+- **Chart:** Title, Description, Theme, then **Axis and look**:
+  - Axis format (quick choices `%d %b`, `%b %Y`, `%Y-%m-%d`, `%H:%M`).
+  - Ticks, and Week start.
+  - Axis: at the top, at the bottom, top and bottom.
+  - Labels: inside the bars, in a column.
+  - Display: normal, compact.
+  - Dependencies: shown, hidden.
+  - Day width: a number, or Auto.
+
+  Then **Calendar**:
+  - Excluded days: seven toggles from Monday, Weekends as one choice, and a box for dates. The
+    list is written keeping `weekends` while both days are in: toggling Friday gives `exclude
+weekends, friday`, or `exclude friday, saturday, sunday` when they were written one by one.
+  - Included dates.
+  - Today: quick choices Today / Off, or a date.
+
+Every field writes through the gantt operations. A value the language refuses is shown under the
+field in the language's own words ("`2026-02-30`: February 2026 has 28 days."), the field is
+outlined in the danger colour, nothing is written and what was typed is kept; typing again takes
+the reason away.
 
 ## C4 views
 

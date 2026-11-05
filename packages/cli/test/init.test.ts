@@ -41,16 +41,20 @@ describe("init", () => {
   it("lists each template's title, description and contents", () => {
     const { stdout } = mdg(scratch, "init", "--list");
     const lines = stdout.split("\n").filter(Boolean);
-    expect(lines).toHaveLength(7);
+    expect(lines).toHaveLength(8);
     expect(lines.map((l) => l.split(" ")[0])).toEqual([
       "flow",
       "c4",
       "sequence",
+      "roadmap",
       "free",
       "kanban",
       "whiteboard",
       "purchase",
     ]);
+    expect(lines.find((l) => l.startsWith("roadmap "))).toMatch(
+      /^roadmap +Product roadmap — A roadmap of three sections of tasks with their dependencies, a milestone and a story that plays it \(1 diagram, 1 story\)$/,
+    );
     expect(lines.find((l) => l.startsWith("c4 "))).toMatch(
       /^c4 +C4 model — An architecture model with a context view and a container view \(1 model, 2 views\)$/,
     );
@@ -102,6 +106,42 @@ describe("init", () => {
     expect(diagram.placement.some((p) => p.statement === "place" && p.target === row.id)).toBe(
       true,
     );
+  });
+
+  it("creates a roadmap that validates without diagnostics: a gantt chart of three sections and a story", () => {
+    const { code } = mdg(scratch, "init", "plan", "--template", "roadmap");
+    expect(code).toBe(0);
+    const validate = mdg(scratch, "validate", "plan");
+    expect(validate.stdout).toBe("Checked 1 file: 0 errors, 0 warnings.\n");
+    expect(validate.code).toBe(0);
+    const document = compile(
+      readFileSync(join(scratch, "plan", "diagrams", "roadmap.meltemi"), "utf8"),
+    ).document;
+    const chart = document.diagrams[0]!;
+    expect(chart.type).toBe("gantt");
+    expect(chart.properties.theme).toBe("editorial.light");
+    expect(chart.gantt?.calendar.excludedWeekdays).toEqual([5, 6]);
+    expect(chart.gantt?.today).not.toBeNull();
+    const sections = chart.elements.filter((e) => e.kind === "section");
+    expect(sections.map((s) => s.label)).toEqual(["Discovery", "Build", "Launch"]);
+    for (const kind of ["task", "milestone", "marker"]) {
+      expect(
+        chart.elements.some((e) => e.kind === kind),
+        kind,
+      ).toBe(true);
+    }
+    expect(chart.elements.some((e) => e.task?.critical)).toBe(true);
+    expect(chart.elements.some((e) => e.task?.after.length)).toBe(true);
+    // The story plays the plan: a scene for each section that reveals it and draws its tasks, then
+    // one that traces the launch.
+    const story = document.stories.find((s) => s.id === "plan")!;
+    expect(story.scenes.map((s) => s.id)).toEqual(["discover", "make", "ship", "chain"]);
+    const actions = story.scenes.map((s) =>
+      s.actions.flatMap((action) => ("kind" in action ? [action.kind] : [])),
+    );
+    expect(actions[0]).toContain("reveal");
+    expect(actions[0]).toContain("draw");
+    expect(actions[3]).toContain("trace");
   });
 
   it.each(Object.keys(TEMPLATES) as TemplateName[])(

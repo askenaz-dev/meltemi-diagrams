@@ -75,3 +75,5 @@ destruction, notes, every fragment, dividers, delays and numbering.
 - [Decision 0065](0065-sequence-wrap-tags-and-activation.md) wraps message labels between their
   lifelines, adds `tag "Text"` to the blocks of messages and participants, and makes activation
   bars objects of the canvas with an **Activate** button and an inspector checkbox.
+- [Decision 0066](0066-gantt-charts.md) adds `gantt` as a fifth profile on the same plan: an analyzer
+  that compiles into the shared model, a layout without an engine, and edits that write one clause.

@@ -1,4 +1,6 @@
 import type { Diagnostic, Location, Range } from "@meltemi/diagrams-language";
+import { formatDate } from "./calendar.js";
+import { WEEKDAYS } from "./schema.js";
 import type {
   AnimationEntry,
   ClassDefinition,
@@ -6,6 +8,8 @@ import type {
   ConstraintEntry,
   Element,
   FlowDiagram,
+  GanttChart,
+  GanttTask,
   ImportDeclaration,
   ModelDefinition,
   PlacementEntry,
@@ -183,9 +187,43 @@ export interface RuleJson {
   range: RangeJson;
 }
 
+/** A gantt task, milestone or marker: the clauses as written and the schedule they resolve to. */
+export interface TaskJson {
+  /** The date written with `from` (or `at`); null when none is. */
+  from: string | null;
+  after: string[];
+  end:
+    | { kind: "for"; amount: number; unit: string }
+    | { kind: "to"; date: string }
+    | { kind: "until"; ids: string[] }
+    | null;
+  status: "done" | "active" | null;
+  critical: boolean;
+  /** The resolved start and finish as ISO text (`2026-06-08T00:00`); null when unresolved. */
+  start: string | null;
+  finish: string | null;
+  workingDays: number | null;
+}
+
+/** A gantt chart's settings with the defaults applied. */
+export interface GanttJson {
+  axisFormat: string | null;
+  ticks: string | null;
+  weekStart: string;
+  axis: string;
+  labels: string;
+  display: string;
+  dependencies: string;
+  dayWidth: number | null;
+  exclude: { weekdays: string[]; dates: string[] };
+  include: string[];
+  today: { date: string | null } | null;
+  span: { start: string; end: string } | null;
+}
+
 export interface FlowDiagramJson {
   id: string;
-  type: "flow" | "free" | "sequence" | "c4";
+  type: "flow" | "free" | "sequence" | "c4" | "gantt";
   /** Diagrams of a type declared by a plugin: the type and the plugin. */
   declaredType?: { type: string; plugin: { name: string; version: string } | null };
   range: RangeJson;
@@ -215,6 +253,8 @@ export interface FlowDiagramJson {
   scenarios: ScenarioJson[];
   /** C4 views: the model, level, scope, lists, local labels and combinations; null otherwise. */
   c4: C4Json | null;
+  /** Gantt charts: the calendar, axis and look, and the span; null otherwise. */
+  gantt: GanttJson | null;
 }
 
 export type EventJson =
@@ -309,6 +349,8 @@ export interface ElementJson {
   groupPath: string[];
   range: RangeJson;
   idRange: RangeJson;
+  /** Gantt charts: the schedule of a task, milestone or marker; null on every other element. */
+  task: TaskJson | null;
 }
 
 export interface ConstraintJson {
@@ -639,6 +681,50 @@ function diagramJson(diagram: FlowDiagram): FlowDiagramJson {
           combined: [...diagram.c4.combined],
         }
       : null,
+    gantt: diagram.gantt ? ganttJson(diagram.gantt) : null,
+  };
+}
+
+/** A chart's settings; weekdays by name, instants as ISO text. */
+function ganttJson(chart: GanttChart): GanttJson {
+  return {
+    axisFormat: chart.axisFormat,
+    ticks: chart.ticks,
+    weekStart: WEEKDAYS[chart.calendar.weekStart]!,
+    axis: chart.axis,
+    labels: chart.labels,
+    display: chart.display,
+    dependencies: chart.dependencies,
+    dayWidth: chart.dayWidth,
+    exclude: {
+      weekdays: chart.calendar.excludedWeekdays.map((day) => WEEKDAYS[day]!),
+      dates: [...chart.calendar.excludedDates],
+    },
+    include: [...chart.calendar.includedDates],
+    today: chart.today ? { date: chart.today.date } : null,
+    span: chart.span
+      ? { start: formatDate(chart.span.start), end: formatDate(chart.span.end) }
+      : null,
+  };
+}
+
+/** A task's written clauses and resolved schedule. */
+function taskJson(task: GanttTask): TaskJson {
+  return {
+    from: task.from?.date ?? null,
+    after: task.after.map((reference) => reference.id),
+    end: !task.end
+      ? null
+      : task.end.kind === "for"
+        ? { kind: "for", amount: task.end.amount, unit: task.end.unit }
+        : task.end.kind === "to"
+          ? { kind: "to", date: task.end.date }
+          : { kind: "until", ids: task.end.ids.map((reference) => reference.id) },
+    status: task.status,
+    critical: task.critical,
+    start: task.start === null ? null : formatDate(task.start),
+    finish: task.finish === null ? null : formatDate(task.finish),
+    workingDays: task.working === null ? null : Math.round((task.working / 86_400) * 1e6) / 1e6,
   };
 }
 
@@ -777,6 +863,7 @@ function elementJson(element: Element): ElementJson {
     groupPath: [...element.groupPath],
     range: rangeJson(element.range),
     idRange: rangeJson(element.idRange),
+    task: element.task ? taskJson(element.task) : null,
   };
 }
 

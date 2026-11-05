@@ -27,6 +27,7 @@ como código o en un lienzo, se animan y se exportan para documentos, diapositiv
 | Sintaxis, diagramas de flujo, colocación y estilos                  | [gramática](language/grammar-0.2.md)                                   |
 | Composiciones libres                                                | [libre](language/free.md)                                              |
 | Diagramas de secuencia y escenarios                                 | [secuencia](language/sequence.md)                                      |
+| Diagramas de Gantt: tareas programadas sobre un calendario          | [Gantt](language/gantt.md)                                             |
 | Modelos y vistas C4                                                 | [C4](language/c4.md)                                                   |
 | Disposición, puertos, restricciones y comprobaciones                | [disposición](language/layout.md)                                      |
 | Temas, clases y preajustes                                          | [estilos](language/styles.md)                                          |
