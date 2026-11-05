@@ -5,8 +5,9 @@ The page SHALL show its version and the generator's name, and an About dialog wi
 the product (MIT) and of every bundled component, linking to `NOTICES.md`: EPL-2.0 for elkjs with
 its source link, OFL-1.1 for the fonts, Apache-2.0 for `@meltemi/ocean`, MIT for the others. It
 SHALL link "Drawing with coding agents", in the page's language, to that language's agent setup
-page by a relative address (`agent-setup/`, `es/agent-setup/`). `pnpm licenses:inventory --check`
-SHALL cover the bundled packages.
+page by a relative address (`agent-setup/`, `es/agent-setup/`) that resolves under the Worker and
+under a static server's sub-path. `pnpm licenses:inventory --check` SHALL cover the bundled
+packages.
 
 #### Scenario: Notices
 - **WHEN** `NOTICES.md` of the built site is read
