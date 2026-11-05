@@ -22,8 +22,9 @@ describe("determinism", () => {
   /** Frames at the start and end of every scene and the middle of every action. */
   const controlTimes = (doc: PlayerDocument): number[] => {
     if (doc.kind !== "story") return [0, 250, 500, 750, 1000, 1500, 2000];
-    const times = new Set<number>([0, doc.timeline.durationMs]);
-    for (const scene of doc.timeline.scenes) {
+    const { timeline } = doc.stories[0]!;
+    const times = new Set<number>([0, timeline.durationMs]);
+    for (const scene of timeline.scenes) {
       times.add(scene.startMs);
       times.add(scene.startMs + scene.durationMs);
       for (const action of scene.actions) times.add(action.startMs + action.durationMs / 2);

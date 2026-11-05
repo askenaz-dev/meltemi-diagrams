@@ -112,12 +112,21 @@ import { projectScenarios } from "./scenarios-projects.js";
 import { publishDialogScenarios } from "./scenarios-publish-dialog.js";
 import { publishingScenarios } from "./scenarios-publishing.js";
 import { sharingScenarios } from "./scenarios-sharing.js";
+import { sponsorScenarios } from "./scenarios-sponsors.js";
 import { unbrandedScenarios } from "./scenarios-unbranded.js";
 import { versionScenarios } from "./scenarios-versions.js";
 import { viewingScenarios } from "./scenarios-viewing.js";
 import { workerScenarios } from "./scenarios-worker.js";
 import { startFakeIdentity, type FakeIdentity } from "./identity.js";
-import { CLOUD, IDENTITY, SITE, runToEnd, startWorker, type RunningWorker } from "./worker.js";
+import {
+  CLOUD,
+  IDENTITY,
+  SITE,
+  SUPPORT,
+  runToEnd,
+  startWorker,
+  type RunningWorker,
+} from "./worker.js";
 
 const failures = join(tmpdir(), "meltemi-cloud-browser-failures");
 
@@ -245,7 +254,7 @@ const scenarios: Scenario[] = [
       // The Worker answers `api/session`: the static file of the same path is `{"user":null}`.
       assert.equal(readFileSync(join(t.worker.site, "api", "session"), "utf8"), '{"user":null}');
       assert.equal(session.status, 200);
-      assert.deepEqual(session.json, { user: null, signIn: signInAt(`${origin}/`) });
+      assert.deepEqual(session.json, { user: null, signIn: signInAt(`${origin}/`), ...SUPPORT });
       assert.match(session.headers["content-type"] ?? "", /^application\/json/);
       assert.equal(session.headers["cache-control"], "no-store");
 
@@ -309,14 +318,14 @@ const scenarios: Scenario[] = [
 
       // Asked from Node, the Worker says where to come back to: the page's own address, never another site's.
       const root = await t.ask("/api/session");
-      assert.deepEqual(root.json(), { user: null, signIn: signInAt(`${origin}/`) });
+      assert.deepEqual(root.json(), { user: null, signIn: signInAt(`${origin}/`), ...SUPPORT });
       const there = `${origin}/?project=${PROJECT}&invite=t`;
       const own = await t.ask("/api/session", { headers: { Referer: there } });
-      assert.deepEqual(own.json(), { user: null, signIn: signInAt(there) });
+      assert.deepEqual(own.json(), { user: null, signIn: signInAt(there), ...SUPPORT });
       const foreign = await t.ask("/api/session", {
         headers: { Referer: "https://example.com/elsewhere?x=1" },
       });
-      assert.deepEqual(foreign.json(), { user: null, signIn: signInAt(`${origin}/`) });
+      assert.deepEqual(foreign.json(), { user: null, signIn: signInAt(`${origin}/`), ...SUPPORT });
 
       // A path under /api that is not a route is the Worker's JSON 404, never a file.
       assertError(await t.ask("/api/nothing"), 404, "not-found");
@@ -358,7 +367,7 @@ const scenarios: Scenario[] = [
       );
       assert.equal(await page.locator(".view-badge").count(), 0, "nothing is shown to view");
       // Sign in brings the person back to the project they were opening.
-      assert.deepEqual(session.json, { user: null, signIn: signInAt(landed) });
+      assert.deepEqual(session.json, { user: null, signIn: signInAt(landed), ...SUPPORT });
       const signIn = page.locator(".topbar").getByRole("link", { name: "Sign in" });
       assert.equal(await signIn.getAttribute("href"), signInAt(landed));
     },
@@ -381,7 +390,11 @@ const scenarios: Scenario[] = [
         await context.clearCookies();
         await context.addCookies([sessionCookie(token)]);
         const session = await t.open("/");
-        assert.deepEqual(session.json, { user: null, signIn: signInAt(`${origin}/`) }, label);
+        assert.deepEqual(
+          session.json,
+          { user: null, signIn: signInAt(`${origin}/`), ...SUPPORT },
+          label,
+        );
         const topbar = page.locator(".topbar");
         assert.equal(await topbar.getByRole("link", { name: "Sign in" }).count(), 1, label);
         assert.equal(await topbar.locator(".account-button").count(), 0, label);
@@ -421,7 +434,7 @@ const scenarios: Scenario[] = [
       identity.end("sid-gone");
       await context.addCookies([sessionCookie(gone)]);
       const session = await t.open("/");
-      assert.deepEqual(session.json, { user: null, signIn: signInAt(`${origin}/`) });
+      assert.deepEqual(session.json, { user: null, signIn: signInAt(`${origin}/`), ...SUPPORT });
       const topbar = page.locator(".topbar");
       assert.equal(await topbar.getByRole("link", { name: "Sign in" }).count(), 1);
       assert.equal(await topbar.locator(".account-button").count(), 0);
@@ -442,12 +455,13 @@ const scenarios: Scenario[] = [
           name: "Ana",
           picture: `${origin}/favicon.svg`,
           handle: null,
-          entitlements: { unbranded: false },
+          entitlements: { unbranded: false, unbrandedBy: null },
           administration: null,
           administrationInvitation: null,
         },
         account: `${IDENTITY}/account`,
         signOut: `${IDENTITY}/logout`,
+        ...SUPPORT,
       });
 
       // The person, not the sign-in link.
@@ -562,9 +576,10 @@ const scenarios: Scenario[] = [
           name: "Ana",
           picture: `${origin}/favicon.svg`,
           handle: null,
-          entitlements: { unbranded: false },
+          entitlements: { unbranded: false, unbrandedBy: null },
         },
         token: { id, name: "ci build" },
+        ...SUPPORT,
       });
       const listed = await t.ask("/api/tokens", { headers: bearer(token) });
       const held = (listed.json()["tokens"] ?? []) as { id: string; last_used_at: string | null }[];
@@ -1007,6 +1022,7 @@ scenarios.push(
   ...sharingScenarios,
   ...publishDialogScenarios,
   ...unbrandedScenarios,
+  ...sponsorScenarios,
   ...administrationScenarios,
   ...limitScenarios,
   ...collaborationScenarios,

@@ -122,7 +122,8 @@ vivo de un archivo ([editor.md](editor.md)).
 | `pnpm mdg export architecture --profiles`            | todos los perfiles `export` de todos los archivos                              |
 
 En una carpeta, los archivos sin diagramas (modelos, temas, historias) se pasan por alto, y
-`--diagram`, `--story`, `--scenario` y `--stdout` se rechazan: eligen dentro de un solo archivo. Al
+`--diagram`, `--story`, `--stories`, `--scenes`, `--scenario` y `--stdout` se rechazan: eligen
+dentro de un solo archivo. Al
 importar una carpeta, los archivos `.iuml` de PlantUML se leen a través de los archivos que los
 incluyen y los archivos Markdown sin bloques de diagramas se pasan por alto; el resumen cuenta las
 hojas completas, parciales, fallidas y ya existentes.

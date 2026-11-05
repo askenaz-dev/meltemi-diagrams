@@ -23,7 +23,9 @@ const READY = `(async () => {
 async function captureOne(session, job) {
   const { targetId } = await session.send("Target.createTarget", { url: "about:blank" });
   const { sessionId } = await session.send("Target.attachToTarget", { targetId, flatten: true });
-  const transparent = cssColor(job.background) === "transparent";
+  const transparent =
+    cssColor(job.background) === "transparent" &&
+    (job.pages ?? []).every((page) => cssColor(page.background) === "transparent");
   try {
     await session.send("Page.enable", {}, sessionId);
     await session.send(

@@ -117,6 +117,37 @@ export function storyTimeline(story: StoryDefinition): StoryTimeline {
   return { id: story.id, title: story.title, durationMs: story.durationMs, scenes, views };
 }
 
+/** The final state of a scene is drawn this long before the next one starts, in milliseconds. */
+export const BEFORE_NEXT_SCENE = 0.01;
+
+/** The still of a scene: the instant of its final state, the frame a slide or a page takes. */
+export interface SceneStill {
+  readonly id: string;
+  readonly title: string | null;
+  /** The key of the scene's view. */
+  readonly view: string;
+  /** The instant of the scene's final state, in milliseconds. */
+  readonly atMs: number;
+}
+
+/**
+ * The still of every scene of a timeline: the scene's end for the last one, and for the others
+ * `BEFORE_NEXT_SCENE` before it, so the next scene's first frame (a transition, a reveal) never
+ * shows. The player's static view and the exports of every scene draw these instants.
+ */
+export function sceneStills(timeline: Pick<StoryTimeline, "scenes">): SceneStill[] {
+  const scenes = timeline.scenes;
+  return scenes.map((scene, i) => {
+    const end = scene.startMs + scene.durationMs;
+    return {
+      id: scene.id,
+      title: scene.title,
+      view: scene.view,
+      atMs: i === scenes.length - 1 ? end : Math.max(scene.startMs, end - BEFORE_NEXT_SCENE),
+    };
+  });
+}
+
 /** Every action with a target, flattened through `parallel`, in start order. */
 function flatten(
   actions: readonly TimelineAction[],

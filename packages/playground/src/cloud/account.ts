@@ -36,6 +36,10 @@ export interface AccountHooks {
   readonly signedOut: () => void;
   /** Says something in the status line. */
   readonly report?: (message: string) => void;
+  /** Reads the session answer again; the panel does when a donation was claimed. */
+  readonly readSession?: () => Promise<Session>;
+  /** The session answer read again said who the person is now (an entitlement granted, say). */
+  readonly sessionChanged?: (session: Extract<Session, { kind: "cookie" }>) => void;
 }
 
 /** The header's account control, and the way to open the account panel at a section. */
@@ -50,17 +54,33 @@ export function accountControl(session: Session, hooks: AccountHooks): AccountCo
   if (session.kind !== "cookie") {
     return { element: signInAnchor(session.signIn, hooks), open: () => {} };
   }
+  // What the panel opens with: the session the page started with, until the panel read it again.
+  let latest = session;
+  const readSession = hooks.readSession;
   const open = (section: AccountSection): void =>
     openAccountPanel({
-      user: session.user,
-      accountPage: session.account,
-      signOut: session.signOut,
+      user: latest.user,
+      accountPage: latest.account,
+      signOut: latest.signOut,
+      ...(latest.support ? { support: latest.support } : {}),
       section,
       usage: hooks.usage,
       keep: hooks.keep,
       setHandle: hooks.setHandle,
       signedOut: hooks.signedOut,
       ...(hooks.report ? { report: hooks.report } : {}),
+      ...(readSession
+        ? {
+            readSession: async () => {
+              const next = await readSession();
+              if (next.kind === "cookie") {
+                latest = next;
+                hooks.sessionChanged?.(next);
+              }
+              return next;
+            },
+          }
+        : {}),
     });
   return { element: accountMenu(session.user, session.signOut, hooks, open), open };
 }

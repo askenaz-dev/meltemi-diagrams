@@ -10,6 +10,7 @@ import {
   motionOptions,
   planMotion,
   sceneAt,
+  sceneStills,
   storyFrame,
 } from "@meltemi/diagrams-motion";
 import {
@@ -18,10 +19,12 @@ import {
   playerFragment,
   playerPage,
   rootView,
+  storiesDocument,
   storyDocument,
   type DrillViews,
   type LaidOutView,
   type PlayerDocument,
+  type StoryPlayerDocument,
 } from "@meltemi/diagrams-player";
 import type { FileCompilation, Workspace } from "@meltemi/diagrams-project";
 import { renderSvg, type FontPolicy } from "@meltemi/diagrams-render";
@@ -50,7 +53,9 @@ export const MAX_PIXELS = 16384;
 export interface ExportRequest {
   readonly target:
     | { readonly kind: "diagram"; readonly diagram: FlowDiagram; readonly owner: FileCompilation }
-    | { readonly kind: "story"; readonly story: StoryDefinition };
+    | { readonly kind: "story"; readonly story: StoryDefinition }
+    /** Stories of the file in one HTML player, in this order, over the views they share. */
+    | { readonly kind: "stories"; readonly stories: readonly StoryDefinition[] };
   readonly format: Writable;
   readonly theme: string | null;
   readonly fonts: FontPolicy;
@@ -70,6 +75,13 @@ export interface ExportRequest {
   /** Videos: how long they last, or null for the story's or the effects' end. */
   readonly durationMs: number | null;
   readonly out: string | null;
+  /**
+   * A story as SVG, PNG or PDF: a picture of every scene's final state, the frame the player's
+   * static view shows (`sceneStills`), instead of one frame; false when left out. SVG and PNG give
+   * a file per scene, named after `out` with the scene's id before the extension; PDF one file
+   * with a page per scene.
+   */
+  readonly scenes?: boolean;
   /**
    * The language of the words the export adds (C4 type lines, the player's controls); the
    * project's `locale` when left out.
@@ -94,11 +106,40 @@ const frameOf = (request: ExportRequest): "none" | undefined =>
  */
 export type ExportOutput =
   | ((
-      | { text: string; views?: number }
+      | {
+          text: string;
+          views?: number;
+          /** A player of several stories: the ids of the stories it holds, in order. */
+          stories?: readonly string[];
+        }
       | { job: CaptureJob }
       | { video: VideoJob; document: PlayerDocument }
+      /** The SVG of every scene of a story, in scene order. */
+      | { texts: readonly SceneOutput<string>[] }
+      /** The PNG of every scene of a story to capture, in scene order. */
+      | { jobs: readonly SceneOutput<CaptureJob>[] }
     ) & { readonly notices?: readonly string[] })
   | { problem: string };
+
+/** The picture of one scene: its id, its file's name and path (null without `out`), and what it is. */
+export interface SceneOutput<T> {
+  readonly scene: string;
+  /** `<stem>.<story>.<scene>.<ext>`, or the scene's id before the extension of `out`'s name. */
+  readonly name: string;
+  readonly out: string | null;
+  readonly output: T;
+}
+
+/** A file name with a scene's id before its extension: `a.purchase.svg` to `a.purchase.overview.svg`. */
+export function sceneFileName(name: string, scene: string): string {
+  const dot = name.lastIndexOf(".");
+  const slash = Math.max(name.lastIndexOf("/"), name.lastIndexOf("\\"));
+  return dot > slash ? `${name.slice(0, dot)}.${scene}${name.slice(dot)}` : `${name}.${scene}`;
+}
+
+/** The file name of a source without its folder and `.meltemi`. */
+const stemOfPath = (path: string) =>
+  path.slice(Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\")) + 1).replace(/\.meltemi$/, "");
 
 /** What an export needs of its file and project. */
 export interface ExportContext {
@@ -148,17 +189,27 @@ function layoutOf(
   return result;
 }
 
-/** The laid-out views of a story, by view key, or undefined when one cannot be drawn. */
+/**
+ * The laid-out views of a story, by view key, or undefined when one cannot be drawn. With `cache`,
+ * a view laid out for another story of the same request is taken from it, so it is laid out (and
+ * its diagnostics reported) once.
+ */
 function storyLayouts(
   context: ExportContext,
   story: StoryDefinition,
   theme: string | null,
   locale: Locale,
   frame: "none" | undefined,
+  cache?: Map<string, LayoutResult>,
 ): Map<string, LaidOutView> | undefined {
-  return storyLayoutsIn(context.workspace, context.file, story, (owner, diagram) =>
-    layoutOf(context, owner, diagram, theme, undefined, locale, frame),
-  );
+  return storyLayoutsIn(context.workspace, context.file, story, (owner, diagram) => {
+    const key = `${owner.path}#${diagram.id}`;
+    const known = cache?.get(key);
+    if (known) return known;
+    const result = layoutOf(context, owner, diagram, theme, undefined, locale, frame);
+    cache?.set(key, result);
+    return result;
+  });
 }
 
 /** The scene with the request's background and picture link, and the background for capture. */
@@ -244,8 +295,15 @@ function captureJob(
 export function produceExport(context: ExportContext, request: ExportRequest): ExportOutput {
   const provider = context.projects.fontsFor(context.workspace);
   const fontsFor = (policy: FontPolicy) => (policy === "embedded" ? { fonts: provider } : {});
-  if ((VIDEO as readonly string[]).includes(request.format)) return produceVideo(context, request);
   const problems = messages().exports;
+  if (request.scenes) {
+    if (request.target.kind !== "story") return { problem: problems.scenesStory };
+    if (request.format !== "svg" && request.format !== "png" && request.format !== "pdf")
+      return { problem: problems.scenesFormat };
+    if (request.at !== null) return { problem: problems.scenesAt };
+  }
+  if (request.target.kind === "stories") return produceStories(context, request);
+  if ((VIDEO as readonly string[]).includes(request.format)) return produceVideo(context, request);
   let scene: Scene;
   let colors: Readonly<Record<string, unknown>> | undefined;
   if (request.target.kind === "story") {
@@ -267,15 +325,14 @@ export function produceExport(context: ExportContext, request: ExportRequest): E
       return {
         text: playerHtml(doc, request, context.playerScript(), contentLocale(context, request)),
       };
-    const frame = storyFrame(
-      doc.timeline,
-      (key) => doc.views[key],
-      request.at ?? doc.timeline.durationMs,
-      { accent: doc.accent },
-    );
+    colors = [...layouts!.values()][0]?.layout.theme as unknown as Record<string, unknown>;
+    if (request.scenes) return produceScenes(context, request, doc, colors);
+    const { timeline } = doc.stories[0]!;
+    const frame = storyFrame(timeline, (key) => doc.views[key], request.at ?? timeline.durationMs, {
+      accent: doc.accent,
+    });
     if (!frame) return { problem: problems.nothingToDraw(request.target.story.id) };
     scene = frame;
-    colors = [...layouts!.values()][0]?.layout.theme as unknown as Record<string, unknown>;
   } else {
     const { diagram, owner } = request.target;
     const result = layoutOf(
@@ -318,6 +375,108 @@ export function produceExport(context: ExportContext, request: ExportRequest): E
 }
 
 /**
+ * The player of several stories: each story's views laid out once for the request, a story that
+ * cannot be drawn left out with a notice, and the page of the others.
+ */
+function produceStories(context: ExportContext, request: ExportRequest): ExportOutput {
+  const problems = messages().exports;
+  if (request.target.kind !== "stories") return { problem: problems.storiesHtml };
+  if (request.format !== "html") return { problem: problems.storiesHtml };
+  const locale = contentLocale(context, request);
+  const cache = new Map<string, LayoutResult>();
+  const stories = request.target.stories;
+  const built = storiesDocument(
+    stories.map((story) => ({
+      story,
+      layouts:
+        storyLayouts(context, story, request.theme, locale, frameOf(request), cache) ?? new Map(),
+    })),
+    {
+      ...(request.fonts === "embedded"
+        ? { fonts: context.projects.fontsFor(context.workspace) }
+        : {}),
+      locale,
+    },
+  );
+  const doc = built.document;
+  if (!doc) return { problem: problems.storiesNotDrawn(stories.map((s) => s.id)) };
+  const notices = built.left.map((id) => problems.storyLeftOut(id));
+  return {
+    text: playerHtml(doc, request, context.playerScript(), locale),
+    stories: doc.stories.map((s) => s.id),
+    ...(notices.length > 0 ? { notices } : {}),
+  };
+}
+
+/**
+ * The pictures of every scene of a story: the frame of each scene's final state (`sceneStills`),
+ * as SVG texts or PNG jobs named after the scene, or one PDF with a page per scene, every page the
+ * largest frame's size (or the request's) with its frame fitted and centred.
+ */
+function produceScenes(
+  context: ExportContext,
+  request: ExportRequest,
+  doc: StoryPlayerDocument,
+  colors: Readonly<Record<string, unknown>> | undefined,
+): ExportOutput {
+  const problems = messages().exports;
+  const provider = context.projects.fontsFor(context.workspace);
+  const { id, timeline } = doc.stories[0]!;
+  const frames: { scene: string; drawn: { scene: Scene; background: string } }[] = [];
+  for (const still of sceneStills(timeline)) {
+    const frame = storyFrame(timeline, (key) => doc.views[key], still.atMs, { accent: doc.accent });
+    if (!frame) return { problem: problems.nothingToDraw(id) };
+    frames.push({ scene: still.id, drawn: decorate(frame, request, colors) });
+  }
+  if (frames.length === 0) return { problem: problems.noScenes(id) };
+  const base = request.out ?? `${stemOfPath(context.file.path)}.${id}.${request.format}`;
+  const named = <T>(scene: string, output: T): SceneOutput<T> => {
+    const out = sceneFileName(base, scene);
+    return {
+      scene,
+      name: out.slice(Math.max(out.lastIndexOf("/"), out.lastIndexOf("\\")) + 1),
+      out: request.out === null ? null : out,
+      output,
+    };
+  };
+  if (request.format === "svg") {
+    return {
+      texts: frames.map(({ scene, drawn }) =>
+        named(scene, renderSvg(drawn.scene, { fonts: request.fonts, provider })),
+      ),
+    };
+  }
+  const notices = new Set<string>();
+  if (request.format === "png") {
+    const jobs = frames.map(({ scene, drawn }) => {
+      const fitted = fitPicture(captureJob(context, drawn.scene, drawn.background, request));
+      if (fitted.notice) notices.add(fitted.notice);
+      return named(scene, fitted.job);
+    });
+    return { jobs, ...(notices.size > 0 ? { notices: [...notices] } : {}) };
+  }
+  // One PDF: pages of one size, the largest frame's, each frame fitted and centred on its page.
+  const width = request.size?.width ?? Math.max(...frames.map((f) => f.drawn.scene.width));
+  const height = request.size?.height ?? Math.max(...frames.map((f) => f.drawn.scene.height));
+  const svgOf = (scene: Scene) => renderSvg(scene, { fonts: "embedded", provider });
+  const pages = frames.map(({ drawn }) => ({
+    svg: svgOf(drawn.scene),
+    background: drawn.background,
+  }));
+  const first = frames[0]!.drawn;
+  const fitted = fitPicture({
+    kind: "pdf",
+    svg: pages[0]!.svg,
+    width,
+    height,
+    scale: 1,
+    background: first.background,
+    pages,
+  });
+  return fitted.notice ? { job: fitted.job, notices: [fitted.notice] } : { job: fitted.job };
+}
+
+/**
  * A picture whose side would pass `MAX_PIXELS` made as large as fits, keeping its proportions: a
  * PNG at a smaller scale, a PDF on a smaller page; with the notice naming the pixels used.
  */
@@ -356,6 +515,7 @@ function produceVideo(context: ExportContext, request: ExportRequest): ExportOut
   let doc: PlayerDocument | undefined;
   let duration: number;
   let colors: Readonly<Record<string, unknown>> | undefined;
+  if (request.target.kind === "stories") return { problem: problems.storiesHtml };
   if (request.target.kind === "story") {
     const layouts = storyLayouts(
       context,
@@ -367,7 +527,7 @@ function produceVideo(context: ExportContext, request: ExportRequest): ExportOut
     const story = layouts && storyDocument(request.target.story, layouts, fonts);
     if (!story) return { problem: problems.storyNotDrawn(request.target.story.id) };
     doc = story;
-    duration = request.durationMs || story.timeline.durationMs;
+    duration = request.durationMs || story.stories[0]!.timeline.durationMs;
     colors = [...layouts!.values()][0]?.layout.theme as unknown as Record<string, unknown>;
   } else {
     const { diagram, owner } = request.target;
@@ -484,5 +644,7 @@ export function profileRequest(
     fps: profile.fps,
     durationMs: profile.durationMs,
     out: place(name),
+    // A story's picture per scene: files named after the profile's, the scene before the extension.
+    ...(profile.scenes && target.kind === "story" ? { scenes: true } : {}),
   };
 }

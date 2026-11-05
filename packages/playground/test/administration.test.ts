@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import {
   adminApi,
+  amountText,
   isEmail,
   logText,
   permissionName,
@@ -188,5 +189,98 @@ describe("the log in words", () => {
         "takedown",
       ].sort(),
     );
+  });
+});
+
+describe("the sponsorships and a donation's grant", () => {
+  const SPONSORED = {
+    ...VIEW,
+    sponsorships: [
+      {
+        login: "ben",
+        type: "User",
+        oneTime: false,
+        amountCents: 1000,
+        status: "active",
+        createdAt: "2026-11-04T10:00:00.000Z",
+        privacy: "private",
+        claimedBy: null,
+      },
+      {
+        login: "ana",
+        type: "User",
+        oneTime: true,
+        amountCents: 550,
+        status: "cancelled",
+        createdAt: "2026-11-03T10:00:00.000Z",
+        privacy: "public",
+        claimedBy: { sub: "u2", name: "Ana", handle: "ana", email: "ana@example.com" },
+      },
+      { login: "", type: "User" },
+      "not a row",
+    ],
+    log: [
+      {
+        at: "2026-11-04T10:00:00.000Z",
+        by: { sub: "github-sponsors", name: "GitHub Sponsors" },
+        action: "grant",
+        target: { sub: "u2", name: "Ana" },
+        detail: "unbranded-exports (ana)",
+      },
+    ],
+  };
+
+  it("reads the sponsorships, leaving out what cannot be read, and none when the answer has none", () => {
+    const read = readView(answer(SPONSORED))!.value;
+    expect(read.sponsorships).toEqual([
+      {
+        login: "ben",
+        type: "User",
+        oneTime: false,
+        amountCents: 1000,
+        status: "active",
+        createdAt: "2026-11-04T10:00:00.000Z",
+        privacy: "private",
+        claimedBy: null,
+      },
+      {
+        login: "ana",
+        type: "User",
+        oneTime: true,
+        amountCents: 550,
+        status: "cancelled",
+        createdAt: "2026-11-03T10:00:00.000Z",
+        privacy: "public",
+        claimedBy: { sub: "u2", name: "Ana", handle: "ana", email: "ana@example.com" },
+      },
+    ]);
+    expect(readView(answer(VIEW))!.value.sponsorships).toEqual([]);
+  });
+
+  it("says an amount in US dollars, with cents only when there are some, in both languages", () => {
+    expect(amountText(1000, "en", en.accountPanel)).toBe("US$10");
+    expect(amountText(550, "en", en.accountPanel)).toBe("US$5.50");
+    expect(amountText(123456, "en", en.accountPanel)).toBe("US$1,234.56");
+    expect(amountText(1000, "es", es.accountPanel)).toBe("10 US$");
+    expect(amountText(550, "es", es.accountPanel)).toBe("5,50 US$");
+  });
+
+  it("says a donation's grant with the sponsor's login after the person", () => {
+    const entry = readView(answer(SPONSORED))!.value.log[0]!;
+    expect(logText(entry, en.accountPanel)).toBe(
+      "GitHub Sponsors granted Export without the Meltemi branding to Ana (ana)",
+    );
+    expect(logText(entry, es.accountPanel)).toBe(
+      "GitHub Sponsors concedió Exportar sin la marca de Meltemi a Ana (ana)",
+    );
+  });
+
+  it("has the same sponsorship words in both languages", () => {
+    const a = en.accountPanel.administration;
+    const b = es.accountPanel.administration;
+    expect(Object.keys(b.sponsorshipStatus).sort()).toEqual(
+      Object.keys(a.sponsorshipStatus).sort(),
+    );
+    expect(Object.keys(a.sponsorshipStatus).sort()).toEqual(["cancelled", "pending-cancellation"]);
   });
 });

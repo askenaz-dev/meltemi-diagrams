@@ -891,6 +891,8 @@ export const EXPORT_OPTIONS: Readonly<
   autoplay: { formats: ["html"], spec: null },
   loop: { formats: ["html"], spec: null },
   embed: { formats: ["html"], spec: null },
+  /** A story's picture of every scene's final state: an SVG or PNG per scene, or a PDF of them. */
+  scenes: { formats: ["svg", "png", "pdf"], spec: { kind: "enum", values: ["true", "false"] } },
 };
 
 /** The file extension of each format. */

@@ -987,7 +987,7 @@ describe("a token at work", () => {
         name: "Ana",
         picture: "",
         handle: null,
-        entitlements: { unbranded: false },
+        entitlements: { unbranded: false, unbrandedBy: null },
       },
       token: { id: created.id, name: "CI" },
     });

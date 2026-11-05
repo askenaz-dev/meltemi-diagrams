@@ -55,6 +55,7 @@ import {
   roomSocket,
 } from "./routes/rooms.js";
 import { sessionRoute } from "./routes/session.js";
+import { sponsorsRoute } from "./routes/sponsors.js";
 import {
   acceptInvitationRoute,
   getSharingRoute,
@@ -102,6 +103,8 @@ export const ROUTES: readonly RouteEntry[] = [
     route: deleteTokenRoute,
   },
   { method: "POST", path: /^\/_identity\/events$/, principal: false, route: eventsRoute },
+  // GitHub Sponsors' webhook: a signature, no person; the route answers 404 without SPONSORS_ACCOUNT.
+  { method: "POST", path: /^\/_sponsors\/github$/, principal: false, route: sponsorsRoute },
   { method: "GET", path: /^\/cli-auth$/, principal: true, route: cliAuthPage },
   { method: "POST", path: /^\/cli-auth$/, principal: true, route: cliAuthApprove },
   { method: "POST", path: /^\/cli-auth\/token$/, principal: false, route: cliAuthToken },
@@ -488,7 +491,7 @@ export const ROUTES: readonly RouteEntry[] = [
 ];
 
 /** The paths the Worker answers itself: an unmatched one under them is a JSON 404, never an asset. */
-const RESERVED = /^\/(api|_identity|_published|cli-auth|mcp|p|rooms)(\/|$)/;
+const RESERVED = /^\/(api|_identity|_published|_sponsors|cli-auth|mcp|p|rooms)(\/|$)/;
 
 /**
  * Whether a path is one the Worker answers itself, in any spelling. The assets binding reads a path

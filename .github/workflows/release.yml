@@ -241,6 +241,27 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: node delivery/scripts/publish-github.mjs
 
+  # Meltemi Web's documentation portal builds from each product's latest GitHub release, so once
+  # this one is out its deploy runs again (Web's change docs-portal), as the IDE's release does.
+  # The token is the narrow one Web's Terraform places here; until the owner creates it the
+  # release stays published and the portal waits for the web's next deploy.
+  tell-the-web:
+    name: tell the web
+    needs: [check, github]
+    if: ${{ always() && needs.github.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Start the web's deploy
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.WEB_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::warning::WEB_DISPATCH_TOKEN is not set (Meltemi Web's Terraform places it from its infrastructure environment); the release is published and the documentation portal updates on the web's next deploy."
+            exit 0
+          fi
+          gh workflow run deploy.yml --repo askenaz-dev/meltemi-web --ref main
+
   summary:
     if: ${{ always() && needs.check.result != 'skipped' }}
     needs: [check, npm, marketplace, openvsx, github]

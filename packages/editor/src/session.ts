@@ -9,6 +9,7 @@ import {
   activationPair,
   defaultLabel,
   newDiagramId,
+  newStoryId,
   planEdit,
   type EditOperation,
   type EditPlan,
@@ -128,8 +129,11 @@ export interface SessionResult {
   /** A range of the text to show, and whether to focus the text editor. */
   readonly reveal?: { readonly start: number; readonly end: number; readonly focus: boolean };
   /** A command of the document. */
-  readonly command?: "export" | "openModel" | "exportPlayer";
-  /** The story of `exportPlayer`; the host asks when it is absent. */
+  readonly command?: "export" | "openModel" | "exportPlayer" | "exportScenes";
+  /**
+   * The story of `exportPlayer` (the host asks when it is absent) or of `exportScenes`, whose
+   * pictures of every scene the host asks the format and the place of.
+   */
   readonly story?: string;
   /**
    * Edits of other files of the project, which the host makes with `ProjectSessions`: a theme
@@ -218,6 +222,8 @@ export class CanvasSession {
   private pendingGap: { readonly participant: string; readonly amount: number } | undefined;
   /** The diagram to show once it exists, after a conversion. */
   private pendingDiagram: string | undefined;
+  /** The story to play once it exists, after `createStory`. */
+  private pendingStory: string | undefined;
   /**
    * The event whose statement the last planned edit moves, by its key before the edit, with the
    * spans of the edited text that the edit writes and the revision it was planned on: the next
@@ -314,6 +320,16 @@ export class CanvasSession {
     }
     if (!this.diagram || !ids.includes(this.diagram)) {
       this.diagram = analysis.diagrams.find((d) => d.layout?.scene)?.id ?? ids[0];
+    }
+    // A story just created plays at once, in story mode on its empty scene.
+    const created = this.pendingStory;
+    if (created && analysis.compilation.document.stories.some((s) => s.id === created)) {
+      this.pendingStory = undefined;
+      if (storyPlayback(analysis, created)) {
+        this.story = created;
+        this.selection = [];
+        this.pendingStatus = wording().session.storyCreated(created);
+      }
     }
     return this.state();
   }
@@ -914,6 +930,9 @@ export class CanvasSession {
           command: "exportPlayer",
           ...(message.story !== null ? { story: message.story } : {}),
         };
+      case "exportScenes":
+        if (!analysis.compilation.document.stories.some((s) => s.id === message.story)) return NONE;
+        return { messages: [], command: "exportScenes", story: message.story };
       case "pickStory":
         if (
           message.story !== null &&
@@ -1851,6 +1870,7 @@ export class CanvasSession {
     if (story) return story;
     // A file without diagrams can have one created.
     if (action.kind === "createDiagram") return this.createDiagram(action.type);
+    if (action.kind === "createStory") return this.createStory();
     if (action.kind === "preview") return this.preview(action.token, action.action);
     const view = this.view();
     if (!view) return NONE;
@@ -2684,6 +2704,48 @@ export class CanvasSession {
       };
     }
     return planned;
+  }
+
+  /**
+   * Writes a new story of one empty scene for the diagram the canvas shows, or in story mode for
+   * the playing story's diagram when it is one of the file's; the canvas plays it once the host has
+   * applied the edit.
+   */
+  private createStory(): SessionResult {
+    const analysis = this.analysis!;
+    const document = analysis.compilation.document;
+    const playing = this.story ? document.stories.find((s) => s.id === this.story) : undefined;
+    const own = (id: string | undefined) =>
+      id !== undefined && document.diagrams.some((d) => d.id === id) ? id : undefined;
+    const diagram =
+      (playing && playing.target.file === null ? own(playing.target.diagram?.id) : undefined) ??
+      own(this.diagram);
+    if (!diagram) {
+      return {
+        messages: [
+          {
+            type: "rejected",
+            code: "edit.unsafe-target",
+            reason: wording().session.storyNeedsDiagram,
+          },
+        ],
+      };
+    }
+    const id = newStoryId(analysis.compilation);
+    const result = planEdit(
+      analysis.compilation,
+      { kind: "createStory", diagram, id },
+      { revision: analysis.revision },
+    );
+    if (!result.ok) {
+      return {
+        messages: [
+          { type: "rejected", code: result.rejection.code, reason: result.rejection.reason },
+        ],
+      };
+    }
+    this.pendingStory = id;
+    return { messages: [], plan: result.plan };
   }
 
   /** Writes a new empty diagram of `type`, shown once the host has applied the edit. */

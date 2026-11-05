@@ -13,8 +13,10 @@ import { createElkEngine } from "@meltemi/diagrams-layout-elk";
 import { compile, type Compilation } from "@meltemi/diagrams-model";
 import { renderSvg } from "@meltemi/diagrams-render";
 import {
+  BEFORE_NEXT_SCENE,
   boundsOf,
   sceneGroups,
+  sceneStills,
   storyFrame,
   storyTimeline,
   storyViewData,
@@ -68,6 +70,24 @@ describe("story timeline", () => {
     expect(timeline.views).toEqual(["checkout"]);
     // Plain data: it survives JSON.
     expect(JSON.parse(JSON.stringify(timeline))).toEqual(timeline);
+  });
+
+  it("gives each scene's final state: just before the next scene, and the end for the last", () => {
+    const { timeline } = setup(purchase);
+    expect(sceneStills(timeline)).toEqual([
+      { id: "overview", title: null, view: "checkout", atMs: 1800 - BEFORE_NEXT_SCENE },
+      { id: "processing", title: null, view: "checkout", atMs: 7400 },
+    ]);
+    expect(BEFORE_NEXT_SCENE).toBe(0.01);
+    // A scene that takes no time is its own start.
+    expect(
+      sceneStills({
+        scenes: [
+          { ...timeline.scenes[0]!, startMs: 0, durationMs: 0 },
+          { ...timeline.scenes[1]!, startMs: 0 },
+        ],
+      })[0]!.atMs,
+    ).toBe(0);
   });
 });
 

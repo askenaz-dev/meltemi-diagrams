@@ -28,7 +28,7 @@ const ANA = { sub: "u1", name: "Ana", picture: PICTURE, handle: null };
 /** Ana as the page reads her: an answer without `entitlements` entitles nobody. */
 const PARSED_ANA = {
   ...ANA,
-  entitlements: { unbranded: false },
+  entitlements: { unbranded: false, unbrandedBy: null },
   administration: null,
   administrationInvitation: null,
 };
@@ -296,6 +296,45 @@ describe("parseSession", () => {
     expect(unbranded({ ...ANA, entitlements: "unbranded" })).toBe(false);
     // Beside the user, not inside it: not the person's.
     expect(unbranded(ANA, { entitlements: { unbranded: true } })).toBe(false);
+  });
+
+  it("reads who granted the flag strictly, and null for anything else", () => {
+    const by = (entitlements: unknown) => {
+      const session = parse({ ...COOKIE, user: { ...ANA, entitlements } });
+      return session.kind === "cookie" ? session.user.entitlements.unbrandedBy : undefined;
+    };
+    expect(by({ unbranded: true, unbrandedBy: "github-sponsors" })).toBe("github-sponsors");
+    expect(by({ unbranded: true, unbrandedBy: "administrator" })).toBe("administrator");
+    for (const odd of [null, "owner", 1, {}, undefined]) {
+      expect(by({ unbranded: true, unbrandedBy: odd })).toBeNull();
+    }
+    expect(by("github-sponsors")).toBeNull();
+  });
+
+  it("reads the support beside the user as an https address only, and keeps nothing else", () => {
+    const support = (value: unknown) => {
+      const session = parse({ ...COOKIE, support: value });
+      return session.kind === "cookie" ? session.support : "not a cookie session";
+    };
+    expect(support({ url: "https://github.com/sponsors/askenaz" })).toEqual({
+      url: "https://github.com/sponsors/askenaz",
+    });
+    for (const odd of [
+      { url: "javascript:alert(1)" },
+      { url: "http://github.com/sponsors/askenaz" },
+      { url: "data:text/html,hi" },
+      { url: "https://user:secret@github.com/sponsors/askenaz" },
+      { url: "/sponsors" },
+      { url: 5 },
+      "https://github.com/sponsors/askenaz",
+      ["https://github.com/sponsors/askenaz"],
+      null,
+      undefined,
+    ]) {
+      expect(support(odd)).toBeUndefined();
+    }
+    // An answer without it has no such key at all, as before.
+    expect(parse(COOKIE)).not.toHaveProperty("support");
   });
 
   it("reads the role and the invitation to administer strictly, and null for anything else", () => {

@@ -72,7 +72,7 @@ function drawThumb(element: HTMLElement, entry: CatalogEntry): void {
   const svg =
     entry.kind === "diagram"
       ? frameSvg(entry.views[0]!.document, 0, { static: true })
-      : frameSvg(entry.document, entry.document.timeline.durationMs);
+      : frameSvg(entry.document, entry.document.stories[0]!.timeline.durationMs);
   const root = element.attachShadow({ mode: "open" });
   root.innerHTML = `<style>:host { display: block; } svg { display: block; width: 100%; height: 100%; }</style>${svg}`;
 }

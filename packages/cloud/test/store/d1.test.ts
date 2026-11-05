@@ -522,6 +522,34 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
 
       expect(await spy.deleteProject(evil, P2)).toBe(true);
 
+      const sponsorship = {
+        id: hex(7),
+        deliveryId: evil,
+        login: "evil-login",
+        sponsorId: 7,
+        sponsorType: evil,
+        oneTime: false,
+        amountCents: 100,
+        privacy: "private" as const,
+        createdAt: T,
+      };
+      expect(await spy.recordSponsorship(sponsorship)).toBe("recorded");
+      expect(await spy.recordSponsorship({ ...sponsorship, id: hex(8) })).toBe("repeated");
+      expect(
+        await spy.recordSponsorship({
+          ...sponsorship,
+          id: hex(9),
+          deliveryId: "d2",
+          sponsorType: "User",
+        }),
+      ).toBe("recorded");
+      expect(await spy.updateSponsorship("evil-login", false, "cancelled", "public")).toBe(true);
+      expect((await spy.unclaimedSponsorship("EVIL-LOGIN"))?.id).toBe(hex(9));
+      expect(await spy.claimSponsorship("evil-login", evil, T, logOf(6, "grant"))).toBe(true);
+      expect((await spy.sponsorships(10)).map((s) => s.claimedBy)).toEqual([evil, null]);
+      await spy.clearClaims(evil);
+      expect((await spy.sponsorships(10)).map((s) => s.claimedBy)).toEqual([null, null]);
+
       expect(await spy.deleteToken(evil, evil)).toBe(true);
       expect(await spy.applyUserDeleted(evil, evil, T)).toBe("applied");
       expect(await spy.deletedSince(evil, T)).toBe(true);
@@ -799,6 +827,7 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
         "DELETE FROM cli_codes WHERE sub = ?",
         "DELETE FROM administrators WHERE sub = ?",
         "DELETE FROM admin_invitations WHERE invited_by = ? AND accepted_at IS NULL AND declined_at IS NULL AND revoked_at IS NULL",
+        "UPDATE sponsorships SET claimed_by_sub = NULL, claimed_at = NULL WHERE claimed_by_sub = ?",
         "DELETE FROM idempotency WHERE sub = ?",
         "DELETE FROM call_windows WHERE sub = ?",
         "DELETE FROM users WHERE sub = ?",
@@ -823,8 +852,11 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
         ["u1"],
         ["u1"],
         ["u1"],
+        ["u1"],
+        ["u1"],
+        ["u1"],
       ]);
-      // The reads ran alone; the seventeen writes ran in one transaction.
+      // The reads ran alone; the eighteen writes ran in one transaction.
       expect(ran[0]?.batch).toBeNull();
       expect(ran[1]?.batch).toBeNull();
       expect(ran[2]?.batch).not.toBeNull();

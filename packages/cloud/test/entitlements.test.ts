@@ -22,7 +22,10 @@ interface Entitlement {
 }
 
 interface Session {
-  user: { sub: string; entitlements: { unbranded: boolean } } | null;
+  user: {
+    sub: string;
+    entitlements: { unbranded: boolean; unbrandedBy: string | null };
+  } | null;
 }
 
 /** The service with one administrator, and people who have each made a request (so have a row). */
@@ -55,7 +58,10 @@ const codeOf = async (response: Response) =>
 describe("PUT /api/admin/accounts/<account>/permissions/unbranded-exports", () => {
   it("entitles an account, records who and when, and the person's session then says so", async () => {
     const p = await service(ANA);
-    expect((await sessionOf(p, ANA))?.entitlements).toEqual({ unbranded: false });
+    expect((await sessionOf(p, ANA))?.entitlements).toEqual({
+      unbranded: false,
+      unbrandedBy: null,
+    });
     p.h.clock.advance(60_000);
 
     const response = await grant(p, ANA);
@@ -73,7 +79,10 @@ describe("PUT /api/admin/accounts/<account>/permissions/unbranded-exports", () =
         at: p.h.clock.now().toISOString(),
       },
     });
-    expect((await sessionOf(p, ANA))?.entitlements).toEqual({ unbranded: true });
+    expect((await sessionOf(p, ANA))?.entitlements).toEqual({
+      unbranded: true,
+      unbrandedBy: "administrator",
+    });
   });
 
   it("finds a person by their handle and answers their account id", async () => {
@@ -109,12 +118,18 @@ describe("PUT /api/admin/accounts/<account>/permissions/unbranded-exports", () =
       at: p.h.clock.now().toISOString(),
     });
     expect((await list(p)).map((a) => a.sub)).toEqual([ANA, BETO]);
-    expect((await sessionOf(p, CARLA))?.entitlements).toEqual({ unbranded: false });
+    expect((await sessionOf(p, CARLA))?.entitlements).toEqual({
+      unbranded: false,
+      unbrandedBy: null,
+    });
   });
 
   it("entitles every administrator in the session with no grant, while their row says what was set", async () => {
     const p = await service(ADMIN);
-    expect((await sessionOf(p, ADMIN))?.entitlements).toEqual({ unbranded: true });
+    expect((await sessionOf(p, ADMIN))?.entitlements).toEqual({
+      unbranded: true,
+      unbrandedBy: null,
+    });
     expect(
       (await jsonOf<Entitlement>(await ask(p, ADMIN, "GET", accountUrl(ADMIN)))).permission,
     ).toEqual({ id: "unbranded-exports", granted: false, by: null, at: null });
@@ -126,7 +141,10 @@ describe("PUT /api/admin/accounts/<account>/permissions/unbranded-exports", () =
     await grant(p, ANA);
     const { token } = await addToken(p.h.store, { sub: ANA });
     const response = await p.h.request("/api/session", bearer(token));
-    expect((await jsonOf<Session>(response)).user?.entitlements).toEqual({ unbranded: true });
+    expect((await jsonOf<Session>(response)).user?.entitlements).toEqual({
+      unbranded: true,
+      unbrandedBy: "administrator",
+    });
   });
 
   it("is 404 not-found for everybody who is not an administrator, on the routes", async () => {
@@ -144,7 +162,10 @@ describe("PUT /api/admin/accounts/<account>/permissions/unbranded-exports", () =
         expect(await jsonOf(response), `${who} ${method} ${path}`).toEqual(unknown);
       }
     }
-    expect((await sessionOf(p, BETO))?.entitlements).toEqual({ unbranded: false });
+    expect((await sessionOf(p, BETO))?.entitlements).toEqual({
+      unbranded: false,
+      unbrandedBy: null,
+    });
   });
 
   it("answers an administrator's API token 404 too: an administrator acts on the page", async () => {
@@ -161,7 +182,10 @@ describe("PUT /api/admin/accounts/<account>/permissions/unbranded-exports", () =
     const listed = await p.h.request(HOLDERS, bearer(token));
     expect([put.status, await codeOf(put)]).toEqual([404, "not-found"]);
     expect(listed.status).toBe(404);
-    expect((await sessionOf(p, ANA))?.entitlements).toEqual({ unbranded: false });
+    expect((await sessionOf(p, ANA))?.entitlements).toEqual({
+      unbranded: false,
+      unbrandedBy: null,
+    });
   });
 
   it("applies the Origin rule to an administrator's cookie", async () => {
@@ -173,7 +197,10 @@ describe("PUT /api/admin/accounts/<account>/permissions/unbranded-exports", () =
       body: JSON.stringify({ granted: true }),
     });
     expect([response.status, await codeOf(response)]).toEqual([403, "request.forbidden"]);
-    expect((await sessionOf(p, ANA))?.entitlements).toEqual({ unbranded: false });
+    expect((await sessionOf(p, ANA))?.entitlements).toEqual({
+      unbranded: false,
+      unbrandedBy: null,
+    });
   });
 
   it.each([

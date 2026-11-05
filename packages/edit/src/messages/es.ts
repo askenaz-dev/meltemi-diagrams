@@ -527,6 +527,11 @@ export const es: typeof en = {
         `${code(view)} no tiene ningún elemento ni relación con nombre ${code(target)}.`,
       traceRelation: (target) => `\`trace\` sigue una relación; ${code(target)} no lo es.`,
       invalidSceneId: (id) => `${code(id)} no es un id de escena válido.`,
+      diagramNotInFile: (diagram, diagrams) =>
+        `El diagrama de una historia debe ser uno de los del archivo; ${code(diagram)} no lo es${diagrams.length > 0 ? ` (sus diagramas: ${diagrams.map(code).join(", ")})` : ""}.`,
+      invalidStoryId: (id) =>
+        `${code(id)} no es un id válido para una historia; usa letras, dígitos y \`_\`, empezando por una letra o \`_\`.`,
+      storyTaken: (id) => `${code(id)} ya se usa en este archivo; elige otro id.`,
       sceneExists: (story, id) => `La historia ${code(story)} ya tiene una escena ${code(id)}.`,
       noBody: (story) => `La historia ${code(story)} no tiene cuerpo.`,
     },

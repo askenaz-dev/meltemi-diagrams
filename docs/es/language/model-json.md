@@ -16,8 +16,8 @@ lo descarga, y los motores de disposición y las pruebas lo leen. El nombre del 
 - Las relaciones anónimas aparecen con su `key` sintética (`<from>-><to>#<n>`) e `id: null`.
 - Dentro de una versión las claves se agregan, nunca cambian: `heads` en las relaciones y `line`
   en los elementos llegaron en 1.10.0, `pen` y `list` en los elementos, `tags` en los elementos y
-  las relaciones, y `spacing`, `side`, `returns` y los `events` de los mensajes en 1.11.0, y la
-  versión sigue siendo `0.1`.
+  las relaciones, `spacing`, `side`, `returns` y los `events` de los mensajes, y `scenes` en los
+  perfiles de exportación en 1.11.0, y la versión sigue siendo `0.1`.
 - Todos los perfiles de diagrama se compilan; los bloques `story` y `export` todavía no están en el
   JSON.
 
@@ -271,7 +271,7 @@ como la más larga. Una acción `draw` se lleva como un `trace`: sus destinos en
 ### Perfiles de exportación
 
 El documento lista `exports` después de `stories`, en el orden del código fuente:
-`{ "id", "target", "targetKind" ("diagram", "story" or null), "format", "size", "scale", "background", "atMs", "motion", "theme", "fonts", "scenario", "link", "fps", "durationMs", "file", "autoplay", "loop", "embed", "range" }`,
+`{ "id", "target", "targetKind" ("diagram", "story" or null), "format", "size", "scale", "background", "atMs", "motion", "theme", "fonts", "scenario", "link", "fps", "durationMs", "file", "autoplay", "loop", "embed", "scenes", "range" }`,
 con null en las opciones que no se escriben ([export.md](export.md)).
 
 ## Tema

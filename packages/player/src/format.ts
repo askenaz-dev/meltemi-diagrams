@@ -5,7 +5,9 @@ import type { DrillTransition, StoryTimeline, StoryViewData } from "@meltemi/dia
 // this module and never the builders, so the page's script carries no layout code.
 
 export const PLAYER_FORMAT = "meltemi-player";
-export const PLAYER_VERSION = 2;
+export const PLAYER_VERSION = 3;
+/** The versions the runtime reads: version 2 held a story document's one story as `timeline`. */
+export const READABLE_VERSIONS: readonly number[] = [2, 3];
 
 /** What the player knows of a view besides its scene: names for people. */
 export interface ViewNames {
@@ -78,11 +80,23 @@ interface DocumentBase {
   readonly fontFaces: readonly string[];
 }
 
-/** A story: its timeline and the views it shows. */
+/** One story of a story document: its id, title, description and timeline over the views. */
+export interface StoryEntry {
+  readonly id: string;
+  readonly title: string | null;
+  readonly description: string | null;
+  readonly timeline: StoryTimeline;
+}
+
+/**
+ * Stories over the views they show: one, or several flows of the same drawing that a reader picks
+ * from. The document's `id`, `title` and `description` are those of its first story.
+ */
 export interface StoryPlayerDocument extends DocumentBase {
   readonly kind: "story";
-  readonly timeline: StoryTimeline;
-  /** The scene, effects and relation ends of every view, by view key. */
+  /** At least one, in the order given. */
+  readonly stories: readonly StoryEntry[];
+  /** The scene, effects and relation ends of every view, by view key, shared by the stories. */
   readonly views: Readonly<Record<string, StoryViewData>>;
 }
 
@@ -108,13 +122,42 @@ export function rootView(document: EffectsPlayerDocument): EffectsViewData {
   return document.views[document.key]!;
 }
 
-/** Whether a value read from a page is a player document this runtime can play. */
-export function isPlayerDocument(value: unknown): value is PlayerDocument {
+/** The story a story document shows at an index: the first one for an index it does not have. */
+export function storyAt(document: StoryPlayerDocument, index = 0): StoryEntry {
+  return document.stories[index] ?? document.stories[0]!;
+}
+
+/**
+ * Whether a value read from a page is a player document this runtime can play: version 3, or a
+ * version 2 document that `readPlayerDocument` lifts to version 3.
+ */
+export function isPlayerDocument(value: unknown): boolean {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;
-  return (
-    v.format === PLAYER_FORMAT &&
-    v.version === PLAYER_VERSION &&
-    (v.kind === "story" || v.kind === "effects")
-  );
+  if (v.format !== PLAYER_FORMAT || !READABLE_VERSIONS.includes(v.version as number)) return false;
+  if (v.kind === "effects") return true;
+  if (v.kind !== "story") return false;
+  return v.version === 2
+    ? typeof v.timeline === "object" && v.timeline !== null
+    : Array.isArray(v.stories) && v.stories.length > 0;
+}
+
+/**
+ * The version 3 document of a value read from a page, or undefined when it is none this runtime
+ * reads: a version 2 story document's `timeline` becomes its one story, with the document's id,
+ * title and description; anything else of version 2 reads as it is.
+ */
+export function readPlayerDocument(value: unknown): PlayerDocument | undefined {
+  if (!isPlayerDocument(value)) return undefined;
+  const v = value as Record<string, unknown>;
+  if (v.version === PLAYER_VERSION) return value as PlayerDocument;
+  const { timeline, ...rest } = v;
+  if (v.kind !== "story") return { ...rest, version: PLAYER_VERSION } as unknown as PlayerDocument;
+  const story: StoryEntry = {
+    id: String(v.id),
+    title: (v.title as string | null | undefined) ?? null,
+    description: (v.description as string | null | undefined) ?? null,
+    timeline: timeline as StoryTimeline,
+  };
+  return { ...rest, version: PLAYER_VERSION, stories: [story] } as unknown as PlayerDocument;
 }

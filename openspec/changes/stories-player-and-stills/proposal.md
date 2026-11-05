@@ -75,7 +75,8 @@ timeline button), `packages/cli` (`--stories`, `--scenes`, the multi-page PDF ca
 `packages/playground` (the export dialog, the zip of stills, the print page), `packages/vscode`
 (the quick picks and the timeline's host), `packages/catalog` (reads version 3 documents it
 builds itself), the docs in both languages, CHANGELOG and one decision note. No cloud route,
-storage or language statement changes; the model JSON is unchanged.
+storage or language statement changes; the model JSON gains only the `scenes` key of export
+profiles, within its version `0.1` (design, decision 7).
 
 ## Non-goals
 

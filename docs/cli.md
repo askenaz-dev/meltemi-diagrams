@@ -117,7 +117,8 @@ the live view of one file ([editor.md](editor.md)).
 | `pnpm mdg export architecture --profiles`            | every `export` profile of every file                            |
 
 In a folder, files without diagrams (models, themes, stories) are passed over, and `--diagram`,
-`--story`, `--scenario` and `--stdout` are refused: they choose within one file. When importing a
+`--story`, `--stories`, `--scenes`, `--scenario` and `--stdout` are refused: they choose within one
+file. When importing a
 folder, PlantUML `.iuml` files are read through the files that include them and Markdown files
 without diagram blocks are passed over; the summary counts complete, partial, failed and existing
 sheets.

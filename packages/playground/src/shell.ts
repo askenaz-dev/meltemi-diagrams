@@ -99,6 +99,11 @@ export interface PlaygroundOptions {
   /** Who the page is for: a person signed in at the identity service, or nobody. */
   readonly session: Session;
   /**
+   * Reads the session answer again (the account panel does after a donation was claimed); without
+   * it the page keeps the session it started with.
+   */
+  readonly readSession?: () => Promise<Session>;
+  /**
    * The browser's parts the cloud projects use (the socket, IndexedDB, storage, the address bar).
    * Given only where a person can be signed in; without it, or without a person, the page has no
    * trace of the cloud.
@@ -205,6 +210,11 @@ export class Playground {
   readonly viewing: ViewPage;
   /** The header's account control, and the way to open the account panel at a section. */
   private account: AccountControl | undefined;
+  /**
+   * Who the page is for now: the session it started with, or the one the account panel read again
+   * after a donation was claimed. The export dialog reads it each time it opens.
+   */
+  private current: Session | undefined;
   /** The header's badge and copies and the status bar's reload hint; made when view mode is first entered. */
   private viewControls: ViewBar | undefined;
   /** The buttons that edit the project: off in view mode. */
@@ -333,6 +343,11 @@ export class Playground {
    */
   private get room(): CloudController | undefined {
     return this.cloud ?? this.guestCloud;
+  }
+
+  /** Who the page is for now (`current`), the session it started with until it was read again. */
+  get session(): Session {
+    return this.current ?? this.options.session;
   }
 
   /** Hears where the person's pointer is over the canvas (presence shares it); one listener. */
@@ -587,6 +602,8 @@ export class Playground {
         pickImage: () => this.pickImage(),
         exportDialog: () => openExportDialog(this),
         exportPlayer: (story) => void writePlayer(this, story),
+        exportScenes: (story) =>
+          openExportDialog(this, { target: `story:${story}`, format: "svg", scenes: true }),
         openModel: () => this.openModel(),
         pointer: (at) => this.canvasPointer?.(at),
         laser: (batch) => this.canvasLaser?.(batch),
@@ -847,6 +864,10 @@ export class Playground {
       signedOut: () => {
         this.keepNow({ edited: false });
         location.replace(withoutAccountParameter(location.href));
+      },
+      ...(this.options.readSession ? { readSession: this.options.readSession } : {}),
+      sessionChanged: (session) => {
+        this.current = session;
       },
     });
     return this.account;

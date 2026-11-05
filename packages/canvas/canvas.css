@@ -210,6 +210,15 @@ body {
   display: none !important;
 }
 
+/* The story picker's companion: a story of the diagram shown, or of the story playing. */
+.toolbar button.new-story {
+  padding: 0 4px;
+}
+
+.toolbar.no-diagram:not(.story-mode) button.new-story {
+  display: none !important;
+}
+
 /* Main area -------------------------------------------------------------- */
 
 .main {
@@ -2496,6 +2505,7 @@ body {
 
 .timeline {
   --label-width: 140px;
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
   max-height: 40vh;
@@ -2508,6 +2518,11 @@ body {
   display: none;
 }
 
+/* Story mode comes in with its timeline rising from the foot of the canvas. */
+.timeline:not([hidden]) {
+  animation: mdg-rise-in var(--mdg-motion-slow) var(--mdg-ease);
+}
+
 .timeline:focus-visible {
   box-shadow: inset 0 0 0 1px var(--mdg-focus);
 }
@@ -2517,6 +2532,25 @@ body {
   align-items: center;
   gap: 4px;
   padding: 3px 6px;
+}
+
+/* The bar's words never wrap: on a narrow canvas the buttons keep their glyphs and names alone. */
+.timeline-bar button {
+  flex: none;
+  white-space: nowrap;
+}
+
+.timeline-bar .scene-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@container (max-width: 760px) {
+  .timeline-bar button .label {
+    display: none;
+  }
 }
 
 .timeline-bar .spacer {

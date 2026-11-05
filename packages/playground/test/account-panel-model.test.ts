@@ -53,6 +53,7 @@ const VIEW: IdentityView = {
     { sid: "s-here", label: "Edge on Windows", createdAt: "", lastSeen: "", current: true },
   ],
   canUnlink: true,
+  claimed: false,
 };
 
 interface Fake extends AccountPanelHost {
@@ -66,6 +67,7 @@ interface Fake extends AccountPanelHost {
     setHandle: Outcome<{ handle: string }>;
   };
   readonly asked: string[];
+  claims: number;
 }
 
 function fakeHost(): Fake {
@@ -73,6 +75,7 @@ function fakeHost(): Fake {
     reported: [],
     signedOutCalls: 0,
     asked: [],
+    claims: 0,
     answers: {
       read: ok(VIEW),
       unlink: ok({ ...VIEW, signins: [VIEW.signins[0]!], canUnlink: false }),
@@ -89,6 +92,7 @@ function fakeHost(): Fake {
     setHandle: async (handle) => (host.asked.push(`handle ${handle}`), host.answers.setHandle),
     signedOut: () => void host.signedOutCalls++,
     report: (message) => void host.reported.push(message),
+    claimed: () => void host.claims++,
   };
   return host;
 }
@@ -336,6 +340,7 @@ describe("the page's calls", () => {
           { sid: "s1", label: "Edge on Windows", createdAt: "", lastSeen: "", current: true },
         ],
         canUnlink: false,
+        claimed: false,
       },
     });
     await api.unlink("google");
@@ -347,6 +352,16 @@ describe("the page's calls", () => {
       ["POST", "https://diagrams.meltemi.dev/api/account/identity/sessions/revoke-others", "{}"],
       ["POST", "https://diagrams.meltemi.dev/api/account/identity/sessions/a%2Fb/revoke", "{}"],
     ]);
+  });
+
+  it("read a claim beside the sign-ins as true only when the answer says exactly true", () => {
+    const view = (claimed: unknown) =>
+      readIdentity({
+        status: 200,
+        text: JSON.stringify({ identities: [], sessions: [], canUnlink: false, claimed }),
+      })?.value.claimed;
+    expect(view(true)).toBe(true);
+    for (const odd of [false, "true", 1, null, undefined]) expect(view(odd)).toBe(false);
   });
 
   it("take an answer without its lists, or one that is not JSON, as unexpected", async () => {
@@ -365,5 +380,30 @@ describe("the page's calls", () => {
       ok: false,
       failure: { kind: "refused", status: 502, code: "identity.unavailable", message: "Down." },
     });
+  });
+});
+
+describe("a donation claimed while the panel loads", () => {
+  it("tells the page once, when the sign-ins' answer says so, and not for an answer that does not", async () => {
+    const quiet = panel();
+    await quiet.model.load();
+    expect(quiet.host.claims).toBe(0);
+
+    const host = fakeHost();
+    host.answers.read = ok({ ...VIEW, claimed: true });
+    const { model } = panel(host);
+    await model.load();
+    expect(host.claims).toBe(1);
+    expect(model.state.view?.claimed).toBe(true);
+  });
+
+  it("tells nothing after the panel closed", async () => {
+    const host = fakeHost();
+    host.answers.read = ok({ ...VIEW, claimed: true });
+    const { model } = panel(host);
+    const loading = model.load();
+    model.dispose();
+    await loading;
+    expect(host.claims).toBe(0);
   });
 });

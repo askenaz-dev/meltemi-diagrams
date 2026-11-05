@@ -34,6 +34,11 @@ export interface IdentityView {
   readonly devices: readonly DeviceView[];
   /** Whether a sign-in may be unlinked: not while there is only one provider. */
   readonly canUnlink: boolean;
+  /**
+   * Whether reading the sign-ins claimed a donation (`"claimed": true` beside them): the account
+   * may export without the branding now, and the session answer says so.
+   */
+  readonly claimed: boolean;
 }
 
 /** The calls. None throws: a failure is an `Outcome` like any other. */
@@ -82,6 +87,7 @@ export const readIdentity: Reader<IdentityView> = (answer) => {
       signins: identities.flatMap((row) => signinOf(row) ?? []),
       devices: sessions.flatMap((row) => deviceOf(row) ?? []),
       canUnlink: body["canUnlink"] === true,
+      claimed: body["claimed"] === true,
     },
   };
 };

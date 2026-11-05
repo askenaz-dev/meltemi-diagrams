@@ -48,23 +48,33 @@ sponsored account sets. See proposal.md for the motivation.
 ## Decisions
 
 1. **The sponsorship is a row, the grant is a claim.** Migration `0007_sponsorships.sql` adds
-   `sponsorships (id, delivery_id UNIQUE, sponsor_login, sponsor_id, sponsor_type, one_time,
-   amount_cents, privacy, status, created_at, claimed_by_sub, claimed_at)`; the store gains
-   `recordSponsorship`, `updateSponsorship`, `unclaimedSponsorship(login)`, `claimSponsorship`,
-   `sponsorships()` and `clearClaims(sub)`, in D1 and in memory, with `sponsor_login` indexed and
-   compared case-insensitively (GitHub logins are). The grant is made when the person's sign-ins
-   pass through `GET /api/account/identity` (`routes/account.ts`): a `github` identity whose
-   `handle` is an unclaimed row's login calls `UNBRANDED_EXPORTS.set(store, sub, true,
-   "github-sponsors", now, log)` and claims the row in one D1 batch, so a page reload claims
-   nothing twice. Alternatives: matching in the webhook (the Worker holds no GitHub login per
+   `sponsorships (id, delivery_id UNIQUE, sponsor_login COLLATE NOCASE, sponsor_id, sponsor_type,
+   one_time, amount_cents, privacy, status, created_at, claimed_by_sub, claimed_at)`, `STRICT`, with
+   `sponsor_login` and `claimed_by_sub` indexed; the store gains `recordSponsorship(s)`
+   (`"recorded" | "repeated"`), `updateSponsorship(login, oneTime, status, privacy)`,
+   `unclaimedSponsorship(login)` (the earliest unclaimed sponsorship of a `User`),
+   `claimSponsorship(login, sub, at, log)`, `sponsorships(limit)` and `clearClaims(sub)`, in D1 and
+   in memory, the login compared case-insensitively (GitHub logins are). The grant is made when the
+   person's sign-ins pass through `GET /api/account/identity` (`routes/account.ts`), while the
+   service has a sponsored account: a `github` identity whose `handle` is an unclaimed row's login
+   calls `claimSponsorship`, which claims every unclaimed sponsorship of that login, sets the
+   permission's columns of migration 0005 with the grantor `github-sponsors` and appends the log
+   entry in one D1 batch of three statements tied by the log entry's new id (the entry goes in only
+   while a claimable row and the user's row exist; the grant and the claim follow only that entry),
+   so a reload, or a second claim in the same instant, claims nothing twice. `UNBRANDED_EXPORTS.set`
+   followed by a claim was the first plan; it is two writes, which a failure between them would
+   leave half done. Alternatives: matching in the webhook (the Worker holds no GitHub login per
    account; it would need the identity service to resolve a login, a new product route in
    `meltemi-web`); matching in `GET /api/session` (a product-signed call to the identity service
    on every page load); the sponsor's numeric id (the account view does not carry it; recorded in
    the row for the day it does).
 
 2. **The webhook route.** `POST /_sponsors/github` (`routes/sponsors.ts`, `/_sponsors/*` in
-   `run_worker_first`) exists only when `SPONSORS_ACCOUNT` is set (a `vars` entry of
-   `wrangler.jsonc`: the sponsored login, `askenaz`); it reads at most 64 KiB, computes
+   `run_worker_first` and in the handler's reserved prefixes) exists only when `SPONSORS_ACCOUNT` is
+   a GitHub login (a `vars` entry of `wrangler.jsonc`, shipped empty: the owner sets the sponsored
+   login, `askenaz`, as the last of the steps of decision 8, so that the page links no Sponsors page
+   before it exists); it refuses a body not declared `application/json` with `415
+   request.unsupported` before reading it, reads at most 64 KiB, computes
    `HMAC-SHA-256(SPONSORS_WEBHOOK_SECRET, body)` and compares it with `X-Hub-Signature-256` in
    constant time before parsing (`401` otherwise, nothing read), answers `400` to a body that is
    not a `sponsorship` event with `sponsorship.sponsor.login`, `sponsorship.sponsor.id`,
@@ -72,8 +82,12 @@ sponsored account sets. See proposal.md for the motivation.
    `sponsorship.tier.monthly_price_in_cents`, `sponsorship.privacy_level` and
    `sponsorship.created_at`, answers `200 { "ignored": true }` to a `sponsorable.login` that is
    not the configured account and to a `ping`, inserts the row on `created` (the delivery id
-   makes a repeat a `200 { "repeated": true }`), updates `status` on the other actions by the
-   sponsor's login, and never logs the body. No `Origin` rule: the call is GitHub's. The secret is
+   makes a repeat a `200 { "repeated": true }`), updates `status` on the other actions on the
+   newest sponsorship of the sponsor's login and the tier's kind (`edited`, `tier_changed` and
+   `pending_tier_change` make it `active`, `pending_cancellation` `pending-cancellation`, and
+   `cancelled` `cancelled`, which no later delivery undoes, since GitHub does not promise their
+   order), and never logs the body. A blank secret (the family's Store keeps an unset secret as a
+   space) refuses every delivery with `500 internal`, logged by name. No `Origin` rule: the call is GitHub's. The secret is
    `SPONSORS_WEBHOOK_SECRET_STORE`, a received variable of the family's Terraform
    (`var.sponsors_webhook_secret`, the string the owner also types into GitHub's form).
    Alternatives: `application/x-www-form-urlencoded` (the JSON content type is chosen in the form;
@@ -105,21 +119,30 @@ sponsored account sets. See proposal.md for the motivation.
    the same link and sentence (and, when no GitHub identity is linked, that linking one in
    Sign-ins is how a donation is recognised), and an entitled sponsor "Granted on <date> for your
    donation. Thank you." in place of the administrator's sentence, from the session answer's new
-   `entitlements.unbrandedBy` (`"administrator"`, `"github-sponsors"` or `null`). Alternative:
-   a "Check my donation" button (the claim already runs when Profile loads the sign-ins).
+   `entitlements.unbrandedBy` (`"administrator"`, `"github-sponsors"` or `null`). The thank-you reads "Granted for your
+   donation. Thank you." before the entitlement's sentence (the session answer carries no date), and
+   the Google-only hint has **Open Sign-ins**. When the sign-ins' answer says `claimed: true`, the
+   panel reads the session answer again through the page's `readSession` (`main.ts`), redraws
+   Profile, says the thanks in the status line, and hands the new session to the page
+   (`Playground.session`), which the export dialog reads when it opens, so the box is there without
+   a reload. Alternative: a "Check my donation" button (the claim already runs when Profile loads the
+   sign-ins).
 
 6. **The Administration section.** `GET /api/admin` adds `sponsorships`: the latest fifty rows,
    the newest first, each with `login`, `type`, `oneTime`, `amountCents`, `status`, `createdAt`,
    `privacy` and `claimedBy` (a person, or null); the Permissions part's holders show "GitHub
-   Sponsors" as the grantor, and a new **Sponsorships** part lists them with **Grant** beside an
-   unclaimed one, which opens the Grant field prefilled with `@<login>`? No: with nothing, since a
-   GitHub login is not a handle; the button fills the field's placeholder with the login as a
-   hint and the administrator types the account id, handle or email the sponsor gives. Rows are
-   personal data of sponsors; they are shown to owners and administrators only.
+   Sponsors" as the grantor, and a new **Sponsorships** part (only when there are some), after
+   Permissions, lists them with **Grant by hand** beside an unclaimed one, an organisation's
+   included. The button does not prefill the field, since a GitHub login is not a handle: it puts
+   the login in the Grant field's placeholder as a hint, moves the focus there and flashes the form,
+   and the administrator types the account id, handle or email the sponsor gives. Amounts read
+   "US$10" (cents only when there are some). Rows are personal data of sponsors; they are shown to
+   owners and administrators only, and `[]` without a sponsored account.
 
-7. **Deletion.** A `user.deleted` event calls `clearClaims(sub)` with the user's removal, so a
-   deleted account's claim is gone with it and the sponsorship may be claimed again by whoever
-   links that GitHub login (the person who donated).
+7. **Deletion.** A `user.deleted` event clears the account's claims in the same batch as the
+   user's removal (`applyUserDeleted` runs `clearClaims`'s statement), so a deleted account's claim
+   is gone with it, atomically and only for the event's first delivery, and the sponsorship may be
+   claimed again by whoever links that GitHub login (the person who donated).
 
 8. **The site and the docs.** `meltemi-web`'s Diagrams page gains **Support the project** to the
    sponsors page in both languages (its spec `product-site` in that repository); `docs/cloud.md`
@@ -150,3 +173,24 @@ sponsored account sets. See proposal.md for the motivation.
   dashboard as failed deliveries; the owner re-enters it on both sides.
 - [An organisation sponsor] → recorded with `type: "Organization"`, never matched; the
   administrator grants to whom the organisation names.
+
+## Implementation notes (4 November 2026)
+
+What the implementation changed from the first version of this design, all reflected above and in
+the spec deltas:
+
+- The claim is one store call, `claimSponsorship(login, sub, at, log)`, writing the permission's
+  columns, the log entry and the claim of every unclaimed sponsorship of the login in one batch
+  (decision 1), instead of `UNBRANDED_EXPORTS.set` and a separate claim.
+- `SPONSORS_ACCOUNT` ships empty in `wrangler.jsonc` (decision 2): the shipped default has no
+  donation path until the owner's steps are done; claims and the administration answer's
+  `sponsorships` also wait for it.
+- A body not declared `application/json` is `415 request.unsupported`, a new error code; a blank
+  secret is `500 internal`.
+- The statuses are `active`, `pending-cancellation` and `cancelled`, the last for good; a later
+  action updates the newest sponsorship of the login and the tier's kind, and its privacy.
+- Profile's thanks has no date (decision 5): the session answer has none.
+- The deletion clears claims inside `applyUserDeleted`'s batch (decision 7).
+- The Worker's binding `SPONSORS_WEBHOOK_SECRET_STORE` names a secret that Meltemi Web's Terraform
+  must create (task 4.1) before this Worker deploys.
+

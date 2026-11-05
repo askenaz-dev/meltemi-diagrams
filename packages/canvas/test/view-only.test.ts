@@ -195,6 +195,7 @@ const ACTIONS: readonly CanvasAction[] = [
   { kind: "removeStoryAction", story: "s", path: [0, 0] },
   { kind: "insertScene", story: "s" },
   { kind: "createDiagram", type: "flow" },
+  { kind: "createStory" },
   // A preview writes nothing, but it only follows a drag, which a read-only canvas never starts.
   { kind: "preview", token: 1, action: { kind: "move", ids: ["a"], delta: { x: 1, y: 0 } } },
 ];
@@ -216,6 +217,7 @@ const MESSAGES = {
   playEffects: [{ message: { type: "playEffects", on: true }, writes: false }],
   pickStory: [{ message: { type: "pickStory", story: "s" }, writes: false }],
   exportPlayer: [{ message: { type: "exportPlayer", story: null }, writes: false }],
+  exportScenes: [{ message: { type: "exportScenes", story: "s" }, writes: false }],
   libraries: [{ message: { type: "libraries" }, writes: false }],
   libraryItems: [{ message: { type: "libraryItems", library: "l", category: "c" }, writes: false }],
   librarySearch: [{ message: { type: "librarySearch", query: "q" }, writes: false }],
@@ -348,6 +350,7 @@ describe("the messages of a read-only canvas", () => {
       removeStoryAction: 1,
       insertScene: 1,
       createDiagram: 1,
+      createStory: 1,
       preview: 1,
       createLine: 1,
       setLinePoints: 1,

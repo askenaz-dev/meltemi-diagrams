@@ -21,6 +21,7 @@ const FOURTH_FILE = "0004_takedown_project.sql";
 /** The next one entitles accounts to export without the branding (`0005_unbranded_exports.sql`). */
 const FIFTH_FILE = "0005_unbranded_exports.sql";
 const SIXTH_FILE = "0006_administrators.sql";
+const SEVENTH_FILE = "0007_sponsorships.sql";
 
 /** The migrations up to the fifth: the schema this file describes, before the administrators' tables. */
 const throughFifth = () => migrationFiles().filter((file) => file.name < SIXTH_FILE);
@@ -123,6 +124,7 @@ describe("the sharing migration file", () => {
       FOURTH_FILE,
       FIFTH_FILE,
       SIXTH_FILE,
+      SEVENTH_FILE,
       "0008_idempotency.sql",
     ]);
   });

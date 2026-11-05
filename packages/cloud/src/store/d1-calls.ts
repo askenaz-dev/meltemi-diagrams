@@ -25,7 +25,8 @@ const RELEASE_KEY = "DELETE FROM idempotency WHERE sub = ? AND key = ? AND statu
 const SWEEP_KEYS = "DELETE FROM idempotency WHERE created_at < ?";
 const DROP_EARLIER_WINDOWS = "DELETE FROM call_windows WHERE sub = ? AND kind = ? AND minute < ?";
 const COUNT_CALL =
-  "INSERT INTO call_windows (sub, kind, minute, count) VALUES (?, ?, ?, 1) ON CONFLICT (sub, kind, minute) DO UPDATE SET count = count + 1 RETURNING count";
+  "INSERT INTO call_windows (sub, kind, minute, count) VALUES (?, ?, ?, 1) ON CONFLICT (sub, kind, minute) DO UPDATE SET count = count + 1";
+const SELECT_COUNT = "SELECT count FROM call_windows WHERE sub = ? AND kind = ? AND minute = ?";
 
 interface KeyRecord {
   route: string;
@@ -82,11 +83,13 @@ export function d1Calls(db: D1Like): CallsStore {
       await db.prepare(SWEEP_KEYS).bind(expiredBefore).run();
     },
     async countCall(sub, kind, window) {
+      // One transaction: the count read is the one this call made.
       const answers = await db.batch([
         db.prepare(DROP_EARLIER_WINDOWS).bind(sub, kind, window),
         db.prepare(COUNT_CALL).bind(sub, kind, window),
+        db.prepare(SELECT_COUNT).bind(sub, kind, window),
       ]);
-      const row = rowsOf<{ count: number }>(answers[1])[0];
+      const row = rowsOf<{ count: number }>(answers[2])[0];
       if (!row) throw new Error("the database did not count the call");
       return Number(row.count);
     },

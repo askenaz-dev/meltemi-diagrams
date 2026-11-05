@@ -61,7 +61,8 @@ export interface R2Like {
 /**
  * What `wrangler.jsonc` (vars), `.dev.vars` (development values) and the secrets give the service.
  * `DEV` and `IDENTITY_JWKS` come only from `.dev.vars`, never from `wrangler.jsonc`. In production
- * `IDENTITY_EVENTS_SECRET`, `FORMS_SECRET` and `ADMIN_SUBS` arrive as Secrets Store bindings named
+ * `IDENTITY_EVENTS_SECRET`, `FORMS_SECRET`, `ADMIN_SUBS` and `SPONSORS_WEBHOOK_SECRET` arrive as
+ * Secrets Store bindings named
  * `<NAME>_STORE` (the family's Terraform declares the store and its values), which `secrets.ts`
  * reads into `<NAME>` at the Worker's entry, so nothing below the entry sees a binding.
  */
@@ -84,6 +85,18 @@ export interface Env {
   readonly PUBLISH_HOST?: string;
   /** The `sub`s of the administrators of the service, comma separated; unset means nobody. */
   readonly ADMIN_SUBS?: string;
+  /**
+   * The GitHub login of the sponsored account (`askenaz`): the session answer's `support` link is its
+   * GitHub Sponsors page, and `POST /_sponsors/github` takes its deliveries. Empty or unset, there is
+   * neither (`sponsorship-entitlement`).
+   */
+  readonly SPONSORS_ACCOUNT?: string;
+  /**
+   * The secret of the Sponsors webhook, the one the owner types into GitHub's form: verifies each
+   * delivery's `X-Hub-Signature-256`. Blank (the family's Store holds an unset secret as a space),
+   * every delivery is refused.
+   */
+  readonly SPONSORS_WEBHOOK_SECRET?: string;
   /** `"true"` only in `.dev.vars`. */
   readonly DEV?: string;
   /** An inline JWKS for development and tests; honoured only when `DEV` is `"true"`. */

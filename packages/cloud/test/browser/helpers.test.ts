@@ -162,8 +162,10 @@ describe("devVars", () => {
       "FORMS_SECRET",
       "IDENTITY_JWKS",
       "ADMIN_SUBS",
+      "SPONSORS_WEBHOOK_SECRET",
     ]);
     expect(values.get("DEV")).toBe("true");
+    expect(values.get("SPONSORS_WEBHOOK_SECRET")).toMatch(/^[A-Za-z0-9_-]{20,}$/);
     // One administrator, the sub the publishing scenarios take pages down with.
     expect(values.get("ADMIN_SUBS")).toBe(ADMIN_SUB);
     expect(values.get("IDENTITY_ISSUER")).toBe(IDENTITY);

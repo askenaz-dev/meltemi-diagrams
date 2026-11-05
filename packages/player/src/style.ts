@@ -81,6 +81,12 @@ select { height: 32px; max-width: 18rem; font: inherit; }
 details.summary { margin-top: 8px; }
 summary { cursor: pointer; }
 details ol { margin: 8px 0 0; padding-left: 1.5em; }
+details h3 { margin: 10px 0 0; font-size: 14px; font-weight: 600; }
+details h3[aria-current="true"] { color: var(--meltemi-accent); }
+details h3[aria-current="true"]::after { content: ""; display: inline-block; width: 6px;
+  height: 6px; margin-left: 6px; border-radius: 50%; background: currentColor;
+  vertical-align: middle; }
+.picture.story-change { animation: meltemi-fade var(--meltemi-motion-slow) var(--meltemi-ease); }
 details ul { margin: 2px 0 6px; padding-left: 1.2em; }
 .elements { margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap;
   gap: 4px; }

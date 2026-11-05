@@ -123,6 +123,7 @@ async function start(): Promise<void> {
     assets,
     page,
     session,
+    readSession: () => loadSession(fetch, location, PLAYGROUND_IDENTITY),
     view: viewEnvironment(),
     // Cloud projects are for a person signed in. A person nobody is signed in as gets the room's
     // machinery only when the address names a project, to follow it live or join its live session.

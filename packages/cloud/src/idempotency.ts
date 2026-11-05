@@ -130,5 +130,9 @@ export async function answerOnce(
     return json(answer.body, answer.status);
   }
   const answer = await idempotent(ctx, readKey(header), route, body, run);
-  return json(answer.body, answer.status, answer.replayed ? { [REPLAYED_HEADER]: "true" } : {});
+  return json(
+    answer.body,
+    answer.status,
+    answer.replayed ? { [REPLAYED_HEADER]: String(true) } : {},
+  );
 }

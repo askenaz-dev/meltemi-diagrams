@@ -19,6 +19,7 @@ import {
   type ElementDetails,
   type OpenTarget,
   type RelationDetails,
+  type StoryEntry,
   type StoryPlayerDocument,
   type ViewDetails,
   type ViewNames,
@@ -142,43 +143,91 @@ export function storyDocument(
   layouts: ReadonlyMap<string, LaidOutView>,
   options: DocumentOptions = {},
 ): StoryPlayerDocument | undefined {
-  const written = storyTimeline(story);
+  const built = storiesDocument([{ story, layouts }], options);
+  return built.left.length > 0 ? undefined : built.document;
+}
+
+/** A story with the laid-out views it shows, by view key, as a host laid them out. */
+export interface StoryLayouts {
+  readonly story: StoryDefinition;
+  readonly layouts: ReadonlyMap<string, LaidOutView>;
+}
+
+/**
+ * The player document of several stories in the order given, over views embedded once: a view
+ * two stories show (by view key) is keyed once, and every story's timeline names it so. A story
+ * whose views are missing or cannot be drawn is left out and named in `left`; with none drawn
+ * there is no document.
+ */
+export function storiesDocument(
+  stories: readonly StoryLayouts[],
+  options: DocumentOptions = {},
+): { document: StoryPlayerDocument | undefined; left: string[] } {
   const views: Record<string, StoryViewData> = {};
   const names: Record<string, ViewNames> = {};
   const details: Record<string, ViewDetails> = {};
   // The document names views by diagram id, never by the file an imported diagram comes from,
-  // so no local path reaches a page (decision 0027).
+  // so no local path reaches a page (decision 0027). Host view keys to document keys, shared.
   const keys = new Map<string, string>();
+  const entries: StoryEntry[] = [];
+  const left: string[] = [];
   let accent: string | undefined;
-  for (const key of written.views) {
-    const laid = layouts.get(key);
-    const data = laid ? storyViewData(laid.diagram, laid.layout) : undefined;
-    if (!laid || !data) return undefined;
-    const name = freeKey(laid.diagram.id, views);
-    keys.set(key, name);
-    views[name] = data;
-    names[name] = namesOf(laid.diagram);
-    details[name] = detailsOf(laid.diagram, options.locale);
-    accent ??= laid.layout.theme?.accent;
+  for (const { story, layouts } of stories) {
+    const written = storyTimeline(story);
+    // Every view first, so that a story left out adds nothing to the document.
+    const drawn = new Map<string, { laid: LaidOutView; data: StoryViewData }>();
+    for (const key of written.views) {
+      if (keys.has(key)) continue;
+      const laid = layouts.get(key);
+      const data = laid ? storyViewData(laid.diagram, laid.layout) : undefined;
+      if (!laid || !data) break;
+      drawn.set(key, { laid, data });
+    }
+    if (written.views.some((key) => !keys.has(key) && !drawn.has(key))) {
+      left.push(story.id);
+      continue;
+    }
+    for (const [key, { laid, data }] of drawn) {
+      const name = freeKey(laid.diagram.id, views);
+      keys.set(key, name);
+      views[name] = data;
+      names[name] = namesOf(laid.diagram);
+      details[name] = detailsOf(laid.diagram, options.locale);
+      accent ??= laid.layout.theme?.accent;
+    }
+    const timeline: StoryTimeline = {
+      ...written,
+      views: written.views.map((key) => keys.get(key)!),
+      scenes: written.scenes.map((scene) => ({
+        ...scene,
+        view: keys.get(scene.view) ?? scene.view,
+      })),
+    };
+    entries.push({
+      id: story.id,
+      title: story.title,
+      description: story.description,
+      timeline,
+    });
   }
-  const timeline: StoryTimeline = {
-    ...written,
-    views: written.views.map((key) => keys.get(key)!),
-    scenes: written.scenes.map((scene) => ({ ...scene, view: keys.get(scene.view) ?? scene.view })),
-  };
+  const first = entries[0];
+  if (!first) return { document: undefined, left };
   return {
-    format: PLAYER_FORMAT,
-    version: PLAYER_VERSION,
-    kind: "story",
-    id: story.id,
-    title: story.title,
-    description: story.description,
-    timeline,
-    views,
-    names,
-    details,
-    accent: accent ?? "#1f6feb",
-    fontFaces: facesOf(Object.values(views), options.fonts),
+    document: {
+      format: PLAYER_FORMAT,
+      version: PLAYER_VERSION,
+      kind: "story",
+      id: first.id,
+      title: first.title,
+      description: first.description,
+      stories: entries,
+      views,
+      names,
+      details,
+      accent: accent ?? "#1f6feb",
+      fontFaces: facesOf(Object.values(views), options.fonts),
+    },
+    left,
   };
 }
 

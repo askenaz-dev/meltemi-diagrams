@@ -60,6 +60,47 @@ in both signed-in answers but the two administration fields; for a bearer princi
 - **WHEN** `SPONSORS_ACCOUNT` is unset
 - **THEN** no answer carries `support` and a plain person's `unbrandedBy` is `null`
 
+### Requirement: The identity data through the Worker
+The Worker SHALL answer `GET /api/account/identity`, `POST /api/account/identity/unlink
+{ provider }`, `POST /api/account/identity/sessions/revoke-others` and `POST
+/api/account/identity/sessions/:sid/revoke` for a cookie principal only (a bearer API token `403
+request.forbidden`, anonymous `401 auth.required`), the `POST`s under the Origin rule, by making
+the identity service's account call with the person's session token as a bearer and the product's
+signature (`signProductRequest` of `@meltemi/identity` with `IDENTITY_EVENTS_SECRET`), with a
+five-second timeout. It SHALL pass through the service's JSON and status for `identity.last`,
+`session.current`, `session.not-found`, `provider.unknown` and `rate.limited`, SHALL answer `401
+auth.required` when the service says `session.invalid`, and `502 identity.unavailable` when the
+service does not answer, times out or answers something it cannot read, logging no body. The
+answer of `GET /api/account/identity` SHALL add `"claimed": true` to the view when reading it
+claimed a sponsorship (`sponsorship-entitlement`, "The claim"), and be the view as it is otherwise.
+The cookie principal SHALL carry the session token it was verified from, and nothing but these
+routes SHALL read it. The browser suite's stand-in for the identity service SHALL answer the
+account API and verify the signature.
+
+#### Scenario: Read on the person's behalf
+- **WHEN** a signed-in person's page asks `GET /api/account/identity`
+- **THEN** the Worker's call to the identity service carries `Authorization: Bearer <her session token>`, `Meltemi-Product: diagrams` and a signature the suite's stand-in verifies, and the page receives the identities and sessions
+
+#### Scenario: A token cannot manage the account
+- **WHEN** `GET /api/account/identity` carries `Authorization: Bearer mdg_…`
+- **THEN** the answer is `403 request.forbidden` and the identity service is not called
+
+#### Scenario: Another origin
+- **WHEN** `POST /api/account/identity/sessions/revoke-others` arrives with the cookie and `Origin: https://id.meltemi.dev`
+- **THEN** the answer is `403 request.forbidden` and nothing is revoked
+
+#### Scenario: The service is down
+- **WHEN** the identity service does not answer within five seconds
+- **THEN** the answer is `502 identity.unavailable` and the log names the route and the status, never a body
+
+#### Scenario: The session died
+- **WHEN** the identity service answers `401 session.invalid`
+- **THEN** the Worker answers `401 auth.required`
+
+#### Scenario: A claim beside the view
+- **WHEN** a sponsor's `GET /api/account/identity` claims a sponsorship, and the next one claims nothing
+- **THEN** the first answer is the view with `"claimed": true` and the second the view alone
+
 ### Requirement: Entitlements of an account
 The `users` table SHALL hold `unbranded_exports`, `0` or `1`, `0` for every row until an
 administrator sets it, and `unbranded_exports_by` and `unbranded_exports_at`, `NULL` until then

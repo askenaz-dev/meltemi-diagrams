@@ -40,9 +40,11 @@ export {
   WRITABLE_FORMATS,
   produceExport,
   profileRequest,
+  sceneFileName,
   type ExportContext,
   type ExportOutput,
   type ExportRequest,
+  type SceneOutput,
   type WritableFormat,
 } from "./exports.js";
 export {

@@ -13,6 +13,8 @@ export const ERROR_STATUS = {
   "signature.invalid": 401,
   /** A cookie-authenticated change from a page that is not this service's. */
   "request.forbidden": 403,
+  /** A body of a type the route does not read: a sponsorship delivery that is not `application/json`. */
+  "request.unsupported": 415,
   "quota.tokens": 413,
   "cli.invalid": 400,
   "cli.rate": 429,
@@ -139,6 +141,7 @@ const MESSAGES: Record<ErrorCode, string> = {
   "token.invalid": "The token is not valid.",
   "signature.invalid": "The signature is not valid.",
   "request.forbidden": "This request did not come from a page of this service.",
+  "request.unsupported": "The body must be JSON (application/json).",
   "quota.tokens": "There are already 20 API tokens; revoke one first.",
   "cli.invalid": "The request cannot be used.",
   "cli.rate": "Too many attempts; wait a minute.",

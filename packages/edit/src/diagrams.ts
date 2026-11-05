@@ -11,7 +11,7 @@ import type { CreatableDiagramType } from "./types.js";
 export const CREATABLE_DIAGRAMS: readonly CreatableDiagramType[] = ["flow", "free", "sequence"];
 
 /** The names the top level of a file uses: its blocks and the names its imports bind. */
-function topLevelNames(compilation: Compilation): Set<string> {
+export function topLevelNames(compilation: Compilation): Set<string> {
   const document = compilation.document;
   const names = new Set<string>();
   for (const block of [
@@ -37,6 +37,31 @@ function topLevelNames(compilation: Compilation): Set<string> {
 export function newDiagramId(compilation: Compilation): string {
   const used = topLevelNames(compilation);
   for (let n = 1; ; n++) if (!used.has(`diagram${n}`)) return `diagram${n}`;
+}
+
+/**
+ * The id `createStory` gives a new story without one: the first of `story1`, `story2`… that no
+ * diagram, model, theme, story, export or import of the file uses.
+ */
+export function newStoryId(compilation: Compilation): string {
+  const used = topLevelNames(compilation);
+  for (let n = 1; ; n++) if (!used.has(`story${n}`)) return `story${n}`;
+}
+
+/**
+ * The edit that appends a block after the last top-level statement of a file that has one,
+ * separated by a blank line: at the end of that statement's line, so a comment after it stays.
+ */
+export function appendBlock(ctx: TextContext, block: string): TextEdit {
+  const { eol, text } = ctx;
+  const items = ctx.compilation.parse.root.items;
+  const last = items[items.length - 1];
+  const end = last?.end ?? text.length;
+  const newline = text.indexOf("\n", end);
+  if (newline < 0)
+    return { start: text.length, end: text.length, newText: `${eol}${eol}${block}${eol}` };
+  const at = text[newline - 1] === "\r" && newline - 1 >= end ? newline - 1 : newline;
+  return { start: at, end: at, newText: `${eol}${eol}${block}` };
 }
 
 /**
@@ -82,13 +107,7 @@ export function createDiagram(ctx: TextContext, op: OperationOf<"createDiagram">
       edits.push({ start: 0, end: 0, newText: `${header}${eol}${eol}` });
     }
     // At the end of the last statement's line, so a comment after it stays on that line.
-    const newline = text.indexOf("\n", last.end);
-    if (newline < 0) {
-      edits.push({ start: text.length, end: text.length, newText: `${eol}${eol}${block}${eol}` });
-    } else {
-      const at = text[newline - 1] === "\r" && newline - 1 >= last.end ? newline - 1 : newline;
-      edits.push({ start: at, end: at, newText: `${eol}${eol}${block}` });
-    }
+    edits.push(appendBlock(ctx, block));
   }
   verifyNoNewErrors(ctx, edits);
   return edits;

@@ -1,6 +1,7 @@
 # 0061. Exports without the Meltemi branding are an entitlement an administrator grants
 
 Status: accepted (unbranded-exports change, 28 October 2026). Extends decisions 0007 and 0042.
+Extended by [0071](0071-unbranded-by-donation.md): a donation through GitHub Sponsors grants it.
 
 ## Context
 

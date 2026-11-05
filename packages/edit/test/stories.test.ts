@@ -230,6 +230,90 @@ describe("removeStoryAction and insertScene", () => {
   });
 });
 
+describe("createStory", () => {
+  const CHECKOUT = 'language "0.2"\n\ndiagram checkout: flow {\n  a -> b as ab\n}\n';
+  const codes = (text: string) => compile(text).diagnostics.map((d) => d.code);
+
+  it("appends a story of one empty scene after the last statement, with a blank line", () => {
+    const next = apply(CHECKOUT, { kind: "createStory", diagram: "checkout" });
+    expect(next).toBe(`${CHECKOUT}\nstory story1 for checkout {\n  scene scene1 {\n  }\n}\n`);
+    // Only the warning of the empty scene is new: the canvas fills it.
+    expect(codes(CHECKOUT)).toEqual([]);
+    expect(codes(next)).toEqual(["story.empty-scene"]);
+    const story = compile(next).document.stories[0]!;
+    expect([story.id, story.target.name, story.scenes.map((s) => s.id)]).toEqual([
+      "story1",
+      "checkout",
+      ["scene1"],
+    ]);
+  });
+
+  it("takes the next free id, past a profile's, with a title and a scene id when given", () => {
+    const taken = `${CHECKOUT}\nstory story1 for checkout {\n  scene one {\n    reveal a\n  }\n}\n\nexport story2 for checkout {\n  format svg\n}\n`;
+    const next = apply(taken, { kind: "createStory", diagram: "checkout", title: "Refund" });
+    expect(
+      next.endsWith(
+        '\nstory story3 for checkout {\n  title "Refund"\n\n  scene scene1 {\n  }\n}\n',
+      ),
+    ).toBe(true);
+    // What was written stays as it was.
+    expect(next.startsWith(taken)).toBe(true);
+    const named = apply(CHECKOUT, {
+      kind: "createStory",
+      diagram: "checkout",
+      id: "refund",
+      scene: "request",
+    });
+    expect(named).toContain("story refund for checkout {\n  scene request {\n  }\n}\n");
+  });
+
+  it("keeps a comment after the last statement on its line, and the file's line ends", () => {
+    const commented = `${CHECKOUT.trimEnd()} // the shop\n// end of file\n`;
+    const next = apply(commented, { kind: "createStory", diagram: "checkout" });
+    expect(next).toBe(
+      `${CHECKOUT.trimEnd()} // the shop\n\nstory story1 for checkout {\n  scene scene1 {\n  }\n}\n// end of file\n`,
+    );
+    const crlf = CHECKOUT.replace(/\n/g, "\r\n");
+    const written = apply(crlf, { kind: "createStory", diagram: "checkout" });
+    expect(written).toBe(
+      `${crlf}\r\nstory story1 for checkout {\r\n  scene scene1 {\r\n  }\r\n}\r\n`,
+    );
+    // A file without a newline at its end.
+    expect(apply(CHECKOUT.trimEnd(), { kind: "createStory", diagram: "checkout" })).toBe(
+      `${CHECKOUT.trimEnd()}\n\nstory story1 for checkout {\n  scene scene1 {\n  }\n}\n`,
+    );
+    // Of any profile: a sequence diagram's story too.
+    const sequence =
+      'language "0.2"\n\ndiagram pay: sequence {\n  participant a\n  participant b\n  a -> b: "Pay"\n}\n';
+    expect(codes(apply(sequence, { kind: "createStory", diagram: "pay" }))).toEqual([
+      "story.empty-scene",
+    ]);
+  });
+
+  it("refuses a diagram that is not the file's, and ids that are not ones or are taken", () => {
+    const importing = `language "0.2"\n\nimport "./views.meltemi" as views\n\ndiagram checkout: flow {\n  a -> b\n}\n`;
+    const result = planEdit(compile(importing), {
+      kind: "createStory",
+      diagram: "views.containers",
+    });
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.rejection).toEqual({
+      code: "edit.unsafe-target",
+      reason:
+        "A story's diagram must be one of the file's; `views.containers` is not (its diagrams: `checkout`).",
+    });
+    expect(refusal(CHECKOUT, { kind: "createStory", diagram: "checkout", id: "9x" })).toBe(
+      "edit.invalid-id",
+    );
+    expect(refusal(CHECKOUT, { kind: "createStory", diagram: "checkout", id: "checkout" })).toBe(
+      "edit.id-conflict",
+    );
+    expect(refusal(CHECKOUT, { kind: "createStory", diagram: "checkout", scene: "a b" })).toBe(
+      "edit.invalid-id",
+    );
+  });
+});
+
 describe("renames and removals reach stories", () => {
   it("renames an element in the story", () => {
     const next = apply(purchase, {
