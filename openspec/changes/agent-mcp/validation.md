@@ -158,6 +158,13 @@ socket the Worker cuts reconnects…", one of the suite's known flaky scenarios;
 runs of four, and its room and socket are untouched by this stage. Its check that the Worker logged
 nothing but its requests passed with the OAuth scenarios in the run.
 
+A trial merge of `agent-mcp-suite` at `fbc162f` (not committed, aborted after): only this file
+conflicts; with its `scripts/deploy-config.mjs` the placeholder is filled, and its delivery test then
+fails on one line only, its expectation of `invocation_logs: true`, which this stage turns off (the
+logs, below); its MCP suite's own tests pass (32), and its steps of criterion 27 expect what this
+server answers (the challenge naming the origin's metadata, registration `201` with a `client_id`,
+a wrong `resource` refused without a code).
+
 ### Evidence by task
 
 - 2.1: `packages/cloud/package.json` pins `@cloudflare/workers-oauth-provider` 1.2.3 (MIT, no
