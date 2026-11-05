@@ -8,9 +8,10 @@ sequence. This is a post-1.0 documentation correction outside `docs/roadmap-1.0.
 
 ## What Changes
 
-- Give both guides one copyable clone, change-directory and Compose startup block.
-- Pin the clone to a published release that includes the local distribution.
+- Give both guides copyable Bash/PowerShell commands to resolve `latest`, clone its published tag,
+  change directory and start Compose, without embedding a version number.
 - State Git/Docker prerequisites, supported containers, the editor URL and working directory.
+- Record the stable/preview delivery follow-up without changing publication policy.
 
 ## Capabilities
 
@@ -22,5 +23,5 @@ sequence. This is a post-1.0 documentation correction outside `docs/roadmap-1.0.
 
 ## Impact
 
-Only `docs/local-compose.md`, `docs/es/local-compose.md` and the corresponding specification.
+`docs/local-compose.md`, `docs/es/local-compose.md`, `RELEASING.md` and the corresponding specification.
 The portal consumes these sources through the existing release/deploy workflow.

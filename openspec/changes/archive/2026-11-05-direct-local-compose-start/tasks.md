@@ -2,6 +2,8 @@
 
 - [x] Verify the published release includes the full Compose distribution.
 - [x] Replace vague acquisition instructions with identical runnable commands in English/Spanish.
+- [x] Resolve latest automatically and verify fresh clones in Bash and PowerShell.
+- [x] Record the future stable/preview delivery boundary without changing the workflow.
 - [x] Exercise the documented clone/start sequence in a clean installation folder.
 - [x] Run documentation validation, typecheck, lint and tests; record results.
 - [x] Synchronize the local-installation requirement and archive this correction.

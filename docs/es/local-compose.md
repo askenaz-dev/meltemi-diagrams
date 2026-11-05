@@ -12,15 +12,32 @@ Node en el equipo.
 Inicia Docker Engine con Compose en Linux, o Docker Desktop con contenedores Linux en Windows.
 Esta distribución admite contenedores Linux amd64.
 
-Abre una terminal en la carpeta donde quieras instalar Meltemi y ejecuta estos tres comandos
-(sirven en Bash y PowerShell). Descargan la versión publicada `v1.11.19` en una carpeta nueva
-`meltemi-local` e inician la aplicación:
+Abre una terminal en la carpeta donde quieras instalar Meltemi y ejecuta el bloque correspondiente.
+El bloque consulta `latest` para descargar la última release publicada en una carpeta nueva
+`meltemi-local` e iniciar la aplicación. Los borradores y las versiones preliminares quedan fuera de `latest`.
+
+### Linux (Bash)
+
+Necesitas también `curl` para consultar la última release.
 
 ```bash
-git clone --depth 1 --branch v1.11.19 https://github.com/askenaz-dev/meltemi-diagrams.git meltemi-local
-cd meltemi-local
+release_url=$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/askenaz-dev/meltemi-diagrams/releases/latest) &&
+git clone --depth 1 --branch "${release_url##*/}" https://github.com/askenaz-dev/meltemi-diagrams.git meltemi-local &&
+cd meltemi-local &&
 docker compose up
 ```
+
+### Windows (PowerShell)
+
+```powershell
+$release = Invoke-RestMethod https://api.github.com/repos/askenaz-dev/meltemi-diagrams/releases/latest -ErrorAction Stop
+git clone --depth 1 --branch $release.tag_name https://github.com/askenaz-dev/meltemi-diagrams.git meltemi-local
+if ($LASTEXITCODE -ne 0) { throw "Git clone failed." }
+Set-Location meltemi-local -ErrorAction Stop
+docker compose up
+```
+
+### Abrir el editor
 
 El primer inicio construye la imagen y necesita red para descargar dependencias. Inicializa
 automáticamente el almacenamiento persistente y un proyecto predeterminado. Espera el mensaje

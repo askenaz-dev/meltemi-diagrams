@@ -1,9 +1,14 @@
 # Validation: Direct local installation
 
-Verified on 5 November 2026 with Windows PowerShell and Docker Desktop using Linux containers.
+Verified on 5 November 2026 with PowerShell, Git Bash and Docker Desktop using Linux containers.
 
-- The documented shallow clone of `v1.11.19` succeeded in a new `meltemi-local` folder and
-  resolved to source commit `afdc260919a0b3a3997e953db07873dcdfd1772f`.
+- Both installation blocks were extracted from the guide and exercised in separate empty
+  folders. They independently resolved GitHub `latest`, cloned its tag into `meltemi-local` and
+  entered that folder. Both resolved `v1.11.19`, source commit
+  `afdc260919a0b3a3997e953db07873dcdfd1772f`. For these resolver checks the final `docker compose up`
+  was replaced with `docker compose config --quiet`; the unchanged startup was already exercised
+  end to end against this exact source, as recorded below. The commands require no fixed tag,
+  jq, GitHub CLI or Node installation.
 - `docker compose up` built the image automatically. The default port was already allocated to
   an existing local instance, so startup correctly refused to bind it. The proof then ran the
   same Compose startup with an isolated project name and `MELTEMI_PORT=18879`; the container
@@ -15,10 +20,13 @@ Verified on 5 November 2026 with Windows PowerShell and Docker Desktop using Lin
 - `pnpm typecheck` and `pnpm lint` passed.
 - `pnpm test` passed: 378 files, 11,237 tests passed and one skipped, including the existing
   documentation links and English/Spanish heading/code parity checks.
+- After the latest-resolution update, the focused documentation suite passed all 90 checks,
+  including link validation and matching code/headings in both languages. Formatting and strict
+  specification validation also passed. No runtime code changed.
 - `openspec validate direct-local-compose-start --strict` and `git diff --check` passed.
 - An independent review found no material accuracy or scope issues.
 
 Evidence is retained outside the repository in
 `C:/meltemi/artifacts/direct-local-compose-docs/`: installation proof JSON and Compose/check logs.
-Bash commands use the same shell-neutral arguments; the fresh installation was exercised in
-PowerShell. This correction does not publish or deploy documentation by itself.
+The Bash resolution/clone ran in Git Bash and the PowerShell resolution/clone ran in PowerShell.
+This correction does not publish or deploy documentation by itself.
