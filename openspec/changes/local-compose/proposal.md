@@ -26,6 +26,7 @@ This is a post-1.0 change outside `docs/roadmap-1.0.md`. On 5 November 2026 the 
 
 - `cloud-service`: a separately selected local actor and exact origin policy; hosted authentication remains its own entry point.
 - `cloud-accounts`: an immediately usable local workspace response/UI without account, session or token flows.
+- `cloud-document`: durable API checkpoints and immediate local room updates, preserving the hosted WebSocket write budget.
 - `agent-skill`: an actual local agent plugin bundling the skill and MCP, installed and verified through a setup prompt.
 
 The shared MCP schemas and transport are reused. The local entry point supplies its owner directly rather than using hosted MCP authorization. Existing CLI-only skill installation remains a separate workflow.

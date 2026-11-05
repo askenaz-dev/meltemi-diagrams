@@ -122,3 +122,4 @@ jobs:
           name: local-compose-verification
           path: .test-output/local-compose*
           if-no-files-found: ignore
+          include-hidden-files: true

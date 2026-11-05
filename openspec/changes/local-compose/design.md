@@ -107,6 +107,14 @@ Keep the 27-tool catalogue: fourteen core project/file/version/whoami/open/previ
 
 ### 6. Keep storage and operations simple
 
+API pushes/restores commit the candidate document and next revision to room storage before
+acknowledgement or broadcast; storage failure rolls back the candidate and permits retry at
+the prior revision. The local entry point exports a separate room subclass whose constructor
+opts WebSocket updates into that same durable boundary, preserving the latest accepted human
+edit across a rapid stop. Hosted WebSocket traffic retains its existing one-second throttle.
+Version/materialisation boundaries also checkpoint pending room state before success. This
+uses explicit storage transactions, rather than a shutdown delay or public flush route.
+
 One volume holds all D1/R2/DO state, owner, default project and source/schema metadata. A shared-volume kernel flock serializes the launcher and offline operations across container PID namespaces; it is released when the launcher exits. Serialize initialization, fail readiness on errors and never reset data on startup. A health check reports readiness/version. Preserve maintenance through a pure maintainState function and launcher-owned DB/R2 platform proxy on the same state/v3 resource root; expose no scheduling HTTP trigger, including Wrangler's test-scheduled endpoint. The pinned Wrangler startWorker scheduled wrapper targets its proxy Worker rather than the application, so the launcher does not use that broken dispatch path. No user-managed maintenance credential is needed.
 
 Document stop/restart and complete quiesced backup/restore. The caller stops the application before invoking the helper; the shared-volume lock refuses backup or restore while writers are active. The helper captures the whole state and restores to a fresh target. Verify sources, versions, room state and image hashes; refuse malformed backups/nonempty targets. Label volume deletion as destructive reset.

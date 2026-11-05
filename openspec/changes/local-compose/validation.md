@@ -22,7 +22,7 @@ listener is separate. No Meltemi identity service, browser session or agent API 
 | Local maintenance | Shared `maintainState` extraction retained hosted semantics. The local launcher dispatched it through DB/R2 bindings on the same `state/v3` resource root, with no public scheduling endpoint; actual native and container startup cleanup passed. |
 | Offline after image build | A fresh image booted with Docker `--network none`, created/edited a project, validated it, rendered flow and canonical Gantt SVG/PNG and served both complete plugin bundles. This includes initial local schema/bootstrap and maintenance, not just a warmed instance. |
 | Interface and docs | Initial playground browser suite: 126/126 passed. Integrated suite: 122 passed, followed by successful focused recovery of all six remaining cases (128 distinct scenarios covered). Docker EN/ES at 1280px and 412px: default project, local-only controls, nonempty selected-project prompt and clipboard passed with no horizontal overflow. The documentation portal imported the integrated implementation worktree and built 396 pages, including both local guides and both Gantt guides; the Web repository remained clean. |
-| General quality | `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm licenses:inventory --check` passed again after Gantt integration. Final integrated unit run: 377 files, 11,229 tests passed and one skipped. `openspec validate local-compose --strict` passed. |
+| General quality | `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm licenses:inventory --check` passed after Gantt integration. Full typecheck/lint were repeated after the durability correction; its final full unit run passed 378 files and 11,237 tests, with one skipped. The corrected Worker was rebuilt in Docker and exercised again. `openspec validate local-compose --strict` passed. |
 
 The local interface and documentation tests found and corrected a textarea initialization bug and a
 mobile-header overflow before this record. The first complete unit run caught a test-only project
@@ -58,6 +58,27 @@ the wrong identity URL; a font-loading case also failed. After the cloud runner 
 assets, the default public-identity assets were rebuilt and all six failed scenarios passed in a
 focused repeat, including an explorer badge test corrected to wait for its final count. Product
 timeouts and authentication assertions stayed unchanged. Separate CI jobs use separate checkouts.
+
+## Linux CI correction
+
+The first [Compose CI job](https://github.com/askenaz-dev/meltemi-diagrams/actions/runs/42098946799/job/127496336019)
+passed native/browser acceptance, then exposed a real immediate-restart defect: API writes had
+returned revision 3 while authoritative room storage still held revision 1. The slower Windows
+shutdown had allowed the existing persistence timer to fire and masked this window.
+
+API pushes/restores now save the validated candidate before advancing revision or broadcasting;
+failed saves roll back and permit retry with the original revision. The local room constructor also
+saves browser updates before relaying them. Hosted WebSocket batching remains within its existing
+budget. Explicit materialisation/version checkpoints require saved room state. Eight new deterministic
+tests reconstruct immediately without advancing timers and exercise storage failures; all 3,999 cloud
+tests and both cloud TypeScript programs passed.
+
+After this correction the actual Docker lifecycle, offline flow/Gantt proof and full shared
+browser/MCP acceptance all passed again. Backup now writes inside a named temporary container, uses
+`docker cp` to export the archive and mounts restore input read-only. Isolated Linux proof confirmed
+this works with image UID 1000 and host UID 1001 without changing host ownership or permissions.
+CI artifact upload explicitly includes its narrowly scoped hidden `.test-output/local-compose*` paths.
+The final full local typecheck, lint and 11,237-test run passed after these source corrections.
 
 ## Reproducible commands
 

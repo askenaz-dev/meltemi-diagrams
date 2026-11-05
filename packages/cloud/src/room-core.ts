@@ -132,6 +132,8 @@ export interface RoomSocket {
 /** What the room needs from its surroundings. */
 export interface RoomPorts {
   readonly storage: RoomStorage;
+  /** The local room commits browser updates before relaying them; hosted sockets retain throttling. */
+  readonly durableUpdates?: boolean;
   /** Milliseconds since the epoch. */
   now(): number;
   setTimer(milliseconds: number, run: () => void): unknown;
@@ -362,7 +364,7 @@ export class RoomCore {
     if (!this.dirty) return;
     const encoded = Y.encodeStateAsUpdate(this.doc);
     try {
-      this.ports.storage.save(this.revision, toChunks(encoded));
+      this.saveSnapshot(this.revision, encoded);
     } catch {
       // Nothing is lost: the document is still here and still dirty. Try again in a moment.
       this.ports.warn("room: the document could not be written to storage");
@@ -371,6 +373,15 @@ export class RoomCore {
         void this.enqueue(() => this.persist());
       });
       return;
+    }
+  }
+
+  /** Save atomically before publishing an acknowledged state. A failure changes no room metadata. */
+  private saveSnapshot(revision: number, encoded: Uint8Array): void {
+    this.ports.storage.save(revision, toChunks(encoded));
+    if (this.persistTimer !== undefined) {
+      this.ports.clearTimer(this.persistTimer);
+      this.persistTimer = undefined;
     }
     this.storageWrites++;
     this.dirty = false;
@@ -423,6 +434,7 @@ export class RoomCore {
   private async transact(
     run: () => void,
     known: ReadonlySet<string> = new Set(),
+    durable = this.ports.durableUpdates === true,
   ): Promise<Outcome> {
     const cloud = this.cloud;
     const seen: Changes[] = [];
@@ -455,6 +467,14 @@ export class RoomCore {
       // A root that holds content cannot have come without an update; rebuilding is the safe answer.
       if (!clean) this.rollback();
       if (code !== undefined) return { ok: false, code };
+      if (durable && this.dirty) {
+        try {
+          this.saveSnapshot(this.revision, Y.encodeStateAsUpdate(this.doc));
+        } catch {
+          this.ports.warn("room: the document could not be written to storage");
+          return { ok: false, code: "internal" };
+        }
+      }
       return pending ? { ok: true, pending: true } : { ok: true };
     }
     const update = updates.length === 1 ? (updates[0] as Uint8Array) : Y.mergeUpdates(updates);
@@ -483,6 +503,17 @@ export class RoomCore {
       return { ok: false, code };
     }
 
+    if (durable) {
+      try {
+        this.saveSnapshot(this.revision + 1, measured ?? Y.encodeStateAsUpdate(this.doc));
+      } catch {
+        this.ports.warn("room: the document could not be written to storage");
+        this.rollback();
+        return { ok: false, code: "internal" };
+      }
+      this.revision++;
+      return pending ? { ok: true, update, pending: true } : { ok: true, update };
+    }
     this.revision++;
     if (measured) {
       this.setBase(measured);
@@ -713,7 +744,8 @@ export class RoomCore {
     if (!outcome.ok) return this.refuse(socket, outcome.code);
     if (outcome.update) {
       this.broadcast(outcome.update, socket.info.id);
-      this.changed();
+      if (this.ports.durableUpdates) this.armMaterialise();
+      else this.changed();
     }
     // An update that waited for what it depends on (the room lost its last second, or the client
     // sent too little) was not kept: say what the room holds, and the client answers with what is
@@ -1074,6 +1106,7 @@ export class RoomCore {
             random: (length) => this.ports.randomBytes(length),
           }),
         hashes,
+        true,
       );
       return this.committed(outcome);
     });
@@ -1109,6 +1142,7 @@ export class RoomCore {
             random: (length) => this.ports.randomBytes(length),
           }),
         hashes,
+        true,
       );
       return this.committed(outcome);
     });
@@ -1137,7 +1171,7 @@ export class RoomCore {
     if (!outcome.ok) throw new RoomError(outcome.code);
     if (outcome.update) {
       this.broadcast(outcome.update);
-      this.changed();
+      this.armMaterialise();
     }
     return { revision: this.revision };
   }
@@ -1200,7 +1234,18 @@ export class RoomCore {
    */
   async materialiseNow(): Promise<{ revision: number } | false> {
     for (let attempts = 0; attempts < 3; attempts++) {
-      const started = await this.enqueue(() => this.startMaterialise());
+      const started = await this.enqueue(() => {
+        if (this.dirty) {
+          try {
+            this.saveSnapshot(this.revision, Y.encodeStateAsUpdate(this.doc));
+          } catch {
+            this.ports.warn("room: the document could not be written to storage");
+            return false;
+          }
+        }
+        return this.startMaterialise();
+      });
+      if (started === false) return false;
       if (!started.done) return { revision: this.revision };
       if (!(await started.done)) return false;
       if (this.materialisedRevision === this.revision) return { revision: this.revision };

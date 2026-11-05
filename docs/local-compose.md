@@ -93,6 +93,10 @@ docker compose stop
 `docker compose up`: owner, projects, versions, room documents and uploaded assets remain. Logs
 are available with `docker compose logs`.
 
+The local backend saves each accepted editor or API update before confirming or relaying it.
+After a change is confirmed, no extra wait is needed before stopping the instance. Edits still
+pending in an offline browser have not reached this boundary.
+
 ## Backup and restore
 
 The instance includes D1 rows, room documents and binary assets. Back up the complete stopped
@@ -100,16 +104,26 @@ instance, rather than copying just its database while a room can still write.
 
 ### Backup
 
-Create the `backups` folder once, then stop the application and make an archive:
+Create the `backups` folder once, then stop the application and make an archive. Choose a new
+archive filename for each backup and use it in both commands: `docker cp` can replace an existing
+destination file.
 
 ```bash
 mkdir backups
 docker compose stop
-docker compose run --rm --no-deps --volume ./backups:/backups app backup /backups/meltemi.meltemi-backup
+docker compose run --no-deps --name meltemi-backup app backup /tmp/meltemi.meltemi-backup
+docker cp meltemi-backup:/tmp/meltemi.meltemi-backup ./backups/meltemi.meltemi-backup
+docker rm meltemi-backup
 ```
 
 The helper refuses a running instance. The archive includes its instance and version metadata.
-Use another archive name for another backup. Start the original instance again with
+The backup writes inside a one-off container that stops when it finishes; `docker cp` then writes
+the host copy as your host user. This avoids requiring the container's user to write your Linux
+host folder. Continue to copying only when the backup command succeeds. If `meltemi-backup`
+already exists, inspect it or choose another container name before proceeding. Remove it only
+after copying succeeds; if the copy fails, the archive remains in that container so you can retry.
+Another backup needs a new archive filename; the one-off container name can be reused after
+removal. Start the original instance again with
 `docker compose up` when the backup succeeds.
 
 ### Restore to a new instance
@@ -118,7 +132,7 @@ Keep the original data. Restore into an empty volume under another Compose proje
 
 ```bash
 docker compose stop
-docker compose -p meltemi-restored run --rm --no-deps --volume ./backups:/backups app restore /backups/meltemi.meltemi-backup
+docker compose -p meltemi-restored run --rm --no-deps --volume ./backups/meltemi.meltemi-backup:/backup.meltemi-backup:ro app restore /backup.meltemi-backup
 docker compose -p meltemi-restored up
 ```
 

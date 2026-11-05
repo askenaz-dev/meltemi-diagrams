@@ -1021,13 +1021,21 @@ that is incomplete throws instead of starting empty, because the next write woul
 permanent. The room does one thing at a time (a message, a push, a read, a timer), so a reader
 never sees a change before it was checked.
 
-Writes are a throttle, not a debounce: the first change after a quiet second is written at once,
-then at most once per second while changes keep arriving, with one more write after the last; and
+Hosted WebSocket writes are a throttle, not a debounce: the first change after a quiet second is
+written at once, then at most once per second while changes keep arriving, with one more write
+after the last; and
 in any case no later than ten seconds after the first change that is not yet written, so a client
 that never pauses cannot postpone it. When the last client leaves, the room writes at once. A
 write stores the whole encoded state in chunks of at most 1 MiB (a Durable Object SQLite value is
-capped at 2 MB) and the revision, in one storage transaction. When storage refuses a write, the
-document stays in memory and the room tries again a second later.
+capped at 2 MB) and the revision, in one storage transaction. When storage refuses a throttled
+write, the document stays in memory and the room tries again a second later.
+
+HTTP pushes and restores persist the candidate document and revision before success or relay to
+clients. A failed write rejects that update and preserves the preceding document and revision.
+Explicit materialisation, including version creation, also persists pending room state before
+success. The
+[local distribution](local-compose.md) configures its room to commit WebSocket updates before
+acknowledging or relaying them too; the hosted WebSocket throttle stays unchanged.
 
 The revision rises by one for each update the room keeps (a message of a client, a push, a
 restore), and is persisted with the document, so it counts on across restarts. A pending write or
@@ -1035,8 +1043,8 @@ materialisation keeps the object in memory with its timer; with nothing pending 
 hibernate between messages, with its sockets still open, and the next message reloads the document
 from storage.
 
-The window of eviction. If the platform evicted an object that held an unwritten change, the room
-could lose at most one second of edits, and ten for a client that never pauses. The loss is
+The window of eviction for hosted WebSocket edits. If the platform evicted an object that held an
+unwritten change, the room could lose at most one second of edits, and ten for a client that never pauses. The loss is
 transient: the page keeps the same updates in memory and in IndexedDB, the sockets reconnect, and
 the room sends its state vector to every client that connects, so the page answers with what the
 room lacks, whether the page stayed open or was reloaded in between. The alternative, appending

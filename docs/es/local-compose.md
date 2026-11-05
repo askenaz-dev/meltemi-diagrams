@@ -93,6 +93,10 @@ docker compose stop
 con `docker compose up`: permanecen el propietario, proyectos, versiones, documentos de las salas
 y activos subidos. Los registros se consultan con `docker compose logs`.
 
+El backend local guarda cada actualización aceptada del editor o la API antes de confirmarla o
+retransmitirla. Tras confirmar un cambio, no necesitas esperar más antes de detener la instancia.
+Las ediciones pendientes en un navegador sin conexión aún no han llegado a este punto.
+
 ## Respaldar y restaurar
 
 La instancia contiene filas D1, documentos de salas y activos binarios. Respalda la instancia
@@ -100,17 +104,27 @@ completa detenida, en vez de copiar sólo la base de datos mientras una sala pue
 
 ### Respaldar
 
-Crea una vez la carpeta `backups`, detén la aplicación y genera un archivo:
+Crea una vez la carpeta `backups`, detén la aplicación y genera un archivo. Elige un nombre de
+archivo nuevo para cada respaldo y úsalo en ambos comandos: `docker cp` puede reemplazar un archivo
+de destino existente.
 
 ```bash
 mkdir backups
 docker compose stop
-docker compose run --rm --no-deps --volume ./backups:/backups app backup /backups/meltemi.meltemi-backup
+docker compose run --no-deps --name meltemi-backup app backup /tmp/meltemi.meltemi-backup
+docker cp meltemi-backup:/tmp/meltemi.meltemi-backup ./backups/meltemi.meltemi-backup
+docker rm meltemi-backup
 ```
 
 La herramienta rechaza una instancia en ejecución. El archivo incluye los metadatos de la instancia
-y su versión. Usa otro nombre para otro respaldo. Inicia la instancia original con `docker compose up`
-cuando termine correctamente.
+y su versión. El respaldo se escribe dentro de un contenedor auxiliar que se detiene al terminar;
+`docker cp` crea entonces la copia en el equipo con tu usuario local. Así el usuario del contenedor
+no necesita permiso de escritura en tu carpeta Linux. Continúa a la copia sólo si el respaldo
+termina correctamente. Si `meltemi-backup` ya existe, inspecciónalo o usa otro nombre de contenedor
+antes de continuar. Elimínalo sólo después de copiar correctamente; si falla la copia, el archivo
+permanece en ese contenedor para reintentar. Otro respaldo necesita un nombre de archivo nuevo;
+el nombre del contenedor puede reutilizarse tras eliminarlo. Inicia la
+instancia original con `docker compose up` cuando termine correctamente.
 
 ### Restaurar en una instancia nueva
 
@@ -118,7 +132,7 @@ Conserva los datos originales. Restaura en un volumen vacío usando otro nombre 
 
 ```bash
 docker compose stop
-docker compose -p meltemi-restored run --rm --no-deps --volume ./backups:/backups app restore /backups/meltemi.meltemi-backup
+docker compose -p meltemi-restored run --rm --no-deps --volume ./backups/meltemi.meltemi-backup:/backup.meltemi-backup:ro app restore /backup.meltemi-backup
 docker compose -p meltemi-restored up
 ```
 

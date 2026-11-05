@@ -1062,15 +1062,22 @@ incompleto lanza un error en lugar de empezar vacío, porque la siguiente escrit
 la pérdida. La sala hace una sola cosa a la vez (un mensaje, un push, una lectura, un
 temporizador), así que un lector nunca ve un cambio antes de que se haya comprobado.
 
-Las escrituras son una limitación (throttle), no un debounce: el primer cambio tras un segundo de
-calma se escribe enseguida, después como máximo una vez por segundo mientras siguen llegando
-cambios, con una escritura más después del último; y en cualquier caso no más tarde de diez
+Las escrituras por WebSocket del servicio alojado son una limitación (throttle), no un debounce:
+el primer cambio tras un segundo de calma se escribe enseguida, después como máximo una vez por
+segundo mientras siguen llegando cambios, con una escritura más después del último; y en cualquier caso no más tarde de diez
 segundos después del primer cambio que aún no está escrito, así que un cliente que nunca hace pausa
 no puede aplazarla. Cuando se va el último cliente, la sala escribe enseguida. Una escritura guarda
 todo el estado codificado en fragmentos de 1 MiB como máximo (un valor de SQLite de un Durable
 Object tiene un tope de 2 MB) y la revisión, en una sola transacción de almacenamiento. Cuando el
-almacenamiento rechaza una escritura, el documento se queda en memoria y la sala lo intenta de nuevo
-un segundo después.
+almacenamiento rechaza una de estas escrituras, el documento se queda en memoria y la sala lo
+intenta de nuevo un segundo después.
+
+Los pushes y las restauraciones por HTTP guardan el documento candidato y su revisión antes de
+confirmar la operación o retransmitirla a los clientes. Una escritura fallida rechaza esa
+actualización y conserva el documento y la revisión anteriores. Una materialización explícita,
+incluida la creación de versiones, también guarda el estado pendiente antes de confirmar. La
+[distribución local](local-compose.md) configura su sala para guardar también las actualizaciones
+por WebSocket antes de confirmarlas o retransmitirlas; la limitación del WebSocket alojado no cambia.
 
 La revisión sube una unidad por cada actualización que la sala conserva (un mensaje de un cliente,
 un push, una restauración) y se persiste con el documento, así que sigue contando tras un reinicio.
@@ -1078,8 +1085,9 @@ Una escritura o una materialización pendientes mantienen el objeto en memoria c
 sin nada pendiente, el objeto puede hibernar entre mensajes, con sus sockets abiertos, y el
 siguiente mensaje recarga el documento desde el almacenamiento.
 
-La ventana de desalojo. Si la plataforma desalojara un objeto que tenía un cambio sin escribir, la
-sala podría perder como máximo un segundo de ediciones, y diez para un cliente que nunca hace
+La ventana de desalojo para las ediciones por WebSocket alojado. Si la plataforma desalojara un
+objeto que tenía un cambio sin escribir, la sala podría perder como máximo un segundo de ediciones,
+y diez para un cliente que nunca hace
 pausa. La pérdida es transitoria: la página conserva las mismas actualizaciones en memoria y en
 IndexedDB, los sockets reconectan, y la sala envía su vector de estado a cada cliente que se
 conecta, así que la página responde con lo que le falta a la sala, tanto si la página siguió abierta

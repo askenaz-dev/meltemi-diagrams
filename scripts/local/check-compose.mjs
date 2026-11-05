@@ -18,6 +18,7 @@ const output = join(ROOT, ".test-output/local-compose-lifecycle");
 await mkdir(output, { recursive: true });
 const composeProject = `meltemi-restore-${randomUUID().slice(0, 8)}`;
 const archiveName = `proof-${randomUUID()}.meltemi-backup`;
+const backupContainer = `meltemi-backup-${randomUUID()}`;
 const imageAlias = `meltemi-local-proof:${randomUUID()}`;
 const override = join(output, "restore-compose.json");
 const restoredCompose = [
@@ -68,6 +69,7 @@ let client;
 let snapshot;
 let project;
 let primaryStopped = false;
+let backupContainerStarted = false;
 try {
   const before = await ready();
   assert.throws(
@@ -136,31 +138,36 @@ try {
   await client.close();
   docker(["compose", "stop", "app"]);
   primaryStopped = true;
-  const volume = `${output}:/backups`;
+  const restoreVolume = `${join(output, archiveName)}:/backup.meltemi-backup:ro`;
   const imageId = docker(["compose", "images", "-q", "app"]);
   docker(["image", "tag", imageId, imageAlias]);
   await writeFile(override, JSON.stringify({ services: { app: { image: imageAlias } } }));
+  backupContainerStarted = true;
   docker([
     "compose",
     "run",
-    "--rm",
     "--no-deps",
-    "--volume",
-    volume,
+    "--name",
+    backupContainer,
     "app",
     "backup",
-    `/backups/${archiveName}`,
+    `/tmp/${archiveName}`,
   ]);
+  // The Docker client writes the host archive as its own user. No bind mount has to be writable
+  // by the image's node UID, which may differ from a Linux developer/CI runner's UID.
+  docker(["cp", `${backupContainer}:/tmp/${archiveName}`, join(output, archiveName)]);
+  docker(["container", "rm", backupContainer]);
+  backupContainerStarted = false;
   docker([
     ...restoredCompose,
     "run",
     "--rm",
     "--no-deps",
     "--volume",
-    volume,
+    restoreVolume,
     "app",
     "restore",
-    `/backups/${archiveName}`,
+    "/backup.meltemi-backup",
   ]);
   docker([...restoredCompose, "up", "-d", "--no-build"]);
   await ready();
@@ -180,6 +187,14 @@ try {
   );
 } finally {
   if (client) await client.close();
+  if (backupContainerStarted) {
+    try {
+      // This UUID name belongs only to this invocation, including a backup that failed or timed out.
+      docker(["container", "rm", "--force", backupContainer]);
+    } catch {
+      /* preserve the original failure if no container was created */
+    }
+  }
   try {
     docker([...restoredCompose, "down", "--volumes"]);
   } catch {
