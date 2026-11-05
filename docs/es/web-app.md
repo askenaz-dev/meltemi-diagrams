@@ -63,6 +63,16 @@ compila el sitio, lo sirve en `127.0.0.1` y lo maneja en el Edge o el Chrome ins
 | Publicar  | El catálogo de un proyecto en la nube como página web en una dirección propia ([publicar un proyecto](#publicar-un-proyecto)).                                                                                                                                                                                                                                                                                                                                      |
 | Idioma    | Inglés y español: la página sigue el idioma del navegador hasta que se elige uno en el menú del globo de la cabecera.                                                                                                                                                                                                                                                                                                                                               |
 
+Mientras la página carga, y siempre que el lienzo no tiene nada que dibujar (un proyecto sin
+archivos, `project.json` o un archivo que no es una fuente `.meltemi`), la página luce el mar de la
+familia Meltemi, `@meltemi/ocean`: puntos del mar se elevan y se enlazan en un pequeño flujo
+mientras la flota de marcas de Meltemi navega sobre él, en los colores claros u oscuros de la propia
+página. Se reproduce una vez y queda en reposo antes de 5 segundos, así que nada se mueve durante
+más tiempo, y nunca aparece detrás de un diagrama. Nunca retrasa el inicio: su código (unos 10 KB
+comprimidos) se carga aparte del editor, solo cuando se muestra, y no hace ninguna petición. Cuando
+el sistema pide movimiento reducido, se dibuja una sola vez, en reposo. Las páginas de
+configuración de agentes muestran el mismo mar como imagen fija, sin script.
+
 ### Teclas del código
 
 | Tecla                        | Hace                                                                                         |

@@ -46,6 +46,7 @@ import {
   importDialog,
   shareDialog,
 } from "./dialogs.js";
+import { EmptySea, showEmptySea } from "./empty-sea.js";
 import { openExportDialog, writePlayer } from "./exports/dialog.js";
 import {
   downloadCatalog,
@@ -131,6 +132,8 @@ const languageOf = (path: string): CodeLanguage =>
 export class Playground {
   readonly code: CodePane;
   canvas!: CanvasApp;
+  /** The family's sea behind the canvas's message while it has nothing to draw (`playground-sea`). */
+  private emptySea: EmptySea | undefined;
   readonly settings: Settings;
   /** The explorer: the project switcher and the tree of folders and diagrams. */
   explorer!: Explorer;
@@ -317,6 +320,7 @@ export class Playground {
         else this.code.reveal(range.start, range.end, false);
       },
       status: (message) => this.status(message),
+      nothingToDraw: (on) => this.emptySea?.set(on),
     });
     // The versions button and the thumbnail: only for a person signed in, and only while a cloud
     // project is open; the live session's chip only for its owner.
@@ -616,6 +620,18 @@ export class Playground {
         },
       },
     );
+
+    // The sea lies on the canvas's stage, behind its message; its chunk is asked for the first time
+    // the canvas has nothing to draw, and it is gone before a diagram is drawn.
+    const stage = canvasRoot.querySelector<HTMLElement>(".stage");
+    this.emptySea = new EmptySea(() =>
+      stage
+        ? showEmptySea(stage, {
+            reducedMotion: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+          })
+        : undefined,
+    );
+    this.emptySea.set(this.studio.nothingToDraw);
 
     document.addEventListener("keydown", (e) => this.onKey(e));
     if (this.room) {

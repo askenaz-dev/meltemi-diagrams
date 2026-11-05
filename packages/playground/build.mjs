@@ -26,6 +26,7 @@ import {
   contentSecurityPolicy,
   identityOrigin,
 } from "./policy.mjs";
+import { seaStills, seaWeight } from "./sea.mjs";
 import { templateThumbnails } from "./thumbnails.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -77,10 +78,16 @@ const words = grammar.repository.keywords.patterns
     pattern: p.match.replace(/^\\b\(/, "").replace(/\)\\b$/, ""),
   }));
 
-// The page: ES modules, with the ELK worker in its own chunk fetched in parallel.
+// The page: ES modules, with the ELK worker in its own chunk fetched in parallel, and the load
+// screen's sea, `boot-sea.js`, an entry of its own that the page loads with `async`: the chunk of
+// `@meltemi/ocean` it shares with the empty canvas's sea is never part of what the editor starts
+// with (`playground-sea`).
 const page = await build({
   ...common,
-  entryPoints: { playground: join(here, "src", "main.ts") },
+  entryPoints: {
+    playground: join(here, "src", "main.ts"),
+    "boot-sea": join(here, "src", "boot-sea.ts"),
+  },
   outdir: dist,
   format: "esm",
   splitting: true,
@@ -98,6 +105,8 @@ const nodeImports = Object.values(page.metafile.outputs)
 if (nodeImports.length > 0) {
   throw new Error(`The page imports ${nodeImports.map((i) => i.path).join(", ")}.`);
 }
+// The sea's weight: at most 25 KB gzipped, none of it in the bundle the editor starts with.
+const sea = seaWeight(page.metafile, here);
 
 // The runtimes written inline into exported players and catalogs.
 const runtimes = [];
@@ -146,6 +155,8 @@ mkdirSync(join(dist, "es", "agent-setup"), { recursive: true });
 writeFileSync(join(dist, "agent-setup", "index.html"), agentSetupPage("en.html"));
 writeFileSync(join(dist, "es", "agent-setup", "index.html"), agentSetupPage("es.html"));
 copy(join(agentSetup, "agent-setup.css"), join(dist, "agent-setup", "agent-setup.css"));
+// Their picture: the `diagrams` sea at rest, one file per scheme (design D5).
+for (const [file, picture] of Object.entries(seaStills())) writeFileSync(join(dist, file), picture);
 copy(
   join(repo, "packages", "cli", "agent-setup", "prompt.md"),
   join(dist, "agent-setup", "prompt.md"),
@@ -215,11 +226,14 @@ const templates = Object.entries(TEMPLATES).map(([name, { title, description, co
 });
 writeFileSync(join(dist, "templates.json"), `${JSON.stringify({ version, templates })}\n`);
 
-// Notices: every package whose code is in a bundle, and every package whose files are copied.
+// Notices: every package whose code is in a bundle, and every package whose files are copied. The
+// workspace's own packages are Meltemi Diagrams; the family's packages from npm (`@meltemi/ocean`)
+// are components like the others, under their own licence.
 const bundled = new Map();
+const workspacePackages = join(repo, "packages") + sep;
 const addPackage = (root) => {
+  if (realpathSync(root).startsWith(workspacePackages)) return;
   const manifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-  if (manifest.name.startsWith("@meltemi/")) return;
   bundled.set(manifest.name, { root, manifest });
 };
 for (const result of [page, ...runtimes]) {
@@ -245,6 +259,8 @@ const LICENSE_FILES = ["LICENSE", "LICENSE.md", "LICENSE.txt", "license", "LICEN
 const notes = {
   elkjs:
     "Used under the Eclipse Public License 2.0, unmodified. Source code: https://github.com/kieler/elkjs (version 0.12.0).",
+  "@meltemi/ocean":
+    "The Meltemi family's sea, used under the Apache License 2.0, unmodified, from npm, where Meltemi Web publishes it with provenance. Source code: https://github.com/askenaz-dev/meltemi-web/tree/main/packages/ocean.",
 };
 
 /** A notice section per bundled vendor icon set, from the `info` of its pack file. */
@@ -290,8 +306,9 @@ writeFileSync(
     "",
     `Meltemi Diagrams ${version} in the browser. Meltemi Diagrams is MIT. This site bundles the`,
     `components below, each under its own licence: ${fontsUnder}`,
-    "elkjs under the Eclipse Public License 2.0, and the others as stated. The provider icon sets",
-    "keep their vendors' terms, repeated below.",
+    "elkjs under the Eclipse Public License 2.0, the family's sea (@meltemi/ocean) under the Apache",
+    "License 2.0, and the others as stated. The provider icon sets keep their vendors' terms,",
+    "repeated below.",
     "",
     ...packages.map(({ root, manifest }) => {
       const file = LICENSE_FILES.map((f) => join(root, f)).find((f) => existsSync(f));
@@ -335,5 +352,5 @@ if (missing.length > 0) {
 
 const size = (file) => `${Math.round(statSync(file).size / 1024)} KB`;
 console.log(
-  `Built ${relative(repo, dist).split(sep).join("/")}: playground.js (${size(join(dist, "playground.js"))}), ${Object.keys(page.metafile.outputs).filter((o) => o.endsWith(".js")).length} scripts, ${templates.length} templates, ${packages.length} third-party packages noted; signing in at ${identity}.`,
+  `Built ${relative(repo, dist).split(sep).join("/")}: playground.js (${size(join(dist, "playground.js"))}), ${Object.keys(page.metafile.outputs).filter((o) => o.endsWith(".js")).length} scripts, the sea in ${sea.chunks.length} (${(sea.gzip / 1024).toFixed(1)} KB gzipped), ${templates.length} templates, ${packages.length} third-party packages noted; signing in at ${identity}.`,
 );

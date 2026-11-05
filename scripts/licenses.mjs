@@ -51,16 +51,25 @@ const NOTES = new Map([
     "used under MIT, unmodified, by the hosted service's authorization server for the MCP endpoint (change agent-mcp)",
   ],
   [
+    "@meltemi/identity",
+    "the Meltemi family's sign-in verifier, published by Meltemi Web with provenance, used under Apache-2.0, unmodified, by the hosted service",
+  ],
+  [
+    "@meltemi/ocean",
+    "the Meltemi family's sea, published by Meltemi Web with provenance, used under Apache-2.0, unmodified, by the web app (change playground-sea)",
+  ],
+  [
     "@resvg/resvg-wasm",
     "used under MPL-2.0, unmodified, by the PNG previews of the hosted service (change agent-mcp) and, as a dependency of the public package @meltemi/diagrams-mcp, of the command line's local server (change local-mcp-server); source: https://github.com/yisibl/resvg-js",
   ],
 ]);
 
 const report = JSON.parse(execSync("pnpm licenses list --prod --json", { encoding: "utf8" }));
+// The workspace's own packages are not in the report; the family's packages from npm (Meltemi
+// Web's `@meltemi/identity` and `@meltemi/ocean`) are, and are listed like any other.
 const rows = [];
 for (const [license, packages] of Object.entries(report)) {
   for (const pkg of packages) {
-    if (pkg.name.startsWith("@meltemi/")) continue;
     for (const version of pkg.versions) {
       rows.push({ name: pkg.name, version, license, homepage: pkg.homepage ?? "" });
     }

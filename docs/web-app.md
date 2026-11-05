@@ -59,6 +59,15 @@ builds the site, serves it on `127.0.0.1` and drives it in the installed Edge or
 | Publish  | A cloud project's catalog as a web page at an address of its own ([publishing a project](#publishing-a-project)).                                                                                                                                                                                                                                                                         |
 | Language | English and Spanish: the page follows the browser's language until the globe menu in the header chooses one.                                                                                                                                                                                                                                                                              |
 
+While the page loads, and whenever the canvas has nothing to draw (a project with no files,
+`project.json`, or a file that is not a `.meltemi` source), the page wears the Meltemi family's
+sea, `@meltemi/ocean`: points of the sea lift and link into a small flow while the fleet of Meltemi
+marks sails on it, in the page's own light or dark colours. It plays once and comes to rest within
+5 seconds, so nothing moves for longer, and it is never shown behind a diagram. It never delays the
+start: its code (about 10 KB gzipped) is loaded apart from the editor's, only when it shows, and it
+makes no request. When the system asks for reduced motion, it is drawn once, at rest. The agent
+setup pages show the same sea as a still picture, with no script.
+
 ### Keys of the code
 
 | Key                          | Does                                                                         |

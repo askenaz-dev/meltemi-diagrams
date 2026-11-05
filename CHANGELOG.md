@@ -4,6 +4,20 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
+## 1.11.17
+
+The web app wears the Meltemi family's sea, `@meltemi/ocean` 0.1.20 from Meltemi Web (Apache-2.0,
+published with provenance). While the page loads, and whenever the canvas has nothing to draw (a
+project with no files, `project.json`, or a file that is not a `.meltemi` source), points of the sea
+lift and link into a small flow while the fleet of Meltemi marks sails on it, in the page's own
+light or dark tokens. It plays once and comes to rest within 5 seconds, draws one still frame when
+reduced motion is asked, and is never shown behind a diagram. It never delays the start: its code,
+about 9 KB gzipped, loads apart from the editor's and only when it shows, and it makes no request.
+The load screen dissolves over the editor as the page starts. The agent setup pages show the same
+sea as a still picture, with no script. `NOTICES.md`, the About dialog and `THIRD_PARTY_LICENSES.md`
+list `@meltemi/ocean`; the inventory now lists the family's packages from npm, `@meltemi/identity`
+among them ([the web app](docs/web-app.md#what-it-does)).
+
 ## 1.11.16
 
 The command line serves the MCP tools on the person's machine: `mdg mcp` is a local MCP server over
