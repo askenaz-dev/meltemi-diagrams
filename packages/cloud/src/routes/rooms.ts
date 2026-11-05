@@ -1,12 +1,13 @@
 import { CLOUD_LIMITS, guestNumber } from "@meltemi/diagrams-project";
 import { requireAccess, requirePrincipal, resolveAccess } from "../access.js";
 import type { Ctx, Route } from "../context.js";
-import { BLOB_HASH } from "../document.js";
 import { errorResponse, fail } from "../errors.js";
 import { MAX_JSON_BYTES, MAX_PUSH_BYTES, json, originOf, readCappedBytes } from "../http.js";
 import { PROJECT_ID } from "../ids.js";
 import { resolvePrincipal } from "../principal.js";
-import { GUEST_PREFIX, parsePush, type RoomIdentity } from "../rooms.js";
+import { answerOnce } from "../idempotency.js";
+import { pushFiles, readFiles, readPush } from "../operations/files.js";
+import { GUEST_PREFIX, type RoomIdentity } from "../rooms.js";
 import { resolveAgain } from "./sharing.js";
 
 /** The id a browser without an account made once and keeps: 32 lowercase hexadecimal characters. */
@@ -134,21 +135,18 @@ async function owned(ctx: Ctx): Promise<string> {
  * is the snapshot an anonymous viewer of a `view` or `edit` link reads when the room does not answer
  * its socket. A live session's token is not taken here: a guest has the room.
  */
-export const getFiles: Route = async (ctx) => {
-  const { projectId } = await requireAccess(ctx, "read");
-  return json(await ctx.deps.rooms.read(projectId));
-};
+export const getFiles: Route = async (ctx) => json(await readFiles(ctx, ctx.params["id"] ?? ""));
 
 /** The JSON a request carries, read through a cap; `undefined` for a body that is not JSON. */
 async function readJson(
   ctx: Ctx,
   maxBytes: number,
-): Promise<{ tooLong: true } | { value: unknown } | undefined> {
+): Promise<{ tooLong: true } | { value: unknown; bytes: Uint8Array } | undefined> {
   const bytes = await readCappedBytes(ctx.request, maxBytes);
   if (bytes === undefined) return { tooLong: true };
-  if (bytes.length === 0) return { value: undefined };
+  if (bytes.length === 0) return { value: undefined, bytes };
   try {
-    return { value: JSON.parse(new TextDecoder().decode(bytes)) as unknown };
+    return { value: JSON.parse(new TextDecoder().decode(bytes)) as unknown, bytes };
   } catch {
     return undefined;
   }
@@ -167,17 +165,11 @@ export const putFiles: Route = async (ctx) => {
   const body = await readJson(ctx, MAX_PUSH_BYTES);
   if (body === undefined) throw fail("request.invalid");
   if ("tooLong" in body) throw fail("doc.too-large");
-  const push = parsePush(body.value);
-  if (!push) throw fail("request.invalid");
-  for (const hash of Object.values(push.binaries ?? {})) {
-    if (hash !== null && !BLOB_HASH.test(hash)) {
-      throw fail(
-        "request.invalid",
-        "A binary is named by the SHA-256 of its bytes, in lowercase hexadecimal.",
-      );
-    }
-  }
-  return json(await ctx.deps.rooms.push(projectId, push));
+  const push = readPush(body.value);
+  return answerOnce(ctx, `PUT /api/projects/${projectId}/files`, body.bytes, async () => ({
+    status: 200,
+    body: await pushFiles(ctx, projectId, push),
+  }));
 };
 
 /**

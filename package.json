@@ -36,6 +36,7 @@
     "acceptance:visual": "tsx --conditions=@meltemi/diagrams-source packages/acceptance/src/visual.ts",
     "acceptance:determinism": "tsx --conditions=@meltemi/diagrams-source packages/acceptance/src/determinism.ts",
     "acceptance:first-export": "pnpm playground:build && tsx --conditions=@meltemi/diagrams-source packages/acceptance/src/first-export.ts",
+    "acceptance:mcp": "tsx packages/acceptance/src/mcp/run.ts",
     "verification:browsers": "tsx --conditions=@meltemi/diagrams-source packages/acceptance/src/browsers.ts",
     "verification:kit": "tsx --conditions=@meltemi/diagrams-source packages/acceptance/src/kit.ts",
     "pilot:summary": "node scripts/pilot-summary.mjs",
@@ -48,6 +49,8 @@
     "cloud:migrate": "pnpm --filter @meltemi/diagrams-cloud run migrate",
     "cloud:test": "vitest run packages/cloud",
     "cloud:test-browser": "tsx packages/cloud/test/browser/run.ts",
+    "cloud:renderer-bundle": "tsx --conditions=@meltemi/diagrams-source packages/cloud/scripts/renderer-bundle.ts",
+    "cloud:bench-renderer": "tsx --conditions=@meltemi/diagrams-source packages/cloud/test/performance/renderer-bench.ts",
     "cloud:dev-session": "tsx packages/cloud/test/dev-session.ts"
   },
   "devDependencies": {

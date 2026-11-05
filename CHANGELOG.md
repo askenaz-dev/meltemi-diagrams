@@ -4,6 +4,42 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
+## 1.11.13
+
+The hosted service gains an MCP endpoint: an agent such as Codex connects to
+`https://diagrams.meltemi.dev/mcp`, signs in with OAuth or an API token (`mdg_…`, as
+`bearer_token_env_var`), and acts on the account's projects through twenty-seven tools: it creates
+projects, reads and writes their files (every `.meltemi` file it writes is compiled first, and a push
+with an error is refused whole; `ifRevision` keeps it from overwriting a person's change), uploads
+images, keeps and restores versions, previews a diagram or a story's frame as a PNG or an SVG drawn
+on the server with the command line's engine, shares the project by link or invitation (no email is
+sent: the agent passes on the link), runs live sessions and publishes catalogs, reading the public
+address back before it answers. Retries never duplicate: `POST /api/projects` and
+`PUT /api/projects/<id>/files` take an `Idempotency-Key` (migration 0008), and the tools an
+`idempotencyKey`. An account makes at most 300 calls and 30 previews a minute, and the log keeps a
+call's tool, duration and error code only ([the MCP endpoint](docs/cloud.md#the-mcp-endpoint)).
+
+The service is an OAuth 2.1 authorization server for it: an agent registers itself, the person
+approves it on a consent page that names what it may do (read, change, share, run live sessions,
+publish, stay connected), and its access token opens `/mcp` only, for an hour, with a refresh token
+of thirty days when it asked to stay connected. A wide scope never adds a role: what a person may
+only read, the agent may only read. The account panel's **Connected apps** lists each app, what it
+may do and when it last acted, with **Revoke** (migration 0009). Diagrams' Workers no longer log a
+line per request, whose address could hold an invitation or an access link.
+
+Every deploy now goes to a staging twin first, `staging.diagrams.meltemi.dev` with its own
+database, bucket and secrets, and runs `pnpm acceptance:mcp` there: an agent built on the official
+SDK's client proves twenty-five of the specification's thirty criteria with two test accounts
+(projects and diagrams created, a person's change read, a stale or invalid write refused whole,
+retries applied once, an image and previews, sharing, invitations, live sessions and publications,
+a viewer, an editor and a stranger refused what is not theirs, nothing secret in its log), deletes
+what it made and leaves its `results.json`. Production deploys only when staging passes, and the
+suite runs against it afterwards. The criteria that need the real Codex and a voice are a written
+procedure, with nothing recorded yet ([MCP acceptance](docs/quality/mcp-acceptance.md),
+[decision 0072](docs/decisions/0072-agent-mcp.md)). The skill gains a reference for the endpoint,
+and the agents guide says how to connect Codex
+([through the MCP endpoint](docs/agents.md#through-the-mcp-endpoint)).
+
 ## 1.11.11
 
 A donation through GitHub Sponsors lets an account export without the Meltemi branding in the web

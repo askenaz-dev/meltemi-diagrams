@@ -1,7 +1,7 @@
 // Benchmark: parse, compile, export and arrange timings, and the editor's path (analysis after an
 // edit, a canvas drag round trip) for 30-element views of the four profiles.
 // Usage: pnpm bench [--write]   (--write records the results in docs/performance.md)
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { cpus, platform, release, tmpdir, totalmem } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -273,10 +273,27 @@ export function benchDocument(report: BenchReport, locale: "en" | "es" = "en"): 
   return [...intro, "", benchMarkdown(report, locale), ""].join("\n");
 }
 
-/** Writes `docs/performance.md` and its Spanish version. */
+/**
+ * The sections of a page after the benchmark's table (`## ` headings), which other measurements
+ * write by hand (the hosted renderer's), kept when the table is written again.
+ */
+export function keptSections(page: string): string {
+  const at = page.search(/^## /m);
+  return at < 0 ? "" : page.slice(at);
+}
+
+/** Writes `docs/performance.md` and its Spanish version, keeping their other sections. */
 export async function writeBenchDocuments(report: BenchReport): Promise<void> {
-  await writeMarkdown(BENCH_DOC, benchDocument(report, "en"));
-  await writeMarkdown(BENCH_DOC_ES, benchDocument(report, "es"));
+  for (const [path, locale] of [
+    [BENCH_DOC, "en"],
+    [BENCH_DOC_ES, "es"],
+  ] as const) {
+    const kept = existsSync(path) ? keptSections(readFileSync(path, "utf8")) : "";
+    await writeMarkdown(
+      path,
+      kept ? `${benchDocument(report, locale)}\n${kept}` : benchDocument(report, locale),
+    );
+  }
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {

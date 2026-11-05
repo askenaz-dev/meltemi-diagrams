@@ -33,7 +33,15 @@ export interface Config extends IdentitySettings {
    * only.
    */
   readonly sponsorsAccount: string | undefined;
+  /**
+   * `PRODUCT_NAME` trimmed, or `diagrams` when it is unset or empty: what the Worker's calls to the
+   * identity service's account API are signed as (`routes/account.ts`).
+   */
+  readonly productName: string;
 }
+
+/** The product the identity service knows this Worker as when `PRODUCT_NAME` is not set. */
+export const DEFAULT_PRODUCT_NAME = "diagrams";
 
 /**
  * A GitHub login as GitHub may send one: 1 to 39 letters, digits, hyphens or underscores (managed
@@ -108,6 +116,7 @@ export function readConfig(env: Env, request: Request): Config {
     : address("ORIGIN", env.ORIGIN, false).origin;
   const publishHost = env.PUBLISH_HOST?.trim();
   const sponsorsAccount = env.SPONSORS_ACCOUNT?.trim() ?? "";
+  const productName = env.PRODUCT_NAME?.trim() ?? "";
   return {
     ...identity,
     origin,
@@ -115,6 +124,7 @@ export function readConfig(env: Env, request: Request): Config {
     owners: readOwners(env.ADMIN_SUBS),
     publishHost: publishHost === "" ? undefined : publishHost,
     sponsorsAccount: GITHUB_LOGIN.test(sponsorsAccount) ? sponsorsAccount : undefined,
+    productName: productName === "" ? DEFAULT_PRODUCT_NAME : productName,
   };
 }
 

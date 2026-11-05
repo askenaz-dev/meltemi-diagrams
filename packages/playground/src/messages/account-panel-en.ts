@@ -12,6 +12,7 @@ export const accountPanel = {
     signins: "Sign-ins",
     devices: "Devices",
     tokens: "API tokens",
+    apps: "Connected apps",
     usage: "Usage",
     administration: "Administration",
     danger: "Danger zone",
@@ -93,6 +94,48 @@ export const accountPanel = {
   deviceJoin: "on",
   otherBrowser: "Other browser",
   otherSystem: "other system",
+
+  // Connected apps
+  apps: {
+    intro:
+      "The agents and apps you allowed to work with your account through its MCP endpoint. Revoking one ends its access at once.",
+    loading: "Loading the connected apps…",
+    failed: "The connected apps could not be read.",
+    empty:
+      "No app is connected. An agent such as Codex connects to this address, and asks you on a page of this service to approve it:",
+    endpointLabel: "MCP endpoint",
+    copy: "Copy",
+    copied: "Copied.",
+    selectIt: "Select the address and copy it.",
+    guide: "How to connect an agent",
+    /** The agents guide, in this language. */
+    guideHref: "https://github.com/askenaz-dev/meltemi-diagrams/blob/main/docs/agents.md",
+    /** The host of an app that receives its access on this computer. */
+    thisComputer: "an app on this computer",
+    approvedOn: (when: string) => `Approved ${when}`,
+    lastUsed: (when: string) => `last used ${when}`,
+    neverUsed: "not used yet",
+    /** What the app may do, in words: reading and writing together are one. */
+    readWrite: "Read and write your projects",
+    scopes: {
+      "projects:read": "Read your projects",
+      "projects:write": "Change your projects",
+      sharing: "Share your projects",
+      live: "Run live sessions",
+      publish: "Publish catalogs",
+      offline_access: "Stay connected",
+    } as Record<string, string>,
+    scopesLabel: (name: string) => `What ${name} may do`,
+    revoke: "Revoke",
+    revokeLabel: (name: string) => `Revoke ${name}`,
+    revokeTitle: "Revoke the app?",
+    revokeMessage: (name: string) =>
+      `${name} loses its access to your account at once. To use it again, connect it again.`,
+    revokeConfirm: "Revoke",
+    revoked: (name: string) => `${name} was revoked.`,
+    alreadyGone: "That app was already revoked.",
+    signedOut: "Your session ended. Sign in again to manage your apps.",
+  },
 
   // Usage
   usageIntro: "What your account holds in the cloud, against its limits.",

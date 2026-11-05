@@ -100,6 +100,16 @@ export const ERROR_STATUS = {
   "rate.limited": 429,
   /** The identity service did not answer in time, or answered something this service cannot read. */
   "identity.unavailable": 502,
+  /** A `.meltemi` file of a push through the MCP endpoint, or of a preview, that does not compile: `diagnostics` say why. */
+  "diagram.invalid": 400,
+  /** An MCP call with a token whose scopes do not include the tool's: `scope` names it. */
+  "scope.insufficient": 403,
+  /** An `Idempotency-Key` already used by the account for another request. */
+  "idempotency.mismatch": 409,
+  /** An `Idempotency-Key` whose first request is still being answered. */
+  "idempotency.pending": 409,
+  /** A publication the publish host did not serve when it was read back: `url` names the address. */
+  "publish.unverified": 502,
   internal: 500,
 } as const;
 
@@ -177,6 +187,12 @@ const MESSAGES: Record<ErrorCode, string> = {
   "session.not-found": "None of your sessions has that id.",
   "rate.limited": "Too many account changes in a minute; wait a little.",
   "identity.unavailable": "The identity service could not be reached.",
+  "diagram.invalid": "A file has errors: nothing was changed.",
+  "scope.insufficient": "The token was not granted what this needs.",
+  "idempotency.mismatch": "This idempotency key was used for another request.",
+  "idempotency.pending":
+    "The first request with this idempotency key is still being answered; try again in a moment.",
+  "publish.unverified": "The page was published but its address did not answer yet.",
   internal: "Something went wrong.",
 };
 
@@ -189,15 +205,22 @@ export function fail(
   return new ApiError(code, message ?? MESSAGES[code], details);
 }
 
-/** The JSON answer of an error. The message carries no token, cookie, secret or stack. */
+/**
+ * The JSON answer of an error. The message carries no token, cookie, secret or stack. An error with
+ * a `retryAfter` (seconds) is answered with it in `Retry-After`, the header the rates of the service
+ * send, and not in the body, which stays `{ code, message }` as the rates always answered (the MCP
+ * tools, which have no header, give it in their result: `mcp/tool.ts`).
+ */
 export function errorResponse(error: ApiError): Response {
-  const body = { ...error.details, code: error.code, message: error.message };
+  const { retryAfter, ...details } = error.details ?? {};
+  const body = { ...details, code: error.code, message: error.message };
   return new Response(JSON.stringify(body), {
     status: error.status,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "no-store",
       "X-Content-Type-Options": "nosniff",
+      ...(typeof retryAfter === "number" ? { "Retry-After": String(retryAfter) } : {}),
     },
   });
 }

@@ -66,7 +66,8 @@ a token.
 
 #### Scenario: Production red
 - **WHEN** the production run fails after the deploy
-- **THEN** the workflow fails with the artifact uploaded and the reversal is a dispatch with the previous approved CI run
+- **THEN** the workflow fails with the artifact uploaded, and the summary says the reversal is a
+  revert on main or a rollback of the Workers on Cloudflare, since a dispatch deploys current main only
 
 #### Scenario: Tokens stay secret
 - **WHEN** the workflow test reads `deploy.yml`

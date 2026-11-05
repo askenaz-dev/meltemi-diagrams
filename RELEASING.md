@@ -148,6 +148,13 @@ immediately before migrations/uploads. Superseded sources are skipped. Marketpla
 block the service. A push arriving after this final check is processed by its own later CI;
 serialization prevents older completed CI from overtaking newer deployed runs.
 
+Before production, the same source goes to staging: `meltemi-diagrams-staging` and
+`meltemi-diagrams-publish-staging` (https://staging.diagrams.meltemi.dev, staging.meltemi.page),
+their own database, bucket and OAuth namespace, then `pnpm acceptance:mcp` against them. A failed
+suite stops production. Without the owner's test tokens only the unauthenticated checks run, and
+while the staging host does not answer yet the suite is skipped with a notice. After production
+deploys, the suite runs against it too.
+
 Recovery accepts `ci_run_id` from main with the same checks; its source must still be current main.
 Rollback is a revert on main that passes CI, or an explicit Cloudflare rollback with the owner.
 There is no unchecked rollback workflow input. Worker rollback does not undo D1 migrations; schema

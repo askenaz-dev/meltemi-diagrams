@@ -7,13 +7,9 @@
 
 import { CLOUD_LIMITS } from "@meltemi/diagrams-project";
 import { requireAccess } from "../access.js";
-import { publishHostOf } from "../config.js";
-import type { Ctx, Route } from "../context.js";
-import { errorResponse, fail } from "../errors.js";
+import type { Route } from "../context.js";
 import { json } from "../http.js";
-import { SLUG } from "../ids.js";
-import { publishedKey } from "../keys.js";
-import type { Publication } from "../store/types.js";
+import { getPublications, publish, requireHandle, unpublish } from "../operations/publish.js";
 import { readObject } from "./projects.js";
 
 /**
@@ -25,27 +21,6 @@ import { readObject } from "./projects.js";
 export const MAX_PUBLISH_BODY = CLOUD_LIMITS.publishBytes + 8 * 1024 * 1024;
 
 /**
- * The public address of a publication: `https://<PUBLISH_HOST>/<handle>/<slug>/`, and in development
- * (where there is no publish host) the Worker's own `/_published/<handle>/<slug>/`. A deployment
- * with no usable `PUBLISH_HOST` has no address to give (`ConfigError`, an internal error that names
- * the variable in the log).
- */
-function publicationUrl(ctx: Ctx, handle: string, slug: string): string {
-  if (ctx.config.dev) return `${ctx.config.origin}/_published/${handle}/${slug}/`;
-  return `https://${publishHostOf(ctx.config)}/${handle}/${slug}/`;
-}
-
-/** A publication as the owner sees it. */
-function publicationJson(ctx: Ctx, publication: Publication) {
-  return {
-    slug: publication.slug,
-    url: publicationUrl(ctx, publication.handle, publication.slug),
-    published_at: publication.publishedAt,
-    bytes: publication.bytes,
-  };
-}
-
-/**
  * `GET /api/projects/:id/publish` (`manage`): `{ handle, publications, takedowns }`. `handle` is the
  * owner's, or null until they choose one (`PATCH /api/account`). `publications` are this project's,
  * the earliest first, each with the address it is served at. `takedowns` are the ones the service
@@ -55,53 +30,8 @@ function publicationJson(ctx: Ctx, publication: Publication) {
  * had a page removed under, is shown nothing of it, whenever their account was made. One the
  * owner has since published again, with this project, is not listed.
  */
-export const getPublishRoute: Route = async (ctx) => {
-  const { principal, projectId } = await requireAccess(ctx, "manage");
-  const { store } = ctx.deps;
-  const [user, publications] = await Promise.all([
-    store.user(principal.sub),
-    store.publicationsOf(projectId),
-  ]);
-  const handle = user?.handle ?? null;
-  const takedowns =
-    user && handle !== null
-      ? (await store.takedownsOf(handle)).filter(
-          (taken) =>
-            taken.projectId === projectId &&
-            !publications.some((p) => p.slug === taken.slug && p.publishedAt > taken.at),
-        )
-      : [];
-  return json({
-    handle,
-    publications: publications.map((publication) => publicationJson(ctx, publication)),
-    takedowns: takedowns.map((taken) => ({ slug: taken.slug, at: taken.at, reason: taken.reason })),
-  });
-};
-
-/** What the owner is told when the handle changed in the last moment of a publish request. */
-const HANDLE_MOVED = "Your handle changed while the page was being published; publish again.";
-
-/** The slug of a request: `[a-z0-9-]{1,60}`, or `400 publish.invalid`. */
-function readSlug(value: unknown): string {
-  if (typeof value !== "string" || !SLUG.test(value)) throw fail("publish.invalid");
-  return value;
-}
-
-/** The HTML of a request: text, and something. A page nobody can read is not a page. */
-function readHtml(value: unknown): string {
-  if (typeof value !== "string" || value === "") {
-    throw fail("publish.invalid", "A publication needs the HTML of the page, as text.");
-  }
-  return value;
-}
-
-/** `429 publish.rate`, with the seconds until the earliest request of the hour stops counting. */
-function tooOften(freeAt: string, nowMs: number): Response {
-  const limited = errorResponse(fail("publish.rate"));
-  const wait = Math.max(1, Math.ceil((Date.parse(freeAt) - nowMs) / 1000));
-  limited.headers.set("Retry-After", String(wait));
-  return limited;
-}
+export const getPublishRoute: Route = async (ctx) =>
+  json(await getPublications(ctx, ctx.params["id"] ?? ""));
 
 /**
  * `PUT /api/projects/:id/publish { slug, html }` (`manage`): stores the page and answers `{ url,
@@ -131,57 +61,11 @@ function tooOften(freeAt: string, nowMs: number): Response {
  * bucket changes nothing. The publish host serves a page only while its row exists.
  */
 export const putPublishRoute: Route = async (ctx) => {
-  const { principal, projectId } = await requireAccess(ctx, "manage");
-  const { store, now } = ctx.deps;
-  if (((await store.user(principal.sub))?.handle ?? null) === null) throw fail("handle.required");
-
+  const { projectId } = await requireAccess(ctx, "manage");
+  // The handle before the body: the answer `handle.required` does not wait for a large upload.
+  await requireHandle(ctx);
   const body = await readObject(ctx, MAX_PUBLISH_BODY, "publish.too-large");
-  // The handle as it is now, not as it was before a body that took its time.
-  const handle = (await store.user(principal.sub))?.handle ?? null;
-  if (handle === null) throw fail("handle.required");
-  const slug = readSlug(body["slug"]);
-  const page = new TextEncoder().encode(readHtml(body["html"]));
-  if (page.byteLength > CLOUD_LIMITS.publishBytes) throw fail("publish.too-large");
-  // Built before anything is written: a deployment with no publish host fails here and not after
-  // the page is stored.
-  const url = publicationUrl(ctx, handle, slug);
-
-  const existing = await store.publication(handle, slug);
-  if (existing && existing.projectId !== projectId) throw fail("publish.taken");
-
-  const at = now().toISOString();
-  // This route adds to the log, so it first removes what nobody comes back for.
-  await store.sweep(at);
-  const claim = await store.claimPublish(projectId, at, CLOUD_LIMITS.publishesPerHour);
-  if (claim.status === "missing") throw fail("project.not-found");
-  if (claim.status === "rate") return tooOften(claim.freeAt, now().getTime());
-
-  const key = publishedKey(handle, slug);
-  const row: Publication = { projectId, handle, slug, publishedAt: at, bytes: page.byteLength };
-  if (existing === undefined) {
-    const outcome = await store.putPublication(row, { ownersHandle: true });
-    if (outcome === "taken") throw fail("publish.taken");
-    if (outcome === "missing") throw fail("project.not-found");
-    if (outcome === "handle") throw fail("handle.required", HANDLE_MOVED);
-    try {
-      await ctx.env.BLOBS.put(key, page);
-    } catch (error) {
-      // Nothing is served from a row without its page, and the address is free again.
-      await store.deletePublication(projectId, slug).catch(() => undefined);
-      throw error;
-    }
-  } else {
-    await ctx.env.BLOBS.put(key, page);
-    const outcome = await store.putPublication(row, { ownersHandle: true });
-    if (outcome === "missing") {
-      // The project was deleted while the page was being written: the page has no project.
-      await ctx.env.BLOBS.delete(key).catch(() => undefined);
-      throw fail("project.not-found");
-    }
-    if (outcome === "taken") throw fail("publish.taken");
-    if (outcome === "handle") throw fail("handle.required", HANDLE_MOVED);
-  }
-  return json({ url, handle, slug, bytes: page.byteLength, published_at: at });
+  return json(await publish(ctx, projectId, body));
 };
 
 /**
@@ -191,15 +75,6 @@ export const putPublishRoute: Route = async (ctx) => {
  * host does not serve. `404 not-found` when the project publishes nothing under the slug.
  */
 export const deletePublishRoute: Route = async (ctx) => {
-  const { projectId } = await requireAccess(ctx, "manage");
-  const slug = ctx.params["slug"] ?? "";
-  const { store } = ctx.deps;
-  const none = () => fail("not-found", "There is no such publication.");
-  const found = SLUG.test(slug)
-    ? (await store.publicationsOf(projectId)).find((publication) => publication.slug === slug)
-    : undefined;
-  if (!found) throw none();
-  await ctx.env.BLOBS.delete(publishedKey(found.handle, found.slug));
-  if (!(await store.deletePublication(projectId, slug))) throw none();
+  await unpublish(ctx, ctx.params["id"] ?? "", ctx.params["slug"] ?? "");
   return new Response(null, { status: 204, headers: { "Cache-Control": "no-store" } });
 };

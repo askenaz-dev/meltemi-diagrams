@@ -1,4 +1,5 @@
 import type { SessionVerifier } from "@meltemi/identity";
+import type { RenderersApi } from "./renderer-client.js";
 import type { RoomsApi } from "./rooms.js";
 import type { CloudStore, UserProfile } from "./store/types.js";
 
@@ -18,9 +19,22 @@ export interface Deps {
    * panel, its account API.
    */
   readonly fetch: typeof fetch;
+  /**
+   * The projects' renderer objects (`renderer-client.ts`): previews, checks and catalogs, for the MCP
+   * tools. Only the MCP endpoint asks for them; a test that does not reach it gives none.
+   */
+  readonly renderers?: RenderersApi;
+  /**
+   * The public addresses of publications, and nothing else: the read-back of the MCP tool `publish`,
+   * which asks the publish host for the page it just stored (`HEAD`).
+   */
+  readonly publicFetch?: typeof fetch;
 }
 
-/** Who is asking: a person with a session cookie, or a bearer API token. */
+/**
+ * Who is asking: a person with a session cookie, a bearer API token, or, on the MCP endpoint only,
+ * an OAuth access token of a grant the person approved (`mcp/caller.ts`).
+ */
 export type Principal =
   | {
       readonly via: "cookie";
@@ -39,4 +53,12 @@ export type Principal =
       readonly sub: string;
       readonly tokenId: string;
       readonly tokenName: string;
+    }
+  | {
+      readonly via: "oauth";
+      readonly sub: string;
+      /** The grant the access token belongs to: Connected apps names and revokes it. */
+      readonly grantId: string;
+      /** The OAuth client the grant was approved for. */
+      readonly clientId: string;
     };

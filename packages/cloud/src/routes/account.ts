@@ -16,9 +16,6 @@ import { HANDLE } from "../ids.js";
 import { GITHUB_SPONSORS, type AdminLogEntry } from "../store/types.js";
 import type { Principal } from "../types.js";
 
-/** This product's name in the identity service's `PRODUCTS`: what its calls are signed as. */
-export const PRODUCT_NAME = "diagrams";
-
 /** How long a call to the identity service may take before the panel says it is unavailable. */
 export const IDENTITY_TIMEOUT_MS = 5_000;
 
@@ -38,7 +35,7 @@ const SESSION_ID = /^[A-Za-z0-9_-]{1,64}$/;
  * The person, signed in on the page with the cookie: the account is managed from the page, never
  * with an API token (`403 request.forbidden`), and never by nobody (`401 auth.required`).
  */
-function pagePerson(ctx: Ctx): Extract<Principal, { via: "cookie" }> {
+export function pagePerson(ctx: Ctx): Extract<Principal, { via: "cookie" }> {
   const principal = requirePrincipal(ctx);
   if (principal.via !== "cookie") {
     throw fail("request.forbidden", "The account is managed from the page, not with an API token.");
@@ -98,7 +95,8 @@ async function identityView(
   const text = body === undefined ? undefined : JSON.stringify(body);
   const headers = new Headers(
     await signProductRequest({
-      product: PRODUCT_NAME,
+      // This Worker's entry in the identity service's `PRODUCTS` (`PRODUCT_NAME`, `diagrams` by default).
+      product: ctx.config.productName,
       secret: ctx.env.IDENTITY_EVENTS_SECRET,
       method,
       url,
@@ -111,7 +109,9 @@ async function identityView(
   if (text !== undefined) headers.set("Content-Type", "application/json");
 
   const unavailable = (status: number | string) => {
-    console.error(`cloud: the identity service's ${method} ${path} answered ${status}`);
+    // The route, never a session id of the person's: a log line names no address of theirs.
+    const route = path.replace(/\/sessions\/[^/]+\//, "/sessions/<sid>/");
+    console.error(`cloud: the identity service's ${method} ${route} answered ${status}`);
     return fail("identity.unavailable");
   };
   let answer: Response | undefined;

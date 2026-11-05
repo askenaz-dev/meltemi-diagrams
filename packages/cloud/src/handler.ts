@@ -35,6 +35,15 @@ import { devCollect } from "./routes/dev.js";
 import { eventsRoute } from "./routes/events.js";
 import { projectLink } from "./routes/links.js";
 import { deleteLiveRoute, getLiveRoute, putLiveRoute } from "./routes/live.js";
+import { listAppsRoute, revokeAppRoute } from "./routes/apps.js";
+import { mcpRoute } from "./routes/mcp.js";
+import {
+  authorizeDecision,
+  authorizePage,
+  oauthServerRoute,
+  registerRoute,
+  resourceMetadataRoute,
+} from "./routes/oauth.js";
 import {
   createProjectRoute,
   deleteProjectRoute,
@@ -77,7 +86,7 @@ import {
 import type { Deps, Principal } from "./types.js";
 
 export interface RouteEntry {
-  readonly method: "GET" | "HEAD" | "POST" | "PUT" | "PATCH" | "DELETE";
+  readonly method: "GET" | "HEAD" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS";
   readonly path: RegExp;
   readonly params?: readonly string[];
   /**
@@ -109,6 +118,40 @@ export const ROUTES: readonly RouteEntry[] = [
   { method: "POST", path: /^\/cli-auth\/token$/, principal: false, route: cliAuthToken },
   { method: "GET", path: /^\/cli-auth\/style\.css$/, principal: false, route: cliAuthStyle },
   { method: "GET", path: /^\/p\/([^/]*)$/, params: ["id"], principal: false, route: projectLink },
+  // The MCP endpoint takes a bearer token itself and never the cookie, and refuses any `Origin` but
+  // the page's (`routes/mcp.ts`): it resolves no principal here. `GET` and `DELETE` are its `405`.
+  { method: "POST", path: /^\/mcp$/, principal: false, route: mcpRoute },
+  { method: "GET", path: /^\/mcp$/, principal: false, route: mcpRoute },
+  { method: "DELETE", path: /^\/mcp$/, principal: false, route: mcpRoute },
+  // The authorization server of the endpoint (`routes/oauth.ts`): the library's metadata, token
+  // endpoint and registration, with their preflights, take no principal; the consent page takes the
+  // cookie, and its form the `Origin` rule.
+  ...(["GET", "HEAD", "OPTIONS"] as const).flatMap((method): RouteEntry[] => [
+    {
+      method,
+      path: /^\/\.well-known\/oauth-authorization-server$/,
+      principal: false,
+      route: oauthServerRoute,
+    },
+    {
+      method,
+      path: /^\/\.well-known\/oauth-protected-resource\/mcp$/,
+      principal: false,
+      route: oauthServerRoute,
+    },
+    {
+      method,
+      path: /^\/\.well-known\/oauth-protected-resource$/,
+      principal: false,
+      route: resourceMetadataRoute,
+    },
+  ]),
+  { method: "POST", path: /^\/oauth\/token$/, principal: false, route: oauthServerRoute },
+  { method: "OPTIONS", path: /^\/oauth\/token$/, principal: false, route: oauthServerRoute },
+  { method: "POST", path: /^\/oauth\/register$/, principal: false, route: registerRoute },
+  { method: "OPTIONS", path: /^\/oauth\/register$/, principal: false, route: registerRoute },
+  { method: "GET", path: /^\/oauth\/authorize$/, principal: true, route: authorizePage },
+  { method: "POST", path: /^\/oauth\/authorize$/, principal: true, route: authorizeDecision },
   // The socket decides for itself whether to look at the credentials: a request that is not an
   // upgrade is a 404 for everybody, signed in or not, and a bearer token is not taken on it.
   {
@@ -345,6 +388,15 @@ export const ROUTES: readonly RouteEntry[] = [
     route: deletePublishRoute,
   },
   { method: "GET", path: /^\/api\/account\/usage$/, principal: true, route: usageRoute },
+  // Connected apps: the OAuth grants of the person, read and revoked from the page's cookie only.
+  { method: "GET", path: /^\/api\/account\/apps$/, principal: true, route: listAppsRoute },
+  {
+    method: "DELETE",
+    path: /^\/api\/account\/apps\/([^/]+)$/,
+    params: ["id"],
+    principal: true,
+    route: revokeAppRoute,
+  },
   // A handle is the page's to choose: the route refuses a token.
   { method: "PATCH", path: /^\/api\/account$/, principal: true, route: patchAccountRoute },
   // The identity service's account data, on the person's behalf: the page's cookie only.
@@ -485,7 +537,7 @@ export const ROUTES: readonly RouteEntry[] = [
 ];
 
 /** The paths the Worker answers itself: an unmatched one under them is a JSON 404, never an asset. */
-const RESERVED = /^\/(api|_identity|_published|_sponsors|cli-auth|p|rooms)(\/|$)/;
+const RESERVED = /^\/(api|_identity|_published|_sponsors|cli-auth|mcp|oauth|p|rooms)(\/|$)/;
 
 /**
  * Whether a path is one the Worker answers itself, in any spelling. The assets binding reads a path

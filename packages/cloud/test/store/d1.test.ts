@@ -505,6 +505,25 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
       expect(await spy.takeDown(removal)).toEqual(published);
       expect(await spy.takedownsOf("evil-handle")).toEqual([{ ...removal, projectId: P1 }]);
 
+      // The idempotency keys and the call windows (change agent-mcp): a key is visible ASCII.
+      const evilKey = "x');DROP-TABLE";
+      const claim = { sub: evil, key: evilKey, route: evil, hash: "a".repeat(64), at: T };
+      expect(await spy.claimKey(claim, T, T)).toEqual({ status: "claimed" });
+      await spy.keepAnswer(evil, evilKey, { status: 200, body: evil });
+      expect(await spy.claimKey({ ...claim, at: LATER }, T, T)).toEqual({
+        status: "kept",
+        route: evil,
+        hash: "a".repeat(64),
+        answer: { status: 200, body: evil },
+      });
+      await spy.releaseKey(evil, evilKey);
+      await spy.sweepKeys(T);
+      expect(await spy.countCall(evil, "call", "2026-10-14T12:00")).toBe(1);
+      // The last uses of OAuth grants: an id of the library's shape, a time.
+      await spy.touchApp(evil, "evil-grant", T, T);
+      expect(await spy.appUses(evil)).toEqual(new Map([["evil-grant", T]]));
+      await spy.forgetApps(evil, ["evil-grant"]);
+
       expect(await spy.deleteProject(evil, P2)).toBe(true);
 
       const sponsorship = {
@@ -813,6 +832,9 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
         "DELETE FROM administrators WHERE sub = ?",
         "DELETE FROM admin_invitations WHERE invited_by = ? AND accepted_at IS NULL AND declined_at IS NULL AND revoked_at IS NULL",
         "UPDATE sponsorships SET claimed_by_sub = NULL, claimed_at = NULL WHERE claimed_by_sub = ?",
+        "DELETE FROM idempotency WHERE sub = ?",
+        "DELETE FROM call_windows WHERE sub = ?",
+        "DELETE FROM app_uses WHERE sub = ?",
         "DELETE FROM users WHERE sub = ?",
       ]);
       expect(ran.map((q) => q.values)).toEqual([
@@ -830,6 +852,9 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
         ["u1"],
         ["u1"],
         ["ana@example.com"],
+        ["u1"],
+        ["u1"],
+        ["u1"],
         ["u1"],
         ["u1"],
         ["u1"],

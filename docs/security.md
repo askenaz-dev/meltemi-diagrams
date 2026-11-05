@@ -199,6 +199,33 @@ things keep them safe:
   change that arrives meanwhile is compared again, not overwritten. Files it cannot send are named
   and never make it delete the cloud's.
 
+## Agents and the MCP endpoint
+
+The MCP endpoint ([cloud](cloud.md#the-mcp-endpoint)) is the door an agent opens by itself, and its
+tokens keep one rule: **a token opens what it was made for, and nothing more.**
+
+- **An OAuth token is bound to `/mcp`.** The authorization server issues access tokens for one
+  resource, `<origin>/mcp`, for an hour ([authorization](cloud.md#authorization)); anywhere else (the
+  API, the socket, the pages) one is `401 token.invalid`. It carries the scopes the person approved,
+  and a tool refuses what they do not include; the project's roles decide the rest, so a scope never
+  adds a right the account does not have.
+- **An `mdg_` token opens both.** An API token is the account's own key, made on the page: it opens
+  the HTTP API and the endpoint, with every scope. The endpoint never issues, lists or prints one,
+  and the authorization server never takes one.
+- **Consent is the person's.** Only a person signed in on the page approves, on a page that names
+  the client, where the access goes (with a warning when that is this computer) and each scope, and
+  that no other site can frame or post to: its policy forbids frames, its form carries a handle bound
+  to the browser by a `__Host-` cookie and a `csrf` of the session. Every request is checked before
+  the page is shown: PKCE `S256`, a redirect URI the client registered exactly, the endpoint as the
+  resource. Registration is limited to ten clients an hour per address.
+- **Revocation is at once.** Connected apps in the account panel revokes a grant and its tokens
+  ([connected apps](cloud.md#connected-apps)); deleting the account revokes every grant, and a grant
+  approved before a deletion opens nothing even while its revocation is on its way.
+- **Nothing that grants access is kept in clear or logged.** Codes, access and refresh tokens and
+  client secrets are stored as hashes, a grant's props encrypted. The endpoint logs a call's tool,
+  duration and code, and the authorization server's refusals are answered, not printed. The cookie
+  is never taken on `/mcp`, and a page of another site is refused there before anything is read.
+
 ## Untrusted files are sanitised
 
 SVG icons and images are rebuilt from their geometry: only shapes, paths, groups and gradients are
@@ -242,3 +269,7 @@ only measured.
   document and review page of the command line, wherever they came from.
 - Pages and reports meant to be shared (catalogs, review pages, exported players) name versions and
   project-relative paths, never local paths.
+- The cloud's Workers keep their own log lines and no invocation logs, which would record every
+  request's address, an invitation's or a live session's link among them; no line they log holds
+  an address, a token, a session id, such a link or an OAuth code
+  ([configuration](cloud.md#configuration)).

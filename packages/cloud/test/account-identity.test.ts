@@ -53,13 +53,14 @@ const answer = (value: unknown, status = 200) =>
 function account(
   h: Harness,
   respond: (seen: Seen) => Response | Promise<Response> = () => answer(VIEW),
+  product = "diagrams",
 ) {
   const seen: Seen[] = [];
   h.identity.api = async (request, body) => {
     const signed = await verifyProductRequest(
       request,
       body,
-      (name) => (name === "diagrams" ? SECRET : undefined),
+      (name) => (name === product ? SECRET : undefined),
       h.clock.now(),
     );
     const call: Seen = {
@@ -99,6 +100,15 @@ describe("GET /api/account/identity", () => {
       product: "diagrams",
       body: "",
     });
+  });
+
+  it("signs as the product PRODUCT_NAME names: the staging Worker is diagrams-staging", async () => {
+    const h = await harness({ env: { PRODUCT_NAME: "diagrams-staging" } });
+    const seen = account(h, () => answer(VIEW), "diagrams-staging");
+    const { cookie } = await h.signedIn({ sub: "u1" });
+    const response = await h.request("/api/account/identity", { headers: { Cookie: cookie } });
+    expect(response.status).toBe(200);
+    expect(seen[0]?.product).toBe("diagrams-staging");
   });
 
   it("answers nothing to nobody", async () => {

@@ -6,6 +6,7 @@ import {
   invitationCutoff,
   publishCutoff,
 } from "./retention.js";
+import { memoryCalls } from "./memory-calls.js";
 import { capacity, compareBinary } from "./shared.js";
 import type {
   Accepted,
@@ -188,7 +189,9 @@ export function memoryStore(): CloudStore {
   const versionsOf = (projectId: string): VersionEntry[] => versions.get(projectId) ?? [];
   const binary = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
+  const calls = memoryCalls();
   return {
+    ...calls,
     async user(sub) {
       const user = users.get(sub);
       return user && { ...user };
@@ -246,6 +249,7 @@ export function memoryStore(): CloudStore {
       for (const [hash, code] of codes) if (code.sub === sub) codes.delete(hash);
       administrators.delete(sub);
       clearClaimsOf(sub);
+      calls.forget(sub);
       dropWhere(
         adminInvitations,
         ({ invitation }) =>

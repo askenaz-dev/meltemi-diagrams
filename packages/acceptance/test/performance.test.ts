@@ -1,4 +1,6 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { BENCH_DOC, BENCH_DOC_ES, keptSections } from "../src/bench.js";
 import { acceptanceSheets, projectSessions } from "../src/corpus.js";
 import { TARGETS, analysisAfterEdit, canvasRoundTrip } from "../src/timing.js";
 
@@ -25,4 +27,16 @@ describe("performance targets", () => {
     },
     120_000,
   );
+});
+
+describe("the performance page", () => {
+  it("keeps the sections after the benchmark's table when the benchmark writes it again", () => {
+    expect(keptSections("# Performance\n\n| a |\n\n## Other\n\ntext\n")).toBe("## Other\n\ntext\n");
+    expect(keptSections("# Performance\n\n| a |\n")).toBe("");
+    // The hosted renderer's measurements (change agent-mcp) are such a section, in both languages.
+    expect(keptSections(readFileSync(BENCH_DOC, "utf8"))).toMatch(/^## The hosted renderer\n/);
+    expect(keptSections(readFileSync(BENCH_DOC_ES, "utf8"))).toMatch(
+      /^## El renderizador del servicio\n/,
+    );
+  });
 });

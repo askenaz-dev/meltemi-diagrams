@@ -1,4 +1,5 @@
 import type { D1Like, D1PreparedLike } from "../env.js";
+import { DELETE_CALL_ROWS, d1Calls } from "./d1-calls.js";
 import {
   PUBLICATION_COLUMNS,
   SELECT_PUBLICATION,
@@ -776,6 +777,7 @@ export function d1Store(db: D1Like): CloudStore {
   };
 
   return {
+    ...d1Calls(db),
     async user(sub) {
       const row = await db.prepare(SELECT_USER).bind(sub).first<UserRecord>();
       return row ? toUser(row) : undefined;
@@ -829,6 +831,7 @@ export function d1Store(db: D1Like): CloudStore {
           db.prepare(DELETE_ADMINISTRATOR).bind(sub),
           db.prepare(DELETE_OPEN_ADMIN_INVITATIONS_BY).bind(sub),
           db.prepare(CLEAR_CLAIMS).bind(sub),
+          ...DELETE_CALL_ROWS.map((statement) => db.prepare(statement).bind(sub)),
           db.prepare("DELETE FROM users WHERE sub = ?").bind(sub),
         ]);
       } catch (error) {

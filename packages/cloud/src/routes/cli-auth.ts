@@ -77,7 +77,7 @@ export function csrfToken(env: Pick<Env, "FORMS_SECRET">, sid: string): Promise<
 }
 
 /** The only value of a parameter or field; undefined when it is absent or repeated. */
-function only(values: readonly unknown[]): unknown {
+export function only(values: readonly unknown[]): unknown {
   return values.length === 1 ? values[0] : undefined;
 }
 
@@ -92,7 +92,7 @@ function askedLang(url: URL): Lang | undefined {
 }
 
 /** To the identity service's sign-in, returning to `address` (an address of this service). */
-function signIn(config: Config, address: string): Response {
+export function signIn(config: Config, address: string): Response {
   return redirect(`${config.issuer}/login?return_to=${encodeURIComponent(address)}`);
 }
 
@@ -102,7 +102,7 @@ function signIn(config: Config, address: string): Response {
  * well, so the body is read through the cap and only then parsed: nobody makes the Worker hold a
  * form it did not ask for.
  */
-async function readForm(request: Request): Promise<FormData | undefined> {
+export async function readForm(request: Request): Promise<FormData | undefined> {
   const bytes = await readCappedBytes(request, MAX_FORM_BYTES);
   if (bytes === undefined) return undefined;
   try {

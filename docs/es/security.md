@@ -221,6 +221,36 @@ una carpeta. Seis cosas los mantienen seguros:
   entretanto se compara de nuevo, no se sobrescribe. Los archivos que no puede enviar se nombran y
   nunca hacen que borre los de la nube.
 
+## Los agentes y el endpoint MCP
+
+El endpoint MCP ([nube](cloud.md#el-endpoint-mcp)) es la puerta que un agente abre por sí mismo, y
+sus tokens siguen una regla: **un token abre aquello para lo que se hizo, y nada más.**
+
+- **Un token OAuth está ligado a `/mcp`.** El servidor de autorización emite tokens de acceso para un
+  solo recurso, `<origin>/mcp`, durante una hora ([autorización](cloud.md#autorización)); en
+  cualquier otro sitio (la API, el socket, las páginas) uno es `401 token.invalid`. Lleva los alcances
+  que la persona aprobó, y una herramienta rechaza lo que no incluyen; los roles del proyecto deciden
+  el resto, así que un alcance nunca añade un derecho que la cuenta no tiene.
+- **Un token `mdg_` abre los dos.** Un token de API es la llave propia de la cuenta, creada en la
+  página: abre la API HTTP y el endpoint, con todos los alcances. El endpoint nunca emite, lista ni
+  imprime uno, y el servidor de autorización nunca acepta uno.
+- **El consentimiento es de la persona.** Solo aprueba una persona con sesión iniciada en la página,
+  en una página que nombra al cliente, adónde va el acceso (con un aviso cuando es este equipo) y
+  cada alcance, y que ningún otro sitio puede enmarcar ni a la que puede enviar: su política prohíbe
+  los marcos, su formulario lleva un identificador ligado al navegador por una cookie `__Host-` y un
+  `csrf` de la sesión. Cada solicitud se comprueba antes de mostrar la página: PKCE `S256`, una URI
+  de redirección que el cliente registró exactamente, el endpoint como recurso. El registro se limita
+  a diez clientes por hora y dirección.
+- **La revocación es inmediata.** Aplicaciones conectadas, en el panel de la cuenta, revoca una
+  concesión y sus tokens ([aplicaciones conectadas](cloud.md#aplicaciones-conectadas)); eliminar la
+  cuenta revoca todas las concesiones, y una concesión aprobada antes de una eliminación no abre nada
+  aunque su revocación aún esté en camino.
+- **Nada que dé acceso se guarda en claro ni se registra.** Los códigos, los tokens de acceso y de
+  refresco y los secretos de cliente se guardan como hashes, y las props de una concesión, cifradas.
+  El endpoint registra la herramienta, la duración y el código de una llamada, y los rechazos del
+  servidor de autorización se responden, no se imprimen. En `/mcp` nunca se toma la cookie, y allí
+  una página de otro sitio se rechaza antes de leer nada.
+
 ## Los archivos que no son de confianza se sanean
 
 Los iconos y las imágenes SVG se reconstruyen a partir de su geometría: solo se leen formas,
@@ -265,3 +295,7 @@ inspeccionan antes de usarse; las fuentes cuya licencia prohíbe incrustarlas so
   documento `--json` y página de revisión de la línea de comandos, vengan de donde vengan.
 - Las páginas y los informes pensados para compartirse (catálogos, páginas de revisión,
   reproductores exportados) nombran versiones y rutas relativas al proyecto, nunca rutas locales.
+- Los Workers de la nube conservan sus propias líneas de registro y ningún registro de invocaciones,
+  que guardaría la dirección de cada solicitud, entre ellas el enlace de una invitación o de una
+  sesión en vivo; ninguna línea que registran contiene una dirección, un token, un id de sesión, uno
+  de esos enlaces ni un código OAuth ([configuración](cloud.md#configuración)).

@@ -351,7 +351,7 @@ export interface Usage {
  * Every write that has more than one statement is one atomic batch, and a statement binds at most
  * 100 parameters (D1's limit) whatever the size of the lists it is given.
  */
-export interface CloudStore {
+export interface CloudStore extends CallsStore {
   user(sub: string): Promise<User | undefined>;
   /** Creates the user, or refreshes the cached profile when it differs; returns the row. */
   upsertUser(profile: UserProfile, now: Iso): Promise<User>;
@@ -782,4 +782,79 @@ export interface CloudStore {
   takeDown(takedown: NewTakedown, log?: AdminLogEntry): Promise<Publication | undefined>;
   /** The takedowns of a handle, the latest first. */
   takedownsOf(handle: string): Promise<Takedown[]>;
+
+  // ---- Idempotency keys and call windows (change agent-mcp) --------------------------------
+  // Their methods are `CallsStore`'s (below), kept apart so that the rest of the store is untouched.
+}
+
+/** A request's first answer, kept under its idempotency key: the status and the JSON body. */
+export interface KeptAnswer {
+  readonly status: number;
+  readonly body: string;
+}
+
+/** A key claimed for a request (`claimKey`). */
+export interface KeyClaim {
+  readonly sub: string;
+  readonly key: string;
+  /** The method and the route the key was used on (`POST /api/projects`). */
+  readonly route: string;
+  /** The SHA-256 (hex) of the request's body. */
+  readonly hash: string;
+  readonly at: Iso;
+}
+
+/**
+ * What claiming a key found: the key is the request's now (`claimed`), or it was used already, by
+ * the request `route` with the body `hash`, whose answer is `answer` (null while it is being made).
+ */
+export type KeyOutcome =
+  | { readonly status: "claimed" }
+  | {
+      readonly status: "kept";
+      readonly route: string;
+      readonly hash: string;
+      readonly answer: KeptAnswer | null;
+    };
+
+/**
+ * The idempotency keys of `POST /api/projects` and `PUT /api/projects/:id/files`
+ * (`cloud-projects`, "Idempotent creation and pushes"), the windows of the MCP endpoint's rate
+ * limits (`mcp-server`, "Limits of the endpoint"; `mcp-previews`, "Limits of previews"), in the
+ * tables of `migrations/0008_idempotency.sql`, and the last uses of the account's OAuth grants
+ * (`mcp-authorization`, "Connected apps"; `0009_connected_apps.sql`). All are an account's and go
+ * when it is deleted.
+ */
+export interface CallsStore {
+  /**
+   * Claims `(sub, key)` for a request, in one atomic step that first removes the account's keys
+   * created before `expiredBefore` and the key itself when it is a claim nobody finished, made
+   * before `staleBefore` (a request that died midway). Answers `claimed` when the key is the
+   * request's now, else what the key holds.
+   */
+  claimKey(claim: KeyClaim, expiredBefore: Iso, staleBefore: Iso): Promise<KeyOutcome>;
+  /** Keeps the answer of the request that claimed the key; a key already answered is left as it is. */
+  keepAnswer(sub: string, key: string, answer: KeptAnswer): Promise<void>;
+  /** Lets go of a claim whose request failed in a way that is not to be answered again. */
+  releaseKey(sub: string, key: string): Promise<void>;
+  /** Removes every account's keys created before `expiredBefore` (the weekly cron). */
+  sweepKeys(expiredBefore: Iso): Promise<void>;
+  /**
+   * Counts one call of `kind` in the account's window `window` (a minute, `2026-11-04T12:03`) and
+   * answers how many the window holds now, this one included; the account's earlier windows of
+   * that kind go in the same step. One statement counts, so calls that race cannot pass a limit.
+   */
+  countCall(sub: string, kind: string, window: string): Promise<number>;
+
+  // ---- Connected apps (`migrations/0009_connected_apps.sql`) ---------------------------------
+
+  /**
+   * Records that the account's grant `grantId` was used at `at`, unless the use it holds is at or
+   * after `since`: one statement, so that a grant's row is written at most once in that span.
+   */
+  touchApp(sub: string, grantId: string, at: Iso, since: Iso): Promise<void>;
+  /** When each grant of the account was last used, by grant id; a grant never used is not there. */
+  appUses(sub: string): Promise<ReadonlyMap<string, Iso>>;
+  /** Forgets the last use of the account's grants `grantIds`: they were revoked, or are gone. */
+  forgetApps(sub: string, grantIds: readonly string[]): Promise<void>;
 }

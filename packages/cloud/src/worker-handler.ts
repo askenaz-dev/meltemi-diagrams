@@ -9,6 +9,8 @@ import { collectBlobs } from "./collect.js";
 import { ConfigError } from "./config.js";
 import { errorResponse, fail } from "./errors.js";
 import { cloud } from "./handler.js";
+import { KEPT_MS } from "./idempotency.js";
+import { durableRenderers } from "./renderer-client.js";
 import { durableRooms } from "./room-client.js";
 import { resolveSecrets } from "./secrets.js";
 import { d1Store } from "./store/d1.js";
@@ -47,6 +49,8 @@ export default {
       now: () => new Date(),
       randomBytes: (length) => crypto.getRandomValues(new Uint8Array(length)),
       fetch: (input, init) => fetch(input, init),
+      renderers: durableRenderers(env.RENDERERS),
+      publicFetch: (input, init) => fetch(input, init),
     };
     return cloud(request, env, deps);
   },
@@ -54,7 +58,7 @@ export default {
   /**
    * The weekly cron of `wrangler.jsonc` (`0 3 * * SUN`, Sundays at 03:00 UTC): sweeps what has
    * expired (the records of handled deletion events after 31 days, approval codes and failed
-   * exchanges, publish requests), which the routes sweep too but only when somebody uses them, and
+   * exchanges, publish requests, idempotency keys after a day), which the routes sweep too but only when somebody uses them, and
    * collects the blobs no project, upload or version references and that are older than seven
    * days, and the objects no row names. A failure of the store ends the run with an error the
    * platform logs; the next run, a week on, finishes the job. The sweep does not keep the collection
@@ -65,7 +69,10 @@ export default {
     const store = d1Store(env.DB);
     let swept: unknown;
     try {
-      await store.sweep(new Date().toISOString());
+      const now = new Date();
+      await store.sweep(now.toISOString());
+      // The idempotency keys older than a day: an account's own are swept by its next key too.
+      await store.sweepKeys(new Date(now.getTime() - KEPT_MS).toISOString());
     } catch (error) {
       swept = error;
     }

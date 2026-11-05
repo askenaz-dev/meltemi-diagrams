@@ -17,6 +17,7 @@ export const ACCOUNT_SECTIONS = [
   "signins",
   "devices",
   "tokens",
+  "apps",
   "usage",
   "administration",
   "danger",

@@ -25,7 +25,7 @@ This is a post-1.0 change outside `docs/roadmap-1.0.md`.
 
 - **An MCP endpoint in the Worker.** `https://diagrams.meltemi.dev/mcp`, Streamable HTTP
   (stateless, JSON or SSE answers, `Origin` validated, protocol version negotiated), with a
-  catalogue of twenty-six tools over the existing operations: `whoami`, projects (`list_projects`,
+  catalogue of twenty-seven tools over the existing operations: `whoami`, projects (`list_projects`,
   `create_project`, `get_project`, `rename_project`), files (`read_files`, `write_files` with
   `ifRevision`, `validate`, `upload_image`), versions (`list_versions`, `create_version`,
   `restore_version`), the app (`open_url`), previews (`preview`), sharing (`get_sharing`,
@@ -66,10 +66,12 @@ This is a post-1.0 change outside `docs/roadmap-1.0.md`.
   state, the staging Worker's bindings and a `staging` environment of this repository with its
   test token, declared in `meltemi-web`'s Terraform by its change `diagrams-staging`.
 
-New dependencies, to be approved by the owner: `agents` (MIT, the MCP handler for Workers),
-`@modelcontextprotocol/server` and `@modelcontextprotocol/client` (MIT), `zod` (MIT),
-`@cloudflare/workers-oauth-provider` (MIT), `@resvg/resvg-wasm` (MIT bindings of resvg, MPL-2.0,
-the PNG rasteriser) and the main-thread build of `elkjs` the workspace already depends on.
+New dependencies, to be approved by the owner: `@modelcontextprotocol/server` and
+`@modelcontextprotocol/client` (Apache-2.0; the server's `createMcpHandler` is the handler, and
+Cloudflare's `agents` package is not used), `zod` (MIT),
+`@cloudflare/workers-oauth-provider` (MIT), `@resvg/resvg-wasm` (MPL-2.0, the PNG rasteriser,
+approved by the owner on 2026-11-04 and pinned at 2.6.2) and the main-thread build of `elkjs` the
+workspace already depends on.
 
 ## Capabilities
 

@@ -11,12 +11,33 @@
     "migrate": "wrangler d1 migrations apply DB"
   },
   "dependencies": {
+    "@cloudflare/workers-oauth-provider": "1.2.3",
+    "@fontsource/cascadia-mono": "5.3.0",
+    "@fontsource/inter": "5.3.0",
+    "@fontsource/patrick-hand": "5.3.0",
+    "@ibm/plex-sans": "1.1.0",
+    "@iconify-json/logos": "1.2.16",
+    "@meltemi/diagrams-assets": "workspace:*",
+    "@meltemi/diagrams-editor": "workspace:*",
+    "@meltemi/diagrams-fonts": "workspace:*",
+    "@meltemi/diagrams-language": "workspace:*",
+    "@meltemi/diagrams-layout": "workspace:*",
+    "@meltemi/diagrams-layout-elk": "workspace:*",
+    "@meltemi/diagrams-motion": "workspace:*",
     "@meltemi/diagrams-project": "workspace:*",
     "@meltemi/identity": "^0.2.0",
-    "yjs": "13.6.33"
+    "@modelcontextprotocol/server": "2.3.1",
+    "@resvg/resvg-wasm": "2.6.2",
+    "@tabler/icons": "3.48.0",
+    "elkjs": "0.12.0",
+    "inter-ui": "4.1.1",
+    "yjs": "13.6.33",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "5.20261019.1",
+    "@meltemi/diagrams-cli": "workspace:*",
+    "@modelcontextprotocol/client": "2.3.1",
     "playwright-core": "1.63.0",
     "wrangler": "4.151.3"
   }

@@ -58,8 +58,15 @@ export default defineConfig({
       ),
       "@meltemi/diagrams-assets": pkg("assets"),
       "@meltemi/diagrams-canvas": pkg("canvas"),
+      // The Workers runtime's module, which the cloud's OAuth library imports: a stand-in in Node.
+      "cloudflare:workers": fileURLToPath(
+        new URL("./packages/cloud/test/support/cloudflare-workers.ts", import.meta.url),
+      ),
     },
   },
+  // The OAuth library is transformed like the sources, so that its import of `cloudflare:workers`
+  // reaches the stand-in above instead of Node's loader.
+  ssr: { noExternal: ["@cloudflare/workers-oauth-provider"] },
   test: {
     include: ["packages/*/test/**/*.test.ts"],
     testTimeout: 30_000,

@@ -1,5 +1,5 @@
-// The stylesheet of the command line's approval page, served at `/cli-auth/style.css`. The token
-// values are a subset of the family's, copied from the identity service's stylesheet (Meltemi Web,
+// The stylesheet of the service's own pages (the command line's approval page and the authorization
+// server's consent page), served at `/cli-auth/style.css`. The token values are a subset of the family's, copied from the identity service's stylesheet (Meltemi Web,
 // `packages/identity/src/pages/css.ts`), which copies the site's `tokens.css`. Do not edit a token
 // value here: change it with the family. The page's policy allows styles and images from its own
 // origin only, so nothing in this file may name another address.
@@ -51,9 +51,27 @@ const TOKENS = `/* SPDX-License-Identifier: Apache-2.0 */
 // The text on the accent colour flips with the scheme: white on the light accent, the page's own
 // background on the lighter dark-mode accent, so the button keeps its contrast in both.
 const PAGE = `
-:root { --on-accent: #ffffff; }
+:root {
+  --on-accent: #ffffff;
+  --warn-bg: #fffbeb;
+  --warn-border: #f59e0b;
+  --warn-text: #78350f;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.06);
+  /* Motion, as the app moves (its --pg-motion tokens): a card rises in, the scopes follow it. */
+  --motion-fast: 120ms;
+  --motion: 180ms;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --rise: 6px;
+  --stagger: 30ms;
+}
 @media (prefers-color-scheme: dark) {
-  :root { --on-accent: #0b1220; }
+  :root {
+    --on-accent: #0b1220;
+    --warn-bg: #2a2110;
+    --warn-border: #b45309;
+    --warn-text: #fde68a;
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  }
 }
 *, *::before, *::after { box-sizing: border-box; }
 body {
@@ -76,6 +94,8 @@ body {
   background: var(--surface);
   border: 1px solid var(--hair);
   border-radius: var(--radius-panel);
+  box-shadow: var(--shadow-card);
+  animation: page-in var(--motion) var(--ease) both;
 }
 .brand { margin: 0 0 var(--sp-3); font-weight: 600; letter-spacing: 0.01em; color: var(--text-muted); }
 h1 { margin: 0 0 var(--sp-3); font-size: var(--fs-view); line-height: 1.25; }
@@ -115,8 +135,100 @@ code { font-family: var(--font-mono); font-size: var(--fs-dense); }
   text-decoration: none;
   cursor: pointer;
 }
+.btn {
+  transition:
+    background-color var(--motion-fast) var(--ease),
+    border-color var(--motion-fast) var(--ease),
+    color var(--motion-fast) var(--ease),
+    box-shadow var(--motion-fast) var(--ease),
+    transform var(--motion-fast) var(--ease);
+}
 .btn:hover { border-color: var(--focus); }
+.btn:active { transform: translateY(1px); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.btn.primary:hover { box-shadow: 0 2px 10px color-mix(in srgb, var(--accent) 35%, transparent); }
+.small { font-size: var(--fs-dense); }
+
+/* The consent page of the authorization server: the client, the scopes in words, a warning. */
+.consent-title { overflow-wrap: anywhere; }
+.client-name { color: var(--accent); }
+.client {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  margin: var(--sp-4) 0;
+  padding: var(--sp-3);
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-panel);
+  background: var(--surface-2);
+}
+.client-mark {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+.client-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; overflow-wrap: anywhere; }
+.section-title {
+  margin: var(--sp-4) 0 var(--sp-2);
+  color: var(--text-muted);
+  font-size: var(--fs-dense);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.scopes {
+  margin: 0 0 var(--sp-3);
+  padding: 0;
+  overflow: hidden;
+  list-style: none;
+  border: 1px solid var(--hair);
+  border-radius: var(--radius-panel);
+}
+.scope {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border-top: 1px solid var(--hair);
+  animation: scope-in var(--motion) var(--ease) both;
+}
+.scope:first-child { border-top: 0; }
+.scope:nth-child(2) { animation-delay: calc(var(--stagger) * 1); }
+.scope:nth-child(3) { animation-delay: calc(var(--stagger) * 2); }
+.scope:nth-child(4) { animation-delay: calc(var(--stagger) * 3); }
+.scope:nth-child(5) { animation-delay: calc(var(--stagger) * 4); }
+.scope:nth-child(6) { animation-delay: calc(var(--stagger) * 5); }
+.scope svg { flex: none; margin-top: 3px; color: var(--accent); }
+.scope-text { display: flex; flex-direction: column; gap: 2px; }
+.scope-text span { color: var(--text-muted); font-size: var(--fs-dense); }
+.callout {
+  margin: 0 0 var(--sp-3);
+  padding: var(--sp-3);
+  border: 1px solid var(--warn-border);
+  border-radius: var(--radius-panel);
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+.callout p { margin: var(--sp-1) 0 0; }
+.revoke-note { margin-top: var(--sp-3); }
+
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(var(--rise)); }
+}
+@keyframes scope-in {
+  from { opacity: 0; transform: translateY(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
 `;
 
 /** The body of `GET /cli-auth/style.css`. */

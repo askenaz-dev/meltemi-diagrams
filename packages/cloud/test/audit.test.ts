@@ -267,7 +267,7 @@ const BAD_ORIGINS: [string, string | undefined][] = [
 ];
 
 describe("the Origin rule", () => {
-  it("is applied to every route that knows who is asking, and left out of exactly three that do not", () => {
+  it("is applied to every route that knows who is asking, and left out of the few that read no cookie", () => {
     // A route that changes state: not a read (`HEAD` is one, as `GET` is: the development route that
     // serves a publication answers both and has no principal).
     const changing = ROUTES.filter((route) => route.method !== "GET" && route.method !== "HEAD");
@@ -277,14 +277,26 @@ describe("the Origin rule", () => {
         .map((route) => `${route.method} ${plain(route.path)}`)
         .sort();
 
-    // The three that read no cookie: the identity service's event and GitHub Sponsors' delivery
-    // (each a signature) and the command line's exchange (a one-time code). Any other route that
-    // changes state must resolve who is asking, which is what applies the rule; a new one that does
-    // not fails here, to be looked at.
+    // The ones that read no cookie: the identity service's event and GitHub Sponsors' delivery
+    // (each a signature), the command line's exchange (a one-time code), the MCP endpoint (a
+    // bearer token, and its own `Origin` check before anything: `routes/mcp.ts`) and the
+    // authorization server's token endpoint and registration, with the preflights of its addresses
+    // (the client's own credentials and PKCE; the library's, `oauth/provider.ts`). Any other route
+    // that changes state must resolve who is asking, which is what applies the rule; a new one that
+    // does not fails here, to be looked at.
     expect(listed(false)).toEqual([
+      "DELETE /mcp",
+      "OPTIONS /\\.well-known/oauth-authorization-server",
+      "OPTIONS /\\.well-known/oauth-protected-resource",
+      "OPTIONS /\\.well-known/oauth-protected-resource/mcp",
+      "OPTIONS /oauth/register",
+      "OPTIONS /oauth/token",
       "POST /_identity/events",
       "POST /_sponsors/github",
       "POST /cli-auth/token",
+      "POST /mcp",
+      "POST /oauth/register",
+      "POST /oauth/token",
     ]);
     // The three the next test goes through; a route a later change adds to them goes through it too.
     // The routes of publishing resolve who is asking as well: a handle is chosen with the cookie or a token, a
@@ -298,6 +310,9 @@ describe("the Origin rule", () => {
         "PUT /api/projects/([^/]+)/publish",
         "DELETE /api/projects/([^/]+)/publish/([^/]+)",
         "DELETE /api/admin/publications/([^/]+)/([^/]+)",
+        // The consent's decision and the revocation of a connected app: the cookie's, from the page.
+        "POST /oauth/authorize",
+        "DELETE /api/account/apps/([^/]+)",
       ]),
     );
   });
@@ -922,11 +937,16 @@ describe("no test reaches the network", () => {
     const sockets =
       /\bfrom\s+["'](?:node:)?(?:net|tls|http|https|http2|dgram|dns|child_process|cluster)["']|\bfrom\s+["'](?:undici|ws|node-fetch|playwright-core|wrangler)["']/;
     // The browser suite is another command (`pnpm cloud:test-browser`): it starts a Worker, a
-    // listener and a browser, on purpose.
+    // listener and a browser, on purpose. So are the renderer's measurements
+    // (`pnpm cloud:bench-renderer`), which start a Worker under `wrangler dev`.
     const browser = `${sep}test${sep}browser`;
+    const performance = `${sep}test${sep}performance`;
     const files = [
       ...sourcesUnder(join(PACKAGE, "src")),
-      ...sourcesUnder(join(PACKAGE, "test"), (path) => path.endsWith(browser)),
+      ...sourcesUnder(
+        join(PACKAGE, "test"),
+        (path) => path.endsWith(browser) || path.endsWith(performance),
+      ),
     ];
 
     expect(files.length).toBeGreaterThan(25);
@@ -975,12 +995,13 @@ describe("the development tools", () => {
     // routes of the rooms (the counters and the cut), the one of the collection (it runs the
     // weekly collection now) and the one that serves a publication from the Worker's own origin
     // (`/_published/`); each of those answers 404 unless the flag is on. The address a publication
-    // is given (`routes/publish.ts`) is the one place the flag changes an answer instead of
-    // refusing: development has no publish host, so it names that route.
+    // is given (`operations/publish.ts`, which the route and the MCP tool share) is the one place the
+    // flag changes an answer instead of refusing: development has no publish host, so it names that
+    // route.
     expect(reading(/\.dev\b/), "files that follow the flag").toEqual([
       config,
+      join("src", "operations", "publish.ts"),
       join("src", "routes", "dev.ts"),
-      join("src", "routes", "publish.ts"),
       join("src", "routes", "published.ts"),
       join("src", "routes", "rooms.ts"),
       join("src", "verifier.ts"),

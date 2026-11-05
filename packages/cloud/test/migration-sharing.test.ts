@@ -125,6 +125,8 @@ describe("the sharing migration file", () => {
       FIFTH_FILE,
       SIXTH_FILE,
       SEVENTH_FILE,
+      "0008_idempotency.sql",
+      "0009_connected_apps.sql",
     ]);
   });
 
