@@ -39,6 +39,12 @@ summary fails if any channel is incomplete. The family's Terraform in Meltemi We
 `NPM_TOKEN` and deployment configuration from its `infrastructure` environment. Both extension
 registries use separate GitHub OIDC registrations.
 
+After the GitHub release, **tell the web** starts Meltemi Web's deploy, whose documentation portal
+at docs.meltemi.dev builds from each product's latest release. It reads `WEB_DISPATCH_TOKEN`, the
+narrow token (Actions read and write on `meltemi-web` only) that Web's Terraform places here, never
+its admin token. Until the owner creates it the job warns and passes, and the portal updates on the
+web's next deploy. It is not a publishing channel, so the summary leaves it out.
+
 - **npm:** a granular token for the `meltemi` organization with publish/dist-tag rights and the
   automation bypass of two-factor authentication. Packages publish under `release-<version>` first;
   latest advances only after every tarball is present, and never to a lower version. Existing
