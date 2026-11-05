@@ -286,6 +286,16 @@ frame. Anyone else, and a static server, has no such box. It is a convenience, n
 with `frame none`, or the `editorial` themes, export without the brand for everybody
 ([themes](language/svg-export.md#frame)).
 
+**By donation.** Where the service takes donations, a person signed in whose account is not
+entitled finds, in the box's place under **Theme**, the line **Donate to export without the
+Meltemi branding**: a link to the service's GitHub Sponsors page, which opens in a new tab, and the
+words that a donation made with the GitHub account linked to theirs is recognised when they open the
+account panel. Any donation, one-time or monthly and of any amount, grants the box for good: opening
+the panel reads the sign-ins, a GitHub sign-in whose login made the donation claims it, and the
+export dialog offers the box from then on, without a reload
+([sponsorships](cloud.md#sponsorships)). Anybody not signed in, a session with a token and a
+static server see no line; a service that takes no donations shows none either.
+
 ## Language
 
 The page speaks English and Spanish. It follows the browser's language until the globe menu at the
@@ -361,15 +371,15 @@ left and the one chosen beside it, or, on a narrow screen, a sheet over the whol
 sections as a strip of tabs above. The arrows, Home and End move between the sections; Escape and
 the close button return to the page.
 
-| Section            | Holds                                                                                                                                                                                                                                                                                                                         |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Profile**        | Your picture and name, the emails of your sign-ins, the publishing handle (3 to 30 lowercase letters, digits or hyphens; it cannot change while a page is published under it), your account id with **Copy** (what an administrator asks you for), whether your account may export without the Meltemi branding, and Sign out |
-| **Sign-ins**       | GitHub and Google as you sign in with them: the account, whether the provider verified its email, when it was linked; Unlink, after a question, while another one is left; Link the other                                                                                                                                     |
-| **Devices**        | Where you are signed in, this device marked; Sign out of one device or of all the others, after a question                                                                                                                                                                                                                    |
-| **API tokens**     | The tokens that let the command line and scripts act as you (below)                                                                                                                                                                                                                                                           |
-| **Usage**          | Your projects and storage against their limits, and the limits of a project's files, size and versions and of an image                                                                                                                                                                                                        |
-| **Administration** | Only for the people who administer the service, or are invited to (below): the administrators, the invitations, the permissions of accounts, the takedown of a publication and the recent changes                                                                                                                             |
-| **Danger zone**    | Deleting the account: what it removes, and the way to the identity service's page where you confirm it                                                                                                                                                                                                                        |
+| Section            | Holds                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Profile**        | Your picture and name, the emails of your sign-ins, the publishing handle (3 to 30 lowercase letters, digits or hyphens; it cannot change while a page is published under it), your account id with **Copy** (what an administrator asks you for), whether your account may export without the Meltemi branding, or how to donate for it, and Sign out |
+| **Sign-ins**       | GitHub and Google as you sign in with them: the account, whether the provider verified its email, when it was linked; Unlink, after a question, while another one is left; Link the other                                                                                                                                                              |
+| **Devices**        | Where you are signed in, this device marked; Sign out of one device or of all the others, after a question                                                                                                                                                                                                                                             |
+| **API tokens**     | The tokens that let the command line and scripts act as you (below)                                                                                                                                                                                                                                                                                    |
+| **Usage**          | Your projects and storage against their limits, and the limits of a project's files, size and versions and of an image                                                                                                                                                                                                                                 |
+| **Administration** | Only for the people who administer the service, or are invited to (below): the administrators, the invitations, the permissions of accounts, the takedown of a publication and the recent changes                                                                                                                                                      |
+| **Danger zone**    | Deleting the account: what it removes, and the way to the identity service's page where you confirm it                                                                                                                                                                                                                                                 |
 
 Sign-ins and Devices are what the identity service holds; the page asks its own origin, whose Worker
 asks the identity service on your behalf ([the identity data](cloud.md#the-identity-data)). When the
@@ -384,6 +394,15 @@ service brings you back to `?account=signins` or `?account=danger`; the panel op
 and the parameter leaves the address. A session that ends while the panel is open closes it and
 shows the page signed out, your work kept.
 
+**Exports without the Meltemi branding** in Profile says that your account may export without the
+branding, and, when a donation granted it, "Granted for your donation. Thank you." Where the service
+takes donations and your account may not, Profile shows **Support Meltemi Diagrams** instead: the
+link **Donate on GitHub Sponsors**, in a new tab, and the words that a donation made with the GitHub
+account linked to this one lets your account export without the branding, recognised when you open
+the panel. With no GitHub sign-in linked, it adds that linking one in Sign-ins is how a donation is
+recognised, with **Open Sign-ins**. Opening the panel claims a donation of your GitHub login: the
+panel reads the session again and shows the thanks, and the status line says it, with no reload.
+
 **API tokens** makes the tokens that let the command line and scripts act as you. It lists them with
 when each was created and last used, makes one from a name of up to 60 characters, and revokes one
 after a confirmation. A new token is shown once, with a button to copy it, and is gone when the
@@ -394,15 +413,17 @@ commands use it ([the API tokens](cloud.md#api-tokens), [the command line](cli.m
 **Administration** is there only for the owners of the service, the accounts its configuration
 names, for the administrators an owner invited, and for a person with an invitation to administer;
 nobody else sees the tab, and `?account=administration` opens Profile for them
-([administration](cloud.md#administration)). An owner or an administrator finds five parts:
+([administration](cloud.md#administration)). An owner or an administrator finds five parts, and a
+sixth when the service received donations:
 
-| Part                        | Holds                                                                                                                                                                                                                      |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Administrators**          | The owners, marked **Owner**, then the administrators with who invited them and since when. An owner removes an administrator, after a question naming them; an administrator leaves, from their own row                   |
-| **Invitations**             | For the owners: an email to invite and **Invite**, and the pending invitations with who invited and when each expires, and **Revoke**. No mail is sent: tell the person, who signs in with that email                      |
-| **Permissions**             | Each permission, first **Export without the Meltemi branding**, with the accounts that hold it, who granted it and when, and **Revoke**; **Grant to** takes an account id, `@handle` or the email the person signs in with |
-| **Take down a publication** | The address of a published page and a reason; after a confirmation naming the address the page is gone and its owner sees it removed by the service                                                                        |
-| **Recent changes**          | The last fifty acts of administration, the newest first: who invited, accepted, removed, granted, revoked or took down what, and when                                                                                      |
+| Part                        | Holds                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Administrators**          | The owners, marked **Owner**, then the administrators with who invited them and since when. An owner removes an administrator, after a question naming them; an administrator leaves, from their own row                                                                                                                                                                                                                                                 |
+| **Invitations**             | For the owners: an email to invite and **Invite**, and the pending invitations with who invited and when each expires, and **Revoke**. No mail is sent: tell the person, who signs in with that email                                                                                                                                                                                                                                                    |
+| **Permissions**             | Each permission, first **Export without the Meltemi branding**, with the accounts that hold it, who granted it and when (GitHub Sponsors for a donation), and **Revoke**; **Grant to** takes an account id, `@handle` or the email the person signs in with                                                                                                                                                                                              |
+| **Sponsorships**            | Only when there are some: the donations GitHub Sponsors told the service of, the newest first, each with the sponsor's GitHub login (marked private, or an organisation), one-time or monthly, the amount in US dollars, a cancellation, who claimed it or **Unclaimed** with **Grant by hand**, and the date. Grant by hand moves to the Grant field of the permission with the login as a hint: type the account id, handle or email the sponsor gives |
+| **Take down a publication** | The address of a published page and a reason; after a confirmation naming the address the page is gone and its owner sees it removed by the service                                                                                                                                                                                                                                                                                                      |
+| **Recent changes**          | The last fifty acts of administration, the newest first: who invited, accepted, removed, granted, revoked or took down what, and when; a donation's grant reads "GitHub Sponsors granted Export without the Meltemi branding to Ana (ana)"                                                                                                                                                                                                               |
 
 There is no list of the accounts of the service: an account is found only by its id, its handle or
 the one email it signs in with, so a person who has never signed in, or an email two accounts share,

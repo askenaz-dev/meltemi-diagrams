@@ -46,7 +46,7 @@ página. Servida por este Worker ofrece una cuenta encima de eso y no quita nada
 `packages/cloud/wrangler.jsonc` le da al Worker como recursos estáticos la compilación de
 la app, `packages/playground/dist` (el binding `ASSETS`, sin página de reserva), y hace que se
 ejecute primero para los paths que responde él mismo (`run_worker_first`: `/api/*`, `/_identity/*`,
-`/_published/*`, `/cli-auth`, `/cli-auth/*`, `/p/*` y `/rooms/*`). Cualquier otro path lo sirve la
+`/_published/*`, `/_sponsors/*`, `/cli-auth`, `/cli-auth/*`, `/p/*` y `/rooms/*`). Cualquier otro path lo sirve la
 plataforma de recursos sin ejecutar el Worker. La página y la API son un solo origen: no hace falta
 CORS, y la política de la página conserva `connect-src 'self'`.
 
@@ -54,12 +54,12 @@ CORS, y la política de la página conserva `connect-src 'self'`.
 
 `cloud()` reparte según el `Host` de la solicitud, que debe ser el host de `ORIGIN`:
 
-| La solicitud                                                                                                                | La respuesta                                                                                  |
-| --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
-| Un path que responde una ruta (véase [Rutas](#rutas))                                                                       | La ruta                                                                                       |
-| Un path bajo `/api`, `/_identity`, `/_published`, `/cli-auth`, `/p` o `/rooms` sin ruta, o un path conocido con otro método | `404 not-found` en JSON, nunca un recurso, escrito como se escriba (también `/%61pi/session`) |
-| Cualquier otro path                                                                                                         | El recurso estático (la página, sus scripts, sus fuentes), o el `404` de la plataforma        |
-| Cualquier otro host, el host de publicación incluido                                                                        | `404 not-found` en JSON: ni recursos ni API                                                   |
+| La solicitud                                                                                                                              | La respuesta                                                                                  |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Un path que responde una ruta (véase [Rutas](#rutas))                                                                                     | La ruta                                                                                       |
+| Un path bajo `/api`, `/_identity`, `/_published`, `/_sponsors`, `/cli-auth`, `/p` o `/rooms` sin ruta, o un path conocido con otro método | `404 not-found` en JSON, nunca un recurso, escrito como se escriba (también `/%61pi/session`) |
+| Cualquier otro path                                                                                                                       | El recurso estático (la página, sus scripts, sus fuentes), o el `404` de la plataforma        |
+| Cualquier otro host, el host de publicación incluido                                                                                      | `404 not-found` en JSON: ni recursos ni API                                                   |
 
 En desarrollo (`DEV`) el origen es el de la propia solicitud, así que una solicitud local siempre
 pasa. El host de publicación nunca llega a este Worker: es otro Worker
@@ -248,12 +248,13 @@ Los rechazos de la propia sala llegan a una persona de dos maneras: como el JSON
 
 | Código                 | Estado | Significado                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | ---------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `not-found`            | 404    | Ninguna ruta responde: un path desconocido bajo un prefijo reservado, un path conocido con otro método, una solicitud a un socket que no es un upgrade, cualquier path de otro host, un id de token que no es tuyo, un blob que el proyecto no tiene, una miniatura que no tiene, una imagen o fuente que no está en el path que nombra un borrado, un miembro, una invitación o una publicación que una ruta nombra y que no existe, las rutas de administración consultadas por quien no es propietario ni administrador (una invitación a administrar aceptada o rechazada por quien no es su destinatario), y una publicación que la ruta de desarrollo no encuentra (sin `DEV`, cualquier path bajo `/_published/`)                                                                                                                                                  |
+| `not-found`            | 404    | Ninguna ruta responde: un path desconocido bajo un prefijo reservado, un path conocido con otro método, una solicitud a un socket que no es un upgrade, cualquier path de otro host, un id de token que no es tuyo, un blob que el proyecto no tiene, una miniatura que no tiene, una imagen o fuente que no está en el path que nombra un borrado, un miembro, una invitación o una publicación que una ruta nombra y que no existe, las rutas de administración consultadas por quien no es propietario ni administrador (una invitación a administrar aceptada o rechazada por quien no es su destinatario), y una publicación que la ruta de desarrollo no encuentra (sin `DEV`, cualquier path bajo `/_published/`), y `POST /_sponsors/github` mientras el servicio no tiene una cuenta patrocinada                                                                 |
 | `project.not-found`    | 404    | Un proyecto que no existe o que quien pregunta no puede abrir en absoluto, como uno privado que no es suyo (una misma respuesta para ambos, para que nadie sepa cuáles existen), y `/p/<id>` con un id que no puede ser el de un proyecto; en un socket, la sala de un proyecto que se eliminó                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | `request.invalid`      | 400    | El cuerpo no es lo que lee la ruta: no es un objeto JSON, el nombre de un token vacío, de más de 60 caracteres o con caracteres de control, un evento de más de 8 KiB o sin su `id`, `type`, `sub` y `at`; el nombre de un proyecto vacío, de más de 100 caracteres o con caracteres de control, una descripción de más de 500, una etiqueta de más de 80; una plantilla que no existe o que se da junto con archivos; archivos, binarios o un push que no son objetos de texto por path; un hash de binario que no son 64 caracteres hexadecimales en minúscula; un nivel de enlace que no es `private`, `view` ni `edit`, un rol que no es `viewer` ni `editor`, un correo vacío, de más de 254 caracteres o sin un dominio con punto, el propio correo del propietario como invitación; el motivo de una retirada de más de 500 caracteres o con caracteres de control |
 | `auth.required`        | 401    | La ruta necesita una persona y la solicitud no trae ninguna (sin credenciales, o con una cookie no válida o caducada); en un proyecto cuyo enlace admite a personas anónimas, una solicitud que iniciar sesión permitiría (un push cuando el enlace es `edit`) o que necesita una cuenta de todos modos (una copia, salir); un upgrade de socket sin una cookie válida, porque en un socket no se admite un token bearer                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `token.invalid`        | 401    | Un token bearer desconocido, revocado o que no es un token de API                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
-| `signature.invalid`    | 401    | Un evento de eliminación cuya `Meltemi-Signature` no coincide con su cuerpo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `signature.invalid`    | 401    | Un evento de eliminación cuya `Meltemi-Signature` no coincide con su cuerpo, o una entrega de patrocinio cuya `X-Hub-Signature-256` no coincide con su cuerpo                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `request.unsupported`  | 415    | Una entrega de patrocinio cuyo cuerpo no se declara `application/json`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `request.forbidden`    | 403    | Un cambio hecho con la cookie desde una página que no es la del servicio (la regla de `Origin`), o un upgrade de socket cuyo `Origin` no es el del servicio; un token bearer que pide lo que solo puede hacer la página (crear un token); en la página de aprobación, un formulario sin el `csrf` correcto                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `quota.tokens`         | 413    | La cuenta ya tiene 20 tokens de API                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `cli.invalid`          | 400    | La solicitud de la línea de comandos no se puede usar: un puerto o un `state` que la página de aprobación no acepta, un código desconocido, ya usado o caducado, un `state` que no coincide, o un intercambio que no se puede leer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
@@ -335,6 +336,7 @@ que muestran el código, en inglés o en español, en lugar de JSON.
 | `GET /api/admin/permissions/<id>`                    | un propietario o un administrador, con la cookie; cualquier otra persona recibe `404`   | `200`, quienes tienen el permiso                                                         |
 | `GET /api/admin/accounts/<account>/permissions/<id>` | un propietario o un administrador, con la cookie; cualquier otra persona recibe `404`   | `200`, el permiso de la cuenta                                                           |
 | `PUT /api/admin/accounts/<account>/permissions/<id>` | un propietario o un administrador, con la cookie; cualquier otra persona recibe `404`   | `200`, el permiso de la cuenta                                                           |
+| `POST /_sponsors/github`                             | GitHub Sponsors, firmado; nadie sin `SPONSORS_ACCOUNT` (`404`)                          | `200`, guardado, repetido, actualizado o ignorado                                        |
 | `GET` y `HEAD /_published/<handle>/<slug>/`          | cualquiera; solo en desarrollo                                                          | `200`, la página publicada                                                               |
 
 Las rutas de los proyectos nombran cada una el rol que necesitan: el del propietario, el de un
@@ -388,7 +390,8 @@ la cookie o con un token; un proyecto que la persona no puede abrir en absoluto 
 Las fechas y horas son ISO 8601 en UTC con milisegundos.
 
 Todo cuerpo se lee con un tope, lo envíe quien lo envíe, para que nadie haga que el Worker retenga lo
-que no pidió: un evento de eliminación y el formulario de aprobación hasta 8 KiB, el JSON de la
+que no pidió: un evento de eliminación y el formulario de aprobación hasta 8 KiB, una entrega de
+patrocinio hasta 64 KiB, el JSON de la
 página (el nombre de un token, el de un proyecto, una etiqueta) hasta 8 KiB, el intercambio de la
 línea de comandos hasta 4 KiB. Un cuerpo más largo, o que dice serlo, no se lee más y se suelta su
 flujo. Para el JSON y los eventos eso es `400 request.invalid`; el formulario de aprobación lo envían
@@ -413,19 +416,25 @@ de enlace) y el de una retirada se lee hasta 8 KiB como el resto.
     "name": "Ana",
     "picture": "https://avatars.githubusercontent.com/u/1",
     "handle": "ana",
-    "entitlements": { "unbranded": false },
+    "entitlements": { "unbranded": false, "unbrandedBy": null },
     "administration": null,
     "administrationInvitation": null
   },
   "account": "https://id.meltemi.dev/account",
-  "signOut": "https://id.meltemi.dev/logout"
+  "signOut": "https://id.meltemi.dev/logout",
+  "support": { "url": "https://github.com/sponsors/askenaz" }
 }
 ```
 
 `handle` es el nombre bajo el que la persona publica, o `null` hasta que lo elige
 ([Alias](#alias)). `entitlements.unbranded` dice si la cuenta puede exportar sin la marca de
 Meltemi: `true` cuando un propietario o un administrador se lo concedió, y para todo propietario y
-todo administrador ([Habilitaciones](#habilitaciones)). `administration` es `{ "role": "owner" }`
+todo administrador ([Habilitaciones](#habilitaciones)); `entitlements.unbrandedBy` dice quién fijó
+la marca de la fila: `"github-sponsors"` para la reclamación de una donación, `"administrator"` para
+una persona, y `null` cuando la fila no la tiene (incluido el derecho propio de un propietario o un
+administrador). `support`, en todas las formas, es la página donde donar,
+`https://github.com/sponsors/<SPONSORS_ACCOUNT>`, cuando el servicio tiene una cuenta patrocinada, y
+no aparece si no ([Patrocinios](#patrocinios)). `administration` es `{ "role": "owner" }`
 o `{ "role": "administrator" }` para las personas que administran el servicio, y `null` para todas
 las demás ([Administración](#administración)). `administrationInvitation` es la invitación a
 administrar pendiente dirigida al correo del propio token de la sesión, cuando el servicio de
@@ -447,7 +456,7 @@ un correo verificado:
     "name": "Ana",
     "picture": "https://avatars.githubusercontent.com/u/1",
     "handle": "ana",
-    "entitlements": { "unbranded": false }
+    "entitlements": { "unbranded": false, "unbrandedBy": null }
   },
   "token": { "id": "5f0c2a9e", "name": "laptop" }
 }
@@ -501,7 +510,10 @@ a este Worker, que llama a la API de cuenta del servicio de identidad en nombre 
 
 - `GET /api/account/identity` responde la vista del servicio de identidad tal como es:
   `{ "user", "identities": [{ "provider", "email", "emailVerified", "handle", "linkedAt" }],
-"sessions": [{ "sid", "label", "createdAt", "lastSeen", "expiresAt", "current" }], "canUnlink" }`.
+"sessions": [{ "sid", "label", "createdAt", "lastSeen", "expiresAt", "current" }], "canUnlink" }`,
+  con `"claimed": true` al lado cuando un inicio de sesión de GitHub de la vista reclamó una
+  donación ([Patrocinios](#patrocinios)), tras lo cual la página vuelve a leer la respuesta de
+  sesión.
 - `POST /api/account/identity/unlink` con `{ "provider" }`,
   `POST /api/account/identity/sessions/revoke-others` y
   `POST /api/account/identity/sessions/<sid>/revoke` responden la misma vista después del cambio.
@@ -551,7 +563,8 @@ y se comprueba antes de leer el cuerpo como JSON (`401 signature.invalid`). El c
   invitaciones, publicaciones y solicitudes de publicación; las membresías de la persona en los
   proyectos de otras, cuyos sockets abiertos allí se cortan; las invitaciones dirigidas al correo de
   su fila de usuario cuando el servicio de identidad lo había verificado; su fila de administrador y
-  las invitaciones a administrar que hizo y nadie respondió) y registra el evento: su id, el `sub` y
+  las invitaciones a administrar que hizo y nadie respondió; y sus reclamaciones de patrocinios, que
+  vuelven a quedar sin reclamar) y registra el evento: su id, el `sub` y
   su hora. Luego responde `200` con el estado `applied`. Las filas de `blobs` se comparten por
   contenido y se quedan; la [recolección](#la-recolección-de-blobs) semanal se lleva las que nada más
   referencia. Las retiradas y el registro de administración también se quedan: son el registro del
@@ -1159,6 +1172,7 @@ D1 guarda los metadatos, R2 los bytes, y cada sala su documento.
 | `administrators`                           | `sub` a `invited_by` y `since`: una persona que aceptó la invitación de un propietario a administrar el servicio. Los propietarios no son filas                                                                                         |
 | `admin_invitations`                        | `id`, `email` (en minúscula), `invited_by`, `created_at`, `expires_at` (siete días después), y `accepted_at`, `declined_at` y `revoked_at`, con una de ellas como mucho: la invitación de un propietario a administrar                  |
 | `admin_log`                                | `id`, `at`, `by_sub`, `action`, `target_sub`, `target_email` y `detail`: cada acto de administración, añadido junto con él y nunca cambiado                                                                                             |
+| `sponsorships`                             | `id`, `delivery_id` (único), `sponsor_login`, `sponsor_id`, `sponsor_type`, `one_time`, `amount_cents`, `privacy`, `status`, `created_at`, y `claimed_by_sub` y `claimed_at`, ambos nulos hasta que una cuenta lo reclama               |
 | `publish_log`                              | `project_id` y `at`, una fila por cada solicitud de publicación de la última hora: lo que limita la frecuencia de publicar                                                                                                              |
 | `meta`, `doc_chunks` (una sala)            | La revisión de la sala y su documento codificado en fragmentos, en el SQLite de su Durable Object                                                                                                                                       |
 | R2, `blobs/<sha-256>`                      | Los bytes de cada blob: textos, imágenes y fuentes, por el SHA-256 hexadecimal en minúscula de su contenido                                                                                                                             |
@@ -1186,6 +1200,13 @@ recuperarse. Es una capacidad del mismo tipo que el enlace de un proyecto que es
 muestra al propietario, nunca se registra, funciona una vez y durante treinta días, y se va
 con su proyecto. Un token de API y un código de aprobación son distintos: de ellos solo se guardan
 los hashes ([Tokens de API](#tokens-de-api)).
+
+`0007_sponsorships.sql` añade `sponsorships`, `STRICT` y sin claves foráneas: las donaciones de las
+que GitHub Sponsors avisó al servicio ([Patrocinios](#patrocinios)). `sponsor_login` se compara sin
+distinguir mayúsculas (`COLLATE NOCASE`) y tiene índice para la reclamación, `claimed_by_sub` para la
+de una eliminación, y `delivery_id` es único, lo que hace de una entrega repetida algo sin efecto. La
+base de datos rechaza un estado, un nivel de privacidad o un tipo que no conoce, un importe
+negativo, un usuario de más de 39 caracteres y una reclamación sin su hora.
 
 `0006_administrators.sql` añade lo que guarda la administración del servicio, con las mismas
 convenciones: tres tablas (`administrators`, `admin_invitations` y `admin_log`), todas `STRICT`, y
@@ -2011,7 +2032,10 @@ permiso, primero la que lo recibió antes, como `{ "id", "holders": [...] }`, ca
 `GET /api/admin/accounts/<account>/permissions/<id>` lee el de una cuenta, y `PUT` en la misma ruta
 con `{ "granted": true }` o `{ "granted": false }` lo fija, registrando quién (`by`) y cuándo (`at`),
 en un solo paso con su entrada en el registro
-([El registro de administración](#el-registro-de-administración)). Ambas responden la cuenta:
+([El registro de administración](#el-registro-de-administración)). La reclamación de una donación
+fija las mismas columnas con quien concede `github-sponsors` ([Patrocinios](#patrocinios)), y la
+lista de quienes lo tienen lo muestra como `"by": { "sub": "github-sponsors", "name": "GitHub
+Sponsors" }`; un administrador la revoca como cualquier otra concesión. Ambas responden la cuenta:
 
 ```json
 {
@@ -2067,7 +2091,9 @@ concesión, permiso revocado y retirada añade una fila a `admin_log`, en el mis
 acto y solo cuando el acto ocurrió: una solicitud rechazada no añade nada. Una fila guarda quién
 (`by_sub`), cuándo (`at`), qué (`invite`, `revoke-invitation`, `accept`, `decline`, `remove`,
 `leave`, `grant`, `revoke` o `takedown`), a quién (`target_sub`, o el `target_email` invitado) y un
-`detail`: el id del permiso, o el `<handle>/<slug>` de la publicación y el motivo. Las filas nunca
+`detail`: el id del permiso, o el `<handle>/<slug>` de la publicación y el motivo; la reclamación de
+una donación es un `grant` cuyo `by_sub` es `github-sponsors` y cuyo detalle añade el usuario de quien
+patrocina, `unbranded-exports (ana)`. Las filas nunca
 cambian, se quedan cuando se eliminan las personas que nombran y se barren 365 días después de
 escribirse.
 
@@ -2101,7 +2127,19 @@ lo que muestra la sección Administración:
       "detail": ""
     }
   ],
-  "publishHost": "meltemi.page"
+  "publishHost": "meltemi.page",
+  "sponsorships": [
+    {
+      "login": "ana",
+      "type": "User",
+      "oneTime": false,
+      "amountCents": 1000,
+      "status": "active",
+      "createdAt": "2026-11-04T09:30:00.000Z",
+      "privacy": "public",
+      "claimedBy": { "sub": "u_7d3f", "name": "Ana", "handle": "ana", "email": "ana@example.com" }
+    }
+  ]
 }
 ```
 
@@ -2111,9 +2149,108 @@ cuándo; `invitations` son las pendientes, primero la más antigua, como las res
 `POST /api/admin/invitations`, para un propietario, y `[]` para un administrador; `permissions` son
 los del catálogo, cada uno con quienes lo tienen; `log` son las últimas cincuenta entradas, primero
 la más reciente, con `by` y `target` como `{ "sub", "name" }`, una cuenta eliminada después como
-`{ "sub", "name": "", "deleted": true }` y un correo invitado como `{ "email" }`; y `publishHost` es
-`PUBLISH_HOST`, o `null` cuando no está definida, contra el que el formulario de retirada de la
-sección comprueba la dirección de una publicación.
+`{ "sub", "name": "", "deleted": true }`, un correo invitado como `{ "email" }` y `github-sponsors`
+como `{ "sub": "github-sponsors", "name": "GitHub Sponsors" }`; `publishHost` es `PUBLISH_HOST`, o
+`null` cuando no está definida, contra el que el formulario de retirada de la sección comprueba la
+dirección de una publicación; y `sponsorships` son los últimos cincuenta patrocinios, primero el más
+reciente, cada uno con `login`, `type`, `oneTime`, `amountCents`, `status`, `createdAt`, `privacy` y
+`claimedBy` (una persona, o `null`), y `[]` sin una cuenta patrocinada. El usuario de quien patrocina
+y un patrocinio privado se muestran a las personas que administran el servicio y a nadie más.
+
+### Patrocinios
+
+Una donación es como una persona que no está habilitada pasa a estarlo sin la mano de nadie
+([decisión 0071](../decisions/0071-unbranded-by-donation.md)). GitHub Sponsors cobra, emite los
+recibos y paga; este servicio solo se entera de que existe un patrocinio, por el webhook de Sponsors
+de la cuenta patrocinada, y lo empareja con la cuenta que vinculó el mismo inicio de sesión de
+GitHub. La cuenta patrocinada es `SPONSORS_ACCOUNT`, un usuario de GitHub (`askenaz`); sin definir o
+vacía, como la trae `wrangler.jsonc` hasta que se hagan los pasos del propietario de abajo, el
+servicio no tiene camino de donación: `POST /_sponsors/github` responde `404 not-found`, la respuesta
+de sesión no lleva `support`, el `sponsorships` de la respuesta de administración es `[]` y no se
+reclama nada.
+
+`POST /_sponsors/github` es una llamada de GitHub: sin cookie, sin persona y sin la regla de
+`Origin`. GitHub envía:
+
+```http
+POST /_sponsors/github
+Content-Type: application/json
+X-GitHub-Event: sponsorship
+X-GitHub-Delivery: 72d3162e-cc78-11e3-81ab-4c9367dc0958
+X-Hub-Signature-256: sha256=757107ea0eb2509fc211221cce984b8a37570b6d7586c22c46f4379c8b043e17
+
+{"action":"created","sponsorship":{"created_at":"2026-11-04T09:30:00+00:00","sponsorable":{"login":"askenaz"},"sponsor":{"login":"ana","id":4242,"type":"User"},"privacy_level":"public","tier":{"monthly_price_in_cents":1000,"is_one_time":false}}}
+```
+
+La ruta comprueba, en este orden, y no cambia nada antes de verificar la firma:
+
+1. El cuerpo se declara `application/json` (con un charset vale); si no, `415 request.unsupported`:
+   el formulario del webhook elige el tipo de contenido.
+2. El cuerpo se lee hasta 64 KiB; si no, `400 request.invalid`, y se suelta su flujo.
+3. `X-Hub-Signature-256` es `sha256=` y el HMAC-SHA-256 hexadecimal de los bytes exactos del cuerpo,
+   con la clave `SPONSORS_WEBHOOK_SECRET`, comparado en tiempo constante (el `verify` de WebCrypto);
+   si no, `401 signature.invalid`, sin leer nunca el cuerpo. Un secreto en blanco rechaza toda
+   entrega con `500 internal`, registrado por su nombre.
+4. El cuerpo es un objeto JSON; si no, `400 request.invalid`. Un `ping`, y cualquier evento que no
+   sea `sponsorship`, es `200 { "ignored": true }`.
+5. Un evento de patrocinio lleva `X-GitHub-Delivery`, `sponsorship.sponsor.login`, `.id` y `.type`,
+   `sponsorship.tier.is_one_time` y `.monthly_price_in_cents`, `sponsorship.privacy_level`
+   (`public` o `private`), `sponsorship.created_at` y `sponsorship.sponsorable.login`, cada uno con
+   su forma; si no, `400 request.invalid`. Un patrocinado que no es `SPONSORS_ACCOUNT` (sin
+   distinguir mayúsculas) es `200 { "ignored": true }`.
+6. `created`, un pago que GitHub procesó, único o mensual y de cualquier importe, guarda una fila en
+   `sponsorships`: el id de la entrega, el usuario, el id numérico y el tipo de quien patrocina, si
+   el nivel es único, su importe en centavos, el nivel de privacidad, la hora de creación y el estado
+   `active`, sin reclamar: `200 { "recorded": true }`. El mismo id de entrega otra vez es
+   `200 { "repeated": true }` y no cambia nada, así que los reintentos de GitHub y el Redeliver del
+   panel son seguros.
+7. `edited`, `tier_changed` y `pending_tier_change` fijan el estado `active`, `pending_cancellation`
+   fija `pending-cancellation`, y `cancelled` fija `cancelled`, para siempre, en el patrocinio más
+   reciente de ese usuario y tipo: `200 { "updated": true }`, o `false` cuando no hay ninguno que
+   cambiar. Ninguna habilitación cambia: se hizo una donación. Otra acción es
+   `200 { "ignored": true }`.
+
+No se registra nada de una entrega: ni su cuerpo, ni su firma, ni el secreto. Un fallo del
+almacenamiento es un `500`, que el panel de GitHub muestra como una entrega fallida que se puede
+volver a enviar.
+
+**La reclamación.** `GET /api/account/identity` lee los inicios de sesión de la persona en el
+servicio de identidad ([los datos de identidad](#los-datos-de-identidad)); mientras el servicio
+tenga una cuenta patrocinada, cada inicio de sesión de GitHub cuyo usuario (`handle`) es el de un
+patrocinio sin reclamar de un `User`, sin distinguir mayúsculas, reclama todos los patrocinios sin
+reclamar de ese usuario para la cuenta y le concede `unbranded-exports`, registrando en la fila del
+usuario quién concede, `github-sponsors`, y la hora, y añadiendo un `grant` al registro con el
+detalle `unbranded-exports (<usuario>)`, todo en un solo paso atómico: la entrada del registro entra
+solo mientras existen una fila reclamable y la fila de la persona, y la concesión y la reclamación
+siguen solo a esa entrada, así que una segunda reclamación, aunque sea en el mismo instante, no
+escribe nada. La respuesta es la vista con `"claimed": true` al lado, y la página vuelve a leer la
+respuesta de sesión. Un patrocinio reclamado no se reclama nunca otra vez: otra cuenta que vincule
+después el mismo usuario no recibe nada. Una cancelación conserva la concesión. Un administrador
+todavía puede revocarla, o conceder a mano a quien nombre una organización o a quien patrocina e
+inicia sesión solo con Google (que también puede vincular GitHub, y la siguiente apertura del panel
+reclama). Un fallo de la reclamación se registra y los inicios de sesión se responden igual.
+Eliminar la cuenta (`user.deleted`) borra sus reclamaciones en el mismo paso que lo demás, así que
+el patrocinio puede volver a reclamarlo quien vincule ese usuario. La reclamación empareja el
+usuario, no el id numérico de GitHub, que los inicios de sesión no llevan; la fila guarda el id para
+el día en que lo lleven.
+
+**Los pasos del propietario en GitHub.** Hasta que estén hechos, `SPONSORS_ACCOUNT` queda vacía:
+
+- [ ] Inscribir la cuenta patrocinada (`askenaz`) en GitHub Sponsors, desde una región admitida
+      (Chile lo es), con sus datos de pago e impuestos.
+- [ ] Publicar un nivel único y niveles mensuales cuyo texto de recompensa diga "Export without the
+      Meltemi branding in the web app; the file's theme can do the same with `frame none`".
+- [ ] En el panel de Sponsors, crear el webhook: URL de carga
+      `https://diagrams.meltemi.dev/_sponsors/github`, tipo de contenido `application/json`, un
+      secreto aleatorio largo y el evento `sponsorship`.
+- [ ] Dar el mismo secreto a la infraestructura de la familia como `sponsors_webhook_secret` (el
+      Terraform de Meltemi Web lo guarda como `SPONSORS_WEBHOOK_SECRET` en el Secrets Store), y fijar
+      `"SPONSORS_ACCOUNT": "askenaz"` en `wrangler.jsonc`.
+- [ ] Tras el despliegue, comprobar que el panel de GitHub muestra el `ping` del webhook respondido
+      con `200`.
+
+Los dos lados del secreto solo se desalinean a mano: una entrega respondida con `401` en el panel lo
+dice, y el propietario vuelve a escribir el mismo secreto en ambos.
 
 ## Cuotas y límites
 
@@ -2193,17 +2330,19 @@ como cadenas, que siempre ganan a un binding.
 
 ### Variables y secretos
 
-| Nombre                   | Tipo                | Significado                                                                                                                                                                                                                                                          |
-| ------------------------ | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ORIGIN`                 | variable            | El origen del propio servicio, `https://diagrams.meltemi.dev`: el host que sirve, el `Origin` que acepta y la base de las direcciones que construye. Se ignora en desarrollo                                                                                         |
-| `IDENTITY_ISSUER`        | variable            | El servicio de identidad, `https://id.meltemi.dev`: el `iss` del token de sesión, y el lugar de `/login`, `/logout`, `/account` y `/sessions/<sid>`                                                                                                                  |
-| `IDENTITY_JWKS_URL`      | variable            | Dónde publica sus claves públicas el servicio de identidad                                                                                                                                                                                                           |
-| `IDENTITY_EVENTS_SECRET` | secreto (Store)     | El secreto de este producto con el servicio de identidad, su `EVENTS_SECRET_DIAGRAMS`: verifica los eventos de eliminación y firma las llamadas de [los datos de identidad](#los-datos-de-identidad)                                                                 |
-| `FORMS_SECRET`           | secreto (Store)     | Firma el `csrf` de la página de aprobación y es la clave del hash de una dirección en el límite de frecuencia                                                                                                                                                        |
-| `PUBLISH_HOST`           | variable, opcional  | El host que sirve las publicaciones, como `meltemi.page`: un nombre de host en minúscula de un dominio propio, nunca el host del servicio ni uno bajo el dominio de la cookie. `meltemi.page` en `wrangler.jsonc`; sin definir, publicar funciona solo en desarrollo |
-| `ADMIN_SUBS`             | secreto (Store)     | Los `sub` de los propietarios del servicio, separados por comas: siempre administradores, y los únicos que invitan y quitan administradores ([Administración](#administración)). Sin definir o vacía, nadie administra el servicio                                   |
-| `DEV`                    | solo en `.dev.vars` | `"true"` activa el modo de desarrollo, más abajo                                                                                                                                                                                                                     |
-| `IDENTITY_JWKS`          | solo en `.dev.vars` | Un conjunto de claves en línea, `{"keys":[…]}`, para desarrollo y pruebas                                                                                                                                                                                            |
+| Nombre                    | Tipo                | Significado                                                                                                                                                                                                                                                                                        |
+| ------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ORIGIN`                  | variable            | El origen del propio servicio, `https://diagrams.meltemi.dev`: el host que sirve, el `Origin` que acepta y la base de las direcciones que construye. Se ignora en desarrollo                                                                                                                       |
+| `IDENTITY_ISSUER`         | variable            | El servicio de identidad, `https://id.meltemi.dev`: el `iss` del token de sesión, y el lugar de `/login`, `/logout`, `/account` y `/sessions/<sid>`                                                                                                                                                |
+| `IDENTITY_JWKS_URL`       | variable            | Dónde publica sus claves públicas el servicio de identidad                                                                                                                                                                                                                                         |
+| `IDENTITY_EVENTS_SECRET`  | secreto (Store)     | El secreto de este producto con el servicio de identidad, su `EVENTS_SECRET_DIAGRAMS`: verifica los eventos de eliminación y firma las llamadas de [los datos de identidad](#los-datos-de-identidad)                                                                                               |
+| `FORMS_SECRET`            | secreto (Store)     | Firma el `csrf` de la página de aprobación y es la clave del hash de una dirección en el límite de frecuencia                                                                                                                                                                                      |
+| `PUBLISH_HOST`            | variable, opcional  | El host que sirve las publicaciones, como `meltemi.page`: un nombre de host en minúscula de un dominio propio, nunca el host del servicio ni uno bajo el dominio de la cookie. `meltemi.page` en `wrangler.jsonc`; sin definir, publicar funciona solo en desarrollo                               |
+| `ADMIN_SUBS`              | secreto (Store)     | Los `sub` de los propietarios del servicio, separados por comas: siempre administradores, y los únicos que invitan y quitan administradores ([Administración](#administración)). Sin definir o vacía, nadie administra el servicio                                                                 |
+| `SPONSORS_ACCOUNT`        | variable, opcional  | El usuario de GitHub de la cuenta patrocinada (`askenaz`): el `support` de la respuesta de sesión es su página de Sponsors y `/_sponsors/github` acepta sus entregas ([Patrocinios](#patrocinios)). Vacía en `wrangler.jsonc` hasta que se hagan los pasos del propietario: sin camino de donación |
+| `SPONSORS_WEBHOOK_SECRET` | secreto (Store)     | El secreto del webhook de Sponsors, el que se escribe en el formulario de GitHub: verifica la `X-Hub-Signature-256` de cada entrega. El Terraform de Meltemi Web lo recibe como `sponsors_webhook_secret`; en blanco, se rechaza toda entrega                                                      |
+| `DEV`                     | solo en `.dev.vars` | `"true"` activa el modo de desarrollo, más abajo                                                                                                                                                                                                                                                   |
+| `IDENTITY_JWKS`           | solo en `.dev.vars` | Un conjunto de claves en línea, `{"keys":[…]}`, para desarrollo y pruebas                                                                                                                                                                                                                          |
 
 Los bindings son:
 
@@ -2222,9 +2361,10 @@ crea la base de datos, el bucket y el Secrets Store y escribe sus ids como varia
 ([Despliegue](#despliegue)). Las dependencias del Worker en tiempo de
 ejecución son el paquete de identidad, el paquete de proyectos de este repositorio y `yjs` (MIT).
 Fuera del desarrollo, `ORIGIN`, `IDENTITY_ISSUER` e `IDENTITY_JWKS_URL` deben ser direcciones
-`https:`; si no, cada solicitud es `500 internal` y el registro nombra la variable. `PUBLISH_HOST` y
-`ADMIN_SUBS` son distintas: ninguna detiene el servicio, y cada una cuesta solo su propia función
-cuando falta o no se puede usar (publicar, y la administración del servicio).
+`https:`; si no, cada solicitud es `500 internal` y el registro nombra la variable. `PUBLISH_HOST`,
+`ADMIN_SUBS` y `SPONSORS_ACCOUNT` son distintas: ninguna detiene el servicio, y cada una cuesta solo
+su propia función cuando falta o no se puede usar (publicar, la administración del servicio y el
+camino de donación).
 
 El host de publicación tiene su propia configuración, `packages/cloud/wrangler.publish.jsonc`, y
 enlaza solo `DB` y `BLOBS`, la misma base de datos y el mismo bucket de arriba, para leerlos: ni

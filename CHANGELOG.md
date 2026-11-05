@@ -4,6 +4,20 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
+## 1.11.11
+
+A donation through GitHub Sponsors lets an account export without the Meltemi branding in the web
+app. Where the service takes donations, a person signed in who is not entitled finds "Donate to
+export without the Meltemi branding" under the export dialog's Theme field, and Profile's Support
+Meltemi Diagrams, both linking the service's Sponsors page in a new tab. The Worker keeps each
+sponsorship GitHub signs (`POST /_sponsors/github`, migration 0007), and opening the account panel
+claims it for the account that linked the sponsor's GitHub sign-in: any donation, one-time or monthly,
+grants the box for good, Profile says "Granted for your donation. Thank you." without a reload, and
+the Administration section names GitHub Sponsors as the grantor and lists the sponsorships, with
+Grant by hand beside an unclaimed one ([decision 0071](docs/decisions/0071-unbranded-by-donation.md)).
+It ships off: the path opens once the sponsored account is set, after the owner's steps on GitHub
+([sponsorships](docs/cloud.md#sponsorships)). The engine stays MIT and `frame none` stays free.
+
 ## 1.11.9
 
 Stories become the flows of a diagram. One HTML player holds every story of a file over the views
