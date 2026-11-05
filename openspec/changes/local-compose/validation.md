@@ -1,6 +1,7 @@
 # Local Compose validation
 
-Date: 5 November 2026, America/Santiago. Implementation base: `dc0a495`.
+Date: 5 November 2026, America/Santiago. Initial implementation base: `dc0a495`; final
+integration includes Gantt main `0113ef3`.
 
 The distribution's default editor/MCP origin is `http://127.0.0.1:8879`; the container's private
 listener is separate. No Meltemi identity service, browser session or agent API token is used.
@@ -19,14 +20,26 @@ listener is separate. No Meltemi identity service, browser session or agent API 
 | Persistent state and quiesced backup | `node scripts/local/check-compose.mjs` passed real container restart and whole-instance backup/fresh-volume restore: default project, sources, versions, room state and binary hashes matched. A second container attempting backup while the app was running was refused by the shared kernel lock. Only dedicated test projects/restore volumes were removed. |
 | Invalid operations and initialization | Eight operational tests passed, including a running-instance lock, nonempty restore target, malformed archive preservation and complete source/binary round trip. Valid-hash archives with incomplete metadata, a LAN origin or invalid version are refused before target writes. A native launch with unsupported instance metadata failed and preserved the metadata. |
 | Local maintenance | Shared `maintainState` extraction retained hosted semantics. The local launcher dispatched it through DB/R2 bindings on the same `state/v3` resource root, with no public scheduling endpoint; actual native and container startup cleanup passed. |
-| Offline after image build | A fresh image booted with Docker `--network none`, created/edited a project, validated it, rendered SVG/PNG and served both complete plugin bundles. This includes initial local schema/bootstrap and maintenance, not just a warmed instance. |
-| Interface and docs | Playground browser suite: 126/126 passed. Docker EN/ES at 1280px and 412px: default project, local-only controls, nonempty selected-project prompt and clipboard passed with no horizontal overflow. The documentation portal imported the implementation worktree and built 392 pages, including both local guides. |
-| General quality | `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm licenses:inventory --check` passed. Full unit run: 367 files, 10,537 tests passed and one skipped. `openspec validate local-compose --strict` passed. |
+| Offline after image build | A fresh image booted with Docker `--network none`, created/edited a project, validated it, rendered flow and canonical Gantt SVG/PNG and served both complete plugin bundles. This includes initial local schema/bootstrap and maintenance, not just a warmed instance. |
+| Interface and docs | Initial playground browser suite: 126/126 passed. Integrated suite: 122 passed, followed by successful focused recovery of all six remaining cases (128 distinct scenarios covered). Docker EN/ES at 1280px and 412px: default project, local-only controls, nonempty selected-project prompt and clipboard passed with no horizontal overflow. The documentation portal imported the integrated implementation worktree and built 396 pages, including both local guides and both Gantt guides; the Web repository remained clean. |
+| General quality | `pnpm typecheck`, `pnpm lint`, `pnpm build`, `pnpm licenses:inventory --check` passed again after Gantt integration. Final integrated unit run: 377 files, 11,229 tests passed and one skipped. `openspec validate local-compose --strict` passed. |
 
 The local interface and documentation tests found and corrected a textarea initialization bug and a
 mobile-header overflow before this record. The first complete unit run caught a test-only project
 ID fixture length; the subsequent full run above passed. Final review also corrected selected-project
-handoff links and rejected malformed backup metadata before restoring it.
+handoff links and rejected malformed backup metadata before restoring it. Deleting the default project
+now selects an existing owned project, or initializes one when none remain, without restarting or
+changing the owner. This was reproduced and verified with the actual isolated Docker/SDK runtime.
+
+Final-image native activation was repeated without model calls for both clients. Both installed and
+loaded their skill and 27 MCP tools, repeated setup byte-identically and preserved native disabled
+registrations. Both served bundle hashes matched their manifest; Gantt reference/example bytes matched
+the canonical sources. Evidence: `.test-output/final-native-plugin-bundles.json` and the
+`meltemi-native-activation-btana6fg` temporary directory.
+
+The final integrated Docker image also passed the complete shared browser/MCP acceptance and the
+restart/backup/fresh-volume restore proof again. The browser acceptance follows the setup URL copied
+from the selected project's visible prompt, verifying the server preserves that selected project.
 
 ## Hosted browser regression
 
@@ -35,7 +48,16 @@ copied assets. Two existing timing assumptions were observed: counting account r
 skeletons were still visible, and starting to observe disconnection after the sockets had already
 reconnected. Their failure screenshots were retained. The full run passed 103 checks; after fixing
 those two test observations, a focused repeat passed both scenarios and the Worker-log check (3/3).
-All 105 distinct checks were covered successfully. No product timeout or authorization rule was relaxed.
+All 105 distinct checks were covered successfully. The final integrated full hosted run then passed
+105/105, including both corrected observations, OAuth/MCP, collaboration, guests and CLI publication.
+No product timeout or authorization rule was relaxed.
+
+For the integrated playground run, the parallel cloud runner rebuilt the shared output with its
+identity stand-in while the static suite was reading it. Four sign-in expectations consequently saw
+the wrong identity URL; a font-loading case also failed. After the cloud runner had copied its private
+assets, the default public-identity assets were rebuilt and all six failed scenarios passed in a
+focused repeat, including an explorer badge test corrected to wait for its final count. Product
+timeouts and authentication assertions stayed unchanged. Separate CI jobs use separate checkouts.
 
 ## Reproducible commands
 

@@ -123,4 +123,3 @@ Local mode SHALL require no sign-in or credential creation for browser, rooms or
 #### Scenario: A local identity or token action
 - **WHEN** a caller requests local sign-in, token creation, OAuth consent/registration/exchange or CLI-login approval
 - **THEN** the route is unavailable, no credential/grant is created and no external identity request is made
-

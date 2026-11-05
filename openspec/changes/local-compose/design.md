@@ -2,7 +2,7 @@
 
 ## Context
 
-The exploration used Diagrams `56f0c6c`; implementation is based on refreshed main `dc0a495`. Its Worker already serves editor assets, API, rooms and MCP, with local D1/R2/Durable Objects under Wrangler. Its MCP browser suite exercises create/write/validate and SVG/PNG rendering locally. `packages/mcp` supplies shared tool definitions and renderer assets.
+The exploration used Diagrams `56f0c6c`; implementation started on refreshed main `dc0a495` and integrated Gantt main `0113ef3` before final validation. Its Worker already serves editor assets, API, rooms and MCP, with local D1/R2/Durable Objects under Wrangler. Its MCP browser suite exercises create/write/validate and SVG/PNG rendering locally. `packages/mcp` supplies shared tool definitions and renderer assets.
 
 Constraints:
 

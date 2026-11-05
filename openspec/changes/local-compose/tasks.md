@@ -28,7 +28,7 @@ split it if necessary. Include tests and EN/ES documentation with each behavior.
 - [x] 4.1 Complete persistent-volume/init/maintenance behavior; verify recreation preserves owner/default project, files, versions, room state and binaries, initialization failures preserve data and internal maintenance needs no exposed HTTP trigger. Document stop/restart.
 - [x] 4.2 Add quiesced whole-instance backup/fresh-target restore helpers; verify matching sources/versions/room state/image hashes and refusal of malformed backups/nonempty targets. Document backup/restore and explicitly destructive reset.
 - [x] 4.3 Add the Linux amd64 Compose CI smoke and record Docker Desktop Windows/Linux-containers acceptance; block egress after build and verify local startup, plugin downloads and edit/render flows. Register both guides/links and render the portal against the implementation worktree.
-- [ ] 4.4 Run required typecheck/lint/test/build and cloud/playground browser suites plus the clean-client Compose/plugin scenarios; record evidence per spec scenario and tested client/platform versions. Advertise only verified install/activation paths and architectures.
+- [x] 4.4 Run required typecheck/lint/test/build and cloud/playground browser suites plus the clean-client Compose/plugin scenarios; record evidence per spec scenario and tested client/platform versions. Advertise only verified install/activation paths and architectures.
 
 ## Workflow follow-up
 

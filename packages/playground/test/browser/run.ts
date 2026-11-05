@@ -2948,7 +2948,7 @@ const tests: Test[] = [
       const badge = page.locator('.tree li[data-key="f:diagrams/overview.meltemi"] .tree-badge');
       await until(
         page,
-        "an error on the row of overview",
+        "the current error count on the row of overview",
         () =>
           document
             .querySelector('.tree li[data-key="f:diagrams/overview.meltemi"] .tree-badge')
@@ -2957,7 +2957,9 @@ const tests: Test[] = [
             document.querySelector(
               '.tree li[data-key="f:diagrams/overview.meltemi"] .tree-badge',
             ) as HTMLElement
-          ).hidden,
+          ).hidden &&
+          document.querySelector('.tree li[data-key="f:diagrams/overview.meltemi"] .tree-badge')
+            ?.textContent === "1",
       );
       assert.equal(await badge.textContent(), "1");
       await page.keyboard.press("Control+z");

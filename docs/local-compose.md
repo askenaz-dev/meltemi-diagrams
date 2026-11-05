@@ -108,7 +108,7 @@ docker compose stop
 docker compose run --rm --no-deps --volume ./backups:/backups app backup /backups/meltemi.meltemi-backup
 ```
 
-The helper refuses a running instance. Keep the archive and its version metadata together.
+The helper refuses a running instance. The archive includes its instance and version metadata.
 Use another archive name for another backup. Start the original instance again with
 `docker compose up` when the backup succeeds.
 
@@ -139,7 +139,7 @@ docker compose up
 
 Initialization applies missing schema updates before readiness. Do not discard the volume to
 recover from a failed update; keep its data and logs. Run **Set up my agent** again to inspect the
-plugin matching the running version. A different installed version or endpoint is reported as a
+plugin matching the running version. A different installed bundle, version or endpoint is reported as a
 conflict: review its replacement through the client's native controls before retrying. Identical
 setup is reused. Follow any required native client reload after a reviewed update.
 

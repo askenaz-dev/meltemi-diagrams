@@ -1,9 +1,10 @@
 // Run the built image with --network none: even bootstrap must work without an external route.
 import assert from "node:assert/strict";
 import { createRequire } from "node:module";
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { CLOUD } from "./settings.mjs";
+import { CLOUD, ROOT } from "./settings.mjs";
 import { startLocal } from "./runtime.mjs";
 
 const require = createRequire(join(CLOUD, "package.json"));
@@ -38,6 +39,27 @@ try {
   });
   await call("validate", { project });
   for (const format of ["svg", "png"]) await call("preview", { project, path, format });
+  // Exercise the newly delivered profile through the same local Worker and renderer, offline.
+  const ganttPath = "diagrams/gantt.meltemi";
+  const ganttSource = await readFile(
+    join(ROOT, "skills/meltemi-diagrams/examples/gantt.meltemi"),
+    "utf8",
+  );
+  const latest = (await call("read_files", { project })).structuredContent;
+  await call("write_files", {
+    project,
+    files: { [ganttPath]: ganttSource },
+    ifRevision: latest.revision,
+  });
+  assert.equal((await call("validate", { project, path: ganttPath })).structuredContent.errors, 0);
+  const ganttSvg = await call("preview", { project, path: ganttPath, format: "svg" });
+  const drawnGantt = ganttSvg.content.find((item) => item.type === "text")?.text ?? "";
+  assert.match(drawnGantt, /^<svg/);
+  assert.ok(drawnGantt.includes("Mobile app launch") && drawnGantt.includes("Market scan"));
+  const ganttPng = await call("preview", { project, path: ganttPath, format: "png", width: 640 });
+  const ganttImage = ganttPng.content.find((item) => item.type === "image");
+  assert.equal(ganttImage?.mimeType, "image/png");
+  assert.equal(Buffer.from(ganttImage.data, "base64").readUInt32BE(16), 640);
   const manifest = await (await fetch(`${origin}/agent-setup/local/manifest.json`)).json();
   assert.equal(manifest.origin, origin);
   for (const clientName of ["claude", "codex"]) {
@@ -46,7 +68,7 @@ try {
     assert.ok((await response.arrayBuffer()).byteLength > 1000);
   }
   console.log(
-    "PASS: network-none bootstrap, project write, validation, SVG/PNG and both plugin bundles.",
+    "PASS: network-none bootstrap, project write, validation, flow/Gantt SVG/PNG and both plugin bundles.",
   );
 } finally {
   await client.close();

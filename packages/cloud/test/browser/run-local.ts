@@ -261,6 +261,16 @@ try {
     uiPrompt.includes(project) && uiPrompt.includes(`${origin}/agent-setup/local/prompt.md`),
     "The visible copyable prompt preserves the selected project and local setup address",
   );
+  const setupAddress = uiPrompt.match(
+    /http:\/\/[^\s/]+\/agent-setup\/local\/prompt\.md\?project=[a-z0-9]{20}/,
+  )?.[0];
+  assert.ok(setupAddress, "The copied setup URL carries its selected project query");
+  assert.equal(new URL(setupAddress).searchParams.get("project"), project);
+  const selectedInstructions = await (await fetch(setupAddress)).text();
+  assert.ok(
+    selectedInstructions.includes(`Selected project: ${project}`),
+    "Instructions fetched from the visible URL keep the selected project rather than the default",
+  );
   await page.getByRole("button", { name: "Close", exact: true }).last().click();
   await page.screenshot({ path: join(output, "shared-editor.png"), fullPage: true });
 

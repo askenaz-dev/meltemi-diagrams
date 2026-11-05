@@ -108,8 +108,8 @@ docker compose stop
 docker compose run --rm --no-deps --volume ./backups:/backups app backup /backups/meltemi.meltemi-backup
 ```
 
-La herramienta rechaza una instancia en ejecución. Conserva juntos el archivo y sus metadatos de
-versión. Usa otro nombre para otro respaldo. Inicia la instancia original con `docker compose up`
+La herramienta rechaza una instancia en ejecución. El archivo incluye los metadatos de la instancia
+y su versión. Usa otro nombre para otro respaldo. Inicia la instancia original con `docker compose up`
 cuando termine correctamente.
 
 ### Restaurar en una instancia nueva
@@ -140,7 +140,7 @@ docker compose up
 La inicialización aplica los cambios de esquema pendientes antes de indicar disponibilidad. No
 descartes el volumen para recuperarte de una actualización fallida; conserva datos y registros.
 Usa **Configurar mi agente** de nuevo para revisar el plugin correspondiente a la versión en
-ejecución. Una versión o dirección instalada diferente se informa como conflicto: revisa su
+ejecución. Un paquete, versión o dirección instalada diferente se informa como conflicto: revisa su
 reemplazo mediante los controles nativos del cliente antes de reintentar. La configuración
 idéntica se reutiliza. Sigue cualquier recarga nativa necesaria tras actualizar con revisión.
 
