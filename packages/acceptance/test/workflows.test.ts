@@ -87,9 +87,25 @@ describe("delivery workflows", () => {
     expect(marketplace).toContain("--oidc");
     expect(marketplace).toContain("--skip-duplicate");
     expect(marketplace).not.toContain("environment:");
-    expect(secretsOf(text)).toEqual(["NPM_TOKEN", "OVSX_PAT"]);
+    expect(secretsOf(text)).toEqual(["NPM_TOKEN", "OVSX_PAT", "WEB_DISPATCH_TOKEN"]);
     expect(text).toContain("node delivery/scripts/publish-github.mjs");
     expect(text).not.toContain("--clobber");
+  });
+
+  it("tells Meltemi Web after the GitHub release, with the narrow token only and never a failure for its absence", () => {
+    const text = read("release.yml");
+    const job = text.split("  tell-the-web:\n")[1]!.split("  summary:\n")[0]!;
+    expect(job).toContain("needs: [check, github]");
+    expect(job).toContain("if: ${{ always() && needs.github.result == 'success' }}");
+    expect(secretsOf(job)).toEqual(["WEB_DISPATCH_TOKEN"]);
+    expect(job).toContain("GH_TOKEN: ${{ secrets.WEB_DISPATCH_TOKEN }}");
+    expect(job).toContain('if [ -z "$GH_TOKEN" ]; then');
+    expect(job).toContain("::warning::WEB_DISPATCH_TOKEN is not set");
+    expect(job).toContain("exit 0");
+    expect(job).toContain("gh workflow run deploy.yml --repo askenaz-dev/meltemi-web --ref main");
+    expect(job).not.toContain("permissions:\n      contents: write");
+    // The channels' summary is about publishing; the web's notice is not one of them.
+    expect(text).toContain("needs: [check, npm, marketplace, openvsx, github]");
   });
 
   it("uses Open VSX OIDC in its dedicated environment and the namespace token only for an extension's first version", () => {
