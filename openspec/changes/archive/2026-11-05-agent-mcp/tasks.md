@@ -115,9 +115,10 @@
       `packages/acceptance/test/mcp-skill.test.ts`, against `CATALOGUE` of `mcp/server.ts`.)
 - [x] 5.2 Add the entry to the changelog's open section and write
       `docs/decisions/0072-agent-mcp.md`. Verify the decision links resolve.
-- [ ] 5.3 Run `pnpm typecheck`, `pnpm lint`, `pnpm test`, the cloud and playground browser suites
+- [x] 5.3 Run `pnpm typecheck`, `pnpm lint`, `pnpm test`, the cloud and playground browser suites
       and `openspec validate "agent-mcp" --strict`. Verify all green and record the results in
-      the change's `validation.md`.
+      the change's `validation.md`. _Green on the merged branch (10,360 tests) and in CI's six jobs
+      on askenaz-dev/meltemi-diagrams#7 and #8; recorded in validation.md, "Merged and deployed"._
 
 ## Workflow follow-up
 
