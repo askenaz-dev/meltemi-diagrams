@@ -11,7 +11,7 @@ token or a link that grants access. `docs/agents.md` SHALL say the same for peop
 
 #### Scenario: The reference is synced
 - **WHEN** `pnpm skills:sync` runs
-- **THEN** `.claude/skills/meltemi-diagrams/references/mcp.md` and `.agents/skills/meltemi-diagrams/references/mcp.md` equal `skills/meltemi-diagrams/references/mcp.md`
+- **THEN** `.claude/skills/meltemi-diagrams/reference/mcp.md` and `.agents/skills/meltemi-diagrams/reference/mcp.md` equal `skills/meltemi-diagrams/reference/mcp.md`
 
 #### Scenario: The size rule still holds
 - **WHEN** the skill's front matter and size test runs

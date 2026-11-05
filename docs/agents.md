@@ -104,6 +104,41 @@ C4 container view of the shop". The skill tells the agent to import Mermaid and 
 instead of retyping them, to choose the profile (flow, free, sequence or C4), to validate until no
 diagnostic remains and to export SVG for you to look at with `mdg preview`.
 
+## Through the MCP endpoint
+
+The hosted service has an MCP endpoint, `https://diagrams.meltemi.dev/mcp`, through which an agent
+works on the projects of your Meltemi account instead of a folder: it creates projects, writes and
+validates their `.meltemi` files, looks at the drawings as pictures drawn on the server, and shares
+them, runs a live session or publishes them when you ask. Connect Codex with OAuth: you sign in in
+the browser and approve what it asks for (reading and writing your projects, sharing them, live
+sessions, publishing):
+
+```bash
+codex mcp add meltemi --url https://diagrams.meltemi.dev/mcp
+codex mcp login meltemi
+```
+
+Or with an API token that you make in the app's **API tokens** dialog (the account menu), kept in
+the environment as `MELTEMI_TOKEN` and never written in a file, in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.meltemi]
+url = "https://diagrams.meltemi.dev/mcp"
+bearer_token_env_var = "MELTEMI_TOKEN"
+```
+
+The skill's reference for the endpoint teaches the agent its tools and their workflow. It reads a
+project before it writes, and writes with the revision it read (`ifRevision`), so a change you made
+in the browser meanwhile is never overwritten; it gives each change a key, so a retry applies it
+once; it validates, looks at the preview and gives you the address that opens the project, where
+an open page shows each change without a reload. It shares, invites, starts a live session or
+publishes only when you ask, and says what it did: an invitation is a link it can give you, and no
+email is sent (the tool answers `emailSent: false`). It never prints a token, or an invitation's or
+a live session's link you did not ask for. The scopes you grant never add a role: an account that
+is an editor of a project writes there, but only its owner shares or publishes it. The tools and
+their rules are in [the MCP endpoint](cloud.md#the-mcp-endpoint), and how the endpoint is accepted
+in [MCP acceptance](quality/mcp-acceptance.md).
+
 ## In this repository
 
 The canonical skill is `skills/meltemi-diagrams/`; `pnpm skills:sync` copies it to

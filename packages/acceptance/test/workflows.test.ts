@@ -162,14 +162,175 @@ describe("delivery workflows", () => {
 
   it("builds the exact CI source and checks current main before any deployment mutation", () => {
     const text = read("deploy.yml");
-    expect(text).toContain("ref: ${{ needs.authorize.outputs.sha }}");
-    expect(text).toContain('git merge-base --is-ancestor "$SOURCE_SHA" origin/main');
-    const boundary = text.indexOf("node ../delivery/scripts/ci-run.mjs current");
-    expect(boundary).toBeGreaterThan(text.indexOf("run: pnpm playground:build"));
-    expect(boundary).toBeLessThan(text.indexOf("wrangler d1 migrations apply"));
-    expect(text.match(/if: steps.current.outputs.current == 'true'/g)).toHaveLength(3);
-    expect(secretsOf(text)).toEqual(["CLOUDFLARE_API_TOKEN"]);
-    expect(text).toContain("environment: production");
+    for (const name of ["staging", "deploy"]) {
+      const job = jobOf(text, name);
+      expect(job).toContain("ref: ${{ needs.authorize.outputs.sha }}");
+      expect(job).toContain('git merge-base --is-ancestor "$SOURCE_SHA" origin/main');
+      const boundary = job.indexOf("node ../delivery/scripts/ci-run.mjs current");
+      expect(boundary).toBeGreaterThan(job.indexOf("run: pnpm playground:build"));
+      expect(boundary).toBeLessThan(job.indexOf("wrangler d1 migrations apply"));
+      // The migrations, both Workers and the suite run only for a source that is still main.
+      const mutations = stepsOf(job).filter((step) =>
+        /wrangler (d1 migrations apply|deploy)/.test(step),
+      );
+      expect(mutations).toHaveLength(3);
+      for (const step of mutations) {
+        expect(step).toContain("if: steps.current.outputs.current == 'true'\n");
+      }
+      expect(stepNamed(job, "acceptance:mcp\n")).toMatch(
+        /if: steps\.current\.outputs\.current == 'true'/,
+      );
+    }
+    expect(secretsOf(text)).toEqual(["CLOUDFLARE_API_TOKEN", "MELTEMI_TOKEN", "MELTEMI_TOKEN_2"]);
+    expect(jobOf(text, "deploy")).toContain("environment: production");
+    expect(jobOf(text, "staging")).toContain("environment: staging");
     expect(text).not.toContain("rollback_version:");
   });
+
+  it("deploys staging first, runs the suite there, and only then production and its suite", () => {
+    const text = read("deploy.yml");
+    expect(Object.keys(jobsOf(text))).toEqual(["authorize", "staging", "deploy"]);
+    const staging = jobOf(text, "staging");
+    const production = jobOf(text, "deploy");
+    expect(staging).toContain("    needs: authorize\n");
+    // A failed staging job leaves production undeployed: it needs staging, and nothing lets a
+    // failed step pass.
+    expect(production).toContain("    needs: [authorize, staging]\n");
+    expect(text).not.toContain("continue-on-error");
+    expect(production).not.toMatch(/^\s+if:.*(always\(\)|failure\(\))/m);
+
+    const order = (job: string, marks: readonly string[]) => {
+      const at = marks.map((mark) => job.indexOf(mark));
+      at.forEach((index, i) => expect(index, marks[i]).toBeGreaterThan(-1));
+      expect([...at].sort((a, b) => a - b)).toEqual(at);
+    };
+    order(staging, [
+      "node scripts/deploy-config.mjs --environment staging packages/cloud/wrangler.jsonc packages/cloud/wrangler.publish.jsonc",
+      "run: pnpm playground:build",
+      "node ../delivery/scripts/ci-run.mjs current",
+      "wrangler d1 migrations apply DB --remote -c wrangler.deploy.json",
+      "wrangler deploy -c wrangler.deploy.json",
+      "wrangler deploy -c wrangler.publish.deploy.json",
+      "run: pnpm acceptance:mcp --probe",
+      "run: pnpm acceptance:mcp\n",
+      "name: mcp-acceptance-staging",
+    ]);
+    order(production, [
+      "node scripts/deploy-config.mjs packages/cloud/wrangler.jsonc packages/cloud/wrangler.publish.jsonc",
+      "wrangler d1 migrations apply DB --remote -c wrangler.deploy.json",
+      "wrangler deploy -c wrangler.deploy.json",
+      "wrangler deploy -c wrangler.publish.deploy.json",
+      "run: pnpm acceptance:mcp\n",
+      "name: mcp-acceptance-production",
+    ]);
+    expect(stepNamed(staging, "run: pnpm acceptance:mcp\n")).toContain(
+      "MELTEMI_ORIGIN: https://staging.diagrams.meltemi.dev\n",
+    );
+    expect(stepNamed(production, "run: pnpm acceptance:mcp\n")).toContain(
+      "MELTEMI_ORIGIN: https://diagrams.meltemi.dev\n",
+    );
+    // Each run's results.json is kept, red or green.
+    for (const [job, name] of [
+      [staging, "mcp-acceptance-staging"],
+      [production, "mcp-acceptance-production"],
+    ] as const) {
+      const upload = stepNamed(job, `name: ${name}`);
+      expect(upload).toContain("uses: actions/upload-artifact@v4");
+      expect(upload).toContain("if: ${{ !cancelled() && steps.suite.outcome != 'skipped' }}");
+      expect(upload).toContain("path: source/.test-output/mcp-acceptance/");
+    }
+  });
+
+  it("writes each environment's configuration from its own variables", () => {
+    const text = read("deploy.yml");
+    const variables = (job: string) =>
+      [...job.matchAll(/\$\{\{\s*vars\.([A-Z0-9_]+)\s*\}\}/g)].map((m) => m[1]).sort();
+    expect(variables(jobOf(text, "staging"))).toEqual([
+      "CLOUDFLARE_ACCOUNT_ID",
+      "D1_DATABASE_ID",
+      "OAUTH_KV_ID",
+      "R2_BUCKET_NAME",
+      "SECRETS_STORE_ID",
+      "SECRETS_SUFFIX",
+    ]);
+    // Production's suffix is empty: a variable it does not read.
+    expect(variables(jobOf(text, "deploy"))).toEqual([
+      "CLOUDFLARE_ACCOUNT_ID",
+      "D1_DATABASE_ID",
+      "OAUTH_KV_ID",
+      "R2_BUCKET_NAME",
+      "SECRETS_STORE_ID",
+    ]);
+  });
+
+  it("reads the suite's tokens as secrets only, in the suite's steps, and never echoes them", () => {
+    const text = read("deploy.yml");
+    for (const name of ["MELTEMI_TOKEN", "MELTEMI_TOKEN_2"]) {
+      // Every mention is the environment entry that reads the secret.
+      const lines = text.split("\n").filter((line) => new RegExp(`\\b${name}\\b`).test(line));
+      expect(lines).toEqual([
+        `          ${name}: \${{ secrets.${name} }}`,
+        `          ${name}: \${{ secrets.${name} }}`,
+      ]);
+    }
+    for (const job of [jobOf(text, "staging"), jobOf(text, "deploy")]) {
+      for (const step of stepsOf(job).filter((s) => s.includes("secrets.MELTEMI_TOKEN"))) {
+        expect(step).toContain("run: pnpm acceptance:mcp\n");
+        // The suite runs without the Cloudflare token of the job.
+        expect(step).toContain('CLOUDFLARE_API_TOKEN: ""\n');
+      }
+      const suites = stepsOf(job).filter((s) => s.includes("run: pnpm acceptance:mcp"));
+      expect(suites.length).toBeGreaterThan(0);
+      for (const step of suites) expect(step).toContain('CLOUDFLARE_API_TOKEN: ""\n');
+    }
+    expect(text).not.toMatch(/\$\{\{\s*vars\.MELTEMI_TOKEN|echo[^\n]*MELTEMI_TOKEN|::add-mask::/);
+    expect(text).not.toMatch(/run:[^\n]*\$\{\{\s*secrets\./);
+  });
+
+  it("skips the staging suite with a notice while the staging host does not answer", () => {
+    const staging = jobOf(read("deploy.yml"), "staging");
+    const probe = stepNamed(staging, "run: pnpm acceptance:mcp --probe");
+    expect(probe).toContain("id: host\n");
+    expect(probe).toContain("MELTEMI_ORIGIN: https://staging.diagrams.meltemi.dev\n");
+    expect(probe).not.toContain("secrets.");
+    expect(stepNamed(staging, "run: pnpm acceptance:mcp\n")).toContain(
+      "if: steps.current.outputs.current == 'true' && steps.host.outputs.answers == 'true'\n",
+    );
+    const result = stepNamed(staging, "name: Staging result");
+    expect(result).toContain("::notice title=Staging not attached::");
+    expect(result).toContain("production is not deployed");
+  });
 });
+
+/** The jobs of a workflow, by id, each with its text. */
+function jobsOf(text: string): Record<string, string> {
+  const body = text.split(/^jobs:\n/m)[1] ?? "";
+  const jobs: Record<string, string> = {};
+  let current: string | undefined;
+  for (const line of body.split("\n")) {
+    const id = /^ {2}([a-z][a-z0-9-]*):$/.exec(line)?.[1];
+    if (id) {
+      current = id;
+      jobs[id] = "";
+    } else if (current) {
+      jobs[current] += `${line}\n`;
+    }
+  }
+  return jobs;
+}
+
+const jobOf = (text: string, id: string) => {
+  const job = jobsOf(text)[id];
+  if (job === undefined) throw new Error(`no job ${id}`);
+  return job;
+};
+
+/** A job's steps, each from its `- ` to the next. */
+const stepsOf = (job: string) => (job.split(/^ {4}steps:\n/m)[1] ?? "").split(/^ {6}- /m).slice(1);
+
+/** The one step of a job that holds `mark`. */
+function stepNamed(job: string, mark: string): string {
+  const found = stepsOf(job).filter((step) => step.includes(mark));
+  if (found.length !== 1) throw new Error(`${found.length} steps hold ${mark}`);
+  return found[0]!;
+}

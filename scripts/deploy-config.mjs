@@ -1,20 +1,49 @@
 // The Workers' configurations as the deploy workflow uploads them: the committed `wrangler.jsonc`
 // and `wrangler.publish.jsonc` with the ids the family's Terraform gave written in. The committed
 // files keep placeholders (all zeros), which `wrangler dev` accepts locally; Terraform writes the
-// real ids as variables of this repository's `production` environment (decision 0046), and this
-// script fills them in, so nobody copies an id.
+// real ids as variables of this repository's `production` and `staging` environments (decision
+// 0046, and Meltemi Web's decision 0008 for staging), and this script fills them in, so nobody copies
+// an id.
 //
-//   node scripts/deploy-config.mjs <path/to/wrangler.jsonc> [<path/to/wrangler.publish.jsonc> ...]
+//   node scripts/deploy-config.mjs [--environment production|staging] <path/to/wrangler.jsonc> [...]
 //
 // It writes `<name>.deploy.json` beside each file (`wrangler.deploy.json`,
-// `wrangler.publish.deploy.json`; paths in it stay relative to that folder), from D1_DATABASE_ID
-// and SECRETS_STORE_ID in the environment, and refuses to leave a placeholder.
+// `wrangler.publish.deploy.json`; paths in it stay relative to that folder). Each environment's job
+// runs on its own runner, so both write the same names. From the environment's variables:
+// D1_DATABASE_ID, SECRETS_STORE_ID, OAUTH_KV_ID (once a configuration binds `OAUTH_KV`),
+// R2_BUCKET_NAME and SECRETS_SUFFIX. It refuses to leave a placeholder.
+//
+// Production (the default) is the committed file with the ids in place and nothing else changed.
+// Staging is production's twin (change agent-mcp, design decision 8): the staging Workers' names, the
+// staging database's name, the staging bucket, the staging hosts, the product name the identity
+// service knows staging by, and the Store secrets that staging holds apart (`FORMS_SECRET` and
+// `IDENTITY_EVENTS_SECRET` with SECRETS_SUFFIX; `ADMIN_SUBS` and `SPONSORS_WEBHOOK_SECRET` are
+// shared). The variables must agree with the environment named: a suffix in production, or none in
+// staging, is the other environment's configuration and is refused before anything is written.
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 export const DATABASE_PLACEHOLDER = "00000000-0000-0000-0000-000000000000";
 export const STORE_PLACEHOLDER = "00000000000000000000000000000000";
+/** A KV namespace's id in the committed file: zeros, as the Store's. */
+export const KV_PLACEHOLDER = /^0+$/;
+
+/** The names and hosts of the staging twin, which Meltemi Web's Terraform declares (`diagrams-staging`). */
+export const STAGING = Object.freeze({
+  workers: Object.freeze({
+    "meltemi-diagrams-cloud": "meltemi-diagrams-staging",
+    "meltemi-diagrams-publish": "meltemi-diagrams-publish-staging",
+  }),
+  database: "meltemi-diagrams-staging",
+  origin: "https://staging.diagrams.meltemi.dev",
+  publishHost: "staging.meltemi.page",
+  productName: "diagrams-staging",
+  /** The Store secrets staging binds with its suffix; the others are shared with production. */
+  suffixed: Object.freeze(["FORMS_SECRET", "IDENTITY_EVENTS_SECRET"]),
+});
+
+export const ENVIRONMENTS = Object.freeze(["production", "staging"]);
 
 /** The file written beside `file`: `wrangler.jsonc` becomes `wrangler.deploy.json`. */
 export function outputFor(file) {
@@ -48,30 +77,88 @@ export function parseJsonc(text) {
   return JSON.parse(out.replace(/,(\s*[}\]])/g, "$1"));
 }
 
+/** The error of a variable the environment's Terraform should have set. */
+function unset(name, environment) {
+  return new Error(
+    `${name} is not set: the ${environment} environment's variable comes from Terraform`,
+  );
+}
+
 /**
- * The configuration with the ids in place. `ids` gives `database` (the D1 database's id) and
- * `store` (the Secrets Store's id); a placeholder with no id to replace it is an error naming the
- * variable, and so is a placeholder left anywhere.
+ * The configuration with the ids in place, for `environment` (`production` by default). `ids` gives
+ * `database` (the D1 database's id), `store` (the Secrets Store's id), `kv` (the `OAUTH_KV`
+ * namespace's id), `bucket` (the R2 bucket's name) and `suffix` (the suffix of staging's own Store
+ * secrets). A placeholder with no id to replace it is an error naming the variable, and so is a
+ * placeholder left anywhere.
  */
-export function deployConfig(config, ids) {
+export function deployConfig(config, ids, environment = "production") {
+  if (!ENVIRONMENTS.includes(environment)) {
+    throw new Error(`unknown environment ${environment}: production or staging`);
+  }
+  const staging = environment === "staging";
+  const suffix = ids.suffix ?? "";
+  if (!staging && suffix !== "") {
+    throw new Error(
+      "SECRETS_SUFFIX is set: that is the staging environment's configuration (--environment staging)",
+    );
+  }
+  if (staging && suffix === "") throw unset("SECRETS_SUFFIX", environment);
+
   const out = structuredClone(config);
+  if (staging) {
+    const name = STAGING.workers[out.name];
+    if (!name) throw new Error(`staging has no twin of the Worker ${out.name}`);
+    out.name = name;
+  }
   for (const database of out.d1_databases ?? []) {
-    if (database.database_id !== DATABASE_PLACEHOLDER) continue;
-    if (!ids.database) {
-      throw new Error(
-        "D1_DATABASE_ID is not set: the production environment's variable comes from Terraform",
-      );
+    if (staging) database.database_name = STAGING.database;
+    if (database.database_id !== DATABASE_PLACEHOLDER) {
+      if (staging) throw new Error("staging's database id must come from D1_DATABASE_ID");
+      continue;
     }
+    if (!ids.database) throw unset("D1_DATABASE_ID", environment);
     database.database_id = ids.database;
   }
-  for (const secret of out.secrets_store_secrets ?? []) {
-    if (secret.store_id !== STORE_PLACEHOLDER) continue;
-    if (!ids.store) {
+  for (const bucket of out.r2_buckets ?? []) {
+    if (staging) {
+      if (!ids.bucket) throw unset("R2_BUCKET_NAME", environment);
+      if (ids.bucket === bucket.bucket_name) {
+        throw new Error(`R2_BUCKET_NAME ${ids.bucket} is production's bucket`);
+      }
+      bucket.bucket_name = ids.bucket;
+    } else if (ids.bucket && ids.bucket !== bucket.bucket_name) {
+      // Production binds the committed bucket; a different name is a variable of another setup.
       throw new Error(
-        "SECRETS_STORE_ID is not set: the production environment's variable comes from Terraform",
+        `R2_BUCKET_NAME ${ids.bucket} is not the committed bucket ${bucket.bucket_name}`,
       );
     }
+  }
+  for (const namespace of out.kv_namespaces ?? []) {
+    if (!KV_PLACEHOLDER.test(String(namespace.id ?? ""))) {
+      if (staging) throw new Error(`staging's ${namespace.binding} id must come from OAUTH_KV_ID`);
+      continue;
+    }
+    if (namespace.binding !== "OAUTH_KV") {
+      throw new Error(`no variable gives the id of the KV namespace ${namespace.binding}`);
+    }
+    if (!ids.kv) throw unset("OAUTH_KV_ID", environment);
+    namespace.id = ids.kv;
+  }
+  for (const secret of out.secrets_store_secrets ?? []) {
+    if (staging && STAGING.suffixed.includes(secret.secret_name)) {
+      secret.secret_name = `${secret.secret_name}${suffix}`;
+    }
+    if (secret.store_id !== STORE_PLACEHOLDER) continue;
+    if (!ids.store) throw unset("SECRETS_STORE_ID", environment);
     secret.store_id = ids.store;
+  }
+  if (staging && out.vars) {
+    out.vars = {
+      ...out.vars,
+      ORIGIN: STAGING.origin,
+      PUBLISH_HOST: STAGING.publishHost,
+      PRODUCT_NAME: STAGING.productName,
+    };
   }
   const text = JSON.stringify(out);
   if (text.includes(DATABASE_PLACEHOLDER) || text.includes(STORE_PLACEHOLDER)) {
@@ -80,21 +167,48 @@ export function deployConfig(config, ids) {
   return out;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  const files = process.argv.slice(2);
-  if (files.length === 0) {
-    console.error("usage: deploy-config.mjs <path/to/wrangler.jsonc> [...]");
-    process.exit(1);
+/** The arguments: `--environment <name>` (or `--environment=<name>`) and the files. */
+export function readArguments(argv) {
+  let environment = "production";
+  const files = [];
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--environment") environment = argv[++i] ?? "";
+    else if (arg.startsWith("--environment=")) environment = arg.slice("--environment=".length);
+    else if (arg.startsWith("--")) throw new Error(`unknown option ${arg}`);
+    else files.push(arg);
   }
+  if (!ENVIRONMENTS.includes(environment)) {
+    throw new Error(`unknown environment ${environment || "(none)"}: production or staging`);
+  }
+  return { environment, files };
+}
+
+if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
   try {
-    for (const file of files) {
-      const config = deployConfig(parseJsonc(readFileSync(file, "utf8")), {
-        database: process.env.D1_DATABASE_ID?.trim() || undefined,
-        store: process.env.SECRETS_STORE_ID?.trim() || undefined,
-      });
-      const target = outputFor(file);
+    const { environment, files } = readArguments(process.argv.slice(2));
+    if (files.length === 0) {
+      console.error(
+        "usage: deploy-config.mjs [--environment production|staging] <path/to/wrangler.jsonc> [...]",
+      );
+      process.exit(1);
+    }
+    const read = (name) => process.env[name]?.trim() || undefined;
+    const ids = {
+      database: read("D1_DATABASE_ID"),
+      store: read("SECRETS_STORE_ID"),
+      kv: read("OAUTH_KV_ID"),
+      bucket: read("R2_BUCKET_NAME"),
+      suffix: read("SECRETS_SUFFIX"),
+    };
+    // Every file is checked before any is written, so a refusal leaves no half-written pair.
+    const configs = files.map((file) => ({
+      target: outputFor(file),
+      config: deployConfig(parseJsonc(readFileSync(file, "utf8")), ids, environment),
+    }));
+    for (const { target, config } of configs) {
       writeFileSync(target, `${JSON.stringify(config, null, 2)}\n`);
-      console.log(`wrote ${target} for ${config.name}`);
+      console.log(`wrote ${target} for ${config.name} (${environment})`);
     }
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));

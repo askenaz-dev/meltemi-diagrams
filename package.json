@@ -36,6 +36,7 @@
     "acceptance:visual": "tsx --conditions=@meltemi/diagrams-source packages/acceptance/src/visual.ts",
     "acceptance:determinism": "tsx --conditions=@meltemi/diagrams-source packages/acceptance/src/determinism.ts",
     "acceptance:first-export": "pnpm playground:build && tsx --conditions=@meltemi/diagrams-source packages/acceptance/src/first-export.ts",
+    "acceptance:mcp": "tsx packages/acceptance/src/mcp/run.ts",
     "verification:browsers": "tsx --conditions=@meltemi/diagrams-source packages/acceptance/src/browsers.ts",
     "verification:kit": "tsx --conditions=@meltemi/diagrams-source packages/acceptance/src/kit.ts",
     "pilot:summary": "node scripts/pilot-summary.mjs",

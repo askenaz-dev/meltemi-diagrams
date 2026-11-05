@@ -20,6 +20,19 @@ address back before it answers. Retries never duplicate: `POST /api/projects` an
 call's tool, duration and error code only ([the MCP endpoint](docs/cloud.md#the-mcp-endpoint)). The
 sign-in with OAuth and its scopes comes next.
 
+Every deploy now goes to a staging twin first, `staging.diagrams.meltemi.dev` with its own
+database, bucket and secrets, and runs `pnpm acceptance:mcp` there: an agent built on the official
+SDK's client proves twenty-five of the specification's thirty criteria with two test accounts
+(projects and diagrams created, a person's change read, a stale or invalid write refused whole,
+retries applied once, an image and previews, sharing, invitations, live sessions and publications,
+a viewer, an editor and a stranger refused what is not theirs, nothing secret in its log), deletes
+what it made and leaves its `results.json`. Production deploys only when staging passes, and the
+suite runs against it afterwards. The criteria that need the real Codex and a voice are a written
+procedure, with nothing recorded yet ([MCP acceptance](docs/quality/mcp-acceptance.md),
+[decision 0072](docs/decisions/0072-agent-mcp.md)). The skill gains a reference for the endpoint,
+and the agents guide says how to connect Codex
+([through the MCP endpoint](docs/agents.md#through-the-mcp-endpoint)).
+
 ## 1.11.11
 
 A donation through GitHub Sponsors lets an account export without the Meltemi branding in the web
