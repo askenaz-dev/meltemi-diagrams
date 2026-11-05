@@ -97,6 +97,12 @@ export interface Env {
    * every delivery is refused.
    */
   readonly SPONSORS_WEBHOOK_SECRET?: string;
+  /**
+   * What this Worker signs its calls to the identity service's account API as: its entry in the
+   * identity service's products, `diagrams` (the default, when unset or empty) or `diagrams-staging`
+   * for the staging Worker.
+   */
+  readonly PRODUCT_NAME?: string;
   /** `"true"` only in `.dev.vars`. */
   readonly DEV?: string;
   /** An inline JWKS for development and tests; honoured only when `DEV` is `"true"`. */
@@ -111,4 +117,35 @@ export interface Env {
   readonly RENDERERS: RendererNamespaceLike;
   /** The R2 bucket of blobs (`blobs/<sha-256>`) and thumbnails (`thumbs/<project id>.svg`). */
   readonly BLOBS: R2Like;
+  /**
+   * The authorization server's KV namespace (`oauth/provider.ts`): the OAuth clients, grants, codes
+   * and tokens of `@cloudflare/workers-oauth-provider`, which nothing else reads or writes.
+   */
+  readonly OAUTH_KV: KVLike;
+}
+
+/** A key of a KV listing, with the metadata and expiry it was written with. */
+export interface KVListedKeyLike {
+  readonly name: string;
+  readonly expiration?: number;
+  readonly metadata?: unknown;
+}
+
+/**
+ * The KV surface the authorization server's library uses: a KV namespace binding satisfies it, and
+ * so does the in-memory namespace of the tests.
+ */
+export interface KVLike {
+  get(key: string, options?: { type?: "text" | "json" } | "text" | "json"): Promise<unknown>;
+  put(
+    key: string,
+    value: string,
+    options?: { expiration?: number; expirationTtl?: number; metadata?: unknown },
+  ): Promise<void>;
+  delete(key: string): Promise<void>;
+  list(options?: { prefix?: string; cursor?: string; limit?: number }): Promise<{
+    readonly keys: readonly KVListedKeyLike[];
+    readonly list_complete: boolean;
+    readonly cursor?: string;
+  }>;
 }

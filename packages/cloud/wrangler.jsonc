@@ -3,18 +3,20 @@
   "name": "meltemi-diagrams-cloud",
   "main": "src/worker.ts",
   "compatibility_date": "2026-09-15",
+  "compatibility_flags": ["global_fetch_strictly_public"],
   "dev": { "port": 8788 },
   "workers_dev": false,
   "preview_urls": false,
   "observability": {
     "enabled": true,
-    "logs": { "enabled": true, "invocation_logs": true },
+    "logs": { "enabled": true, "invocation_logs": false },
   },
   "assets": {
     "directory": "../playground/dist",
     "binding": "ASSETS",
     "not_found_handling": "none",
     "run_worker_first": [
+      "/.well-known/*",
       "/api/*",
       "/_identity/*",
       "/_published/*",
@@ -23,6 +25,7 @@
       "/cli-auth/*",
       "/mcp",
       "/mcp/*",
+      "/oauth/*",
       "/p/*",
       "/rooms/*",
     ],
@@ -35,6 +38,7 @@
       "migrations_dir": "migrations",
     },
   ],
+  "kv_namespaces": [{ "binding": "OAUTH_KV", "id": "00000000000000000000000000000000" }],
   "r2_buckets": [{ "binding": "BLOBS", "bucket_name": "meltemi-diagrams-blobs" }],
   "durable_objects": {
     "bindings": [
@@ -100,5 +104,6 @@
     "IDENTITY_JWKS_URL": "https://id.meltemi.dev/.well-known/jwks.json",
     "PUBLISH_HOST": "meltemi.page",
     "SPONSORS_ACCOUNT": "",
+    "PRODUCT_NAME": "diagrams",
   },
 }

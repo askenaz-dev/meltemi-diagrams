@@ -41,3 +41,8 @@ ADMIN_SUBS=
 # With SPONSORS_ACCOUNT: the secret of the Sponsors webhook, the same string typed into GitHub's
 # form, which verifies each delivery's X-Hub-Signature-256. Any long random text in development.
 # SPONSORS_WEBHOOK_SECRET=
+
+# Optional: what the Worker signs its calls to the identity service's account API as, its entry in
+# the identity service's products. Unset, it is diagrams (wrangler.jsonc); the staging Worker is
+# diagrams-staging.
+# PRODUCT_NAME=diagrams

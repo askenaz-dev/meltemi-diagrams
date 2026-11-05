@@ -1,7 +1,8 @@
-// The idempotency keys and the call windows over D1 (`CallsStore`, the tables of
-// `migrations/0008_idempotency.sql`). A module of its own, which `d1Store` spreads into the store, so
-// that the change that added it touches the rest of the store in two places only: that spread, and
-// the two tables the deletion of a person names (`DELETE_CALL_ROWS`).
+// The idempotency keys, the call windows and the last uses of OAuth grants over D1 (`CallsStore`, the
+// tables of `migrations/0008_idempotency.sql` and `0009_connected_apps.sql`). A module of its own,
+// which `d1Store` spreads into the store, so that the change that added it touches the rest of the
+// store in two places only: that spread, and the tables the deletion of a person names
+// (`DELETE_CALL_ROWS`).
 
 import type { D1Like } from "../env.js";
 import type { CallsStore, KeyOutcome } from "./types.js";
@@ -10,6 +11,7 @@ import type { CallsStore, KeyOutcome } from "./types.js";
 export const DELETE_CALL_ROWS = [
   "DELETE FROM idempotency WHERE sub = ?",
   "DELETE FROM call_windows WHERE sub = ?",
+  "DELETE FROM app_uses WHERE sub = ?",
 ] as const;
 
 const SWEEP_ACCOUNT_KEYS = "DELETE FROM idempotency WHERE sub = ? AND created_at < ?";
@@ -27,6 +29,10 @@ const DROP_EARLIER_WINDOWS = "DELETE FROM call_windows WHERE sub = ? AND kind = 
 const COUNT_CALL =
   "INSERT INTO call_windows (sub, kind, minute, count) VALUES (?, ?, ?, 1) ON CONFLICT (sub, kind, minute) DO UPDATE SET count = count + 1";
 const SELECT_COUNT = "SELECT count FROM call_windows WHERE sub = ? AND kind = ? AND minute = ?";
+const TOUCH_APP =
+  "INSERT INTO app_uses (sub, grant_id, last_used_at) VALUES (?, ?, ?) ON CONFLICT (sub, grant_id) DO UPDATE SET last_used_at = excluded.last_used_at WHERE app_uses.last_used_at < ?";
+const SELECT_APP_USES = "SELECT grant_id, last_used_at FROM app_uses WHERE sub = ?";
+const FORGET_APP = "DELETE FROM app_uses WHERE sub = ? AND grant_id = ?";
 
 interface KeyRecord {
   route: string;
@@ -92,6 +98,20 @@ export function d1Calls(db: D1Like): CallsStore {
       const row = rowsOf<{ count: number }>(answers[2])[0];
       if (!row) throw new Error("the database did not count the call");
       return Number(row.count);
+    },
+    async touchApp(sub, grantId, at, since) {
+      await db.prepare(TOUCH_APP).bind(sub, grantId, at, since).run();
+    },
+    async appUses(sub) {
+      const { results } = await db
+        .prepare(SELECT_APP_USES)
+        .bind(sub)
+        .all<{ grant_id: string; last_used_at: string }>();
+      return new Map(results.map((row) => [row.grant_id, row.last_used_at]));
+    },
+    async forgetApps(sub, grantIds) {
+      if (grantIds.length === 0) return;
+      await db.batch(grantIds.map((grantId) => db.prepare(FORGET_APP).bind(sub, grantId)));
     },
   };
 }

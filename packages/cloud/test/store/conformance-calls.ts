@@ -1,8 +1,8 @@
-// The part of the CloudStore contract that belongs to the idempotency keys and the call windows
-// (change agent-mcp): a key claimed once, answered once and repeated, an abandoned claim taken over,
-// a day's keys kept and older ones swept (the account's by its next claim, everyone's by the cron),
-// the count of a window, and what a deletion clears. Run by `runStoreConformance` over every
-// implementation.
+// The part of the CloudStore contract that belongs to the idempotency keys, the call windows and the
+// last uses of OAuth grants (change agent-mcp): a key claimed once, answered once and repeated, an
+// abandoned claim taken over, a day's keys kept and older ones swept (the account's by its next
+// claim, everyone's by the cron), the count of a window, a grant's use written at most once in a
+// span, and what a deletion clears. Run by `runStoreConformance` over every implementation.
 
 import { describe, expect, it } from "vitest";
 import type { CloudStore, KeyClaim } from "../../src/store/types.js";
@@ -133,6 +133,52 @@ export function defineCallsConformance(get: () => CloudStore): void {
       expect([...counts].sort((a, b) => a - b)).toEqual(
         Array.from({ length: 20 }, (_, i) => i + 1),
       );
+    });
+  });
+
+  describe("the last uses of grants", () => {
+    const HOUR = 60 * MINUTE;
+
+    it("record a grant's use, written again only once the last is older than the span", async () => {
+      const store = get();
+      expect(await store.appUses("u1")).toEqual(new Map());
+      await store.touchApp("u1", "g1", at(0), at(-HOUR));
+      await store.touchApp("u1", "g1", at(MINUTE), at(MINUTE - HOUR));
+      expect(await store.appUses("u1")).toEqual(new Map([["g1", at(0)]]));
+      await store.touchApp("u1", "g1", at(HOUR + SECOND), at(SECOND));
+      await store.touchApp("u1", "g2", at(HOUR + SECOND), at(SECOND));
+      await store.touchApp("u2", "g1", at(5 * SECOND), at(5 * SECOND - HOUR));
+      expect(await store.appUses("u1")).toEqual(
+        new Map([
+          ["g1", at(HOUR + SECOND)],
+          ["g2", at(HOUR + SECOND)],
+        ]),
+      );
+      expect(await store.appUses("u2")).toEqual(new Map([["g1", at(5 * SECOND)]]));
+    });
+
+    it("forget the grants named, of the account named, and nothing else", async () => {
+      const store = get();
+      await store.touchApp("u1", "g1", at(0), at(-HOUR));
+      await store.touchApp("u1", "g2", at(0), at(-HOUR));
+      await store.touchApp("u2", "g1", at(0), at(-HOUR));
+      await store.forgetApps("u1", ["g1", "g9"]);
+      await store.forgetApps("u1", []);
+      expect(await store.appUses("u1")).toEqual(new Map([["g2", at(0)]]));
+      expect(await store.appUses("u2")).toEqual(new Map([["g1", at(0)]]));
+    });
+
+    it("are cleared with the person whose grants they were", async () => {
+      const store = get();
+      await store.upsertUser(
+        { sub: "u1", name: "Ana", picture: "", email: "ana@example.com", emailVerified: true },
+        at(0),
+      );
+      await store.touchApp("u1", "g1", at(0), at(-HOUR));
+      await store.touchApp("u2", "g1", at(0), at(-HOUR));
+      expect(await store.applyUserDeleted("evt-apps", "u1", at(SECOND))).toBe("applied");
+      expect(await store.appUses("u1")).toEqual(new Map());
+      expect(await store.appUses("u2")).toEqual(new Map([["g1", at(0)]]));
     });
   });
 }

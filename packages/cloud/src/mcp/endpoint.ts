@@ -6,8 +6,10 @@
 // gets a server of its own, built by `createMcpHandler` of `@modelcontextprotocol/server` (the 2025
 // revisions through its stateless leg, which answers as an event stream, and the 2026-07-28 revision
 // as JSON); no session id is issued. In this order, before the SDK reads anything: a protocol version
-// the SDK does not serve is `400`, a request without a token the service holds is `401` (the cookie
-// is never taken: `caller.ts`), and a body over 24 MiB is `413`, never read past the cap.
+// the SDK does not serve is `400` (`refusedVersion`, which the door asks first), a request without a
+// token the authorization server or the service holds is `401` (`oauth/provider.ts`, which hands this
+// module the caller; the cookie is never taken), and a body over 24 MiB is `413`, never read past
+// the cap.
 
 import {
   SUPPORTED_PROTOCOL_VERSIONS,
@@ -15,9 +17,8 @@ import {
   type McpHttpHandler,
 } from "@modelcontextprotocol/server";
 import type { Ctx } from "../context.js";
-import { ApiError, errorResponse } from "../errors.js";
 import { readCappedBytes } from "../http.js";
-import { authenticate } from "./caller.js";
+import type { Caller } from "./caller.js";
 import { createServer } from "./server.js";
 import type { McpSession } from "./tool.js";
 
@@ -80,31 +81,27 @@ function mcpHandler(): McpHttpHandler {
   return handler;
 }
 
-/** Serves a `POST /mcp` whose `Origin` the door has let through. */
-export async function serveMcp(ctx: Ctx): Promise<Response> {
-  const { request } = ctx;
+/** The `400` of a request naming a protocol version the SDK does not serve, or undefined. */
+export function refusedVersion(request: Request): Response | undefined {
   const version = request.headers.get("MCP-Protocol-Version");
-  if (version !== null && !servedVersion(version)) {
-    return rpcError(
-      400,
-      -32000,
-      `Bad Request: unsupported protocol version (supported: ${SUPPORTED_PROTOCOL_VERSIONS.join(", ")}).`,
-    );
-  }
+  if (version === null || servedVersion(version)) return undefined;
+  return rpcError(
+    400,
+    -32000,
+    `Bad Request: unsupported protocol version (supported: ${SUPPORTED_PROTOCOL_VERSIONS.join(", ")}).`,
+  );
+}
 
-  let session: McpSession;
-  try {
-    const caller = await authenticate(request, ctx.deps);
-    session = {
-      op: { env: ctx.env, deps: ctx.deps, config: ctx.config, principal: caller.principal },
-      caller,
-    };
-  } catch (error) {
-    if (!(error instanceof ApiError)) throw error;
-    const refused = errorResponse(error);
-    refused.headers.set("WWW-Authenticate", 'Bearer realm="meltemi-diagrams"');
-    return refused;
-  }
+/**
+ * Serves a `POST /mcp` whose `Origin` and protocol version the door let through and whose token the
+ * authorization server's library resolved to `caller`.
+ */
+export async function serveMcp(ctx: Ctx, caller: Caller): Promise<Response> {
+  const { request } = ctx;
+  const session: McpSession = {
+    op: { env: ctx.env, deps: ctx.deps, config: ctx.config, principal: caller.principal },
+    caller,
+  };
 
   const bytes = await readCappedBytes(request, MAX_MCP_BYTES);
   if (bytes === undefined) {

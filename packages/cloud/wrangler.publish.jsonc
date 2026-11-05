@@ -24,7 +24,7 @@
   "preview_urls": false,
   "observability": {
     "enabled": true,
-    "logs": { "enabled": true, "invocation_logs": true },
+    "logs": { "enabled": true, "invocation_logs": false },
   },
 
   // The same database and the same bucket as the main Worker: the `publications` rows say what

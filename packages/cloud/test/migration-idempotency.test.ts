@@ -19,10 +19,10 @@ const statementsOf = (sql: string): string[] =>
     .filter((statement) => statement !== "");
 
 describe("the idempotency migration file", () => {
-  it("is numbered 0008, after the sponsorships' 0007", () => {
+  it("is numbered 0008, after the sponsorships' 0007 and before Connected apps' 0009", () => {
     const names = migrationFiles().map((file) => file.name);
     expect(names).toContain(EIGHTH_FILE);
-    expect(names.at(-1)).toBe(EIGHTH_FILE);
+    expect(names.slice(-2)).toEqual([EIGHTH_FILE, "0009_connected_apps.sql"]);
   });
 
   it("only creates two tables and an index: no transaction control, no pragma, no data, no drop", () => {

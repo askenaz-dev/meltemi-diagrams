@@ -45,7 +45,10 @@
  *   `review --base cloud`, `push` refused, checked and forced, `pull`, `publish` read back at
  *   `/_published/`, `projects --json`, `logout`, and no `mdg_` token in anything printed or logged
  *   (`scenarios-cli`); an agent's MCP client with an API token, the renderer object's checks, previews
- *   and catalog, and a publication read back (`scenarios-mcp`);
+ *   and catalog, and a publication read back (`scenarios-mcp`); an agent registered by dynamic
+ *   registration, the consent page approved in English and denied in Spanish, the code exchanged
+ *   with PKCE, the token opening `/mcp` and refused once revoked from Connected apps
+ *   (`scenarios-oauth`);
  *   `cloud.ts`, `sharing.ts`, `collaboration.ts`, `room-socket.ts` and `mdg.ts` hold what they share;
  * - last, with the identity service gone, that a minted session still counts in development.
  *
@@ -119,6 +122,7 @@ import { versionScenarios } from "./scenarios-versions.js";
 import { viewingScenarios } from "./scenarios-viewing.js";
 import { workerScenarios } from "./scenarios-worker.js";
 import { mcpScenarios } from "./scenarios-mcp.js";
+import { oauthScenarios } from "./scenarios-oauth.js";
 import { startFakeIdentity, type FakeIdentity } from "./identity.js";
 import {
   CLOUD,
@@ -1021,6 +1025,7 @@ scenarios.push(
   ...workerScenarios,
   ...publishingScenarios,
   ...mcpScenarios,
+  ...oauthScenarios,
   ...viewingScenarios,
   ...sharingScenarios,
   ...publishDialogScenarios,

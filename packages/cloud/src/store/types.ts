@@ -819,9 +819,11 @@ export type KeyOutcome =
 
 /**
  * The idempotency keys of `POST /api/projects` and `PUT /api/projects/:id/files`
- * (`cloud-projects`, "Idempotent creation and pushes") and the windows of the MCP endpoint's rate
+ * (`cloud-projects`, "Idempotent creation and pushes"), the windows of the MCP endpoint's rate
  * limits (`mcp-server`, "Limits of the endpoint"; `mcp-previews`, "Limits of previews"), in the
- * tables of `migrations/0008_idempotency.sql`. Both are an account's and go when it is deleted.
+ * tables of `migrations/0008_idempotency.sql`, and the last uses of the account's OAuth grants
+ * (`mcp-authorization`, "Connected apps"; `0009_connected_apps.sql`). All are an account's and go
+ * when it is deleted.
  */
 export interface CallsStore {
   /**
@@ -843,4 +845,16 @@ export interface CallsStore {
    * that kind go in the same step. One statement counts, so calls that race cannot pass a limit.
    */
   countCall(sub: string, kind: string, window: string): Promise<number>;
+
+  // ---- Connected apps (`migrations/0009_connected_apps.sql`) ---------------------------------
+
+  /**
+   * Records that the account's grant `grantId` was used at `at`, unless the use it holds is at or
+   * after `since`: one statement, so that a grant's row is written at most once in that span.
+   */
+  touchApp(sub: string, grantId: string, at: Iso, since: Iso): Promise<void>;
+  /** When each grant of the account was last used, by grant id; a grant never used is not there. */
+  appUses(sub: string): Promise<ReadonlyMap<string, Iso>>;
+  /** Forgets the last use of the account's grants `grantIds`: they were revoked, or are gone. */
+  forgetApps(sub: string, grantIds: readonly string[]): Promise<void>;
 }

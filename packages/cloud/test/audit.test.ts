@@ -278,16 +278,25 @@ describe("the Origin rule", () => {
         .sort();
 
     // The ones that read no cookie: the identity service's event and GitHub Sponsors' delivery
-    // (each a signature), the command line's exchange (a one-time code) and the MCP endpoint (a
-    // bearer token, and its own `Origin` check before anything: `routes/mcp.ts`). Any other route
+    // (each a signature), the command line's exchange (a one-time code), the MCP endpoint (a
+    // bearer token, and its own `Origin` check before anything: `routes/mcp.ts`) and the
+    // authorization server's token endpoint and registration, with the preflights of its addresses
+    // (the client's own credentials and PKCE; the library's, `oauth/provider.ts`). Any other route
     // that changes state must resolve who is asking, which is what applies the rule; a new one that
     // does not fails here, to be looked at.
     expect(listed(false)).toEqual([
       "DELETE /mcp",
+      "OPTIONS /\\.well-known/oauth-authorization-server",
+      "OPTIONS /\\.well-known/oauth-protected-resource",
+      "OPTIONS /\\.well-known/oauth-protected-resource/mcp",
+      "OPTIONS /oauth/register",
+      "OPTIONS /oauth/token",
       "POST /_identity/events",
       "POST /_sponsors/github",
       "POST /cli-auth/token",
       "POST /mcp",
+      "POST /oauth/register",
+      "POST /oauth/token",
     ]);
     // The three the next test goes through; a route a later change adds to them goes through it too.
     // The routes of publishing resolve who is asking as well: a handle is chosen with the cookie or a token, a
@@ -301,6 +310,9 @@ describe("the Origin rule", () => {
         "PUT /api/projects/([^/]+)/publish",
         "DELETE /api/projects/([^/]+)/publish/([^/]+)",
         "DELETE /api/admin/publications/([^/]+)/([^/]+)",
+        // The consent's decision and the revocation of a connected app: the cookie's, from the page.
+        "POST /oauth/authorize",
+        "DELETE /api/account/apps/([^/]+)",
       ]),
     );
   });

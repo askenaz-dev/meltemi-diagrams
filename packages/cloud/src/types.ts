@@ -31,7 +31,10 @@ export interface Deps {
   readonly publicFetch?: typeof fetch;
 }
 
-/** Who is asking: a person with a session cookie, or a bearer API token. */
+/**
+ * Who is asking: a person with a session cookie, a bearer API token, or, on the MCP endpoint only,
+ * an OAuth access token of a grant the person approved (`mcp/caller.ts`).
+ */
 export type Principal =
   | {
       readonly via: "cookie";
@@ -50,4 +53,12 @@ export type Principal =
       readonly sub: string;
       readonly tokenId: string;
       readonly tokenName: string;
+    }
+  | {
+      readonly via: "oauth";
+      readonly sub: string;
+      /** The grant the access token belongs to: Connected apps names and revokes it. */
+      readonly grantId: string;
+      /** The OAuth client the grant was approved for. */
+      readonly clientId: string;
     };

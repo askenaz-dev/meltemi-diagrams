@@ -11,6 +11,7 @@
     "migrate": "wrangler d1 migrations apply DB"
   },
   "dependencies": {
+    "@cloudflare/workers-oauth-provider": "1.2.3",
     "@fontsource/cascadia-mono": "5.3.0",
     "@fontsource/inter": "5.3.0",
     "@fontsource/patrick-hand": "5.3.0",

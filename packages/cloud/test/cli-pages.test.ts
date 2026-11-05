@@ -757,7 +757,8 @@ describe("GET /cli-auth/style.css", () => {
   });
 
   it("is small", () => {
-    expect(CLI_AUTH_CSS.length).toBeLessThan(6000);
+    // It styles the service's two pages, the command line's approval and the consent of agents.
+    expect(CLI_AUTH_CSS.length).toBeLessThan(8000);
   });
 });
 

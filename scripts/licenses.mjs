@@ -47,6 +47,10 @@ const NOTES = new Map([
     "used under Apache-2.0, unmodified, by the hosted service's MCP endpoint (change agent-mcp)",
   ],
   [
+    "@cloudflare/workers-oauth-provider",
+    "used under MIT, unmodified, by the hosted service's authorization server for the MCP endpoint (change agent-mcp)",
+  ],
+  [
     "@resvg/resvg-wasm",
     "used under MPL-2.0, unmodified, by the hosted service's PNG previews (change agent-mcp); source: https://github.com/yisibl/resvg-js",
   ],

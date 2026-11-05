@@ -9,6 +9,7 @@ or glyph outlines), which the SIL Open Font License 1.1 permits.
 
 | Package | Version | License | Notes | Homepage |
 | --- | --- | --- | --- | --- |
+| @cloudflare/workers-oauth-provider | 1.2.3 | MIT | used under MIT, unmodified, by the hosted service's authorization server for the MCP endpoint (change agent-mcp) | https://github.com/cloudflare/workers-oauth-provider#readme |
 | @fontsource/cascadia-mono | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/cascadia-mono |
 | @fontsource/caveat | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/caveat |
 | @fontsource/comic-neue | 5.3.0 | OFL-1.1 | embedded | https://fontsource.org/fonts/comic-neue |

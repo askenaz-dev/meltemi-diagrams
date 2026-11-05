@@ -3,6 +3,7 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ConfigError, publishHostOf, readConfig, readIdentity } from "../src/config.js";
+import { parseJsonc } from "./browser/worker.js";
 import { testEnv } from "./support/index.js";
 
 const PACKAGE = new URL("../", import.meta.url);
@@ -58,6 +59,7 @@ describe("wrangler.jsonc", () => {
       binding: "ASSETS",
       not_found_handling: "none",
       run_worker_first: [
+        "/.well-known/*",
         "/api/*",
         "/_identity/*",
         "/_published/*",
@@ -66,6 +68,7 @@ describe("wrangler.jsonc", () => {
         "/cli-auth/*",
         "/mcp",
         "/mcp/*",
+        "/oauth/*",
         "/p/*",
         "/rooms/*",
       ],
@@ -195,6 +198,39 @@ describe("wrangler.jsonc", () => {
     expect(vars["ORIGIN"]).toBe("https://diagrams.meltemi.dev");
   });
 
+  it("signs its identity calls as the product diagrams, which PRODUCT_NAME names", () => {
+    expect(vars["PRODUCT_NAME"]).toBe("diagrams");
+    const config = (env: Parameters<typeof testEnv>[0]) =>
+      readConfig(testEnv(env), new Request("https://diagrams.meltemi.dev/"));
+    expect(config({}).productName).toBe("diagrams");
+    expect(config({ PRODUCT_NAME: " diagrams-staging " }).productName).toBe("diagrams-staging");
+    expect(config({ PRODUCT_NAME: "" }).productName).toBe("diagrams");
+  });
+
+  it("binds the authorization server's KV as OAUTH_KV with a placeholder id the deploy fills in", () => {
+    expect(wrangler["kv_namespaces"]).toEqual([
+      { binding: "OAUTH_KV", id: "00000000000000000000000000000000" },
+    ]);
+  });
+
+  it("keeps the Worker's own log lines and no invocation logs, in both Workers", () => {
+    // An invocation log records every request's address, and some grant access
+    // (`/api/invitations/<token>/accept`, a page opened with `?invite=` or `?live=`).
+    const publish = parseJsonc(
+      readFileSync(new URL("wrangler.publish.jsonc", PACKAGE), "utf8"),
+    ) as Record<string, unknown>;
+    for (const config of [wrangler, publish]) {
+      expect(config["observability"]).toEqual({
+        enabled: true,
+        logs: { enabled: true, invocation_logs: false },
+      });
+    }
+  });
+
+  it("fetches client-id metadata documents strictly on the public internet", () => {
+    expect(wrangler["compatibility_flags"]).toEqual(["global_fetch_strictly_public"]);
+  });
+
   it("publishes at meltemi.page, a host the service accepts", () => {
     const host = vars["PUBLISH_HOST"];
     expect(host).toBe("meltemi.page");
@@ -229,6 +265,7 @@ describe("wrangler.jsonc", () => {
       "PUBLISH_HOST",
       "SPONSORS_ACCOUNT",
       "SPONSORS_WEBHOOK_SECRET",
+      "PRODUCT_NAME",
     ]) {
       expect(example, name).toMatch(new RegExp(`^#?\\s*${name}=`, "m"));
     }

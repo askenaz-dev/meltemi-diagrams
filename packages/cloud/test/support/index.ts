@@ -10,11 +10,13 @@ import { memoryStore } from "../../src/store/memory.js";
 import type { CloudStore } from "../../src/store/types.js";
 import type { Deps } from "../../src/types.js";
 import { createVerifier } from "../../src/verifier.js";
+import { fakeKV, type FakeKV } from "./kv.js";
 import { fakeR2, type FakeR2 } from "./r2.js";
 import { memoryRooms, type MemoryRooms, type MemoryRoomsOptions } from "./rooms.js";
 
 export { memoryStore, testKeys };
 export { fakeR2, type FakeR2 };
+export { fakeKV, type FakeKV };
 export { memoryRooms, type MemoryRooms };
 
 // ---------------------------------------------------------------------------------------------
@@ -139,6 +141,7 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
       },
     },
     BLOBS: fakeR2(),
+    OAUTH_KV: fakeKV(),
     ...overrides,
   };
 }

@@ -3,6 +3,7 @@ import type { Route } from "../context.js";
 import { fail } from "../errors.js";
 import { json, readCappedBytes } from "../http.js";
 import { publishedKey, thumbnailKey } from "../keys.js";
+import { revokeAppsOf } from "./apps.js";
 
 /** The most a deletion event may weigh: a real one is under 300 bytes. */
 const MAX_BODY_BYTES = 8 * 1024;
@@ -66,8 +67,9 @@ function readEvent(body: string): IdentityEvent {
  * A `user.deleted` event removes everything held for its `sub` once (delivery is at least once, so
  * a repeat of an event id changes nothing): the user, tokens and codes, the projects with their rows
  * (members, invitations and publications included), the person's memberships in the projects of
- * others and their open sockets there, and the rooms, thumbnails and published pages that no row
- * names. The answer is `200` only
+ * others and their open sockets there, the rooms, thumbnails and published pages that no row
+ * names, and the OAuth grants the person approved (Connected apps), whose tokens are refused from
+ * then on. The answer is `200` only
  * after the data is gone; a failure is a non-2xx, which the identity service retries. Any other type
  * of event is signed, acknowledged and ignored.
  */
@@ -117,6 +119,9 @@ export const eventsRoute: Route = async (ctx) => {
     for (const projectId of shared) await rooms.disconnect(projectId, { sub: event.sub });
   }
   const status = await store.applyUserDeleted(event.id, event.sub, event.at);
+  // The agents connected to the account: revoked whether or not this delivery is the first, since a
+  // failure here is retried as the rest is; only the grants approved before the deletion.
+  await revokeAppsOf(ctx, event.sub, event.at);
   for (const projectId of shared) {
     try {
       await rooms.disconnect(projectId, { sub: event.sub });

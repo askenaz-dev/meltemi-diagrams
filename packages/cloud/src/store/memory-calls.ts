@@ -1,5 +1,5 @@
-// The idempotency keys and the call windows in memory (`CallsStore`), as `d1-calls.ts` keeps them in
-// D1: the same answers for the same calls, which the conformance suite holds both to. `memoryStore`
+// The idempotency keys, the call windows and the last uses of OAuth grants in memory (`CallsStore`),
+// as `d1-calls.ts` keeps them in D1: the same answers for the same calls, which the conformance suite holds both to. `memoryStore`
 // spreads it into the store and calls `forget` when a person is deleted.
 
 import type { CallsStore, KeptAnswer, KeyOutcome } from "./types.js";
@@ -16,6 +16,8 @@ export function memoryCalls(): CallsStore & { forget(sub: string): void } {
   const keys = new Map<string, Map<string, KeyRow>>();
   // By account and kind, the count of each minute.
   const windows = new Map<string, Map<string, number>>();
+  // By account, the last use of each grant.
+  const uses = new Map<string, Map<string, string>>();
 
   return {
     async claimKey(claim, expiredBefore, staleBefore): Promise<KeyOutcome> {
@@ -64,8 +66,21 @@ export function memoryCalls(): CallsStore & { forget(sub: string): void } {
       counts.set(window, count);
       return count;
     },
+    async touchApp(sub, grantId, at, since) {
+      const held = uses.get(sub) ?? new Map<string, string>();
+      uses.set(sub, held);
+      const last = held.get(grantId);
+      if (last === undefined || last < since) held.set(grantId, at);
+    },
+    async appUses(sub) {
+      return new Map(uses.get(sub) ?? []);
+    },
+    async forgetApps(sub, grantIds) {
+      for (const grantId of grantIds) uses.get(sub)?.delete(grantId);
+    },
     forget(sub) {
       keys.delete(sub);
+      uses.delete(sub);
       for (const id of windows.keys()) {
         if ((JSON.parse(id) as [string, string])[0] === sub) windows.delete(id);
       }
