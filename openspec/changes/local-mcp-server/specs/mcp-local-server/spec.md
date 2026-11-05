@@ -176,14 +176,14 @@ replaying what it kept for the key or refusing with `revision.mismatch`.
 - **THEN** the result is `isError` with `code: "revision.mismatch"` and `revision: 43`, and nothing changed
 
 ### Requirement: Publishing from the machine
-`publish` SHALL build the catalog in the server's process, as `mdg publish` builds it for the same
-files (the same generator and the same catalog script), and send it with
-`PUT /api/projects/<id>/publish`. It SHALL answer the hosted tool's fields, check that the address
+`publish` SHALL build the catalog in the server's process with the renderer object's engine, from
+the files at the revision the HTTP API answered, the command line's catalog script and its
+generator, and send it with `PUT /api/projects/<id>/publish`. It SHALL answer the hosted tool's fields, check that the address
 serves as the hosted tool checks it, and refuse an empty catalog with the hosted tool's code.
 
-#### Scenario: The same page as the command line
-- **WHEN** `publish` is called for a project and `mdg publish` runs on a pulled copy of the same revision
-- **THEN** the two HTML bodies sent are byte-equal
+#### Scenario: The same page as the endpoint
+- **WHEN** `publish` is called for a project, and the renderer object's core builds the catalog of the same files with the same script and generator
+- **THEN** the HTML sent and the HTML built are byte-equal
 
 #### Scenario: Nothing to publish
 - **WHEN** the project has no diagram

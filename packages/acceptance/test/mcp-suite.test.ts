@@ -267,3 +267,51 @@ describe("the host", () => {
     expect(targetFrom({ MELTEMI_ORIGIN: "ftp://example" })).toBeUndefined();
   });
 });
+
+describe("a run through the local server (--local)", () => {
+  it("asks nothing of the endpoint, and says why the endpoint's own steps are skipped", async () => {
+    const { log } = quietLog();
+    const asked: string[] = [];
+    const recording: Fetch = async (input) => {
+      asked.push(new URL(input).pathname);
+      return challengeOnly(input);
+    };
+    const state = newState({
+      target: { origin: "https://staging.example", endpoint: "https://staging.example/mcp" },
+      capabilities: { token: false, token2: false, local: true },
+      tokens: {},
+      fetcher: recording,
+      runId: "test",
+    });
+    const outcome = await runSteps(STEPS, state, state.capabilities, log);
+    expect(outcome.passed).toBe(true);
+    expect(asked).not.toContain("/mcp");
+    for (const name of [
+      "27 discovery: the metadata documents name the endpoint and S256",
+      "27 initialize and tools/list without a token: 401 with the challenge",
+      "27 a token the service did not issue: 401",
+      "28 a code or a refresh token the server never issued is refused",
+      "28 a refresh token rotates once and a revoked grant is refused",
+    ]) {
+      expect(
+        outcome.results.find((r) => r.step === name),
+        name,
+      ).toMatchObject({
+        outcome: "skipped",
+        reason: NEED_REASONS.endpoint,
+      });
+    }
+  });
+
+  it("refuses to start without the built command line, naming it", async () => {
+    const { startLocalServers } = await import("../src/mcp/local.js");
+    await expect(
+      startLocalServers({
+        bin: "/nowhere/packages/cli/dist/bin.js",
+        origin: "https://staging.example",
+        tokens: { first: TOKEN },
+        log: "/nowhere/mdg-mcp.log",
+      }),
+    ).rejects.toThrow(/\/nowhere\/packages\/cli\/dist\/bin\.js/);
+  });
+});

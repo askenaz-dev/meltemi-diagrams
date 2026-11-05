@@ -149,6 +149,49 @@ proyecto escribe en él, pero solo su propietario lo comparte o lo publica. Las 
 reglas están en [el endpoint MCP](cloud.md#el-endpoint-mcp), y cómo se acepta el endpoint en
 [la aceptación del MCP](../quality/mcp-acceptance.md).
 
+## A través del servidor local
+
+La línea de comandos sirve las mismas herramientas en tu máquina: `mdg mcp`, un servidor MCP local
+por HTTP streamable. Actúa sobre los proyectos de tu cuenta a través de la API del servicio, con tu
+`mdg login` (o `MELTEMI_TOKEN` en su entorno), y dibuja las vistas previas, comprueba los archivos y
+arma los catálogos en tu máquina, con el motor que usa el endpoint: las mismas herramientas, las
+mismas respuestas y las mismas imágenes. Elígelo para un agente que corre en tu máquina (la línea de
+comandos o la app de Codex, Claude Code, Cursor); un cliente que solo llega a una dirección de
+internet usa el endpoint. Ponlo en marcha en una terminal y déjalo así mientras el agente trabaja:
+
+```bash
+npx -y @meltemi/diagrams-cli@latest mcp
+```
+
+Imprime su dirección, `http://127.0.0.1:7373/mcp` (`--port` elige otra). Conecta el agente a ella
+una vez:
+
+```bash
+codex mcp add meltemi --url http://127.0.0.1:7373/mcp
+```
+
+```bash
+claude mcp add --transport http meltemi http://127.0.0.1:7373/mcp
+```
+
+En Cursor, `.cursor/mcp.json` lleva `{ "mcpServers": { "meltemi": { "url": "http://127.0.0.1:7373/mcp" } } }`.
+Sin sesión iniciada el servidor arranca igual, y sus herramientas responden `auth.required` hasta que
+ejecutas `mdg login` en otra terminal; la llamada siguiente ya la usa.
+
+Con `--folder`, sirve dos herramientas, `validate` y `preview`, sobre los archivos `.meltemi` de una
+carpeta del disco, sin cuenta y sin red: un agente que trabaja en un repositorio escribe los archivos
+con sus propias herramientas y los mira como imágenes.
+
+```bash
+npx -y @meltemi/diagrams-cli@latest mcp --folder .
+```
+
+Escucha solo en `127.0.0.1` y rechaza las peticiones de páginas web. En una computadora donde otras
+personas inician sesión, define `MELTEMI_MCP_KEY` (16 caracteres o más) en el entorno del servidor y
+en el del agente: cada petición debe llevarla entonces como token bearer
+(`--bearer-token-env-var MELTEMI_MCP_KEY` en Codex, `--header "Authorization: Bearer …"` en Claude
+Code). El comando, sus opciones y sus rechazos están en [la línea de comandos](cli.md#el-servidor-mcp-local-mcp).
+
 ## En este repositorio
 
 La skill canónica es `skills/meltemi-diagrams/`; `pnpm skills:sync` la copia en `.claude/skills/`,

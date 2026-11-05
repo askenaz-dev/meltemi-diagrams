@@ -291,6 +291,7 @@ The same code names both.
 | `idempotency.mismatch` | 409    | An `Idempotency-Key` the account used, within the last day, for another route or another body; nothing changes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | `idempotency.pending`  | 409    | An `Idempotency-Key` whose first request is still being answered; ask again in a moment                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `publish.unverified`   | 502    | The MCP tool `publish` stored the page, but its public address did not answer `200` when read back once; `url` names it, and the publication exists                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `renderer.unavailable` | 503    | The renderer object cannot draw or check diagrams now (its CPU limit, an overload, a reset); the MCP tools `preview`, `validate`, `write_files` and `publish` answer it, having changed nothing, and its message names `mdg mcp`, which does the same work on the person's machine                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | `internal`             | 500    | Anything unexpected, or a configuration the service cannot run with; the answer holds no detail; on a socket, a message the room could not handle (`4500`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 
 The approval page at `/cli-auth` answers `cli.invalid` and `request.forbidden` as pages that show
@@ -347,45 +348,46 @@ the person may not open at all is `404 project.not-found`. [The projects API](#t
 [Sharing and permissions](#sharing-and-permissions) and [Publishing](#publishing) have their
 shapes.
 
-| Route                                          | Answer                                                                               |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `GET /api/projects`                            | `200 { projects }`                                                                   |
-| `POST /api/projects`                           | `201`, the project                                                                   |
-| `GET /api/projects/<id>`                       | `200`, the project                                                                   |
-| `PATCH /api/projects/<id>`                     | `200`, the project                                                                   |
-| `DELETE /api/projects/<id>`                    | `204`                                                                                |
-| `POST /api/projects/<id>/duplicate`            | `201`, the copy (and `skipped`, when files were left)                                |
-| `GET /api/projects/<id>/files`                 | `200 { revision, files, binaries, collisions }`                                      |
-| `PUT /api/projects/<id>/files`                 | `200 { revision }`                                                                   |
-| `PUT /api/projects/<id>/binaries/<path>`       | `200 { hash }`                                                                       |
-| `DELETE /api/projects/<id>/binaries/<path>`    | `204`                                                                                |
-| `GET /api/projects/<id>/blobs/<hash>`          | `200`, the bytes, sandboxed                                                          |
-| `HEAD /api/projects/<id>/blobs/<hash>`         | `200`, the headers of the `GET`                                                      |
-| `POST /api/projects/<id>/versions`             | `201`, the version                                                                   |
-| `GET /api/projects/<id>/versions`              | `200 { versions }`                                                                   |
-| `GET /api/projects/<id>/versions/<n>`          | `200`, the version with its files                                                    |
-| `POST /api/projects/<id>/versions/<n>/restore` | `200 { revision, restored, saved, skipped? }`                                        |
-| `PUT /api/projects/<id>/thumbnail`             | `204`                                                                                |
-| `GET /api/projects/<id>/thumbnail`             | `200`, the SVG, sandboxed                                                            |
-| `GET /api/projects/<id>/sharing`               | `200`, the link level, the asker's role and, as far as they may see them, the people |
-| `PATCH /api/projects/<id>/sharing`             | `200`, the whole state of the sharing                                                |
-| `POST /api/projects/<id>/members`              | `201`, the invitation with its link (`200` when the email already had one pending)   |
-| `PATCH /api/projects/<id>/members/<sub>`       | `200`, the member                                                                    |
-| `DELETE /api/projects/<id>/members/<sub>`      | `204`                                                                                |
-| `DELETE /api/projects/<id>/members/me`         | `204`                                                                                |
-| `GET /api/projects/<id>/invitations`           | `200 { invitations }`                                                                |
-| `DELETE /api/projects/<id>/invitations/<id>`   | `204`                                                                                |
-| `GET /api/projects/<id>/publish`               | `200 { handle, publications, takedowns }`                                            |
-| `PUT /api/projects/<id>/publish`               | `200 { url, handle, slug, bytes, published_at }`                                     |
-| `DELETE /api/projects/<id>/publish/<slug>`     | `204`                                                                                |
-| `PUT /api/projects/<id>/live`                  | `200 { id, link, guestsEdit, startedAt, until, guests }`                             |
-| `GET /api/projects/<id>/live`                  | `200`, the live session as `PUT` answers it, or `null`                               |
-| `DELETE /api/projects/<id>/live`               | `204`                                                                                |
-| `GET /api/account/usage`                       | `200 { projects, storageBytes, limits }`                                             |
-| `GET /api/dev/rooms/<id>/stats`                | development only: `200`, the room's counters                                         |
-| `POST /api/dev/rooms/<id>/disconnect`          | development only: `200 { closed }`                                                   |
-| `POST /api/dev/rooms/<id>/limits`              | development only: `200 { clients }`                                                  |
-| `POST /api/dev/collect`                        | development only: `200`, what the collection did                                     |
+| Route                                          | Answer                                                                                                    |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `GET /api/projects`                            | `200 { projects }`                                                                                        |
+| `POST /api/projects`                           | `201`, the project                                                                                        |
+| `GET /api/projects/<id>`                       | `200`, the project                                                                                        |
+| `PATCH /api/projects/<id>`                     | `200`, the project                                                                                        |
+| `DELETE /api/projects/<id>`                    | `204`                                                                                                     |
+| `POST /api/projects/<id>/duplicate`            | `201`, the copy (and `skipped`, when files were left)                                                     |
+| `GET /api/projects/<id>/files`                 | `200 { revision, files, binaries, collisions }`                                                           |
+| `PUT /api/projects/<id>/files`                 | `200 { revision }`                                                                                        |
+| `PUT /api/projects/<id>/binaries/<path>`       | `200 { hash }`                                                                                            |
+| `DELETE /api/projects/<id>/binaries/<path>`    | `204`                                                                                                     |
+| `GET /api/projects/<id>/blobs/<hash>`          | `200`, the bytes, sandboxed                                                                               |
+| `HEAD /api/projects/<id>/blobs/<hash>`         | `200`, the headers of the `GET`                                                                           |
+| `POST /api/projects/<id>/versions`             | `201`, the version                                                                                        |
+| `GET /api/projects/<id>/versions`              | `200 { versions }`                                                                                        |
+| `GET /api/projects/<id>/versions/<n>`          | `200`, the version with its files                                                                         |
+| `POST /api/projects/<id>/versions/<n>/restore` | `200 { revision, restored, saved, skipped? }`                                                             |
+| `PUT /api/projects/<id>/thumbnail`             | `204`                                                                                                     |
+| `GET /api/projects/<id>/thumbnail`             | `200`, the SVG, sandboxed                                                                                 |
+| `GET /api/projects/<id>/sharing`               | `200`, the link level, the asker's role and, as far as they may see them, the people                      |
+| `PATCH /api/projects/<id>/sharing`             | `200`, the whole state of the sharing                                                                     |
+| `POST /api/projects/<id>/members`              | `201`, the invitation with its link (`200` when the email already had one pending)                        |
+| `PATCH /api/projects/<id>/members/<sub>`       | `200`, the member                                                                                         |
+| `DELETE /api/projects/<id>/members/<sub>`      | `204`                                                                                                     |
+| `DELETE /api/projects/<id>/members/me`         | `204`                                                                                                     |
+| `GET /api/projects/<id>/invitations`           | `200 { invitations }`                                                                                     |
+| `DELETE /api/projects/<id>/invitations/<id>`   | `204`                                                                                                     |
+| `GET /api/projects/<id>/publish`               | `200 { handle, publications, takedowns }`                                                                 |
+| `PUT /api/projects/<id>/publish`               | `200 { url, handle, slug, bytes, published_at }`                                                          |
+| `DELETE /api/projects/<id>/publish/<slug>`     | `204`                                                                                                     |
+| `PUT /api/projects/<id>/live`                  | `200 { id, link, guestsEdit, startedAt, until, guests }`                                                  |
+| `GET /api/projects/<id>/live`                  | `200`, the live session as `PUT` answers it, or `null`                                                    |
+| `DELETE /api/projects/<id>/live`               | `204`                                                                                                     |
+| `GET /api/account/usage`                       | `200 { projects, storageBytes, limits }`                                                                  |
+| `GET /api/account/publications`                | `200 { handle, publications }`: every publication of the projects the asker owns, each with its `project` |
+| `GET /api/dev/rooms/<id>/stats`                | development only: `200`, the room's counters                                                              |
+| `POST /api/dev/rooms/<id>/disconnect`          | development only: `200 { closed }`                                                                        |
+| `POST /api/dev/rooms/<id>/limits`              | development only: `200 { clients }`                                                                       |
+| `POST /api/dev/collect`                        | development only: `200`, what the collection did                                                          |
 
 Times are ISO 8601 in UTC with milliseconds.
 
@@ -445,7 +447,8 @@ identity service's page and `signOut` the address a form posts to, with the fiel
 end the session. A bearer token, so that the command line learns which token it holds, with
 neither `account` nor `signOut`, nor the two administration fields, since a program does not
 administer; it carries the handle too, but resolves no invitation, because only the cookie holds a
-verified email:
+verified email. It carries the account's own `email` as the service holds it (an empty string
+when it holds none), which the local MCP server's `whoami` answers:
 
 ```json
 {
@@ -454,7 +457,8 @@ verified email:
     "name": "Ana",
     "picture": "https://avatars.githubusercontent.com/u/1",
     "handle": "ana",
-    "entitlements": { "unbranded": false, "unbrandedBy": null }
+    "entitlements": { "unbranded": false, "unbrandedBy": null },
+    "email": "ana@example.com"
   },
   "token": { "id": "5f0c2a9e", "name": "laptop" }
 }
@@ -2231,6 +2235,29 @@ a minute per account, with a report beside it. `invite` answers the invitation's
 `emailSent: false`. `publish` has the renderer object build the catalog the page publishes, stores
 it, and reads the public address back once (`HEAD`): an address that does not answer `200` is
 `502 publish.unverified` with its `url`, and the publication exists.
+
+When a call to the renderer object fails (its CPU limit exceeded, the object overloaded or reset),
+`preview`, `validate`, `write_files` and `publish` answer `503 renderer.unavailable`, whose message
+names `mdg mcp`; `write_files` and `publish` then have changed nothing, and the idempotency key keeps
+no answer, so a retry works once the object answers.
+
+### The local server
+
+`mdg mcp` serves the same catalogue on the person's machine ([the command line](cli.md#the-local-mcp-server-mcp),
+decision 0073): the definitions, the call wrapper, the stateless handler and the renderer's engine are
+the public package `@meltemi/diagrams-mcp`, which the endpoint is built from too, and a test compares
+the two `tools/list`. Its tools act through the routes above with the command line's API token, and
+never call `/mcp` or the renderer object:
+
+| Tool                                  | On the person's machine                                   | Through the API                                                     |
+| ------------------------------------- | --------------------------------------------------------- | ------------------------------------------------------------------- |
+| `preview`                             | the picture and its report, with the renderer's engine    | `GET …/files`, and `GET …/blobs/<hash>` for its images and fonts    |
+| `validate`                            | the diagnostics                                           | `GET …/files`                                                       |
+| `write_files`                         | the check of every `.meltemi` file written                | `GET …/files`, then `PUT …/files` with `Idempotency-Key`            |
+| `publish`                             | the catalog, with the command line's script and generator | `GET …/publish`, `GET …/files`, `PUT …/publish`, a `HEAD` read-back |
+| `whoami`                              |                                                           | `GET /api/session` (its `email`), `GET /api/account/usage`          |
+| `list_publications` without a project |                                                           | `GET /api/account/publications`                                     |
+| every other tool                      |                                                           | the route its operation is                                          |
 
 ### Authorization
 

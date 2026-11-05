@@ -106,7 +106,7 @@ gh workflow run release.yml --ref main -f ci_run_id=123456789 -f release_run_id=
 
 Dispatch repeats API/source checks; it cannot bypass failed CI. Artifact recovery validates the
 Release workflow/repository/main commit, the original successful check attempt, GitHub's ZIP digest,
-the source/CI metadata, all nineteen package identities and every manifest file hash. It skips the
+the source/CI metadata, all twenty package identities and every manifest file hash. It skips the
 build and reuses the original bytes. A missing, expired or inconsistent original artifact fails;
 a later rebuilt attempt is never silently substituted.
 

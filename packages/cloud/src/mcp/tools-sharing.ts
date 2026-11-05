@@ -1,9 +1,10 @@
-// The sharing tools (`mcp-server`, "Sharing through the tools"): the link level, the members and the
-// invitations of a project, over the operations of `operations/sharing.ts`. Each needs the role its
-// route needs (sharing is the owner's, reading the state anybody's the link admits) and the `sharing`
-// scope. An invitation sends no email: its answer says so, and carries the link the person passes on.
+// The Worker's answers to the sharing tools (`mcp-server`, "Sharing through the tools"): the link
+// level, the members and the invitations of a project, over the operations of `operations/sharing.ts`.
+// Each needs the role its route needs (sharing is the owner's, reading the state anybody's the link
+// admits) and the `sharing` scope. An invitation sends no email: its answer says so, and carries the
+// link the person passes on.
 
-import * as z from "zod";
+import { TOOLS, projectLink } from "@meltemi/diagrams-mcp";
 import {
   getSharing,
   invite,
@@ -13,180 +14,48 @@ import {
   setLinkAccess,
   setMemberRole,
 } from "../operations/sharing.js";
-import { projectArg, roleSchema } from "./shapes.js";
-import { tool, type AnyTool } from "./tool.js";
+import { implement, type AnyImplementation } from "./tool.js";
 
-const linkAccessSchema = z.enum(["private", "view", "edit"]);
-const memberRoleSchema = z.enum(["viewer", "editor"]);
-
-const memberSchema = z.object({
-  sub: z.string(),
-  name: z.string(),
-  picture: z.string(),
-  email: z.string().optional().describe("Shown to the owner only."),
-  role: memberRoleSchema,
-  added_at: z.string().optional(),
+const getSharingTool = implement(TOOLS.get_sharing, async (session, { project }) => {
+  return { structured: await getSharing(session.op, project) };
 });
 
-const invitationSchema = z.object({
-  id: z.string(),
-  email: z.string(),
-  role: memberRoleSchema,
-  created_at: z.string(),
-  expires_at: z.string(),
-  link: z.string().describe("The link that accepts the invitation: give it to the person invited."),
+const setLinkAccessTool = implement(TOOLS.set_link_access, async (session, { project, level }) => {
+  const state = await setLinkAccess(session.op, project, { linkAccess: level });
+  return { structured: { ...state, link: projectLink(session.op.config.origin, project) } };
 });
 
-const sharingSchema = z.object({
-  linkAccess: linkAccessSchema,
-  role: roleSchema,
-  members: z.array(memberSchema).optional(),
-  invitations: z.array(invitationSchema).optional(),
+const inviteTool = implement(TOOLS.invite, async (session, { project, email, role }) => {
+  const { invitation, created } = await invite(session.op, project, { email, role });
+  const { link, ...rest } = invitation;
+  return { structured: { invitation: rest, link, emailSent: false as const, created } };
 });
 
-/** The project's link: whoever holds it gets what the link level gives. */
-const projectLink = (origin: string, project: string) =>
-  `${origin}/p/${encodeURIComponent(project)}`;
-
-const getSharingTool = tool({
-  name: "get_sharing",
-  title: "Get sharing",
-  description:
-    "Who the project is shared with: its link level (private, view or edit), the account's role, and for the owner the members with their emails and the pending invitations with their links.",
-  scope: "sharing",
-  input: z.object({ project: projectArg }),
-  output: sharingSchema,
-  annotations: { readOnlyHint: true, openWorldHint: false },
-  async run(session, { project }) {
-    return { structured: await getSharing(session.op, project) };
-  },
+const listInvitationsTool = implement(TOOLS.list_invitations, async (session, { project }) => {
+  return { structured: await listInvitations(session.op, project) };
 });
 
-const setLinkAccessTool = tool({
-  name: "set_link_access",
-  title: "Set link access",
-  description:
-    "What the project's link gives whoever opens it (the owner's): private (only members), view (anybody may read) or edit (a signed-in person may edit, anybody may read). Answers the sharing state and the link.",
-  scope: "sharing",
-  input: z.object({ project: projectArg, level: linkAccessSchema }),
-  output: sharingSchema.extend({ link: z.string().describe("The project's link.") }),
-  annotations: {
-    readOnlyHint: false,
-    destructiveHint: true,
-    idempotentHint: true,
-    openWorldHint: false,
-  },
-  async run(session, { project, level }) {
-    const state = await setLinkAccess(session.op, project, { linkAccess: level });
-    return { structured: { ...state, link: projectLink(session.op.config.origin, project) } };
-  },
-});
-
-const inviteTool = tool({
-  name: "invite",
-  title: "Invite",
-  description:
-    "Invites an email address to the project as viewer or editor (the owner's). No email is sent: the answer holds the invitation's link, which the person invited opens signed in (or which becomes their membership when they sign in with that email verified). Asking again for a pending invitation changes its role.",
-  scope: "sharing",
-  input: z.object({
-    project: projectArg,
-    email: z.string().describe("The address of the person invited."),
-    role: memberRoleSchema,
-  }),
-  output: z.object({
-    invitation: invitationSchema.omit({ link: true }),
-    link: z.string().describe("The invitation's link, to pass on."),
-    emailSent: z.literal(false).describe("Always false: the service sends no email."),
-    created: z.boolean().describe("False when a pending invitation of that email was answered."),
-  }),
-  annotations: {
-    readOnlyHint: false,
-    destructiveHint: false,
-    idempotentHint: true,
-    openWorldHint: false,
-  },
-  async run(session, { project, email, role }) {
-    const { invitation, created } = await invite(session.op, project, { email, role });
-    const { link, ...rest } = invitation;
-    return { structured: { invitation: rest, link, emailSent: false as const, created } };
-  },
-});
-
-const listInvitationsTool = tool({
-  name: "list_invitations",
-  title: "List invitations",
-  description:
-    "The project's pending invitations, with their links and the day they expire (the owner's).",
-  scope: "sharing",
-  input: z.object({ project: projectArg }),
-  output: z.object({ invitations: z.array(invitationSchema) }),
-  annotations: { readOnlyHint: true, openWorldHint: false },
-  async run(session, { project }) {
-    return { structured: await listInvitations(session.op, project) };
-  },
-});
-
-const revokeInvitationTool = tool({
-  name: "revoke_invitation",
-  title: "Revoke an invitation",
-  description: "Revokes a pending invitation (the owner's): its link no longer works.",
-  scope: "sharing",
-  input: z.object({ project: projectArg, invitation: z.string().describe("The invitation's id.") }),
-  output: z.object({ revoked: z.literal(true) }),
-  annotations: {
-    readOnlyHint: false,
-    destructiveHint: true,
-    idempotentHint: true,
-    openWorldHint: false,
-  },
-  async run(session, { project, invitation }) {
+const revokeInvitationTool = implement(
+  TOOLS.revoke_invitation,
+  async (session, { project, invitation }) => {
     await revokeInvitation(session.op, project, invitation);
     return { structured: { revoked: true as const } };
   },
-});
+);
 
-const setMemberRoleTool = tool({
-  name: "set_member_role",
-  title: "Set a member's role",
-  description: "Makes a member of the project a viewer or an editor (the owner's).",
-  scope: "sharing",
-  input: z.object({
-    project: projectArg,
-    member: z.string().describe("The member's sub, as get_sharing lists it."),
-    role: memberRoleSchema,
-  }),
-  output: memberSchema,
-  annotations: {
-    readOnlyHint: false,
-    destructiveHint: true,
-    idempotentHint: true,
-    openWorldHint: false,
-  },
-  async run(session, { project, member, role }) {
+const setMemberRoleTool = implement(
+  TOOLS.set_member_role,
+  async (session, { project, member, role }) => {
     return { structured: await setMemberRole(session.op, project, member, { role }) };
   },
+);
+
+const removeMemberTool = implement(TOOLS.remove_member, async (session, { project, member }) => {
+  await removeMember(session.op, project, member);
+  return { structured: { removed: true as const } };
 });
 
-const removeMemberTool = tool({
-  name: "remove_member",
-  title: "Remove a member",
-  description: "Removes a member from the project (the owner's); their open pages lose it at once.",
-  scope: "sharing",
-  input: z.object({ project: projectArg, member: z.string().describe("The member's sub.") }),
-  output: z.object({ removed: z.literal(true) }),
-  annotations: {
-    readOnlyHint: false,
-    destructiveHint: true,
-    idempotentHint: true,
-    openWorldHint: false,
-  },
-  async run(session, { project, member }) {
-    await removeMember(session.op, project, member);
-    return { structured: { removed: true as const } };
-  },
-});
-
-export const SHARING_TOOLS: readonly AnyTool[] = [
+export const SHARING_TOOLS: readonly AnyImplementation[] = [
   getSharingTool,
   setLinkAccessTool,
   inviteTool,

@@ -8,16 +8,18 @@
 // the Workers program only.
 
 import { DurableObject } from "cloudflare:workers";
+import {
+  RendererCore,
+  type CatalogOutcome,
+  type CatalogRequest,
+  type RenderOutcome,
+  type RenderRequest,
+  type RendererStats,
+  type ValidateOutcome,
+  type ValidateRequest,
+} from "@meltemi/diagrams-mcp/preview";
 import type { Env } from "./env.js";
-import { RendererCore, sqlPreviewCache, type RendererStats } from "./renderer-core.js";
-import type {
-  CatalogOutcome,
-  CatalogRequest,
-  RenderOutcome,
-  RenderRequest,
-  ValidateOutcome,
-  ValidateRequest,
-} from "./renderer-protocol.js";
+import { sqlPreviewCache } from "./renderer-cache.js";
 import type { RendererRuntime } from "./renderer-runtime.js";
 
 export class ProjectRenderer extends DurableObject<Env> {

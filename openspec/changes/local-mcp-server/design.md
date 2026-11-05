@@ -180,7 +180,8 @@ Alternatives:
     definitions, so a tool without a handler does not compile; `mcp-folder.ts` holds
     `folderHandlers(root, engine)`.
   - `CloudClient` gains `call(method, path, { json?, idempotencyKey? })`, which answers the
-    JSON of any documented route with the client's existing rules, and `blobBytes(id, hash)`.
+    status and the JSON of any documented route with the client's existing rules; blobs are read
+    with its existing `blob`, which checks their hash.
     Each handler shapes the route's answer into the tool's output, and the wrapper checks it
     against the output schema (`checkOutput`), so a route that answers another shape is
     `internal` rather than a wrong result.

@@ -4,19 +4,10 @@
 // platform: the object, the Node tests and the measurements all read these shapes.
 
 import { parseTime } from "@meltemi/diagrams-motion";
+import { DEFAULT_PNG_WIDTH, MAX_PNG_WIDTH, MIN_PNG_WIDTH } from "./bounds.js";
 
-/** The PNG width when the request names none, in pixels. */
-export const DEFAULT_PNG_WIDTH = 1280;
-/** The widest PNG a preview draws; a wider request is refused (`request.invalid`). */
-export const MAX_PNG_WIDTH = 2048;
-/** The narrowest PNG a preview draws. */
-export const MIN_PNG_WIDTH = 16;
-/**
- * The most pixels a PNG holds (2048 × 2048). A tall diagram at the asked width would pass it: the
- * picture is then drawn narrower, keeping its proportions, and the report says `fitted`. The bound
- * keeps the rasteriser's memory (four bytes a pixel, in an isolate of 128 MB) in hand.
- */
-export const MAX_PNG_PIXELS = MAX_PNG_WIDTH * MAX_PNG_WIDTH;
+export { DEFAULT_PNG_WIDTH, MAX_PNG_PIXELS, MAX_PNG_WIDTH, MIN_PNG_WIDTH } from "./bounds.js";
+
 /** How many answers an object keeps: an unchanged revision asked again costs no drawing. */
 export const CACHE_ENTRIES = 20;
 /** The most diagnostics a report lists; `truncated` says when there were more. */
