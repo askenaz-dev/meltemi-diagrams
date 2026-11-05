@@ -1,11 +1,11 @@
 ## ADDED Requirements
 
 ### Requirement: The suite through the local server
-`pnpm acceptance:mcp --local` SHALL run the suite's steps through two `mdg mcp` processes over
-stdio, one per test account, each with its token in its own environment only and `MELTEMI_HOST`
-set to the origin of `MELTEMI_MCP_URL`. The steps that prove the OAuth server SHALL be skipped
-with their reason, every other step SHALL hold as it does against the endpoint, and the run
-SHALL fail when a request reached `/mcp`.
+`pnpm acceptance:mcp --local` SHALL run the suite's steps through two `mdg mcp` processes on free
+loopback ports, one per test account with its token in its own environment only, its agents
+connected to the printed addresses with no bearer. The OAuth steps SHALL be skipped with their
+reason, every other step SHALL hold as it does against the endpoint, and the processes SHALL be
+stopped when the run ends.
 
 #### Scenario: A green local run
 - **WHEN** the suite runs with `--local` against a host where every criterion holds

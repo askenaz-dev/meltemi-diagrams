@@ -8,10 +8,10 @@
 local store when it has them, else from the registry, so that a fresh machine, a CI runner
 included, can run it), run the installed command through `--version`, `init --template purchase`, `validate`,
 `export` to SVG, PNG, PDF and (with FFmpeg) MP4, `build catalog` and `import` of a Mermaid file,
-start the installed `mcp --folder` on the purchase project over stdio and call `initialize`,
-`tools/list` and a PNG `preview` through it, package the VS Code extension, and write
-`release/manifest.json` with each file's name, version, size and SHA-256. It SHALL exit 1 naming
-each failed step.
+start the installed `mcp --folder` on the purchase project on a free loopback port and call
+`initialize`, `tools/list` and a PNG `preview` through it over Streamable HTTP, package the VS Code
+extension, and write `release/manifest.json` with each file's name, version, size and SHA-256. It
+SHALL exit 1 naming each failed step.
 
 #### Scenario: Installed from tarballs
 - **WHEN** `pnpm release:check` runs on the reference machine
