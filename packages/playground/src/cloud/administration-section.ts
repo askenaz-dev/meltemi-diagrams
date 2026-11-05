@@ -13,6 +13,7 @@ import { field, h } from "../ui.js";
 import { returnAddressFor, type AccountWords } from "./account-panel-model.js";
 import {
   adminApi,
+  amountText,
   isEmail,
   logText,
   permissionName,
@@ -20,12 +21,16 @@ import {
   whoText,
   type AdminApi,
   type AdminHolder,
+  type AdminSponsorshipView,
   type AdminView,
 } from "./administration.js";
 import type { SessionUser } from "./session.js";
 import { whenText, type ApiFailure } from "./tokens.js";
 
 let sections = 0;
+
+/** Whether the page asks for no motion. */
+const still = (): boolean => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 export interface AdministrationSection {
   readonly element: HTMLElement;
@@ -416,6 +421,85 @@ export function administrationSection(options: AdministrationOptions): Administr
       ),
     );
 
+  // Sponsorships ------------------------------------------------------------------------------------
+  /** The permission a donation grants, whose Grant field a sponsorship's Grant by hand fills in. */
+  const DONATION_PERMISSION = "unbranded-exports";
+  const sponsorshipRow = (sponsorship: AdminSponsorshipView): HTMLElement => {
+    const state = m.sponsorshipStatus[sponsorship.status];
+    const claimed = sponsorship.claimedBy;
+    const meta = [
+      sponsorship.oneTime ? m.oneTime : m.monthly,
+      amountText(sponsorship.amountCents, getLocale(), words()),
+      ...(state ? [state] : []),
+      claimed ? m.claimedBy(whoText(claimed, words())) : m.unclaimed,
+      when(sponsorship.createdAt),
+    ].filter(Boolean);
+    const actions: HTMLElement[] = [];
+    if (!claimed) {
+      // A GitHub login is not an account: the field gets it as a hint, and the administrator types
+      // the account id, handle or email the sponsor gives.
+      const button = h(
+        "button",
+        {
+          type: "button",
+          class: "button with-text",
+          "data-action": "grant-by-hand",
+          "aria-label": m.grantByHandLabel(sponsorship.login),
+        },
+        m.grantByHand,
+      );
+      button.disabled = busy;
+      button.addEventListener("click", () => {
+        const held = grantFor(DONATION_PERMISSION);
+        held.input.placeholder = sponsorship.login;
+        held.problem.textContent = "";
+        held.input.focus();
+        held.form.scrollIntoView({ block: "nearest", behavior: still() ? "auto" : "smooth" });
+        held.form.classList.remove("grant-hinted");
+        void held.form.offsetWidth;
+        held.form.classList.add("grant-hinted");
+      });
+      actions.push(button);
+    }
+    return h(
+      "li",
+      {
+        class: "token-row",
+        "data-sponsorship": sponsorship.login,
+        "data-claimed": String(claimed !== null),
+      },
+      h(
+        "div",
+        { class: "token-info" },
+        h(
+          "span",
+          { class: "account-row-title" },
+          h("strong", {}, sponsorship.login),
+          ...(sponsorship.type === "Organization"
+            ? [h("span", { class: "account-badge" }, m.organisation)]
+            : []),
+          ...(sponsorship.privacy === "private"
+            ? [h("span", { class: "account-badge" }, m.privateSponsor)]
+            : []),
+        ),
+        h("span", { class: "token-meta" }, meta.join(" · ")),
+      ),
+      ...actions,
+    );
+  };
+  const sponsorships = (v: AdminView): HTMLElement[] =>
+    v.sponsorships.length === 0
+      ? []
+      : [
+          h(
+            "div",
+            { class: "administration-part", "data-part": "sponsorships" },
+            h("h3", {}, m.sponsorshipsTitle),
+            h("p", { class: "field-hint" }, m.sponsorshipsIntro),
+            h("ul", { class: "token-list", role: "list" }, ...v.sponsorships.map(sponsorshipRow)),
+          ),
+        ];
+
   // Takedown ----------------------------------------------------------------------------------------
   const addressInput = h("input", { type: "text", autocomplete: "off", spellcheck: "false" });
   const reasonInput = h("input", { type: "text", autocomplete: "off", maxlength: "500" });
@@ -514,6 +598,7 @@ export function administrationSection(options: AdministrationOptions): Administr
       administrators(view),
       ...(view.role === "owner" ? [invitations(view)] : []),
       permissions(view),
+      ...sponsorships(view),
       takedown(view),
       recent(view),
     );

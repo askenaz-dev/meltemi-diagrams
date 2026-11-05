@@ -26,6 +26,25 @@ export interface Config extends IdentitySettings {
    * nothing else.
    */
   readonly publishHost: string | undefined;
+  /**
+   * `SPONSORS_ACCOUNT` trimmed, when it is a GitHub login; undefined when it is unset, empty or not
+   * a login, and then the service has no donation path: no `support` in the session answer and no
+   * `/_sponsors/github` (`sponsorship-entitlement`). Like `PUBLISH_HOST`, it costs its own feature
+   * only.
+   */
+  readonly sponsorsAccount: string | undefined;
+}
+
+/**
+ * A GitHub login as GitHub may send one: 1 to 39 letters, digits, hyphens or underscores (managed
+ * accounts), starting with a letter or a digit. Older logins break today's rule on hyphens, so the
+ * check is the shape, not the rule.
+ */
+export const GITHUB_LOGIN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,38}$/;
+
+/** The page a person donates on: the sponsored account's GitHub Sponsors profile. */
+export function sponsorsPage(account: string): string {
+  return `https://github.com/sponsors/${account}`;
 }
 
 /** A misconfiguration the service cannot run with; answered as an internal error. */
@@ -88,12 +107,14 @@ export function readConfig(env: Env, request: Request): Config {
     ? new URL(request.url).origin
     : address("ORIGIN", env.ORIGIN, false).origin;
   const publishHost = env.PUBLISH_HOST?.trim();
+  const sponsorsAccount = env.SPONSORS_ACCOUNT?.trim() ?? "";
   return {
     ...identity,
     origin,
     host: new URL(origin).host,
     owners: readOwners(env.ADMIN_SUBS),
     publishHost: publishHost === "" ? undefined : publishHost,
+    sponsorsAccount: GITHUB_LOGIN.test(sponsorsAccount) ? sponsorsAccount : undefined,
   };
 }
 

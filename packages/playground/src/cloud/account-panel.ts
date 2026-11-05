@@ -24,7 +24,8 @@ import { administrationSection, type AdministrationSection } from "./administrat
 import { avatar } from "./avatar.js";
 import { copyText } from "./clipboard.js";
 import { identityApi, type DeviceView, type IdentityApi, type SigninView } from "./identity-api.js";
-import { returnAddress, type SessionUser } from "./session.js";
+import { returnAddress, type Session, type SessionUser, type Support } from "./session.js";
+import { donationLink, heart } from "./support.js";
 import { tokensSection, type TokensSection } from "./tokens-section.js";
 import { whenText, type Outcome } from "./tokens.js";
 import { formatBytes, type UsageSource } from "./usage.js";
@@ -68,6 +69,10 @@ export interface AccountPanelOptions {
   readonly report?: (message: string) => void;
   /** The identity data's calls; the page's own by default. */
   readonly identity?: IdentityApi;
+  /** Where to donate (the session's `support`); Profile offers it to a person not entitled. */
+  readonly support?: Support | undefined;
+  /** Reads the session answer again: after a donation was claimed, Profile shows the grant. */
+  readonly readSession?: () => Promise<Session>;
 }
 
 /** The panel that is open, so that a second request shows a section of it instead of another. */
@@ -103,6 +108,7 @@ export function openAccountPanel(options: AccountPanelOptions): void {
         options.signedOut();
       },
       report: (message) => options.report?.(message),
+      claimed: () => void readAgain(),
     },
     words,
     () => messages().cloud,
@@ -325,10 +331,88 @@ export function openAccountPanel(options: AccountPanelOptions): void {
     selection?.addRange(range);
     accountIdSaid.textContent = m.accountIdSelect;
   });
-  // What the account may do that an administrator granted.
-  const unbranded = options.user.entitlements.unbranded
-    ? [h("h4", {}, m.unbrandedTitle), h("p", { class: "account-intro" }, m.unbrandedOn)]
-    : [];
+  // What the account may do that an administrator or a donation granted, or where to donate: from
+  // the session the page read, and again after the sign-ins' answer said a donation was claimed.
+  let entitlements = options.user.entitlements;
+  let support = options.support;
+  const entitlement = h("div", { class: "account-entitlement", "aria-live": "polite" });
+  let drawnEntitlement: string | undefined;
+  const drawEntitlement = (state: AccountPanelState): void => {
+    // The hint to link GitHub needs the sign-ins: it waits for them, and a failure shows none.
+    const noGithub =
+      state.identity === "ready" && !state.view?.signins.some((s) => s.provider === "github");
+    const key = entitlements.unbranded
+      ? `granted:${entitlements.unbrandedBy ?? ""}`
+      : support
+        ? `support:${noGithub}`
+        : "none";
+    if (key === drawnEntitlement) return;
+    const first = drawnEntitlement === undefined;
+    drawnEntitlement = key;
+    let children: HTMLElement[] = [];
+    if (entitlements.unbranded) {
+      children = [
+        h("h4", {}, m.unbrandedTitle),
+        ...(entitlements.unbrandedBy === "github-sponsors"
+          ? [h("p", { class: "account-intro account-thanks" }, heart(), m.unbrandedThanks)]
+          : []),
+        h("p", { class: "account-intro" }, m.unbrandedOn),
+      ];
+    } else if (support) {
+      const hint: HTMLElement[] = [];
+      if (noGithub) {
+        const signins = h(
+          "button",
+          { type: "button", class: "button with-text", "data-action": "open-signins" },
+          m.supportOpenSignins,
+        );
+        signins.addEventListener("click", () => {
+          model.show("signins");
+          tabs.get("signins")?.focus();
+        });
+        hint.push(
+          h(
+            "div",
+            { class: "account-support-hint" },
+            h("p", { class: "field-hint" }, m.supportLinkGithub),
+            signins,
+          ),
+        );
+      }
+      children = [
+        h("h4", {}, m.supportTitle),
+        h(
+          "div",
+          { class: "account-support", "data-support": "" },
+          h("p", { class: "account-intro" }, m.supportBody),
+          h("div", { class: "account-actions" }, donationLink(support, m.supportLink, m.newTab)),
+          ...hint,
+        ),
+      ];
+    }
+    entitlement.replaceChildren(...children);
+    entitlement.hidden = children.length === 0;
+    // What changed while the panel was open comes in with the section's own motion.
+    if (!first && children.length > 0 && !still()) {
+      entitlement.classList.remove("entering");
+      void entitlement.offsetWidth;
+      entitlement.classList.add("entering");
+    }
+  };
+  // Drawn before the panel opens, so that the live region speaks only of what changes later.
+  drawEntitlement(model.state);
+  /** The session answer again, after a claim: the grant shows without a reload. */
+  const readAgain = async (): Promise<void> => {
+    const session = await options.readSession?.();
+    if (disposed || session?.kind !== "cookie") return;
+    const granted = session.user.entitlements.unbranded && !entitlements.unbranded;
+    entitlements = session.user.entitlements;
+    support = session.support;
+    render(model.state);
+    if (granted && entitlements.unbrandedBy === "github-sponsors") {
+      options.report?.(m.unbrandedThanks);
+    }
+  };
   const name = options.user.name.trim();
   panels
     .get("profile")!
@@ -353,7 +437,7 @@ export function openAccountPanel(options: AccountPanelOptions): void {
       h("p", { class: "account-intro" }, m.accountIdIntro),
       h("div", { class: "account-id-row" }, accountId, accountIdCopy),
       accountIdSaid,
-      ...unbranded,
+      entitlement,
       h("h4", {}, m.signOutTitle),
       h("p", { class: "account-intro" }, m.signOutIntro),
       signOutForm,
@@ -683,6 +767,7 @@ export function openAccountPanel(options: AccountPanelOptions): void {
     problem.textContent = state.problem;
 
     // Profile
+    drawEntitlement(state);
     handleProblem.textContent = state.handleProblem;
     handleNow.textContent = state.handle === null ? m.handleNone : m.handleSaved(state.handle);
     handleSave.disabled = state.busy;

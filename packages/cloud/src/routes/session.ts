@@ -1,7 +1,8 @@
 import type { Route } from "../context.js";
 import { json } from "../http.js";
-import type { User } from "../store/types.js";
+import { GITHUB_SPONSORS, type User } from "../store/types.js";
 import { roleOf, type AdminRole } from "./admin.js";
+import { supportOf } from "./sponsors.js";
 
 /** The longest `return_to` the identity service accepts; a longer one is refused and nothing starts. */
 const MAX_RETURN_TO_LENGTH = 2048;
@@ -29,9 +30,19 @@ function pageAddress(origin: string, referer: string | null): string {
 }
 
 /**
+ * Who set the entitlement the row holds: a sponsorship claim (`github-sponsors`), a person
+ * (`administrator`), or nobody (`null`: the row does not hold it, whatever the role gives).
+ */
+function grantorOf(user: User | undefined): "github-sponsors" | "administrator" | null {
+  if (!user?.unbrandedExports) return null;
+  return user.unbrandedExportsBy === GITHUB_SPONSORS ? "github-sponsors" : "administrator";
+}
+
+/**
  * The person in a signed-in answer: who they are, their handle (null until they choose one), and
  * what their account may do. An owner or an administrator is entitled to export without the
- * branding with no grant; anyone else when an administrator entitled their account.
+ * branding with no grant; anyone else when an administrator, or a sponsorship claim, entitled their
+ * account, and `unbrandedBy` says which.
  */
 function userShape(
   sub: string,
@@ -45,14 +56,19 @@ function userShape(
     name,
     picture,
     handle: user?.handle ?? null,
-    entitlements: { unbranded: (user?.unbrandedExports ?? false) || role !== null },
+    entitlements: {
+      unbranded: (user?.unbrandedExports ?? false) || role !== null,
+      unbrandedBy: grantorOf(user),
+    },
   };
 }
 
 /**
  * `GET /api/session`: who the page is, in one of three shapes (`cloud-accounts`). Never cached.
  * `handle` is the account's handle (`[a-z0-9-]{3,30}`) or null until it chose one.
- * `entitlements.unbranded` says whether the account may export without the Meltemi branding.
+ * `entitlements.unbranded` says whether the account may export without the Meltemi branding, and
+ * `entitlements.unbrandedBy` who granted the row's flag. Every shape carries `support`, the page to
+ * donate on, when the service has a sponsored account (`SPONSORS_ACCOUNT`), and none otherwise.
  *
  * A cookie principal whose email the identity service verified first has every pending invitation
  * for that email turned into a membership (`project-sharing`, "Invitations": the session is where
@@ -66,6 +82,8 @@ function userShape(
  */
 export const sessionRoute: Route = async (ctx) => {
   const { principal, config, deps, request } = ctx;
+  const support = supportOf(config.sponsorsAccount);
+  const supported = support === undefined ? {} : { support };
   if (principal?.via === "cookie") {
     const { sub, profile } = principal;
     if (profile.emailVerified && profile.email !== "") {
@@ -97,6 +115,7 @@ export const sessionRoute: Route = async (ctx) => {
       },
       account: `${config.issuer}/account`,
       signOut: `${config.issuer}/logout`,
+      ...supported,
     });
   }
   if (principal?.via === "token") {
@@ -110,11 +129,13 @@ export const sessionRoute: Route = async (ctx) => {
         await roleOf(principal.sub, config, deps.store),
       ),
       token: { id: principal.tokenId, name: principal.tokenName },
+      ...supported,
     });
   }
   const returnTo = pageAddress(config.origin, request.headers.get("Referer"));
   return json({
     user: null,
     signIn: `${config.issuer}/login?return_to=${encodeURIComponent(returnTo)}`,
+    ...supported,
   });
 };

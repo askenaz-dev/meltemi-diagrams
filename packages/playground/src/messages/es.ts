@@ -371,6 +371,10 @@ export const es: typeof en = {
     unbrandedHint:
       "Omite la franja al pie de la hoja: la marca de Meltemi, el nombre y el título; las imágenes del catálogo la siguen.",
     unbrandedNotice: "Sin la marca de Meltemi.",
+    donate: "Dona para exportar sin la marca de Meltemi",
+    donateHint:
+      "Una donación hecha con la cuenta de GitHub vinculada a esta se reconoce al abrir el panel de la cuenta.",
+    newTab: "(se abre en una pestaña nueva)",
     scale: "Escala",
     scaleHint: "Píxeles por punto, de 1 a 8.",
     size: "Tamaño",

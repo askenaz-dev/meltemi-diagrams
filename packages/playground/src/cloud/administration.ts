@@ -56,6 +56,22 @@ export interface AdminLogView {
   readonly detail: string;
 }
 
+/** A donation GitHub Sponsors told the service of, as the Sponsorships part shows it. */
+export interface AdminSponsorshipView {
+  /** The sponsor's GitHub login. */
+  readonly login: string;
+  /** `User` or `Organization`. */
+  readonly type: string;
+  readonly oneTime: boolean;
+  readonly amountCents: number;
+  /** `active`, `pending-cancellation` or `cancelled`. */
+  readonly status: string;
+  readonly createdAt: string;
+  readonly privacy: "public" | "private";
+  /** The account that claimed it, or null while it is unclaimed. */
+  readonly claimedBy: AdminPerson | null;
+}
+
 /** Everything the section shows: `GET /api/admin`. */
 export interface AdminView {
   readonly role: AdminRole;
@@ -66,6 +82,8 @@ export interface AdminView {
   readonly log: readonly AdminLogView[];
   /** Where publications are served; null when the service has none set. */
   readonly publishHost: string | null;
+  /** The latest sponsorships, the newest first; none without a sponsored account. */
+  readonly sponsorships: readonly AdminSponsorshipView[];
 }
 
 /** The calls. None throws: a failure is an `Outcome` like any other. */
@@ -162,6 +180,22 @@ export const readView: Reader<AdminView> = (answer) => {
         };
       }),
       publishHost: typeof body["publishHost"] === "string" ? body["publishHost"] : null,
+      sponsorships: list(body["sponsorships"], (item) => {
+        if (!isObject(item) || typeof item["login"] !== "string" || item["login"] === "") {
+          return undefined;
+        }
+        const cents = item["amountCents"];
+        return {
+          login: item["login"],
+          type: text(item["type"]),
+          oneTime: item["oneTime"] === true,
+          amountCents: typeof cents === "number" && cents >= 0 ? cents : 0,
+          status: text(item["status"]),
+          createdAt: text(item["createdAt"]),
+          privacy: item["privacy"] === "private" ? "private" : "public",
+          claimedBy: personOf(item["claimedBy"]) ?? null,
+        };
+      }),
     },
   };
 };
@@ -284,15 +318,30 @@ export function permissionName(id: string, words: AccountWords): string {
   return words.administration.permissions[id]?.name ?? id;
 }
 
+/** A sponsorship's amount in the page's language: US dollars, cents only when there are some. */
+export function amountText(cents: number, locale: string, words: AccountWords): string {
+  const dollars = new Intl.NumberFormat(locale, {
+    minimumFractionDigits: cents % 100 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+  return words.administration.amount(dollars);
+}
+
+/** A grant's detail: the permission, and the sponsor's login when a donation's claim made it. */
+const CLAIM_DETAIL = /^(\S+) \((.+)\)$/;
+
 /** An entry of the log as a sentence in the page's language. */
 export function logText(entry: AdminLogView, words: AccountWords): string {
   const m = words.administration;
   const by = whoText(entry.by, words);
-  const target = whoText(entry.target, words);
-  const detail =
-    entry.action === "grant" || entry.action === "revoke"
-      ? permissionName(entry.detail, words)
-      : entry.detail;
+  let target = whoText(entry.target, words);
+  let detail = entry.detail;
+  if (entry.action === "grant" || entry.action === "revoke") {
+    // "GitHub Sponsors granted Export without the Meltemi branding to Ana (ana)".
+    const claim = CLAIM_DETAIL.exec(entry.detail);
+    if (claim) target = `${target} (${claim[2]})`;
+    detail = permissionName(claim ? claim[1]! : entry.detail, words);
+  }
   const say = m.log[entry.action];
   return say ? say(by, target, detail) : `${by}: ${entry.action}`;
 }

@@ -300,6 +300,9 @@ export function testConfig(
       ...record(deployed["vars"], "vars"),
       IDENTITY_ISSUER: IDENTITY,
       IDENTITY_JWKS_URL: `${IDENTITY}/.well-known/jwks.json`,
+      // The run has a sponsored account, so that the donation scenario has a path; the deployed
+      // configuration ships with none until the owner's steps on GitHub are done.
+      SPONSORS_ACCOUNT: SPONSORED_ACCOUNT,
     },
   };
   for (const key of ["DEV", "IDENTITY_JWKS"]) {
@@ -325,8 +328,23 @@ const madeUpSecret = (): string => randomBytes(24).toString("base64url");
  */
 export const ADMIN_SUB = "u-admin-suite";
 
-/** The development values: `DEV`, the identity settings, two secrets, the inline key set and the administrator. */
-export function devVars(keys: TestKeys, eventsSecret: string): string {
+/** The sponsored account of the run: GitHub Sponsors' deliveries for it are kept. */
+export const SPONSORED_ACCOUNT = "suite-sponsored";
+
+/** What every session answer of the run carries for it: where to donate. */
+export const SUPPORT = {
+  support: { url: `https://github.com/sponsors/${SPONSORED_ACCOUNT}` },
+} as const;
+
+/**
+ * The development values: `DEV`, the identity settings, the secrets (the Sponsors webhook's made up
+ * when not given), the inline key set and the administrator.
+ */
+export function devVars(
+  keys: TestKeys,
+  eventsSecret: string,
+  sponsorsSecret: string = madeUpSecret(),
+): string {
   return [
     devVar("DEV", "true"),
     devVar("IDENTITY_ISSUER", IDENTITY),
@@ -335,6 +353,7 @@ export function devVars(keys: TestKeys, eventsSecret: string): string {
     devVar("FORMS_SECRET", madeUpSecret()),
     devVar("IDENTITY_JWKS", JSON.stringify(testJwks(keys))),
     devVar("ADMIN_SUBS", ADMIN_SUB),
+    devVar("SPONSORS_WEBHOOK_SECRET", sponsorsSecret),
     "",
   ].join("\n");
 }
@@ -349,6 +368,8 @@ export interface RunningWorker {
   readonly keys: TestKeys;
   /** The secret the Worker verifies the identity service's events with: the suite signs one. */
   readonly eventsSecret: string;
+  /** The secret the Worker verifies GitHub Sponsors' deliveries with: the suite signs them. */
+  readonly sponsorsSecret: string;
   /** The copy of the page's build this Worker serves its assets from (in the temporary folder). */
   readonly site: string;
   /** What wrangler printed last (for the report of a failure). */
@@ -405,6 +426,7 @@ export async function startWorker(): Promise<RunningWorker> {
   const deployed = parseJsonc(readFileSync(join(CLOUD, "wrangler.jsonc"), "utf8"));
   const keys = await testKeys();
   const eventsSecret = madeUpSecret();
+  const sponsorsSecret = madeUpSecret();
 
   sweepStaleFolders();
   const folder = mkdtempSync(join(tmpdir(), "mdg-cloud-"));
@@ -417,7 +439,7 @@ export async function startWorker(): Promise<RunningWorker> {
   cpSync(SITE, site, { recursive: true });
   const config = join(folder, "wrangler.test.jsonc");
   writeFileSync(config, `${JSON.stringify(testConfig(deployed, site), null, 2)}\n`);
-  writeFileSync(join(folder, ".dev.vars"), devVars(keys, eventsSecret));
+  writeFileSync(join(folder, ".dev.vars"), devVars(keys, eventsSecret, sponsorsSecret));
 
   const env: NodeJS.ProcessEnv = { ...process.env };
   // Whatever Cloudflare credentials the person has are not for a Worker that runs on this laptop.
@@ -492,7 +514,7 @@ export async function startWorker(): Promise<RunningWorker> {
       throw error;
     }
     running = child;
-    return { origin, keys, eventsSecret, site, output: () => log, stop };
+    return { origin, keys, eventsSecret, sponsorsSecret, site, output: () => log, stop };
   };
 
   try {

@@ -27,6 +27,7 @@ import {
   storyTimeline,
 } from "@meltemi/diagrams-motion";
 import type { FontPolicy } from "@meltemi/diagrams-render";
+import { donationLine } from "../cloud/support.js";
 import { LANGUAGE_NAMES } from "../language.js";
 import { messages } from "../messages/index.js";
 import type { Playground } from "../shell.js";
@@ -408,7 +409,7 @@ export function openExportDialog(
   };
   // Exports without the Meltemi branding, for an account an administrator entitled: the box is
   // built for nobody else, and starts unchecked each time the dialog opens.
-  const session = playground.options.session;
+  const session = playground.session;
   const entitled = session.kind === "cookie" && session.user.entitlements.unbranded;
   const branding = h("input", { type: "checkbox", id: "export-unbranded" });
 
@@ -660,7 +661,8 @@ export function openExportDialog(
       field(m.format, format),
       support,
       field(m.theme, theme),
-      ...(entitled ? [check(m.unbranded, branding, m.unbrandedHint)] : []),
+      // A person who may donate sees where, in the box's place (`cloud/support.ts`).
+      ...(entitled ? [check(m.unbranded, branding, m.unbrandedHint)] : donationLine(session)),
       field(m.language, language, m.languageHint),
       ...Object.values(rows),
       ...(profiles.length > 0

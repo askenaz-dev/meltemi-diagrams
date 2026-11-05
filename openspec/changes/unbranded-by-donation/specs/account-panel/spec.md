@@ -139,7 +139,7 @@ role is gone. Names, emails, addresses and reasons SHALL be set as text.
 
 #### Scenario: An unclaimed sponsorship
 - **WHEN** the answer lists a monthly sponsorship by `ben` of 1000 cents, unclaimed, and the administrator presses Grant by hand
-- **THEN** the Sponsorships part shows "ben · monthly · US$10 · Unclaimed" and the Grant field of the permission has the focus with `ben` as its placeholder
+- **THEN** the Sponsorships part shows `ben` with "monthly · US$10 · Unclaimed" and the date, and the Grant field of the permission has the focus with `ben` as its placeholder
 
 #### Scenario: No sponsorships
 - **WHEN** the answer's `sponsorships` is `[]`

@@ -7,10 +7,13 @@
 import { signProductRequest } from "@meltemi/identity";
 import { CLOUD_LIMITS } from "@meltemi/diagrams-project";
 import { requirePrincipal } from "../access.js";
+import { GITHUB_LOGIN } from "../config.js";
 import type { Ctx, Route } from "../context.js";
+import { randomId } from "../crypto.js";
 import { fail, type ErrorCode } from "../errors.js";
 import { json, readJsonObject } from "../http.js";
 import { HANDLE } from "../ids.js";
+import { GITHUB_SPONSORS, type AdminLogEntry } from "../store/types.js";
 import type { Principal } from "../types.js";
 
 /** This product's name in the identity service's `PRODUCTS`: what its calls are signed as. */
@@ -84,12 +87,12 @@ function isAccountView(value: unknown): value is Record<string, unknown> {
  * signature, which is a configuration problem) is `502 identity.unavailable`, logged with the
  * route and the status, never a body.
  */
-async function identityCall(
+async function identityView(
   ctx: Ctx,
   method: "GET" | "POST",
   path: string,
   body?: Record<string, unknown>,
-): Promise<Response> {
+): Promise<Record<string, unknown>> {
   const person = pagePerson(ctx);
   const url = `${ctx.config.issuer}${path}`;
   const text = body === undefined ? undefined : JSON.stringify(body);
@@ -133,7 +136,7 @@ async function identityCall(
   } catch {
     throw unavailable(answer.status);
   }
-  if (answer.status === 200 && isAccountView(value)) return json(value);
+  if (answer.status === 200 && isAccountView(value)) return value;
   const code =
     value !== null && typeof value === "object" ? (value as Record<string, unknown>)["error"] : "";
   if (answer.status === 401 && code === "session.invalid") throw fail("auth.required");
@@ -143,8 +146,69 @@ async function identityCall(
   throw unavailable(answer.status);
 }
 
-/** `GET /api/account/identity`: the person's sign-ins and sessions, as the identity service has them. */
-export const identityAccountRoute: Route = (ctx) => identityCall(ctx, "GET", "/api/account");
+/** `identityView` answered as it is. */
+async function identityCall(
+  ctx: Ctx,
+  method: "GET" | "POST",
+  path: string,
+  body?: Record<string, unknown>,
+): Promise<Response> {
+  return json(await identityView(ctx, method, path, body));
+}
+
+/**
+ * The sponsorship claim (`sponsorship-entitlement`, "The claim"): for each GitHub sign-in of the
+ * view whose login (`handle`) is an unclaimed sponsorship's, ignoring case, the sponsorships of that
+ * login are claimed for the person and `unbranded-exports` is granted with the grantor
+ * `github-sponsors` and its log entry, in one atomic step of the store. Only while the service has
+ * a sponsored account. True when something was claimed. A failure of the store is logged and
+ * claims nothing: the sign-ins are answered anyway, and the next opening of the panel tries again.
+ */
+async function claimSponsorships(ctx: Ctx, view: Record<string, unknown>): Promise<boolean> {
+  if (ctx.config.sponsorsAccount === undefined || ctx.principal === undefined) return false;
+  const { store } = ctx.deps;
+  const sub = ctx.principal.sub;
+  const logins = (view["identities"] as unknown[]).flatMap((identity) => {
+    const { provider, handle } = (identity ?? {}) as Record<string, unknown>;
+    return provider === "github" && typeof handle === "string" && GITHUB_LOGIN.test(handle)
+      ? [handle]
+      : [];
+  });
+  let claimed = false;
+  for (const login of logins) {
+    try {
+      const sponsorship = await store.unclaimedSponsorship(login);
+      if (!sponsorship) continue;
+      const at = ctx.deps.now().toISOString();
+      const log: AdminLogEntry = {
+        id: randomId(ctx.deps.randomBytes),
+        at,
+        bySub: GITHUB_SPONSORS,
+        action: "grant",
+        targetSub: sub,
+        targetEmail: null,
+        detail: `unbranded-exports (${sponsorship.login})`,
+      };
+      if (await store.claimSponsorship(login, sub, at, log)) claimed = true;
+    } catch (error) {
+      console.error(
+        "cloud: a sponsorship claim failed:",
+        error instanceof Error ? error.message : "unknown",
+      );
+    }
+  }
+  return claimed;
+}
+
+/**
+ * `GET /api/account/identity`: the person's sign-ins and sessions, as the identity service has them,
+ * with `"claimed": true` beside them when a GitHub sign-in of the view claimed a sponsorship, after
+ * which the page reads the session answer again.
+ */
+export const identityAccountRoute: Route = async (ctx) => {
+  const view = await identityView(ctx, "GET", "/api/account");
+  return json((await claimSponsorships(ctx, view)) ? { ...view, claimed: true } : view);
+};
 
 /** `POST /api/account/identity/unlink { provider }`: one way of signing in removed. */
 export const identityUnlinkRoute: Route = async (ctx) => {

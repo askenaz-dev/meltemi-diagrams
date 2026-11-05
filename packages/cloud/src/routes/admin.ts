@@ -18,6 +18,7 @@ import { publishedKey } from "../keys.js";
 import { PERMISSIONS, permissionOf, type Permission } from "../permissions.js";
 import { adminInvitationExpiresAt } from "../store/retention.js";
 import {
+  GITHUB_SPONSORS,
   MAX_ADMIN_INVITATIONS,
   MAX_ADMINISTRATORS,
   type AdminAction,
@@ -25,6 +26,7 @@ import {
   type AdminLogEntry,
   type CloudStore,
   type Iso,
+  type Sponsorship,
   type User,
 } from "../store/types.js";
 import { readObject } from "./projects.js";
@@ -34,6 +36,12 @@ export type AdminRole = "owner" | "administrator";
 
 /** How many entries of the log the section shows. */
 const LOG_SHOWN = 50;
+
+/** How many sponsorships the section shows. */
+const SPONSORSHIPS_SHOWN = 50;
+
+/** The name the section shows for the grantor of a sponsorship claim. */
+export const GITHUB_SPONSORS_NAME = "GitHub Sponsors";
 
 /** The longest reason, in characters (code points) after trimming. */
 const MAX_REASON_LENGTH = 500;
@@ -181,7 +189,9 @@ function people(store: CloudStore) {
         email: user?.email ?? "",
       };
     },
+    /** A person named in passing; the grantor of a sponsorship claim is GitHub Sponsors. */
     async ref(sub: string): Promise<PersonRef> {
+      if (sub === GITHUB_SPONSORS) return { sub, name: GITHUB_SPONSORS_NAME };
       const user = await find(sub);
       return user ? { sub, name: user.name } : { sub, name: "", deleted: true };
     },
@@ -202,6 +212,26 @@ async function invitationJson(
   };
 }
 
+/** A person in full, as `people(store).person` answers. */
+type PersonJson = { sub: string; name: string; handle: string | null; email: string };
+
+/** A sponsorship as the section shows it: the sponsor, the tier, where it stands and who claimed it. */
+async function sponsorshipJson(
+  sponsorship: Sponsorship,
+  person: (sub: string) => Promise<PersonJson>,
+) {
+  return {
+    login: sponsorship.login,
+    type: sponsorship.sponsorType,
+    oneTime: sponsorship.oneTime,
+    amountCents: sponsorship.amountCents,
+    status: sponsorship.status,
+    createdAt: sponsorship.createdAt,
+    privacy: sponsorship.privacy,
+    claimedBy: sponsorship.claimedBy === null ? null : await person(sponsorship.claimedBy),
+  };
+}
+
 /** The holders of a permission, with who granted it and when. */
 async function holdersOf(permission: Permission, store: CloudStore) {
   const { person, ref } = people(store);
@@ -218,17 +248,23 @@ async function holdersOf(permission: Permission, store: CloudStore) {
  * `GET /api/admin` (an owner or an administrator, with the cookie): everything the Administration
  * section shows in one answer: the role, the owners, the administrators, the pending invitations
  * (owners only; `[]` for an administrator), every permission with its holders, the latest
- * fifty entries of the log, the newest first, and the publish host (null when unset).
+ * fifty entries of the log, the newest first, the publish host (null when unset), and the latest
+ * fifty sponsorships, the newest first (`[]` without a sponsored account).
  */
 export const administrationRoute: Route = async (ctx) => {
   const { role } = await administration(ctx);
   const { store } = ctx.deps;
   const now = ctx.deps.now().toISOString();
   const { person, ref } = people(store);
-  const [administrators, invitations, log] = await Promise.all([
+  const [administrators, invitations, log, sponsorships] = await Promise.all([
     store.administrators(),
     role === "owner" ? store.adminInvitations(now) : Promise.resolve([]),
     store.adminLog(LOG_SHOWN),
+    // Sponsors' personal data, for the people who administer the service only; none without a
+    // sponsored account.
+    ctx.config.sponsorsAccount === undefined
+      ? Promise.resolve([])
+      : store.sponsorships(SPONSORSHIPS_SHOWN),
   ]);
   return json({
     role,
@@ -263,6 +299,7 @@ export const administrationRoute: Route = async (ctx) => {
     ),
     // Where publications are served, so that the section checks the address of a takedown.
     publishHost: ctx.config.publishHost ?? null,
+    sponsorships: await Promise.all(sponsorships.map((s) => sponsorshipJson(s, person))),
   });
 };
 

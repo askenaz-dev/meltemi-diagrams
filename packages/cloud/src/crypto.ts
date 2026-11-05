@@ -46,15 +46,19 @@ export async function hmacHex(secret: string, data: string): Promise<string> {
   return hex(new Uint8Array(await crypto.subtle.sign("HMAC", key, utf8(data))));
 }
 
-/** Checks a hexadecimal HMAC-SHA256 in constant time; false when it is not hexadecimal. */
+/**
+ * Checks a hexadecimal HMAC-SHA256 in constant time (WebCrypto's `verify`); false when it is not
+ * hexadecimal. `data` is text (signed as its UTF-8) or the exact bytes that were signed.
+ */
 export async function verifyHmacHex(
   secret: string,
-  data: string,
+  data: string | Bytes,
   signature: string,
 ): Promise<boolean> {
   const bytes = fromHex(signature);
-  if (!bytes) return false;
-  return crypto.subtle.verify("HMAC", await hmacKey(secret, "verify"), bytes, utf8(data));
+  if (!bytes || bytes.length === 0) return false;
+  const signed = typeof data === "string" ? utf8(data) : data;
+  return crypto.subtle.verify("HMAC", await hmacKey(secret, "verify"), bytes, signed);
 }
 
 /** A random token in base64url, `length` bytes before encoding. */

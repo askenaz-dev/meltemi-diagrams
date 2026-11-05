@@ -29,8 +29,13 @@ describe("wrangler.jsonc", () => {
     }
   });
 
-  it("defines no secret: the three are bindings of the family's Secrets Store", () => {
-    for (const key of ["IDENTITY_EVENTS_SECRET", "FORMS_SECRET", "ADMIN_SUBS"]) {
+  it("defines no secret: the four are bindings of the family's Secrets Store", () => {
+    for (const key of [
+      "IDENTITY_EVENTS_SECRET",
+      "FORMS_SECRET",
+      "ADMIN_SUBS",
+      "SPONSORS_WEBHOOK_SECRET",
+    ]) {
       expect(Object.keys(vars)).not.toContain(key);
     }
     const stored = wrangler["secrets_store_secrets"] as Record<string, unknown>[];
@@ -38,6 +43,7 @@ describe("wrangler.jsonc", () => {
       "ADMIN_SUBS",
       "FORMS_SECRET",
       "IDENTITY_EVENTS_SECRET",
+      "SPONSORS_WEBHOOK_SECRET",
     ]);
     for (const binding of stored) {
       expect(binding["binding"]).toBe(`${String(binding["secret_name"])}_STORE`);
@@ -55,6 +61,7 @@ describe("wrangler.jsonc", () => {
         "/api/*",
         "/_identity/*",
         "/_published/*",
+        "/_sponsors/*",
         "/cli-auth",
         "/cli-auth/*",
         "/p/*",
@@ -141,6 +148,17 @@ describe("wrangler.jsonc", () => {
     expect(() => publishHostOf(config)).not.toThrow();
   });
 
+  it("ships with no sponsored account: no donation path until the owner's steps on GitHub are done", () => {
+    // The owner sets the login (`askenaz`) once the Sponsors profile and its webhook exist
+    // (docs/cloud.md, "Sponsorships"); until then the route answers 404 and the page shows nothing.
+    expect(vars["SPONSORS_ACCOUNT"]).toBe("");
+    const config = readConfig(
+      testEnv({ SPONSORS_ACCOUNT: String(vars["SPONSORS_ACCOUNT"]) }),
+      new Request("https://diagrams.meltemi.dev/"),
+    );
+    expect(config.sponsorsAccount).toBeUndefined();
+  });
+
   it("is listed with every variable and secret in .dev.vars.example", () => {
     const example = readFileSync(new URL(".dev.vars.example", PACKAGE), "utf8");
     for (const name of [
@@ -152,6 +170,8 @@ describe("wrangler.jsonc", () => {
       "IDENTITY_JWKS",
       "ADMIN_SUBS",
       "PUBLISH_HOST",
+      "SPONSORS_ACCOUNT",
+      "SPONSORS_WEBHOOK_SECRET",
     ]) {
       expect(example, name).toMatch(new RegExp(`^#?\\s*${name}=`, "m"));
     }
@@ -252,6 +272,20 @@ describe("the administrators and the publish host", () => {
     expect(owners.has("u_7d3")).toBe(false);
     expect(owners.has("U_7D3F")).toBe(false);
     expect(owners.has("")).toBe(false);
+  });
+
+  it.each([
+    [undefined, undefined],
+    ["", undefined],
+    ["  ", undefined],
+    [" askenaz ", "askenaz"],
+    ["Ana-Dev", "Ana-Dev"],
+    ["https://github.com/askenaz", undefined],
+    ["-ana", undefined],
+    ["a".repeat(40), undefined],
+  ])("reads SPONSORS_ACCOUNT %j as the sponsored account %j", (SPONSORS_ACCOUNT, account) => {
+    const config = configOf(SPONSORS_ACCOUNT === undefined ? {} : { SPONSORS_ACCOUNT });
+    expect(config.sponsorsAccount).toBe(account);
   });
 
   it("reads PUBLISH_HOST trimmed, and none when it is empty", () => {

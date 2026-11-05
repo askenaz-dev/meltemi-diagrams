@@ -21,11 +21,13 @@ import type {
   Project,
   Publication,
   PublishClaim,
+  Sponsorship,
   Takedown,
   TokenRow,
   User,
   Version,
 } from "./types.js";
+import { GITHUB_SPONSORS } from "./types.js";
 
 /** A version with the files it was made with. */
 interface VersionEntry {
@@ -86,6 +88,25 @@ export function memoryStore(): CloudStore {
     invitation.expiresAt > now;
   const findOpen = (id: string, now: Iso) =>
     adminInvitations.find((entry) => entry.invitation.id === id && open(entry.invitation, now));
+  // Sponsorships in the order they were stored (`seq` stands for the rowid of `d1Store`). A login
+  // is compared as SQLite's NOCASE compares it: ASCII letters folded.
+  const sponsorships: { sponsorship: Sponsorship; seq: number }[] = [];
+  let sponsorshipSeq = 0;
+  const fold = (text: string) => text.replace(/[A-Z]/g, (c) => c.toLowerCase());
+  const claimable = (login: string) =>
+    sponsorships.filter(
+      ({ sponsorship }) =>
+        sponsorship.claimedBy === null &&
+        sponsorship.sponsorType === "User" &&
+        fold(sponsorship.login) === fold(login),
+    );
+  const clearClaimsOf = (sub: string) => {
+    for (const entry of sponsorships) {
+      if (entry.sponsorship.claimedBy === sub) {
+        entry.sponsorship = { ...entry.sponsorship, claimedBy: null, claimedAt: null };
+      }
+    }
+  };
 
   const ownedBy = (sub: string) =>
     [...projects.values()].filter((entry) => entry.project.ownerSub === sub);
@@ -224,6 +245,7 @@ export function memoryStore(): CloudStore {
       for (const [id, token] of tokens) if (token.sub === sub) tokens.delete(id);
       for (const [hash, code] of codes) if (code.sub === sub) codes.delete(hash);
       administrators.delete(sub);
+      clearClaimsOf(sub);
       dropWhere(
         adminInvitations,
         ({ invitation }) =>
@@ -846,6 +868,65 @@ export function memoryStore(): CloudStore {
         .sort((a, b) => binary(b.entry.at, a.entry.at) || b.seq - a.seq)
         .slice(0, Math.max(0, capacity(limit)))
         .map(({ entry }) => ({ ...entry }));
+    },
+
+    async recordSponsorship(sponsorship) {
+      if (sponsorships.some((entry) => entry.sponsorship.deliveryId === sponsorship.deliveryId)) {
+        return "repeated";
+      }
+      // The id is the table's key, as it is `d1Store`'s: a second one is refused and the first stays.
+      if (sponsorships.some((entry) => entry.sponsorship.id === sponsorship.id)) {
+        throw new Error(`sponsorship ${sponsorship.id} exists`);
+      }
+      sponsorships.push({
+        sponsorship: { ...sponsorship, status: "active", claimedBy: null, claimedAt: null },
+        seq: sponsorshipSeq++,
+      });
+      return "recorded";
+    },
+    async updateSponsorship(login, oneTime, status, privacy) {
+      const newest = sponsorships
+        .filter(
+          ({ sponsorship }) =>
+            fold(sponsorship.login) === fold(login) && sponsorship.oneTime === oneTime,
+        )
+        .sort(
+          (a, b) => binary(b.sponsorship.createdAt, a.sponsorship.createdAt) || b.seq - a.seq,
+        )[0];
+      if (!newest || newest.sponsorship.status === "cancelled") return false;
+      newest.sponsorship = { ...newest.sponsorship, status, privacy };
+      return true;
+    },
+    async unclaimedSponsorship(login) {
+      const earliest = claimable(login).sort(
+        (a, b) => binary(a.sponsorship.createdAt, b.sponsorship.createdAt) || a.seq - b.seq,
+      )[0];
+      return earliest && { ...earliest.sponsorship };
+    },
+    async claimSponsorship(login, sub, at, log) {
+      const person = users.get(sub);
+      const rows = claimable(login);
+      if (!person || rows.length === 0) return false;
+      logAdmin(log);
+      users.set(sub, {
+        ...person,
+        unbrandedExports: true,
+        unbrandedExportsBy: GITHUB_SPONSORS,
+        unbrandedExportsAt: at,
+      });
+      for (const entry of rows) {
+        entry.sponsorship = { ...entry.sponsorship, claimedBy: sub, claimedAt: at };
+      }
+      return true;
+    },
+    async sponsorships(limit) {
+      return [...sponsorships]
+        .sort((a, b) => binary(b.sponsorship.createdAt, a.sponsorship.createdAt) || b.seq - a.seq)
+        .slice(0, Math.max(0, capacity(limit)))
+        .map(({ sponsorship }) => ({ ...sponsorship }));
+    },
+    async clearClaims(sub) {
+      clearClaimsOf(sub);
     },
 
     async publicationsOf(projectId) {

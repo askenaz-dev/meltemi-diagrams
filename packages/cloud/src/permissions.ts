@@ -26,7 +26,11 @@ export interface Permission {
   holders(store: CloudStore): Promise<User[]>;
 }
 
-/** Export without the Meltemi branding: the columns of migration 0005 (`unbranded-exports`). */
+/**
+ * Export without the Meltemi branding: the columns of migration 0005 (`unbranded-exports`). A
+ * sponsorship claim sets the same columns, with the grantor `github-sponsors`, in the store's
+ * `claimSponsorship`, the step that also claims the sponsorship (`routes/account.ts`).
+ */
 const UNBRANDED_EXPORTS: Permission = {
   id: "unbranded-exports",
   read: (user) => ({
