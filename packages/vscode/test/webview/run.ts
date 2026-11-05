@@ -848,6 +848,26 @@ class Harness {
  * Presses on an element's centre, drags it by `dx`, `dy` in steps and releases; `during` runs with
  * the button still down.
  */
+/**
+ * The story timeline's ruler once the timeline has risen in: measured during its entrance the
+ * box is still scaled, and a click at a time's place lands a few milliseconds off.
+ */
+async function stillRuler(
+  page: Page,
+): Promise<{ x: number; y: number; width: number; height: number }> {
+  await page.locator(".timeline").evaluate((e) =>
+    Promise.all(
+      e.getAnimations().map((a) =>
+        a.finished.then(
+          () => null,
+          () => null,
+        ),
+      ),
+    ),
+  );
+  return (await page.locator(".timeline .ruler").boundingBox())!;
+}
+
 async function dragBy(
   h: Harness,
   id: string,
@@ -3496,7 +3516,7 @@ const tests: {
       assert.equal(await opacity(), "0");
       assert.match((await page.locator(".timeline .clock").textContent()) ?? "", /^0 s \/ 6\.2 s$/);
       // Scrubbing to the middle of the reveal.
-      const ruler = (await page.locator(".timeline .ruler").boundingBox())!;
+      const ruler = await stillRuler(page);
       await page.mouse.click(ruler.x + (ruler.width * 400) / 6200, ruler.y + ruler.height / 2);
       assert.equal(await opacity(), "0.5");
       // Playing moves the clock on and pauses at the end or on demand.
@@ -7831,7 +7851,7 @@ const tests: {
       assert.equal(await opacity(), "0");
       assert.match((await page.locator(".timeline .clock").textContent()) ?? "", /^0 s \/ 6\.2 s$/);
       // Scrub, then play and pause: as in edit mode.
-      const ruler = (await page.locator(".timeline .ruler").boundingBox())!;
+      const ruler = await stillRuler(page);
       await page.mouse.click(ruler.x + (ruler.width * 400) / 6200, ruler.y + ruler.height / 2);
       assert.equal(await opacity(), "0.5");
       await page.getByRole("button", { name: "Play the story" }).click();
@@ -11951,7 +11971,7 @@ story walk for s {
       await page.keyboard.press("Home");
       assert.equal(await group.getAttribute("opacity"), "0");
       // Halfway through the draw (1 s of 1.4 s), half the 300-long stroke is drawn.
-      const ruler = (await page.locator(".timeline .ruler").boundingBox())!;
+      const ruler = await stillRuler(page);
       await page.mouse.click(ruler.x + (ruler.width * 1000) / 1400, ruler.y + ruler.height / 2);
       const halfway = await group.locator("polyline").evaluate((polyline) => ({
         dash: polyline.getAttribute("stroke-dasharray"),
