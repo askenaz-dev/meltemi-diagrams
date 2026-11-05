@@ -1473,6 +1473,24 @@ una página pueda mostrar una cuota sin conocer los números:
 `storageBytes` es el de la última materialización, versión, subida o eliminación. La página muestra
 los números en el menú de la cuenta.
 
+### Claves de idempotencia
+
+`POST /api/projects` y `PUT /api/projects/<id>/files` aceptan una cabecera `Idempotency-Key`: de 1 a
+64 caracteres ASCII visibles, una por cambio lógico, que elige el cliente. La primera petición con una
+clave se responde y su respuesta se guarda un día junto con el SHA-256 de su cuerpo; una repetición
+con la misma clave y el mismo cuerpo recibe de nuevo esa primera respuesta con
+`Idempotent-Replayed: true` y no cambia nada (un proyecto, un push). La misma clave con otro cuerpo,
+o en otra ruta, es `409 idempotency.mismatch`; una repetición mientras la primera petición sigue en
+curso es `409 idempotency.pending`. Las claves son de cada cuenta. Una respuesta se guarda cuando es
+de la propia petición (un éxito o un `4xx`, entre ellos el `409 revision.mismatch` de un push
+desfasado); un fallo del servicio (`5xx`) o un límite de ritmo (`429`) suelta la clave, para que un
+reintento se ejecute otra vez. La clave se reserva antes del cambio y se responde después (un push es
+una transacción de la sala, no de D1), y una reserva que nadie respondió en un minuto se retoma. La
+migración 0008 las guarda (`idempotency`); la siguiente clave de la cuenta barre las suyas caducadas y
+el cron semanal las de todos. Las herramientas MCP `create_project` y `write_files` toman la misma
+clave como `idempotencyKey`: la misma clave y el mismo cuerpo por cualquiera de las dos puertas son una
+sola petición.
+
 ## Compartir y permisos
 
 Un proyecto tiene un nivel de enlace y miembros además de su propietario. El nivel del enlace es
@@ -2256,6 +2274,43 @@ el día en que lo lleven.
 
 Los dos lados del secreto solo se desalinean a mano: una entrega respondida con `401` en el panel lo
 dice, y el propietario vuelve a escribir el mismo secreto en ambos.
+
+## El endpoint MCP
+
+`POST /mcp` es un servidor del Model Context Protocol (Streamable HTTP, sin estado) por el que un
+agente actúa sobre los proyectos de la cuenta (cambio `agent-mcp`). Está hecho con `createMcpHandler`
+de `@modelcontextprotocol/server` 2.3.1 (Apache-2.0) y `zod` 4.6.7 (MIT): las revisiones 2025 del
+protocolo se responden por su vía sin estado (un flujo de eventos con la única respuesta), la revisión
+2026-07-28 como JSON. No se emite identificador de sesión; `GET` y `DELETE` son `405`. En este orden,
+antes de que el SDK lea nada: un `Origin` que no es el de la página es `403 request.forbidden`, un
+`MCP-Protocol-Version` que el SDK no sirve es `400`, una petición sin un token que el servicio guarde
+es `401` con `WWW-Authenticate: Bearer` (aquí nunca se toma la cookie), y un cuerpo de más de 24 MiB
+es `413`. El SDK y las herramientas se importan la primera vez que un isolate sirve `/mcp`.
+
+Un token de API `mdg_` abre el endpoint como su cuenta, con todos los alcances (`projects:read`,
+`projects:write`, `sharing`, `live`, `publish`); el servidor de autorización cuyos tokens OAuth llevan
+alcances más estrechos es la siguiente etapa del cambio. Cada herramienta comprueba su alcance
+(`scope.insufficient`, que lo nombra) y después el rol que el proyecto da a la cuenta, como hace su
+ruta: un alcance amplio nunca añade un rol. Cada llamada se cuenta (300 por minuto y cuenta,
+`rate.limited` con `retryAfter`) y se registra como `mcp: <herramienta> <ms> ms <código>`, nunca con
+sus argumentos.
+
+Las veintisiete herramientas: `whoami`; `list_projects`, `create_project`, `get_project`,
+`rename_project`; `read_files`, `write_files`, `validate`, `upload_image`; `list_versions`,
+`create_version`, `restore_version`; `open_url`; `preview`; `get_sharing`, `set_link_access`,
+`invite`, `list_invitations`, `revoke_invitation`, `set_member_role`, `remove_member`; `get_live`,
+`start_live`, `end_live`; `list_publications`, `publish`, `unpublish`. Cada una llama a la operación
+que llama su ruta (`src/operations/`) y responde `structuredContent` y el mismo JSON como texto; un
+rechazo es un resultado `isError` `{ code, message, … }` con los códigos de [Errores](#errores)
+(`project.not-found` no dice nada más, una cuota nombra su `limit`). `write_files` toma `ifRevision` y
+hace que el objeto renderizador compile primero cada archivo `.meltemi` que escribe con los archivos
+del proyecto, y rechaza entero un push con un error (`diagram.invalid`); `validate` da del mismo modo
+los diagnósticos de un archivo o del proyecto. `preview` dibuja un PNG (de 1280 de ancho por omisión,
+de 16 a 2048) o un SVG en el objeto renderizador, como mucho 30 por minuto y cuenta, con un informe al
+lado. `invite` responde el enlace de la invitación y `emailSent: false`. `publish` hace que el objeto
+renderizador construya el catálogo que publica la página, lo guarda y lee una vez la dirección pública
+(`HEAD`): una dirección que no responde `200` es `502 publish.unverified` con su `url`, y la
+publicación existe.
 
 ## Cuotas y límites
 

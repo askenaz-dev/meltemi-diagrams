@@ -39,6 +39,14 @@ const NOTES = new Map([
     "used under EPL-2.0, unmodified; source: https://github.com/kieler/elkjs (decision 0015)",
   ],
   [
+    "@modelcontextprotocol/server",
+    "used under Apache-2.0, unmodified, by the hosted service's MCP endpoint (change agent-mcp)",
+  ],
+  [
+    "@modelcontextprotocol/core",
+    "used under Apache-2.0, unmodified, by the hosted service's MCP endpoint (change agent-mcp)",
+  ],
+  [
     "@resvg/resvg-wasm",
     "used under MPL-2.0, unmodified, by the hosted service's PNG previews (change agent-mcp); source: https://github.com/yisibl/resvg-js",
   ],

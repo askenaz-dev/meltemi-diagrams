@@ -25,7 +25,7 @@ authenticated (`mcp-authorization`).
 - **THEN** the answer is `400`
 
 ### Requirement: The catalogue
-`tools/list` SHALL answer twenty-six tools, each with `name`, `title`, `description`,
+`tools/list` SHALL answer twenty-seven tools, each with `name`, `title`, `description`,
 `inputSchema`, `outputSchema` and `annotations`: `whoami`; four project tools; four file
 tools; three version tools; `open_url`; `preview`; seven sharing tools; three live tools; three
 publishing tools, named in the scenarios. Read tools SHALL carry `readOnlyHint`; the tools that
@@ -129,7 +129,7 @@ or `publish` scope.
 
 #### Scenario: A live session with its term
 - **WHEN** `start_live` is called with `guestsEdit: true`
-- **THEN** the result holds `link` and `until`, and `end_live` makes `get_live` answer `null`
+- **THEN** the result holds `link` and `until`, and `end_live` makes `get_live` answer `live: null`
 
 #### Scenario: Published and read back
 - **WHEN** `publish` is called with the slug `precios`

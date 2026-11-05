@@ -23,9 +23,14 @@ metadata, RFC 8414 server metadata, RFC 7591 registration SHOULD, the `resource`
 MUST and bound to the token's audience, `401` with `WWW-Authenticate` naming the metadata, `403`
 for scopes, no token passthrough. Codex adds a remote server with `codex mcp add <name> --url`,
 defaults to OAuth (CIMD or DCR, loopback callback `http://127.0.0.1/callback`), takes
-`bearer_token_env_var`, and documents nothing about image results. Cloudflare's `agents`
-package gives `createMcpHandler(factory, { route, corsOptions, allowedOriginHostnames })`, a
-stateless Streamable HTTP handler over `@modelcontextprotocol/server`;
+`bearer_token_env_var`, and documents nothing about image results. The official SDK,
+`@modelcontextprotocol/server` 2.x (Apache-2.0), gives `createMcpHandler(factory, { legacy:
+'stateless' | 'reject', responseMode, maxRequestBodySize, onerror })`, a web-standard handler built
+once that makes a server per request with the factory, serving the 2026-07-28 revision and, with
+`legacy: 'stateless'`, the 2025 revisions through a stateless leg (`GET` and `DELETE` are `405`); it
+has a workerd shim and a Cloudflare JSON Schema validator, and validates no `Origin` (Cloudflare's
+`agents` package wraps it with `allowedOriginHostnames`, and brings dependencies this Worker does
+not need);
 `@cloudflare/workers-oauth-provider` gives `OAuthProvider({ apiRoute, apiHandler,
 defaultHandler, authorizeEndpoint, tokenEndpoint, clientRegistrationEndpoint, scopesSupported,
 resourceMetadata })` over a KV namespace `OAUTH_KV`, with `parseAuthRequest`,
@@ -54,25 +59,47 @@ Run free: 10 minutes a day. See proposal.md for the motivation.
 
 ## Decisions
 
-1. **The handler and the routes.** `routes/mcp.ts` builds the server with
-   `createMcpHandler(createServer, { route: "/mcp", corsOptions: false,
-   allowedOriginHostnames: [the service's host] })`; `createServer(ctx)` registers the tools
-   with `zod` schemas, `serverInfo { name: "meltemi-diagrams", version }` and `instructions`
-   (three sentences: what the tools do, write then validate then preview, the skill's address).
-   Each tool calls the same functions the HTTP routes call (`routes/projects.ts`,
-   `routes/sharing.ts`, `routes/live.ts`, `routes/publish.ts`, refactored where needed so a
-   route is a thin reader of the request over an operation that takes a principal and typed
-   input) with a principal `{ via: "oauth", sub, scopes, clientId }` or the `mdg_` principal
-   (`via: "token"`, every scope). `/mcp`, `/oauth/*` and `/.well-known/*` join
-   `run_worker_first`. Alternatives: `McpAgent` over Durable Objects (deprecated by Cloudflare,
-   stateful for nothing we need); the SDK's transport by hand (the handler is the documented
-   way and validates `Origin` and versions for us).
+1. **The handler and the routes.** `routes/mcp.ts` is the door: an `Origin` that is not the
+   page's is `403 request.forbidden` and a method other than `POST` is `405`, before anything is
+   read; it then imports `mcp/endpoint.ts`, so that the SDK, `zod` and the catalogue's schemas are
+   evaluated by an isolate only when it first serves `/mcp` (measured: 31.0 to 35.6 ms of local
+   startup, against 64.3 ms when they were imported with the handler). `mcp/endpoint.ts` refuses a
+   `MCP-Protocol-Version` the SDK does not serve (`400`, `initialize` included, which the SDK's
+   legacy leg would negotiate instead), authenticates (`401` with `WWW-Authenticate: Bearer`), reads
+   the body through the 24 MiB cap (`413`) and hands a copy to `createMcpHandler(factory, { legacy:
+   "stateless", responseMode: "auto", maxRequestBodySize })` of `@modelcontextprotocol/server`
+   2.3.1, built once per isolate; the caller reaches the per-request server through
+   `authInfo.extra`. The 2025 revisions (every client today) are answered by the SDK's stateless
+   leg as an event stream holding the one answer, the 2026-07-28 revision as JSON: `responseMode:
+   "auto"` answers one JSON body as `"json"` would, since no tool sends anything before its result,
+   and `"json"` makes the SDK print a warning for every handler it builds. `createServer(session)`
+   registers the tools with `zod` 4.6.7 schemas, `serverInfo { name: "meltemi-diagrams", title,
+   version }` (the version of the page's build, `templates.json`) and `instructions` (three
+   sentences: what the tools do, write then validate then preview and `open_url`, the skill's
+   address). Each tool calls the operation its HTTP route calls (`src/operations/`: projects,
+   files, versions, sharing, live, publish; each route reads the request and calls one, the
+   existing route tests unchanged) with the caller's principal. The caller (`mcp/caller.ts`) is
+   `{ principal, scopes, clientId }`: an `mdg_` token resolves to its `via: "token"` principal with
+   every scope; the OAuth stage adds its tokens' resolution in `authenticate` and nothing else, since
+   every tool checks its scope through `requireScope` in the one wrapper of `mcp/tool.ts` (which also
+   counts the call, reads the arguments with the tool's schema so that a refusal is `request.invalid`
+   with a stable code, maps errors and logs `mcp: <tool> <ms> ms <code>`). `/mcp` and `/mcp/*` join
+   `run_worker_first`; `/oauth/*` and `/.well-known/*` are the next stage's. The cookie is never taken
+   on `/mcp`. Alternatives: `McpAgent` over Durable Objects (deprecated by Cloudflare, stateful for
+   nothing we need); Cloudflare's `agents` package (its `createMcpHandler` wraps this one with an
+   `Origin` check the door makes in a few lines, and it brings esbuild, babel and peers the Worker
+   does not need); the SDK's transport by hand behind `isLegacyRequest` (JSON answers for 2025
+   clients too, for a copy of the SDK's own leg).
 
-2. **The catalogue.** Twenty-six tools, snake_case, inputs and outputs as the HTTP shapes with
+2. **The catalogue.** Twenty-seven tools (the list of the proposal and of `mcp-server` counts
+   twenty-seven; "twenty-six" was a miscount), snake_case, inputs and outputs as the HTTP shapes with
    the same names (`revision`, `files`, `binaries`, `role`, `link`, `until`), ids never guessed:
    every project tool takes `project` (the id), file tools take paths, `open_url` answers
    `https://diagrams.meltemi.dev/?project=<id>` (and `#file=<path>` when the app's address
-   takes it, `web-playground`), `whoami` answers the account, its usage and limits. Annotations:
+   takes it, `web-playground`: it does not, so the address names the project only), `whoami`
+   answers the account, its scopes, usage and limits; `list_publications { project? }` lists the
+   account's publications, or one project's with its takedowns; `get_live` answers `{ live }`,
+   `null` when none is on (an output schema's root is an object). Annotations:
    `readOnlyHint` on `whoami`, `list_*`, `get_*`, `read_files`, `validate`, `preview`,
    `open_url`; `destructiveHint` on `restore_version`, `remove_member`, `revoke_invitation`,
    `end_live`, `unpublish`, `set_link_access` to `none`; `idempotentHint` on `create_project`
@@ -81,19 +108,35 @@ Run free: 10 minutes a day. See proposal.md for the motivation.
    service's codes (`revision.mismatch` carries the current `revision`; `quota.*` the limit;
    `project.not-found` says nothing more). `write_files` compiles every `.meltemi` of the push
    with the project's other files through `project` and refuses errors with the diagnostics
-   (`diagram.invalid`), warnings allowed; the HTTP push keeps accepting any text, since the page
-   pushes while a person types. `invite` answers `{ invitation, link, emailSent: false }` in so
-   many words. `publish` answers the public address and reads it back once (`HEAD`) before
-   answering, so the tool's answer is a URL that served.
+   (`diagram.invalid`), warnings allowed; the compilation runs in the renderer object (its
+   `validate` RPC, over the texts only, layout skipped), never in the Worker's request path, after
+   `ifRevision` is checked against the room and every path against the path rule; the HTTP push
+   keeps accepting any text, since the page pushes while a person types. `validate` gives the
+   diagnostics `meltemi-diagrams validate` prints, layout included, through the same RPC; the images
+   and fonts are not read by a check (the project's host has no binary reader there), and `preview`
+   reports theirs. `invite` answers `{ invitation, link, emailSent: false }` in so
+   many words. `publish` has the renderer object build the catalog (its `catalog` RPC: `buildCatalog`
+   of `@meltemi/diagrams-editor`, the build the page and the command line publish, with the page's
+   `assets/catalog.js` as its runtime), stores it with the publish operation, and reads the public
+   address back once (`HEAD`, through `deps.publicFetch`, the Cloudflare entry's `fetch`) before
+   answering, so the tool's answer is a URL that served; a handle is chosen in the app
+   (`handle.required` before anything is built).
 
 3. **Idempotency in the API.** Migration `0008_idempotency.sql` adds `idempotency (sub, key,
    route, request_hash, status, body, created_at)` with the primary key `(sub, key)`;
    `POST /api/projects` and `PUT /api/projects/<id>/files` read `Idempotency-Key` (1 to 64
-   visible ASCII characters) and, in the same D1 batch as the change, store `(status, body)`;
-   a repeat with the same key and the same request hash answers the stored answer with
-   `Idempotent-Replayed: true`, a repeat with another hash `409 idempotency.mismatch`; rows are
-   swept after 24 hours by the weekly collection's hourly sibling. The MCP tools forward
-   `idempotencyKey` as the header. Alternative: idempotency in the tools alone (the command line
+   visible ASCII characters). A push is a transaction of the room, not of D1, so one batch cannot
+   hold the change and its answer: the key is claimed (a row without an answer) in one D1 batch
+   that also sweeps the account's keys older than a day and a claim nobody answered for a minute,
+   the change runs, and its `(status, body)` is kept (a success or a `4xx`; a `5xx` or a `429`
+   lets go of the key, so that a retry runs again). A repeat with the same key, route and request
+   hash answers the kept answer with `Idempotent-Replayed: true`, another route or hash is `409
+   idempotency.mismatch`, and a repeat while the first runs `409 idempotency.pending`; the weekly
+   cron sweeps everyone's old keys (there is no hourly sibling). The MCP tools take
+   `idempotencyKey` and come through the same `idempotent()` with the route and the JSON of the
+   HTTP request they stand for. The same migration adds `call_windows (sub, kind, minute, count)`:
+   the minute windows of the endpoint's rates (300 calls and 30 previews a minute per account), one
+   upsert per call that removes the account's earlier windows. Alternative: idempotency in the tools alone (the command line
    and other clients would not have it; the table is the same work).
 
 4. **The authorization server.** `OAuthProvider` from `@cloudflare/workers-oauth-provider`
@@ -134,7 +177,9 @@ Run free: 10 minutes a day. See proposal.md for the motivation.
    theme? })`, with the files of the room's snapshot at `revision` (as `GET …/files` reads them)
    and the bytes of the images and fonts they use, fetched from R2 by the caller; it answers
    `{ ok: true, contentType, bytes, report, cached }` or `{ ok: false, code: "request.invalid" |
-   "diagram.invalid", message, diagnostics? }`, never an exception (a file with an error is
+   "diagram.invalid", message, diagnostics? }`, never an exception (two more RPCs, `validate` and
+   `catalog`, check a project's files and build its catalog for `write_files`, `validate` and
+   `publish`) (a file with an error is
    `diagram.invalid` with its diagnostics). `report` is `{ revision, format, width, height,
    elements, relations, diagnostics, estimatedFonts, truncated, fitted? }`: `truncated` when the
    diagnostics were more than fifty, `fitted` when a PNG was drawn narrower. The rules live in
@@ -247,3 +292,26 @@ Run free: 10 minutes a day. See proposal.md for the motivation.
   them.
 - [Pushes with errors from other clients] → unchanged; only the tool validates, as the proposal
   says.
+- [The Worker's CPU per MCP call on the Free plan (10 ms)] → the compilation, the drawing and the
+  catalog run in the renderer object; the Worker parses the JSON-RPC body, builds a server of
+  twenty-seven tools and serialises the answer (base64 for a PNG). Not measured on Cloudflare yet:
+  the first staging deploy measures a `tools/list`, a `write_files` and a `preview` of
+  `flow/thirty`.
+
+## As built (tasks 1.1 to 1.5 and 3.2)
+
+- No `agents` package; `createMcpHandler` of `@modelcontextprotocol/server` 2.3.1 (Apache-2.0, not
+  MIT as the proposal said), `zod` 4.6.7 (MIT) and, for the tests, `@modelcontextprotocol/client`
+  2.3.1 (Apache-2.0) in `packages/cloud`; `@resvg/resvg-wasm` 2.6.2 is MPL-2.0. The OAuth provider is
+  not added yet (tasks 2.x).
+- New error codes: `diagram.invalid` (400), `scope.insufficient` (403), `idempotency.mismatch` and
+  `idempotency.pending` (409), `publish.unverified` (502); `rate.limited` (429) is reused for the
+  endpoint's rates with `retryAfter`, and an error with `retryAfter` is answered with `Retry-After`.
+- `Deps` gains `renderers` (the renderer objects) and `publicFetch` (the read-back), both given by
+  the Cloudflare entry; the weekly cron also runs `sweepKeys`.
+- From Meltemi Web's `diagrams-staging`, for the next stages: the identity service knows staging as
+  the product `diagrams-staging`, but `routes/account.ts` hard-codes `PRODUCT_NAME = "diagrams"`, which
+  should come from configuration (a `PRODUCT_NAME` variable defaulting to `diagrams`); and the
+  `OAUTH_KV` binding of `wrangler.jsonc` carries an `id` that the deploy configuration fills in from
+  `OAUTH_KV_ID`. Neither is done here: the first is outside the files this stage touches, the second
+  is task 2.1's.

@@ -1410,6 +1410,23 @@ can show a quota without knowing the numbers:
 `storageBytes` is as of the last materialisation, version, upload or deletion. The page shows the
 numbers in the account menu.
 
+### Idempotency keys
+
+`POST /api/projects` and `PUT /api/projects/<id>/files` take an `Idempotency-Key` header: 1 to 64
+visible ASCII characters, one per logical change, chosen by the client. The first request with a
+key is answered and its answer kept for a day with the SHA-256 of its body; a repeat with the same
+key and the same body is answered with that first answer again and `Idempotent-Replayed: true`, and
+changes nothing (one project, one push). The same key with another body, or on another route, is
+`409 idempotency.mismatch`; a repeat while the first request is still running is `409
+idempotency.pending`. Keys are per account. An answer is kept when it is the request's own (a
+success or a `4xx`, a stale push's `409 revision.mismatch` among them); a failure of the service
+(`5xx`) or a rate (`429`) lets go of the key, so that a retry runs again. The key is claimed before the
+change and answered after it (a push is a transaction of the room, not of D1), and a claim nobody
+answered for a minute is taken over. Migration 0008 keeps them (`idempotency`); the account's next
+key sweeps its expired ones and the weekly cron everyone's. The MCP tools `create_project` and
+`write_files` take the same key as `idempotencyKey`: the same key and body through either door are one
+request.
+
 ## Sharing and permissions
 
 A project has a link level and members besides its owner. The link level is `private` (the
@@ -2158,6 +2175,41 @@ sign-ins do not carry; the row keeps the id for the day they do.
 
 The two sides of the secret drift only by hand: a delivery answered `401` in the dashboard says so,
 and the owner enters the same secret on both again.
+
+## The MCP endpoint
+
+`POST /mcp` is a Model Context Protocol server (Streamable HTTP, stateless) through which an agent
+acts on the account's projects (change `agent-mcp`). It is built with `createMcpHandler` of
+`@modelcontextprotocol/server` 2.3.1 (Apache-2.0) and `zod` 4.6.7 (MIT): the 2025 revisions of the
+protocol are answered through its stateless leg (an event stream with the one answer), the
+2026-07-28 revision as JSON. No session id is issued; `GET` and `DELETE` are `405`. In this order,
+before the SDK reads anything: an `Origin` that is not the page's is `403 request.forbidden`, a
+`MCP-Protocol-Version` the SDK does not serve is `400`, a request without a token the service holds
+is `401` with `WWW-Authenticate: Bearer` (the cookie is never taken here), and a body over 24 MiB is
+`413`. The SDK and the tools are imported the first time an isolate serves `/mcp`.
+
+An `mdg_` API token opens the endpoint as its account, with every scope (`projects:read`,
+`projects:write`, `sharing`, `live`, `publish`); the authorization server whose OAuth tokens carry
+narrower scopes is the change's next stage. Every tool checks its scope (`scope.insufficient`,
+naming it) and then the role the project gives the account, as its route does: a wide scope never
+adds a role. A call is counted (300 a minute per account, `rate.limited` with `retryAfter`) and
+logged as `mcp: <tool> <ms> ms <code>`, never with its arguments.
+
+The twenty-seven tools: `whoami`; `list_projects`, `create_project`, `get_project`,
+`rename_project`; `read_files`, `write_files`, `validate`, `upload_image`; `list_versions`,
+`create_version`, `restore_version`; `open_url`; `preview`; `get_sharing`, `set_link_access`,
+`invite`, `list_invitations`, `revoke_invitation`, `set_member_role`, `remove_member`; `get_live`,
+`start_live`, `end_live`; `list_publications`, `publish`, `unpublish`. Each calls the operation its
+route calls (`src/operations/`) and answers `structuredContent` and the same JSON as text; a refusal
+is an `isError` result `{ code, message, … }` with the codes of [Errors](#errors) (`project.not-found`
+says nothing more, a quota names its `limit`). `write_files` takes `ifRevision` and has the renderer
+object compile every `.meltemi` file it writes with the project's files first, refusing a push with an
+error whole (`diagram.invalid`); `validate` gives a file's or the project's diagnostics the same way.
+`preview` draws a PNG (1280 wide by default, 16 to 2048) or an SVG in the renderer object, at most 30
+a minute per account, with a report beside it. `invite` answers the invitation's link and
+`emailSent: false`. `publish` has the renderer object build the catalog the page publishes, stores
+it, and reads the public address back once (`HEAD`): an address that does not answer `200` is
+`502 publish.unverified` with its `url`, and the publication exists.
 
 ## Quotas and limits
 

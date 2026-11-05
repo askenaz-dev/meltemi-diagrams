@@ -2,30 +2,34 @@
 
 ## 1. The endpoint over the existing operations (milestone 1)
 
-- [ ] 1.1 Add `agents`, `@modelcontextprotocol/server`, `zod` and
-      `@cloudflare/workers-oauth-provider` to `packages/cloud` (pinned) and
-      `@modelcontextprotocol/client` to `packages/acceptance`, after the owner's approval. Verify
-      `pnpm install --frozen-lockfile`, the licences in the lockfile and `pnpm typecheck`.
-- [ ] 1.2 Refactor `routes/projects.ts`, `routes/sharing.ts`, `routes/live.ts` and
-      `routes/publish.ts` so each route reads the request and calls an operation taking a
+- [x] 1.1 Add `@modelcontextprotocol/server` 2.3.1 and `zod` 4.6.7 to `packages/cloud` (pinned)
+      and `@modelcontextprotocol/client` 2.3.1 as its dev dependency, after the owner's approval
+      (as built: no `agents` package, design decision 1; `@cloudflare/workers-oauth-provider` moves
+      to task 2.1; the client of `packages/acceptance` to task 4.1). Verify `pnpm install
+      --frozen-lockfile`, the licences in the lockfile and `pnpm typecheck`.
+- [x] 1.2 Refactor `routes/projects.ts`, `routes/sharing.ts`, `routes/live.ts` and
+      `routes/publish.ts` (and, for the version and file tools, `routes/versions.ts`,
+      `routes/rooms.ts` and `routes/binaries.ts`) so each route reads the request and calls an operation taking a
       principal and typed input (`operations/*.ts`), with the existing route tests unchanged.
       Verify `pnpm --filter @meltemi/diagrams-cloud test` is green.
-- [ ] 1.3 Write `routes/mcp.ts` with `createMcpHandler`, the `initialize` instructions, the
+- [x] 1.3 Write `routes/mcp.ts` with `createMcpHandler`, the `initialize` instructions, the
       `Origin` check and the `mdg_` principal, and the project and file tools (`whoami`,
       `list_projects`, `create_project`, `get_project`, `rename_project`, `read_files`,
-      `write_files` with the compilation check, `validate`, `upload_image`, `open_url`) with
+      `write_files` with the compilation check, `validate`, `upload_image`, `open_url`, and the
+      version tools `list_versions`, `create_version` and `restore_version`, which no task named) with
       schemas, annotations and the error mapping; add `/mcp` to `run_worker_first`. Verify
       `test/mcp.test.ts` covers the initialize answer, the foreign origin, the bad version, the
       catalogue's names and annotations, the two-diagram scenario against the in-memory store,
       the push with an error, the conflict, the unknown project and the unknown tool.
-- [ ] 1.4 Add migration `0008_idempotency.sql`, the store's `idempotent(sub, key, hash, run)` in
-      D1 and memory, the header on the two routes with the sweep, and the tools' `idempotencyKey`.
+- [x] 1.4 Add migration `0008_idempotency.sql`, the store's `idempotent(sub, key, hash, run)` in
+      D1 and memory (as built: the store's `claimKey`, `keepAnswer`, `releaseKey` and `sweepKeys`, and
+      `idempotent()` of `src/idempotency.ts` over them; the same migration holds the rate windows), the header on the two routes with the sweep, and the tools' `idempotencyKey`.
       Verify the cloud tests cover the replay, the mismatch, the bad key and the sweep, and the
       MCP test the retried `create_project`.
-- [ ] 1.5 Add the sharing, live and publishing tools with their scopes and the read-back of
+- [x] 1.5 Add the sharing, live and publishing tools with their scopes and the read-back of
       `publish`. Verify `test/mcp.test.ts` covers the read link, the invitation's `emailSent:
       false`, the viewer refused, the published-and-read-back scenario, the rate limit and the
-      spying console.
+      spying console (in `test/mcp-sharing.test.ts`, beside `test/mcp.test.ts`).
 
 ## 2. The authorization server (milestone 1)
 
@@ -54,9 +58,10 @@
       `wrangler.jsonc`. Verify `test/renderer.test.ts` draws the acceptance corpus's flow,
       sequence, C4 and free files to SVG equal to the command line's `--fonts system` output
       and to PNGs of the asked width, and the cache answers byte-equal.
-- [ ] 3.2 Add the `preview` tool with the report, the fallback fonts, the width and rate
+- [x] 3.2 Add the `preview` tool with the report, the fallback fonts, the width and rate
       limits. Verify `test/mcp.test.ts` covers the SVG equality, the PNG and report, the story
-      frame, the file with an error, the Fontsource family, the width refused and the rate.
+      frame, the file with an error, the Fontsource family, the width refused and the rate (in
+      `test/mcp-preview.test.ts`).
 - [x] 3.3 Measure on `wrangler dev` the renderer's cold start and the CPU of the corpus's largest
       diagram, and record them in `docs/performance.md`. Verify the numbers are in the page and
       under the limits the design names, or the Browser Run fallback is taken and the design

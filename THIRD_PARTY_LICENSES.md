@@ -30,6 +30,8 @@ or glyph outlines), which the SIL Open Font License 1.1 permits.
 | @ibm/telemetry-js | 1.12.0 | Apache-2.0 |  | https://github.com/ibm-telemetry/telemetry-js#readme |
 | @iconify-json/logos | 1.2.16 | CC0-1.0 |  | https://icon-sets.iconify.design/logos/ |
 | @iconify/types | 2.0.0 | MIT |  | https://github.com/iconify/iconify |
+| @modelcontextprotocol/core | 2.3.1 | Apache-2.0 | used under Apache-2.0, unmodified, by the hosted service's MCP endpoint (change agent-mcp) | https://modelcontextprotocol.io |
+| @modelcontextprotocol/server | 2.3.1 | Apache-2.0 | used under Apache-2.0, unmodified, by the hosted service's MCP endpoint (change agent-mcp) | https://modelcontextprotocol.io |
 | @resvg/resvg-wasm | 2.6.2 | MPL-2.0 | used under MPL-2.0, unmodified, by the hosted service's PNG previews (change agent-mcp); source: https://github.com/yisibl/resvg-js | https://github.com/yisibl/resvg-js#readme |
 | @swc/helpers | 0.5.23 | Apache-2.0 |  | https://swc.rs |
 | @tabler/icons | 3.48.0 | MIT |  | https://tabler.io/icons |
@@ -50,6 +52,7 @@ or glyph outlines), which the SIL Open Font License 1.1 permits.
 | unicode-properties | 1.4.1 | MIT |  | https://github.com/devongovett/unicode-properties |
 | unicode-trie | 2.0.0 | MIT |  | https://github.com/devongovett/unicode-trie |
 | yjs | 13.6.33 | MIT |  | https://docs.yjs.dev |
+| zod | 4.6.7 | MIT |  | https://zod.dev |
 
 ## Bundled icon sets
 
