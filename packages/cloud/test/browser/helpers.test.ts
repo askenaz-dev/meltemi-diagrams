@@ -96,11 +96,18 @@ describe("testConfig", () => {
     expect({ ...copied, assets: undefined }).toEqual({ ...config, assets: undefined });
   });
 
-  it("keeps the rooms: the Durable Object binding and its SQLite migration, and the sources of the workspace packages by absolute paths", () => {
+  it("keeps the rooms and the renderers: the Durable Object bindings and their SQLite migrations, the renderer's rules, and the sources of the workspace packages by absolute paths", () => {
     expect(config["durable_objects"]).toEqual({
-      bindings: [{ name: "ROOMS", class_name: "ProjectRoom" }],
+      bindings: [
+        { name: "ROOMS", class_name: "ProjectRoom" },
+        { name: "RENDERERS", class_name: "ProjectRenderer" },
+      ],
     });
-    expect(config["migrations"]).toEqual([{ tag: "v1", new_sqlite_classes: ["ProjectRoom"] }]);
+    expect(config["migrations"]).toEqual([
+      { tag: "v1", new_sqlite_classes: ["ProjectRoom"] },
+      { tag: "v2", new_sqlite_classes: ["ProjectRenderer"] },
+    ]);
+    expect(config["rules"]).toEqual(deployed["rules"]);
     const alias = config["alias"] as Record<string, string>;
     expect(Object.keys(alias).length).toBeGreaterThan(0);
     for (const path of Object.values(alias)) expect(isAbsolute(path)).toBe(true);

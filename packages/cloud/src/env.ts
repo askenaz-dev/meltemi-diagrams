@@ -1,3 +1,4 @@
+import type { RendererNamespaceLike } from "./renderer-client.js";
 import type { RoomNamespaceLike } from "./room-client.js";
 
 /**
@@ -93,6 +94,8 @@ export interface Env {
   readonly ASSETS: { fetch(request: Request): Promise<Response> };
   /** The Durable Object namespace of `ProjectRoom`: one room per project id. */
   readonly ROOMS: RoomNamespaceLike;
+  /** The Durable Object namespace of `ProjectRenderer`: the previews of a project, one object per id. */
+  readonly RENDERERS: RendererNamespaceLike;
   /** The R2 bucket of blobs (`blobs/<sha-256>`) and thumbnails (`thumbs/<project id>.svg`). */
   readonly BLOBS: R2Like;
 }

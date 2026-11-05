@@ -917,11 +917,16 @@ describe("no test reaches the network", () => {
     const sockets =
       /\bfrom\s+["'](?:node:)?(?:net|tls|http|https|http2|dgram|dns|child_process|cluster)["']|\bfrom\s+["'](?:undici|ws|node-fetch|playwright-core|wrangler)["']/;
     // The browser suite is another command (`pnpm cloud:test-browser`): it starts a Worker, a
-    // listener and a browser, on purpose.
+    // listener and a browser, on purpose. So are the renderer's measurements
+    // (`pnpm cloud:bench-renderer`), which start a Worker under `wrangler dev`.
     const browser = `${sep}test${sep}browser`;
+    const performance = `${sep}test${sep}performance`;
     const files = [
       ...sourcesUnder(join(PACKAGE, "src")),
-      ...sourcesUnder(join(PACKAGE, "test"), (path) => path.endsWith(browser)),
+      ...sourcesUnder(
+        join(PACKAGE, "test"),
+        (path) => path.endsWith(browser) || path.endsWith(performance),
+      ),
     ];
 
     expect(files.length).toBeGreaterThan(25);

@@ -48,6 +48,8 @@
     "cloud:migrate": "pnpm --filter @meltemi/diagrams-cloud run migrate",
     "cloud:test": "vitest run packages/cloud",
     "cloud:test-browser": "tsx packages/cloud/test/browser/run.ts",
+    "cloud:renderer-bundle": "tsx --conditions=@meltemi/diagrams-source packages/cloud/scripts/renderer-bundle.ts",
+    "cloud:bench-renderer": "tsx --conditions=@meltemi/diagrams-source packages/cloud/test/performance/renderer-bench.ts",
     "cloud:dev-session": "tsx packages/cloud/test/dev-session.ts"
   },
   "devDependencies": {

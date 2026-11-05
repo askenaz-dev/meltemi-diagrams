@@ -231,12 +231,60 @@ importers:
 
   packages/cloud:
     dependencies:
+      '@fontsource/cascadia-mono':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource/inter':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@fontsource/patrick-hand':
+        specifier: 5.3.0
+        version: 5.3.0
+      '@ibm/plex-sans':
+        specifier: 1.1.0
+        version: 1.1.0
+      '@iconify-json/logos':
+        specifier: 1.2.16
+        version: 1.2.16
+      '@meltemi/diagrams-assets':
+        specifier: workspace:*
+        version: link:../assets
+      '@meltemi/diagrams-editor':
+        specifier: workspace:*
+        version: link:../editor
+      '@meltemi/diagrams-fonts':
+        specifier: workspace:*
+        version: link:../fonts
+      '@meltemi/diagrams-language':
+        specifier: workspace:*
+        version: link:../language
+      '@meltemi/diagrams-layout':
+        specifier: workspace:*
+        version: link:../layout
+      '@meltemi/diagrams-layout-elk':
+        specifier: workspace:*
+        version: link:../layout-elk
+      '@meltemi/diagrams-motion':
+        specifier: workspace:*
+        version: link:../motion
       '@meltemi/diagrams-project':
         specifier: workspace:*
         version: link:../project
       '@meltemi/identity':
         specifier: ^0.2.0
         version: 0.2.0
+      '@resvg/resvg-wasm':
+        specifier: 2.6.2
+        version: 2.6.2
+      '@tabler/icons':
+        specifier: 3.48.0
+        version: 3.48.0
+      elkjs:
+        specifier: 0.12.0
+        version: 0.12.0
+      inter-ui:
+        specifier: 4.1.1
+        version: 4.1.1
       yjs:
         specifier: 13.6.33
         version: 13.6.33
@@ -244,6 +292,9 @@ importers:
       '@cloudflare/workers-types':
         specifier: 5.20261019.1
         version: 5.20261019.1
+      '@meltemi/diagrams-cli':
+        specifier: workspace:*
+        version: link:../cli
       playwright-core:
         specifier: 1.63.0
         version: 1.63.0
@@ -1369,6 +1420,10 @@ packages:
 
   '@poppinss/exception@1.2.3':
     resolution: {integrity: sha512-dCED+QRChTVatE9ibtoaxc+WkdzOSjYTKi/+uacHWIsfodVfpsueo3+DKpgU5Px8qXjgmXkSvhXvSCz3fnP9lw==}
+
+  '@resvg/resvg-wasm@2.6.2':
+    resolution: {integrity: sha512-FqALmHI8D4o6lk/LRWDnhw95z5eO+eAa6ORjVg09YRR7BkcM6oPHU9uyC0gtQG5vpFLvgpeU4+zEAz2H8APHNw==}
+    engines: {node: '>= 10'}
 
   '@rolldown/binding-android-arm-eabi@1.2.13':
     resolution: {integrity: sha512-Vu/NICrgdRvUOeaJZIyB2FP63s6fO/4ud5l8dXmxDx9yDyn+mN0y+gsvsVviSli+T361Aqo0h46EuMoobrwawA==}
@@ -3232,6 +3287,8 @@ snapshots:
       supports-color: 10.2.2
 
   '@poppinss/exception@1.2.3': {}
+
+  '@resvg/resvg-wasm@2.6.2': {}
 
   '@rolldown/binding-android-arm-eabi@1.2.13':
     optional: true

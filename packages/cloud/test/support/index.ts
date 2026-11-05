@@ -130,6 +130,14 @@ export function testEnv(overrides: Partial<Env> = {}): Env {
         throw new Error("the Durable Objects are not available in the tests: use h.rooms");
       },
     },
+    RENDERERS: {
+      idFromName: () => {
+        throw new Error("the Durable Objects are not available in the tests: use RendererCore");
+      },
+      get: () => {
+        throw new Error("the Durable Objects are not available in the tests: use RendererCore");
+      },
+    },
     BLOBS: fakeR2(),
     ...overrides,
   };

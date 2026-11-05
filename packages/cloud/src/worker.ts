@@ -1,12 +1,14 @@
-// The Cloudflare entry (`main` of wrangler.jsonc): the Worker's handler and the Durable Object class,
-// which wrangler finds here by the name the binding (`ROOMS`) and the migration give it. Nothing of
-// the logic lives here: `worker-handler.ts` is the handler, `room.ts` the room. This file imports
-// `cloudflare:workers` and so is compiled by the Workers program only.
+// The Cloudflare entry (`main` of wrangler.jsonc): the Worker's handler and the Durable Object
+// classes, which wrangler finds here by the names the bindings (`ROOMS`, `RENDERERS`) and the
+// migrations give them. Nothing of the logic lives here: `worker-handler.ts` is the handler,
+// `room.ts` the room, `renderer.ts` the renderer. This file imports `cloudflare:workers` and so is
+// compiled by the Workers program only.
 
 import type { R2Like } from "./env.js";
 
 export { default } from "./worker-handler.js";
 export { ProjectRoom } from "./room.js";
+export { ProjectRenderer } from "./renderer.js";
 
 // The service reads R2 through the minimal `R2Like`. Only the Workers program has `R2Bucket`, so
 // the proof that the real binding satisfies it is here: a bucket that stopped fitting would stop this

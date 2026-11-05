@@ -68,8 +68,9 @@ This is a post-1.0 change outside `docs/roadmap-1.0.md`.
 
 New dependencies, to be approved by the owner: `agents` (MIT, the MCP handler for Workers),
 `@modelcontextprotocol/server` and `@modelcontextprotocol/client` (MIT), `zod` (MIT),
-`@cloudflare/workers-oauth-provider` (MIT), `@resvg/resvg-wasm` (MIT bindings of resvg, MPL-2.0,
-the PNG rasteriser) and the main-thread build of `elkjs` the workspace already depends on.
+`@cloudflare/workers-oauth-provider` (MIT), `@resvg/resvg-wasm` (MPL-2.0, the PNG rasteriser,
+approved by the owner on 2026-11-04 and pinned at 2.6.2) and the main-thread build of `elkjs` the
+workspace already depends on.
 
 ## Capabilities
 

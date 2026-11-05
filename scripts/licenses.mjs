@@ -38,6 +38,10 @@ const NOTES = new Map([
     "elkjs",
     "used under EPL-2.0, unmodified; source: https://github.com/kieler/elkjs (decision 0015)",
   ],
+  [
+    "@resvg/resvg-wasm",
+    "used under MPL-2.0, unmodified, by the hosted service's PNG previews (change agent-mcp); source: https://github.com/yisibl/resvg-js",
+  ],
 ]);
 
 const report = JSON.parse(execSync("pnpm licenses list --prod --json", { encoding: "utf8" }));

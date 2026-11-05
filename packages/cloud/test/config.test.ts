@@ -1,6 +1,6 @@
 // The deployed configuration (`wrangler.jsonc`) and what the Worker reads of its environment.
 
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ConfigError, publishHostOf, readConfig, readIdentity } from "../src/config.js";
 import { testEnv } from "./support/index.js";
@@ -83,13 +83,36 @@ describe("wrangler.jsonc", () => {
     expect(wrangler["preview_urls"]).toBe(false);
   });
 
-  it("binds the rooms as ROOMS, a Durable Object class with SQLite storage that this Worker exports", () => {
+  it("binds the rooms as ROOMS and the renderers as RENDERERS, Durable Object classes with SQLite storage that this Worker exports", () => {
     expect(wrangler["durable_objects"]).toEqual({
-      bindings: [{ name: "ROOMS", class_name: "ProjectRoom" }],
+      bindings: [
+        { name: "ROOMS", class_name: "ProjectRoom" },
+        { name: "RENDERERS", class_name: "ProjectRenderer" },
+      ],
     });
-    expect(wrangler["migrations"]).toEqual([{ tag: "v1", new_sqlite_classes: ["ProjectRoom"] }]);
+    // A migration is never edited once deployed: the renderer's class is a migration of its own.
+    expect(wrangler["migrations"]).toEqual([
+      { tag: "v1", new_sqlite_classes: ["ProjectRoom"] },
+      { tag: "v2", new_sqlite_classes: ["ProjectRenderer"] },
+    ]);
     const entry = readFileSync(new URL("src/worker.ts", PACKAGE), "utf8");
     expect(entry).toMatch(/export \{ ProjectRoom \} from "\.\/room\.js";/);
+    expect(entry).toMatch(/export \{ ProjectRenderer \} from "\.\/renderer\.js";/);
+  });
+
+  it("loads the renderer's fonts as data and its JSON as text, and nothing else differently", () => {
+    expect(wrangler["rules"]).toEqual([
+      { type: "Data", globs: ["**/*.woff2", "**/*.woff"], fallthrough: true },
+      { type: "Text", globs: ["**/*.json"], fallthrough: true },
+    ]);
+    // Text is right for every JSON module of the Worker: only the renderer's bundle imports any.
+    const sources = readdirSync(new URL("src/", PACKAGE)).filter((f) => /\.(ts|js)$/.test(f));
+    const importers = sources.filter((file) =>
+      /\bimport\b[^;]*["'][^"']+\.json["']/.test(
+        readFileSync(new URL(`src/${file}`, PACKAGE), "utf8"),
+      ),
+    );
+    expect(importers).toEqual(["renderer-bundle.js"]);
   });
 
   it("binds the R2 bucket as BLOBS, the one place blobs and thumbnails are kept", () => {
@@ -98,27 +121,59 @@ describe("wrangler.jsonc", () => {
     ]);
   });
 
-  it("builds the workspace packages of the project package's closure from their sources, so that no stale build is bundled", () => {
+  it("builds the workspace packages of the Worker's closure from their sources, so that no stale build is bundled", () => {
     const alias = (wrangler["alias"] ?? {}) as Record<string, string>;
+    type Manifest = {
+      dependencies?: Record<string, string>;
+      exports?: Record<string, Record<string, string>>;
+    };
+    const manifestOf = (folder: string) =>
+      JSON.parse(readFileSync(new URL(`../${folder}/package.json`, PACKAGE), "utf8")) as Manifest;
     // Every package the Worker imports, and every workspace package those import in turn.
     const closure = new Set<string>();
     const visit = (name: string): void => {
       if (closure.has(name)) return;
       closure.add(name);
-      const folder = name.replace("@meltemi/diagrams-", "");
-      const manifest = JSON.parse(
-        readFileSync(new URL(`../${folder}/package.json`, PACKAGE), "utf8"),
-      ) as { dependencies?: Record<string, string> };
+      const manifest = manifestOf(name.replace("@meltemi/diagrams-", ""));
       for (const dependency of Object.keys(manifest.dependencies ?? {})) {
         if (dependency.startsWith("@meltemi/diagrams-")) visit(dependency);
       }
     };
-    visit("@meltemi/diagrams-project");
+    for (const dependency of Object.keys(
+      (JSON.parse(readFileSync(new URL("package.json", PACKAGE), "utf8")) as Manifest)
+        .dependencies ?? {},
+    )) {
+      if (dependency.startsWith("@meltemi/diagrams-")) visit(dependency);
+    }
+    // The subpaths their sources import (`@meltemi/diagrams-layout/viewport`): an alias of a
+    // package would make them `<its index>/viewport`, so each has an alias of its own.
+    const subpaths = new Set<string>();
+    const scan = (folder: URL): void => {
+      for (const entry of readdirSync(folder, { withFileTypes: true })) {
+        if (entry.isDirectory()) scan(new URL(`${entry.name}/`, folder));
+        else if (entry.name.endsWith(".ts")) {
+          const text = readFileSync(new URL(entry.name, folder), "utf8");
+          for (const match of text.matchAll(/from "(@meltemi\/diagrams-[a-z0-9-]+\/[a-z-]+)"/g)) {
+            subpaths.add(match[1]!);
+          }
+        }
+      }
+    };
+    for (const name of closure)
+      scan(new URL(`../${name.replace("@meltemi/diagrams-", "")}/src/`, PACKAGE));
+    // `/node` entries are the Node hosts of packages the Worker gives its own readers to.
+    const wanted = [...subpaths].filter((path) => !path.endsWith("/node"));
 
-    expect(Object.keys(alias).sort()).toEqual([...closure].sort());
+    expect(Object.keys(alias).sort()).toEqual([...closure, ...wanted].sort());
     for (const [name, path] of Object.entries(alias)) {
-      const folder = name.replace("@meltemi/diagrams-", "");
-      expect(path, name).toBe(`../${folder}/src/index.ts`);
+      const [, folder, sub] = /^@meltemi\/diagrams-([a-z0-9-]+?)(?:\/([a-z-]+))?$/.exec(name)!;
+      const source = sub
+        ? manifestOf(folder!).exports?.[`./${sub}`]?.["@meltemi/diagrams-source"]?.replace(
+            /^\.\//,
+            "",
+          )
+        : "src/index.ts";
+      expect(path, name).toBe(`../${folder}/${source}`);
       expect(existsSync(new URL(path, PACKAGE)), name).toBe(true);
     }
   });

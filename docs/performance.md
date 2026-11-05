@@ -32,3 +32,85 @@ Measured on 2026-10-28: 11th Gen Intel(R) Core(TM) i9-11980HK @ 2.60GHz, 16 thre
 | canvas drag round trip, free (30 elements)              |        5.87 |    11.83 | under 100        |
 | analysis after an edit, flow (assisted)                 |        7.09 |    14.04 | under 500        |
 | canvas drag round trip, flow (assisted)                 |       11.09 |    17.87 | under 100        |
+
+## The hosted renderer
+
+Measured on 2026-11-04 on the same machine, for the change `agent-mcp` (tasks 3.1 and 3.3). The
+renderer object (`ProjectRenderer`, a Durable Object of the cloud Worker) draws previews with the
+command line's engine. Its sizes come from `wrangler deploy --dry-run`, its start from
+`wrangler check startup` (the median of five runs) and its times from the command below, which runs
+the object under `wrangler dev` three times (each start a cold isolate) and each case fifteen times
+a start. A time is the wall time of one request on the laptop: drawing is synchronous work in one
+isolate, so its CPU time is at most that time, less the cost of a request (the `ping` and `stats`
+rows). The corpus's costliest diagram is `flow/thirty` (thirty elements laid out by ELK, 4679 × 973);
+the costliest PNG is `sequence/thirty` at 2048, fitted to the 4-megapixel budget (1645 × 2547).
+
+```bash
+pnpm cloud:bench-renderer
+```
+
+### Bundle
+
+| Cloud Worker        | Upload (MiB) | gzip (MiB) | Startup, local (ms) |
+| ------------------- | -----------: | ---------: | ------------------: |
+| before the renderer |         0.75 |       0.17 |                27.1 |
+| with the renderer   |        22.51 |       7.37 |                36.4 |
+
+The renderer adds JavaScript (5.80 MiB of it, from 0.76: the editor's engine, fontkit and ELK's
+1.6 MB), the icon packs and the library (13.02 MiB of JSON, 7.43 of them the `logos` pack), resvg
+(2.36 MiB of WebAssembly), the measured fonts (1.24 MiB) and the four raster faces (0.09 MiB). The
+fonts, the icons and resvg are modules the object imports when it first draws, so an isolate that
+never draws never instantiates them; the JavaScript is parsed by every isolate (the 9 ms more of
+startup).
+
+### Time
+
+| Case                                                | Median (ms) | p95 (ms) | Max (ms) |
+| --------------------------------------------------- | ----------: | -------: | -------: |
+| a request to the Worker alone (`ping`)              |         3.7 |     26.3 |     31.9 |
+| a call to the object (`stats`)                      |         7.8 |      9.8 |     11.9 |
+| cold start: the first SVG of an object              |       545.6 |    600.4 |    600.4 |
+| a second object's first SVG, same isolate           |       292.8 |    324.8 |    324.8 |
+| SVG of `flow/thirty`                                |        68.3 |    107.7 |    180.0 |
+| the first PNG of an object (resvg and the faces)    |       210.9 |    212.4 |    212.4 |
+| PNG 1280 of `flow/thirty` (1280 × 266)              |        85.5 |    115.0 |    164.9 |
+| PNG 2048 of `flow/thirty` (2048 × 426)              |       102.3 |    121.6 |    242.4 |
+| PNG 2048 of `sequence/thirty` (1645 × 2547, fitted) |       174.2 |    234.5 |    263.5 |
+| an answer from the cache (PNG 1280)                 |        13.7 |     16.7 |     42.1 |
+
+### Against the limits
+
+Cloudflare's documentation, read on 2026-11-04:
+
+- [Workers limits](https://developers.cloudflare.com/workers/platform/limits/) (updated on
+  2026-10-29): a Worker of 64 MiB uncompressed on the Free and Paid plans, with no compressed
+  limit; a startup of 1 second; 128 MB of memory an isolate; 10 ms of CPU time an HTTP request on
+  the Free plan.
+- [Durable Objects limits](https://developers.cloudflare.com/durable-objects/platform/limits/)
+  (updated on 2026-10-29): 30 seconds of CPU a request by default, which each request or WebSocket
+  message resets, configurable to 5 minutes; no figure for the Free plan apart. The
+  [FAQ](https://developers.cloudflare.com/durable-objects/reference/faq/) (updated on 2026-04-21)
+  says that Durable Objects have the same CPU limits per invocation as any Worker.
+- [Durable Objects pricing](https://developers.cloudflare.com/durable-objects/platform/pricing/)
+  (updated on 2026-10-18): the Free plan includes 100,000 requests and 13,000 GB-s a day.
+- [Browser Run limits](https://developers.cloudflare.com/browser-rendering/platform/limits/)
+  (updated on 2026-10-14): the Free plan has 10 minutes of browser time a day, 3 browsers at once
+  and a new browser every 20 seconds.
+
+The Worker fits: 22.51 MiB of 64, and a startup of tens of milliseconds where one second is
+allowed. Under a Durable Object's documented 30 seconds, the cold start (0.6 s at most) and the
+costliest PNG (0.26 s at most) fit with room. Under 10 ms nothing would, not even a warm SVG
+(68 ms): if the first staging deploy shows that the Free plan holds a Durable Object to a Worker's
+10 ms, previews move to Browser Run, whose ten minutes a day are some 300 previews at two seconds
+each, for the whole service.
+
+### What was decided
+
+The renderer stays in the cloud Worker, as design decision 6 of `agent-mcp` has it: it fits the
+size limit, adds about 9 ms to an isolate's startup on the laptop and leaves its fonts, icons and
+resvg to the isolates that draw. A Worker of its own is the step to take if the bundle or an
+isolate's memory ever presses: the class in a script `meltemi-diagrams-renderer` with the
+renderer's rules and its own migration, reached by the cloud Worker through a Durable Object
+binding with `script_name`; Meltemi Web's Terraform would declare it as one more entry of
+`local.workers`, without a domain, and the deploy would upload it before the cloud Worker. The CPU
+of a Durable Object on the Free plan is confirmed on the first staging deploy.

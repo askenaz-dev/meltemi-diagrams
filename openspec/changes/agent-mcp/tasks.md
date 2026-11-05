@@ -48,7 +48,7 @@
 
 ## 3. Previews (milestone 1)
 
-- [ ] 3.1 Add `@resvg/resvg-wasm` (after approval), the `ProjectRenderer` Durable Object with
+- [x] 3.1 Add `@resvg/resvg-wasm` (after approval), the `ProjectRenderer` Durable Object with
       `elkjs`'s main-thread bundle, the in-memory project file system, the four bundled TTFs as
       data modules and the cache of twenty, with `RENDERERS` and its migration in
       `wrangler.jsonc`. Verify `test/renderer.test.ts` draws the acceptance corpus's flow,
@@ -57,7 +57,7 @@
 - [ ] 3.2 Add the `preview` tool with the report, the fallback fonts, the width and rate
       limits. Verify `test/mcp.test.ts` covers the SVG equality, the PNG and report, the story
       frame, the file with an error, the Fontsource family, the width refused and the rate.
-- [ ] 3.3 Measure on `wrangler dev` the renderer's cold start and the CPU of the corpus's largest
+- [x] 3.3 Measure on `wrangler dev` the renderer's cold start and the CPU of the corpus's largest
       diagram, and record them in `docs/performance.md`. Verify the numbers are in the page and
       under the limits the design names, or the Browser Run fallback is taken and the design
       note updated.
