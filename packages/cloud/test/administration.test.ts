@@ -267,7 +267,10 @@ describe("an account by email", () => {
     const p = await service(ANA);
     const response = await ask(p, OWNER, "PUT", permission(emailOf(ANA)), { granted: true });
     expect(response.status).toBe(200);
-    expect((await sessionOf(p, ANA))?.entitlements).toEqual({ unbranded: true });
+    expect((await sessionOf(p, ANA))?.entitlements).toEqual({
+      unbranded: true,
+      unbrandedBy: "administrator",
+    });
     const [entry] = (await administration(p)).log;
     expect(entry).toMatchObject({
       by: { sub: OWNER },
@@ -308,6 +311,6 @@ describe("the log", () => {
     expect((await administration(p, ANA)).invitations).toEqual([]);
     expect((await sessionOf(p, ANA))?.administration).toEqual({ role: "administrator" });
     expect((await sessionOf(p, OWNER))?.administration).toEqual({ role: "owner" });
-    expect((await sessionOf(p, ANA))?.entitlements).toEqual({ unbranded: true });
+    expect((await sessionOf(p, ANA))?.entitlements).toEqual({ unbranded: true, unbrandedBy: null });
   });
 });

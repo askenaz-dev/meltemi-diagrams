@@ -15,6 +15,7 @@ import {
 import { defineAdministrationConformance } from "./conformance-administration.js";
 import { defineProjectConformance } from "./conformance-projects.js";
 import { defineSharingConformance } from "./conformance-sharing.js";
+import { defineSponsorshipConformance } from "./conformance-sponsorships.js";
 import { DAY, HOUR, MINUTE, SECOND, at, present, sha } from "./fixtures.js";
 
 /** A store under test. */
@@ -998,6 +999,8 @@ export function runStoreConformance(
     defineSharingConformance(() => store);
     // Administrators, invitations to administer, the log and the lookup by email: conformance-administration.ts.
     defineAdministrationConformance(() => store);
+    // Sponsorships, the claim and what a deletion clears: conformance-sponsorships.ts.
+    defineSponsorshipConformance(() => store);
 
     describe("many operations at once", () => {
       it("never lets racing creates take a person past the limit", async () => {

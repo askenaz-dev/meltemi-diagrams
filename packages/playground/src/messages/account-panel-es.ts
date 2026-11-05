@@ -35,6 +35,15 @@ export const accountPanel: typeof en = {
   accountIdCopy: "Copiar",
   accountIdCopied: "Copiado.",
   accountIdSelect: "Selecciona el identificador y cópialo.",
+  unbrandedThanks: "Concedido por tu donación. Gracias.",
+  supportTitle: "Apoya a Meltemi Diagrams",
+  supportBody:
+    "Una donación hecha con la cuenta de GitHub vinculada a esta permite a tu cuenta exportar sin la marca de Meltemi. Se reconoce al abrir este panel.",
+  supportLink: "Dona en GitHub Sponsors",
+  supportLinkGithub:
+    "Vincula tu cuenta de GitHub en Inicios de sesión: así se reconoce una donación.",
+  supportOpenSignins: "Abrir Inicios de sesión",
+  newTab: "(se abre en una pestaña nueva)",
   unbrandedTitle: "Exportaciones sin la marca de Meltemi",
   unbrandedOn:
     "Tu cuenta puede exportar sin la marca de Meltemi: el diálogo de exportación lo ofrece.",
@@ -148,6 +157,22 @@ export const accountPanel: typeof en = {
     noAccount:
       "Ninguna cuenta inició sesión todavía con ese correo, alias o id: pide a la persona que inicie sesión una vez, o el id de cuenta que muestra su Perfil.",
     ambiguous: "Varias cuentas iniciaron sesión con este correo: pide el id de cuenta.",
+    sponsorshipsTitle: "Patrocinios",
+    sponsorshipsIntro:
+      "Las donaciones de las que GitHub Sponsors avisó al servicio, la más reciente primero. El inicio de sesión de GitHub de quien patrocina reclama su donación al abrir el panel de la cuenta; concede a mano a quien nombre una organización, o a quien patrocina e inicia sesión con Google.",
+    oneTime: "única",
+    monthly: "mensual",
+    amount: (dollars) => `${dollars} US$`,
+    unclaimed: "Sin reclamar",
+    claimedBy: (who) => `Reclamado por ${who}`,
+    privateSponsor: "Privado",
+    organisation: "Organización",
+    sponsorshipStatus: {
+      "pending-cancellation": "cancelación pendiente",
+      cancelled: "cancelado",
+    },
+    grantByHand: "Conceder a mano",
+    grantByHandLabel: (login) => `Conceder a mano a quien patrocina como ${login}`,
     takedownTitle: "Retirar una publicación",
     takedownIntro:
       "Quita una página publicada en el acto, con el motivo que indiques; su propietario ve que la retiró el servicio.",

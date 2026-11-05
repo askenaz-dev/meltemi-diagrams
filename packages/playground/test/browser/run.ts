@@ -511,6 +511,23 @@ function recordLogs(page: Page): string[] {
 const signInHref = (pageUrl: string): string =>
   `https://id.meltemi.dev/login?return_to=${encodeURIComponent(pageUrl)}`;
 
+/** The sponsors page of the service in the tests' answers. */
+const SPONSORS_PAGE = "https://github.com/sponsors/askenaz";
+
+/** Ana on a service that says where to donate: not entitled unless `entitlements` says so. */
+function donorAnswer(
+  origin: string,
+  entitlements: { unbranded: boolean; unbrandedBy: string | null } = {
+    unbranded: false,
+    unbrandedBy: null,
+  },
+): Record<string, unknown> {
+  return {
+    ...(cookieAnswer(origin, { entitlements }) as Record<string, unknown>),
+    support: { url: SPONSORS_PAGE },
+  };
+}
+
 /** What the Worker answers a browser that carries a session; the picture is under the page's origin. */
 function cookieAnswer(origin: string, user: Record<string, unknown> = {}): unknown {
   return {
@@ -627,6 +644,9 @@ class AdminDouble {
   private readonly invitations: { id: string; email: string }[] = [];
   private readonly holders: { sub: string; email: string; name: string }[] = [];
   private readonly log: { action: string; target: unknown; detail: string }[] = [];
+  /** The sponsorships the answer lists, and log entries older than the double's own. */
+  sponsorships: unknown[] = [];
+  extraLog: unknown[] = [];
 
   private view() {
     const ref = { sub: "u-ana", name: "Ana" };
@@ -650,8 +670,12 @@ class AdminDouble {
           holders: this.holders.map((holder) => ({ ...holder, handle: null, by: ref, at })),
         },
       ],
-      log: [...this.log].reverse().map((entry) => ({ ...entry, at, by: ref })),
+      log: [
+        ...[...this.log].reverse().map((entry) => ({ ...entry, at, by: ref })),
+        ...this.extraLog,
+      ],
       publishHost: "meltemi.page",
+      sponsorships: this.sponsorships,
     };
   }
 
@@ -764,7 +788,8 @@ const ANAS_IDENTITY = () => ({
  */
 class AccountDouble {
   readonly requests: Sent[] = [];
-  view = ANAS_IDENTITY();
+  /** The view the identity data answers; `claimed` says the Worker claimed a donation as it read it. */
+  view: ReturnType<typeof ANAS_IDENTITY> & { claimed?: boolean } = ANAS_IDENTITY();
   /** When set, the identity data answers this status and code instead (`identity.unavailable`, say). */
   failure: { status: number; code: string } | undefined;
   /** The handles already taken by someone else. */
@@ -5440,6 +5465,328 @@ const tests: Test[] = [
         .locator('[role="tab"][aria-selected="true"][data-section="profile"]')
         .waitFor({ timeout: 10_000 });
       assert.equal(await panel.locator('[role="tab"][data-section="administration"]').count(), 0);
+    },
+  }),
+  // The donation path (`unbranded-by-donation`): the export dialog's line and Profile's Support
+  // Meltemi Diagrams for a person who is not entitled, the claim while the panel is open, and the
+  // Administration section's Sponsorships.
+  signedIn({
+    name: "donation: a person who may donate sees the line under Theme, opening the sponsors page in a new tab, and no box",
+    answer: (origin) => donorAnswer(origin),
+    async run({ page }) {
+      const m = en.exports;
+      await page.locator(".topbar").getByRole("button", { name: "Export" }).click();
+      const dialog = page.locator("dialog[open]");
+      const line = dialog.locator("[data-donation]");
+      await line.waitFor();
+      const link = line.getByRole("link", { name: new RegExp(m.donate) });
+      assert.equal(await link.getAttribute("href"), SPONSORS_PAGE);
+      assert.equal(await link.getAttribute("target"), "_blank");
+      assert.equal(await link.getAttribute("rel"), "noopener");
+      assert.equal(await line.locator(".field-hint").textContent(), m.donateHint);
+      // The screen reader hears where it goes, and what the hint says.
+      assert.match((await link.textContent()) ?? "", /opens in a new tab/);
+      const hint = await link.getAttribute("aria-describedby");
+      assert.equal(await dialog.locator(`#${hint}`).textContent(), m.donateHint);
+      // Under the Theme field, in the box's place: there is no box.
+      assert.equal(
+        await line.evaluate(
+          (element) => element.previousElementSibling?.querySelector(".field-label")?.textContent,
+        ),
+        m.theme,
+      );
+      assert.equal(await dialog.locator("#export-unbranded").count(), 0);
+      assert.equal(await dialog.getByLabel(/Meltemi branding/).count(), 0);
+      for (const scheme of ["light", "dark"] as const) {
+        await page.emulateMedia({ colorScheme: scheme });
+        await settled(page);
+        await dialog.screenshot({ path: join(output, `export-donation-${scheme}.png`) });
+      }
+      await page.emulateMedia({ colorScheme: "light" });
+      await page.keyboard.press("Escape");
+      // The export carries the strip.
+      const svg = readFileSync(await exportWith(page, { format: "svg" }), "utf8");
+      assert.match(svg, /data-role="frame"/);
+    },
+  }),
+  ...(
+    [
+      ["a javascript: address", { url: "javascript:alert(1)" }],
+      ["an http: address", { url: "http://github.com/sponsors/askenaz" }],
+      ["a bare string", "https://github.com/sponsors/askenaz"],
+    ] as const
+  ).map(([label, support]) =>
+    signedIn({
+      name: `donation: ${label} as the support shows no line and no link`,
+      answer: (origin) => ({ ...donorAnswer(origin), support }),
+      async run({ page }) {
+        await page.locator(".topbar").getByRole("button", { name: "Export" }).click();
+        const dialog = page.locator("dialog[open]");
+        await dialog.getByLabel(en.exports.theme).waitFor();
+        assert.equal(await dialog.locator("[data-donation], a[target=_blank]").count(), 0);
+        await page.keyboard.press("Escape");
+        await page.locator(".topbar .account-button").click();
+        await page
+          .locator("#menu-account")
+          .getByRole("menuitem", { name: en.account.account })
+          .click();
+        const panel = page.locator("dialog.settings[open]");
+        await panel.getByText(en.accountPanel.accountIdTitle).waitFor();
+        assert.equal(await panel.locator("[data-support]").count(), 0);
+        assert.equal(await panel.getByText(en.accountPanel.supportTitle).count(), 0);
+      },
+    }),
+  ),
+  signedIn({
+    name: "donation: an entitled person keeps the box and sees no line; anybody not signed in sees neither",
+    answer: (origin) => donorAnswer(origin, { unbranded: true, unbrandedBy: "administrator" }),
+    async run({ page, context, origin }) {
+      await page.locator(".topbar").getByRole("button", { name: "Export" }).click();
+      let dialog = page.locator("dialog[open]");
+      await dialog.locator("#export-unbranded").waitFor();
+      assert.equal(await dialog.locator("[data-donation]").count(), 0);
+      await page.keyboard.press("Escape");
+      // Nobody signed in, with a support beside: the anonymous shape offers nothing.
+      await context.unroute("**/api/session");
+      await context.route("**/api/session", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify({
+            user: null,
+            signIn: signInHref(page.url()),
+            support: { url: SPONSORS_PAGE },
+          }),
+        }),
+      );
+      await page.goto(origin);
+      await ready(page);
+      await page.locator(".topbar").getByRole("button", { name: "Export" }).click();
+      dialog = page.locator("dialog[open]");
+      await dialog.getByLabel(en.exports.theme).waitFor();
+      assert.equal(await dialog.locator("[data-donation], #export-unbranded").count(), 0);
+    },
+  }),
+  signedIn({
+    name: "donation: Profile tells a person signed in with Google only how a donation is recognised, and opens Sign-ins",
+    answer: (origin) => donorAnswer(origin),
+    async run({ page, account }) {
+      const ap = en.accountPanel;
+      account.view = {
+        ...account.view,
+        identities: [
+          {
+            provider: "google",
+            email: "ana@gmail.com",
+            emailVerified: true,
+            handle: "",
+            linkedAt: "2026-10-01T10:00:00.000Z",
+          },
+        ],
+      };
+      await page.locator(".topbar .account-button").click();
+      await page
+        .locator("#menu-account")
+        .getByRole("menuitem", { name: en.account.account })
+        .click();
+      const panel = page.locator("dialog.settings[open]");
+      const support = panel.locator("[data-support]");
+      await support.waitFor();
+      assert.equal(
+        await panel.locator("#account-section-profile h4", { hasText: ap.supportTitle }).count(),
+        1,
+      );
+      assert.equal(await panel.getByText(ap.unbrandedTitle).count(), 0);
+      assert.match((await support.textContent()) ?? "", new RegExp(ap.supportBody.slice(0, 40)));
+      const link = support.getByRole("link", { name: new RegExp(ap.supportLink) });
+      assert.equal(await link.getAttribute("href"), SPONSORS_PAGE);
+      assert.equal(await link.getAttribute("target"), "_blank");
+      assert.equal(await link.getAttribute("rel"), "noopener");
+      // Between the account id and Sign out.
+      const order = await panel.locator("#account-section-profile h4").allTextContents();
+      assert.deepEqual(order.slice(order.indexOf(ap.accountIdTitle)), [
+        ap.accountIdTitle,
+        ap.supportTitle,
+        ap.signOutTitle,
+      ]);
+      await support.getByText(ap.supportLinkGithub).waitFor();
+      await settled(page);
+      await panel.screenshot({ path: join(output, "account-support-google.png") });
+      await support.getByRole("button", { name: ap.supportOpenSignins }).click();
+      assert.equal(
+        await panel.locator('[role="tab"][aria-selected="true"]').getAttribute("data-section"),
+        "signins",
+      );
+      // With GitHub linked there is no hint: the donation is recognised by itself.
+      account.view = ANAS_IDENTITY();
+      await page.keyboard.press("Escape");
+      await page.locator("dialog.settings").waitFor({ state: "hidden" });
+      await page.locator(".topbar .account-button").click();
+      await page
+        .locator("#menu-account")
+        .getByRole("menuitem", { name: en.account.account })
+        .click();
+      await panel.locator(".signin-list .account-row").first().waitFor({ state: "attached" });
+      await panel.locator("[data-support]").waitFor();
+      assert.equal(await panel.getByText(ap.supportLinkGithub).count(), 0);
+    },
+  }),
+  signedIn({
+    name: "donation: a claim while the panel opens shows the thanks without a reload, and the export dialog then has the box",
+    answer: (origin) => donorAnswer(origin),
+    async run({ page, context, origin, account }) {
+      const ap = en.accountPanel;
+      await page.evaluate(() => {
+        (window as unknown as { notReloaded: boolean }).notReloaded = true;
+      });
+      // The Worker claims the donation as the sign-ins are read, and the session says so after.
+      account.view = { ...ANAS_IDENTITY(), claimed: true };
+      let sessions = 0;
+      await context.unroute("**/api/session");
+      await context.route("**/api/session", (route) => {
+        sessions++;
+        return route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(
+            donorAnswer(origin, { unbranded: true, unbrandedBy: "github-sponsors" }),
+          ),
+        });
+      });
+      await page.locator(".topbar .account-button").click();
+      await page
+        .locator("#menu-account")
+        .getByRole("menuitem", { name: en.account.account })
+        .click();
+      const panel = page.locator("dialog.settings[open]");
+      await panel.getByText(ap.unbrandedThanks).waitFor();
+      assert.equal(sessions, 1, "the session answer was read once more");
+      assert.equal(await panel.locator("[data-support]").count(), 0);
+      assert.equal(
+        await panel.locator("#account-section-profile h4", { hasText: ap.unbrandedTitle }).count(),
+        1,
+      );
+      await panel.getByText(ap.unbrandedOn).waitFor();
+      // The status line says it too.
+      await page.locator(".status-text", { hasText: ap.unbrandedThanks }).waitFor();
+      assert.equal(
+        await page.evaluate(() => (window as unknown as { notReloaded?: boolean }).notReloaded),
+        true,
+      );
+      await settled(page);
+      await panel.screenshot({ path: join(output, "account-donation-thanks.png") });
+      await page.keyboard.press("Escape");
+      await page.locator("dialog.settings").waitFor({ state: "hidden" });
+      await page.locator(".topbar").getByRole("button", { name: "Export" }).click();
+      const dialog = page.locator("dialog[open]");
+      await dialog.locator("#export-unbranded").waitFor();
+      assert.equal(await dialog.locator("[data-donation]").count(), 0);
+    },
+  }),
+  signedIn({
+    name: "donation: in Spanish, the dialog's line and Profile's Apoya a Meltemi Diagrams",
+    locale: "es-CL",
+    answer: (origin) => donorAnswer(origin),
+    async run({ page }) {
+      await page.locator(".topbar").getByRole("button", { name: es.header.export }).click();
+      const dialog = page.locator("dialog[open]");
+      const line = dialog.locator("[data-donation]");
+      await line.waitFor();
+      assert.match((await line.textContent()) ?? "", new RegExp(es.exports.donate));
+      assert.match((await line.textContent()) ?? "", /se abre en una pestaña nueva/);
+      assert.equal(await line.locator(".field-hint").textContent(), es.exports.donateHint);
+      await page.keyboard.press("Escape");
+      await page.locator(".topbar .account-button").click();
+      await page
+        .locator("#menu-account")
+        .getByRole("menuitem", { name: es.account.account })
+        .click();
+      const panel = page.locator("dialog.settings[open]");
+      await panel.locator("[data-support]").waitFor();
+      await panel.getByText(es.accountPanel.supportTitle).waitFor();
+      await panel.getByRole("link", { name: new RegExp(es.accountPanel.supportLink) }).waitFor();
+    },
+  }),
+  signedIn({
+    name: "administration: the Sponsorships part lists the donations, and Grant by hand points to the Grant field",
+    answer: (origin) => cookieAnswer(origin, { administration: { role: "owner" } }),
+    async run({ page, context }) {
+      const admin = new AdminDouble();
+      admin.sponsorships = [
+        {
+          login: "ben",
+          type: "User",
+          oneTime: false,
+          amountCents: 1000,
+          status: "active",
+          createdAt: "2026-11-04T10:00:00.000Z",
+          privacy: "private",
+          claimedBy: null,
+        },
+        {
+          login: "ana-dev",
+          type: "User",
+          oneTime: true,
+          amountCents: 550,
+          status: "active",
+          createdAt: "2026-11-03T10:00:00.000Z",
+          privacy: "public",
+          claimedBy: { sub: "u-ana", name: "Ana", handle: null, email: "ana@example.com" },
+        },
+      ];
+      admin.extraLog = [
+        {
+          at: "2026-11-04T10:30:00.000Z",
+          by: { sub: "github-sponsors", name: "GitHub Sponsors" },
+          action: "grant",
+          target: { sub: "u-ana", name: "Ana" },
+          detail: "unbranded-exports (ana-dev)",
+        },
+      ];
+      await context.route(/\/api\/admin(\/[^?]*)?(\?.*)?$/, admin.handle);
+      await page.goto(new URL("?account=administration", page.url()).href);
+      await ready(page);
+      const panel = page.locator("dialog.settings[open]");
+      const a = en.accountPanel.administration;
+      const part = panel.locator('[data-part="sponsorships"]');
+      await part.waitFor();
+      assert.equal(await part.getByRole("heading", { name: a.sponsorshipsTitle }).count(), 1);
+      // After Permissions, before the takedown.
+      assert.deepEqual(
+        await panel
+          .locator("[data-part]")
+          .evaluateAll((parts) => parts.map((p) => (p as HTMLElement).dataset["part"])),
+        ["administrators", "invitations", "permissions", "sponsorships", "takedown", "log"],
+      );
+      const ben = part.locator('[data-sponsorship="ben"]');
+      assert.equal(await ben.locator("strong").textContent(), "ben");
+      assert.match(
+        (await ben.locator(".token-meta").textContent()) ?? "",
+        /^monthly · US\$10 · Unclaimed · /,
+      );
+      assert.equal(await ben.getByText(a.privateSponsor).count(), 1);
+      const ana = part.locator('[data-sponsorship="ana-dev"]');
+      assert.match((await ana.textContent()) ?? "", /one-time · US\$5\.50 · Claimed by Ana/);
+      assert.equal(await ana.getByRole("button").count(), 0);
+      await panel
+        .locator('[data-part="log"]')
+        .getByText("GitHub Sponsors granted Export without the Meltemi branding to Ana (ana-dev)")
+        .waitFor();
+      await settled(page);
+      await part.screenshot({ path: join(output, "account-administration-sponsorships.png") });
+      await ben.getByRole("button", { name: a.grantByHandLabel("ben") }).click();
+      const field = panel.locator('[data-permission="unbranded-exports"]').getByLabel(a.grantTo);
+      assert.equal(await field.getAttribute("placeholder"), "ben");
+      assert.equal(await field.evaluate((input) => input === document.activeElement), true);
+      // No sponsorships: no part.
+      admin.sponsorships = [];
+      await field.fill("ben@example.com");
+      await panel
+        .locator('[data-permission="unbranded-exports"]')
+        .getByRole("button", { name: a.grant })
+        .click();
+      await panel.locator('[data-permission="unbranded-exports"] [data-sub="u-ben"]').waitFor();
+      assert.equal(await panel.locator('[data-part="sponsorships"]').count(), 0);
     },
   }),
   signedIn({

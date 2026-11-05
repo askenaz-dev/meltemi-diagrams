@@ -408,6 +408,12 @@ export const en = {
       "Leaves out the strip at the foot of the sheet: the Meltemi mark, the wordmark and the title; the catalog's pictures follow.",
     /** Said after an export made without the branding. */
     unbrandedNotice: "Without the Meltemi branding.",
+    /** The line a signed-in person who is not entitled sees under the theme, and its hint. */
+    donate: "Donate to export without the Meltemi branding",
+    donateHint:
+      "A donation made with the GitHub account linked to this one is recognised when you open the account panel.",
+    /** Said to a screen reader after a link that opens in a new tab. */
+    newTab: "(opens in a new tab)",
     scale: "Scale",
     scaleHint: "Pixels per point, 1 to 8.",
     size: "Size",

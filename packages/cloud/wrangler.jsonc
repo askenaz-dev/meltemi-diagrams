@@ -18,6 +18,7 @@
       "/api/*",
       "/_identity/*",
       "/_published/*",
+      "/_sponsors/*",
       "/cli-auth",
       "/cli-auth/*",
       "/p/*",
@@ -53,6 +54,11 @@
       "store_id": "00000000000000000000000000000000",
       "secret_name": "ADMIN_SUBS",
     },
+    {
+      "binding": "SPONSORS_WEBHOOK_SECRET_STORE",
+      "store_id": "00000000000000000000000000000000",
+      "secret_name": "SPONSORS_WEBHOOK_SECRET",
+    },
   ],
   "triggers": { "crons": ["0 3 * * SUN"] },
   "alias": {
@@ -67,5 +73,6 @@
     "IDENTITY_ISSUER": "https://id.meltemi.dev",
     "IDENTITY_JWKS_URL": "https://id.meltemi.dev/.well-known/jwks.json",
     "PUBLISH_HOST": "meltemi.page",
+    "SPONSORS_ACCOUNT": "",
   },
 }

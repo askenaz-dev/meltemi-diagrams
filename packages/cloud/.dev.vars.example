@@ -1,6 +1,6 @@
 # Copy to .dev.vars (ignored by Git) and fill in. `wrangler dev` reads .dev.vars from this folder.
 # Every value here is for development only. In production the variables are in wrangler.jsonc and
-# the secrets (IDENTITY_EVENTS_SECRET, FORMS_SECRET, ADMIN_SUBS) are the family's Secrets Store,
+# the secrets (IDENTITY_EVENTS_SECRET, FORMS_SECRET, ADMIN_SUBS, SPONSORS_WEBHOOK_SECRET) are the family's Secrets Store,
 # bound as <NAME>_STORE; a string here always wins over a binding.
 
 # Development mode: the Worker's own origin is the request's (http://localhost:8788), the inline
@@ -32,3 +32,12 @@ ADMIN_SUBS=
 # (wrangler.jsonc), the publish Worker's host: a registrable domain of its own, never one under
 # meltemi.dev.
 # PUBLISH_HOST=meltemi.page
+
+# Optional: the GitHub login of the sponsored account, whose GitHub Sponsors page the export dialog
+# and Profile link to, and whose Sponsors webhook POST /_sponsors/github takes. Empty, there is no
+# donation path: the route answers 404 and the page shows no donation line.
+# SPONSORS_ACCOUNT=askenaz
+
+# With SPONSORS_ACCOUNT: the secret of the Sponsors webhook, the same string typed into GitHub's
+# form, which verifies each delivery's X-Hub-Signature-256. Any long random text in development.
+# SPONSORS_WEBHOOK_SECRET=

@@ -125,6 +125,8 @@ export interface AccountPanelHost {
   signedOut(): void;
   /** Says something in the status line. */
   report(message: string): void;
+  /** The sign-ins' answer says a donation was claimed: the panel reads the session again. */
+  claimed?(): void;
 }
 
 export interface AccountPanelState {
@@ -227,6 +229,7 @@ export class AccountPanelModel {
     const read = await this.host.identity.read();
     if (read.ok) {
       this.update({ identity: "ready", view: read.value });
+      if (read.value.claimed && !this.closed) this.host.claimed?.();
       return;
     }
     if (this.signedOutBy(read.failure)) return;

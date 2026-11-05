@@ -26,9 +26,12 @@ export interface User extends UserProfile {
   readonly createdAt: Iso;
   /** The name of the person's publications (`[a-z0-9-]{3,30}`, unique); null until they choose one. */
   readonly handle: string | null;
-  /** Whether an administrator entitled the person to export without the Meltemi branding. */
+  /** Whether an administrator, or a sponsorship claim, entitled the person to export without the Meltemi branding. */
   readonly unbrandedExports: boolean;
-  /** The administrator who last set or revoked the entitlement; null until one did. */
+  /**
+   * The administrator who last set or revoked the entitlement, or `GITHUB_SPONSORS` when a
+   * sponsorship claim set it; null until then.
+   */
   readonly unbrandedExportsBy: string | null;
   /** When the entitlement was last set or revoked; null until then. */
   readonly unbrandedExportsAt: Iso | null;
@@ -184,6 +187,41 @@ export interface AdminLogEntry {
 /** What accepting an invitation to administer did. */
 export type AdminAcceptance = "accepted" | "limit" | "none";
 
+/**
+ * The grantor of an entitlement a sponsorship claim gave (`sponsorship-entitlement`): the
+ * `unbranded_exports_by` of the row and the `by_sub` of its log entry. No account has this `sub`.
+ */
+export const GITHUB_SPONSORS = "github-sponsors";
+
+/** Where a sponsorship stands: `cancelled` is for good, whatever comes after it. */
+export type SponsorshipStatus = "active" | "pending-cancellation" | "cancelled";
+
+/** A sponsorship as its `created` delivery gives it: what `recordSponsorship` keeps. */
+export interface NewSponsorship {
+  /** 32 lowercase hexadecimal characters. */
+  readonly id: string;
+  /** The delivery's `X-GitHub-Delivery`: a second delivery with it is a repeat. */
+  readonly deliveryId: string;
+  /** The sponsor's GitHub login, as GitHub sent it; compared ignoring case. */
+  readonly login: string;
+  /** The sponsor's numeric GitHub id, kept for a stricter match the day the sign-ins carry it. */
+  readonly sponsorId: number;
+  /** `User` or `Organization`: only a `User` is ever claimed. */
+  readonly sponsorType: string;
+  readonly oneTime: boolean;
+  readonly amountCents: number;
+  readonly privacy: "public" | "private";
+  /** When GitHub created the sponsorship. */
+  readonly createdAt: Iso;
+}
+
+/** A sponsorship as the store keeps it: where it stands, and the account that claimed it. */
+export interface Sponsorship extends NewSponsorship {
+  readonly status: SponsorshipStatus;
+  readonly claimedBy: string | null;
+  readonly claimedAt: Iso | null;
+}
+
 /** A publication an administrator of the service removes, and why: what `takeDown` is given. */
 export interface NewTakedown {
   readonly handle: string;
@@ -327,7 +365,8 @@ export interface CloudStore {
    * (only an owner invites). A repeat of the same event id changes nothing and answers
    * `"duplicate"`. The `blobs` rows are content-addressed and shared, so they stay for the weekly
    * collection; the `takedowns` and the administration log stay, they are the service's record.
-   * The person's administrator row and the pending invitations to administer they made go too. The caller reads
+   * The person's administrator row and the pending invitations to administer they made go too, and
+   * the sponsorships they claimed are unclaimed again (`clearClaims`). The caller reads
    * `projectIdsOf(sub)` and `publicationsOwnedBy(sub)` first, to destroy the rooms, the thumbnails
    * and the published pages.
    */
@@ -664,6 +703,38 @@ export interface CloudStore {
   declineAdminInvitation(id: string, email: string, now: Iso, log: AdminLogEntry): Promise<boolean>;
   /** The latest `limit` entries of the log, the newest first. */
   adminLog(limit: number): Promise<AdminLogEntry[]>;
+
+  // ---- Sponsorships --------------------------------------------------------------------------
+
+  /**
+   * Keeps a sponsorship, unclaimed and `active`, in one statement: `"repeated"` when a sponsorship
+   * with the same delivery id exists already, and then nothing is written.
+   */
+  recordSponsorship(sponsorship: NewSponsorship): Promise<"recorded" | "repeated">;
+  /**
+   * Sets the status and the privacy of the newest sponsorship of the login (ignoring case) and the
+   * kind (one-time or monthly), unless it is `cancelled`; false when there is none to change. No
+   * entitlement changes.
+   */
+  updateSponsorship(
+    login: string,
+    oneTime: boolean,
+    status: SponsorshipStatus,
+    privacy: "public" | "private",
+  ): Promise<boolean>;
+  /** The earliest unclaimed sponsorship of a `User` whose login is `login`, ignoring case. */
+  unclaimedSponsorship(login: string): Promise<Sponsorship | undefined>;
+  /**
+   * Claims every unclaimed sponsorship of a `User` whose login is `login` (ignoring case) for `sub`
+   * at `at`, grants the person `unbranded-exports` with the grantor `GITHUB_SPONSORS` and appends
+   * `log`, all in one atomic step; false, and nothing written, when there is no such sponsorship or
+   * the person has no row. A sponsorship claimed once is never claimed again.
+   */
+  claimSponsorship(login: string, sub: string, at: Iso, log: AdminLogEntry): Promise<boolean>;
+  /** The latest `limit` sponsorships, the newest first (by `createdAt`, then as stored). */
+  sponsorships(limit: number): Promise<Sponsorship[]>;
+  /** Makes the sponsorships `sub` claimed unclaimed again; `applyUserDeleted` does it too. */
+  clearClaims(sub: string): Promise<void>;
 
   // ---- Publications ------------------------------------------------------------------------
 

@@ -45,7 +45,8 @@ describe("the scripts", () => {
     const publish = parseJsonc(readFileSync(join(cloud, "wrangler.publish.jsonc"), "utf8"));
     const deployed = JSON.stringify(deployConfig(main, ids));
     expect(deployed).toContain(ids.database);
-    expect(deployed.match(new RegExp(ids.store, "g"))).toHaveLength(3);
+    // One store for the four secrets of the main Worker.
+    expect(deployed.match(new RegExp(ids.store, "g"))).toHaveLength(4);
     expect(JSON.stringify(deployConfig(publish, ids))).toContain(ids.database);
     for (const config of [main, publish]) {
       expect(deployConfig(config, ids)).toHaveProperty("observability", {

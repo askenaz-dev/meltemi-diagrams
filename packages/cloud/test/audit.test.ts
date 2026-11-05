@@ -80,7 +80,7 @@ describe("GET /api/session", () => {
         name: "Ana",
         picture,
         handle: null,
-        entitlements: { unbranded: false },
+        entitlements: { unbranded: false, unbrandedBy: null },
         administration: null,
         administrationInvitation: null,
       },
@@ -116,7 +116,7 @@ describe("GET /api/session", () => {
         name: "Ana",
         picture: "",
         handle: null,
-        entitlements: { unbranded: false },
+        entitlements: { unbranded: false, unbrandedBy: null },
       },
       token: { id: token.id, name: "laptop" },
     });
@@ -267,7 +267,7 @@ const BAD_ORIGINS: [string, string | undefined][] = [
 ];
 
 describe("the Origin rule", () => {
-  it("is applied to every route that knows who is asking, and left out of exactly two that do not", () => {
+  it("is applied to every route that knows who is asking, and left out of exactly three that do not", () => {
     // A route that changes state: not a read (`HEAD` is one, as `GET` is: the development route that
     // serves a publication answers both and has no principal).
     const changing = ROUTES.filter((route) => route.method !== "GET" && route.method !== "HEAD");
@@ -277,10 +277,15 @@ describe("the Origin rule", () => {
         .map((route) => `${route.method} ${plain(route.path)}`)
         .sort();
 
-    // The two that read no cookie: the identity service's event (a signature) and the command
-    // line's exchange (a one-time code). Any other route that changes state must resolve who is
-    // asking, which is what applies the rule; a new one that does not fails here, to be looked at.
-    expect(listed(false)).toEqual(["POST /_identity/events", "POST /cli-auth/token"]);
+    // The three that read no cookie: the identity service's event and GitHub Sponsors' delivery
+    // (each a signature) and the command line's exchange (a one-time code). Any other route that
+    // changes state must resolve who is asking, which is what applies the rule; a new one that does
+    // not fails here, to be looked at.
+    expect(listed(false)).toEqual([
+      "POST /_identity/events",
+      "POST /_sponsors/github",
+      "POST /cli-auth/token",
+    ]);
     // The three the next test goes through; a route a later change adds to them goes through it too.
     // The routes of publishing resolve who is asking as well: a handle is chosen with the cookie or a token, a
     // page is published with the cookie or a token, and the administrators' takedown is the cookie's.

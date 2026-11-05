@@ -20,9 +20,14 @@ export interface SessionUser {
   readonly handle: string | null;
   /**
    * What the account may do: `unbranded`, export without the Meltemi branding, which an
-   * administrator grants. True only when the answer says exactly that.
+   * administrator or a donation grants (true only when the answer says exactly that), and
+   * `unbrandedBy`, who granted the account's own flag: a sponsorship claim (`github-sponsors`), a
+   * person (`administrator`), or nobody (`null`, which an owner's implicit right is too).
    */
-  readonly entitlements: { readonly unbranded: boolean };
+  readonly entitlements: {
+    readonly unbranded: boolean;
+    readonly unbrandedBy: "github-sponsors" | "administrator" | null;
+  };
   /**
    * What the person is to the administration of the service: an owner, an administrator, or
    * nothing (null). The cookie shape carries it; anything else reads as null.
@@ -33,6 +38,12 @@ export interface SessionUser {
    * Administration section of the account panel accepts or declines; null when there is none.
    */
   readonly administrationInvitation: AdministrationInvitation | null;
+}
+
+/** Where a person donates to export without the branding: the service's sponsors page. */
+export interface Support {
+  /** An `https:` address without credentials. */
+  readonly url: string;
 }
 
 /** An invitation to administer, as the session answer gives it to its addressee. */
@@ -75,6 +86,11 @@ export type Session =
       readonly account: string;
       /** Where a form posts to end the session. */
       readonly signOut: string;
+      /**
+       * Where to donate, when the service has a sponsored account: the export dialog and Profile
+       * offer it to a person who is not entitled. Absent otherwise, and for any other address.
+       */
+      readonly support?: Support;
     }
   | {
       readonly kind: "token";
@@ -145,6 +161,27 @@ function webAddress(value: unknown): string | undefined {
   }
 }
 
+/**
+ * The answer's `support`: an object whose `url` is an `https:` address without credentials, which
+ * becomes a link opened in a new tab; anything else (a `javascript:` or `http:` address, a string)
+ * is no support, and no link.
+ */
+export function supportOf(value: unknown): Support | undefined {
+  if (!isObject(value) || typeof value["url"] !== "string") return undefined;
+  try {
+    const url = new URL(value["url"]);
+    if (url.protocol !== "https:" || url.username !== "" || url.password !== "") return undefined;
+    return { url: url.href };
+  } catch {
+    return undefined;
+  }
+}
+
+/** Who granted the account's own flag, as the answer says; null for anything else. */
+function grantorOf(value: unknown): SessionUser["entitlements"]["unbrandedBy"] {
+  return value === "github-sponsors" || value === "administrator" ? value : null;
+}
+
 function userOf(value: unknown, page: string): SessionUser | undefined {
   if (!isObject(value)) return undefined;
   const { sub, name, picture, handle, entitlements, administration, administrationInvitation } =
@@ -157,6 +194,7 @@ function userOf(value: unknown, page: string): SessionUser | undefined {
     handle: typeof handle === "string" ? handle : null,
     entitlements: {
       unbranded: isObject(entitlements) && entitlements["unbranded"] === true,
+      unbrandedBy: isObject(entitlements) ? grantorOf(entitlements["unbrandedBy"]) : null,
     },
     administration: administrationOf(administration),
     administrationInvitation: invitationOf(administrationInvitation),
@@ -181,7 +219,8 @@ export function parseSession(text: string, page: string, identity: string): Sess
   const account = webAddress(body["account"]);
   const signOut = webAddress(body["signOut"]);
   if (account !== undefined && signOut !== undefined) {
-    return { kind: "cookie", user, account, signOut };
+    const support = supportOf(body["support"]);
+    return { kind: "cookie", user, account, signOut, ...(support ? { support } : {}) };
   }
   const token = body["token"];
   if (isObject(token) && typeof token["id"] === "string" && typeof token["name"] === "string") {

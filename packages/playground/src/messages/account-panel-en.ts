@@ -41,6 +41,16 @@ export const accountPanel = {
   accountIdSelect: "Select the id and copy it.",
   unbrandedTitle: "Exports without the Meltemi branding",
   unbrandedOn: "Your account may export without the Meltemi branding: the export dialog offers it.",
+  /** Said before `unbrandedOn` when a donation granted it. */
+  unbrandedThanks: "Granted for your donation. Thank you.",
+  supportTitle: "Support Meltemi Diagrams",
+  supportBody:
+    "A donation made with the GitHub account linked to this one lets your account export without the Meltemi branding. It is recognised when you open this panel.",
+  supportLink: "Donate on GitHub Sponsors",
+  /** Said when the sign-ins hold no GitHub account. */
+  supportLinkGithub: "Link your GitHub account in Sign-ins: that is how a donation is recognised.",
+  supportOpenSignins: "Open Sign-ins",
+  newTab: "(opens in a new tab)",
 
   // Sign-ins
   signinsIntro: "The accounts you sign in with. You need at least one.",
@@ -157,6 +167,24 @@ export const accountPanel = {
     noAccount:
       "No account signed in with this email, handle or id yet: ask the person to sign in once, or for the account id Profile shows.",
     ambiguous: "Several accounts signed in with this email: ask for the account id.",
+    sponsorshipsTitle: "Sponsorships",
+    sponsorshipsIntro:
+      "The donations GitHub Sponsors told the service of, the newest first. A sponsor's GitHub sign-in claims a donation when they open the account panel; grant by hand to whom an organisation names, or to a sponsor who signs in with Google.",
+    oneTime: "one-time",
+    monthly: "monthly",
+    /** An amount in US dollars, as GitHub Sponsors takes them. */
+    amount: (dollars: string) => `US$${dollars}`,
+    unclaimed: "Unclaimed",
+    claimedBy: (who: string) => `Claimed by ${who}`,
+    privateSponsor: "Private",
+    organisation: "Organisation",
+    /** Where a sponsorship stands, when it is not active. */
+    sponsorshipStatus: {
+      "pending-cancellation": "cancellation pending",
+      cancelled: "cancelled",
+    } as Record<string, string>,
+    grantByHand: "Grant by hand",
+    grantByHandLabel: (login: string) => `Grant by hand to the sponsor ${login}`,
     takedownTitle: "Take down a publication",
     takedownIntro:
       "Removes a published page at once, with the reason you give; its owner sees that the service removed it.",

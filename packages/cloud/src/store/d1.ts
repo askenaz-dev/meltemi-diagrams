@@ -33,11 +33,14 @@ import type {
   Project,
   ProjectRole,
   PublishClaim,
+  Sponsorship,
+  SponsorshipStatus,
   Takedown,
   TokenRow,
   User,
   Version,
 } from "./types.js";
+import { GITHUB_SPONSORS } from "./types.js";
 
 // The store over D1: every statement is a constant prepared with `?` placeholders and given its
 // values through `bind()`, never built from a value. The few statements that take a list have
@@ -196,6 +199,36 @@ interface AdminLogRecord {
   target_email: string | null;
   detail: string;
 }
+
+interface SponsorshipRecord {
+  id: string;
+  delivery_id: string;
+  sponsor_login: string;
+  sponsor_id: number;
+  sponsor_type: string;
+  one_time: number;
+  amount_cents: number;
+  privacy: "public" | "private";
+  status: SponsorshipStatus;
+  created_at: string;
+  claimed_by_sub: string | null;
+  claimed_at: string | null;
+}
+
+const toSponsorship = (row: SponsorshipRecord): Sponsorship => ({
+  id: row.id,
+  deliveryId: row.delivery_id,
+  login: row.sponsor_login,
+  sponsorId: row.sponsor_id,
+  sponsorType: row.sponsor_type,
+  oneTime: row.one_time === 1,
+  amountCents: row.amount_cents,
+  privacy: row.privacy,
+  status: row.status,
+  createdAt: row.created_at,
+  claimedBy: row.claimed_by_sub,
+  claimedAt: row.claimed_at,
+});
 
 const toAdministrator = (row: AdministratorRecord): Administrator => ({
   sub: row.sub,
@@ -640,6 +673,39 @@ const SELECT_USERS_BY_EMAIL = `SELECT ${USER_COLUMNS} FROM users WHERE lower(ema
 const DELETE_OPEN_ADMIN_INVITATIONS_BY =
   "DELETE FROM admin_invitations WHERE invited_by = ? AND accepted_at IS NULL AND declined_at IS NULL AND revoked_at IS NULL";
 
+// ---- Sponsorships ------------------------------------------------------------------------
+// `sponsor_login` has the NOCASE collation, so every `=` on it ignores the case of ASCII letters,
+// and its index serves the claims.
+
+const SPONSORSHIP_COLUMNS =
+  "id, delivery_id, sponsor_login, sponsor_id, sponsor_type, one_time, amount_cents, privacy, status, created_at, claimed_by_sub, claimed_at";
+// A repeat of a delivery is refused by its unique id, and nothing is written.
+const INSERT_SPONSORSHIP =
+  "INSERT INTO sponsorships (id, delivery_id, sponsor_login, sponsor_id, sponsor_type, one_time, amount_cents, privacy, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (delivery_id) DO NOTHING";
+// The newest sponsorship of the login and the kind; a cancelled one (the second `?`) stays cancelled.
+const UPDATE_SPONSORSHIP =
+  "UPDATE sponsorships SET status = ?, privacy = ? WHERE status <> ? AND id = (SELECT id FROM sponsorships WHERE sponsor_login = ? AND one_time = ? ORDER BY created_at DESC, rowid DESC LIMIT 1)";
+/**
+ * A sponsorship a claim may take, not yet claimed: by the login bound to its first `?`, of the type
+ * bound to its second (`claimable(login)` binds both: a person's, never an organisation's).
+ */
+const CLAIMABLE = "sponsor_login = ? AND sponsor_type = ? AND claimed_by_sub IS NULL";
+/** The values of `CLAIMABLE`. */
+const claimable = (login: string): unknown[] => [login, "User"];
+const SELECT_UNCLAIMED = `SELECT ${SPONSORSHIP_COLUMNS} FROM sponsorships WHERE ${CLAIMABLE} ORDER BY created_at, rowid LIMIT 1`;
+// A claim is three statements in one batch, tied together by the log entry's id, which is new: the
+// entry goes in only while a claimable sponsorship and the person's row exist, and the grant and the
+// claim follow only that entry. A second claim of the same rows, even in the same instant, finds
+// nothing claimable, writes no entry, and so grants and claims nothing.
+const LOG_IF_CLAIMABLE = `${INSERT_ADMIN_LOG} WHERE EXISTS (SELECT 1 FROM sponsorships WHERE ${CLAIMABLE}) AND EXISTS (SELECT 1 FROM users WHERE sub = ?)`;
+const GRANT_IF_LOGGED =
+  "UPDATE users SET unbranded_exports = 1, unbranded_exports_by = ?, unbranded_exports_at = ? WHERE sub = ? AND EXISTS (SELECT 1 FROM admin_log WHERE id = ?)";
+const CLAIM_IF_LOGGED = `UPDATE sponsorships SET claimed_by_sub = ?, claimed_at = ? WHERE ${CLAIMABLE} AND EXISTS (SELECT 1 FROM admin_log WHERE id = ?)`;
+// The newest first; of two created at the same instant, the later stored.
+const SELECT_SPONSORSHIPS = `SELECT ${SPONSORSHIP_COLUMNS} FROM sponsorships ORDER BY created_at DESC, rowid DESC LIMIT ?`;
+const CLEAR_CLAIMS =
+  "UPDATE sponsorships SET claimed_by_sub = NULL, claimed_at = NULL WHERE claimed_by_sub = ?";
+
 /** The values of a log entry, in the order of `ADMIN_LOG_COLUMNS`. */
 const logValues = (log: AdminLogEntry): unknown[] => [
   log.id,
@@ -762,6 +828,7 @@ export function d1Store(db: D1Like): CloudStore {
           db.prepare("DELETE FROM cli_codes WHERE sub = ?").bind(sub),
           db.prepare(DELETE_ADMINISTRATOR).bind(sub),
           db.prepare(DELETE_OPEN_ADMIN_INVITATIONS_BY).bind(sub),
+          db.prepare(CLEAR_CLAIMS).bind(sub),
           db.prepare("DELETE FROM users WHERE sub = ?").bind(sub),
         ]);
       } catch (error) {
@@ -1413,6 +1480,56 @@ export function d1Store(db: D1Like): CloudStore {
         .bind(capacity(limit))
         .all<AdminLogRecord>();
       return results.map(toAdminLog);
+    },
+
+    async recordSponsorship(sponsorship) {
+      const recorded = await runCounting(
+        db
+          .prepare(INSERT_SPONSORSHIP)
+          .bind(
+            sponsorship.id,
+            sponsorship.deliveryId,
+            sponsorship.login,
+            sponsorship.sponsorId,
+            sponsorship.sponsorType,
+            bit(sponsorship.oneTime),
+            sponsorship.amountCents,
+            sponsorship.privacy,
+            sponsorship.createdAt,
+          ),
+      );
+      return recorded > 0 ? "recorded" : "repeated";
+    },
+    async updateSponsorship(login, oneTime, status, privacy) {
+      const changed = await runCounting(
+        db.prepare(UPDATE_SPONSORSHIP).bind(status, privacy, "cancelled", login, bit(oneTime)),
+      );
+      return changed > 0;
+    },
+    async unclaimedSponsorship(login) {
+      const row = await db
+        .prepare(SELECT_UNCLAIMED)
+        .bind(...claimable(login))
+        .first<SponsorshipRecord>();
+      return row ? toSponsorship(row) : undefined;
+    },
+    async claimSponsorship(login, sub, at, log) {
+      const answers = await db.batch([
+        db.prepare(LOG_IF_CLAIMABLE).bind(...logValues(log), ...claimable(login), sub),
+        db.prepare(GRANT_IF_LOGGED).bind(GITHUB_SPONSORS, at, sub, log.id),
+        db.prepare(CLAIM_IF_LOGGED).bind(sub, at, ...claimable(login), log.id),
+      ]);
+      return changesOf(answers[2]) > 0;
+    },
+    async sponsorships(limit) {
+      const { results } = await db
+        .prepare(SELECT_SPONSORSHIPS)
+        .bind(capacity(limit))
+        .all<SponsorshipRecord>();
+      return results.map(toSponsorship);
+    },
+    async clearClaims(sub) {
+      await run(db.prepare(CLEAR_CLAIMS).bind(sub));
     },
 
     async publicationsOf(projectId) {
