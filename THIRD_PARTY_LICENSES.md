@@ -31,6 +31,8 @@ or glyph outlines), which the SIL Open Font License 1.1 permits.
 | @ibm/telemetry-js | 1.12.0 | Apache-2.0 |  | https://github.com/ibm-telemetry/telemetry-js#readme |
 | @iconify-json/logos | 1.2.16 | CC0-1.0 |  | https://icon-sets.iconify.design/logos/ |
 | @iconify/types | 2.0.0 | MIT |  | https://github.com/iconify/iconify |
+| @meltemi/identity | 0.2.0 | Apache-2.0 | the Meltemi family's sign-in verifier, published by Meltemi Web with provenance, used under Apache-2.0, unmodified, by the hosted service | https://github.com/askenaz-dev/meltemi-web/tree/main/packages/identity#readme |
+| @meltemi/ocean | 0.1.20 | Apache-2.0 | the Meltemi family's sea, published by Meltemi Web with provenance, used under Apache-2.0, unmodified, by the web app (change playground-sea) | https://github.com/askenaz-dev/meltemi-web/tree/main/packages/ocean#readme |
 | @modelcontextprotocol/core | 2.3.1 | Apache-2.0 | used under Apache-2.0, unmodified, by the hosted service's MCP endpoint (change agent-mcp) | https://modelcontextprotocol.io |
 | @modelcontextprotocol/server | 2.3.1 | Apache-2.0 | used under Apache-2.0, unmodified, by the hosted service's MCP endpoint (change agent-mcp) | https://modelcontextprotocol.io |
 | @resvg/resvg-wasm | 2.6.2 | MPL-2.0 | used under MPL-2.0, unmodified, by the hosted service's PNG previews (change agent-mcp); source: https://github.com/yisibl/resvg-js | https://github.com/yisibl/resvg-js#readme |

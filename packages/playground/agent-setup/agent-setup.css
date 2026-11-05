@@ -66,6 +66,41 @@ footer {
   text-decoration: none;
 }
 
+/* The family's sea at rest (`playground-sea`): the still picture of the system's scheme, a band
+   under the header that the heading stands on. An image, so the page keeps no script. */
+.setup-sea {
+  display: block;
+  max-width: 80rem;
+  margin: 0 auto;
+}
+
+/* Cropped to the sea, the fleet and the flow; its edges fade into the page. A mask: only its
+   alpha counts. */
+.setup-sea img {
+  display: block;
+  width: 100%;
+  height: clamp(7rem, 20vw, 15rem);
+  object-fit: cover;
+  object-position: center 72%;
+  mask-image:
+    linear-gradient(to bottom, transparent, black 30%, black 82%, transparent),
+    linear-gradient(to right, transparent, black 14%, black 86%, transparent);
+  mask-composite: intersect;
+}
+
+/* On a narrow screen the middle of the picture, larger: the lead, the fleet and the flow. */
+@media (max-width: 40rem) {
+  .setup-sea {
+    overflow: hidden;
+  }
+
+  .setup-sea img {
+    width: 180%;
+    max-width: none;
+    margin-left: -40%;
+  }
+}
+
 a {
   color: var(--pg-accent);
 }

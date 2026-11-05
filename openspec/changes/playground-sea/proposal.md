@@ -27,9 +27,9 @@ diagrams.meltemi.dev serves). It covers no stage of the proposal.
 
 ## What Changes
 
-- **Loading.** While the playground loads, the `diagrams` sea state of `@meltemi/ocean` draws
-  behind the boot line: the sea, the wind and points linking into a flow. It fades out as the page
-  starts and never delays the start.
+- **Loading.** While the page loads, the `diagrams` sea state of `@meltemi/ocean` draws behind
+  the boot line: the sea, the fleet of Meltemi marks sailing on it, and points the wind links into a
+  flow. The load screen dissolves over the editor as the page starts and never delays the start.
 - **Nothing to draw.** When the canvas has nothing to draw (no files, `project.json` open, or a
   file with no diagram), the same sea sits behind the canvas's message. It never appears while a
   diagram is drawn, edited, played or exported.
@@ -45,8 +45,9 @@ diagrams.meltemi.dev serves). It covers no stage of the proposal.
 - **`NOTICES.md` and the licence inventory** name `@meltemi/ocean` under Apache-2.0. The About
   dialog lists it.
 - **New dependency:** `@meltemi/ocean` (Apache-2.0), from npm, published by Meltemi Web with
-  provenance. It is pinned to the first published version, `0.1.0`, and has no dependency of its
-  own. The owner approved it in the request of 2026-10-28.
+  provenance. It is pinned to the version published when this change was applied, `0.1.20`, after
+  `npm view` and `npm audit signatures` confirmed its provenance, and has no dependency of its own.
+  The owner approved it in the request of 2026-10-28.
 
 ## Capabilities
 
@@ -68,15 +69,19 @@ diagrams.meltemi.dev serves). It covers no stage of the proposal.
 ## Impact
 
 - **`packages/playground`**
-  - `index.html`: the canvas behind the boot line.
-  - `src/main.ts`: starts the sea before `start()` and fades it when the page starts.
-  - The studio's empty-canvas states.
+  - `index.html`: loads `boot-sea.js`, the load screen's sea, with `async`.
+  - `src/boot-sea.ts`, `src/sea.ts`, `src/empty-sea.ts`: the load screen's sea, the moment both
+    play, and the empty canvas's lazy sea.
+  - `src/studio.ts` and `src/shell.ts`: the studio says when the canvas has nothing to draw, and
+    the shell shows the sea on the canvas's stage.
   - `playground.css`: `--sea-*` from `--pg-*`, the load screen and the empty canvas.
-  - `build.mjs`: writes `sea-diagrams.svg` for the agent setup pages.
-  - `agent-setup/*.html`: the still picture.
+  - `build.mjs` and `sea.mjs`: the second entry, the sea's weight check, and the still pictures
+    `sea-diagrams.svg` and `sea-diagrams-dark.svg` for the agent setup pages.
+  - `agent-setup/*.html` and `agent-setup.css`: the still picture.
   - `package.json`: the new dependency.
 - **Docs and notices**
-  - `NOTICES.md` generation and `pnpm licenses:inventory`.
+  - `NOTICES.md` generation and `pnpm licenses:inventory` (`scripts/licenses.mjs`), which now list
+    the family's packages from npm and skip only the workspace's own.
   - `docs/web-app.md` and its Spanish twin get one paragraph about the sea and reduced motion.
 - **Tests**
   - Unit tests for the empty-state rule (which states get a sea).
