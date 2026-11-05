@@ -3,7 +3,8 @@
 // `wrangler.jsonc`. It is JavaScript with a declaration beside it (`renderer-bundle.d.ts`), so that
 // TypeScript reads the declared types rather than the JSON files themselves. The font files are those
 // the command line's font library reads for the four measured families (`MEASURED_FAMILIES`), found
-// as `bundledFontFiles()` finds them for the page.
+// as `bundledFontFiles()` finds them for the page (`isMeasuredFontPath`, which the local server's
+// engine reads by too).
 //
 //   tsx --conditions=@meltemi/diagrams-source packages/cloud/scripts/renderer-bundle.ts [--check]
 //
@@ -11,15 +12,10 @@
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { BUNDLED_FAMILIES } from "@meltemi/diagrams-fonts";
 import { bundledFontFiles } from "@meltemi/diagrams-fonts/node";
+import { isMeasuredFontPath } from "@meltemi/diagrams-mcp/node";
 import { format, resolveConfig } from "prettier";
-import {
-  ASSET_FILES,
-  MEASURED_FAMILIES,
-  RASTER_FILES,
-  type BundledFile,
-} from "../src/renderer-files.js";
+import { ASSET_FILES, RASTER_FILES, type BundledFile } from "../src/renderer-files.js";
 
 /** The cloud package's folder. */
 export const CLOUD = fileURLToPath(new URL("../", import.meta.url));
@@ -30,15 +26,8 @@ export const BUNDLE_FILE = fileURLToPath(new URL("../src/renderer-bundle.js", im
  * has them (Inter, IBM Plex Sans), else its subset table and the subsets of its weights.
  */
 export function measuredFontFiles(): BundledFile[] {
-  const families = BUNDLED_FAMILIES.filter((f) => MEASURED_FAMILIES.has(f.family));
-  const wanted = (path: string) =>
-    families.some((family) =>
-      family.complete
-        ? Object.values(family.complete).includes(path)
-        : path.startsWith(`${family.subsets.package}/`),
-    );
   return bundledFontFiles()
-    .filter((file) => wanted(file.path))
+    .filter((file) => isMeasuredFontPath(file.path))
     .map((file) => ({ path: file.path, source: `node_modules/${file.path}` }));
 }
 

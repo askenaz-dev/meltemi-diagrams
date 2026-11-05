@@ -8,30 +8,31 @@ revisar los cambios y guardar una copia en la nube. Todos los comandos admiten `
 de los mensajes son relativas a la carpeta de trabajo; nada de lo que un comando imprime o escribe
 nombra las rutas absolutas de la máquina, salvo que se pida.
 
-| Comando                     | Qué hace                                                                                                                 |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `init [folder]`             | Crea un proyecto a partir de una plantilla; `--ci` agrega un flujo de trabajo de CI, `--cloud` un trabajo que hace push  |
-| `validate <path>...`        | Comprueba archivos, proyectos y la composición de sus diagramas ([diagnósticos](language/diagnostics.md))                |
-| `preview [path]`            | Sirve el catálogo del proyecto y lo vuelve a generar cuando cambian los archivos                                         |
-| `format <path>...`          | Reescribe los archivos con el formato canónico ([formato](language/formatting.md))                                       |
-| `import <path>`             | Importa archivos de Mermaid, PlantUML y Markdown ([importación](import/))                                                |
-| `export <path>`             | Genera diagramas, historias y perfiles ([exportación](language/export.md))                                               |
-| `layout <file>`             | Escribe la organización de ELK como instrucciones `place` ([disposición](language/layout.md))                            |
-| `convert <file>`            | Copia un diagrama de flujo en uno libre, o escribe el JSON del modelo (`--to free\|json`)                                |
-| `build catalog [path]`      | Escribe el catálogo HTML sin conexión ([catálogo](catalog.md))                                                           |
-| `review [path]`             | Lista lo que cambió por id, con imágenes del antes y el después, desde una revisión de Git o la nube                     |
-| `assets <subcommand>`       | Lista los paquetes de iconos y las fuentes, busca iconos, escribe el archivo de bloqueo ([recursos](language/assets.md)) |
-| `assist <operation>`        | Ayuda opcional de IA en forma de propuestas que se aceptan en parte ([asistencia](assist.md))                            |
-| `plugins [path]`            | Lista los plugins que instala un proyecto, lo que agregan y sus problemas ([plugins](plugins.md))                        |
-| `login`, `logout`, `whoami` | Inician sesión en el servicio de la nube, revocan y olvidan el token, dicen para quién es el token                       |
-| `push [folder]`             | Hace que un proyecto de la nube coincida con la carpeta                                                                  |
-| `pull [id] [folder]`        | Escribe los archivos de un proyecto de la nube en una carpeta                                                            |
-| `publish [folder]`          | Publica el catálogo como una página web del servicio de la nube                                                          |
-| `projects`                  | Lista tus proyectos de la nube                                                                                           |
-| `skill install [carpeta]`   | Da a los agentes de programación de un proyecto la skill que dibuja diagramas de Meltemi ([agentes](agents.md))          |
-| `skill prompt`              | Imprime el prompt que sigue un agente para instalar la skill y demostrar que funciona ([agentes](agents.md))             |
+| Comando                     | Qué hace                                                                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `init [folder]`             | Crea un proyecto a partir de una plantilla; `--ci` agrega un flujo de trabajo de CI, `--cloud` un trabajo que hace push         |
+| `validate <path>...`        | Comprueba archivos, proyectos y la composición de sus diagramas ([diagnósticos](language/diagnostics.md))                       |
+| `preview [path]`            | Sirve el catálogo del proyecto y lo vuelve a generar cuando cambian los archivos                                                |
+| `format <path>...`          | Reescribe los archivos con el formato canónico ([formato](language/formatting.md))                                              |
+| `import <path>`             | Importa archivos de Mermaid, PlantUML y Markdown ([importación](import/))                                                       |
+| `export <path>`             | Genera diagramas, historias y perfiles ([exportación](language/export.md))                                                      |
+| `layout <file>`             | Escribe la organización de ELK como instrucciones `place` ([disposición](language/layout.md))                                   |
+| `convert <file>`            | Copia un diagrama de flujo en uno libre, o escribe el JSON del modelo (`--to free\|json`)                                       |
+| `build catalog [path]`      | Escribe el catálogo HTML sin conexión ([catálogo](catalog.md))                                                                  |
+| `review [path]`             | Lista lo que cambió por id, con imágenes del antes y el después, desde una revisión de Git o la nube                            |
+| `assets <subcommand>`       | Lista los paquetes de iconos y las fuentes, busca iconos, escribe el archivo de bloqueo ([recursos](language/assets.md))        |
+| `assist <operation>`        | Ayuda opcional de IA en forma de propuestas que se aceptan en parte ([asistencia](assist.md))                                   |
+| `plugins [path]`            | Lista los plugins que instala un proyecto, lo que agregan y sus problemas ([plugins](plugins.md))                               |
+| `login`, `logout`, `whoami` | Inician sesión en el servicio de la nube, revocan y olvidan el token, dicen para quién es el token                              |
+| `push [folder]`             | Hace que un proyecto de la nube coincida con la carpeta                                                                         |
+| `pull [id] [folder]`        | Escribe los archivos de un proyecto de la nube en una carpeta                                                                   |
+| `publish [folder]`          | Publica el catálogo como una página web del servicio de la nube                                                                 |
+| `projects`                  | Lista tus proyectos de la nube                                                                                                  |
+| `skill install [carpeta]`   | Da a los agentes de programación de un proyecto la skill que dibuja diagramas de Meltemi ([agentes](agents.md))                 |
+| `skill prompt`              | Imprime el prompt que sigue un agente para instalar la skill y demostrar que funciona ([agentes](agents.md))                    |
+| `mcp`                       | Sirve las herramientas MCP en esta máquina para un agente de programación ([el servidor MCP local](#el-servidor-mcp-local-mcp)) |
 
-Las cinco filas antes de las dos últimas son [los comandos de la nube](#los-comandos-de-la-nube).
+Las cinco filas antes de las tres últimas son [los comandos de la nube](#los-comandos-de-la-nube).
 
 Procesar repositorios que no son de confianza es seguro: nada de un proyecto se ejecuta, lee fuera
 de él ni accede a la red, y los tamaños están acotados ([seguridad](security.md)). Los comandos que
@@ -226,6 +227,33 @@ instrucciones del proyecto, y el texto instalado nombra esta línea de comandos 
 programación lee y sigue para instalar la skill y demostrar que dibuja, que también sirve
 `https://diagrams.meltemi.dev/agent-setup/prompt.md`; no recibe argumentos. Consulta
 [agents.md](agents.md).
+
+## El servidor MCP local: `mcp`
+
+`mcp` sirve las herramientas del [endpoint MCP](cloud.md#el-endpoint-mcp) en esta máquina, por HTTP
+streamable en `http://127.0.0.1:7373/mcp`, para un agente de programación que corre aquí (decisión
+0073, [agentes](agents.md#a-través-del-servidor-local)). Las herramientas actúan sobre los proyectos
+de la cuenta con la que iniciaste sesión con `login` (o `MELTEMI_TOKEN`), a través de la API del
+servicio; las imágenes de `preview`, las comprobaciones de `validate` y `write_files` y el catálogo
+de `publish` se hacen en este proceso, con el motor con el que dibuja el endpoint, así que el
+servicio no gasta CPU en ellas. La primera línea que imprime es la dirección del servidor; cada
+llamada deja una línea en la salida de error (la herramienta, sus milisegundos y su código, nunca
+sus argumentos). El comando sigue hasta Ctrl+C (`SIGINT`) o `SIGTERM`, y termina con 0.
+
+| Opción           | Qué hace                                                                          |
+| ---------------- | --------------------------------------------------------------------------------- |
+| `--port <n>`     | El puerto, 7373 por defecto; 0 elige uno libre                                    |
+| `--folder <dir>` | Sirve `validate` y `preview` sobre los archivos de una carpeta, sin cuenta ni red |
+| `--host <url>`   | El servicio, como en `login`                                                      |
+
+Arranca sin sesión iniciada: cada herramienta responde entonces `auth.required`, y un `login` hecho
+mientras tanto lo usa la llamada siguiente. Escucha solo en `127.0.0.1`, y rechaza (antes de leer
+nada) un `Host` que no es esta máquina (`403`), un `Origin` distinto de su propia dirección (`403`),
+un método que no es `POST` (`405`), otra ruta (`404`) y un cuerpo de más de 24 MiB (`413`). Con
+`MELTEMI_MCP_KEY` definida (16 caracteres o más), cada petición debe llevarla como token bearer
+(`401` si no), para una computadora donde otras personas inician sesión. Un puerto en uso
+(`mcp.port-in-use`), una carpeta que no existe, un host `http:` que no es la dirección local
+(`cloud.insecure-host`), una clave corta y una opción desconocida terminan con 2 antes de escuchar.
 
 ## Los comandos de la nube
 

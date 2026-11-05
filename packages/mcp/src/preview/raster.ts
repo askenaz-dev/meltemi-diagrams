@@ -1,10 +1,10 @@
 // A preview's SVG made a PNG, with resvg compiled to WebAssembly (`@resvg/resvg-wasm`, MPL-2.0,
 // used unmodified). It draws with the fonts it is given and nothing of the system: the four faces of
-// `renderer-fonts.ts`, and a project's own TrueType, OpenType or WOFF fonts. A family it does not
+// `fonts.ts`, and a project's own TrueType, OpenType or WOFF fonts. A family it does not
 // hold is drawn with Inter, the default of every generic family but `monospace` (Cascadia Mono).
 
 import { Resvg, initWasm, type InitInput } from "@resvg/resvg-wasm";
-import { MAX_PNG_PIXELS } from "./renderer-protocol.js";
+import { MAX_PNG_PIXELS } from "./protocol.js";
 
 let started: Promise<void> | undefined;
 

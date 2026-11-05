@@ -76,6 +76,11 @@ export interface SuiteState {
   readonly tokens: { readonly first?: string; readonly second?: string };
   /** A file of the Worker's log to scan as well (criterion 29), when the run is given one. */
   readonly serverLog?: string;
+  /**
+   * With `--local`: the addresses of the two `mdg mcp` processes the agents connect to, and the file
+   * of their standard error, scanned like the Worker's log.
+   */
+  readonly local?: { readonly first: string; readonly second?: string; readonly log: string };
   first?: Agent;
   second?: Agent;
   firstAccount?: { sub: string; email: string; handle: string | null };
@@ -113,6 +118,7 @@ export function newState(init: {
   fetcher?: Fetch;
   serverLog?: string;
   runId?: string;
+  local?: SuiteState["local"];
 }): SuiteState {
   return {
     target: init.target,
@@ -120,6 +126,7 @@ export function newState(init: {
     tokens: init.tokens,
     fetcher: init.fetcher ?? fetch,
     ...(init.serverLog ? { serverLog: init.serverLog } : {}),
+    ...(init.local ? { local: init.local } : {}),
     runId:
       init.runId ?? `${Date.now().toString(36)}${randomBytes(3).toString("hex")}`.toLowerCase(),
     created: [],
@@ -265,6 +272,7 @@ async function ensureHandle(state: SuiteState, log: (line: string) => void): Pro
 const discovery: Step<SuiteState> = {
   name: "27 discovery: the metadata documents name the endpoint and S256",
   criterion: 27,
+  needs: ["endpoint"],
   async run({ state, log }) {
     const resource = await http(state, "/.well-known/oauth-protected-resource");
     if (resource.status === 404) {
@@ -311,6 +319,7 @@ const discovery: Step<SuiteState> = {
 const challenge: Step<SuiteState> = {
   name: "27 initialize and tools/list without a token: 401 with the challenge",
   criterion: 27,
+  needs: ["endpoint"],
   async run({ state, log }) {
     const path = new URL(state.target.endpoint).pathname;
     for (const method of ["initialize", "tools/list"]) {
@@ -352,6 +361,7 @@ const challenge: Step<SuiteState> = {
 const foreignTokens: Step<SuiteState> = {
   name: "27 a token the service did not issue: 401",
   criterion: 27,
+  needs: ["endpoint"],
   async run({ state, log }) {
     const path = new URL(state.target.endpoint).pathname;
     // A string that is no token, and a JWT-shaped one of nobody's (the identity service's shape).
@@ -538,7 +548,7 @@ const connect: Step<SuiteState> = {
   criterion: null,
   needs: ["token"],
   async run({ state, log }) {
-    state.first = await Agent.connect(state.target, state.tokens.first!);
+    state.first = await Agent.connect(state.target, state.tokens.first!, state.local?.first);
     state.server = state.first.server();
     state.protocolVersion = state.first.protocolVersion();
     assert.equal(
@@ -610,7 +620,7 @@ const connectSecond: Step<SuiteState> = {
   needs: ["token", "token2"],
   after: [CONNECT],
   async run({ state, log }) {
-    state.second = await Agent.connect(state.target, state.tokens.second!);
+    state.second = await Agent.connect(state.target, state.tokens.second!, state.local?.second);
     const me = await state.second.ok("whoami");
     state.secondAccount = { sub: text(me["sub"]), email: text(me["email"]) };
     assert.notEqual(
@@ -1115,6 +1125,11 @@ const readLink: Step<SuiteState> = {
       body: JSON.stringify({ files: { "x.meltemi": FLOW } }),
     });
     assert.ok([401, 403].includes(push.status), `an anonymous push answered ${push.status}`);
+    if (state.local) {
+      // Through the local server the run asks nothing of the endpoint: its door is another run's.
+      log("anonymously: the link opens the app, the files read and a push is refused");
+      return;
+    }
     const tools = await http(state, new URL(state.target.endpoint).pathname, rpc("tools/list"));
     assert.equal(tools.status, 401, `an anonymous MCP client answered ${tools.status}`);
     log("anonymously: the link opens the app, the files read, a push and the tools are refused");
@@ -1469,6 +1484,15 @@ const secrets: Step<SuiteState> = {
       `the log of ${held.join(", ")} held what grants access (redacted)`,
     );
     log("the run's log holds no token, bearer credential, invitation or live link, or code");
+    if (state.local) {
+      // The local servers' standard error: one line a call, none holding what grants access.
+      const local = readFileSync(state.local.log, "utf8").split(/\r?\n/);
+      const held = local.filter((line) => holdsSecret(line)).length;
+      assert.equal(held, 0, `${held} line(s) of mdg mcp's log hold what grants access`);
+      log(
+        `the local servers' lines (${local.length} in their log) hold no token, access link or code`,
+      );
+    }
     if (!state.serverLog) {
       log("the Worker's log is not read here (MELTEMI_SERVER_LOG is not set)");
       return;

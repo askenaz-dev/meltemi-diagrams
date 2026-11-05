@@ -192,7 +192,7 @@ function stringRecord(
  * A value as one segment of an address: encoded, and never `.` or `..`, which an address resolves
  * to another path (even as `%2e`).
  */
-function segment(value: string): string {
+export function segment(value: string): string {
   if (value === "." || value === "..") {
     throw new CloudError("cloud.bad-request", `${value} cannot be part of an address.`);
   }
@@ -200,7 +200,7 @@ function segment(value: string): string {
 }
 
 /** The address of a project: its id has the service's shape, or it cannot be a project's (`project.not-found`). */
-function projectUrl(id: string): string {
+export function projectUrl(id: string): string {
   if (!CLOUD_PROJECT_ID.test(id)) {
     throw new CloudError("project.not-found", `${id} is not the id of a cloud project.`, {
       details: { project: id },
@@ -210,7 +210,7 @@ function projectUrl(id: string): string {
 }
 
 /** The segments of a file path, each URL-encoded. */
-function encodePath(path: string): string {
+export function encodePath(path: string): string {
   return path.split("/").map(encodeURIComponent).join("/");
 }
 
@@ -232,6 +232,20 @@ interface RequestOptions {
   readonly accept?: readonly number[];
   /** Values that are never to appear in an error (the one-time code of the exchange). */
   readonly secrets?: readonly string[];
+  /** Headers of the request beyond the client's own (an `Idempotency-Key`). */
+  readonly headers?: Readonly<Record<string, string>>;
+}
+
+/** What `call` sends and reads. */
+export interface CallOptions {
+  readonly json?: unknown;
+  readonly body?: Uint8Array;
+  readonly contentType?: string;
+  /** Sent as `Idempotency-Key`: a retry of the same request is answered as the first was. */
+  readonly idempotencyKey?: string;
+  /** The most bytes the answer is read for; 1 MiB by default. */
+  readonly maxBytes?: number;
+  readonly timeoutMs?: number;
 }
 
 // -------------------------------------------------------------------------------- the client
@@ -376,6 +390,7 @@ export class CloudClient {
     }
     const headers = new Headers({ accept: "application/json" });
     if (this.userAgent !== undefined) headers.set("user-agent", this.userAgent);
+    for (const [name, value] of Object.entries(options.headers ?? {})) headers.set(name, value);
     if (options.auth !== false && this.token !== undefined) {
       headers.set("authorization", `Bearer ${this.token}`);
     }
@@ -463,6 +478,33 @@ export class CloudClient {
 
   private needToken(): void {
     if (this.token === undefined) throw this.notSignedIn();
+  }
+
+  /**
+   * Any route of the HTTP API (`/api/…`), with the client's rules: the status and the JSON of its
+   * answer as it came (null for an empty one), or its `CloudError`. The local MCP server's tools call the routes through it, and shape
+   * and check each answer against their own schemas.
+   */
+  async call(
+    method: string,
+    path: string,
+    options: CallOptions = {},
+  ): Promise<{ readonly status: number; readonly body: unknown }> {
+    this.needToken();
+    if (!path.startsWith("/api/")) {
+      throw new CloudError("cloud.bad-request", `Refusing to call ${path}: it is not of the API.`);
+    }
+    const answer = await this.request(method, path, {
+      ...(options.json !== undefined ? { json: options.json } : {}),
+      ...(options.body !== undefined ? { body: options.body } : {}),
+      ...(options.contentType !== undefined ? { contentType: options.contentType } : {}),
+      ...(options.idempotencyKey !== undefined
+        ? { headers: { "idempotency-key": options.idempotencyKey } }
+        : {}),
+      maxBytes: options.maxBytes ?? SMALL_BYTES,
+      timeoutMs: options.timeoutMs ?? LARGE_TIMEOUT_MS,
+    });
+    return { status: answer.status, body: answer.bytes.length === 0 ? null : this.json(answer) };
   }
 
   // -------------------------------------------------------------------------- the account

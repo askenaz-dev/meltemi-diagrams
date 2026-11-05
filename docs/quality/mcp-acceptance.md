@@ -109,6 +109,33 @@ pnpm --filter @meltemi/diagrams-cloud exec wrangler dev
 menu), or with `POST /api/tokens` and the cookie, and the suite runs with `MELTEMI_ORIGIN=http://localhost:8788` and the
 two tokens in the environment, never on a command line that a history keeps.
 
+## Through the local server
+
+`--local` runs the same steps through the command line's local server (change `local-mcp-server`,
+[decision 0073](../decisions/0073-local-mcp-server.md)) instead of the endpoint: one built
+`mdg mcp` process for each test account, on a free port of `127.0.0.1`, with that account's token in
+its own environment only, the target's origin as its host and an empty configuration folder. The
+agents connect to the addresses the processes print, with no bearer. The steps of the endpoint's own
+door and OAuth server (discovery, the challenge, a foreign token, criteria 27 and 28) are skipped
+with their reason, and nothing is asked of `/mcp`; the processes' standard error is written to
+`mdg-mcp.log` beside `results.json` and scanned like the Worker's log for criterion 29.
+
+```bash
+pnpm --filter "@meltemi/diagrams-cli..." build
+MELTEMI_ORIGIN=https://staging.diagrams.meltemi.dev MELTEMI_TOKEN=… MELTEMI_TOKEN_2=… pnpm acceptance:mcp --local
+```
+
+Against the Worker on this computer, `packages/cloud/test/browser/mcp-local-run.ts` starts it as
+the browser suite does (`wrangler dev` with the test keys), signs two people in, makes a token for
+each, runs the suite with `--local` and counts the requests to `/mcp` in the Worker's log, which
+must be none:
+
+```bash
+pnpm playground:build
+pnpm --filter "@meltemi/diagrams-cli..." build
+tsx --conditions=@meltemi/diagrams-source packages/cloud/test/browser/mcp-local-run.ts
+```
+
 ## The staging gate
 
 `.github/workflows/deploy.yml` deploys the approved source to staging before production, from

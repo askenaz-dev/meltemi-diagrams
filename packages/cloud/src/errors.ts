@@ -110,6 +110,8 @@ export const ERROR_STATUS = {
   "idempotency.pending": 409,
   /** A publication the publish host did not serve when it was read back: `url` names the address. */
   "publish.unverified": 502,
+  /** The renderer object cannot draw or check now (its CPU limit, an overload, a reset). */
+  "renderer.unavailable": 503,
   internal: 500,
 } as const;
 
@@ -193,6 +195,8 @@ const MESSAGES: Record<ErrorCode, string> = {
   "idempotency.pending":
     "The first request with this idempotency key is still being answered; try again in a moment.",
   "publish.unverified": "The page was published but its address did not answer yet.",
+  "renderer.unavailable":
+    "The server cannot draw or check diagrams right now; `mdg mcp` does this work on your machine.",
   internal: "Something went wrong.",
 };
 

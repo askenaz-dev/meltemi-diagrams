@@ -53,7 +53,12 @@ import {
   patchProjectRoute,
 } from "./routes/projects.js";
 import { devPublished } from "./routes/published.js";
-import { deletePublishRoute, getPublishRoute, putPublishRoute } from "./routes/publish.js";
+import {
+  accountPublicationsRoute,
+  deletePublishRoute,
+  getPublishRoute,
+  putPublishRoute,
+} from "./routes/publish.js";
 import {
   devRoomDisconnect,
   devRoomLimits,
@@ -388,6 +393,12 @@ export const ROUTES: readonly RouteEntry[] = [
     route: deletePublishRoute,
   },
   { method: "GET", path: /^\/api\/account\/usage$/, principal: true, route: usageRoute },
+  {
+    method: "GET",
+    path: /^\/api\/account\/publications$/,
+    principal: true,
+    route: accountPublicationsRoute,
+  },
   // Connected apps: the OAuth grants of the person, read and revoked from the page's cookie only.
   { method: "GET", path: /^\/api\/account\/apps$/, principal: true, route: listAppsRoute },
   {

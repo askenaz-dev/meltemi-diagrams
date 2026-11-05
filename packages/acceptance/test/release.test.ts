@@ -67,8 +67,8 @@ describe("one product version", () => {
 describe("publishable manifests", () => {
   const publics = folders.filter((folder) => !manifest(folder).private);
 
-  it("covers the nineteen public packages", () => {
-    expect(publics).toHaveLength(19);
+  it("covers the twenty public packages", () => {
+    expect(publics).toHaveLength(20);
   });
 
   it.each(publics)("packages/%s publishes publicly, without the source condition", (folder) => {

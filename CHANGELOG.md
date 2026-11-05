@@ -4,7 +4,7 @@ Every package of Meltemi Diagrams, the CLI and the VS Code extension share one v
 ([decision 0033](docs/decisions/0033-release-and-versioning.md)). The language version is separate
 ([language policy](docs/language/policy.md)).
 
-## 1.11.16
+## 1.11.17
 
 The web app wears the Meltemi family's sea, `@meltemi/ocean` 0.1.20 from Meltemi Web (Apache-2.0,
 published with provenance). While the page loads, and whenever the canvas has nothing to draw (a
@@ -17,6 +17,22 @@ The load screen dissolves over the editor as the page starts. The agent setup pa
 sea as a still picture, with no script. `NOTICES.md`, the About dialog and `THIRD_PARTY_LICENSES.md`
 list `@meltemi/ocean`; the inventory now lists the family's packages from npm, `@meltemi/identity`
 among them ([the web app](docs/web-app.md#what-it-does)).
+
+## 1.11.16
+
+The command line serves the MCP tools on the person's machine: `mdg mcp` is a local MCP server over
+Streamable HTTP at `http://127.0.0.1:7373/mcp`, with the same twenty-seven tools as the hosted
+endpoint, which acts on the projects of the account `mdg login` signed in to through the service's
+API, and draws the previews, checks the files and builds the catalogs in its own process, with the
+engine the endpoint draws with. Codex, Claude Code and Cursor connect to it by its address
+(`codex mcp add meltemi --url http://127.0.0.1:7373/mcp`). `mdg mcp --folder <dir>` serves
+`validate` and `preview` over a folder's files with no account. It listens on `127.0.0.1` only,
+refuses web pages, and asks for `MELTEMI_MCP_KEY` when set ([agents](docs/agents.md#through-the-local-server),
+[the command line](docs/cli.md#the-local-mcp-server-mcp), decision 0073). The tools' definitions and
+the preview engine are a new public package, `@meltemi/diagrams-mcp`. The hosted endpoint answers
+`renderer.unavailable` when its renderer cannot draw or check, naming `mdg mcp`, and pushes nothing;
+a token's session now gives the account's email, and `GET /api/account/publications` lists the
+account's publications.
 
 ## 1.11.14
 

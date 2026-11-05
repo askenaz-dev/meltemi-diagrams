@@ -216,6 +216,9 @@ importers:
       '@meltemi/diagrams-layout-elk':
         specifier: workspace:*
         version: link:../layout-elk
+      '@meltemi/diagrams-mcp':
+        specifier: workspace:*
+        version: link:../mcp
       '@meltemi/diagrams-model':
         specifier: workspace:*
         version: link:../model
@@ -231,6 +234,10 @@ importers:
       '@meltemi/diagrams-render':
         specifier: workspace:*
         version: link:../render
+    devDependencies:
+      '@modelcontextprotocol/client':
+        specifier: 2.3.1
+        version: 2.3.1
 
   packages/cloud:
     dependencies:
@@ -270,6 +277,9 @@ importers:
       '@meltemi/diagrams-layout-elk':
         specifier: workspace:*
         version: link:../layout-elk
+      '@meltemi/diagrams-mcp':
+        specifier: workspace:*
+        version: link:../mcp
       '@meltemi/diagrams-motion':
         specifier: workspace:*
         version: link:../motion
@@ -526,6 +536,46 @@ importers:
       esbuild:
         specifier: 0.28.2
         version: 0.28.2
+
+  packages/mcp:
+    dependencies:
+      '@meltemi/diagrams-assets':
+        specifier: workspace:*
+        version: link:../assets
+      '@meltemi/diagrams-editor':
+        specifier: workspace:*
+        version: link:../editor
+      '@meltemi/diagrams-fonts':
+        specifier: workspace:*
+        version: link:../fonts
+      '@meltemi/diagrams-language':
+        specifier: workspace:*
+        version: link:../language
+      '@meltemi/diagrams-layout':
+        specifier: workspace:*
+        version: link:../layout
+      '@meltemi/diagrams-layout-elk':
+        specifier: workspace:*
+        version: link:../layout-elk
+      '@meltemi/diagrams-motion':
+        specifier: workspace:*
+        version: link:../motion
+      '@meltemi/diagrams-project':
+        specifier: workspace:*
+        version: link:../project
+      '@modelcontextprotocol/server':
+        specifier: 2.3.1
+        version: 2.3.1
+      '@resvg/resvg-wasm':
+        specifier: 2.6.2
+        version: 2.6.2
+      zod:
+        specifier: 4.6.7
+        version: 4.6.7
+    devDependencies:
+      '@modelcontextprotocol/client':
+        specifier: 2.3.1
+        version: 2.3.1
 
   packages/model:
     dependencies:

@@ -2,23 +2,9 @@
 // each one is (a path below `packages/cloud/node_modules`, or of the assets package). The Worker
 // bundles them as data and text modules (`renderer-bundle.js`, generated from this list by
 // `scripts/renderer-bundle.ts`); the Node tests read the same files from disk, so the tests draw
-// with exactly what the object holds.
+// with exactly what the object holds. The engine itself is `@meltemi/diagrams-mcp/preview`'s.
 
-import { RASTER_FACES } from "./renderer-fonts.js";
-
-/**
- * The bundled families the renderer measures with their own files, as the command line does: Inter
- * (the technical and stage themes, and the fallback of every family), IBM Plex Sans (the editorial
- * themes and the second fallback), Cascadia Mono (tags and code) and Patrick Hand (the sketch
- * themes). The thirteen Fontsource families are measured with the fallback and named in
- * `estimatedFonts`.
- */
-export const MEASURED_FAMILIES: ReadonlySet<string> = new Set([
-  "Inter",
-  "IBM Plex Sans",
-  "Cascadia Mono",
-  "Patrick Hand",
-]);
+import { RASTER_FACES } from "@meltemi/diagrams-mcp/preview";
 
 /** A file of the bundle: the path the engine asks for, and where it is installed. */
 export interface BundledFile {

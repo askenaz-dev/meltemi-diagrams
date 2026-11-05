@@ -270,6 +270,7 @@ comprueba cada criterio de aceptación, y los últimos resultados, están en
 | `packages/capture`    | `@meltemi/diagrams-capture`: capturas PNG, PDF y de video mediante el navegador instalado y FFmpeg                                                            |
 | `packages/catalog`    | `@meltemi/diagrams-catalog`: el catálogo HTML sin conexión de un proyecto                                                                                     |
 | `packages/assist`     | `@meltemi/diagrams-assist`: asistencia de IA opcional, sus adaptadores y propuestas revisables                                                                |
+| `packages/mcp`        | `@meltemi/diagrams-mcp`: las herramientas MCP definidas una vez para el endpoint alojado y `mdg mcp`, y el motor que dibuja sus vistas previas                |
 | `packages/cli`        | `@meltemi/diagrams-cli`: el comando `meltemi-diagrams`                                                                                                        |
 | `packages/editor`     | `@meltemi/diagrams-editor`: servicios de lenguaje, sesiones de proyecto, exportaciones, la sesión del lienzo, independiente del entorno                       |
 | `packages/canvas`     | `@meltemi/diagrams-canvas`: la aplicación del lienzo, compartida por la extensión y la app web                                                                |
@@ -336,7 +337,10 @@ prompt y los agentes están en
 [dibujar con agentes de programación](docs/es/agents.md). En tu proyecto, `mdg skill install`
 escribe la skill en `.claude/skills/` y `.agents/skills/`. En este repositorio vive en `skills/`,
 `pnpm skills:sync` la copia en `.claude/skills/`, `.agents/skills/` y el paquete de la línea de
-comandos, y `AGENTS.md` remite a ella a los demás agentes.
+comandos, y `AGENTS.md` remite a ella a los demás agentes. Por MCP, un agente actúa sobre los
+proyectos de tu cuenta: por el endpoint alojado `https://diagrams.meltemi.dev/mcp`, o por
+`mdg mcp`, un servidor local en `http://127.0.0.1:7373/mcp` que dibuja las vistas previas en tu
+máquina ([agentes](docs/es/agents.md#a-través-del-servidor-local)).
 
 ## Marca
 

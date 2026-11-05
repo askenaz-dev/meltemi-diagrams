@@ -9,7 +9,7 @@
 //                                and SHA-256
 
 import type { RendererNamespaceLike } from "../../src/renderer-client.js";
-import type { RenderRequest } from "../../src/renderer-protocol.js";
+import type { RenderRequest } from "@meltemi/diagrams-mcp/preview";
 
 export { ProjectRenderer } from "../../src/renderer.js";
 

@@ -23,6 +23,20 @@ export const RASTER_FACES = [
 /** The families a PNG draws with their own faces; text in another family takes Inter. */
 export const RASTER_FAMILIES: ReadonlySet<string> = new Set(RASTER_FACES.map((f) => f.family));
 
+/**
+ * The bundled families the renderer measures with their own files, as the command line does: Inter
+ * (the technical and stage themes, and the fallback of every family), IBM Plex Sans (the editorial
+ * themes and the second fallback), Cascadia Mono (tags and code) and Patrick Hand (the sketch
+ * themes). The thirteen Fontsource families are measured with the fallback and named in
+ * `estimatedFonts`.
+ */
+export const MEASURED_FAMILIES: ReadonlySet<string> = new Set([
+  "Inter",
+  "IBM Plex Sans",
+  "Cascadia Mono",
+  "Patrick Hand",
+]);
+
 const WOFF_HEADER = 44;
 const WOFF_ENTRY = 20;
 const SFNT_ENTRY = 16;

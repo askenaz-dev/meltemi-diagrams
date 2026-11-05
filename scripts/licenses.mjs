@@ -40,11 +40,11 @@ const NOTES = new Map([
   ],
   [
     "@modelcontextprotocol/server",
-    "used under Apache-2.0, unmodified, by the hosted service's MCP endpoint (change agent-mcp)",
+    "used under Apache-2.0, unmodified, by the hosted service's MCP endpoint (change agent-mcp) and, through the public package @meltemi/diagrams-mcp, by the command line's local server (change local-mcp-server)",
   ],
   [
     "@modelcontextprotocol/core",
-    "used under Apache-2.0, unmodified, by the hosted service's MCP endpoint (change agent-mcp)",
+    "used under Apache-2.0, unmodified, by the hosted service's MCP endpoint (change agent-mcp) and, through the public package @meltemi/diagrams-mcp, by the command line's local server (change local-mcp-server)",
   ],
   [
     "@cloudflare/workers-oauth-provider",
@@ -60,7 +60,7 @@ const NOTES = new Map([
   ],
   [
     "@resvg/resvg-wasm",
-    "used under MPL-2.0, unmodified, by the hosted service's PNG previews (change agent-mcp); source: https://github.com/yisibl/resvg-js",
+    "used under MPL-2.0, unmodified, by the PNG previews of the hosted service (change agent-mcp) and, as a dependency of the public package @meltemi/diagrams-mcp, of the command line's local server (change local-mcp-server); source: https://github.com/yisibl/resvg-js",
   ],
 ]);
 

@@ -91,6 +91,8 @@
     "@meltemi/diagrams-layout/viewport": "../layout/src/viewport.ts",
     "@meltemi/diagrams-layout-elk": "../layout-elk/src/index.ts",
     "@meltemi/diagrams-model": "../model/src/index.ts",
+    "@meltemi/diagrams-mcp": "../mcp/src/index.ts",
+    "@meltemi/diagrams-mcp/preview": "../mcp/src/preview/index.ts",
     "@meltemi/diagrams-motion": "../motion/src/index.ts",
     "@meltemi/diagrams-player": "../player/src/index.ts",
     "@meltemi/diagrams-player/runtime": "../player/src/runtime.ts",

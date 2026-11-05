@@ -11,8 +11,12 @@
 /** What a step ended as. */
 export type Outcome = "passed" | "failed" | "skipped";
 
-/** What a step needs from the run: the first account's token, the second's, an authorization server. */
-export type Need = "token" | "token2" | "oauth" | "grant";
+/**
+ * What a step needs from the run: the first account's token, the second's, an authorization server,
+ * a person's grant, or the hosted endpoint itself (its door and its challenge, which a run through the
+ * local server does not reach).
+ */
+export type Need = "token" | "token2" | "oauth" | "grant" | "endpoint";
 
 /** One step of the suite. */
 export interface Step<S> {
@@ -58,6 +62,8 @@ export interface Capabilities {
   readonly token2: boolean;
   /** Whether the host publishes the authorization server's metadata; undefined before it is asked. */
   oauth?: boolean;
+  /** Whether the run goes through the command line's local servers (`--local`), not the endpoint. */
+  local?: boolean;
 }
 
 /** Why a step that needs something the run does not have is skipped. */
@@ -68,6 +74,8 @@ export const NEED_REASONS: Readonly<Record<Need, string>> = {
     "the host publishes no authorization server metadata (/.well-known/oauth-protected-resource)",
   grant:
     "needs an OAuth grant that a person approves on the consent page; covered by packages/cloud/test/oauth.test.ts and by the procedure in docs/quality/mcp-acceptance.md",
+  endpoint:
+    "--local: the run goes through mdg mcp, which has no authorization server and no challenge; the endpoint's own door is proven by a run without --local",
 };
 
 /**
@@ -178,14 +186,19 @@ export async function runSteps<S>(
     const missing = (step.needs ?? []).find((need) => {
       if (need === "token") return !capabilities.token;
       if (need === "token2") return !capabilities.token2;
-      if (need === "oauth") return capabilities.oauth !== true;
+      if (need === "endpoint") return capabilities.local === true;
+      if (need === "oauth") return capabilities.local === true || capabilities.oauth !== true;
       return true;
     });
     const blocked = (step.after ?? []).find((name) => outcomes.get(name) !== "passed");
     if (missing !== undefined || blocked !== undefined) {
       const reason =
         missing !== undefined
-          ? NEED_REASONS[missing]
+          ? NEED_REASONS[
+              capabilities.local && missing !== "token" && missing !== "token2"
+                ? "endpoint"
+                : missing
+            ]
           : `builds on "${blocked}", which ${outcomes.has(blocked!) ? `was ${outcomes.get(blocked!)}` : "did not run"}`;
       outcomes.set(step.name, "skipped");
       results.push({

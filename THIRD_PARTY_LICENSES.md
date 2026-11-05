@@ -33,9 +33,9 @@ or glyph outlines), which the SIL Open Font License 1.1 permits.
 | @iconify/types | 2.0.0 | MIT |  | https://github.com/iconify/iconify |
 | @meltemi/identity | 0.2.0 | Apache-2.0 | the Meltemi family's sign-in verifier, published by Meltemi Web with provenance, used under Apache-2.0, unmodified, by the hosted service | https://github.com/askenaz-dev/meltemi-web/tree/main/packages/identity#readme |
 | @meltemi/ocean | 0.1.20 | Apache-2.0 | the Meltemi family's sea, published by Meltemi Web with provenance, used under Apache-2.0, unmodified, by the web app (change playground-sea) | https://github.com/askenaz-dev/meltemi-web/tree/main/packages/ocean#readme |
-| @modelcontextprotocol/core | 2.3.1 | Apache-2.0 | used under Apache-2.0, unmodified, by the hosted service's MCP endpoint (change agent-mcp) | https://modelcontextprotocol.io |
-| @modelcontextprotocol/server | 2.3.1 | Apache-2.0 | used under Apache-2.0, unmodified, by the hosted service's MCP endpoint (change agent-mcp) | https://modelcontextprotocol.io |
-| @resvg/resvg-wasm | 2.6.2 | MPL-2.0 | used under MPL-2.0, unmodified, by the hosted service's PNG previews (change agent-mcp); source: https://github.com/yisibl/resvg-js | https://github.com/yisibl/resvg-js#readme |
+| @modelcontextprotocol/core | 2.3.1 | Apache-2.0 | used under Apache-2.0, unmodified, by the hosted service's MCP endpoint (change agent-mcp) and, through the public package @meltemi/diagrams-mcp, by the command line's local server (change local-mcp-server) | https://modelcontextprotocol.io |
+| @modelcontextprotocol/server | 2.3.1 | Apache-2.0 | used under Apache-2.0, unmodified, by the hosted service's MCP endpoint (change agent-mcp) and, through the public package @meltemi/diagrams-mcp, by the command line's local server (change local-mcp-server) | https://modelcontextprotocol.io |
+| @resvg/resvg-wasm | 2.6.2 | MPL-2.0 | used under MPL-2.0, unmodified, by the PNG previews of the hosted service (change agent-mcp) and, as a dependency of the public package @meltemi/diagrams-mcp, of the command line's local server (change local-mcp-server); source: https://github.com/yisibl/resvg-js | https://github.com/yisibl/resvg-js#readme |
 | @swc/helpers | 0.5.23 | Apache-2.0 |  | https://swc.rs |
 | @tabler/icons | 3.48.0 | MIT |  | https://tabler.io/icons |
 | base64-js | 1.5.1 | MIT |  | https://github.com/beatgammit/base64-js |
