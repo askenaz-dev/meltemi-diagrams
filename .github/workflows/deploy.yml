@@ -48,8 +48,124 @@ jobs:
           CI_RUN_ID: ${{ inputs.ci_run_id }}
         run: node scripts/ci-run.mjs
 
-  deploy:
+  # Production's twin first (change agent-mcp): the same approved source onto the staging Workers,
+  # database, bucket and namespace that Meltemi Web's Terraform declares, then the MCP acceptance
+  # suite against it. A failure of the suite fails this job, and production is not deployed.
+  staging:
     needs: authorize
+    runs-on: ubuntu-latest
+    environment: staging
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+      D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+      SECRETS_STORE_ID: ${{ vars.SECRETS_STORE_ID }}
+      OAUTH_KV_ID: ${{ vars.OAUTH_KV_ID }}
+      R2_BUCKET_NAME: ${{ vars.R2_BUCKET_NAME }}
+      SECRETS_SUFFIX: ${{ vars.SECRETS_SUFFIX }}
+    defaults:
+      run:
+        working-directory: source
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.workflow_sha }}
+          path: delivery
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.authorize.outputs.sha }}
+          fetch-depth: 0
+          path: source
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: source/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: source/pnpm-lock.yaml
+      - name: Verify source is on main history
+        env:
+          SOURCE_SHA: ${{ needs.authorize.outputs.sha }}
+        run: git merge-base --is-ancestor "$SOURCE_SHA" origin/main
+      - run: pnpm install --frozen-lockfile
+      - name: Stamp the same source-ordered version without reserving a tag
+        env:
+          SOURCE_SHA: ${{ needs.authorize.outputs.sha }}
+        run: node ../delivery/scripts/automatic-release.mjs stamp
+      - run: pnpm skills:sync
+      - name: The staging Workers' configurations with Terraform's ids
+        run: node scripts/deploy-config.mjs --environment staging packages/cloud/wrangler.jsonc packages/cloud/wrangler.publish.jsonc
+      - run: pnpm playground:build
+      - name: Skip a source superseded by main before any mutation
+        id: current
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_SHA: ${{ needs.authorize.outputs.sha }}
+        run: node ../delivery/scripts/ci-run.mjs current
+      - name: Migrations on the staging database
+        if: steps.current.outputs.current == 'true'
+        working-directory: source/packages/cloud
+        run: pnpm exec wrangler d1 migrations apply DB --remote -c wrangler.deploy.json
+      - name: The staging main Worker
+        if: steps.current.outputs.current == 'true'
+        working-directory: source/packages/cloud
+        run: pnpm exec wrangler deploy -c wrangler.deploy.json
+      - name: The staging publish Worker
+        if: steps.current.outputs.current == 'true'
+        working-directory: source/packages/cloud
+        run: pnpm exec wrangler deploy -c wrangler.publish.deploy.json
+      # The staging hosts attach in a Meltemi Web commit after the first upload of these Workers
+      # (its `staging_deployed`): until then the host does not answer, and the suite is skipped
+      # with a notice instead of holding production back.
+      - name: Whether the staging host answers
+        id: host
+        if: steps.current.outputs.current == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ""
+          MELTEMI_ORIGIN: https://staging.diagrams.meltemi.dev
+        run: pnpm acceptance:mcp --probe
+      - name: The MCP acceptance suite on staging
+        id: suite
+        if: steps.current.outputs.current == 'true' && steps.host.outputs.answers == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ""
+          MELTEMI_ORIGIN: https://staging.diagrams.meltemi.dev
+          MELTEMI_TOKEN: ${{ secrets.MELTEMI_TOKEN }}
+          MELTEMI_TOKEN_2: ${{ secrets.MELTEMI_TOKEN_2 }}
+        run: pnpm acceptance:mcp
+      - name: The suite's results on staging
+        if: ${{ !cancelled() && steps.suite.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-acceptance-staging
+          path: source/.test-output/mcp-acceptance/
+          if-no-files-found: ignore
+      - name: Staging result
+        if: ${{ !cancelled() }}
+        env:
+          CURRENT: ${{ steps.current.outputs.current }}
+          ANSWERS: ${{ steps.host.outputs.answers }}
+          SUITE: ${{ steps.suite.outcome }}
+          SOURCE_SHA: ${{ needs.authorize.outputs.sha }}
+        run: |
+          if [ "$CURRENT" != true ]; then
+            echo "Skipped $SOURCE_SHA on staging because main has advanced; no deployment mutation ran." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$SUITE" = success ]; then
+            echo "Deployed $SOURCE_SHA to staging; the MCP acceptance suite passed." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$SUITE" = failure ]; then
+            echo "Deployed $SOURCE_SHA to staging; the MCP acceptance suite failed (artifact mcp-acceptance-staging names the step), so production is not deployed." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$ANSWERS" = false ]; then
+            echo "::notice title=Staging not attached::Deployed $SOURCE_SHA to the staging Workers, but https://staging.diagrams.meltemi.dev does not answer yet (its Custom Domain attaches in Meltemi Web's staging_deployed commit); the MCP acceptance suite was skipped."
+            echo "Deployed $SOURCE_SHA to staging; its host does not answer yet, so the MCP acceptance suite was skipped." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "The staging deployment of $SOURCE_SHA did not finish, so production is not deployed; see the failed step." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+  deploy:
+    needs: [authorize, staging]
     runs-on: ubuntu-latest
     environment: production
     env:
@@ -57,6 +173,8 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
       D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
       SECRETS_STORE_ID: ${{ vars.SECRETS_STORE_ID }}
+      OAUTH_KV_ID: ${{ vars.OAUTH_KV_ID }}
+      R2_BUCKET_NAME: ${{ vars.R2_BUCKET_NAME }}
     defaults:
       run:
         working-directory: source
@@ -111,13 +229,38 @@ jobs:
         if: steps.current.outputs.current == 'true'
         working-directory: source/packages/cloud
         run: pnpm exec wrangler deploy -c wrangler.publish.deploy.json
+      # After the deploy: the same suite against production. Without the environment's test tokens
+      # it checks what anybody sees and reports the rest skipped; a failure fails the workflow, and
+      # production stays as deployed.
+      - name: The MCP acceptance suite on production
+        id: suite
+        if: steps.current.outputs.current == 'true'
+        env:
+          CLOUDFLARE_API_TOKEN: ""
+          MELTEMI_ORIGIN: https://diagrams.meltemi.dev
+          MELTEMI_TOKEN: ${{ secrets.MELTEMI_TOKEN }}
+          MELTEMI_TOKEN_2: ${{ secrets.MELTEMI_TOKEN_2 }}
+        run: pnpm acceptance:mcp
+      - name: The suite's results on production
+        if: ${{ !cancelled() && steps.suite.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-acceptance-production
+          path: source/.test-output/mcp-acceptance/
+          if-no-files-found: ignore
       - name: Deployment result
+        if: ${{ !cancelled() }}
         env:
           CURRENT: ${{ steps.current.outputs.current }}
+          SUITE: ${{ steps.suite.outcome }}
           SOURCE_SHA: ${{ needs.authorize.outputs.sha }}
         run: |
-          if [ "$CURRENT" = true ]; then
-            echo "Deployed CI-verified source $SOURCE_SHA." >> "$GITHUB_STEP_SUMMARY"
-          else
+          if [ "$CURRENT" != true ]; then
             echo "Skipped $SOURCE_SHA because main has advanced; no deployment mutation ran." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$SUITE" = success ]; then
+            echo "Deployed CI-verified source $SOURCE_SHA." >> "$GITHUB_STEP_SUMMARY"
+          elif [ "$SUITE" = failure ]; then
+            echo "Deployed CI-verified source $SOURCE_SHA, but the MCP acceptance suite failed on production (artifact mcp-acceptance-production names the step). Production stays as deployed: revert on main through CI, or roll the Worker back on Cloudflare with the owner (RELEASING.md)." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "The deployment of $SOURCE_SHA did not finish; see the failed step." >> "$GITHUB_STEP_SUMMARY"
           fi
