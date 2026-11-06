@@ -6,6 +6,7 @@
 - [x] 1.4 Add focused failure-path tests and document exact fixture provenance and account prerequisites.
 - [x] 1.5 Fail closed when a registration receipt survives without its signed cleanup journal.
 - [x] 1.6 Preserve private cleanup files when a results, log or cleanup-summary path collides with them.
+- [x] 1.7 Preserve a non-secret Windows PowerShell environment with case-insensitive variable lookup and add regressions.
 
 ## 2. Configure and verify
 

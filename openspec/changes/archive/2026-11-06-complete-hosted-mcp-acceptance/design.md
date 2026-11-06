@@ -33,6 +33,13 @@ resource. CI must not operate with personal owner credentials.
 - Guard results, log and cleanup-summary outputs against both private inputs by lexical path,
   resolved aliases and file identity before writes. Invalid configurations preserve recovery
   material and produce fixed sanitized failure phases instead of remote error bodies.
+- Windows CI exposed PowerShell startup timeouts with the initial minimal child environment.
+  Preserve an explicit allowlist of operating-system/profile/module paths, resolve their names
+  without case, and forward no service credentials. Keep the existing subprocess deadlines and
+  ACL requirements; the next CI run must verify both supported Windows Node versions.
+  Load the executable's built-in Security module from `$PSHOME` explicitly, since a PowerShell 7
+  parent can expose incompatible module paths to `powershell.exe` (PowerShell 5). Distinguish an
+  actual ACL rejection from a launch/import/timeout failure in both diagnostics and regressions.
 
 ## Modules and interfaces
 
