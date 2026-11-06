@@ -363,7 +363,7 @@ export interface CloudStore extends CallsStore {
    * invitations that address its verified email) and records `eventId`, `sub` and `at` in the same
    * atomic step. The invitations the person created are on projects they own, and go with them
    * (only an owner invites). A repeat of the same event id changes nothing and answers
-   * `"duplicate"`. The `blobs` rows are content-addressed and shared, so they stay for the weekly
+   * `"duplicate"`. The `blobs` rows are content-addressed and shared, so they stay for the scheduled
    * collection; the `takedowns` and the administration log stay, they are the service's record.
    * The person's administrator row and the pending invitations to administer they made go too, and
    * the sponsorships they claimed are unclaimed again (`clearClaims`). The caller reads
@@ -457,7 +457,7 @@ export interface CloudStore extends CallsStore {
   /**
    * Deletes the person's project with its files, `project_blobs` rows, versions and their files,
    * members, invitations, publications and publish requests, in one atomic step; false when there is no such project
-   * of theirs, and then nothing changes. The blobs stay for the weekly collection; the room, the
+   * of theirs, and then nothing changes. The blobs stay for the scheduled collection; the room, the
    * thumbnail and the published pages are the caller's (`publicationsOf` before).
    */
   deleteProject(sub: string, id: string): Promise<boolean>;
@@ -565,7 +565,7 @@ export interface CloudStore extends CallsStore {
   /**
    * Up to `limit` hashes of blobs created before `olderThan` that no `project_files`,
    * `project_blobs` or `version_files` row references, oldest first. This reads the three
-   * reference tables whole, once: it is the weekly collection, not a request.
+   * reference tables whole, once: it is the scheduled collection, not a request.
    */
   unreferencedBlobs(olderThan: Iso, limit: number): Promise<string[]>;
   /**
@@ -837,7 +837,7 @@ export interface CallsStore {
   keepAnswer(sub: string, key: string, answer: KeptAnswer): Promise<void>;
   /** Lets go of a claim whose request failed in a way that is not to be answered again. */
   releaseKey(sub: string, key: string): Promise<void>;
-  /** Removes every account's keys created before `expiredBefore` (the weekly cron). */
+  /** Removes every account's keys created before `expiredBefore` (the scheduled cron). */
   sweepKeys(expiredBefore: Iso): Promise<void>;
   /**
    * Counts one call of `kind` in the account's window `window` (a minute, `2026-11-04T12:03`) and

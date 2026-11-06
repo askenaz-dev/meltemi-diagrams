@@ -157,7 +157,7 @@ route exists for it. It hashes the UTF-8 bytes of every text file with SHA-256, 
 `project_files` and writes only the difference. R2 comes first (the new blobs under
 `blobs/<hash>`; a put is idempotent and heals an object that went missing), then D1 in one atomic
 step: the `blobs` rows of the texts the changed paths bring (a row that is already there has its
-time renewed, in the batch that gives a path its hash, so that the weekly collection cannot take
+time renewed, in the batch that gives a path its hash, so that the scheduled collection cannot take
 it in between), the deleted paths, the paths whose hash changed, and the project's
 `revision` and `updated_at` (only when the revision is one the project does not have yet: a room
 built again over a document it had materialised, opened by a person who only looked, writes
@@ -205,7 +205,7 @@ D1 holds the metadata, R2 the bytes, and each room its document.
 | `meta`, `doc_chunks` (a room)              | The room's revision and its encoded document in chunks, in the SQLite of its Durable Object                                                                                                                                 |
 | R2, `blobs/<sha-256>`                      | The bytes of every blob: texts, images and fonts, by the lowercase hexadecimal SHA-256 of their content                                                                                                                     |
 | R2, `thumbs/<project id>.svg`              | The project's thumbnail, one per project                                                                                                                                                                                    |
-| R2, `published/<handle>/<slug>/index.html` | The HTML of each publication; the weekly collection lists `blobs/` alone and never touches it                                                                                                                               |
+| R2, `published/<handle>/<slug>/index.html` | The HTML of each publication; the scheduled collection lists `blobs/` alone and never touches it                                                                                                                               |
 
 The schema of projects is `packages/cloud/migrations/0002_projects.sql`: six tables and one column,
 all `STRICT`, with no foreign keys, so that deleting a project or a person is explicit and atomic.
@@ -283,7 +283,7 @@ The bindings are:
 | `BLOBS`  | The R2 bucket `meltemi-diagrams-blobs`: `blobs/<sha-256>`, `thumbs/<project id>.svg` and `published/<handle>/<slug>/index.html`                                                                      |
 | `ROOMS`  | The Durable Object namespace of the class `ProjectRoom`, which the Worker's entry exports; the migration `v1` of `wrangler.jsonc` makes it SQLite-backed                                             |
 
-`wrangler.jsonc` also holds the cron trigger of the weekly collection, `0 3 * * SUN`, and an `alias`
+`wrangler.jsonc` also holds the cron trigger of the scheduled collection, `0 3 1,15 * *`, and an `alias`
 that makes the Worker bundle the workspace packages it imports from their sources. The ids in the
 file are placeholders (all zeros): the family's Terraform creates the database, the bucket and the
 Secrets Store and writes their ids as variables of this repository's `production` environment, and
@@ -577,7 +577,7 @@ Cloudflare and no account to log in to: the R2 bucket and the rooms' SQLite appe
 first used, and the migration `v1` of `wrangler.jsonc` is enough for the class `ProjectRoom`. Their
 state is kept in `packages/cloud/.wrangler/state`, which Git ignores. The rooms and the D1 rows
 describe the same projects, so to start again from nothing delete that folder as a whole: a room
-whose project has no row is unreachable, because who may open a project is resolved from D1. The weekly cron does
+whose project has no row is unreachable, because who may open a project is resolved from D1. The scheduled cron does
 not fire locally; `POST /api/dev/collect` runs the collection on demand
 ([The development routes](cloud-implementation.md#the-development-routes)).
 
@@ -606,7 +606,7 @@ and the code's differ. What cloud projects, sharing, publishing and awareness ad
 | `materialise`                                        | Only what changed is written, R2 before D1, a refused R2 write leaves the room intact, the room's triggers                                                                                                                                                                                                                                    |
 | `projects`, `binaries`, `binary`                     | Projects (templates, files, quota, duplicate, delete), uploads typed from their bytes, the SVG rule, the blob headers, the storage quota                                                                                                                                                                                                      |
 | `versions`, `versions-policy`, `thumbnails`, `usage` | Versions (cap, rate, restore, the daily version), the policy walked over thirty-five days, thumbnails, usage                                                                                                                                                                                                                                  |
-| `collect`, `cascade`, `migration-projects`           | The weekly collection and its bounds, the cascade of a deleted account, the migration's constraints                                                                                                                                                                                                                                           |
+| `collect`, `cascade`, `migration-projects`           | The scheduled collection and its bounds, the cascade of a deleted account, the migration's constraints                                                                                                                                                                                                                                           |
 | `projects-d1`, `versions-d1`                         | The project and version routes over D1 on `node:sqlite`, where only SQL can go wrong (the atomic quota, cap and rate, the batches)                                                                                                                                                                                                            |
 | `access`, `sharing-access`                           | The permission matrix cell by cell, and every route of a project for every person (the owner, an editor, a viewer, a signed-in stranger, nobody) at every link level, in the order of the refusals, with the viewer in the room and the sockets a change of access cuts                                                                       |
 | `sharing`                                            | The state as each person sees it, the link level, invitations and their links, accepting, members, leaving, the limit of 50, the thirty days, the email resolved at sign-in (verified and not), the cascade of a deleted account                                                                                                              |
@@ -830,7 +830,7 @@ body is read up to 8 KiB; it must be a JSON object with the text fields `id`, `t
   `sub` and its time. It then revokes the OAuth grants the person approved before the deletion
   ([Connected apps](../cloud.md#connected-apps)), whose tokens are refused from then on, and answers `200`
   with the status `applied`. The `blobs` rows are shared
-  by content and stay; the weekly [collection](../cloud.md#the-collection-of-blobs) takes the ones nothing
+  by content and stay; the scheduled [collection](../cloud.md#the-collection-of-blobs) takes the ones nothing
   else references. The takedowns and the administration log stay too: they are the service's
   record ([Takedown](../cloud.md#takedown), [The administration log](../cloud.md#the-administration-log)). An invitation
   to administer addressed to the person's email stays until it expires: an email is not an account.
@@ -908,8 +908,8 @@ the administration log more than 365 days old and, since publishing sweeps first
 publish requests more than an hour old. A code nobody
 exchanges and a caller who never returns would otherwise stay for ever, and a flood of either would
 grow the tables without end; with the sweep they hold the last few minutes and the last hour. The
-weekly cron sweeps as well, so that a deployment nobody approves, fails or publishes on does not keep
-the records of a deletion longer than 31 days.
+scheduled cron sweeps as well, so that a deployment nobody approves, fails or publishes on still
+removes deletion records older than 31 days at its next scheduled run.
 
 The approval page sends its own headers. Its policy is `default-src 'none'`, `style-src 'self'`,
 `img-src 'self'`, `base-uri 'none'`, `frame-ancestors 'none'` and
@@ -971,9 +971,13 @@ the API is the very thing the publish host exists to prevent.
 
 ## The collection of blobs
 
-A blob goes when nothing has referenced it for seven days. A weekly cron trigger (`0 3 * * SUN`:
-Sundays at 03:00 UTC, in `wrangler.jsonc`) runs `scheduled` in `src/worker-handler.ts`, which calls
-`collectBlobs` (`src/collect.ts`). It has two steps, in this order:
+A blob becomes eligible for collection when it is unreferenced and more than seven days old.
+The next scheduled run removes it. A twice-monthly cron trigger (`0 3 1,15 * *`: the first and
+fifteenth of each month at 03:00 UTC, in `wrangler.jsonc`) runs `scheduled` in
+`src/worker-handler.ts`, which calls `collectBlobs` (`src/collect.ts`). Production and staging use
+the same schedule: 24 runs per environment per year, with 14–17 days between runs. This reduces
+background executions; eligible garbage may remain stored longer and can still consume storage.
+It has two steps, in this order:
 
 1. Rows. The `blobs` rows that no `project_files`, `project_blobs` or `version_files` row
    references and that are more than seven days old, oldest first, 500 at a time and at most 20
@@ -989,10 +993,10 @@ Sundays at 03:00 UTC, in `wrangler.jsonc`) runs `scheduled` in `src/worker-handl
 A row that is registered again (the same bytes uploaded again) is made as new as that moment, so a
 blob that was just wanted again is not taken. The run logs one line (blobs removed, objects
 deleted, orphans, failed deletes, and whether more is left for the next run), and a failure of the
-store ends the run with an error that the next one, a week on, finishes.
+store ends the run with an error that the next scheduled run finishes.
 
 The known gaps: only `blobs/` is listed, so a thumbnail whose project is gone but whose object was
-never deleted stays; a run is bounded, so a large backlog takes more than one week; a blob younger than seven
+never deleted stays; a run is bounded, so a large backlog can need several scheduled runs; a blob younger than seven
 days waits even when nothing references it; and an image removed from a project's document without
 a successful `DELETE …/binaries` (the page calls it first when it is online, and skips it offline)
 keeps its `project_blobs` row, so its bytes stay and count in the usage until the project is
@@ -1006,7 +1010,7 @@ consents) is the D1 table `oauth_store` (migration 0010), where codes, tokens an
 kept as hashes and a grant's props encrypted. The library reads and writes a KV namespace, so
 `src/oauth/store.ts` gives it the table with the part of that interface it uses (`get` as text or
 JSON, `put` with an expiry and metadata, `delete`, `list` by prefix in key order with a cursor), with
-KV's semantics: an expired entry is absent from every read, and the weekly cron removes it. The
+KV's semantics: an expired entry is absent from every read, and the scheduled cron removes it. The
 Worker binds no KV namespace: the family's Terraform token cannot create one, and the Free plan's
 1,000 KV writes a day for the whole account would not last a dozen connected agents (a sign-in
 writes about five entries, an hourly refresh about three), where D1 allows 100,000 rows written a

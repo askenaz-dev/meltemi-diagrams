@@ -69,13 +69,13 @@ export default {
   },
 
   /**
-   * The weekly cron of `wrangler.jsonc` (`0 3 * * SUN`, Sundays at 03:00 UTC): sweeps what has
-   * expired (the records of handled deletion events after 31 days, approval codes and failed
+   * The twice-monthly cron of `wrangler.jsonc` (`0 3 1,15 * *`) runs on the first and fifteenth
+   * at 03:00 UTC. It sweeps what has expired (handled deletion events after 31 days, approval codes and failed
    * exchanges, publish requests, idempotency keys after a day), which the routes sweep too but only
    * when somebody uses them, and the authorization server's entries past their expiry, which its
    * reads leave in place, unseen (`oauth/store.ts`); and collects the blobs no project, upload or
    * version references and that are older than seven days, and the objects no row names. A failure
-   * of the store ends the run with an error the platform logs; the next run, a week on, finishes the
+   * of the store ends the run with an error the platform logs; the next scheduled run finishes the
    * job. The sweep does not keep the collection from running, nor the collection the sweep.
    */
   async scheduled(_controller: unknown, given: Env): Promise<void> {

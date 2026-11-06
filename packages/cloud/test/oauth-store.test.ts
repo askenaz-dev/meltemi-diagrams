@@ -475,7 +475,7 @@ describe.skipIf(!sqliteAvailable)("the Worker's entry", () => {
     db.close();
   });
 
-  it("sweeps the authorization server's expired entries with the weekly cron", async () => {
+  it("sweeps the authorization server's expired entries with the scheduled cron", async () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
     const db = openDatabase();
     const store = d1OAuthStore(db);

@@ -48,7 +48,7 @@ export interface R2ListPageLike {
  * The minimal R2 surface the service uses (`blobs/<sha-256>` and `thumbs/<project id>.svg`). An R2
  * bucket binding satisfies it, and so does the in-memory bucket of the tests. A key that is not
  * there is `null` for `get` and `head`; `delete` of a key that is not there is not an error. `list`
- * is for the weekly collection alone, which looks for objects that no row names.
+ * is for the scheduled collection alone, which looks for objects that no row names.
  */
 export interface R2Like {
   put(key: string, value: Uint8Array | string): Promise<unknown>;

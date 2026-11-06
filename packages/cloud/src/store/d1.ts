@@ -531,7 +531,7 @@ const deleteVersionRows = (numbers: number): string =>
 const OWNED_BYTES =
   "SELECT COALESCE(SUM(size), 0) FROM blobs WHERE hash IN (SELECT f.hash FROM project_files f JOIN projects p ON p.id = f.project_id WHERE p.owner_sub = ? UNION SELECT b.hash FROM project_blobs b JOIN projects p ON p.id = b.project_id WHERE p.owner_sub = ? UNION SELECT vf.hash FROM version_files vf JOIN versions v ON v.id = vf.version_id JOIN projects p ON p.id = v.project_id WHERE p.owner_sub = ?)";
 
-// Every hash anything references; read whole, once per statement, by the weekly collection only.
+// Every hash anything references; read whole, once per statement, by the scheduled collection only.
 const REFERENCED_HASHES =
   "SELECT hash FROM project_files UNION SELECT hash FROM project_blobs UNION SELECT hash FROM version_files";
 
@@ -817,7 +817,7 @@ export function d1Store(db: D1Like): CloudStore {
         // is recorded, or neither. The foreign keys that do not exist cannot cascade, so each
         // table is named: the projects with their files, uploads, versions, members, invitations
         // and publications first (by the projects' owner, which has to be there to find them),
-        // then the rest. The `blobs` rows are shared by content and stay for the weekly
+        // then the rest. The `blobs` rows are shared by content and stay for the scheduled
         // collection, and the `takedowns` are the service's record.
         await db.batch([
           db

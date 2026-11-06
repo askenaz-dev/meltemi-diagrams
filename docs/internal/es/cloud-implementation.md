@@ -168,7 +168,7 @@ archivo de texto, lee los `project_files` actuales y escribe solo la diferencia.
 blobs nuevos bajo `blobs/<hash>`; un put es idempotente y repara un objeto que se perdió), después D1
 en un solo paso atómico: las filas de `blobs` de los textos que traen los paths cambiados (una
 fila que ya está recibe su hora renovada, en el batch que da su hash a un path, para que la
-recolección semanal no pueda llevársela entre medias), los paths eliminados, los paths cuyo hash
+recolección programada no pueda llevársela entre medias), los paths eliminados, los paths cuyo hash
 cambió, y la `revision` y el `updated_at` del proyecto (solo cuando la revisión es una que el
 proyecto aún no tiene: una sala reconstruida sobre un documento que ya había materializado, abierta
 por alguien que solo miró, no escribe nada y no sube el proyecto en la lista), en sentencias de 100
@@ -217,7 +217,7 @@ D1 guarda los metadatos, R2 los bytes, y cada sala su documento.
 | `meta`, `doc_chunks` (una sala)            | La revisión de la sala y su documento codificado en fragmentos, en el SQLite de su Durable Object                                                                                                                                       |
 | R2, `blobs/<sha-256>`                      | Los bytes de cada blob: textos, imágenes y fuentes, por el SHA-256 hexadecimal en minúscula de su contenido                                                                                                                             |
 | R2, `thumbs/<project id>.svg`              | La miniatura del proyecto, una por proyecto                                                                                                                                                                                             |
-| R2, `published/<handle>/<slug>/index.html` | El HTML de cada publicación; la recolección semanal lista solo `blobs/` y nunca lo toca                                                                                                                                                 |
+| R2, `published/<handle>/<slug>/index.html` | El HTML de cada publicación; la recolección programada lista solo `blobs/` y nunca lo toca                                                                                                                                                 |
 
 El esquema de los proyectos es `packages/cloud/migrations/0002_projects.sql`: seis tablas y una
 columna, todas `STRICT`, sin claves foráneas, para que eliminar un proyecto o una persona sea
@@ -300,7 +300,7 @@ Los bindings son:
 | `BLOBS`  | El bucket de R2 `meltemi-diagrams-blobs`: `blobs/<sha-256>`, `thumbs/<project id>.svg` y `published/<handle>/<slug>/index.html`                                                                                   |
 | `ROOMS`  | El namespace de Durable Objects de la clase `ProjectRoom`, que exporta el punto de entrada del Worker; la migración `v1` de `wrangler.jsonc` la respalda con SQLite                                               |
 
-`wrangler.jsonc` contiene además el disparador cron de la recolección semanal, `0 3 * * SUN`, y un
+`wrangler.jsonc` contiene además el disparador cron de la recolección programada, `0 3 1,15 * *`, y un
 `alias` que hace que el Worker incluya en su paquete, desde sus fuentes, los paquetes del workspace
 que importa. Los ids del archivo son marcadores de posición (todo ceros): el Terraform de la familia
 crea la base de datos, el bucket y el Secrets Store y escribe sus ids como variables del entorno
@@ -607,7 +607,7 @@ estado se guarda en `packages/cloud/.wrangler/state`, que Git ignora. Las salas 
 describen los mismos proyectos, así que para empezar de cero hay que borrar esa carpeta entera: una
 sala cuyo proyecto no tiene fila es inalcanzable, porque quién puede abrir un proyecto se determina
 a partir de D1. El cron
-semanal no se activa en local; `POST /api/dev/collect` ejecuta la recolección a demanda
+programado no se activa en local; `POST /api/dev/collect` ejecuta la recolección a demanda
 ([Las rutas de desarrollo](cloud-implementation.md#las-rutas-de-desarrollo)).
 
 ## Pruebas
@@ -636,7 +636,7 @@ a esto los proyectos en la nube, compartir, publicar y la presencia, por archivo
 | `materialise`                                        | Solo se escribe lo que cambió, R2 antes que D1, una escritura de R2 rechazada deja la sala intacta, los disparadores de la sala                                                                                                                                                                                                                                                                                               |
 | `projects`, `binaries`, `binary`                     | Proyectos (plantillas, archivos, cuota, duplicar, eliminar), subidas tipadas por sus bytes, la regla del SVG, las cabeceras de los blobs, la cuota de almacenamiento                                                                                                                                                                                                                                                          |
 | `versions`, `versions-policy`, `thumbnails`, `usage` | Versiones (límite, frecuencia, restauración, la versión diaria), la política recorrida a lo largo de treinta y cinco días, miniaturas, uso                                                                                                                                                                                                                                                                                    |
-| `collect`, `cascade`, `migration-projects`           | La recolección semanal y sus topes, la cascada de una cuenta eliminada, las restricciones de la migración                                                                                                                                                                                                                                                                                                                     |
+| `collect`, `cascade`, `migration-projects`           | La recolección programada y sus topes, la cascada de una cuenta eliminada, las restricciones de la migración                                                                                                                                                                                                                                                                                                                     |
 | `projects-d1`, `versions-d1`                         | Las rutas de proyectos y versiones sobre D1 en `node:sqlite`, donde solo SQL puede fallar (la cuota atómica, el límite y la frecuencia, los lotes)                                                                                                                                                                                                                                                                            |
 | `access`, `sharing-access`                           | La matriz de permisos celda por celda, y cada ruta de un proyecto para cada persona (el propietario, un editor, un lector, un desconocido con sesión, nadie) con cada nivel de enlace, en el orden de los rechazos, con el lector en la sala y los sockets que corta un cambio de acceso                                                                                                                                      |
 | `sharing`                                            | El estado tal como lo ve cada persona, el nivel del enlace, las invitaciones y sus enlaces, aceptar, los miembros, salir, el límite de 50, los treinta días, el correo resuelto al iniciar sesión (verificado y no), la cascada de una cuenta eliminada                                                                                                                                                                       |
@@ -875,7 +875,7 @@ y se comprueba antes de leer el cuerpo como JSON (`401 signature.invalid`). El c
   su hora. Después revoca las concesiones OAuth que la persona aprobó antes de la eliminación
   ([Aplicaciones conectadas](../../es/cloud.md#aplicaciones-conectadas)), cuyos tokens se rechazan desde entonces, y
   responde `200` con el estado `applied`. Las filas de `blobs` se comparten por
-  contenido y se quedan; la [recolección](../../es/cloud.md#la-recolección-de-blobs) semanal se lleva las que nada más
+  contenido y se quedan; la [recolección](../../es/cloud.md#la-recolección-de-blobs) programada se lleva las que nada más
   referencia. Las retiradas y el registro de administración también se quedan: son el registro del
   servicio ([Retirada](../../es/cloud.md#retirada), [El registro de administración](../../es/cloud.md#el-registro-de-administración)).
   Una invitación a administrar dirigida al correo de la persona se queda hasta que caduca: un correo
@@ -959,8 +959,9 @@ días, las entradas del registro de administración de más de 365 días y, ya q
 barre antes, las solicitudes de publicación de más de una hora. Un
 código que nadie intercambia y un solicitante que no vuelve se quedarían para siempre, y
 una avalancha de cualquiera de los dos haría crecer las tablas sin fin; con el barrido guardan los
-últimos minutos y la última hora. El cron semanal también barre, para que un despliegue en el que
-nadie aprueba, falla ni publica no conserve los registros de una eliminación más de 31 días.
+últimos minutos y la última hora. El cron programado también barre, para que un despliegue en el que
+nadie aprueba, falla ni publica elimine los registros de una eliminación con más de 31 días en su
+siguiente ejecución programada.
 
 La página de aprobación envía sus propias cabeceras. Su política es `default-src 'none'`,
 `style-src 'self'`, `img-src 'self'`, `base-uri 'none'`, `frame-ancestors 'none'` y
@@ -1024,9 +1025,13 @@ API es justo lo que el host de publicación existe para evitar.
 
 ## La recolección de blobs
 
-Un blob se va cuando nada lo ha referenciado durante siete días. Un cron semanal (`0 3 * * SUN`: los
-domingos a las 03:00 UTC, en `wrangler.jsonc`) ejecuta `scheduled` en `src/worker-handler.ts`, que
-llama a `collectBlobs` (`src/collect.ts`). Tiene dos pasos, por este orden:
+Un blob pasa a ser elegible para la recolección cuando no tiene referencias y tiene más de siete
+días. La siguiente ejecución programada lo elimina. Un cron de dos ejecuciones mensuales
+(`0 3 1,15 * *`: los días 1 y 15 de cada mes a las 03:00 UTC, en `wrangler.jsonc`) ejecuta
+`scheduled` en `src/worker-handler.ts`, que llama a `collectBlobs` (`src/collect.ts`). Producción y
+staging usan el mismo calendario: 24 ejecuciones por entorno al año, con intervalos de 14 a 17
+días. Esto reduce las ejecuciones en segundo plano; los datos elegibles pueden permanecer
+almacenados más tiempo y seguir consumiendo almacenamiento. Tiene dos pasos, por este orden:
 
 1. Filas. Las filas de `blobs` que ninguna fila de `project_files`, `project_blobs` o
    `version_files` referencia y que tienen más de siete días, de la más antigua a la más reciente,
@@ -1043,12 +1048,12 @@ llama a `collectBlobs` (`src/collect.ts`). Tiene dos pasos, por este orden:
 Una fila que se registra otra vez (los mismos bytes subidos de nuevo) pasa a ser tan reciente como
 ese momento, así que un blob que se acaba de volver a querer no se lo lleva. La ejecución registra
 una línea (blobs eliminados, objetos borrados, huérfanos, borrados fallidos y si queda más para la
-siguiente ejecución), y un fallo del almacén termina la ejecución con un error que la siguiente,
-una semana después, termina de resolver.
+siguiente ejecución), y un fallo del almacén termina la ejecución con un error que la siguiente
+ejecución programada termina de resolver.
 
 Las carencias conocidas: solo se lista `blobs/`, así que una miniatura cuyo proyecto ya no existe
 pero cuyo objeto nunca se borró se queda; una ejecución está acotada, así que una gran acumulación
-tarda más de una semana; un blob de menos de siete días espera aunque nada lo referencie; y una
+puede necesitar varias ejecuciones; un blob de menos de siete días espera aunque nada lo referencie; y una
 imagen quitada del documento de un proyecto sin un `DELETE …/binaries` correcto (la página lo llama
 primero cuando está conectada y lo omite sin conexión) conserva su fila de `project_blobs`, así que
 sus bytes se quedan y cuentan en el uso hasta que se elimina el proyecto.
@@ -1062,7 +1067,7 @@ tokens y los secretos de cliente se guardan como hashes y las props de una conce
 biblioteca lee y escribe un namespace de KV, así que `src/oauth/store.ts` le da la tabla con la parte
 de esa interfaz que usa (`get` como texto o JSON, `put` con caducidad y metadatos, `delete`, `list`
 por prefijo en orden de clave con un cursor), con la semántica de KV: una entrada caducada no aparece
-en ninguna lectura, y el cron semanal la elimina. El Worker no enlaza ningún namespace de KV: el token
+en ninguna lectura, y el cron programado la elimina. El Worker no enlaza ningún namespace de KV: el token
 de Terraform de la familia no puede crearlo, y las 1.000 escrituras de KV al día del plan gratuito
 para toda la cuenta no darían para una docena de agentes conectados (un inicio de sesión escribe unas
 cinco entradas y cada renovación horaria unas tres), mientras que D1 admite 100.000 filas escritas al

@@ -1,4 +1,4 @@
-// The weekly collection of blobs (`cloud-projects`, "Usage and storage quota" and "Deleting the
+// The scheduled collection of blobs (`cloud-projects`, "Usage and storage quota" and "Deleting the
 // account deletes its projects"; task 2.6): what nothing references and is older than seven days goes,
 // the row first and the bytes second, and an object no row names goes too. Over both stores with a
 // bucket in memory and a clock the test turns; then the cascade followed by a collection, the
@@ -550,7 +550,7 @@ describe("the scheduled handler of the Worker", () => {
       const log = vi.spyOn(console, "log").mockImplementation(() => {});
       const env: Env = testEnv({ DB: db, BLOBS: blobs });
 
-      await worker.scheduled({ scheduledTime: Date.now(), cron: "0 3 * * SUN" }, env);
+      await worker.scheduled({ scheduledTime: Date.now(), cron: "0 3 1,15 * *" }, env);
 
       expect(await store.blob(old)).toBeUndefined();
       expect(blobs.objects.has(blobKey(old))).toBe(false);
@@ -574,7 +574,7 @@ describe("the scheduled handler of the Worker", () => {
       vi.spyOn(console, "log").mockImplementation(() => {});
 
       await worker.scheduled(
-        { scheduledTime: Date.now(), cron: "0 3 * * SUN" },
+        { scheduledTime: Date.now(), cron: "0 3 1,15 * *" },
         testEnv({ DB: db, BLOBS: fakeR2(() => new Date()) }),
       );
 
@@ -617,14 +617,14 @@ describe("the scheduled handler of the Worker", () => {
     );
   });
 
-  it("is declared by wrangler.jsonc as a cron of Sundays at 03:00 UTC, without DEV or a key set", () => {
+  it("is declared by wrangler.jsonc for the first and fifteenth at 03:00 UTC, without DEV or a key set", () => {
     const text = readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8");
     const config = JSON.parse(text.replace(/,(\s*[}\]])/g, "$1")) as {
       triggers?: { crons?: string[] };
     };
 
-    // Cloudflare counts the days of the week 1-7 from Sunday and refuses 0, so the day is named.
-    expect(config.triggers).toEqual({ crons: ["0 3 * * SUN"] });
+    // The dates are calendar days: twice monthly, rather than a fourteen-day step that resets each month.
+    expect(config.triggers).toEqual({ crons: ["0 3 1,15 * *"] });
     expect(text).not.toMatch(/"(DEV|IDENTITY_JWKS)"\s*:/);
   });
 });

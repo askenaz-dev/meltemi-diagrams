@@ -71,7 +71,7 @@
       "secret_name": "SPONSORS_WEBHOOK_SECRET",
     },
   ],
-  "triggers": { "crons": ["0 3 * * SUN"] },
+  "triggers": { "crons": ["0 3 1,15 * *"] },
   "rules": [
     { "type": "Data", "globs": ["**/*.woff2", "**/*.woff"], "fallthrough": true },
     { "type": "Text", "globs": ["**/*.json"], "fallthrough": true },

@@ -519,7 +519,7 @@ entra en tu historial de deshacer.
   no se guardó.
 - Eliminar una imagen o una fuente con la página en línea se lo comunica al servicio, y sus bytes
   dejan de contar en tu uso cuando ningún otro archivo ni ninguna versión tuya usa esos mismos bytes;
-  una recolección semanal borra los bytes del almacenamiento
+  una recolección de dos ejecuciones mensuales borra los bytes del almacenamiento
   ([la recolección de blobs](cloud.md#la-recolección-de-blobs)). Deshacer no devuelve una imagen
   así, y la página no dice nada cuando no se puede avisar al servicio.
 - Dos archivos que acaban con un mismo nombre (dos dispositivos cambian el nombre de un archivo sin

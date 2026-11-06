@@ -16,7 +16,7 @@
 // Two differences from KV, neither visible to the library: the store is strongly consistent (a
 // write is read back at once, everywhere), and it has no 60-second floor on an expiry (the library
 // never asks for less). An expired row is never deleted by a read, which would make every read a
-// write: the weekly cron removes them (`sweepOAuthStore`, `worker-handler.ts`).
+// write: the scheduled cron removes them (`sweepOAuthStore`, `worker-handler.ts`).
 //
 // Nothing here logs, and no error names a key, a value or a cursor: a key holds a hash of a token.
 
@@ -270,7 +270,7 @@ export function d1OAuthStore(db: D1Like, now: () => number = () => Date.now()): 
 
 /**
  * Removes the entries that expired by `now` (milliseconds; `Date.now()` by default), by the index
- * made for it; answers how many. The weekly cron calls it (`worker-handler.ts`): reads leave expired
+ * made for it; answers how many. The scheduled cron calls it (`worker-handler.ts`): reads leave expired
  * rows in place, invisible, so that a read is never a write.
  */
 export async function sweepOAuthStore(db: D1Like, now: number = Date.now()): Promise<number> {

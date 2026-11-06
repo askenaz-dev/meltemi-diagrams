@@ -485,7 +485,7 @@ enters your undo history.
 - An image or font you add is uploaded, at most 10 MiB, as PNG, JPEG, GIF, WebP, SVG, WOFF2, TTF or
   OTF, and shows up when the service has stored it; the status line says when one was not stored.
 - Deleting an image or a font while the page is online tells the service, and its bytes stop
-  counting in your usage once no other file and no version of yours uses them; a weekly collection
+  counting in your usage once no other file and no version of yours uses them; a twice-monthly collection
   deletes the bytes from storage ([the collection of blobs](cloud.md#the-collection-of-blobs)).
   Undo does not bring such an image back, and the page says nothing when the service cannot be
   told.

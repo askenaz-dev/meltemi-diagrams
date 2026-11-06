@@ -7,7 +7,7 @@
 // only after the bytes it names are in R2, so a row never points at nothing, and an R2 failure
 // throws before D1 is touched. The D1 side is ONE atomic step (`applyMaterialisation`: blob rows,
 // deleted paths, changed paths, the project's revision and time), so a failure there leaves the
-// project's rows as they were. What was put to R2 in vain waits for the weekly collection (`collect.ts`,
+// project's rows as they were. What was put to R2 in vain waits for the scheduled collection (`collect.ts`,
 // which also finds an object that never got a row). Once the rows are written, the first
 // materialisation of a UTC day that changed the files records the daily version (`versions.ts`).
 
@@ -63,7 +63,7 @@ interface TextBlob {
  * it was, share one blob, and a hash that is already a row of `blobs` is not a second row. It is sent
  * with the rest all the same: the store inserts a row that is not there and renews the time of one
  * that is, in the very batch that gives a path the hash. A row left as it was, with its old time,
- * could be taken by the weekly collection between the moment it was found to exist and the moment
+ * could be taken by the scheduled collection between the moment it was found to exist and the moment
  * a path referenced it, which would leave the path naming a hash with no row and no bytes.
  */
 export async function materialise(

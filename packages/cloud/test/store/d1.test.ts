@@ -2950,7 +2950,7 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
   });
 
   describe("the indexes of the projects", () => {
-    it("serve every lookup, and only the weekly collection and a constant VALUES clause scan", async () => {
+    it("serve every lookup, and only the scheduled collection and a constant VALUES clause scan", async () => {
       const db = openDatabase();
       const store = d1Store(db);
       await store.upsertUser(profile, T);
@@ -3129,7 +3129,7 @@ describe.skipIf(!sqliteAvailable)("d1Store over node:sqlite", () => {
         );
       }
 
-      // Nothing is read whole, except where it cannot be helped: the weekly collection reads the
+      // Nothing is read whole, except where it cannot be helped: the scheduled collection reads the
       // three reference tables once, and `VALUES` is the rows of the statement itself.
       const expected: Record<string, string[]> = {
         applyMaterialisation: ["SCAN v"],
