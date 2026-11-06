@@ -21,6 +21,13 @@ precise, including actual limitations and diagnostics.
 - **THEN** both bodies are reconciled against the implementation rather than relying only on
   matching heading levels and fenced code
 
+#### Scenario: SVG is the default rather than the only export format
+
+- **WHEN** a reader opens the English or Spanish SVG export guide
+- **THEN** its introduction includes the delivered diagram profiles, its options describe SVG as
+  the default selected explicitly with `--format svg`, and it links the general export guide for
+  the other supported formats and their requirements
+
 ### Requirement: User commands work outside the source repository
 
 User guides SHALL show installed CLI commands and current extension installation. Repository-only
