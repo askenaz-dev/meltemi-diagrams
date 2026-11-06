@@ -28,7 +28,7 @@
 ## Verification record
 
 - `pnpm typecheck` and `pnpm lint`: passed.
-- `pnpm cloud:test`: 4049 passed; final service/action checks: 53 passed.
+- `pnpm cloud:test`: 4049 passed; final service/action checks: 54 passed.
 - `pnpm test --maxWorkers=2`: 380 files, 11290 passed and one skipped. The initial unrestricted
   run lost one Windows native worker in the CLI HTTP test; its isolated retry passed all eight
   cases, and the complete bounded run passed without errors.
@@ -36,3 +36,6 @@
 - Real workerd production bundle through a named service binding: owner/ordinary context,
   administration read, constant lookup, D1 permission mutation and audit, public export isolation,
   forged bearer and immediate revocation passed without external network calls or platform errors.
+- Pull-request CI `42136710213`, attempt 2, passed all seven jobs for source
+  `da6e8457b5a38d0bd9a71151f507b6b3c1269a0d`. Archiving does not mark the coordinated OAuth,
+  Web integration or production delivery checks complete.
