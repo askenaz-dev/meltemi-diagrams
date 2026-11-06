@@ -21,7 +21,9 @@ import {
   intoFrame,
   magnets,
   nextInOrder,
+  onOutline,
   outOfFrame,
+  portPosition,
   stackAt,
   unionBox,
   outlineOf,
@@ -76,6 +78,7 @@ import {
   type PreviewedAction,
   type RelationInfo,
   type ShapeOptions,
+  type Side,
   type TagInfo,
   type TextPlace,
   type Viewport,
@@ -4043,7 +4046,7 @@ export class CanvasApp {
                 ? relation!.points[relation!.points.length - 1]!
                 : relation!.points[0]!,
             )
-          : this.screenOf(drag.start?.point ?? this.linkStart(drag.from));
+          : this.screenOf(drag.start?.point ?? this.linkStart(drag.from, drag.side));
       const to = this.screenOf(drag.point);
       add(s("line", { class: "wire", x1: from.x, y1: from.y, x2: to.x, y2: to.y }));
       const target = drag.target;
@@ -6696,12 +6699,21 @@ export class CanvasApp {
     }
   }
 
-  /** Where a link starts: the right end of a bar on a chart, the middle of an element elsewhere. */
-  private linkStart(id: string): Point {
-    const box = this.elements.get(id)!.box;
-    return this.render?.profile === "gantt"
-      ? { x: box.x + box.width, y: box.y + box.height / 2 }
-      : centerOf(box);
+  /** A handle's side on the outline, a chart bar's right end, or the element's centre otherwise. */
+  private linkStart(id: string, side?: Side): Point {
+    const element = this.elements.get(id)!;
+    const box = element.box;
+    if (this.render?.profile === "gantt")
+      return { x: box.x + box.width, y: box.y + box.height / 2 };
+    if (!side) return centerOf(box);
+    const point = onOutline(
+      element.shape,
+      box,
+      portPosition(box, side, 0.5),
+      side,
+      this.optionsOf(element),
+    );
+    return outOfFrame(point, box, element.rotation);
   }
 
   /** The tooltip's text for a bar with the dates it would have. */
