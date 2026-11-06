@@ -22,7 +22,7 @@ so a drop onto an automatic target retains the existing routing behavior.
 ## Checks
 
 - Focused connection/icon/Gantt browser checks: 45 passed.
-- Additional Free-canvas scenarios: four passed, covering all four handles and cancellation,
+- Additional shared-canvas scenarios (three Free, one flow): four passed, covering all four handles and cancellation,
   a rotated parallelogram with observed 200% zoom and pan, an arbitrary 37% border point, and
   an icon whose external label does not move its anchor or add a pinned automatic route.
 - Full typecheck and lint passed. The final harness changes also passed its package typecheck,
@@ -33,6 +33,8 @@ so a drop onto an automatic target retains the existing routing behavior.
 - Full shared webview suite: 310 passed, zero failed.
 - VSIX packaging passed: 416 files, with the packaged webview hash matching the corrected build.
 - Independent implementation review found no material defects.
+- The change passed strict OpenSpec validation before archiving. The complete canvas spec has
+  28 existing length warnings in strict mode, identical to base `3cc55c0`; this change adds none.
 
 The Free fixture initially exposed a test measurement of a transient, unrendered selection SVG.
 The test now waits for a visible frame and reads connected geometry synchronously within the
