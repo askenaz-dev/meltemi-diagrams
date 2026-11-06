@@ -6,6 +6,7 @@ import { ApiError, errorResponse, fail } from "./errors.js";
 import { cloud } from "./handler.js";
 import { json, MAX_JSON_BYTES, readCappedBytes } from "./http.js";
 import type { Deps } from "./types.js";
+import { readEmail } from "./email.js";
 
 /** The external context uses `admin`; the existing administration answer keeps `administrator`. */
 export interface AdministrationContext {
@@ -161,7 +162,12 @@ export async function administrationFetch(
       )
         throw fail("request.invalid");
       pathname = `/api/admin/accounts/${encodeURIComponent(lookup["account"])}/permissions/${encodeURIComponent(lookup["permission"])}`;
-      if (!admittedPath("GET", pathname)) throw fail("request.invalid");
+      if (!/^[a-z][a-z0-9-]{0,99}$/.test(lookup["permission"])) throw fail("request.invalid");
+      if (lookup["account"].indexOf("@") > 0) {
+        // Existing account lookup accepts email punctuation such as /, # and %. Encoding the
+        // entire value keeps it in one internal route segment, never a caller-selected path.
+        readEmail(lookup["account"]);
+      } else if (!admittedPath("GET", pathname)) throw fail("request.invalid");
       method = "GET";
       forwardedBody = undefined;
     }

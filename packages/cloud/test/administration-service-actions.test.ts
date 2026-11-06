@@ -306,6 +306,26 @@ describe("the private adapter delegates all administration operations", () => {
     expect(await b.h.store.adminLog(100)).toEqual([]);
   });
 
+  it("preserves existing exact-email lookup with legal URL punctuation in its POST body", async () => {
+    const b = await administrationHarness();
+    const email = "first/last+tag%id?x#part@example.com";
+    await b.h.store.upsertUser(
+      { sub: "punctuation", name: "Account", picture: "", email, emailVerified: true },
+      b.h.deps.now().toISOString(),
+    );
+    const response = await b.send(b.owner.token, "POST", "/account-permission", {
+      account: email,
+      permission: "unbranded-exports",
+    });
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      sub: "punctuation",
+      email,
+      permission: { granted: false },
+    });
+    expect(await b.h.store.adminLog(100)).toEqual([]);
+  });
+
   it.each([
     undefined,
     {},
