@@ -38,3 +38,46 @@ The correction needs no new visual reference or package installation smoke test.
 Evidence is retained under `C:/meltemi/artifacts/docs-user-audit-production/` as
 `diagrams-svg-guide-scope.json`, `diagrams-svg-typecheck.log`, `diagrams-svg-lint.log` and
 `diagrams-svg-tests.log`. Publication and full remote CI are separate from this local verification.
+
+## CI installation follow-up
+
+PR CI `42290912449` at `3a49627e9845e2fa162d748b9dfc68ea89305fbb` passed all six non-Browser
+jobs. Browser attempt 1 never reached a test: APT was downloading from
+`azure.archive.ubuntu.com` for more than twenty minutes. It was a new installation of FFmpeg
+and 98 other packages, with zero upgrades and 94.1 MB of archives. One 13.6 MB download was
+followed by the next package only about six minutes later. The coordinator cancelled that
+infrastructure run and retried only Browser; the second runner showed the same installation
+delay. This is not a test timeout or product failure. The original log and both attempt
+snapshots are retained in `artifacts/docs-user-audit-production/diagrams-svg-followup/`.
+
+The follow-up replaces only the mirror hostname in the three known, existing Ubuntu source
+locations, preserves suites/components/signing declarations, and sets APT retries to 2 with
+30-second HTTP/HTTPS inactivity waits. Only the installation step gains a 10-minute timeout;
+FFmpeg remains mandatory and APT errors propagate. Test commands and their deadlines are
+semantically identical to the previously validated workflow.
+
+Applicable local verification:
+
+- The workflow parses as YAML with no errors; its entire parsed structure outside the single
+  FFmpeg installation step is identical to the previous commit.
+- Git Bash accepts the extracted installation script with `bash -n`.
+- Temporary fixtures exercise legacy `sources.list`, deb822 `ubuntu.sources` and mirror-list
+  formats together, plus missing optional files. Only the Azure hostname changes; protocols,
+  suites, components, signing declarations and an unrelated vendor file stay byte-exact.
+- Stubbed APT records the real shell arguments without invoking network/package operations.
+  Update failure exits 42 and prevents install; install failure also exits 42. Successful and
+  missing-file cases execute both required APT operations with the bounded options.
+- Workflow formatting and `git diff --check` pass. The applicable workflow/authorization checks
+  pass 51/51 across two files, recorded in `ci-followup-focused.log`; fresh full seven-job CI is
+  required on the new head.
+
+The fixture harness and machine-readable result are external evidence under
+`C:/meltemi/artifacts/docs-user-audit-production/diagrams-svg-followup/verify-ci-install.cjs`
+and `ci-fixtures/verification.json`. It uses the already installed YAML parser for validation,
+with no project dependency or lockfile change. Earlier full runtime/type/lint results remain
+applicable to unchanged product sources; they are not claimed as fresh runs of this CI-only commit.
+
+The observed mirror issue is also documented upstream in
+[runner-images issue 14594](https://github.com/actions/runner-images/issues/14594) and
+[issue 12949](https://github.com/actions/runner-images/issues/12949). The workflow retains failing
+prerequisite semantics rather than adopting examples that allow installation failure.

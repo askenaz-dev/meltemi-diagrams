@@ -61,7 +61,18 @@ jobs:
           node-version: 24
           cache: pnpm
       - name: FFmpeg, for the videos the playground exports
-        run: sudo apt-get update && sudo apt-get install --yes ffmpeg
+        timeout-minutes: 10
+        shell: bash
+        run: |
+          # Avoid the degraded hosted-runner mirror (actions/runner-images#14594).
+          for source in /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources /etc/apt/apt-mirrors.txt; do
+            if [ -f "$source" ]; then
+              sudo sed -i 's|azure\.archive\.ubuntu\.com|archive.ubuntu.com|g' "$source"
+            fi
+          done
+          apt_options=(-o Acquire::Retries=2 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30)
+          sudo apt-get "${apt_options[@]}" update
+          sudo apt-get "${apt_options[@]}" install --yes ffmpeg
       - run: pnpm install --frozen-lockfile
       - name: Let Chrome use its sandbox (Ubuntu 24.04 restricts user namespaces)
         if: runner.os == 'Linux'
