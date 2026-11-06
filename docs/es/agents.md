@@ -1,16 +1,41 @@
-# Dibujar con agentes de programación
+# Diagramar con agentes de IA: skill y MCP
 
 [English](../agents.md)
 
-Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Devin Desktop y otros agentes de
-programación dibujan, convierten y exportan diagramas de Meltemi con la skill `meltemi-diagrams`:
-un flujo de trabajo, una plantilla, las reglas que ahorran iteraciones, referencias del lenguaje,
-la disposición, los temas, C4, los diagramas de secuencia, los diagramas de Gantt, las composiciones
-libres, las historias y la conversión, y ejemplos completos. Un agente que la lee escribe archivos `.meltemi`, los valida
-con la línea de comandos y corrige lo que esta informa, en lugar de dibujar imágenes a mano. Esta
-página también está en la web, en
-[diagrams.meltemi.dev/es/agent-setup](https://diagrams.meltemi.dev/es/agent-setup/), enlazada
-desde el diálogo Acerca de Meltemi Diagrams de la app web.
+Convierte una descripción, el código de tu proyecto o un diagrama existente en un diagrama
+editable de Meltemi con el agente de IA que ya usas. Pídele documentar un flujo real, convertir
+Mermaid o PlantUML, actualizar una vista de arquitectura tras un cambio de código o crear un
+diagrama que puedan ajustar juntos en el navegador. El resultado es código `.meltemi` que puedes
+revisar y editar, junto con una vista previa o exportación.
+
+Claude Code, Codex, Cursor y otros agentes de programación pueden usar la **skill**
+`meltemi-diagrams` y las **herramientas MCP** de Meltemi. Cumplen funciones distintas y se pueden
+usar juntos. Tu agente aporta el modelo de IA; instalar la skill o conectar MCP no configura un
+modelo para la [asistencia de IA integrada](assist.md) de Meltemi.
+
+## ¿Skill o MCP?
+
+| Parte           | Qué le da a tu agente                                                                                                                                      | Cuándo la necesitas                                                                                                         |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **Skill**       | Instrucciones, ejemplos y referencias del lenguaje: cómo elegir un diagrama, escribir `.meltemi` válido, conservar la disposición y comprobar el resultado | Enseñar al agente a dibujar y editar diagramas de Meltemi. Con acceso a archivos y terminal, puede usar directamente la CLI |
+| **MCP**         | Herramientas para leer proyectos, validar código y ver diagramas; el servicio de proyectos también permite escribir, crear versiones y compartir           | Que el agente trabaje sobre un proyecto de Meltemi y vea el resultado dibujado mediante sus propias herramientas            |
+| **Skill + MCP** | Guía para diagramar junto con herramientas que operan sobre tu proyecto                                                                                    | Trabajar sobre el mismo proyecto que el editor web, comprobando el dibujo en cada paso                                      |
+
+Una skill aporta conocimiento, no una conexión a tu cuenta. MCP conecta herramientas, no es un
+modelo de IA. Conectar MCP no instala la skill; instalar la skill no concede acceso a proyectos.
+
+## Elige dónde guardar tus diagramas
+
+| Tu objetivo                                                         | Empieza aquí                                                                                                                            | Qué obtienes                                                                                  |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Conservar diagramas junto al código en Git                          | [Instala la skill](#instalar-la-skill) y usa la CLI                                                                                     | Archivos `.meltemi` y exportaciones locales; no necesitas cuenta de Meltemi ni MCP            |
+| Que el agente inspeccione diagramas de un repositorio local por MCP | Añade el [modo carpeta](#a-través-del-servidor-local), `mdg mcp --folder .`, a la skill                                                 | Herramientas `validate` y `preview`; el agente edita con sus propias herramientas de archivos |
+| Editar un proyecto guardado en tu cuenta de Meltemi                 | Conecta el [endpoint MCP alojado](#a-través-del-endpoint-mcp) o usa el [servidor MCP local](#a-través-del-servidor-local) con tu cuenta | Leer y escribir el mismo proyecto que la app web, ver vistas previas y obtener su URL         |
+| Trabajar con un agente y el navegador juntos en tu máquina          | Inicia el [espacio de trabajo Docker](#con-el-espacio-de-trabajo-docker) e instala su plugin para agentes                               | Skill y MCP configurados juntos para el backend local; sin cuenta de Meltemi ni token         |
+
+Para un repositorio, empieza por el prompt de configuración de abajo. Para un proyecto abierto
+en el editor Docker local, usa **Configurar mi agente** allí: mantiene al agente conectado a ese
+proyecto.
 
 ## El prompt
 
@@ -104,14 +129,20 @@ local, solo cuando pides ver el resultado en un navegador.
 
 ## Pedir un diagrama
 
-Pide con tus palabras, nombrando qué dibujar y a partir de qué: "dibuja el servicio de pago de
-`docs/architecture.md` como un diagrama de flujo", "convierte `diagrams/billing.mmd` a Meltemi y
-conserva su disposición", "agrega un diagrama de secuencia del pago con un escenario aprobado y uno
-rechazado", "haz una vista C4 de contenedores de la tienda", "planifica el lanzamiento de `docs/plan.md` como un
-diagrama de Gantt". La skill le indica al agente que
-importe las fuentes de Mermaid y PlantUML en vez de reescribirlas, que elija el perfil (flujo,
-libre, secuencia, C4 o Gantt), que valide hasta que no quede ningún diagnóstico y que exporte SVG para que
-lo veas con `mdg preview`.
+Nombra qué dibujar y la fuente que debe usar el agente. Dale el código, documento o diagrama
+relevante para que pueda comprobar cómo funciona tu sistema.
+
+| Pídele al agente                                                                                            | Resultado útil                                                              |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| «Lee los controladores del pago y dibuja los flujos aprobado y rechazado como un diagrama de secuencia»     | Un diagrama basado en tu implementación, con ambos escenarios               |
+| «Haz una vista C4 de contenedores a partir de `docs/architecture.md`; marca todo lo que hayas inferido»     | Una vista de arquitectura revisable que identifica las relaciones inciertas |
+| «Convierte `diagrams/billing.mmd` a Meltemi y conserva su disposición»                                      | Código editable importado desde Mermaid                                     |
+| «Actualiza el diagrama de login para los cambios de código de esta rama y conserva mis posiciones manuales» | Documentación actualizada junto con la implementación                       |
+| «Planifica el lanzamiento de `docs/plan.md` como un diagrama de Gantt»                                      | Tareas y dependencias que puedes ajustar en el lienzo                       |
+
+Pídele validar el resultado, revisar la vista previa y decirte dónde abrirlo. Con la CLI, eso
+significa un archivo fuente y un SVG, con `mdg preview` cuando quieras verlo en un navegador.
+Con MCP conectado a un proyecto, pídele su URL para continuar en el mismo lienzo.
 
 ## A través del endpoint MCP
 
@@ -147,18 +178,24 @@ es un enlace que puede darte, y no se envía ningún correo (la herramienta resp
 `emailSent: false`). Nunca imprime un token, ni el enlace de una invitación o de una sesión en vivo
 que no pediste. Los permisos que concedes nunca añaden un rol: una cuenta que es editora de un
 proyecto escribe en él, pero solo su propietario lo comparte o lo publica. Las herramientas y sus
-reglas están en [el endpoint MCP](cloud.md#el-endpoint-mcp), y cómo se acepta el endpoint en
-[la aceptación del MCP](../quality/mcp-acceptance.md).
+reglas están en [la referencia de la nube](cloud.md#el-endpoint-mcp).
 
 ## A través del servidor local
 
-La línea de comandos sirve las mismas herramientas en tu máquina: `mdg mcp`, un servidor MCP local
+Usa MCP local cuando el agente corre en tu máquina y quieres que la validación y el dibujo se
+ejecuten allí también. Tiene dos modos: **proyectos de tu cuenta** por defecto y **archivos
+locales** con `--folder`. Iniciar el servidor por defecto no convierte una carpeta del disco en
+un proyecto compartido con el navegador; para eso usa el [espacio de trabajo Docker](local-compose.md).
+
+La línea de comandos sirve las herramientas de cuenta en tu máquina: `mdg mcp`, un servidor MCP local
 por HTTP streamable. Actúa sobre los proyectos de tu cuenta a través de la API del servicio, con tu
 `mdg login` (o `MELTEMI_TOKEN` en su entorno), y dibuja las vistas previas, comprueba los archivos y
 arma los catálogos en tu máquina, con el motor que usa el endpoint: las mismas herramientas, las
 mismas respuestas y las mismas imágenes. Elígelo para un agente que corre en tu máquina (la línea de
 comandos o la app de Codex, Claude Code, Cursor); un cliente que solo llega a una dirección de
-internet usa el endpoint. Ponlo en marcha en una terminal y déjalo así mientras el agente trabaja:
+internet usa el endpoint. Si el endpoint alojado responde `renderer.unavailable`, usa este modo
+para seguir trabajando sobre los mismos proyectos de tu cuenta con el dibujo en tu máquina.
+Ponlo en marcha en una terminal y déjalo así mientras el agente trabaja:
 
 ```bash
 npx -y @meltemi/diagrams-cli@latest mcp
@@ -200,11 +237,3 @@ con `docker compose up`, sin cuenta ni token. **Configurar mi agente** en el edi
 prompt que instala el plugin real de Meltemi y su entrada MCP nativa para Claude Code o Codex.
 El plugin edita el mismo proyecto del backend que el navegador abierto; no necesita una CLI
 en el equipo ni otro proceso `mdg mcp`. Sigue la continuación de activación antes de diagramar.
-
-## En este repositorio
-
-La skill canónica es `skills/meltemi-diagrams/`; `pnpm skills:sync` la copia en `.claude/skills/`,
-`.agents/skills/` y el paquete de la línea de comandos, y una prueba falla cuando una copia se
-desvía. El prompt de configuración es `packages/cli/agent-setup/prompt.md`, que el build de
-la app sirve junto a la página `agent-setup/`. Consulta
-[la línea de comandos](cli.md#skill-de-agentes) para `skill install` y `skill prompt`.
