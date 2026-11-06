@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { propertyTabTests } from "./property-tabs.js";
 import { manipulationTests } from "./manipulation.js";
 import { touchTests } from "./touch.js";
+import { connectionPreviewTests } from "./connection-preview.js";
 import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -1860,6 +1861,7 @@ const tests: {
 }[] = [
   ...manipulationTests,
   ...touchTests,
+  ...connectionPreviewTests(output),
   ...propertyTabTests(output),
   {
     name: "renders the diagram, the toolbar, the inspector and the minimap",
@@ -3717,7 +3719,8 @@ const tests: {
       // With no bend and both ends the layout's, nothing is left of the route.
       assert.doesNotMatch(h.text, /route save/);
       // From cache's north handle to the middle of db's south side: both ends are pinned.
-      const cache = centre(await box('.content g[data-id="cache"][data-role="element"]'));
+      const cacheBox = await box('.content g[data-id="cache"][data-role="element"]');
+      const cache = centre(cacheBox);
       await page.mouse.click(cache.x, cache.y);
       await h.settled();
       const handle = centre(await box('.overlay [data-handle="connect:north"]'));
@@ -3727,6 +3730,16 @@ const tests: {
       await page.mouse.move(target.x + target.width / 2 + 2, target.y + target.height - 3, {
         steps: 6,
       });
+      const source = await page.locator(".overlay line.wire").evaluate((line: SVGLineElement) => {
+        const point = new DOMPoint(
+          Number(line.getAttribute("x1")),
+          Number(line.getAttribute("y1")),
+        ).matrixTransform(line.getScreenCTM()!);
+        return { x: point.x, y: point.y };
+      });
+      await page.screenshot({ path: join(output, "canvas-connection-preview-pinned.png") });
+      assert.ok(Math.abs(source.x - cache.x) < 1, "preview starts at the chosen side's midpoint");
+      assert.ok(Math.abs(source.y - cacheBox.y) < 1, "preview starts at the north border");
       await page.mouse.up();
       await h.settled();
       assert.match(h.text, /cache -> db as cache_db/);
