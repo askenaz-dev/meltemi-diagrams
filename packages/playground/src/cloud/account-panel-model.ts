@@ -19,23 +19,12 @@ export const ACCOUNT_SECTIONS = [
   "tokens",
   "apps",
   "usage",
-  "administration",
   "danger",
 ] as const;
 
 export type AccountSection = (typeof ACCOUNT_SECTIONS)[number];
-
-/**
- * The sections a person sees: Administration only for an owner, an administrator, or a person with
- * a pending invitation to administer; every other section for everybody.
- */
-export function visibleSections(user: {
-  readonly administration: unknown;
-  readonly administrationInvitation: unknown;
-}): AccountSection[] {
-  const administers = user.administration !== null || user.administrationInvitation !== null;
-  return ACCOUNT_SECTIONS.filter((section) => section !== "administration" || administers);
-}
+/** Administration is a central navigation destination, never a modal section. */
+export type AccountDestination = AccountSection | "administration";
 
 /** The panel's words in a language. */
 export type AccountWords = (typeof en)["accountPanel"];
@@ -47,8 +36,9 @@ export const ACCOUNT_PARAMETER = "account";
  * The section an address asks for: undefined when it asks for none, Profile when it names one
  * that does not exist.
  */
-export function sectionFrom(value: string | null | undefined): AccountSection | undefined {
+export function sectionFrom(value: string | null | undefined): AccountDestination | undefined {
   if (value === null || value === undefined) return undefined;
+  if (value === "administration") return value;
   return (ACCOUNT_SECTIONS as readonly string[]).includes(value)
     ? (value as AccountSection)
     : "profile";

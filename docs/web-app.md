@@ -358,16 +358,16 @@ something an administrator grants your account shows at the next load.
 `id.meltemi.dev`, and brings you back to the page you were on; before leaving, the page keeps your
 project in the browser. Everything else works as before and nothing is sent.
 
-**Signed in**, the header shows your avatar and name, with a menu of three entries, and a fourth for
-the people who administer the service or are invited to:
+**Signed in**, the header shows your avatar and name, with separate entries for the family account, product settings and administration:
 
-| Entry                        | Does                                                                                               |
-| ---------------------------- | -------------------------------------------------------------------------------------------------- |
-| **Account**                  | Opens the account panel at Profile, in this page                                                   |
-| **API tokens**               | Opens the account panel at API tokens                                                              |
-| **Administration**           | For an owner or an administrator of the service: opens the account panel at Administration         |
-| **Invitation to administer** | For a person an owner invited to administer the service: opens the account panel at the invitation |
-| **Sign out**                 | Ends the session at the identity service and returns to the page                                   |
+| Entry                        | Does                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------ |
+| **Meltemi account**          | Opens the central personal profile at Identity, keeping the language and environment |
+| **Diagrams settings**        | Opens the product settings panel at Profile, in this page                            |
+| **API tokens**               | Opens the account panel at API tokens                                                |
+| **Administration**           | For an owner or administrator: opens the central Diagrams access page                |
+| **Invitation to administer** | For an invitee: opens the invitation on the same central access page                 |
+| **Sign out**                 | Ends the session at the identity service and returns to the page                     |
 
 Under the entries the menu shows what your account holds, read when the menu opens: how many of the
 100 projects it may hold and how much of its 200 MiB of storage it uses, as in "3 of 100 projects"
@@ -376,7 +376,7 @@ Usage. They show nothing when the service does not answer, and appear only where
 
 ### The account panel
 
-The account is one panel in the page, never a tab, a popup or a frame: a list of sections on the
+Diagrams settings is one product panel in the page, never a tab, a popup or a frame: a list of sections on the
 left and the one chosen beside it, or, on a narrow screen, a sheet over the whole page with the
 sections as a strip of tabs above. The arrows, Home and End move between the sections; Escape and
 the close button return to the page.
@@ -389,7 +389,6 @@ the close button return to the page.
 | **API tokens**     | The tokens that let the command line and scripts act as you (below)                                                                                                                                                                                                                                                                                    |
 | **Connected apps** | The agents you allowed through the MCP endpoint's sign-in (Codex, for one): what each may do, when it last acted, and **Revoke**, which ends its access at once ([cloud](cloud.md))                                                                                                                                                                    |
 | **Usage**          | Your projects and storage against their limits, and the limits of a project's files, size and versions and of an image                                                                                                                                                                                                                                 |
-| **Administration** | Only for the people who administer the service, or are invited to (below): the administrators, the invitations, the permissions of accounts, the takedown of a publication and the recent changes                                                                                                                                                      |
 | **Danger zone**    | Deleting the account: what it removes, and the way to the identity service's page where you confirm it                                                                                                                                                                                                                                                 |
 
 Sign-ins and Devices are what the identity service holds; the page asks its own origin, whose Worker
@@ -421,29 +420,19 @@ panel closes; the service keeps only a hash of it. An account holds at most 20. 
 authenticates the service's API as `Authorization: Bearer`, which is how the command line's cloud
 commands use it ([the API tokens](cloud.md#api-tokens), [the command line](cli.md#the-cloud-commands)).
 
-**Administration** is there only for the owners of the service, the accounts its configuration
-names, for the administrators an owner invited, and for a person with an invitation to administer;
-nobody else sees the tab, and `?account=administration` opens Profile for them
-([administration](cloud.md#administration)). An owner or an administrator finds five parts, and a
-sixth when the service received donations:
+**Administration** and **Invitation to administer** open the [central Diagrams access page](https://id.meltemi.dev/admin/diagrams/access?lang=en&environment=production)
+in the same tab, after keeping your browser work. The central console contains access and
+invitations, permissions, sponsorships, publications and recent activity. Owners may invite and
+remove administrators; invitees accept or decline there. Identity checks the live session and the
+product backend checks the role on every operation. The product settings modal has no
+Administration tab and does not make administration API requests.
 
-| Part                        | Holds                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Administrators**          | The owners, marked **Owner**, then the administrators with who invited them and since when. An owner removes an administrator, after a question naming them; an administrator leaves, from their own row                                                                                                                                                                                                                                                 |
-| **Invitations**             | For the owners: an email to invite and **Invite**, and the pending invitations with who invited and when each expires, and **Revoke**. No mail is sent: tell the person, who signs in with that email                                                                                                                                                                                                                                                    |
-| **Permissions**             | Each permission, first **Export without the Meltemi branding**, with the accounts that hold it, who granted it and when (GitHub Sponsors for a donation), and **Revoke**; **Grant to** takes an account id, `@handle` or the email the person signs in with                                                                                                                                                                                              |
-| **Sponsorships**            | Only when there are some: the donations GitHub Sponsors told the service of, the newest first, each with the sponsor's GitHub login (marked private, or an organisation), one-time or monthly, the amount in US dollars, a cancellation, who claimed it or **Unclaimed** with **Grant by hand**, and the date. Grant by hand moves to the Grant field of the permission with the login as a hint: type the account id, handle or email the sponsor gives |
-| **Take down a publication** | The address of a published page and a reason; after a confirmation naming the address the page is gone and its owner sees it removed by the service                                                                                                                                                                                                                                                                                                      |
-| **Recent changes**          | The last fifty acts of administration, the newest first: who invited, accepted, removed, granted, revoked or took down what, and when; a donation's grant reads "GitHub Sponsors granted Export without the Meltemi branding to Ana (ana)"                                                                                                                                                                                                               |
-
-There is no list of the accounts of the service: an account is found only by its id, its handle or
-the one email it signs in with, so a person who has never signed in, or an email two accounts share,
-is answered in words (ask the person to sign in once, or for the account id their Profile shows).
-A person invited sees only the invitation: who invited them, what administrators can do (grant
-permissions to accounts, take any publication down), when it expires, **Accept** and **Decline**.
-Accepting reads the session again and shows the whole section; declining removes the tab. Signing
-in alone makes nobody an administrator, and an administrator who is removed loses the tab at their
-next action.
+The links preserve the interface language and explicitly select `environment=production` on the
+production site, or `environment=staging` on `https://staging.diagrams.meltemi.dev`. The **Meltemi
+account** link keeps that selection too. A query parameter on Diagrams cannot change the selected
+environment. `?account=administration` leads an owner, administrator or invitee to the same central
+access page; another signed-in account opens the product Profile instead. Local Docker has no
+central account or administration link and keeps its agent setup control.
 
 Signing in adds your cloud projects to the explorer's Projects panel
 ([projects in the cloud](#projects-in-the-cloud)) and changes nothing else: the project in your browser stays where it is, nothing is uploaded until you

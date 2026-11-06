@@ -10,7 +10,7 @@ import { confirmDialog } from "../dialogs.js";
 import { messages } from "../messages/index.js";
 import { ICONS, field, h, icon, openDialog } from "../ui.js";
 import {
-  visibleSections,
+  ACCOUNT_SECTIONS,
   AccountPanelModel,
   accountPageAddress,
   deviceLabel,
@@ -21,7 +21,6 @@ import {
   type AccountSection,
 } from "./account-panel-model.js";
 import { appsSection, type AppsSection } from "./account-panel-apps-section.js";
-import { administrationSection, type AdministrationSection } from "./administration-section.js";
 import { avatar } from "./avatar.js";
 import { copyText } from "./clipboard.js";
 import { identityApi, type DeviceView, type IdentityApi, type SigninView } from "./identity-api.js";
@@ -40,8 +39,6 @@ const SECTION_ICONS: Record<AccountSection, string> = {
   tokens: "M2.5 3.5h11v9h-11z|M5 7l2 1.5L5 10|M8.5 10H11",
   apps: "M6 2v3|M10 2v3|M4.5 5h7v2.5a3.5 3.5 0 0 1-7 0z|M8 11v3",
   usage: "M3 13.5h10|M4.5 11V8|M8 11V4.5|M11.5 11V6.5",
-  administration:
-    "M8 1.8l5 2v3.7c0 3-2.1 5.3-5 6.7-2.9-1.4-5-3.7-5-6.7V3.8z|M5.8 8l1.6 1.6L10.4 6.6",
   danger: ICONS.problems,
 };
 
@@ -94,9 +91,7 @@ export function openAccountPanel(options: AccountPanelOptions): void {
   const m = words();
   const locale = getLocale();
   let disposed = false;
-  // Administration is a tab only for an owner, an administrator or an invitee: asked for by anyone
-  // else (`?account=administration`), the panel opens at Profile, as for an unknown section.
-  const sections = visibleSections(options.user);
+  const sections = ACCOUNT_SECTIONS;
   const allowed = (section: AccountSection): AccountSection =>
     sections.includes(section) ? section : "profile";
 
@@ -600,7 +595,6 @@ export function openAccountPanel(options: AccountPanelOptions): void {
   // API tokens ------------------------------------------------------------------------------------
   let tokens: TokensSection | undefined;
   let apps: AppsSection | undefined;
-  let administration: AdministrationSection | undefined;
 
   // Usage -----------------------------------------------------------------------------------------
   const usageRows = h("div", { class: "account-usage-panel" });
@@ -756,17 +750,6 @@ export function openAccountPanel(options: AccountPanelOptions): void {
       }
       apps.shown();
     }
-    if (section === "administration") {
-      if (!administration) {
-        administration = administrationSection({
-          user: options.user,
-          keep: options.keep,
-          report: (message) => options.report?.(message),
-        });
-        panel.append(administration.element);
-      }
-      administration.shown();
-    }
     if (section === "usage") void readUsage();
   };
 
@@ -879,7 +862,6 @@ export function openAccountPanel(options: AccountPanelOptions): void {
     model.dispose();
     tokens?.dispose();
     apps?.dispose();
-    administration?.dispose();
     stopUsage?.();
     observer.disconnect();
     if (current?.dialog === dialog) current = undefined;

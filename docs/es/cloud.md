@@ -337,7 +337,7 @@ que muestran el código, en inglés o en español, en lugar de JSON.
 | `POST /api/account/identity/sessions/revoke-others`  | una persona con sesión iniciada en la página                                            | `200`, lo mismo con esta sesión sola                                                     |
 | `POST /api/account/identity/sessions/<sid>/revoke`   | una persona con sesión iniciada en la página                                            | `200`, lo mismo sin esa sesión                                                           |
 | `POST /api/invitations/<token>/accept`               | una persona, con la cookie o con un token                                               | `200`, el proyecto, con el rol que la persona tiene ahora                                |
-| `GET /api/admin`                                     | un propietario o un administrador, con la cookie; cualquier otra persona recibe `404`   | `200`, lo que muestra la sección Administración                                          |
+| `GET /api/admin`                                     | un propietario o un administrador, con la cookie; cualquier otra persona recibe `404`   | `200`, lo que muestra la consola central de administración                               |
 | `DELETE /api/admin/publications/<handle>/<slug>`     | un propietario o un administrador, con la cookie; cualquier otra persona recibe `404`   | `204`                                                                                    |
 | `POST /api/admin/invitations`                        | un propietario, con la cookie; cualquier otra persona recibe `404`                      | `201`, la invitación (`200`, la que ya estaba pendiente)                                 |
 | `DELETE /api/admin/invitations/<id>`                 | un propietario, con la cookie; cualquier otra persona recibe `404`                      | `204`                                                                                    |
@@ -1951,7 +1951,7 @@ API es justo lo que el host de publicación existe para evitar.
 ### Retirada
 
 Un propietario o un administrador del servicio ([Administración](#administración)) retira
-cualquier publicación, desde la sección Administración del panel de la cuenta o con
+cualquier publicación, desde la consola central de administración o con
 `DELETE /api/admin/publications/<handle>/<slug>`, con un `{ "reason" }` opcional (de 500
 caracteres como máximo, con saltos de línea y tabuladores permitidos y ningún otro carácter de
 control). Quien llama debe ser uno de ellos con la cookie, así que se aplica la regla de `Origin`:
@@ -1995,8 +1995,10 @@ son administradores, la página nunca los quita, y son los únicos que invitan y
 administradores; sin definir o vacío, el servicio no tiene propietario. Los **administradores** son
 las personas que un propietario invitó y que aceptaron, filas de `administrators`
 ([Almacenamiento](#almacenamiento)); un `sub` que lista `ADMIN_SUBS` y que además tiene fila es un
-propietario. Lo hacen desde la sección Administración del panel de la cuenta
-([la app web](web-app.md#el-panel-de-la-cuenta)), que lee y llama a las rutas de abajo.
+propietario. Usan la consola central de Identity, accesible desde [el menú de la cuenta](web-app.md#el-panel-de-la-cuenta).
+Esta llama a las rutas de abajo mediante el [servicio privado de administración](central-administration-service.md),
+que verifica una sesión vigente y conserva estos roles por operación. Diagrams no tiene formularios
+ni cliente de administración en el navegador.
 
 | Acto                                                | Propietario | Administrador |
 | --------------------------------------------------- | ----------- | ------------- |
@@ -2151,7 +2153,7 @@ escribirse.
 ### La respuesta de administración
 
 `GET /api/admin` responde a un propietario o a un administrador, con `Cache-Control: no-store`, todo
-lo que muestra la sección Administración:
+lo que muestra la consola central de administración:
 
 ```json
 {
@@ -2753,9 +2755,10 @@ Compartir y publicar no necesitan nada más. Una publicación hecha desde la pá
 probar las invitaciones por correo, inicia sesión con una segunda cuenta (otro perfil del navegador)
 cuyo correo haya verificado el proveedor; el enlace de una invitación funciona para cualquier
 persona con sesión iniciada. Para probar la administración, pon tu `sub` en `ADMIN_SUBS` de
-`.dev.vars`: el panel de la cuenta muestra entonces Administración, y una invitación a administrar la
-acepta una segunda cuenta cuyo correo haya verificado el proveedor. Las rutas aplican la regla de
-`Origin`, así que es el propio origen de la página el que las llama.
+`.dev.vars`: el menú ofrece el enlace a la Administración central. Configura el binding privado de
+la consola de desarrollo de Identity para este Worker si quieres probar sus formularios; el
+[protocolo del servicio](central-administration-service.md) documenta el entrypoint y la separación
+de entornos. Las llamadas directas a la API conservan la regla de Origin propio del producto.
 
 ### Sin él: una sesión generada
 

@@ -100,6 +100,10 @@ interface Context {
 
 interface Test {
   readonly name: string;
+  /** Serve built files through intercepted requests at this actual product origin, without networking. */
+  readonly hostedOrigin?: "https://staging.diagrams.meltemi.dev";
+  /** Only these exact main-frame destinations may leave the product; tests fulfil them locally. */
+  readonly expectedNavigations?: readonly string[];
   readonly viewport?: { width: number; height: number };
   /** A phone: a touch screen (`hasTouch`) and a mobile browser (`isMobile`). */
   readonly touch?: boolean;
@@ -538,6 +542,24 @@ function cookieAnswer(origin: string, user: Record<string, unknown> = {}): unkno
   };
 }
 
+/** Read the departed product origin's real storage, even after a same-tab central navigation. */
+async function assertBrowserProjectKept(
+  context: BrowserContext,
+  origin: string,
+  marker: string,
+): Promise<void> {
+  const state = await context.storageState();
+  const raw = state.origins
+    .find((entry) => entry.origin === origin)
+    ?.localStorage.find((entry) => entry.name === "meltemi-playground:project:v1")?.value;
+  assert.ok(raw, "the browser project exists after navigation");
+  const project = JSON.parse(raw) as { files: Record<string, string> };
+  assert.ok(
+    Object.values(project.files).some((source) => source.includes(marker)),
+    "the newest source edit was kept before leaving",
+  );
+}
+
 interface HeldToken {
   id: string;
   name: string;
@@ -629,109 +651,6 @@ const ANAS_USAGE = {
 };
 
 /** The usage API in memory: how many times the page asked, and what it is answered. */
-/**
- * The administration of the service, as `/api/admin` answers it: an owner (or, once `role` changes,
- * an administrator), invitations, the one permission with its holders, takedowns and the log. The
- * accounts the email lookup knows are Ben's alone.
- */
-class AdminDouble {
-  role: "owner" | "administrator" = "owner";
-  /** The person was removed: every route answers 404, as the Worker does. */
-  gone = false;
-  onAccept: () => void = () => {};
-  readonly requests: { method: string; path: string; body: unknown }[] = [];
-  readonly takedowns: { path: string; reason: string }[] = [];
-  private readonly invitations: { id: string; email: string }[] = [];
-  private readonly holders: { sub: string; email: string; name: string }[] = [];
-  private readonly log: { action: string; target: unknown; detail: string }[] = [];
-  /** The sponsorships the answer lists, and log entries older than the double's own. */
-  sponsorships: unknown[] = [];
-  extraLog: unknown[] = [];
-
-  private view() {
-    const ref = { sub: "u-ana", name: "Ana" };
-    const at = "2026-10-29T12:00:00.000Z";
-    return {
-      role: this.role,
-      owners: [{ sub: "u-ana", name: "Ana", handle: null, email: "ana@meltemi.dev" }],
-      administrators: [],
-      invitations:
-        this.role === "owner"
-          ? this.invitations.map((i) => ({
-              ...i,
-              invitedBy: ref,
-              createdAt: at,
-              expiresAt: "2026-11-05T12:00:00.000Z",
-            }))
-          : [],
-      permissions: [
-        {
-          id: "unbranded-exports",
-          holders: this.holders.map((holder) => ({ ...holder, handle: null, by: ref, at })),
-        },
-      ],
-      log: [
-        ...[...this.log].reverse().map((entry) => ({ ...entry, at, by: ref })),
-        ...this.extraLog,
-      ],
-      publishHost: "meltemi.page",
-      sponsorships: this.sponsorships,
-    };
-  }
-
-  readonly handle = async (route: Route): Promise<void> => {
-    const request = route.request();
-    const path = new URL(request.url()).pathname.replace(/^.*\/api\/admin/, "");
-    const body = request.postData() ? (JSON.parse(request.postData()!) as unknown) : null;
-    this.requests.push({ method: request.method(), path, body });
-    if (this.gone) {
-      return route.fulfill({
-        status: 404,
-        contentType: "application/json",
-        body: JSON.stringify({ code: "not-found", message: "There is nothing at this address." }),
-      });
-    }
-    const json = (status: number, value: unknown) =>
-      route.fulfill({ status, contentType: "application/json", body: JSON.stringify(value) });
-    const done = () => route.fulfill({ status: 204 });
-    const missing = () => json(404, { code: "not-found", message: "There is no such account." });
-    if (request.method() === "GET" && path === "") return json(200, this.view());
-    if (request.method() === "POST" && path === "/invitations") {
-      const email = String((body as { email?: unknown }).email);
-      this.invitations.push({ id: "0".repeat(31) + String(this.invitations.length + 1), email });
-      this.log.push({ action: "invite", target: { email }, detail: "" });
-      return json(201, {});
-    }
-    if (request.method() === "POST" && /^\/invitations\/[0-9a-f]{32}\/accept$/.test(path)) {
-      this.onAccept();
-      return done();
-    }
-    const permission = /^\/accounts\/([^/]+)\/permissions\/unbranded-exports$/.exec(path);
-    if (request.method() === "PUT" && permission) {
-      const account = decodeURIComponent(permission[1]!);
-      if (account !== "ben@example.com" && account !== "u-ben") return missing();
-      if ((body as { granted?: unknown }).granted === true) {
-        this.holders.push({ sub: "u-ben", email: "ben@example.com", name: "Ben" });
-        this.log.push({
-          action: "grant",
-          target: { sub: "u-ben", name: "Ben" },
-          detail: "unbranded-exports",
-        });
-      }
-      return json(200, {});
-    }
-    const publication = /^\/publications\/([^/]+)\/([^/]+)$/.exec(path);
-    if (request.method() === "DELETE" && publication) {
-      const reason = String((body as { reason?: unknown } | null)?.reason ?? "");
-      const address = `${publication[1]}/${publication[2]}`;
-      this.takedowns.push({ path: address, reason });
-      this.log.push({ action: "takedown", target: null, detail: `${address}: ${reason}` });
-      return done();
-    }
-    return missing();
-  };
-}
-
 class UsageDouble {
   requests = 0;
 
@@ -899,6 +818,8 @@ interface SignedIn extends Context {
  */
 function signedIn(options: {
   name: string;
+  hostedOrigin?: Test["hostedOrigin"];
+  expectedNavigations?: readonly string[];
   locale?: string;
   viewport?: { width: number; height: number };
   dark?: boolean;
@@ -918,6 +839,8 @@ function signedIn(options: {
   const apps = new AppsDouble(options.apps ?? ANAS_APPS());
   return {
     name: options.name,
+    hostedOrigin: options.hostedOrigin,
+    expectedNavigations: options.expectedNavigations,
     locale: options.locale,
     viewport: options.viewport,
     dark: options.dark,
@@ -1050,7 +973,7 @@ async function accountFlow(t: SignedIn, m: typeof en, shot: string): Promise<voi
   );
   assert.equal(drawn, true, "the picture loads");
 
-  // The menu: three entries, the first one focused, the keys of a menu.
+  // The menu: central account first, product settings, tokens and sign-out, with menu keys.
   const menu = page.locator("#menu-account");
   assert.equal(await menu.isVisible(), false);
   assert.equal(usage.requests, 0, "nothing asks what the account holds before the menu opens");
@@ -1058,11 +981,18 @@ async function accountFlow(t: SignedIn, m: typeof en, shot: string): Promise<voi
   assert.equal(await menu.isVisible(), true);
   assert.equal(await button.getAttribute("aria-expanded"), "true");
   assert.deepEqual(await menu.getByRole("menuitem").allTextContents(), [
+    a.meltemiAccount,
     a.account,
     a.tokens,
     a.signOut,
   ]);
-  assert.equal((await focused(page)).label, a.account, "the first entry has the focus");
+  assert.equal((await focused(page)).label, a.meltemiAccount, "the first entry has the focus");
+  const personal = menu.getByRole("menuitem", { name: a.meltemiAccount, exact: true });
+  assert.equal(
+    await personal.getAttribute("href"),
+    `${origin}/account/profile?lang=${shot}&environment=production`,
+  );
+  assert.equal(await personal.getAttribute("target"), null, "central account uses this tab");
 
   // What the account holds: words under the entries, and two thin meters that are for the eye only.
   // It was asked for as the menu opened, and arrives without moving the focus.
@@ -1097,17 +1027,18 @@ async function accountFlow(t: SignedIn, m: typeof en, shot: string): Promise<voi
     "the menu proper holds entries only",
   );
   assert.equal(await menu.getAttribute("role"), "menu");
-  assert.equal((await focused(page)).label, a.account, "the numbers do not take the focus");
+  assert.equal((await focused(page)).label, a.meltemiAccount, "the numbers do not take the focus");
   await page.screenshot({ path: join(output, `account-menu-${shot}.png`) });
   const press = async (key: string) => {
     await page.keyboard.press(key);
     return (await focused(page)).label;
   };
+  assert.equal(await press("ArrowDown"), a.account);
   assert.equal(await press("ArrowDown"), a.tokens);
   assert.equal(await press("ArrowDown"), a.signOut);
-  assert.equal(await press("ArrowDown"), a.account, "the arrow keys go round");
+  assert.equal(await press("ArrowDown"), a.meltemiAccount, "the arrow keys go round");
   assert.equal(await press("ArrowUp"), a.signOut);
-  assert.equal(await press("Home"), a.account);
+  assert.equal(await press("Home"), a.meltemiAccount);
   assert.equal(await press("End"), a.signOut);
   await page.keyboard.press("Escape");
   assert.equal(await menu.isVisible(), false);
@@ -1120,7 +1051,7 @@ async function accountFlow(t: SignedIn, m: typeof en, shot: string): Promise<voi
   assert.equal(await menu.isVisible(), false);
   assert.equal(await button.getAttribute("aria-expanded"), "false");
 
-  // "Account" opens the account panel at Profile, in this page: no tab, no frame.
+  // "Diagrams settings" opens the product panel at Profile, in this page: no tab, no frame.
   await button.click();
   const account = menu.getByRole("menuitem", { name: a.account, exact: true });
   assert.equal(await account.getAttribute("href"), null, "Account is no link to another site");
@@ -1540,8 +1471,15 @@ const tests: Test[] = [
         );
       }, flow.files);
     },
-    async run({ page }) {
+    async run({ page, url }) {
+      await page.goto(new URL("?account=administration&environment=staging", url).href);
+      await ready(page);
       const words = language === "es" ? es : en;
+      assert.equal(new URL(page.url()).searchParams.has("account"), false);
+      assert.equal(
+        await page.locator('a[href*="/admin/"], a[href*="/account/profile"]').count(),
+        0,
+      );
       assert.equal(
         await page.locator(".local-workspace-label").textContent(),
         words.localWorkspace.label,
@@ -1572,6 +1510,26 @@ const tests: Test[] = [
       assert.equal(await page.evaluate(() => document.cookie), "");
     },
   })),
+  {
+    name: "central account navigation: an anonymous administration address stays usable without gaining account access",
+    async run({ page, context, url }) {
+      const administration: string[] = [];
+      await context.route(/\/api\/admin(?:\/|\?|$)/, (route) => {
+        administration.push(route.request().url());
+        return route.fulfill({ status: 404, json: { code: "not-found" } });
+      });
+      await page.goto(new URL("?account=administration&environment=staging", url).href);
+      await ready(page);
+      assert.equal(new URL(page.url()).searchParams.has("account"), false);
+      assert.equal(await page.locator(".topbar .sign-in").count(), 1);
+      assert.equal(await page.locator(".account-button, dialog.settings[open]").count(), 0);
+      assert.equal(
+        await page.locator('a[href*="/admin/"], a[href*="/account/profile"]').count(),
+        0,
+      );
+      assert.deepEqual(administration, []);
+    },
+  },
   {
     name: "properties: focused tabs in English preserve drafts, keyboard access and source edits",
     run: ({ page }) => inspectorTabsFlow(page, canvasEn.inspector, "en"),
@@ -5675,7 +5633,7 @@ const tests: Test[] = [
     },
   },
   signedIn({
-    name: "signed in, shows the person, a menu of three entries, a sign-out form and API tokens",
+    name: "signed in, shows the person, central account, Diagrams settings, sign-out and API tokens",
     // The browser notes in its console that the quota's refusal was a 413.
     allowedErrors: [/status of 413/],
     run: (t) => accountFlow(t, en, "en"),
@@ -5864,72 +5822,80 @@ const tests: Test[] = [
     },
   }),
   signedIn({
-    name: "administration: the owner invites, grants by email and takes down a publication",
-    // The browser notes in its console the refusals the double answers.
-    allowedErrors: [/status of 404/],
-    answer: (origin) => cookieAnswer(origin, { administration: { role: "owner" } }),
-    async run({ page, context }) {
-      const admin = new AdminDouble();
-      await context.route(/\/api\/admin(\/[^?]*)?(\?.*)?$/, admin.handle);
-      await page.goto(new URL("?account=administration", page.url()).href);
+    name: "central account navigation: an owner keeps the latest source before leaving for fixed production administration",
+    answer: (origin) => ({
+      ...(cookieAnswer(origin, { administration: { role: "owner" } }) as Record<string, unknown>),
+      account:
+        origin +
+        "/unrelated/path?environment=staging&return_to=https%3A%2F%2Fevil.example%2F#discarded",
+    }),
+    async run({ page, context, origin, url }) {
+      const administration: string[] = [];
+      await context.route(/\/api\/admin(?:\/|\?|$)/, (route) => {
+        administration.push(route.request().url());
+        return route.fulfill({ status: 404, json: { code: "not-found" } });
+      });
+      await page.goto(
+        new URL("?environment=staging&return_to=https%3A%2F%2Fevil.example%2F#discarded", url).href,
+      );
       await ready(page);
-      const panel = page.locator("dialog.settings[open]");
-      const a = en.accountPanel.administration;
-      await panel.getByRole("heading", { name: a.administratorsTitle }).waitFor();
+      const target = origin + "/admin/diagrams/access?lang=en&environment=production";
+      await context.route(target, (route) =>
+        route.fulfill({
+          contentType: "text/html",
+          body: "<!doctype html><html lang=en><title>Central navigation fixture</title><h1>Central administration</h1></html>",
+        }),
+      );
+      await page.locator(".topbar .account-button").click();
+      const menu = page.locator("#menu-account");
       assert.equal(
-        await panel.locator('[role="tab"][aria-selected="true"]').getAttribute("data-section"),
-        "administration",
+        await menu
+          .getByRole("menuitem", { name: en.account.meltemiAccount, exact: true })
+          .getAttribute("href"),
+        origin + "/account/profile?lang=en&environment=production",
       );
-      assert.match(
-        (await panel.locator('[data-part="administrators"]').textContent()) ?? "",
-        /Owner/,
+      await menu.getByRole("menuitem", { name: en.account.account, exact: true }).click();
+      const panel = page.locator("dialog.settings[open]");
+      await panel.waitFor();
+      assert.deepEqual(
+        await panel.getByRole("tab").allTextContents(),
+        Object.values(en.accountPanel.sections),
       );
-      // Not an email: nothing is sent.
-      const invitations = panel.locator('[data-part="invitations"]');
-      await invitations.getByLabel(a.email).fill("ana");
-      await invitations.getByRole("button", { name: a.invite }).click();
-      assert.equal(await invitations.locator(".field-problem").textContent(), a.notEmail);
-      assert.equal(admin.requests.filter((r) => r.method === "POST").length, 0);
-      // The owner invites.
-      await invitations.getByLabel(a.email).fill("ana@example.com");
-      await invitations.getByRole("button", { name: a.invite }).click();
-      await invitations.locator("[data-invitation]").first().waitFor();
-      assert.match((await invitations.textContent()) ?? "", /ana@example\.com/);
-      assert.match(
-        (await panel.locator('[data-part="log"]').textContent()) ?? "",
-        /Ana invited ana@example\.com|invited ana@example\.com/,
+      assert.equal(await panel.getByRole("tab").count(), 7);
+      assert.equal(
+        await panel.locator('[data-section="administration"], .administration-section').count(),
+        0,
       );
-      // Grant by email, and an email nobody signed in with.
-      const permission = panel.locator('[data-permission="unbranded-exports"]');
-      await permission.getByLabel(a.grantTo).fill("nobody@example.com");
-      await permission.getByRole("button", { name: a.grant }).click();
-      await permission.locator(".field-problem", { hasText: a.noAccount }).waitFor();
-      await permission.getByLabel(a.grantTo).fill("ben@example.com");
-      await permission.getByRole("button", { name: a.grant }).click();
-      await permission.locator('[data-sub="u-ben"]').waitFor();
-      // Another host, then a takedown with a reason.
-      const takedown = panel.locator('[data-part="takedown"]');
-      await takedown.getByLabel(a.address).fill("https://example.com/tienda/precios");
-      await takedown.getByRole("button", { name: a.takedown }).click();
-      assert.equal(await takedown.locator(".field-problem").textContent(), a.notAddress);
-      await takedown.getByLabel(a.address).fill("https://meltemi.page/tienda/precios");
-      await takedown.getByLabel(a.reason).fill("Phishing");
-      await takedown.getByRole("button", { name: a.takedown }).click();
-      await page
-        .locator("dialog[open]")
-        .getByRole("button", { name: a.takedownConfirm })
-        .last()
-        .click();
-      await panel
-        .locator('[data-part="log"]')
-        .getByText(/took down tienda\/precios: Phishing/)
-        .waitFor();
-      assert.deepEqual(admin.takedowns, [{ path: "tienda/precios", reason: "Phishing" }]);
-      await page.screenshot({ path: join(output, "account-administration.png") });
+      await page.keyboard.press("Escape");
+      await until(
+        page,
+        "the product settings dialog to finish closing",
+        () => document.querySelector("dialog") === null,
+      );
+      const marker = "// newest edit before central administration";
+      await page.locator(".topbar .account-button").click();
+      const link = menu.getByRole("menuitem", { name: en.account.administration, exact: true });
+      assert.equal(await link.getAttribute("href"), target);
+      assert.equal(await link.getAttribute("target"), null);
+      await settled(page);
+      await page.screenshot({ path: join(output, "central-navigation-owner.png") });
+      await page.keyboard.press("Escape");
+      // Edit after the screenshot, then leave immediately through the real control. Do not clear
+      // storage: that means another tab changed the project, which the keeper must respect.
+      await page.locator(".code-input").fill((await code(page)) + "\n" + marker + "\n");
+      await analysed(page);
+      await page.locator(".topbar .account-button").click();
+      assert.ok((await code(page)).includes(marker), "the edit is still present before navigation");
+      const pages = context.pages().length;
+      await Promise.all([page.waitForURL(target), link.click()]);
+      assert.equal(context.pages().length, pages, "administration stays in this tab");
+      await assertBrowserProjectKept(context, origin, marker);
+      assert.deepEqual(administration, [], "Diagrams no longer calls an administration API");
     },
   }),
   signedIn({
-    name: "administration: an invitee accepts, and a plain person has no Administration",
+    name: "central account navigation: an invited Spanish account follows the administration deep link without accepting in Diagrams",
+    locale: "es-CL",
     answer: (origin) =>
       cookieAnswer(origin, {
         administrationInvitation: {
@@ -5938,107 +5904,97 @@ const tests: Test[] = [
           expiresAt: "2026-11-05T12:00:00.000Z",
         },
       }),
-    async run({ page, context, origin }) {
-      const admin = new AdminDouble();
-      await context.route(/\/api\/admin(\/[^?]*)?(\?.*)?$/, admin.handle);
-      const a = en.accountPanel.administration;
-      // A plain person first: no tab, and the deep link opens Profile.
-      await context.unroute("**/api/session");
-      await context.route("**/api/session", (route) =>
+    async run({ page, context, origin, url }) {
+      const administration: string[] = [];
+      await context.route(/\/api\/admin(?:\/|\?|$)/, (route) => {
+        administration.push(route.request().url());
+        return route.fulfill({ status: 404, json: { code: "not-found" } });
+      });
+      const target = origin + "/admin/diagrams/access?lang=es&environment=production";
+      await context.route(target, (route) =>
         route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify(cookieAnswer(origin)),
+          contentType: "text/html",
+          body: "<!doctype html><html lang=es><title>Central navigation fixture</title><h1>Administración central</h1></html>",
         }),
       );
-      await page.goto(new URL("?account=administration", page.url()).href);
-      await ready(page);
-      const panel = page.locator("dialog.settings[open]");
-      await panel.waitFor();
-      assert.equal(
-        await panel.locator('[role="tab"][aria-selected="true"]').getAttribute("data-section"),
-        "profile",
+      await page.locator(".topbar .account-button").click();
+      const link = page
+        .locator("#menu-account")
+        .getByRole("menuitem", { name: es.account.administrationInvitation, exact: true });
+      assert.equal(await link.getAttribute("href"), target);
+      assert.equal(await link.getAttribute("target"), null);
+      await settled(page);
+      await page.screenshot({ path: join(output, "central-navigation-invitee-es.png") });
+      await page.keyboard.press("Escape");
+      const pages = context.pages().length;
+      await page.goto(
+        new URL("?account=administration&environment=staging&token=discarded#discarded", url).href,
       );
-      assert.equal(await panel.locator('[role="tab"][data-section="administration"]').count(), 0);
-      assert.equal(admin.requests.length, 0);
-      // The invitee: the invitation alone, accepted.
-      let accepted = false;
-      await context.unroute("**/api/session");
-      await context.route("**/api/session", (route) =>
-        route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify(
-            accepted
-              ? cookieAnswer(origin, { administration: { role: "administrator" } })
-              : cookieAnswer(origin, {
-                  administrationInvitation: {
-                    id: "0123456789abcdef0123456789abcdef",
-                    invitedBy: { name: "Guillmar Ortiz" },
-                    expiresAt: "2026-11-05T12:00:00.000Z",
-                  },
-                }),
-          ),
-        }),
-      );
-      admin.onAccept = () => {
-        accepted = true;
-        admin.role = "administrator";
-      };
-      await page.goto(new URL("?account=administration", page.url()).href);
-      await ready(page);
-      const section = page.locator(
-        'dialog.settings[open] [data-section="administration"].account-section',
-      );
-      await section.getByText(a.invitationBody("Guillmar Ortiz")).waitFor();
-      await section.getByRole("button", { name: a.accept }).click();
-      await page
-        .locator('dialog.settings[open] [data-part="administrators"]')
-        .waitFor({ timeout: 10_000 });
-      assert.equal(
-        await page.locator('dialog.settings[open] [data-part="invitations"]').count(),
-        0,
-        "an administrator has no Invitations part",
+      await page.waitForURL(target);
+      assert.equal(context.pages().length, pages);
+      const destination = new URL(page.url());
+      assert.deepEqual(Object.fromEntries(destination.searchParams), {
+        lang: "es",
+        environment: "production",
+      });
+      assert.equal(destination.hash, "");
+      assert.deepEqual(
+        administration,
+        [],
+        "acceptance and administrative data belong to the central console",
       );
     },
   }),
   signedIn({
-    name: "administration: an administrator removed while the page is open loses the tab at the next action",
-    allowedErrors: [/status of 404/],
-    answer: (origin) => cookieAnswer(origin, { administration: { role: "administrator" } }),
-    async run({ page, context, origin }) {
-      const admin = new AdminDouble();
-      admin.role = "administrator";
-      await context.route(/\/api\/admin(\/[^?]*)?(\?.*)?$/, admin.handle);
-      await page.goto(new URL("?account=administration", page.url()).href);
-      await ready(page);
-      const a = en.accountPanel.administration;
-      const permission = page.locator(
-        'dialog.settings[open] [data-permission="unbranded-exports"]',
-      );
-      await permission.waitFor();
-      // The owner removes the person: the Worker answers 404, and the session says no role.
-      admin.gone = true;
-      await context.unroute("**/api/session");
-      await context.route("**/api/session", (route) =>
+    name: "central account navigation: the actual staging origin selects staging and keeps work before opening Meltemi account",
+    hostedOrigin: "https://staging.diagrams.meltemi.dev",
+    expectedNavigations: ["https://id.meltemi.dev/account/profile?lang=en&environment=staging"],
+    answer: (origin) => ({
+      ...(cookieAnswer(origin, { administration: { role: "administrator" } }) as Record<
+        string,
+        unknown
+      >),
+      account: "https://id.meltemi.dev/ignored?environment=production#discarded",
+    }),
+    async run({ page, context, origin, url }) {
+      assert.equal(origin, "https://staging.diagrams.meltemi.dev");
+      const target = "https://id.meltemi.dev/account/profile?lang=en&environment=staging";
+      await context.route(target, (route) =>
         route.fulfill({
-          status: 200,
-          contentType: "application/json",
-          body: JSON.stringify(cookieAnswer(origin)),
+          contentType: "text/html",
+          body: "<!doctype html><html lang=en><title>Central account fixture</title><h1>Meltemi account</h1></html>",
         }),
       );
-      await permission.getByLabel(a.grantTo).fill("ben@example.com");
-      await permission.getByRole("button", { name: a.grant }).click();
-      const panel = page.locator("dialog.settings[open]");
-      await panel
-        .locator('[role="tab"][aria-selected="true"][data-section="profile"]')
-        .waitFor({ timeout: 10_000 });
-      assert.equal(await panel.locator('[role="tab"][data-section="administration"]').count(), 0);
+      await page.goto(new URL("?environment=production#discarded", url).href);
+      await ready(page);
+      const marker = "// newest edit before central account from staging";
+      await page.locator(".topbar .account-button").click();
+      const menu = page.locator("#menu-account");
+      const link = menu.getByRole("menuitem", { name: en.account.meltemiAccount, exact: true });
+      assert.equal(await link.getAttribute("href"), target);
+      assert.equal(await link.getAttribute("target"), null);
+      assert.equal(
+        await menu
+          .getByRole("menuitem", { name: en.account.administration, exact: true })
+          .getAttribute("href"),
+        "https://id.meltemi.dev/admin/diagrams/access?lang=en&environment=staging",
+      );
+      await settled(page);
+      await page.screenshot({ path: join(output, "central-navigation-staging.png") });
+      await page.keyboard.press("Escape");
+      await page.locator(".code-input").fill((await code(page)) + "\n" + marker + "\n");
+      await analysed(page);
+      await page.locator(".topbar .account-button").click();
+      assert.ok((await code(page)).includes(marker), "the edit is still present before navigation");
+      const pages = context.pages().length;
+      await Promise.all([page.waitForURL(target), link.click()]);
+      assert.equal(context.pages().length, pages, "the central account stays in this tab");
+      await assertBrowserProjectKept(context, origin, marker);
     },
   }),
   // The donation path (`unbranded-by-donation`): the export dialog's line and Profile's Support
-  // Meltemi Diagrams for a person who is not entitled, the claim while the panel is open, and the
-  // Administration section's Sponsorships.
+  // Meltemi Diagrams for a person who is not entitled, and the claim while the panel is open.
+  // Sponsorship administration belongs to the central console, outside this product panel.
   signedIn({
     name: "donation: a person who may donate sees the line under Theme, opening the sponsors page in a new tab, and no box",
     answer: (origin) => donorAnswer(origin),
@@ -6277,85 +6233,54 @@ const tests: Test[] = [
     },
   }),
   signedIn({
-    name: "administration: the Sponsorships part lists the donations, and Grant by hand points to the Grant field",
-    answer: (origin) => cookieAnswer(origin, { administration: { role: "owner" } }),
-    async run({ page, context }) {
-      const admin = new AdminDouble();
-      admin.sponsorships = [
-        {
-          login: "ben",
-          type: "User",
-          oneTime: false,
-          amountCents: 1000,
-          status: "active",
-          createdAt: "2026-11-04T10:00:00.000Z",
-          privacy: "private",
-          claimedBy: null,
-        },
-        {
-          login: "ana-dev",
-          type: "User",
-          oneTime: true,
-          amountCents: 550,
-          status: "active",
-          createdAt: "2026-11-03T10:00:00.000Z",
-          privacy: "public",
-          claimedBy: { sub: "u-ana", name: "Ana", handle: null, email: "ana@example.com" },
-        },
-      ];
-      admin.extraLog = [
-        {
-          at: "2026-11-04T10:30:00.000Z",
-          by: { sub: "github-sponsors", name: "GitHub Sponsors" },
-          action: "grant",
-          target: { sub: "u-ana", name: "Ana" },
-          detail: "unbranded-exports (ana-dev)",
-        },
-      ];
-      await context.route(/\/api\/admin(\/[^?]*)?(\?.*)?$/, admin.handle);
-      await page.goto(new URL("?account=administration", page.url()).href);
+    name: "central account navigation: an ordinary account deep link opens product Profile without administration",
+    async run({ page, context, origin, url }) {
+      const administration: string[] = [];
+      await context.route(/\/api\/admin(?:\/|\?|$)/, (route) => {
+        administration.push(route.request().url());
+        return route.fulfill({ status: 404, json: { code: "not-found" } });
+      });
+      await page.goto(new URL("?account=administration&environment=staging", url).href);
       await ready(page);
       const panel = page.locator("dialog.settings[open]");
-      const a = en.accountPanel.administration;
-      const part = panel.locator('[data-part="sponsorships"]');
-      await part.waitFor();
-      assert.equal(await part.getByRole("heading", { name: a.sponsorshipsTitle }).count(), 1);
-      // After Permissions, before the takedown.
+      await panel.waitFor();
+      assert.equal(
+        await panel.locator('[role="tab"][aria-selected="true"]').getAttribute("data-section"),
+        "profile",
+      );
       assert.deepEqual(
-        await panel
-          .locator("[data-part]")
-          .evaluateAll((parts) => parts.map((p) => (p as HTMLElement).dataset["part"])),
-        ["administrators", "invitations", "permissions", "sponsorships", "takedown", "log"],
+        await panel.getByRole("tab").allTextContents(),
+        Object.values(en.accountPanel.sections),
       );
-      const ben = part.locator('[data-sponsorship="ben"]');
-      assert.equal(await ben.locator("strong").textContent(), "ben");
-      assert.match(
-        (await ben.locator(".token-meta").textContent()) ?? "",
-        /^monthly · US\$10 · Unclaimed · /,
+      assert.equal(await panel.getByRole("tab").count(), 7);
+      assert.equal(
+        await panel.locator('[data-section="administration"], .administration-section').count(),
+        0,
       );
-      assert.equal(await ben.getByText(a.privateSponsor).count(), 1);
-      const ana = part.locator('[data-sponsorship="ana-dev"]');
-      assert.match((await ana.textContent()) ?? "", /one-time · US\$5\.50 · Claimed by Ana/);
-      assert.equal(await ana.getByRole("button").count(), 0);
-      await panel
-        .locator('[data-part="log"]')
-        .getByText("GitHub Sponsors granted Export without the Meltemi branding to Ana (ana-dev)")
-        .waitFor();
-      await settled(page);
-      await part.screenshot({ path: join(output, "account-administration-sponsorships.png") });
-      await ben.getByRole("button", { name: a.grantByHandLabel("ben") }).click();
-      const field = panel.locator('[data-permission="unbranded-exports"]').getByLabel(a.grantTo);
-      assert.equal(await field.getAttribute("placeholder"), "ben");
-      assert.equal(await field.evaluate((input) => input === document.activeElement), true);
-      // No sponsorships: no part.
-      admin.sponsorships = [];
-      await field.fill("ben@example.com");
-      await panel
-        .locator('[data-permission="unbranded-exports"]')
-        .getByRole("button", { name: a.grant })
-        .click();
-      await panel.locator('[data-permission="unbranded-exports"] [data-sub="u-ben"]').waitFor();
-      assert.equal(await panel.locator('[data-part="sponsorships"]').count(), 0);
+      assert.equal(new URL(page.url()).searchParams.has("account"), false);
+      assert.equal(new URL(page.url()).origin, origin);
+      await page.keyboard.press("Escape");
+      await page.locator(".topbar .account-button").click();
+      const menu = page.locator("#menu-account");
+      assert.equal(
+        await menu.getByRole("menuitem", { name: en.account.meltemiAccount, exact: true }).count(),
+        1,
+      );
+      assert.equal(
+        await menu.getByRole("menuitem", { name: en.account.account, exact: true }).count(),
+        1,
+      );
+      assert.equal(
+        await menu.getByRole("menuitem", { name: en.account.administration, exact: true }).count(),
+        0,
+      );
+      assert.equal(
+        await menu
+          .getByRole("menuitem", { name: en.account.administrationInvitation, exact: true })
+          .count(),
+        0,
+      );
+      assert.deepEqual(administration, []);
     },
   }),
   signedIn({
@@ -6651,10 +6576,7 @@ const tests: Test[] = [
       await panel.waitFor();
       assert.deepEqual(
         await panel.getByRole("tab").allTextContents(),
-        // Ana has no role: no Administration tab.
-        Object.entries(es.accountPanel.sections)
-          .filter(([section]) => section !== "administration")
-          .map(([, name]) => name),
+        Object.values(es.accountPanel.sections),
       );
       await panel.getByRole("tab", { name: es.accountPanel.sections.devices }).click();
       await panel.getByText("Firefox en Android").waitFor();
@@ -6783,7 +6705,11 @@ const tests: Test[] = [
       await page.waitForTimeout(200);
       assert.equal(usage.requests, 1);
       assert.equal(await page.locator(".account-usage").isVisible(), false, "no numbers, no block");
-      assert.equal(await menu.getByRole("menuitem").count(), 3, "the menu is whole");
+      assert.deepEqual(
+        await menu.getByRole("menuitem").allTextContents(),
+        [en.account.meltemiAccount, en.account.account, en.account.tokens, en.account.signOut],
+        "the complete account menu remains available when usage cannot be read",
+      );
       await page.keyboard.press("Escape");
 
       // An answer that is not what the contract says is no answer either.
@@ -6891,7 +6817,12 @@ const tests: Test[] = [
       assert.equal(await button.locator(".account-avatar.outline").count(), 1);
       await button.click();
       const entries = await page.locator("#menu-account").getByRole("menuitem").allTextContents();
-      assert.deepEqual(entries, ["Account", "API tokens", "Sign out"]);
+      assert.deepEqual(entries, [
+        en.account.meltemiAccount,
+        en.account.account,
+        en.account.tokens,
+        en.account.signOut,
+      ]);
     },
   }),
   signedIn({
@@ -7271,7 +7202,6 @@ async function shareByLink(context: BrowserContext, answer: { found: boolean }):
 
 async function main(): Promise<void> {
   const { server, origin } = await serve();
-  const url = `${origin}/index.html`;
   const browser: Browser = await chromium.launch({ executablePath: browserPath(), headless: true });
   let failed = 0;
   // Texts separated by `|`: the tests whose name holds any of them.
@@ -7299,12 +7229,35 @@ async function main(): Promise<void> {
       });
       if (test.init) await context.addInitScript(test.init);
       const page = await context.newPage();
+      const pageOrigin = test.hostedOrigin ?? origin;
+      const url = `${pageOrigin}/index.html`;
+      if (test.hostedOrigin) {
+        // Exercise the actual staging origin with built local bytes: no DNS, TLS or network call.
+        await context.route(`${test.hostedOrigin}/**`, async (route) => {
+          const path = decodeURIComponent(new URL(route.request().url()).pathname);
+          const file = normalize(join(dist, path.endsWith("/") ? `${path}index.html` : path));
+          if (!file.startsWith(dist + sep) || !existsSync(file))
+            return route.fulfill({ status: 404 });
+          return route.fulfill({
+            path: file,
+            contentType: TYPES[extname(file)] ?? "application/octet-stream",
+          });
+        });
+      }
       const outside: string[] = [];
       const errors: string[] = [];
       context.on("request", (request) => {
         const target = request.url();
         // The browser's own pages (its downloads list) are not the page's requests.
-        if (/^(https?|wss?|ftp):/.test(target) && !target.startsWith(`${origin}/`))
+        const expectedNavigation =
+          request.isNavigationRequest() &&
+          request.frame() === page.mainFrame() &&
+          test.expectedNavigations?.includes(target);
+        if (
+          /^(https?|wss?|ftp):/.test(target) &&
+          !target.startsWith(`${pageOrigin}/`) &&
+          !expectedNavigation
+        )
           outside.push(target);
       });
       page.on("pageerror", (error) => errors.push(error.message));
@@ -7312,7 +7265,7 @@ async function main(): Promise<void> {
         if (message.type() === "error") errors.push(message.text());
       });
       try {
-        await test.setup?.({ page, context, origin });
+        await test.setup?.({ page, context, origin: pageOrigin });
         await page.goto(url);
         await ready(page);
         await test.run({ page, context, url });

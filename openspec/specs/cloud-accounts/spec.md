@@ -301,7 +301,7 @@ store SHALL set the three with `setUnbrandedExports(sub, on, by, at)`, answering
 administrator SHALL list its holders with `GET /api/admin/permissions/unbranded-exports`, read one
 account's with `GET /api/admin/accounts/<account>/permissions/unbranded-exports` and set it with
 `PUT` on the same path and `{ "granted": true | false }`, recording the caller's `sub` and the
-time, from the routes or from the account panel's Administration section; `<account>` SHALL be an
+time, from the routes or through the central administration console; `<account>` SHALL be an
 account id, `@<handle>` or an email ("An account without a list of users"). A sponsorship claim
 (`sponsorship-entitlement`, "The claim") SHALL set the same three columns with the grantor
 `github-sponsors`. Each change SHALL be logged ("The administration log"). The routes SHALL

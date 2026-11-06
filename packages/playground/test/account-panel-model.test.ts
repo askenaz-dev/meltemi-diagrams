@@ -5,7 +5,6 @@
 import { describe, expect, it } from "vitest";
 import {
   ACCOUNT_SECTIONS,
-  visibleSections,
   AccountPanelModel,
   accountPageAddress,
   deviceLabel,
@@ -110,7 +109,7 @@ function panel(host = fakeHost(), handle: string | null = null) {
 }
 
 describe("the sections and the address", () => {
-  it("lists eight sections in order, Administration only for whom it is", () => {
+  it("lists seven personal product sections without Administration", () => {
     expect(ACCOUNT_SECTIONS).toEqual([
       "profile",
       "signins",
@@ -118,21 +117,10 @@ describe("the sections and the address", () => {
       "tokens",
       "apps",
       "usage",
-      "administration",
       "danger",
     ]);
-    const plain = { administration: null, administrationInvitation: null };
-    expect(visibleSections(plain)).not.toContain("administration");
-    expect(visibleSections(plain)).toHaveLength(7);
-    expect(visibleSections({ ...plain, administration: { role: "owner" } })).toContain(
-      "administration",
-    );
-    expect(
-      visibleSections({
-        ...plain,
-        administrationInvitation: { id: "x", invitedBy: "", expiresAt: "" },
-      }),
-    ).toContain("administration");
+    expect(sectionFrom("administration")).toBe("administration");
+    expect(ACCOUNT_SECTIONS).not.toContain("administration");
   });
 
   it("reads the section an address asks for, Profile for one that does not exist, none for none", () => {

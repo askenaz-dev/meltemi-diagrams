@@ -135,18 +135,20 @@ describe("the account and tokens words", () => {
     }
   });
 
-  it("name the account the way the identity service does", () => {
+  it("distinguish the family account from product settings in both languages", () => {
     expect(en.account).toMatchObject({
       signIn: "Sign in",
       menu: "Account",
-      account: "Account",
+      account: "Diagrams settings",
+      meltemiAccount: "Meltemi account",
       tokens: "API tokens",
       signOut: "Sign out",
     });
     expect(es.account).toMatchObject({
       signIn: "Iniciar sesión",
       menu: "Cuenta",
-      account: "Cuenta",
+      account: "Ajustes de Diagrams",
+      meltemiAccount: "Cuenta Meltemi",
       tokens: "Tokens de API",
       signOut: "Cerrar sesión",
     });

@@ -57,12 +57,12 @@ async function exportSvg(page: Page, unbranded: boolean | null): Promise<string>
 const heightOf = (svg: string) => Number(/<svg[^>]*\sheight="([\d.]+)"/.exec(svg)?.[1]);
 const framed = (svg: string) => /data-role="frame"/.test(svg) || svg.includes("meltemi-wind");
 
-/** Opens the account panel at Profile. */
+/** Opens the product's Diagrams settings at Profile, rather than the central Meltemi account. */
 async function openProfile(page: Page) {
   await page.locator(".topbar .account-button").click();
   await page
     .locator("#menu-account")
-    .getByRole("menuitem", { name: "Account", exact: true })
+    .getByRole("menuitem", { name: "Diagrams settings", exact: true })
     .click();
   const panel = page.locator("dialog.settings[open]");
   await panel.waitFor();
@@ -201,7 +201,10 @@ export const unbrandedScenarios: Scenario[] = [
       await noDialog(page);
 
       await page.locator(".topbar .account-button").click();
-      await page.locator("#menu-account").getByRole("menuitem").first().click();
+      await page
+        .locator("#menu-account")
+        .getByRole("menuitem", { name: "Ajustes de Diagrams", exact: true })
+        .click();
       const panel = page.locator("dialog.settings[open]");
       await panel.waitFor();
       await panel.getByRole("tab", { name: "Perfil" }).click();

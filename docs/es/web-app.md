@@ -383,16 +383,16 @@ administrador habilite en tu cuenta se ve en la siguiente carga.
 de identidad, `id.meltemi.dev`, y te devuelve a la página en la que estabas; antes de salir, la
 página guarda tu proyecto en el navegador. Todo lo demás funciona como antes y no se envía nada.
 
-**Con la sesión iniciada**, la cabecera muestra tu avatar y tu nombre, con un menú de tres entradas,
-y una cuarta para las personas que administran el servicio o están invitadas a hacerlo:
+**Con la sesión iniciada**, la cabecera muestra tu avatar y tu nombre, con entradas separadas para tu cuenta Meltemi, los ajustes del producto y la administración:
 
-| Entrada                      | Hace                                                                                                      |
-| ---------------------------- | --------------------------------------------------------------------------------------------------------- |
-| **Cuenta**                   | Abre el panel de la cuenta en Perfil, en esta página                                                      |
-| **Tokens de API**            | Abre el panel de la cuenta en Tokens de API                                                               |
-| **Administración**           | Para un propietario o un administrador del servicio: abre el panel de la cuenta en Administración         |
-| **Invitación a administrar** | Para una persona a la que un propietario invitó a administrar el servicio: abre el panel en la invitación |
-| **Cerrar sesión**            | Termina la sesión en el servicio de identidad y vuelve a la página                                        |
+| Entrada                      | Hace                                                                               |
+| ---------------------------- | ---------------------------------------------------------------------------------- |
+| **Cuenta Meltemi**           | Abre el perfil personal central en Identity, conservando el idioma y el entorno    |
+| **Ajustes de Diagrams**      | Abre el panel de ajustes del producto en Perfil, en esta página                    |
+| **Tokens de API**            | Abre el panel de la cuenta en Tokens de API                                        |
+| **Administración**           | Para un propietario o administrador: abre la página central de acceso a Diagrams   |
+| **Invitación a administrar** | Para una persona invitada: abre la invitación en la misma página central de acceso |
+| **Cerrar sesión**            | Termina la sesión en el servicio de identidad y vuelve a la página                 |
 
 Debajo de las entradas el menú muestra lo que contiene tu cuenta, leído al abrir el menú: cuántos de
 los 100 proyectos que admite tiene y cuánto de sus 200 MiB de almacenamiento usa, como en "3 de 100
@@ -402,7 +402,7 @@ proyectos en la nube.
 
 ### El panel de la cuenta
 
-La cuenta es un panel en la página, nunca una pestaña, una ventana emergente ni un marco: una lista
+Ajustes de Diagrams es un panel del producto en la página, nunca una pestaña, una ventana emergente ni un marco: una lista
 de secciones a la izquierda y la elegida a su lado, o, en una pantalla estrecha, una hoja sobre toda
 la página con las secciones como una tira de pestañas arriba. Las flechas, Inicio y Fin pasan de una
 sección a otra; Escape y el botón de cerrar vuelven a la página.
@@ -415,7 +415,6 @@ sección a otra; Escape y el botón de cerrar vuelven a la página.
 | **Tokens de API**           | Los tokens que permiten que la línea de comandos y los scripts actúen como tú (más abajo)                                                                                                                                                                                                                                                                                     |
 | **Aplicaciones conectadas** | Los agentes que autorizaste con el inicio de sesión del endpoint MCP (Codex, por ejemplo): qué puede hacer cada uno, cuándo actuó por última vez y **Revocar**, que termina su acceso al instante ([la nube](cloud.md))                                                                                                                                                       |
 | **Uso**                     | Tus proyectos y tu almacenamiento frente a sus límites, y los límites de los archivos, el tamaño y las versiones de un proyecto y de una imagen                                                                                                                                                                                                                               |
-| **Administración**          | Solo para las personas que administran el servicio, o están invitadas a hacerlo (más abajo): los administradores, las invitaciones, los permisos de las cuentas, la retirada de una publicación y los cambios recientes                                                                                                                                                       |
 | **Zona de peligro**         | Eliminar la cuenta: lo que borra, y el camino a la página del servicio de identidad donde lo confirmas                                                                                                                                                                                                                                                                        |
 
 Inicios de sesión y Dispositivos son lo que guarda el servicio de identidad; la página le pregunta a
@@ -450,29 +449,20 @@ un hash. Una cuenta tiene como máximo 20. Un token autentica la API del servici
 `Authorization: Bearer`, que es como lo usan los comandos de la nube de la línea de comandos
 ([los tokens de API](cloud.md#tokens-de-api), [la línea de comandos](cli.md#los-comandos-de-la-nube)).
 
-**Administración** solo está para los propietarios del servicio, las cuentas que nombra su
-configuración, para los administradores que invitó un propietario y para una persona con una
-invitación a administrar; nadie más ve la pestaña, y `?account=administration` le abre Perfil
-([administración](cloud.md#administración)). Un propietario o un administrador encuentra cinco
-partes, y una sexta cuando el servicio recibió donaciones:
+**Administración** e **Invitación a administrar** abren la [página central de acceso a Diagrams](https://id.meltemi.dev/admin/diagrams/access?lang=es&environment=production)
+en la misma pestaña, después de guardar tu trabajo del navegador. La consola central contiene
+acceso e invitaciones, permisos, patrocinios, publicaciones y actividad reciente. Los propietarios
+pueden invitar y quitar administradores; las personas invitadas aceptan o rechazan allí. Identity
+comprueba la sesión vigente y el backend del producto comprueba el rol en cada operación. El
+panel de ajustes del producto no tiene pestaña Administración ni hace solicitudes de administración.
 
-| Parte                       | Contiene                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Administradores**         | Los propietarios, marcados como **Propietario**, y después los administradores con quién los invitó y desde cuándo. Un propietario quita a un administrador, tras una pregunta que lo nombra; un administrador se va, desde su propia fila                                                                                                                                                                                                                                                                                      |
-| **Invitaciones**            | Para los propietarios: un correo que invitar e **Invitar**, y las invitaciones pendientes con quién invitó y cuándo caduca cada una, y **Revocar**. No se envía ningún correo: avisa a la persona, que inicia sesión con ese correo                                                                                                                                                                                                                                                                                             |
-| **Permisos**                | Cada permiso, primero **Exportar sin la marca de Meltemi**, con las cuentas que lo tienen, quién lo concedió y cuándo (GitHub Sponsors para una donación), y **Revocar**; **Conceder a** toma un identificador de cuenta, `@alias` o el correo con el que la persona inicia sesión                                                                                                                                                                                                                                              |
-| **Patrocinios**             | Solo cuando los hay: las donaciones de las que GitHub Sponsors avisó al servicio, la más reciente primero, cada una con el usuario de GitHub de quien patrocina (marcado como privado, o como organización), única o mensual, el importe en dólares estadounidenses, una cancelación, quién la reclamó o **Sin reclamar** con **Conceder a mano**, y la fecha. Conceder a mano lleva al campo Conceder a del permiso con el usuario como pista: escribe el identificador de cuenta, el alias o el correo que dé quien patrocina |
-| **Retirar una publicación** | La dirección de una página publicada y un motivo; tras una confirmación que nombra la dirección la página desaparece y su propietario la ve retirada por el servicio                                                                                                                                                                                                                                                                                                                                                            |
-| **Cambios recientes**       | Los últimos cincuenta actos de administración, primero el más reciente: quién invitó, aceptó, quitó, concedió, revocó o retiró qué, y cuándo; la concesión de una donación dice "GitHub Sponsors concedió Exportar sin la marca de Meltemi a Ana (ana)"                                                                                                                                                                                                                                                                         |
-
-No hay una lista de las cuentas del servicio: una cuenta se encuentra solo por su identificador, su
-alias o el único correo con el que inicia sesión, así que una persona que nunca inició sesión, o un
-correo que comparten dos cuentas, se responde con palabras (pide a la persona que inicie sesión una
-vez, o el identificador de cuenta que muestra su Perfil). Una persona invitada ve solo la
-invitación: quién la invitó, lo que pueden hacer los administradores (conceder permisos a cuentas,
-retirar cualquier publicación), cuándo caduca, **Aceptar** y **Rechazar**. Aceptar vuelve a leer la
-sesión y muestra la sección entera; rechazar quita la pestaña. Iniciar sesión, por sí solo, no hace
-administrador a nadie, y un administrador al que quitan pierde la pestaña en su siguiente acción.
+Los enlaces conservan el idioma de la interfaz y eligen explícitamente `environment=production` en
+el sitio de producción, o `environment=staging` en `https://staging.diagrams.meltemi.dev`. El enlace
+**Cuenta Meltemi** también conserva esa selección. Un parámetro de la dirección de Diagrams no
+puede cambiar el entorno elegido. `?account=administration` lleva a un propietario, administrador
+o persona invitada a la misma página central de acceso; para otra cuenta con sesión abre el Perfil
+del producto. Docker local no tiene enlaces a la cuenta central ni a la administración y conserva
+su control de preparación del agente.
 
 Iniciar sesión añade tus proyectos en la nube al panel Proyectos del explorador
 ([proyectos en la nube](#proyectos-en-la-nube)) y no cambia nada más: el proyecto de tu navegador se queda donde está, no se sube nada hasta que
