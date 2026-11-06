@@ -16,7 +16,7 @@ import { resolveSecrets } from "./secrets.js";
 import { d1Store } from "./store/d1.js";
 import type { Env } from "./env.js";
 import type { Deps } from "./types.js";
-import { createVerifier } from "./verifier.js";
+import { createAdministrationVerifier, createVerifier } from "./verifier.js";
 
 /** The verifier, kept for the life of the isolate (its caches belong to it) and renewed when its settings change. */
 let cached: { key: string; verifier: SessionVerifier } | undefined;
@@ -26,6 +26,30 @@ function verifierFor(env: Env): SessionVerifier {
   if (cached?.key !== key)
     cached = { key, verifier: createVerifier(env, (i, init) => fetch(i, init)) };
   return cached.verifier;
+}
+
+/** Shared hosted resources; callers can supply the stricter private administration verifier. */
+export function cloudDeps(env: Env, verifier: SessionVerifier = verifierFor(env)): Deps {
+  return {
+    store: d1Store(env.DB),
+    oauthStore: d1OAuthStore(env.DB),
+    rooms: durableRooms(env.ROOMS),
+    verifier,
+    assets: env.ASSETS,
+    now: () => new Date(),
+    randomBytes: (length) => crypto.getRandomValues(new Uint8Array(length)),
+    fetch: (input, init) => fetch(input, init),
+    renderers: durableRenderers(env.RENDERERS),
+    publicFetch: (input, init) => fetch(input, init),
+  };
+}
+
+/** Keep platform fetch construction at the existing audited I/O boundary. */
+export function administrationDeps(env: Env): Deps {
+  return cloudDeps(
+    env,
+    createAdministrationVerifier(env, (input, init) => fetch(input, init)),
+  );
 }
 
 export default {
@@ -41,19 +65,7 @@ export default {
       console.error(`cloud: ${error.message}`);
       return errorResponse(fail("internal"));
     }
-    const deps: Deps = {
-      store: d1Store(env.DB),
-      oauthStore: d1OAuthStore(env.DB),
-      rooms: durableRooms(env.ROOMS),
-      verifier,
-      assets: env.ASSETS,
-      now: () => new Date(),
-      randomBytes: (length) => crypto.getRandomValues(new Uint8Array(length)),
-      fetch: (input, init) => fetch(input, init),
-      renderers: durableRenderers(env.RENDERERS),
-      publicFetch: (input, init) => fetch(input, init),
-    };
-    return cloud(request, env, deps);
+    return cloud(request, env, cloudDeps(env, verifier));
   },
 
   /**

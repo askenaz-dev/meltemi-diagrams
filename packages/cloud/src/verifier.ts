@@ -51,3 +51,15 @@ export function createVerifier(env: Env, doFetch: typeof fetch): SessionVerifier
     checkSession: settings.dev ? (sid) => devSessionCheck(settings.issuer, sid, doFetch) : true,
   });
 }
+
+/** Administrative service calls never reuse a live-session answer or development's fail-open. */
+export function createAdministrationVerifier(env: Env, doFetch: typeof fetch): SessionVerifier {
+  const settings = readIdentity(env);
+  return sessionVerifier({
+    issuer: settings.issuer,
+    jwks: settings.inlineJwks ?? settings.jwksUrl,
+    fetch: doFetch,
+    checkSession: true,
+    cacheMs: 0,
+  });
+}
