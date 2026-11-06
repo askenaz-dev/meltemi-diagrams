@@ -319,7 +319,7 @@ the code, in English or Spanish, instead of JSON.
 | `POST /api/account/identity/sessions/revoke-others`  | a person signed in on the page                                              | `200`, the same with this session alone                           |
 | `POST /api/account/identity/sessions/<sid>/revoke`   | a person signed in on the page                                              | `200`, the same without that session                              |
 | `POST /api/invitations/<token>/accept`               | a person, with the cookie or a token                                        | `200`, the project, with the role the person now has              |
-| `GET /api/admin`                                     | an owner or an administrator, with the cookie; anyone else gets `404`       | `200`, what the Administration section shows                      |
+| `GET /api/admin`                                     | an owner or an administrator, with the cookie; anyone else gets `404`       | `200`, what the central administration console shows              |
 | `DELETE /api/admin/publications/<handle>/<slug>`     | an owner or an administrator, with the cookie; anyone else gets `404`       | `204`                                                             |
 | `POST /api/admin/invitations`                        | an owner, with the cookie; anyone else gets `404`                           | `201`, the invitation (`200`, the one already pending)            |
 | `DELETE /api/admin/invitations/<id>`                 | an owner, with the cookie; anyone else gets `404`                           | `204`                                                             |
@@ -1869,7 +1869,7 @@ the API is the very thing the publish host exists to prevent.
 ### Takedown
 
 An owner or an administrator of the service ([Administration](#administration)) removes any
-publication, from the account panel's Administration section or with
+publication, through the central administration console or with
 `DELETE /api/admin/publications/<handle>/<slug>`, with an optional `{ "reason" }` (at most 500
 characters, line breaks and tabs allowed, no other control character). The caller must be one of
 them with the cookie, so the `Origin` rule applies: an API token is not accepted even from an owner,
@@ -1911,8 +1911,10 @@ read on every request ([Variables and secrets](#variables-and-secrets)): always 
 removed from the page, and the only ones who invite and remove administrators; unset or empty, the
 service has no owner. The **administrators** are the people an owner invited
 who accepted, rows of `administrators` ([Storage](#storage)); a `sub` listed in `ADMIN_SUBS` that
-also has a row is an owner. They do it from the account panel's Administration section
-([the web app](web-app.md#the-account-panel)), which reads and calls the routes below.
+also has a row is an owner. They use Identity's central console, reached from [the account menu](web-app.md#the-account-panel).
+It invokes the routes below through the [private administration service](central-administration-service.md),
+which verifies a live session and retains these per-action roles. Diagrams has no administration
+forms or browser administration client.
 
 | Act                                          | Owner | Administrator |
 | -------------------------------------------- | ----- | ------------- |
@@ -2060,7 +2062,7 @@ people they name are deleted, and are swept 365 days after they were written.
 ### The administration answer
 
 `GET /api/admin` answers an owner or an administrator, with `Cache-Control: no-store`, everything
-the Administration section shows:
+the central administration console shows:
 
 ```json
 {
@@ -2638,9 +2640,10 @@ Sharing and publishing need nothing more. A publication made from the page is se
 `http://localhost:8788/_published/<handle>/<slug>/`, where the page shows its address. To try
 invitations by email, sign in with a second account (another browser profile) whose email the
 provider verified; an invitation link works for any signed-in person. To try the administration,
-put your `sub` in `ADMIN_SUBS` of `.dev.vars`: the account panel then shows Administration, and an
-invitation to administer is accepted by a second account whose email the provider verified. The
-routes apply the `Origin` rule, so the page's own origin is the one that calls them.
+put your `sub` in `ADMIN_SUBS` of `.dev.vars`: the menu then offers the central Administration
+link. Configure the Identity development console's private binding for this Worker to exercise
+its forms; the [service protocol](central-administration-service.md) documents the named entrypoint
+and the environment boundary. Direct API calls still use the product's own-Origin rule.
 
 ### Without it: a minted session
 

@@ -1,6 +1,6 @@
 // The account in the header. Nobody signed in: a "Sign in" link to the identity service. A person
-// signed in: a button with their avatar and name, and a menu with Account and API tokens (which open
-// the account panel at a section) and "Sign out", and, where the page has cloud projects, what the
+// signed in: a button with their avatar and name, a central Meltemi account link, Diagrams settings,
+// API tokens, administration when available, and "Sign out", plus, where the page has projects, what the
 // account holds (its projects and its storage against their limits, read when the menu opens and
 // never waited for), which opens the panel at Usage. Signing in and out are navigations to the
 // identity service (a link, and a form the page's policy allows), never requests the page makes, so
@@ -11,7 +11,8 @@ import { getLocale } from "@meltemi/diagrams-i18n";
 import { messages } from "../messages/index.js";
 import { ICONS, h, icon } from "../ui.js";
 import { openAccountPanel } from "./account-panel.js";
-import type { AccountSection } from "./account-panel-model.js";
+import type { AccountDestination, AccountSection } from "./account-panel-model.js";
+import { centralAccountAddress, hasAdministration } from "./account-navigation.js";
 import { avatar } from "./avatar.js";
 import { returnAddress, type Session, type SessionUser } from "./session.js";
 import type { Outcome } from "./tokens.js";
@@ -47,8 +48,8 @@ export interface AccountHooks {
 /** The header's account control, and the way to open the account panel at a section. */
 export interface AccountControl {
   readonly element: HTMLElement;
-  /** Opens the account panel at a section; nobody signed in has none. */
-  open(section: AccountSection): void;
+  /** Opens product settings or navigates to central administration; no-op without a cookie session. */
+  open(section: AccountDestination): void;
 }
 
 /** The header's account control for a session: the sign-in link, or the account menu. */
@@ -83,13 +84,20 @@ export function accountControl(session: Session, hooks: AccountHooks): AccountCo
   // What the panel opens with: the session the page started with, until the panel read it again.
   let latest = session;
   const readSession = hooks.readSession;
-  const open = (section: AccountSection): void =>
+  const open = (destination: AccountDestination): void => {
+    if (destination === "administration" && hasAdministration(latest.user)) {
+      hooks.keep();
+      location.assign(
+        centralAccountAddress(latest.account, location.href, getLocale(), destination),
+      );
+      return;
+    }
     openAccountPanel({
       user: latest.user,
       accountPage: latest.account,
       signOut: latest.signOut,
       ...(latest.support ? { support: latest.support } : {}),
-      section,
+      section: destination === "administration" ? "profile" : destination,
       usage: hooks.usage,
       keep: hooks.keep,
       setHandle: hooks.setHandle,
@@ -108,7 +116,11 @@ export function accountControl(session: Session, hooks: AccountHooks): AccountCo
           }
         : {}),
     });
-  return { element: accountMenu(session.user, session.signOut, hooks, open), open };
+  };
+  return {
+    element: accountMenu(session.user, session.account, session.signOut, hooks, open),
+    open,
+  };
 }
 
 function signInAnchor(href: string, hooks: AccountHooks): HTMLElement {
@@ -193,6 +205,7 @@ function usageSection(
 
 function accountMenu(
   user: SessionUser,
+  accountPage: string,
   signOutAction: string,
   hooks: AccountHooks,
   openPanel: (section: AccountSection) => void,
@@ -229,17 +242,26 @@ function accountMenu(
     { type: "button", class: "pg-menu-item", role: "menuitem", tabindex: "-1" },
     entry(m.tokens),
   );
-  // An owner or an administrator reaches the Administration section from here; an invitee, their
-  // invitation. Nobody else has the entry.
+  const centralLink = (text: string, destination: "profile" | "administration") => {
+    const link = h(
+      "a",
+      {
+        class: "pg-menu-item",
+        role: "menuitem",
+        tabindex: "-1",
+        href: centralAccountAddress(accountPage, location.href, getLocale(), destination),
+      },
+      entry(text),
+    );
+    link.addEventListener("click", () => hooks.keep());
+    return link;
+  };
+  const meltemiAccount = centralLink(m.meltemiAccount, "profile");
+  // The central console owns administrative forms and verifies the role freshly.
   const administers = user.administration !== null;
-  const administration =
-    administers || user.administrationInvitation !== null
-      ? h(
-          "button",
-          { type: "button", class: "pg-menu-item", role: "menuitem", tabindex: "-1" },
-          entry(administers ? m.administration : m.administrationInvitation),
-        )
-      : undefined;
+  const administration = hasAdministration(user)
+    ? centralLink(administers ? m.administration : m.administrationInvitation, "administration")
+    : undefined;
   // Sign out is a plain form the identity service reads: its `return_to` is the page, and the
   // policy's `form-action` allows the identity origin the page was built with.
   const returnTo = h("input", { type: "hidden", name: "return_to" });
@@ -264,6 +286,7 @@ function accountMenu(
   const menu = h(
     "div",
     { class: "account-menu", role: "menu", id, "aria-label": m.menu },
+    meltemiAccount,
     accountItem,
     tokens,
     ...(administration ? [administration] : []),
@@ -356,10 +379,6 @@ function accountMenu(
   tokens.addEventListener("click", () => {
     close();
     openPanel("tokens");
-  });
-  administration?.addEventListener("click", () => {
-    close();
-    openPanel("administration");
   });
   return wrapper;
 }

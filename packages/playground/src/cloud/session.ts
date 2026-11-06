@@ -36,7 +36,7 @@ export interface SessionUser {
   readonly administration: { readonly role: "owner" | "administrator" } | null;
   /**
    * The pending invitation to administer addressed to the person's verified email, which the
-   * Administration section of the account panel accepts or declines; null when there is none.
+   * central administration console accepts or declines; null when there is none.
    */
   readonly administrationInvitation: AdministrationInvitation | null;
 }
