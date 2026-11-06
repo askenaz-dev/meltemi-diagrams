@@ -1,4 +1,4 @@
-/* The agent setup page: a static page with no script, so its colours follow the system's theme
+/* The agent setup page: its colours follow the system's theme
    (the playground's tokens, playground.css, light on :root and dark under the media query). */
 
 :root {
@@ -67,7 +67,7 @@ footer {
 }
 
 /* The family's sea at rest (`playground-sea`): the still picture of the system's scheme, a band
-   under the header that the heading stands on. An image, so the page keeps no script. */
+   under the header that the heading stands on. The sea needs no animation script. */
 .setup-sea {
   display: block;
   max-width: 80rem;
@@ -145,6 +145,83 @@ pre {
 /* One click selects the whole prompt, ready to copy. */
 .prompt code {
   user-select: all;
+}
+
+.prompt-box {
+  position: relative;
+  margin: 0.75rem 0;
+}
+
+.prompt-box pre {
+  margin: 0;
+}
+
+.prompt-box.copy-enabled pre {
+  padding-top: 3.5rem;
+}
+
+.copy-prompt {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  color: var(--pg-muted);
+  background: var(--pg-surface);
+  border: 1px solid var(--pg-border);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.copy-prompt[hidden],
+.copy-prompt .icon-copied,
+.copy-prompt[data-state="copied"] .icon-copy {
+  display: none;
+}
+
+.copy-prompt[data-state="copied"] .icon-copied {
+  display: block;
+}
+
+.copy-prompt:hover {
+  color: var(--pg-fg);
+  border-color: var(--pg-muted);
+}
+
+.copy-prompt[data-state="copied"] {
+  color: var(--pg-accent);
+}
+
+.copy-prompt[aria-busy="true"] {
+  cursor: progress;
+}
+
+.copy-prompt:focus-visible,
+.prompt code:focus-visible {
+  outline: 2px solid var(--pg-focus);
+  outline-offset: 2px;
+}
+
+.copy-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.copy-status-error {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0.5rem 0 0;
+  overflow: visible;
+  clip-path: none;
+  color: var(--pg-muted);
+  font-size: 0.875rem;
 }
 
 table {

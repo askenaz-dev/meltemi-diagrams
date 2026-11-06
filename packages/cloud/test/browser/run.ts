@@ -279,6 +279,7 @@ const scenarios: Scenario[] = [
         "/es/agent-setup/",
         "/agent-setup/prompt.md",
         "/agent-setup/agent-setup.css",
+        "/agent-setup/copy-prompt.js",
       ]) {
         const file = await t.ask(path);
         assert.equal(file.status, 200, path);

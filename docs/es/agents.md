@@ -46,6 +46,9 @@ el agente lee la guía; el agente te responde en el tuyo:
 Set up Meltemi Diagrams in this project so you can draw diagrams as code, and prove it works — you'll need terminal access on this machine and Node 22.12 or later. First read https://diagrams.meltemi.dev/agent-setup/prompt.md and follow it. Install the meltemi-diagrams skill for the coding agents this project uses (ask me if it's unclear which) with `npx @meltemi/diagrams-cli@latest skill install`. Then prove it: write a small sequence diagram of one flow of this project, validate it until no diagnostic remains, export the SVG, and show me the validation's last line and where the SVG is. Never sign in to the cloud, never print or commit a token, and don't commit or change my project's configuration beyond the skill folders without asking me first.
 ```
 
+La [página de configuración de agentes](https://diagrams.meltemi.dev/es/agent-setup/) muestra el mismo
+prompt con un botón para copiarlo en su esquina superior derecha.
+
 El agente lee el prompt de configuración en `https://diagrams.meltemi.dev/agent-setup/prompt.md` y
 lo sigue: comprueba Node y la versión de la línea de comandos, instala la skill para los agentes
 que usa tu proyecto (te pregunta cuando no está claro), demuestra que dibuja y te cuenta lo que

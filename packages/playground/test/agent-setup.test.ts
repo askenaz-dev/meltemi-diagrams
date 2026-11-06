@@ -3,8 +3,8 @@ import { describe, expect, it } from "vitest";
 
 /**
  * The agent setup page (decision 0063): two static twins whose commands are the documentation's,
- * whose agents are the command line's table, and which carry no script, inline style or resource
- * from another origin.
+ * whose agents are the command line's table, with one copy module and no inline script/style or
+ * resource from another origin.
  */
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
@@ -51,9 +51,16 @@ const agentRows = (html: string) => {
 
 describe("the agent setup page", () => {
   it.each(Object.entries(PAGES))(
-    "%s has no script, inline style or foreign resource",
-    (_, html) => {
-      expect(html).not.toMatch(/<script/i);
+    "%s has only its copy module, without inline code, style or foreign resources",
+    (file, html) => {
+      const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+      expect(scripts).toHaveLength(1);
+      expect(scripts[0]![1]).toContain('type="module"');
+      expect(scripts[0]![1]).toContain(
+        `src="${file.endsWith("/en.html") ? "copy-prompt.js" : "../../agent-setup/copy-prompt.js"}"`,
+      );
+      expect(scripts[0]![2]!.trim()).toBe("");
+      expect(html).not.toMatch(/\son\w+=/i);
       expect(html).not.toMatch(/\sstyle=/i);
       expect(externalLinks(html)).toEqual([DOCS_LINK]);
       expect(html).toContain('content="{{policy}}"');
@@ -95,6 +102,8 @@ describe("the agent setup page", () => {
     expect(en).toContain('hreflang="es" href="../es/agent-setup/"');
     expect(es).toContain('href="../../agent-setup/prompt.md"');
     expect(es).toContain('href="../../agent-setup/agent-setup.css"');
+    expect(en).toContain('src="copy-prompt.js"');
+    expect(es).toContain('src="../../agent-setup/copy-prompt.js"');
     expect(es).toContain('hreflang="en" href="../../agent-setup/"');
     expect(en).toMatch(/<html lang="en">/);
     expect(es).toMatch(/<html lang="es">/);

@@ -18,7 +18,7 @@ iniciado sesión), y `_headers`, las dos cabeceras que la plataforma de recursos
 nube da a cada archivo de la página (`frame-ancestors 'self'` y `nosniff`; un servidor estático lo
 sirve como un archivo más), y `agent-setup/` con `es/agent-setup/`, la página estática que explica
 cómo dar la skill a los agentes de programación
-([dibujar con agentes de programación](../../es/agents.md)), junto a su hoja de estilo y a
+([dibujar con agentes de programación](../../es/agents.md)), junto a su hoja de estilo, a `agent-setup/copy-prompt.js` y a
 `agent-setup/prompt.md`, el prompt de configuración de la línea de comandos. Cualquier servidor
 estático lo sirve; durante el desarrollo,
 `pnpm preview` sirve el repositorio en `http://localhost:4173/packages/playground/dist/`. La página

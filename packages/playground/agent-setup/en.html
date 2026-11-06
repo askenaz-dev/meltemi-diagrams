@@ -14,6 +14,7 @@
     <link rel="alternate" hreflang="es" href="../es/agent-setup/" />
     <link rel="icon" href="../favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="agent-setup.css" />
+    <script type="module" src="copy-prompt.js"></script>
   </head>
   <body>
     <header class="top">
@@ -42,9 +43,54 @@
         draws a small sequence diagram of one of its flows, validates it until no diagnostic remains
         and tells you where the SVG is.
       </p>
-      <pre
-        class="prompt"
-      ><code>Set up Meltemi Diagrams in this project so you can draw diagrams as code, and prove it works — you'll need terminal access on this machine and Node 22.12 or later. First read https://diagrams.meltemi.dev/agent-setup/prompt.md and follow it. Install the meltemi-diagrams skill for the coding agents this project uses (ask me if it's unclear which) with `npx @meltemi/diagrams-cli@latest skill install`. Then prove it: write a small sequence diagram of one flow of this project, validate it until no diagnostic remains, export the SVG, and show me the validation's last line and where the SVG is. Never sign in to the cloud, never print or commit a token, and don't commit or change my project's configuration beyond the skill folders without asking me first.</code></pre>
+      <div class="prompt-box">
+        <button
+          class="copy-prompt"
+          type="button"
+          aria-label="Copy prompt"
+          title="Copy prompt"
+          data-copy-prompt
+          data-copied="Prompt copied"
+          data-copy-failed="Copy failed. The prompt is selected; copy it manually."
+          hidden
+        >
+          <svg
+            class="icon-copy"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <rect x="9" y="9" width="11" height="11" rx="2" />
+            <path d="M15 9V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h4" />
+          </svg>
+          <svg
+            class="icon-copied"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="m5 12 4 4L19 6" />
+          </svg>
+        </button>
+        <pre
+          class="prompt"
+        ><code>Set up Meltemi Diagrams in this project so you can draw diagrams as code, and prove it works — you'll need terminal access on this machine and Node 22.12 or later. First read https://diagrams.meltemi.dev/agent-setup/prompt.md and follow it. Install the meltemi-diagrams skill for the coding agents this project uses (ask me if it's unclear which) with `npx @meltemi/diagrams-cli@latest skill install`. Then prove it: write a small sequence diagram of one flow of this project, validate it until no diagnostic remains, export the SVG, and show me the validation's last line and where the SVG is. Never sign in to the cloud, never print or commit a token, and don't commit or change my project's configuration beyond the skill folders without asking me first.</code></pre>
+        <p class="copy-status" role="status"></p>
+      </div>
       <p>
         The setup prompt needs the command line 1.10.0 or later; an agent that finds an older one
         says so and stops. An agent without web access prints the same text with

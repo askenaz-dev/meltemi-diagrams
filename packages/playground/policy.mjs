@@ -91,14 +91,15 @@ export function contentSecurityPolicy(identity) {
 }
 
 /**
- * The agent setup pages' Content-Security-Policy (decision 0063): static pages with no script, no
- * connection and no inline style, which load their stylesheet and icon from their own origin.
+ * The agent setup pages' Content-Security-Policy: one same-origin copy module, no connection or
+ * inline script/style, and a stylesheet, still picture and icon from their own origin.
  *
  * @returns {string}
  */
 export function agentSetupPolicy() {
   return [
     "default-src 'none'",
+    "script-src 'self'",
     "style-src 'self'",
     "img-src 'self'",
     "base-uri 'none'",

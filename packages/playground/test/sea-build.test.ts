@@ -65,15 +65,18 @@ describe("the agent setup pages' sea", () => {
           file,
         );
       }
-      // Above the heading, and still a page with no script.
+      // Above the heading. The only script is the copy enhancement; the sea stays an image.
       expect(html.indexOf('class="setup-sea"')).toBeLessThan(html.indexOf("<h1>"));
-      expect(html).not.toMatch(/<script/i);
+      const scripts = [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"/g)];
+      expect(scripts.map((m) => posix.normalize(posix.join(posix.dirname(page), m[1]!)))).toEqual([
+        "agent-setup/copy-prompt.js",
+      ]);
     },
   );
 
-  it("keeps the pages' policy as decision 0063 set it", () => {
+  it("keeps inline code and connections blocked while allowing the copy enhancement", () => {
     expect(agentSetupPolicy()).toBe(
-      "default-src 'none'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'",
+      "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'",
     );
   });
 

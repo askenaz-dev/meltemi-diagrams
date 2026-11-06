@@ -156,6 +156,12 @@ mkdirSync(join(dist, "es", "agent-setup"), { recursive: true });
 writeFileSync(join(dist, "agent-setup", "index.html"), agentSetupPage("en.html"));
 writeFileSync(join(dist, "es", "agent-setup", "index.html"), agentSetupPage("es.html"));
 copy(join(agentSetup, "agent-setup.css"), join(dist, "agent-setup", "agent-setup.css"));
+await build({
+  ...common,
+  entryPoints: [join(here, "src", "agent-setup-copy.ts")],
+  outfile: join(dist, "agent-setup", "copy-prompt.js"),
+  format: "esm",
+});
 // Their picture: the `diagrams` sea at rest, one file per scheme (design D5).
 for (const [file, picture] of Object.entries(seaStills())) writeFileSync(join(dist, file), picture);
 copy(

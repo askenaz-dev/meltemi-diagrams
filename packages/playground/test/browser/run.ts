@@ -4972,6 +4972,9 @@ const tests: Test[] = [
   {
     name: "shows the agent setup page in English and Spanish, without sideways scroll at 375 pixels",
     viewport: { width: 375, height: 800 },
+    async setup({ context, origin }) {
+      await context.grantPermissions(["clipboard-read", "clipboard-write"], { origin });
+    },
     async run({ page, url }) {
       for (const [path, heading, picture] of [
         ["agent-setup/", "Drawing with coding agents", "agent-setup-en.png"],
@@ -4982,6 +4985,54 @@ const tests: Test[] = [
         const oneLiner = (await page.locator("pre.prompt code").textContent()) ?? "";
         assert.match(oneLiner, /^Set up Meltemi Diagrams in this project/);
         assert.match(oneLiner, /https:\/\/diagrams\.meltemi\.dev\/agent-setup\/prompt\.md/);
+        const spanish = path.startsWith("es/");
+        const copyLabel = spanish ? "Copiar prompt" : "Copy prompt";
+        const copiedLabel = spanish ? "Prompt copiado" : "Prompt copied";
+        const copy = page.getByRole("button", { name: copyLabel, exact: true });
+        assert.equal(await copy.isVisible(), true);
+        await copy.press("Enter");
+        await until(
+          page,
+          "the prompt was copied",
+          () =>
+            document.querySelector("[data-copy-prompt]")?.getAttribute("data-state") === "copied",
+        );
+        assert.equal(await page.evaluate(() => navigator.clipboard.readText()), oneLiner);
+        assert.equal(await page.getByRole("status").textContent(), copiedLabel);
+        assert.equal(await page.getByRole("button", { name: copiedLabel, exact: true }).count(), 1);
+        // A refusal must not keep the success state or silently claim to have copied.
+        await page.evaluate(() => {
+          Object.defineProperty(navigator.clipboard, "writeText", {
+            configurable: true,
+            // A native bound method needs no tsx naming helper inside the serialized fixture.
+            value: Promise.reject.bind(Promise, new Error("clipboard denied by the test")),
+          });
+        });
+        await page.locator("[data-copy-prompt]").click();
+        await until(
+          page,
+          "the refused copy selects the whole prompt",
+          () =>
+            window.getSelection()?.toString() ===
+            document.querySelector("pre.prompt code")?.textContent,
+        );
+        assert.equal(await copy.isVisible(), true);
+        assert.equal(await copy.getAttribute("data-state"), null);
+        assert.match(
+          (await page.getByRole("status").textContent()) ?? "",
+          spanish ? /No se pudo copiar/ : /Copy failed/,
+        );
+        await page.evaluate(() => {
+          Reflect.deleteProperty(navigator.clipboard, "writeText");
+        });
+        await copy.click();
+        await until(
+          page,
+          "copying works again after a refusal",
+          () =>
+            document.querySelector("[data-copy-prompt]")?.getAttribute("data-state") === "copied",
+        );
+        assert.equal(await page.evaluate(() => navigator.clipboard.readText()), oneLiner);
         const address = await page
           .locator('main a[href$="prompt.md"]')
           .first()
@@ -5017,12 +5068,51 @@ const tests: Test[] = [
             scheme === "dark" ? "/sea-diagrams-dark.svg" : "/sea-diagrams.svg",
           );
           assert.equal(await page.locator(".setup-sea img").getAttribute("alt"), "");
-          assert.equal(await page.locator("script").count(), 0, `${path} holds no script`);
+          assert.equal(
+            await page.locator("script").count(),
+            1,
+            `${path} holds only its copy module`,
+          );
+          assert.ok((await page.locator("script").getAttribute("src"))?.endsWith("copy-prompt.js"));
+          const buttonBox = await page.locator("[data-copy-prompt]").boundingBox();
+          const promptBox = await page.locator("pre.prompt").boundingBox();
+          assert.ok(buttonBox && promptBox);
+          assert.ok(
+            buttonBox.x >= promptBox.x &&
+              buttonBox.x + buttonBox.width <= promptBox.x + promptBox.width,
+          );
+          assert.ok(
+            buttonBox.y >= promptBox.y &&
+              buttonBox.y + buttonBox.height <= promptBox.y + promptBox.height,
+          );
           await page.screenshot({
             path: join(output, picture.replace(".png", `-sea-${scheme}.png`)),
           });
         }
         await page.emulateMedia({ colorScheme: "light" });
+      }
+    },
+  },
+  {
+    name: "the agent setup page keeps its prompt readable without JavaScript",
+    async run({ context, url }) {
+      const plain = await context.browser()!.newContext({
+        javaScriptEnabled: false,
+        viewport: { width: 375, height: 800 },
+      });
+      try {
+        const page = await plain.newPage();
+        for (const path of ["agent-setup/", "es/agent-setup/"]) {
+          await page.goto(new URL(path, url).href);
+          assert.equal(await page.locator("pre.prompt code").isVisible(), true);
+          assert.match(
+            (await page.locator("pre.prompt code").textContent()) ?? "",
+            /^Set up Meltemi Diagrams/,
+          );
+          assert.equal(await page.locator("[data-copy-prompt]").isVisible(), false);
+        }
+      } finally {
+        await plain.close();
       }
     },
   },
